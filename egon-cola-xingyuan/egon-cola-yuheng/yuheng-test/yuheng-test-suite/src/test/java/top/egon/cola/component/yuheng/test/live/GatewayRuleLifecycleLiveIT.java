@@ -6,7 +6,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 class GatewayRuleLifecycleLiveIT {
 
     @Test
-    @EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
+    @EnabledIfSystemProperty(named = "yuheng.live.test", matches = "true")
     void verifiesDualEngineReleaseRollbackAndDistributedRateLimit()
             throws Exception {
         new GatewayLiveTopologyIT().verifyHttpProvidersLifecycle();

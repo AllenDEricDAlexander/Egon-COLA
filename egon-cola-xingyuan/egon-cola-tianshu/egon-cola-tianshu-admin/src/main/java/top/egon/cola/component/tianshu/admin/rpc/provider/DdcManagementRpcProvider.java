@@ -47,8 +47,8 @@ import top.egon.cola.component.rpc.tianshu.mapping.DdcCommonProtoMapper;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcManagementProtoMapper;
 
 /**
- * 将管理 RPC 契约适配到 DDC 管理应用门面。
- * / Adapts the management RPC contract to the DDC management facade.
+ * 将管理 RPC 契约适配到 Tianshu 管理应用门面。
+ * / Adapts the management RPC contract to the Tianshu management facade.
  */
 @EgonRpcProvider
 public class DdcManagementRpcProvider implements DdcManagementRpc {
@@ -58,8 +58,8 @@ public class DdcManagementRpcProvider implements DdcManagementRpc {
     private final DdcManagementProtoMapper mapper;
 
     /**
-     * 使用本地 DDC 和 RPC 限额创建 Provider。
-     * / Creates the provider with the local DDC and RPC size limits.
+     * 使用本地 Tianshu 和 RPC 限额创建 Provider。
+     * / Creates the provider with the local Tianshu and RPC size limits.
      */
     @Autowired
     public DdcManagementRpcProvider(

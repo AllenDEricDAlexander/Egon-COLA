@@ -316,17 +316,17 @@ def _protocol_reason(row: AuditRow) -> str | None:
         return f"protocol endpoint by path {row.path}"
     if path.startswith("/api/v1/auth/"):
         return f"authorization bootstrap endpoint by path {row.path}"
-    if path.startswith("/api/rbac3/v1/internal/"):
+    if path.startswith("/api/tianquan-jianshen/v1/internal/"):
         return f"internal integration endpoint by path {row.path}"
-    if path.startswith("/api/rbac3/v1/registration/"):
+    if path.startswith("/api/tianquan-jianshen/v1/registration/"):
         return f"CI resource registration endpoint by path {row.path}"
-    if path.startswith("/api/v1/gateway/openapi/interface-definitions/reports"):
+    if path.startswith("/api/v1/yuheng/openapi/interface-definitions/reports"):
         return f"Gateway engine definition report callback by path {row.path}"
-    if path == "/api/v1/gateway/admin/providers/services":
+    if path == "/api/v1/yuheng/admin/providers/services":
         return "Gateway runtime projection consumed by engine/provider integration"
-    if path == "/api/rbac3/v1/directory-snapshots/{snapshotid}".lower():
+    if path == "/api/tianquan-jianshen/v1/directory-snapshots/{snapshotid}".lower():
         return "directory snapshot receipt endpoint; snapshot ingestion is not an Admin CRUD surface"
-    if path in {"/api/rbac3/v1/org-units", "/api/rbac3/v1/positions"}:
+    if path in {"/api/tianquan-jianshen/v1/org-units", "/api/tianquan-jianshen/v1/positions"}:
         return "legacy directory projection; Admin UI uses the canonical IAM organization resource"
     if any(fragment in path for fragment in protocol_fragments):
         return f"protocol endpoint by path {row.path}"
@@ -372,10 +372,10 @@ def classify(rows: Sequence[AuditRow], web_inventory: Mapping[str, object]) -> A
 def _platform_roots(repo_root: Path) -> list[tuple[str, Path, Path]]:
     platforms_root = repo_root / "egon-cola-xingyuan"
     return [
-        ("IDP", platforms_root / "egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java", platforms_root / "egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web"),
-        ("RBAC3", platforms_root / "egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java", platforms_root / "egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web"),
-        ("Gateway", platforms_root / "egon-cola-yuheng/yuheng-admin/src/main/java", platforms_root / "egon-cola-yuheng/yuheng-admin-web"),
-        ("DDC", platforms_root / "egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java", platforms_root / "egon-cola-tianshu/egon-cola-tianshu-admin-web"),
+        ("Tianquan-Shoubing", platforms_root / "egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java", platforms_root / "egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web"),
+        ("Tianquan-Jianshen", platforms_root / "egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java", platforms_root / "egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web"),
+        ("Yuheng", platforms_root / "egon-cola-yuheng/yuheng-admin/src/main/java", platforms_root / "egon-cola-yuheng/yuheng-admin-web"),
+        ("Tianshu", platforms_root / "egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java", platforms_root / "egon-cola-tianshu/egon-cola-tianshu-admin-web"),
     ]
 
 

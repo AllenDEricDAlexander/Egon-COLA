@@ -8,9 +8,9 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 要求当前主体是携带指定 IdP Scope 的 SERVICE Principal。
+ * 要求当前主体是携带指定 Tianquan-Shoubing Scope 的 SERVICE Principal。
  *
- * <p>Requires the current principal to be a SERVICE principal carrying the specified IdP scope.</p>
+ * <p>Requires the current principal to be a SERVICE principal carrying the specified Tianquan-Shoubing scope.</p>
  */
 @Target({ElementType.METHOD, ElementType.TYPE})
 @Retention(RetentionPolicy.RUNTIME)
@@ -18,9 +18,9 @@ import java.lang.annotation.Target;
 public @interface RequiresServiceScope {
 
     /**
-     * 返回当前操作要求的 IdP 服务 Scope。
+     * 返回当前操作要求的 Tianquan-Shoubing 服务 Scope。
      *
-     * <p>Returns the IdP service scope required by the current operation.</p>
+     * <p>Returns the Tianquan-Shoubing service scope required by the current operation.</p>
      *
      * @return 服务 Scope；service scope
      */

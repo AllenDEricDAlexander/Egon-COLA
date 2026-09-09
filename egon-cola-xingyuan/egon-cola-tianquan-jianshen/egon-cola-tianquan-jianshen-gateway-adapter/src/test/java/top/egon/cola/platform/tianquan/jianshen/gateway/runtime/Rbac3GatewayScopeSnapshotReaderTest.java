@@ -48,10 +48,10 @@ class Rbac3GatewayScopeSnapshotReaderTest {
                 new ApplicationAccessScope("app-1", "console"))))));
 
         AuthorizationDecision decision = fixture.reader().authorize(context(
-                Map.of("idp.biz-code", "orders", "idp.app-code", "console")));
+                Map.of("tianquan-shoubing.biz-code", "orders", "tianquan-shoubing.app-code", "console")));
 
         assertThat(decision).isEqualTo(AuthorizationDecision.deny(
-                "RBAC3_BUSINESS_SCOPE_DENIED"));
+                "TIANQUAN_JIANSHEN_BUSINESS_SCOPE_DENIED"));
         assertThat(fixture.requestedKeys()).containsExactly(
                 keys.user("7", "9"),
                 keys.authorizationPublicationGuard("7", "9"),
@@ -66,10 +66,10 @@ class Rbac3GatewayScopeSnapshotReaderTest {
                 "biz-1", "orders", List.of()))));
 
         AuthorizationDecision decision = fixture.reader().authorize(context(
-                Map.of("idp.biz-code", "orders", "idp.app-code", "console")));
+                Map.of("tianquan-shoubing.biz-code", "orders", "tianquan-shoubing.app-code", "console")));
 
         assertThat(decision).isEqualTo(AuthorizationDecision.deny(
-                "RBAC3_APPLICATION_SCOPE_DENIED"));
+                "TIANQUAN_JIANSHEN_APPLICATION_SCOPE_DENIED"));
     }
 
     @Test
@@ -77,10 +77,10 @@ class Rbac3GatewayScopeSnapshotReaderTest {
         Fixture fixture = fixture(validScope());
 
         AuthorizationDecision decision = fixture.reader().authorize(context(Map.of(
-                "idp.biz-code", "orders",
-                "idp.app-code", "console",
-                "rbac3.definition-set-id", "definition-7",
-                "rbac3.mapping-version", "5")));
+                "tianquan-shoubing.biz-code", "orders",
+                "tianquan-shoubing.app-code", "console",
+                "tianquan-jianshen.definition-set-id", "definition-7",
+                "tianquan-jianshen.mapping-version", "5")));
 
         assertThat(decision).isEqualTo(AuthorizationDecision.allow());
         assertThat(fixture.requestedKeys())
@@ -95,20 +95,20 @@ class Rbac3GatewayScopeSnapshotReaderTest {
         assertThat(fixture.reader().authorize(context(Map.of()).withPrincipal(
                 GatewayPrincipal.anonymous())))
                 .isEqualTo(AuthorizationDecision.deny(
-                        "RBAC3_PRINCIPAL_REQUIRED"));
+                        "TIANQUAN_JIANSHEN_PRINCIPAL_REQUIRED"));
         assertThat(fixture.reader().authorize(context(Map.of()).withPrincipal(
                 new GatewayPrincipal(
                         "service", "SERVICE", "7", null, true, Map.of()))))
                 .isEqualTo(AuthorizationDecision.deny(
-                        "RBAC3_USER_PRINCIPAL_REQUIRED"));
+                        "TIANQUAN_JIANSHEN_USER_PRINCIPAL_REQUIRED"));
         assertThat(fixture.reader().authorize(context(
-                Map.of("idp.app-code", "console"))))
+                Map.of("tianquan-shoubing.app-code", "console"))))
                 .isEqualTo(AuthorizationDecision.deny(
-                        "RBAC3_BUSINESS_SCOPE_REQUIRED"));
+                        "TIANQUAN_JIANSHEN_BUSINESS_SCOPE_REQUIRED"));
         assertThat(fixture.reader().authorize(context(
-                Map.of("idp.biz-code", "orders"))))
+                Map.of("tianquan-shoubing.biz-code", "orders"))))
                 .isEqualTo(AuthorizationDecision.deny(
-                        "RBAC3_APPLICATION_SCOPE_REQUIRED"));
+                        "TIANQUAN_JIANSHEN_APPLICATION_SCOPE_REQUIRED"));
         assertThat(fixture.requestedKeys()).isEmpty();
     }
 
@@ -116,34 +116,34 @@ class Rbac3GatewayScopeSnapshotReaderTest {
     void rejectsFenceMissingExpiryVersionTenantAndRedisFailures() {
         Fixture fenced = fixture(validScope());
         fenced.existingKeys().add(keys.authorizationPublicationGuard("7", "9"));
-        assertUnavailable(fenced, "RBAC3_AUTHORIZATION_PUBLICATION_PENDING");
+        assertUnavailable(fenced, "TIANQUAN_JIANSHEN_AUTHORIZATION_PUBLICATION_PENDING");
 
         Fixture missing = fixture(validScope());
         missing.values().remove(keys.gatewayScope("7", "9", 3L));
-        assertUnavailable(missing, "RBAC3_SCOPE_RUNTIME_UNAVAILABLE");
+        assertUnavailable(missing, "TIANQUAN_JIANSHEN_SCOPE_RUNTIME_UNAVAILABLE");
 
         Fixture expired = fixture(scope(List.of(), NOW.minusSeconds(1)));
-        assertUnavailable(expired, "RBAC3_SCOPE_VERSION_MISMATCH");
+        assertUnavailable(expired, "TIANQUAN_JIANSHEN_SCOPE_VERSION_MISMATCH");
 
         Fixture versionDrift = fixture(validScope());
         versionDrift.values().put(keys.authVersion("7", "9"), "4");
-        assertUnavailable(versionDrift, "RBAC3_RUNTIME_VERSION_MISMATCH");
+        assertUnavailable(versionDrift, "TIANQUAN_JIANSHEN_RUNTIME_VERSION_MISMATCH");
 
         Fixture tenantMismatch = fixture(new GatewayBizAppScopeSnapshot(
                 "8", "9", "9", 3L, 5L,
                 validScope().businesses(), "scope-checksum",
                 NOW.minusSeconds(1), NOW.plusSeconds(300)));
-        assertUnavailable(tenantMismatch, "RBAC3_SCOPE_VERSION_MISMATCH");
+        assertUnavailable(tenantMismatch, "TIANQUAN_JIANSHEN_SCOPE_VERSION_MISMATCH");
 
         Fixture redisFailure = fixture(validScope());
         redisFailure.failures().put(keys.user("7", "9"),
                 new IllegalStateException("redis timeout"));
-        assertUnavailable(redisFailure, "RBAC3_SCOPE_RUNTIME_UNAVAILABLE");
+        assertUnavailable(redisFailure, "TIANQUAN_JIANSHEN_SCOPE_RUNTIME_UNAVAILABLE");
     }
 
     private void assertUnavailable(Fixture fixture, String reason) {
         assertThatThrownBy(() -> fixture.reader().authorize(context(Map.of(
-                "idp.biz-code", "orders", "idp.app-code", "console"))))
+                "tianquan-shoubing.biz-code", "orders", "tianquan-shoubing.app-code", "console"))))
                 .isInstanceOf(
                         Rbac3GatewayScopeSnapshotReader.RuntimeUnavailableException.class)
                 .hasMessage(reason);

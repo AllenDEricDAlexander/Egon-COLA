@@ -47,7 +47,7 @@ class DdcRedisKeysTest {
         assertThat(hashTag(value))
                 .hasSize(64)
                 .doesNotContain("retail", "local", "order");
-        assertThat(value).startsWith("ddc:v3:{").endsWith(":config:feature.enabled");
+        assertThat(value).startsWith("tianshu:v3:{").endsWith(":config:feature.enabled");
         assertThat(version).endsWith(":version:feature.enabled");
         assertThat(topic).endsWith(":topic");
         assertThat(lease).endsWith(":lease:instance:instance-1");
@@ -96,9 +96,9 @@ class DdcRedisKeysTest {
         assertThat(catalogRevision).endsWith(":registry:catalog-revision:http");
         assertThat(topic).endsWith(":registry:topic:http");
         assertThat(DdcRedisKeys.globalRegistryCatalog())
-                .isEqualTo("ddc:v3:{registry-catalog}:services");
+                .isEqualTo("tianshu:v3:{registry-catalog}:services");
         assertThat(DdcRedisKeys.globalRegistryCatalogRevision())
-                .isEqualTo("ddc:v3:{registry-catalog}:revision");
+                .isEqualTo("tianshu:v3:{registry-catalog}:revision");
     }
 
     private String hashTag(String key) {

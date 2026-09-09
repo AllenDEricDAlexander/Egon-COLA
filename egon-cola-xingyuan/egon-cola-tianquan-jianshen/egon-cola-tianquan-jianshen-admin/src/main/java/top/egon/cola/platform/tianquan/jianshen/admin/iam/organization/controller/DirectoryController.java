@@ -40,12 +40,12 @@ import java.util.Map;
  * Organization, position, and directory-snapshot HTTP entry point.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/tianquan-jianshen/v1")
 @Tag(name = "organization-directory", description = "用户与目录接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -75,9 +75,9 @@ public class DirectoryController {
     @GetMapping("/org-units")
     @RequiresPermission(value = "system:directory:read")
     @Operation(
-            operationId = "rbac3-directory-org-unit-list-v1",
+            operationId = "tianquan-jianshen-directory-org-unit-list-v1",
             summary = "查询组织单元",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -104,9 +104,9 @@ public class DirectoryController {
     @GetMapping("/positions")
     @RequiresPermission(value = "system:directory:read")
     @Operation(
-            operationId = "rbac3-directory-position-list-v1",
+            operationId = "tianquan-jianshen-directory-position-list-v1",
             summary = "查询岗位",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -131,9 +131,9 @@ public class DirectoryController {
     @PostMapping("/internal/directory-snapshots")
     @RequiresPermission(value = "system:directory:sync")
     @Operation(
-            operationId = "rbac3-directory-snapshot-submit-v1",
+            operationId = "tianquan-jianshen-directory-snapshot-submit-v1",
             summary = "提交单调递增的目录快照",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -157,9 +157,9 @@ public class DirectoryController {
     @GetMapping("/directory-snapshots/{snapshotId}")
     @RequiresPermission(value = "system:directory-snapshot:read")
     @Operation(
-            operationId = "rbac3-directory-snapshot-get-v1",
+            operationId = "tianquan-jianshen-directory-snapshot-get-v1",
             summary = "读取不可变目录快照回执",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

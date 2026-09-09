@@ -11,8 +11,8 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceRegistration;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceSnapshot;
 
 /**
- * 收敛 DDC 服务注册与发现用例的应用门面。
- * / Application facade that consolidates DDC service registration and discovery use cases.
+ * 收敛 Tianshu 服务注册与发现用例的应用门面。
+ * / Application facade that consolidates Tianshu service registration and discovery use cases.
  */
 @Service
 public class DdcRegistryFacade {

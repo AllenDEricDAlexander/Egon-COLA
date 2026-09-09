@@ -17,7 +17,7 @@ class RpcStatusExceptionMapperTest {
     void shouldMapStablePublicErrorCodes() {
         assertCode(Status.DEADLINE_EXCEEDED, EgonRpcErrorCode.RPC_DEADLINE_EXCEEDED);
         assertCode(Status.CANCELLED, EgonRpcErrorCode.RPC_CANCELLED);
-        assertCode(Status.UNAVAILABLE, EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
+        assertCode(Status.UNAVAILABLE, EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE);
         assertCode(Status.INVALID_ARGUMENT, EgonRpcErrorCode.RPC_INVALID_REQUEST);
         assertCode(Status.UNIMPLEMENTED, EgonRpcErrorCode.RPC_METHOD_NOT_FOUND);
         assertCode(Status.INTERNAL, EgonRpcErrorCode.RPC_INTERNAL);
@@ -54,7 +54,7 @@ class RpcStatusExceptionMapperTest {
         ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE);
         assertThat(mapper.map(
                 Status.UNAVAILABLE.asRuntimeException(gatewayTrailers)
-        ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE);
+        ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE);
     }
 
     @Test

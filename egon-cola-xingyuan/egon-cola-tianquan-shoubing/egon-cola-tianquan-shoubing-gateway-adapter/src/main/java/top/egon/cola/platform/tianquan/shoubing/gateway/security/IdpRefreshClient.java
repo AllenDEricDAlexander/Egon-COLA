@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Internal IdP refresh transport used only by Gateway credential recovery.
+ * Internal Tianquan-Shoubing refresh transport used only by Gateway credential recovery.
  */
 public interface IdpRefreshClient {
 

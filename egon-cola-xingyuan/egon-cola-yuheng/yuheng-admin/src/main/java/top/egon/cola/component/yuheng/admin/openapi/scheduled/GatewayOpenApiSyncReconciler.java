@@ -16,7 +16,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 /**
  * Thin fixed-delay trigger for OpenAPI synchronization.
  *
- * <p>中文：调度器只负责有界触发和同实例防重入；DDC、网络、快照、聚合及
+ * <p>中文：调度器只负责有界触发和同实例防重入；Tianshu、网络、快照、聚合及
  * revision CAS 全部由 {@link GatewayOpenApiSyncService} 负责，单个候选的
  * 异常不会终止后续调度。</p>
  */
@@ -24,7 +24,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Validated
 @Component("gatewayOpenApiSyncReconciler")
 @ConditionalOnProperty(
-        name = "gateway.admin.openapi.enabled",
+        name = "yuheng.admin.openapi.enabled",
         havingValue = "true"
 )
 @ConditionalOnBean(GatewayOpenApiSyncService.class)
@@ -53,7 +53,7 @@ public class GatewayOpenApiSyncReconciler {
      */
     @Scheduled(
             fixedDelayString =
-                    "${gateway.admin.openapi.reconcile-delay:PT30S}"
+                    "${yuheng.admin.openapi.reconcile-delay:PT30S}"
     )
     public void reconcile() {
         if (!running.compareAndSet(false, true)) {

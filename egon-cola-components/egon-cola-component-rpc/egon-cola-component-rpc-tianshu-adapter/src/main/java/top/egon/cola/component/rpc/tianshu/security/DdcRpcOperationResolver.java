@@ -4,17 +4,17 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 将已发布的 DDC RPC 方法严格映射为鉴权操作。
- * / Strictly maps published DDC RPC methods to authorization operations.
+ * 将已发布的 Tianshu RPC 方法严格映射为鉴权操作。
+ * / Strictly maps published Tianshu RPC methods to authorization operations.
  */
 public final class DdcRpcOperationResolver {
 
     private static final String CONFIG =
-            "egon.ddc.v1.DdcConfigRuntimeService/";
+            "egon.tianshu.v1.DdcConfigRuntimeService/";
     private static final String REGISTRY =
-            "egon.ddc.v1.DdcServiceRegistryService/";
+            "egon.tianshu.v1.DdcServiceRegistryService/";
     private static final String MANAGEMENT =
-            "egon.ddc.v1.DdcManagementService/";
+            "egon.tianshu.v1.DdcManagementService/";
 
     private final Map<String, DdcRpcOperation> operations = operations();
 
@@ -26,7 +26,7 @@ public final class DdcRpcOperationResolver {
         DdcRpcOperation operation = operations.get(fullMethodName);
         if (operation == null) {
             throw new IllegalArgumentException(
-                    "Unknown DDC RPC method: " + fullMethodName);
+                    "Unknown Tianshu RPC method: " + fullMethodName);
         }
         return operation;
     }

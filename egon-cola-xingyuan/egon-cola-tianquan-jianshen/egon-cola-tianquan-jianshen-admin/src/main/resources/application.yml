@@ -1,19 +1,19 @@
 spring:
   application:
-    name: rbac3-admin
+    name: tianquan-jianshen-admin
   profiles:
     default: local
   config:
     import:
-      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/rbac3.properties
-      - optional:ddc:application.yml
+      - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/tianquan-jianshen.properties
+      - optional:tianshu:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   datasource:
-    url: ${RBAC3_POSTGRES_URL}
-    username: ${RBAC3_POSTGRES_USER}
-    password: ${RBAC3_POSTGRES_PASSWORD}
+    url: ${TIANQUAN_JIANSHEN_POSTGRES_URL}
+    username: ${TIANQUAN_JIANSHEN_POSTGRES_USER}
+    password: ${TIANQUAN_JIANSHEN_POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   flyway:
     enabled: false
@@ -28,21 +28,21 @@ spring:
   lifecycle:
     timeout-per-shutdown-phase: 30s
 server:
-  port: ${RBAC3_ADVERTISED_PORT:0}
+  port: ${TIANQUAN_JIANSHEN_ADVERTISED_PORT:0}
   shutdown: graceful
 
 springdoc:
   api-docs:
-    enabled: ${RBAC3_OPENAPI_ENABLED:false}
+    enabled: ${TIANQUAN_JIANSHEN_OPENAPI_ENABLED:false}
     version: OPENAPI_3_1
   group-configs:
     - group: iam
       paths-to-match:
-        - /api/rbac3/v1/**
+        - /api/tianquan-jianshen/v1/**
         - /api/v1/auth/about
       paths-to-exclude:
-        - /api/rbac3/v1/registration/**
-        - /api/rbac3/v1/internal/business-participations/**
+        - /api/tianquan-jianshen/v1/registration/**
+        - /api/tianquan-jianshen/v1/internal/business-participations/**
 
 management:
   endpoints:
@@ -60,71 +60,71 @@ management:
           include: readinessState,rbac3Readiness
 
 egon.cola.platform:
-  idp:
+  tianquan-shoubing:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
-    issuer: ${IDP_OAUTH_ISSUER}
-    jwk-set-uri: ${IDP_JWK_SET_URI}
-    resource-server-id: ${RBAC3_RESOURCE_SERVER_ID}
-    resource-uri: ${RBAC3_RESOURCE_URI}
-  rbac3:
+    issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+    jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+    resource-server-id: ${TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID}
+    resource-uri: ${TIANQUAN_JIANSHEN_RESOURCE_URI}
+  tianquan-jianshen:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
-    system-code: rbac3-admin
+    system-code: tianquan-jianshen-admin
     runtime:
       redis-enabled: true
-      redis-address: ${RBAC3_AUTHORIZATION_REDIS_ADDRESS}
-      database: ${RBAC3_AUTHORIZATION_REDIS_DATABASE:0}
+      redis-address: ${TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_ADDRESS}
+      database: ${TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_DATABASE:0}
     authorization:
-      endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
+      endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT}
       service-token:
-        enabled: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED:true}
-        resource-uri: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
-        scopes: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
-        renewal-skew: ${RBAC3_AUTHORIZATION_SERVICE_TOKEN_RENEWAL_SKEW:30s}
+        enabled: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED:true}
+        resource-uri: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
+        scopes: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
+        renewal-skew: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_RENEWAL_SKEW:30s}
 
 egon:
-  rbac3:
+  tianquan-jianshen:
     maximum-active-roots: 16
-    component-keys: ${RBAC3_COMPONENT_KEYS}
+    component-keys: ${TIANQUAN_JIANSHEN_COMPONENT_KEYS}
     runtime:
       redis-enabled: true
-      redis-address: ${RBAC3_RUNTIME_REDIS_ADDRESS}
-      redis-database: ${RBAC3_RUNTIME_REDIS_DATABASE:0}
-      redis-timeout: ${RBAC3_RUNTIME_REDIS_TIMEOUT:2s}
-      redis-password-file: ${RBAC3_RUNTIME_REDIS_PASSWORD_FILE}
-    gateway-status:
-      admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
-      gateway-group-id: ${GATEWAY_GROUP_ID}
-      release-id: ${GATEWAY_RELEASE_ID}
-      oauth-token-file: ${GATEWAY_STATUS_OAUTH_TOKEN_FILE}
-      timeout: ${GATEWAY_STATUS_TIMEOUT:3s}
+      redis-address: ${TIANQUAN_JIANSHEN_RUNTIME_REDIS_ADDRESS}
+      redis-database: ${TIANQUAN_JIANSHEN_RUNTIME_REDIS_DATABASE:0}
+      redis-timeout: ${TIANQUAN_JIANSHEN_RUNTIME_REDIS_TIMEOUT:2s}
+      redis-password-file: ${TIANQUAN_JIANSHEN_RUNTIME_REDIS_PASSWORD_FILE}
+    yuheng-status:
+      admin-base-url: ${YUHENG_ADMIN_BASE_URL}
+      yuheng-group-id: ${YUHENG_GROUP_ID}
+      release-id: ${YUHENG_RELEASE_ID}
+      oauth-token-file: ${YUHENG_STATUS_OAUTH_TOKEN_FILE}
+      timeout: ${YUHENG_STATUS_TIMEOUT:3s}
     topology:
-      ddc-registry-client-bean: ddcRedissonClient
+      tianshu-registry-client-bean: ddcRedissonClient
       runtime-client-bean: rbac3RuntimeRedissonClient
   cola:
     component:
       id:
         enabled: true
-        machine-id: ${RBAC3_SNOWFLAKE_MACHINE_ID}
+        machine-id: ${TIANQUAN_JIANSHEN_SNOWFLAKE_MACHINE_ID}
       rpc:
-        enabled: ${RBAC3_RPC_ENABLED:true}
+        enabled: ${TIANQUAN_JIANSHEN_RPC_ENABLED:true}
         consumer:
-          enabled: ${RBAC3_RPC_CONSUMER_ENABLED:true}
+          enabled: ${TIANQUAN_JIANSHEN_RPC_CONSUMER_ENABLED:true}
         tls:
-          enabled: ${IDP_ADMISSION_RPC_TLS_ENABLED:false}
-          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}}
-          certificate-chain-path: ${IDP_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
-          private-key-path: ${IDP_ADMISSION_RPC_PRIVATE_KEY_PATH:}
-          trust-certificate-collection-path: ${IDP_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
-      ddc:
+          enabled: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TLS_ENABLED:false}
+          development-plaintext: ${TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}}
+          certificate-chain-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      tianshu:
         enabled: true
-        biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
-        app-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}
+        biz-code: ${TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE:permission}
+        app-code: ${TIANQUAN_JIANSHEN_RESOURCE_APP_CODE:tianquan-jianshen}
         env: ${DEPLOYMENT_ENV}
         namespace: ${DEPLOYMENT_NAMESPACE}
         instance:
-          id: ${RBAC3_INSTANCE_ID}
+          id: ${TIANQUAN_JIANSHEN_INSTANCE_ID}
           lease-seconds: 30
           heartbeat-interval-seconds: 10
         consistency:
@@ -132,75 +132,75 @@ egon:
           reconcile-enabled: true
           reconcile-interval-seconds: 30
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${DDC_RPC_TLS_ENABLED:false}
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY}
             management:
-              access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY}
-              secret-key: ${DDC_RPC_MANAGEMENT_SECRET_KEY}
+              access-key: ${TIANSHU_RPC_MANAGEMENT_ACCESS_KEY}
+              secret-key: ${TIANSHU_RPC_MANAGEMENT_SECRET_KEY}
         redis:
           enabled: true
-          mode: ${DDC_REGISTRY_REDIS_MODE:SINGLE}
-          nodes: ${DDC_REGISTRY_REDIS_NODES:}
-          master-name: ${DDC_REGISTRY_REDIS_MASTER_NAME:}
-          host: ${DDC_REGISTRY_REDIS_HOST}
-          port: ${DDC_REGISTRY_REDIS_PORT:6379}
-          password: ${DDC_REGISTRY_REDIS_PASSWORD}
-          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
+          mode: ${TIANSHU_REGISTRY_REDIS_MODE:SINGLE}
+          nodes: ${TIANSHU_REGISTRY_REDIS_NODES:}
+          master-name: ${TIANSHU_REGISTRY_REDIS_MASTER_NAME:}
+          host: ${TIANSHU_REGISTRY_REDIS_HOST}
+          port: ${TIANSHU_REGISTRY_REDIS_PORT:6379}
+          password: ${TIANSHU_REGISTRY_REDIS_PASSWORD}
+          database: ${TIANSHU_REGISTRY_REDIS_DATABASE:0}
         registry:
           enabled: true
           http:
             enabled: true
             env: ${DEPLOYMENT_ENV}
             namespace: ${DEPLOYMENT_NAMESPACE}
-            instance-id: ${RBAC3_INSTANCE_ID}
-            service-name: rbac3-admin
+            instance-id: ${TIANQUAN_JIANSHEN_INSTANCE_ID}
+            service-name: tianquan-jianshen-admin
             group: default
-            version: ${RBAC3_ARTIFACT_VERSION}
+            version: ${TIANQUAN_JIANSHEN_ARTIFACT_VERSION}
             protocol: http
-            advertised-host: ${RBAC3_ADVERTISED_HOST}
-            port: ${RBAC3_ADVERTISED_PORT}
+            advertised-host: ${TIANQUAN_JIANSHEN_ADVERTISED_HOST}
+            port: ${TIANQUAN_JIANSHEN_ADVERTISED_PORT}
             lease-seconds: 30
             heartbeat-interval-seconds: 10
             fail-fast: true
-      gateway:
+      yuheng:
         openapi:
-          enabled: ${RBAC3_OPENAPI_ENABLED:false}
-          publish-to-ddc: ${RBAC3_OPENAPI_PUBLISH_TO_DDC:false}
+          enabled: ${TIANQUAN_JIANSHEN_OPENAPI_ENABLED:false}
+          publish-to-tianshu: ${TIANQUAN_JIANSHEN_OPENAPI_PUBLISH_TO_TIANSHU:false}
           published-groups:
             - iam
-          biz-code: ${RBAC3_OPENAPI_BIZ_CODE:${RBAC3_RESOURCE_BIZ_CODE:permission}}
-          application-code: ${RBAC3_OPENAPI_APPLICATION_CODE:${RBAC3_RESOURCE_APP_CODE:rbac3}}
-          resource-uri: ${RBAC3_OPENAPI_RESOURCE_URI:${RBAC3_RESOURCE_URI:}}
-          artifact-version: ${RBAC3_OPENAPI_ARTIFACT_VERSION:${RBAC3_ARTIFACT_VERSION:local}}
-          build-id: ${RBAC3_OPENAPI_BUILD_ID:${RBAC3_BUILD_ID:local}}
+          biz-code: ${TIANQUAN_JIANSHEN_OPENAPI_BIZ_CODE:${TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE:permission}}
+          application-code: ${TIANQUAN_JIANSHEN_OPENAPI_APPLICATION_CODE:${TIANQUAN_JIANSHEN_RESOURCE_APP_CODE:tianquan-jianshen}}
+          resource-uri: ${TIANQUAN_JIANSHEN_OPENAPI_RESOURCE_URI:${TIANQUAN_JIANSHEN_RESOURCE_URI:}}
+          artifact-version: ${TIANQUAN_JIANSHEN_OPENAPI_ARTIFACT_VERSION:${TIANQUAN_JIANSHEN_ARTIFACT_VERSION:local}}
+          build-id: ${TIANQUAN_JIANSHEN_OPENAPI_BUILD_ID:${TIANQUAN_JIANSHEN_BUILD_ID:local}}
         reporting:
-          enabled: ${RBAC3_GATEWAY_REPORTING_ENABLED:true}
-          admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
-          biz-code: ${RBAC3_RESOURCE_BIZ_CODE:permission}
-          application-code: ${RBAC3_RESOURCE_APP_CODE:rbac3}
-          application-name: RBAC3 Permission Admin
+          enabled: ${TIANQUAN_JIANSHEN_YUHENG_REPORTING_ENABLED:true}
+          admin-base-url: ${YUHENG_ADMIN_BASE_URL}
+          biz-code: ${TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE:permission}
+          application-code: ${TIANQUAN_JIANSHEN_RESOURCE_APP_CODE:tianquan-jianshen}
+          application-name: Tianquan-Jianshen Permission Admin
           env: ${DEPLOYMENT_ENV}
           namespace: ${DEPLOYMENT_NAMESPACE}
-          artifact-version: ${RBAC3_ARTIFACT_VERSION}
-          build-id: ${RBAC3_BUILD_ID}
-          declared-hosts: ${RBAC3_DECLARED_HOSTS}
+          artifact-version: ${TIANQUAN_JIANSHEN_ARTIFACT_VERSION}
+          build-id: ${TIANQUAN_JIANSHEN_BUILD_ID}
+          declared-hosts: ${TIANQUAN_JIANSHEN_DECLARED_HOSTS}
           fail-fast: true
-          access-key: ${GATEWAY_REPORT_ACCESS_KEY}
-          secret-key: ${GATEWAY_REPORT_SECRET_KEY}
-          state-file: ${GATEWAY_REPORT_STATE_FILE}
+          access-key: ${YUHENG_REPORT_ACCESS_KEY}
+          secret-key: ${YUHENG_REPORT_SECRET_KEY}
+          state-file: ${YUHENG_REPORT_STATE_FILE}
       transactional-outbox:
         enabled: true
-        node-id: ${RBAC3_INSTANCE_ID}
+        node-id: ${TIANQUAN_JIANSHEN_INSTANCE_ID}
         storage:
           data-source-bean-name: dataSource
           transaction-manager-bean-name: transactionManager

@@ -24,8 +24,8 @@ import java.util.TreeSet;
 import java.util.function.Supplier;
 
 /**
- * 通过 IdP Client Credentials 为异步 MCP 任务换取目标 Provider 的 SERVICE Token。
- * Exchanges IdP Client Credentials for target-provider SERVICE tokens used by asynchronous MCP
+ * 通过 Tianquan-Shoubing Client Credentials 为异步 MCP 任务换取目标 Provider 的 SERVICE Token。
+ * Exchanges Tianquan-Shoubing Client Credentials for target-provider SERVICE tokens used by asynchronous MCP
  * tasks.
  *
  * <p>缓存按 tenant 与 Resource URI 双重隔离，每次续签都会创建新的不可重放
@@ -60,7 +60,7 @@ public final class HttpMcpTaskServiceTokenSupplier
     /** Spring Security OAuth2 Client facade used by the production path. */
     private final IdpServiceOAuth2Client serviceClient;
 
-    /** IdP client registration settings used by the production path. */
+    /** Tianquan-Shoubing client registration settings used by the production path. */
     private final IdpStarterProperties idpProperties;
 
     /**
@@ -72,7 +72,7 @@ public final class HttpMcpTaskServiceTokenSupplier
     private final Supplier<String> assertions;
 
     /**
-     * IdP 许可的任务执行 Scope；IdP-authorized task-execution scopes.
+     * Tianquan-Shoubing 许可的任务执行 Scope；Tianquan-Shoubing-authorized task-execution scopes.
      * 补充说明 / Supplementary summary: 保存 scopes 对应的状态、依赖或配置值；字段类型为 {@code Set<String>}，由 {@code HttpMcpTaskServiceTokenSupplier} 在其生命周期内读取或更新。
      * English supplement: Holds the state, dependency, or configuration represented by scopes; its type is {@code Set<String>}, and {@code HttpMcpTaskServiceTokenSupplier} reads or updates it during its lifecycle.
      * 用法 / Usage: 该字段通过 {@code HttpMcpTaskServiceTokenSupplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code HttpMcpTaskServiceTokenSupplier}; do not couple callers to its representation when the owning type exposes an API.
@@ -115,8 +115,8 @@ public final class HttpMcpTaskServiceTokenSupplier
      * 创建生产 HTTP SERVICE Token 提供器。
      * Creates the production HTTP SERVICE-token supplier.
      *
-     * @param serviceClient IdP OAuth2 Client facade；IdP OAuth2 Client facade
-     * @param idpProperties IdP client registration settings；IdP client settings
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade；Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client registration settings；Tianquan-Shoubing client settings
      * @param scopes 任务执行 Scope；task-execution scopes
      * @param renewalSkew 提前续签窗口；renewal skew
      * @param clock UTC 业务时钟；UTC business clock
@@ -215,7 +215,7 @@ public final class HttpMcpTaskServiceTokenSupplier
                 throw exception;
             } catch (RuntimeException exception) {
                 throw new IllegalStateException(
-                        "IDP_SERVICE_TOKEN_UNAVAILABLE",
+                        "TIANQUAN_SHOUBING_SERVICE_TOKEN_UNAVAILABLE",
                         exception
                 );
             }
@@ -240,7 +240,7 @@ public final class HttpMcpTaskServiceTokenSupplier
                 || response.accessToken().length() > 8192
                 || !"Bearer".equalsIgnoreCase(response.tokenType())
                 || response.expiresIn() <= renewalSkew.toSeconds()) {
-            throw new IllegalStateException("IDP_SERVICE_TOKEN_RESPONSE_INVALID");
+            throw new IllegalStateException("TIANQUAN_SHOUBING_SERVICE_TOKEN_RESPONSE_INVALID");
         }
         return new CachedToken(
                 response.accessToken(),
@@ -274,7 +274,7 @@ public final class HttpMcpTaskServiceTokenSupplier
                         .body(TokenResponse.class);
             } catch (RuntimeException exception) {
                 throw new IllegalStateException(
-                        "IDP_SERVICE_TOKEN_UNAVAILABLE",
+                        "TIANQUAN_SHOUBING_SERVICE_TOKEN_UNAVAILABLE",
                         exception
                 );
             }

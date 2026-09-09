@@ -30,13 +30,13 @@ class DdcConfigFormatStrategyRegistryTest {
 
         assertThatThrownBy(() -> registry.get("json"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unsupported DDC config format");
+                .hasMessageContaining("Unsupported Tianshu config format");
         assertThatThrownBy(() -> registry.get("yaml", "application.json"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("does not match");
         assertThatThrownBy(() -> registry.getByResourceName("application.properties"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unsupported DDC config resource");
+                .hasMessageContaining("Unsupported Tianshu config resource");
     }
 
     @Test

@@ -10,9 +10,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 从 IdP 管理库装载 OAuth Client 协议配置。
+ * 从 Tianquan-Shoubing 管理库装载 OAuth Client 协议配置。
  *
- * <p>Loads OAuth Client protocol configuration from the IdP administration database.</p>
+ * <p>Loads OAuth Client protocol configuration from the Tianquan-Shoubing administration database.</p>
  *
  * <p>Resource Server 访问许可由独立的 {@code ResourceServerStore} 提供，Client 本身不再携带
  * 静态 Resource URI 列表。</p>

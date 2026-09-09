@@ -109,7 +109,7 @@ public class GatewayDefinitionIngestionService {
                 ))
                 .ifPresent(conflict -> {
                     throw new IllegalStateException(
-                            "GATEWAY_ADMIN_IMMUTABLE_BUILD_CONFLICT: "
+                            "YUHENG_ADMIN_IMMUTABLE_BUILD_CONFLICT: "
                                     + report.build().buildId()
                     );
                 });
@@ -135,7 +135,7 @@ public class GatewayDefinitionIngestionService {
             );
             if (linked != command.snapshotIds().size()) {
                 throw new IllegalStateException(
-                        "GATEWAY_OPENAPI_SNAPSHOT_LINK_COUNT_MISMATCH"
+                        "YUHENG_OPENAPI_SNAPSHOT_LINK_COUNT_MISMATCH"
                 );
             }
         }
@@ -243,7 +243,7 @@ public class GatewayDefinitionIngestionService {
         for (String snapshotId : command.snapshotIds()) {
             GatewayOpenApiSnapshotPO snapshot = snapshots.findById(snapshotId)
                     .orElseThrow(() -> new IllegalArgumentException(
-                            "GATEWAY_OPENAPI_SNAPSHOT_CONFLICT: snapshot was "
+                            "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot was "
                                     + "not found: " + snapshotId
                     ));
             if (!command.applicationId().equals(snapshot.applicationId())
@@ -256,7 +256,7 @@ public class GatewayDefinitionIngestionService {
                     snapshot.definitionSetId()
             ))) {
                 throw new IllegalArgumentException(
-                        "GATEWAY_OPENAPI_SNAPSHOT_CONFLICT: snapshot does not "
+                        "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot does not "
                                 + "belong to the command"
                 );
             }
@@ -268,7 +268,7 @@ public class GatewayDefinitionIngestionService {
         }
         if (!snapshotGroups.equals(groupCodes)) {
             throw new IllegalArgumentException(
-                    "GATEWAY_OPENAPI_SNAPSHOT_CONFLICT: snapshot groups do not "
+                    "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot groups do not "
                             + "match the report groups"
             );
         }

@@ -69,11 +69,11 @@ final class GatewayLocalInfrastructure
         }
         try {
             rootDirectory = Files.createTempDirectory(
-                    "egon-gateway-live-infrastructure-"
+                    "egon-yuheng-live-infrastructure-"
             );
             startPostgres();
             ddcRedisPort = GatewayProcessHarness.availablePort();
-            ddcRedis = startRedis("ddc-redis", ddcRedisPort);
+            ddcRedis = startRedis("tianshu-redis", ddcRedisPort);
             awaitRedis(ddcRedis, ddcRedisPort);
             rateLimitRedisPort = GatewayProcessHarness.availablePort();
             rateLimitRedis = startRedis(
@@ -240,7 +240,7 @@ final class GatewayLocalInfrastructure
         kafka = new EmbeddedKafkaKraftBroker(
                 1,
                 1,
-                "egon.gateway.call.v1"
+                "egon.yuheng.call.v1"
         ).brokerProperties(Map.of(
                 "auto.create.topics.enable",
                 "true",

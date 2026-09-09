@@ -76,7 +76,7 @@ class DdcRpcContractDescriptorTest {
 
         assertThat(contract.serviceName())
                 .isEqualTo(grpcService.getName());
-        assertThat(contract.group()).isEqualTo("ddc");
+        assertThat(contract.group()).isEqualTo("tianshu");
         assertThat(contract.version()).isEqualTo("1.0.0");
         assertThat(javaMethods).containsExactlyElementsOf(grpcMethods);
     }

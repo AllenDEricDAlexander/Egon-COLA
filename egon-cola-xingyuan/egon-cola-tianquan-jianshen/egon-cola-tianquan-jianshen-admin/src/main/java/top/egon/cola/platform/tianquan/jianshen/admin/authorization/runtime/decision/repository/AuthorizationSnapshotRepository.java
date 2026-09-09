@@ -12,11 +12,11 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.deci
     public interface AuthorizationSnapshotRepository {
 
         /**
-         * 按租户和 IdP 主体读取授权快照记录。
-         * Loads an authorization snapshot record by tenant and IdP subject.
+         * 按租户和 Tianquan-Shoubing 主体读取授权快照记录。
+         * Loads an authorization snapshot record by tenant and Tianquan-Shoubing subject.
          *
          * @param tenantId 租户标识 / tenant identifier
-         * @param identitySub IdP 稳定主体标识 / stable IdP subject
+         * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
          * @return 授权快照记录 / authorization snapshot record
          * 用法：调用 `load` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
          * Usage: provide contract-compliant arguments before calling `load`, then continue the business flow using its result, exception, or side effect.

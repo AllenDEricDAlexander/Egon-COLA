@@ -39,7 +39,7 @@ class JdbcGatewayObservabilityStoreTest {
 
         store.dashboard(
                 "test",
-                "gateway",
+                "yuheng",
                 Instant.parse("2026-07-25T08:00:00Z")
         );
 

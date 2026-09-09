@@ -56,7 +56,7 @@ public class IdentityResourceServerEntity {
     @Column(name = "management_client_id", nullable = false, length = 128)
     private String managementClientId;
 
-    /** USER 入口权限所属 RBAC3 应用；RBAC3 application for USER entry permission. */
+    /** USER 入口权限所属 Tianquan-Jianshen 应用；Tianquan-Jianshen application for USER entry permission. */
     @Column(name = "rbac_application_code", nullable = false, length = 128)
     private String rbacApplicationCode;
 
@@ -102,7 +102,7 @@ public class IdentityResourceServerEntity {
      * @param environment 部署环境；deployment environment
      * @param displayName 展示名称；display name
      * @param managementClientId 管理 Client；management Client
-     * @param rbacApplicationCode RBAC3 应用编码；RBAC3 application code
+     * @param rbacApplicationCode Tianquan-Jianshen 应用编码；Tianquan-Jianshen application code
      * @param entryPermissionCode 入口权限编码；entry-permission code
      * @param status 初始状态；initial status
      * @param now 创建时间；creation instant
@@ -231,7 +231,7 @@ public class IdentityResourceServerEntity {
         return managementClientId;
     }
 
-    /** @return RBAC3 应用编码；RBAC3 application code */
+    /** @return Tianquan-Jianshen 应用编码；Tianquan-Jianshen application code */
     public String getRbacApplicationCode() {
         return rbacApplicationCode;
     }

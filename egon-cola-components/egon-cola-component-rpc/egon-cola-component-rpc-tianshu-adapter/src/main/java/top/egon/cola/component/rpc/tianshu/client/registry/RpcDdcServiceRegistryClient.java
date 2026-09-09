@@ -17,7 +17,7 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcOperation;
 
 import java.util.function.Consumer;
 
-/** DDC 注册中心 Port 的 Direct RPC 适配器。 / Direct RPC adapter for the DDC registry Port. */
+/** Tianshu 注册中心 Port 的 Direct RPC 适配器。 / Direct RPC adapter for the Tianshu registry Port. */
 public final class RpcDdcServiceRegistryClient implements DdcServiceRegistryClient {
 
     private final DdcServiceRegistryRpc rpc;
@@ -123,7 +123,7 @@ public final class RpcDdcServiceRegistryClient implements DdcServiceRegistryClie
     }
 
     private RegistrySubscriptions requireSubscriptions() {
-        if (subscriptions == null) throw new IllegalStateException("DDC registry subscriptions are not configured");
+        if (subscriptions == null) throw new IllegalStateException("Tianshu registry subscriptions are not configured");
         return subscriptions;
     }
 

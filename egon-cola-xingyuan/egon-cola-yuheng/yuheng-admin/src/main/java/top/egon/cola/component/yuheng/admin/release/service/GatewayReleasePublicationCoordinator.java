@@ -520,24 +520,24 @@ public final class GatewayReleasePublicationCoordinator {
             String configKey) {
         if (config.version() == null || config.version() < 0) {
             throw new IllegalStateException(
-                    "DDC config has no usable version: " + configKey
+                    "Tianshu config has no usable version: " + configKey
             );
         }
         if (config.deleted()) {
             throw new IllegalStateException(
-                    "DDC config is deleted: " + configKey
+                    "Tianshu config is deleted: " + configKey
             );
         }
         if (!config.enabled()) {
             throw new IllegalStateException(
-                    "DDC config is disabled: " + configKey
+                    "Tianshu config is disabled: " + configKey
             );
         }
         if (!GatewayDdcYamlDocument.RESOURCE_NAME.equals(
                 config.resourceName())
                 || !GatewayDdcYamlDocument.FORMAT.equals(config.format())) {
             throw new IllegalStateException(
-                    "DDC config is not application.yml/YAML: " + configKey
+                    "Tianshu config is not application.yml/YAML: " + configKey
             );
         }
     }
@@ -751,7 +751,7 @@ public final class GatewayReleasePublicationCoordinator {
                 changeId,
                 result.targetVersion(),
                 status,
-                status == SUCCESS ? null : "DDC_PUBLISH_" + status,
+                status == SUCCESS ? null : "TIANSHU_PUBLISH_" + status,
                 result.errorMessage(),
                 clock.instant()
         );
@@ -872,19 +872,19 @@ public final class GatewayReleasePublicationCoordinator {
      */
     private List<GatewayPublicationScopeDTO> frozenScopes(List<GatewayReleasePublicationPO> operations) {
         if (operations.isEmpty() || operations.stream().anyMatch(operation -> operation.targetScope() == null)) {
-            throw new IllegalStateException("GATEWAY_PUBLICATION_TARGET_MISSING");
+            throw new IllegalStateException("YUHENG_PUBLICATION_TARGET_MISSING");
         }
         List<GatewayPublicationScopeDTO> scopes = operations.stream()
                 .map(GatewayReleasePublicationPO::targetScope).distinct().toList();
         if (scopes.size() != 2 || !scopes.stream().map(GatewayPublicationScopeDTO::engineRole)
                 .collect(java.util.stream.Collectors.toSet()).equals(EnumSet.allOf(GatewayEngineRoleEnum.class))) {
-            throw new IllegalStateException("GATEWAY_PUBLICATION_TARGET_CONFLICT");
+            throw new IllegalStateException("YUHENG_PUBLICATION_TARGET_CONFLICT");
         }
         GatewayPublicationScopeDTO first = scopes.getFirst();
         GatewayPublicationScopeDTO second = scopes.getLast();
         if (first.bizCode().equals(second.bizCode()) && first.env().equals(second.env())
                 && first.appCode().equals(second.appCode())) {
-            throw new IllegalStateException("GATEWAY_PUBLICATION_TARGET_CONFLICT");
+            throw new IllegalStateException("YUHENG_PUBLICATION_TARGET_CONFLICT");
         }
         return scopes;
     }
@@ -906,7 +906,7 @@ public final class GatewayReleasePublicationCoordinator {
         }
         return new DdcManagementPublishResult(result.changeId(), DdcManagementPublishStatus.UNKNOWN,
                 result.targetVersion(), result.resourceChecksum(), result.targetCount(), result.targets(),
-                "GATEWAY_RELEASE_ACK_MISSING", result.createdAt(), result.dispatchedAt(), result.completedAt());
+                "YUHENG_RELEASE_ACK_MISSING", result.createdAt(), result.dispatchedAt(), result.completedAt());
     }
 
     /**
@@ -920,7 +920,7 @@ public final class GatewayReleasePublicationCoordinator {
         return result.targets().stream().map(target -> new GatewayReleaseTargetPO(
                 target.instanceId(), target.leaseId(), target.status(), target.currentVersion(),
                 "SUCCESS".equals(target.status()) ? compiled.activation().artifactSha256() : null,
-                target.errorMessage() == null ? null : "DDC_TARGET_ERROR",
+                target.errorMessage() == null ? null : "TIANSHU_TARGET_ERROR",
                 target.ackAt() == null ? clock.instant() : target.ackAt(),
                 operation.targetScope().engineRole()
         )).toList();

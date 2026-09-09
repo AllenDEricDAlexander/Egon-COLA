@@ -16,12 +16,12 @@ import java.io.IOException;
 import java.util.List;
 
 /**
- * Converts IdP-signed Gateway Admin Service scopes into local method-security capabilities.
+ * Converts Tianquan-Shoubing-signed Gateway Admin Service scopes into local method-security capabilities.
  *
- * <p>The control-plane publisher uses a short-lived IdP SERVICE Access Token. The token remains
- * the source of truth; this filter only adapts its already verified {@code gateway:*} scopes to
+ * <p>The control-plane publisher uses a short-lived Tianquan-Shoubing SERVICE Access Token. The token remains
+ * the source of truth; this filter only adapts its already verified {@code yuheng:*} scopes to
  * the existing {@code CAP_...} method-security vocabulary. USER identities are left to the
- * RBAC3 snapshot filter.</p>
+ * Tianquan-Jianshen snapshot filter.</p>
  */
 public final class GatewayAdminServiceAuthorityFilter
         extends OncePerRequestFilter {
@@ -32,9 +32,9 @@ public final class GatewayAdminServiceAuthorityFilter
     private static final String CAPABILITY_PREFIX = "CAP_";
 
     /**
-     * Only IdP scopes owned by the Gateway Admin resource become local capabilities.
+     * Only Tianquan-Shoubing scopes owned by the Gateway Admin resource become local capabilities.
      */
-    private static final String GATEWAY_SCOPE_PREFIX = "gateway:";
+    private static final String YUHENG_SCOPE_PREFIX = "yuheng:";
 
     /**
      * Adapts one verified SERVICE identity for the Gateway Admin control plane.
@@ -56,7 +56,7 @@ public final class GatewayAdminServiceAuthorityFilter
         if (authentication instanceof IdpAuthenticationToken idp
                 && idp.getPrincipal() instanceof ServiceIdentityPrincipal service) {
             List<SimpleGrantedAuthority> authorities = service.scopes().stream()
-                    .filter(scope -> scope.startsWith(GATEWAY_SCOPE_PREFIX))
+                    .filter(scope -> scope.startsWith(YUHENG_SCOPE_PREFIX))
                     .sorted()
                     .map(scope -> new SimpleGrantedAuthority(
                             CAPABILITY_PREFIX + scope))

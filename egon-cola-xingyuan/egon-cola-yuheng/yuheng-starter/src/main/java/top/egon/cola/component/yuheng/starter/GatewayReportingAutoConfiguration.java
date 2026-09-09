@@ -37,7 +37,7 @@ import java.util.Map;
 @AutoConfigureAfter(EgonRpcAutoConfig.class)
 @EnableConfigurationProperties(GatewayReportingProperties.class)
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.gateway.reporting",
+        prefix = "egon.cola.component.yuheng.reporting",
         name = "enabled",
         havingValue = "true"
 )
@@ -77,7 +77,7 @@ public class GatewayReportingAutoConfiguration {
         return report.identity();
     }
 
-    /** Contributes report identity to DDC HTTP service registration. */
+    /** Contributes report identity to Tianshu HTTP service registration. */
     @Bean
     @ConditionalOnMissingBean(
             name = "gatewayDefinitionIdentityHttpRegistrationContributor"
@@ -94,9 +94,9 @@ public class GatewayReportingAutoConfiguration {
             @Override
             public Map<String, String> metadata() {
                 return Map.of(
-                        "gateway.definition-set-id", identity.definitionSetId(),
-                        "gateway.artifact-version", identity.artifactVersion(),
-                        "gateway.build-id", identity.buildId()
+                        "yuheng.definition-set-id", identity.definitionSetId(),
+                        "yuheng.artifact-version", identity.artifactVersion(),
+                        "yuheng.build-id", identity.buildId()
                 );
             }
         };
@@ -143,9 +143,9 @@ public class GatewayReportingAutoConfiguration {
                 gatewayDefinitionIdentityRpcMetadataContributor(
                 GatewayDefinitionIdentity identity) {
             return ignored -> Map.of(
-                    "gateway.definition-set-id", identity.definitionSetId(),
-                    "gateway.artifact-version", identity.artifactVersion(),
-                    "gateway.build-id", identity.buildId()
+                    "yuheng.definition-set-id", identity.definitionSetId(),
+                    "yuheng.artifact-version", identity.artifactVersion(),
+                    "yuheng.build-id", identity.buildId()
             );
         }
 

@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Publishes IdP HTTP operations only after identity runtimes are ready.
+ * Publishes Tianquan-Shoubing HTTP operations only after identity runtimes are ready.
  */
 public final class IdpHttpProviderPublicationGate
         implements ApplicationListener<ApplicationEvent> {
@@ -79,7 +79,7 @@ public final class IdpHttpProviderPublicationGate
         int configuredPort = providerProperties.getPort();
         if (configuredPort > 0 && configuredPort != serverPort) {
             throw new IllegalStateException(
-                    "IdP HTTP provider port does not match the root web server"
+                    "Tianquan-Shoubing HTTP provider port does not match the root web server"
             );
         }
         if (published.compareAndSet(false, true)) {
@@ -91,10 +91,10 @@ public final class IdpHttpProviderPublicationGate
         requireConfigClientReady();
         ReadinessStatus status = Objects.requireNonNull(
                 readiness.status(),
-                "IdP readiness status"
+                "Tianquan-Shoubing readiness status"
         );
         if (!status.ddcConfigClientReady()) {
-            throw new IllegalStateException("DDC config client is not ready");
+            throw new IllegalStateException("Tianshu config client is not ready");
         }
         if (!status.oauthRuntimeReady()) {
             throw new IllegalStateException("OAuth runtime is not ready");
@@ -106,14 +106,14 @@ public final class IdpHttpProviderPublicationGate
 
     private void requireConfigClientReady() {
         if (coordinator.state() != DdcRuntimeState.READY) {
-            throw new IllegalStateException("DDC config client is not ready");
+            throw new IllegalStateException("Tianshu config client is not ready");
         }
         boolean leasePresent = coordinator.currentSession()
                 .filter(session -> session.role() == DdcLeaseRole.CONFIG_CLIENT)
                 .isPresent();
         if (!leasePresent) {
             throw new IllegalStateException(
-                    "DDC config client lease is missing"
+                    "Tianshu config client lease is missing"
             );
         }
     }

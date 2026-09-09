@@ -17,7 +17,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 
-/** Coordinates DDC validation and RBAC-owned User Business grant changes. */
+/** Coordinates Tianshu validation and RBAC-owned User Business grant changes. */
 public final class UserBusinessAccessFacade {
 
     private final UserBusinessAccessRepository store;
@@ -81,10 +81,10 @@ public final class UserBusinessAccessFacade {
         for (ReplaceUserBusinessAccessesCommand.Item item : items) {
             BusinessCatalogEntry business = catalog.findBusiness(item.ddcBusinessId())
                     .orElseThrow(() -> new IllegalStateException(
-                            "DDC Business is not available: " + item.ddcBusinessId()));
+                            "Tianshu Business is not available: " + item.ddcBusinessId()));
             if (!business.enabled()) {
                 throw new IllegalStateException(
-                        "DDC Business is disabled: " + item.ddcBusinessId());
+                        "Tianshu Business is disabled: " + item.ddcBusinessId());
             }
         }
     }
@@ -93,7 +93,7 @@ public final class UserBusinessAccessFacade {
         return values.stream().map(value -> {
             BusinessCatalogEntry business = catalog.findBusiness(value.ddcBusinessId())
                     .orElseThrow(() -> new IllegalStateException(
-                            "DDC Business is not available: " + value.ddcBusinessId()));
+                            "Tianshu Business is not available: " + value.ddcBusinessId()));
             return new UserBusinessAccessVO(
                     value.accessId(), value.userId(), value.ddcBusinessId(),
                     business.bizCode(), business.bizName(), value.status(),
@@ -106,10 +106,10 @@ public final class UserBusinessAccessFacade {
         ApplicationCatalogEntry application = catalog.findApplication(
                         value.ddcApplicationId())
                 .orElseThrow(() -> new IllegalStateException(
-                        "DDC Application is not available: " + value.ddcApplicationId()));
+                        "Tianshu Application is not available: " + value.ddcApplicationId()));
         if (!application.applicationEnabled() || !application.businessEnabled()) {
             throw new IllegalStateException(
-                    "DDC Application or Business is disabled: " + value.ddcApplicationId());
+                    "Tianshu Application or Business is disabled: " + value.ddcApplicationId());
         }
         return new UserApplicationAccessVO(
                 value.applicationId(), value.ddcBusinessId(),

@@ -53,8 +53,8 @@ class ResourceServerProjectionServiceTest {
     void projectsResourceUriScopeAndBoundClientInOneRedisBatch() {
         IdentityResourceServerEntity resource = resource();
         IdentityClientEntity client = IdentityClientEntity.createPublic(
-                "idp-service",
-                "IdP Service",
+                "tianquan-shoubing-service",
+                "Tianquan-Shoubing Service",
                 900,
                 604_800,
                 NOW
@@ -63,7 +63,7 @@ class ResourceServerProjectionServiceTest {
         projections.projectResource(resource, client);
 
         verify(batch).getBucket(
-                "identity:resource-server:permission-idp-prod",
+                "identity:resource-server:permission-tianquan-shoubing-prod",
                 StringCodec.INSTANCE
         );
         verify(batch).getBucket(
@@ -72,11 +72,11 @@ class ResourceServerProjectionServiceTest {
         );
         verify(batch).getBucket(
                 "identity:resource-scope:"
-                        + sha256("permission:idp:prod"),
+                        + sha256("permission:tianquan-shoubing:prod"),
                 StringCodec.INSTANCE
         );
         verify(batch).getBucket(
-                "identity:oauth-client:idp-service",
+                "identity:oauth-client:tianquan-shoubing-service",
                 StringCodec.INSTANCE
         );
         verify(batch).execute();
@@ -87,18 +87,18 @@ class ResourceServerProjectionServiceTest {
         IdentityClientResourceGrantEntity grant =
                 IdentityClientResourceGrantEntity.clientCredentials(
                         "grant-row",
-                        "idp-service",
-                        "permission-rbac3-prod",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-prod",
                         "tenant-1",
-                        "[\"rbac3:policy:read\"]",
+                        "[\"tianquan-jianshen:policy:read\"]",
                         NOW
                 );
 
         projections.projectServiceGrant(grant);
 
         verify(batch).getBucket(
-                "identity:service-resource-grant:idp-service:"
-                        + "permission-rbac3-prod:tenant-1",
+                "identity:service-resource-grant:tianquan-shoubing-service:"
+                        + "permission-tianquan-jianshen-prod:tenant-1",
                 StringCodec.INSTANCE
         );
         verify(batch).execute();
@@ -113,8 +113,8 @@ class ResourceServerProjectionServiceTest {
         assertThatThrownBy(() -> projections.projectResource(
                 resource(),
                 IdentityClientEntity.createPublic(
-                        "idp-service",
-                        "IdP Service",
+                        "tianquan-shoubing-service",
+                        "Tianquan-Shoubing Service",
                         900,
                         604_800,
                         NOW
@@ -126,15 +126,15 @@ class ResourceServerProjectionServiceTest {
     private static IdentityResourceServerEntity resource() {
         return IdentityResourceServerEntity.create(
                 "resource-row",
-                "permission-idp-prod",
-                "https://api.egon.internal/prod/permission/idp",
+                "permission-tianquan-shoubing-prod",
+                "https://api.egon.internal/prod/permission/tianquan-shoubing",
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "IdP Production",
-                "idp-service",
-                "idp",
-                "idp:access",
+                "Tianquan-Shoubing Production",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access",
                 300,
                 IdentityResourceServerEntity.Status.ACTIVE,
                 NOW

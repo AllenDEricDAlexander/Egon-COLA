@@ -11,7 +11,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.Identit
 import java.util.List;
 import java.util.Optional;
 
-/** Persistence access for IdP tenant membership facts. */
+/** Persistence access for Tianquan-Shoubing tenant membership facts. */
 @Repository
 public interface IdentityTenantMembershipRepository
         extends JpaRepository<IdentityTenantMembershipEntity, String> {

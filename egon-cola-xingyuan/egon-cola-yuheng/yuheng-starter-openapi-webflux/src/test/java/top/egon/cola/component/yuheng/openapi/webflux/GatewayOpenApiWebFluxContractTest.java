@@ -29,13 +29,13 @@ import static org.assertj.core.api.Assertions.assertThat;
         classes = GatewayOpenApiWebFluxContractTest.TestApplication.class,
         webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
         properties = {
-                "egon.cola.component.gateway.openapi.enabled=true",
-                "egon.cola.component.gateway.openapi.biz-code=warehouse",
-                "egon.cola.component.gateway.openapi.application-code=inventory-service",
-                "egon.cola.component.gateway.openapi.resource-uri=https://inventory-service.example.test",
-                "egon.cola.component.gateway.openapi.artifact-version=1.0.0",
-                "egon.cola.component.gateway.openapi.build-id=build-1",
-                "egon.cola.component.gateway.openapi.published-groups[0]=inventory",
+                "egon.cola.component.yuheng.openapi.enabled=true",
+                "egon.cola.component.yuheng.openapi.biz-code=warehouse",
+                "egon.cola.component.yuheng.openapi.application-code=inventory-service",
+                "egon.cola.component.yuheng.openapi.resource-uri=https://inventory-service.example.test",
+                "egon.cola.component.yuheng.openapi.artifact-version=1.0.0",
+                "egon.cola.component.yuheng.openapi.build-id=build-1",
+                "egon.cola.component.yuheng.openapi.published-groups[0]=inventory",
                 "egon.cola.component.id.enabled=false",
                 "spring.autoconfigure.exclude=org.redisson.spring.starter.RedissonAutoConfigurationV2,org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration,org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration"
         }
@@ -92,8 +92,8 @@ class GatewayOpenApiWebFluxContractTest {
             return token -> Mono.just(Jwt.withTokenValue(token)
                     .header("alg", "none")
                     .claim("scope", "wrong".equals(token)
-                            ? "gateway.other"
-                            : "gateway.openapi.read")
+                            ? "yuheng.other"
+                            : "yuheng.openapi.read")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(60))
                     .build());

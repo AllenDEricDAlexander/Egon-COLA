@@ -61,7 +61,7 @@ public final class GatewayAdminActorArgumentResolver
                 || !authentication.isAuthenticated()
                 || "anonymousUser".equals(authentication.getPrincipal())) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"
+                    "YUHENG_ADMIN_AUTHENTICATION_REQUIRED"
             );
         }
         String actorId;

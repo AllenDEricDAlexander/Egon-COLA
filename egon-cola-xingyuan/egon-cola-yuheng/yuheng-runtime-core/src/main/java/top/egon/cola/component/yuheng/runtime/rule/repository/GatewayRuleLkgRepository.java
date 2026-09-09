@@ -77,7 +77,7 @@ public final class GatewayRuleLkgRepository {
             );
         } catch (IOException failure) {
             throw new IllegalStateException(
-                    "GATEWAY_RULE_LKG_WRITE_FAILED",
+                    "YUHENG_RULE_LKG_WRITE_FAILED",
                     failure
             );
         }
@@ -107,7 +107,7 @@ public final class GatewayRuleLkgRepository {
             return Optional.of(new StoredGatewayRule(releaseId, sha, json));
         } catch (IOException failure) {
             throw new IllegalStateException(
-                    "GATEWAY_RULE_LKG_READ_FAILED",
+                    "YUHENG_RULE_LKG_READ_FAILED",
                     failure
             );
         }

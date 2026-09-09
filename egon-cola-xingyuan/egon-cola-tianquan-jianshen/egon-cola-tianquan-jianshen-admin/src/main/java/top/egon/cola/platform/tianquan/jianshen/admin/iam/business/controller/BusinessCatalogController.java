@@ -17,15 +17,15 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermiss
 
 import java.util.List;
 
-/** Read-only DDC Business/Application catalog endpoints. */
+/** Read-only Tianshu Business/Application catalog endpoints. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/catalog")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/catalog")
 @Tag(name = "business-catalog", description = "业务域与应用目录接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
-        entityDomainName = "RBAC3权限实体域",
+        entityDomainCode = "tianquan-jianshen",
+        entityDomainName = "Tianquan-Jianshen权限实体域",
         interfaceGroupCode = "iam"
 )
 public class BusinessCatalogController {
@@ -39,9 +39,9 @@ public class BusinessCatalogController {
     @GetMapping("/businesses")
     @RequiresPermission(value = "system:business:read")
     @Operation(
-            operationId = "rbac3-business-catalog-list-v1",
-            summary = "查询 DDC 业务域目录",
-            tags = {"rbac3", "business"}
+            operationId = "tianquan-jianshen-business-catalog-list-v1",
+            summary = "查询 Tianshu 业务域目录",
+            tags = {"tianquan-jianshen", "business"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -54,9 +54,9 @@ public class BusinessCatalogController {
     @GetMapping("/businesses/{ddcBusinessId}/applications")
     @RequiresPermission(value = "system:application:read")
     @Operation(
-            operationId = "rbac3-business-catalog-applications-v1",
-            summary = "查询 DDC 业务域下的应用目录",
-            tags = {"rbac3", "business", "application"}
+            operationId = "tianquan-jianshen-business-catalog-applications-v1",
+            summary = "查询 Tianshu 业务域下的应用目录",
+            tags = {"tianquan-jianshen", "business", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

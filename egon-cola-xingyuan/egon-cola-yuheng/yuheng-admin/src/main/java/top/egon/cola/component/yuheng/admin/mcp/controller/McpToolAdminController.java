@@ -34,15 +34,15 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/mcp")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/mcp")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class McpToolAdminController {
 
     /**
@@ -98,7 +98,7 @@ public class McpToolAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/managed-tools/{toolId}/override")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO putOverride(
             @PathVariable String toolId,
             @Valid @RequestBody McpManagedToolOverrideRequestDTO request,
@@ -128,7 +128,7 @@ public class McpToolAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/managed-tools/{toolId}/override")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO deleteOverride(
             @PathVariable String toolId,
             @Valid @RequestBody McpToolMutationRequestDTO request,
@@ -177,7 +177,7 @@ public class McpToolAdminController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/remote-tools")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO createRemoteTool(
             @Valid @RequestBody McpRemoteToolRequestDTO request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -206,7 +206,7 @@ public class McpToolAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/remote-tools/{toolId}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO updateRemoteTool(
             @PathVariable String toolId,
             @Valid @RequestBody McpRemoteToolRequestDTO request,
@@ -236,7 +236,7 @@ public class McpToolAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/remote-tools/{toolId}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO deleteRemoteTool(
             @PathVariable String toolId,
             @Valid @RequestBody McpToolMutationRequestDTO request,

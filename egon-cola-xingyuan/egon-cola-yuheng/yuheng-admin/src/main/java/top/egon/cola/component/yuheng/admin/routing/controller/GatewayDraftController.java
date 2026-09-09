@@ -28,15 +28,15 @@ import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/gateway-groups/{gatewayGroupId}/draft")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/yuheng-groups/{gatewayGroupId}/draft")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayDraftController {
 
     /**
@@ -90,7 +90,7 @@ public class GatewayDraftController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/routes/{routeId}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:drafts:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftMutationResultVO putRoute(
             @PathVariable String gatewayGroupId,
             @PathVariable String routeId,
@@ -127,7 +127,7 @@ public class GatewayDraftController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/routes/{routeId}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:drafts:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftMutationResultVO deleteRoute(
             @PathVariable String gatewayGroupId,
             @PathVariable String routeId,
@@ -157,7 +157,7 @@ public class GatewayDraftController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/policies/{policyId}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:drafts:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftMutationResultVO putPolicy(
             @PathVariable String gatewayGroupId,
             @PathVariable String policyId,
@@ -195,7 +195,7 @@ public class GatewayDraftController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/policies/{policyId}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:drafts:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:drafts:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.routing.domain.vo.GatewayDraftMutationResultVO deletePolicy(
             @PathVariable String gatewayGroupId,
             @PathVariable String policyId,

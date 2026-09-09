@@ -26,16 +26,16 @@ class DdcResourceAdmissionRevocationServiceTest {
         DdcInstanceRepository instances = mock(DdcInstanceRepository.class);
         DdcResourceAdmissionRevocationRequest request =
                 new DdcResourceAdmissionRevocationRequest(
-                        "permission-idp-prod", "permission", "idp", "prod", 7L
+                        "permission-tianquan-shoubing-prod", "permission", "tianquan-shoubing", "prod", 7L
                 );
         when(configLeases.revokeResourceAdmission(
-                "permission-idp-prod", "permission", "prod", "idp", 7L
+                "permission-tianquan-shoubing-prod", "permission", "prod", "tianquan-shoubing", 7L
         )).thenReturn(2, 0);
         when(providerLeases.revokeResourceAdmission(
-                "permission-idp-prod", "permission", "prod", "idp", 7L
+                "permission-tianquan-shoubing-prod", "permission", "prod", "tianquan-shoubing", 7L
         )).thenReturn(3, 0);
         when(instances.markResourceAdmissionOffline(
-                "permission-idp-prod", "permission", "prod", "idp", 7L,
+                "permission-tianquan-shoubing-prod", "permission", "prod", "tianquan-shoubing", 7L,
                 Instant.parse("2026-08-10T00:00:00Z")
         )).thenReturn(2, 0);
         DdcResourceAdmissionRevocationService service =
@@ -60,7 +60,7 @@ class DdcResourceAdmissionRevocationServiceTest {
         assertThat(replay.persistedInstanceCount()).isZero();
         verify(configLeases, org.mockito.Mockito.times(2))
                 .revokeResourceAdmission(
-                        "permission-idp-prod", "permission", "prod", "idp", 7L
+                        "permission-tianquan-shoubing-prod", "permission", "prod", "tianquan-shoubing", 7L
                 );
     }
 }

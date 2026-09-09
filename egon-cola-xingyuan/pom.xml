@@ -12,7 +12,7 @@
     <artifactId>egon-cola-xingyuan-parent</artifactId>
     <packaging>pom</packaging>
     <name>egon-cola-xingyuan-parent</name>
-    <description>Dependency and plugin management for Egon COLA infrastructure platforms.</description>
+    <description>Dependency and plugin management for Egon COLA Xingyuan infrastructure.</description>
     <url>https://github.com/AllenDEricDAlexander/Egon-COLA</url>
 
     <licenses>

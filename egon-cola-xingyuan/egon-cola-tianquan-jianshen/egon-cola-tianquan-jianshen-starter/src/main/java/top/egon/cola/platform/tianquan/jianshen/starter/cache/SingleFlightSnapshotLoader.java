@@ -75,13 +75,13 @@ public final class SingleFlightSnapshotLoader {
         try {
             SystemAuthorizationSnapshot snapshot = active.join();
             if (!boundTo(snapshot, principal)) {
-                throw new Rbac3AuthorizationClient.AuthorizationDeniedException("RBAC3_AUTHORIZATION_BINDING_MISMATCH");
+                throw new Rbac3AuthorizationClient.AuthorizationDeniedException("TIANQUAN_JIANSHEN_AUTHORIZATION_BINDING_MISMATCH");
             }
             return snapshot;
         } catch (CompletionException exception) {
             Throwable cause = exception.getCause();
             if (cause instanceof RuntimeException runtime) throw runtime;
-            throw new Rbac3AuthorizationClient.AuthorizationUnavailableException("RBAC3_AUTHORIZATION_FETCH_FAILED", cause);
+            throw new Rbac3AuthorizationClient.AuthorizationUnavailableException("TIANQUAN_JIANSHEN_AUTHORIZATION_FETCH_FAILED", cause);
         }
     }
 
@@ -93,7 +93,7 @@ public final class SingleFlightSnapshotLoader {
                     ? client.fetch(systemCode, principal)
                     : client.fetch(systemCode, principal, userAccessToken);
             if (!boundTo(snapshot, principal)) {
-                throw new Rbac3AuthorizationClient.AuthorizationDeniedException("RBAC3_AUTHORIZATION_BINDING_MISMATCH");
+                throw new Rbac3AuthorizationClient.AuthorizationDeniedException("TIANQUAN_JIANSHEN_AUTHORIZATION_BINDING_MISMATCH");
             }
             Duration remaining = Duration.between(clock.instant(), snapshot.expiresAt());
             cache.put(new AuthorizationSnapshotCache.Key(systemCode, principal.tenantId(), principal.subject()),
@@ -101,7 +101,7 @@ public final class SingleFlightSnapshotLoader {
             return snapshot;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
-            throw new Rbac3AuthorizationClient.AuthorizationUnavailableException("RBAC3_AUTHORIZATION_FETCH_INTERRUPTED", exception);
+            throw new Rbac3AuthorizationClient.AuthorizationUnavailableException("TIANQUAN_JIANSHEN_AUTHORIZATION_FETCH_INTERRUPTED", exception);
         }
     }
 
@@ -109,7 +109,7 @@ public final class SingleFlightSnapshotLoader {
         try {
             return cache.get(key);
         } catch (RuntimeException exception) {
-            throw new Rbac3AuthorizationClient.AuthorizationUnavailableException("RBAC3_AUTHORIZATION_CACHE_UNAVAILABLE", exception);
+            throw new Rbac3AuthorizationClient.AuthorizationUnavailableException("TIANQUAN_JIANSHEN_AUTHORIZATION_CACHE_UNAVAILABLE", exception);
         }
     }
 

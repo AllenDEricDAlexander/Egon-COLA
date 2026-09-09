@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * 校验 RBAC3 Admin 领域分包边界，防止功能类重新声明成员类型或回退到旧技术层目录。
- * Verifies RBAC3 Admin domain-package boundaries so functional classes cannot
+ * 校验 Tianquan-Jianshen Admin 领域分包边界，防止功能类重新声明成员类型或回退到旧技术层目录。
+ * Verifies Tianquan-Jianshen Admin domain-package boundaries so functional classes cannot
  * regain member types or move back into legacy technical-layer directories.
  */
 class AdminLayerBoundaryTest {
@@ -201,7 +201,7 @@ class AdminLayerBoundaryTest {
 
     private Path adminSourceRoot() {
         return Path.of(System.getProperty("basedir")).resolve(
-                "src/main/java/top/egon/cola/platform/rbac3/admin");
+                "src/main/java/top/egon/cola/platform/tianquan/jianshen/admin");
     }
 
     private CompilationUnitTree parse(Path source) throws Exception {

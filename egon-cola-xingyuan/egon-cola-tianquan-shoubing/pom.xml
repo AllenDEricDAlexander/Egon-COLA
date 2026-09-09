@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-shoubing</artifactId>
     <packaging>pom</packaging>
     <name>egon-cola-tianquan-shoubing</name>
-    <description>Unified identity provider platform for Egon COLA.</description>
+    <description>Tianquan-Shoubing identity platform for Egon COLA.</description>
 
     <modules>
         <module>egon-cola-tianquan-shoubing-core</module>

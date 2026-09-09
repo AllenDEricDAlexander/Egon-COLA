@@ -52,7 +52,7 @@ class DdcRpcProviderRegistryTest {
                 new RpcServiceIdentity("OrderService", "default", "1.0.0"),
                 new RpcProcessIdentity("orders", "test", "127.0.0.1", 1, "instance-1"),
                 "127.0.0.1", 19090, false,
-                Map.of("gateway.weight", "80"), 30, 10);
+                Map.of("yuheng.weight", "80"), 30, 10);
 
         RpcProviderLease lease = registry.register(registration);
         RpcProviderLeaseIdentity identity = new RpcProviderLeaseIdentity(
@@ -198,7 +198,7 @@ class DdcRpcProviderRegistryTest {
                 new AtomicInteger(), "service-token");
         DdcProperties ddcProperties = new DdcProperties();
         ddcProperties.setRegistrationResourceUri(
-                URI.create("https://api.example/ddc-registration"));
+                URI.create("https://api.example/tianshu-registration"));
         DdcRpcProviderRegistry registry = new DdcRpcProviderRegistry(
                 client,
                 "biz",
@@ -218,16 +218,16 @@ class DdcRpcProviderRegistryTest {
                 ArgumentCaptor.forClass(IdpServiceTokenRequest.class);
         verify(serviceClient).authorize(captor.capture());
         assertThat(captor.getValue().audience())
-                .isEqualTo(URI.create("https://api.example/ddc-registration"));
+                .isEqualTo(URI.create("https://api.example/tianshu-registration"));
     }
 
     private IdpStarterProperties idpProperties() {
         IdpStarterProperties properties = new IdpStarterProperties();
-        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        properties.setResourceUri(java.net.URI.create("https://api.example/tianshu"));
         IdpStarterProperties.ServiceClient client =
                 new IdpStarterProperties.ServiceClient();
-        client.setAppId("ddc-app");
-        client.setRegistrationId("ddc-registration");
+        client.setAppId("tianshu-app");
+        client.setRegistrationId("tianshu-registration");
         properties.setServiceClient(client);
         return properties;
     }

@@ -46,7 +46,7 @@ class HttpMcpTaskServiceTokenSupplierTest {
 
         assertThat(requests).hasSize(3);
         assertThat(requests.getFirst().clientId())
-                .isEqualTo("gateway-engine-service");
+                .isEqualTo("yuheng-biz-gateway-service");
         assertThat(requests.getFirst().tenantId()).isEqualTo("tenant-a");
         assertThat(requests.getFirst().resourceUri()).isEqualTo(first);
         assertThat(requests.getFirst().assertion()).isEqualTo("assertion-1");
@@ -67,7 +67,7 @@ class HttpMcpTaskServiceTokenSupplierTest {
                 "tenant-a",
                 URI.create("https://api.egon.internal/identity/mcp")
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessage("IDP_SERVICE_TOKEN_RESPONSE_INVALID")
+                .hasMessage("TIANQUAN_SHOUBING_SERVICE_TOKEN_RESPONSE_INVALID")
                 .hasMessageNotContaining("do-not-log");
     }
 
@@ -76,7 +76,7 @@ class HttpMcpTaskServiceTokenSupplierTest {
             HttpMcpTaskServiceTokenSupplier.TokenEndpoint endpoint
     ) {
         return new HttpMcpTaskServiceTokenSupplier(
-                "gateway-engine-service",
+                "yuheng-biz-gateway-service",
                 assertions,
                 Set.of("mcp:operation:invoke"),
                 Duration.ofSeconds(30),

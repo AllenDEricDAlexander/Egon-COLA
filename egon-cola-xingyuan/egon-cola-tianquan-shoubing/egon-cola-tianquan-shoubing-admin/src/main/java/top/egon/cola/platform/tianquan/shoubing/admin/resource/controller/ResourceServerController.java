@@ -33,14 +33,14 @@ import java.util.Objects;
  */
 @Validated
 @RestController
-@RequestMapping("/api/v1/identity/resource-servers")
+@RequestMapping("/api/v1/tianquan-shoubing/resource-servers")
 @Tag(name = "resource-servers", description = "Resource Server接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp-identity"
+        interfaceGroupCode = "tianquan-shoubing-identity"
 )
 
 public class ResourceServerController {
@@ -48,7 +48,7 @@ public class ResourceServerController {
     /** Resource Server 管理服务；Resource Server management service. */
     private final ResourceServerService resources;
 
-    /** RBAC3 管理权限闸门；RBAC3 administration permission gate. */
+    /** Tianquan-Jianshen 管理权限闸门；Tianquan-Jianshen administration permission gate. */
     private final IdpAdminAuthorizationPort authorization;
 
     /**
@@ -70,9 +70,9 @@ public class ResourceServerController {
     /** @return 全部 Resource Server；all Resource Servers */
     @GetMapping
     @Operation(
-            operationId = "idp-resource-server-list-v1",
+            operationId = "tianquan-shoubing-resource-server-list-v1",
             summary = "查询Resource Server",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -80,7 +80,7 @@ public class ResourceServerController {
     public List<ResourceServerVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:read");
+        authorization.require(principal, "tianquan-shoubing:resource-server:read");
         return resources.list();
     }
 
@@ -91,9 +91,9 @@ public class ResourceServerController {
      */
     @GetMapping("/{resourceServerId}")
     @Operation(
-            operationId = "idp-resource-server-detail-v1",
+            operationId = "tianquan-shoubing-resource-server-detail-v1",
             summary = "查询Resource Server详情",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -102,7 +102,7 @@ public class ResourceServerController {
             @PathVariable("resourceServerId") String resourceServerId,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:read");
+        authorization.require(principal, "tianquan-shoubing:resource-server:read");
         return resources.detail(resourceServerId);
     }
 
@@ -114,9 +114,9 @@ public class ResourceServerController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
-            operationId = "idp-resource-server-create-v1",
+            operationId = "tianquan-shoubing-resource-server-create-v1",
             summary = "创建Resource Server",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -125,7 +125,7 @@ public class ResourceServerController {
             @Valid @RequestBody CreateResourceServerDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:create");
+        authorization.require(principal, "tianquan-shoubing:resource-server:create");
         return resources.create(request);
     }
 
@@ -136,9 +136,9 @@ public class ResourceServerController {
      */
     @PostMapping("/{resourceServerId}/enable")
     @Operation(
-            operationId = "idp-resource-server-enable-v1",
+            operationId = "tianquan-shoubing-resource-server-enable-v1",
             summary = "启用Resource Server",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -148,7 +148,7 @@ public class ResourceServerController {
             @Valid @RequestBody ResourceVersionDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:status");
+        authorization.require(principal, "tianquan-shoubing:resource-server:status");
         return resources.enable(resourceServerId, request);
     }
 
@@ -159,9 +159,9 @@ public class ResourceServerController {
      */
     @PostMapping("/{resourceServerId}/disable")
     @Operation(
-            operationId = "idp-resource-server-disable-v1",
+            operationId = "tianquan-shoubing-resource-server-disable-v1",
             summary = "禁用Resource Server",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -171,7 +171,7 @@ public class ResourceServerController {
             @Valid @RequestBody ResourceVersionDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:status");
+        authorization.require(principal, "tianquan-shoubing:resource-server:status");
         return resources.disable(resourceServerId, request);
     }
 
@@ -182,9 +182,9 @@ public class ResourceServerController {
      */
     @PostMapping("/actions/batch")
     @Operation(
-            operationId = "idp-resource-server-batch-v1",
+            operationId = "tianquan-shoubing-resource-server-batch-v1",
             summary = "批量变更Resource Server",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -193,7 +193,7 @@ public class ResourceServerController {
             @Valid @RequestBody BatchResourceServerActionDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:status");
+        authorization.require(principal, "tianquan-shoubing:resource-server:status");
         return resources.batch(request);
     }
 }

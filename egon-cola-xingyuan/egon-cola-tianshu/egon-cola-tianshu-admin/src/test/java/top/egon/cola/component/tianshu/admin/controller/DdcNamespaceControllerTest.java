@@ -41,7 +41,7 @@ class DdcNamespaceControllerTest {
         when(namespaceService.list("pay-biz", "default"))
                 .thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/v1/ddc/namespaces")
+        mockMvc.perform(get("/api/v1/tianshu/namespaces")
                         .param("bizCode", "pay-biz")
                         .param("keyword", "default"))
                 .andExpect(status().isOk())
@@ -62,7 +62,7 @@ class DdcNamespaceControllerTest {
                         List.of(namespace), PageRequest.of(0, 10), 1
                 ));
 
-        mockMvc.perform(get("/api/v1/ddc/namespaces/page")
+        mockMvc.perform(get("/api/v1/tianshu/namespaces/page")
                         .param("bizCode", "infra")
                         .param("keyword", "ops")
                         .param("pageNo", "1")
@@ -79,7 +79,7 @@ class DdcNamespaceControllerTest {
         doThrow(new CommonException(DdcErrorStatus.NAMESPACE_IN_USE))
                 .when(namespaceService).delete("ns-1");
 
-        mockMvc.perform(delete("/api/v1/ddc/namespaces/ns-1"))
+        mockMvc.perform(delete("/api/v1/tianshu/namespaces/ns-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.NAMESPACE_IN_USE.getCode()));

@@ -21,7 +21,7 @@ class IdpPersistenceEntityContractTest {
     @Test
     void clientRequiresPkceAndKeepsExactRedirectValue() {
         IdentityClientEntity client = IdentityClientEntity.createPublic(
-                "gateway-admin",
+                "yuheng-admin",
                 "Gateway Admin",
                 900,
                 604_800,
@@ -52,15 +52,15 @@ class IdpPersistenceEntityContractTest {
         IdentityResourceServerEntity resource =
                 IdentityResourceServerEntity.create(
                         "resource-row-1",
-                        "permission-idp-local",
-                        "https://api.egon.internal/local/permission/idp",
+                        "permission-tianquan-shoubing-local",
+                        "https://api.egon.internal/local/permission/tianquan-shoubing",
                         "permission",
-                        "idp",
+                        "tianquan-shoubing",
                         "local",
-                        "IdP Local",
-                        "idp-admin-web",
-                        "idp",
-                        "idp:access",
+                        "Tianquan-Shoubing Local",
+                        "tianquan-shoubing-admin-web",
+                        "tianquan-shoubing",
+                        "tianquan-shoubing:access",
                         300,
                         IdentityResourceServerEntity.Status.ACTIVE,
                         NOW
@@ -68,13 +68,13 @@ class IdpPersistenceEntityContractTest {
         IdentityClientResourceGrantEntity grant =
                 IdentityClientResourceGrantEntity.userDelegation(
                         "grant-row-1",
-                        "idp-admin-web",
+                        "tianquan-shoubing-admin-web",
                         resource.getResourceServerId(),
                         NOW
                 );
 
-        assertEquals("permission-idp-local", resource.getResourceServerId());
-        assertEquals("idp", resource.getAppCode());
+        assertEquals("permission-tianquan-shoubing-local", resource.getResourceServerId());
+        assertEquals("tianquan-shoubing", resource.getAppCode());
         assertEquals(
                 IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
                 grant.getGrantType()
@@ -88,20 +88,20 @@ class IdpPersistenceEntityContractTest {
         IdentityClientResourceGrantEntity grant =
                 IdentityClientResourceGrantEntity.clientCredentials(
                         "grant-row-2",
-                        "idp-service",
-                        "permission-rbac3-local",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-local",
                         "tenant-1",
-                        "[\"rbac3:policy:read\"]",
+                        "[\"tianquan-jianshen:policy:read\"]",
                         NOW
                 );
 
         assertEquals("tenant-1", grant.getTenantId());
-        assertEquals("[\"rbac3:policy:read\"]", grant.getAllowedScopes());
+        assertEquals("[\"tianquan-jianshen:policy:read\"]", grant.getAllowedScopes());
         assertThrows(IllegalArgumentException.class, () ->
                 IdentityClientResourceGrantEntity.clientCredentials(
                         "grant-row-3",
-                        "idp-service",
-                        "permission-rbac3-local",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-local",
                         null,
                         "[]",
                         NOW

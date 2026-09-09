@@ -67,9 +67,9 @@ port="${endpoint_host_port##*:}"
 command -v redis-cli >/dev/null 2>&1 \
   || fail 'redis-cli is required'
 
-# These are intentionally narrow. The rbac3 snapshot cache is derived state,
-# so clearing the old/new snapshot entries is safe; durable RBAC3 data is not
-# addressed by this script. No DDC, Gateway, or business prefix is included.
+# These are intentionally narrow. The tianquan-jianshen snapshot cache is derived state,
+# so clearing the old/new snapshot entries is safe; durable Tianquan-Jianshen data is not
+# addressed by this script. No Tianshu, Yuheng, or business prefix is included.
 legacy_patterns=(
   'identity:v1:sso-session:*'
   'identity:v1:auth-code:*'
@@ -77,10 +77,10 @@ legacy_patterns=(
   'identity:v1:refresh:*'
   'identity:v1:refresh-index:user:*'
   'identity:v1:user:*'
-  'rbac3:*:session:*'
-  'rbac3:*:snapshot:*'
-  'rbac3:*:fence:session:*'
-  'rbac3:*:key-ring'
+  'tianquan-jianshen:*:session:*'
+  'tianquan-jianshen:*:snapshot:*'
+  'tianquan-jianshen:*:fence:session:*'
+  'tianquan-jianshen:*:key-ring'
 )
 
 temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/egon-legacy-identity-keys.XXXXXX")"

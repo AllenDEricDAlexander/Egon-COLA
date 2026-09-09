@@ -20,7 +20,7 @@ import java.util.Objects;
 
 /**
  * Reads the version-consistent Gateway BIZ/APP scope projection for an
- * authenticated IdP USER and authorizes the route target from BIZ to APP.
+ * authenticated Tianquan-Shoubing USER and authorizes the route target from BIZ to APP.
  *
  * <p>This reader never loads operation mappings or permission data. The
  * downstream application remains responsible for operation authorization.</p>
@@ -51,22 +51,22 @@ public final class Rbac3GatewayScopeSnapshotReader {
         Objects.requireNonNull(context, "context");
         GatewayPrincipal principal = context.principal();
         if (!principal.authenticated()) {
-            return AuthorizationDecision.deny("RBAC3_PRINCIPAL_REQUIRED");
+            return AuthorizationDecision.deny("TIANQUAN_JIANSHEN_PRINCIPAL_REQUIRED");
         }
         if (!"USER".equalsIgnoreCase(principal.principalType())
                 || principal.tenantId() == null
                 || principal.tenantId().isBlank()
                 || principal.principalId().isBlank()) {
-            return AuthorizationDecision.deny("RBAC3_USER_PRINCIPAL_REQUIRED");
+            return AuthorizationDecision.deny("TIANQUAN_JIANSHEN_USER_PRINCIPAL_REQUIRED");
         }
 
-        String businessCode = attribute(context, "idp.biz-code");
+        String businessCode = attribute(context, "tianquan-shoubing.biz-code");
         if (businessCode == null) {
-            return AuthorizationDecision.deny("RBAC3_BUSINESS_SCOPE_REQUIRED");
+            return AuthorizationDecision.deny("TIANQUAN_JIANSHEN_BUSINESS_SCOPE_REQUIRED");
         }
-        String applicationCode = attribute(context, "idp.app-code");
+        String applicationCode = attribute(context, "tianquan-shoubing.app-code");
         if (applicationCode == null) {
-            return AuthorizationDecision.deny("RBAC3_APPLICATION_SCOPE_REQUIRED");
+            return AuthorizationDecision.deny("TIANQUAN_JIANSHEN_APPLICATION_SCOPE_REQUIRED");
         }
 
         GatewayBizAppScopeSnapshot scope = runtime(
@@ -75,10 +75,10 @@ public final class Rbac3GatewayScopeSnapshotReader {
                 .filter(business -> businessCode.equals(business.businessCode()))
                 .toList();
         if (businesses.isEmpty()) {
-            return AuthorizationDecision.deny("RBAC3_BUSINESS_SCOPE_DENIED");
+            return AuthorizationDecision.deny("TIANQUAN_JIANSHEN_BUSINESS_SCOPE_DENIED");
         }
         if (businesses.size() != 1) {
-            throw unavailable("RBAC3_BUSINESS_SCOPE_CONFLICT");
+            throw unavailable("TIANQUAN_JIANSHEN_BUSINESS_SCOPE_CONFLICT");
         }
 
         List<ApplicationAccessScope> applications = businesses.getFirst()
@@ -87,10 +87,10 @@ public final class Rbac3GatewayScopeSnapshotReader {
                         application.applicationCode()))
                 .toList();
         if (applications.isEmpty()) {
-            return AuthorizationDecision.deny("RBAC3_APPLICATION_SCOPE_DENIED");
+            return AuthorizationDecision.deny("TIANQUAN_JIANSHEN_APPLICATION_SCOPE_DENIED");
         }
         if (applications.size() != 1) {
-            throw unavailable("RBAC3_APPLICATION_SCOPE_CONFLICT");
+            throw unavailable("TIANQUAN_JIANSHEN_APPLICATION_SCOPE_CONFLICT");
         }
         return AuthorizationDecision.allow();
     }
@@ -111,18 +111,18 @@ public final class Rbac3GatewayScopeSnapshotReader {
                     || !"ACTIVE".equals(user.status())
                     || user.expiresAt() == null
                     || !user.expiresAt().isAfter(now)) {
-                throw unavailable("RBAC3_USER_AUTHORIZATION_INVALID");
+                throw unavailable("TIANQUAN_JIANSHEN_USER_AUTHORIZATION_INVALID");
             }
             if (bucket(keyFactory.authorizationPublicationGuard(
                     tenantId, identitySub)).isExists()) {
-                throw unavailable("RBAC3_AUTHORIZATION_PUBLICATION_PENDING");
+                throw unavailable("TIANQUAN_JIANSHEN_AUTHORIZATION_PUBLICATION_PENDING");
             }
             long authVersion = version(value(keyFactory.authVersion(
                     tenantId, user.userId())));
             long policyVersion = version(value(keyFactory.policyVersion(tenantId)));
             if (authVersion != user.authVersion()
                     || policyVersion != user.policyVersion()) {
-                throw unavailable("RBAC3_RUNTIME_VERSION_MISMATCH");
+                throw unavailable("TIANQUAN_JIANSHEN_RUNTIME_VERSION_MISMATCH");
             }
 
             GatewayBizAppScopeSnapshot scope = read(value(keyFactory.gatewayScope(
@@ -135,14 +135,14 @@ public final class Rbac3GatewayScopeSnapshotReader {
                     || scope.policyVersion() != user.policyVersion()
                     || !user.expiresAt().equals(scope.expiresAt())
                     || !scope.expiresAt().isAfter(now)) {
-                throw unavailable("RBAC3_SCOPE_VERSION_MISMATCH");
+                throw unavailable("TIANQUAN_JIANSHEN_SCOPE_VERSION_MISMATCH");
             }
             return scope;
         } catch (RuntimeUnavailableException exception) {
             throw exception;
         } catch (RuntimeException exception) {
             throw new RuntimeUnavailableException(
-                    "RBAC3_SCOPE_RUNTIME_UNAVAILABLE", exception);
+                    "TIANQUAN_JIANSHEN_SCOPE_RUNTIME_UNAVAILABLE", exception);
         }
     }
 

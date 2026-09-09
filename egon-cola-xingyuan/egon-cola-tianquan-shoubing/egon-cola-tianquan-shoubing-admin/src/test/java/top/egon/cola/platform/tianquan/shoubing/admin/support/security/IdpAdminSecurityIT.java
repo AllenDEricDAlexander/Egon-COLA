@@ -52,7 +52,7 @@ class IdpAdminSecurityIT {
 
     @Test
     void rejectsUnauthenticatedAdminCalls() throws Exception {
-        mockMvc.perform(get("/api/v1/identity/users"))
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/users"))
                 .andExpect(status().isUnauthorized());
     }
 
@@ -66,7 +66,7 @@ class IdpAdminSecurityIT {
                 "one-time-password"
         ));
 
-        mockMvc.perform(post("/api/v1/identity/users")
+        mockMvc.perform(post("/api/v1/tianquan-shoubing/users")
                         .with(identityJwt())
                         .contentType("application/json")
                         .content("""
@@ -77,15 +77,15 @@ class IdpAdminSecurityIT {
 
         verify(authorization).require(
                 any(IdentityPrincipal.class),
-                eq("idp:identity-user:create")
+                eq("tianquan-shoubing:identity-user:create")
         );
     }
 
     @Test
     void resourceMutationRequiresDedicatedRbac3Permission() throws Exception {
         mockMvc.perform(post(
-                        "/api/v1/identity/resource-servers/{resourceServerId}/enable",
-                        "permission-idp-prod"
+                        "/api/v1/tianquan-shoubing/resource-servers/{resourceServerId}/enable",
+                        "permission-tianquan-shoubing-prod"
                 ).with(identityJwt())
                         .contentType("application/json")
                         .content("{\"expectedVersion\":0}"))
@@ -93,18 +93,18 @@ class IdpAdminSecurityIT {
 
         verify(authorization).require(
                 any(IdentityPrincipal.class),
-                eq("idp:resource-server:status")
+                eq("tianquan-shoubing:resource-server:status")
         );
-        verify(resources).enable(eq("permission-idp-prod"), any());
+        verify(resources).enable(eq("permission-tianquan-shoubing-prod"), any());
     }
 
     @Test
     void permissionDenialReturnsForbidden() throws Exception {
         doThrow(new AccessDeniedException("denied"))
                 .when(authorization)
-                .require(any(), eq("idp:identity-user:read"));
+                .require(any(), eq("tianquan-shoubing:identity-user:read"));
 
-        mockMvc.perform(get("/api/v1/identity/users").with(identityJwt()))
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/users").with(identityJwt()))
                 .andExpect(status().isForbidden());
     }
 
@@ -118,7 +118,7 @@ class IdpAdminSecurityIT {
                 )
         );
 
-        mockMvc.perform(patch("/api/v1/identity/users/1001")
+        mockMvc.perform(patch("/api/v1/tianquan-shoubing/users/1001")
                         .with(identityJwt())
                         .contentType("application/json")
                         .content("""
@@ -134,7 +134,7 @@ class IdpAdminSecurityIT {
 
         verify(authorization).require(
                 any(IdentityPrincipal.class),
-                eq("idp:identity-user:update")
+                eq("tianquan-shoubing:identity-user:update")
         );
     }
 
@@ -144,7 +144,7 @@ class IdpAdminSecurityIT {
                 "identity username already exists"
         ));
 
-        mockMvc.perform(post("/api/v1/identity/users")
+        mockMvc.perform(post("/api/v1/tianquan-shoubing/users")
                         .with(identityJwt())
                         .contentType("application/json")
                         .content("""
@@ -162,7 +162,7 @@ class IdpAdminSecurityIT {
                 "admin-sub",
                 "tenant-a",
                 "token-a",
-                java.util.Set.of("idp-admin"),
+                java.util.Set.of("tianquan-shoubing-admin"),
                 Instant.parse("2026-08-02T00:00:00Z"),
                 Instant.parse("2026-08-02T00:15:00Z"),
                 AuthenticationContext.password()

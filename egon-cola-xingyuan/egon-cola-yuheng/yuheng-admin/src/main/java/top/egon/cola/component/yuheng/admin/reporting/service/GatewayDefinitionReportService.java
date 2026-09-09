@@ -38,7 +38,7 @@ public class GatewayDefinitionReportService {
      * 用法 / Usage: 该字段通过 {@code GatewayDefinitionReportService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayDefinitionReportService}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final String IDEMPOTENCY_SCOPE =
-            "GATEWAY_DEFINITION_REPORT";
+            "YUHENG_DEFINITION_REPORT";
 
     /**
      * 中文说明：表示 MCPPERMISSION 这一固定值；它属于 {@code GatewayDefinitionReportService} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -219,7 +219,7 @@ public class GatewayDefinitionReportService {
                     ))
                     .ifPresent(conflict -> {
                         throw new IllegalStateException(
-                                "GATEWAY_ADMIN_IMMUTABLE_BUILD_CONFLICT: "
+                                "YUHENG_ADMIN_IMMUTABLE_BUILD_CONFLICT: "
                                         + report.build().buildId()
                         );
                     });
@@ -392,7 +392,7 @@ public class GatewayDefinitionReportService {
         }
         if (!report.reportId().equals(headerReportId)) {
             throw new IllegalArgumentException(
-                    "X-Gateway-Report-Id does not match request body"
+                    "X-Yuheng-Report-Id does not match request body"
             );
         }
         if (!authentication.bizCode().equals(report.application().bizCode())

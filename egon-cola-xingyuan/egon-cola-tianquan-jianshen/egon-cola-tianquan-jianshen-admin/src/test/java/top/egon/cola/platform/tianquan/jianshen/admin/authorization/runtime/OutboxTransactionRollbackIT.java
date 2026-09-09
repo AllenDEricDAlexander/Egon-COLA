@@ -54,11 +54,11 @@ class OutboxTransactionRollbackIT {
         String messageId = adapter.enqueue(event());
 
         assertThat(messageId).isEqualTo("persisted-event");
-        assertThat(captured.get().channel()).isEqualTo("rbac3-runtime");
+        assertThat(captured.get().channel()).isEqualTo("tianquan-jianshen-runtime");
         assertThat(captured.get().destination())
-                .isEqualTo("rbac3.role-activation.changed.v1");
+                .isEqualTo("tianquan-jianshen.role-activation.changed.v1");
         assertThat(captured.get().idempotencyKey())
-                .isEqualTo("7:rbac3.role-activation.changed.v1:99:4");
+                .isEqualTo("7:tianquan-jianshen.role-activation.changed.v1:99:4");
         assertThat(captured.get().payload().toString())
                 .contains("eventId", "aggregateVersion=4")
                 .doesNotContain("token", "password", "secret");
@@ -78,9 +78,9 @@ class OutboxTransactionRollbackIT {
                 Map.of("sessionVersion", "5", "reason", "ADMIN_REVOKE"),
                 "session:99:5"));
 
-        assertThat(captured.get().destination()).isEqualTo("rbac3.session.revoked.v1");
+        assertThat(captured.get().destination()).isEqualTo("tianquan-jianshen.session.revoked.v1");
         assertThat(captured.get().idempotencyKey())
-                .isEqualTo("7:rbac3.session.revoked.v1:99:5");
+                .isEqualTo("7:tianquan-jianshen.session.revoked.v1:99:5");
     }
 
     @Test
@@ -94,7 +94,7 @@ class OutboxTransactionRollbackIT {
                 }, Clock.fixed(NOW, ZoneOffset.UTC));
 
         adapter.enqueue(new AuthorizationEventVO(
-                "7", "SESSION", "99", "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
+                "7", "SESSION", "99", "TIANQUAN_JIANSHEN_SESSION_ACTIVE_ROLES_REPLACED",
                 Map.of(
                         "contextVersion", "6",
                         "authVersion", "1",
@@ -102,7 +102,7 @@ class OutboxTransactionRollbackIT {
                 "role-activation:99:6"));
 
         assertThat(captured.get().idempotencyKey())
-                .isEqualTo("7:rbac3.role-activation.changed.v1:99:6");
+                .isEqualTo("7:tianquan-jianshen.role-activation.changed.v1:99:6");
     }
 
     @Test
@@ -114,13 +114,13 @@ class OutboxTransactionRollbackIT {
             return Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum.ALREADY_APPLIED;
         });
 
-        assertThatThrownBy(() -> handler.validateDestination("rbac3.unknown.v1"))
+        assertThatThrownBy(() -> handler.validateDestination("tianquan-jianshen.unknown.v1"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsupported RBAC3 runtime destination");
+                .hasMessageContaining("unsupported Tianquan-Jianshen runtime destination");
         DeliveryResult result = handler.deliver(context(
-                "rbac3.role-activation.changed.v1",
+                "tianquan-jianshen.role-activation.changed.v1",
                 """
-                        {"eventId":"event-1","eventType":"rbac3.role-activation.changed.v1",
+                        {"eventId":"event-1","eventType":"tianquan-jianshen.role-activation.changed.v1",
                          "schemaVersion":1,"occurredAt":"2026-07-30T12:00:00Z",
                          "tenantId":"7","aggregateType":"SESSION","aggregateId":"99",
                          "aggregateVersion":4,"traceId":"trace-1","payload":{}}
@@ -131,16 +131,16 @@ class OutboxTransactionRollbackIT {
     }
 
     @Test
-    @EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_URL", matches = ".+")
-    @EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_USER", matches = ".+")
+    @EnabledIfEnvironmentVariable(named = "TIANQUAN_JIANSHEN_IT_POSTGRES_URL", matches = ".+")
+    @EnabledIfEnvironmentVariable(named = "TIANQUAN_JIANSHEN_IT_POSTGRES_USER", matches = ".+")
     @EnabledIfEnvironmentVariable(
-            named = "RBAC3_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
+            named = "TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
     void twoFlywaysAndBusinessOutboxWriteShareOnePhysicalTransaction()
             throws Exception {
-        String baseUrl = requiredEnvironment("RBAC3_IT_POSTGRES_URL");
-        String user = requiredEnvironment("RBAC3_IT_POSTGRES_USER");
+        String baseUrl = requiredEnvironment("TIANQUAN_JIANSHEN_IT_POSTGRES_URL");
+        String user = requiredEnvironment("TIANQUAN_JIANSHEN_IT_POSTGRES_USER");
         String password = Files.readString(Path.of(requiredEnvironment(
-                "RBAC3_IT_POSTGRES_PASSWORD_FILE"))).trim();
+                "TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE"))).trim();
         String schema = "rbac3_it_" + UUID.randomUUID().toString()
                 .replace("-", "").substring(0, 16);
         try {
@@ -195,13 +195,13 @@ class OutboxTransactionRollbackIT {
         var context = new AnnotationConfigApplicationContext();
         Map<String, Object> properties = new LinkedHashMap<>();
         properties.put("egon.cola.component.transactional-outbox.enabled", "true");
-        properties.put("egon.cola.component.transactional-outbox.node-id", "rbac3-it");
+        properties.put("egon.cola.component.transactional-outbox.node-id", "tianquan-jianshen-it");
         properties.put("egon.cola.component.transactional-outbox.polling.enabled", "false");
         properties.put("egon.cola.component.transactional-outbox.storage.validate-schema", "true");
         properties.put("egon.cola.component.transactional-outbox.storage.data-source-bean-name", "dataSource");
         properties.put("egon.cola.component.transactional-outbox.storage.transaction-manager-bean-name", "transactionManager");
         context.getEnvironment().getPropertySources().addFirst(
-                new MapPropertySource("rbac3-outbox-it", properties));
+                new MapPropertySource("tianquan-jianshen-outbox-it", properties));
         context.registerBean("dataSource", javax.sql.DataSource.class, () -> dataSource);
         context.registerBean("transactionManager",
                 org.springframework.transaction.PlatformTransactionManager.class,
@@ -239,13 +239,13 @@ class OutboxTransactionRollbackIT {
 
     private AuthorizationEventVO event() {
         return new AuthorizationEventVO(
-                "7", "SESSION", "99", "RBAC3_SESSION_ACTIVE_ROLES_REPLACED",
+                "7", "SESSION", "99", "TIANQUAN_JIANSHEN_SESSION_ACTIVE_ROLES_REPLACED",
                 Map.of("mutationId", "700", "sessionVersion", "4"), "trace-1");
     }
 
     private DeliveryContext context(String destination, String payload) {
         return new DeliveryContext(
-                "message-1", "rbac3-runtime", destination, payload,
+                "message-1", "tianquan-jianshen-runtime", destination, payload,
                 "application/json", "1", Map.of(), "trace-1",
                 1, 10, NOW.plusSeconds(30));
     }

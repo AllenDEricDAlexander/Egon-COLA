@@ -45,7 +45,7 @@ public final class ServiceInstanceMetaCodec {
     /**
      * 结构化实例元数据的保留键前缀。 / Reserved key prefix for structured instance metadata.
      */
-    public static final String PREFIX = "gateway.";
+    public static final String PREFIX = "yuheng.";
 
     /**
      * 相对权重元数据键。 / Metadata key for relative weight.

@@ -17,7 +17,7 @@ public final class GatewayResponseHeaderTimeoutException
      */
     GatewayResponseHeaderTimeoutException() {
         super(
-                "GATEWAY_RESPONSE_HEADER_TIMEOUT",
+                "YUHENG_RESPONSE_HEADER_TIMEOUT",
                 "upstream response headers timed out"
         );
     }

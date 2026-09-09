@@ -7,7 +7,7 @@ import java.util.Objects;
 /**
  * 运行时操作对应的 provider 服务定位信息。
  *
- * <p>它把 DDC 业务、应用、环境、命名空间和协议服务名组合成 Engine 可解析的目标；旧快照
+ * <p>它把 Tianshu 业务、应用、环境、命名空间和协议服务名组合成 Engine 可解析的目标；旧快照
  * 可暂时缺少业务和应用编码，但新发布内容应显式提供完整范围。
  */
 public record GatewayProviderServiceRef(

@@ -243,7 +243,7 @@ class McpHaRecoveryIT {
                         McpProtocolDialect.STABLE_2025_11_25,
                         McpProtocolDialect.RC_2026_07_28
                 ),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30L,
                 true
         );
@@ -271,7 +271,7 @@ class McpHaRecoveryIT {
                 (request, selected) -> Mono.just(Map.of(
                         "callerId", "user-1",
                         "tenantId", "tenant-1",
-                        "idp.client-id", "client-1",
+                        "tianquan-shoubing.client-id", "client-1",
                         "identity.token-id", "token-1"
                 )),
                 MAPPER,
@@ -424,7 +424,7 @@ class McpHaRecoveryIT {
                 "Developer capabilities",
                 "Use reviewed tools.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30L,
                 true
         );

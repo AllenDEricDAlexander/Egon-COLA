@@ -54,7 +54,7 @@ public final class DdcConfigFormatStrategyRegistry {
             );
             if (indexed.putIfAbsent(format, strategy) != null) {
                 throw new IllegalArgumentException(
-                        "Duplicate DDC config format strategy: " + format
+                        "Duplicate Tianshu config format strategy: " + format
                 );
             }
         }
@@ -85,7 +85,7 @@ public final class DdcConfigFormatStrategyRegistry {
         );
         if (strategy == null) {
             throw new IllegalArgumentException(
-                    "Unsupported DDC config format: " + format
+                    "Unsupported Tianshu config format: " + format
             );
         }
         return strategy;
@@ -116,7 +116,7 @@ public final class DdcConfigFormatStrategyRegistry {
         DdcConfigFormatStrategy strategy = get(format);
         if (!strategy.supports(resourceName)) {
             throw new IllegalArgumentException(
-                    "DDC resource name does not match format "
+                    "Tianshu resource name does not match format "
                             + strategy.format() + ": " + resourceName
             );
         }
@@ -138,7 +138,7 @@ public final class DdcConfigFormatStrategyRegistry {
             }
         }
         throw new IllegalArgumentException(
-                "Unsupported DDC config resource: " + resourceName
+                "Unsupported Tianshu config resource: " + resourceName
         );
     }
 }

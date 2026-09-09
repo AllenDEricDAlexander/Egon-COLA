@@ -3,14 +3,14 @@ package top.egon.cola.platform.tianquan.jianshen.admin.config.properties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
- * RBAC3 管理端的安全相关配置；RBAC3 不签发或签名 JWT，人员 Token 权威属于 IdP，
+ * Tianquan-Jianshen 管理端的安全相关配置；Tianquan-Jianshen 不签发或签名 JWT，人员 Token 权威属于 Tianquan-Shoubing，
  * 本属性组当前只保存审计游标签名密钥。
  *
- * Security-adjacent configuration for the RBAC3 Admin. RBAC3 does not issue or
- * sign JWTs; IdP owns personnel-token authority. This group only carries the
- * audit-cursor signing secret used by the RBAC3 audit API.
+ * Security-adjacent configuration for the Tianquan-Jianshen Admin. Tianquan-Jianshen does not issue or
+ * sign JWTs; Tianquan-Shoubing owns personnel-token authority. This group only carries the
+ * audit-cursor signing secret used by the Tianquan-Jianshen audit API.
  */
-@ConfigurationProperties(prefix = "egon.rbac3.security")
+@ConfigurationProperties(prefix = "egon.tianquan-jianshen.security")
 public class Rbac3SecurityProperties {
 
     private String auditCursorSecretFile;

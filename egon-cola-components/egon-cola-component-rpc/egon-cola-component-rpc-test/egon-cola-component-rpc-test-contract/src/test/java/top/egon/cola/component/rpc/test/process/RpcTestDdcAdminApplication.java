@@ -4,15 +4,15 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import top.egon.cola.component.ddc.admin.DynamicConfigCenterAdminApplication;
-import top.egon.cola.component.ddc.admin.security.registration.DdcRegistrationCredentialVerifier;
-import top.egon.cola.component.ddc.admin.security.registration.VerifiedDdcRegistrationIdentity;
+import top.egon.cola.component.tianshu.admin.DynamicConfigCenterAdminApplication;
+import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
+import top.egon.cola.component.tianshu.admin.security.registration.VerifiedDdcRegistrationIdentity;
 
 import java.time.Instant;
 import java.util.Set;
 
 /**
- * Starts DDC Admin with the process test's isolated admission boundary.
+ * Starts Tianshu Admin with the process test's isolated admission boundary.
  */
 public final class RpcTestDdcAdminApplication {
 
@@ -20,7 +20,7 @@ public final class RpcTestDdcAdminApplication {
     }
 
     /**
-     * Starts the real DDC Admin application plus the test-only verifier.
+     * Starts the real Tianshu Admin application plus the test-only verifier.
      *
      * @param args Spring Boot command-line arguments
      */
@@ -61,7 +61,7 @@ public final class RpcTestDdcAdminApplication {
                         "rpc-process-test-token",
                         issuedAt,
                         issuedAt.plusSeconds(300),
-                        Set.of("ddc:registration:write")
+                        Set.of("tianshu:registration:write")
                 );
             };
         }

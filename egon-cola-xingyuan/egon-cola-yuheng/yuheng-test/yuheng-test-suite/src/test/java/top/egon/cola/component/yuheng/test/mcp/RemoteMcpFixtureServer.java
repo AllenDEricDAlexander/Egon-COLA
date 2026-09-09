@@ -25,8 +25,8 @@ final class RemoteMcpFixtureServer implements AutoCloseable {
                 StableRemoteMcpApplication.class
         ).logStartupInfo(false).run(
                 "--server.port=0",
-                "--spring.application.name=gateway-test-mcp-remote",
-                "--spring.config.name=gateway-mcp-fixture",
+                "--spring.application.name=yuheng-test-mcp-remote",
+                "--spring.config.name=yuheng-mcp-fixture",
                 "--spring.main.banner-mode=off",
                 "--spring.autoconfigure.exclude="
                         + "org.springframework.boot.autoconfigure.jdbc."
@@ -50,7 +50,7 @@ final class RemoteMcpFixtureServer implements AutoCloseable {
                         + "security.servlet."
                         + "ManagementWebSecurityAutoConfiguration",
                 "--egon.cola.component.id.machine-id=0",
-                "--egon.cola.component.ddc.enabled=false",
+                "--egon.cola.component.tianshu.enabled=false",
                 "--management.endpoints.enabled-by-default=false"
         );
         int port = ((WebServerApplicationContext) context)

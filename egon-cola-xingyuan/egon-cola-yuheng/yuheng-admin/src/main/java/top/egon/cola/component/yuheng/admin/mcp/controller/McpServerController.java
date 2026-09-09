@@ -35,15 +35,15 @@ import java.util.List;
  */
 @Validated
 @RestController
-@RequestMapping("/api/v1/gateway/admin/mcp/servers")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/mcp/servers")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class McpServerController {
 
     /**
@@ -97,7 +97,7 @@ public class McpServerController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO create(
             @Valid @RequestBody McpServerRequestDTO request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -141,7 +141,7 @@ public class McpServerController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO update(
             @PathVariable String id,
             @Valid @RequestBody McpServerRequestDTO request,
@@ -171,7 +171,7 @@ public class McpServerController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO delete(
             @PathVariable String id,
             @Valid @RequestBody McpServerMutationRequestDTO request,

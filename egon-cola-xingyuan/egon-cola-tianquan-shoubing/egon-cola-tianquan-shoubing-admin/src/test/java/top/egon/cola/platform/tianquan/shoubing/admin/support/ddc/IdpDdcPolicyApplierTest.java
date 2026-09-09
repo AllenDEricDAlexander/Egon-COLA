@@ -1,4 +1,4 @@
-package top.egon.cola.platform.tianquan.shoubing.admin.support.ddc;
+package top.egon.cola.platform.tianquan.shoubing.admin.support.tianshu;
 
 import org.junit.jupiter.api.Test;
 

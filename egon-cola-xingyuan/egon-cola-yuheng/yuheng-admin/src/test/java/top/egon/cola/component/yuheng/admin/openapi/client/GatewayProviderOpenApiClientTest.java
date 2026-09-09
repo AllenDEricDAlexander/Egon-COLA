@@ -48,7 +48,7 @@ class GatewayProviderOpenApiClientTest {
         HttpClient httpClient = mock(HttpClient.class);
         when(dnsPolicy.resolveAndValidate("provider.internal"))
                 .thenThrow(new GatewayOpenApiFetchException(
-                        "GATEWAY_OPENAPI_TARGET_FORBIDDEN",
+                        "YUHENG_OPENAPI_TARGET_FORBIDDEN",
                         false,
                         "provider target is not allowlisted"
                 ));
@@ -63,7 +63,7 @@ class GatewayProviderOpenApiClientTest {
         )).isInstanceOf(GatewayOpenApiFetchException.class)
                 .satisfies(failure -> assertThat(
                         ((GatewayOpenApiFetchException) failure).errorCode()
-                ).isEqualTo("GATEWAY_OPENAPI_TARGET_FORBIDDEN"));
+                ).isEqualTo("YUHENG_OPENAPI_TARGET_FORBIDDEN"));
         verifyNoInteractions(tokenSupplier, httpClient);
     }
 
@@ -77,7 +77,7 @@ class GatewayProviderOpenApiClientTest {
         when(dnsPolicy.resolveAndValidate("provider.internal"))
                 .thenReturn(List.of(loopbackAddress()))
                 .thenThrow(new GatewayOpenApiFetchException(
-                        "GATEWAY_OPENAPI_TARGET_REBOUND",
+                        "YUHENG_OPENAPI_TARGET_REBOUND",
                         false,
                         "provider target changed during resolution"
                 ));
@@ -94,10 +94,10 @@ class GatewayProviderOpenApiClientTest {
         )).isInstanceOf(GatewayOpenApiFetchException.class)
                 .satisfies(failure -> assertThat(
                         ((GatewayOpenApiFetchException) failure).errorCode()
-                ).isEqualTo("GATEWAY_OPENAPI_TARGET_REBOUND"));
+                ).isEqualTo("YUHENG_OPENAPI_TARGET_REBOUND"));
         verify(tokenSupplier).tokenFor(
                 eq(URI.create("https://provider.example/resource")),
-                eq("gateway.openapi.read")
+                eq("yuheng.openapi.read")
         );
         verifyNoInteractions(httpClient);
     }
@@ -124,7 +124,7 @@ class GatewayProviderOpenApiClientTest {
         )).isInstanceOf(GatewayOpenApiFetchException.class)
                 .satisfies(failure -> assertThat(
                         ((GatewayOpenApiFetchException) failure).errorCode()
-                ).isEqualTo("GATEWAY_OPENAPI_OAUTH_FAILED"));
+                ).isEqualTo("YUHENG_OPENAPI_OAUTH_FAILED"));
         verifyNoInteractions(httpClient);
     }
 
@@ -203,7 +203,7 @@ class GatewayProviderOpenApiClientTest {
         )).isInstanceOf(GatewayOpenApiFetchException.class)
                 .satisfies(failure -> assertThat(
                         ((GatewayOpenApiFetchException) failure).errorCode()
-                ).isEqualTo("GATEWAY_OPENAPI_HTTP_STATUS"));
+                ).isEqualTo("YUHENG_OPENAPI_HTTP_STATUS"));
 
         HttpClient oversizedHttpClient = mock(HttpClient.class);
         HttpResponse<InputStream> oversizedResponse = response(
@@ -226,7 +226,7 @@ class GatewayProviderOpenApiClientTest {
         )).isInstanceOf(GatewayOpenApiFetchException.class)
                 .satisfies(failure -> assertThat(
                         ((GatewayOpenApiFetchException) failure).errorCode()
-                ).isEqualTo("GATEWAY_OPENAPI_DOCUMENT_TOO_LARGE"));
+                ).isEqualTo("YUHENG_OPENAPI_DOCUMENT_TOO_LARGE"));
     }
 
     @Test
@@ -428,7 +428,7 @@ class GatewayProviderOpenApiClientTest {
         )).isInstanceOf(GatewayOpenApiFetchException.class)
                 .satisfies(failure -> assertThat(
                         ((GatewayOpenApiFetchException) failure).errorCode()
-                ).isEqualTo("GATEWAY_OPENAPI_TARGET_FORBIDDEN"));
+                ).isEqualTo("YUHENG_OPENAPI_TARGET_FORBIDDEN"));
     }
 
     private GatewayProviderOpenApiClient client(

@@ -63,9 +63,9 @@ class GatewayIdentityOnlySecurityTest {
 
     private GatewaySecurityPolicy policy() {
         return new GatewaySecurityPolicy(
-                "security", AuthenticationMode.REQUIRED, List.of("idp-bearer"),
-                List.of("idp-jwt"), List.of(),
-                AuthorizationDecisionMode.ALL_ALLOW, "idp-identity",
+                "security", AuthenticationMode.REQUIRED, List.of("tianquan-shoubing-bearer"),
+                List.of("tianquan-shoubing-jwt"), List.of(),
+                AuthorizationDecisionMode.ALL_ALLOW, "tianquan-shoubing-identity",
                 Duration.ofSeconds(1), SecurityFailureMode.FAIL_CLOSED,
                 CredentialForwardingMode.ORIGINAL_BEARER);
     }
@@ -105,7 +105,7 @@ class GatewayIdentityOnlySecurityTest {
 
     private record Extractor(GatewayCredential credential)
             implements GatewayCredentialExtractor {
-        public String extractorId() { return "idp-bearer"; }
+        public String extractorId() { return "tianquan-shoubing-bearer"; }
         public String credentialType() { return "bearer"; }
         public org.reactivestreams.Publisher<CredentialExtractionResult> extract(
                 GatewayExchange exchange, GatewaySecurityPolicy policy) {
@@ -116,7 +116,7 @@ class GatewayIdentityOnlySecurityTest {
 
     private static final class Authentication
             implements GatewayAuthenticationProvider {
-        public String providerId() { return "idp-jwt"; }
+        public String providerId() { return "tianquan-shoubing-jwt"; }
         public Set<String> supportedCredentialTypes() { return Set.of("bearer"); }
         public org.reactivestreams.Publisher<AuthenticationDecision> authenticate(
                 GatewayAuthContext context, GatewayCredential credential) {
@@ -126,7 +126,7 @@ class GatewayIdentityOnlySecurityTest {
     }
 
     private static final class Mapper implements GatewayIdentityMapper {
-        public String mapperId() { return "idp-identity"; }
+        public String mapperId() { return "tianquan-shoubing-identity"; }
         public Set<GatewayProtocol> supportedProtocols() {
             return Set.of(GatewayProtocol.HTTP);
         }

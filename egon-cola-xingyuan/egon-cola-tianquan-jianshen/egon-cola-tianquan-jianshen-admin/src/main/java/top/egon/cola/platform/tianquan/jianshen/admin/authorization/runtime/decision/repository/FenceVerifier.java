@@ -14,7 +14,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.dec
          * Determines whether the specified user subject is still fenced.
          *
          * @param tenantId 租户标识 / tenant identifier
-         * @param identitySub IdP 稳定主体标识 / stable IdP subject
+         * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
          * @return 若存在 Fence 则为 {@code true} / {@code true} when fenced
          * 用法：调用 `isFenced` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
          * Usage: provide contract-compliant arguments before calling `isFenced`, then continue the business flow using its result, exception, or side effect.

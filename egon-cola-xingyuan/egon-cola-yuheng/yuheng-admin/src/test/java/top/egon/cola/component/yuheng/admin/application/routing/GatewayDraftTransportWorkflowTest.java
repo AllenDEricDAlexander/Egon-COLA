@@ -49,7 +49,7 @@ class GatewayDraftTransportWorkflowTest {
         Fixture fixture = fixture();
 
         fixture.mockMvc.perform(put(
-                        "/api/v1/gateway/admin/gateway-groups/group-1"
+                        "/api/v1/yuheng/admin/yuheng-groups/group-1"
                                 + "/draft/routes/route-1"
                 )
                         .contentType(MediaType.APPLICATION_JSON)
@@ -86,7 +86,7 @@ class GatewayDraftTransportWorkflowTest {
                 .andExpect(jsonPath("$.resourceId").value("route-1"));
 
         fixture.mockMvc.perform(get(
-                        "/api/v1/gateway/admin/gateway-groups/group-1/draft"
+                        "/api/v1/yuheng/admin/yuheng-groups/group-1/draft"
                 ))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.routes[0].content.httpMethod")
@@ -115,7 +115,7 @@ class GatewayDraftTransportWorkflowTest {
                         .doesNotExist());
 
         fixture.mockMvc.perform(post(
-                        "/api/v1/gateway/admin/gateway-groups/group-1"
+                        "/api/v1/yuheng/admin/yuheng-groups/group-1"
                                 + "/draft/validate"
                 ))
                 .andExpect(status().isOk())
@@ -129,7 +129,7 @@ class GatewayDraftTransportWorkflowTest {
         Fixture fixture = fixture();
 
         fixture.mockMvc.perform(put(
-                        "/api/v1/gateway/admin/gateway-groups/group-1"
+                        "/api/v1/yuheng/admin/yuheng-groups/group-1"
                                 + "/draft/routes/route-1"
                 )
                         .contentType(MediaType.APPLICATION_JSON)
@@ -150,7 +150,7 @@ class GatewayDraftTransportWorkflowTest {
                 .andExpect(status().isOk());
 
         fixture.mockMvc.perform(post(
-                        "/api/v1/gateway/admin/gateway-groups/group-1"
+                        "/api/v1/yuheng/admin/yuheng-groups/group-1"
                                 + "/draft/validate"
                 ))
                 .andExpect(status().isOk())
@@ -183,7 +183,7 @@ class GatewayDraftTransportWorkflowTest {
             route.set(invocation.getArgument(0));
             return null;
         }).when(store).upsertRoute(any());
-        when(idempotency.find("GATEWAY_DRAFT", "group-1", "idem-1"))
+        when(idempotency.find("YUHENG_DRAFT", "group-1", "idem-1"))
                 .thenReturn(Optional.empty());
         when(catalog.findOperation("operation-1"))
                 .thenReturn(Optional.of(operation()));
@@ -271,7 +271,7 @@ class GatewayDraftTransportWorkflowTest {
             return new AdminActor(
                     "admin",
                     top.egon.cola.component.yuheng.admin.shared.domain.enums.AdminActorTypeEnum.USER,
-                    Set.of("gateway:drafts:write"),
+                    Set.of("yuheng:drafts:write"),
                     Set.of()
             );
         }

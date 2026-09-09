@@ -32,7 +32,7 @@ class McpAdminApiIT {
                         null,
                         null,
                         Set.of("STABLE_2025_11_25"),
-                        "https://resource.egon.top/gateway-mcp",
+                        "https://resource.egon.top/yuheng-mcp",
                         30,
                         true,
                         0,
@@ -46,12 +46,12 @@ class McpAdminApiIT {
                 .setControllerAdvice(new GatewayAdminExceptionHandler())
                 .build();
 
-        mvc.perform(get("/api/v1/gateway/admin/mcp/servers")
+        mvc.perform(get("/api/v1/yuheng/admin/mcp/servers")
                         .queryParam("gatewayGroupId", "group-1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].serverCode").value("billing"));
 
-        mvc.perform(post("/api/v1/gateway/admin/mcp/servers")
+        mvc.perform(post("/api/v1/yuheng/admin/mcp/servers")
                         .contentType("application/json")
                         .content("""
                                 {
@@ -59,7 +59,7 @@ class McpAdminApiIT {
                                   "serverCode": "billing",
                                   "displayName": "Billing",
                                   "dialects": ["STABLE_2025_11_25"],
-                                  "resourceUri": "https://resource.egon.top/gateway-mcp",
+                                  "resourceUri": "https://resource.egon.top/yuheng-mcp",
                                   "listCacheTtlSeconds": 30,
                                   "expectedRevision": 0,
                                   "expectedDraftRevision": 0,

@@ -5,11 +5,11 @@ import top.egon.cola.platform.tianquan.jianshen.contract.authorization.UserAutho
 import java.util.Objects;
 
 /**
-     * 关联租户、IdP 主体、RBAC 用户与不可变授权快照的记录。
-     * Record associating a tenant, IdP subject, RBAC user, and immutable authorization snapshot.
+     * 关联租户、Tianquan-Shoubing 主体、RBAC 用户与不可变授权快照的记录。
+     * Record associating a tenant, Tianquan-Shoubing subject, RBAC user, and immutable authorization snapshot.
      *
      * @param tenantId 租户标识 / tenant identifier
-     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
      * @param userId RBAC 用户标识 / RBAC user identifier
  * @param snapshot 用户授权快照 / user authorization snapshot
      * 语义与用法：将 `SnapshotRecordVO` 作为 `AuthorizationDecisionService` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
@@ -67,11 +67,11 @@ import java.util.Objects;
         }
 
         /**
-         * 使用同一值作为兼容的 IdP 主体和 RBAC 用户标识创建记录。
-         * Creates a record using the same compatibility value for IdP subject and RBAC user ID.
+         * 使用同一值作为兼容的 Tianquan-Shoubing 主体和 RBAC 用户标识创建记录。
+         * Creates a record using the same compatibility value for Tianquan-Shoubing subject and RBAC user ID.
          *
          * @param tenantId 租户标识 / tenant identifier
-         * @param userId 用户标识，同时作为 IdP 主体 / user identifier, also used as IdP subject
+         * @param userId 用户标识，同时作为 Tianquan-Shoubing 主体 / user identifier, also used as Tianquan-Shoubing subject
          * @param snapshot 用户授权快照 / user authorization snapshot
          */
         public SnapshotRecordVO(

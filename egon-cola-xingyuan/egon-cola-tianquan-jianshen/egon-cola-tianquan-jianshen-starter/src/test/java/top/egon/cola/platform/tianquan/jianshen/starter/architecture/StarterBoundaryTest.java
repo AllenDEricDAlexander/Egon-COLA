@@ -46,7 +46,7 @@ class StarterBoundaryTest {
         try (var children = Files.list(platform)) {
             assertFalse(children
                     .map(path -> path.getFileName().toString())
-                    .anyMatch(name -> name.matches(".*rbac3.*-test(s)?")));
+                    .anyMatch(name -> name.matches(".*tianquan-jianshen.*-test(s)?")));
         }
     }
 

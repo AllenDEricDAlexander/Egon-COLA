@@ -28,7 +28,7 @@ class DdcPlatformBoundaryTest {
     @Test
     void starterContainsExactlyTheApprovedTopLevelRolePackages() throws Exception {
         Path packageRoot = Path.of(
-                "src/main/java/top/egon/cola/component/ddc"
+                "src/main/java/top/egon/cola/component/tianshu"
         );
         try (var paths = Files.list(packageRoot)) {
             List<String> topLevelPackages = paths
@@ -57,7 +57,7 @@ class DdcPlatformBoundaryTest {
     @Test
     void everyJavaSourceDirectoryIsAnApprovedDocumentedPackage() throws Exception {
         Path packageRoot = Path.of(
-                "src/main/java/top/egon/cola/component/ddc"
+                "src/main/java/top/egon/cola/component/tianshu"
         );
         List<Path> directories;
         try (var paths = Files.walk(packageRoot)) {

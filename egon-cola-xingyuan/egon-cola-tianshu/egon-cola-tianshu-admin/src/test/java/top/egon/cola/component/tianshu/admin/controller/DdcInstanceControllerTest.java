@@ -36,23 +36,23 @@ class DdcInstanceControllerTest {
     void pagesPersistentInstances() throws Exception {
         DdcInstanceEntity instance = new DdcInstanceEntity();
         instance.setId("row-1");
-        instance.setInstanceId("gateway-1");
+        instance.setInstanceId("yuheng-1");
         when(instanceAdminService.page(
-                eq("infra"), eq("prod"), eq("gateway"),
+                eq("infra"), eq("prod"), eq("yuheng"),
                 any(PageQuery.class)
         )).thenReturn(new PageImpl<>(
                 List.of(instance), PageRequest.of(0, 1), 2
         ));
 
-        mockMvc.perform(get("/api/v1/ddc/instances/page")
+        mockMvc.perform(get("/api/v1/tianshu/instances/page")
                         .param("bizCode", "infra")
                         .param("env", "prod")
-                        .param("appCode", "gateway")
+                        .param("appCode", "yuheng")
                         .param("pageNo", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.records[0].instanceId")
-                        .value("gateway-1"))
+                        .value("yuheng-1"))
                 .andExpect(jsonPath("$.page.total").value(2))
                 .andExpect(jsonPath("$.page.pageNo").value(1))
                 .andExpect(jsonPath("$.data").doesNotExist());

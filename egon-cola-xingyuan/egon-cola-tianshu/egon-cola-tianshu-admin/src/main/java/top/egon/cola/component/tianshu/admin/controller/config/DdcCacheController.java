@@ -19,14 +19,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/cache")
-@Tag(name = "ddc-admin-ddc-cache-controller", description = "DdcCacheController 管理接口组")
+@RequestMapping("/api/v1/tianshu/cache")
+@Tag(name = "tianshu-admin-tianshu-cache-controller", description = "DdcCacheController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcCacheController {
 
@@ -36,7 +36,7 @@ public class DdcCacheController {
         this.cacheService = cacheService;
     }
 
-    @Operation(operationId = "ddc.ddcCacheController.rebuild")
+    @Operation(operationId = "tianshu.ddcCacheController.rebuild")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/rebuild")
     public ResultRecord<Integer> rebuild(
@@ -47,7 +47,7 @@ public class DdcCacheController {
                 bizCode, env, appCode));
     }
 
-    @Operation(operationId = "ddc.ddcCacheController.check")
+    @Operation(operationId = "tianshu.ddcCacheController.check")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/check")
     public ResultRecord<List<DdcCacheCheckRow>> check(
@@ -58,7 +58,7 @@ public class DdcCacheController {
                 bizCode, env, appCode));
     }
 
-    @Operation(operationId = "ddc.ddcCacheController.page")
+    @Operation(operationId = "tianshu.ddcCacheController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/check/page")
     public PageResultRecord<DdcCacheCheckRow> page(

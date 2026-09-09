@@ -103,7 +103,7 @@ class DdcHttpRegistrationRuntimeTest {
     void retainsMetadataAndRejectsProductionLoopback() {
         assertEquals(
                 "set-a",
-                properties().metadata().get("gateway.definition-set-id")
+                properties().metadata().get("yuheng.definition-set-id")
         );
         assertThrows(
                 IllegalArgumentException.class,
@@ -138,7 +138,7 @@ class DdcHttpRegistrationRuntimeTest {
                 serviceTokens.client,
                 idpProperties(),
                 java.net.URI.create(
-                        "https://api.example/ddc-registration"
+                        "https://api.example/tianshu-registration"
                 )
         );
 
@@ -187,7 +187,7 @@ class DdcHttpRegistrationRuntimeTest {
                 serviceTokens.client,
                 idpProperties(),
                 java.net.URI.create(
-                        "https://api.example/ddc-registration"
+                        "https://api.example/tianshu-registration"
                 )
         );
 
@@ -206,13 +206,13 @@ class DdcHttpRegistrationRuntimeTest {
         IdpServiceTokenRequest request = serviceTokens.requests.getFirst();
         assertEquals(
                 java.net.URI.create(
-                        "https://api.example/ddc-registration"
+                        "https://api.example/tianshu-registration"
                 ),
                 request.audience()
         );
         assertEquals(ServiceTokenContext.PLATFORM, request.context());
         assertEquals(null, request.tenantId());
-        assertEquals(Set.of("ddc:registration:write"), request.scopes());
+        assertEquals(Set.of("tianshu:registration:write"), request.scopes());
         runtime.close();
         assertEquals(2, serviceTokens.calls.get());
     }
@@ -233,9 +233,9 @@ class DdcHttpRegistrationRuntimeTest {
                 10,
                 true,
                 Map.of(
-                        "gateway.weight",
+                        "yuheng.weight",
                         "100",
-                        "gateway.definition-set-id",
+                        "yuheng.definition-set-id",
                         "set-a"
                 )
         );
@@ -252,11 +252,11 @@ class DdcHttpRegistrationRuntimeTest {
 
     private IdpStarterProperties idpProperties() {
         IdpStarterProperties properties = new IdpStarterProperties();
-        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        properties.setResourceUri(java.net.URI.create("https://api.example/tianshu"));
         IdpStarterProperties.ServiceClient client =
                 new IdpStarterProperties.ServiceClient();
-        client.setAppId("ddc-app");
-        client.setRegistrationId("ddc-registration");
+        client.setAppId("tianshu-app");
+        client.setRegistrationId("tianshu-registration");
         properties.setServiceClient(client);
         return properties;
     }
@@ -374,7 +374,7 @@ class DdcHttpRegistrationRuntimeTest {
                                 value -> Math.max(0, value - 1)
                         ) > 0) {
                             throw new IllegalStateException(
-                                    "IdP service token unavailable"
+                                    "Tianquan-Shoubing service token unavailable"
                             );
                         }
                         Instant issuedAt = Instant.now();

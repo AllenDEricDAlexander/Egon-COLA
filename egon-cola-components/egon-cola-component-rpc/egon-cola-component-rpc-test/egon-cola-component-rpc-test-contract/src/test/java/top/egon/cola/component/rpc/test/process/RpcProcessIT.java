@@ -1,15 +1,15 @@
 package top.egon.cola.component.rpc.test.process;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceInstance;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
+import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
-import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
-import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
-import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
+import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientHandle;
 
 import java.nio.file.Path;
 import java.sql.DriverManager;
@@ -31,11 +31,11 @@ class RpcProcessIT {
     @Test
     void shouldCallProviderThroughMockGatewayInIndependentProcesses()
             throws Exception {
-        String redisHost = requiredEnvironment("DDC_TEST_REDIS_HOST");
+        String redisHost = requiredEnvironment("TIANSHU_TEST_REDIS_HOST");
         int redisPort = Integer.parseInt(
-                requiredEnvironment("DDC_TEST_REDIS_PORT")
+                requiredEnvironment("TIANSHU_TEST_REDIS_PORT")
         );
-        String redisPassword = System.getenv("DDC_TEST_REDIS_PASSWORD");
+        String redisPassword = System.getenv("TIANSHU_TEST_REDIS_PASSWORD");
         String scope = UUID.randomUUID().toString().replace("-", "");
         String env = "process-" + scope;
         String namespace = "rpc-" + scope;
@@ -48,7 +48,7 @@ class RpcProcessIT {
                         "rpc.process.output.directory",
                         "target/rpc-process-it"
                 ),
-                "ddc-" + scope + ".db"
+                "tianshu-" + scope + ".db"
         ).toAbsolutePath();
         String adminEndpoint = "http://127.0.0.1:" + adminPort;
         String adminTarget = "dns:///127.0.0.1:" + adminRpcPort;
@@ -124,22 +124,22 @@ class RpcProcessIT {
                 java.util.ArrayList<String> gatewayArguments =
                         new java.util.ArrayList<>(List.of(
                                 "--egon.cola.component.id.machine-id=3",
-                                "--ddc.target=" + adminTarget,
-                                "--ddc.access-key=process-it",
-                                "--ddc.secret-key=process-it-secret-at-least-32-bytes",
-                                "--ddc.redis.host=" + redisHost,
-                                "--ddc.redis.port=" + redisPort,
-                                "--ddc.env=" + env,
-                                "--ddc.namespace=" + namespace,
-                                "--gateway.port=" + gatewayPort
+                                "--tianshu.target=" + adminTarget,
+                                "--tianshu.access-key=process-it",
+                                "--tianshu.secret-key=process-it-secret-at-least-32-bytes",
+                                "--tianshu.redis.host=" + redisHost,
+                                "--tianshu.redis.port=" + redisPort,
+                                "--tianshu.env=" + env,
+                                "--tianshu.namespace=" + namespace,
+                                "--yuheng.port=" + gatewayPort
                         ));
                 addPassword(
                         gatewayArguments,
-                        "--ddc.redis.password=",
+                        "--tianshu.redis.password=",
                         redisPassword
                 );
                 RpcProcessHarness.Child gateway = processes.start(
-                        "gateway",
+                        "yuheng",
                         RpcMockGatewayApplication.class.getName(),
                         gatewayArguments
                 );
@@ -177,7 +177,7 @@ class RpcProcessIT {
                                 List.of(
                                         "--egon.cola.component.rpc.provider.enabled=false",
                                         "--egon.cola.component.rpc.consumer.enabled=true",
-                                        "--egon.cola.component.rpc.consumer.gateway-service-name="
+                                        "--egon.cola.component.rpc.consumer.yuheng-service-name="
                                                 + "egon-internal-rpc-gateway",
                                         "--rpc.test.run-once=true",
                                         "--rpc.test.message=process-call"
@@ -207,7 +207,7 @@ class RpcProcessIT {
                 assertThat(invocationId).isNotBlank();
                 assertThat(traceId).matches("[0-9a-f]{32}");
                 assertThat(processes.output(gateway))
-                        .contains("RPC_MOCK_GATEWAY_FORWARD")
+                        .contains("RPC_MOCK_YUHENG_FORWARD")
                         .contains("invocationId=" + invocationId)
                         .contains("providerId=" + providerLease.instanceId())
                         .doesNotContain("invocationId=missing");
@@ -280,7 +280,7 @@ class RpcProcessIT {
             assertMigrations(database);
             assertThat(processes.outputs())
                     .doesNotContain("secret-key")
-                    .doesNotContain("DDC_TEST_REDIS_PASSWORD");
+                    .doesNotContain("TIANSHU_TEST_REDIS_PASSWORD");
             if (redisPassword != null && !redisPassword.isBlank()) {
                 assertThat(processes.outputs())
                         .doesNotContain(redisPassword);
@@ -307,30 +307,30 @@ class RpcProcessIT {
                 "--spring.flyway.enabled=true",
                 "--spring.flyway.locations=classpath:db/sqlite",
                 "--egon.cola.component.id.machine-id=1",
-                "--egon.cola.component.ddc.enabled=false",
-                "--egon.cola.component.ddc.admin.security.local-dev=true",
-                "--egon.cola.component.ddc.admin.redis.host=" + redisHost,
-                "--egon.cola.component.ddc.admin.redis.port=" + redisPort,
+                "--egon.cola.component.tianshu.enabled=false",
+                "--egon.cola.component.tianshu.admin.security.local-dev=true",
+                "--egon.cola.component.tianshu.admin.redis.host=" + redisHost,
+                "--egon.cola.component.tianshu.admin.redis.port=" + redisPort,
                 "--egon.cola.component.rpc.enabled=true",
                 "--egon.cola.component.rpc.provider.enabled=true",
                 "--egon.cola.component.rpc.provider.port=" + adminRpcPort,
                 "--egon.cola.component.rpc.provider.registration-mode=DISABLED",
                 "--egon.cola.component.rpc.tls.development-plaintext=true",
-                "--egon.cola.component.ddc.admin.rpc.signature-enabled=true",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=process-it",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].access-key=process-it",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].secret="
+                "--egon.cola.component.tianshu.admin.rpc.signature-enabled=true",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].credential-id=process-it",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].access-key=process-it",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].secret="
                         + "process-it-secret-at-least-32-bytes",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].client-type=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].app-code-patterns[0]=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].env-patterns[0]=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].biz-code-patterns[0]=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].allowed-operations[0]=*"
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].client-type=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].app-code-patterns[0]=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].env-patterns[0]=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].biz-code-patterns[0]=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].allowed-operations[0]=*"
         ));
         addPassword(
                 arguments,
-                "--egon.cola.component.ddc.admin.redis.password=",
-                System.getenv("DDC_TEST_REDIS_PASSWORD")
+                "--egon.cola.component.tianshu.admin.redis.password=",
+                System.getenv("TIANSHU_TEST_REDIS_PASSWORD")
         );
         return List.copyOf(arguments);
     }
@@ -346,34 +346,34 @@ class RpcProcessIT {
                 List.of(
                         "--spring.main.web-application-type=none",
                         "--egon.cola.component.id.machine-id=2",
-                        "--egon.cola.component.ddc.enabled=false",
-                        "--egon.cola.component.ddc.registry.enabled=true",
-                        "--egon.cola.component.ddc.rpc.target="
+                        "--egon.cola.component.tianshu.enabled=false",
+                        "--egon.cola.component.tianshu.registry.enabled=true",
+                        "--egon.cola.component.tianshu.rpc.target="
                                 + adminTarget,
-                        "--egon.cola.component.ddc.rpc.tls."
+                        "--egon.cola.component.tianshu.rpc.tls."
                                 + "development-plaintext=true",
-                        "--egon.cola.component.ddc.rpc.auth.registry.access-key=process-it",
-                        "--egon.cola.component.ddc.rpc.auth.registry.secret-key="
+                        "--egon.cola.component.tianshu.rpc.auth.registry.access-key=process-it",
+                        "--egon.cola.component.tianshu.rpc.auth.registry.secret-key="
                                 + "process-it-secret-at-least-32-bytes",
-                        "--egon.cola.component.ddc.redis.host=" + redisHost,
-                        "--egon.cola.component.ddc.redis.port=" + redisPort,
-                        "--egon.cola.component.ddc.biz-code=test-biz",
-                        "--egon.cola.component.ddc.app-code=test-app",
-                        "--egon.cola.component.ddc.env=" + env,
-                        "--egon.cola.component.ddc.namespace=" + namespace,
+                        "--egon.cola.component.tianshu.redis.host=" + redisHost,
+                        "--egon.cola.component.tianshu.redis.port=" + redisPort,
+                        "--egon.cola.component.tianshu.biz-code=test-biz",
+                        "--egon.cola.component.tianshu.app-code=test-app",
+                        "--egon.cola.component.tianshu.env=" + env,
+                        "--egon.cola.component.tianshu.namespace=" + namespace,
                         "--egon.cola.component.rpc.enabled=true",
                         "--egon.cola.component.rpc.tls.development-plaintext=true",
                         "--egon.cola.component.rpc.provider.lease-seconds=60",
                         "--egon.cola.component.rpc.provider.heartbeat-interval-seconds=10",
-                        "--egon.cola.component.rpc.consumer.gateway-discovery-timeout-ms=15000",
+                        "--egon.cola.component.rpc.consumer.yuheng-discovery-timeout-ms=15000",
                         "--egon.rpc.runtime-version=process-it"
                 )
         );
         arguments.addAll(roleArguments);
         addPassword(
                 arguments,
-                "--egon.cola.component.ddc.redis.password=",
-                System.getenv("DDC_TEST_REDIS_PASSWORD")
+                "--egon.cola.component.tianshu.redis.password=",
+                System.getenv("TIANSHU_TEST_REDIS_PASSWORD")
         );
         return List.copyOf(arguments);
     }
@@ -528,7 +528,7 @@ class RpcProcessIT {
         String value = System.getenv(name);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
-                    name + " is required by the ddc-live-test profile"
+                    name + " is required by the tianshu-live-test profile"
             );
         }
         return value;

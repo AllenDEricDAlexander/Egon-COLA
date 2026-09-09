@@ -258,8 +258,8 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 中文说明：按固定编译策略装配局部原子激活，并注册同一个 DDC Active Key。
-     * English summary: Wires one role-local activation pipeline and registers the shared DDC key.
+     * 中文说明：按固定编译策略装配局部原子激活，并注册同一个 Tianshu Active Key。
+     * English summary: Wires one role-local activation pipeline and registers the shared Tianshu key.
      */
     @Bean("gatewayRuleActivationApplier")
     public GatewayRuleActivationApplier<ApiRpcGatewayCompiledRulesDTO> gatewayRuleActivationApplier(
@@ -291,20 +291,20 @@ public class GatewayEngineConfiguration {
     @Bean(name = "gatewayRateLimitRedissonClient", destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = "gatewayRateLimitRedissonClient")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.traffic.redis",
+            prefix = "egon.cola.component.yuheng.engine.traffic.redis",
             name = "enabled",
             havingValue = "true"
     )
     public RedissonClient gatewayRateLimitRedissonClient(
             @Value(
-                    "${egon.cola.component.gateway.engine.traffic.redis.address}"
+                    "${egon.cola.component.yuheng.engine.traffic.redis.address}"
             ) String address,
             @Value(
-                    "${egon.cola.component.gateway.engine.traffic.redis."
+                    "${egon.cola.component.yuheng.engine.traffic.redis."
                             + "database:0}"
             ) int database,
             @Value(
-                    "${egon.cola.component.gateway.engine.traffic.redis."
+                    "${egon.cola.component.yuheng.engine.traffic.redis."
                             + "password:}"
             ) String password) {
         Config config = new Config();
@@ -328,7 +328,7 @@ public class GatewayEngineConfiguration {
     @Bean
     @ConditionalOnBean(name = "gatewayRateLimitRedissonClient")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.traffic.redis",
+            prefix = "egon.cola.component.yuheng.engine.traffic.redis",
             name = "enabled",
             havingValue = "true"
     )
@@ -410,7 +410,7 @@ public class GatewayEngineConfiguration {
      */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.kafka",
+            prefix = "egon.cola.component.yuheng.engine.kafka",
             name = "enabled",
             havingValue = "true"
     )
@@ -633,15 +633,15 @@ public class GatewayEngineConfiguration {
     }
 
     /**
-     * 创建携带 IdP PLATFORM SERVICE Token 的 Gateway RPC Slot 运行时。
-     * / Creates the Gateway RPC-slot runtime that carries an IdP PLATFORM SERVICE token.
+     * 创建携带 Tianquan-Shoubing PLATFORM SERVICE Token 的 Gateway RPC Slot 运行时。
+     * / Creates the Gateway RPC-slot runtime that carries an Tianquan-Shoubing PLATFORM SERVICE token.
      *
-     * @param registry DDC 服务注册客户端 / DDC service-registry client
+     * @param registry Tianshu 服务注册客户端 / Tianshu service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
-     * @param ddcIdentity Gateway 的 DDC 实例身份 / Gateway DDC instance identity
+     * @param ddcIdentity Gateway 的 Tianshu 实例身份 / Gateway Tianshu instance identity
      * @param properties Gateway Engine 配置 / Gateway Engine configuration
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      * @return Gateway RPC Slot 运行时 / Gateway RPC-slot runtime
      * 补充说明 / Supplementary summary: 执行 网关Rpc槽位运行时 操作；该方法是 {@code GatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English supplement: Executes the gateway rpc slot runtime operation; this method is the invocation entry point on {@code GatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
@@ -725,7 +725,7 @@ public class GatewayEngineConfiguration {
         return () -> {
             GatewayRuleRuntimeStatus status = activation.status();
             return Map.of(
-                    "gateway.engine.role", GatewayEngineRoleEnum.API_RPC.name(),
+                    "yuheng.engine.role", GatewayEngineRoleEnum.API_RPC.name(),
                     "activeReleaseId", value(status.activeReleaseId()),
                     "activeRuleVersion",
                     Long.toString(status.activeDdcVersion()),
@@ -773,7 +773,7 @@ public class GatewayEngineConfiguration {
             return;
         }
         registry.gauge(
-                "gateway.tls.certificate.expiry.epoch.seconds",
+                "yuheng.tls.certificate.expiry.epoch.seconds",
                 List.of(
                         io.micrometer.core.instrument.Tag.of(
                                 "listener",

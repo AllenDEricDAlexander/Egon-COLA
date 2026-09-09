@@ -1,9 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.contract;
 
 /**
- * IdP JWT 使用的稳定自定义 Claim 名称。
+ * Tianquan-Shoubing JWT 使用的稳定自定义 Claim 名称。
  *
- * <p>Stable custom claim names used by IdP JWTs.</p>
+ * <p>Stable custom claim names used by Tianquan-Shoubing JWTs.</p>
  */
 public final class IdpClaimNames {
 

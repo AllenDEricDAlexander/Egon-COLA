@@ -56,7 +56,7 @@ class DdcConfigDataSpringApplicationTest {
                         .isEmpty();
 
                 List<String> names = propertySourceNames(context);
-                int ddcIndex = names.indexOf("ddc:application.yml");
+                int ddcIndex = names.indexOf("tianshu:application.yml");
                 int bootstrapIndex = indexContaining(names, "bootstrap.yml");
                 assertThat(ddcIndex).isGreaterThanOrEqualTo(0);
                 assertThat(bootstrapIndex).isGreaterThan(ddcIndex);
@@ -83,7 +83,7 @@ class DdcConfigDataSpringApplicationTest {
                 assertThat(context.getEnvironment().getProperty("sample.value"))
                         .isEqualTo("command-line");
                 assertThat(propertySourceNames(context))
-                        .contains("ddc:application.yml");
+                        .contains("tianshu:application.yml");
             }
             assertThat(fixture.awaitChannelClose()).isTrue();
         }
@@ -126,8 +126,8 @@ class DdcConfigDataSpringApplicationTest {
                 optional ? "optional-bootstrap.yml" : "bootstrap.yml"
         );
         String importLocation = optional
-                ? "optional:ddc:application.yml"
-                : "ddc:application.yml";
+                ? "optional:tianshu:application.yml"
+                : "tianshu:application.yml";
         Files.writeString(bootstrap, """
                 spring:
                   config:
@@ -135,7 +135,7 @@ class DdcConfigDataSpringApplicationTest {
                 egon:
                   cola:
                     component:
-                      ddc:
+                      tianshu:
                         enabled: true
                         biz-code: orders
                         env: test

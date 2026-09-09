@@ -18,7 +18,7 @@ class ResourcePermissionMappingControllerTest {
     void exposesDedicatedMappingReadAndWriteEndpoints() {
         RequestMapping mapping = ResourcePermissionMappingController.class
                 .getAnnotation(RequestMapping.class);
-        assertEquals("/api/rbac3/v1/iam/resources/{resourceId}/permission-mapping",
+        assertEquals("/api/tianquan-jianshen/v1/iam/resources/{resourceId}/permission-mapping",
                 mapping.value()[0]);
 
         Method read = Arrays.stream(ResourcePermissionMappingController.class

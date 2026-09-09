@@ -27,8 +27,8 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcCredential;
 import java.util.List;
 
 /**
- * 按 DDC 能力创建互不共享的 Direct RPC 客户端。
- * / Creates independently owned Direct RPC clients per DDC capability.
+ * 按 Tianshu 能力创建互不共享的 Direct RPC 客户端。
+ * / Creates independently owned Direct RPC clients per Tianshu capability.
  */
 public final class DdcRpcClientFactory {
 

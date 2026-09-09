@@ -8,7 +8,7 @@ import java.util.Optional;
 
 public enum RpcFailureStage {
 
-    GATEWAY("gateway"),
+    GATEWAY("yuheng"),
 
     PROVIDER("provider");
 

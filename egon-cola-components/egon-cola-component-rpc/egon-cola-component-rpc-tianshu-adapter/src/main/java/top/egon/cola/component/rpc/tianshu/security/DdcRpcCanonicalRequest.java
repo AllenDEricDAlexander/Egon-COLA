@@ -11,8 +11,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 
 /**
- * DDC RPC HMAC 协议的确定性五行请求表示。
- * / Deterministic five-line request representation for DDC RPC HMAC.
+ * Tianshu RPC HMAC 协议的确定性五行请求表示。
+ * / Deterministic five-line request representation for Tianshu RPC HMAC.
  */
 public final class DdcRpcCanonicalRequest {
 

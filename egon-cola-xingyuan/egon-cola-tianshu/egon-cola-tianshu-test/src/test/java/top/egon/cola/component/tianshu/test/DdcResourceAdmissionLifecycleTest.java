@@ -28,8 +28,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 
 /**
- * 验收 DDC 对精确业务域、应用、环境和实例 Ticket 的生命周期约束。
- * Accepts DDC lifecycle constraints for exact business, application, environment, and instance Tickets.
+ * 验收 Tianshu 对精确业务域、应用、环境和实例 Ticket 的生命周期约束。
+ * Accepts Tianshu lifecycle constraints for exact business, application, environment, and instance Tickets.
  */
 class DdcResourceAdmissionLifecycleTest {
 
@@ -42,8 +42,8 @@ class DdcResourceAdmissionLifecycleTest {
         MutableVerifier verifier = new MutableVerifier();
         DdcServiceRegistryService service = service(repository, verifier);
 
-        service.register(registration("idp-1", "idp"));
-        service.register(registration("idp-2", "idp"));
+        service.register(registration("tianquan-shoubing-1", "tianquan-shoubing"));
+        service.register(registration("tianquan-shoubing-2", "tianquan-shoubing"));
 
         ArgumentCaptor<DdcServiceInstance> instances =
                 ArgumentCaptor.forClass(DdcServiceInstance.class);
@@ -51,9 +51,9 @@ class DdcResourceAdmissionLifecycleTest {
                 .register(instances.capture(), any());
         assertThat(instances.getAllValues())
                 .extracting(DdcServiceInstance::instanceId)
-                .containsExactly("idp-1", "idp-2");
+                .containsExactly("tianquan-shoubing-1", "tianquan-shoubing-2");
         assertThatThrownBy(() -> service.register(
-                registration("forged-rbac3-1", "rbac3")))
+                registration("forged-tianquan-jianshen-1", "tianquan-jianshen")))
                 .isInstanceOf(DdcRegistrationAuthenticationException.class);
     }
 
@@ -63,13 +63,13 @@ class DdcResourceAdmissionLifecycleTest {
                 mock(DdcServiceRegistryRedisRepository.class);
         MutableVerifier verifier = new MutableVerifier();
         DdcServiceRegistryService service = service(repository, verifier);
-        DdcServiceRegistration admitted = registration("idp-1", "idp");
+        DdcServiceRegistration admitted = registration("tianquan-shoubing-1", "tianquan-shoubing");
         var lease = service.register(admitted);
         verifier.available.set(false);
 
         assertThat(lease.leaseExpireAt()).isBeforeOrEqualTo(EXPIRES_AT);
         assertThatThrownBy(() -> service.register(
-                registration("idp-2", "idp")))
+                registration("tianquan-shoubing-2", "tianquan-shoubing")))
                 .isInstanceOf(DdcRegistrationAuthenticationException.class);
         DdcServiceLeaseRequest heartbeat = new DdcServiceLeaseRequest();
         heartbeat.setServiceKey(admitted.serviceKey());
@@ -124,7 +124,7 @@ class DdcResourceAdmissionLifecycleTest {
                         DdcErrorStatus.RESOURCE_ADMISSION_INVALID);
             }
             if (!"permission".equals(bizCode)
-                    || !"idp".equals(appCode)
+                    || !"tianquan-shoubing".equals(appCode)
                     || !"prod".equals(env)
                     || !("token:" + instanceId).equals(token)) {
                 throw new DdcRegistrationAuthenticationException(
@@ -133,11 +133,11 @@ class DdcResourceAdmissionLifecycleTest {
             return new VerifiedDdcRegistrationIdentity(
                     "app-id",
                     "client-id",
-                    "permission-idp-prod",
-                    "https://api.egon.internal/prod/permission/idp",
-                    7L, bizCode, appCode, env, instanceId, "idp-key-1",
+                    "permission-tianquan-shoubing-prod",
+                    "https://api.egon.internal/prod/permission/tianquan-shoubing",
+                    7L, bizCode, appCode, env, instanceId, "tianquan-shoubing-key-1",
                     "token-1", EXPIRES_AT.minusSeconds(60), EXPIRES_AT,
-                    java.util.Set.of("ddc:registration:write"));
+                    java.util.Set.of("tianshu:registration:write"));
         }
     }
 }

@@ -27,7 +27,7 @@ class SystemAuthorizationSnapshotServiceTest {
     @Test
     void businessOnlyActivationRetainsOnlyRbacSelfServicePermissions() {
         var snapshot = activatedService("mock-backend", true)
-                .snapshot("1", "alice-sub", "rbac3-admin");
+                .snapshot("1", "alice-sub", "tianquan-jianshen-admin");
         assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
                 "system:about:read", "system:role-activation:read", "system:role-activation:use");
         assertThat(snapshot.activeRoleIds()).isEmpty();
@@ -38,8 +38,8 @@ class SystemAuthorizationSnapshotServiceTest {
 
     @Test
     void anActivatedRbacRoleCannotRemoveTheUsersOwnRoleSelectionEntry() {
-        var snapshot = activatedService("rbac3-admin", true)
-                .snapshot("1", "alice-sub", "rbac3-admin");
+        var snapshot = activatedService("tianquan-jianshen-admin", true)
+                .snapshot("1", "alice-sub", "tianquan-jianshen-admin");
         assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
                 "test:read", "system:about:read", "system:role-activation:read", "system:role-activation:use");
         assertThat(snapshot.activeRoleIds()).containsExactly("10");
@@ -48,20 +48,20 @@ class SystemAuthorizationSnapshotServiceTest {
     @Test
     void businessActivationDoesNotBootstrapOtherSystemsOrMissingMemberships() {
         assertThatThrownBy(() -> activatedService("mock-backend", true)
-                .snapshot("1", "alice-sub", "ddc-admin"))
+                .snapshot("1", "alice-sub", "tianshu-admin"))
                 .hasMessage("AUTHORIZATION_DENIED");
         assertThatThrownBy(() -> activatedService("mock-backend", true)
-                .snapshot("1", "alice-sub", "idp-admin"))
+                .snapshot("1", "alice-sub", "tianquan-shoubing-admin"))
                 .hasMessage("AUTHORIZATION_DENIED");
         assertThatThrownBy(() -> activatedService("mock-backend", false)
-                .snapshot("1", "alice-sub", "rbac3-admin"))
+                .snapshot("1", "alice-sub", "tianquan-jianshen-admin"))
                 .hasMessage("AUTHORIZATION_DENIED");
     }
 
     private SystemAuthorizationSnapshotService activatedService(String applicationCode, boolean member) {
         var app = new AppAuthorizationContext("5", applicationCode, List.of("10"), List.of("20"),
                 List.of("10"), Set.of("test:read"), Map.of(), Map.of(), List.of(), null);
-        var user = new UserAuthorizationSnapshot("rbac3", "1", "alice-sub", "101", 1L, 2L,
+        var user = new UserAuthorizationSnapshot("tianquan-jianshen", "1", "alice-sub", "101", 1L, 2L,
                 List.of(app), "checksum", NOW, NOW.plusSeconds(3600));
         return new SystemAuthorizationSnapshotService(
                 (tenant, subject) -> new SnapshotRecordVO("1", "alice-sub", "101", user),
@@ -74,14 +74,14 @@ class SystemAuthorizationSnapshotServiceTest {
     void initialContextCanReadItsOwnAboutEndpointToRenderRoleSelection() throws Exception {
         String permission = Rbac3AboutController.class.getMethod("about")
                 .getAnnotation(RequiresPermission.class).value();
-        assertThat(service().snapshot("1", "alice-sub", "rbac3-admin").permissions()).contains(permission);
+        assertThat(service().snapshot("1", "alice-sub", "tianquan-jianshen-admin").permissions()).contains(permission);
     }
 
     @Test
     void exposesOnlySelfContextAndRoleActivationPermissionsBeforeFirstRuntimeSnapshot() {
         var service = service();
 
-        var snapshot = service.snapshot("1", "alice-sub", "rbac3-admin");
+        var snapshot = service.snapshot("1", "alice-sub", "tianquan-jianshen-admin");
 
         assertThat(snapshot.rbac3UserId()).isEqualTo("101");
         assertThat(snapshot.activeRoleIds()).isEmpty();
@@ -99,7 +99,7 @@ class SystemAuthorizationSnapshotServiceTest {
         var service = service();
 
         assertThatThrownBy(() -> service.snapshot(
-                "1", "alice-sub", "idp-admin"))
+                "1", "alice-sub", "tianquan-shoubing-admin"))
                 .isInstanceOf(Rbac3RuleViolation.class)
                 .hasMessage("AUTH_SNAPSHOT_NOT_READY");
     }
@@ -110,7 +110,7 @@ class SystemAuthorizationSnapshotServiceTest {
                 (tenant, subject) -> { throw new Rbac3RuleViolation("POLICY_VERSION_MISMATCH"); },
                 (tenant, subject) -> Optional.of(new InitialAuthorizationContext("101", 1L, 2L)),
                 Clock.fixed(NOW, ZoneOffset.UTC));
-        assertThatThrownBy(() -> service.snapshot("1", "alice-sub", "rbac3-admin"))
+        assertThatThrownBy(() -> service.snapshot("1", "alice-sub", "tianquan-jianshen-admin"))
                 .hasMessage("POLICY_VERSION_MISMATCH");
     }
 
@@ -119,7 +119,7 @@ class SystemAuthorizationSnapshotServiceTest {
         var service = service(false);
 
         assertThatThrownBy(() -> service.snapshot(
-                "1", "alice-sub", "ddc-admin"))
+                "1", "alice-sub", "tianshu-admin"))
                 .isInstanceOf(Rbac3RuleViolation.class)
                 .hasMessage("AUTH_SNAPSHOT_NOT_READY");
     }
@@ -128,11 +128,11 @@ class SystemAuthorizationSnapshotServiceTest {
     void exposesDdcManagementPermissionsForLocalBootstrap() {
         var service = service(true);
 
-        var snapshot = service.snapshot("1", "alice-sub", "ddc-admin");
+        var snapshot = service.snapshot("1", "alice-sub", "tianshu-admin");
 
         assertThat(snapshot.rbac3UserId()).isEqualTo("101");
         assertThat(snapshot.permissions()).containsExactlyInAnyOrder(
-                "DDC_READ", "DDC_WRITE", "DDC_PUBLISH", "DDC_CACHE");
+                "TIANSHU_READ", "TIANSHU_WRITE", "TIANSHU_PUBLISH", "TIANSHU_CACHE");
         assertThat(snapshot.authVersion()).isEqualTo(1L);
         assertThat(snapshot.policyVersion()).isEqualTo(2L);
     }

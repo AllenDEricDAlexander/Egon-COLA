@@ -14,8 +14,8 @@ import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 import java.util.List;
 
 /**
- * 收敛 DDC 配置客户端运行时用例的应用门面。
- * / Application facade that consolidates DDC configuration-client runtime use cases.
+ * 收敛 Tianshu 配置客户端运行时用例的应用门面。
+ * / Application facade that consolidates Tianshu configuration-client runtime use cases.
  */
 @Service
 public class DdcConfigFacade {

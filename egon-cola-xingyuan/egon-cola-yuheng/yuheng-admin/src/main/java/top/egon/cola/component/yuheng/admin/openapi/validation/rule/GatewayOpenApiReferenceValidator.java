@@ -33,7 +33,7 @@ public class GatewayOpenApiReferenceValidator
             GatewayOpenApiDocumentDTO document) {
         if (document == null || document.documentJson() == null) {
             return GatewayOpenApiValidationResult.invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_MISSING",
+                    "YUHENG_OPENAPI_DOCUMENT_MISSING",
                     "OpenAPI document is missing"
             );
         }
@@ -48,7 +48,7 @@ public class GatewayOpenApiReferenceValidator
                     if (!reference.isTextual()
                             || !localReference(reference.asText())) {
                         return GatewayOpenApiValidationResult.invalid(
-                                "GATEWAY_OPENAPI_EXTERNAL_REF",
+                                "YUHENG_OPENAPI_EXTERNAL_REF",
                                 "OpenAPI references must remain local"
                         );
                     }
@@ -56,7 +56,7 @@ public class GatewayOpenApiReferenceValidator
                             reference.asText().substring(1)
                     ).isMissingNode()) {
                         return GatewayOpenApiValidationResult.invalid(
-                                "GATEWAY_OPENAPI_REF_NOT_FOUND",
+                                "YUHENG_OPENAPI_REF_NOT_FOUND",
                                 "OpenAPI local reference target was not found"
                         );
                     }

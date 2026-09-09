@@ -34,9 +34,9 @@ import java.util.List;
 public class Rbac3AdminSecurityConfiguration {
 
     /**
-     * 将 RBAC3 的内部机器调用明确绑定到 IdP SERVICE Token。
+     * 将 Tianquan-Jianshen 的内部机器调用明确绑定到 Tianquan-Shoubing SERVICE Token。
      *
-     * <p>Marks RBAC3 internal machine calls as IdP SERVICE-token endpoints. All other RBAC3
+     * <p>Marks Tianquan-Jianshen internal machine calls as Tianquan-Shoubing SERVICE-token endpoints. All other Tianquan-Jianshen
      * application paths keep the starter's USER default.</p>
      */
     @Bean
@@ -45,7 +45,7 @@ public class Rbac3AdminSecurityConfiguration {
                 List.of(),
                 List.of(
                         "/internal/**",
-                        "/api/rbac3/v1/internal/**",
+                        "/api/tianquan-jianshen/v1/internal/**",
                         "/v3/api-docs/**"
                 ));
     }

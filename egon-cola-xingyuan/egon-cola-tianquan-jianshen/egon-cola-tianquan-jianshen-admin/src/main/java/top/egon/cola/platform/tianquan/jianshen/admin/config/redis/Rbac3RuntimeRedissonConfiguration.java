@@ -25,7 +25,7 @@ import java.time.Duration;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-        prefix = "egon.rbac3.runtime",
+        prefix = "egon.tianquan-jianshen.runtime",
         name = "redis-enabled",
         havingValue = "true")
 public class Rbac3RuntimeRedissonConfiguration {
@@ -48,15 +48,15 @@ public class Rbac3RuntimeRedissonConfiguration {
     @ConditionalOnMissingBean(name = "rbac3RuntimeRedissonClient")
     public RedissonClient rbac3RuntimeRedissonClient(
             ObjectMapper objectMapper,
-            @Value("${egon.rbac3.runtime.redis-address}")
+            @Value("${egon.tianquan-jianshen.runtime.redis-address}")
             String address,
-            @Value("${egon.rbac3.runtime.redis-database:0}") int database,
-            @Value("${egon.rbac3.runtime.redis-timeout:2s}") Duration timeout,
-            @Value("${egon.rbac3.runtime.redis-password-file:}") String passwordFile
+            @Value("${egon.tianquan-jianshen.runtime.redis-database:0}") int database,
+            @Value("${egon.tianquan-jianshen.runtime.redis-timeout:2s}") Duration timeout,
+            @Value("${egon.tianquan-jianshen.runtime.redis-password-file:}") String passwordFile
     ) {
         if (!address.startsWith("redis://") && !address.startsWith("rediss://")) {
             throw new IllegalArgumentException(
-                    "RBAC3 runtime Redis address must use redis:// or rediss://");
+                    "Tianquan-Jianshen runtime Redis address must use redis:// or rediss://");
         }
         Config config = new Config();
         config.setCodec(new JsonJacksonCodec(objectMapper.copy()));
@@ -89,12 +89,12 @@ public class Rbac3RuntimeRedissonConfiguration {
             String value = Files.readString(Path.of(file.trim())).trim();
             if (value.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "RBAC3 runtime Redis password file is empty");
+                        "Tianquan-Jianshen runtime Redis password file is empty");
             }
             return value;
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "cannot read RBAC3 runtime Redis password file", exception);
+                    "cannot read Tianquan-Jianshen runtime Redis password file", exception);
         }
     }
 }

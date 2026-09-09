@@ -128,7 +128,7 @@ class GatewayCorsProcessorTest {
                 )
         );
 
-        assertEquals("GATEWAY_CORS_REJECTED", failure.code());
+        assertEquals("YUHENG_CORS_REJECTED", failure.code());
     }
 
     @Test

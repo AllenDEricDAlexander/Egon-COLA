@@ -13,8 +13,8 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * RBAC's local user projection. Credentials and profile data belong to IdP;
- * this entity only binds an IdP subject to a tenant and tracks authorization
+ * RBAC's local user projection. Credentials and profile data belong to Tianquan-Shoubing;
+ * this entity only binds an Tianquan-Shoubing subject to a tenant and tracks authorization
  * invalidation state.
  */
 @Entity(name = "UserEntity")

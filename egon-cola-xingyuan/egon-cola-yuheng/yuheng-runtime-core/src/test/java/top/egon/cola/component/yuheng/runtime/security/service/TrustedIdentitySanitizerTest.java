@@ -20,8 +20,8 @@ class TrustedIdentitySanitizerTest {
                         Map.of(
                                 "authorization", List.of("Bearer secret"),
                                 "cookie", List.of("SESSION=secret"),
-                                "x-gateway-principal-id", List.of("spoof"),
-                                "x-egon-gateway-principal-id",
+                                "x-yuheng-principal-id", List.of("spoof"),
+                                "x-egon-yuheng-principal-id",
                                 List.of("spoof"),
                                 "connection", List.of("close"),
                                 "x-request-value", List.of("safe")
@@ -29,7 +29,7 @@ class TrustedIdentitySanitizerTest {
                         Set.of(),
                         new TrustedIdentity(
                                 Map.of(
-                                        "X-Egon-Gateway-Principal-Id",
+                                        "X-Egon-Yuheng-Principal-Id",
                                         "trusted"
                                 ),
                                 Map.of()
@@ -41,7 +41,7 @@ class TrustedIdentitySanitizerTest {
         assertFalse(sanitized.containsKey("connection"));
         assertEquals(
                 List.of("trusted"),
-                sanitized.get("x-egon-gateway-principal-id")
+                sanitized.get("x-egon-yuheng-principal-id")
         );
         assertEquals(List.of("safe"), sanitized.get("x-request-value"));
     }
@@ -96,21 +96,21 @@ class TrustedIdentitySanitizerTest {
                         Map.of(
                                 "authorization", "secret",
                                 "cookie", "secret",
-                                "egon-gateway-principal-id", "spoof",
+                                "egon-yuheng-principal-id", "spoof",
                                 "business-key", "safe"
                         ),
                         Set.of(),
                         new TrustedIdentity(
                                 Map.of(),
                                 Map.of(
-                                        "egon-gateway-principal-id",
+                                        "egon-yuheng-principal-id",
                                         "trusted"
                                 )
                         )
                 );
 
         assertEquals("trusted", metadata.get(
-                "egon-gateway-principal-id"
+                "egon-yuheng-principal-id"
         ));
         assertEquals("safe", metadata.get("business-key"));
         assertFalse(metadata.containsKey("authorization"));

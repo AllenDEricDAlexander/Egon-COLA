@@ -53,7 +53,7 @@ public class McpToolAdminService {
      *
      * 用法 / Usage: 该字段通过 {@code McpToolAdminService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpToolAdminService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String IDEMPOTENCY_SCOPE = "GATEWAY_MCP";
+    private static final String IDEMPOTENCY_SCOPE = "YUHENG_MCP";
 
     /**
      * 中文说明：表示 RISKLEVELS 这一固定值；它属于 {@code McpToolAdminService} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。

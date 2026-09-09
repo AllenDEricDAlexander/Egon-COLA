@@ -14,13 +14,13 @@ class GatewayOpenApiAutoConfigurationTest {
             new ApplicationContextRunner()
                     .withUserConfiguration(GatewayOpenApiAutoConfiguration.class)
                     .withPropertyValues(
-                            "egon.cola.component.gateway.openapi.enabled=true",
-                            "egon.cola.component.gateway.openapi.biz-code=trade",
-                            "egon.cola.component.gateway.openapi.application-code=order-service",
-                            "egon.cola.component.gateway.openapi.resource-uri=https://order-service.example.test",
-                            "egon.cola.component.gateway.openapi.artifact-version=1.0.0",
-                            "egon.cola.component.gateway.openapi.build-id=build-1",
-                            "egon.cola.component.gateway.openapi.published-groups[0]=orders"
+                            "egon.cola.component.yuheng.openapi.enabled=true",
+                            "egon.cola.component.yuheng.openapi.biz-code=trade",
+                            "egon.cola.component.yuheng.openapi.application-code=order-service",
+                            "egon.cola.component.yuheng.openapi.resource-uri=https://order-service.example.test",
+                            "egon.cola.component.yuheng.openapi.artifact-version=1.0.0",
+                            "egon.cola.component.yuheng.openapi.build-id=build-1",
+                            "egon.cola.component.yuheng.openapi.published-groups[0]=orders"
                     );
 
     @Test

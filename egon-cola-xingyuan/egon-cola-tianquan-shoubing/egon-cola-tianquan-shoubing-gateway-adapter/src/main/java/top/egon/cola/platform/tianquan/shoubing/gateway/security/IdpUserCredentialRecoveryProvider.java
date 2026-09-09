@@ -24,7 +24,7 @@ import java.util.Set;
 public final class IdpUserCredentialRecoveryProvider
         implements GatewayCredentialRecoveryProvider {
 
-    public static final String PROVIDER_ID = "idp-user-refresh";
+    public static final String PROVIDER_ID = "tianquan-shoubing-user-refresh";
 
     private final IdpRefreshClient client;
     private final IdpGatewayJwtVerifier verifier;

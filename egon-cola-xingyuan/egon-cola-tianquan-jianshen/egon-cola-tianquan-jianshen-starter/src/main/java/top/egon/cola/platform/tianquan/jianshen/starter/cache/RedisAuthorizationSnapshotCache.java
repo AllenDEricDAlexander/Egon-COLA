@@ -112,7 +112,7 @@ public final class RedisAuthorizationSnapshotCache
         } catch (JsonProcessingException exception) {
             redisson.<String>getBucket(key.redisKey(), StringCodec.INSTANCE).delete();
             throw new IllegalStateException(
-                    "RBAC3 authorization cache value is invalid", exception);
+                    "Tianquan-Jianshen authorization cache value is invalid", exception);
         }
     }
 
@@ -145,11 +145,11 @@ public final class RedisAuthorizationSnapshotCache
                     Long.toString(dataTtl), Long.toString(indexTtl));
             if (result == null || result.longValue() != 1L) {
                 throw new IllegalStateException(
-                        "RBAC3 authorization cache write was not acknowledged");
+                        "Tianquan-Jianshen authorization cache write was not acknowledged");
             }
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException(
-                    "Cannot encode RBAC3 authorization snapshot", exception);
+                    "Cannot encode Tianquan-Jianshen authorization snapshot", exception);
         }
     }
 

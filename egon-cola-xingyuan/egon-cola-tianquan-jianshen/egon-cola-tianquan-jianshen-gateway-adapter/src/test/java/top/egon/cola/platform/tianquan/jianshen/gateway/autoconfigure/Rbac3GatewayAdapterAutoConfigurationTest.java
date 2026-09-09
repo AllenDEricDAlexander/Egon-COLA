@@ -33,7 +33,7 @@ class Rbac3GatewayAdapterAutoConfigurationTest {
     @Test
     void registersAuthorizationOnlyCapabilityWhenRuntimeIsAvailable() {
         runner.withPropertyValues(
-                        "egon.cola.platform.rbac3.gateway.enabled=true")
+                        "egon.cola.platform.tianquan.jianshen.yuheng.enabled=true")
                 .withBean("rbac3RuntimeRedissonClient", RedissonClient.class,
                         () -> mock(RedissonClient.class))
                 .run(context -> {
@@ -49,7 +49,7 @@ class Rbac3GatewayAdapterAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(
                             "rbac3PermissionAuthorizationProvider");
                     assertThat(context.getBean(GatewayAuthorizationProvider.class)
-                            .providerId()).isEqualTo("rbac3-biz-app-scope");
+                            .providerId()).isEqualTo("tianquan-jianshen-biz-app-scope");
                 });
     }
 }

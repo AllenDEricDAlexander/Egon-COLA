@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Locale;
 
 /**
- * 创建并校验 DDC Redisson 客户端及其拓扑配置。 Creates and validates DDC Redisson clients and their topology configurations.
+ * 创建并校验 Tianshu Redisson 客户端及其拓扑配置。 Creates and validates Tianshu Redisson clients and their topology configurations.
  */
 public final class DdcRedisClientFactory {
 
@@ -96,7 +96,7 @@ public final class DdcRedisClientFactory {
                     database
             );
             default -> throw new IllegalArgumentException(
-                    "DDC Redis mode must be SINGLE, SENTINEL, or CLUSTER"
+                    "Tianshu Redis mode must be SINGLE, SENTINEL, or CLUSTER"
             );
         }
         return config;
@@ -121,7 +121,7 @@ public final class DdcRedisClientFactory {
             int database) {
         if (addresses.size() > 1) {
             throw new IllegalArgumentException(
-                    "DDC Redis SINGLE mode accepts at most one node URL"
+                    "Tianshu Redis SINGLE mode accepts at most one node URL"
             );
         }
         String address = addresses.isEmpty()
@@ -152,12 +152,12 @@ public final class DdcRedisClientFactory {
             int database) {
         if (!hasText(masterName)) {
             throw new IllegalArgumentException(
-                    "DDC Redis Sentinel master name is required"
+                    "Tianshu Redis Sentinel master name is required"
             );
         }
         if (addresses.isEmpty()) {
             throw new IllegalArgumentException(
-                    "DDC Redis Sentinel node URLs are required"
+                    "Tianshu Redis Sentinel node URLs are required"
             );
         }
         var sentinel = config.useSentinelServers()
@@ -182,7 +182,7 @@ public final class DdcRedisClientFactory {
             String password) {
         if (addresses.isEmpty()) {
             throw new IllegalArgumentException(
-                    "DDC Redis Cluster node URLs are required"
+                    "Tianshu Redis Cluster node URLs are required"
             );
         }
         var cluster = config.useClusterServers()
@@ -203,7 +203,7 @@ public final class DdcRedisClientFactory {
     private static String singleAddress(String host, int port) {
         if (!hasText(host) || port <= 0 || port > 65535) {
             throw new IllegalArgumentException(
-                    "DDC Redis single server host and port are invalid"
+                    "Tianshu Redis single server host and port are invalid"
             );
         }
         return "redis://" + host.trim() + ":" + port;
@@ -219,14 +219,14 @@ public final class DdcRedisClientFactory {
     private static String requireRedisUrl(String value) {
         if (!hasText(value)) {
             throw new IllegalArgumentException(
-                    "DDC Redis node URL is required"
+                    "Tianshu Redis node URL is required"
             );
         }
         String address = value.trim();
         if (!address.startsWith("redis://")
                 && !address.startsWith("rediss://")) {
             throw new IllegalArgumentException(
-                    "DDC Redis nodes must use redis:// or rediss:// URLs"
+                    "Tianshu Redis nodes must use redis:// or rediss:// URLs"
             );
         }
         return address;

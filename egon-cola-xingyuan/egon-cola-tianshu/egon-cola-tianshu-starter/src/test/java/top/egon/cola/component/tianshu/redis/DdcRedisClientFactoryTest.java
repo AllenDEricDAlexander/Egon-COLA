@@ -18,7 +18,7 @@ class DdcRedisClientFactoryTest {
                         "redis://redis-sentinel-1:26379",
                         "redis://redis-sentinel-2:26379"
                 ),
-                "ddc-master",
+                "tianshu-master",
                 "ignored",
                 6379,
                 "secret",
@@ -26,7 +26,7 @@ class DdcRedisClientFactoryTest {
         );
         assertThat(sentinel.isSentinelConfig()).isTrue();
         assertThat(sentinel.toYAML())
-                .contains("masterName: \"ddc-master\"")
+                .contains("masterName: \"tianshu-master\"")
                 .contains("redis://redis-sentinel-1:26379")
                 .contains("redis://redis-sentinel-2:26379")
                 .contains("database: 2");

@@ -1,8 +1,8 @@
 package top.egon.cola.component.rpc.tianshu.security;
 
 /**
- * DDC RPC 客户端签名凭据。
- * / Signing credential for a DDC RPC client.
+ * Tianshu RPC 客户端签名凭据。
+ * / Signing credential for a Tianshu RPC client.
  *
  * @param accessKey 公开访问键 / public access key
  * @param secretKey HMAC 密钥 / HMAC secret key

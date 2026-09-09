@@ -15,25 +15,25 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 
 /**
- * 创建 Gateway 专用的 IdP 用户状态 Redis 客户端。
+ * 创建 Gateway 专用的 Tianquan-Shoubing 用户状态 Redis 客户端。
  * 独立客户端使 Gateway 能在不依赖 Servlet Starter 或其他业务 Redis Bean 的情况下读取身份控制面状态。
  *
- * <p>Creates the Gateway-specific Redis client for current IdP user state. The dedicated client
+ * <p>Creates the Gateway-specific Redis client for current Tianquan-Shoubing user state. The dedicated client
  * lets the Gateway read identity control-plane state without depending on the Servlet Starter or
  * unrelated application Redis beans.</p>
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.idp.gateway.runtime",
+        prefix = "egon.cola.platform.tianquan.shoubing.yuheng.runtime",
         name = "redis-enabled",
         havingValue = "true",
         matchIfMissing = true)
 public class IdpGatewayRedissonConfiguration {
 
     /**
-     * 创建 Gateway IdP Redis 自动配置实例。
+     * 创建 Gateway Tianquan-Shoubing Redis 自动配置实例。
      *
-     * <p>Creates the Gateway IdP Redis configuration instance.</p>
+     * <p>Creates the Gateway Tianquan-Shoubing Redis configuration instance.</p>
      */
     public IdpGatewayRedissonConfiguration() {
     }
@@ -45,7 +45,7 @@ public class IdpGatewayRedissonConfiguration {
      * <p>Creates a single-server Redisson client from runtime settings. The password is read only
      * from the configured file, and Spring invokes {@code shutdown} when the bean is destroyed.</p>
      *
-     * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
+     * @param properties Gateway Tianquan-Shoubing 适配器配置；Gateway Tianquan-Shoubing adapter settings
      * @return 名为 {@code idpGatewayRedissonClient} 的 Redisson 客户端；Redisson client named
      *         {@code idpGatewayRedissonClient}
      * @throws IllegalArgumentException 当地址协议或超时时间无效时；when the address scheme or
@@ -61,12 +61,12 @@ public class IdpGatewayRedissonConfiguration {
         if (address == null || (!address.startsWith("redis://")
                 && !address.startsWith("rediss://"))) {
             throw new IllegalArgumentException(
-                    "IdP Gateway Redis address must use redis:// or rediss://");
+                    "Tianquan-Shoubing Gateway Redis address must use redis:// or rediss://");
         }
         if (runtime.getTimeout() == null || runtime.getTimeout().isNegative()
                 || runtime.getTimeout().isZero()) {
             throw new IllegalArgumentException(
-                    "IdP Gateway Redis timeout must be positive");
+                    "Tianquan-Shoubing Gateway Redis timeout must be positive");
         }
         Config config = new Config();
         config.setCodec(StringCodec.INSTANCE);
@@ -100,12 +100,12 @@ public class IdpGatewayRedissonConfiguration {
             String value = Files.readString(Path.of(file.trim())).trim();
             if (value.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "IdP Gateway Redis password file is empty");
+                        "Tianquan-Shoubing Gateway Redis password file is empty");
             }
             return value;
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "Cannot read IdP Gateway Redis password file", exception);
+                    "Cannot read Tianquan-Shoubing Gateway Redis password file", exception);
         }
     }
 }

@@ -34,7 +34,7 @@ public final class GatewayReportHttpClient {
      * 接口定义报告操作的 Gateway Admin 相对路径。
      */
     public static final String REPORT_PATH =
-            "/api/v1/gateway/openapi/interface-definitions/reports";
+            "/api/v1/yuheng/openapi/interface-definitions/reports";
 
     /** Reporting and request-signing configuration. 上报及请求签名配置。 */
     private final GatewayReportingProperties properties;
@@ -127,13 +127,13 @@ public final class GatewayReportHttpClient {
                                     properties.getSecretKey()
                             )
                     )
-                    .header("X-Gateway-Contract-Version", "v2")
+                    .header("X-Yuheng-Contract-Version", "v2")
                     .header(
-                            "X-Gateway-Application-Code",
+                            "X-Yuheng-Application-Code",
                             properties.getApplicationCode()
                     )
                     .header(
-                            "X-Gateway-Report-Id",
+                            "X-Yuheng-Report-Id",
                             report.report().reportId()
                     )
                     .body(report.payload())

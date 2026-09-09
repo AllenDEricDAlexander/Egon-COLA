@@ -30,15 +30,15 @@ import java.util.List;
  */
 @Validated
 @RestController
-@RequestMapping("/api/v1/gateway/admin")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayOpenApiController {
 
     private final GatewayOpenApiQueryService queryService;

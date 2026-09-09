@@ -21,11 +21,11 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermiss
 
 /** Dedicated administrator endpoint for the sole actual resource-permission mapping write path. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/resources/{resourceId}/permission-mapping")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/resources/{resourceId}/permission-mapping")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -44,9 +44,9 @@ public class ResourcePermissionMappingController {
     @GetMapping
     @RequiresPermission(value = "system:resource-permission:read")
     @Operation(
-            operationId = "rbac3-resource-permission-mapping-get-v1",
+            operationId = "tianquan-jianshen-resource-permission-mapping-get-v1",
             summary = "查询资源实际权限映射",
-            tags = {"rbac3", "resource", "permission"}
+            tags = {"tianquan-jianshen", "resource", "permission"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -58,9 +58,9 @@ public class ResourcePermissionMappingController {
     @PutMapping
     @RequiresPermission(value = "system:resource-permission:manage")
     @Operation(
-            operationId = "rbac3-resource-permission-mapping-update-v1",
+            operationId = "tianquan-jianshen-resource-permission-mapping-update-v1",
             summary = "确认资源实际权限映射",
-            tags = {"rbac3", "resource", "permission"}
+            tags = {"tianquan-jianshen", "resource", "permission"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

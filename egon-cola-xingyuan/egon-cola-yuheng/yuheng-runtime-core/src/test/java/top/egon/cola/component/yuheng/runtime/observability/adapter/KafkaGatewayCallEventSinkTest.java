@@ -23,7 +23,7 @@ class KafkaGatewayCallEventSinkTest {
             KafkaGatewayCallEventSink sink = new KafkaGatewayCallEventSink(
                     new KafkaGatewayCallEventSink.Settings(
                             "127.0.0.1:1",
-                            "gateway-calls",
+                            "yuheng-calls",
                             Duration.ofSeconds(1),
                             Duration.ZERO,
                             Map.of()
@@ -43,7 +43,7 @@ class KafkaGatewayCallEventSinkTest {
         KafkaGatewayCallEventSink sink = new KafkaGatewayCallEventSink(
                 new KafkaGatewayCallEventSink.Settings(
                         "unused:9092",
-                        "gateway-calls",
+                        "yuheng-calls",
                         Duration.ofSeconds(1),
                         Duration.ofSeconds(1),
                         Map.of()
@@ -75,7 +75,7 @@ class KafkaGatewayCallEventSinkTest {
         ).orElseThrow(), payload);
 
         assertEquals(1, producer.history().size());
-        assertEquals("gateway-calls", producer.history().getFirst().topic());
+        assertEquals("yuheng-calls", producer.history().getFirst().topic());
         assertEquals("group-1", producer.history().getFirst().key());
         assertEquals(
                 "v1",

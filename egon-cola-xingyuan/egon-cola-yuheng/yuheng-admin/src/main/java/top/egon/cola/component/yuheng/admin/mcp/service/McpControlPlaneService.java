@@ -63,7 +63,7 @@ public class McpControlPlaneService {
      *
      * 用法 / Usage: 该字段通过 {@code McpControlPlaneService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpControlPlaneService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String IDEMPOTENCY_SCOPE = "GATEWAY_MCP";
+    private static final String IDEMPOTENCY_SCOPE = "YUHENG_MCP";
 
     /**
      * 中文说明：表示 任务IDEMPOTENCYSCOPE 这一固定值；它属于 {@code McpControlPlaneService} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -71,7 +71,7 @@ public class McpControlPlaneService {
      *
      * 用法 / Usage: 该字段通过 {@code McpControlPlaneService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpControlPlaneService}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String TASK_IDEMPOTENCY_SCOPE = "GATEWAY_MCP_TASK";
+    private static final String TASK_IDEMPOTENCY_SCOPE = "YUHENG_MCP_TASK";
 
     /**
      * 中文说明：保存 servers 对应的状态、依赖或配置值；字段类型为 {@code McpServerRepository}，由 {@code McpControlPlaneService} 在其生命周期内读取或更新。
@@ -1289,7 +1289,7 @@ public class McpControlPlaneService {
         );
         if (!artifacts.revoke(id)) {
             throw new IllegalStateException(
-                    "GATEWAY_MCP_ARTIFACT_ALREADY_REVOKED"
+                    "YUHENG_MCP_ARTIFACT_ALREADY_REVOKED"
             );
         }
         Instant now = clock.instant();

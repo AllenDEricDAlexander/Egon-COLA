@@ -27,15 +27,15 @@ import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinit
  */
 @RestController
 @RequestMapping(
-        "/api/v1/gateway/openapi/interface-definitions/reports"
+        "/api/v1/yuheng/openapi/interface-definitions/reports"
 )
-@Tag(name = "gateway-admin")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayDefinitionReportController {
 
     /**
@@ -76,8 +76,8 @@ public class GatewayDefinitionReportController {
     @ResponseStatus(HttpStatus.ACCEPTED)
     public GatewayInterfaceDefinitionReportResult report(
             @RequestBody GatewayInterfaceDefinitionReport report,
-            @RequestHeader("X-Gateway-Report-Id") String reportId,
-            @RequestHeader("X-Gateway-Contract-Version")
+            @RequestHeader("X-Yuheng-Report-Id") String reportId,
+            @RequestHeader("X-Yuheng-Contract-Version")
             String contractVersion,
             HttpServletRequest request) {
         return reports.accept(
@@ -124,7 +124,7 @@ public class GatewayDefinitionReportController {
             return authentication;
         }
         throw new IllegalStateException(
-                "GATEWAY_REPORT_AUTHENTICATION_REQUIRED"
+                "YUHENG_REPORT_AUTHENTICATION_REQUIRED"
         );
     }
 }

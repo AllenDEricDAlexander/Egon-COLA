@@ -31,15 +31,15 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/applications")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/applications")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayApplicationController {
 
     /**
@@ -103,7 +103,7 @@ public class GatewayApplicationController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:applications:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.application.domain.vo.GatewayApplicationVO create(
             @Valid @RequestBody GatewayApplicationCreateRequestDTO request,
             AdminActor actor) {
@@ -152,7 +152,7 @@ public class GatewayApplicationController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:applications:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:applications:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.application.domain.vo.GatewayApplicationVO update(
             @PathVariable String id,
             @Valid @RequestBody GatewayApplicationUpdateRequestDTO request,

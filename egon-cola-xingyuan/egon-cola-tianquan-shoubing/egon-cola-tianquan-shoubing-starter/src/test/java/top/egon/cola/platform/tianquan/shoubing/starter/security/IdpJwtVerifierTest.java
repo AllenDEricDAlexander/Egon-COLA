@@ -22,9 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class IdpJwtVerifierTest {
 
     private static final Instant NOW = Instant.parse("2026-08-02T08:00:00Z");
-    private static final String RESOURCE_ID = "resource-rbac3-prod";
+    private static final String RESOURCE_ID = "resource-tianquan-jianshen-prod";
     private static final URI RESOURCE_URI = URI.create(
-            "https://api.example/prod/permission/rbac3");
+            "https://api.example/prod/permission/tianquan-jianshen");
     private static final String PLATFORM_AUDIENCE = "egon-platform";
 
     @Test
@@ -59,7 +59,7 @@ class IdpJwtVerifierTest {
         assertThat(result).isInstanceOf(AccessTokenVerification.Valid.class);
         ServiceIdentityPrincipal service =
                 ((AccessTokenVerification.Valid<ServiceIdentityPrincipal>) result).principal();
-        assertThat(service.subject()).isEqualTo("rbac3-service");
+        assertThat(service.subject()).isEqualTo("tianquan-jianshen-service");
         assertThat(service.resourceUri()).isEqualTo(RESOURCE_URI);
         assertThat(service.resourceVersion()).isEqualTo(12L);
         assertThat(service.scopes()).containsExactly("service:authorization:snapshot");
@@ -126,14 +126,14 @@ class IdpJwtVerifierTest {
 
     private IdentityOAuthClientStateReader clientReader() {
         return id -> Optional.of(new IdentityOAuthClientStateReader.IdentityOAuthClientState(
-                "rbac3-service", OAuthClient.ClientType.CONFIDENTIAL,
-                OAuthClient.Status.ACTIVE, "resource-idp-prod", 3L));
+                "tianquan-jianshen-service", OAuthClient.ClientType.CONFIDENTIAL,
+                OAuthClient.Status.ACTIVE, "resource-tianquan-shoubing-prod", 3L));
     }
 
     private IdentityResourceServerState resourceState(
             ResourceServerStatus status, URI resourceUri, long version) {
         return new IdentityResourceServerState(RESOURCE_ID, resourceUri,
-                "permission", "rbac3", "prod", status, version);
+                "permission", "tianquan-jianshen", "prod", status, version);
     }
 
     private Jwt userJwt() {
@@ -141,7 +141,7 @@ class IdpJwtVerifierTest {
                 .header("alg", "RS256")
                 .header("kid", "key-1")
                 .header("typ", "at+jwt")
-                .issuer("https://idp.local")
+                .issuer("https://tianquan-shoubing.local")
                 .subject("identity-1")
                 .audience(List.of(PLATFORM_AUDIENCE))
                 .issuedAt(NOW)
@@ -160,20 +160,20 @@ class IdpJwtVerifierTest {
                 .header("alg", "RS256")
                 .header("kid", "key-1")
                 .header("typ", "at+jwt")
-                .issuer("https://idp.local")
-                .subject("rbac3-service")
+                .issuer("https://tianquan-shoubing.local")
+                .subject("tianquan-jianshen-service")
                 .audience(List.of(RESOURCE_URI.toString()))
                 .issuedAt(NOW)
                 .notBefore(NOW)
                 .expiresAt(NOW.plusSeconds(300))
                 .claim("principal_type", "SERVICE")
-                .claim("client_id", "rbac3-service")
-                .claim("app_id", "rbac3-service-app")
+                .claim("client_id", "tianquan-jianshen-service")
+                .claim("app_id", "tianquan-jianshen-service-app")
                 .claim("scope_context", "TENANT")
                 .claim("tid", "tenant-1")
                 .claim("scope", List.of("service:authorization:snapshot"))
                 .claim("source_biz", "permission")
-                .claim("source_app", "idp")
+                .claim("source_app", "tianquan-shoubing")
                 .claim("source_env", "prod")
                 .claim("credential_id", "service-key-1")
                 .claim("resource_version", 12L)

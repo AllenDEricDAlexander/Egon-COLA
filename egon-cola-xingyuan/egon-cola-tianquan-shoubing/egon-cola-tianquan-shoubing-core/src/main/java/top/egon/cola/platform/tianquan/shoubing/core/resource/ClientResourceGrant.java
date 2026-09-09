@@ -16,7 +16,7 @@ import java.util.TreeSet;
  * @param resourceServerId  目标 Resource Server 标识；target Resource Server identifier
  * @param grantType         授权类型；grant type
  * @param tenantId          CLIENT_CREDENTIALS 绑定租户，PLATFORM 时为空；tenant bound to CLIENT_CREDENTIALS, null for PLATFORM
- * @param allowedScopes     IdP 许可的服务 Scope；service scopes permitted by IdP
+ * @param allowedScopes     Tianquan-Shoubing 许可的服务 Scope；service scopes permitted by Tianquan-Shoubing
  * @param status            授权状态；grant status
  * @param version           乐观锁和投影版本；optimistic-lock and projection version
  * @param scopeContext      SERVICE 授权上下文；SERVICE authorization context

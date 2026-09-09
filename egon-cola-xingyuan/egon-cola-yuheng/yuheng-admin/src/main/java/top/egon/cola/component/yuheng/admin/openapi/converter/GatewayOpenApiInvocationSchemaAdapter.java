@@ -36,10 +36,10 @@ import java.util.TreeMap;
 public class GatewayOpenApiInvocationSchemaAdapter {
 
     public static final String REQUEST_SCHEMA_MODEL =
-            "gateway-operation-request/v2";
+            "yuheng-operation-request/v2";
 
     public static final String RESPONSE_SCHEMA_MODEL =
-            "gateway-operation-response/v2";
+            "yuheng-operation-response/v2";
 
     private static final String JSON_SCHEMA =
             "https://json-schema.org/draft/2020-12/schema";

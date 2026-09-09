@@ -19,9 +19,9 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * 从 IdP 管理库查询 Resource Server 及 Client Grant 的领域适配器。
+ * 从 Tianquan-Shoubing 管理库查询 Resource Server 及 Client Grant 的领域适配器。
  *
- * <p>Domain adapter that queries Resource Servers and Client Grants from the IdP administration
+ * <p>Domain adapter that queries Resource Servers and Client Grants from the Tianquan-Shoubing administration
  * database.</p>
  */
 public class JpaResourceServerStore implements ResourceServerStore {

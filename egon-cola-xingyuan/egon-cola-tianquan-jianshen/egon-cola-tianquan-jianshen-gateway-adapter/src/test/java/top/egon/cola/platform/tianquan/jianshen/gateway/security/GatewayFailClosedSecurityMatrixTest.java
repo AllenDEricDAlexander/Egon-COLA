@@ -34,7 +34,7 @@ class GatewayFailClosedSecurityMatrixTest {
         for (Rbac3BizAppScopeAuthorizationProvider provider : providers) {
             var decision = Mono.from(provider.authorize(context())).block();
             assertEquals(SecurityDecision.ERROR, decision.decision());
-            assertEquals("RBAC3_SCOPE_RUNTIME_UNAVAILABLE",
+            assertEquals("TIANQUAN_JIANSHEN_SCOPE_RUNTIME_UNAVAILABLE",
                     decision.reason());
         }
     }
@@ -42,8 +42,8 @@ class GatewayFailClosedSecurityMatrixTest {
     @Test
     void preservesBusinessAndApplicationDenials() {
         var denials = List.of(
-                AuthorizationDecision.deny("RBAC3_BUSINESS_SCOPE_DENIED"),
-                AuthorizationDecision.deny("RBAC3_APPLICATION_SCOPE_DENIED"));
+                AuthorizationDecision.deny("TIANQUAN_JIANSHEN_BUSINESS_SCOPE_DENIED"),
+                AuthorizationDecision.deny("TIANQUAN_JIANSHEN_APPLICATION_SCOPE_DENIED"));
 
         for (AuthorizationDecision denial : denials) {
             var provider = new Rbac3BizAppScopeAuthorizationProvider(

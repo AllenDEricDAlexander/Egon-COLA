@@ -148,7 +148,7 @@ class GatewayOpenApiSyncServiceTest {
                 GatewayOpenApiSyncStateEnum.DISCOVERED, 0)));
         when(syncStates.claim("sync-1", 0, NOW)).thenReturn(true);
         GatewayOpenApiFetchException failure = new GatewayOpenApiFetchException(
-                "GATEWAY_OPENAPI_FETCH_TIMEOUT", true,
+                "YUHENG_OPENAPI_FETCH_TIMEOUT", true,
                 "provider OpenAPI fetch timed out");
         GatewayProviderOpenApiClient client = mock(GatewayProviderOpenApiClient.class);
         doThrow(failure).when(client).fetch(candidate);
@@ -169,7 +169,7 @@ class GatewayOpenApiSyncServiceTest {
         verify(syncStates).markFailure(
                 eq("sync-1"), any(Long.TYPE),
                 eq(GatewayOpenApiSyncStateEnum.FETCH_FAILED),
-                eq("GATEWAY_OPENAPI_FETCH_TIMEOUT"),
+                eq("YUHENG_OPENAPI_FETCH_TIMEOUT"),
                 eq("provider OpenAPI fetch timed out"),
                 any(Instant.class), eq(NOW));
     }
@@ -493,14 +493,14 @@ class GatewayOpenApiSyncServiceTest {
                 18443,
                 true,
                 Map.of(
-                        "gateway.definition-source", "OPENAPI31",
-                        "gateway.openapi.enabled", "true",
-                        "gateway.openapi.path-template", "/v3/api-docs/{group}",
-                        "gateway.openapi.spec", "3.1",
-                        "gateway.openapi.groups", "inventory,orders",
-                        "gateway.openapi.resource-uri", "https://orders.internal",
-                        "gateway.artifact-version", "1.0.0",
-                        "gateway.build-id", "build-1"),
+                        "yuheng.definition-source", "OPENAPI31",
+                        "yuheng.openapi.enabled", "true",
+                        "yuheng.openapi.path-template", "/v3/api-docs/{group}",
+                        "yuheng.openapi.spec", "3.1",
+                        "yuheng.openapi.groups", "inventory,orders",
+                        "yuheng.openapi.resource-uri", "https://orders.internal",
+                        "yuheng.artifact-version", "1.0.0",
+                        "yuheng.build-id", "build-1"),
                 "ONLINE",
                 NOW.minusSeconds(10),
                 NOW.minusSeconds(1),
@@ -510,7 +510,7 @@ class GatewayOpenApiSyncServiceTest {
     private GatewayApplicationPO application() {
         return new GatewayApplicationPO(
                 "application-1", "platform", "orders", "Orders", "test",
-                "gateway", null, "admin", NOW.minusSeconds(100));
+                "yuheng", null, "admin", NOW.minusSeconds(100));
     }
 
     private GatewayInterfaceDefinitionReportResult result(String setId) {

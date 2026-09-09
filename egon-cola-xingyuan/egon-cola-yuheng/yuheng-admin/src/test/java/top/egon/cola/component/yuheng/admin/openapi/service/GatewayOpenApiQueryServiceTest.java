@@ -162,7 +162,7 @@ class GatewayOpenApiQueryServiceTest {
     private GatewayApplicationPO application() {
         return new GatewayApplicationPO(
                 "application-1", "platform", "orders", "Orders", "test",
-                "gateway", null, "admin", NOW);
+                "yuheng", null, "admin", NOW);
     }
 
     private GatewayOpenApiSyncPO row(

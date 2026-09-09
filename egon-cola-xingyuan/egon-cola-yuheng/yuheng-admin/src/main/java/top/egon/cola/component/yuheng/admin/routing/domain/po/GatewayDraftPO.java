@@ -126,7 +126,7 @@ public class GatewayDraftPO {
         }
         if (!"EDITABLE".equals(status)) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_DRAFT_NOT_EDITABLE"
+                    "YUHENG_ADMIN_DRAFT_NOT_EDITABLE"
             );
         }
     }

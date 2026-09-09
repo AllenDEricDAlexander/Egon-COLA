@@ -17,7 +17,7 @@ public final class GatewayWebSocketIdleTimeoutException
      */
     public GatewayWebSocketIdleTimeoutException() {
         super(
-                "GATEWAY_WEBSOCKET_IDLE_TIMEOUT",
+                "YUHENG_WEBSOCKET_IDLE_TIMEOUT",
                 "websocket stream timed out"
         );
     }

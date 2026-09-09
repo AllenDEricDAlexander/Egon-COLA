@@ -72,9 +72,9 @@ public class Rbac3AdminApplication {
      */
     static Map<String, Object> bootstrapRuntimeProperties() {
         return Map.of(
-                "egon.cola.component.ddc.enabled", false,
-                "egon.cola.component.gateway.reporting.enabled", false,
-                "egon.cola.component.ddc.registry.http.enabled", false,
+                "egon.cola.component.tianshu.enabled", false,
+                "egon.cola.component.yuheng.reporting.enabled", false,
+                "egon.cola.component.tianshu.registry.http.enabled", false,
                 "egon.cola.component.transactional-outbox.polling.enabled", false,
                 "management.endpoint.health.validate-group-membership", false);
     }

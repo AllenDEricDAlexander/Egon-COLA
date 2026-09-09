@@ -24,7 +24,7 @@ import java.util.NoSuchElementException;
 import java.util.Objects;
 
 /**
- * Maps the IdP identity directory to the minimal read-only RPC projection consumed by RBAC.
+ * Maps the Tianquan-Shoubing identity directory to the minimal read-only RPC projection consumed by RBAC.
  */
 @EgonRpcProvider
 public final class IdentityDirectoryRpcProvider

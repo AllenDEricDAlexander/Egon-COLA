@@ -32,14 +32,14 @@ import java.util.Objects;
  * <p>Administration API for explicit OAuth Client-to-Resource Server grants.</p>
  */
 @RestController
-@RequestMapping("/api/v1/identity/clients")
+@RequestMapping("/api/v1/tianquan-shoubing/clients")
 @Tag(name = "client-resource-grants", description = "Client Resource Grant接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp-identity"
+        interfaceGroupCode = "tianquan-shoubing-identity"
 )
 
 public class ClientResourceGrantController {
@@ -47,7 +47,7 @@ public class ClientResourceGrantController {
     /** Resource Server 管理服务；Resource Server management service. */
     private final ResourceServerService resources;
 
-    /** RBAC3 管理权限闸门；RBAC3 administration permission gate. */
+    /** Tianquan-Jianshen 管理权限闸门；Tianquan-Jianshen administration permission gate. */
     private final IdpAdminAuthorizationPort authorization;
 
     /**
@@ -73,9 +73,9 @@ public class ClientResourceGrantController {
      */
     @PutMapping("/{clientId}/resources/{resourceServerId}")
     @Operation(
-            operationId = "idp-client-resource-grant-put-v1",
+            operationId = "tianquan-shoubing-client-resource-grant-put-v1",
             summary = "登记Client Resource Grant",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -86,7 +86,7 @@ public class ClientResourceGrantController {
             @Valid @RequestBody UpsertClientResourceGrantDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:grant");
+        authorization.require(principal, "tianquan-shoubing:resource-server:grant");
         return resources.putGrant(clientId, resourceServerId, request);
     }
 
@@ -98,9 +98,9 @@ public class ClientResourceGrantController {
     @DeleteMapping("/{clientId}/resources/{resourceServerId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(
-            operationId = "idp-client-resource-grant-delete-v1",
+            operationId = "tianquan-shoubing-client-resource-grant-delete-v1",
             summary = "删除Client Resource Grant",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -111,7 +111,7 @@ public class ClientResourceGrantController {
             @Valid @RequestBody DeleteClientResourceGrantDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:grant");
+        authorization.require(principal, "tianquan-shoubing:resource-server:grant");
         resources.deleteGrant(clientId, resourceServerId, request);
     }
 
@@ -122,9 +122,9 @@ public class ClientResourceGrantController {
      */
     @PostMapping("/{clientId}/resource-grants/actions/batch")
     @Operation(
-            operationId = "idp-client-resource-grant-batch-v1",
+            operationId = "tianquan-shoubing-client-resource-grant-batch-v1",
             summary = "批量变更Client Resource Grant",
-            tags = {"idp", "resource-server"}
+            tags = {"tianquan-shoubing", "resource-server"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -134,7 +134,7 @@ public class ClientResourceGrantController {
             @Valid @RequestBody BatchClientResourceGrantDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:resource-server:grant");
+        authorization.require(principal, "tianquan-shoubing:resource-server:grant");
         return resources.batchGrants(clientId, request);
     }
 }

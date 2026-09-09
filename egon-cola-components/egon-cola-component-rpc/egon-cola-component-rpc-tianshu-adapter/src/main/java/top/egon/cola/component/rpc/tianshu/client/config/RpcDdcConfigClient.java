@@ -15,7 +15,7 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcOperation;
 
 import java.util.List;
 
-/** DDC 配置运行时 Port 的 Direct RPC 适配器。 / Direct RPC adapter for the DDC config-runtime Port. */
+/** Tianshu 配置运行时 Port 的 Direct RPC 适配器。 / Direct RPC adapter for the Tianshu config-runtime Port. */
 public final class RpcDdcConfigClient implements DdcConfigClient {
 
     private final DdcConfigRuntimeRpc rpc;

@@ -80,7 +80,7 @@ public final class GatewayDdcRulePublisher {
      * English summary: Executes the ensure ready target operation; this method is the invocation entry point on {@code GatewayDdcRulePublisher} and performs the corresponding runtime, management, or protocol work.
      *
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayDdcRulePublisher.ensureReadyTarget(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param scope 角色与独立 DDC scope；role and its independent DDC scope。
+     * @param scope 角色与独立 Tianshu scope；role and its independent Tianshu scope。
      */
     public void ensureReadyTarget(GatewayPublicationScopeDTO scope) {
         List<DdcManagementConfigClientInstance> targets =
@@ -95,14 +95,14 @@ public final class GatewayDdcRulePublisher {
                 .filter(target -> scope.bizCode().equals(target.bizCode())
                         && scope.env().equals(target.env()) && scope.appCode().equals(target.appCode()))
                 .filter(target -> scope.engineRole().name().equals(
-                        target.metadata().get("gateway.engine.role")))
+                        target.metadata().get("yuheng.engine.role")))
                 .anyMatch(target -> target.normalizedStatus()
                         == DdcInstanceStatus.ONLINE
                         && target.expireAt() != null
                         && target.expireAt().isAfter(now));
         if (!ready) {
             throw new IllegalStateException(
-                    "GATEWAY_RELEASE_NO_READY_TARGET: " + scope.engineRole()
+                    "YUHENG_RELEASE_NO_READY_TARGET: " + scope.engineRole()
             );
         }
     }

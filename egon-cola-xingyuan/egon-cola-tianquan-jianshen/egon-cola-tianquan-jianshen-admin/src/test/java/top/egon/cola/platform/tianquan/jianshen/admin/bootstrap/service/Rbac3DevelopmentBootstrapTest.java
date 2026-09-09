@@ -27,24 +27,24 @@ class Rbac3DevelopmentBootstrapTest {
                 memberships,
                 mutation -> calls.add("project:" + mutation.tenantId()),
                 "17, 18,17",
-                "idp-subject");
+                "tianquan-shoubing-subject");
 
         runner.run(null);
 
         assertThat(calls).containsExactly(
-                "17:idp-subject",
+                "17:tianquan-shoubing-subject",
                 "project:17",
-                "18:idp-subject",
+                "18:tianquan-shoubing-subject",
                 "project:18");
-        verify(memberships).requireActive("17", "idp-subject");
-        verify(memberships).requireActive("18", "idp-subject");
+        verify(memberships).requireActive("17", "tianquan-shoubing-subject");
+        verify(memberships).requireActive("18", "tianquan-shoubing-subject");
     }
 
     @Test
     void anUnchangedBootstrapStillRepairsThePreviouslyCommittedRuntime() {
         RuntimeProjectionExecutor projection = mock(RuntimeProjectionExecutor.class);
         var runner = new Rbac3DevelopmentBootstrap((tenantId, identitySub) -> {},
-                mock(IdentityTenantMembershipDirectory.class), projection, "17", "idp-subject");
+                mock(IdentityTenantMembershipDirectory.class), projection, "17", "tianquan-shoubing-subject");
 
         runner.run(null);
 
@@ -57,7 +57,7 @@ class Rbac3DevelopmentBootstrapTest {
         RuntimeProjectionExecutor projection = mock(RuntimeProjectionExecutor.class);
         var runner = new Rbac3DevelopmentBootstrap((tenantId, identitySub) -> {
             throw new IllegalStateException("bootstrap failed");
-        }, mock(IdentityTenantMembershipDirectory.class), projection, "17", "idp-subject");
+        }, mock(IdentityTenantMembershipDirectory.class), projection, "17", "tianquan-shoubing-subject");
 
         assertThatThrownBy(() -> runner.run(null)).hasMessage("bootstrap failed");
         verifyNoInteractions(projection);
@@ -68,7 +68,7 @@ class Rbac3DevelopmentBootstrapTest {
         var runner = new Rbac3DevelopmentBootstrap((tenantId, identitySub) -> {},
                 mock(IdentityTenantMembershipDirectory.class), mutation -> {
                     throw new IllegalStateException("Redis unavailable");
-                }, "17", "idp-subject");
+                }, "17", "tianquan-shoubing-subject");
 
         assertThatThrownBy(() -> runner.run(null)).hasMessage("Redis unavailable");
     }

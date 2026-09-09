@@ -21,17 +21,17 @@ import java.nio.file.Path;
 import java.time.Clock;
 
 /**
- * IdP JWT 签名、Refresh Token 存储与 Token 生命周期的 Spring 装配。
+ * Tianquan-Shoubing JWT 签名、Refresh Token 存储与 Token 生命周期的 Spring 装配。
  *
- * <p>Spring wiring for IdP JWT signing, refresh-token storage, and token lifecycle.</p>
+ * <p>Spring wiring for Tianquan-Shoubing JWT signing, refresh-token storage, and token lifecycle.</p>
  */
 @Configuration(proxyBeanMethods = false)
 public class TokenConfig {
 
     /**
-     * 暴露 IdP 公钥 JWT 验签器。
+     * 暴露 Tianquan-Shoubing 公钥 JWT 验签器。
      *
-     * <p>Exposes the IdP public-key JWT decoder.</p>
+     * <p>Exposes the Tianquan-Shoubing public-key JWT decoder.</p>
      *
      * @param tokens RS256 Token 服务；RS256 token service
      * @return JWT 验签器；JWT decoder
@@ -51,7 +51,7 @@ public class TokenConfig {
      */
     @Bean
     SigningKeyRuntime signingKeyRuntime(
-            @Value("${egon.idp.oauth.signing-key.kid}") String configuredKid
+            @Value("${egon.tianquan-shoubing.oauth.signing-key.kid}") String configuredKid
     ) {
         return new ExternalPemSigningKeyRuntime(configuredKid);
     }
@@ -64,17 +64,17 @@ public class TokenConfig {
      * @param publicKeyFile 公钥文件；public-key file
      * @param privateKeyFile 私钥文件；private-key file
      * @param kid 密钥标识；key identifier
-     * @param issuer IdP Issuer；IdP issuer
+     * @param issuer Tianquan-Shoubing Issuer；Tianquan-Shoubing issuer
      * @return RS256 Token 服务；RS256 token service
      */
     @Bean
     Rs256TokenService rs256TokenService(
-            @Value("${egon.idp.oauth.signing-key.public-key-file}")
+            @Value("${egon.tianquan-shoubing.oauth.signing-key.public-key-file}")
             String publicKeyFile,
-            @Value("${egon.idp.oauth.signing-key.private-key-file}")
+            @Value("${egon.tianquan-shoubing.oauth.signing-key.private-key-file}")
             String privateKeyFile,
-            @Value("${egon.idp.oauth.signing-key.kid}") String kid,
-            @Value("${egon.idp.oauth.issuer}") String issuer
+            @Value("${egon.tianquan-shoubing.oauth.signing-key.kid}") String kid,
+            @Value("${egon.tianquan-shoubing.oauth.issuer}") String issuer
     ) {
         RsaPemKeyLoader.KeyMaterial keyMaterial = new RsaPemKeyLoader().load(
                 Path.of(publicKeyFile),
@@ -100,7 +100,7 @@ public class TokenConfig {
     @Bean
     RefreshTokenStore refreshTokenStore(
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
-            @Value("${egon.idp.oauth.refresh-key-prefix:identity:v1:}")
+            @Value("${egon.tianquan-shoubing.oauth.refresh-key-prefix:identity:v1:}")
             String keyPrefix
     ) {
         return new RedisRefreshTokenStore(redisson, keyPrefix);
@@ -127,7 +127,7 @@ public class TokenConfig {
             TenantMembershipPort memberships,
             @Qualifier("idpClock") Clock idpClock,
             LongIdGenerator idGenerator,
-            @Value("${egon.idp.oauth.user-audience:platform}") String userAudience
+            @Value("${egon.tianquan-shoubing.oauth.user-audience:platform}") String userAudience
     ) {
         return new TokenFacade(
                 signer,

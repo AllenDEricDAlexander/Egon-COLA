@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-shoubing-gateway-adapter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-shoubing-gateway-adapter</name>
-    <description>Identity-only Gateway security adapter for Egon COLA.</description>
+    <description>Identity-only Yuheng security adapter for Egon COLA.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>

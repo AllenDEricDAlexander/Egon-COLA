@@ -15,7 +15,7 @@ class GatewayContractBoundaryTest {
     void contractSourceDoesNotImportRuntimeFrameworksOrProductModules()
             throws Exception {
         Path sourceRoot = Path.of(
-                "src/main/java/top/egon/cola/component/gateway/contract"
+                "src/main/java/top/egon/cola/component/yuheng/contract"
         );
         try (Stream<Path> files = Files.walk(sourceRoot)) {
             List<String> forbiddenImports = files

@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 协调 DDC 客户端注册、初始拉取、心跳续约、周期对账和优雅下线的生命周期。
- * Coordinates the DDC client lifecycle of registration, initial pull, heartbeat renewal, periodic reconciliation, and graceful offline transition.
+ * 协调 Tianshu 客户端注册、初始拉取、心跳续约、周期对账和优雅下线的生命周期。
+ * Coordinates the Tianshu client lifecycle of registration, initial pull, heartbeat renewal, periodic reconciliation, and graceful offline transition.
  */
 public class DdcRuntimeCoordinator implements SmartLifecycle {
 
@@ -37,7 +37,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     private static final Logger LOGGER = LoggerFactory.getLogger(DdcRuntimeCoordinator.class);
 
     /**
-     * DDC 客户端配置。 DDC client configuration.
+     * Tianshu 客户端配置。 Tianshu client configuration.
      */
     private final DdcProperties properties;
 
@@ -87,12 +87,12 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     private volatile ScheduledExecutorService reconcileScheduler;
 
     /**
-     * 创建 DDC 运行时协调器。
-     * Creates the DDC runtime coordinator.
+     * 创建 Tianshu 运行时协调器。
+     * Creates the Tianshu runtime coordinator.
      *
-     * @param properties      DDC 客户端配置; DDC client configuration
+     * @param properties      Tianshu 客户端配置; Tianshu client configuration
      * @param instanceService 实例租约服务; instance lease service
-     * @param adminClient     DDC 管理端客户端; DDC administration client
+     * @param adminClient     Tianshu 管理端客户端; Tianshu administration client
      * @param refreshService  配置刷新服务; configuration refresh service
      * @param subscription    Redis 配置变化订阅; Redis configuration-change subscription
      * @param sessionHolder   租约会话持有器; lease session holder
@@ -122,7 +122,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     public synchronized void start() {
         validateScope();
         if (!subscription.isActive()) {
-            throw new DdcException("DDC Redis subscription is not active");
+            throw new DdcException("Tianshu Redis subscription is not active");
         }
         if (!running.compareAndSet(false, true)) {
             return;
@@ -206,8 +206,8 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     }
 
     /**
-     * 返回当前 DDC 运行时状态。
-     * Returns the current DDC runtime state.
+     * 返回当前 Tianshu 运行时状态。
+     * Returns the current Tianshu runtime state.
      *
      * @return 当前运行时状态; current runtime state
      */
@@ -315,7 +315,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
         try {
             refreshService.applySnapshots(adminClient.pull());
         } catch (RuntimeException exception) {
-            LOGGER.warn("DDC config reconciliation failed", exception);
+            LOGGER.warn("Tianshu config reconciliation failed", exception);
         }
     }
 
@@ -344,7 +344,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
      */
     private void startSchedulers() {
         heartbeatScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "egon-cola-ddc-heartbeat");
+            Thread thread = new Thread(runnable, "egon-cola-tianshu-heartbeat");
             thread.setDaemon(true);
             return thread;
         });
@@ -359,7 +359,7 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
             return;
         }
         reconcileScheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "egon-cola-ddc-config-reconcile");
+            Thread thread = new Thread(runnable, "egon-cola-tianshu-config-reconcile");
             thread.setDaemon(true);
             return thread;
         });
@@ -404,8 +404,8 @@ public class DdcRuntimeCoordinator implements SmartLifecycle {
     }
 
     /**
-     * 校验 DDC 作用域、实例时序和可选对账间隔。
-     * Validates DDC scope, instance timing, and the optional reconciliation interval.
+     * 校验 Tianshu 作用域、实例时序和可选对账间隔。
+     * Validates Tianshu scope, instance timing, and the optional reconciliation interval.
      *
      * @throws DdcException 必填范围为空或时序配置无效时抛出; thrown when required scope values are blank or timing settings are invalid
      */

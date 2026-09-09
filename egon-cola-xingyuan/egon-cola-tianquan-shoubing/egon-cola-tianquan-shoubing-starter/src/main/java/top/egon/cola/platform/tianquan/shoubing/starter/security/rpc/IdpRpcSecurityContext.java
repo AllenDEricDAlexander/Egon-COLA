@@ -16,9 +16,9 @@ import java.util.Objects;
 public final class IdpRpcSecurityContext {
 
     private static final Context.Key<IdentityPrincipal> PRINCIPAL =
-            Context.key("egon-idp-user-principal");
+            Context.key("egon-tianquan-shoubing-user-principal");
     private static final Context.Key<String> TOKEN =
-            Context.key("egon-idp-user-token");
+            Context.key("egon-tianquan-shoubing-user-token");
 
     private IdpRpcSecurityContext() {
     }

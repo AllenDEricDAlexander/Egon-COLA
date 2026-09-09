@@ -14,7 +14,7 @@
     <artifactId>yuheng-starter-openapi-webmvc</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-starter-openapi-webmvc</name>
-    <description>Spring MVC OpenAPI API adapter for Egon COLA Gateway.</description>
+    <description>Spring MVC OpenAPI API adapter for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>

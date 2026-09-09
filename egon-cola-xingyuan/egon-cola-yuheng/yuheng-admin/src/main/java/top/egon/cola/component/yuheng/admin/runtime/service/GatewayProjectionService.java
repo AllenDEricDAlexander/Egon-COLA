@@ -69,7 +69,7 @@ public class GatewayProjectionService {
     @Qualifier("gatewayProjectionClock")
     private final Clock clock;
     @NonNull
-    @Qualifier("gateway.admin-top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties")
+    @Qualifier("yuheng.admin-top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties")
     private final GatewayAdminProperties properties;
     @NonNull
     @Qualifier("gatewayEngineRoleConsistencyStrategy")
@@ -115,7 +115,7 @@ public class GatewayProjectionService {
     public GatewayProjectionEnvelopeVO<DdcManagementServiceCatalog> services(
             GatewayProviderQueryDTO query) {
         String key = "services:" + query;
-        return load(key, "DDC_SERVICE_REGISTRY", () -> client()
+        return load(key, "TIANSHU_SERVICE_REGISTRY", () -> client()
                 .getServiceKeys(query.ddc()));
     }
 
@@ -130,7 +130,7 @@ public class GatewayProjectionService {
     public GatewayProjectionEnvelopeVO<List<GatewayProviderInstanceVO>> instances(
             GatewayProviderQueryDTO query) {
         String key = "instances:" + query;
-        return load(key, "DDC_SERVICE_REGISTRY", () -> {
+        return load(key, "TIANSHU_SERVICE_REGISTRY", () -> {
             DdcManagementServiceSnapshot snapshot = client()
                     .getInstances(query.ddc());
             if (snapshot.serviceKey() == null) {
@@ -164,7 +164,7 @@ public class GatewayProjectionService {
             String namespace) {
         String key = "instances:" + bizCode + ":" + appCode + ":"
                 + env + ":" + namespace;
-        return load(key, "DDC_SERVICE_REGISTRY", () -> {
+        return load(key, "TIANSHU_SERVICE_REGISTRY", () -> {
             List<GatewayProviderInstanceVO> result = new ArrayList<>();
             collectInstances(
                     result,
@@ -387,7 +387,7 @@ public class GatewayProjectionService {
     private GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> engineNodes(
             GatewayGroupPO group, List<GatewayPublicationScopeDTO> scopes) {
         String key = "engine:" + group.getId() + ":" + scopes;
-        return load(key, "DDC_CONFIG_CLIENT", () -> {
+        return load(key, "TIANSHU_CONFIG_CLIENT", () -> {
             List<DdcManagementConfigClientInstance> result = new ArrayList<>();
             for (GatewayPublicationScopeDTO scope : scopes) {
                 result.addAll(client().getConfigClients(new DdcManagementInstanceQuery(
@@ -551,7 +551,7 @@ public class GatewayProjectionService {
         DdcManagementClient client = clients.getIfAvailable();
         if (client == null) {
             throw new IllegalStateException(
-                    "DDC management client is not configured"
+                    "Tianshu management client is not configured"
             );
         }
         return client;
@@ -643,9 +643,9 @@ public class GatewayProjectionService {
                 instance.leaseId(),
                 instance.host(),
                 instance.port(),
-                metadata.get("gateway.region"),
-                metadata.get("gateway.zone"),
-                integer(metadata.get("gateway.weight")),
+                metadata.get("yuheng.region"),
+                metadata.get("yuheng.zone"),
+                integer(metadata.get("yuheng.weight")),
                 metadata,
                 definitionSetId(metadata),
                 instance.normalizedStatus().name(),
@@ -675,9 +675,9 @@ public class GatewayProjectionService {
      * @return 返回 定义SetId 的处理结果；returns the result of the operation.
      */
     private String definitionSetId(Map<String, String> metadata) {
-        String canonical = metadata.get("gateway.definition-set-id");
+        String canonical = metadata.get("yuheng.definition-set-id");
         return canonical == null || canonical.isBlank()
-                ? metadata.get("gateway.definition-set")
+                ? metadata.get("yuheng.definition-set")
                 : canonical;
     }
 

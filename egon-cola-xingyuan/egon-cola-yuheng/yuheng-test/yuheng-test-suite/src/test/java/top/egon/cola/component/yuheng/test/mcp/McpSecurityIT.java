@@ -126,7 +126,7 @@ class McpSecurityIT {
 
         assertFalse(report.valid());
         assertEquals(
-                "GATEWAY_MCP_SCHEMA_EXTERNAL_REF_FORBIDDEN",
+                "YUHENG_MCP_SCHEMA_EXTERNAL_REF_FORBIDDEN",
                 report.findings().getFirst().code()
         );
     }
@@ -314,7 +314,7 @@ class McpSecurityIT {
                 "Security fixture",
                 "Use reviewed capabilities.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30L,
                 true
         );
@@ -397,12 +397,12 @@ class McpSecurityIT {
         Mono.from(gate.authorizeToolCall(
                 tool,
                 new McpSecurityGate.IdentityContext(
-                        "https://idp.internal",
+                        "https://tianquan-shoubing.internal",
                         "subject-1",
                         "tenant-1",
                         "client-1",
                         "token-1",
-                        "https://resource.egon.top/gateway-mcp",
+                        "https://resource.egon.top/yuheng-mcp",
                         Instant.parse("2026-08-03T00:00:00Z"),
                         Instant.parse("2026-08-03T01:00:00Z"),
                         7L,

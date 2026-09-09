@@ -46,7 +46,7 @@ public class McpTestProviderSecurityConfiguration {
                 rbac3Filters.getIfAvailable();
         if (idpFilter == null || rbac3Filter == null) {
             throw new IllegalStateException(
-                    "IdP and RBAC3 authentication filters are required"
+                    "Tianquan-Shoubing and Tianquan-Jianshen authentication filters are required"
             );
         }
         http
@@ -75,9 +75,9 @@ public class McpTestProviderSecurityConfiguration {
     }
 
     /**
-     * USER 身份沿用 Gateway/RBAC3 前置决策，SERVICE 身份只读取 IdP 签名 Scope。
-     * Keeps the upstream Gateway/RBAC3 decision for USER identities and evaluates only the
-     * IdP-signed scope for SERVICE identities.
+     * USER 身份沿用 Gateway/Tianquan-Jianshen 前置决策，SERVICE 身份只读取 Tianquan-Shoubing 签名 Scope。
+     * Keeps the upstream Gateway/Tianquan-Jianshen decision for USER identities and evaluates only the
+     * Tianquan-Shoubing-signed scope for SERVICE identities.
      */
     private AuthorizationDecision providerAccess(
             Authentication authentication

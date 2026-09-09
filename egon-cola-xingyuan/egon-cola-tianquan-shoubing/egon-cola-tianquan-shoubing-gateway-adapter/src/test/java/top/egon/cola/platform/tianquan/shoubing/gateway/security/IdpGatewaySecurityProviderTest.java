@@ -89,9 +89,9 @@ class IdpGatewaySecurityProviderTest {
                 .block();
         assertThat(decision.decision()).isEqualTo(SecurityDecision.ALLOW);
         assertThat(decision.principal().attributes())
-                .doesNotContainKeys("idp.session-id", "idp.token-version", "idp.resource-uri")
-                .containsEntry("idp.token-id", "token-1")
-                .containsEntry("idp.audience", "platform");
+                .doesNotContainKeys("tianquan-shoubing.session-id", "tianquan-shoubing.token-version", "tianquan-shoubing.resource-uri")
+                .containsEntry("tianquan-shoubing.token-id", "token-1")
+                .containsEntry("tianquan-shoubing.audience", "platform");
         assertThatThrownBy(() -> new IdpTrustedIdentityMapper()
                 .map(context(decision.principal())))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -195,9 +195,9 @@ class IdpGatewaySecurityProviderTest {
 
     private GatewaySecurityPolicy policy() {
         return new GatewaySecurityPolicy(
-                "security", AuthenticationMode.REQUIRED, List.of("idp-user-cookie"),
-                List.of("idp-jwt"), List.of(), AuthorizationDecisionMode.ALL_ALLOW,
-                "idp-identity", Duration.ofSeconds(1), SecurityFailureMode.FAIL_CLOSED,
+                "security", AuthenticationMode.REQUIRED, List.of("tianquan-shoubing-user-cookie"),
+                List.of("tianquan-shoubing-jwt"), List.of(), AuthorizationDecisionMode.ALL_ALLOW,
+                "tianquan-shoubing-identity", Duration.ofSeconds(1), SecurityFailureMode.FAIL_CLOSED,
                 CredentialForwardingMode.ORIGINAL_BEARER);
     }
 

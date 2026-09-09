@@ -43,10 +43,10 @@ class HttpTenantServiceTokenSupplierTest {
         assertThat(requests).extracting(
                 HttpTenantServiceTokenSupplier.TokenRequest::tenantId
         ).containsExactly("tenant-a", "tenant-b");
-        assertThat(requests.getFirst().clientId()).isEqualTo("rbac3-service");
+        assertThat(requests.getFirst().clientId()).isEqualTo("tianquan-jianshen-service");
         assertThat(requests.getFirst().assertion()).isEqualTo("assertion-1");
         assertThat(requests.getFirst().resourceUri()).isEqualTo(
-                URI.create("https://api.egon.internal/permission/rbac3")
+                URI.create("https://api.egon.internal/permission/tianquan-jianshen")
         );
         assertThat(requests.getFirst().scopes()).containsExactlyInAnyOrder(
                 "service:authorization:snapshot",
@@ -65,7 +65,7 @@ class HttpTenantServiceTokenSupplierTest {
 
         assertThatThrownBy(() -> supplier.apply("tenant-a"))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("IDP_SERVICE_TOKEN_RESPONSE_INVALID")
+                .hasMessage("TIANQUAN_SHOUBING_SERVICE_TOKEN_RESPONSE_INVALID")
                 .hasMessageNotContaining("do-not-use");
     }
 
@@ -74,9 +74,9 @@ class HttpTenantServiceTokenSupplierTest {
             HttpTenantServiceTokenSupplier.TokenEndpoint endpoint
     ) {
         return new HttpTenantServiceTokenSupplier(
-                "rbac3-service",
+                "tianquan-jianshen-service",
                 assertions,
-                URI.create("https://api.egon.internal/permission/rbac3"),
+                URI.create("https://api.egon.internal/permission/tianquan-jianshen"),
                 Set.of(
                         "service:authorization:snapshot",
                         "service:authorization:decide"

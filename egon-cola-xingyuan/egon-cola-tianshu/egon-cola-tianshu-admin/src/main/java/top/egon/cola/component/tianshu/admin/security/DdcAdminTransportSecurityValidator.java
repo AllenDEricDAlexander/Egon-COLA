@@ -13,7 +13,7 @@ public final class DdcAdminTransportSecurityValidator
         implements ApplicationRunner {
 
     private static final String PREFIX =
-            "egon.cola.component.ddc.admin.transport-security";
+            "egon.cola.component.tianshu.admin.transport-security";
 
     private final Environment environment;
 

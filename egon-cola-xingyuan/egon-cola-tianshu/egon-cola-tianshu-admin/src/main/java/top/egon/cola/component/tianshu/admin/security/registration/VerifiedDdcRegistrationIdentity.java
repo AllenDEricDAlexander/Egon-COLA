@@ -7,15 +7,15 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * DDC 已验证的 PLATFORM SERVICE registration identity。
+ * Tianshu 已验证的 PLATFORM SERVICE registration identity。
  *
- * <p>Immutable service identity verified by DDC before a lease mutation.</p>
+ * <p>Immutable service identity verified by Tianshu before a lease mutation.</p>
  *
  * @param appId 稳定业务应用身份；stable business application identity
  * @param clientId Confidential Client 标识；confidential Client identifier
- * @param resourceServerId IdP Resource Server 稳定标识；stable IdP Resource Server identifier
+ * @param resourceServerId Tianquan-Shoubing Resource Server 稳定标识；stable Tianquan-Shoubing Resource Server identifier
  * @param resourceUri Resource Server 唯一 URI；unique Resource Server URI
- * @param resourceVersion IdP Resource 当前版本；current IdP Resource version
+ * @param resourceVersion Tianquan-Shoubing Resource 当前版本；current Tianquan-Shoubing Resource version
  * @param bizCode 业务域；business domain
  * @param appCode 应用编码；application code
  * @param environment 运行环境；runtime environment

@@ -67,8 +67,8 @@ class GatewayReleasePublicationCoordinatorTest {
     void persistsAllPhasesAndStopsBeforeActivationOnChunkFailure() {
         InMemoryPublicationStore journal = new InMemoryPublicationStore();
         RecordingClient client = new RecordingClient(journal);
-        client.statuses.put("gateway.rules.chunk.release-1.0", SUCCESS);
-        client.statuses.put("gateway.rules.chunk.release-1.1", FAILED);
+        client.statuses.put("yuheng.rules.chunk.release-1.0", SUCCESS);
+        client.statuses.put("yuheng.rules.chunk.release-1.1", FAILED);
         GatewayReleasePublicationCoordinator coordinator = coordinator(
                 journal,
                 client
@@ -84,16 +84,16 @@ class GatewayReleasePublicationCoordinatorTest {
 
         assertThat(outcome.status()).isEqualTo(FAILED);
         assertThat(client.publishedKeys).containsExactly(
-                "gateway.rules.chunk.release-1.0",
-                "gateway.rules.chunk.release-1.0",
-                "gateway.rules.chunk.release-1.1"
+                "yuheng.rules.chunk.release-1.0",
+                "yuheng.rules.chunk.release-1.0",
+                "yuheng.rules.chunk.release-1.1"
         );
         assertThat(client.upsertRequests).hasSize(2)
                 .allSatisfy(request -> {
                     assertThat(request.expectedVersion()).isZero();
                     assertThat(yaml().leafValue(
                             request.content(),
-                            "gateway.rules.chunk.release-1.0"
+                            "yuheng.rules.chunk.release-1.0"
                     )).contains("chunk-0");
                 });
         assertThat(client.upsertRequests).allSatisfy(request -> {
@@ -111,11 +111,11 @@ class GatewayReleasePublicationCoordinatorTest {
                 .containsExactly(1L, 1L, 2L);
         assertThat(yaml().leafValue(
                 client.publishRequests.get(2).content(),
-                "gateway.rules.chunk.release-1.0"
+                "yuheng.rules.chunk.release-1.0"
         )).contains("chunk-0");
         assertThat(yaml().leafValue(
                 client.publishRequests.get(2).content(),
-                "gateway.rules.chunk.release-1.1"
+                "yuheng.rules.chunk.release-1.1"
         )).contains("chunk-1");
         assertThat(journal.findAttempt("release-1", 1))
                 .hasSize(6)
@@ -167,7 +167,7 @@ class GatewayReleasePublicationCoordinatorTest {
     void restartReusesJournalIdentityVersionAndRetriesTheSameTask() {
         InMemoryPublicationStore journal = new InMemoryPublicationStore();
         RecordingClient client = new RecordingClient(journal);
-        client.statuses.put("gateway.rules.active", TIMEOUT);
+        client.statuses.put("yuheng.rules.active", TIMEOUT);
         CompiledGatewayRelease compiled = compiledInline();
 
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO first =
@@ -179,7 +179,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 );
         top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO persisted =
                 journal.findAttempt("release-inline", 1).getFirst();
-        client.statuses.put("gateway.rules.active", SUCCESS);
+        client.statuses.put("yuheng.rules.active", SUCCESS);
 
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO resumed =
                 coordinator(journal, client).execute(
@@ -228,7 +228,7 @@ class GatewayReleasePublicationCoordinatorTest {
                         "ge",
                         "application.yml",
                         "feature:\n  external: true\n"
-                                + "gateway:\n  rules:\n    active: old\n",
+                                + "yuheng:\n  rules:\n    active: old\n",
                         "YAML",
                         2L,
                         true,
@@ -414,7 +414,7 @@ class GatewayReleasePublicationCoordinatorTest {
         var properties = new GatewayAdminDdcProperties();
         properties.setMcpAppCode("ge");
         assertThatThrownBy(() -> properties.targets("test"))
-                .hasMessageContaining("distinct DDC scopes");
+                .hasMessageContaining("distinct Tianshu scopes");
     }
 
     @Test
@@ -448,7 +448,7 @@ class GatewayReleasePublicationCoordinatorTest {
 
         assertThat(outcome.successful()).isFalse();
         assertThat(outcome.status()).isEqualTo(GatewayPublicationStatusEnum.UNKNOWN);
-        assertThat(outcome.result().errorMessage()).isEqualTo("GATEWAY_RELEASE_ACK_MISSING");
+        assertThat(outcome.result().errorMessage()).isEqualTo("YUHENG_RELEASE_ACK_MISSING");
         assertThat(client.publishRequests).hasSize(1);
     }
 
@@ -476,7 +476,7 @@ class GatewayReleasePublicationCoordinatorTest {
         List<GatewayRuleChunkRef> chunks = new ArrayList<>();
         Map<String, String> chunkValues = new LinkedHashMap<>();
         for (int index = 0; index < chunkCount; index++) {
-            String configKey = "gateway.rules.chunk.release-1." + index;
+            String configKey = "yuheng.rules.chunk.release-1." + index;
             chunks.add(new GatewayRuleChunkRef(
                     configKey,
                     index,
@@ -912,7 +912,7 @@ class GatewayReleasePublicationCoordinatorTest {
                     NOW,
                     NOW,
                     Instant.parse("2099-01-01T00:00:00Z"),
-                    Map.of("gateway.engine.role", roles.getOrDefault(query.appCode(),
+                    Map.of("yuheng.engine.role", roles.getOrDefault(query.appCode(),
                             query.appCode().equals("ge") ? "API_RPC" : "MCP"))
             ));
         }

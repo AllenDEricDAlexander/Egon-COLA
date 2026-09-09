@@ -37,13 +37,13 @@ import java.util.Objects;
 @Validated
 @Component("gatewayProviderOpenApiClient")
 @ConditionalOnProperty(
-        name = "gateway.admin.openapi.enabled",
+        name = "yuheng.admin.openapi.enabled",
         havingValue = "true"
 )
 @RequiredArgsConstructor
 public class GatewayProviderOpenApiClient {
 
-    public static final String OPENAPI_READ_SCOPE = "gateway.openapi.read";
+    public static final String OPENAPI_READ_SCOPE = "yuheng.openapi.read";
 
     @Qualifier("gatewayOpenApiTokenSupplier")
     private final GatewayOpenApiTokenSupplier tokenSupplier;
@@ -69,7 +69,7 @@ public class GatewayProviderOpenApiClient {
     /**
      * Fetches and parses one manifest-selected Group document.
      *
-     * @param candidate trusted DDC-derived target
+     * @param candidate trusted Tianshu-derived target
      * @return bounded raw document with exact SHA and parsed JSON
      */
     public GatewayOpenApiDocumentDTO fetch(
@@ -99,14 +99,14 @@ public class GatewayProviderOpenApiClient {
             try (InputStream body = response.body()) {
                 if (status == 401 || status == 403) {
                     throw new GatewayOpenApiFetchException(
-                            "GATEWAY_OPENAPI_FETCH_FORBIDDEN",
+                            "YUHENG_OPENAPI_FETCH_FORBIDDEN",
                             false,
                             "provider denied OpenAPI read"
                     );
                 }
                 if (status < 200 || status >= 300) {
                     throw new GatewayOpenApiFetchException(
-                            "GATEWAY_OPENAPI_HTTP_STATUS",
+                            "YUHENG_OPENAPI_HTTP_STATUS",
                             status >= 500,
                             "provider returned an unacceptable HTTP status"
                     );
@@ -114,13 +114,13 @@ public class GatewayProviderOpenApiClient {
                 contentType = response.headers()
                         .firstValue("Content-Type")
                         .orElseThrow(() -> new GatewayOpenApiFetchException(
-                                "GATEWAY_OPENAPI_CONTENT_TYPE",
+                                "YUHENG_OPENAPI_CONTENT_TYPE",
                                 false,
                                 "provider response is not JSON"
                         ));
                 if (!jsonContentType(contentType)) {
                     throw new GatewayOpenApiFetchException(
-                            "GATEWAY_OPENAPI_CONTENT_TYPE",
+                            "YUHENG_OPENAPI_CONTENT_TYPE",
                             false,
                             "provider response is not JSON"
                     );
@@ -151,7 +151,7 @@ public class GatewayProviderOpenApiClient {
         } catch (java.net.http.HttpTimeoutException failure) {
             throw classified(
                     candidate,
-                    "GATEWAY_OPENAPI_FETCH_TIMEOUT",
+                    "YUHENG_OPENAPI_FETCH_TIMEOUT",
                     true,
                     "provider OpenAPI fetch timed out"
             );
@@ -159,21 +159,21 @@ public class GatewayProviderOpenApiClient {
             Thread.currentThread().interrupt();
             throw classified(
                     candidate,
-                    "GATEWAY_OPENAPI_FETCH_INTERRUPTED",
+                    "YUHENG_OPENAPI_FETCH_INTERRUPTED",
                     true,
                     "provider OpenAPI fetch was interrupted"
             );
         } catch (IOException failure) {
             throw classified(
                     candidate,
-                    "GATEWAY_OPENAPI_FETCH_IO",
+                    "YUHENG_OPENAPI_FETCH_IO",
                     true,
                     "provider OpenAPI fetch failed"
             );
         } catch (RuntimeException failure) {
             throw classified(
                     candidate,
-                    "GATEWAY_OPENAPI_FETCH_FAILED",
+                    "YUHENG_OPENAPI_FETCH_FAILED",
                     true,
                     "provider OpenAPI fetch failed"
             );
@@ -195,7 +195,7 @@ public class GatewayProviderOpenApiClient {
                 : null;
         if (scheme == null) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_TARGET_FORBIDDEN",
+                    "YUHENG_OPENAPI_TARGET_FORBIDDEN",
                     false,
                     "provider target must use HTTPS"
             );
@@ -215,7 +215,7 @@ public class GatewayProviderOpenApiClient {
             return target;
         } catch (IllegalArgumentException failure) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_TARGET_INVALID",
+                    "YUHENG_OPENAPI_TARGET_INVALID",
                     false,
                     "provider target URI is invalid"
             );
@@ -227,7 +227,7 @@ public class GatewayProviderOpenApiClient {
                 || maximumDocumentBytes
                 > GatewayOpenApiDocumentDTO.MAX_DOCUMENT_BYTES) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_LIMIT_CONFIGURATION",
+                    "YUHENG_OPENAPI_LIMIT_CONFIGURATION",
                     false,
                     "OpenAPI document limit configuration is invalid"
             );
@@ -245,7 +245,7 @@ public class GatewayProviderOpenApiClient {
             total += read;
             if (total > maximumDocumentBytes) {
                 throw new GatewayOpenApiFetchException(
-                        "GATEWAY_OPENAPI_DOCUMENT_TOO_LARGE",
+                        "YUHENG_OPENAPI_DOCUMENT_TOO_LARGE",
                         false,
                         "provider OpenAPI document exceeds the configured limit"
                 );
@@ -254,7 +254,7 @@ public class GatewayProviderOpenApiClient {
         }
         if (total == 0) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_DOCUMENT_EMPTY",
+                    "YUHENG_OPENAPI_DOCUMENT_EMPTY",
                     false,
                     "provider OpenAPI document is empty"
             );
@@ -267,7 +267,7 @@ public class GatewayProviderOpenApiClient {
             JsonNode document = objectMapper.readTree(raw);
             if (document == null || !document.isObject()) {
                 throw new GatewayOpenApiFetchException(
-                        "GATEWAY_OPENAPI_JSON_OBJECT",
+                        "YUHENG_OPENAPI_JSON_OBJECT",
                         false,
                         "provider OpenAPI response must be a JSON object"
                 );
@@ -275,7 +275,7 @@ public class GatewayProviderOpenApiClient {
             return document;
         } catch (IOException failure) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_INVALID_JSON",
+                    "YUHENG_OPENAPI_INVALID_JSON",
                     false,
                     "provider response is not valid JSON"
             );
@@ -291,7 +291,7 @@ public class GatewayProviderOpenApiClient {
         if (value == null || value.isBlank() || value.length() > 8192
                 || value.indexOf('\r') >= 0 || value.indexOf('\n') >= 0) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_OAUTH_FAILED",
+                    "YUHENG_OPENAPI_OAUTH_FAILED",
                     false,
                     "OpenAPI service token was unavailable"
             );

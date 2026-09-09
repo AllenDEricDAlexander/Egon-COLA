@@ -124,7 +124,7 @@ public final class McpTaskWorker implements SmartLifecycle {
             return;
         }
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "gateway-mcp-task-worker");
+            Thread thread = new Thread(runnable, "yuheng-mcp-task-worker");
             thread.setDaemon(true);
             return thread;
         });

@@ -28,7 +28,7 @@ class RuntimeQueryServiceTest {
         var expected = new RuntimeStatusVO(
                 new DdcConfigClientStatusVO(
                         "READY", "instance-config", "a1b2c3d4e5f6",
-                        NOW.plusSeconds(30), Map.of("rbac3.maximum-active-roots", 3L),
+                        NOW.plusSeconds(30), Map.of("tianquan-jianshen.maximum-active-roots", 3L),
                         null, null, null),
                 new DefinitionStatusVO(
                         "ACCEPTED_WITH_WARNINGS", "definition-7", List.of("deprecated field")),

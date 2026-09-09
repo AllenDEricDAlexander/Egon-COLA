@@ -38,7 +38,7 @@ import java.util.Set;
 import java.util.Objects;
 
 /**
- * Redis runtime publication keyed by tenant and IdP subject.
+ * Redis runtime publication keyed by tenant and Tianquan-Shoubing subject.
  */
 @Repository
 public class RedisAuthorizationRuntimeRepository implements
@@ -53,8 +53,8 @@ public class RedisAuthorizationRuntimeRepository implements
     private final Clock clock;
     private final InitialAuthorizationContextRepository authorizationContext;
     private final AuthorizationSnapshotCache authorizationCache;
-    private static final String PUBLISH_SCRIPT = script("redis/rbac3-publish-authorization.lua");
-    private static final String INVALIDATE_SCRIPT = script("redis/rbac3-invalidate-authorization.lua");
+    private static final String PUBLISH_SCRIPT = script("redis/tianquan-jianshen-publish-authorization.lua");
+    private static final String INVALIDATE_SCRIPT = script("redis/tianquan-jianshen-invalidate-authorization.lua");
 
     @Autowired
     public RedisAuthorizationRuntimeRepository(
@@ -122,7 +122,7 @@ public class RedisAuthorizationRuntimeRepository implements
                 json(snapshot), json(gatewayScope), Long.toString(command.authVersion()),
                 Long.toString(command.policyVersion()), json(user), Long.toString(ttl(user.expiresAt()).toMillis()));
         if (published == null || published < 0L) {
-            throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
+            throw new IllegalStateException("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         }
         affectedSystems.forEach(system -> authorizationCache.invalidateUser(
                 system, command.tenantId(), command.identitySub()));
@@ -169,14 +169,14 @@ public class RedisAuthorizationRuntimeRepository implements
                         keyFactory.user(tenantId, identitySub)),
                 Long.toString(authVersion), Long.toString(policyVersion));
         if (invalidated == null || invalidated < 0L) {
-            throw new IllegalStateException("RBAC3_RUNTIME_VERSION_CONFLICT");
+            throw new IllegalStateException("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         }
         affectedSystems.forEach(system -> authorizationCache.invalidateUser(system, tenantId, identitySub));
     }
 
     /** Includes removed application contexts and the pre-activation self context. */
     private Set<String> cachedSystems(String tenantId, String identitySub) {
-        Set<String> systems = new HashSet<>(Set.of("rbac3-admin"));
+        Set<String> systems = new HashSet<>(Set.of("tianquan-jianshen-admin"));
         String userJson = bucket(keyFactory.user(tenantId, identitySub)).get();
         if (userJson == null) {
             return systems;
@@ -263,7 +263,7 @@ public class RedisAuthorizationRuntimeRepository implements
             return new ClassPathResource(path)
                     .getContentAsString(StandardCharsets.UTF_8);
         } catch (IOException exception) {
-            throw new IllegalStateException("cannot load RBAC3 runtime publication script", exception);
+            throw new IllegalStateException("cannot load Tianquan-Jianshen runtime publication script", exception);
         }
     }
 
@@ -276,7 +276,7 @@ public class RedisAuthorizationRuntimeRepository implements
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("cannot encode RBAC3 runtime projection", exception);
+            throw new IllegalStateException("cannot encode Tianquan-Jianshen runtime projection", exception);
         }
     }
 
@@ -284,7 +284,7 @@ public class RedisAuthorizationRuntimeRepository implements
         try {
             return objectMapper.readValue(value, type);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("cannot decode RBAC3 runtime projection", exception);
+            throw new IllegalStateException("cannot decode Tianquan-Jianshen runtime projection", exception);
         }
     }
 

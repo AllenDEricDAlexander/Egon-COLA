@@ -27,7 +27,7 @@ class DdcAdminSecurityPropertiesTest {
 
         assertThat(properties.getSecurity().isLocalDev()).isFalse();
         assertThat(DdcAdminCapability.READ.authority())
-                .isEqualTo("CAP_DDC_READ");
+                .isEqualTo("CAP_TIANSHU_READ");
         assertThat(DdcAdminCapability.ALL.authority())
                 .isEqualTo("CAP_*");
     }
@@ -36,14 +36,14 @@ class DdcAdminSecurityPropertiesTest {
     void productionModeRequiresJwtIssuerAndAudience() {
         contextRunner
                 .withPropertyValues(
-                        "egon.cola.component.ddc.admin.security.local-dev=false",
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled=false"
+                        "egon.cola.component.tianshu.admin.security.local-dev=false",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled=false"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .hasRootCauseMessage(
-                                    "DDC Admin JWT issuer is required"
+                                    "Tianshu Admin JWT issuer is required"
                             );
                 });
     }
@@ -52,18 +52,18 @@ class DdcAdminSecurityPropertiesTest {
     void enabledHmacCredentialRequiresSecret() {
         contextRunner
                 .withPropertyValues(
-                        "egon.cola.component.ddc.admin.security.jwt.issuer=https://issuer.example",
-                        "egon.cola.component.ddc.admin.security.jwt.audience=ddc-admin",
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled=true",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=sdk-a",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].access-key=access-a",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].client-type=SDK"
+                        "egon.cola.component.tianshu.admin.security.jwt.issuer=https://issuer.example",
+                        "egon.cola.component.tianshu.admin.security.jwt.audience=tianshu-admin",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled=true",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].credential-id=sdk-a",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].access-key=access-a",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].client-type=SDK"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .hasRootCauseMessage(
-                                    "DDC RPC credential secret is required: sdk-a"
+                                    "Tianshu RPC credential secret is required: sdk-a"
                             );
                 });
     }
@@ -72,8 +72,8 @@ class DdcAdminSecurityPropertiesTest {
     void explicitLocalDevelopmentModeMayDisableAuthentication() {
         contextRunner
                 .withPropertyValues(
-                        "egon.cola.component.ddc.admin.security.local-dev=true",
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled=false"
+                        "egon.cola.component.tianshu.admin.security.local-dev=true",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled=false"
                 )
                 .run(context -> assertThat(context).hasNotFailed());
     }
@@ -82,15 +82,15 @@ class DdcAdminSecurityPropertiesTest {
     void registrationScopeMustRemainConfigured() {
         contextRunner
                 .withPropertyValues(
-                        "egon.cola.component.ddc.admin.security.local-dev=true",
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled=false",
-                        "egon.cola.component.ddc.admin.registration.required-scope="
+                        "egon.cola.component.tianshu.admin.security.local-dev=true",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled=false",
+                        "egon.cola.component.tianshu.admin.registration.required-scope="
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .hasRootCauseMessage(
-                                    "DDC registration scope is required"
+                                    "Tianshu registration scope is required"
                             );
                 });
     }
@@ -99,22 +99,22 @@ class DdcAdminSecurityPropertiesTest {
     void enabledRpcSignaturesRequireSharedNonceStore() {
         rpcContextRunner
                 .withPropertyValues(
-                        "egon.cola.component.ddc.admin.security.local-dev=true",
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled=true",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=sdk-a",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].access-key=access-a",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].secret=secret-a",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].client-type=SDK",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].app-code-patterns[0]=*",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].env-patterns[0]=*",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].biz-code-patterns[0]=*",
-                        "egon.cola.component.ddc.admin.rpc.credentials[0].allowed-operations[0]=*"
+                        "egon.cola.component.tianshu.admin.security.local-dev=true",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled=true",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].credential-id=sdk-a",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].access-key=access-a",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].secret=secret-a",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].client-type=SDK",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].app-code-patterns[0]=*",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].env-patterns[0]=*",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].biz-code-patterns[0]=*",
+                        "egon.cola.component.tianshu.admin.rpc.credentials[0].allowed-operations[0]=*"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure())
                             .hasRootCauseMessage(
-                                    "Redis DdcNonceStore is required when DDC RPC signatures are enabled"
+                                    "Redis DdcNonceStore is required when Tianshu RPC signatures are enabled"
                             );
                 });
     }

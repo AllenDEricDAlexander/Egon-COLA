@@ -23,7 +23,7 @@ public class DdcServiceLeaseRequest {
      */
     private String leaseId;
 
-    /** Opaque IdP SERVICE access token used for heartbeat validation. */
+    /** Opaque Tianquan-Shoubing SERVICE access token used for heartbeat validation. */
     private String registrationToken;
 
     /**

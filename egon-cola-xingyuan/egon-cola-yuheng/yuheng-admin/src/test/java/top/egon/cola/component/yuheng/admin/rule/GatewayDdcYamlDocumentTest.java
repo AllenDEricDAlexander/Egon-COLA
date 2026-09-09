@@ -18,7 +18,7 @@ class GatewayDdcYamlDocumentTest {
         String updated = document.putLeaf("""
                 feature:
                   checkout: true
-                gateway:
+                yuheng:
                   rules:
                     active: old
                 """, GatewayDdcYamlDocument.ACTIVE_CONFIG_KEY, "new");
@@ -29,7 +29,7 @@ class GatewayDdcYamlDocumentTest {
                 1L
         );
         assertThat(source.getProperty("feature.checkout")).isEqualTo(true);
-        assertThat(source.getProperty("gateway.rules.active"))
+        assertThat(source.getProperty("yuheng.rules.active"))
                 .isEqualTo("new");
     }
 
@@ -37,13 +37,13 @@ class GatewayDdcYamlDocumentTest {
     void supportsDottedSpringBootKeysAndRemovesOnlyTheRequestedChunk()
             throws Exception {
         String withChunk = document.putLeaf("""
-                gateway.rules:
+                yuheng.rules:
                   active: activation
-                """, "gateway.rules.chunk.release-1.0", "chunk-0");
+                """, "yuheng.rules.chunk.release-1.0", "chunk-0");
 
         top.egon.cola.component.yuheng.admin.rule.service.GatewayYamlRemoval removal = document.removeLeaf(
                 withChunk,
-                "gateway.rules.chunk.release-1.0"
+                "yuheng.rules.chunk.release-1.0"
         );
 
         assertThat(removal.removed()).isTrue();
@@ -53,17 +53,17 @@ class GatewayDdcYamlDocumentTest {
                 removal.content(),
                 2L
         );
-        assertThat(source.getProperty("gateway.rules.active"))
+        assertThat(source.getProperty("yuheng.rules.active"))
                 .isEqualTo("activation");
-        assertThat(source.getProperty("gateway.rules.chunk.release-1.0"))
+        assertThat(source.getProperty("yuheng.rules.chunk.release-1.0"))
                 .isNull();
     }
 
     @Test
     void readsFrozenLeafAndRejectsAmbiguousOrUnsupportedPaths() {
         String content = """
-                gateway.rules.active: direct
-                gateway:
+                yuheng.rules.active: direct
+                yuheng:
                   rules:
                     active: nested
                 """;

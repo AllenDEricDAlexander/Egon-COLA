@@ -13,7 +13,7 @@ import java.util.List;
  * Typed Provider-side OpenAPI publication configuration.
  */
 @Validated
-@ConfigurationProperties("egon.cola.component.gateway.openapi")
+@ConfigurationProperties("egon.cola.component.yuheng.openapi")
 public class GatewayOpenApiProperties {
 
     private boolean enabled;

@@ -34,13 +34,13 @@ public class DdcGlobalExceptionHandler {
             IllegalArgumentException.class
     })
     public ResultRecord<Void> handleInvalidRequest(Exception exception) {
-        log.debug("Invalid DDC request", exception);
+        log.debug("Invalid Tianshu request", exception);
         return ResultRecord.failure(DdcErrorStatus.INVALID_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
     public ResultRecord<Void> handleUnexpected(Exception exception) {
-        log.error("Unexpected DDC request failure", exception);
+        log.error("Unexpected Tianshu request failure", exception);
         return ResultRecord.failure(DdcErrorStatus.INTERNAL_FAILURE);
     }
 }

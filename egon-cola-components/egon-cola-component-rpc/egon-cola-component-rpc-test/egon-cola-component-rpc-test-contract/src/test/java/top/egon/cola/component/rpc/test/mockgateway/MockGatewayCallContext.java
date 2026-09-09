@@ -6,7 +6,7 @@ import io.grpc.Metadata;
 final class MockGatewayCallContext {
 
     static final Context.Key<Metadata> METADATA =
-            Context.key("mock-gateway-metadata");
+            Context.key("mock-yuheng-metadata");
 
     private MockGatewayCallContext() {
     }

@@ -48,7 +48,7 @@ class RedisDdcNonceStoreTest {
                 Duration.ofMinutes(5)
         )).isFalse();
         assertThat(key.get())
-                .startsWith("ddc:security:nonce:{")
+                .startsWith("tianshu:security:nonce:{")
                 .doesNotContain("sdk-access-key")
                 .doesNotContain("request-nonce");
     }

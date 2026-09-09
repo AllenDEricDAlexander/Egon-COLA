@@ -23,14 +23,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/bizs")
-@Tag(name = "ddc-admin-ddc-biz-controller", description = "DdcBizController 管理接口组")
+@RequestMapping("/api/v1/tianshu/bizs")
+@Tag(name = "tianshu-admin-tianshu-biz-controller", description = "DdcBizController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcBizController {
 
@@ -40,7 +40,7 @@ public class DdcBizController {
         this.bizService = bizService;
     }
 
-    @Operation(operationId = "ddc.ddcBizController.list")
+    @Operation(operationId = "tianshu.ddcBizController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcBizEntity>> list(
@@ -48,7 +48,7 @@ public class DdcBizController {
         return ResultRecord.success(bizService.list(keyword));
     }
 
-    @Operation(operationId = "ddc.ddcBizController.page")
+    @Operation(operationId = "tianshu.ddcBizController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcBizEntity> page(
@@ -57,21 +57,21 @@ public class DdcBizController {
         return DdcAdminPageSupport.result(bizService.page(keyword, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcBizController.detail")
+    @Operation(operationId = "tianshu.ddcBizController.detail")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{code}")
     public ResultRecord<DdcBizEntity> detail(@PathVariable("code") String code) {
         return ResultRecord.success(bizService.findByBizCode(code));
     }
 
-    @Operation(operationId = "ddc.ddcBizController.save")
+    @Operation(operationId = "tianshu.ddcBizController.save")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcBizEntity> save(@RequestBody DdcBizEntity request) {
         return ResultRecord.success(bizService.save(request));
     }
 
-    @Operation(operationId = "ddc.ddcBizController.update")
+    @Operation(operationId = "tianshu.ddcBizController.update")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{code}")
     public ResultRecord<DdcBizEntity> update(
@@ -80,7 +80,7 @@ public class DdcBizController {
         return ResultRecord.success(bizService.update(code, request));
     }
 
-    @Operation(operationId = "ddc.ddcBizController.delete")
+    @Operation(operationId = "tianshu.ddcBizController.delete")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{code}")
     public ResultRecord<Void> delete(@PathVariable("code") String code) {
@@ -88,7 +88,7 @@ public class DdcBizController {
         return ResultRecord.success(null);
     }
 
-    @Operation(operationId = "ddc.ddcBizController.setEnabled")
+    @Operation(operationId = "tianshu.ddcBizController.setEnabled")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{code}/enabled")
     public ResultRecord<DdcBizEntity> setEnabled(

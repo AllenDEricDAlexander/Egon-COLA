@@ -13,7 +13,7 @@ public class EchoRpcProvider implements EchoRpc {
     private final String providerId;
 
     public EchoRpcProvider(
-            @Value("${gateway.test.provider-id:rpc-provider-default}")
+            @Value("${yuheng.test.provider-id:rpc-provider-default}")
             String providerId) {
         this.providerId = providerId;
     }

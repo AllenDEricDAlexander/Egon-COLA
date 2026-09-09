@@ -18,12 +18,12 @@ class AesGcmGatewaySecretProtectorTest {
                 new AesGcmGatewaySecretProtector(key, "v1");
 
         top.egon.cola.component.yuheng.admin.credential.domain.vo.GatewayProtectedSecretVO encrypted =
-                protector.protect("gateway-secret", "app:key");
+                protector.protect("yuheng-secret", "app:key");
 
         assertThat(encrypted.ciphertext())
-                .doesNotContain("gateway-secret");
+                .doesNotContain("yuheng-secret");
         assertThat(protector.unprotect(encrypted, "app:key"))
-                .isEqualTo("gateway-secret");
+                .isEqualTo("yuheng-secret");
         assertThatThrownBy(() -> protector.unprotect(
                 encrypted,
                 "other:key"

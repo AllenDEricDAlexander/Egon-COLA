@@ -58,7 +58,7 @@ class IdentityProfileControllerIT {
     @Test
     void bindsEveryAuditFilterWithoutDroppingItAtTheController() throws Exception {
         when(audits.list(any())).thenReturn(new IdentityAuditPageVO(List.of(), 0, 20, 0, 0));
-        mockMvc.perform(get("/api/v1/identity/audits").with(identityJwt())
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/audits").with(identityJwt())
                         .param("page", "0").param("size", "20")
                         .param("actorSub", "alice-sub")
                         .param("eventType", "IDENTITY_LOGIN_SUCCEEDED")
@@ -76,16 +76,16 @@ class IdentityProfileControllerIT {
                 .hasFieldOrPropertyWithValue("traceId", "trace-1")
                 .hasFieldOrPropertyWithValue("from", Instant.parse("2026-09-06T07:00:00Z"))
                 .hasFieldOrPropertyWithValue("to", Instant.parse("2026-09-06T08:00:00Z"));
-        verify(authorization).require(any(IdentityPrincipal.class), eq("idp:audit:read"));
+        verify(authorization).require(any(IdentityPrincipal.class), eq("tianquan-shoubing:audit:read"));
     }
 
     @Test
     void rejectsInvalidAuditIntervalsInsteadOfIgnoringThem() throws Exception {
-        mockMvc.perform(get("/api/v1/identity/audits").with(identityJwt())
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/audits").with(identityJwt())
                         .param("from", "2026-09-06T08:00:00Z")
                         .param("to", "2026-09-06T07:00:00Z"))
                 .andExpect(status().isBadRequest());
-        mockMvc.perform(get("/api/v1/identity/audits").with(identityJwt())
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/audits").with(identityJwt())
                         .param("from", "2026-09-06T15:00"))
                 .andExpect(status().isBadRequest());
     }
@@ -109,7 +109,7 @@ class IdentityProfileControllerIT {
                 1
         ));
 
-        mockMvc.perform(get("/api/v1/identity/audits")
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/audits")
                         .param("page", "0")
                         .param("size", "20")
                         .with(identityJwt()))
@@ -122,28 +122,28 @@ class IdentityProfileControllerIT {
 
         verify(authorization).require(
                 any(IdentityPrincipal.class),
-                eq("idp:audit:read")
+                eq("tianquan-shoubing:audit:read")
         );
     }
 
     @Test
     void returnsAuthenticatedIdentityFromMeAndUserinfo() throws Exception {
-        mockMvc.perform(get("/api/v1/identity/me").with(identityJwt()))
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/me").with(identityJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.subject").value("admin-sub"))
                 .andExpect(jsonPath("$.tenantId").value("tenant-a"))
                 .andExpect(jsonPath("$.tokenId").value("token-a"))
-                .andExpect(jsonPath("$.audience[0]").value("idp-admin"));
+                .andExpect(jsonPath("$.audience[0]").value("tianquan-shoubing-admin"));
         verify(authorization).require(
                 any(IdentityPrincipal.class),
-                eq("idp:identity:self:read")
+                eq("tianquan-shoubing:identity:self:read")
         );
 
         mockMvc.perform(get("/oauth2/userinfo").with(identityJwt()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sub").value("admin-sub"))
                 .andExpect(jsonPath("$.tid").value("tenant-a"))
-                .andExpect(jsonPath("$.aud[0]").value("idp-admin"));
+                .andExpect(jsonPath("$.aud[0]").value("tianquan-shoubing-admin"));
     }
 
     @Test
@@ -151,7 +151,7 @@ class IdentityProfileControllerIT {
         when(audits.list(any())).thenThrow(
                 new IllegalArgumentException("invalid audit page request")
         );
-        mockMvc.perform(get("/api/v1/identity/audits")
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/audits")
                         .param("page", "-1")
                         .with(identityJwt()))
                 .andExpect(status().isBadRequest())
@@ -166,7 +166,7 @@ class IdentityProfileControllerIT {
                         "admin-sub",
                         "tenant-a",
                         "token-a",
-                        Set.of("idp-admin"),
+                        Set.of("tianquan-shoubing-admin"),
                         Instant.parse("2026-08-02T00:00:00Z"),
                         Instant.parse("2026-08-02T00:15:00Z"),
                         AuthenticationContext.password()

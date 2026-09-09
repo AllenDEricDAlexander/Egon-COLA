@@ -36,7 +36,7 @@ class DdcRpcStatusExceptionMapperTest {
         StatusRuntimeException managementStatus = mapper.toStatus(
                 new DdcManagementClientException(
                         56004,
-                        "DDC_CONFIG_NOT_FOUND",
+                        "TIANSHU_CONFIG_NOT_FOUND",
                         "config not found"
                 ));
 
@@ -65,7 +65,7 @@ class DdcRpcStatusExceptionMapperTest {
     void malformedTypedDetailFallsBackToSanitizedTransportFailure() {
         Metadata trailers = new Metadata();
         Metadata.Key<byte[]> raw = Metadata.Key.of(
-                "x-egon-ddc-error-bin",
+                "x-egon-tianshu-error-bin",
                 Metadata.BINARY_BYTE_MARSHALLER
         );
         trailers.put(raw, new byte[]{1, 2, 3});
@@ -85,13 +85,13 @@ class DdcRpcStatusExceptionMapperTest {
         trailers.put(
                 DdcRpcStatusExceptionMapper.ERROR_DETAIL,
                 DdcRpcErrorDetail.newBuilder()
-                        .setCode("DDC_INVALID_REQUEST")
+                        .setCode("TIANSHU_INVALID_REQUEST")
                         .setMessage("invalid")
                         .build()
         );
 
         assertThat(trailers.get(DdcRpcStatusExceptionMapper.ERROR_DETAIL)
-                .getCode()).isEqualTo("DDC_INVALID_REQUEST");
+                .getCode()).isEqualTo("TIANSHU_INVALID_REQUEST");
     }
 
     private void assertTransport(Status status, boolean retryable) {

@@ -5,7 +5,7 @@ import java.net.URI;
 /**
  * Narrow token boundary for Provider OpenAPI reads.
  *
- * <p>The implementation delegates to the existing IdP SERVICE-token client;
+ * <p>The implementation delegates to the existing Tianquan-Shoubing SERVICE-token client;
  * this port keeps OAuth credentials and registration details out of the
  * network client.</p>
  */

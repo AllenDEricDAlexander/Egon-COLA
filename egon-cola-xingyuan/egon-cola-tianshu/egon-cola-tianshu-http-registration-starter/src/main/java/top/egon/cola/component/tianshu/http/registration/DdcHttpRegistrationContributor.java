@@ -4,9 +4,9 @@ import java.util.Map;
 
 /**
  * Contributes product-specific identity and metadata to an HTTP service
- * registration without coupling DDC to that product.
+ * registration without coupling Tianshu to that product.
  *
- * <p>中文：向 HTTP 服务注册贡献产品特有的版本和元数据，同时避免 DDC
+ * <p>中文：向 HTTP 服务注册贡献产品特有的版本和元数据，同时避免 Tianshu
  * 反向依赖具体产品。
  */
 public interface DdcHttpRegistrationContributor {
@@ -22,7 +22,7 @@ public interface DdcHttpRegistrationContributor {
     }
 
     /**
-     * Returns immutable metadata to merge into the DDC registration.
+     * Returns immutable metadata to merge into the Tianshu registration.
      *
      * @return registration metadata
      */

@@ -101,7 +101,7 @@ class IdpDevelopmentTenantBootstrapTest {
                 .containsExactly("local");
         ConditionalOnProperty condition = IdpDevelopmentTenantBootstrap.class
                 .getAnnotation(ConditionalOnProperty.class);
-        assertThat(condition.prefix()).isEqualTo("egon.idp.development-bootstrap");
+        assertThat(condition.prefix()).isEqualTo("egon.tianquan-shoubing.development-bootstrap");
         assertThat(condition.havingValue()).isEqualTo("true");
         assertThat(condition.matchIfMissing()).isFalse();
     }

@@ -21,7 +21,7 @@ import java.util.Set;
 @Service("gatewayEngineRoleConsistencyStrategy")
 public class GatewayEngineRoleConsistencyStrategy {
 
-    public static final String ROLE_METADATA_KEY = "gateway.engine.role";
+    public static final String ROLE_METADATA_KEY = "yuheng.engine.role";
 
     public Optional<GatewayEngineRoleEnum> roleOf(DdcManagementConfigClientInstance node) {
         return node == null ? Optional.empty()

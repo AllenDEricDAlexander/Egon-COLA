@@ -26,7 +26,7 @@ import java.time.Instant;
  * @param errorCode 参数 errorCode；parameter error code。
  * @param errorMessage 参数 error消息；parameter error message。
  * @param createdAt 参数 createdAt；parameter created at。
- * @param targetScope 发布时冻结的角色与 DDC scope；role and DDC scope frozen at publication time。
+ * @param targetScope 发布时冻结的角色与 Tianshu scope；role and Tianshu scope frozen at publication time。
  * @param updatedAt 参数 updatedAt；parameter updated at。
  */
 public record GatewayReleasePublicationPO(

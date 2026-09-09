@@ -6,7 +6,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.authorization.Authorizat
 import java.util.Objects;
 
 /**
- * Authenticated RBAC3 request token whose principal is the unified UserDetails projection.
+ * Authenticated Tianquan-Jianshen request token whose principal is the unified UserDetails projection.
  */
 public final class Rbac3AuthenticationToken extends AbstractAuthenticationToken
         implements Rbac3ContextAuthentication {

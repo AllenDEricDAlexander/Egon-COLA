@@ -30,7 +30,7 @@ public final class DdcAdminAuthenticationEntryPoint
         write(
                 response,
                 HttpServletResponse.SC_UNAUTHORIZED,
-                "DDC_ADMIN_AUTHENTICATION_REQUIRED"
+                "TIANSHU_ADMIN_AUTHENTICATION_REQUIRED"
         );
     }
 
@@ -42,7 +42,7 @@ public final class DdcAdminAuthenticationEntryPoint
         write(
                 response,
                 HttpServletResponse.SC_FORBIDDEN,
-                "DDC_ADMIN_CAPABILITY_REQUIRED"
+                "TIANSHU_ADMIN_CAPABILITY_REQUIRED"
         );
     }
 

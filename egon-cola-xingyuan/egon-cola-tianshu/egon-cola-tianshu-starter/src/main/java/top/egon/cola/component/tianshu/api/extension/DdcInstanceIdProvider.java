@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.api.extension;
 
 /**
- * 在应用需要绕过标准 DDC 配置控制实例身份时，提供稳定的运行时实例标识。
- * Supplies a stable runtime instance identifier when applications need to control identity outside standard DDC configuration.
+ * 在应用需要绕过标准 Tianshu 配置控制实例身份时，提供稳定的运行时实例标识。
+ * Supplies a stable runtime instance identifier when applications need to control identity outside standard Tianshu configuration.
  */
 @FunctionalInterface
 public interface DdcInstanceIdProvider {

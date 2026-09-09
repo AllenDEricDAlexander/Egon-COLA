@@ -22,17 +22,17 @@ import java.util.Set;
 import java.util.function.Supplier;
 
 /**
- * 在 IdP 内部授权并签发 OAuth Client Credentials SERVICE Token。
+ * 在 Tianquan-Shoubing 内部授权并签发 OAuth Client Credentials SERVICE Token。
  *
- * <p>Authorizes and issues OAuth Client Credentials SERVICE tokens entirely inside IdP.</p>
+ * <p>Authorizes and issues OAuth Client Credentials SERVICE tokens entirely inside Tianquan-Shoubing.</p>
  *
  * <p>服务复用 Specification 风格的 {@link ClientCredentialsAccessPolicy} 校验目标 Resource、
  * 精确租户和 Scope 子集，并从 Source Client 绑定的 Resource 推导来源三元组；全程不查询
- * RBAC3。</p>
+ * Tianquan-Jianshen。</p>
  *
  * <p>The service reuses the Specification-style {@link ClientCredentialsAccessPolicy} to validate
  * the target Resource, exact tenant, and scope subset, and derives the source triple from the
- * Resource bound to the Source Client. RBAC3 is never queried.</p>
+ * Resource bound to the Source Client. Tianquan-Jianshen is never queried.</p>
  */
 public final class ClientCredentialsTokenService {
 
@@ -42,7 +42,7 @@ public final class ClientCredentialsTokenService {
     /** Resource Server 查询端口；Resource Server lookup port. */
     private final ResourceServerStore resources;
 
-    /** IdP Service Grant 授权策略；IdP Service Grant authorization policy. */
+    /** Tianquan-Shoubing Service Grant 授权策略；Tianquan-Shoubing Service Grant authorization policy. */
     private final ClientCredentialsAccessPolicy accessPolicy;
 
     /** Token 签名端口；token signing port. */
@@ -61,7 +61,7 @@ public final class ClientCredentialsTokenService {
      *
      * @param clients OAuth Client 查询端口；OAuth Client lookup port
      * @param resources Resource Server 查询端口；Resource Server lookup port
-     * @param accessPolicy IdP Service Grant 授权策略；IdP Service Grant authorization policy
+     * @param accessPolicy Tianquan-Shoubing Service Grant 授权策略；Tianquan-Shoubing Service Grant authorization policy
      * @param signer Token 签名端口；token signing port
      * @param clock UTC 业务时钟；UTC business clock
      * @param tokenIds JWT ID 生成器；JWT ID supplier
@@ -127,12 +127,12 @@ public final class ClientCredentialsTokenService {
                     requestedScopes
             );
         } catch (ResourceAuthorizationException exception) {
-            if ("IDP_CLIENT_CREDENTIALS_UNAUTHORIZED".equals(
+            if ("TIANQUAN_SHOUBING_CLIENT_CREDENTIALS_UNAUTHORIZED".equals(
                     exception.code()
-            ) || "IDP_CLIENT_DISABLED".equals(exception.code())) {
+            ) || "TIANQUAN_SHOUBING_CLIENT_DISABLED".equals(exception.code())) {
                 throw oauth("unauthorized_client");
             }
-            if ("IDP_SERVICE_SCOPE_INVALID".equals(exception.code())) {
+            if ("TIANQUAN_SHOUBING_SERVICE_SCOPE_INVALID".equals(exception.code())) {
                 throw oauth("invalid_scope");
             }
             throw oauth("invalid_target");

@@ -44,15 +44,15 @@ public class DdcHttpRegistrationAutoConfiguration {
      * 创建在 Web Server Ready 后执行 SERVICE Token 注册的运行时。
      * / Creates the runtime that performs SERVICE-token registration after the web server is ready.
      *
-     * @param registry DDC 服务注册客户端 / DDC service-registry client
+     * @param registry Tianshu 服务注册客户端 / Tianshu service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
      * @param contributors HTTP 注册信息贡献器 / HTTP registration contributors
      * @param properties HTTP 注册配置 / HTTP registration configuration
-     * @param ddcProperties DDC 物理作用域配置 / DDC physical-scope configuration
-     * @param ddcIdentity 可选 DDC 实例身份 / optional DDC instance identity
+     * @param ddcProperties Tianshu 物理作用域配置 / Tianshu physical-scope configuration
+     * @param ddcIdentity 可选 Tianshu 实例身份 / optional Tianshu instance identity
      * @param environment Spring 环境 / Spring environment
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      * @return HTTP 注册运行时 / HTTP registration runtime
      */
     @Bean(destroyMethod = "close")

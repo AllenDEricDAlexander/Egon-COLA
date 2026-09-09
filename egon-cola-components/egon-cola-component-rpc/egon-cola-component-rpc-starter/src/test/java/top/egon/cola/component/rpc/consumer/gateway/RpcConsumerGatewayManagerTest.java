@@ -30,7 +30,7 @@ class RpcConsumerGatewayManagerTest {
         StubChannelFactory channels = new StubChannelFactory();
         RpcConsumerGatewayManager manager = manager(directory, channels);
         directory.snapshot = snapshot(endpoint(
-                "gateway-1",
+                "yuheng-1",
                 "lease-1",
                 19090
         ));
@@ -38,22 +38,22 @@ class RpcConsumerGatewayManagerTest {
         manager.start();
 
         assertThat(manager.state()).isEqualTo(RpcGatewayState.READY);
-        assertThat(manager.endpoint().instanceId()).isEqualTo("gateway-1");
+        assertThat(manager.endpoint().instanceId()).isEqualTo("yuheng-1");
         assertThat(channels.createCount).isOne();
-        assertThat(directory.query.bizCode()).isEqualTo("platform-biz");
-        assertThat(directory.query.appCode()).isEqualTo("gateway-app");
+        assertThat(directory.query.bizCode()).isEqualTo("xingyuan-biz");
+        assertThat(directory.query.appCode()).isEqualTo("yuheng-app");
         assertThat(directory.query.env()).isEqualTo("test");
         assertThat(directory.query.serviceName())
-                .isEqualTo("egon-gateway-rpc");
+                .isEqualTo("egon-yuheng-rpc");
 
         directory.publish(snapshot(
-                endpoint("gateway-1", "lease-1", 19090),
-                endpoint("gateway-2", "lease-2", 19091)
+                endpoint("yuheng-1", "lease-1", 19090),
+                endpoint("yuheng-2", "lease-2", 19091)
         ));
 
         assertThat(manager.endpoints())
                 .extracting(RpcGatewayEndpoint::instanceId)
-                .containsExactly("gateway-1", "gateway-2");
+                .containsExactly("yuheng-1", "yuheng-2");
         ManagedChannel first = manager.currentChannel();
         ManagedChannel second = manager.currentChannel();
         assertThat(first).isNotSameAs(second);
@@ -77,7 +77,7 @@ class RpcConsumerGatewayManagerTest {
         assertThatThrownBy(manager::start)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo(
-                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                                EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
                         )
                 );
     }
@@ -86,8 +86,8 @@ class RpcConsumerGatewayManagerTest {
     void startsWithMultipleGateways() {
         SnapshotDirectory directory = new SnapshotDirectory();
         directory.snapshot = snapshot(
-                endpoint("gateway-1", "lease-1", 19090),
-                endpoint("gateway-2", "lease-2", 19091)
+                endpoint("yuheng-1", "lease-1", 19090),
+                endpoint("yuheng-2", "lease-2", 19091)
         );
         RpcConsumerGatewayManager manager = manager(
                 directory,
@@ -106,7 +106,7 @@ class RpcConsumerGatewayManagerTest {
     void rejectsGatewayWithoutCurrentLease(Instant leaseExpireAt) {
         SnapshotDirectory directory = new SnapshotDirectory();
         directory.snapshot = snapshot(endpoint(
-                "gateway-1",
+                "yuheng-1",
                 "lease-1",
                 19090,
                 leaseExpireAt
@@ -119,7 +119,7 @@ class RpcConsumerGatewayManagerTest {
         assertThatThrownBy(manager::start)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
                         assertThat(exception.getCode()).isEqualTo(
-                                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                                EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
                         )
                 );
     }
@@ -130,7 +130,7 @@ class RpcConsumerGatewayManagerTest {
         StubChannelFactory channels = new StubChannelFactory();
         RpcConsumerGatewayManager manager = manager(directory, channels);
         directory.snapshot = snapshot(endpoint(
-                "gateway-1",
+                "yuheng-1",
                 "lease-1",
                 19090
         ));
@@ -138,7 +138,7 @@ class RpcConsumerGatewayManagerTest {
         manager.start();
         ManagedChannel first = channels.lastChannel;
         directory.publish(snapshot(endpoint(
-                "gateway-2",
+                "yuheng-2",
                 "lease-2",
                 19091
         )));
@@ -150,7 +150,7 @@ class RpcConsumerGatewayManagerTest {
         verify(second).shutdownNow();
 
         directory.snapshot = snapshot(endpoint(
-                "gateway-3",
+                "yuheng-3",
                 "lease-3",
                 19092
         ));
@@ -181,7 +181,7 @@ class RpcConsumerGatewayManagerTest {
         RpcConsumerGatewayManager manager = managerWithoutDemand(
                 directory, new StubChannelFactory());
         RpcConsumerGatewayManager.Demand demand = manager.retainDemand();
-        directory.snapshot = snapshot(endpoint("gateway-1", "lease-1", 19090));
+        directory.snapshot = snapshot(endpoint("yuheng-1", "lease-1", 19090));
 
         manager.start();
         assertThat(manager.snapshot()).isNotNull();
@@ -208,8 +208,8 @@ class RpcConsumerGatewayManagerTest {
         EgonRpcProperties properties = new EgonRpcProperties();
         properties.getConsumer().setGatewayDiscoveryTimeoutMs(30);
         properties.getConsumer().setChannelDrainTimeoutMs(60000);
-        properties.getConsumer().setGatewayBizCode("platform-biz");
-        properties.getConsumer().setGatewayAppCode("gateway-app");
+        properties.getConsumer().setGatewayBizCode("xingyuan-biz");
+        properties.getConsumer().setGatewayAppCode("yuheng-app");
         return new RpcConsumerGatewayManager(
                 directory,
                 channels,

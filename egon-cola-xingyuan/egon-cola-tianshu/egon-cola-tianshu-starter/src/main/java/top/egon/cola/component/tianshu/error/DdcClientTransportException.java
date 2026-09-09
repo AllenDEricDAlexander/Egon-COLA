@@ -3,8 +3,8 @@ package top.egon.cola.component.tianshu.error;
 import java.io.Serial;
 
 /**
- * DDC 客户端与远端之间发生的传输中立故障。
- * / Transport-neutral failure between a DDC client and its remote endpoint.
+ * Tianshu 客户端与远端之间发生的传输中立故障。
+ * / Transport-neutral failure between a Tianshu client and its remote endpoint.
  */
 public final class DdcClientTransportException extends RuntimeException {
 

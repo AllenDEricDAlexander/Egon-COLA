@@ -14,7 +14,7 @@
     <artifactId>egon-cola-yuheng</artifactId>
     <packaging>pom</packaging>
     <name>egon-cola-yuheng</name>
-    <description>Self-built HTTP and RPC gateway platform for Egon COLA.</description>
+    <description>Self-built HTTP and RPC Yuheng platform for Egon COLA.</description>
 
     <modules>
         <module>yuheng-contract</module>

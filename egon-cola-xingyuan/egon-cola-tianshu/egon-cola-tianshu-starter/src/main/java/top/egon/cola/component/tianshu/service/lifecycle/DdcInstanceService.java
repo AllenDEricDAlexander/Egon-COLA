@@ -24,18 +24,18 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 负责 DDC 配置客户端实例的注册、心跳、下线和元数据组装。
- * Handles registration, heartbeat, offline operations, and metadata assembly for a DDC configuration-client instance.
+ * 负责 Tianshu 配置客户端实例的注册、心跳、下线和元数据组装。
+ * Handles registration, heartbeat, offline operations, and metadata assembly for a Tianshu configuration-client instance.
  */
 public class DdcInstanceService {
 
     /**
-     * DDC 客户端配置。 DDC client configuration.
+     * Tianshu 客户端配置。 Tianshu client configuration.
      */
     private final DdcProperties properties;
 
     /**
-     * 与 DDC 管理端通信的客户端。 Client communicating with the DDC administration endpoint.
+     * 与 Tianshu 管理端通信的客户端。 Client communicating with the Tianshu administration endpoint.
      */
     private final DdcConfigClient adminClient;
 
@@ -54,23 +54,23 @@ public class DdcInstanceService {
      */
     private final List<DdcInstanceMetadataContributor> metadataContributors;
 
-    /** IdP OAuth2 Client facade for configuration-client SERVICE tokens. */
+    /** Tianquan-Shoubing OAuth2 Client facade for configuration-client SERVICE tokens. */
     private final IdpServiceOAuth2Client serviceClient;
 
-    /** IdP client registration and resource settings. */
+    /** Tianquan-Shoubing client registration and resource settings. */
     private final IdpStarterProperties idpProperties;
 
     /**
      * 创建支持自定义实例元数据的实例服务。
      * Creates an instance service supporting custom instance metadata.
      *
-     * @param properties           DDC 客户端配置; DDC client configuration
-     * @param adminClient          DDC 管理端客户端; DDC administration client
+     * @param properties           Tianshu 客户端配置; Tianshu client configuration
+     * @param adminClient          Tianshu 管理端客户端; Tianshu administration client
      * @param identity             实例身份; instance identity
      * @param sessionHolder        租约会话持有器; lease session holder
      * @param metadataContributors 元数据贡献器; metadata contributors
-     * @param serviceClient        IdP OAuth2 Client facade; IdP OAuth2 Client facade
-     * @param idpProperties        IdP client settings; IdP client settings
+     * @param serviceClient        Tianquan-Shoubing OAuth2 Client facade; Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties        Tianquan-Shoubing client settings; Tianquan-Shoubing client settings
      */
     public DdcInstanceService(
             DdcProperties properties,
@@ -173,14 +173,14 @@ public class DdcInstanceService {
         }
         resource = java.util.Objects.requireNonNull(
                 resource,
-                "egon.cola.component.ddc.registration-resource-uri");
+                "egon.cola.component.tianshu.registration-resource-uri");
         return serviceClient.authorize(new IdpServiceTokenRequest(
                 client.getRegistrationId(),
                 client.getAppId(),
                 resource,
                 ServiceTokenContext.PLATFORM,
                 null,
-                java.util.Set.of("ddc:registration:write")
+                java.util.Set.of("tianshu:registration:write")
         )).getTokenValue();
     }
 
@@ -240,7 +240,7 @@ public class DdcInstanceService {
         });
         if (result.size() > 32) {
             throw new DdcException(
-                    "DDC instance metadata must contain at most 32 entries"
+                    "Tianshu instance metadata must contain at most 32 entries"
             );
         }
         return Map.copyOf(result);
@@ -256,7 +256,7 @@ public class DdcInstanceService {
      */
     private String validatedKey(String key) {
         if (key == null || key.isBlank() || key.length() > 64) {
-            throw new DdcException("Invalid DDC instance metadata key");
+            throw new DdcException("Invalid Tianshu instance metadata key");
         }
         String lower = key.toLowerCase(Locale.ROOT);
         if (lower.contains("password")
@@ -266,7 +266,7 @@ public class DdcInstanceService {
                 || lower.contains("private-key")
                 || lower.contains("certificate")) {
             throw new DdcException(
-                    "DDC instance metadata key may expose sensitive data"
+                    "Tianshu instance metadata key may expose sensitive data"
             );
         }
         return key;
@@ -285,7 +285,7 @@ public class DdcInstanceService {
         String normalized = value == null ? "" : value;
         if (normalized.length() > 512) {
             throw new DdcException(
-                    "DDC instance metadata value is too long: " + key
+                    "Tianshu instance metadata value is too long: " + key
             );
         }
         return normalized;
@@ -304,7 +304,7 @@ public class DdcInstanceService {
                 || session.leaseId() == null
                 || session.leaseId().isBlank()
                 || session.role() != DdcLeaseRole.CONFIG_CLIENT) {
-            throw new DdcException("Admin returned an invalid DDC lease");
+            throw new DdcException("Admin returned an invalid Tianshu lease");
         }
     }
 }

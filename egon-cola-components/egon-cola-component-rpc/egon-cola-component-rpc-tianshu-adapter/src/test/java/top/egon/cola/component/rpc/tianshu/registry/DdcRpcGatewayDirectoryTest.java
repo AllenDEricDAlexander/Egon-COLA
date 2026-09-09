@@ -30,7 +30,7 @@ class DdcRpcGatewayDirectoryTest {
         when(client.subscribe(key.capture(), listener.capture()))
                 .thenReturn(() -> { });
         DdcRpcGatewayDirectory directory = new DdcRpcGatewayDirectory(
-                client, "biz", "gateway-app");
+                client, "biz", "yuheng-app");
         AtomicReference<RpcGatewaySnapshot> observed = new AtomicReference<>();
 
         RpcGatewaySubscription subscription = directory.subscribe(
@@ -41,11 +41,11 @@ class DdcRpcGatewayDirectoryTest {
         listener.getValue().accept(new DdcServiceSnapshot(
                 key.getValue(), 12,
                 List.of(new DdcServiceInstance(
-                        "gateway-1", "lease-1", key.getValue(),
+                        "yuheng-1", "lease-1", key.getValue(),
                         "127.0.0.1", 19091, false,
-                        Map.of("gateway.weight", "80"), 30, 10,
+                        Map.of("yuheng.weight", "80"), 30, 10,
                         now.minusSeconds(10), now, now.plusSeconds(30),
-                        "ONLINE", 12, "resource-gateway", 1L,
+                        "ONLINE", 12, "resource-yuheng", 1L,
                         "kid-test", now.plusSeconds(20))), now));
 
         assertThat(key.getValue().serviceKind())
@@ -65,19 +65,19 @@ class DdcRpcGatewayDirectoryTest {
                 ArgumentCaptor.forClass(Consumer.class);
         when(client.subscribe(any(), listener.capture())).thenReturn(() -> { });
         DdcRpcGatewayDirectory directory = new DdcRpcGatewayDirectory(
-                client, "biz", "gateway-app");
+                client, "biz", "yuheng-app");
         AtomicReference<RpcGatewaySnapshot> observed = new AtomicReference<>();
         directory.subscribe(new RpcGatewayQuery(
                 "test", null, null, "GatewayService", "default", "1.0.0"),
                 observed::set);
         Instant now = Instant.parse("2026-08-09T00:00:00Z");
         DdcServiceKey key = new DdcServiceKey(
-                "biz", "test", "gateway-app", DdcServiceKind.INTERNAL_GATEWAY,
+                "biz", "test", "yuheng-app", DdcServiceKind.INTERNAL_GATEWAY,
                 "GatewayService", "default", "1.0.0", "grpc");
         listener.getValue().accept(new DdcServiceSnapshot(
                 key, 13,
-                List.of(instance(key, "gateway-default", Map.of()),
-                        instance(key, "gateway-invalid", Map.of("gateway.weight", "bad"))),
+                List.of(instance(key, "yuheng-default", Map.of()),
+                        instance(key, "yuheng-invalid", Map.of("yuheng.weight", "bad"))),
                 now));
 
         assertThat(observed.get().endpoints())
@@ -93,7 +93,7 @@ class DdcRpcGatewayDirectoryTest {
         return new DdcServiceInstance(
                 instanceId, "lease-" + instanceId, key, "127.0.0.1", 19091,
                 false, metadata, 30, 10, now.minusSeconds(10), now,
-                now.plusSeconds(30), "ONLINE", 13, "resource-gateway", 1L,
+                now.plusSeconds(30), "ONLINE", 13, "resource-yuheng", 1L,
                 "kid-test", now.plusSeconds(20));
     }
 }

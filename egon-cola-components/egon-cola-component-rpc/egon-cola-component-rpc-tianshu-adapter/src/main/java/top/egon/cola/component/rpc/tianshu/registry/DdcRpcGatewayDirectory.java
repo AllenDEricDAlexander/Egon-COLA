@@ -12,7 +12,7 @@ import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySubscription;
 
 import java.util.function.Consumer;
 
-/** DDC 内部 Gateway 发现到 RPC Gateway Directory SPI 的桥接。 / Bridge from DDC gateway discovery to RPC directory SPI. */
+/** Tianshu 内部 Gateway 发现到 RPC Gateway Directory SPI 的桥接。 / Bridge from Tianshu gateway discovery to RPC directory SPI. */
 public final class DdcRpcGatewayDirectory implements RpcGatewayDirectory {
 
     private final DdcServiceRegistryClient client;

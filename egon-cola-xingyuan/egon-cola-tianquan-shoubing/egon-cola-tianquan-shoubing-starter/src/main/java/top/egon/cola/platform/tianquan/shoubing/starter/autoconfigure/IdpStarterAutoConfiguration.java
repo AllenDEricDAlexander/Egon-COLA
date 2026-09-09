@@ -50,11 +50,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 为普通 Servlet 资源服务器装配统一 IdP 身份验证能力。
+ * 为普通 Servlet 资源服务器装配统一 Tianquan-Shoubing 身份验证能力。
  * 本配置创建 Spring OAuth2 Client SERVICE facade、JWT 解码器、用户实时状态读取器、身份验证器与
  * Bearer 过滤器；它不签发 OAuth Access Token，也不执行接口权限判断。
  *
- * <p>Auto-configures unified IdP identity verification for regular Servlet resource servers.
+ * <p>Auto-configures unified Tianquan-Shoubing identity verification for regular Servlet resource servers.
  * It creates the OAuth2 Client facade, JWT decoder, service-state readers, identity
  * verifier, and Bearer filter. It neither issues OAuth access tokens nor makes endpoint
  * authorization decisions.</p>
@@ -65,15 +65,15 @@ import java.util.List;
         IdpStarterProperties.class
 })
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.idp",
+        prefix = "egon.cola.platform.tianquan.shoubing",
         name = "enabled",
         havingValue = "true")
 public class IdpStarterAutoConfiguration {
 
     /**
-     * 创建 IdP Starter 自动配置实例。
+     * 创建 Tianquan-Shoubing Starter 自动配置实例。
      *
-     * <p>Creates the IdP Starter auto-configuration instance.</p>
+     * <p>Creates the Tianquan-Shoubing Starter auto-configuration instance.</p>
      */
     public IdpStarterAutoConfiguration() {
     }
@@ -105,7 +105,7 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * Configures Spring's client-credentials provider with the IdP extension converter.
+     * Configures Spring's client-credentials provider with the Tianquan-Shoubing extension converter.
      */
     @Bean
     @ConditionalOnBean({
@@ -114,7 +114,7 @@ public class IdpStarterAutoConfiguration {
     })
     @ConditionalOnMissingBean(OAuth2AuthorizedClientManager.class)
     @ConditionalOnProperty(
-            prefix = "egon.cola.platform.idp.service-client",
+            prefix = "egon.cola.platform.tianquan.shoubing.service-client",
             name = {"app-id", "registration-id"}
     )
     public OAuth2AuthorizedClientManager idpOAuth2AuthorizedClientManager(
@@ -148,7 +148,7 @@ public class IdpStarterAutoConfiguration {
     @ConditionalOnBean(OAuth2AuthorizedClientManager.class)
     @ConditionalOnMissingBean
     @ConditionalOnProperty(
-            prefix = "egon.cola.platform.idp.service-client",
+            prefix = "egon.cola.platform.tianquan.shoubing.service-client",
             name = {"app-id", "registration-id"}
     )
     public IdpServiceOAuth2Client idpServiceOAuth2Client(
@@ -168,7 +168,7 @@ public class IdpStarterAutoConfiguration {
     /** Fails explicitly when retired private-key/Admission settings remain configured. */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.platform.idp",
+            prefix = "egon.cola.platform.tianquan.shoubing",
             name = "enabled",
             havingValue = "true"
     )
@@ -176,19 +176,19 @@ public class IdpStarterAutoConfiguration {
             Environment environment
     ) {
         List<String> retired = List.of(
-                "egon.cola.platform.idp.admission.private-key-path",
-                "egon.cola.platform.idp.admission.management-client-id",
-                "egon.cola.platform.idp.admission.rpc-target",
-                "egon.idp.rbac3.service-token.private-key-file",
-                "egon.idp.rbac3.service-token.key-id",
-                "egon.idp.oauth.client-assertion-key-prefix"
+                "egon.cola.platform.tianquan.shoubing.admission.private-key-path",
+                "egon.cola.platform.tianquan.shoubing.admission.management-client-id",
+                "egon.cola.platform.tianquan.shoubing.admission.rpc-target",
+                "egon.tianquan-shoubing.tianquan-jianshen.service-token.private-key-file",
+                "egon.tianquan-shoubing.tianquan-jianshen.service-token.key-id",
+                "egon.tianquan-shoubing.oauth.client-assertion-key-prefix"
         );
         List<String> configured = retired.stream()
                 .filter(environment::containsProperty)
                 .toList();
         if (!configured.isEmpty()) {
             throw new IllegalStateException(
-                    "IdP OAuth2 Client migration required; retired properties configured: "
+                    "Tianquan-Shoubing OAuth2 Client migration required; retired properties configured: "
                             + String.join(", ", configured)
             );
         }
@@ -196,11 +196,11 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 创建支持 JWK 刷新的 IdP JWT 解码器。
+     * 创建支持 JWK 刷新的 Tianquan-Shoubing JWT 解码器。
      *
-     * <p>Creates the IdP JWT decoder with one-time JWK refresh support.</p>
+     * <p>Creates the Tianquan-Shoubing JWT decoder with one-time JWK refresh support.</p>
      *
-     * @param properties IdP Starter 配置；IdP Starter settings
+     * @param properties Tianquan-Shoubing Starter 配置；Tianquan-Shoubing Starter settings
      * @return 名为 {@code idpJwtDecoder} 的 JWT 解码器；the JWT decoder named
      *         {@code idpJwtDecoder}
      */
@@ -220,7 +220,7 @@ public class IdpStarterAutoConfiguration {
      * @param redissonClients 容器中的 Redisson 客户端候选；Redisson client candidates
      * @param beanFactory 用于按名称选择客户端的 Bean 工厂；bean factory used for named lookup
      * @param objectMapper Resource 投影 JSON 反序列化器；Resource projection JSON mapper
-     * @param properties IdP Starter 配置；IdP Starter settings
+     * @param properties Tianquan-Shoubing Starter 配置；Tianquan-Shoubing Starter settings
      * @return Resource Server 状态读取器；Resource Server state reader
      */
     @Bean
@@ -250,7 +250,7 @@ public class IdpStarterAutoConfiguration {
      * @param redissonClients 容器中的 Redisson 客户端候选；Redisson client candidates
      * @param beanFactory 用于按名称选择客户端的 Bean 工厂；bean factory used for named lookup
      * @param objectMapper Client 投影 JSON 反序列化器；Client projection JSON mapper
-     * @param properties IdP Starter 配置；IdP Starter settings
+     * @param properties Tianquan-Shoubing Starter 配置；Tianquan-Shoubing Starter settings
      * @return OAuth Client 状态读取器；OAuth Client state reader
      */
     @Bean
@@ -271,15 +271,15 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 创建共享的 IdP 访问令牌验证器。
+     * 创建共享的 Tianquan-Shoubing 访问令牌验证器。
      *
-     * <p>Creates the shared IdP access-token verifier.</p>
+     * <p>Creates the shared Tianquan-Shoubing access-token verifier.</p>
      *
      * @param decoder JWT 解码器；JWT decoder
      * @param resourceStates Resource Server 状态读取器；Resource Server state reader
      * @param clientStates OAuth Client 状态读取器；OAuth Client state reader
-     * @param properties IdP Starter 配置；IdP Starter settings
-     * @return IdP JWT 验证器；IdP JWT verifier
+     * @param properties Tianquan-Shoubing Starter 配置；Tianquan-Shoubing Starter settings
+     * @return Tianquan-Shoubing JWT 验证器；Tianquan-Shoubing JWT verifier
      */
     @Bean
     @ConditionalOnBean({
@@ -362,9 +362,9 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 创建只读取 IdP SERVICE Token Scope 的本地授权判断器。
+     * 创建只读取 Tianquan-Shoubing SERVICE Token Scope 的本地授权判断器。
      *
-     * <p>Creates the local authorization evaluator that reads only scopes from IdP SERVICE
+     * <p>Creates the local authorization evaluator that reads only scopes from Tianquan-Shoubing SERVICE
      * tokens.</p>
      *
      * @return SERVICE Scope 判断器；SERVICE scope evaluator
@@ -385,7 +385,7 @@ public class IdpStarterAutoConfiguration {
      * @param serviceAccessTokenVerifier SERVICE access-token verifier
      * @param endpointAuthenticationPolicy endpoint credential policy
      * @param objectMapper 认证失败响应的 JSON 序列化器；JSON mapper for authentication failures
-     * @return IdP Bearer 身份过滤器；IdP Bearer identity filter
+     * @return Tianquan-Shoubing Bearer 身份过滤器；Tianquan-Shoubing Bearer identity filter
      */
     @Bean
     @ConditionalOnBean(IdpJwtVerifier.class)
@@ -404,14 +404,14 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 注册 IdP Bearer 过滤器并设置其 Servlet 执行顺序。
+     * 注册 Tianquan-Shoubing Bearer 过滤器并设置其 Servlet 执行顺序。
      * 是否启用注册由 {@code registerFilter} 配置控制。
      *
-     * <p>Registers the IdP Bearer filter and assigns its Servlet ordering. Registration can be
+     * <p>Registers the Tianquan-Shoubing Bearer filter and assigns its Servlet ordering. Registration can be
      * disabled through the {@code registerFilter} setting.</p>
      *
-     * @param filter IdP Bearer 身份过滤器；IdP Bearer identity filter
-     * @param properties IdP Starter 配置；IdP Starter settings
+     * @param filter Tianquan-Shoubing Bearer 身份过滤器；Tianquan-Shoubing Bearer identity filter
+     * @param properties Tianquan-Shoubing Starter 配置；Tianquan-Shoubing Starter settings
      * @return Servlet 过滤器注册对象；Servlet filter registration
      */
     @Bean
@@ -435,7 +435,7 @@ public class IdpStarterAutoConfiguration {
      * <p>Builds a Nimbus decoder from the JWK Set endpoint and validates issuer and time claims.
      * USER and SERVICE verifiers apply their own exact audience policy after decoding.</p>
      *
-     * @param properties 已完成校验的 IdP Starter 配置；validated IdP Starter settings
+     * @param properties 已完成校验的 Tianquan-Shoubing Starter 配置；validated Tianquan-Shoubing Starter settings
      * @return 配置完成的 JWT 解码器；configured JWT decoder
      */
     private JwtDecoder decoder(IdpStarterProperties properties) {
@@ -451,9 +451,9 @@ public class IdpStarterAutoConfiguration {
     }
 
     /**
-     * 选择读取 IdP Resource/Client 运行态所用的 Redisson 客户端。
+     * 选择读取 Tianquan-Shoubing Resource/Client 运行态所用的 Redisson 客户端。
      *
-     * <p>Selects the Redisson client used to read IdP Resource/Client runtime state.</p>
+     * <p>Selects the Redisson client used to read Tianquan-Shoubing Resource/Client runtime state.</p>
      *
      * @param clients 容器中的 Redisson 客户端候选；Redisson client candidates
      * @param beanFactory 用于按名称查找客户端的 Bean 工厂；bean factory for named lookup
@@ -471,7 +471,7 @@ public class IdpStarterAutoConfiguration {
         RedissonClient unique = clients.getIfUnique();
         if (unique == null) {
             throw new IllegalStateException(
-                    "IdP service-state Redis client is ambiguous");
+                    "Tianquan-Shoubing service-state Redis client is ambiguous");
         }
         return unique;
     }

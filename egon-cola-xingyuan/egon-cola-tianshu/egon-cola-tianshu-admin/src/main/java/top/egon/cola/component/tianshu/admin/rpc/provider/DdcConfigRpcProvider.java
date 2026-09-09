@@ -21,8 +21,8 @@ import top.egon.cola.component.rpc.tianshu.mapping.DdcCommonProtoMapper;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcConfigProtoMapper;
 
 /**
- * 将配置运行时 RPC 契约适配到 DDC 配置应用门面。
- * / Adapts the configuration-runtime RPC contract to the DDC application facade.
+ * 将配置运行时 RPC 契约适配到 Tianshu 配置应用门面。
+ * / Adapts the configuration-runtime RPC contract to the Tianshu application facade.
  */
 @EgonRpcProvider
 public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
@@ -32,8 +32,8 @@ public class DdcConfigRpcProvider implements DdcConfigRuntimeRpc {
     private final DdcConfigProtoMapper mapper;
 
     /**
-     * 使用本地 DDC 和 RPC 限额创建 Provider。
-     * / Creates the provider with the local DDC and RPC size limits.
+     * 使用本地 Tianshu 和 RPC 限额创建 Provider。
+     * / Creates the provider with the local Tianshu and RPC size limits.
      */
     @Autowired
     public DdcConfigRpcProvider(

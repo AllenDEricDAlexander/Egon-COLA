@@ -412,7 +412,7 @@ public final class RpcGatewayForwarder {
                         observation,
                         "ROUTE",
                         Status.INVALID_ARGUMENT,
-                        "GATEWAY_RPC_METADATA_MISMATCH"
+                        "YUHENG_RPC_METADATA_MISMATCH"
                 );
                 return new ServerCall.Listener<>() {
                 };
@@ -688,14 +688,14 @@ public final class RpcGatewayForwarder {
             if (message.length > maxInboundMessageBytes) {
                 close(
                         Status.RESOURCE_EXHAUSTED,
-                        "GATEWAY_RPC_MESSAGE_TOO_LARGE"
+                        "YUHENG_RPC_MESSAGE_TOO_LARGE"
                 );
                 return;
             }
             if (request != null) {
                 close(
                         Status.INVALID_ARGUMENT,
-                        "GATEWAY_RPC_MULTIPLE_MESSAGES"
+                        "YUHENG_RPC_MULTIPLE_MESSAGES"
                 );
                 return;
             }
@@ -716,7 +716,7 @@ public final class RpcGatewayForwarder {
             if (request == null) {
                 close(
                         Status.INVALID_ARGUMENT,
-                        "GATEWAY_RPC_REQUEST_MISSING"
+                        "YUHENG_RPC_REQUEST_MISSING"
                 );
                 return;
             }
@@ -739,7 +739,7 @@ public final class RpcGatewayForwarder {
                     observation,
                     "CLIENT",
                     Status.CANCELLED,
-                    "GATEWAY_RPC_CANCELLED"
+                    "YUHENG_RPC_CANCELLED"
             );
             release();
         }
@@ -801,7 +801,7 @@ public final class RpcGatewayForwarder {
             }
             close(
                     Status.UNAVAILABLE,
-                    "GATEWAY_SECURITY_PROVIDER_ERROR"
+                    "YUHENG_SECURITY_PROVIDER_ERROR"
             );
         }
 
@@ -827,7 +827,7 @@ public final class RpcGatewayForwarder {
             }
             close(
                     Status.UNAVAILABLE,
-                    "GATEWAY_GOVERNANCE_UNAVAILABLE"
+                    "YUHENG_GOVERNANCE_UNAVAILABLE"
             );
         }
 
@@ -997,7 +997,7 @@ public final class RpcGatewayForwarder {
                                     status,
                                     status.isOk()
                                             ? null
-                                            : "GATEWAY_RPC_UPSTREAM_STATUS"
+                                            : "YUHENG_RPC_UPSTREAM_STATUS"
                             );
                             release();
                         }
@@ -1021,11 +1021,11 @@ public final class RpcGatewayForwarder {
                 }
                 recordAttempt(
                         Status.UNAVAILABLE,
-                        "GATEWAY_PROVIDER_UNAVAILABLE"
+                        "YUHENG_PROVIDER_UNAVAILABLE"
                 );
                 close(
                         Status.UNAVAILABLE,
-                        "GATEWAY_PROVIDER_UNAVAILABLE"
+                        "YUHENG_PROVIDER_UNAVAILABLE"
                 );
             }
         }
@@ -1506,7 +1506,7 @@ public final class RpcGatewayForwarder {
                 route.routeId(),
                 valueOrGenerated(metadata.get(RpcMetadataKeys.SOURCE_APP)),
                 security.trustedIdentity().rpcMetadata().get(
-                        "egon-gateway-principal-id"
+                        "egon-yuheng-principal-id"
                 ),
                 null,
                 route.targetService().serviceName(),

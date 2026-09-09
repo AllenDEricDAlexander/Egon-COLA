@@ -68,13 +68,13 @@ class Rbac3HttpProviderPublicationGateTest {
 
         assertThatThrownBy(() -> gate.onApplicationEvent(mock(ApplicationReadyEvent.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DDC config client is not ready");
+                .hasMessageContaining("Tianshu config client is not ready");
         verify(provider, never()).onHttpServerReady(18101);
 
         when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
         assertThatThrownBy(() -> gate.onApplicationEvent(mock(ApplicationReadyEvent.class)))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DDC config client lease is missing");
+                .hasMessageContaining("Tianshu config client lease is missing");
     }
 
     @Test
@@ -94,7 +94,7 @@ class Rbac3HttpProviderPublicationGateTest {
         DdcRuntimeCoordinator coordinator = mock(DdcRuntimeCoordinator.class);
         when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
         when(coordinator.currentSession()).thenReturn(Optional.of(new DdcLeaseSession(
-                "rbac3-1", "config-lease-secret", DdcLeaseRole.CONFIG_CLIENT,
+                "tianquan-jianshen-1", "config-lease-secret", DdcLeaseRole.CONFIG_CLIENT,
                 30, 10, Instant.parse("2026-08-01T00:00:00Z"),
                 Instant.parse("2026-08-01T00:00:30Z"))));
         return coordinator;

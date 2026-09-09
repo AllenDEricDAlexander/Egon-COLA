@@ -16,10 +16,10 @@ import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationRunt
 import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcAutoConfiguration;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientHandle;
 import top.egon.cola.platform.tianquan.jianshen.admin.config.properties.Rbac3AdminProperties;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.Rbac3DdcPolicyApplier;
-import top.egon.cola.platform.tianquan.jianshen.admin.config.ddc.Rbac3DdcPolicyConfiguration;
-import top.egon.cola.platform.tianquan.jianshen.admin.config.ddc.Rbac3DdcValueDeclarations;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.Rbac3DdcPolicyApplier;
+import top.egon.cola.platform.tianquan.jianshen.admin.config.tianshu.Rbac3DdcPolicyConfiguration;
+import top.egon.cola.platform.tianquan.jianshen.admin.config.tianshu.Rbac3DdcValueDeclarations;
 import top.egon.cola.platform.tianquan.jianshen.admin.config.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service.GatewayDdcRuntimeStatusService;
 import top.egon.cola.platform.tianquan.jianshen.admin.config.runtime.Rbac3PlatformIntegrationConfiguration;
@@ -108,7 +108,7 @@ class Rbac3AdminApplicationContextTest {
             assertThat(context).doesNotHaveBean("rbac3DdcPolicyRegistrar");
         });
 
-        runner.withPropertyValues("egon.cola.component.ddc.enabled=true")
+        runner.withPropertyValues("egon.cola.component.tianshu.enabled=true")
                 .run(context -> {
                     assertThat(context).hasSingleBean(AtomicRbac3RuntimePolicy.class);
                     assertThat(context).hasSingleBean(Rbac3DdcValueDeclarations.class);
@@ -128,8 +128,8 @@ class Rbac3AdminApplicationContextTest {
                         DdcRpcAutoConfiguration.class
                 ))
                 .withPropertyValues(
-                        "egon.cola.component.ddc.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=false"
+                        "egon.cola.component.tianshu.enabled=false",
+                        "egon.cola.component.tianshu.registry.enabled=false"
                 )
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(DdcConfigClient.class);
@@ -150,7 +150,7 @@ class Rbac3AdminApplicationContextTest {
                 .containsExactly("ddcHttpRegistrationServerReadyListener");
         ConditionalOnProperty condition = method.getAnnotation(
                 ConditionalOnProperty.class);
-        assertThat(condition.prefix()).isEqualTo("egon.cola.component.ddc.registry.http");
+        assertThat(condition.prefix()).isEqualTo("egon.cola.component.tianshu.registry.http");
         assertThat(condition.name()).containsExactly("enabled");
         assertThat(condition.havingValue()).isEqualTo("true");
         assertThat(condition.matchIfMissing()).isFalse();

@@ -64,7 +64,7 @@ class IdpDevelopmentClientBootstrapTest {
                 mock(IdentityClientRepository.class);
         ResourceServerProjectionService projections =
                 mock(ResourceServerProjectionService.class);
-        when(clients.list()).thenReturn(List.of(client("idp-admin-web")));
+        when(clients.list()).thenReturn(List.of(client("tianquan-shoubing-admin-web")));
         stubClientCreation(clients);
         when(clientEntities.findById(any())).thenReturn(Optional.of(
                 machineClient("management-client")
@@ -84,60 +84,60 @@ class IdpDevelopmentClientBootstrapTest {
         bootstrap.afterSingletonsInstantiated();
 
         verify(clients, never()).create(argThat(command ->
-                command.clientId().equals("idp-admin-web")));
+                command.clientId().equals("tianquan-shoubing-admin-web")));
         verify(clients).create(argThat(command ->
                 command.clientId().equals("mock-backend")
                         && command.redirectUris().equals(List.of(
                         "http://127.0.0.1:18161/oauth/callback"))
                         && command.resourceUris().isEmpty()));
         verify(clients).create(argThat(command ->
-                command.clientId().equals("idp-service")
+                command.clientId().equals("tianquan-shoubing-service")
                         && command.clientType()
                         == IdentityClientEntity.ClientType.CONFIDENTIAL
                         && command.redirectUris().isEmpty()
                         && command.resourceUris().isEmpty()));
         verify(resources).save(argThat(resource ->
-                resource.getResourceServerId().equals("permission-idp-local")
-                        && resource.getAppCode().equals("idp")
+                resource.getResourceServerId().equals("permission-tianquan-shoubing-local")
+                        && resource.getAppCode().equals("tianquan-shoubing")
                         && resource.getManagementClientId()
-                        .equals("idp-service")));
+                        .equals("tianquan-shoubing-service")));
         verify(resources).save(argThat(resource ->
-                resource.getResourceServerId().equals("permission-rbac3-local")
-                        && resource.getAppCode().equals("rbac3")));
+                resource.getResourceServerId().equals("permission-tianquan-jianshen-local")
+                        && resource.getAppCode().equals("tianquan-jianshen")));
         verify(resources).save(argThat(resource ->
-                resource.getResourceServerId().equals("platform-ddc-local")
-                        && resource.getBizCode().equals("platform")
-                        && resource.getAppCode().equals("ddc")));
+                resource.getResourceServerId().equals("platform-tianshu-local")
+                        && resource.getBizCode().equals("xingyuan")
+                        && resource.getAppCode().equals("tianshu")));
         verify(resources).save(argThat(resource ->
                 resource.getResourceServerId()
-                        .equals("identity-gateway-engine-default-local")
+                        .equals("identity-yuheng-biz-gateway-default-local")
                         && resource.getResourceUri().equals(
-                        "https://api.egon.internal/local/identity/gateway-engine-default")
+                        "https://api.egon.internal/local/identity/yuheng-biz-gateway-default")
                         && resource.getBizCode().equals("identity")
                         && resource.getEnvironment().equals("local")
-                        && resource.getManagementClientId().equals("gateway-engine-service")
+                        && resource.getManagementClientId().equals("yuheng-biz-gateway-service")
                         && resource.getAppCode()
-                        .equals("gateway-engine-default")));
+                        .equals("yuheng-biz-gateway-default")));
         verify(resources).save(argThat(resource ->
-                resource.getResourceServerId().equals("platform-gateway-admin-local")
+                resource.getResourceServerId().equals("platform-yuheng-admin-local")
                         && resource.getResourceUri().equals(
-                        "https://api.egon.internal/local/platform/gateway-admin")
-                        && resource.getBizCode().equals("platform")
-                        && resource.getAppCode().equals("gateway-admin")
+                        "https://api.egon.internal/local/platform/yuheng-admin")
+                        && resource.getBizCode().equals("xingyuan")
+                        && resource.getAppCode().equals("yuheng-admin")
                         && resource.getEnvironment().equals("local")
-                        && resource.getManagementClientId().equals("gateway-admin-service")));
+                        && resource.getManagementClientId().equals("yuheng-admin-service")));
         verify(resources).save(argThat(resource ->
-                resource.getResourceServerId().equals("identity-gateway-mcp-engine-default-local")
+                resource.getResourceServerId().equals("identity-yuheng-mcp-gateway-default-local")
                         && resource.getResourceUri().equals(
-                        "https://api.egon.internal/local/identity/gateway-mcp-engine-default")
+                        "https://api.egon.internal/local/identity/yuheng-mcp-gateway-default")
                         && resource.getBizCode().equals("identity")
-                        && resource.getAppCode().equals("gateway-mcp-engine-default")
+                        && resource.getAppCode().equals("yuheng-mcp-gateway-default")
                         && resource.getEnvironment().equals("local")
-                        && resource.getManagementClientId().equals("gateway-mcp-engine-service")
+                        && resource.getManagementClientId().equals("yuheng-mcp-gateway-service")
                         && resource.getRbacApplicationCode().equals("mock-backend")
                         && resource.getEntryPermissionCode().equals("mock:read")));
         verify(clients).create(argThat(command ->
-                command.clientId().equals("gateway-mcp-engine-service")
+                command.clientId().equals("yuheng-mcp-gateway-service")
                         && command.clientType() == IdentityClientEntity.ClientType.CONFIDENTIAL
                         && command.redirectUris().isEmpty()
                         && command.resourceUris().isEmpty()));
@@ -146,99 +146,99 @@ class IdpDevelopmentClientBootstrapTest {
                         .equals("identity-mock-backend-local")
                         && resource.getAppCode().equals("mock-backend")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("idp-service")
+                grant.getClientId().equals("tianquan-shoubing-service")
                         && grant.getResourceServerId()
-                        .equals("permission-rbac3-local")
+                        .equals("permission-tianquan-jianshen-local")
                         && grant.getGrantType()
                         == IdentityClientResourceGrantEntity.GrantType
                         .CLIENT_CREDENTIALS
                         && grant.getAllowedScopes().contains(
                         "service:authorization:decide")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("rbac3-service")
+                grant.getClientId().equals("tianquan-jianshen-service")
                         && grant.getResourceServerId()
-                        .equals("permission-rbac3-local")
+                        .equals("permission-tianquan-jianshen-local")
                         && grant.getGrantType()
                         == IdentityClientResourceGrantEntity.GrantType
                         .CLIENT_CREDENTIALS));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("gateway-mcp-engine-service")
+                grant.getClientId().equals("yuheng-mcp-gateway-service")
                         && grant.getResourceServerId().equals(
-                        "identity-gateway-test-mcp-provider-local")
+                        "identity-yuheng-test-mcp-provider-local")
                         && grant.getAllowedScopes().contains(
                         "mcp:operation:invoke")
                         && grant.getGrantType()
                         == IdentityClientResourceGrantEntity.GrantType
                         .CLIENT_CREDENTIALS));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("gateway-mcp-engine-service")
-                        && grant.getResourceServerId().equals("platform-ddc-local")
+                grant.getClientId().equals("yuheng-mcp-gateway-service")
+                        && grant.getResourceServerId().equals("platform-tianshu-local")
                         && grant.getGrantContext()
                         == top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.PLATFORM
                         && grant.getTenantId() == null
-                        && grant.getAllowedScopes().equals("[\"ddc:registration:write\"]")));
+                        && grant.getAllowedScopes().equals("[\"tianshu:registration:write\"]")));
         verify(grants, never()).save(argThat(grant ->
-                grant.getClientId().equals("gateway-mcp-engine-service")
-                        && grant.getResourceServerId().equals("platform-gateway-admin-local")));
+                grant.getClientId().equals("yuheng-mcp-gateway-service")
+                        && grant.getResourceServerId().equals("platform-yuheng-admin-local")));
         verify(grants, never()).save(argThat(grant ->
-                grant.getClientId().equals("gateway-engine-service")
+                grant.getClientId().equals("yuheng-biz-gateway-service")
                         && grant.getResourceServerId().equals(
-                        "identity-gateway-test-mcp-provider-local")));
+                        "identity-yuheng-test-mcp-provider-local")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("idp-service")
+                grant.getClientId().equals("tianquan-shoubing-service")
                         && grant.getResourceServerId().equals(
-                        "platform-ddc-local")
+                        "platform-tianshu-local")
                         && grant.getGrantContext()
                         == top.egon.cola.platform.tianquan.shoubing.contract
                         .ServiceTokenContext.PLATFORM
                         && grant.getTenantId() == null
                         && grant.getAllowedScopes().contains(
-                        "ddc:registration:write")));
+                        "tianshu:registration:write")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("ddc-service")
+                grant.getClientId().equals("tianshu-service")
                         && grant.getResourceServerId().equals(
-                        "platform-ddc-local")
+                        "platform-tianshu-local")
                         && grant.getGrantContext()
                         == top.egon.cola.platform.tianquan.shoubing.contract
                         .ServiceTokenContext.PLATFORM
                         && grant.getTenantId() == null
                         && grant.getAllowedScopes().contains(
-                        "ddc:registration:write")));
+                        "tianshu:registration:write")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("gateway-engine-service")
+                grant.getClientId().equals("yuheng-biz-gateway-service")
                         && grant.getResourceServerId().equals(
-                        "permission-idp-local")
+                        "permission-tianquan-shoubing-local")
                         && grant.getGrantContext()
                         == top.egon.cola.platform.tianquan.shoubing.contract
                         .ServiceTokenContext.PLATFORM
                         && grant.getTenantId() == null
                         && grant.getAllowedScopes().contains(
-                        "idp:refresh-token:validate")));
+                        "tianquan-shoubing:refresh-token:validate")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("gateway-admin-service")
+                grant.getClientId().equals("yuheng-admin-service")
                         && grant.getResourceServerId().equals(
-                        "permission-rbac3-local")
+                        "permission-tianquan-jianshen-local")
                         && grant.getGrantContext()
                         == top.egon.cola.platform.tianquan.shoubing.contract
                         .ServiceTokenContext.PLATFORM
                         && grant.getTenantId() == null
                         && grant.getAllowedScopes().contains(
-                        "gateway.openapi.read")));
+                        "yuheng.openapi.read")));
         verify(grants).save(argThat(grant ->
-                grant.getClientId().equals("gateway-admin-service")
-                        && grant.getResourceServerId().equals("platform-gateway-admin-local")
+                grant.getClientId().equals("yuheng-admin-service")
+                        && grant.getResourceServerId().equals("platform-yuheng-admin-local")
                         && grant.getGrantContext()
                         == top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.PLATFORM
                         && grant.getTenantId() == null
-                        && grant.getAllowedScopes().equals("[\"gateway.openapi.read\"]")));
-        for (String provider : java.util.List.of("permission-idp-local", "platform-ddc-local")) {
+                        && grant.getAllowedScopes().equals("[\"yuheng.openapi.read\"]")));
+        for (String provider : java.util.List.of("permission-tianquan-shoubing-local", "platform-tianshu-local")) {
             verify(grants).save(argThat(grant ->
-                    grant.getClientId().equals("gateway-admin-service")
+                    grant.getClientId().equals("yuheng-admin-service")
                             && grant.getResourceServerId().equals(provider)
                             && grant.getGrantContext()
                             == top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.PLATFORM
                             && grant.getTenantId() == null
-                            && grant.getAllowedScopes().contains("gateway.openapi.read")));
+                            && grant.getAllowedScopes().contains("yuheng.openapi.read")));
         }
         verify(grants, atLeastOnce()).save(any(
                 IdentityClientResourceGrantEntity.class
@@ -261,9 +261,9 @@ class IdpDevelopmentClientBootstrapTest {
                 mock(ResourceServerProjectionService.class);
         IdentityClientResourceGrantEntity existing =
                 IdentityClientResourceGrantEntity.clientCredentials(
-                        "dev-rbac3-grant-idp-service",
-                        "idp-service",
-                        "permission-rbac3-local",
+                        "dev-tianquan-jianshen-grant-tianquan-shoubing-service",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-local",
                         "default",
                         "[\"service:identity:resolve\"]",
                         Instant.EPOCH
@@ -274,7 +274,7 @@ class IdpDevelopmentClientBootstrapTest {
                 machineClient("management-client")
         ));
         when(grants.findByClientIdAndGrantTypeAndStatus(
-                "idp-service",
+                "tianquan-shoubing-service",
                 IdentityClientResourceGrantEntity.GrantType.CLIENT_CREDENTIALS,
                 IdentityClientResourceGrantEntity.Status.ACTIVE
         )).thenReturn(List.of(existing));
@@ -298,29 +298,29 @@ class IdpDevelopmentClientBootstrapTest {
                 && grant.getAllowedScopes().contains(
                         "service:authorization:decide")));
         verify(grants).save(argThat(grant -> grant != existing
-                && grant.getClientId().equals("idp-service")
+                && grant.getClientId().equals("tianquan-shoubing-service")
                 && grant.getResourceServerId().equals(
-                        "permission-rbac3-local")
+                        "permission-tianquan-jianshen-local")
                 && "tenant-84".equals(grant.getTenantId())
                 && grant.getAllowedScopes().contains(
                         "service:authorization:decide")));
         verify(projections).projectServiceGrant(existing);
         verify(projections).projectServiceGrant(argThat(grant ->
                 grant != existing
-                        && grant.getClientId().equals("idp-service")
+                        && grant.getClientId().equals("tianquan-shoubing-service")
                         && "tenant-84".equals(grant.getTenantId())));
         for (String tenantId : List.of("tenant-42", "tenant-84")) {
             verify(grants).save(argThat(grant ->
-                    grant.getClientId().equals("gateway-mcp-engine-service")
+                    grant.getClientId().equals("yuheng-mcp-gateway-service")
                             && tenantId.equals(grant.getTenantId())
-                            && grant.getResourceServerId().equals("permission-rbac3-local")
+                            && grant.getResourceServerId().equals("permission-tianquan-jianshen-local")
                             && grant.getAllowedScopes().equals(
                             "[\"service:authorization:decide\",\"service:authorization:snapshot\",\"service:identity:resolve\"]")));
             verify(grants).save(argThat(grant ->
-                    grant.getClientId().equals("gateway-mcp-engine-service")
+                    grant.getClientId().equals("yuheng-mcp-gateway-service")
                             && tenantId.equals(grant.getTenantId())
                             && grant.getResourceServerId().equals(
-                            "identity-gateway-test-mcp-provider-local")
+                            "identity-yuheng-test-mcp-provider-local")
                             && grant.getAllowedScopes().equals("[\"mcp:operation:invoke\"]")));
         }
     }
@@ -338,10 +338,10 @@ class IdpDevelopmentClientBootstrapTest {
         ResourceServerProjectionService projections =
                 mock(ResourceServerProjectionService.class);
         when(clients.list()).thenReturn(List.of(new OAuthClientVO(
-                "ddc-admin-web", "DDC Admin Web", "PUBLIC", "ACTIVE", true,
+                "tianshu-admin-web", "Tianshu Admin Web", "PUBLIC", "ACTIVE", true,
                 900, 604800,
                 List.of("http://127.0.0.1:18151/oauth/callback"),
-                List.of("ddc-admin-web"), 0,
+                List.of("tianshu-admin-web"), 0,
                 java.time.Instant.EPOCH, java.time.Instant.EPOCH
         )));
         stubClientCreation(clients);
@@ -363,11 +363,11 @@ class IdpDevelopmentClientBootstrapTest {
         bootstrap.afterSingletonsInstantiated();
 
         verify(clients).putRedirectUri(
-                "ddc-admin-web",
+                "tianshu-admin-web",
                 "http://127.0.0.1:18152/oauth/callback"
         );
         verify(clients).deleteRedirectUri(
-                "ddc-admin-web",
+                "tianshu-admin-web",
                 "http://127.0.0.1:18151/oauth/callback"
         );
     }
@@ -376,7 +376,7 @@ class IdpDevelopmentClientBootstrapTest {
     void preservesExistingGatewayIdentitiesAndSecrets() throws Exception {
         IdpDevelopmentClientBootstrap bootstrap = bootstrapFixture();
         List<String> clientIds = List.of(
-                "gateway-admin-service", "gateway-engine-service", "gateway-mcp-engine-service");
+                "yuheng-admin-service", "yuheng-biz-gateway-service", "yuheng-mcp-gateway-service");
         when(bootstrapClients.list()).thenReturn(clientIds.stream()
                 .map(clientId -> new OAuthClientVO(
                         clientId, clientId, "CONFIDENTIAL", "ACTIVE", true,
@@ -384,12 +384,12 @@ class IdpDevelopmentClientBootstrapTest {
                         Instant.EPOCH, Instant.EPOCH, clientId, "test", "ACTIVE"))
                 .toList());
         List<IdentityResourceServerEntity> existing = List.of(
-                gatewayResource("platform-gateway-admin-local", "platform", "gateway-admin",
-                        "gateway-admin-service"),
-                gatewayResource("identity-gateway-engine-default-local", "identity",
-                        "gateway-engine-default", "gateway-engine-service"),
-                gatewayResource("identity-gateway-mcp-engine-default-local", "identity",
-                        "gateway-mcp-engine-default", "gateway-mcp-engine-service"));
+                gatewayResource("platform-yuheng-admin-local", "xingyuan", "yuheng-admin",
+                        "yuheng-admin-service"),
+                gatewayResource("identity-yuheng-biz-gateway-default-local", "identity",
+                        "yuheng-biz-gateway-default", "yuheng-biz-gateway-service"),
+                gatewayResource("identity-yuheng-mcp-gateway-default-local", "identity",
+                        "yuheng-mcp-gateway-default", "yuheng-mcp-gateway-service"));
         for (IdentityResourceServerEntity resource : existing) {
             when(bootstrapResources.findByResourceServerId(resource.getResourceServerId()))
                     .thenReturn(Optional.of(resource));
@@ -419,18 +419,18 @@ class IdpDevelopmentClientBootstrapTest {
     void rejectsMismatchedMcpResource() {
         IdpDevelopmentClientBootstrap bootstrap = bootstrapFixture();
         for (IdentityResourceServerEntity mismatched : List.of(
-                gatewayResource("identity-gateway-mcp-engine-default-local", "identity",
-                        "gateway-engine-default", "gateway-mcp-engine-service"),
-                gatewayResource("identity-gateway-mcp-engine-default-local", "identity",
-                        "gateway-mcp-engine-default", "gateway-engine-service"))) {
-            when(bootstrapResources.findByResourceServerId("identity-gateway-mcp-engine-default-local"))
+                gatewayResource("identity-yuheng-mcp-gateway-default-local", "identity",
+                        "yuheng-biz-gateway-default", "yuheng-mcp-gateway-service"),
+                gatewayResource("identity-yuheng-mcp-gateway-default-local", "identity",
+                        "yuheng-mcp-gateway-default", "yuheng-biz-gateway-service"))) {
+            when(bootstrapResources.findByResourceServerId("identity-yuheng-mcp-gateway-default-local"))
                     .thenReturn(Optional.of(mismatched));
 
             assertThatThrownBy(bootstrap::afterSingletonsInstantiated)
                     .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("local Resource Server definition does not match");
             verify(bootstrapResources, never()).save(argThat(resource ->
-                    resource.getResourceServerId().equals("identity-gateway-mcp-engine-default-local")));
+                    resource.getResourceServerId().equals("identity-yuheng-mcp-gateway-default-local")));
         }
     }
 
@@ -441,24 +441,24 @@ class IdpDevelopmentClientBootstrapTest {
                 java.nio.charset.StandardCharsets.UTF_8)).toString().substring(0, 8);
         IdentityClientResourceGrantEntity legacy =
                 IdentityClientResourceGrantEntity.clientCredentials(
-                        "dev-mcp-task-grant-" + suffix, "gateway-engine-service",
-                        "identity-gateway-test-mcp-provider-local", "default",
+                        "dev-mcp-task-grant-" + suffix, "yuheng-biz-gateway-service",
+                        "identity-yuheng-test-mcp-provider-local", "default",
                         "[\"mcp:operation:invoke\"]", Instant.EPOCH);
         when(bootstrapGrants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
-                "gateway-engine-service", "identity-gateway-test-mcp-provider-local",
+                "yuheng-biz-gateway-service", "identity-yuheng-test-mcp-provider-local",
                 IdentityClientResourceGrantEntity.GrantType.CLIENT_CREDENTIALS, "default"))
                 .thenReturn(Optional.of(legacy));
 
         bootstrap.afterSingletonsInstantiated();
 
         verify(bootstrapGrants).save(argThat(grant ->
-                grant.getClientId().equals("gateway-mcp-engine-service")
+                grant.getClientId().equals("yuheng-mcp-gateway-service")
                         && grant.getResourceServerId().equals(
-                        "identity-gateway-test-mcp-provider-local")
+                        "identity-yuheng-test-mcp-provider-local")
                         && grant.getId().equals("dev-mcp-engine-task-grant-" + suffix)
                         && !grant.getId().equals(legacy.getId())));
         verify(bootstrapGrants, never()).save(legacy);
-        assertThat(legacy.getClientId()).isEqualTo("gateway-engine-service");
+        assertThat(legacy.getClientId()).isEqualTo("yuheng-biz-gateway-service");
         assertThat(legacy.getVersion()).isZero();
     }
 
@@ -467,17 +467,17 @@ class IdpDevelopmentClientBootstrapTest {
         IdpDevelopmentClientBootstrap bootstrap = bootstrapFixture();
         List<IdentityClientResourceGrantEntity> existing = List.of(
                 IdentityClientResourceGrantEntity.clientCredentials(
-                        "existing-mcp-rbac", "gateway-mcp-engine-service",
-                        "permission-rbac3-local", "default",
+                        "existing-mcp-rbac", "yuheng-mcp-gateway-service",
+                        "permission-tianquan-jianshen-local", "default",
                         "[\"service:authorization:decide\",\"service:authorization:snapshot\",\"service:identity:resolve\"]",
                         Instant.EPOCH),
                 IdentityClientResourceGrantEntity.clientCredentials(
-                        "existing-mcp-task", "gateway-mcp-engine-service",
-                        "identity-gateway-test-mcp-provider-local", "default",
+                        "existing-mcp-task", "yuheng-mcp-gateway-service",
+                        "identity-yuheng-test-mcp-provider-local", "default",
                         "[\"mcp:operation:invoke\"]", Instant.EPOCH),
                 IdentityClientResourceGrantEntity.platformClientCredentials(
-                        "existing-mcp-ddc", "gateway-mcp-engine-service",
-                        "platform-ddc-local", "[\"ddc:registration:write\"]", Instant.EPOCH));
+                        "existing-mcp-ddc", "yuheng-mcp-gateway-service",
+                        "platform-tianshu-local", "[\"tianshu:registration:write\"]", Instant.EPOCH));
         for (IdentityClientResourceGrantEntity grant : existing) {
             when(bootstrapGrants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
                     grant.getClientId(), grant.getResourceServerId(),
@@ -515,9 +515,9 @@ class IdpDevelopmentClientBootstrapTest {
             assertThat(qualifier.value()).isEqualTo(beanNames.get(index));
         }
         assertThat(parameters[6].getAnnotation(Value.class).value()).isEqualTo(
-                "${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}");
+                "${egon.tianquan-shoubing.development-bootstrap.key-directory:target/local-unified-xingyuan/secrets}");
         assertThat(parameters[7].getAnnotation(Value.class).value()).isEqualTo(
-                "${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}");
+                "${egon.tianquan-shoubing.development-bootstrap.tianquan-jianshen-service-tenant-ids:default}");
         assertThat(IdpDevelopmentClientBootstrap.class.getAnnotation(Component.class).value())
                 .isEqualTo("idpDevelopmentClientBootstrap");
     }
@@ -540,17 +540,17 @@ class IdpDevelopmentClientBootstrapTest {
     void retainsDdcRegistrationAndOpenApiScopesOnTheSamePlatformGrant() {
         IdpDevelopmentClientBootstrap bootstrap = bootstrapFixture();
         IdentityClientResourceGrantEntity existing = IdentityClientResourceGrantEntity.platformClientCredentials(
-                "existing-ddc-grant", "gateway-admin-service", "platform-ddc-local",
-                "[\"ddc:registration:write\"]", java.time.Instant.EPOCH);
+                "existing-tianshu-grant", "yuheng-admin-service", "platform-tianshu-local",
+                "[\"tianshu:registration:write\"]", java.time.Instant.EPOCH);
         when(bootstrapGrants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
-                "gateway-admin-service", "platform-ddc-local",
+                "yuheng-admin-service", "platform-tianshu-local",
                 IdentityClientResourceGrantEntity.GrantType.CLIENT_CREDENTIALS, null))
                 .thenReturn(Optional.of(existing));
 
         bootstrap.afterSingletonsInstantiated();
 
         assertThat(existing.getAllowedScopes())
-                .isEqualTo("[\"ddc:registration:write\",\"gateway.openapi.read\"]");
+                .isEqualTo("[\"tianshu:registration:write\",\"yuheng.openapi.read\"]");
         assertThat(existing.getVersion()).isEqualTo(1);
         verify(bootstrapGrants).save(existing);
     }
@@ -575,7 +575,9 @@ class IdpDevelopmentClientBootstrapTest {
             String resourceServerId, String bizCode, String appCode, String clientId) {
         return IdentityResourceServerEntity.create(
                 "existing-" + appCode, resourceServerId,
-                "https://api.egon.internal/local/" + bizCode + "/" + appCode,
+                "https://api.egon.internal/local/"
+                        + ("xingyuan".equals(bizCode) ? "platform" : bizCode)
+                        + "/" + appCode,
                 bizCode, appCode, "local", appCode, clientId,
                 "mock-backend", "mock:read", 300,
                 IdentityResourceServerEntity.Status.ACTIVE, Instant.EPOCH);

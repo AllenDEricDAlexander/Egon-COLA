@@ -197,9 +197,9 @@ public final class RuleBackedRpcGatewaySecurityProcessor
     static Map<String, String> securityAttributes(RuntimeRpcRoute route) {
         ProviderServiceKey target = route.targetService();
         return Map.of(
-                "idp.biz-code", target.bizCode(),
-                "idp.app-code", target.appCode(),
-                "idp.env", target.env()
+                "tianquan-shoubing.biz-code", target.bizCode(),
+                "tianquan-shoubing.app-code", target.appCode(),
+                "tianquan-shoubing.env", target.env()
         );
     }
 

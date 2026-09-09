@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.model.management;
 
 /**
- * Resource Server 停用后撤销 DDC 准入租约的精确三元组命令。
- * / Exact-triple command that revokes DDC admission leases after a Resource Server is disabled.
+ * Resource Server 停用后撤销 Tianshu 准入租约的精确三元组命令。
+ * / Exact-triple command that revokes Tianshu admission leases after a Resource Server is disabled.
  *
  * @param resourceServerId Resource Server 稳定标识 / stable Resource Server identifier
  * @param bizCode 业务域编码 / business-domain code

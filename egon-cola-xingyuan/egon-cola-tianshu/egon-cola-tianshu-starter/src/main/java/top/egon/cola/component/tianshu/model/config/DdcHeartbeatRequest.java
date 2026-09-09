@@ -69,7 +69,7 @@ public class DdcHeartbeatRequest {
      */
     private Map<String, String> metadata = Map.of();
 
-    /** Opaque IdP SERVICE access token used for this heartbeat. */
+    /** Opaque Tianquan-Shoubing SERVICE access token used for this heartbeat. */
     private String registrationToken;
 
 

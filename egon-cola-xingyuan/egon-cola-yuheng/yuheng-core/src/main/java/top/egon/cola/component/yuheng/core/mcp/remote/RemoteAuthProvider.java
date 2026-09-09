@@ -38,9 +38,9 @@ public interface RemoteAuthProvider {
 
         public static AuthContext system() {
             return new AuthContext(
-                    "gateway-mcp-capability-sync",
+                    "yuheng-mcp-capability-sync",
                     "system",
-                    "gateway-mcp"
+                    "yuheng-mcp"
             );
         }
     }

@@ -24,7 +24,7 @@ import java.nio.file.Path;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.rbac3.gateway.runtime",
+        prefix = "egon.cola.platform.tianquan.jianshen.yuheng.runtime",
         name = "redis-enabled",
         havingValue = "true")
 public class Rbac3GatewayRedissonConfiguration {
@@ -51,12 +51,12 @@ public class Rbac3GatewayRedissonConfiguration {
         if (address == null || (!address.startsWith("redis://")
                 && !address.startsWith("rediss://"))) {
             throw new IllegalArgumentException(
-                    "RBAC3 Gateway Redis address must use redis:// or rediss://");
+                    "Tianquan-Jianshen Gateway Redis address must use redis:// or rediss://");
         }
         if (runtime.getTimeout() == null || runtime.getTimeout().isNegative()
                 || runtime.getTimeout().isZero()) {
             throw new IllegalArgumentException(
-                    "RBAC3 Gateway Redis timeout must be positive");
+                    "Tianquan-Jianshen Gateway Redis timeout must be positive");
         }
         Config config = new Config();
         config.setCodec(new JsonJacksonCodec(objectMapper.copy()));
@@ -89,12 +89,12 @@ public class Rbac3GatewayRedissonConfiguration {
             String value = Files.readString(Path.of(file.trim())).trim();
             if (value.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "RBAC3 Gateway Redis password file is empty");
+                        "Tianquan-Jianshen Gateway Redis password file is empty");
             }
             return value;
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "Cannot read RBAC3 Gateway Redis password file", exception);
+                    "Cannot read Tianquan-Jianshen Gateway Redis password file", exception);
         }
     }
 }

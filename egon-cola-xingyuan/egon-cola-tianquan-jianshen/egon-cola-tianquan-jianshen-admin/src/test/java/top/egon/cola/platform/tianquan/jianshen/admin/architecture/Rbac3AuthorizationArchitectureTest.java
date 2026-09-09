@@ -123,7 +123,7 @@ class Rbac3AuthorizationArchitectureTest {
 
     private Path adminSourceRoot() {
         return Path.of(System.getProperty("basedir"), "src/main/java",
-                "top/egon/cola/platform/rbac3/admin");
+                "top/egon/cola/platform/tianquan/jianshen/admin");
     }
 
     private Path findByName(String name) throws Exception {

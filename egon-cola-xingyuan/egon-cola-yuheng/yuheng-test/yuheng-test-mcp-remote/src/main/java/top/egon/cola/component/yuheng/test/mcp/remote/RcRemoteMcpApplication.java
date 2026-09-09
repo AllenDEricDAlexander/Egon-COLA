@@ -18,7 +18,7 @@ public final class RcRemoteMcpApplication {
         );
         application.setDefaultProperties(Map.of(
                 "spring.application.name",
-                "gateway-test-mcp-remote-rc",
+                "yuheng-test-mcp-remote-rc",
                 "server.port",
                 "18152"
         ));

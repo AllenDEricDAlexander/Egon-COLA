@@ -55,15 +55,15 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
     @Test
     void openApiAnnotationsExposeAllResourceRoleAndTypedConstraintOperations() {
         org.assertj.core.api.Assertions.assertThat(operationIds(ApplicationResourceController.class))
-                .contains("rbac3-application-list-v1", "rbac3-application-resource-list-v1");
+                .contains("tianquan-jianshen-application-list-v1", "tianquan-jianshen-application-resource-list-v1");
         org.assertj.core.api.Assertions.assertThat(operationIds(RoleController.class))
-                .contains("rbac3-role-create-v1", "rbac3-role-inheritance-add-v1");
+                .contains("tianquan-jianshen-role-create-v1", "tianquan-jianshen-role-inheritance-add-v1");
         org.assertj.core.api.Assertions.assertThat(operationIds(ConstraintController.class))
                 .contains(
-                        "rbac3-sod-set-create-v1",
-                        "rbac3-data-rule-create-v1",
-                        "rbac3-field-rule-create-v1",
-                        "rbac3-operation-sod-create-v1");
+                        "tianquan-jianshen-sod-set-create-v1",
+                        "tianquan-jianshen-data-rule-create-v1",
+                        "tianquan-jianshen-field-rule-create-v1",
+                        "tianquan-jianshen-operation-sod-create-v1");
     }
 
     private Set<String> operationIds(Class<?> controllerType) {

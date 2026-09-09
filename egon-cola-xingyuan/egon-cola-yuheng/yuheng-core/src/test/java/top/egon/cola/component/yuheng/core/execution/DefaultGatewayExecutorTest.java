@@ -36,7 +36,7 @@ class DefaultGatewayExecutorTest {
                 ignored -> Mono.error(new IllegalArgumentException("boom")),
                 (ignored, error) -> new DefaultGatewayResponse(
                         GatewayResult.failure(new GatewayError(
-                                "GATEWAY_INTERNAL_ERROR",
+                                "YUHENG_INTERNAL_ERROR",
                                 GatewayErrorCategory.INTERNAL_ERROR,
                                 "Gateway request failed",
                                 "trace",
@@ -51,7 +51,7 @@ class DefaultGatewayExecutorTest {
         GatewayResponse response = Mono.from(executor.execute(exchange)).block();
 
         assertEquals(
-                "GATEWAY_INTERNAL_ERROR",
+                "YUHENG_INTERNAL_ERROR",
                 response.result().error().orElseThrow().code()
         );
         assertTrue(body.closed());

@@ -38,12 +38,12 @@ import java.util.List;
  * Semantics and usage: use `ApplicationResourceController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/resource-catalog")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/resource-catalog")
 @Tag(name = "application-resource", description = "应用与资源接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -95,9 +95,9 @@ public class ApplicationResourceController {
     @GetMapping("/applications")
     @RequiresPermission(value = "system:application:read")
     @Operation(
-            operationId = "rbac3-application-list-v1",
+            operationId = "tianquan-jianshen-application-list-v1",
             summary = "查询租户应用",
-            tags = {"rbac3", "application"}
+            tags = {"tianquan-jianshen", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -119,9 +119,9 @@ public class ApplicationResourceController {
     @GetMapping("/applications/{applicationId}/resources")
     @RequiresPermission(value = "system:resource:read")
     @Operation(
-            operationId = "rbac3-application-resource-list-v1",
+            operationId = "tianquan-jianshen-application-resource-list-v1",
             summary = "查询应用资源",
-            tags = {"rbac3", "resource"}
+            tags = {"tianquan-jianshen", "resource"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -134,9 +134,9 @@ public class ApplicationResourceController {
     @GetMapping("/applications/{applicationId}/fields")
     @RequiresPermission(value = "system:field-definition:read")
     @Operation(
-            operationId = "rbac3-application-field-list-v1",
+            operationId = "tianquan-jianshen-application-field-list-v1",
             summary = "查询应用字段定义",
-            tags = {"rbac3", "resource", "field"}
+            tags = {"tianquan-jianshen", "resource", "field"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -149,9 +149,9 @@ public class ApplicationResourceController {
     @GetMapping("/resources/{resourceId}/fields")
     @RequiresPermission(value = "system:field-definition:read")
     @Operation(
-            operationId = "rbac3-resource-field-list-v1",
+            operationId = "tianquan-jianshen-resource-field-list-v1",
             summary = "查询资源字段定义",
-            tags = {"rbac3", "resource", "field"}
+            tags = {"tianquan-jianshen", "resource", "field"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -165,9 +165,9 @@ public class ApplicationResourceController {
     @PostMapping("/fields")
     @RequiresPermission(value = "system:field-definition:manage")
     @Operation(
-            operationId = "rbac3-resource-field-create-v1",
+            operationId = "tianquan-jianshen-resource-field-create-v1",
             summary = "创建资源字段定义",
-            tags = {"rbac3", "resource", "field"}
+            tags = {"tianquan-jianshen", "resource", "field"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -182,9 +182,9 @@ public class ApplicationResourceController {
     @PutMapping("/fields/{fieldId}/status")
     @RequiresPermission(value = "system:field-definition:manage")
     @Operation(
-            operationId = "rbac3-resource-field-status-v1",
+            operationId = "tianquan-jianshen-resource-field-status-v1",
             summary = "变更资源字段状态",
-            tags = {"rbac3", "resource", "field"}
+            tags = {"tianquan-jianshen", "resource", "field"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -212,9 +212,9 @@ public class ApplicationResourceController {
     @PostMapping("/resources/{resourceId}/archive")
     @RequiresPermission(value = "system:resource:archive")
     @Operation(
-            operationId = "rbac3-resource-archive-v1",
+            operationId = "tianquan-jianshen-resource-archive-v1",
             summary = "归档已失效资源",
-            tags = {"rbac3", "resource"}
+            tags = {"tianquan-jianshen", "resource"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

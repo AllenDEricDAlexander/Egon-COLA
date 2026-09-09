@@ -61,7 +61,7 @@ public final class GatewayRequestResourceGuard {
                 || pathSegments > limits.maximumPathSegments()
                 || metadataBytes > limits.maximumMetadataBytes()) {
             throw new GatewayRequestRejectedException(
-                    "GATEWAY_REQUEST_LIMIT_EXCEEDED",
+                    "YUHENG_REQUEST_LIMIT_EXCEEDED",
                     413,
                     "request resource limit exceeded"
             );

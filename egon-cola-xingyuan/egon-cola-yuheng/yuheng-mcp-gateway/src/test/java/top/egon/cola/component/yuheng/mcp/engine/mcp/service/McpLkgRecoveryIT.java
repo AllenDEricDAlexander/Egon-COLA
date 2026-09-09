@@ -188,7 +188,7 @@ class McpLkgRecoveryIT {
                 "Developer capabilities",
                 "Use reviewed tools.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30,
                 true
         );

@@ -25,7 +25,7 @@ public class DdcStringMapConverter
             );
         } catch (Exception failure) {
             throw new IllegalArgumentException(
-                    "Cannot serialize DDC instance metadata",
+                    "Cannot serialize Tianshu instance metadata",
                     failure
             );
         }
@@ -40,7 +40,7 @@ public class DdcStringMapConverter
             return Map.copyOf(MAPPER.readValue(value, TYPE));
         } catch (Exception failure) {
             throw new IllegalArgumentException(
-                    "Cannot deserialize DDC instance metadata",
+                    "Cannot deserialize Tianshu instance metadata",
                     failure
             );
         }

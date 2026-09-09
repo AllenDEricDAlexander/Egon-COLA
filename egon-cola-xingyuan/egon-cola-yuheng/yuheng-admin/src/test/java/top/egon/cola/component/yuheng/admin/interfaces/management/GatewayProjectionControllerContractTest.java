@@ -31,20 +31,20 @@ class GatewayProjectionControllerContractTest {
         var service = mock(GatewayProjectionService.class);
         var node = new DdcManagementConfigClientInstance("infra", "test", "ge", "node-1", "lease-1",
                 "127.0.0.1", 18081, "CONFIG_CLIENT", "ONLINE", now, now, now.plusSeconds(30),
-                Map.of("gateway.engine.role", "API_RPC"));
+                Map.of("yuheng.engine.role", "API_RPC"));
         when(service.engineNodes("group-1")).thenReturn(
-                new GatewayProjectionEnvelopeVO<>(List.of(node), now, "DDC_CONFIG_CLIENT", false, null));
+                new GatewayProjectionEnvelopeVO<>(List.of(node), now, "TIANSHU_CONFIG_CLIENT", false, null));
         when(service.runtimeConsistency("group-1")).thenReturn(new GatewayRuntimeConsistencyVO(
-                "release-1", "SUCCESS", 1, 0, false, now, "DDC_CONFIG_CLIENT", false,
+                "release-1", "SUCCESS", 1, 0, false, now, "TIANSHU_CONFIG_CLIENT", false,
                 List.of(new GatewayEngineNodeConsistencyVO("node-1", "lease-1", "ONLINE",
                         "NOT_READY", "ROLE_UNKNOWN", "release-1", 12L, "sha", "ACK_SUCCESS", now))));
         MockMvc mvc = mvc(service);
-        String envelope = mvc.perform(get("/api/v1/gateway/admin/gateway-groups/group-1/engine-nodes"))
+        String envelope = mvc.perform(get("/api/v1/yuheng/admin/yuheng-groups/group-1/engine-nodes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.value[0].metadata['gateway.engine.role']").value("API_RPC"))
+                .andExpect(jsonPath("$.value[0].metadata['yuheng.engine.role']").value("API_RPC"))
                 .andReturn().getResponse().getContentAsString();
         assertThat(fields(envelope)).containsExactlyInAnyOrder("value", "observedAt", "source", "stale", "refreshError");
-        String consistency = mvc.perform(get("/api/v1/gateway/admin/gateway-groups/group-1/runtime-consistency"))
+        String consistency = mvc.perform(get("/api/v1/yuheng/admin/yuheng-groups/group-1/runtime-consistency"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.consistent").value(false))
                 .andExpect(jsonPath("$.nodes[0].reason").value("ROLE_UNKNOWN"))
                 .andReturn().getResponse().getContentAsString();
@@ -60,10 +60,10 @@ class GatewayProjectionControllerContractTest {
     @Test
     void preservesExistingUnavailableStatusAndErrorCode() throws Exception {
         var service = mock(GatewayProjectionService.class);
-        when(service.engineNodes("group-1")).thenThrow(new IllegalStateException("DDC management client is not configured"));
-        mvc(service).perform(get("/api/v1/gateway/admin/gateway-groups/group-1/engine-nodes"))
+        when(service.engineNodes("group-1")).thenThrow(new IllegalStateException("Tianshu management client is not configured"));
+        mvc(service).perform(get("/api/v1/yuheng/admin/yuheng-groups/group-1/engine-nodes"))
                 .andExpect(status().isServiceUnavailable())
-                .andExpect(jsonPath("$.code").value("GATEWAY_ADMIN_DDC_UNAVAILABLE"));
+                .andExpect(jsonPath("$.code").value("YUHENG_ADMIN_TIANSHU_UNAVAILABLE"));
     }
 
     private HashSet<String> fields(String json) throws Exception {

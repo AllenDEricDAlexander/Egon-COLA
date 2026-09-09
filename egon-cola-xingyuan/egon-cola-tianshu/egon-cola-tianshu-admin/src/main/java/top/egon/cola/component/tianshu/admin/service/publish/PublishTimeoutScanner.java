@@ -50,8 +50,8 @@ public class PublishTimeoutScanner {
     }
 
     @Scheduled(
-            fixedDelayString = "${egon.cola.component.ddc.admin.publish.scan-interval-ms:1000}",
-            initialDelayString = "${egon.cola.component.ddc.admin.publish.scan-interval-ms:1000}"
+            fixedDelayString = "${egon.cola.component.tianshu.admin.publish.scan-interval-ms:1000}",
+            initialDelayString = "${egon.cola.component.tianshu.admin.publish.scan-interval-ms:1000}"
     )
     public int scanExpired() {
         Instant now = clock.instant();

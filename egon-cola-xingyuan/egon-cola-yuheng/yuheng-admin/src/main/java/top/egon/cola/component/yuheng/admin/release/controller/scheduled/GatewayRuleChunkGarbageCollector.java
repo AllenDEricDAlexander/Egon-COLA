@@ -124,7 +124,7 @@ public class GatewayRuleChunkGarbageCollector {
             GatewayReleasePublicationRepository journal,
             ObjectProvider<DdcManagementClient> client,
             GatewayAdminProperties properties,
-            @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
+            @Value("${yuheng.admin.tianshu.publish-timeout:PT30S}")
             Duration publishTimeout) {
         this(
                 journal,
@@ -158,7 +158,7 @@ public class GatewayRuleChunkGarbageCollector {
         this.clock = Objects.requireNonNull(clock, "clock");
         this.publishTimeout = positive(
                 publishTimeout,
-                "Gateway DDC publish timeout"
+                "Gateway Tianshu publish timeout"
         );
         this.yamlDocument = new GatewayDdcYamlDocument();
         retention();
@@ -172,9 +172,9 @@ public class GatewayRuleChunkGarbageCollector {
      */
     @Scheduled(
             initialDelayString =
-                    "${gateway.admin.rule-chunk.cleanup-delay:PT1H}",
+                    "${yuheng.admin.rule-chunk.cleanup-delay:PT1H}",
             fixedDelayString =
-                    "${gateway.admin.rule-chunk.cleanup-delay:PT1H}"
+                    "${yuheng.admin.rule-chunk.cleanup-delay:PT1H}"
     )
     public void collect() {
         collectOnce();

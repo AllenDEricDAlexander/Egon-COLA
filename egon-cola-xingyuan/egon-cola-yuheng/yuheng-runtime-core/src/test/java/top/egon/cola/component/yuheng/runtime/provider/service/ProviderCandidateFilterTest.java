@@ -30,16 +30,16 @@ class ProviderCandidateFilterTest {
         ProviderInstance allowed = provider(
                 "allowed",
                 Map.of(
-                        "gateway.zone", "provider-zone",
-                        "gateway.tags", "blue,legacy",
-                        "gateway.weight", "10"
+                        "yuheng.zone", "provider-zone",
+                        "yuheng.tags", "blue,legacy",
+                        "yuheng.weight", "10"
                 ),
                 ProviderHealthState.HEALTHY,
                 ProviderHealthState.HEALTHY
         );
         ProviderInstance disabled = provider(
                 "disabled",
-                Map.of("gateway.zone", "az-a", "gateway.tags", "blue"),
+                Map.of("yuheng.zone", "az-a", "yuheng.tags", "blue"),
                 ProviderHealthState.HEALTHY,
                 ProviderHealthState.HEALTHY
         );
@@ -90,7 +90,7 @@ class ProviderCandidateFilterTest {
         ProviderInstance selected = result.candidates().getFirst();
         assertEquals("allowed", selected.instanceId());
         assertEquals(30, selected.weight());
-        assertEquals("az-a", selected.metadata().get("gateway.zone"));
+        assertEquals("az-a", selected.metadata().get("yuheng.zone"));
         assertEquals(1, result.counts().get(
                 ProviderCandidateStage.ADMIN_ENABLED
         ));
@@ -123,7 +123,7 @@ class ProviderCandidateFilterTest {
         );
         ProviderInstance invalidWeight = provider(
                 "invalid",
-                Map.of("gateway.weight", "not-a-number"),
+                Map.of("yuheng.weight", "not-a-number"),
                 ProviderHealthState.HEALTHY,
                 ProviderHealthState.HEALTHY
         );

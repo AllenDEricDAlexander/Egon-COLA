@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.iam.application.domain.co
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 
-/** Request to admit a DDC Application as a tenant-local RBAC authorization scope. */
+/** Request to admit a Tianshu Application as a tenant-local RBAC authorization scope. */
 public record AdmitApplicationAuthorizationScopeCommand(
         @NotBlank String ddcApplicationId,
         @PositiveOrZero int displayPriority) {

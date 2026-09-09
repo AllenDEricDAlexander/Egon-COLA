@@ -15,7 +15,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Narrow Spring Security OAuth2 Client facade for IdP SERVICE tokens.
+ * Narrow Spring Security OAuth2 Client facade for Tianquan-Shoubing SERVICE tokens.
  *
  * <p>It owns the complete authorization cache key and bounded per-key
  * single-flight behavior while leaving registration credentials in Spring's
@@ -99,11 +99,11 @@ public class IdpServiceOAuth2Client {
                     OAuth2AuthorizeRequest
                             .withClientRegistrationId(key.registrationId())
                             .principal(key.principalName())
-                            .attribute("egon.idp.app_id", key.appId())
-                            .attribute("egon.idp.resource", key.audience())
-                            .attribute("egon.idp.scope_context", key.context())
-                            .attribute("egon.idp.tenant_id", key.tenantId())
-                            .attribute("egon.idp.scopes", key.scopes())
+                            .attribute("egon.tianquan-shoubing.app_id", key.appId())
+                            .attribute("egon.tianquan-shoubing.resource", key.audience())
+                            .attribute("egon.tianquan-shoubing.scope_context", key.context())
+                            .attribute("egon.tianquan-shoubing.tenant_id", key.tenantId())
+                            .attribute("egon.tianquan-shoubing.scopes", key.scopes())
                             .build();
             OAuth2AuthorizedClient authorized = manager.authorize(
                     authorizeRequest
@@ -189,7 +189,7 @@ public class IdpServiceOAuth2Client {
                 String errorCode,
                 Throwable cause
         ) {
-            super("IdP service token authorization failed: " + errorCode,
+            super("Tianquan-Shoubing service token authorization failed: " + errorCode,
                     cause);
             this.errorCode = errorCode;
         }

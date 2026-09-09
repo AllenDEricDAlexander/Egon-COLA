@@ -21,7 +21,7 @@ public enum TrafficPolicyScope {
      *
      * 用法 / Usage: 该字段通过 {@code TrafficPolicyScope} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code TrafficPolicyScope}; do not couple callers to its representation when the owning type exposes an API.
      */
-    GATEWAY_GROUP,
+    YUHENG_GROUP,
     /**
      * 中文说明：表示 APPLICATION 这一固定值；它属于 {@code TrafficPolicyScope} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
      * English summary: Represents the fixed value application; it is a state, type, or protocol value of {@code TrafficPolicyScope} and keeps callers aligned with the owning type.

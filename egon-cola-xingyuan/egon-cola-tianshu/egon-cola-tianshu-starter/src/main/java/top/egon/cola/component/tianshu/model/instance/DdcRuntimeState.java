@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.model.instance;
 
 /**
- * DDC 客户端运行时生命周期状态。
- * Lifecycle states of the DDC client runtime.
+ * Tianshu 客户端运行时生命周期状态。
+ * Lifecycle states of the Tianshu client runtime.
  */
 public enum DdcRuntimeState {
     /**

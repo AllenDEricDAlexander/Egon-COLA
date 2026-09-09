@@ -97,7 +97,7 @@ class McpSecurityGateTest {
                             "mcp:billing:tool:pay_invoice:call"
                     ), request.requiredPermissions());
                     return Mono.just(McpAuthorizationPort.Decision.denied(
-                            "RBAC3_PERMISSION_DENIED",
+                            "TIANQUAN_JIANSHEN_PERMISSION_DENIED",
                             7L,
                             3L,
                             11L
@@ -178,14 +178,14 @@ class McpSecurityGateTest {
     void userAudienceCanSupplyMcpProtocolClientWithoutUserClientClaim() {
         McpSecurityGate.IdentityContext context =
                 McpSecurityGate.IdentityContext.from(Map.of(
-                        "identity.issuer", "https://idp.internal",
+                        "identity.issuer", "https://tianquan-shoubing.internal",
                         "identity.subject", "alice-sub",
                         "identity.tenant-id", "tenant-a",
-                        "idp.audience", "platform",
-                        "idp.token-id", "token-1",
-                        "idp.resource-uri", "https://resource.egon.top/gateway-mcp",
-                        "idp.issued-at", NOW.minusSeconds(30).toString(),
-                        "idp.expires-at", NOW.plusSeconds(300).toString()
+                        "tianquan-shoubing.audience", "platform",
+                        "tianquan-shoubing.token-id", "token-1",
+                        "tianquan-shoubing.resource-uri", "https://resource.egon.top/yuheng-mcp",
+                        "tianquan-shoubing.issued-at", NOW.minusSeconds(30).toString(),
+                        "tianquan-shoubing.expires-at", NOW.plusSeconds(300).toString()
                 ));
 
         assertEquals("platform", context.clientId());
@@ -205,12 +205,12 @@ class McpSecurityGateTest {
                 new ObjectMapper()
         );
         McpSecurityGate.IdentityContext context = new McpSecurityGate.IdentityContext(
-                "https://idp.internal",
+                "https://tianquan-shoubing.internal",
                 "alice-sub",
                 "tenant-a",
                 "platform",
                 "token-1",
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 NOW.minusSeconds(30),
                 NOW.plusSeconds(300),
                 0L,
@@ -257,12 +257,12 @@ class McpSecurityGateTest {
 
     private McpSecurityGate.IdentityContext identity() {
         return new McpSecurityGate.IdentityContext(
-                "https://idp.internal",
+                "https://tianquan-shoubing.internal",
                 "alice-sub",
                 "tenant-a",
                 "finance-web",
                 "token-1",
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 NOW.minusSeconds(30),
                 NOW.plusSeconds(300),
                 7L,

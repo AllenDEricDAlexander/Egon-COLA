@@ -1,27 +1,27 @@
 spring:
   application:
-    name: idp-admin
+    name: tianquan-shoubing-admin
   profiles:
     default: local
   config:
     import:
-      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/idp.properties
-      - optional:ddc:application.yml
+      - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/tianquan-shoubing.properties
+      - optional:tianshu:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   datasource:
-    url: ${IDP_POSTGRES_URL}
-    username: ${IDP_POSTGRES_USER}
-    password: ${IDP_POSTGRES_PASSWORD}
+    url: ${TIANQUAN_SHOUBING_POSTGRES_URL}
+    username: ${TIANQUAN_SHOUBING_POSTGRES_USER}
+    password: ${TIANQUAN_SHOUBING_POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
   data:
     redis:
-      host: ${IDP_REDIS_HOST}
-      port: ${IDP_REDIS_PORT:6379}
-      password: ${IDP_REDIS_PASSWORD:}
-      database: ${IDP_REDIS_DATABASE:0}
-      timeout: ${IDP_REDIS_TIMEOUT:2s}
+      host: ${TIANQUAN_SHOUBING_REDIS_HOST}
+      port: ${TIANQUAN_SHOUBING_REDIS_PORT:6379}
+      password: ${TIANQUAN_SHOUBING_REDIS_PASSWORD:}
+      database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
+      timeout: ${TIANQUAN_SHOUBING_REDIS_TIMEOUT:2s}
   flyway:
     enabled: true
     locations: classpath:db/migration
@@ -37,32 +37,32 @@ spring:
     timeout-per-shutdown-phase: 30s
 
 server:
-  port: ${IDP_ADVERTISED_PORT:18120}
+  port: ${TIANQUAN_SHOUBING_ADVERTISED_PORT:18120}
   shutdown: graceful
 
 springdoc:
   api-docs:
-    enabled: ${IDP_HTTP_OPENAPI_ENABLED:false}
+    enabled: ${TIANQUAN_SHOUBING_HTTP_OPENAPI_ENABLED:false}
     version: OPENAPI_3_1
   group-configs:
-    - group: idp-identity
+    - group: tianquan-shoubing-identity
       paths-to-match:
-        - /api/v1/identity/clients/**
-        - /api/v1/identity/resource-servers/**
-        - /api/v1/identity/signing-keys/**
-        - /api/v1/identity/tenants/**
-        - /api/v1/identity/users/**
-    - group: idp-audit
+        - /api/v1/tianquan-shoubing/clients/**
+        - /api/v1/tianquan-shoubing/resource-servers/**
+        - /api/v1/tianquan-shoubing/signing-keys/**
+        - /api/v1/tianquan-shoubing/tenants/**
+        - /api/v1/tianquan-shoubing/users/**
+    - group: tianquan-shoubing-audit
       paths-to-match:
-        - /api/v1/identity/audits/**
-    - group: idp-auth
+        - /api/v1/tianquan-shoubing/audits/**
+    - group: tianquan-shoubing-auth
       paths-to-match:
-        - /api/v1/identity/auth/**
-    - group: idp-profile
+        - /api/v1/tianquan-shoubing/auth/**
+    - group: tianquan-shoubing-profile
       paths-to-match:
-        - /api/v1/identity/me
+        - /api/v1/tianquan-shoubing/me
         - /oauth2/userinfo
-    - group: idp-oauth
+    - group: tianquan-shoubing-oauth
       paths-to-match:
         - /oauth2/**
         - /.well-known/**
@@ -80,73 +80,73 @@ management:
         enabled: true
 
 egon.cola.platform:
-  idp:
+  tianquan-shoubing:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
-    issuer: ${IDP_OAUTH_ISSUER}
-    jwk-set-uri: ${IDP_JWK_SET_URI}
-    resource-server-id: ${IDP_RESOURCE_SERVER_ID}
-    resource-uri: ${IDP_RESOURCE_URI}
-  rbac3:
+    issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+    jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+    resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID}
+    resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI}
+  tianquan-jianshen:
     enabled: ${UNIFIED_IDENTITY_ENABLED:true}
     register-filter: false
-    system-code: idp-admin
+    system-code: tianquan-shoubing-admin
     runtime:
       redis-enabled: true
-      redis-address: ${IDP_AUTHORIZATION_REDIS_ADDRESS}
-      database: ${IDP_AUTHORIZATION_REDIS_DATABASE:0}
+      redis-address: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS}
+      database: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_DATABASE:0}
     authorization:
-      endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
+      endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT}
 
 egon:
-  idp:
+  tianquan-shoubing:
     identity-state-key-prefix: "identity:v1:user:"
     oauth:
-      issuer: ${IDP_OAUTH_ISSUER}
-      login-uri: ${IDP_OAUTH_LOGIN_URI}
-      allowed-origins: ${IDP_OAUTH_ALLOWED_ORIGINS:}
-      refresh-cookie-secure: ${IDP_REFRESH_COOKIE_SECURE:true}
+      issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+      login-uri: ${TIANQUAN_SHOUBING_OAUTH_LOGIN_URI}
+      allowed-origins: ${TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS:}
+      refresh-cookie-secure: ${TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE:true}
       signing-key:
-        kid: ${IDP_SIGNING_KEY_KID}
-        public-key-file: ${IDP_SIGNING_PUBLIC_KEY_FILE}
-        private-key-file: ${IDP_SIGNING_PRIVATE_KEY_FILE}
+        kid: ${TIANQUAN_SHOUBING_SIGNING_KEY_KID}
+        public-key-file: ${TIANQUAN_SHOUBING_SIGNING_PUBLIC_KEY_FILE}
+        private-key-file: ${TIANQUAN_SHOUBING_SIGNING_PRIVATE_KEY_FILE}
   cola:
     component:
       id:
         enabled: true
-        machine-id: ${IDP_SNOWFLAKE_MACHINE_ID}
+        machine-id: ${TIANQUAN_SHOUBING_SNOWFLAKE_MACHINE_ID}
       rpc:
-        enabled: ${IDP_RPC_ENABLED:true}
+        enabled: ${TIANQUAN_SHOUBING_RPC_ENABLED:true}
         identity:
           env: ${DEPLOYMENT_ENV:local}
-          host: ${IDP_ADVERTISED_HOST:127.0.0.1}
-          instance-id: ${IDP_INSTANCE_ID:idp-local-1}
+          host: ${TIANQUAN_SHOUBING_ADVERTISED_HOST:127.0.0.1}
+          instance-id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
         provider:
-          enabled: ${IDP_RPC_PROVIDER_ENABLED:true}
-          bind-address: ${IDP_RPC_BIND_ADDRESS:0.0.0.0}
-          port: ${IDP_RPC_PORT:18122}
-          advertised-host: ${IDP_RPC_ADVERTISED_HOST:${IDP_ADVERTISED_HOST:127.0.0.1}}
-          advertised-port: ${IDP_RPC_ADVERTISED_PORT:${IDP_RPC_PORT:18122}}
-          registration-mode: ${IDP_RPC_PROVIDER_REGISTRATION_MODE:DISABLED}
+          enabled: ${TIANQUAN_SHOUBING_RPC_PROVIDER_ENABLED:true}
+          bind-address: ${TIANQUAN_SHOUBING_RPC_BIND_ADDRESS:0.0.0.0}
+          port: ${TIANQUAN_SHOUBING_RPC_PORT:18122}
+          advertised-host: ${TIANQUAN_SHOUBING_RPC_ADVERTISED_HOST:${TIANQUAN_SHOUBING_ADVERTISED_HOST:127.0.0.1}}
+          advertised-port: ${TIANQUAN_SHOUBING_RPC_ADVERTISED_PORT:${TIANQUAN_SHOUBING_RPC_PORT:18122}}
+          registration-mode: ${TIANQUAN_SHOUBING_RPC_PROVIDER_REGISTRATION_MODE:DISABLED}
         consumer:
           enabled: false
         tls:
-          enabled: ${IDP_RPC_TLS_ENABLED:false}
-          development-plaintext: ${IDP_RPC_DEVELOPMENT_PLAINTEXT:false}
-          certificate-chain-path: ${IDP_RPC_CERTIFICATE_CHAIN_PATH:}
-          private-key-path: ${IDP_RPC_PRIVATE_KEY_PATH:}
-          trust-certificate-collection-path: ${IDP_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+          enabled: ${TIANQUAN_SHOUBING_RPC_TLS_ENABLED:false}
+          development-plaintext: ${TIANQUAN_SHOUBING_RPC_DEVELOPMENT_PLAINTEXT:false}
+          certificate-chain-path: ${TIANQUAN_SHOUBING_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${TIANQUAN_SHOUBING_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${TIANQUAN_SHOUBING_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
       transactional-outbox:
         enabled: true
-        node-id: ${IDP_INSTANCE_ID:idp-local-1}
-      ddc:
-        enabled: ${IDP_DDC_ENABLED:false}
-        biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
-        app-code: ${IDP_RESOURCE_APP_CODE:idp}
+        node-id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
+      tianshu:
+        enabled: ${TIANQUAN_SHOUBING_TIANSHU_ENABLED:false}
+        biz-code: ${TIANQUAN_SHOUBING_RESOURCE_BIZ_CODE:permission}
+        app-code: ${TIANQUAN_SHOUBING_RESOURCE_APP_CODE:tianquan-shoubing}
         env: ${DEPLOYMENT_ENV:local}
         namespace: ${DEPLOYMENT_NAMESPACE:default}
         instance:
-          id: ${IDP_INSTANCE_ID:idp-local-1}
+          id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
           lease-seconds: 30
           heartbeat-interval-seconds: 10
         consistency:
@@ -154,71 +154,71 @@ egon:
           reconcile-enabled: true
           reconcile-interval-seconds: 30
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${DDC_RPC_TLS_ENABLED:false}
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
             management:
-              access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_MANAGEMENT_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_MANAGEMENT_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_MANAGEMENT_SECRET_KEY:}
         redis:
-          enabled: ${IDP_DDC_ENABLED:false}
+          enabled: ${TIANQUAN_SHOUBING_TIANSHU_ENABLED:false}
           mode: SINGLE
-          host: ${DDC_REGISTRY_REDIS_HOST:127.0.0.1}
-          port: ${DDC_REGISTRY_REDIS_PORT:6379}
-          password: ${DDC_REGISTRY_REDIS_PASSWORD:}
-          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
+          host: ${TIANSHU_REGISTRY_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REGISTRY_REDIS_PORT:6379}
+          password: ${TIANSHU_REGISTRY_REDIS_PASSWORD:}
+          database: ${TIANSHU_REGISTRY_REDIS_DATABASE:0}
         registry:
-          enabled: ${IDP_DDC_ENABLED:false}
+          enabled: ${TIANQUAN_SHOUBING_TIANSHU_ENABLED:false}
           http:
-            enabled: ${IDP_HTTP_PROVIDER_ENABLED:false}
+            enabled: ${TIANQUAN_SHOUBING_HTTP_PROVIDER_ENABLED:false}
             env: ${DEPLOYMENT_ENV:local}
             namespace: ${DEPLOYMENT_NAMESPACE:default}
-            instance-id: ${IDP_INSTANCE_ID:idp-local-1}
-            service-name: idp-admin
+            instance-id: ${TIANQUAN_SHOUBING_INSTANCE_ID:tianquan-shoubing-local-1}
+            service-name: tianquan-shoubing-admin
             group: default
-            version: ${IDP_ARTIFACT_VERSION:5.3.2}
+            version: ${TIANQUAN_SHOUBING_ARTIFACT_VERSION:5.3.2}
             protocol: http
-            advertised-host: ${IDP_ADVERTISED_HOST:127.0.0.1}
-            port: ${IDP_ADVERTISED_PORT:18120}
+            advertised-host: ${TIANQUAN_SHOUBING_ADVERTISED_HOST:127.0.0.1}
+            port: ${TIANQUAN_SHOUBING_ADVERTISED_PORT:18120}
             lease-seconds: 30
             heartbeat-interval-seconds: 10
             fail-fast: true
-      gateway:
+      yuheng:
         openapi:
-          enabled: ${IDP_HTTP_OPENAPI_ENABLED:false}
-          publish-to-ddc: true
+          enabled: ${TIANQUAN_SHOUBING_HTTP_OPENAPI_ENABLED:false}
+          publish-to-tianshu: true
           published-groups:
-            - idp-identity
-            - idp-audit
-            - idp-auth
-            - idp-profile
-            - idp-oauth
-          biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
-          application-code: ${IDP_RESOURCE_APP_CODE:idp}
-          resource-uri: ${IDP_RESOURCE_URI:}
-          artifact-version: ${IDP_ARTIFACT_VERSION:local}
-          build-id: ${IDP_BUILD_ID:local}
+            - tianquan-shoubing-identity
+            - tianquan-shoubing-audit
+            - tianquan-shoubing-auth
+            - tianquan-shoubing-profile
+            - tianquan-shoubing-oauth
+          biz-code: ${TIANQUAN_SHOUBING_RESOURCE_BIZ_CODE:permission}
+          application-code: ${TIANQUAN_SHOUBING_RESOURCE_APP_CODE:tianquan-shoubing}
+          resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+          artifact-version: ${TIANQUAN_SHOUBING_ARTIFACT_VERSION:local}
+          build-id: ${TIANQUAN_SHOUBING_BUILD_ID:local}
         reporting:
-          enabled: ${IDP_GATEWAY_REPORTING_ENABLED:true}
-          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:}
-          biz-code: ${IDP_RESOURCE_BIZ_CODE:permission}
-          application-code: ${IDP_RESOURCE_APP_CODE:idp}
-          application-name: IdP Identity Admin
+          enabled: ${TIANQUAN_SHOUBING_YUHENG_REPORTING_ENABLED:true}
+          admin-base-url: ${YUHENG_ADMIN_BASE_URL:}
+          biz-code: ${TIANQUAN_SHOUBING_RESOURCE_BIZ_CODE:permission}
+          application-code: ${TIANQUAN_SHOUBING_RESOURCE_APP_CODE:tianquan-shoubing}
+          application-name: Tianquan-Shoubing Identity Admin
           env: ${DEPLOYMENT_ENV:local}
           namespace: ${DEPLOYMENT_NAMESPACE:default}
-          artifact-version: ${IDP_ARTIFACT_VERSION:local}
-          build-id: ${IDP_BUILD_ID:local}
-          declared-hosts: ${IDP_DECLARED_HOSTS:127.0.0.1}
+          artifact-version: ${TIANQUAN_SHOUBING_ARTIFACT_VERSION:local}
+          build-id: ${TIANQUAN_SHOUBING_BUILD_ID:local}
+          declared-hosts: ${TIANQUAN_SHOUBING_DECLARED_HOSTS:127.0.0.1}
           fail-fast: true
-          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
-          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
-          state-file: ${GATEWAY_REPORT_STATE_FILE:}
+          access-key: ${YUHENG_REPORT_ACCESS_KEY:}
+          secret-key: ${YUHENG_REPORT_SECRET_KEY:}
+          state-file: ${YUHENG_REPORT_STATE_FILE:}

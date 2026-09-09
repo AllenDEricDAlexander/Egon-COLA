@@ -16,16 +16,16 @@ import top.egon.cola.platform.tianquan.jianshen.starter.authorization.Rbac3About
 
 import java.util.Objects;
 
-/** Provides the IdP administration web with its own authorization bootstrap. */
+/** Provides the Tianquan-Shoubing administration web with its own authorization bootstrap. */
 @RestController
-@RequestMapping("/api/v1/identity/auth")
+@RequestMapping("/api/v1/tianquan-shoubing/auth")
 @Tag(name = "identity-auth-bootstrap", description = "统一身份管理台授权上下文接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-auth",
         entityDomainName = "统一身份认证上下文域",
-        interfaceGroupCode = "idp-auth"
+        interfaceGroupCode = "tianquan-shoubing-auth"
 )
 
 public final class IdentityAuthBootstrapController {
@@ -41,9 +41,9 @@ public final class IdentityAuthBootstrapController {
     }
 
     @Operation(
-            operationId = "idp-identity-auth-bootstrap-v1",
+            operationId = "tianquan-shoubing-identity-auth-bootstrap-v1",
             summary = "查询统一身份管理台当前授权上下文",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -51,7 +51,7 @@ public final class IdentityAuthBootstrapController {
     @GetMapping("/bootstrap")
     public AuthorizationBootstrapView bootstrap(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal) {
-        authorization.require(principal, "idp:bootstrap:read");
+        authorization.require(principal, "tianquan-shoubing:bootstrap:read");
         Rbac3AboutView about = bootstrap.current();
         return AuthorizationBootstrapView.from(about);
     }

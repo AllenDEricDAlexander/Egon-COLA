@@ -52,7 +52,7 @@ import static org.mockito.Mockito.mock;
  *
  * <p>The Actuator info version is the load-bearing case: {@code info.app.version: ${sdk.version}}
  * only resolves because {@code application.yml} declares
- * {@code spring.config.import: classpath:META-INF/egon-cola-ddc.properties}, and that file is
+ * {@code spring.config.import: classpath:META-INF/egon-cola-tianshu.properties}, and that file is
  * Maven-filtered in the starter module. Drop the import, rename the key, or lose the filtering
  * and the admin stops starting — with no other test in this module noticing, since they all
  * either override the property or use a {@code @WebMvcTest} slice.
@@ -92,7 +92,7 @@ class DdcAdminContextSmokeTest {
                 .isTrue();
         assertThat(infoEndpoint.info())
                 .containsEntry("app", Map.of(
-                        "name", "egon-cola-ddc-admin",
+                        "name", "egon-cola-tianshu-admin",
                         "version", version
                 ));
     }
@@ -132,11 +132,11 @@ class DdcAdminContextSmokeTest {
                 ))
                 .withUserConfiguration(AdminRpcTestConfiguration.class)
                 .withPropertyValues(
-                        "spring.application.name=egon-cola-ddc-admin",
-                        "egon.cola.component.ddc.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=false",
-                        "egon.cola.component.ddc.admin.security.local-dev=true",
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled=false",
+                        "spring.application.name=egon-cola-tianshu-admin",
+                        "egon.cola.component.tianshu.enabled=false",
+                        "egon.cola.component.tianshu.registry.enabled=false",
+                        "egon.cola.component.tianshu.admin.security.local-dev=true",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled=false",
                         "egon.cola.component.rpc.enabled=true",
                         "egon.cola.component.rpc.provider.enabled=true",
                         "egon.cola.component.rpc.provider.port=0",
@@ -155,7 +155,7 @@ class DdcAdminContextSmokeTest {
                             DdcServiceRegistryClient.class);
                     assertThat(context).doesNotHaveBean(DdcRpcClientHandle.class);
                     assertThat(context.getEnvironment().getProperty(
-                            "egon.cola.component.ddc.rpc.target")).isNull();
+                            "egon.cola.component.tianshu.rpc.target")).isNull();
                     EgonRpcProperties rpc = context.getBean(
                             EgonRpcProperties.class);
                     assertThat(rpc.getProvider().getRegistrationMode())

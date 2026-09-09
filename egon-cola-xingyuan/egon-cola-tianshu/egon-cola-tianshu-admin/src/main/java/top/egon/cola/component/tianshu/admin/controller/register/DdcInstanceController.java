@@ -18,14 +18,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/instances")
-@Tag(name = "ddc-admin-ddc-instance-controller", description = "DdcInstanceController 管理接口组")
+@RequestMapping("/api/v1/tianshu/instances")
+@Tag(name = "tianshu-admin-tianshu-instance-controller", description = "DdcInstanceController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcInstanceController {
 
@@ -35,7 +35,7 @@ public class DdcInstanceController {
         this.instanceAdminService = instanceAdminService;
     }
 
-    @Operation(operationId = "ddc.ddcInstanceController.list")
+    @Operation(operationId = "tianshu.ddcInstanceController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcInstanceEntity>> list(
@@ -46,7 +46,7 @@ public class DdcInstanceController {
                 bizCode, env, appCode));
     }
 
-    @Operation(operationId = "ddc.ddcInstanceController.page")
+    @Operation(operationId = "tianshu.ddcInstanceController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcInstanceEntity> page(

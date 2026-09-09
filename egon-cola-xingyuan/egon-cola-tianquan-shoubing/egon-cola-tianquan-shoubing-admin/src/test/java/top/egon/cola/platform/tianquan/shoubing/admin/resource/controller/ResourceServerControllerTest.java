@@ -44,19 +44,19 @@ class ResourceServerControllerTest {
     @Test
     void listsAndReadsResourceServersWithReadPermission() throws Exception {
         when(resources.list()).thenReturn(List.of(view()));
-        when(resources.detail("permission-idp-prod")).thenReturn(view());
+        when(resources.detail("permission-tianquan-shoubing-prod")).thenReturn(view());
 
-        mockMvc.perform(get("/api/v1/identity/resource-servers"))
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/resource-servers"))
                 .andExpect(status().isOk());
         mockMvc.perform(get(
-                        "/api/v1/identity/resource-servers/{resourceServerId}",
-                        "permission-idp-prod"
+                        "/api/v1/tianquan-shoubing/resource-servers/{resourceServerId}",
+                        "permission-tianquan-shoubing-prod"
                 ))
                 .andExpect(status().isOk());
 
         verify(authorization, org.mockito.Mockito.times(2)).require(
                 isNull(),
-                eq("idp:resource-server:read")
+                eq("tianquan-shoubing:resource-server:read")
         );
     }
 
@@ -64,26 +64,26 @@ class ResourceServerControllerTest {
     void createsResourceServerWithCreatePermission() throws Exception {
         when(resources.create(any())).thenReturn(view());
 
-        mockMvc.perform(post("/api/v1/identity/resource-servers")
+        mockMvc.perform(post("/api/v1/tianquan-shoubing/resource-servers")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
-                                  "resourceServerId":"permission-idp-prod",
-                                  "resourceUri":"https://api.egon.internal/prod/permission/idp",
+                                  "resourceServerId":"permission-tianquan-shoubing-prod",
+                                  "resourceUri":"https://api.egon.internal/prod/permission/tianquan-shoubing",
                                   "bizCode":"permission",
-                                  "appCode":"idp",
+                                  "appCode":"tianquan-shoubing",
                                   "environment":"prod",
-                                  "displayName":"IdP Production",
-                                  "managementClientId":"idp-service",
-                                  "rbacApplicationCode":"idp",
-                                  "entryPermissionCode":"idp:access"
+                                  "displayName":"Tianquan-Shoubing Production",
+                                  "managementClientId":"tianquan-shoubing-service",
+                                  "rbacApplicationCode":"tianquan-shoubing",
+                                  "entryPermissionCode":"tianquan-shoubing:access"
                                 }
                                 """))
                 .andExpect(status().isCreated());
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:resource-server:create")
+                eq("tianquan-shoubing:resource-server:create")
         );
     }
 
@@ -94,33 +94,33 @@ class ResourceServerControllerTest {
 
         String version = "{\"expectedVersion\":0}";
         mockMvc.perform(post(
-                        "/api/v1/identity/resource-servers/{resourceServerId}/enable",
-                        "permission-idp-prod"
+                        "/api/v1/tianquan-shoubing/resource-servers/{resourceServerId}/enable",
+                        "permission-tianquan-shoubing-prod"
                 ).contentType(MediaType.APPLICATION_JSON).content(version))
                 .andExpect(status().isOk());
         mockMvc.perform(post(
-                        "/api/v1/identity/resource-servers/{resourceServerId}/disable",
-                        "permission-idp-prod"
+                        "/api/v1/tianquan-shoubing/resource-servers/{resourceServerId}/disable",
+                        "permission-tianquan-shoubing-prod"
                 ).contentType(MediaType.APPLICATION_JSON).content(version))
                 .andExpect(status().isOk());
         verify(authorization, org.mockito.Mockito.times(2)).require(
                 isNull(),
-                eq("idp:resource-server:status")
+                eq("tianquan-shoubing:resource-server:status")
         );
     }
 
     private static ResourceServerVO view() {
         Instant now = Instant.parse("2026-08-10T00:00:00Z");
         return new ResourceServerVO(
-                "permission-idp-prod",
-                "https://api.egon.internal/prod/permission/idp",
+                "permission-tianquan-shoubing-prod",
+                "https://api.egon.internal/prod/permission/tianquan-shoubing",
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "IdP Production",
-                "idp-service",
-                "idp",
-                "idp:access",
+                "Tianquan-Shoubing Production",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access",
                 "DISABLED",
                 0L,
                 now,

@@ -121,7 +121,7 @@ public final class AuthorizationMutationRecoveryService
     public int runOnce() {
         int completed = 0;
         for (MutationWorkDTO work : store.claimRecoverable(batchSize)) {
-            if (recover(work, "rbac3-recovery-worker")) {
+            if (recover(work, "tianquan-jianshen-recovery-worker")) {
                 completed++;
             }
         }

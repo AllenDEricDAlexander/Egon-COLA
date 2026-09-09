@@ -30,7 +30,7 @@ import java.util.concurrent.atomic.AtomicLong;
 @RequestMapping("/test/transport")
 @Tag(name = "inventory-reactive")
 @EgonApiCatalog(
-        businessDomainCode = "gateway-test",
+        businessDomainCode = "yuheng-test",
         businessDomainName = "网关测试域",
         entityDomainCode = "streaming-transport",
         entityDomainName = "流式传输实体域",
@@ -54,7 +54,7 @@ public class StreamingTransportController {
             tags = {"streaming", "json", "openai"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.FALSE
     )
@@ -73,7 +73,7 @@ public class StreamingTransportController {
             tags = {"streaming", "sse", "openai"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.FALSE
     )
@@ -106,7 +106,7 @@ public class StreamingTransportController {
             tags = {"streaming", "multipart", "upload"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.FALSE
     )
@@ -143,7 +143,7 @@ public class StreamingTransportController {
             tags = {"streaming", "binary", "audio"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.FALSE
     )
@@ -151,7 +151,7 @@ public class StreamingTransportController {
                                    ServerHttpResponse response) {
         response.getHeaders().setContentDisposition(
                 ContentDisposition.attachment()
-                        .filename("gateway-test-audio.bin")
+                        .filename("yuheng-test-audio.bin")
                         .build()
         );
         response.getHeaders().set(

@@ -26,31 +26,31 @@ class TenantApplicationFacadeTest {
     @Test
     void admitLoadsDirectoryFactsFromDdcRatherThanTheRequest() {
         ApplicationCatalogEntry entry = new ApplicationCatalogEntry(
-                "ddc-app-1", "ddc-biz-1", "orders",
+                "tianshu-app-1", "tianshu-biz-1", "orders",
                 "console", "Console", true, true);
         ApplicationAuthorizationScopeVO admitted = new ApplicationAuthorizationScopeVO(
-                "71001", "ddc-biz-1", "ddc-app-1", "orders",
+                "71001", "tianshu-biz-1", "tianshu-app-1", "orders",
                 "console", "Console", "ACTIVE", 100, 0L);
-        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(entry));
+        when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(entry));
         when(store.admit(10001L, entry, 100, "actor-1")).thenReturn(admitted);
 
         ApplicationAuthorizationScopeVO scope = facade.admit(10001L, "actor-1",
-                new AdmitApplicationAuthorizationScopeCommand("ddc-app-1", 100));
+                new AdmitApplicationAuthorizationScopeCommand("tianshu-app-1", 100));
 
-        assertThat(scope.ddcBusinessId()).isEqualTo("ddc-biz-1");
+        assertThat(scope.ddcBusinessId()).isEqualTo("tianshu-biz-1");
         assertThat(scope.applicationCode()).isEqualTo("console");
         verify(store).admit(10001L, entry, 100, "actor-1");
     }
 
     @Test
     void rejectsAdmissionWhenTheParentBusinessIsDisabled() {
-        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(
+        when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(
                 new ApplicationCatalogEntry(
-                        "ddc-app-1", "ddc-biz-1", "orders",
+                        "tianshu-app-1", "tianshu-biz-1", "orders",
                         "console", "Console", true, false)));
 
         assertThatThrownBy(() -> facade.admit(10001L, "actor-1",
-                new AdmitApplicationAuthorizationScopeCommand("ddc-app-1", 100)))
+                new AdmitApplicationAuthorizationScopeCommand("tianshu-app-1", 100)))
                 .isInstanceOf(IllegalStateException.class);
         verify(store, never()).admit(any(), any(), any(Integer.class), any());
     }

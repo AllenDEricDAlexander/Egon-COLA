@@ -7,13 +7,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * 绑定 DDC Starter 的作用域、Redis、实例和一致性配置。 Binds scope, Redis, instance, and consistency settings for the DDC starter.
+ * 绑定 Tianshu Starter 的作用域、Redis、实例和一致性配置。 Binds scope, Redis, instance, and consistency settings for the Tianshu starter.
  */
-@ConfigurationProperties(prefix = "egon.cola.component.ddc", ignoreInvalidFields = true)
+@ConfigurationProperties(prefix = "egon.cola.component.tianshu", ignoreInvalidFields = true)
 public class DdcProperties {
 
     /**
-     * 是否启用 DDC Starter。 Whether the DDC starter is enabled.
+     * 是否启用 Tianshu Starter。 Whether the Tianshu starter is enabled.
      */
     private boolean enabled;
 
@@ -38,8 +38,8 @@ public class DdcProperties {
     private String namespace = "default";
 
     /**
-     * DDC 配置客户端和服务实例注册使用的 PLATFORM Resource URI。
-     * PLATFORM Resource URI used by DDC config-client and service-instance registration.
+     * Tianshu 配置客户端和服务实例注册使用的 PLATFORM Resource URI。
+     * PLATFORM Resource URI used by Tianshu config-client and service-instance registration.
      */
     private URI registrationResourceUri;
 
@@ -69,16 +69,16 @@ public class DdcProperties {
     private Consistency consistency = new Consistency();
 
     /**
-     * 返回是否启用 DDC。 Returns whether DDC is enabled.
+     * 返回是否启用 Tianshu。 Returns whether Tianshu is enabled.
      *
-     * @return DDC 启用标志。 DDC enabled flag
+     * @return Tianshu 启用标志。 Tianshu enabled flag
      */
     public boolean isEnabled() {
         return enabled;
     }
 
     /**
-     * 设置是否启用 DDC。 Sets whether DDC is enabled.
+     * 设置是否启用 Tianshu。 Sets whether Tianshu is enabled.
      *
      * @param enabled 启用标志。 enabled flag
      */
@@ -159,20 +159,20 @@ public class DdcProperties {
     }
 
     /**
-     * 返回 DDC 注册使用的 PLATFORM Resource URI。
-     * Returns the PLATFORM Resource URI used for DDC registration.
+     * 返回 Tianshu 注册使用的 PLATFORM Resource URI。
+     * Returns the PLATFORM Resource URI used for Tianshu registration.
      *
-     * @return DDC 注册 Resource URI。 DDC registration Resource URI
+     * @return Tianshu 注册 Resource URI。 Tianshu registration Resource URI
      */
     public URI getRegistrationResourceUri() {
         return registrationResourceUri;
     }
 
     /**
-     * 设置 DDC 注册使用的 PLATFORM Resource URI。
-     * Sets the PLATFORM Resource URI used for DDC registration.
+     * 设置 Tianshu 注册使用的 PLATFORM Resource URI。
+     * Sets the PLATFORM Resource URI used for Tianshu registration.
      *
-     * @param registrationResourceUri DDC 注册 Resource URI。 DDC registration Resource URI
+     * @param registrationResourceUri Tianshu 注册 Resource URI。 Tianshu registration Resource URI
      */
     public void setRegistrationResourceUri(URI registrationResourceUri) {
         this.registrationResourceUri = registrationResourceUri;
@@ -269,12 +269,12 @@ public class DdcProperties {
     }
 
     /**
-     * 定义 DDC 使用的 Redis 单机、哨兵或集群连接参数。 Defines standalone, sentinel, or cluster Redis connection settings used by DDC.
+     * 定义 Tianshu 使用的 Redis 单机、哨兵或集群连接参数。 Defines standalone, sentinel, or cluster Redis connection settings used by Tianshu.
      */
     public static class Redis {
 
         /**
-         * 是否创建 DDC Redis 客户端。 Whether the DDC Redis client is created.
+         * 是否创建 Tianshu Redis 客户端。 Whether the Tianshu Redis client is created.
          */
         private boolean enabled = true;
 
@@ -314,7 +314,7 @@ public class DdcProperties {
         private int database = 0;
 
         /**
-         * 返回是否启用 DDC Redis 客户端。 Returns whether the DDC Redis client is enabled.
+         * 返回是否启用 Tianshu Redis 客户端。 Returns whether the Tianshu Redis client is enabled.
          *
          * @return Redis 客户端启用标志。 Redis client enabled flag
          */
@@ -323,7 +323,7 @@ public class DdcProperties {
         }
 
         /**
-         * 设置是否启用 DDC Redis 客户端。 Sets whether the DDC Redis client is enabled.
+         * 设置是否启用 Tianshu Redis 客户端。 Sets whether the Tianshu Redis client is enabled.
          *
          * @param enabled 启用标志。 enabled flag
          */
@@ -541,7 +541,7 @@ public class DdcProperties {
             if (heartbeatIntervalSeconds <= 0
                     || heartbeatIntervalSeconds >= leaseSeconds) {
                 throw new IllegalArgumentException(
-                        "egon.cola.component.ddc.instance.heartbeat-interval-seconds "
+                        "egon.cola.component.tianshu.instance.heartbeat-interval-seconds "
                                 + "must be positive and less than lease-seconds"
                 );
             }

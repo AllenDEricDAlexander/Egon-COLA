@@ -23,14 +23,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/namespaces")
-@Tag(name = "ddc-admin-ddc-namespace-controller", description = "DdcNamespaceController 管理接口组")
+@RequestMapping("/api/v1/tianshu/namespaces")
+@Tag(name = "tianshu-admin-tianshu-namespace-controller", description = "DdcNamespaceController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcNamespaceController {
 
@@ -40,7 +40,7 @@ public class DdcNamespaceController {
         this.namespaceService = namespaceService;
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceController.list")
+    @Operation(operationId = "tianshu.ddcNamespaceController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcNamespaceEntity>> list(
@@ -49,7 +49,7 @@ public class DdcNamespaceController {
         return ResultRecord.success(namespaceService.list(bizCode, keyword));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceController.page")
+    @Operation(operationId = "tianshu.ddcNamespaceController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcNamespaceEntity> page(
@@ -60,14 +60,14 @@ public class DdcNamespaceController {
                 namespaceService.page(bizCode, keyword, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceController.save")
+    @Operation(operationId = "tianshu.ddcNamespaceController.save")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcNamespaceEntity> save(@RequestBody DdcNamespaceEntity request) {
         return ResultRecord.success(namespaceService.save(request));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceController.update")
+    @Operation(operationId = "tianshu.ddcNamespaceController.update")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     public ResultRecord<DdcNamespaceEntity> update(
@@ -76,7 +76,7 @@ public class DdcNamespaceController {
         return ResultRecord.success(namespaceService.update(id, request));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceController.delete")
+    @Operation(operationId = "tianshu.ddcNamespaceController.delete")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     public ResultRecord<Void> delete(@PathVariable("id") String id) {
@@ -84,7 +84,7 @@ public class DdcNamespaceController {
         return ResultRecord.success(null);
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceController.setEnabled")
+    @Operation(operationId = "tianshu.ddcNamespaceController.setEnabled")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}/enabled")
     public ResultRecord<DdcNamespaceEntity> setEnabled(

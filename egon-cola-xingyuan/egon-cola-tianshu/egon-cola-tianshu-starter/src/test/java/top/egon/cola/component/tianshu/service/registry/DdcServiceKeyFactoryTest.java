@@ -24,11 +24,11 @@ class DdcServiceKeyFactoryTest {
                 "grpc"
         );
         var gateway = factory.fromTargetScope(
-                "platform-biz",
-                "gateway-app",
+                "xingyuan-biz",
+                "yuheng-app",
                 "test",
                 DdcServiceKind.INTERNAL_GATEWAY,
-                "egon-gateway-rpc",
+                "egon-yuheng-rpc",
                 "default",
                 "1.0.0",
                 "grpc"
@@ -36,8 +36,8 @@ class DdcServiceKeyFactoryTest {
 
         assertThat(local.bizCode()).isEqualTo("retail-biz");
         assertThat(local.appCode()).isEqualTo("orders-app");
-        assertThat(gateway.bizCode()).isEqualTo("platform-biz");
-        assertThat(gateway.appCode()).isEqualTo("gateway-app");
+        assertThat(gateway.bizCode()).isEqualTo("xingyuan-biz");
+        assertThat(gateway.appCode()).isEqualTo("yuheng-app");
         assertThat(gateway.env()).isEqualTo("test");
         assertThat(local.serviceId()).isNotEqualTo(gateway.serviceId());
     }

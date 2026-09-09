@@ -62,7 +62,7 @@ class DdcAppControllerTest {
         when(appService.list("pay-biz", "ops", "prod", "orders"))
                 .thenReturn(List.of(app("orders")));
 
-        mockMvc.perform(get("/api/v1/ddc/apps")
+        mockMvc.perform(get("/api/v1/tianshu/apps")
                         .param("bizCode", "pay-biz")
                         .param("namespaceCode", "ops")
                         .param("env", "prod")
@@ -78,7 +78,7 @@ class DdcAppControllerTest {
         when(appService.list(null, null, null, null))
                 .thenReturn(List.of(app("orders"), app("billing")));
 
-        mockMvc.perform(get("/api/v1/ddc/apps"))
+        mockMvc.perform(get("/api/v1/tianshu/apps"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.length()").value(2));
@@ -92,7 +92,7 @@ class DdcAppControllerTest {
                 .thenReturn(new PageImpl<>(
                         List.of(app("orders")), PageRequest.of(1, 20), 21));
 
-        mockMvc.perform(get("/api/v1/ddc/apps/page")
+        mockMvc.perform(get("/api/v1/tianshu/apps/page")
                         .param("bizCode", "pay-biz")
                         .param("namespaceCode", "ops")
                         .param("env", "prod")
@@ -111,7 +111,7 @@ class DdcAppControllerTest {
         doThrow(new CommonException(DdcErrorStatus.APP_IN_USE))
                 .when(appService).delete("app-orders");
 
-        mockMvc.perform(delete("/api/v1/ddc/apps/app-orders"))
+        mockMvc.perform(delete("/api/v1/tianshu/apps/app-orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.APP_IN_USE.getCode()));

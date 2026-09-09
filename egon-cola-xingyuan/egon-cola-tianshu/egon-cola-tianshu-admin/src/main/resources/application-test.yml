@@ -14,7 +14,7 @@ spring:
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: false
         registry:
           enabled: false

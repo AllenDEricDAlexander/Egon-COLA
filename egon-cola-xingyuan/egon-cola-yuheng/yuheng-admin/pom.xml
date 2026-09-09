@@ -14,7 +14,7 @@
     <artifactId>yuheng-admin</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-admin</name>
-    <description>Executable management control plane for Egon COLA Gateway.</description>
+    <description>Executable management control plane for Egon COLA Yuheng.</description>
 
     <properties>
         <mapstruct.version>1.6.3</mapstruct.version>

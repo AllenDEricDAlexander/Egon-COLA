@@ -51,7 +51,7 @@ class GatewayRuleWireCompatibilityTest {
 
     @Test
     void bothRolesActivateOneArtifactButKeepFailureAndLkgStateIndependent() {
-        var content = new GatewayRuleContent("group-1", "default", "test", "gateway-live",
+        var content = new GatewayRuleContent("group-1", "default", "test", "yuheng-live",
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
         var publisher = new GatewayRuleCompiler(new GatewayRuleCanonicalizer());
         var first = publisher.compile("release-1", Instant.parse("2026-09-05T00:00:00Z"), content);
@@ -68,8 +68,8 @@ class GatewayRuleWireCompatibilityTest {
         mcp.apply(GatewayRuleActivationApplier.ACTIVE_CONFIG_KEY, first.activationJson(), 41);
         var apiMetadata = new GatewayEngineConfiguration().gatewayRuntimeMetadata(api).metadata();
         var mcpMetadata = new McpGatewayEngineConfiguration().gatewayRuntimeMetadata(mcp).metadata();
-        assertEquals("API_RPC", apiMetadata.get("gateway.engine.role"));
-        assertEquals("MCP", mcpMetadata.get("gateway.engine.role"));
+        assertEquals("API_RPC", apiMetadata.get("yuheng.engine.role"));
+        assertEquals("MCP", mcpMetadata.get("yuheng.engine.role"));
         for (String key : List.of("activeReleaseId", "activeRuleVersion", "activeRuleChecksum")) {
             assertEquals(apiMetadata.get(key), mcpMetadata.get(key));
         }
@@ -135,7 +135,7 @@ class GatewayRuleWireCompatibilityTest {
                         "test-biz",
                         "test-app",
                         "test",
-                        "gateway-live",
+                        "yuheng-live",
                         GatewayProtocol.HTTP,
                         "orders-http-provider",
                         "default",
@@ -150,7 +150,7 @@ class GatewayRuleWireCompatibilityTest {
         GatewayRuntimeRoute route = new GatewayRuntimeRoute(
                 "live-http-order",
                 operation.operationId(),
-                "api.gateway.test",
+                "api.yuheng.test",
                 "GET",
                 "/api/orders/{id}",
                 Set.of(AccessZone.PUBLIC, AccessZone.INTERNAL),
@@ -161,7 +161,7 @@ class GatewayRuleWireCompatibilityTest {
                 "group-1",
                 "default",
                 "test",
-                "gateway-live",
+                "yuheng-live",
                 List.of(operation),
                 List.of(route),
                 List.of(),
@@ -221,7 +221,7 @@ class GatewayRuleWireCompatibilityTest {
                         "test-biz",
                         "test-app",
                         "test",
-                        "gateway-live",
+                        "yuheng-live",
                         GatewayProtocol.HTTP,
                         "openai-compatible-provider",
                         "default",
@@ -248,7 +248,7 @@ class GatewayRuleWireCompatibilityTest {
                 "group-openai",
                 "default",
                 "test",
-                "gateway-live",
+                "yuheng-live",
                 List.of(operation),
                 List.of(route),
                 List.of(),

@@ -22,9 +22,9 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
- * 无状态 USER Token 门面：Access Token 短时自包含，Refresh Token 稳定且只在 IdP 保存摘要。
+ * 无状态 USER Token 门面：Access Token 短时自包含，Refresh Token 稳定且只在 Tianquan-Shoubing 保存摘要。
  * Stateless USER-token facade: short-lived self-contained access tokens and
- * stable refresh tokens whose digests are stored only at the IdP.
+ * stable refresh tokens whose digests are stored only at the Tianquan-Shoubing.
  */
 public final class TokenFacade {
 
@@ -115,7 +115,7 @@ public final class TokenFacade {
     }
 
     /**
-     * Validates only the IdP-owned online state of a stable refresh token.
+     * Validates only the Tianquan-Shoubing-owned online state of a stable refresh token.
      * No access token is issued and no token secret is returned.
      */
     public RefreshTokenStatus validateRefresh(String rawRefreshToken) {

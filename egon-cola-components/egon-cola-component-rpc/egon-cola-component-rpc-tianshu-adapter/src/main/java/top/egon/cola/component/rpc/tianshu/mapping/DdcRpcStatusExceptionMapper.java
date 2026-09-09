@@ -17,8 +17,8 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * 在 DDC 业务异常与携带类型化 Trailer 的 gRPC 状态之间双向转换。
- * / Converts bidirectionally between DDC business failures and gRPC statuses
+ * 在 Tianshu 业务异常与携带类型化 Trailer 的 gRPC 状态之间双向转换。
+ * / Converts bidirectionally between Tianshu business failures and gRPC statuses
  * carrying a typed trailer.
  */
 public final class DdcRpcStatusExceptionMapper
@@ -26,7 +26,7 @@ public final class DdcRpcStatusExceptionMapper
 
     public static final Metadata.Key<DdcRpcErrorDetail> ERROR_DETAIL =
             Metadata.Key.of(
-                    "x-egon-ddc-error-bin",
+                    "x-egon-tianshu-error-bin",
                     ProtoUtils.metadataMarshaller(
                             DdcRpcErrorDetail.getDefaultInstance())
             );
@@ -42,7 +42,7 @@ public final class DdcRpcStatusExceptionMapper
         return Optional.empty();
     }
 
-    /** 将已知 DDC 异常转换为 gRPC 状态。 / Converts a known DDC failure to gRPC status. */
+    /** 将已知 Tianshu 异常转换为 gRPC 状态。 / Converts a known Tianshu failure to gRPC status. */
     public StatusRuntimeException toStatus(Throwable throwable) {
         Failure failure = failure(throwable);
         Metadata trailers = new Metadata();
@@ -58,8 +58,8 @@ public final class DdcRpcStatusExceptionMapper
     }
 
     /**
-     * 客户端从原始或被通用 RPC 异常包装的状态中恢复 DDC 端口异常。
-     * / Restores a DDC Port exception from a raw or general-RPC-wrapped status.
+     * 客户端从原始或被通用 RPC 异常包装的状态中恢复 Tianshu 端口异常。
+     * / Restores a Tianshu Port exception from a raw or general-RPC-wrapped status.
      */
     public RuntimeException restore(
             RuntimeException throwable,
@@ -71,7 +71,7 @@ public final class DdcRpcStatusExceptionMapper
         StatusRuntimeException status = findStatus(throwable);
         if (status == null) {
             return new DdcClientTransportException(
-                    "DDC RPC invocation failed",
+                    "Tianshu RPC invocation failed",
                     false,
                     throwable
             );
@@ -179,12 +179,12 @@ public final class DdcRpcStatusExceptionMapper
         if (throwable instanceof DdcClientTransportException value) {
             return new Failure(
                     value.retryable() ? Status.UNAVAILABLE : Status.INTERNAL,
-                    "DDC_CLIENT_TRANSPORT_ERROR",
-                    "DDC transport failed",
+                    "TIANSHU_CLIENT_TRANSPORT_ERROR",
+                    "Tianshu transport failed",
                     value.retryable()
             );
         }
-        throw new IllegalArgumentException("Unsupported DDC failure", throwable);
+        throw new IllegalArgumentException("Unsupported Tianshu failure", throwable);
     }
 
     private Status grpcStatus(String code) {
@@ -215,19 +215,19 @@ public final class DdcRpcStatusExceptionMapper
 
     private String sanitizedMessage(Status.Code code) {
         return switch (code) {
-            case INVALID_ARGUMENT -> "DDC RPC request is invalid";
-            case NOT_FOUND -> "DDC resource was not found";
-            case FAILED_PRECONDITION -> "DDC RPC precondition failed";
-            case UNAUTHENTICATED -> "DDC RPC authentication failed";
-            case PERMISSION_DENIED -> "DDC RPC permission denied";
-            case UNAVAILABLE -> "DDC RPC service is unavailable";
-            case DEADLINE_EXCEEDED -> "DDC RPC deadline exceeded";
-            default -> "DDC RPC invocation failed";
+            case INVALID_ARGUMENT -> "Tianshu RPC request is invalid";
+            case NOT_FOUND -> "Tianshu resource was not found";
+            case FAILED_PRECONDITION -> "Tianshu RPC precondition failed";
+            case UNAUTHENTICATED -> "Tianshu RPC authentication failed";
+            case PERMISSION_DENIED -> "Tianshu RPC permission denied";
+            case UNAVAILABLE -> "Tianshu RPC service is unavailable";
+            case DEADLINE_EXCEEDED -> "Tianshu RPC deadline exceeded";
+            default -> "Tianshu RPC invocation failed";
         };
     }
 
     private String safe(String value) {
-        return value == null || value.isBlank() ? "DDC operation failed" : value;
+        return value == null || value.isBlank() ? "Tianshu operation failed" : value;
     }
 
     private record Failure(

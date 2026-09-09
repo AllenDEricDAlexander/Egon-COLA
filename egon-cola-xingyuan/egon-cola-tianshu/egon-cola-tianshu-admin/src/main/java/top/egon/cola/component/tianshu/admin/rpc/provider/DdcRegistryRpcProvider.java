@@ -20,8 +20,8 @@ import top.egon.cola.component.rpc.tianshu.mapping.DdcCommonProtoMapper;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcRegistryProtoMapper;
 
 /**
- * 将服务注册 RPC 契约适配到 DDC 注册中心应用门面。
- * / Adapts the service-registry RPC contract to the DDC registry facade.
+ * 将服务注册 RPC 契约适配到 Tianshu 注册中心应用门面。
+ * / Adapts the service-registry RPC contract to the Tianshu registry facade.
  */
 @EgonRpcProvider
 public class DdcRegistryRpcProvider implements DdcServiceRegistryRpc {

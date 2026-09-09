@@ -19,9 +19,9 @@ import java.util.regex.Pattern;
 import static org.assertj.core.api.Assertions.assertThat;
 
 /** PostgreSQL proof for fresh current-schema initialization and repeatable migration. */
-@EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_URL", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_USER", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "RBAC3_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "TIANQUAN_JIANSHEN_IT_POSTGRES_URL", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "TIANQUAN_JIANSHEN_IT_POSTGRES_USER", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
 class Rbac3FlywayPostgresqlIT {
 
     private static final int BASELINE_VERSION = 14;
@@ -29,8 +29,8 @@ class Rbac3FlywayPostgresqlIT {
 
     @Test
     void initializesCurrentSchemaFromBaselineWithoutReplayingLegacyMigrations() throws Exception {
-        String url = requiredEnvironment("RBAC3_IT_POSTGRES_URL");
-        String user = requiredEnvironment("RBAC3_IT_POSTGRES_USER");
+        String url = requiredEnvironment("TIANQUAN_JIANSHEN_IT_POSTGRES_URL");
+        String user = requiredEnvironment("TIANQUAN_JIANSHEN_IT_POSTGRES_USER");
         String password = readPasswordFile();
         String schema = generatedSchema();
         boolean schemaCreated = false;
@@ -44,8 +44,8 @@ class Rbac3FlywayPostgresqlIT {
                     .schemas(schema)
                     .table("flyway_schema_history_rbac3")
                     .target(Integer.toString(BASELINE_VERSION))
-                    .initSql("SET rbac3.bootstrap.tenant_ids = '1001,1002'; "
-                            + "SET rbac3.bootstrap.identity_sub = '9001'")
+                    .initSql("SET tianquan-jianshen.bootstrap.tenant_ids = '1001,1002'; "
+                            + "SET tianquan-jianshen.bootstrap.identity_sub = '9001'")
                     .locations("classpath:db/migration")
                     .load();
 
@@ -146,7 +146,7 @@ class Rbac3FlywayPostgresqlIT {
 
     static boolean ownsGeneratedSchema(String schema, boolean schemaCreated) {
         if (!SAFE_SCHEMA.matcher(schema).matches()) {
-            throw new IllegalArgumentException("unsafe RBAC3 integration schema");
+            throw new IllegalArgumentException("unsafe Tianquan-Jianshen integration schema");
         }
         return schemaCreated && SAFE_SCHEMA.matcher(schema).matches();
     }
@@ -160,7 +160,7 @@ class Rbac3FlywayPostgresqlIT {
     }
 
     private static String readPasswordFile() throws IOException {
-        Path path = Path.of(requiredEnvironment("RBAC3_IT_POSTGRES_PASSWORD_FILE"));
+        Path path = Path.of(requiredEnvironment("TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE"));
         return Files.readString(path, StandardCharsets.UTF_8).trim();
     }
 }

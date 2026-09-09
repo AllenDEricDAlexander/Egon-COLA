@@ -15,7 +15,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @RequestMapping("/api/providers")
 @Tag(name = "inventory-reactive")
 @EgonApiCatalog(
-        businessDomainCode = "gateway-test",
+        businessDomainCode = "yuheng-test",
         businessDomainName = "Gateway 测试域",
         entityDomainCode = "provider",
         entityDomainName = "Provider 实例",
@@ -26,7 +26,7 @@ public class ProviderIdentityController {
     private final String providerId;
 
     public ProviderIdentityController(
-            @Value("${gateway.test.provider-id:"
+            @Value("${yuheng.test.provider-id:"
                     + "webflux-http-provider-default}")
             String providerId) {
         this.providerId = providerId;
@@ -39,7 +39,7 @@ public class ProviderIdentityController {
             tags = {"query", "provider-identity"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE
     )

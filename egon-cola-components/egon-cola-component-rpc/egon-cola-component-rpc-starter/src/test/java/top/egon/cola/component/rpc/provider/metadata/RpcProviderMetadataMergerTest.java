@@ -24,15 +24,15 @@ class RpcProviderMetadataMergerTest {
                 20,
                 calls,
                 "later",
-                Map.of("gateway.region", "cn-east")
+                Map.of("yuheng.region", "cn-east")
         );
         RpcProviderMetadataContributor earlier = contributor(
                 10,
                 calls,
                 "earlier",
                 Map.of(
-                        "gateway.zone", "zone-a",
-                        "gateway.weight", "100"
+                        "yuheng.zone", "zone-a",
+                        "yuheng.weight", "100"
                 )
         );
         RpcProviderMetadataMerger merger =
@@ -41,16 +41,16 @@ class RpcProviderMetadataMergerTest {
         Map<String, String> metadata = merger.merge(
                 SERVICE,
                 Map.of(
-                        "gateway.weight", "100",
+                        "yuheng.weight", "100",
                         "custom.key", "value"
                 )
         );
 
         assertThat(calls).containsExactly("earlier", "later");
         assertThat(metadata)
-                .containsEntry("gateway.zone", "zone-a")
-                .containsEntry("gateway.region", "cn-east")
-                .containsEntry("gateway.weight", "100")
+                .containsEntry("yuheng.zone", "zone-a")
+                .containsEntry("yuheng.region", "cn-east")
+                .containsEntry("yuheng.weight", "100")
                 .containsEntry("custom.key", "value");
         assertThatThrownBy(() -> metadata.put("another", "value"))
                 .isInstanceOf(UnsupportedOperationException.class);
@@ -59,12 +59,12 @@ class RpcProviderMetadataMergerTest {
     @Test
     void rejectsDifferentValuesForTheSameKeyAcrossAnySource() {
         RpcProviderMetadataMerger merger = new RpcProviderMetadataMerger(
-                List.of(service -> Map.of("gateway.zone", "zone-b"))
+                List.of(service -> Map.of("yuheng.zone", "zone-b"))
         );
 
         assertThatThrownBy(() -> merger.merge(
                 SERVICE,
-                Map.of("gateway.zone", "zone-a")
+                Map.of("yuheng.zone", "zone-a")
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("conflict");
     }
@@ -97,13 +97,13 @@ class RpcProviderMetadataMergerTest {
                 new RpcProviderMetadataMerger(List.of());
 
         assertThat(merger.merge(SERVICE, Map.of(
-                "gateway.weight", "adapter-defined",
-                "ddc.extension", "adapter-owned",
+                "yuheng.weight", "adapter-defined",
+                "tianshu.extension", "adapter-owned",
                 "egon.internal.extension", "application-owned"
         ))).containsExactly(
-                Map.entry("ddc.extension", "adapter-owned"),
+                Map.entry("tianshu.extension", "adapter-owned"),
                 Map.entry("egon.internal.extension", "application-owned"),
-                Map.entry("gateway.weight", "adapter-defined")
+                Map.entry("yuheng.weight", "adapter-defined")
         );
     }
 

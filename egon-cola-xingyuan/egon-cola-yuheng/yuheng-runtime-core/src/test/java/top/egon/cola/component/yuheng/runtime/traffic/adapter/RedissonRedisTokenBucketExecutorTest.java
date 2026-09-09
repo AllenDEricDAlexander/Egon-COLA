@@ -49,7 +49,7 @@ class RedissonRedisTokenBucketExecutorTest {
 
         List<Long> result = executor.execute(
                 "return {ARGV[1]}",
-                List.of("gateway:ratelimit:test"),
+                List.of("yuheng:ratelimit:test"),
                 List.of("1")
         );
 

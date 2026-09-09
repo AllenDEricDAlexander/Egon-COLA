@@ -12,7 +12,7 @@ import java.util.List;
  *
  * <p>中文：配置向 Gateway Admin 上报已发现接口定义所需的全部属性。
  */
-@ConfigurationProperties("egon.cola.component.gateway.reporting")
+@ConfigurationProperties("egon.cola.component.yuheng.reporting")
 public class GatewayReportingProperties {
 
     /** Whether interface definition reporting is enabled. 是否启用接口定义上报。 */

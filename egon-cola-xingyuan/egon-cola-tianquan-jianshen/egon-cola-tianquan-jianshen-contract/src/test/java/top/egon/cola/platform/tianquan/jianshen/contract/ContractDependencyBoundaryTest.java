@@ -17,17 +17,17 @@ class ContractDependencyBoundaryTest {
             "jakarta/persistence/",
             "org/redisson/",
             "reactor/",
-            "top/egon/cola/platform/rbac3/core/",
-            "top/egon/cola/platform/rbac3/starter/",
-            "top/egon/cola/platform/rbac3/admin/",
-            "top/egon/cola/platform/rbac3/gateway/"
+            "top/egon/cola/platform/tianquan/jianshen/core/",
+            "top/egon/cola/platform/tianquan/jianshen/starter/",
+            "top/egon/cola/platform/tianquan/jianshen/admin/",
+            "top/egon/cola/platform/tianquan/jianshen/gateway/"
     );
 
     @Test
     void contractSourceDoesNotImportRuntimeFrameworksOrProductModules()
             throws Exception {
         Path sourceRoot = Path.of(
-                "src/main/java/top/egon/cola/platform/rbac3/contract"
+                "src/main/java/top/egon/cola/platform/tianquan/jianshen/contract"
         );
         try (Stream<Path> files = Files.walk(sourceRoot)) {
             List<String> forbiddenImports = files
@@ -44,7 +44,7 @@ class ContractDependencyBoundaryTest {
     void compiledContractBytecodeDoesNotReferenceRuntimeFrameworksOrModules()
             throws Exception {
         Path classRoot = Path.of(
-                "target/classes/top/egon/cola/platform/rbac3/contract"
+                "target/classes/top/egon/cola/platform/tianquan/jianshen/contract"
         );
         try (Stream<Path> files = Files.walk(classRoot)) {
             List<String> forbiddenReferences = files
@@ -79,7 +79,7 @@ class ContractDependencyBoundaryTest {
                         "import top.egon.cola.platform.tianquan.jianshen.admin."
                 )
                 || line.startsWith(
-                        "import top.egon.cola.platform.tianquan.jianshen.gateway."
+                        "import top.egon.cola.platform.tianquan.jianshen.yuheng."
                 );
     }
 

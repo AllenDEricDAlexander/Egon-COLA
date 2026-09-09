@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 /**
  * Durable OpenAPI synchronization application service.
  *
- * <p>中文：该 Facade 只编排 DDC 发现、revision CAS、网络外快照、完整
+ * <p>中文：该 Facade 只编排 Tianshu 发现、revision CAS、网络外快照、完整
  * Group 聚合和恢复；HTTP 安全校验、OpenAPI 规则以及 Definition 写入继续
  * 由各自的技术边界负责。任何一个 Group 失败都不会提交半套 Definition。</p>
  */
@@ -65,7 +65,7 @@ import java.util.stream.Collectors;
 @Service("gatewayOpenApiSyncService")
 @ConditionalOnBean(DdcManagementClient.class)
 @ConditionalOnProperty(
-        name = "gateway.admin.openapi.enabled",
+        name = "yuheng.admin.openapi.enabled",
         havingValue = "true"
 )
 public class GatewayOpenApiSyncService {
@@ -164,7 +164,7 @@ public class GatewayOpenApiSyncService {
             ObjectMapper objectMapper,
             MeterRegistry meters,
             Clock clock) {
-        this.ddc = Objects.requireNonNull(ddc, "ddc");
+        this.ddc = Objects.requireNonNull(ddc, "tianshu");
         this.applications = Objects.requireNonNull(
                 applications,
                 "applications"
@@ -198,7 +198,7 @@ public class GatewayOpenApiSyncService {
         recoverExpiredClaims(now);
         Discovery discovery = discover(now);
         if (discovery.aborted()) {
-            count("SKIPPED", "DDC_STALE");
+            count("SKIPPED", "TIANSHU_STALE");
             return 0;
         }
 
@@ -215,7 +215,7 @@ public class GatewayOpenApiSyncService {
             );
             if (context == null) {
                 // A stale/missing manifest is not safe evidence for a network
-                // call. It is handled on a later fresh DDC observation.
+                // call. It is handled on a later fresh Tianshu observation.
                 continue;
             }
             Optional<ClaimedWork> work;
@@ -260,7 +260,7 @@ public class GatewayOpenApiSyncService {
      * deterministic/manual invocation and uses a one-Group completeness
      * context; scheduled reconciliation supplies the complete manifest.
      *
-     * @param candidate DDC-derived candidate
+     * @param candidate Tianshu-derived candidate
      */
     public void synchronize(GatewayOpenApiSyncCandidateDTO candidate) {
         Objects.requireNonNull(candidate, "candidate");
@@ -320,7 +320,7 @@ public class GatewayOpenApiSyncService {
                 ));
             } catch (RuntimeException unavailable) {
                 log.warn(
-                        "OpenAPI DDC discovery unavailable app={}",
+                        "OpenAPI Tianshu discovery unavailable app={}",
                         application.getId()
                 );
                 aborted = true;
@@ -329,7 +329,7 @@ public class GatewayOpenApiSyncService {
             }
             if (catalog == null || !fresh(catalog.observedAt(), now)) {
                 log.warn(
-                        "OpenAPI DDC discovery is stale app={}",
+                        "OpenAPI Tianshu discovery is stale app={}",
                         application.getId()
                 );
                 aborted = true;
@@ -356,7 +356,7 @@ public class GatewayOpenApiSyncService {
                     ));
                 } catch (RuntimeException unavailable) {
                     log.warn(
-                            "OpenAPI DDC instance observation unavailable "
+                            "OpenAPI Tianshu instance observation unavailable "
                                     + "app={} service={}",
                             application.getId(),
                             service.serviceName()
@@ -500,7 +500,7 @@ public class GatewayOpenApiSyncService {
                 }
             } catch (RuntimeException failure) {
                 lastFailure = new GatewayOpenApiFetchException(
-                        "GATEWAY_OPENAPI_FETCH_FAILED",
+                        "YUHENG_OPENAPI_FETCH_FAILED",
                         true,
                         "provider OpenAPI fetch failed"
                 );
@@ -508,7 +508,7 @@ public class GatewayOpenApiSyncService {
         }
         if (document == null || selected == null) {
             String errorCode = lastFailure == null
-                    ? "GATEWAY_OPENAPI_PROVIDER_UNAVAILABLE"
+                    ? "YUHENG_OPENAPI_PROVIDER_UNAVAILABLE"
                     : lastFailure.errorCode();
             String message = lastFailure == null
                     ? "no healthy OpenAPI provider instance was available"
@@ -542,7 +542,7 @@ public class GatewayOpenApiSyncService {
             result = validation.validate(document);
         } catch (RuntimeException invalid) {
             result = GatewayOpenApiValidationResult.invalid(
-                    "GATEWAY_OPENAPI_VALIDATION_FAILED",
+                    "YUHENG_OPENAPI_VALIDATION_FAILED",
                     "OpenAPI document validation failed"
             );
         }
@@ -559,11 +559,11 @@ public class GatewayOpenApiSyncService {
                         observed.id(),
                         revision,
                         now,
-                        "GATEWAY_OPENAPI_SNAPSHOT_FAILED",
+                        "YUHENG_OPENAPI_SNAPSHOT_FAILED",
                         "OpenAPI snapshot persistence failed",
                         observed
                 );
-                count("INGEST_FAILED", "GATEWAY_OPENAPI_SNAPSHOT_FAILED");
+                count("INGEST_FAILED", "YUHENG_OPENAPI_SNAPSHOT_FAILED");
                 return Optional.empty();
             }
             if (invalidSnapshot.isPresent()) {
@@ -595,11 +595,11 @@ public class GatewayOpenApiSyncService {
                     observed.id(),
                     revision,
                     now,
-                    "GATEWAY_OPENAPI_SNAPSHOT_FAILED",
+                    "YUHENG_OPENAPI_SNAPSHOT_FAILED",
                     "OpenAPI snapshot persistence failed",
                     observed
             );
-            count("INGEST_FAILED", "GATEWAY_OPENAPI_SNAPSHOT_FAILED");
+            count("INGEST_FAILED", "YUHENG_OPENAPI_SNAPSHOT_FAILED");
             return Optional.empty();
         }
         if (!syncStates.transition(
@@ -673,12 +673,12 @@ public class GatewayOpenApiSyncService {
                     value.observed().id(),
                     value.revision(),
                     GatewayOpenApiSyncStateEnum.INGEST_FAILED,
-                    "GATEWAY_OPENAPI_INGEST_FAILED",
+                    "YUHENG_OPENAPI_INGEST_FAILED",
                     "OpenAPI Definition ingestion failed",
                     retryAt(value.observed(), now),
                     now
             ));
-            count("INGEST_FAILED", "GATEWAY_OPENAPI_INGEST_FAILED");
+            count("INGEST_FAILED", "YUHENG_OPENAPI_INGEST_FAILED");
             return;
         }
         if (result == null || result.definitionSetId() == null
@@ -687,12 +687,12 @@ public class GatewayOpenApiSyncService {
                     value.observed().id(),
                     value.revision(),
                     GatewayOpenApiSyncStateEnum.INGEST_FAILED,
-                    "GATEWAY_OPENAPI_INGEST_RESULT_INVALID",
+                    "YUHENG_OPENAPI_INGEST_RESULT_INVALID",
                     "OpenAPI Definition ingestion returned no set",
                     retryAt(value.observed(), now),
                     now
             ));
-            count("INGEST_FAILED", "GATEWAY_OPENAPI_INGEST_RESULT_INVALID");
+            count("INGEST_FAILED", "YUHENG_OPENAPI_INGEST_RESULT_INVALID");
             return;
         }
         for (String group : context.manifest().groups()) {
@@ -718,12 +718,12 @@ public class GatewayOpenApiSyncService {
                 work.observed().id(),
                 work.revision(),
                 GatewayOpenApiSyncStateEnum.INGEST_FAILED,
-                "GATEWAY_OPENAPI_GROUP_SET_INCOMPLETE",
+                "YUHENG_OPENAPI_GROUP_SET_INCOMPLETE",
                 "OpenAPI Group set is incomplete; waiting for all groups",
                 retryAt(work.observed(), now),
                 now
         );
-        count("INGEST_FAILED", "GATEWAY_OPENAPI_GROUP_SET_INCOMPLETE");
+        count("INGEST_FAILED", "YUHENG_OPENAPI_GROUP_SET_INCOMPLETE");
     }
 
     private void repairLinkedRows(Instant now) {
@@ -768,12 +768,12 @@ public class GatewayOpenApiSyncService {
                         row.id(),
                         row.revision(),
                         GatewayOpenApiSyncStateEnum.FETCH_FAILED,
-                        "GATEWAY_OPENAPI_CLAIM_EXPIRED",
+                        "YUHENG_OPENAPI_CLAIM_EXPIRED",
                         "OpenAPI synchronization claim expired",
                         retryAt(row, now),
                         now
                 );
-                count("FETCH_FAILED", "GATEWAY_OPENAPI_CLAIM_EXPIRED");
+                count("FETCH_FAILED", "YUHENG_OPENAPI_CLAIM_EXPIRED");
             }
         }
         for (GatewayOpenApiSyncPO row
@@ -786,12 +786,12 @@ public class GatewayOpenApiSyncService {
                         row.id(),
                         row.revision(),
                         GatewayOpenApiSyncStateEnum.INGEST_FAILED,
-                        "GATEWAY_OPENAPI_CLAIM_EXPIRED",
+                        "YUHENG_OPENAPI_CLAIM_EXPIRED",
                         "OpenAPI ingestion claim expired",
                         retryAt(row, now),
                         now
                 );
-                count("INGEST_FAILED", "GATEWAY_OPENAPI_CLAIM_EXPIRED");
+                count("INGEST_FAILED", "YUHENG_OPENAPI_CLAIM_EXPIRED");
             }
         }
     }
@@ -857,7 +857,7 @@ public class GatewayOpenApiSyncService {
                         row.id(),
                         row.revision(),
                         GatewayOpenApiSyncStateEnum.STALE,
-                        "GATEWAY_OPENAPI_PROVIDER_STALE",
+                        "YUHENG_OPENAPI_PROVIDER_STALE",
                         "OpenAPI provider observation is no longer healthy",
                         null,
                         now
@@ -882,7 +882,7 @@ public class GatewayOpenApiSyncService {
                         row.id(),
                         row.revision(),
                         GatewayOpenApiSyncStateEnum.INCONSISTENT_BUILD,
-                        "GATEWAY_OPENAPI_MANIFEST_DRIFT",
+                        "YUHENG_OPENAPI_MANIFEST_DRIFT",
                         "same-build OpenAPI Group manifest drifted",
                         null,
                         now
@@ -995,15 +995,15 @@ public class GatewayOpenApiSyncService {
     private Optional<GatewayOpenApiGroupManifestDTO> manifest(
             DdcManagementServiceInstance instance) {
         Map<String, String> metadata = instance.metadata();
-        if (!OPENAPI_SOURCE.equals(metadata.get("gateway.definition-source"))
+        if (!OPENAPI_SOURCE.equals(metadata.get("yuheng.definition-source"))
                 || !OPENAPI_ENABLED.equalsIgnoreCase(
-                metadata.get("gateway.openapi.enabled")
+                metadata.get("yuheng.openapi.enabled")
         )) {
             return Optional.empty();
         }
-        String groups = metadata.get("gateway.openapi.groups");
-        String pathTemplate = metadata.get("gateway.openapi.path-template");
-        String spec = metadata.get("gateway.openapi.spec");
+        String groups = metadata.get("yuheng.openapi.groups");
+        String pathTemplate = metadata.get("yuheng.openapi.path-template");
+        String spec = metadata.get("yuheng.openapi.spec");
         if (!"3.1".equals(spec) || groups == null || pathTemplate == null) {
             return Optional.empty();
         }
@@ -1011,9 +1011,9 @@ public class GatewayOpenApiSyncService {
             return Optional.of(new GatewayOpenApiGroupManifestDTO(
                     List.of(groups.split(",", -1)),
                     pathTemplate,
-                    metadata.get("gateway.openapi.resource-uri"),
-                    metadata.get("gateway.artifact-version"),
-                    metadata.get("gateway.build-id")
+                    metadata.get("yuheng.openapi.resource-uri"),
+                    metadata.get("yuheng.artifact-version"),
+                    metadata.get("yuheng.build-id")
             ));
         } catch (RuntimeException invalid) {
             return Optional.empty();

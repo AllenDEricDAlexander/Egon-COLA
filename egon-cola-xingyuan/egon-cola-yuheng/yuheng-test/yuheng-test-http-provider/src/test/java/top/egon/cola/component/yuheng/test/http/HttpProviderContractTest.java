@@ -92,7 +92,7 @@ class HttpProviderContractTest {
                 "1.0.0-live", registry.registration.serviceKey().version()
         );
         assertEquals(
-                "gateway-test-http-provider",
+                "yuheng-test-http-provider",
                 registry.registration.serviceKey().serviceName()
         );
         assertEquals("default", registry.registration.serviceKey().group());
@@ -100,7 +100,7 @@ class HttpProviderContractTest {
         assertEquals(
                 "test-definition-set",
                 registry.registration.metadata().get(
-                        "gateway.definition-set-id"
+                        "yuheng.definition-set-id"
                 )
         );
     }
@@ -173,7 +173,7 @@ class HttpProviderContractTest {
                 .andExpect(status().isUnauthorized());
         mockMvc.perform(get("/v3/api-docs/orders")
                         .with(jwt().authorities(new SimpleGrantedAuthority(
-                                "SCOPE_gateway.other"))))
+                                "SCOPE_yuheng.other"))))
                 .andExpect(status().isForbidden());
     }
 
@@ -181,7 +181,7 @@ class HttpProviderContractTest {
         return objectMapper.readTree(mockMvc.perform(get(
                         "/v3/api-docs/" + group)
                         .with(jwt().authorities(new SimpleGrantedAuthority(
-                                "SCOPE_gateway.openapi.read"))))
+                                "SCOPE_yuheng.openapi.read"))))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(
                         MediaType.APPLICATION_JSON))
@@ -258,7 +258,7 @@ class HttpProviderContractTest {
             when(client.authorize(any(IdpServiceTokenRequest.class)))
                     .thenReturn(new OAuth2AccessToken(
                             OAuth2AccessToken.TokenType.BEARER,
-                            "test-ddc-token",
+                            "test-tianshu-token",
                             issuedAt,
                             issuedAt.plusSeconds(300)
                     ));
@@ -276,7 +276,7 @@ class HttpProviderContractTest {
                 @Override
                 public Map<String, String> metadata() {
                     return Map.of(
-                            "gateway.definition-set-id",
+                            "yuheng.definition-set-id",
                             "test-definition-set"
                     );
                 }

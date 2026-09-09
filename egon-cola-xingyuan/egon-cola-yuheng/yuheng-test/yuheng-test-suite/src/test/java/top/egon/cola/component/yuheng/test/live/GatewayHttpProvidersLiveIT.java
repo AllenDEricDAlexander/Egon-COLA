@@ -6,7 +6,7 @@ import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 class GatewayHttpProvidersLiveIT {
 
     @Test
-    @EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
+    @EnabledIfSystemProperty(named = "yuheng.live.test", matches = "true")
     void verifiesMvcAndWebFluxProviderLifecycle() throws Exception {
         new GatewayLiveTopologyIT().verifyHttpProvidersLifecycle();
     }

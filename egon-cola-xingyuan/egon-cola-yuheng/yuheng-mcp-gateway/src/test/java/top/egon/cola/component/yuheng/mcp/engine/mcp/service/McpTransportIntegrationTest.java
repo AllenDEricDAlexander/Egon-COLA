@@ -98,7 +98,7 @@ public class McpTransportIntegrationTest {
                     .responseSingle((response, body) -> body.asString())
                     .block(Duration.ofSeconds(2)));
             assertEquals(
-                    "https://resource.egon.top/gateway-mcp",
+                    "https://resource.egon.top/yuheng-mcp",
                     metadata.path("resourceUri").asText()
             );
 
@@ -161,7 +161,7 @@ public class McpTransportIntegrationTest {
                         McpProtocolDialect.RC_2026_07_28,
                         McpProtocolDialect.LEGACY_2024_SSE
                 ),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30,
                 true
         );
@@ -202,7 +202,7 @@ public class McpTransportIntegrationTest {
         return Map.of(
                 "callerId", "user-1",
                 "tenantId", "tenant-1",
-                "idp.client-id", "client-1",
+                "tianquan-shoubing.client-id", "client-1",
                 "identity.token-id", "token-1"
         );
     }

@@ -20,14 +20,14 @@ import java.util.Objects;
 import java.time.Instant;
 
 @RestController
-@RequestMapping("/api/v1/identity/audits")
+@RequestMapping("/api/v1/tianquan-shoubing/audits")
 @Tag(name = "identity-audits", description = "统一身份审计接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-audit",
         entityDomainName = "统一身份审计域",
-        interfaceGroupCode = "idp-audit"
+        interfaceGroupCode = "tianquan-shoubing-audit"
 )
 
 public class IdentityAuditController {
@@ -48,9 +48,9 @@ public class IdentityAuditController {
 
     @GetMapping
     @Operation(
-            operationId = "idp-identity-audit-list-v1",
+            operationId = "tianquan-shoubing-identity-audit-list-v1",
             summary = "分页查询统一身份安全审计",
-            tags = {"idp", "audit"}
+            tags = {"tianquan-shoubing", "audit"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -68,7 +68,7 @@ public class IdentityAuditController {
             @RequestParam(name = "traceId", required = false) String traceId,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
         ) {
-        authorization.require(principal, "idp:audit:read");
+        authorization.require(principal, "tianquan-shoubing:audit:read");
         return audits.list(new IdentityAuditQueryDTO(page, size, actorSub, eventType, result, from, to, traceId));
     }
 }

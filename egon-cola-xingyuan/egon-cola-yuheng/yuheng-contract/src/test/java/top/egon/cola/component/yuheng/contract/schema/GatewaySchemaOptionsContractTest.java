@@ -11,10 +11,10 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 class GatewaySchemaOptionsContractTest {
 
     @Test
-    void gatewaySchemaExtensionTargetsFieldOptions() {
-        assertEquals(51001, SchemaOptions.gatewaySchema.getNumber());
+    void yuhengSchemaExtensionTargetsFieldOptions() {
+        assertEquals(51001, SchemaOptions.yuhengSchema.getNumber());
         Descriptors.FieldDescriptor descriptor =
-                SchemaOptions.gatewaySchema.getDescriptor();
+                SchemaOptions.yuhengSchema.getDescriptor();
         assertEquals(
                 "google.protobuf.FieldOptions",
                 descriptor.getContainingType().getFullName()

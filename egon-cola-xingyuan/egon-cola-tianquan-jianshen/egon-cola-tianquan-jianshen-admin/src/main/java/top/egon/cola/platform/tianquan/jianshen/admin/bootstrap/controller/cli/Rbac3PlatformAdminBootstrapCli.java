@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Bootstraps RBAC membership; credentials are created and managed by IdP.
+ * Bootstraps RBAC membership; credentials are created and managed by Tianquan-Shoubing.
  */
 public final class Rbac3PlatformAdminBootstrapCli {
 

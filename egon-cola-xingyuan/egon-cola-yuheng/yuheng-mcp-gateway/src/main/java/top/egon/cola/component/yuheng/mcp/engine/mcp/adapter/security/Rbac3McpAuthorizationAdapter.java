@@ -99,7 +99,7 @@ public final class Rbac3McpAuthorizationAdapter
                 || snapshot.policyVersion()
                 < request.minimumPolicyVersion()) {
             return Decision.denied(
-                    "RBAC3_SNAPSHOT_FENCED",
+                    "TIANQUAN_JIANSHEN_SNAPSHOT_FENCED",
                     snapshot.authVersion(),
                     snapshot.policyVersion(),
                     snapshot.policyVersion()
@@ -109,7 +109,7 @@ public final class Rbac3McpAuthorizationAdapter
                 request.requiredPermissions()
         )) {
             return Decision.denied(
-                    "RBAC3_PERMISSION_DENIED",
+                    "TIANQUAN_JIANSHEN_PERMISSION_DENIED",
                     snapshot.authVersion(),
                     snapshot.policyVersion(),
                     snapshot.policyVersion()

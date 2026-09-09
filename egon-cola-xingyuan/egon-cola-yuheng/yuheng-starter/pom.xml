@@ -14,7 +14,7 @@
     <artifactId>yuheng-starter</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-starter</name>
-    <description>Provider interface definition reporter for Egon COLA Gateway.</description>
+    <description>Provider interface definition reporter for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>

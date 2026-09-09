@@ -111,7 +111,7 @@ class DdcRuntimeCoordinatorTest {
 
         assertThatThrownBy(coordinator::start)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("IdP service token unavailable");
+                .hasMessageContaining("Tianquan-Shoubing service token unavailable");
         assertThat(coordinator.state()).isEqualTo(DdcRuntimeState.FAILED);
         assertThat(adminClient.registerCount).isZero();
     }
@@ -172,7 +172,7 @@ class DdcRuntimeCoordinatorTest {
                 .isEqualTo("service-token-2");
         assertThat(serviceTokens.requests.getFirst().audience())
                 .isEqualTo(URI.create(
-                        "https://api.example/ddc-registration"
+                        "https://api.example/tianshu-registration"
                 ));
         assertThat(coordinator.currentSession().orElseThrow()
                 .leaseExpireAt()).isEqualTo(adminClient.heartbeatExpireAt);
@@ -347,7 +347,7 @@ class DdcRuntimeCoordinatorTest {
         assertThatThrownBy(coordinator::start)
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(
-                        "egon.cola.component.ddc.instance.heartbeat-interval-seconds "
+                        "egon.cola.component.tianshu.instance.heartbeat-interval-seconds "
                                 + "must be positive and less than lease-seconds"
                 );
         assertThat(coordinator.isRunning()).isFalse();
@@ -368,7 +368,7 @@ class DdcRuntimeCoordinatorTest {
         properties.setEnv("dev");
         properties.setNamespace("default");
         properties.setRegistrationResourceUri(URI.create(
-                "https://api.example/ddc-registration"
+                "https://api.example/tianshu-registration"
         ));
         properties.getConsistency().setFailFast(failFast);
         properties.getInstance().setLeaseSeconds(30);
@@ -546,7 +546,7 @@ class DdcRuntimeCoordinatorTest {
             tokens.requests.add(invocation.getArgument(0));
             int sequence = tokens.calls.incrementAndGet();
             if (tokens.failures.getAndUpdate(value -> Math.max(0, value - 1)) > 0) {
-                throw new IllegalStateException("IdP service token unavailable");
+                throw new IllegalStateException("Tianquan-Shoubing service token unavailable");
             }
             return new OAuth2AccessToken(
                     OAuth2AccessToken.TokenType.BEARER,
@@ -560,9 +560,9 @@ class DdcRuntimeCoordinatorTest {
 
     private IdpStarterProperties idpProperties() {
         IdpStarterProperties properties = new IdpStarterProperties();
-        properties.setResourceUri(URI.create("https://api.example/ddc"));
-        properties.getServiceClient().setAppId("ddc-app");
-        properties.getServiceClient().setRegistrationId("ddc-registration");
+        properties.setResourceUri(URI.create("https://api.example/tianshu"));
+        properties.getServiceClient().setAppId("tianshu-app");
+        properties.getServiceClient().setRegistrationId("tianshu-registration");
         return properties;
     }
 

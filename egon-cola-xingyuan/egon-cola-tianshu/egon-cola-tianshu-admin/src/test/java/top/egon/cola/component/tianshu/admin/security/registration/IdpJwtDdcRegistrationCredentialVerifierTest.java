@@ -24,7 +24,7 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
     private static final Instant NOW = Instant.parse("2026-08-11T08:00:00Z");
 
     private static final URI RESOURCE_URI = URI.create(
-            "https://api.example/idp"
+            "https://api.example/tianquan-shoubing"
     );
 
     @Test
@@ -35,21 +35,21 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
                 RESOURCE_URI,
                 Set.of(IdpJwtDdcRegistrationCredentialVerifier.REGISTRATION_SCOPE),
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod"
         );
 
         VerifiedDdcRegistrationIdentity identity = verifier(
                 new AccessTokenVerification.Valid<>(principal)
-        ).verify("service-token", "permission", "idp", "prod", "idp-1");
+        ).verify("service-token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1");
 
         assertThat(identity.appId()).isEqualTo("app-id");
         assertThat(identity.clientId()).isEqualTo("client-id");
-        assertThat(identity.resourceServerId()).isEqualTo("permission-idp-prod");
+        assertThat(identity.resourceServerId()).isEqualTo("permission-tianquan-shoubing-prod");
         assertThat(identity.bizCode()).isEqualTo("permission");
-        assertThat(identity.appCode()).isEqualTo("idp");
+        assertThat(identity.appCode()).isEqualTo("tianquan-shoubing");
         assertThat(identity.environment()).isEqualTo("prod");
-        assertThat(identity.instanceId()).isEqualTo("idp-1");
+        assertThat(identity.instanceId()).isEqualTo("tianquan-shoubing-1");
         assertThat(identity.credentialId()).isEqualTo("credential-1");
         assertThat(identity.tokenId()).isEqualTo("token-1");
         assertThat(identity.toString()).doesNotContain("service-token");
@@ -62,11 +62,11 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
         );
         assertFailure(
                 () -> invalid.verify(
-                        "service-token", "permission", "idp", "prod", "idp-1"),
+                        "service-token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_INVALID
         );
         assertFailure(
-                () -> invalid.verify(" ", "permission", "idp", "prod", "idp-1"),
+                () -> invalid.verify(" ", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_REQUIRED
         );
 
@@ -75,7 +75,7 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
         );
         assertFailure(
                 () -> expired.verify(
-                        "service-token", "permission", "idp", "prod", "idp-1"),
+                        "service-token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_EXPIRED
         );
     }
@@ -88,8 +88,8 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
                         "tenant-1",
                         RESOURCE_URI,
                         Set.of(IdpJwtDdcRegistrationCredentialVerifier.REGISTRATION_SCOPE),
-                        "permission", "idp", "prod")))
-                        .verify("token", "permission", "idp", "prod", "idp-1"),
+                        "permission", "tianquan-shoubing", "prod")))
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_INVALID
         );
         assertFailure(
@@ -98,8 +98,8 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
                         null,
                         URI.create("https://api.example/other"),
                         Set.of(IdpJwtDdcRegistrationCredentialVerifier.REGISTRATION_SCOPE),
-                        "permission", "idp", "prod")))
-                        .verify("token", "permission", "idp", "prod", "idp-1"),
+                        "permission", "tianquan-shoubing", "prod")))
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_INVALID
         );
         assertFailure(
@@ -107,9 +107,9 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
                         ServiceTokenContext.PLATFORM,
                         null,
                         RESOURCE_URI,
-                        Set.of("ddc:read"),
-                        "permission", "idp", "prod")))
-                        .verify("token", "permission", "idp", "prod", "idp-1"),
+                        Set.of("tianshu:read"),
+                        "permission", "tianquan-shoubing", "prod")))
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_INVALID
         );
         assertFailure(
@@ -118,8 +118,8 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
                         null,
                         RESOURCE_URI,
                         Set.of(IdpJwtDdcRegistrationCredentialVerifier.REGISTRATION_SCOPE),
-                        "other", "idp", "prod")))
-                        .verify("token", "permission", "idp", "prod", "idp-1"),
+                        "other", "tianquan-shoubing", "prod")))
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH
         );
     }
@@ -129,13 +129,13 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
         ServiceIdentityPrincipal expired = new ServiceIdentityPrincipal(
                 "client-id", null, "client-id", "token-1", RESOURCE_URI, 7L,
                 Set.of(IdpJwtDdcRegistrationCredentialVerifier.REGISTRATION_SCOPE),
-                "permission", "idp", "prod", "credential-1",
+                "permission", "tianquan-shoubing", "prod", "credential-1",
                 NOW.minusSeconds(60), NOW,
                 "app-id", ServiceTokenContext.PLATFORM
         );
         assertFailure(
                 () -> verifier(new AccessTokenVerification.Valid<>(expired))
-                        .verify("token", "permission", "idp", "prod", "idp-1"),
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "tianquan-shoubing-1"),
                 DdcErrorStatus.RESOURCE_ADMISSION_INVALID
         );
 
@@ -145,8 +145,8 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
                         null,
                         RESOURCE_URI,
                         Set.of(IdpJwtDdcRegistrationCredentialVerifier.REGISTRATION_SCOPE),
-                        "permission", "idp", "prod")))
-                        .verify("token", "permission", "idp", "prod", "x".repeat(129)),
+                        "permission", "tianquan-shoubing", "prod")))
+                        .verify("token", "permission", "tianquan-shoubing", "prod", "x".repeat(129)),
                 DdcErrorStatus.RESOURCE_ADMISSION_BINDING_MISMATCH
         );
     }
@@ -157,7 +157,7 @@ class IdpJwtDdcRegistrationCredentialVerifierTest {
         when(serviceTokens.verify(anyString())).thenReturn(result);
         return new IdpJwtDdcRegistrationCredentialVerifier(
                 serviceTokens,
-                "permission-idp-prod",
+                "permission-tianquan-shoubing-prod",
                 RESOURCE_URI,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );

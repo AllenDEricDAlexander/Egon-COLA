@@ -80,7 +80,7 @@ public final class ProviderActiveHealthMonitor
             Executors.newSingleThreadScheduledExecutor(runnable -> {
                 Thread thread = new Thread(
                         runnable,
-                        "gateway-active-health-scheduler"
+                        "yuheng-active-health-scheduler"
                 );
                 thread.setDaemon(true);
                 return thread;
@@ -124,7 +124,7 @@ public final class ProviderActiveHealthMonitor
         probeScheduler = Schedulers.newBoundedElastic(
                 policy.maximumConcurrency(),
                 Math.max(100, policy.maximumConcurrency() * 100),
-                "gateway-active-health-probe"
+                "yuheng-active-health-probe"
         );
     }
 

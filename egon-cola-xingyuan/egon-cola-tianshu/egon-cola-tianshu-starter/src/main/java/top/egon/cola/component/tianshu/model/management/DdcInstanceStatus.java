@@ -6,7 +6,7 @@ import java.time.Instant;
 import java.util.Locale;
 
 /**
- * DDC 租约实例的归一化在线状态。 / Normalized online status of a DDC lease instance.
+ * Tianshu 租约实例的归一化在线状态。 / Normalized online status of a Tianshu lease instance.
  */
 public enum DdcInstanceStatus {
 

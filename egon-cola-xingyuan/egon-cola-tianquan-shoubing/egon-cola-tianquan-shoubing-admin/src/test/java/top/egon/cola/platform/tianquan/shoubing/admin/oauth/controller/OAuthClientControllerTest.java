@@ -49,7 +49,7 @@ class OAuthClientControllerTest {
             throws Exception {
         when(clients.create(any(), anyString())).thenReturn(created());
 
-        mockMvc.perform(post("/api/v1/identity/clients")
+        mockMvc.perform(post("/api/v1/tianquan-shoubing/clients")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -68,7 +68,7 @@ class OAuthClientControllerTest {
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:oauth-client:create")
+                eq("tianquan-shoubing:oauth-client:create")
         );
     }
 
@@ -83,7 +83,7 @@ class OAuthClientControllerTest {
                 .thenReturn(rotated());
 
         mockMvc.perform(post(
-                        "/api/v1/identity/clients/{clientId}/secret-rotations",
+                        "/api/v1/tianquan-shoubing/clients/{clientId}/secret-rotations",
                         "orders-service-local"
                 ).contentType(MediaType.APPLICATION_JSON)
                         .content("{\"expectedVersion\":0}"))
@@ -92,7 +92,7 @@ class OAuthClientControllerTest {
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:oauth-client:update")
+                eq("tianquan-shoubing:oauth-client:update")
         );
     }
 
@@ -117,12 +117,12 @@ class OAuthClientControllerTest {
                 "ACTIVE"
         )));
 
-        mockMvc.perform(get("/api/v1/identity/clients"))
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/clients"))
                 .andExpect(status().isOk());
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:oauth-client:read")
+                eq("tianquan-shoubing:oauth-client:read")
         );
     }
 

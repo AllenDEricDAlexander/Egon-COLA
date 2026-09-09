@@ -58,7 +58,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
         String key = requireKey(configKey, "configKey");
         requireApplier(applier);
         if (exactAppliers.putIfAbsent(key, applier) != null) {
-            throw new IllegalArgumentException("DDC exact config applier already registered: " + key);
+            throw new IllegalArgumentException("Tianshu exact config applier already registered: " + key);
         }
     }
 
@@ -73,10 +73,10 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
         String prefix = requireKey(configKeyPrefix, "configKeyPrefix");
         requireApplier(applier);
         if (!prefix.endsWith(".")) {
-            throw new IllegalArgumentException("DDC config key prefix must end with '.': " + prefix);
+            throw new IllegalArgumentException("Tianshu config key prefix must end with '.': " + prefix);
         }
         if (prefixAppliers.putIfAbsent(prefix, applier) != null) {
-            throw new IllegalArgumentException("DDC prefix config applier already registered: " + prefix);
+            throw new IllegalArgumentException("Tianshu prefix config applier already registered: " + prefix);
         }
     }
 
@@ -189,7 +189,7 @@ public class DefaultDdcConfigApplierRegistry implements DdcConfigApplierRegistry
      */
     private void requireMutable() {
         if (snapshot != null) {
-            throw new IllegalStateException("DDC config applier registry is frozen");
+            throw new IllegalStateException("Tianshu config applier registry is frozen");
         }
     }
 

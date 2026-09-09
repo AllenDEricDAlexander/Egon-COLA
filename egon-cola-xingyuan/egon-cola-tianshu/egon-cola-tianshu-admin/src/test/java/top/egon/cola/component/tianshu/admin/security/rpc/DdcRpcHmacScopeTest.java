@@ -24,7 +24,7 @@ class DdcRpcHmacScopeTest {
     @Test
     void extractsRequiredOptionalAndUnscopedRequestShapes() {
         DdcRpcScopeExtractor.Scope config = extractor.extract(
-                "egon.ddc.v1.DdcConfigRuntimeService/PullConfig",
+                "egon.tianshu.v1.DdcConfigRuntimeService/PullConfig",
                 PullConfigRequest.newBuilder()
                         .setScope(scope("biz-a", "dev", "app-a"))
                         .build()
@@ -33,7 +33,7 @@ class DdcRpcHmacScopeTest {
                 "SDK", "app-a", "dev", "biz-a"));
 
         DdcRpcScopeExtractor.Scope registry = extractor.extract(
-                "egon.ddc.v1.DdcServiceRegistryService/GetServices",
+                "egon.tianshu.v1.DdcServiceRegistryService/GetServices",
                 GetServicesRequest.newBuilder()
                         .setQuery(DdcServiceQuery.newBuilder()
                                 .setBizCode("biz-a")
@@ -44,7 +44,7 @@ class DdcRpcHmacScopeTest {
                 "REGISTRY", null, "dev", "biz-a"));
 
         DdcRpcScopeExtractor.Scope task = extractor.extract(
-                "egon.ddc.v1.DdcManagementService/GetPublishTask",
+                "egon.tianshu.v1.DdcManagementService/GetPublishTask",
                 GetPublishTaskRequest.newBuilder()
                         .setChangeId("change-1")
                         .build()
@@ -53,31 +53,31 @@ class DdcRpcHmacScopeTest {
                 "MANAGEMENT", null, null, null));
 
         assertThat(extractor.extract(
-                "egon.ddc.v1.DdcManagementService/GetBiz",
+                "egon.tianshu.v1.DdcManagementService/GetBiz",
                 GetBizRequest.getDefaultInstance())).isEqualTo(task);
         assertThat(extractor.extract(
-                "egon.ddc.v1.DdcManagementService/ListBizs",
+                "egon.tianshu.v1.DdcManagementService/ListBizs",
                 ListBizsRequest.getDefaultInstance())).isEqualTo(task);
         assertThat(extractor.extract(
-                "egon.ddc.v1.DdcManagementService/GetApp",
+                "egon.tianshu.v1.DdcManagementService/GetApp",
                 GetAppRequest.getDefaultInstance())).isEqualTo(task);
         assertThat(extractor.extract(
-                "egon.ddc.v1.DdcManagementService/ListApps",
+                "egon.tianshu.v1.DdcManagementService/ListApps",
                 ListAppsRequest.getDefaultInstance())).isEqualTo(task);
     }
 
     @Test
     void rejectsMissingRequiredScopeAndUnknownMethods() {
         assertThatThrownBy(() -> extractor.extract(
-                "egon.ddc.v1.DdcConfigRuntimeService/PullConfig",
+                "egon.tianshu.v1.DdcConfigRuntimeService/PullConfig",
                 PullConfigRequest.getDefaultInstance()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("scope");
         assertThatThrownBy(() -> extractor.extract(
-                "egon.ddc.v1.Unknown/Call",
+                "egon.tianshu.v1.Unknown/Call",
                 PullConfigRequest.getDefaultInstance()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("Unknown DDC RPC method");
+                .hasMessage("Unknown Tianshu RPC method");
     }
 
     @Test

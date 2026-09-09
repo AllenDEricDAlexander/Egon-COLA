@@ -20,36 +20,36 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ResourceServerPolicyTest {
 
     private static final URI RESOURCE_URI = URI.create(
-            "https://api.egon.internal/prod/permission/idp");
+            "https://api.egon.internal/prod/permission/tianquan-shoubing");
 
     @Test
     void validatesResourceIdentifierAndExactApplicationScope() {
         ResourceServer resource = resource(ResourceServerStatus.ACTIVE);
 
-        assertTrue(resource.matches("permission", "idp", "prod"));
-        assertFalse(resource.matches("permission", "rbac3", "prod"));
+        assertTrue(resource.matches("permission", "tianquan-shoubing", "prod"));
+        assertFalse(resource.matches("permission", "tianquan-jianshen", "prod"));
         assertThrows(IllegalArgumentException.class, () -> new ResourceServer(
-                "permission-idp-prod",
-                URI.create("/permission/idp"),
+                "permission-tianquan-shoubing-prod",
+                URI.create("/permission/tianquan-shoubing"),
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "idp-service",
-                "idp",
-                "idp:access",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access",
                 Duration.ofMinutes(5),
                 ResourceServerStatus.ACTIVE,
                 1L
         ));
         assertThrows(IllegalArgumentException.class, () -> new ResourceServer(
-                "permission-idp-prod",
-                URI.create("https://api.egon.internal/prod/permission/idp#fragment"),
+                "permission-tianquan-shoubing-prod",
+                URI.create("https://api.egon.internal/prod/permission/tianquan-shoubing#fragment"),
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "idp-service",
-                "idp",
-                "idp:access",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access",
                 Duration.ofMinutes(5),
                 ResourceServerStatus.ACTIVE,
                 1L
@@ -59,8 +59,8 @@ class ResourceServerPolicyTest {
     @Test
     void enforcesMutuallyExclusiveGrantFacts() {
         ClientResourceGrant userGrant = new ClientResourceGrant(
-                "idp-admin-web",
-                "permission-idp-prod",
+                "tianquan-shoubing-admin-web",
+                "permission-tianquan-shoubing-prod",
                 ResourceGrantType.USER_DELEGATION,
                 null,
                 Set.of(),
@@ -71,8 +71,8 @@ class ResourceServerPolicyTest {
         assertTrue(userGrant.active());
         assertThrows(IllegalArgumentException.class, () ->
                 new ClientResourceGrant(
-                        "idp-admin-web",
-                        "permission-idp-prod",
+                        "tianquan-shoubing-admin-web",
+                        "permission-tianquan-shoubing-prod",
                         ResourceGrantType.USER_DELEGATION,
                         "tenant-001",
                         Set.of(),
@@ -81,8 +81,8 @@ class ResourceServerPolicyTest {
                 ));
         assertThrows(IllegalArgumentException.class, () ->
                 new ClientResourceGrant(
-                        "idp-service",
-                        "permission-rbac3-prod",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-prod",
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         "tenant-001",
                         Set.of(),
@@ -93,14 +93,14 @@ class ResourceServerPolicyTest {
 
     private static ResourceServer resource(ResourceServerStatus status) {
         return new ResourceServer(
-                "permission-idp-prod",
+                "permission-tianquan-shoubing-prod",
                 RESOURCE_URI,
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "idp-service",
-                "idp",
-                "idp:access",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access",
                 Duration.ofMinutes(5),
                 status,
                 3L

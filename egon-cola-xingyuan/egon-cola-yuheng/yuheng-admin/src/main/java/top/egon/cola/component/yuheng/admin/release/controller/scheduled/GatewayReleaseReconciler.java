@@ -24,7 +24,7 @@ import java.util.List;
  */
 @Component
 @ConditionalOnProperty(
-        name = "gateway.admin.release-reconcile-enabled",
+        name = "yuheng.admin.release-reconcile-enabled",
         havingValue = "true",
         matchIfMissing = true
 )
@@ -128,7 +128,7 @@ public class GatewayReleaseReconciler {
      */
     @Scheduled(
             fixedDelayString =
-                    "${gateway.admin.release-reconcile-delay:30000}"
+                    "${yuheng.admin.release-reconcile-delay:30000}"
     )
     public void reconcile() {
         if (coordinator == null) {
@@ -164,7 +164,7 @@ public class GatewayReleaseReconciler {
                     outcome.changeId(),
                     outcome.successful()
                             ? null
-                            : "DDC_PUBLISH_" + outcome.status(),
+                            : "TIANSHU_PUBLISH_" + outcome.status(),
                     outcome.result().errorMessage(),
                     targets,
                     clock.instant()

@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-jianshen-core</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-jianshen-core</name>
-    <description>Framework-free domain and authorization decision core for Egon COLA RBAC3.</description>
+    <description>Framework-free domain and authorization decision core for Egon COLA Tianquan-Jianshen.</description>
 
     <dependencies>
         <dependency>

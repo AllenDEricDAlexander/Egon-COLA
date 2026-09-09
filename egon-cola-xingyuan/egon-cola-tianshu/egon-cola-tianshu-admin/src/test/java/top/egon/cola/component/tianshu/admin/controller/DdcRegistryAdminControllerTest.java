@@ -52,7 +52,7 @@ class DdcRegistryAdminControllerTest {
                 )
         );
 
-        mockMvc.perform(get("/api/v1/ddc/registry/services")
+        mockMvc.perform(get("/api/v1/tianshu/registry/services")
                         .param("bizCode", "pay-biz")
                         .param("appCode", "orders-app")
                         .param("env", "dev")
@@ -63,7 +63,7 @@ class DdcRegistryAdminControllerTest {
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.generation").value(7))
                 .andExpect(jsonPath("$.data.services[0].serviceName")
-                        .value("egon.gateway.test.v1.EchoService"));
+                        .value("egon.yuheng.test.v1.EchoService"));
     }
 
     @Test
@@ -88,7 +88,7 @@ class DdcRegistryAdminControllerTest {
                 )
         );
 
-        mockMvc.perform(get("/api/v1/ddc/registry/instances")
+        mockMvc.perform(get("/api/v1/tianshu/registry/instances")
                         .param("bizCode", "pay-biz")
                         .param("appCode", "orders-app")
                         .param("env", "dev")
@@ -96,7 +96,7 @@ class DdcRegistryAdminControllerTest {
                         .param("protocol", "grpc")
                         .param(
                                 "serviceName",
-                                "egon.gateway.test.v1.EchoService"
+                                "egon.yuheng.test.v1.EchoService"
                         )
                         .param("group", "default")
                         .param("version", "1.0.0"))
@@ -114,7 +114,7 @@ class DdcRegistryAdminControllerTest {
                 new DdcManagementServiceCatalog(0L, Instant.EPOCH, List.of())
         );
 
-        mockMvc.perform(get("/api/v1/ddc/registry/services"))
+        mockMvc.perform(get("/api/v1/tianshu/registry/services"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
 
@@ -139,7 +139,7 @@ class DdcRegistryAdminControllerTest {
                 )
         );
 
-        mockMvc.perform(get("/api/v1/ddc/registry/services/page")
+        mockMvc.perform(get("/api/v1/tianshu/registry/services/page")
                         .param("pageNo", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())
@@ -147,7 +147,7 @@ class DdcRegistryAdminControllerTest {
                 .andExpect(jsonPath("$.page.total").value(1))
                 .andExpect(jsonPath("$.data").doesNotExist());
 
-        mockMvc.perform(get("/api/v1/ddc/registry/services"))
+        mockMvc.perform(get("/api/v1/tianshu/registry/services"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.generation").exists())
                 .andExpect(jsonPath("$.data.services").isArray());
@@ -167,7 +167,7 @@ class DdcRegistryAdminControllerTest {
                 List.of(instance), PageRequest.of(0, 10), 1
         ));
 
-        mockMvc.perform(get("/api/v1/ddc/registry/instances/page")
+        mockMvc.perform(get("/api/v1/tianshu/registry/instances/page")
                         .param("bizCode", "pay-biz")
                         .param("appCode", "orders-app")
                         .param("env", "dev")
@@ -186,11 +186,11 @@ class DdcRegistryAdminControllerTest {
     @Test
     void exactInstanceQueryReportsInvalidRequestInsteadOfInternalFailure()
             throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/registry/instances"))
+        mockMvc.perform(get("/api/v1/tianshu/registry/instances"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(56000))
-                .andExpect(jsonPath("$.status").value("DDC_INVALID_REQUEST"));
+                .andExpect(jsonPath("$.status").value("TIANSHU_INVALID_REQUEST"));
     }
 
     private DdcManagementServiceKey key() {
@@ -200,7 +200,7 @@ class DdcRegistryAdminControllerTest {
                 "orders-app",
                 "svc-orders-rpc",
                 "RPC_PROVIDER",
-                "egon.gateway.test.v1.EchoService",
+                "egon.yuheng.test.v1.EchoService",
                 "default",
                 "1.0.0",
                 "grpc"

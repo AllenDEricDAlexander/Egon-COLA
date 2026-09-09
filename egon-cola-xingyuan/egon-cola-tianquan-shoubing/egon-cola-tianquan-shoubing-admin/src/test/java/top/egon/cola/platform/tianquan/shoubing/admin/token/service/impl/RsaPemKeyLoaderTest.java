@@ -27,8 +27,8 @@ class RsaPemKeyLoaderTest {
         KeyPairGenerator generator = KeyPairGenerator.getInstance("RSA");
         generator.initialize(2048);
         KeyPair pair = generator.generateKeyPair();
-        Path publicFile = directory.resolve("idp-public.pem");
-        Path privateFile = directory.resolve("idp-private.pem");
+        Path publicFile = directory.resolve("tianquan-shoubing-public.pem");
+        Path privateFile = directory.resolve("tianquan-shoubing-private.pem");
         Files.writeString(publicFile, pem(
                 "PUBLIC KEY",
                 pair.getPublic().getEncoded()

@@ -29,7 +29,7 @@ class DdcYamlConfigFormatStrategyTest {
                 7L
         );
 
-        assertThat(source.getName()).isEqualTo("ddc:application.yml");
+        assertThat(source.getName()).isEqualTo("tianshu:application.yml");
         assertThat(source.getProperty("feature.enabled")).isEqualTo(true);
         assertThat(source.getProperty("feature.names[0]")).isEqualTo("first");
         assertThat(source.getOrigin("feature.enabled")).isNotNull();
@@ -57,7 +57,7 @@ class DdcYamlConfigFormatStrategyTest {
 
         source.replace(replacement.snapshot());
 
-        assertThat(source.getName()).isEqualTo("ddc:application.yml");
+        assertThat(source.getName()).isEqualTo("tianshu:application.yml");
         assertThat(source.getProperty("feature.enabled")).isEqualTo(false);
         assertThat(source.getProperty("feature.old-value")).isNull();
         assertThat(source.getProperty("feature.new-value")).isEqualTo("remote");
@@ -70,12 +70,12 @@ class DdcYamlConfigFormatStrategyTest {
                 "application.yml",
                 "  \n",
                 1L
-        )).hasMessage("DDC remote YAML must not be empty");
+        )).hasMessage("Tianshu remote YAML must not be empty");
         assertThatThrownBy(() -> strategy.load(
                 "application.yml",
                 "one: 1\n---\ntwo: 2\n",
                 1L
-        )).hasMessage("DDC remote YAML must contain exactly one document");
+        )).hasMessage("Tianshu remote YAML must contain exactly one document");
         assertThatThrownBy(() -> strategy.load(
                 "application.yml",
                 "- one\n- two\n",
@@ -91,7 +91,7 @@ class DdcYamlConfigFormatStrategyTest {
     @Test
     void rejectsDdcConfigImportsAndProfileSelectionAsWholeDocument() {
         for (String content : new String[]{
-                "egon:\n  cola:\n    component:\n      ddc:\n        enabled: false\n",
+                "egon:\n  cola:\n    component:\n      tianshu:\n        enabled: false\n",
                 "spring:\n  config:\n    import: classpath:other.yml\n",
                 "spring:\n  profiles:\n    active: prod\n",
                 "SPRING_CONFIG_IMPORT: classpath:other.yml\n"
@@ -108,7 +108,7 @@ class DdcYamlConfigFormatStrategyTest {
     @Test
     void reservedKeyMatchingIncludesDescendantsAndRelaxedUnderscores() {
         assertThat(DdcReservedConfigurationKeys.isReserved(
-                "egon.cola.component.ddc.rpc.target"
+                "egon.cola.component.tianshu.rpc.target"
         )).isTrue();
         assertThat(DdcReservedConfigurationKeys.isReserved(
                 "spring.profiles.group.production[0]"

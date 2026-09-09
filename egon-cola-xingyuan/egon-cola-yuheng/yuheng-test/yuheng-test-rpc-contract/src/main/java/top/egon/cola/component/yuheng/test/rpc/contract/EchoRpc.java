@@ -14,7 +14,7 @@ import top.egon.cola.component.rpc.annotation.EgonRpcService;
         version = "1.0.0"
 )
 @GatewayInterfaceGroup(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台域",
         entityDomainCode = "rpc-test",
         entityDomainName = "RPC 测试实体域",
@@ -27,7 +27,7 @@ public interface EchoRpc {
     @GatewayOperation(
             name = "RPC Echo",
             summary = "回显消息并返回调用元数据",
-            owner = "gateway-test",
+            owner = "yuheng-test",
             externalAccessible = false,
             idempotent = true,
             tags = {"rpc"}

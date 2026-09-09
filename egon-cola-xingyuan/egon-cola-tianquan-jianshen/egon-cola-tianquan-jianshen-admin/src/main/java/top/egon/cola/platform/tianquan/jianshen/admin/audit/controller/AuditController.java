@@ -28,12 +28,12 @@ import java.time.Instant;
  * HTTP entry point for querying audit logs.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/tianquan-jianshen/v1")
 @Tag(name = "audit", description = "审计接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -61,9 +61,9 @@ public class AuditController {
     @GetMapping("/audit-logs")
     @RequiresPermission(value = "system:audit:read")
     @Operation(
-            operationId = "rbac3-audit-log-list-v1",
+            operationId = "tianquan-jianshen-audit-log-list-v1",
             summary = "按租户和精确过滤条件游标查询审计",
-            tags = {"rbac3", "audit"}
+            tags = {"tianquan-jianshen", "audit"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

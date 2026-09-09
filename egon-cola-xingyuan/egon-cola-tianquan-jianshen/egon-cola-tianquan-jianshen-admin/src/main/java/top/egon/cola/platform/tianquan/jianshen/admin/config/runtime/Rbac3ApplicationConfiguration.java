@@ -48,7 +48,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.RoleEligi
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.dto.MutationWorkDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.InitialAuthorizationContextRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.Rbac3RuntimePolicy;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.AtomicRbac3RuntimePolicy;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.AtomicRbac3RuntimePolicy;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.jpa.JpaAuthorizationMutationRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.jpa.JpaAuthorizationPublicationGuardRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.jpa.JpaIdempotencyRepository;
@@ -75,7 +75,7 @@ import java.time.Clock;
 /**
  * 类型 `Rbac3ApplicationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Application Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3ApplicationConfiguration` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Application Configuration`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Explicit production assembly for the RBAC3 application and persistence ports.
+ * Explicit production assembly for the Tianquan-Jianshen application and persistence ports.
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3ApplicationConfiguration {
@@ -348,7 +348,7 @@ public class Rbac3ApplicationConfiguration {
 
     @Bean(name = "rbac3DdcManagementClientHandle", destroyMethod = "close")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc",
+            prefix = "egon.cola.component.tianshu",
             name = "enabled",
             havingValue = "true")
     DdcRpcClientHandle<DdcManagementClient> rbac3DdcManagementClientHandle(
@@ -358,7 +358,7 @@ public class Rbac3ApplicationConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc",
+            prefix = "egon.cola.component.tianshu",
             name = "enabled",
             havingValue = "true")
     DdcCatalogGateway rbac3DdcCatalogGateway(
@@ -468,7 +468,7 @@ public class Rbac3ApplicationConfiguration {
             RedisAuthorizationRuntimeRepository snapshots,
             InitialAuthorizationContextRepository initialContexts,
             Clock clock,
-            @Value("${egon.rbac3.initial-context.ddc-enabled:false}")
+            @Value("${egon.tianquan-jianshen.initial-context.tianshu-enabled:false}")
             boolean ddcInitialContextEnabled) {
         return new SystemAuthorizationSnapshotService(
                 snapshots, initialContexts, clock, ddcInitialContextEnabled);

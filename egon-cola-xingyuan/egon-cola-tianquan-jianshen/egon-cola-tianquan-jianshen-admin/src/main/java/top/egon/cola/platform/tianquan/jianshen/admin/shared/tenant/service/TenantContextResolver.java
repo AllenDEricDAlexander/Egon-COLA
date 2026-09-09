@@ -23,7 +23,7 @@ public final class TenantContextResolver {
      * 含义与用法：读取、传递或更新 `TARGET_HEADER` 时应保持 `TenantContextResolver` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `TARGET_HEADER`, preserve `TenantContextResolver`'s lifecycle, immutability, and thread-safety constraints.
      */
-    public static final String TARGET_HEADER = "X-RBAC3-Target-Tenant";
+    public static final String TARGET_HEADER = "X-TIANQUAN-JIANSHEN-Target-Tenant";
     /**
      * 字段 `TENANT_HEADER` 表示 `TenantContextResolver` 中与 `TENANT HEADER` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `TENANT_HEADER` stores the `TENANT HEADER`-related state, dependency, configuration, or result of `TenantContextResolver` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -31,7 +31,7 @@ public final class TenantContextResolver {
      * 含义与用法：读取、传递或更新 `TENANT_HEADER` 时应保持 `TenantContextResolver` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `TENANT_HEADER`, preserve `TenantContextResolver`'s lifecycle, immutability, and thread-safety constraints.
      */
-    public static final String TENANT_HEADER = "X-RBAC3-Tenant";
+    public static final String TENANT_HEADER = "X-TIANQUAN-JIANSHEN-Tenant";
     /**
      * 字段 `TARGET_PERMISSION` 表示 `TenantContextResolver` 中与 `TARGET PERMISSION` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `TARGET_PERMISSION` stores the `TARGET PERMISSION`-related state, dependency, configuration, or result of `TenantContextResolver` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -71,7 +71,7 @@ public final class TenantContextResolver {
         if (targetTenant == null) {
             return new TenantContext(principal.tenantId(), principal.tenantId(), false);
         }
-        boolean platformRoute = request.getRequestURI().startsWith("/api/rbac3/v1/platform/")
+        boolean platformRoute = request.getRequestURI().startsWith("/api/tianquan-jianshen/v1/platform/")
                 || request.getRequestURI().startsWith("/api/v1/platform/");
         if (!platformRoute || !principal.hasPermission("system:platform:admin")
                 || !principal.hasPermission(TARGET_PERMISSION)) {

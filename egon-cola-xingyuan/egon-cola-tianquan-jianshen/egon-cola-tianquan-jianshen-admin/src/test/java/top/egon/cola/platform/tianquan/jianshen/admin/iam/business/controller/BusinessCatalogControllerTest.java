@@ -15,7 +15,7 @@ class BusinessCatalogControllerTest {
     void declaresTheDdcBackedCatalogRoutes() {
         RequestMapping mapping = BusinessCatalogController.class
                 .getAnnotation(RequestMapping.class);
-        assertThat(mapping.value()).containsExactly("/api/rbac3/v1/iam/catalog");
+        assertThat(mapping.value()).containsExactly("/api/tianquan-jianshen/v1/iam/catalog");
         assertThat(Arrays.stream(BusinessCatalogController.class.getDeclaredMethods())
                 .filter(method -> method.isAnnotationPresent(GetMapping.class))
                 .map(method -> method.getAnnotation(GetMapping.class).value()[0]))

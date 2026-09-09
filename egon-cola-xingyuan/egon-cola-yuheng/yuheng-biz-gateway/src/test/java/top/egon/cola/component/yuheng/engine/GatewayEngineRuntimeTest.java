@@ -40,7 +40,7 @@ class GatewayEngineRuntimeTest {
         when(activation.restoreLkg()).thenAnswer(invocation -> {
             restoreAttempts.countDown();
             if (restoreAttempts.getCount() > 0) {
-                throw new IllegalStateException("DDC unavailable");
+                throw new IllegalStateException("Tianshu unavailable");
             }
             return false;
         });

@@ -199,14 +199,14 @@ public final class RpcGatewayDefinitionContributor
         );
         requestSchema.put(
                 "x-egon-schema-model",
-                "gateway-operation-request/v2"
+                "yuheng-operation-request/v2"
         );
         Map<String, Object> responseSchema = schemaMapper.schema(
                 descriptor.protoMethod().getOutputType()
         );
         responseSchema.put(
                 "x-egon-schema-model",
-                "gateway-operation-response/v2"
+                "yuheng-operation-response/v2"
         );
         return new GatewayInterfaceDefinitionReport.Operation(
                 GatewayOperationKey.rpc(

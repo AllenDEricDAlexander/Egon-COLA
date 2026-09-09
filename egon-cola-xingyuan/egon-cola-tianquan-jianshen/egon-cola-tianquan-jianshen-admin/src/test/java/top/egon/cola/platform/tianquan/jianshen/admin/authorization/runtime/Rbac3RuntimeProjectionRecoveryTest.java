@@ -99,7 +99,7 @@ class Rbac3RuntimeProjectionRecoveryTest {
     void revokedEligibilityRequiresReselectionAndInvalidatesTheOldUserVersion() {
         when(activation.refresh(any())).thenThrow(new Rbac3RuleViolation("ROLE_ACTIVATION_ASSIGNMENT_REQUIRED"));
         recovery.project(userMutation());
-        verify(reselection).requireReselection("7", "9", 3L, NOW, "rbac3-runtime-recovery");
+        verify(reselection).requireReselection("7", "9", 3L, NOW, "tianquan-jianshen-runtime-recovery");
         verify(runtime).invalidate("7", "subject", "9", 4L, 1L);
     }
 
@@ -132,7 +132,7 @@ class Rbac3RuntimeProjectionRecoveryTest {
     }
 
     private EventEnvelopeVO event() {
-        return new EventEnvelopeVO("event", "rbac3.role.policy-changed.v1", 1, NOW, "7", "ROLE", "10", 0L,
+        return new EventEnvelopeVO("event", "tianquan-jianshen.role.policy-changed.v1", 1, NOW, "7", "ROLE", "10", 0L,
                 "trace", Map.of("roleIds", "unselected-role", "policyVersion", "0"));
     }
 }

@@ -43,11 +43,11 @@ public class DdcConfigDataFetcher {
     private volatile List<DdcConfigValue> cachedValues;
 
     /**
-     * 使用本地 DDC 与 Direct RPC 属性创建一次性引导客户端。
-     * Creates a one-shot bootstrap client from local DDC and Direct RPC settings.
+     * 使用本地 Tianshu 与 Direct RPC 属性创建一次性引导客户端。
+     * Creates a one-shot bootstrap client from local Tianshu and Direct RPC settings.
      *
-     * @param properties    DDC 作用域与内容约束 / DDC scope and content constraints
-     * @param rpcProperties DDC Direct RPC 引导属性 / DDC Direct RPC bootstrap settings
+     * @param properties    Tianshu 作用域与内容约束 / Tianshu scope and content constraints
+     * @param rpcProperties Tianshu Direct RPC 引导属性 / Tianshu Direct RPC bootstrap settings
      */
     public DdcConfigDataFetcher(
             DdcProperties properties,
@@ -117,26 +117,26 @@ public class DdcConfigDataFetcher {
         }
         if (values.size() != 1) {
             throw new IllegalStateException(
-                    "DDC scope must contain exactly one application.yml"
+                    "Tianshu scope must contain exactly one application.yml"
             );
         }
         DdcConfigValue value = values.getFirst();
         if (value == null || !resourceName.equals(value.getResourceName())) {
             throw new IllegalStateException(
-                    "DDC scope must contain only application.yml with YAML type"
+                    "Tianshu scope must contain only application.yml with YAML type"
             );
         }
         try {
             formatStrategies.get(value.getFormat(), resourceName);
         } catch (IllegalArgumentException exception) {
             throw new IllegalStateException(
-                    "DDC scope must contain only application.yml with YAML type",
+                    "Tianshu scope must contain only application.yml with YAML type",
                     exception
             );
         }
         if (value.getVersion() == null || value.getVersion() <= 0) {
             throw new IllegalStateException(
-                    "DDC application.yml must have a positive version"
+                    "Tianshu application.yml must have a positive version"
             );
         }
         String content = value.getContent();
@@ -145,7 +145,7 @@ public class DdcConfigDataFetcher {
                 : content.getBytes(StandardCharsets.UTF_8).length;
         if (contentBytes > maxConfigBytes) {
             throw new IllegalStateException(
-                    "DDC application.yml exceeds the UTF-8 limit of "
+                    "Tianshu application.yml exceeds the UTF-8 limit of "
                             + maxConfigBytes + " bytes"
             );
         }

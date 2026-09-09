@@ -22,18 +22,18 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3BearerAuth
 import java.util.List;
 
 /**
- * IdP 管理 API、OAuth 协议端点与身份过滤器链的安全装配。
+ * Tianquan-Shoubing 管理 API、OAuth 协议端点与身份过滤器链的安全装配。
  *
- * <p>Security wiring for IdP administration APIs, OAuth protocol endpoints, and the identity
+ * <p>Security wiring for Tianquan-Shoubing administration APIs, OAuth protocol endpoints, and the identity
  * filter chain.</p>
  */
 @Configuration(proxyBeanMethods = false)
 public class IdpSecurityConfig {
 
     /**
-     * 将 IdP 开放协议面精确标记为 PUBLIC；其余 IdP Admin 路径默认使用 USER。
+     * 将 Tianquan-Shoubing 开放协议面精确标记为 PUBLIC；其余 Tianquan-Shoubing Admin 路径默认使用 USER。
      *
-     * <p>Marks only the IdP public protocol surface as PUBLIC; all other IdP Admin paths use the
+     * <p>Marks only the Tianquan-Shoubing public protocol surface as PUBLIC; all other Tianquan-Shoubing Admin paths use the
      * starter's USER default.</p>
      */
     @Bean
@@ -54,9 +54,9 @@ public class IdpSecurityConfig {
     }
 
     /**
-     * 创建 IdP Security 配置实例。
+     * 创建 Tianquan-Shoubing Security 配置实例。
      *
-     * <p>Creates the IdP Security configuration instance.</p>
+     * <p>Creates the Tianquan-Shoubing Security configuration instance.</p>
      */
     public IdpSecurityConfig() {
     }
@@ -68,9 +68,9 @@ public class IdpSecurityConfig {
      * require anonymous access.</p>
      *
      * @param http Spring Security HTTP 配置；Spring Security HTTP configuration
-     * @param idpFilters IdP Bearer 过滤器候选；IdP Bearer filter candidate
-     * @param rbac3Filters RBAC3 Bearer 过滤器候选；RBAC3 Bearer filter candidate
-     * @return IdP Security Filter Chain；IdP Security Filter Chain
+     * @param idpFilters Tianquan-Shoubing Bearer 过滤器候选；Tianquan-Shoubing Bearer filter candidate
+     * @param rbac3Filters Tianquan-Jianshen Bearer 过滤器候选；Tianquan-Jianshen Bearer filter candidate
+     * @return Tianquan-Shoubing Security Filter Chain；Tianquan-Shoubing Security Filter Chain
      * @throws Exception Spring Security 装配失败时抛出；when Spring Security wiring fails
      */
     @Bean
@@ -120,7 +120,7 @@ public class IdpSecurityConfig {
             }
         } else if (rbac3Filter != null) {
             throw new IllegalStateException(
-                    "RBAC3 authentication filter requires the IdP bearer filter");
+                    "Tianquan-Jianshen authentication filter requires the Tianquan-Shoubing bearer filter");
         }
         return http.build();
     }
@@ -136,7 +136,7 @@ public class IdpSecurityConfig {
     @Bean(name = "corsConfigurationSource")
     CorsConfigurationSource idpCorsConfigurationSource(
             @org.springframework.beans.factory.annotation.Value(
-                    "${egon.idp.oauth.allowed-origins:}")
+                    "${egon.tianquan-shoubing.oauth.allowed-origins:}")
             List<String> allowedOrigins
     ) {
         CorsConfiguration configuration = new CorsConfiguration();
@@ -148,7 +148,7 @@ public class IdpSecurityConfig {
         configuration.setAllowedHeaders(List.of(
                 "Authorization",
                 "Content-Type",
-                "X-IDP-CSRF"
+                "X-TIANQUAN-SHOUBING-CSRF"
         ));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
@@ -159,14 +159,14 @@ public class IdpSecurityConfig {
     }
 
     /**
-     * 创建 IdP 管理权限闸门；存在 RBAC3 Authorization Service 时委托其做 USER 权限决策。
+     * 创建 Tianquan-Shoubing 管理权限闸门；存在 Tianquan-Jianshen Authorization Service 时委托其做 USER 权限决策。
      *
-     * <p>Creates the IdP administration permission gate, delegating USER permission decisions to
-     * RBAC3 when its Authorization Service is available.</p>
+     * <p>Creates the Tianquan-Shoubing administration permission gate, delegating USER permission decisions to
+     * Tianquan-Jianshen when its Authorization Service is available.</p>
      *
-     * @param authorizationServices RBAC3 Authorization Service 候选；RBAC3 Authorization Service
+     * @param authorizationServices Tianquan-Jianshen Authorization Service 候选；Tianquan-Jianshen Authorization Service
      * candidate
-     * @return IdP 管理权限端口；IdP administration authorization port
+     * @return Tianquan-Shoubing 管理权限端口；Tianquan-Shoubing administration authorization port
      */
     @Bean
     @ConditionalOnMissingBean(IdpAdminAuthorizationPort.class)
@@ -176,7 +176,7 @@ public class IdpSecurityConfig {
             AuthorizationService authorization = authorizationServices.getIfAvailable();
             if (authorization == null) {
                 throw new AccessDeniedException(
-                        "RBAC3 authorization adapter is not configured");
+                        "Tianquan-Jianshen authorization adapter is not configured");
             }
             var decision = authorization.requirePermission(
                     PermissionRequest.of(permission));

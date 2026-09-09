@@ -37,19 +37,19 @@ class DdcInstanceAdminServiceTest {
         DdcInstanceEntity instance = new DdcInstanceEntity();
         instance.setId("instance-1");
         when(repository.findByBizCodeAndEnvAndAppCode(
-                eq("infra"), eq("prod"), eq("gateway"), any(Pageable.class)))
+                eq("infra"), eq("prod"), eq("yuheng"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(
                         List.of(instance), PageRequest.of(0, 10), 1));
         DdcInstanceAdminService service = new DdcInstanceAdminService(
                 repository, leaseService);
 
         var page = service.page(
-                "infra", "prod", "gateway", new PageQuery(1, 10));
+                "infra", "prod", "yuheng", new PageQuery(1, 10));
 
         assertThat(page.getContent()).containsExactly(instance);
         var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(repository).findByBizCodeAndEnvAndAppCode(
-                eq("infra"), eq("prod"), eq("gateway"), pageable.capture());
+                eq("infra"), eq("prod"), eq("yuheng"), pageable.capture());
         assertThat(pageable.getValue().getSort().toString())
                 .isEqualTo("updatedAt: DESC,id: DESC");
     }
@@ -120,9 +120,9 @@ class DdcInstanceAdminServiceTest {
         DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
         request.setInstanceId("engine-1");
         request.setBizCode("default");
-        request.setAppCode("gateway-engine-default");
+        request.setAppCode("yuheng-biz-gateway-default");
         request.setEnv("test");
-        request.setNamespace("gateway-live");
+        request.setNamespace("yuheng-live");
         request.setHost("127.0.0.1");
         request.setPid("123");
         request.setSdkVersion("5.2.3");

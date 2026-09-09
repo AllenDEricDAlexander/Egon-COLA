@@ -216,9 +216,9 @@ public final class RuleBackedHttpGatewaySecurityProcessor
     static java.util.Map<String, String> securityAttributes(HttpRouteMatch route) {
         ProviderServiceKey upstream = route.route().upstream();
         return java.util.Map.of(
-                "idp.biz-code", upstream.bizCode(),
-                "idp.app-code", upstream.appCode(),
-                "idp.env", upstream.env());
+                "tianquan-shoubing.biz-code", upstream.bizCode(),
+                "tianquan-shoubing.app-code", upstream.appCode(),
+                "tianquan-shoubing.env", upstream.env());
     }
 
     /**

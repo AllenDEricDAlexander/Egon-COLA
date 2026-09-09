@@ -102,7 +102,7 @@ class WebFluxHttpProviderContractTest {
         assertNotNull(runtime);
         assertEquals(1, registry.registrations.get());
         assertEquals(
-                "gateway-test-http-provider",
+                "yuheng-test-http-provider",
                 registry.registration.serviceKey().serviceName()
         );
         assertEquals(
@@ -115,14 +115,14 @@ class WebFluxHttpProviderContractTest {
         );
         assertEquals(
                 "zone-b",
-                registry.registration.metadata().get("gateway.zone")
+                registry.registration.metadata().get("yuheng.zone")
         );
         assertTrue(registry.registration.port() > 0);
 
         webTestClient.mutateWith(mockJwt().authorities(
                         new org.springframework.security.core.authority
                                 .SimpleGrantedAuthority(
-                                "SCOPE_gateway.openapi.read")))
+                                "SCOPE_yuheng.openapi.read")))
                 .get()
                 .uri("/v3/api-docs/inventory-reactive")
                 .exchange()
@@ -162,7 +162,7 @@ class WebFluxHttpProviderContractTest {
         webTestClient.mutateWith(mockJwt().authorities(
                         new org.springframework.security.core.authority
                                 .SimpleGrantedAuthority(
-                                "SCOPE_gateway.other")))
+                                "SCOPE_yuheng.other")))
                 .get()
                 .uri("/v3/api-docs/inventory-reactive")
                 .exchange()
@@ -224,7 +224,7 @@ class WebFluxHttpProviderContractTest {
         webTestClient.post()
                 .uri("/test/transport/upload")
                 .contentType(MediaType.parseMediaType(
-                        "multipart/form-data;boundary=gateway-test"
+                        "multipart/form-data;boundary=yuheng-test"
                 ))
                 .body(BodyInserters.fromDataBuffers(
                         reactor.core.publisher.Flux.range(0, chunkCount)
@@ -257,7 +257,7 @@ class WebFluxHttpProviderContractTest {
                 .expectHeader().contentTypeCompatibleWith("audio/mpeg")
                 .expectHeader().valueEquals(
                         "Content-Disposition",
-                        "attachment; filename=\"gateway-test-audio.bin\""
+                        "attachment; filename=\"yuheng-test-audio.bin\""
                 )
                 .expectHeader().valueEquals("Content-Encoding", "identity")
                 .expectBody(byte[].class)
@@ -271,7 +271,7 @@ class WebFluxHttpProviderContractTest {
         webTestClient.mutateWith(mockJwt().authorities(
                         new org.springframework.security.core.authority
                                 .SimpleGrantedAuthority(
-                                "SCOPE_gateway.openapi.read")))
+                                "SCOPE_yuheng.openapi.read")))
                 .get()
                 .uri("/v3/api-docs/inventory-reactive")
                 .exchange()
@@ -417,7 +417,7 @@ class WebFluxHttpProviderContractTest {
             when(client.authorize(any(IdpServiceTokenRequest.class)))
                     .thenReturn(new OAuth2AccessToken(
                             OAuth2AccessToken.TokenType.BEARER,
-                            "test-ddc-token",
+                            "test-tianshu-token",
                             issuedAt,
                             issuedAt.plusSeconds(300)
                     ));
@@ -435,7 +435,7 @@ class WebFluxHttpProviderContractTest {
                 @Override
                 public Map<String, String> metadata() {
                     return Map.of(
-                            "gateway.definition-set-id",
+                            "yuheng.definition-set-id",
                             "test-webflux-definition-set"
                     );
                 }

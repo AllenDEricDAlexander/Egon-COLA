@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.iam.business.service;
 import java.util.List;
 import java.util.Objects;
 
-/** Application-facing read service for DDC Business/Application master data. */
+/** Application-facing read service for Tianshu Business/Application master data. */
 public final class BusinessCatalogService {
 
     private final DdcCatalogGateway catalog;

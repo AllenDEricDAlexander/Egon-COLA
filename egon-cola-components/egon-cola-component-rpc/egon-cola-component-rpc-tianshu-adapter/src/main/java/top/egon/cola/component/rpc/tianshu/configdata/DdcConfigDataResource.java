@@ -5,7 +5,7 @@ import org.springframework.boot.context.config.ConfigDataResource;
 import java.util.Objects;
 
 /**
- * 描述由业务、环境、命名空间和应用共同定位的 DDC ConfigData 资源。 Describes a DDC ConfigData resource identified by business, environment, namespace, and application.
+ * 描述由业务、环境、命名空间和应用共同定位的 Tianshu ConfigData 资源。 Describes a Tianshu ConfigData resource identified by business, environment, namespace, and application.
  */
 public final class DdcConfigDataResource extends ConfigDataResource {
 
@@ -40,7 +40,7 @@ public final class DdcConfigDataResource extends ConfigDataResource {
     private final String resourceName;
 
     /**
-     * 创建 DDC ConfigData 资源描述。 Creates a DDC ConfigData resource descriptor.
+     * 创建 Tianshu ConfigData 资源描述。 Creates a Tianshu ConfigData resource descriptor.
      *
      * @param optional     资源缺失时是否允许继续。 whether absence is allowed
      * @param bizCode      业务编码。 business code
@@ -158,13 +158,13 @@ public final class DdcConfigDataResource extends ConfigDataResource {
     }
 
     /**
-     * 返回便于诊断的 DDC 位置和作用域文本。 Returns diagnostic DDC location and scope text.
+     * 返回便于诊断的 Tianshu 位置和作用域文本。 Returns diagnostic Tianshu location and scope text.
      *
-     * @return DDC 位置和作用域文本。 DDC location and scope text
+     * @return Tianshu 位置和作用域文本。 Tianshu location and scope text
      */
     @Override
     public String toString() {
-        return "ddc:" + resourceName
+        return "tianshu:" + resourceName
                 + " [" + bizCode + '/' + env + '/' + namespace + '/' + appCode + ']';
     }
 }

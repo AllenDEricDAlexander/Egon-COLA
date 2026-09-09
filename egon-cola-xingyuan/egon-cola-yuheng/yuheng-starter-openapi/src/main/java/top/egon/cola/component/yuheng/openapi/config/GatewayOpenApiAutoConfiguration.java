@@ -21,7 +21,7 @@ import top.egon.cola.component.yuheng.openapi.registration.GatewayOpenApiRegistr
 @AutoConfiguration
 @ConditionalOnClass({OpenAPI.class, OperationCustomizer.class})
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.gateway.openapi",
+        prefix = "egon.cola.component.yuheng.openapi",
         name = "enabled",
         havingValue = "true"
 )
@@ -29,7 +29,7 @@ public class GatewayOpenApiAutoConfiguration {
 
     @Bean(name = "gatewayOpenApiProperties")
     @ConditionalOnMissingBean(name = "gatewayOpenApiProperties")
-    @ConfigurationProperties("egon.cola.component.gateway.openapi")
+    @ConfigurationProperties("egon.cola.component.yuheng.openapi")
     public GatewayOpenApiProperties gatewayOpenApiProperties() {
         return new GatewayOpenApiProperties();
     }

@@ -31,12 +31,12 @@ import top.egon.cola.platform.tianquan.jianshen.contract.participation.BusinessP
  * Semantics and usage: use `ParticipationController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/internal/business-participations")
+@RequestMapping("/api/tianquan-jianshen/v1/internal/business-participations")
 @Tag(name = "business-participation", description = "业务参与事实接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "business-participation"
 )
@@ -78,9 +78,9 @@ public class ParticipationController {
     @PostMapping
     @RequiresServiceScope("service:participation:write")
     @Operation(
-            operationId = "rbac3-business-participation-record-v1",
+            operationId = "tianquan-jianshen-business-participation-record-v1",
             summary = "幂等追加业务对象参与事实",
-            tags = {"rbac3", "internal", "participation"}
+            tags = {"tianquan-jianshen", "internal", "participation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL
@@ -109,9 +109,9 @@ public class ParticipationController {
     @GetMapping("/conflicts")
     @RequiresServiceScope("service:participation:read")
     @Operation(
-            operationId = "rbac3-business-participation-conflicts-v1",
+            operationId = "tianquan-jianshen-business-participation-conflicts-v1",
             summary = "查询同一业务对象的职责冲突证据",
-            tags = {"rbac3", "internal", "participation"}
+            tags = {"tianquan-jianshen", "internal", "participation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL

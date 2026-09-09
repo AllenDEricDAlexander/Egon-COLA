@@ -23,7 +23,7 @@ class Rbac3AboutServiceTest {
     void returnsOnlyCurrentAuthorizationFactsAndNoResourceTree() throws Exception {
         Instant now = Instant.parse("2026-08-18T02:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
-                "alice-sub", "tenant-a", "access-jti", Set.of("rbac3-admin"),
+                "alice-sub", "tenant-a", "access-jti", Set.of("tianquan-jianshen-admin"),
                 now.minusSeconds(30), now.plusSeconds(300), AuthenticationContext.password());
         Rbac3UserDetails details = new Rbac3UserDetails(identity,
                 resourceAwareSnapshot(now));
@@ -34,7 +34,7 @@ class Rbac3AboutServiceTest {
         String json = new ObjectMapper().writeValueAsString(about);
 
         assertThat(about.user().subject()).isEqualTo("alice-sub");
-        assertThat(about.currentApplicationCode()).isEqualTo("rbac3-admin");
+        assertThat(about.currentApplicationCode()).isEqualTo("tianquan-jianshen-admin");
         assertThat(about.permissions()).containsExactly("payment:read");
         assertThat(json).contains("resourceCodes");
         assertThat(json).contains("iam.api.payment.read");
@@ -44,7 +44,7 @@ class Rbac3AboutServiceTest {
 
     private SystemAuthorizationSnapshot resourceAwareSnapshot(Instant now) {
         return new SystemAuthorizationSnapshot(
-                "tenant-a", "alice-sub", "user-1", "rbac3-admin", 4L, 7L,
+                "tenant-a", "alice-sub", "user-1", "tianquan-jianshen-admin", 4L, 7L,
                 List.of("role-1"), null, null, Set.of("payment:read"),
                 Set.of("iam.api.payment.read"), Map.of(), Map.of(),
                 "sha256:snapshot", now, now.plusSeconds(300));

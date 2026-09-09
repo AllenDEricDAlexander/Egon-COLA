@@ -34,7 +34,7 @@ public class MockBackendController {
             summary = "统一身份读取验证",
             tags = {"identity", "authorization", "read"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public IdentityView read(
@@ -49,7 +49,7 @@ public class MockBackendController {
             summary = "统一身份管理验证",
             tags = {"identity", "authorization", "admin"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public IdentityView admin(

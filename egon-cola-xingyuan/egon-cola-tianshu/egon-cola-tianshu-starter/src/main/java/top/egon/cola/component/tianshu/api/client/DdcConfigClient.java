@@ -10,7 +10,7 @@ import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 import java.util.List;
 
 /**
- * 定义 Starter 与 DDC 管理端之间的实例租约及配置交互。 Defines instance-lease and configuration interactions between the starter and DDC management service.
+ * 定义 Starter 与 Tianshu 管理端之间的实例租约及配置交互。 Defines instance-lease and configuration interactions between the starter and Tianshu management service.
  */
 public interface DdcConfigClient {
 

@@ -113,15 +113,15 @@ public final class AuthorizationSnapshotCache {
         }
 
         public String redisKey() {
-            return "rbac3:authorization:" + systemCode + ':' + tenantId + ':' + identitySub;
+            return "tianquan-jianshen:authorization:" + systemCode + ':' + tenantId + ':' + identitySub;
         }
 
         public String userIndex(String subject) {
-            return "rbac3:authorization:" + systemCode + ':' + tenantId + ":user:" + required(subject, "identitySub");
+            return "tianquan-jianshen:authorization:" + systemCode + ':' + tenantId + ":user:" + required(subject, "identitySub");
         }
 
         public String tenantIndex() {
-            return "rbac3:authorization:" + systemCode + ':' + tenantId + ":tenant";
+            return "tianquan-jianshen:authorization:" + systemCode + ':' + tenantId + ":tenant";
         }
     }
 

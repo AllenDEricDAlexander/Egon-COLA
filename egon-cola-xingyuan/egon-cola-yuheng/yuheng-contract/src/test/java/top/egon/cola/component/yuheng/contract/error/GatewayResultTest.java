@@ -16,7 +16,7 @@ class GatewayResultTest {
     void successHasNoErrorAndFailureRequiresOne() {
         GatewayResult success = GatewayResult.success();
         GatewayError error = new GatewayError(
-                "GATEWAY_ROUTE_NOT_FOUND",
+                "YUHENG_ROUTE_NOT_FOUND",
                 GatewayErrorCategory.ROUTE_NOT_FOUND,
                 "No route matched the request",
                 "trace-1",
@@ -40,7 +40,7 @@ class GatewayResultTest {
         Map<String, String> details = new LinkedHashMap<>();
         details.put("policy", "rate-limit");
         GatewayError error = new GatewayError(
-                "GATEWAY_POLICY_REJECTED",
+                "YUHENG_POLICY_REJECTED",
                 GatewayErrorCategory.POLICY_REJECTED,
                 "Request rejected by gateway policy",
                 "trace-2",
@@ -78,7 +78,7 @@ class GatewayResultTest {
     void internalErrorUsesAStablePublicMessage() {
         GatewayError error = GatewayError.internal("trace-3");
 
-        assertEquals("GATEWAY_INTERNAL_ERROR", error.code());
+        assertEquals("YUHENG_INTERNAL_ERROR", error.code());
         assertEquals(GatewayErrorCategory.INTERNAL_ERROR, error.category());
         assertEquals("Gateway request failed", error.message());
         assertEquals("trace-3", error.traceId());
@@ -88,7 +88,7 @@ class GatewayResultTest {
 
     private GatewayError error(Map<String, String> details) {
         return new GatewayError(
-                "GATEWAY_REQUEST_INVALID",
+                "YUHENG_REQUEST_INVALID",
                 GatewayErrorCategory.REQUEST_INVALID,
                 "Invalid request",
                 "trace-4",

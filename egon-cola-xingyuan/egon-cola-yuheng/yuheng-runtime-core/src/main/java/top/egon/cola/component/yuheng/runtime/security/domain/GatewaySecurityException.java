@@ -113,7 +113,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException credentialInvalid() {
         return new GatewaySecurityException(
-                "GATEWAY_CREDENTIAL_INVALID",
+                "YUHENG_CREDENTIAL_INVALID",
                 401,
                 "UNAUTHENTICATED"
         );
@@ -128,7 +128,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException authenticationRequired() {
         return new GatewaySecurityException(
-                "GATEWAY_AUTHENTICATION_REQUIRED",
+                "YUHENG_AUTHENTICATION_REQUIRED",
                 401,
                 "UNAUTHENTICATED"
         );
@@ -143,7 +143,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException authenticationFailed() {
         return new GatewaySecurityException(
-                "GATEWAY_AUTHENTICATION_FAILED",
+                "YUHENG_AUTHENTICATION_FAILED",
                 401,
                 "UNAUTHENTICATED"
         );
@@ -152,7 +152,7 @@ public final class GatewaySecurityException extends RuntimeException {
     public static GatewaySecurityException authenticationFailed(
             Map<String, List<String>> responseHeaders) {
         return new GatewaySecurityException(
-                "GATEWAY_AUTHENTICATION_FAILED",
+                "YUHENG_AUTHENTICATION_FAILED",
                 401,
                 "UNAUTHENTICATED",
                 responseHeaders);
@@ -167,7 +167,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException authorizationDenied() {
         return new GatewaySecurityException(
-                "GATEWAY_AUTHORIZATION_DENIED",
+                "YUHENG_AUTHORIZATION_DENIED",
                 403,
                 "PERMISSION_DENIED"
         );
@@ -182,7 +182,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException providerTimeout() {
         return new GatewaySecurityException(
-                "GATEWAY_SECURITY_PROVIDER_TIMEOUT",
+                "YUHENG_SECURITY_PROVIDER_TIMEOUT",
                 503,
                 "UNAVAILABLE"
         );
@@ -197,7 +197,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException providerError() {
         return new GatewaySecurityException(
-                "GATEWAY_SECURITY_PROVIDER_ERROR",
+                "YUHENG_SECURITY_PROVIDER_ERROR",
                 503,
                 "UNAVAILABLE"
         );
@@ -212,7 +212,7 @@ public final class GatewaySecurityException extends RuntimeException {
      */
     public static GatewaySecurityException identityMappingFailed() {
         return new GatewaySecurityException(
-                "GATEWAY_IDENTITY_MAPPING_FAILED",
+                "YUHENG_IDENTITY_MAPPING_FAILED",
                 500,
                 "INTERNAL"
         );

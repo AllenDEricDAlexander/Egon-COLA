@@ -41,7 +41,7 @@ public record CredentialExtractionResult(
         return new CredentialExtractionResult(
                 List.of(),
                 Set.of(),
-                "GATEWAY_CREDENTIAL_INVALID"
+                "YUHENG_CREDENTIAL_INVALID"
         );
     }
 

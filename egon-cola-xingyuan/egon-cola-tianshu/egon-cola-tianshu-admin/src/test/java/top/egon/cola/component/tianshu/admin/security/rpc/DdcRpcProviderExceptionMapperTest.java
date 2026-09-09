@@ -40,13 +40,13 @@ class DdcRpcProviderExceptionMapperTest {
         assertMapped(
                 new DdcClientTransportException("redis-secret", true),
                 Status.Code.UNAVAILABLE,
-                "DDC_CLIENT_TRANSPORT_ERROR",
+                "TIANSHU_CLIENT_TRANSPORT_ERROR",
                 true
         );
         assertMapped(
                 new TransientDataAccessResourceException("database-secret"),
                 Status.Code.UNAVAILABLE,
-                "DDC_SERVICE_UNAVAILABLE",
+                "TIANSHU_SERVICE_UNAVAILABLE",
                 true
         );
     }

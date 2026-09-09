@@ -197,9 +197,9 @@ class DdcManagementProtoMapperTest {
     void roundTripsExactResourceAdmissionRevocation() {
         DdcResourceAdmissionRevocationRequest request =
                 new DdcResourceAdmissionRevocationRequest(
-                        "permission-idp-prod",
+                        "permission-tianquan-shoubing-prod",
                         "permission",
-                        "idp",
+                        "tianquan-shoubing",
                         "prod",
                         7L
                 );

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Expands authorization mutation guards to active IdP subjects.
+ * Expands authorization mutation guards to active Tianquan-Shoubing subjects.
  */
 @Repository
 public class JpaAuthorizationPublicationGuardRepository

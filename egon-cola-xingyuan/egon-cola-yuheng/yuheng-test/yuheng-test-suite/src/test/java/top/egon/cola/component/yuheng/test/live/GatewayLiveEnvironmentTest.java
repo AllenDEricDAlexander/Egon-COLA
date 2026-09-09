@@ -52,10 +52,10 @@ class GatewayLiveEnvironmentTest {
         )) {
             assertThat(first.scope().suffix())
                     .isNotEqualTo(second.scope().suffix());
-            assertThat(first.dataDirectory("gateway-engine-1"))
-                    .isNotEqualTo(first.dataDirectory("gateway-engine-2"));
-            assertThat(first.dataDirectory("gateway-engine-1"))
-                    .isNotEqualTo(second.dataDirectory("gateway-engine-1"));
+            assertThat(first.dataDirectory("yuheng-biz-gateway-1"))
+                    .isNotEqualTo(first.dataDirectory("yuheng-biz-gateway-2"));
+            assertThat(first.dataDirectory("yuheng-biz-gateway-1"))
+                    .isNotEqualTo(second.dataDirectory("yuheng-biz-gateway-1"));
             assertThat(first.processOutputDirectory())
                     .isNotEqualTo(second.processOutputDirectory());
         }

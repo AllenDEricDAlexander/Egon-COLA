@@ -6,7 +6,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.Identit
 
 import java.time.Instant;
 
-/** Safe IdP tenant catalog view; no RBAC or credential fields are exposed. */
+/** Safe Tianquan-Shoubing tenant catalog view; no RBAC or credential fields are exposed. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record TenantVO(
         String tenantId,

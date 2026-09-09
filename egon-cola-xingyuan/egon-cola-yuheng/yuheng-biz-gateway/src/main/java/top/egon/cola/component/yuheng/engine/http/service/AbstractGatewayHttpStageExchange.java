@@ -224,7 +224,7 @@ public abstract class AbstractGatewayHttpStageExchange
         if (response instanceof GatewayHttpBridgeResponse bridge) {
             return GatewayWebSocketHandshakeResult.rejected(
                     bridge.outbound().status(),
-                    "GATEWAY_WEBSOCKET_REQUEST_REJECTED",
+                    "YUHENG_WEBSOCKET_REQUEST_REJECTED",
                     "gateway WebSocket request rejected before handshake"
             );
         }
@@ -499,7 +499,7 @@ public abstract class AbstractGatewayHttpStageExchange
                 return GatewayResult.success();
             }
             return GatewayResult.failure(new GatewayError(
-                    "GATEWAY_HTTP_" + outbound.status(),
+                    "YUHENG_HTTP_" + outbound.status(),
                     GatewayErrorCategory.UPSTREAM_FAILURE,
                     "Gateway HTTP request failed",
                     traceId,

@@ -4,8 +4,8 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * 同时持有 DDC Port 客户端和其专属 Direct Channel 的句柄。
- * / Handle owning a DDC Port client and its dedicated Direct channel.
+ * 同时持有 Tianshu Port 客户端和其专属 Direct Channel 的句柄。
+ * / Handle owning a Tianshu Port client and its dedicated Direct channel.
  */
 public final class DdcRpcClientHandle<T> implements AutoCloseable {
 
@@ -32,7 +32,7 @@ public final class DdcRpcClientHandle<T> implements AutoCloseable {
         } catch (RuntimeException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new IllegalStateException("failed to close DDC RPC client", exception);
+            throw new IllegalStateException("failed to close Tianshu RPC client", exception);
         }
     }
 }

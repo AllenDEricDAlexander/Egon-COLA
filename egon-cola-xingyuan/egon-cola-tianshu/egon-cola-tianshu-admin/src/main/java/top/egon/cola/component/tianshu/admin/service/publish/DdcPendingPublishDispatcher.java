@@ -100,7 +100,7 @@ public class DdcPendingPublishDispatcher {
         if (properties == null || properties.getPublish() == null
                 || properties.getPublish().getInlineContentMaxBytes() <= 0) {
             throw new IllegalArgumentException(
-                    "DDC publish inline content threshold must be positive"
+                    "Tianshu publish inline content threshold must be positive"
             );
         }
         this.inlineContentMaxBytes = properties.getPublish()
@@ -254,7 +254,7 @@ public class DdcPendingPublishDispatcher {
     }
 
     /**
-     * Keeps Redis Pub/Sub notifications small; the complete resource remains in DDC storage and is pulled by the client.
+     * Keeps Redis Pub/Sub notifications small; the complete resource remains in Tianshu storage and is pulled by the client.
      */
     private String notificationContent(String content) {
         if (content == null || content.getBytes(StandardCharsets.UTF_8).length

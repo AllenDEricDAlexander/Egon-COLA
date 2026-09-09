@@ -12,10 +12,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DdcPackageDocumentationTest {
 
-    private static final String DDC_PACKAGE = "top.egon.cola.component.tianshu";
+    private static final String TIANSHU_PACKAGE = "top.egon.cola.component.tianshu";
 
-    private static final Path DDC_SOURCE_ROOT = Path.of(
-            "src/main/java/top/egon/cola/component/ddc"
+    private static final Path TIANSHU_SOURCE_ROOT = Path.of(
+            "src/main/java/top/egon/cola/component/tianshu"
     );
 
     private static final Pattern CHINESE_TEXT = Pattern.compile("[\\p{IsHan}]");
@@ -58,8 +58,8 @@ class DdcPackageDocumentationTest {
     void everyApprovedPackagePublishesTheNonNullApiContract() {
         for (String suffix : TARGET_PACKAGES) {
             String packageName = suffix.isEmpty()
-                    ? DDC_PACKAGE
-                    : DDC_PACKAGE + "." + suffix;
+                    ? TIANSHU_PACKAGE
+                    : TIANSHU_PACKAGE + "." + suffix;
             Class<?> packageInfo = loadPackageInfo(packageName);
 
             assertThat(packageInfo)
@@ -76,8 +76,8 @@ class DdcPackageDocumentationTest {
     void everyApprovedPackageHasChineseFirstEnglishSecondDocumentation() throws Exception {
         for (String suffix : TARGET_PACKAGES) {
             Path packageDirectory = suffix.isEmpty()
-                    ? DDC_SOURCE_ROOT
-                    : DDC_SOURCE_ROOT.resolve(suffix.replace('.', '/'));
+                    ? TIANSHU_SOURCE_ROOT
+                    : TIANSHU_SOURCE_ROOT.resolve(suffix.replace('.', '/'));
             Path packageInfo = packageDirectory.resolve("package-info.java");
 
             assertThat(packageInfo)

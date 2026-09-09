@@ -9,20 +9,20 @@ log_dir="${runtime_dir}/logs"
 pid_dir="${runtime_dir}/pids"
 env_dir="${runtime_dir}/env"
 
-idp_url="${UNIFIED_IDENTITY_IDP_URL:-http://127.0.0.1:18120}"
-idp_rpc_target="${UNIFIED_IDENTITY_IDP_RPC_TARGET:-dns:///127.0.0.1:18122}"
-rbac3_url="${UNIFIED_IDENTITY_RBAC3_URL:-http://127.0.0.1:18130}"
-gateway_admin_url="${UNIFIED_IDENTITY_GATEWAY_ADMIN_URL:-http://127.0.0.1:18140}"
-ddc_url="${UNIFIED_IDENTITY_DDC_URL:-http://127.0.0.1:18150}"
-ddc_rpc_target="${UNIFIED_IDENTITY_DDC_RPC_TARGET:-dns:///127.0.0.1:19080}"
+idp_url="${UNIFIED_IDENTITY_TIANQUAN_SHOUBING_URL:-http://127.0.0.1:18120}"
+idp_rpc_target="${UNIFIED_IDENTITY_TIANQUAN_SHOUBING_RPC_TARGET:-dns:///127.0.0.1:18122}"
+rbac3_url="${UNIFIED_IDENTITY_TIANQUAN_JIANSHEN_URL:-http://127.0.0.1:18130}"
+gateway_admin_url="${UNIFIED_IDENTITY_YUHENG_ADMIN_URL:-http://127.0.0.1:18140}"
+ddc_url="${UNIFIED_IDENTITY_TIANSHU_URL:-http://127.0.0.1:18150}"
+ddc_rpc_target="${UNIFIED_IDENTITY_TIANSHU_RPC_TARGET:-dns:///127.0.0.1:19080}"
 mock_url="${UNIFIED_IDENTITY_MOCK_URL:-http://127.0.0.1:18160}"
-gateway_url="${UNIFIED_IDENTITY_GATEWAY_URL:-http://127.0.0.1:18180}"
+gateway_url="${UNIFIED_IDENTITY_YUHENG_URL:-http://127.0.0.1:18180}"
 advertised_host="${UNIFIED_IDENTITY_ADVERTISED_HOST:-127.0.0.1}"
 declared_hosts="127.0.0.1"
 if [[ "${advertised_host}" != "127.0.0.1" && "${advertised_host}" != "localhost" ]]; then
   declared_hosts+=",${advertised_host}"
 fi
-startup_mode="${UNIFIED_IDENTITY_START_MODE:-platforms}"
+startup_mode="${UNIFIED_IDENTITY_START_MODE:-xingyuan}"
 
 postgres_host="${UNIFIED_IDENTITY_POSTGRES_HOST:-127.0.0.1}"
 postgres_port="${UNIFIED_IDENTITY_POSTGRES_PORT:-5432}"
@@ -35,13 +35,13 @@ redis_port="${UNIFIED_IDENTITY_REDIS_PORT:-6379}"
 redis_config_file="${UNIFIED_IDENTITY_REDIS_CONFIG_FILE:-/opt/homebrew/etc/redis.conf}"
 redis_password_source="${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:-}"
 
-idp_database="${UNIFIED_IDENTITY_IDP_DATABASE:-egon_identity_local}"
-rbac3_database="${UNIFIED_IDENTITY_RBAC3_DATABASE:-egon_rbac3_unified_identity_local}"
-gateway_database="${UNIFIED_IDENTITY_GATEWAY_DATABASE:-egon_gateway_local}"
-ddc_database="${UNIFIED_IDENTITY_DDC_DATABASE:-egon_ddc_local}"
+idp_database="${UNIFIED_IDENTITY_TIANQUAN_SHOUBING_DATABASE:-egon_identity_local}"
+rbac3_database="${UNIFIED_IDENTITY_TIANQUAN_JIANSHEN_DATABASE:-egon_rbac3_unified_identity_local}"
+gateway_database="${UNIFIED_IDENTITY_YUHENG_DATABASE:-egon_gateway_local}"
+ddc_database="${UNIFIED_IDENTITY_TIANSHU_DATABASE:-egon_tianshu_local}"
 service_tenant_id="${UNIFIED_IDENTITY_SERVICE_TENANT_ID:-default}"
 tenant_authority_artifact="${UNIFIED_IDENTITY_TENANT_AUTHORITY_ARTIFACT:-}"
-# USER tokens stay in the Gateway-managed cookie jar for the browser path.  These
+# USER tokens stay in the Yuheng-managed cookie jar for the browser path.  These
 # variables are deliberately process-local and are used only while bootstrapping
 # or running an explicit command-line verification.
 ddc_admin_access_token=""
@@ -53,7 +53,7 @@ gateway_admin_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 gateway_engine_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar"
 gateway_mcp_engine_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/target/yuheng-mcp-gateway-exec.jar"
 ddc_jar="${repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar"
-mock_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/target/gateway-test-idp-backend-exec.jar"
+mock_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/target/yuheng-test-tianquan-shoubing-backend-exec.jar"
 
 usage() {
   cat <<'USAGE'
@@ -61,9 +61,9 @@ Usage: ./scripts/unified-identity-local.sh <command>
 
 Commands:
   prepare  Check host dependencies, create named databases/secrets, and package jars
-  start    Start and bootstrap DDC, IdP, RBAC3, Gateway, and the mock backend
-  publish-gateway-routes  Publish the prepared local Gateway routes after Engine startup
-  refresh-gateway-admin-catalog  Refresh the running Admin's own interface catalog
+  start    Start and bootstrap Tianshu, Tianquan-Shoubing, Tianquan-Jianshen, Yuheng, and the mock backend
+  publish-yuheng-routes  Publish the prepared local Yuheng routes after Engine startup
+  refresh-yuheng-admin-catalog  Refresh the running Admin's own interface catalog
   sync-local-credentials  Refresh local SERVICE credentials and USER cookie snapshots
   issue-user-token  Issue one local USER Access Token from explicit inputs
   verify   Execute the host-local unified identity acceptance checks
@@ -210,47 +210,47 @@ base64url() {
 }
 
 write_pending_service_credential() {
-  printf 'pending-idp-client-credentials' >"$1"
+  printf 'pending-tianquan-shoubing-client-credentials' >"$1"
   chmod 600 "$1"
 }
 
 write_runtime_secrets() {
-  ensure_password "${secret_dir}/idp-admin.password"
-  ensure_secret "${secret_dir}/ddc-runtime.access-key" 18
-  ensure_secret "${secret_dir}/ddc-runtime.secret" 32
-  ensure_secret "${secret_dir}/ddc-registry.access-key" 18
-  ensure_secret "${secret_dir}/ddc-registry.secret" 32
-  ensure_secret "${secret_dir}/ddc-management.access-key" 18
-  ensure_secret "${secret_dir}/ddc-management.secret" 32
-  ensure_secret "${secret_dir}/gateway-master-key.base64" 32
-  ensure_secret "${secret_dir}/rbac3-audit.secret" 32
-  ensure_rsa_key_pair "${secret_dir}/idp"
-  ensure_rsa_key_pair "${secret_dir}/rbac3"
-  ensure_rsa_key_pair "${secret_dir}/ddc"
-  ensure_rsa_key_pair "${secret_dir}/gateway-admin"
-  ensure_rsa_key_pair "${secret_dir}/gateway-engine"
+  ensure_password "${secret_dir}/tianquan-shoubing-admin.password"
+  ensure_secret "${secret_dir}/tianshu-runtime.access-key" 18
+  ensure_secret "${secret_dir}/tianshu-runtime.secret" 32
+  ensure_secret "${secret_dir}/tianshu-registry.access-key" 18
+  ensure_secret "${secret_dir}/tianshu-registry.secret" 32
+  ensure_secret "${secret_dir}/tianshu-management.access-key" 18
+  ensure_secret "${secret_dir}/tianshu-management.secret" 32
+  ensure_secret "${secret_dir}/yuheng-master-key.base64" 32
+  ensure_secret "${secret_dir}/tianquan-jianshen-audit.secret" 32
+  ensure_rsa_key_pair "${secret_dir}/tianquan-shoubing"
+  ensure_rsa_key_pair "${secret_dir}/tianquan-jianshen"
+  ensure_rsa_key_pair "${secret_dir}/tianshu"
+  ensure_rsa_key_pair "${secret_dir}/yuheng-admin"
+  ensure_rsa_key_pair "${secret_dir}/yuheng-biz-gateway"
   ensure_rsa_key_pair "${secret_dir}/mock-backend"
   ensure_rsa_key_pair "${secret_dir}/mcp-provider"
-  write_pending_service_credential "${secret_dir}/idp-admin.service.jwt"
-  write_pending_service_credential "${secret_dir}/rbac3-admin.service.jwt"
-  write_pending_service_credential "${secret_dir}/gateway-admin.service.jwt"
-  write_pending_service_credential "${secret_dir}/gateway-admin-control-plane.service.jwt"
-  write_pending_service_credential "${secret_dir}/gateway-engine.service.jwt"
-  write_pending_service_credential "${secret_dir}/gateway-mcp-engine.service.jwt"
-  write_pending_service_credential "${secret_dir}/ddc-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/tianquan-shoubing-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/tianquan-jianshen-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/yuheng-admin.service.jwt"
+  write_pending_service_credential "${secret_dir}/yuheng-admin-control-plane.service.jwt"
+  write_pending_service_credential "${secret_dir}/yuheng-biz-gateway.service.jwt"
+  write_pending_service_credential "${secret_dir}/yuheng-mcp-gateway.service.jwt"
+  write_pending_service_credential "${secret_dir}/tianshu-admin.service.jwt"
   write_pending_service_credential "${secret_dir}/mock-backend.service.jwt"
   write_pending_service_credential "${secret_dir}/mcp-provider.service.jwt"
 }
 
 oauth_service_token() {
   local client_id="$1" output="$2"
-  local resource="${3:-https://api.egon.internal/local/permission/rbac3}"
+  local resource="${3:-https://api.egon.internal/local/permission/tianquan-jianshen}"
   local scopes="${4:-service:authorization:decide service:authorization:snapshot service:identity:resolve}"
   local response_file status token_endpoint secret_file
   token_endpoint="${idp_url}/oauth2/token"
   secret_file="${secret_dir}/${client_id}.secret"
   [[ -s "${secret_file}" ]] \
-    || fail "IdP Client Secret is unavailable for ${client_id}"
+    || fail "Tianquan-Shoubing Client Secret is unavailable for ${client_id}"
   response_file="$(mktemp "${runtime_dir}/service-token.XXXXXX")"
   status="$(curl -sS -o "${response_file}" -w '%{http_code}' -X POST \
     --user "${client_id}:$(<"${secret_file}")" \
@@ -262,29 +262,29 @@ oauth_service_token() {
     --data-urlencode "scope=${scopes}" \
     "${token_endpoint}")"
   [[ "${status}" == "200" ]] || fail \
-    "IdP Client Credentials failed for ${client_id} with HTTP ${status}: $(<"${response_file}")"
+    "Tianquan-Shoubing Client Credentials failed for ${client_id} with HTTP ${status}: $(<"${response_file}")"
   jq -er '.access_token' "${response_file}" >"${output}"
   rm -f "${response_file}"
   chmod 600 "${output}"
 }
 
 refresh_service_tokens() {
-  oauth_service_token idp-service \
-    "${secret_dir}/idp-admin.service.jwt"
-  oauth_service_token rbac3-service \
-    "${secret_dir}/rbac3-admin.service.jwt"
-  oauth_service_token gateway-admin-service \
-    "${secret_dir}/gateway-admin.service.jwt"
-  oauth_service_token gateway-admin-service \
-    "${secret_dir}/gateway-admin-control-plane.service.jwt" \
-    https://api.egon.internal/local/platform/gateway-admin \
-    'gateway:read gateway:applications:write gateway:catalog:write gateway:credentials:write gateway:drafts:write gateway:groups:write gateway:mcp:approve gateway:mcp:read gateway:mcp:runtime:read gateway:mcp:test gateway:mcp:write gateway:releases:write'
-  oauth_service_token gateway-engine-service \
-    "${secret_dir}/gateway-engine.service.jwt"
-  oauth_service_token gateway-mcp-engine-service \
-    "${secret_dir}/gateway-mcp-engine.service.jwt"
-  oauth_service_token ddc-service \
-    "${secret_dir}/ddc-admin.service.jwt"
+  oauth_service_token tianquan-shoubing-service \
+    "${secret_dir}/tianquan-shoubing-admin.service.jwt"
+  oauth_service_token tianquan-jianshen-service \
+    "${secret_dir}/tianquan-jianshen-admin.service.jwt"
+  oauth_service_token yuheng-admin-service \
+    "${secret_dir}/yuheng-admin.service.jwt"
+  oauth_service_token yuheng-admin-service \
+    "${secret_dir}/yuheng-admin-control-plane.service.jwt" \
+    https://api.egon.internal/local/platform/yuheng-admin \
+    'yuheng:read yuheng:applications:write yuheng:catalog:write yuheng:credentials:write yuheng:drafts:write yuheng:groups:write yuheng:mcp:approve yuheng:mcp:read yuheng:mcp:runtime:read yuheng:mcp:test yuheng:mcp:write yuheng:releases:write'
+  oauth_service_token yuheng-biz-gateway-service \
+    "${secret_dir}/yuheng-biz-gateway.service.jwt"
+  oauth_service_token yuheng-mcp-gateway-service \
+    "${secret_dir}/yuheng-mcp-gateway.service.jwt"
+  oauth_service_token tianshu-service \
+    "${secret_dir}/tianshu-admin.service.jwt"
   oauth_service_token mock-backend-service \
     "${secret_dir}/mock-backend.service.jwt"
   oauth_service_token mcp-provider-service \
@@ -308,136 +308,136 @@ java_property_key() {
     SPRING_DATASOURCE_USERNAME) printf 'spring.datasource.username' ;;
     SPRING_DATASOURCE_PASSWORD) printf 'spring.datasource.password' ;;
     SPRING_FLYWAY_ENABLED) printf 'spring.flyway.enabled' ;;
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID)
-      printf 'spring.security.oauth2.client.registration.egon-idp.client-id'
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID)
+      printf 'spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-id'
       ;;
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_SECRET)
-      printf 'spring.security.oauth2.client.registration.egon-idp.client-secret'
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_SECRET)
+      printf 'spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-secret'
       ;;
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_AUTHORIZATION_GRANT_TYPE)
-      printf 'spring.security.oauth2.client.registration.egon-idp.authorization-grant-type'
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_AUTHORIZATION_GRANT_TYPE)
+      printf 'spring.security.oauth2.client.registration.egon-tianquan-shoubing.authorization-grant-type'
       ;;
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_AUTHENTICATION_METHOD)
-      printf 'spring.security.oauth2.client.registration.egon-idp.client-authentication-method'
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_AUTHENTICATION_METHOD)
+      printf 'spring.security.oauth2.client.registration.egon-tianquan-shoubing.client-authentication-method'
       ;;
-    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_IDP_TOKEN_URI)
-      printf 'spring.security.oauth2.client.provider.egon-idp.token-uri'
+    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_TIANQUAN_SHOUBING_TOKEN_URI)
+      printf 'spring.security.oauth2.client.provider.egon-tianquan-shoubing.token-uri'
       ;;
-    EGON_COLA_PLATFORM_IDP_SERVICE_CLIENT_APP_ID)
-      printf 'egon.cola.platform.idp.service-client.app-id'
+    EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_APP_ID)
+      printf 'egon.cola.platform.tianquan.shoubing.service-client.app-id'
       ;;
-    EGON_COLA_PLATFORM_IDP_SERVICE_CLIENT_REGISTRATION_ID)
-      printf 'egon.cola.platform.idp.service-client.registration-id'
+    EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_REGISTRATION_ID)
+      printf 'egon.cola.platform.tianquan.shoubing.service-client.registration-id'
       ;;
     EGON_COLA_COMPONENT_ID_MACHINE_ID)
       printf 'egon.cola.component.id.machine-id'
       ;;
-    EGON_COLA_COMPONENT_DDC_REGISTRATION_RESOURCE_URI)
-      printf 'egon.cola.component.ddc.registration-resource-uri'
+    EGON_COLA_COMPONENT_TIANSHU_REGISTRATION_RESOURCE_URI)
+      printf 'egon.cola.component.tianshu.registration-resource-uri'
       ;;
-    EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE)
-      printf 'egon.cola.component.ddc.rpc.max-inbound-message-size'
+    EGON_COLA_COMPONENT_TIANSHU_RPC_MAX_INBOUND_MESSAGE_SIZE)
+      printf 'egon.cola.component.tianshu.rpc.max-inbound-message-size'
       ;;
     EGON_COLA_COMPONENT_RPC_PROVIDER_MAX_INBOUND_MESSAGE_SIZE)
       printf 'egon.cola.component.rpc.provider.max-inbound-message-size'
       ;;
-    IDP_GATEWAY_REPORTING_ENABLED|\
-    RBAC3_GATEWAY_REPORTING_ENABLED|\
-    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED|\
-    DDC_GATEWAY_REPORTING_ENABLED|\
-    MOCK_BACKEND_GATEWAY_REPORTING_ENABLED)
-      printf 'egon.cola.component.gateway.reporting.enabled'
+    TIANQUAN_SHOUBING_YUHENG_REPORTING_ENABLED|\
+    TIANQUAN_JIANSHEN_YUHENG_REPORTING_ENABLED|\
+    YUHENG_ADMIN_YUHENG_REPORTING_ENABLED|\
+    TIANSHU_YUHENG_REPORTING_ENABLED|\
+    MOCK_BACKEND_YUHENG_REPORTING_ENABLED)
+      printf 'egon.cola.component.yuheng.reporting.enabled'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_RUNTIME_PASSWORD_FILE)
-      printf 'egon.cola.platform.rbac3.runtime.password-file'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_RUNTIME_PASSWORD_FILE)
+      printf 'egon.cola.platform.tianquan.jianshen.runtime.password-file'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL)
-      printf 'egon.cola.platform.rbac3.authorization.cache-ttl'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_CACHE_TTL)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.cache-ttl'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER)
-      printf 'egon.cola.platform.rbac3.authorization.maximum-jitter'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_MAXIMUM_JITTER)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.maximum-jitter'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL)
-      printf 'egon.cola.platform.rbac3.authorization.near-cache-ttl'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_NEAR_CACHE_TTL)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.near-cache-ttl'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.enabled'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.enabled'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.token-endpoint'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_TOKEN_ENDPOINT)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.token-endpoint'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.client-id'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_CLIENT_ID)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.client-id'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_KEY_ID)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.key-id'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_KEY_ID)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.key-id'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.private-key-file'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_PRIVATE_KEY_FILE)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.private-key-file'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.resource-uri'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.resource-uri'
       ;;
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES)
-      printf 'egon.cola.platform.rbac3.authorization.service-token.scopes'
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_SCOPES)
+      printf 'egon.cola.platform.tianquan.jianshen.authorization.service-token.scopes'
       ;;
-    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST)
-      printf 'egon.cola.component.ddc.admin.redis.host'
+    EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_HOST)
+      printf 'egon.cola.component.tianshu.admin.redis.host'
       ;;
-    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT)
-      printf 'egon.cola.component.ddc.admin.redis.port'
+    EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_PORT)
+      printf 'egon.cola.component.tianshu.admin.redis.port'
       ;;
-    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PASSWORD)
-      printf 'egon.cola.component.ddc.admin.redis.password'
+    EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_PASSWORD)
+      printf 'egon.cola.component.tianshu.admin.redis.password'
       ;;
-    EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE)
-      printf 'egon.cola.component.ddc.admin.redis.database'
+    EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_DATABASE)
+      printf 'egon.cola.component.tianshu.admin.redis.database'
       ;;
-    EGON_COLA_COMPONENT_DDC_ENABLED)
-      printf 'egon.cola.component.ddc.enabled'
+    EGON_COLA_COMPONENT_TIANSHU_ENABLED)
+      printf 'egon.cola.component.tianshu.enabled'
       ;;
-    EGON_COLA_COMPONENT_DDC_REDIS_ENABLED)
-      printf 'egon.cola.component.ddc.redis.enabled'
+    EGON_COLA_COMPONENT_TIANSHU_REDIS_ENABLED)
+      printf 'egon.cola.component.tianshu.redis.enabled'
       ;;
-    EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)
-      printf 'egon.cola.component.ddc.consistency.fail-fast'
+    EGON_COLA_COMPONENT_TIANSHU_CONSISTENCY_FAIL_FAST)
+      printf 'egon.cola.component.tianshu.consistency.fail-fast'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE)
-      printf 'egon.cola.component.gateway.engine.gateway-group-code'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_YUHENG_GROUP_CODE)
+      printf 'egon.cola.component.yuheng.engine.yuheng-group-code'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV)
-      printf 'egon.cola.component.gateway.engine.env'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_ENV)
+      printf 'egon.cola.component.yuheng.engine.env'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE)
-      printf 'egon.cola.component.gateway.engine.namespace'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_NAMESPACE)
+      printf 'egon.cola.component.yuheng.engine.namespace'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_NODE_ID)
-      printf 'egon.cola.component.gateway.engine.node-id'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_NODE_ID)
+      printf 'egon.cola.component.yuheng.engine.node-id'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_INSTANCE_ID)
-      printf 'egon.cola.component.gateway.engine.instance-id'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_INSTANCE_ID)
+      printf 'egon.cola.component.yuheng.engine.instance-id'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY)
-      printf 'egon.cola.component.gateway.engine.data-directory'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_DATA_DIRECTORY)
+      printf 'egon.cola.component.yuheng.engine.data-directory'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT)
-      printf 'egon.cola.component.gateway.engine.http.public-port'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_PUBLIC_PORT)
+      printf 'egon.cola.component.yuheng.engine.http.public-port'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT)
-      printf 'egon.cola.component.gateway.engine.http.internal-port'
+    EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_INTERNAL_PORT)
+      printf 'egon.cola.component.yuheng.engine.http.internal-port'
       ;;
-    EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)
-      printf 'egon.cola.component.ddc.registry.http.fail-fast'
+    EGON_COLA_COMPONENT_YUHENG_PROVIDER_HTTP_FAIL_FAST)
+      printf 'egon.cola.component.tianshu.registry.http.fail-fast'
       ;;
-    GATEWAY_ADMIN_DDC_ENABLED) printf 'gateway.admin.ddc.enabled' ;;
-    GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)
-      printf 'gateway.admin.secrets.master-key-base64'
+    YUHENG_ADMIN_TIANSHU_ENABLED) printf 'yuheng.admin.tianshu.enabled' ;;
+    YUHENG_ADMIN_SECRETS_MASTER_KEY_BASE64)
+      printf 'yuheng.admin.secrets.master-key-base64'
       ;;
-    GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY)
-      printf 'gateway.admin.definition-reconcile-delay'
+    YUHENG_ADMIN_DEFINITION_RECONCILE_DELAY)
+      printf 'yuheng.admin.definition-reconcile-delay'
       ;;
-    GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED)
-      printf 'gateway.admin.release-reconcile-enabled'
+    YUHENG_ADMIN_RELEASE_RECONCILE_ENABLED)
+      printf 'yuheng.admin.release-reconcile-enabled'
       ;;
     *) printf '%s' "$1" ;;
   esac
@@ -464,23 +464,23 @@ new_env_file() {
 common_identity_env() {
   local file="$1"
   write_env "${file}" SPRING_PROFILES_ACTIVE local
-  write_env "${file}" UNIFIED_PLATFORM_RUNTIME_DIR "${runtime_dir}"
+  write_env "${file}" UNIFIED_XINGYUAN_RUNTIME_DIR "${runtime_dir}"
   write_env "${file}" UNIFIED_IDENTITY_ENABLED true
-  write_env "${file}" IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" IDP_OAUTH_ISSUER "${idp_url}"
-  write_env "${file}" IDP_JWK_SET_URI "${idp_url}/oauth2/jwks"
-  write_env "${file}" RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_REGISTRATION_RESOURCE_URI \
-    https://api.egon.internal/local/platform/ddc
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE \
+  write_env "${file}" TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ISSUER "${idp_url}"
+  write_env "${file}" TIANQUAN_SHOUBING_JWK_SET_URI "${idp_url}/oauth2/jwks"
+  write_env "${file}" TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT "${rbac3_url}"
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_REGISTRATION_RESOURCE_URI \
+    https://api.egon.internal/local/platform/tianshu
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_RPC_MAX_INBOUND_MESSAGE_SIZE \
     67108864
   write_env "${file}" EGON_COLA_COMPONENT_RPC_PROVIDER_MAX_INBOUND_MESSAGE_SIZE \
     67108864
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_RUNTIME_PASSWORD_FILE \
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_RUNTIME_PASSWORD_FILE \
     "${secret_dir}/redis.password"
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL 1s
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER 0s
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_CACHE_TTL 1s
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_MAXIMUM_JITTER 0s
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_NEAR_CACHE_TTL 0s
 }
 
 write_idp_service_client_env() {
@@ -492,36 +492,36 @@ write_idp_service_client_env() {
     secret_value=local-client-secret-pending
   fi
   write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_ID \
     "${client_id}"
   write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_SECRET \
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_SECRET \
     "${secret_value}"
   write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_AUTHORIZATION_GRANT_TYPE \
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_AUTHORIZATION_GRANT_TYPE \
     client_credentials
   write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_AUTHENTICATION_METHOD \
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_TIANQUAN_SHOUBING_CLIENT_AUTHENTICATION_METHOD \
     client_secret_basic
   write_env "${file}" \
-    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_IDP_TOKEN_URI \
+    SPRING_SECURITY_OAUTH2_CLIENT_PROVIDER_EGON_TIANQUAN_SHOUBING_TOKEN_URI \
     "${idp_url}/oauth2/token"
-  write_env "${file}" EGON_COLA_PLATFORM_IDP_SERVICE_CLIENT_APP_ID \
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_APP_ID \
     "${client_id}"
-  write_env "${file}" EGON_COLA_PLATFORM_IDP_SERVICE_CLIENT_REGISTRATION_ID \
-    egon-idp
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_SHOUBING_SERVICE_CLIENT_REGISTRATION_ID \
+    egon-tianquan-shoubing
 }
 
 write_tenant_aware_rbac3_service_token_env() {
   local file="$1" client_id="$2"
   write_idp_service_client_env "${file}" "${client_id}"
   write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED true
   write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI \
-    https://api.egon.internal/local/permission/rbac3
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI \
+    https://api.egon.internal/local/permission/tianquan-jianshen
   write_env "${file}" \
-    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
+    EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_SCOPES \
     'service:authorization:decide service:authorization:snapshot service:identity:resolve'
 }
 
@@ -530,283 +530,283 @@ write_service_env_files() {
   redis_password="$(<"${secret_dir}/redis.password")"
   postgres_password_value="$(postgres_password)"
 
-  file="$(new_env_file ddc)"
+  file="$(new_env_file tianshu)"
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
-    ddc-service ddc-local "${secret_dir}/ddc-private.pem"
+    tianshu-service tianshu-local "${secret_dir}/tianshu-private.pem"
   write_env "${file}" SERVER_PORT 18150
   write_env "${file}" SPRING_DATASOURCE_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${ddc_database}"
   write_env "${file}" SPRING_DATASOURCE_USERNAME "${postgres_user}"
   write_env "${file}" SPRING_DATASOURCE_PASSWORD "${postgres_password_value}"
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 31
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST "${redis_host}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT "${redis_port}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_DATABASE 10
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_ENABLED false
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED false
-  write_env "${file}" DDC_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" DDC_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" DDC_ADMIN_JWT_ISSUER "${idp_url}"
-  write_env "${file}" DDC_RESOURCE_SERVER_ID platform-ddc-local
-  write_env "${file}" DDC_RESOURCE_URI \
-    https://api.egon.internal/local/platform/ddc
-  write_env "${file}" DDC_RESOURCE_ADMISSION_RPC_TARGET \
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_HOST "${redis_host}"
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_PORT "${redis_port}"
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_DATABASE 10
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_ENABLED false
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_REDIS_ENABLED false
+  write_env "${file}" TIANSHU_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" TIANSHU_AUTHORIZATION_REDIS_DATABASE 8
+  write_env "${file}" TIANSHU_ADMIN_JWT_ISSUER "${idp_url}"
+  write_env "${file}" TIANSHU_RESOURCE_SERVER_ID platform-tianshu-local
+  write_env "${file}" TIANSHU_RESOURCE_URI \
+    https://api.egon.internal/local/platform/tianshu
+  write_env "${file}" TIANSHU_RESOURCE_ADMISSION_RPC_TARGET \
     "${idp_rpc_target}"
-  write_env "${file}" DDC_ADMIN_JWT_AUDIENCE \
-    https://api.egon.internal/local/platform/ddc
-  write_env "${file}" DDC_ADMIN_JWT_JWK_SET_URI "${idp_url}/oauth2/jwks"
-  write_env "${file}" DDC_RPC_PORT 19080
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
-  # DDC must start once before IdP exists. Self-registration is enabled only
-  # after IdP can issue the required PLATFORM SERVICE token.
-  write_env "${file}" DDC_SELF_REGISTRATION_ENABLED false
-  write_env "${file}" DDC_SELF_REGISTRATION_FAIL_FAST false
-  write_env "${file}" DDC_INSTANCE_ID ddc-admin-local-1
-  write_env "${file}" DDC_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" DDC_ADVERTISED_PORT 18150
-  write_env "${file}" DDC_ARTIFACT_VERSION local
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
-  write_env "${file}" DDC_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REDIS_DATABASE 10
-  write_env "${file}" DDC_GATEWAY_REPORTING_ENABLED false
-  write_env "${file}" DDC_HTTP_OPENAPI_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
-  write_env "${file}" DDC_RESOURCE_BIZ_CODE platform
-  write_env "${file}" DDC_RESOURCE_APP_CODE ddc
-  write_env "${file}" DDC_DECLARED_HOSTS "${declared_hosts}"
-  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/ddc-gateway-report.json"
+  write_env "${file}" TIANSHU_ADMIN_JWT_AUDIENCE \
+    https://api.egon.internal/local/platform/tianshu
+  write_env "${file}" TIANSHU_ADMIN_JWT_JWK_SET_URI "${idp_url}/oauth2/jwks"
+  write_env "${file}" TIANSHU_RPC_PORT 19080
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/tianshu-management.access-key")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/tianshu-management.secret")"
+  # Tianshu must start once before Tianquan-Shoubing exists. Self-registration is enabled only
+  # after Tianquan-Shoubing can issue the required PLATFORM SERVICE token.
+  write_env "${file}" TIANSHU_SELF_REGISTRATION_ENABLED false
+  write_env "${file}" TIANSHU_SELF_REGISTRATION_FAIL_FAST false
+  write_env "${file}" TIANSHU_INSTANCE_ID tianshu-admin-local-1
+  write_env "${file}" TIANSHU_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" TIANSHU_ADVERTISED_PORT 18150
+  write_env "${file}" TIANSHU_ARTIFACT_VERSION local
+  write_env "${file}" TIANSHU_MAX_CONFIG_BYTES 67108864
+  write_env "${file}" TIANSHU_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REDIS_DATABASE 10
+  write_env "${file}" TIANSHU_YUHENG_REPORTING_ENABLED false
+  write_env "${file}" TIANSHU_HTTP_OPENAPI_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" TIANSHU_RESOURCE_BIZ_CODE xingyuan
+  write_env "${file}" TIANSHU_RESOURCE_APP_CODE tianshu
+  write_env "${file}" TIANSHU_DECLARED_HOSTS "${declared_hosts}"
+  write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/tianshu-yuheng-report.json"
 
-  file="$(new_env_file idp)"
+  file="$(new_env_file tianquan-shoubing)"
   common_identity_env "${file}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
-    idp-service idp-local "${secret_dir}/idp-private.pem"
-  write_env "${file}" IDP_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${idp_database}"
-  write_env "${file}" IDP_POSTGRES_USER "${postgres_user}"
-  write_env "${file}" IDP_POSTGRES_PASSWORD "${postgres_password_value}"
-  write_env "${file}" IDP_REDIS_HOST "${redis_host}"
-  write_env "${file}" IDP_REDIS_PORT "${redis_port}"
-  write_env "${file}" IDP_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" IDP_REDIS_DATABASE 8
-  write_env "${file}" IDP_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" IDP_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" IDP_ADVERTISED_PORT 18120
-  write_env "${file}" IDP_OAUTH_LOGIN_URI http://127.0.0.1:18121/login
-  write_env "${file}" IDP_OAUTH_ALLOWED_ORIGINS \
+    tianquan-shoubing-service tianquan-shoubing-local "${secret_dir}/tianquan-shoubing-private.pem"
+  write_env "${file}" TIANQUAN_SHOUBING_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${idp_database}"
+  write_env "${file}" TIANQUAN_SHOUBING_POSTGRES_USER "${postgres_user}"
+  write_env "${file}" TIANQUAN_SHOUBING_POSTGRES_PASSWORD "${postgres_password_value}"
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_DATABASE 8
+  write_env "${file}" TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_DATABASE 8
+  write_env "${file}" TIANQUAN_SHOUBING_ADVERTISED_PORT 18120
+  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_LOGIN_URI http://127.0.0.1:18121/login
+  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS \
     http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
-  write_env "${file}" IDP_REFRESH_COOKIE_SECURE false
-  write_env "${file}" IDP_SIGNING_KEY_KID idp-local
-  write_env "${file}" IDP_SIGNING_PRIVATE_KEY_FILE "${secret_dir}/idp-private.pem"
-  write_env "${file}" IDP_SIGNING_PUBLIC_KEY_FILE "${secret_dir}/idp-public.pem"
-  write_env "${file}" IDP_RBAC3_BASE_URL "${rbac3_url}"
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_COOKIE_SECURE false
+  write_env "${file}" TIANQUAN_SHOUBING_SIGNING_KEY_KID tianquan-shoubing-local
+  write_env "${file}" TIANQUAN_SHOUBING_SIGNING_PRIVATE_KEY_FILE "${secret_dir}/tianquan-shoubing-private.pem"
+  write_env "${file}" TIANQUAN_SHOUBING_SIGNING_PUBLIC_KEY_FILE "${secret_dir}/tianquan-shoubing-public.pem"
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_BASE_URL "${rbac3_url}"
   write_tenant_aware_rbac3_service_token_env "${file}" \
-    idp-service idp-local "${secret_dir}/idp-private.pem"
-  write_env "${file}" IDP_RBAC3_SERVICE_CLIENT_ID idp-service
-  write_env "${file}" IDP_RBAC3_SERVICE_KEY_ID idp-local
-  write_env "${file}" IDP_RBAC3_SERVICE_PRIVATE_KEY_FILE \
-    "${secret_dir}/idp-private.pem"
-  write_env "${file}" IDP_RBAC3_RESOURCE_URI \
-    https://api.egon.internal/local/permission/rbac3
-  write_env "${file}" IDP_RBAC3_SERVICE_TENANT_ID "${service_tenant_id}"
-  write_env "${file}" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_ID \
+    tianquan-shoubing-service tianquan-shoubing-local "${secret_dir}/tianquan-shoubing-private.pem"
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_CLIENT_ID tianquan-shoubing-service
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_KEY_ID tianquan-shoubing-local
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_PRIVATE_KEY_FILE \
+    "${secret_dir}/tianquan-shoubing-private.pem"
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_RESOURCE_URI \
+    https://api.egon.internal/local/permission/tianquan-jianshen
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID "${service_tenant_id}"
+  write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID \
     "${service_tenant_id}"
-  write_env "${file}" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS \
+  write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_TIANQUAN_JIANSHEN_SERVICE_TENANT_IDS \
     "${service_tenant_id}"
-  write_env "${file}" IDP_RBAC3_SERVICE_SCOPES \
+  write_env "${file}" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_SCOPES \
     'service:authorization:decide service:authorization:snapshot service:identity:resolve'
-  write_env "${file}" IDP_SNOWFLAKE_MACHINE_ID 32
-  write_env "${file}" IDP_DEVELOPMENT_BOOTSTRAP_ENABLED true
-  write_env "${file}" IDP_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY \
+  write_env "${file}" TIANQUAN_SHOUBING_SNOWFLAKE_MACHINE_ID 32
+  write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${file}" TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY \
     "${secret_dir}"
-  write_env "${file}" IDP_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/idp-admin.password"
-  write_env "${file}" IDP_DDC_ENABLED true
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
-  write_env "${file}" IDP_HTTP_PROVIDER_ENABLED true
-  write_env "${file}" IDP_RPC_PORT 18122
-  write_env "${file}" IDP_RPC_PROVIDER_REGISTRATION_MODE DISABLED
-  write_env "${file}" IDP_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" IDP_RESOURCE_SERVER_ID permission-idp-local
-  write_env "${file}" IDP_RESOURCE_URI \
-    https://api.egon.internal/local/permission/idp
-  write_env "${file}" IDP_RESOURCE_MANAGEMENT_CLIENT_ID idp-service
-  write_env "${file}" IDP_RESOURCE_MANAGEMENT_KEY_ID idp-local
-  write_env "${file}" IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
-    "${secret_dir}/idp-private.pem"
-  write_env "${file}" IDP_RESOURCE_ADMISSION_RPC_TARGET \
+  write_env "${file}" TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD_FILE "${secret_dir}/tianquan-shoubing-admin.password"
+  write_env "${file}" TIANQUAN_SHOUBING_TIANSHU_ENABLED true
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_CONSISTENCY_FAIL_FAST false
+  write_env "${file}" TIANQUAN_SHOUBING_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" TIANQUAN_SHOUBING_RPC_PORT 18122
+  write_env "${file}" TIANQUAN_SHOUBING_RPC_PROVIDER_REGISTRATION_MODE DISABLED
+  write_env "${file}" TIANQUAN_SHOUBING_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_SERVER_ID permission-tianquan-shoubing-local
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_URI \
+    https://api.egon.internal/local/permission/tianquan-shoubing
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_MANAGEMENT_CLIENT_ID tianquan-shoubing-service
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_MANAGEMENT_KEY_ID tianquan-shoubing-local
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/tianquan-shoubing-private.pem"
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_ADMISSION_RPC_TARGET \
     "${idp_rpc_target}"
   write_env "${file}" \
-    EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
-  write_env "${file}" IDP_INSTANCE_ID idp-local-1
-  write_env "${file}" IDP_ARTIFACT_VERSION local
-  write_env "${file}" IDP_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" DDC_BIZ_CODE permission
-  write_env "${file}" DDC_APP_CODE idp
+    EGON_COLA_COMPONENT_YUHENG_PROVIDER_HTTP_FAIL_FAST false
+  write_env "${file}" TIANQUAN_SHOUBING_INSTANCE_ID tianquan-shoubing-local-1
+  write_env "${file}" TIANQUAN_SHOUBING_ARTIFACT_VERSION local
+  write_env "${file}" TIANQUAN_SHOUBING_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" TIANSHU_BIZ_CODE permission
+  write_env "${file}" TIANSHU_APP_CODE tianquan-shoubing
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
-  write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
-  write_env "${file}" IDP_GATEWAY_REPORTING_ENABLED false
-  write_env "${file}" IDP_HTTP_OPENAPI_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
-  write_env "${file}" IDP_RESOURCE_BIZ_CODE permission
-  write_env "${file}" IDP_RESOURCE_APP_CODE idp
-  write_env "${file}" IDP_DECLARED_HOSTS "${declared_hosts}"
-  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/idp-gateway-report.json"
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/tianshu-management.access-key")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/tianshu-management.secret")"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_DATABASE 10
+  write_env "${file}" TIANQUAN_SHOUBING_YUHENG_REPORTING_ENABLED false
+  write_env "${file}" TIANQUAN_SHOUBING_HTTP_OPENAPI_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_BIZ_CODE permission
+  write_env "${file}" TIANQUAN_SHOUBING_RESOURCE_APP_CODE tianquan-shoubing
+  write_env "${file}" TIANQUAN_SHOUBING_DECLARED_HOSTS "${declared_hosts}"
+  write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/tianquan-shoubing-yuheng-report.json"
 
-  file="$(new_env_file rbac3)"
+  file="$(new_env_file tianquan-jianshen)"
   common_identity_env "${file}"
-  write_tenant_aware_rbac3_service_token_env "${file}" rbac3-service
-  write_env "${file}" RBAC3_POSTGRES_URL "$(rbac3_jdbc_url)"
-  write_env "${file}" RBAC3_POSTGRES_USER "${postgres_user}"
-  write_env "${file}" RBAC3_POSTGRES_PASSWORD "${postgres_password_value}"
-  write_env "${file}" RBAC3_ADVERTISED_PORT 18130
-  write_env "${file}" RBAC3_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" RBAC3_INSTANCE_ID rbac3-local-1
-  write_env "${file}" RBAC3_ARTIFACT_VERSION local
-  # The RBAC3 identity-directory references are direct RPC references. Keep the
-  # consumer disabled until DDC has admitted the IdP RPC Provider lease.
-  write_env "${file}" RBAC3_RPC_ENABLED false
-  write_env "${file}" RBAC3_RPC_CONSUMER_ENABLED false
-  write_env "${file}" RBAC3_DDC_ENABLED true
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
-  write_env "${file}" RBAC3_HTTP_PROVIDER_ENABLED true
-  write_env "${file}" RBAC3_RESOURCE_SERVER_ID permission-rbac3-local
-  write_env "${file}" RBAC3_RESOURCE_URI \
-    https://api.egon.internal/local/permission/rbac3
-  write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_CLIENT_ID rbac3-service
-  write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_KEY_ID rbac3-local
-  write_env "${file}" RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
-    "${secret_dir}/rbac3-private.pem"
-  write_env "${file}" RBAC3_RESOURCE_ADMISSION_RPC_TARGET \
+  write_tenant_aware_rbac3_service_token_env "${file}" tianquan-jianshen-service
+  write_env "${file}" TIANQUAN_JIANSHEN_POSTGRES_URL "$(rbac3_jdbc_url)"
+  write_env "${file}" TIANQUAN_JIANSHEN_POSTGRES_USER "${postgres_user}"
+  write_env "${file}" TIANQUAN_JIANSHEN_POSTGRES_PASSWORD "${postgres_password_value}"
+  write_env "${file}" TIANQUAN_JIANSHEN_ADVERTISED_PORT 18130
+  write_env "${file}" TIANQUAN_JIANSHEN_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" TIANQUAN_JIANSHEN_INSTANCE_ID tianquan-jianshen-local-1
+  write_env "${file}" TIANQUAN_JIANSHEN_ARTIFACT_VERSION local
+  # The Tianquan-Jianshen identity-directory references are direct RPC references. Keep the
+  # consumer disabled until Tianshu has admitted the Tianquan-Shoubing RPC Provider lease.
+  write_env "${file}" TIANQUAN_JIANSHEN_RPC_ENABLED false
+  write_env "${file}" TIANQUAN_JIANSHEN_RPC_CONSUMER_ENABLED false
+  write_env "${file}" TIANQUAN_JIANSHEN_TIANSHU_ENABLED true
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_CONSISTENCY_FAIL_FAST false
+  write_env "${file}" TIANQUAN_JIANSHEN_HTTP_PROVIDER_ENABLED true
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID permission-tianquan-jianshen-local
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_URI \
+    https://api.egon.internal/local/permission/tianquan-jianshen
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_MANAGEMENT_CLIENT_ID tianquan-jianshen-service
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_MANAGEMENT_KEY_ID tianquan-jianshen-local
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/tianquan-jianshen-private.pem"
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_ADMISSION_RPC_TARGET \
     "${idp_rpc_target}"
   write_env "${file}" \
-    EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
-  write_env "${file}" DDC_BIZ_CODE permission
-  write_env "${file}" DDC_APP_CODE rbac3
+    EGON_COLA_COMPONENT_YUHENG_PROVIDER_HTTP_FAIL_FAST false
+  write_env "${file}" TIANSHU_BIZ_CODE permission
+  write_env "${file}" TIANSHU_APP_CODE tianquan-jianshen
   write_env "${file}" DEPLOYMENT_ENV local
   write_env "${file}" DEPLOYMENT_NAMESPACE default
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
-  write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
-  write_env "${file}" RBAC3_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" RBAC3_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" RBAC3_RUNTIME_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" RBAC3_RUNTIME_REDIS_DATABASE 8
-  write_env "${file}" RBAC3_RUNTIME_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" RBAC3_AUDIT_CURSOR_SECRET_FILE "${secret_dir}/rbac3-audit.secret"
-  write_env "${file}" RBAC3_SNOWFLAKE_MACHINE_ID 33
-  write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED false
-  write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true
-  write_env "${file}" RBAC3_DEVELOPMENT_TENANT_IDS "${service_tenant_id}"
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/tianshu-management.access-key")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/tianshu-management.secret")"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_DATABASE 10
+  write_env "${file}" TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_DATABASE 8
+  write_env "${file}" TIANQUAN_JIANSHEN_RUNTIME_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" TIANQUAN_JIANSHEN_RUNTIME_REDIS_DATABASE 8
+  write_env "${file}" TIANQUAN_JIANSHEN_RUNTIME_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" TIANQUAN_JIANSHEN_AUDIT_CURSOR_SECRET_FILE "${secret_dir}/tianquan-jianshen-audit.secret"
+  write_env "${file}" TIANQUAN_JIANSHEN_SNOWFLAKE_MACHINE_ID 33
+  write_env "${file}" TIANQUAN_JIANSHEN_DEVELOPMENT_BOOTSTRAP_ENABLED false
+  write_env "${file}" TIANQUAN_JIANSHEN_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true
+  write_env "${file}" TIANQUAN_JIANSHEN_DEVELOPMENT_TENANT_IDS "${service_tenant_id}"
   write_env "${file}" SPRING_FLYWAY_ENABLED true
-  write_env "${file}" RBAC3_GATEWAY_REPORTING_ENABLED false
-  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
-  write_env "${file}" RBAC3_RESOURCE_BIZ_CODE permission
-  write_env "${file}" RBAC3_RESOURCE_APP_CODE rbac3
-  write_env "${file}" RBAC3_DECLARED_HOSTS "${declared_hosts}"
-  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/rbac3-gateway-report.json"
+  write_env "${file}" TIANQUAN_JIANSHEN_YUHENG_REPORTING_ENABLED false
+  write_env "${file}" YUHENG_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE permission
+  write_env "${file}" TIANQUAN_JIANSHEN_RESOURCE_APP_CODE tianquan-jianshen
+  write_env "${file}" TIANQUAN_JIANSHEN_DECLARED_HOSTS "${declared_hosts}"
+  write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/tianquan-jianshen-yuheng-report.json"
 
-  file="$(new_env_file gateway-admin)"
+  file="$(new_env_file yuheng-admin)"
   common_identity_env "${file}"
   write_env "${file}" DEPLOYMENT_ENV local
   write_tenant_aware_rbac3_service_token_env "${file}" \
-    gateway-admin-service gateway-admin-local \
-    "${secret_dir}/gateway-admin-private.pem"
+    yuheng-admin-service yuheng-admin-local \
+    "${secret_dir}/yuheng-admin-private.pem"
   write_env "${file}" SERVER_PORT 18140
   write_env "${file}" SPRING_DATASOURCE_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
   write_env "${file}" SPRING_DATASOURCE_USERNAME "${postgres_user}"
   write_env "${file}" SPRING_DATASOURCE_PASSWORD "${postgres_password_value}"
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 34
-  write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_AUTHORIZATION_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_SERVER_ID \
-    platform-gateway-admin-local
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_URI \
-    https://api.egon.internal/local/platform/gateway-admin
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_CLIENT_ID \
-    gateway-admin-service
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_KEY_ID \
-    gateway-admin-local
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
-    "${secret_dir}/gateway-admin-private.pem"
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TARGET \
+  write_env "${file}" YUHENG_AUTHORIZATION_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" YUHENG_AUTHORIZATION_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_SERVER_ID \
+    platform-yuheng-admin-local
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_URI \
+    https://api.egon.internal/local/platform/yuheng-admin
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_MANAGEMENT_CLIENT_ID \
+    yuheng-admin-service
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_MANAGEMENT_KEY_ID \
+    yuheng-admin-local
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/yuheng-admin-private.pem"
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_ADMISSION_RPC_TARGET \
     "${idp_rpc_target}"
-  write_env "${file}" GATEWAY_ADMIN_INSTANCE_ID gateway-admin-local-1
-  write_env "${file}" GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/gateway-master-key.base64")"
-  write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
-  write_env "${file}" GATEWAY_ADMIN_DDC_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_INSTANCE_ID yuheng-admin-local-1
+  write_env "${file}" YUHENG_ADMIN_SECRETS_MASTER_KEY_BASE64 "$(<"${secret_dir}/yuheng-master-key.base64")"
+  write_env "${file}" YUHENG_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_ENABLED true
   # Local OpenAPI ingestion is explicitly restricted to the detected provider
   # host. Production keeps the HTTPS-only default from application.yml.
-  write_env "${file}" GATEWAY_ADMIN_OPENAPI_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP true
-  write_env "${file}" GATEWAY_ADMIN_OPENAPI_ALLOWED_CIDR \
+  write_env "${file}" YUHENG_ADMIN_OPENAPI_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_HTTP_OPENAPI_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP true
+  write_env "${file}" YUHENG_ADMIN_OPENAPI_ALLOWED_CIDR \
     "${advertised_host}/32"
-  write_env "${file}" GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY PT1S
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_DEFAULT_TIMEOUT 300s
-  write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_RETENTION 24h
-  write_env "${file}" GATEWAY_ADMIN_RULE_CHUNK_CLEANUP_DELAY 1h
-  write_env "${file}" DDC_ENABLED true
-  write_env "${file}" DDC_REGISTRY_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_DDC_REGISTRATION_ENABLED true
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/ddc-management.access-key")"
-  write_env "${file}" DDC_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/ddc-management.secret")"
-  write_env "${file}" DDC_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REDIS_DATABASE 10
-  write_env "${file}" GATEWAY_ADMIN_DDC_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" GATEWAY_ADMIN_DDC_ADVERTISED_PORT 18140
-  write_env "${file}" GATEWAY_ADMIN_VERSION local
-  write_env "${file}" GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE identity
-  write_env "${file}" GATEWAY_ADMIN_DDC_API_RPC_APP_CODE gateway-engine-default
-  write_env "${file}" GATEWAY_ADMIN_DDC_MCP_BIZ_CODE identity
-  write_env "${file}" GATEWAY_ADMIN_DDC_MCP_APP_CODE gateway-mcp-engine-default
-  write_env "${file}" GATEWAY_ADMIN_DEFINITION_RECONCILE_DELAY 1000
-  if [[ "${startup_mode}" == "platforms" ]]; then
-    write_env "${file}" GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED false
+  write_env "${file}" YUHENG_ADMIN_OPENAPI_RECONCILE_DELAY PT1S
+  write_env "${file}" TIANSHU_MAX_CONFIG_BYTES 67108864
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_RPC_DEFAULT_TIMEOUT 300s
+  write_env "${file}" YUHENG_ADMIN_RULE_CHUNK_RETENTION 24h
+  write_env "${file}" YUHENG_ADMIN_RULE_CHUNK_CLEANUP_DELAY 1h
+  write_env "${file}" TIANSHU_ENABLED true
+  write_env "${file}" TIANSHU_REGISTRY_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_REGISTRATION_ENABLED true
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_ACCESS_KEY "$(<"${secret_dir}/tianshu-management.access-key")"
+  write_env "${file}" TIANSHU_RPC_MANAGEMENT_SECRET_KEY "$(<"${secret_dir}/tianshu-management.secret")"
+  write_env "${file}" TIANSHU_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REDIS_DATABASE 10
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_ADVERTISED_PORT 18140
+  write_env "${file}" YUHENG_ADMIN_VERSION local
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_API_RPC_BIZ_CODE identity
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_API_RPC_APP_CODE yuheng-biz-gateway-default
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_MCP_BIZ_CODE identity
+  write_env "${file}" YUHENG_ADMIN_TIANSHU_MCP_APP_CODE yuheng-mcp-gateway-default
+  write_env "${file}" YUHENG_ADMIN_DEFINITION_RECONCILE_DELAY 1000
+  if [[ "${startup_mode}" == "xingyuan" ]]; then
+    write_env "${file}" YUHENG_ADMIN_RELEASE_RECONCILE_ENABLED false
   fi
-  write_env "${file}" GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
-  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_BIZ_CODE platform
-  write_env "${file}" GATEWAY_ADMIN_RESOURCE_APP_CODE gateway-admin
-  write_env "${file}" GATEWAY_ADMIN_DECLARED_HOSTS "${declared_hosts}"
-  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/gateway-admin-gateway-report.json"
+  write_env "${file}" YUHENG_ADMIN_YUHENG_REPORTING_ENABLED false
+  write_env "${file}" YUHENG_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_BIZ_CODE xingyuan
+  write_env "${file}" YUHENG_ADMIN_RESOURCE_APP_CODE yuheng-admin
+  write_env "${file}" YUHENG_ADMIN_DECLARED_HOSTS "${declared_hosts}"
+  write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/yuheng-admin-yuheng-report.json"
 
   file="$(new_env_file mock-backend)"
   common_identity_env "${file}"
@@ -820,201 +820,201 @@ write_service_env_files() {
     "${secret_dir}/mock-backend-private.pem"
   write_env "${file}" MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET \
     "${idp_rpc_target}"
-  write_env "${file}" MOCK_BACKEND_DDC_ENABLED true
+  write_env "${file}" MOCK_BACKEND_TIANSHU_ENABLED true
   write_env "${file}" MOCK_BACKEND_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" DDC_BIZ_CODE identity
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_REGISTRY_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REGISTRY_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REGISTRY_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REGISTRY_REDIS_DATABASE 10
-  write_env "${file}" MOCK_BACKEND_GATEWAY_REPORTING_ENABLED true
-  write_env "${file}" GATEWAY_ADMIN_BASE_URL "${gateway_admin_url}"
-  write_env "${file}" GATEWAY_REPORT_STATE_FILE "${runtime_dir}/mock-backend-gateway-report.json"
+  write_env "${file}" TIANSHU_BIZ_CODE identity
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REGISTRY_REDIS_DATABASE 10
+  write_env "${file}" MOCK_BACKEND_YUHENG_REPORTING_ENABLED true
+  write_env "${file}" YUHENG_ADMIN_BASE_URL "${gateway_admin_url}"
+  write_env "${file}" YUHENG_REPORT_STATE_FILE "${runtime_dir}/mock-backend-yuheng-report.json"
 
-  file="$(new_env_file gateway-engine)"
+  file="$(new_env_file yuheng-biz-gateway)"
   write_tenant_aware_rbac3_service_token_env "${file}" \
-    gateway-engine-service gateway-engine-local \
-    "${secret_dir}/gateway-engine-private.pem"
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_SYSTEM_CODE mock-backend
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_ENDPOINT \
+    yuheng-biz-gateway-service yuheng-biz-gateway-local \
+    "${secret_dir}/yuheng-biz-gateway-private.pem"
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_SYSTEM_CODE mock-backend
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT \
     "${rbac3_url}"
   write_env "${file}" SERVER_PORT 18182
-  write_env "${file}" IDP_OAUTH_ISSUER "${idp_url}"
-  write_env "${file}" IDP_JWK_SET_URI "${idp_url}/oauth2/jwks"
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_REGISTRATION_RESOURCE_URI \
-    https://api.egon.internal/local/platform/ddc
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_SERVER_ID \
-    identity-gateway-engine-default-local
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_URI \
-    https://api.egon.internal/local/identity/gateway-engine-default
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_CLIENT_ID \
-    gateway-engine-service
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_KEY_ID \
-    gateway-engine-local
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
-    "${secret_dir}/gateway-engine-private.pem"
-  write_env "${file}" GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TARGET \
+  write_env "${file}" TIANQUAN_SHOUBING_OAUTH_ISSUER "${idp_url}"
+  write_env "${file}" TIANQUAN_SHOUBING_JWK_SET_URI "${idp_url}/oauth2/jwks"
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_REGISTRATION_RESOURCE_URI \
+    https://api.egon.internal/local/platform/tianshu
+  write_env "${file}" YUHENG_ENGINE_RESOURCE_SERVER_ID \
+    identity-yuheng-biz-gateway-default-local
+  write_env "${file}" YUHENG_ENGINE_RESOURCE_URI \
+    https://api.egon.internal/local/identity/yuheng-biz-gateway-default
+  write_env "${file}" YUHENG_ENGINE_RESOURCE_MANAGEMENT_CLIENT_ID \
+    yuheng-biz-gateway-service
+  write_env "${file}" YUHENG_ENGINE_RESOURCE_MANAGEMENT_KEY_ID \
+    yuheng-biz-gateway-local
+  write_env "${file}" YUHENG_ENGINE_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+    "${secret_dir}/yuheng-biz-gateway-private.pem"
+  write_env "${file}" YUHENG_ENGINE_RESOURCE_ADMISSION_RPC_TARGET \
     "${idp_rpc_target}"
-  write_env "${file}" IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED true
-  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_ENDPOINT \
+  write_env "${file}" TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_ENABLED true
+  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_ENDPOINT \
     "${idp_url}/oauth2/token"
-  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_CLIENT_ID \
-    gateway-engine-service
-  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_KEY_ID \
-    gateway-engine-local
-  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE \
-    "${secret_dir}/gateway-engine-private.pem"
-  write_env "${file}" GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES \
+  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_CLIENT_ID \
+    yuheng-biz-gateway-service
+  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_KEY_ID \
+    yuheng-biz-gateway-local
+  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE \
+    "${secret_dir}/yuheng-biz-gateway-private.pem"
+  write_env "${file}" YUHENG_MCP_TASK_SERVICE_TOKEN_SCOPES \
     mcp:operation:invoke
-  write_env "${file}" IDP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" IDP_REDIS_DATABASE 8
-  write_env "${file}" IDP_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" IDP_REFRESH_URI "${idp_url}/oauth2/token"
-  write_env "${file}" IDP_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
-  write_env "${file}" IDP_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
-  write_env "${file}" IDP_REFRESH_STATUS_RESOURCE_URI \
-    https://api.egon.internal/local/permission/idp
-  write_env "${file}" IDP_REFRESH_STATUS_SCOPES idp:refresh-token:validate
-  write_env "${file}" IDP_GATEWAY_TRUSTED_ORIGINS \
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_DATABASE 8
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_URI "${idp_url}/oauth2/token"
+  write_env "${file}" TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI \
+    https://api.egon.internal/local/permission/tianquan-shoubing
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES tianquan-shoubing:refresh-token:validate
+  write_env "${file}" TIANQUAN_SHOUBING_YUHENG_TRUSTED_ORIGINS \
     http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
-  write_env "${file}" GATEWAY_RBAC3_SCOPE_ENABLED true
-  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_ADDRESS \
+  write_env "${file}" YUHENG_TIANQUAN_JIANSHEN_SCOPE_ENABLED true
+  write_env "${file}" YUHENG_TIANQUAN_JIANSHEN_SCOPE_REDIS_ADDRESS \
     "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_PASSWORD_FILE \
+  write_env "${file}" YUHENG_TIANQUAN_JIANSHEN_SCOPE_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_TIANQUAN_JIANSHEN_SCOPE_REDIS_PASSWORD_FILE \
     "${secret_dir}/redis.password"
-  write_env "${file}" GATEWAY_RBAC3_SCOPE_REDIS_TIMEOUT 2s
-  write_env "${file}" GATEWAY_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
-  write_env "${file}" GATEWAY_POSTGRES_USER "${postgres_user}"
-  write_env "${file}" GATEWAY_POSTGRES_PASSWORD "${postgres_password_value}"
-  write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
-  write_env "${file}" GATEWAY_MCP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_MCP_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_MCP_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_ENABLED true
-  write_env "${file}" GATEWAY_MCP_RBAC3_SYSTEM_CODE mock-backend
-  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_CACHE_TTL 1s
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_MAXIMUM_JITTER 0s
-  write_env "${file}" EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_NEAR_CACHE_TTL 0s
+  write_env "${file}" YUHENG_TIANQUAN_JIANSHEN_SCOPE_REDIS_TIMEOUT 2s
+  write_env "${file}" YUHENG_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
+  write_env "${file}" YUHENG_POSTGRES_USER "${postgres_user}"
+  write_env "${file}" YUHENG_POSTGRES_PASSWORD "${postgres_password_value}"
+  write_env "${file}" YUHENG_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
+  write_env "${file}" YUHENG_MCP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" YUHENG_MCP_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_MCP_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED true
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_SYSTEM_CODE mock-backend
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT "${rbac3_url}"
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_CACHE_TTL 1s
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_MAXIMUM_JITTER 0s
+  write_env "${file}" EGON_COLA_PLATFORM_TIANQUAN_JIANSHEN_AUTHORIZATION_NEAR_CACHE_TTL 0s
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 35
-  write_env "${file}" DDC_ENABLED true
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE \
+  write_env "${file}" TIANSHU_ENABLED true
+  write_env "${file}" TIANSHU_MAX_CONFIG_BYTES 67108864
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_RPC_MAX_INBOUND_MESSAGE_SIZE \
     67108864
-  write_env "${file}" DDC_BIZ_CODE identity
-  write_env "${file}" DDC_APP_CODE gateway-engine-default
-  write_env "${file}" DDC_ENV local
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REDIS_DATABASE 10
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_GATEWAY_GROUP_CODE default
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_ENV local
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_NAMESPACE default
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_NODE_ID gateway-engine-local
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_INSTANCE_ID gateway-engine-local-1
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_DATA_DIRECTORY "${runtime_dir}/gateway-engine-data"
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT 18180
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT 18181
-  write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false
-  write_env "${file}" GATEWAY_ENGINE_DDC_INSTANCE_ID gateway-engine-local-1
-  write_env "${file}" GATEWAY_ENGINE_DDC_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" GATEWAY_ENGINE_DDC_ADVERTISED_PORT 18180
-  write_env "${file}" GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION PT3S
-  write_env "${file}" GATEWAY_MCP_REMOTE_FAILURE_THRESHOLD 2
-  write_env "${file}" GATEWAY_MCP_TASK_POLL_INTERVAL PT1S
+  write_env "${file}" TIANSHU_BIZ_CODE identity
+  write_env "${file}" TIANSHU_APP_CODE yuheng-biz-gateway-default
+  write_env "${file}" TIANSHU_ENV local
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REDIS_DATABASE 10
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_CONSISTENCY_FAIL_FAST false
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_YUHENG_GROUP_CODE default
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_ENV local
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_NAMESPACE default
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_NODE_ID yuheng-biz-gateway-local
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_INSTANCE_ID yuheng-biz-gateway-local-1
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_DATA_DIRECTORY "${runtime_dir}/yuheng-biz-gateway-data"
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_PUBLIC_PORT 18180
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_ENGINE_HTTP_INTERNAL_PORT 18181
+  write_env "${file}" EGON_COLA_COMPONENT_YUHENG_PROVIDER_HTTP_FAIL_FAST false
+  write_env "${file}" YUHENG_ENGINE_TIANSHU_INSTANCE_ID yuheng-biz-gateway-local-1
+  write_env "${file}" YUHENG_ENGINE_TIANSHU_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" YUHENG_ENGINE_TIANSHU_ADVERTISED_PORT 18180
+  write_env "${file}" YUHENG_MCP_REMOTE_CIRCUIT_OPEN_DURATION PT3S
+  write_env "${file}" YUHENG_MCP_REMOTE_FAILURE_THRESHOLD 2
+  write_env "${file}" YUHENG_MCP_TASK_POLL_INTERVAL PT1S
   write_mcp_engine_env_file
 }
 
-# The MCP process has its own OAuth resource/client and DDC source scope.
+# The MCP process has its own OAuth resource/client and Tianshu source scope.
 # Do not copy the API Engine environment: its identity and ports are not aliases.
 write_mcp_engine_env_file() {
   local file redis_password postgres_password_value
-  file="$(new_env_file gateway-mcp-engine)"
+  file="$(new_env_file yuheng-mcp-gateway)"
   redis_password="$(<"${secret_dir}/redis.password")"
   postgres_password_value="$(postgres_password)"
   common_identity_env "${file}"
-  write_tenant_aware_rbac3_service_token_env "${file}" gateway-mcp-engine-service
+  write_tenant_aware_rbac3_service_token_env "${file}" yuheng-mcp-gateway-service
   write_env "${file}" SERVER_PORT 18186
-  write_env "${file}" GATEWAY_MCP_ENGINE_MANAGEMENT_PORT 18186
-  write_env "${file}" GATEWAY_MCP_ENGINE_PORT 18185
-  write_env "${file}" GATEWAY_MCP_ENGINE_RESOURCE_SERVER_ID identity-gateway-mcp-engine-default-local
-  write_env "${file}" GATEWAY_MCP_ENGINE_RESOURCE_URI \
-    https://api.egon.internal/local/identity/gateway-mcp-engine-default
-  write_env "${file}" IDP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" IDP_REDIS_DATABASE 8
-  write_env "${file}" IDP_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" IDP_REFRESH_URI "${idp_url}/oauth2/token"
-  write_env "${file}" IDP_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
-  write_env "${file}" IDP_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
-  write_env "${file}" IDP_REFRESH_STATUS_RESOURCE_URI https://api.egon.internal/local/permission/idp
-  write_env "${file}" IDP_REFRESH_STATUS_SCOPES idp:refresh-token:validate
-  write_env "${file}" IDP_GATEWAY_TRUSTED_ORIGINS \
+  write_env "${file}" YUHENG_MCP_ENGINE_MANAGEMENT_PORT 18186
+  write_env "${file}" YUHENG_MCP_ENGINE_PORT 18185
+  write_env "${file}" YUHENG_MCP_ENGINE_RESOURCE_SERVER_ID identity-yuheng-mcp-gateway-default-local
+  write_env "${file}" YUHENG_MCP_ENGINE_RESOURCE_URI \
+    https://api.egon.internal/local/identity/yuheng-mcp-gateway-default
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_DATABASE 8
+  write_env "${file}" TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_URI "${idp_url}/oauth2/token"
+  write_env "${file}" TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME egon_user_at_local
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME egon_user_rt_local
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI https://api.egon.internal/local/permission/tianquan-shoubing
+  write_env "${file}" TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES tianquan-shoubing:refresh-token:validate
+  write_env "${file}" TIANQUAN_SHOUBING_YUHENG_TRUSTED_ORIGINS \
     http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152
-  write_env "${file}" GATEWAY_MCP_RBAC3_ENABLED true
-  write_env "${file}" GATEWAY_MCP_RBAC3_SYSTEM_CODE mock-backend
-  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT "${rbac3_url}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_ENABLED true
-  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_MCP_RBAC3_SCOPE_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
-  write_env "${file}" GATEWAY_MCP_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
-  write_env "${file}" GATEWAY_MCP_POSTGRES_USER "${postgres_user}"
-  write_env "${file}" GATEWAY_MCP_POSTGRES_PASSWORD "${postgres_password_value}"
-  write_env "${file}" GATEWAY_MCP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
-  write_env "${file}" GATEWAY_MCP_REDIS_DATABASE 8
-  write_env "${file}" GATEWAY_MCP_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" GATEWAY_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED true
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_SYSTEM_CODE mock-backend
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT "${rbac3_url}"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED true
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_PASSWORD_FILE "${secret_dir}/redis.password"
+  write_env "${file}" YUHENG_MCP_POSTGRES_URL "jdbc:postgresql://${postgres_host}:${postgres_port}/${gateway_database}"
+  write_env "${file}" YUHENG_MCP_POSTGRES_USER "${postgres_user}"
+  write_env "${file}" YUHENG_MCP_POSTGRES_PASSWORD "${postgres_password_value}"
+  write_env "${file}" YUHENG_MCP_REDIS_ADDRESS "redis://${redis_host}:${redis_port}"
+  write_env "${file}" YUHENG_MCP_REDIS_DATABASE 8
+  write_env "${file}" YUHENG_MCP_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" YUHENG_MCP_ARTIFACT_ROOT "${runtime_dir}/mcp-artifacts"
   write_env "${file}" EGON_COLA_COMPONENT_ID_MACHINE_ID 36
-  write_env "${file}" DDC_ENABLED true
-  write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864
-  write_env "${file}" DDC_BIZ_CODE identity
-  write_env "${file}" DDC_APP_CODE gateway-mcp-engine-default
-  write_env "${file}" DDC_ENV local
-  write_env "${file}" DDC_RPC_TARGET "${ddc_rpc_target}"
-  write_env "${file}" DDC_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" GATEWAY_MCP_DDC_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/ddc-runtime.access-key")"
-  write_env "${file}" GATEWAY_MCP_DDC_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/ddc-runtime.secret")"
-  write_env "${file}" GATEWAY_MCP_DDC_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/ddc-registry.access-key")"
-  write_env "${file}" GATEWAY_MCP_DDC_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/ddc-registry.secret")"
-  write_env "${file}" DDC_REDIS_HOST "${redis_host}"
-  write_env "${file}" DDC_REDIS_PORT "${redis_port}"
-  write_env "${file}" DDC_REDIS_PASSWORD "${redis_password}"
-  write_env "${file}" DDC_REDIS_DATABASE 10
-  write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false
-  write_env "${file}" GATEWAY_MCP_ENGINE_GROUP_CODE default
-  write_env "${file}" GATEWAY_MCP_ENGINE_ENV local
-  write_env "${file}" GATEWAY_MCP_ENGINE_NAMESPACE default
-  write_env "${file}" GATEWAY_MCP_ENGINE_NODE_ID gateway-mcp-engine-local
-  write_env "${file}" GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID gateway-mcp-engine-local-1
-  write_env "${file}" GATEWAY_MCP_ENGINE_DATA_DIRECTORY "${runtime_dir}/gateway-mcp-engine-data"
-  write_env "${file}" GATEWAY_MCP_ENGINE_DDC_ADVERTISED_HOST "${advertised_host}"
-  write_env "${file}" GATEWAY_MCP_ENGINE_DDC_ADVERTISED_PORT 18185
-  write_env "${file}" GATEWAY_MCP_ENGINE_VERSION local
-  write_env "${file}" GATEWAY_MCP_ENGINE_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" GATEWAY_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT true
-  write_env "${file}" GATEWAY_MCP_TASK_POLL_INTERVAL PT1S
+  write_env "${file}" TIANSHU_ENABLED true
+  write_env "${file}" TIANSHU_MAX_CONFIG_BYTES 67108864
+  write_env "${file}" TIANSHU_BIZ_CODE identity
+  write_env "${file}" TIANSHU_APP_CODE yuheng-mcp-gateway-default
+  write_env "${file}" TIANSHU_ENV local
+  write_env "${file}" TIANSHU_RPC_TARGET "${ddc_rpc_target}"
+  write_env "${file}" TIANSHU_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" YUHENG_MCP_TIANSHU_RPC_RUNTIME_ACCESS_KEY "$(<"${secret_dir}/tianshu-runtime.access-key")"
+  write_env "${file}" YUHENG_MCP_TIANSHU_RPC_RUNTIME_SECRET_KEY "$(<"${secret_dir}/tianshu-runtime.secret")"
+  write_env "${file}" YUHENG_MCP_TIANSHU_RPC_REGISTRY_ACCESS_KEY "$(<"${secret_dir}/tianshu-registry.access-key")"
+  write_env "${file}" YUHENG_MCP_TIANSHU_RPC_REGISTRY_SECRET_KEY "$(<"${secret_dir}/tianshu-registry.secret")"
+  write_env "${file}" TIANSHU_REDIS_HOST "${redis_host}"
+  write_env "${file}" TIANSHU_REDIS_PORT "${redis_port}"
+  write_env "${file}" TIANSHU_REDIS_PASSWORD "${redis_password}"
+  write_env "${file}" TIANSHU_REDIS_DATABASE 10
+  write_env "${file}" EGON_COLA_COMPONENT_TIANSHU_CONSISTENCY_FAIL_FAST false
+  write_env "${file}" YUHENG_MCP_ENGINE_GROUP_CODE default
+  write_env "${file}" YUHENG_MCP_ENGINE_ENV local
+  write_env "${file}" YUHENG_MCP_ENGINE_NAMESPACE default
+  write_env "${file}" YUHENG_MCP_ENGINE_NODE_ID yuheng-mcp-gateway-local
+  write_env "${file}" YUHENG_MCP_ENGINE_TIANSHU_INSTANCE_ID yuheng-mcp-gateway-local-1
+  write_env "${file}" YUHENG_MCP_ENGINE_DATA_DIRECTORY "${runtime_dir}/yuheng-mcp-gateway-data"
+  write_env "${file}" YUHENG_MCP_ENGINE_TIANSHU_ADVERTISED_HOST "${advertised_host}"
+  write_env "${file}" YUHENG_MCP_ENGINE_TIANSHU_ADVERTISED_PORT 18185
+  write_env "${file}" YUHENG_MCP_ENGINE_VERSION local
+  write_env "${file}" YUHENG_MCP_ENGINE_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" YUHENG_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT true
+  write_env "${file}" YUHENG_MCP_TASK_POLL_INTERVAL PT1S
 }
 
 package_applications() {
@@ -1029,10 +1029,10 @@ package_applications() {
 }
 
 write_application_build_ids() {
-  write_env "${env_dir}/idp.env" IDP_BUILD_ID "$(local_build_id "${idp_jar}")"
-  write_env "${env_dir}/rbac3.env" RBAC3_BUILD_ID "$(local_build_id "${rbac3_jar}")"
-  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_BUILD_ID "$(local_build_id "${gateway_admin_jar}")"
-  write_env "${env_dir}/ddc.env" DDC_BUILD_ID "$(local_build_id "${ddc_jar}")"
+  write_env "${env_dir}/tianquan-shoubing.env" TIANQUAN_SHOUBING_BUILD_ID "$(local_build_id "${idp_jar}")"
+  write_env "${env_dir}/tianquan-jianshen.env" TIANQUAN_JIANSHEN_BUILD_ID "$(local_build_id "${rbac3_jar}")"
+  write_env "${env_dir}/yuheng-admin.env" YUHENG_ADMIN_BUILD_ID "$(local_build_id "${gateway_admin_jar}")"
+  write_env "${env_dir}/tianshu.env" TIANSHU_BUILD_ID "$(local_build_id "${ddc_jar}")"
   write_env "${env_dir}/mock-backend.env" \
     MOCK_BACKEND_BUILD_ID "$(local_build_id "${mock_jar}")"
 }
@@ -1103,14 +1103,14 @@ wait_ddc_rpc() {
   host="${target%:*}"
   port="${target##*:}"
   [[ -n "${host}" && "${port}" =~ ^[0-9]+$ ]] \
-    || fail "invalid DDC RPC target: ${ddc_rpc_target}"
+    || fail "invalid Tianshu RPC target: ${ddc_rpc_target}"
   for ((attempt = 1; attempt <= 90; attempt++)); do
     if nc -z -w 1 "${host}" "${port}" >/dev/null 2>&1; then
       return
     fi
     sleep 1
   done
-  fail "DDC RPC did not become ready at ${ddc_rpc_target}"
+  fail "Tianshu RPC did not become ready at ${ddc_rpc_target}"
 }
 
 bootstrap_idp_argument() {
@@ -1118,7 +1118,7 @@ bootstrap_idp_argument() {
       && database_row_exists "${idp_database}" 'select count(*) from identity_user'; then
     return
   fi
-  printf '%s' '--idp-bootstrap-admin=alice'
+  printf '%s' '--tianquan-shoubing-bootstrap-admin=alice'
 }
 
 identity_subject() {
@@ -1138,7 +1138,7 @@ rbac3_tenant_id() {
     tenant_id="$(psql_command "${rbac3_database}" -Atqc \
       "select id from rbac3_tenant where lower(code) = '${tenant_code}'")"
   fi
-  [[ -n "${tenant_id}" ]] || fail "IdP tenant does not exist: ${tenant_code}"
+  [[ -n "${tenant_id}" ]] || fail "Tianquan-Shoubing tenant does not exist: ${tenant_code}"
   printf '%s' "${tenant_id}"
 }
 
@@ -1170,7 +1170,7 @@ rbac3_jdbc_url() {
       'select count(*) from rbac3_tenant')"
   fi
   bootstrap_tenant_ids="${service_tenant_id}"
-  # The first IdP process creates tenant authority. RBAC3 is not started until
+  # The first Tianquan-Shoubing process creates tenant authority. Tianquan-Jianshen is not started until
   # the generated environment is rewritten with those exact numeric IDs.
   if [[ "${bootstrap_tenant_ids}" == "default" && -z "${tenant_authority_artifact}" ]]; then
     printf '%s' "${base}"
@@ -1186,15 +1186,15 @@ rbac3_jdbc_url() {
       "select string_agg(id, ',' order by tenant_code) from identity_tenant where tenant_code in ('default', 'tenant-b')")"
   fi
   [[ "${bootstrap_tenant_ids}" =~ ^[1-9][0-9]{0,18}(,[1-9][0-9]{0,18})*$ ]] \
-    || fail "RBAC3 bootstrap tenant IDs are invalid"
+    || fail "Tianquan-Jianshen bootstrap tenant IDs are invalid"
   bootstrap_identity_sub=""
   if database_table_exists "${idp_database}" public.identity_user; then
     bootstrap_identity_sub="$(identity_subject)"
   fi
   [[ -z "${bootstrap_identity_sub}" \
       || "${bootstrap_identity_sub}" =~ ^[A-Za-z0-9._~-]{1,200}$ ]] \
-    || fail "RBAC3 bootstrap identity subject is invalid"
-  printf '%s?options=-c%%20rbac3.tenant_authority.gate_id=VERIFIED%%20-c%%20rbac3.tenant_authority.gate_checksum=local-bootstrap%%20-c%%20rbac3.tenant_authority.source_count=%s%%20-c%%20rbac3.tenant_authority.orphan_count=0%%20-c%%20rbac3.tenant_authority.duplicate_count=0%%20-c%%20rbac3.tenant_authority.placeholder_count=0%%20-c%%20rbac3.bootstrap.tenant_ids=%s%%20-c%%20rbac3.bootstrap.identity_sub=%s' \
+    || fail "Tianquan-Jianshen bootstrap identity subject is invalid"
+  printf '%s?options=-c%%20tianquan-jianshen.tenant_authority.gate_id=VERIFIED%%20-c%%20tianquan-jianshen.tenant_authority.gate_checksum=local-bootstrap%%20-c%%20tianquan-jianshen.tenant_authority.source_count=%s%%20-c%%20tianquan-jianshen.tenant_authority.orphan_count=0%%20-c%%20tianquan-jianshen.tenant_authority.duplicate_count=0%%20-c%%20tianquan-jianshen.tenant_authority.placeholder_count=0%%20-c%%20tianquan-jianshen.bootstrap.tenant_ids=%s%%20-c%%20tianquan-jianshen.bootstrap.identity_sub=%s' \
     "${base}" "${source_count}" "${bootstrap_tenant_ids}" \
     "${bootstrap_identity_sub}"
 }
@@ -1205,13 +1205,13 @@ adopt_local_idp_authority() {
       || fail "tenant authority artifact is unreadable"
     PGPASSWORD="$(postgres_password)" \
       "${repo_root}/scripts/unified-xingyuan/migrate-tenant-authority.sh" \
-      import-idp \
+      import-tianquan-shoubing \
       --db-url "postgresql://${postgres_user}@${postgres_host}:${postgres_port}/${idp_database}" \
       --freeze-marker "$(dirname "${tenant_authority_artifact}")/write-freeze.marker" \
       --artifact "${tenant_authority_artifact}"
     PGPASSWORD="$(postgres_password)" \
       "${repo_root}/scripts/unified-xingyuan/migrate-tenant-authority.sh" \
-      verify-idp \
+      verify-tianquan-shoubing \
       --artifact "${tenant_authority_artifact}" \
       --db-url "postgresql://${postgres_user}@${postgres_host}:${postgres_port}/${idp_database}"
   fi
@@ -1219,14 +1219,14 @@ adopt_local_idp_authority() {
     "update identity_client set app_id = client_id where client_type = 'CONFIDENTIAL' and app_id is null"
 }
 
-reconcile_local_rbac3_ddc_catalog() {
+reconcile_local_tianquan_jianshen_tianshu_catalog() {
   local definition application_code ddc_app_code ddc_business_code
   local catalog_ids ddc_application_id ddc_business_id application_count access_count
   local definitions=(
-    'rbac3-admin|rbac3|permission'
-    'idp-admin|idp|permission'
-    'gateway-admin|gateway-admin|platform'
-    'ddc-admin|ddc|platform'
+    'tianquan-jianshen-admin|tianquan-jianshen|permission'
+    'tianquan-shoubing-admin|tianquan-shoubing|permission'
+    'yuheng-admin|yuheng-admin|platform'
+    'tianshu-admin|tianshu|platform'
     'mock-backend|mock-backend|identity'
   )
   for definition in "${definitions[@]}"; do
@@ -1235,7 +1235,7 @@ reconcile_local_rbac3_ddc_catalog() {
     [[ "${application_code}" =~ ^[a-z0-9-]{1,64}$ \
         && "${ddc_app_code}" =~ ^[a-z0-9-]{1,64}$ \
         && "${ddc_business_code}" =~ ^[a-z0-9-]{1,64}$ ]] \
-      || fail "unsafe local DDC catalog mapping"
+      || fail "unsafe local Tianshu catalog mapping"
     catalog_ids="$(psql_command "${ddc_database}" -AtF '|' -c \
       "select application.id, business.id
          from ddc_app application
@@ -1245,7 +1245,7 @@ reconcile_local_rbac3_ddc_catalog() {
           and application.enabled
           and business.enabled")"
     [[ "${catalog_ids}" =~ ^[A-Za-z0-9_-]{1,64}\|[A-Za-z0-9_-]{1,64}$ ]] \
-      || fail "DDC catalog mapping is unavailable for ${application_code}"
+      || fail "Tianshu catalog mapping is unavailable for ${application_code}"
     ddc_application_id="${catalog_ids%%|*}"
     ddc_business_id="${catalog_ids#*|}"
     psql_command "${rbac3_database}" -qc \
@@ -1253,13 +1253,13 @@ reconcile_local_rbac3_ddc_catalog() {
           set ddc_application_id = '${ddc_application_id}',
               ddc_business_id = '${ddc_business_id}',
               updated_at = current_timestamp,
-              updated_by = 'local-ddc-reconciliation'
+              updated_by = 'local-tianshu-reconciliation'
         where application_code = '${application_code}'
           and created_by = 'flyway-v10';
        update rbac3_user_business_access
           set ddc_business_id = '${ddc_business_id}',
               updated_at = current_timestamp,
-              updated_by = 'local-ddc-reconciliation'
+              updated_by = 'local-tianshu-reconciliation'
         where source_type = 'SYSTEM'
           and source_id = 'flyway-v11:${ddc_business_code}';"
     application_count="$(psql_command "${rbac3_database}" -Atqc \
@@ -1268,14 +1268,14 @@ reconcile_local_rbac3_ddc_catalog() {
           and ddc_application_id = '${ddc_application_id}'
           and ddc_business_id = '${ddc_business_id}'")"
     [[ "${application_count}" == "1" ]] \
-      || fail "RBAC3 application mapping failed for ${application_code}"
+      || fail "Tianquan-Jianshen application mapping failed for ${application_code}"
     access_count="$(psql_command "${rbac3_database}" -Atqc \
       "select count(*) from rbac3_user_business_access
         where source_type = 'SYSTEM'
           and source_id = 'flyway-v11:${ddc_business_code}'
           and ddc_business_id = '${ddc_business_id}'")"
     [[ "${access_count}" =~ ^[1-9][0-9]*$ ]] \
-      || fail "RBAC3 Business access mapping failed for ${ddc_business_code}"
+      || fail "Tianquan-Jianshen Business access mapping failed for ${ddc_business_code}"
   done
 }
 
@@ -1310,13 +1310,13 @@ idp_bootstrap_login() {
     "${idp_url}/oauth2/login/csrf" | jq -er '.token')"
   status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
     -c "${cookie_jar}" -b "${cookie_jar}" \
-    -H 'Content-Type: application/json' -H "X-IDP-CSRF: ${csrf}" \
+    -H 'Content-Type: application/json' -H "X-TIANQUAN-SHOUBING-CSRF: ${csrf}" \
     -d "$(jq -cn --arg tenantId "$(rbac3_tenant_id "${tenant}")" \
-      --arg password "$(<"${secret_dir}/idp-admin.password")" \
+      --arg password "$(<"${secret_dir}/tianquan-shoubing-admin.password")" \
       '{tenantId:$tenantId,username:"alice",password:$password}')" \
     "${idp_url}/oauth2/login")"
   [[ "${status}" == "200" ]] || fail \
-    "IdP bootstrap login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
+    "Tianquan-Shoubing bootstrap login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
 }
 
 gateway_login() {
@@ -1326,19 +1326,19 @@ gateway_login() {
     "${gateway_url}/oauth2/login/csrf" | jq -er '.token')"
   status="$(curl -sS -o "${runtime_dir}/login.response" -w '%{http_code}' \
     -c "${cookie_jar}" -b "${cookie_jar}" \
-    -H 'Content-Type: application/json' -H "X-IDP-CSRF: ${csrf}" \
+    -H 'Content-Type: application/json' -H "X-TIANQUAN-SHOUBING-CSRF: ${csrf}" \
     -d "$(jq -cn --arg tenantId "$(rbac3_tenant_id "${tenant}")" \
-      --arg password "$(<"${secret_dir}/idp-admin.password")" \
+      --arg password "$(<"${secret_dir}/tianquan-shoubing-admin.password")" \
       '{tenantId:$tenantId,username:"alice",password:$password}')" \
     "${gateway_url}/oauth2/login")"
   [[ "${status}" == "200" ]] || fail \
-    "Gateway login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
+    "Yuheng login failed with HTTP ${status}: $(<"${runtime_dir}/login.response")"
 }
 
 platform_user_login() {
   local tenant="${1:-default}"
-  if [[ "${UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE:-false}" != "true" ]] \
-      && process_running gateway-engine; then
+  if [[ "${UNIFIED_IDENTITY_DEFER_YUHENG_RELEASE:-false}" != "true" ]] \
+      && process_running yuheng-biz-gateway; then
     gateway_login "${tenant}"
   else
     idp_bootstrap_login "${tenant}"
@@ -1353,7 +1353,7 @@ gateway_refresh() {
     -H 'Content-Type: application/x-www-form-urlencoded' \
     --data-urlencode grant_type=refresh_token "${gateway_url}/oauth2/token")"
   [[ "${status}" == "200" ]] || fail \
-    "Gateway USER refresh failed with HTTP ${status}: $(<"${runtime_dir}/refresh.response")"
+    "Yuheng USER refresh failed with HTTP ${status}: $(<"${runtime_dir}/refresh.response")"
 }
 
 gateway_logout() {
@@ -1363,7 +1363,7 @@ gateway_logout() {
     -c "${cookie_jar}" -b "${cookie_jar}" -X POST \
     "${gateway_url}/oauth2/logout")"
   [[ "${status}" == "204" ]] || fail \
-    "Gateway logout failed with HTTP ${status}: $(<"${runtime_dir}/logout.response")"
+    "Yuheng logout failed with HTTP ${status}: $(<"${runtime_dir}/logout.response")"
 }
 
 user_access_token_for_tenant() {
@@ -1382,7 +1382,7 @@ clear_local_rbac3_snapshots() {
   password="$(<"${secret_dir}/redis.password")"
   for tenant in "${service_tenant_id}" "${tenant_b_id}"; do
     [[ "${tenant}" =~ ^[1-9][0-9]*$ ]] || continue
-    pattern="rbac3:{${tenant}}:snapshot:*"
+    pattern="tianquan-jianshen:{${tenant}}:snapshot:*"
     while IFS= read -r key; do
       [[ -n "${key}" ]] || continue
       REDISCLI_AUTH="${password}" redis-cli -h "${redis_host}" \
@@ -1395,8 +1395,8 @@ clear_local_rbac3_snapshots() {
 command_issue_user_token() {
   local tenant="${UNIFIED_IDENTITY_TENANT:-}"
   local output="${UNIFIED_IDENTITY_ACCESS_TOKEN_FILE:-}" token
-  process_running idp || fail "idp is not running; run start first"
-  process_running rbac3 || fail "rbac3 is not running; run start first"
+  process_running tianquan-shoubing || fail "tianquan-shoubing is not running; run start first"
+  process_running tianquan-jianshen || fail "tianquan-jianshen is not running; run start first"
   [[ -n "${tenant}" ]] || fail "UNIFIED_IDENTITY_TENANT is required"
   [[ -n "${output}" ]] || fail "UNIFIED_IDENTITY_ACCESS_TOKEN_FILE is required"
   token="$(user_access_token_for_tenant "${tenant}")"
@@ -1409,15 +1409,15 @@ activate_roles() {
   [[ -n "${access_token}" ]] || fail "USER Access Token is required for role activation"
   status="$(curl -sS -o "${runtime_dir}/activation-candidates.response" \
     -w '%{http_code}' -H "Authorization: Bearer ${access_token}" \
-    "${rbac3_url}/api/rbac3/v1/auth/role-activation-candidates")"
+    "${rbac3_url}/api/tianquan-jianshen/v1/auth/role-activation-candidates")"
   [[ "${status}" == "200" ]] || fail \
-    "RBAC3 activation candidates failed with HTTP ${status}: $(<"${runtime_dir}/activation-candidates.response")"
+    "Tianquan-Jianshen activation candidates failed with HTTP ${status}: $(<"${runtime_dir}/activation-candidates.response")"
   candidates="$(<"${runtime_dir}/activation-candidates.response")"
   status="$(curl -sS -o "${runtime_dir}/role-activations.response" \
     -w '%{http_code}' -H "Authorization: Bearer ${access_token}" \
-    "${rbac3_url}/api/rbac3/v1/auth/role-activations")"
+    "${rbac3_url}/api/tianquan-jianshen/v1/auth/role-activations")"
   [[ "${status}" == "200" ]] || fail \
-    "RBAC3 current activation failed with HTTP ${status}: $(<"${runtime_dir}/role-activations.response")"
+    "Tianquan-Jianshen current activation failed with HTTP ${status}: $(<"${runtime_dir}/role-activations.response")"
   current="$(<"${runtime_dir}/role-activations.response")"
   if [[ "${include_mock}" == "true" ]]; then
     role_ids="$(jq -c '[.data.applications[].candidates[].rootRoleId] | unique' <<<"${candidates}")"
@@ -1434,7 +1434,7 @@ activate_roles() {
         <<<"${current}" >/dev/null; then
       return
     fi
-    fail "RBAC3 returned no activation candidates or active roles"
+    fail "Tianquan-Jianshen returned no activation candidates or active roles"
   fi
   version="$(jq -er '.data.authVersion' <<<"${current}")"
   request="$(jq -cn --argjson roles "${role_ids}" --argjson version "${version}" \
@@ -1442,16 +1442,16 @@ activate_roles() {
   status="$(curl -sS -o "${runtime_dir}/role-activation-update.response" \
     -w '%{http_code}' -X PUT -H 'Content-Type: application/json' \
     -H "Authorization: Bearer ${access_token}" -d "${request}" \
-    "${rbac3_url}/api/rbac3/v1/auth/role-activations")"
+    "${rbac3_url}/api/tianquan-jianshen/v1/auth/role-activations")"
   [[ "${status}" == "200" ]] || fail \
-    "RBAC3 role activation failed with HTTP ${status}: $(<"${runtime_dir}/role-activation-update.response")"
+    "Tianquan-Jianshen role activation failed with HTTP ${status}: $(<"${runtime_dir}/role-activation-update.response")"
 }
 
 gateway_api() {
   local method="$1" path="$2" body="${3:-}" idempotency_key="${4:-}"
   local response_file status response
   local arguments=(-sS -X "${method}" \
-    -H "Authorization: Bearer $(<"${secret_dir}/gateway-admin-control-plane.service.jwt")" \
+    -H "Authorization: Bearer $(<"${secret_dir}/yuheng-admin-control-plane.service.jwt")" \
     -H 'Content-Type: application/json')
   if [[ -n "${idempotency_key}" ]]; then
     arguments+=(-H "Idempotency-Key: ${idempotency_key}")
@@ -1459,13 +1459,13 @@ gateway_api() {
   if [[ -n "${body}" ]]; then
     arguments+=(-d "${body}")
   fi
-  response_file="$(mktemp "${runtime_dir}/gateway-api.XXXXXX")"
+  response_file="$(mktemp "${runtime_dir}/yuheng-api.XXXXXX")"
   status="$(curl "${arguments[@]}" -o "${response_file}" -w '%{http_code}' \
     "${gateway_admin_url}${path}")"
   response="$(<"${response_file}")"
   rm -f "${response_file}"
   [[ "${status}" =~ ^2[0-9][0-9]$ ]] || fail \
-    "Gateway Admin ${method} ${path} failed with HTTP ${status}: ${response}"
+    "Yuheng Admin ${method} ${path} failed with HTTP ${status}: ${response}"
   printf '%s' "${response}"
 }
 
@@ -1473,86 +1473,86 @@ ddc_api() {
   local method="$1" path="$2" body="${3:-}"
   local response_file status response
   [[ -n "${ddc_admin_access_token}" ]] \
-    || fail "USER Access Token is required for DDC Admin bootstrap"
+    || fail "USER Access Token is required for Tianshu Admin bootstrap"
   local arguments=(-sS -X "${method}" \
     -H "Authorization: Bearer ${ddc_admin_access_token}" \
     -H 'Content-Type: application/json')
   if [[ -n "${body}" ]]; then
     arguments+=(-d "${body}")
   fi
-  response_file="$(mktemp "${runtime_dir}/ddc-api.XXXXXX")"
+  response_file="$(mktemp "${runtime_dir}/tianshu-api.XXXXXX")"
   status="$(curl "${arguments[@]}" -o "${response_file}" -w '%{http_code}' \
     "${ddc_url}${path}")"
   response="$(<"${response_file}")"
   rm -f "${response_file}"
   [[ "${status}" =~ ^2[0-9][0-9]$ ]] || fail \
-    "DDC Admin ${method} ${path} failed with HTTP ${status}: ${response}"
+    "Tianshu Admin ${method} ${path} failed with HTTP ${status}: ${response}"
   printf '%s' "${response}"
 }
 
 initialize_ddc_topology() {
   local access_token="$1" response biz_code biz_name app_code
   ddc_admin_access_token="${access_token}"
-  response="$(ddc_api GET '/api/v1/ddc/envs?keyword=local')"
+  response="$(ddc_api GET '/api/v1/tianshu/envs?keyword=local')"
   if ! jq -e '.data[] | select(.envCode == "local")' \
       <<<"${response}" >/dev/null; then
-    ddc_api POST /api/v1/ddc/envs \
+    ddc_api POST /api/v1/tianshu/envs \
       '{"envCode":"local","description":"Host-local development","sortOrder":0,"enabled":true}' \
       >/dev/null
   fi
 
   while read -r biz_code biz_name; do
-    response="$(ddc_api GET "/api/v1/ddc/bizs?keyword=${biz_code}")"
+    response="$(ddc_api GET "/api/v1/tianshu/bizs?keyword=${biz_code}")"
     if ! jq -e --arg biz "${biz_code}" \
         '.data[] | select(.bizCode == $biz)' <<<"${response}" >/dev/null; then
-      ddc_api POST /api/v1/ddc/bizs \
+      ddc_api POST /api/v1/tianshu/bizs \
         "$(jq -cn --arg biz "${biz_code}" --arg name "${biz_name}" \
           '{bizCode:$biz,bizName:$name,description:"Host-local OAuth2 resource topology",enabled:true}')" \
         >/dev/null
     fi
-    response="$(ddc_api GET "/api/v1/ddc/namespaces?bizCode=${biz_code}&keyword=default")"
+    response="$(ddc_api GET "/api/v1/tianshu/namespaces?bizCode=${biz_code}&keyword=default")"
     if ! jq -e --arg biz "${biz_code}" \
         '.data[] | select(.bizCode == $biz and .namespaceCode == "default")' \
         <<<"${response}" >/dev/null; then
-      ddc_api POST /api/v1/ddc/namespaces \
+      ddc_api POST /api/v1/tianshu/namespaces \
         "$(jq -cn --arg biz "${biz_code}" \
           '{bizCode:$biz,namespaceCode:"default",namespace:"Default",description:"Host-local OAuth2 resource topology",enabled:true}')" \
         >/dev/null
     fi
   done <<'BUSINESSES'
 permission Permission
-platform Platform
+xingyuan Xingyuan
 identity Identity
 BUSINESSES
 
   while read -r biz_code app_code; do
-    response="$(ddc_api GET "/api/v1/ddc/apps?bizCode=${biz_code}&keyword=${app_code}")"
+    response="$(ddc_api GET "/api/v1/tianshu/apps?bizCode=${biz_code}&keyword=${app_code}")"
     if ! jq -e --arg app "${app_code}" \
         --arg biz "${biz_code}" \
         '.data[] | select(.bizCode == $biz and .appCode == $app)' \
         <<<"${response}" >/dev/null; then
-      ddc_api POST /api/v1/ddc/apps \
+      ddc_api POST /api/v1/tianshu/apps \
         "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
-          '{bizCode:$biz,appCode:$app,appName:$app,owner:"platform",description:"Host-local OAuth2 resource topology",enabled:true}')" \
+          '{bizCode:$biz,appCode:$app,appName:$app,owner:"xingyuan",description:"Host-local OAuth2 resource topology",enabled:true}')" \
         >/dev/null
     fi
-    response="$(ddc_api GET "/api/v1/ddc/namespace-env-app-bindings?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}")"
+    response="$(ddc_api GET "/api/v1/tianshu/namespace-env-app-bindings?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}")"
     if ! jq -e '.data[] | select(.enabled == true)' \
         <<<"${response}" >/dev/null; then
-      ddc_api POST /api/v1/ddc/namespace-env-app-bindings \
+      ddc_api POST /api/v1/tianshu/namespace-env-app-bindings \
         "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
           '{bizCode:$biz,namespaceCode:"default",env:"local",appCode:$app,enabled:true}')" \
         >/dev/null
     fi
   done <<'APPLICATIONS'
-permission idp
-permission rbac3
-platform ddc
-platform gateway-admin
+permission tianquan-shoubing
+permission tianquan-jianshen
+xingyuan tianshu
+xingyuan yuheng-admin
 identity mock-backend
-identity gateway-engine-default
-identity gateway-mcp-engine-default
-identity gateway-test-mcp-provider
+identity yuheng-biz-gateway-default
+identity yuheng-mcp-gateway-default
+identity yuheng-test-mcp-provider
 APPLICATIONS
 }
 
@@ -1560,7 +1560,7 @@ wait_ddc_provider_registration() {
   local biz_code="$1" app_code="$2" service_name="$3" response
   for ((attempt = 1; attempt <= 30; attempt++)); do
     response="$(ddc_api GET \
-      "/api/v1/ddc/registry/services?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=${service_name}&group=default")"
+      "/api/v1/tianshu/registry/services?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=${service_name}&group=default")"
     if jq -e --arg app "${app_code}" --arg service "${service_name}" '
         .data.services[]
         | select(
@@ -1575,14 +1575,14 @@ wait_ddc_provider_registration() {
     fi
     sleep 1
   done
-  fail "${biz_code}/${app_code} did not register an online DDC HTTP Provider lease"
+  fail "${biz_code}/${app_code} did not register an online Tianshu HTTP Provider lease"
 }
 
 wait_ddc_rpc_provider_registration() {
   local biz_code="$1" app_code="$2" service_name="$3" group="$4" version="$5" response
   for ((attempt = 1; attempt <= 30; attempt++)); do
     response="$(ddc_api GET \
-      "/api/v1/ddc/registry/services?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=${service_name}&group=${group}&version=${version}")"
+      "/api/v1/tianshu/registry/services?bizCode=${biz_code}&namespaceCode=default&env=local&appCode=${app_code}&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=${service_name}&group=${group}&version=${version}")"
     if jq -e --arg app "${app_code}" --arg service "${service_name}" \
         --arg group "${group}" --arg version "${version}" '
         .data.services[]
@@ -1599,31 +1599,31 @@ wait_ddc_rpc_provider_registration() {
     fi
     sleep 1
   done
-  fail "${biz_code}/${app_code}/${service_name} did not register an online DDC RPC Provider lease"
+  fail "${biz_code}/${app_code}/${service_name} did not register an online Tianshu RPC Provider lease"
 }
 
 gateway_application_id_file() {
   case "$1" in
-    idp|rbac3|gateway-admin|ddc|mock-backend) ;;
-    *) fail "unsupported Gateway reporting application: $1" ;;
+    tianquan-shoubing|tianquan-jianshen|yuheng-admin|tianshu|mock-backend) ;;
+    *) fail "unsupported Yuheng reporting application: $1" ;;
   esac
-  printf '%s/gateway-application.%s.id' "${runtime_dir}" "$1"
+  printf '%s/yuheng-application.%s.id' "${runtime_dir}" "$1"
 }
 
 gateway_report_access_key_file() {
-  printf '%s/gateway-report-%s.access-key' "${secret_dir}" "$1"
+  printf '%s/yuheng-report-%s.access-key' "${secret_dir}" "$1"
 }
 
 gateway_report_secret_file() {
-  printf '%s/gateway-report-%s.secret' "${secret_dir}" "$1"
+  printf '%s/yuheng-report-%s.secret' "${secret_dir}" "$1"
 }
 
 gateway_report_master_key_fingerprint_file() {
-  printf '%s/.gateway-report-%s.master-key.sha256' "${secret_dir}" "$1"
+  printf '%s/.yuheng-report-%s.master-key.sha256' "${secret_dir}" "$1"
 }
 
 gateway_master_key_fingerprint() {
-  openssl dgst -sha256 -r "${secret_dir}/gateway-master-key.base64" \
+  openssl dgst -sha256 -r "${secret_dir}/yuheng-master-key.base64" \
     | awk '{print $1}'
 }
 
@@ -1632,7 +1632,7 @@ gateway_reporting_credential_is_active() {
   [[ -s "${access_file}" ]] || return 1
   access_key="$(<"${access_file}")"
   credentials="$(gateway_api GET \
-    "/api/v1/gateway/admin/applications/${app_id}/credentials")"
+    "/api/v1/yuheng/admin/applications/${app_id}/credentials")"
   jq -e --arg access_key "${access_key}" \
     'any(.[]; .accessKey == $access_key and .status == "ACTIVE")' \
     <<<"${credentials}" >/dev/null
@@ -1643,15 +1643,15 @@ configure_gateway_reporter() {
   access_file="$(gateway_report_access_key_file "${app_code}")"
   secret_file="$(gateway_report_secret_file "${app_code}")"
   case "${app_code}" in
-    idp) env_file="${env_dir}/idp.env"; enabled_key=IDP_GATEWAY_REPORTING_ENABLED ;;
-    rbac3) env_file="${env_dir}/rbac3.env"; enabled_key=RBAC3_GATEWAY_REPORTING_ENABLED ;;
-    gateway-admin) env_file="${env_dir}/gateway-admin.env"; enabled_key=GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED ;;
-    ddc) env_file="${env_dir}/ddc.env"; enabled_key=DDC_GATEWAY_REPORTING_ENABLED ;;
-    mock-backend) env_file="${env_dir}/mock-backend.env"; enabled_key=MOCK_BACKEND_GATEWAY_REPORTING_ENABLED ;;
-    *) fail "unsupported Gateway reporting application: ${app_code}" ;;
+    tianquan-shoubing) env_file="${env_dir}/tianquan-shoubing.env"; enabled_key=TIANQUAN_SHOUBING_YUHENG_REPORTING_ENABLED ;;
+    tianquan-jianshen) env_file="${env_dir}/tianquan-jianshen.env"; enabled_key=TIANQUAN_JIANSHEN_YUHENG_REPORTING_ENABLED ;;
+    yuheng-admin) env_file="${env_dir}/yuheng-admin.env"; enabled_key=YUHENG_ADMIN_YUHENG_REPORTING_ENABLED ;;
+    tianshu) env_file="${env_dir}/tianshu.env"; enabled_key=TIANSHU_YUHENG_REPORTING_ENABLED ;;
+    mock-backend) env_file="${env_dir}/mock-backend.env"; enabled_key=MOCK_BACKEND_YUHENG_REPORTING_ENABLED ;;
+    *) fail "unsupported Yuheng reporting application: ${app_code}" ;;
   esac
-  write_env "${env_file}" GATEWAY_REPORT_ACCESS_KEY "$(<"${access_file}")"
-  write_env "${env_file}" GATEWAY_REPORT_SECRET_KEY "$(<"${secret_file}")"
+  write_env "${env_file}" YUHENG_REPORT_ACCESS_KEY "$(<"${access_file}")"
+  write_env "${env_file}" YUHENG_REPORT_SECRET_KEY "$(<"${secret_file}")"
   write_env "${env_file}" "${enabled_key}" true
 }
 
@@ -1668,7 +1668,7 @@ ensure_gateway_reporting_application() {
       || ! -s "${marker_file}" \
       || "$(<"${marker_file}")" != "${fingerprint}" ]] \
       || ! gateway_reporting_credential_is_active "${app_id}" "${access_file}"; then
-    credential="$(gateway_api POST "/api/v1/gateway/admin/applications/${app_id}/credentials" '{}')"
+    credential="$(gateway_api POST "/api/v1/yuheng/admin/applications/${app_id}/credentials" '{}')"
     jq -er '.accessKey' <<<"${credential}" >"${access_file}"
     jq -er '.secret' <<<"${credential}" >"${secret_file}"
     printf '%s' "${fingerprint}" >"${marker_file}"
@@ -1682,14 +1682,14 @@ ensure_gateway_reporting_application() {
 ensure_gateway_application() {
   local biz_code="$1" app_code="$2" display_name="$3"
   local applications application app_id
-  applications="$(gateway_api GET "/api/v1/gateway/admin/applications?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}")"
+  applications="$(gateway_api GET "/api/v1/yuheng/admin/applications?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}")"
   app_id="$(jq -r --arg app "${app_code}" \
     '.[] | select(.applicationCode == $app) | .id' <<<"${applications}" | head -1)"
   if [[ -z "${app_id}" ]]; then
-    application="$(gateway_api POST /api/v1/gateway/admin/applications \
+    application="$(gateway_api POST /api/v1/yuheng/admin/applications \
       "$(jq -cn --arg biz "${biz_code}" --arg app "${app_code}" \
         --arg display "${display_name}" \
-        '{bizCode:$biz,applicationCode:$app,displayName:$display,env:"local",namespace:"default",description:"Host-local unified identity Gateway catalog provider"}')")"
+        '{bizCode:$biz,applicationCode:$app,displayName:$display,env:"local",namespace:"default",description:"Host-local unified identity Yuheng catalog provider"}')")"
     app_id="$(jq -er '.id' <<<"${application}")"
   fi
   printf '%s' "${app_id}" >"$(gateway_application_id_file "${app_code}")"
@@ -1698,27 +1698,27 @@ ensure_gateway_application() {
 
 initialize_gateway_control_plane() {
   local groups group group_id
-  ensure_gateway_application permission idp "IdP Identity Admin"
-  ensure_gateway_application permission rbac3 "RBAC3 Permission Admin"
-  ensure_gateway_application platform gateway-admin "Gateway Admin"
-  ensure_gateway_application platform ddc "Dynamic Config Center Admin"
+  ensure_gateway_application permission tianquan-shoubing "Tianquan-Shoubing Identity Admin"
+  ensure_gateway_application permission tianquan-jianshen "Tianquan-Jianshen Permission Admin"
+  ensure_gateway_application xingyuan yuheng-admin "Yuheng Admin"
+  ensure_gateway_application xingyuan tianshu "Tianshu Admin"
   if [[ "${startup_mode}" == "full" ]]; then
     ensure_gateway_reporting_application identity mock-backend "Unified Identity Mock Backend"
   else
     ensure_gateway_application identity mock-backend "Unified Identity Mock Backend"
   fi
 
-  groups="$(gateway_api GET '/api/v1/gateway/admin/gateway-groups?env=local&namespace=default')"
+  groups="$(gateway_api GET '/api/v1/yuheng/admin/yuheng-groups?env=local&namespace=default')"
   group_id="$(jq -r '.[] | select(.gatewayGroupCode == "default") | .id' <<<"${groups}" | head -1)"
   if [[ -z "${group_id}" ]]; then
-    group="$(gateway_api POST /api/v1/gateway/admin/gateway-groups \
-      '{"gatewayGroupCode":"default","displayName":"Unified Identity Local Gateway","env":"local","namespace":"default","description":"Host-local unified identity Gateway route group"}')"
+    group="$(gateway_api POST /api/v1/yuheng/admin/yuheng-groups \
+      '{"gatewayGroupCode":"default","displayName":"Unified Identity Local Yuheng","env":"local","namespace":"default","description":"Host-local unified identity Yuheng route group"}')"
     group_id="$(jq -er '.id' <<<"${group}")"
   fi
-  printf '%s' "${group_id}" >"${runtime_dir}/gateway-group.id"
+  printf '%s' "${group_id}" >"${runtime_dir}/yuheng-group.id"
   printf '%s' "$(<"$(gateway_application_id_file mock-backend)")" \
-    >"${runtime_dir}/gateway-application.id"
-  chmod 600 "${runtime_dir}/gateway-group.id" "${runtime_dir}/gateway-application.id"
+    >"${runtime_dir}/yuheng-application.id"
+  chmod 600 "${runtime_dir}/yuheng-group.id" "${runtime_dir}/yuheng-application.id"
 }
 
 wait_gateway_catalog_for_app() {
@@ -1726,15 +1726,15 @@ wait_gateway_catalog_for_app() {
   app_id="$(<"$(gateway_application_id_file "${app_code}")")"
   for ((attempt = 1; attempt <= 60; attempt++)); do
     response="$(gateway_api GET \
-      "/api/v1/gateway/admin/applications/${app_id}/catalog" || true)"
+      "/api/v1/yuheng/admin/applications/${app_id}/catalog" || true)"
     if jq -e '.. | objects | select(.protocol? == "HTTP" and .lifecycleStatus? == "ACTIVE")' \
         <<<"${response}" >/dev/null 2>&1; then
-      if [[ "${app_code}" == "gateway-admin" ]] && ! jq -e '
+      if [[ "${app_code}" == "yuheng-admin" ]] && ! jq -e '
         [.. | objects | select(.protocol? == "HTTP" and .lifecycleStatus? == "ACTIVE")
           | .methodIdentity] as $methods
-        | ["GET /api/v1/gateway/admin/openapi/sync-states",
-           "GET /api/v1/gateway/admin/operations/{operationId}/openapi",
-           "GET /api/v1/gateway/admin/openapi/snapshots/{snapshotId}/document"]
+        | ["GET /api/v1/yuheng/admin/openapi/sync-states",
+           "GET /api/v1/yuheng/admin/operations/{operationId}/openapi",
+           "GET /api/v1/yuheng/admin/openapi/snapshots/{snapshotId}/document"]
         | all(. as $method | $methods | index($method) != null)
       ' <<<"${response}" >/dev/null 2>&1; then
         sleep 1
@@ -1744,12 +1744,12 @@ wait_gateway_catalog_for_app() {
     fi
     sleep 1
   done
-  fail "${app_code} Gateway catalog did not become active"
+  fail "${app_code} Yuheng catalog did not become active"
 }
 
 wait_gateway_catalog() {
   local app_code
-  for app_code in idp rbac3 gateway-admin ddc mock-backend; do
+  for app_code in tianquan-shoubing tianquan-jianshen yuheng-admin tianshu mock-backend; do
     wait_gateway_catalog_for_app "${app_code}"
   done
 }
@@ -1758,31 +1758,31 @@ wait_gateway_engine_provider_registration() {
   local response
   for ((attempt = 1; attempt <= 60; attempt++)); do
     response="$(gateway_api GET \
-      '/api/v1/gateway/admin/providers/instances?bizCode=identity&appCode=gateway-engine-default&env=local&namespace=default' \
+      '/api/v1/yuheng/admin/providers/instances?bizCode=identity&appCode=yuheng-biz-gateway-default&env=local&namespace=default' \
       || true)"
     if jq -e '
         .value[]?
-        | select(.status == "ONLINE" and .instanceId == "gateway-engine-local-1")
+        | select(.status == "ONLINE" and .instanceId == "yuheng-biz-gateway-local-1")
       ' <<<"${response}" >/dev/null 2>&1; then
       return
     fi
     sleep 1
   done
-  fail "Gateway Engine did not publish an online DDC provider registration: ${response}"
+  fail "Yuheng Engine did not publish an online Tianshu provider registration: ${response}"
 }
 
 wait_gateway_openapi_sync_for_app() {
   local biz_code="$1" app_code="$2" response build_id
   case "${app_code}" in
-    idp) build_id="$(local_build_id "${idp_jar}")" ;;
-    rbac3) build_id="$(local_build_id "${rbac3_jar}")" ;;
-    ddc) build_id="$(local_build_id "${ddc_jar}")" ;;
-    gateway-admin) build_id="$(local_build_id "${gateway_admin_jar}")" ;;
+    tianquan-shoubing) build_id="$(local_build_id "${idp_jar}")" ;;
+    tianquan-jianshen) build_id="$(local_build_id "${rbac3_jar}")" ;;
+    tianshu) build_id="$(local_build_id "${ddc_jar}")" ;;
+    yuheng-admin) build_id="$(local_build_id "${gateway_admin_jar}")" ;;
     *) fail "unknown local OpenAPI provider: ${app_code}" ;;
   esac
   for ((attempt = 1; attempt <= 60; attempt++)); do
     response="$(gateway_api GET \
-      "/api/v1/gateway/admin/openapi/sync-states?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}" \
+      "/api/v1/yuheng/admin/openapi/sync-states?bizCode=${biz_code}&namespace=default&env=local&appCode=${app_code}" \
       || true)"
     if jq -e --arg build "${build_id}" '
         [ .[] | select(.buildId == $build) ] as $current
@@ -1793,18 +1793,18 @@ wait_gateway_openapi_sync_for_app() {
     fi
     sleep 1
   done
-  fail "${biz_code}/${app_code} Gateway OpenAPI sync did not become valid: ${response}"
+  fail "${biz_code}/${app_code} Yuheng OpenAPI sync did not become valid: ${response}"
 }
 
 gateway_catalog_operations() {
   local app_code app_id catalog part_file combined_file
-  combined_file="${runtime_dir}/gateway-catalog-operations.jsonl"
+  combined_file="${runtime_dir}/yuheng-catalog-operations.jsonl"
   : >"${combined_file}"
-  for app_code in idp rbac3 gateway-admin ddc mock-backend; do
+  for app_code in tianquan-shoubing tianquan-jianshen yuheng-admin tianshu mock-backend; do
     app_id="$(<"$(gateway_application_id_file "${app_code}")")"
     catalog="$(gateway_api GET \
-      "/api/v1/gateway/admin/applications/${app_id}/catalog")"
-    part_file="$(mktemp "${runtime_dir}/gateway-catalog.XXXXXX")"
+      "/api/v1/yuheng/admin/applications/${app_id}/catalog")"
+    part_file="$(mktemp "${runtime_dir}/yuheng-catalog.XXXXXX")"
     jq -c --arg app "${app_code}" \
       '[.. | objects | select(.id? and .methodIdentity? and .protocol?)
        | . + {reportedApplication:$app}]' <<<"${catalog}" >"${part_file}"
@@ -1819,16 +1819,16 @@ reconcile_platform_mcp_draft() {
   local task_policies policy_id policy_name policy_revision response revision
   local app_bindings binding_id binding_revision binding_valid
   servers="$(gateway_api GET \
-    "/api/v1/gateway/admin/mcp/servers?gatewayGroupId=${group_id}")"
+    "/api/v1/yuheng/admin/mcp/servers?gatewayGroupId=${group_id}")"
   while IFS= read -r server_id; do
     [[ -n "${server_id}" ]] || continue
     managed_tools="$(gateway_api GET \
-      "/api/v1/gateway/admin/mcp/groups/${group_id}/managed-tools?serverId=${server_id}")"
+      "/api/v1/yuheng/admin/mcp/groups/${group_id}/managed-tools?serverId=${server_id}")"
     valid_tools="$(jq -c '[.[] | select(.enabled == true) | .name] | unique' \
       <<<"${managed_tools}")"
 
     task_policies="$(gateway_api GET \
-      "/api/v1/gateway/admin/mcp/servers/${server_id}/task-policies?gatewayGroupId=${group_id}")"
+      "/api/v1/yuheng/admin/mcp/servers/${server_id}/task-policies?gatewayGroupId=${group_id}")"
     while IFS= read -r policy; do
       policy_id="$(jq -er '.id' <<<"${policy}")"
       policy_name="$(jq -er '.name' <<<"${policy}")"
@@ -1840,19 +1840,19 @@ reconcile_platform_mcp_draft() {
       fi
       policy_revision="$(jq -er '.revision' <<<"${policy}")"
       revision="$(gateway_api GET \
-        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft" \
+        "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft" \
         | jq -er '.revision')"
       response="$(gateway_api DELETE \
-        "/api/v1/gateway/admin/mcp/task-policies/${policy_id}" \
+        "/api/v1/yuheng/admin/mcp/task-policies/${policy_id}" \
         "$(jq -cn --arg group "${group_id}" --argjson expected "${policy_revision}" \
           --argjson draft "${revision}" \
           '{gatewayGroupId:$group,expectedRevision:$expected,expectedDraftRevision:$draft,changeReason:"Remove platform-mode MCP task policy without a valid Tool"}')" \
-        "unified-platform-remove-mcp-task-${policy_id}")"
+        "unified-xingyuan-remove-mcp-task-${policy_id}")"
       jq -e '.resourceId != null' <<<"${response}" >/dev/null
     done < <(jq -c '.[]' <<<"${task_policies}")
 
     app_bindings="$(gateway_api GET \
-      "/api/v1/gateway/admin/mcp/servers/${server_id}/app-bindings?gatewayGroupId=${group_id}")"
+      "/api/v1/yuheng/admin/mcp/servers/${server_id}/app-bindings?gatewayGroupId=${group_id}")"
     while IFS= read -r binding; do
       binding_id="$(jq -er '.id' <<<"${binding}")"
       binding_valid="$(jq -e --argjson tools "${valid_tools}" '
@@ -1861,14 +1861,14 @@ reconcile_platform_mcp_draft() {
       [[ "${binding_valid}" == "0" ]] && continue
       binding_revision="$(jq -er '.revision' <<<"${binding}")"
       revision="$(gateway_api GET \
-        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft" \
+        "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft" \
         | jq -er '.revision')"
       response="$(gateway_api DELETE \
-        "/api/v1/gateway/admin/mcp/app-bindings/${binding_id}" \
+        "/api/v1/yuheng/admin/mcp/app-bindings/${binding_id}" \
         "$(jq -cn --arg group "${group_id}" --argjson expected "${binding_revision}" \
           --argjson draft "${revision}" \
           '{gatewayGroupId:$group,expectedRevision:$expected,expectedDraftRevision:$draft,changeReason:"Remove platform-mode MCP app binding with invalid Tool references"}')" \
-        "unified-platform-remove-mcp-app-${binding_id}")"
+        "unified-xingyuan-remove-mcp-app-${binding_id}")"
       jq -e '.resourceId != null' <<<"${response}" >/dev/null
     done < <(jq -c '.[]' <<<"${app_bindings}")
   done < <(jq -r '.[].id' <<<"${servers}")
@@ -1884,7 +1884,7 @@ select_gateway_catalog_operations() {
     map(select(.protocol == "HTTP" and .externalAccessible == true
       and .lifecycleStatus == "ACTIVE"))
     | map(select(.methodIdentity != "GET /api/v1/auth/bootstrap"
-      or .reportedApplication == "gateway-admin"))
+      or .reportedApplication == "yuheng-admin"))
     | group_by([.reportedApplication, (.methodIdentity | split("/")
         | map(if startswith("{") and endswith("}") then "{}" else . end)
         | join("/"))])
@@ -1892,7 +1892,7 @@ select_gateway_catalog_operations() {
         then map(select(.sourceType != "STARTER")) else . end)
     | (add // [])
     | map(. + {securityType:
-      (if .reportedApplication == "idp" and (
+      (if .reportedApplication == "tianquan-shoubing" and (
         .methodIdentity == "GET /oauth2/login/csrf"
         or .methodIdentity == "POST /oauth2/login"
         or .methodIdentity == "POST /oauth2/token"
@@ -1901,15 +1901,15 @@ select_gateway_catalog_operations() {
         or .methodIdentity == "GET /.well-known/oauth-authorization-server"
         or .methodIdentity == "GET /oauth2/jwks")
        then "PUBLIC_PROTOCOL"
-       elif .reportedApplication == "idp" and (
+       elif .reportedApplication == "tianquan-shoubing" and (
         .methodIdentity == "GET /oauth2/userinfo"
         or .methodIdentity == "POST /oauth2/step-up")
        then "IDENTITY_PROTECTED"
-       elif .reportedApplication == "rbac3" and (
+       elif .reportedApplication == "tianquan-jianshen" and (
         .methodIdentity == "GET /api/v1/auth/about"
-        or .methodIdentity == "GET /api/rbac3/v1/auth/role-activation-candidates"
-        or .methodIdentity == "GET /api/rbac3/v1/auth/role-activations"
-        or .methodIdentity == "PUT /api/rbac3/v1/auth/role-activations")
+        or .methodIdentity == "GET /api/tianquan-jianshen/v1/auth/role-activation-candidates"
+        or .methodIdentity == "GET /api/tianquan-jianshen/v1/auth/role-activations"
+        or .methodIdentity == "PUT /api/tianquan-jianshen/v1/auth/role-activations")
        then "IDENTITY_PROTECTED"
        else "BUSINESS_PROTECTED" end)})'
 }
@@ -1922,22 +1922,22 @@ publish_gateway_routes() {
   local method path route_id legacy_route_id stale_route_id route_content desired_policy
   local managed_operation_ids cors_policy_id cors_origins cors_methods
   local cors_headers cors_exposed security_type route_transport_policy
-  group_id="$(<"${runtime_dir}/gateway-group.id")"
+  group_id="$(<"${runtime_dir}/yuheng-group.id")"
   operations="$(gateway_catalog_operations | select_gateway_catalog_operations)"
-  printf '%s' "${operations}" >"${runtime_dir}/gateway-operations.json"
-  draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+  printf '%s' "${operations}" >"${runtime_dir}/yuheng-operations.json"
+  draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
   revision="$(jq -er '.revision' <<<"${draft}")"
   managed_operation_ids="$(jq '[.[].id]' <<<"${operations}")"
 
   while IFS= read -r stale_route_id; do
     [[ -n "${stale_route_id}" ]] || continue
     response="$(gateway_api DELETE \
-      "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/${stale_route_id}" \
+      "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/routes/${stale_route_id}" \
       "$(jq -cn --argjson revision "${revision}" \
         --arg route "${stale_route_id}" \
         '{expectedRevision:$revision,idempotencyKey:("unified-remove-stale-route-" + $route + "-" + ($revision | tostring)),changeReason:"Remove a deterministic route whose operation is no longer selected for the unified local topology"}')")"
     revision="$(jq -er '.revision' <<<"${response}")"
-    draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+    draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
   done < <(jq -r --argjson operations "${managed_operation_ids}" '
     .routes[]?
     | select(([.operationId] - $operations | length) > 0
@@ -1947,17 +1947,17 @@ publish_gateway_routes() {
   if jq -e '.policies[]? | select(.policyId == "identity-basic" and .policyScope == "GLOBAL")' \
       <<<"${draft}" >/dev/null; then
     response="$(gateway_api DELETE \
-      "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/policies/identity-basic" \
+      "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/policies/identity-basic" \
       "$(jq -cn --argjson revision "${revision}" \
         '{expectedRevision:$revision,idempotencyKey:("unified-remove-identity-basic-" + ($revision | tostring)),changeReason:"Replace legacy global policy with operation-scoped stateless policies"}')")"
     revision="$(jq -er '.revision' <<<"${response}")"
-    draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+    draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
   fi
 
   cors_policy_id=unified-local-cors
   cors_origins='["http://127.0.0.1:18121","http://127.0.0.1:18125","http://127.0.0.1:18131","http://127.0.0.1:18141","http://127.0.0.1:18152"]'
   cors_methods='["GET","POST","PUT","PATCH","DELETE","OPTIONS"]'
-  cors_headers='["Authorization","Content-Type","X-IDP-CSRF","X-CSRF-TOKEN","Idempotency-Key","X-Gateway-Contract-Version","traceparent","x-egon-request-id"]'
+  cors_headers='["Authorization","Content-Type","X-TIANQUAN-SHOUBING-CSRF","X-CSRF-TOKEN","Idempotency-Key","X-Yuheng-Contract-Version","traceparent","x-egon-request-id"]'
   cors_exposed='["traceparent","x-egon-request-id"]'
   ids="$(jq -c '[.[].id] | sort' <<<"${operations}")"
   if ! jq -e --arg policy "${cors_policy_id}" --argjson ids "${ids}" \
@@ -1980,10 +1980,10 @@ publish_gateway_routes() {
       --argjson revision "${revision}" --arg policy "${cors_policy_id}" \
       '{policyType:"CORS",policyScope:"OPERATION",content:{operationIds:$ids,allowedOrigins:$origins,allowedMethods:$methods,allowedHeaders:$headers,exposedHeaders:$exposed,allowCredentials:true,maxAgeSeconds:600,enabled:true},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-policy-" + $policy + "-" + ($revision | tostring)),changeReason:"Publish local frontend CORS policy for the unified platform"}')"
     response="$(gateway_api PUT \
-      "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/policies/${cors_policy_id}" \
+      "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/policies/${cors_policy_id}" \
       "${desired_policy}")"
     revision="$(jq -er '.revision' <<<"${response}")"
-    draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+    draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
   fi
 
   for security in PUBLIC_PROTOCOL IDENTITY_PROTECTED BUSINESS_PROTECTED; do
@@ -1998,12 +1998,12 @@ publish_gateway_routes() {
         extractors='[]'; auth_providers='[]'; authz_providers='[]' ;;
       IDENTITY_PROTECTED)
         policy_id=unified-identity-protected
-        route_type=IDENTITY_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"idp-user-refresh"'
-        extractors='["idp-user-cookie"]'; auth_providers='["idp-jwt"]'; authz_providers='[]' ;;
+        route_type=IDENTITY_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"tianquan-shoubing-user-refresh"'
+        extractors='["tianquan-shoubing-user-cookie"]'; auth_providers='["tianquan-shoubing-jwt"]'; authz_providers='[]' ;;
       BUSINESS_PROTECTED)
         policy_id=unified-business-protected
-        route_type=BUSINESS_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"idp-user-refresh"'
-        extractors='["idp-user-cookie"]'; auth_providers='["idp-jwt"]'; authz_providers='["rbac3-biz-app-scope"]' ;;
+        route_type=BUSINESS_PROTECTED; auth_mode=REQUIRED; forward=ORIGINAL_BEARER; recovery='"tianquan-shoubing-user-refresh"'
+        extractors='["tianquan-shoubing-user-cookie"]'; auth_providers='["tianquan-shoubing-jwt"]'; authz_providers='["tianquan-jianshen-biz-app-scope"]' ;;
     esac
     if ! jq -e --arg policy "${policy_id}" --arg routeType "${route_type}" \
         --arg authMode "${auth_mode}" --arg forward "${forward}" \
@@ -2032,12 +2032,12 @@ publish_gateway_routes() {
         --argjson authzProviders "${authz_providers}" \
         --argjson recovery "${recovery}" --argjson revision "${revision}" \
         --arg policy "${policy_id}" \
-        '{policyType:"SECURITY",policyScope:"OPERATION",content:{operationIds:$ids,routeSecurityType:$routeType,authenticationMode:$authMode,credentialExtractorIds:$extractors,authenticationProviderIds:$authProviders,authorizationProviderIds:$authzProviders,credentialRecoveryProviderId:$recovery,decisionMode:"ALL_ALLOW",providerTimeoutMs:1000,failureMode:"FAIL_CLOSED",credentialForwardingMode:$forward},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-policy-" + $policy + "-" + ($revision | tostring)),changeReason:"Publish operation-scoped stateless identity and RBAC3 Gateway policies"}')"
+        '{policyType:"SECURITY",policyScope:"OPERATION",content:{operationIds:$ids,routeSecurityType:$routeType,authenticationMode:$authMode,credentialExtractorIds:$extractors,authenticationProviderIds:$authProviders,authorizationProviderIds:$authzProviders,credentialRecoveryProviderId:$recovery,decisionMode:"ALL_ALLOW",providerTimeoutMs:1000,failureMode:"FAIL_CLOSED",credentialForwardingMode:$forward},enabled:true,expectedRevision:$revision,idempotencyKey:("unified-policy-" + $policy + "-" + ($revision | tostring)),changeReason:"Publish operation-scoped stateless identity and Tianquan-Jianshen Yuheng policies"}')"
       response="$(gateway_api PUT \
-        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/policies/${policy_id}" \
+        "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/policies/${policy_id}" \
         "${desired_policy}")"
       revision="$(jq -er '.revision' <<<"${response}")"
-      draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+      draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
     fi
   done
 
@@ -2054,12 +2054,12 @@ publish_gateway_routes() {
     while IFS= read -r legacy_route_id; do
       [[ -n "${legacy_route_id}" ]] || continue
       response="$(gateway_api DELETE \
-        "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/${legacy_route_id}" \
+        "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/routes/${legacy_route_id}" \
         "$(jq -cn --argjson revision "${revision}" \
           --arg route "${legacy_route_id}" \
           '{expectedRevision:$revision,idempotencyKey:("unified-remove-legacy-route-" + $route + "-" + ($revision | tostring)),changeReason:"Remove a legacy route duplicated by the deterministic reported-operation route"}')")"
       revision="$(jq -er '.revision' <<<"${response}")"
-      draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+      draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
     done < <(jq -r --arg route "${route_id}" \
       --arg operation "${operation_id}" --arg method "${method}" \
       --arg path "${path}" '
@@ -2087,33 +2087,33 @@ publish_gateway_routes() {
       '{operationId:$operation,content:{host:"*",httpMethod:$method,pathPattern:$path,accessZones:["PUBLIC"],priority:100},enabled:true}
        | if $transport == null then . else .content.transportPolicy = $transport end')"
     response="$(gateway_api PUT \
-      "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/routes/${route_id}" \
+      "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/routes/${route_id}" \
       "$(jq -cn --argjson route "${route_content}" --argjson revision "${revision}" \
         --arg operation "${operation_id}" \
         '$route + {expectedRevision:$revision,idempotencyKey:("unified-route-" + $operation + "-" + ($revision | tostring)),changeReason:"Publish reported HTTP operation from the real provider catalog"}')")"
     revision="$(jq -er '.revision' <<<"${response}")"
-    draft="$(gateway_api GET "/api/v1/gateway/admin/gateway-groups/${group_id}/draft")"
+    draft="$(gateway_api GET "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft")"
   done < <(jq -r '.[] | [.id,.methodIdentity,.reportedApplication,.securityType] | @tsv' \
     <<<"${operations}")
 
   if [[ "${defer_release}" == "true" ]]; then
     return
   fi
-  validation="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/draft/validate" '{}')"
+  validation="$(gateway_api POST "/api/v1/yuheng/admin/yuheng-groups/${group_id}/draft/validate" '{}')"
   jq -e '.valid == true' <<<"${validation}" >/dev/null \
-    || fail "Gateway draft validation failed: ${validation}"
-  release="$(gateway_api POST "/api/v1/gateway/admin/gateway-groups/${group_id}/releases" \
+    || fail "Yuheng draft validation failed: ${validation}"
+  release="$(gateway_api POST "/api/v1/yuheng/admin/yuheng-groups/${group_id}/releases" \
     "$(jq -cn --argjson revision "${revision}" \
       '{expectedDraftRevision:$revision,changeReason:"Unified identity real catalog route release"}')")"
   jq -e '.status == "SUCCESS"' <<<"${release}" >/dev/null \
-    || fail "Gateway release did not succeed: ${release}"
-  jq -er '.releaseId' <<<"${release}" >"${runtime_dir}/gateway-release.id"
-  chmod 600 "${runtime_dir}/gateway-release.id"
+    || fail "Yuheng release did not succeed: ${release}"
+  jq -er '.releaseId' <<<"${release}" >"${runtime_dir}/yuheng-release.id"
+  chmod 600 "${runtime_dir}/yuheng-release.id"
 }
 
 wait_gateway_route() {
   local status route
-  if [[ "${startup_mode}" == "platforms" ]]; then
+  if [[ "${startup_mode}" == "xingyuan" ]]; then
     route="${gateway_url}/oauth2/login/csrf"
   else
     route="${gateway_url}/api/mock/read"
@@ -2121,212 +2121,212 @@ wait_gateway_route() {
   for ((attempt = 1; attempt <= 30; attempt++)); do
     status="$(curl -sS -o /dev/null -w '%{http_code}' \
       "${route}")"
-    if [[ "${startup_mode}" == "platforms" && "${status}" == "200" \
-        || "${startup_mode}" != "platforms" && "${status}" == "401" ]]; then
+    if [[ "${startup_mode}" == "xingyuan" && "${status}" == "200" \
+        || "${startup_mode}" != "xingyuan" && "${status}" == "401" ]]; then
       return
     fi
     sleep 1
   done
-  fail "Gateway Engine did not load the ${startup_mode} routes at ${route}"
+  fail "Yuheng Engine did not load the ${startup_mode} routes at ${route}"
 }
 
 command_start() {
   command_prepare
   case "${startup_mode}" in
-    platforms|full) ;;
-    *) fail "unsupported UNIFIED_IDENTITY_START_MODE: ${startup_mode} (use platforms or full)" ;;
+    xingyuan|full) ;;
+    *) fail "unsupported UNIFIED_IDENTITY_START_MODE: ${startup_mode} (use xingyuan or full)" ;;
   esac
   local idp_argument subject tenant_b_id rbac3_access_token ddc_access_token
-  stage "starting DDC"
-  start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
-  wait_http ddc "${ddc_url}/actuator/health/readiness"
+  stage "starting Tianshu"
+  start_process tianshu "${env_dir}/tianshu.env" "${ddc_jar}"
+  wait_http tianshu "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
 
-  stage "starting IdP bootstrap phase without DDC publication"
+  stage "starting Tianquan-Shoubing bootstrap phase without Tianshu publication"
   idp_argument="$(bootstrap_idp_argument)"
   if [[ -n "${idp_argument}" ]]; then
-    start_process idp "${env_dir}/idp.env" "${idp_jar}" \
-      --egon.cola.component.ddc.enabled=false \
-      --egon.cola.component.ddc.registry.enabled=false \
-      --egon.cola.component.ddc.registry.http.enabled=false \
+    start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
+      --egon.cola.component.tianshu.enabled=false \
+      --egon.cola.component.tianshu.registry.enabled=false \
+      --egon.cola.component.tianshu.registry.http.enabled=false \
       "${idp_argument}"
   else
-    start_process idp "${env_dir}/idp.env" "${idp_jar}" \
-      --egon.cola.component.ddc.enabled=false \
-      --egon.cola.component.ddc.registry.enabled=false \
-      --egon.cola.component.ddc.registry.http.enabled=false
+    start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
+      --egon.cola.component.tianshu.enabled=false \
+      --egon.cola.component.tianshu.registry.enabled=false \
+      --egon.cola.component.tianshu.registry.http.enabled=false
   fi
-  wait_http idp "${idp_url}/actuator/health/readiness"
-  stage "adopting IdP tenant authority and local confidential app IDs"
+  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
+  stage "adopting Tianquan-Shoubing tenant authority and local confidential app IDs"
   adopt_local_idp_authority
   resolve_existing_service_tenant_id
   write_service_env_files
   write_application_build_ids
-  stage "issuing IdP-owned service credentials"
+  stage "issuing Tianquan-Shoubing-owned service credentials"
   refresh_service_tokens
-  # DDC starts before IdP can create/rotate machine credentials. Reload the
-  # regenerated properties before its Admin API requests an RBAC3 service token.
-  stage "reloading DDC with initialized IdP client credentials"
-  stop_process ddc
-  start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
-  wait_http ddc "${ddc_url}/actuator/health/readiness"
+  # Tianshu starts before Tianquan-Shoubing can create/rotate machine credentials. Reload the
+  # regenerated properties before its Admin API requests an Tianquan-Jianshen service token.
+  stage "reloading Tianshu with initialized Tianquan-Shoubing client credentials"
+  stop_process tianshu
+  start_process tianshu "${env_dir}/tianshu.env" "${ddc_jar}"
+  wait_http tianshu "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
   subject="$(identity_subject)"
-  [[ -n "${subject}" ]] || fail "IdP bootstrap subject is missing"
+  [[ -n "${subject}" ]] || fail "Tianquan-Shoubing bootstrap subject is missing"
 
-  stage "starting RBAC3 bootstrap phase without DDC publication"
-  write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_IDENTITY_SUB "${subject}"
-  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
-    --egon.cola.component.ddc.enabled=true \
-    --egon.cola.component.ddc.registry.enabled=false \
-    --egon.cola.component.ddc.registry.http.enabled=false \
-    --egon.rbac3.development-bootstrap.enabled=false
-  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
+  stage "starting Tianquan-Jianshen bootstrap phase without Tianshu publication"
+  write_env "${env_dir}/tianquan-jianshen.env" TIANQUAN_JIANSHEN_DEVELOPMENT_IDENTITY_SUB "${subject}"
+  start_process tianquan-jianshen "${env_dir}/tianquan-jianshen.env" "${rbac3_jar}" \
+    --egon.cola.component.tianshu.enabled=true \
+    --egon.cola.component.tianshu.registry.enabled=false \
+    --egon.cola.component.tianshu.registry.http.enabled=false \
+    --egon.tianquan-jianshen.development-bootstrap.enabled=false
+  wait_http tianquan-jianshen "${rbac3_url}/actuator/health/readiness"
 
   service_tenant_id="$(rbac3_tenant_id default)"
   tenant_b_id="$(rbac3_tenant_id tenant-b)"
-  write_env "${env_dir}/idp.env" IDP_RBAC3_SERVICE_TENANT_ID \
+  write_env "${env_dir}/tianquan-shoubing.env" TIANQUAN_SHOUBING_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID \
     "${service_tenant_id}"
-  write_env "${env_dir}/idp.env" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_ID \
+  write_env "${env_dir}/tianquan-shoubing.env" TIANQUAN_SHOUBING_DEVELOPMENT_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID \
     "${service_tenant_id}"
-  write_env "${env_dir}/idp.env" IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS \
+  write_env "${env_dir}/tianquan-shoubing.env" TIANQUAN_SHOUBING_DEVELOPMENT_TIANQUAN_JIANSHEN_SERVICE_TENANT_IDS \
     "${service_tenant_id},${tenant_b_id}"
-  write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_TENANT_IDS \
+  write_env "${env_dir}/tianquan-jianshen.env" TIANQUAN_JIANSHEN_DEVELOPMENT_TENANT_IDS \
     "${service_tenant_id},${tenant_b_id}"
-  stage "binding IdP service credentials to the RBAC3 tenant"
-  stop_process idp
-  start_process idp "${env_dir}/idp.env" "${idp_jar}" \
-    --egon.cola.component.ddc.enabled=false \
-    --egon.cola.component.ddc.registry.enabled=false \
-    --egon.cola.component.ddc.registry.http.enabled=false
-  wait_http idp "${idp_url}/actuator/health/readiness"
+  stage "binding Tianquan-Shoubing service credentials to the Tianquan-Jianshen tenant"
+  stop_process tianquan-shoubing
+  start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
+    --egon.cola.component.tianshu.enabled=false \
+    --egon.cola.component.tianshu.registry.enabled=false \
+    --egon.cola.component.tianshu.registry.http.enabled=false
+  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
 
-  stage "clearing stale local RBAC3 authorization snapshots"
+  stage "clearing stale local Tianquan-Jianshen authorization snapshots"
   clear_local_rbac3_snapshots
   stage "establishing the default-tenant USER cookie"
   idp_bootstrap_login default
-  stage "loading the default-tenant USER Access Token from its Gateway cookie"
+  stage "loading the default-tenant USER Access Token from its Yuheng cookie"
   rbac3_access_token="$(user_access_token_for_tenant default)"
-  stage "initializing DDC unified identity topology"
+  stage "initializing Tianshu unified identity topology"
   ddc_access_token="$(user_access_token_for_tenant default)"
   initialize_ddc_topology "${ddc_access_token}"
-  stage "reconciling SQL-seeded RBAC3 applications with DDC catalog IDs"
-  reconcile_local_rbac3_ddc_catalog
+  stage "reconciling SQL-seeded Tianquan-Jianshen applications with Tianshu catalog IDs"
+  reconcile_local_tianquan_jianshen_tianshu_catalog
   stage "activating non-mock roles"
   activate_roles "${rbac3_access_token}" false
 
-  stage "restarting IdP and RBAC3 with admitted DDC publication"
-  stop_process rbac3
-  stop_process idp
-  # DDC's runtime registration needs an online IdP. Restore IdP first without
-  # requiring RBAC3 publication, then enable DDC RPC and complete the chain.
-  write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE DISABLED
-  start_process idp "${env_dir}/idp.env" "${idp_jar}" \
-    --egon.cola.component.ddc.enabled=false \
-    --egon.cola.component.ddc.registry.enabled=false \
-    --egon.cola.component.ddc.registry.http.enabled=false
-  wait_http idp "${idp_url}/actuator/health/readiness"
+  stage "restarting Tianquan-Shoubing and Tianquan-Jianshen with admitted Tianshu publication"
+  stop_process tianquan-jianshen
+  stop_process tianquan-shoubing
+  # Tianshu's runtime registration needs an online Tianquan-Shoubing. Restore Tianquan-Shoubing first without
+  # requiring Tianquan-Jianshen publication, then enable Tianshu RPC and complete the chain.
+  write_env "${env_dir}/tianquan-shoubing.env" TIANQUAN_SHOUBING_RPC_PROVIDER_REGISTRATION_MODE DISABLED
+  start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}" \
+    --egon.cola.component.tianshu.enabled=false \
+    --egon.cola.component.tianshu.registry.enabled=false \
+    --egon.cola.component.tianshu.registry.http.enabled=false
+  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
 
-  write_env "${env_dir}/ddc.env" DDC_SELF_REGISTRATION_ENABLED true
-  write_env "${env_dir}/ddc.env" EGON_COLA_COMPONENT_DDC_ENABLED true
-  write_env "${env_dir}/ddc.env" EGON_COLA_COMPONENT_DDC_REDIS_ENABLED true
-  stop_process ddc
-  start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
-  wait_http ddc "${ddc_url}/actuator/health/readiness"
+  write_env "${env_dir}/tianshu.env" TIANSHU_SELF_REGISTRATION_ENABLED true
+  write_env "${env_dir}/tianshu.env" EGON_COLA_COMPONENT_TIANSHU_ENABLED true
+  write_env "${env_dir}/tianshu.env" EGON_COLA_COMPONENT_TIANSHU_REDIS_ENABLED true
+  stop_process tianshu
+  start_process tianshu "${env_dir}/tianshu.env" "${ddc_jar}"
+  wait_http tianshu "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
-  write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true
-  write_env "${env_dir}/rbac3.env" RBAC3_RPC_ENABLED true
-  write_env "${env_dir}/rbac3.env" RBAC3_RPC_CONSUMER_ENABLED true
-  write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE REQUIRED
-  stop_process idp
-  start_process idp "${env_dir}/idp.env" "${idp_jar}"
-  wait_http idp "${idp_url}/actuator/health/readiness"
+  write_env "${env_dir}/tianquan-jianshen.env" TIANQUAN_JIANSHEN_DEVELOPMENT_BOOTSTRAP_ENABLED true
+  write_env "${env_dir}/tianquan-jianshen.env" TIANQUAN_JIANSHEN_RPC_ENABLED true
+  write_env "${env_dir}/tianquan-jianshen.env" TIANQUAN_JIANSHEN_RPC_CONSUMER_ENABLED true
+  write_env "${env_dir}/tianquan-shoubing.env" TIANQUAN_SHOUBING_RPC_PROVIDER_REGISTRATION_MODE REQUIRED
+  stop_process tianquan-shoubing
+  start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}"
+  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
-  stage "waiting for IdP identity RPC publication"
-  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}" \
-    --egon.rbac3.development-bootstrap.enabled=false
-  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
-  stage "refreshing the USER token for DDC RPC registration polling"
+  stage "waiting for Tianquan-Shoubing identity RPC publication"
+  start_process tianquan-jianshen "${env_dir}/tianquan-jianshen.env" "${rbac3_jar}" \
+    --egon.tianquan-jianshen.development-bootstrap.enabled=false
+  wait_http tianquan-jianshen "${rbac3_url}/actuator/health/readiness"
+  stage "refreshing the USER token for Tianshu RPC registration polling"
   idp_bootstrap_login default
   ddc_admin_access_token="$(user_access_token_for_tenant default)"
-  wait_ddc_rpc_provider_registration permission idp egon.idp.v1.IdentityDirectoryService idp 1.0.0
-  stage "starting RBAC3 topology bootstrap after IdP RPC publication"
-  stop_process rbac3
-  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
-  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
+  wait_ddc_rpc_provider_registration permission tianquan-shoubing egon.tianquan.shoubing.v1.IdentityDirectoryService tianquan-shoubing 1.0.0
+  stage "starting Tianquan-Jianshen topology bootstrap after Tianquan-Shoubing RPC publication"
+  stop_process tianquan-jianshen
+  start_process tianquan-jianshen "${env_dir}/tianquan-jianshen.env" "${rbac3_jar}"
+  wait_http tianquan-jianshen "${rbac3_url}/actuator/health/readiness"
 
-  stage "restoring the USER cookie and RBAC3 activation context"
+  stage "restoring the USER cookie and Tianquan-Jianshen activation context"
   idp_bootstrap_login default
   rbac3_access_token="$(user_access_token_for_tenant default)"
   activate_roles "${rbac3_access_token}" false
-  wait_ddc_provider_registration permission idp idp-admin
-  wait_ddc_provider_registration permission rbac3 rbac3-admin
+  wait_ddc_provider_registration permission tianquan-shoubing tianquan-shoubing-admin
+  wait_ddc_provider_registration permission tianquan-jianshen tianquan-jianshen-admin
 
-  stage "starting Gateway Admin"
-  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
-  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
+  stage "starting Yuheng Admin"
+  start_process yuheng-admin "${env_dir}/yuheng-admin.env" "${gateway_admin_jar}"
+  wait_http yuheng-admin "${gateway_admin_url}/actuator/health/readiness"
   initialize_gateway_control_plane
 
-  if [[ "${startup_mode}" == "platforms" ]]; then
-    stage "waiting for Gateway Admin OpenAPI catalog ingestion"
-    wait_gateway_catalog_for_app gateway-admin
-    stage "waiting for RBAC3 OpenAPI group ingestion"
-    wait_gateway_openapi_sync_for_app permission rbac3
-    stage "waiting for IdP and DDC OpenAPI group ingestion"
-    wait_gateway_openapi_sync_for_app permission idp
-    wait_gateway_openapi_sync_for_app platform ddc
+  if [[ "${startup_mode}" == "xingyuan" ]]; then
+    stage "waiting for Yuheng Admin OpenAPI catalog ingestion"
+    wait_gateway_catalog_for_app yuheng-admin
+    stage "waiting for Tianquan-Jianshen OpenAPI group ingestion"
+    wait_gateway_openapi_sync_for_app permission tianquan-jianshen
+    stage "waiting for Tianquan-Shoubing and Tianshu OpenAPI group ingestion"
+    wait_gateway_openapi_sync_for_app permission tianquan-shoubing
+    wait_gateway_openapi_sync_for_app xingyuan tianshu
     stage "reconciling orphaned local MCP draft capabilities"
-    reconcile_platform_mcp_draft "$(<"${runtime_dir}/gateway-group.id")"
-    stage "preparing the current local Gateway HTTP catalog draft"
+    reconcile_platform_mcp_draft "$(<"${runtime_dir}/yuheng-group.id")"
+    stage "preparing the current local Yuheng HTTP catalog draft"
     publish_gateway_routes true
-    echo "Unified identity platform backends are running with a prepared Gateway OpenAPI catalog draft."
-    echo "Start the Gateway Engine, publish the draft, and start the Admin Web and Portal applications with scripts/unified-xingyuan/start-local-stack.sh."
+    echo "Unified identity platform backends are running with a prepared Yuheng OpenAPI catalog draft."
+    echo "Start the Yuheng Engine, publish the draft, and start the Admin Web and Portal applications with scripts/unified-xingyuan/start-local-stack.sh."
     return
   fi
 
-  stage "restarting providers with real Gateway catalog reporting"
-  # Gateway Admin is the reporting control plane, so it first remains available with its own
-  # reporting disabled while DDC, IdP, and RBAC3 publish their real HTTP catalogs.
-  write_env "${env_dir}/gateway-admin.env" \
-    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
-  stop_process gateway-admin
-  stop_process rbac3
-  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
-  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
-  stop_process ddc
-  start_process ddc "${env_dir}/ddc.env" "${ddc_jar}"
-  wait_http ddc "${ddc_url}/actuator/health/readiness"
+  stage "restarting providers with real Yuheng catalog reporting"
+  # Yuheng Admin is the reporting control plane, so it first remains available with its own
+  # reporting disabled while Tianshu, Tianquan-Shoubing, and Tianquan-Jianshen publish their real HTTP catalogs.
+  write_env "${env_dir}/yuheng-admin.env" \
+    YUHENG_ADMIN_YUHENG_REPORTING_ENABLED false
+  stop_process yuheng-admin
+  stop_process tianquan-jianshen
+  start_process yuheng-admin "${env_dir}/yuheng-admin.env" "${gateway_admin_jar}"
+  wait_http yuheng-admin "${gateway_admin_url}/actuator/health/readiness"
+  stop_process tianshu
+  start_process tianshu "${env_dir}/tianshu.env" "${ddc_jar}"
+  wait_http tianshu "${ddc_url}/actuator/health/readiness"
   wait_ddc_rpc
-  stop_process idp
-  start_process idp "${env_dir}/idp.env" "${idp_jar}"
-  wait_http idp "${idp_url}/actuator/health/readiness"
+  stop_process tianquan-shoubing
+  start_process tianquan-shoubing "${env_dir}/tianquan-shoubing.env" "${idp_jar}"
+  wait_http tianquan-shoubing "${idp_url}/actuator/health/readiness"
   refresh_service_tokens
-  start_process rbac3 "${env_dir}/rbac3.env" "${rbac3_jar}"
-  wait_http rbac3 "${rbac3_url}/actuator/health/readiness"
-  write_env "${env_dir}/gateway-admin.env" \
-    GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
-  stop_process gateway-admin
-  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
-  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
+  start_process tianquan-jianshen "${env_dir}/tianquan-jianshen.env" "${rbac3_jar}"
+  wait_http tianquan-jianshen "${rbac3_url}/actuator/health/readiness"
+  write_env "${env_dir}/yuheng-admin.env" \
+    YUHENG_ADMIN_YUHENG_REPORTING_ENABLED false
+  stop_process yuheng-admin
+  start_process yuheng-admin "${env_dir}/yuheng-admin.env" "${gateway_admin_jar}"
+  wait_http yuheng-admin "${gateway_admin_url}/actuator/health/readiness"
 
-  stage "waiting for final DDC provider registrations"
-  wait_ddc_provider_registration permission idp idp-admin
-  wait_ddc_provider_registration permission rbac3 rbac3-admin
-  stage "starting Gateway Engine after DDC control plane is ready"
-  start_process gateway-engine "${env_dir}/gateway-engine.env" "${gateway_engine_jar}"
-  wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
-  stage "starting independent Gateway MCP Engine"
-  start_process gateway-mcp-engine "${env_dir}/gateway-mcp-engine.env" "${gateway_mcp_engine_jar}"
-  wait_http gateway-mcp-engine http://127.0.0.1:18186/actuator/health/readiness
+  stage "waiting for final Tianshu provider registrations"
+  wait_ddc_provider_registration permission tianquan-shoubing tianquan-shoubing-admin
+  wait_ddc_provider_registration permission tianquan-jianshen tianquan-jianshen-admin
+  stage "starting Yuheng Engine after Tianshu control plane is ready"
+  start_process yuheng-biz-gateway "${env_dir}/yuheng-biz-gateway.env" "${gateway_engine_jar}"
+  wait_http yuheng-biz-gateway http://127.0.0.1:18182/actuator/health/readiness
+  stage "starting independent Yuheng MCP Engine"
+  start_process yuheng-mcp-gateway "${env_dir}/yuheng-mcp-gateway.env" "${gateway_mcp_engine_jar}"
+  wait_http yuheng-mcp-gateway http://127.0.0.1:18186/actuator/health/readiness
 
   stage "starting mock backend"
   start_process mock-backend "${env_dir}/mock-backend.env" "${mock_jar}"
   wait_http mock-backend "${mock_url}/actuator/health/readiness"
   wait_gateway_catalog
-  if [[ "${UNIFIED_IDENTITY_DEFER_GATEWAY_RELEASE:-false}" == "true" ]]; then
-    stage "preparing Gateway routes for the unified platform publisher"
+  if [[ "${UNIFIED_IDENTITY_DEFER_YUHENG_RELEASE:-false}" == "true" ]]; then
+    stage "preparing Yuheng routes for the unified platform publisher"
     publish_gateway_routes true
   else
     publish_gateway_routes
@@ -2337,11 +2337,11 @@ command_start() {
 
 command_refresh_tokens() {
   local default_access_token tenant_b_access_token
-  process_running idp || fail "idp is not running; run start first"
-  process_running rbac3 || fail "rbac3 is not running; run start first"
+  process_running tianquan-shoubing || fail "tianquan-shoubing is not running; run start first"
+  process_running tianquan-jianshen || fail "tianquan-jianshen is not running; run start first"
   service_tenant_id="$(rbac3_tenant_id default)"
 
-  stage "refreshing IdP-owned service credentials"
+  stage "refreshing Tianquan-Shoubing-owned service credentials"
   refresh_service_tokens
   stage "refreshing local USER cookies and authorization snapshots"
   platform_user_login
@@ -2385,14 +2385,14 @@ stable_refresh_check() {
     -H 'Content-Type: application/x-www-form-urlencoded' \
     --data-urlencode grant_type=refresh_token "${gateway_url}/oauth2/token")"
   [[ "${revoked_status}" != "200" ]] \
-    || fail "Refresh Token remained usable after Gateway logout"
+    || fail "Refresh Token remained usable after Yuheng logout"
 }
 
 command_verify() {
   local status subject_before subject_tenant_b token_claims
   local rbac3_access_token default_access_token tenant_b_access_token
   local verify_token_dir mvn_status
-  for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine gateway-mcp-engine; do
+  for name in tianshu tianquan-shoubing tianquan-jianshen yuheng-admin mock-backend yuheng-biz-gateway yuheng-mcp-gateway; do
     process_running "${name}" || fail "${name} is not running; run start first"
   done
   platform_user_login
@@ -2457,7 +2457,7 @@ command_verify() {
   printf '%s' "${pre_logout_access_token}" >"${verify_token_dir}/pre-logout.at"
   chmod 600 "${verify_token_dir}"/*.at
   UNIFIED_IDENTITY_LIVE=true \
-  UNIFIED_IDENTITY_GATEWAY_URL="${gateway_url}" \
+  UNIFIED_IDENTITY_YUHENG_URL="${gateway_url}" \
   UNIFIED_IDENTITY_MOCK_URL="${mock_url}" \
   UNIFIED_IDENTITY_DEFAULT_TOKEN_FILE="${verify_token_dir}/default.at" \
   UNIFIED_IDENTITY_TENANT_B_TOKEN_FILE="${verify_token_dir}/tenant-b.at" \
@@ -2476,7 +2476,7 @@ command_verify() {
 
 command_status() {
   local name pid state url status
-  for name in ddc idp rbac3 gateway-admin mock-backend gateway-engine gateway-mcp-engine; do
+  for name in tianshu tianquan-shoubing tianquan-jianshen yuheng-admin mock-backend yuheng-biz-gateway yuheng-mcp-gateway; do
     if process_running "${name}"; then
       pid="$(<"${pid_dir}/${name}.pid")"
       state=running
@@ -2485,13 +2485,13 @@ command_status() {
       state=stopped
     fi
     case "${name}" in
-      ddc) url="${ddc_url}/actuator/health/readiness" ;;
-      idp) url="${idp_url}/actuator/health/readiness" ;;
-      rbac3) url="${rbac3_url}/actuator/health/readiness" ;;
-      gateway-admin) url="${gateway_admin_url}/actuator/health/readiness" ;;
+      tianshu) url="${ddc_url}/actuator/health/readiness" ;;
+      tianquan-shoubing) url="${idp_url}/actuator/health/readiness" ;;
+      tianquan-jianshen) url="${rbac3_url}/actuator/health/readiness" ;;
+      yuheng-admin) url="${gateway_admin_url}/actuator/health/readiness" ;;
       mock-backend) url="${mock_url}/actuator/health/readiness" ;;
-      gateway-engine) url=http://127.0.0.1:18182/actuator/health/readiness ;;
-      gateway-mcp-engine) url=http://127.0.0.1:18186/actuator/health/readiness ;;
+      yuheng-biz-gateway) url=http://127.0.0.1:18182/actuator/health/readiness ;;
+      yuheng-mcp-gateway) url=http://127.0.0.1:18186/actuator/health/readiness ;;
     esac
     status="$(curl -sS -o /dev/null -w '%{http_code}' "${url}" 2>/dev/null || true)"
     printf '%-16s pid=%-8s process=%-7s health=%s\n' \
@@ -2504,20 +2504,20 @@ command_refresh_gateway_admin_catalog() {
     require_command "${command}"
   done
   initialize_directories
-  process_running gateway-admin || fail "gateway-admin is not running"
+  process_running yuheng-admin || fail "yuheng-admin is not running"
   resolve_existing_service_tenant_id
   refresh_service_tokens
-  ensure_gateway_application platform gateway-admin "Gateway Admin"
-  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false
-  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED true
-  write_env "${env_dir}/gateway-admin.env" GATEWAY_ADMIN_BUILD_ID \
+  ensure_gateway_application xingyuan yuheng-admin "Yuheng Admin"
+  write_env "${env_dir}/yuheng-admin.env" YUHENG_ADMIN_YUHENG_REPORTING_ENABLED false
+  write_env "${env_dir}/yuheng-admin.env" YUHENG_ADMIN_HTTP_OPENAPI_ENABLED true
+  write_env "${env_dir}/yuheng-admin.env" YUHENG_ADMIN_BUILD_ID \
     "$(local_build_id "${gateway_admin_jar}")"
-  stop_process gateway-admin
-  start_process gateway-admin "${env_dir}/gateway-admin.env" "${gateway_admin_jar}"
-  wait_http gateway-admin "${gateway_admin_url}/actuator/health/readiness"
-  wait_gateway_catalog_for_app gateway-admin
-  wait_gateway_openapi_sync_for_app platform gateway-admin
-  echo "Gateway Admin current OpenAPI query interfaces are available in its catalog."
+  stop_process yuheng-admin
+  start_process yuheng-admin "${env_dir}/yuheng-admin.env" "${gateway_admin_jar}"
+  wait_http yuheng-admin "${gateway_admin_url}/actuator/health/readiness"
+  wait_gateway_catalog_for_app yuheng-admin
+  wait_gateway_openapi_sync_for_app xingyuan yuheng-admin
+  echo "Yuheng Admin current OpenAPI query interfaces are available in its catalog."
 }
 
 command_publish_gateway_routes() {
@@ -2526,21 +2526,21 @@ command_publish_gateway_routes() {
     require_command "${command}"
   done
   initialize_directories
-  process_running gateway-admin \
-    || fail "gateway-admin is not running; run start first"
-  process_running gateway-engine \
-    || fail "gateway-engine is not running; start the platform stack first"
-  [[ -s "${secret_dir}/gateway-admin-control-plane.service.jwt" ]] \
-    || fail "Gateway control-plane SERVICE token is unavailable"
-  [[ -s "${runtime_dir}/gateway-group.id" ]] \
-    || fail "local Gateway group is unavailable; run start first"
-  wait_http gateway-engine http://127.0.0.1:18182/actuator/health/readiness
-  stage "waiting for Gateway Engine DDC provider registration"
+  process_running yuheng-admin \
+    || fail "yuheng-admin is not running; run start first"
+  process_running yuheng-biz-gateway \
+    || fail "yuheng-biz-gateway is not running; start the platform stack first"
+  [[ -s "${secret_dir}/yuheng-admin-control-plane.service.jwt" ]] \
+    || fail "Yuheng control-plane SERVICE token is unavailable"
+  [[ -s "${runtime_dir}/yuheng-group.id" ]] \
+    || fail "local Yuheng group is unavailable; run start first"
+  wait_http yuheng-biz-gateway http://127.0.0.1:18182/actuator/health/readiness
+  stage "waiting for Yuheng Engine Tianshu provider registration"
   wait_gateway_engine_provider_registration
-  stage "publishing the prepared local Gateway HTTP catalog"
+  stage "publishing the prepared local Yuheng HTTP catalog"
   publish_gateway_routes
   wait_gateway_route
-  echo "Unified identity Gateway HTTP catalog release is active."
+  echo "Unified identity Yuheng HTTP catalog release is active."
 }
 
 stop_process() {
@@ -2561,7 +2561,7 @@ stop_process() {
 }
 
 command_stop() {
-  for name in gateway-mcp-engine gateway-engine mock-backend gateway-admin rbac3 idp ddc; do
+  for name in yuheng-mcp-gateway yuheng-biz-gateway mock-backend yuheng-admin tianquan-jianshen tianquan-shoubing tianshu; do
     stop_process "${name}"
   done
   echo "Unified identity managed processes stopped; databases and secrets were preserved."
@@ -2571,8 +2571,8 @@ case "${1:---help}" in
   --help|-h|help) usage ;;
   prepare) command_prepare ;;
   start) command_start ;;
-  publish-gateway-routes) command_publish_gateway_routes ;;
-  refresh-gateway-admin-catalog) command_refresh_gateway_admin_catalog ;;
+  publish-yuheng-routes) command_publish_gateway_routes ;;
+  refresh-yuheng-admin-catalog) command_refresh_gateway_admin_catalog ;;
   sync-local-credentials) command_refresh_tokens ;;
   issue-user-token) command_issue_user_token ;;
   verify) command_verify ;;

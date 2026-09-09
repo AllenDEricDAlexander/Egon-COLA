@@ -96,9 +96,9 @@ public class OAuthConfig {
     }
 
     /**
-     * 创建 IdP 自有的 Client Credentials 授权策略。
+     * 创建 Tianquan-Shoubing 自有的 Client Credentials 授权策略。
      *
-     * <p>Creates the IdP-owned Client Credentials authorization policy.</p>
+     * <p>Creates the Tianquan-Shoubing-owned Client Credentials authorization policy.</p>
      *
      * @param resources Resource 与 Grant 查询端口；Resource and Grant lookup port
      * @return Client Credentials 授权策略；Client Credentials authorization policy
@@ -117,7 +117,7 @@ public class OAuthConfig {
      *
      * @param clients OAuth Client 查询端口；OAuth Client lookup port
      * @param resources Resource 与 Grant 查询端口；Resource and Grant lookup port
-     * @param accessPolicy IdP Service Grant 策略；IdP Service Grant policy
+     * @param accessPolicy Tianquan-Shoubing Service Grant 策略；Tianquan-Shoubing Service Grant policy
      * @param signer RS256 Token 服务；RS256 token service
      * @param idpClock UTC 业务时钟；UTC business clock
      * @param ids 全局 ID 生成器；global ID generator
@@ -143,9 +143,9 @@ public class OAuthConfig {
     }
 
     /**
-     * 使用 IdP 本地 tenant/membership 权威服务完成 USER 登录成员关系解析。
+     * 使用 Tianquan-Shoubing 本地 tenant/membership 权威服务完成 USER 登录成员关系解析。
      *
-     * <p>Uses the IdP-local tenant/membership authority for USER-login membership resolution.</p>
+     * <p>Uses the Tianquan-Shoubing-local tenant/membership authority for USER-login membership resolution.</p>
      */
     @Bean
     TenantMembershipPort tenantMembershipPort(

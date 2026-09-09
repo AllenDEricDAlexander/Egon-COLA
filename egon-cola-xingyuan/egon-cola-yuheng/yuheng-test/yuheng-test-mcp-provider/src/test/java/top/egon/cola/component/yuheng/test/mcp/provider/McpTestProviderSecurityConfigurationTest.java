@@ -125,22 +125,22 @@ class McpTestProviderSecurityConfigurationTest {
     private ServiceIdentityPrincipal servicePrincipal(boolean allowed) {
         Instant issuedAt = Instant.parse("2026-08-11T12:00:00Z");
         return new ServiceIdentityPrincipal(
-                "gateway-engine-service",
+                "yuheng-biz-gateway-service",
                 "tenant-b",
-                "gateway-engine-service",
+                "yuheng-biz-gateway-service",
                 "token-id",
                 URI.create(
                         "https://api.egon.internal/local/identity/"
-                                + "gateway-test-mcp-provider"
+                                + "yuheng-test-mcp-provider"
                 ),
                 1L,
                 Set.of(allowed
                         ? "mcp:operation:invoke"
                         : "mcp:operation:inspect"),
                 "identity",
-                "gateway-engine-default",
+                "yuheng-biz-gateway-default",
                 "local",
-                "gateway-engine-local",
+                "yuheng-biz-gateway-local",
                 issuedAt,
                 issuedAt.plusSeconds(300)
         );

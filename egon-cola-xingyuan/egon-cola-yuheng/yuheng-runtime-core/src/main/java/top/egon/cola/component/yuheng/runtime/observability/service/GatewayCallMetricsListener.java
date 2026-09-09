@@ -48,13 +48,13 @@ public final class GatewayCallMetricsListener
         String protocol = bounded(event.request().protocol());
         String zone = bounded(event.request().accessZone());
         String result = bounded(event.result().category());
-        Counter.builder("gateway.calls")
+        Counter.builder("yuheng.calls")
                 .tag("protocol", protocol)
                 .tag("zone", zone)
                 .tag("result", result)
                 .register(registry)
                 .increment();
-        Timer.builder("gateway.call.duration")
+        Timer.builder("yuheng.call.duration")
                 .tag("protocol", protocol)
                 .tag("zone", zone)
                 .tag("result", result)

@@ -48,7 +48,7 @@ public final class GatewayDdcYamlDocument {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayDdcYamlDocument} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayDdcYamlDocument}; do not couple callers to its representation when the owning type exposes an API.
      */
-    public static final String ACTIVE_CONFIG_KEY = "gateway.rules.active";
+    public static final String ACTIVE_CONFIG_KEY = "yuheng.rules.active";
 
     /**
      * 中文说明：表示 CHUNKCONFIGPREFIX 这一固定值；它属于 {@code GatewayDdcYamlDocument} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -56,7 +56,7 @@ public final class GatewayDdcYamlDocument {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayDdcYamlDocument} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayDdcYamlDocument}; do not couple callers to its representation when the owning type exposes an API.
      */
-    public static final String CHUNK_CONFIG_PREFIX = "gateway.rules.chunk.";
+    public static final String CHUNK_CONFIG_PREFIX = "yuheng.rules.chunk.";
 
     /**
      * 中文说明：保存 parser 对应的状态、依赖或配置值；字段类型为 {@code Yaml}，由 {@code GatewayDdcYamlDocument} 在其生命周期内读取或更新。

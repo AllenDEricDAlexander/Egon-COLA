@@ -81,7 +81,7 @@ public class GatewayAdminConfiguration {
     /** Creates the bounded JDK HTTP client used by the OpenAPI fetch boundary. */
     @Bean(name = "gatewayOpenApiHttpClient")
     @ConditionalOnProperty(
-            name = "gateway.admin.openapi.enabled",
+            name = "yuheng.admin.openapi.enabled",
             havingValue = "true"
     )
     HttpClient gatewayOpenApiHttpClient(
@@ -116,7 +116,7 @@ public class GatewayAdminConfiguration {
     /** Provides the injected UTC clock for deterministic OpenAPI timestamps. */
     @Bean(name = "gatewayOpenApiClock")
     @ConditionalOnProperty(
-            name = "gateway.admin.openapi.enabled",
+            name = "yuheng.admin.openapi.enabled",
             havingValue = "true"
     )
     Clock gatewayOpenApiClock() {
@@ -126,7 +126,7 @@ public class GatewayAdminConfiguration {
     /** Binds the configured provider read timeout to the client qualifier. */
     @Bean(name = "gatewayOpenApiReadTimeout")
     @ConditionalOnProperty(
-            name = "gateway.admin.openapi.enabled",
+            name = "yuheng.admin.openapi.enabled",
             havingValue = "true"
     )
     Duration gatewayOpenApiReadTimeout(
@@ -138,7 +138,7 @@ public class GatewayAdminConfiguration {
     /** Binds the immutable document byte limit to the client qualifier. */
     @Bean(name = "gatewayOpenApiMaximumDocumentBytes")
     @ConditionalOnProperty(
-            name = "gateway.admin.openapi.enabled",
+            name = "yuheng.admin.openapi.enabled",
             havingValue = "true"
     )
     int gatewayOpenApiMaximumDocumentBytes(
@@ -150,7 +150,7 @@ public class GatewayAdminConfiguration {
     /** Creates the DNS/CIDR policy only when the reconciler is explicitly enabled. */
     @Bean(name = "gatewayOpenApiDnsPolicy")
     @ConditionalOnProperty(
-            name = "gateway.admin.openapi.enabled",
+            name = "yuheng.admin.openapi.enabled",
             havingValue = "true"
     )
     GatewayOpenApiDnsPolicy gatewayOpenApiDnsPolicy(
@@ -160,13 +160,13 @@ public class GatewayAdminConfiguration {
     }
 
     /**
-     * Bridges provider reads to the existing IdP SERVICE-token facade. If
+     * Bridges provider reads to the existing Tianquan-Shoubing SERVICE-token facade. If
      * OAuth is not configured, the boundary fails closed and exposes no
      * credential or target details.
      */
     @Bean(name = "gatewayOpenApiTokenSupplier")
     @ConditionalOnProperty(
-            name = "gateway.admin.openapi.enabled",
+            name = "yuheng.admin.openapi.enabled",
             havingValue = "true"
     )
     GatewayOpenApiTokenSupplier gatewayOpenApiTokenSupplier(
@@ -180,7 +180,7 @@ public class GatewayAdminConfiguration {
             return (resourceUri, scope) -> {
                 throw new top.egon.cola.component.yuheng.admin.openapi.client
                         .GatewayOpenApiFetchException(
-                        "GATEWAY_OPENAPI_OAUTH_NOT_CONFIGURED",
+                        "YUHENG_OPENAPI_OAUTH_NOT_CONFIGURED",
                         false,
                         "OpenAPI service token authorization is not configured"
                 );
@@ -210,9 +210,9 @@ public class GatewayAdminConfiguration {
     @Bean
     FileSystemMcpAppArtifactRepository mcpAppArtifactStore(
             @Value(
-                    "${gateway.admin.mcp.artifact-root:"
+                    "${yuheng.admin.mcp.artifact-root:"
                             + "${java.io.tmpdir}/egon-cola/"
-                            + "gateway-mcp-artifacts}"
+                            + "yuheng-mcp-artifacts}"
             ) String artifactRoot) {
         return new FileSystemMcpAppArtifactRepository(Path.of(artifactRoot));
     }
@@ -239,7 +239,7 @@ public class GatewayAdminConfiguration {
      */
     @Bean(destroyMethod = "close")
     @ConditionalOnProperty(
-            name = "gateway.admin.ddc.enabled",
+            name = "yuheng.admin.tianshu.enabled",
             havingValue = "true"
     )
     DdcRpcClientHandle<DdcManagementClient>
@@ -257,7 +257,7 @@ public class GatewayAdminConfiguration {
      */
     @Bean
     @ConditionalOnProperty(
-            name = "gateway.admin.ddc.enabled",
+            name = "yuheng.admin.tianshu.enabled",
             havingValue = "true"
     )
     DdcManagementClient ddcManagementClient(
@@ -306,7 +306,7 @@ public class GatewayAdminConfiguration {
             DdcManagementClient client,
             GatewayDdcRulePublisher publisher,
             GatewayAdminProperties properties,
-            @Value("${gateway.admin.ddc.publish-timeout:PT30S}")
+            @Value("${yuheng.admin.tianshu.publish-timeout:PT30S}")
             Duration timeout) {
         return new GatewayReleasePublicationCoordinator(
                 journal,
@@ -330,12 +330,12 @@ public class GatewayAdminConfiguration {
      */
     @Bean
     @ConditionalOnProperty(
-            name = "gateway.admin.secrets.master-key-base64"
+            name = "yuheng.admin.secrets.master-key-base64"
     )
     GatewaySecretProtector gatewaySecretProtector(
-            @Value("${gateway.admin.secrets.master-key-base64}")
+            @Value("${yuheng.admin.secrets.master-key-base64}")
             String masterKey,
-            @Value("${gateway.admin.secrets.key-version:v1}")
+            @Value("${yuheng.admin.secrets.key-version:v1}")
             String keyVersion) {
         return new AesGcmGatewaySecretProtector(
                 java.util.Base64.getDecoder().decode(masterKey),
@@ -370,7 +370,7 @@ public class GatewayAdminConfiguration {
     GatewayCallEventIngestService gatewayCallEventIngestService(
             GatewayObservabilityRepository store,
             @Value(
-                    "${gateway.admin.observability.retention:PT168H}"
+                    "${yuheng.admin.observability.retention:PT168H}"
             ) Duration retention) {
         return new GatewayCallEventIngestService(
                 store,
@@ -463,29 +463,29 @@ public class GatewayAdminConfiguration {
      */
     @Bean
     @ConditionalOnProperty(
-            name = "gateway.admin.observability.kafka.enabled",
+            name = "yuheng.admin.observability.kafka.enabled",
             havingValue = "true"
     )
     GatewayKafkaCallEventConsumer gatewayKafkaCallEventConsumer(
             GatewayCallEventConsumerHandler handler,
             MeterRegistry meterRegistry,
             @Value(
-                    "${gateway.admin.observability.kafka.bootstrap-servers}"
+                    "${yuheng.admin.observability.kafka.bootstrap-servers}"
             ) String bootstrapServers,
             @Value(
-                    "${gateway.admin.observability.kafka.topic:"
-                            + "egon.gateway.call.v1}"
+                    "${yuheng.admin.observability.kafka.topic:"
+                            + "egon.yuheng.call.v1}"
             ) String topic,
             @Value(
-                    "${gateway.admin.observability.kafka.group-id:"
-                            + "gateway-admin-call-events-v1}"
+                    "${yuheng.admin.observability.kafka.group-id:"
+                            + "yuheng-admin-call-events-v1}"
             ) String groupId,
             @Value(
-                    "${gateway.admin.observability.kafka.retry-backoff:"
+                    "${yuheng.admin.observability.kafka.retry-backoff:"
                             + "PT0.25S}"
             ) Duration retryBackoff,
             @Value(
-                    "${gateway.admin.observability.kafka."
+                    "${yuheng.admin.observability.kafka."
                             + "max-record-attempts:5}"
             ) int maxRecordAttempts) {
         return new GatewayKafkaCallEventConsumer(

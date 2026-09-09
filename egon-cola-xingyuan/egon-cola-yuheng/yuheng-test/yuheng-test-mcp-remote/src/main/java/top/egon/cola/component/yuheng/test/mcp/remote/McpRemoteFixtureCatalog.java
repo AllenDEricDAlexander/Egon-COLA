@@ -31,7 +31,7 @@ public final class McpRemoteFixtureCatalog {
     }
 
     public static Operation rpcOperation() {
-        return new Operation("RPC", "gateway.rpc.test.echo", "RPC_DESCRIPTOR");
+        return new Operation("RPC", "yuheng.rpc.test.echo", "RPC_DESCRIPTOR");
     }
 
     public static Fixture stable() {

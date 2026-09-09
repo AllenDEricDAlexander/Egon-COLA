@@ -22,7 +22,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.OAuthLogi
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthCsrfVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthLoginErrorVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthLoginVO;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.ddc.IdpRuntimePolicy;
+import top.egon.cola.platform.tianquan.shoubing.admin.support.tianshu.IdpRuntimePolicy;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.AuthenticatedIdentity;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityException;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityFacade;
@@ -39,21 +39,21 @@ import java.util.Base64;
 import java.util.Objects;
 
 /**
- * Password login endpoint that issues the IdP-owned USER AT/RT cookie pair.
+ * Password login endpoint that issues the Tianquan-Shoubing-owned USER AT/RT cookie pair.
  */
 @RestController
-@Tag(name = "idp-oauth-login", description = "IdP OAuth 登录接口组")
+@Tag(name = "tianquan-shoubing-oauth-login", description = "Tianquan-Shoubing OAuth 登录接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        interfaceGroupCode = "idp-oauth"
+        interfaceGroupCode = "tianquan-shoubing-oauth"
 )
 
 public class OAuthLoginController {
 
-    public static final String CSRF_COOKIE_NAME = "EGON_IDP_CSRF";
+    public static final String CSRF_COOKIE_NAME = "EGON_TIANQUAN_SHOUBING_CSRF";
     public static final String USER_ACCESS_COOKIE = "__Host-egon_user_at";
     public static final String USER_REFRESH_COOKIE = "__Host-egon_user_rt";
     public static final String LOCAL_USER_ACCESS_COOKIE = "egon_user_at_local";
@@ -72,7 +72,7 @@ public class OAuthLoginController {
             IdpRuntimePolicy runtimePolicy,
             SecureRandom random,
             @Qualifier("idpClock") Clock clock,
-            @Value("${egon.idp.oauth.refresh-cookie-secure:true}")
+            @Value("${egon.tianquan-shoubing.oauth.refresh-cookie-secure:true}")
             boolean secureCookie) {
         this.identities = Objects.requireNonNull(identities, "identities");
         this.tokens = Objects.requireNonNull(tokens, "tokens");
@@ -84,9 +84,9 @@ public class OAuthLoginController {
 
     @GetMapping("/oauth2/login/csrf")
     @Operation(
-            operationId = "idp-oauth-login-csrf-v1",
+            operationId = "tianquan-shoubing-oauth-login-csrf-v1",
             summary = "获取 OAuth 登录 CSRF 挑战",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -103,16 +103,16 @@ public class OAuthLoginController {
 
     @PostMapping("/oauth2/login")
     @Operation(
-            operationId = "idp-oauth-login-v1",
+            operationId = "tianquan-shoubing-oauth-login-v1",
             summary = "使用密码登录并建立 USER Cookie",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
     )
     public ResponseEntity<OAuthLoginVO> login(
             @RequestBody OAuthLoginDTO request,
-            @RequestHeader("X-IDP-CSRF") String csrfHeader,
+            @RequestHeader("X-TIANQUAN-SHOUBING-CSRF") String csrfHeader,
             @CookieValue(name = CSRF_COOKIE_NAME) String csrfCookie,
             HttpServletRequest httpRequest) {
         requireCsrf(csrfHeader, csrfCookie);

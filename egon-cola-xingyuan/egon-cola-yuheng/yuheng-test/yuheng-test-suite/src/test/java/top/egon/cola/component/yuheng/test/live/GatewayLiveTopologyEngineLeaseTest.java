@@ -37,7 +37,7 @@ class GatewayLiveTopologyEngineLeaseTest {
     private Map<String, Object> node(String id, String role, String checksum, String status) {
         return Map.of("instanceId", id, "leaseId", "lease-" + id, "status", status,
                 "expireAt", "2026-07-27T11:01:00Z", "metadata", Map.of(
-                        "gateway.engine.role", role, "activeReleaseId", "release-1",
+                        "yuheng.engine.role", role, "activeReleaseId", "release-1",
                         "activeRuleVersion", "12", "activeRuleChecksum", checksum,
                         "lastApplyStatus", "ACK_SUCCESS", "lastAckAt", "2026-07-27T10:59:00Z"));
     }

@@ -24,7 +24,7 @@ class DdcRpcRequestSignerTest {
                 .build();
 
         DdcRpcCanonicalRequest canonical = new DdcRpcCanonicalRequest(
-                "egon.ddc.v1.DdcConfigRuntimeService/PullConfig",
+                "egon.tianshu.v1.DdcConfigRuntimeService/PullConfig",
                 1700000000000L,
                 "nonce-1",
                 request
@@ -35,7 +35,7 @@ class DdcRpcRequestSignerTest {
         assertThat(canonical.canonicalValue()).isEqualTo(String.join(
                 "\n",
                 "v1",
-                "egon.ddc.v1.DdcConfigRuntimeService/PullConfig",
+                "egon.tianshu.v1.DdcConfigRuntimeService/PullConfig",
                 "1700000000000",
                 "nonce-1",
                 "a8eb4964d18ec3d881f6b27fa4b71c6f1d1283524fa44b449e830dd4b60973b0"

@@ -10,8 +10,8 @@ import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
 /**
- * 声明由 Spring 原生配置表达式注入且可由 DDC 选择性刷新的字段。
- * Declares a field injected through a native Spring configuration expression and optionally refreshed by DDC.
+ * 声明由 Spring 原生配置表达式注入且可由 Tianshu 选择性刷新的字段。
+ * Declares a field injected through a native Spring configuration expression and optionally refreshed by Tianshu.
  *
  * <p>{@link #value()} 与 {@link Value#value()} 完全一致，支持占位符、嵌套占位符、默认值和
  * Spring 表达式语言。例如 {@code ${order.rate-limit.permits-per-second:100}}。</p>

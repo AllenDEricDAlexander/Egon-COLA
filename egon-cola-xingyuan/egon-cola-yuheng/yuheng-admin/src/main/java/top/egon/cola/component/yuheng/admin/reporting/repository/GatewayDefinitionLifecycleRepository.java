@@ -29,7 +29,7 @@ public interface GatewayDefinitionLifecycleRepository {
 
     /**
      * Returns aggregate OpenAPI Definition Sets whose complete Group rows are
-     * currently VALID. RPC metadata remains owned by DDC and is merged by the
+     * currently VALID. RPC metadata remains owned by Tianshu and is merged by the
      * lifecycle reconciler at the application boundary.
      */
     default Set<String> activeOpenApiDefinitionSetIds() {

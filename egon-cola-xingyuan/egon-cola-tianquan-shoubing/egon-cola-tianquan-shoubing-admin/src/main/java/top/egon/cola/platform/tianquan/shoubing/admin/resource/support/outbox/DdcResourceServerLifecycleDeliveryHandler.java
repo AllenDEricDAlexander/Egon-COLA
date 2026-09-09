@@ -12,23 +12,23 @@ import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import java.util.Objects;
 
 /**
- * 将 Resource Server 停用事件投递为 DDC 精确三元组撤销命令。
- * / Delivers Resource Server disable events as exact-triple DDC revocation commands.
+ * 将 Resource Server 停用事件投递为 Tianshu 精确三元组撤销命令。
+ * / Delivers Resource Server disable events as exact-triple Tianshu revocation commands.
  */
 public final class DdcResourceServerLifecycleDeliveryHandler
         implements DeliveryHandler {
 
-    /** DDC 撤销端口；DDC revocation port. */
+    /** Tianshu 撤销端口；Tianshu revocation port. */
     private final RevocationClient client;
 
     /** JSON 编解码器；JSON codec. */
     private final ObjectMapper objectMapper;
 
     /**
-     * 使用类型化 DDC 管理客户端创建投递器。
-     * / Creates the handler with the typed DDC management client.
+     * 使用类型化 Tianshu 管理客户端创建投递器。
+     * / Creates the handler with the typed Tianshu management client.
      *
-     * @param client DDC 管理客户端 / DDC management client
+     * @param client Tianshu 管理客户端 / Tianshu management client
      */
     public DdcResourceServerLifecycleDeliveryHandler(
             DdcManagementClient client) {
@@ -42,7 +42,7 @@ public final class DdcResourceServerLifecycleDeliveryHandler
      * 使用可延迟创建的撤销端口和共享 JSON 配置创建投递器。
      * / Creates the handler with a lazily creatable revocation port and shared JSON configuration.
      *
-     * @param client DDC 撤销端口 / DDC revocation port
+     * @param client Tianshu 撤销端口 / Tianshu revocation port
      * @param objectMapper JSON 编解码器 / JSON codec
      */
     public DdcResourceServerLifecycleDeliveryHandler(
@@ -74,9 +74,9 @@ public final class DdcResourceServerLifecycleDeliveryHandler
     }
 
     /**
-     * 校验事件信封并投递 DDC 撤销；协议错误永久失败，DDC 暂时不可用则保留重试。
-     * / Validates the event envelope and delivers DDC revocation. Protocol errors fail permanently,
-     * while temporary DDC unavailability remains retryable.
+     * 校验事件信封并投递 Tianshu 撤销；协议错误永久失败，Tianshu 暂时不可用则保留重试。
+     * / Validates the event envelope and delivers Tianshu revocation. Protocol errors fail permanently,
+     * while temporary Tianshu unavailability remains retryable.
      *
      * @param context 发件箱投递上下文 / outbox delivery context
      * @return 投递分类结果 / classified delivery result
@@ -94,8 +94,8 @@ public final class DdcResourceServerLifecycleDeliveryHandler
             );
         } catch (RuntimeException unavailable) {
             return DeliveryResult.retryableFailure(
-                    "DDC_RESOURCE_REVOCATION_UNAVAILABLE",
-                    "DDC Resource admission revocation is unavailable"
+                    "TIANSHU_RESOURCE_REVOCATION_UNAVAILABLE",
+                    "Tianshu Resource admission revocation is unavailable"
             );
         }
     }
@@ -105,7 +105,7 @@ public final class DdcResourceServerLifecycleDeliveryHandler
      * / Parses and cross-validates the event envelope and business-payload version.
      *
      * @param context 发件箱投递上下文 / outbox delivery context
-     * @return DDC 精确撤销命令 / exact DDC revocation command
+     * @return Tianshu 精确撤销命令 / exact Tianshu revocation command
      */
     private DdcResourceAdmissionRevocationRequest parse(
             DeliveryContext context) {
@@ -183,8 +183,8 @@ public final class DdcResourceServerLifecycleDeliveryHandler
     }
 
     /**
-     * DDC 撤销调用边界，允许生产装配按投递创建并关闭 Direct RPC 客户端。
-     * / DDC revocation boundary allowing production wiring to create and close a Direct RPC client
+     * Tianshu 撤销调用边界，允许生产装配按投递创建并关闭 Direct RPC 客户端。
+     * / Tianshu revocation boundary allowing production wiring to create and close a Direct RPC client
      * per delivery.
      */
     @FunctionalInterface

@@ -15,11 +15,11 @@ import java.util.Objects;
 @RestController
 @Tag(name = "identity-profile-me", description = "统一身份本人信息接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        interfaceGroupCode = "idp-profile"
+        interfaceGroupCode = "tianquan-shoubing-profile"
 )
 
 public class IdentityProfileController {
@@ -35,11 +35,11 @@ public class IdentityProfileController {
         );
     }
 
-    @GetMapping("/api/v1/identity/me")
+    @GetMapping("/api/v1/tianquan-shoubing/me")
     @Operation(
-            operationId = "idp-identity-me-v1",
+            operationId = "tianquan-shoubing-identity-me-v1",
             summary = "查询当前统一身份",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -47,7 +47,7 @@ public class IdentityProfileController {
     public IdentityPrincipal me(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity:self:read");
+        authorization.require(principal, "tianquan-shoubing:identity:self:read");
         return Objects.requireNonNull(principal, "principal");
     }
 

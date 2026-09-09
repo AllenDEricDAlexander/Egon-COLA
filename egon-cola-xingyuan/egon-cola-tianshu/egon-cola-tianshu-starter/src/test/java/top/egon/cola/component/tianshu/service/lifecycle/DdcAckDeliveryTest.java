@@ -37,8 +37,8 @@ class DdcAckDeliveryTest {
     void retriesTransportAndServerFailuresUntilDeliverySucceeds() {
         DdcConfigClient client = mock(DdcConfigClient.class);
         DdcAckRequest request = request("change-1");
-        doThrow(new DdcClientTransportException("DDC unavailable", true))
-                .doThrow(new DdcClientTransportException("DDC unavailable", true))
+        doThrow(new DdcClientTransportException("Tianshu unavailable", true))
+                .doThrow(new DdcClientTransportException("Tianshu unavailable", true))
                 .doNothing()
                 .when(client).ack(request);
 
@@ -127,7 +127,7 @@ class DdcAckDeliveryTest {
     @Test
     void recordsFinalExhaustionAndStopsItsWorker() {
         DdcConfigClient client = mock(DdcConfigClient.class);
-        doThrow(new DdcClientTransportException("DDC timeout", true))
+        doThrow(new DdcClientTransportException("Tianshu timeout", true))
                 .when(client).ack(any());
         DdcAckDelivery delivery = delivery(client, 8, 2);
         delivery.start();

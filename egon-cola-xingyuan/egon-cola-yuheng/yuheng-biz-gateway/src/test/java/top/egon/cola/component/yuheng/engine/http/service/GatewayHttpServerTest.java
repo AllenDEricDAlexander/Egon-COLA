@@ -199,7 +199,7 @@ class GatewayHttpServerTest {
                             + "/")
                     .responseSingle((headers, body) -> body.asString())
                     .block();
-            assertTrue(response.contains("GATEWAY_ENGINE_DRAINING"));
+            assertTrue(response.contains("YUHENG_ENGINE_DRAINING"));
         } finally {
             server.close();
         }

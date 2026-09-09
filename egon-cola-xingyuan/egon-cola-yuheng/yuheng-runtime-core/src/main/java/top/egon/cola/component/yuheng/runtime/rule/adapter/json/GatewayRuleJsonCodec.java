@@ -93,7 +93,7 @@ public final class GatewayRuleJsonCodec {
     public void verify(GatewayRuleSnapshot snapshot) {
         if (!"v1".equals(snapshot.ruleSchemaVersion())) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_SCHEMA_UNSUPPORTED"
+                    "YUHENG_RULE_SCHEMA_UNSUPPORTED"
             );
         }
         Object checksumContent = checksumContent(snapshot);
@@ -106,7 +106,7 @@ public final class GatewayRuleJsonCodec {
         );
         if (!sha256(write(material)).equals(snapshot.artifactSha256())) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHECKSUM_MISMATCH: artifact"
+                    "YUHENG_RULE_CHECKSUM_MISMATCH: artifact"
             );
         }
     }
@@ -131,7 +131,7 @@ public final class GatewayRuleJsonCodec {
             return legacy;
         }
         throw new IllegalArgumentException(
-                "GATEWAY_RULE_CHECKSUM_MISMATCH: content"
+                "YUHENG_RULE_CHECKSUM_MISMATCH: content"
         );
     }
 

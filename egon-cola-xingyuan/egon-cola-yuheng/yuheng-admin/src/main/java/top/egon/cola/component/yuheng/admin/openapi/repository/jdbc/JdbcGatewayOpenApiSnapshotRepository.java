@@ -166,13 +166,13 @@ public class JdbcGatewayOpenApiSnapshotRepository
                 snapshot.openapiGroup(),
                 snapshot.canonicalSha256()
         ).orElseThrow(() -> new IllegalStateException(
-                "GATEWAY_OPENAPI_SNAPSHOT_CONFLICT: snapshot identity "
+                "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot identity "
                         + snapshot.id()
                         + " could not be resolved"
         ));
         if (!sameContract(existing, snapshot)) {
             throw new IllegalStateException(
-                    "GATEWAY_OPENAPI_SNAPSHOT_CONFLICT: immutable contract "
+                    "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: immutable contract "
                             + snapshot.applicationId()
                             + "/"
                             + snapshot.buildId()
@@ -244,12 +244,12 @@ public class JdbcGatewayOpenApiSnapshotRepository
                     .stream()
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException(
-                            "GATEWAY_OPENAPI_SNAPSHOT_NOT_FOUND: "
+                            "YUHENG_OPENAPI_SNAPSHOT_NOT_FOUND: "
                                     + snapshotId
                     ));
             if (!setId.equals(existing)) {
                 throw new IllegalStateException(
-                        "GATEWAY_OPENAPI_SNAPSHOT_CONFLICT: snapshot "
+                        "YUHENG_OPENAPI_SNAPSHOT_CONFLICT: snapshot "
                                 + snapshotId
                                 + " already links to another definition set"
                 );

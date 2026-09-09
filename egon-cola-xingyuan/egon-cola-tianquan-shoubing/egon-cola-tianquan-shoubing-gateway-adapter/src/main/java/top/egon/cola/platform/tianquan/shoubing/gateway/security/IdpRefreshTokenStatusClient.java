@@ -4,7 +4,7 @@ import reactor.core.publisher.Mono;
 import top.egon.cola.platform.tianquan.shoubing.core.token.RefreshTokenStatus;
 
 /**
- * Calls the IdP internal endpoint that validates a USER refresh token.
+ * Calls the Tianquan-Shoubing internal endpoint that validates a USER refresh token.
  */
 public interface IdpRefreshTokenStatusClient {
 

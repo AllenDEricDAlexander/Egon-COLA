@@ -77,7 +77,7 @@ public final class GatewayWebSocketProxy {
                 session.dispose();
                 return GatewayWebSocketHandshakeResult.rejected(
                         502,
-                        "GATEWAY_WEBSOCKET_SUBPROTOCOL_MISMATCH",
+                        "YUHENG_WEBSOCKET_SUBPROTOCOL_MISMATCH",
                         "upstream selected an unoffered subprotocol"
                 );
             }

@@ -39,54 +39,54 @@ class GatewayLiveTopologyIT {
 
     private static final String ENV = "test";
 
-    private static final String NAMESPACE = "gateway-live";
+    private static final String NAMESPACE = "yuheng-live";
 
-    private static final String DDC_RUNTIME_ACCESS_KEY =
-            "gateway-live-ddc-runtime";
+    private static final String TIANSHU_RUNTIME_ACCESS_KEY =
+            "yuheng-live-tianshu-runtime";
 
-    private static final String DDC_RUNTIME_SECRET_KEY =
-            "gateway-live-ddc-runtime-secret-at-least-32-bytes";
+    private static final String TIANSHU_RUNTIME_SECRET_KEY =
+            "yuheng-live-tianshu-runtime-secret-at-least-32-bytes";
 
-    private static final String DDC_REGISTRY_ACCESS_KEY =
-            "gateway-live-ddc-registry";
+    private static final String TIANSHU_REGISTRY_ACCESS_KEY =
+            "yuheng-live-tianshu-registry";
 
-    private static final String DDC_REGISTRY_SECRET_KEY =
-            "gateway-live-ddc-registry-secret-at-least-32-bytes";
+    private static final String TIANSHU_REGISTRY_SECRET_KEY =
+            "yuheng-live-tianshu-registry-secret-at-least-32-bytes";
 
-    private static final String DDC_MANAGEMENT_ACCESS_KEY =
-            "gateway-live-ddc-management";
+    private static final String TIANSHU_MANAGEMENT_ACCESS_KEY =
+            "yuheng-live-tianshu-management";
 
-    private static final String MCP_DDC_RUNTIME_ACCESS_KEY = "gateway-live-mcp-ddc-runtime";
-    private static final String MCP_DDC_RUNTIME_SECRET_KEY = "gateway-live-mcp-runtime-secret-at-least-32-bytes";
-    private static final String MCP_DDC_REGISTRY_ACCESS_KEY = "gateway-live-mcp-ddc-registry";
-    private static final String MCP_DDC_REGISTRY_SECRET_KEY = "gateway-live-mcp-registry-secret-at-least-32-bytes";
+    private static final String MCP_TIANSHU_RUNTIME_ACCESS_KEY = "yuheng-live-mcp-tianshu-runtime";
+    private static final String MCP_TIANSHU_RUNTIME_SECRET_KEY = "yuheng-live-mcp-runtime-secret-at-least-32-bytes";
+    private static final String MCP_TIANSHU_REGISTRY_ACCESS_KEY = "yuheng-live-mcp-tianshu-registry";
+    private static final String MCP_TIANSHU_REGISTRY_SECRET_KEY = "yuheng-live-mcp-registry-secret-at-least-32-bytes";
 
-    private static final String DDC_MANAGEMENT_SECRET_KEY =
-            "gateway-live-ddc-management-secret-at-least-32-bytes";
+    private static final String TIANSHU_MANAGEMENT_SECRET_KEY =
+            "yuheng-live-tianshu-management-secret-at-least-32-bytes";
 
     private static final String APPLICATION_CODE =
-            "gateway-test-http-provider";
+            "yuheng-test-http-provider";
 
     private static final String SERVICE_VERSION = "1.0.0-live";
 
     private static final String RPC_APPLICATION_CODE =
-            "gateway-test-rpc-provider";
+            "yuheng-test-rpc-provider";
 
     private static final String RPC_SERVICE_NAME =
-            "egon.gateway.test.v1.EchoService";
+            "egon.yuheng.test.v1.EchoService";
 
     private static final String RPC_SERVICE_GROUP = "default";
 
     private static final String RPC_SERVICE_VERSION = "1.0.0";
 
     private static final String RPC_METHOD_NAME =
-            "egon.gateway.test.v1.EchoService/Echo";
+            "egon.yuheng.test.v1.EchoService/Echo";
 
-    private static final String RPC_GATEWAY_SERVICE_NAME =
-            "egon-gateway-rpc";
+    private static final String RPC_YUHENG_SERVICE_NAME =
+            "egon-yuheng-rpc";
 
     private static final byte[] ADMIN_JWT_SECRET =
-            "gateway-live-jwt-secret-32-bytes!".getBytes(
+            "yuheng-live-jwt-secret-32-bytes!".getBytes(
                     java.nio.charset.StandardCharsets.UTF_8
             );
 
@@ -183,7 +183,7 @@ class GatewayLiveTopologyIT {
                     provider
             );
             Path engineData = environment.dataDirectory(
-                    "gateway-engine-1"
+                    "yuheng-biz-gateway-1"
             );
             var engine = processes.start(engineSpec(
                     infrastructure,
@@ -194,7 +194,7 @@ class GatewayLiveTopologyIT {
                     engineData
             ));
             Path secondEngineData = environment.dataDirectory(
-                    "gateway-engine-2"
+                    "yuheng-biz-gateway-2"
             );
             var secondEngine = processes.start(engineSpec(
                     infrastructure,
@@ -205,7 +205,7 @@ class GatewayLiveTopologyIT {
                     secondEngineData,
                     false,
                     0,
-                    "gateway-engine-2"
+                    "yuheng-biz-gateway-2"
             ));
 
             List<GatewayProcessHarness.ChildProcess> mcpEngines = startMcpEngines(environment, ddcBase);
@@ -258,7 +258,7 @@ class GatewayLiveTopologyIT {
                     Map.of(
                             "operationId", operationId,
                             "content", Map.of(
-                                    "host", "api.gateway.test",
+                                    "host", "api.yuheng.test",
                                     "httpMethod", "GET",
                                     "pathPattern", "/api/orders/{id}",
                                     "accessZones", List.of(
@@ -280,7 +280,7 @@ class GatewayLiveTopologyIT {
                     Map.of(
                             "operationId", inventoryOperationId,
                             "content", Map.of(
-                                    "host", "internal.gateway.test",
+                                    "host", "internal.yuheng.test",
                                     "httpMethod", "GET",
                                     "pathPattern",
                                     "/api/internal/inventory/{sku}",
@@ -302,7 +302,7 @@ class GatewayLiveTopologyIT {
                     Map.of(
                             "operationId", providerIdentityOperationId,
                             "content", Map.of(
-                                    "host", "providers.gateway.test",
+                                    "host", "providers.yuheng.test",
                                     "httpMethod", "GET",
                                     "pathPattern",
                                     "/api/providers/{requestId}",
@@ -382,7 +382,7 @@ class GatewayLiveTopologyIT {
                     Map.of(
                             "operationId", providerIdentityOperationId,
                             "content", Map.of(
-                                    "host", "providers.gateway.test",
+                                    "host", "providers.yuheng.test",
                                     "httpMethod", "GET",
                                     "pathPattern",
                                     "/api/providers/{requestId}",
@@ -447,9 +447,9 @@ class GatewayLiveTopologyIT {
                                             + secondEnginePublicPort
                                             + "/api/orders/order-live-1"
                             ))
-                            .header("Host", "api.gateway.test")
+                            .header("Host", "api.yuheng.test")
                             .header("X-Trace-ID", traceId)
-                            .header("X-Request-Source", "gateway-live-test")
+                            .header("X-Request-Source", "yuheng-live-test")
                             .timeout(Duration.ofSeconds(10))
                             .GET()
                             .build(),
@@ -462,7 +462,7 @@ class GatewayLiveTopologyIT {
             assertThat(forwarded.required("id").asText())
                     .isEqualTo("order-live-1");
             assertThat(forwarded.required("source").asText())
-                    .isEqualTo("gateway-live-test");
+                    .isEqualTo("yuheng-live-test");
             assertThat(gatewayResponse.headers()
                     .firstValue("X-Trace-ID"))
                     .contains(traceId);
@@ -473,7 +473,7 @@ class GatewayLiveTopologyIT {
                                             + enginePublicPort
                                             + "/api/orders/order-live-2"
                             ))
-                            .header("Host", "api.gateway.test")
+                            .header("Host", "api.yuheng.test")
                             .timeout(Duration.ofSeconds(10))
                             .GET()
                             .build(),
@@ -481,7 +481,7 @@ class GatewayLiveTopologyIT {
             );
             assertThat(rateLimited.statusCode()).isEqualTo(429);
             assertThat(rateLimited.body())
-                    .contains("GATEWAY_RATE_LIMITED");
+                    .contains("YUHENG_RATE_LIMITED");
 
             HttpResponse<String> publicInternal = inventory(
                     enginePublicPort,
@@ -741,7 +741,7 @@ class GatewayLiveTopologyIT {
             );
 
             Path engineData = environment.dataDirectory(
-                    "gateway-engine-1"
+                    "yuheng-biz-gateway-1"
             );
             var engine = processes.start(engineSpec(
                     infrastructure,
@@ -754,7 +754,7 @@ class GatewayLiveTopologyIT {
                     engineRpcPort
             ));
             Path secondEngineData = environment.dataDirectory(
-                    "gateway-engine-2"
+                    "yuheng-biz-gateway-2"
             );
             var secondEngine = processes.start(engineSpec(
                     infrastructure,
@@ -765,7 +765,7 @@ class GatewayLiveTopologyIT {
                     secondEngineData,
                     true,
                     secondEngineRpcPort,
-                    "gateway-engine-2"
+                    "yuheng-biz-gateway-2"
             ));
 
             List<GatewayProcessHarness.ChildProcess> mcpEngines = startMcpEngines(environment, ddcBase);
@@ -801,7 +801,7 @@ class GatewayLiveTopologyIT {
                     Map.of(
                             "operationId", operationId,
                             "content", Map.of(
-                                    "host", "rpc.gateway.test",
+                                    "host", "rpc.yuheng.test",
                                     "httpMethod", "POST",
                                     "pathPattern", "/rpc/echo",
                                     "accessZones", List.of("INTERNAL"),
@@ -901,12 +901,12 @@ class GatewayLiveTopologyIT {
                                             + engineInternalPort
                                             + "/rpc/echo"
                             ))
-                            .header("Host", "rpc.gateway.test")
+                            .header("Host", "rpc.yuheng.test")
                             .header("Content-Type", "application/json")
                             .header("X-Trace-ID", httpRpcTraceId)
                             .timeout(Duration.ofSeconds(10))
                             .POST(HttpRequest.BodyPublishers.ofString(
-                                    "{\"message\":\"through-http-gateway\"}"
+                                    "{\"message\":\"through-http-yuheng.}"
                             ))
                             .build(),
                     HttpResponse.BodyHandlers.ofString()
@@ -947,8 +947,8 @@ class GatewayLiveTopologyIT {
                     });
             Set<String> initialEngineIds = initialEngineLeases.keySet();
             Set<String> expectedEngineAliases = Set.of(
-                    "gateway-engine-1",
-                    "gateway-engine-2"
+                    "yuheng-biz-gateway-1",
+                    "yuheng-biz-gateway-2"
             );
             assertThat(awaitRpcEngineSelections(
                     processes,
@@ -987,7 +987,7 @@ class GatewayLiveTopologyIT {
                     processes,
                     adminClient,
                     consumerBase,
-                    "gateway-engine-2"
+                    "yuheng-biz-gateway-2"
             );
 
             engine = processes.restart(engine);
@@ -1085,7 +1085,7 @@ class GatewayLiveTopologyIT {
                         Path.of("target/engine-two"),
                         true,
                         19092,
-                        "gateway-engine-2"
+                        "yuheng-biz-gateway-2"
                 )
         );
 
@@ -1093,11 +1093,11 @@ class GatewayLiveTopologyIT {
             ddcClients.forEach(spec -> softly.assertThat(spec.arguments())
                     .as(spec.name())
                     .contains(
-                            "--egon.cola.component.ddc.rpc.target="
+                            "--egon.cola.component.tianshu.rpc.target="
                                     + ddcRpcTarget(ddcBase),
-                            "--egon.cola.component.ddc.redis.host="
+                            "--egon.cola.component.tianshu.redis.host="
                                     + infrastructure.ddcRedisHost(),
-                            "--egon.cola.component.ddc.redis.port="
+                            "--egon.cola.component.tianshu.redis.port="
                                     + infrastructure.ddcRedisPort()
                     ));
         });
@@ -1113,26 +1113,26 @@ class GatewayLiveTopologyIT {
         assertThat(api.engineRole()).isEqualTo(GatewayEngineRoleEnum.API_RPC);
         assertThat(mcp.engineRole()).isEqualTo(GatewayEngineRoleEnum.MCP);
         for (var spec : List.of(api, mcp)) {
-            assertThat(spec.arguments()).contains("--egon.cola.component.ddc.biz-code=infra",
-                    "--egon.cola.component.ddc.app-code=ge", "--egon.cola.component.ddc.env=" + ENV,
-                    "--egon.cola.component.ddc.namespace=" + NAMESPACE,
-                    "--egon.cola.component.ddc.instance.id=" + spec.name(),
-                    "--egon.cola.component.ddc.registry.http.instance-id=" + spec.name());
+            assertThat(spec.arguments()).contains("--egon.cola.component.tianshu.biz-code=infra",
+                    "--egon.cola.component.tianshu.app-code=ge", "--egon.cola.component.tianshu.env=" + ENV,
+                    "--egon.cola.component.tianshu.namespace=" + NAMESPACE,
+                    "--egon.cola.component.tianshu.instance.id=" + spec.name(),
+                    "--egon.cola.component.tianshu.registry.http.instance-id=" + spec.name());
         }
-        assertThat(api.arguments()).contains("--egon.cola.component.gateway.engine.data-directory=target/api")
+        assertThat(api.arguments()).contains("--egon.cola.component.yuheng.engine.data-directory=target/api")
                 .noneMatch(argument -> argument.startsWith("--spring.datasource.")
-                        || argument.contains("gateway.engine.mcp."));
-        assertThat(mcp.arguments()).contains("--egon.cola.component.gateway.mcp-engine.data-directory=target/mcp",
+                        || argument.contains("yuheng.engine.mcp."));
+        assertThat(mcp.arguments()).contains("--egon.cola.component.yuheng.mcp-engine.data-directory=target/mcp",
                 "--spring.datasource.url=jdbc:postgresql://db:5432/gateway_admin",
-                "--egon.cola.component.ddc.rpc.auth.runtime.access-key=" + MCP_DDC_RUNTIME_ACCESS_KEY)
-                .noneMatch(argument -> argument.contains("gateway.engine.http.")
-                        || argument.contains("gateway.engine.rpc."));
-        assertThat(api.arguments()).contains("--egon.cola.component.ddc.rpc.auth.runtime.access-key=" + DDC_RUNTIME_ACCESS_KEY);
-        assertThat(mcp.redactedArguments()).noneMatch(argument -> argument.contains(MCP_DDC_RUNTIME_SECRET_KEY)
-                || argument.contains(MCP_DDC_REGISTRY_SECRET_KEY));
+                "--egon.cola.component.tianshu.rpc.auth.runtime.access-key=" + MCP_TIANSHU_RUNTIME_ACCESS_KEY)
+                .noneMatch(argument -> argument.contains("yuheng.engine.http.")
+                        || argument.contains("yuheng.engine.rpc."));
+        assertThat(api.arguments()).contains("--egon.cola.component.tianshu.rpc.auth.runtime.access-key=" + TIANSHU_RUNTIME_ACCESS_KEY);
+        assertThat(mcp.redactedArguments()).noneMatch(argument -> argument.contains(MCP_TIANSHU_RUNTIME_SECRET_KEY)
+                || argument.contains(MCP_TIANSHU_REGISTRY_SECRET_KEY));
         assertThat(ddcSpec(infrastructure, 18070).arguments()).contains(
-                "--egon.cola.component.ddc.admin.rpc.credentials[3].access-key=" + MCP_DDC_RUNTIME_ACCESS_KEY,
-                "--egon.cola.component.ddc.admin.rpc.credentials[4].access-key=" + MCP_DDC_REGISTRY_ACCESS_KEY);
+                "--egon.cola.component.tianshu.admin.rpc.credentials[3].access-key=" + MCP_TIANSHU_RUNTIME_ACCESS_KEY,
+                "--egon.cola.component.tianshu.admin.rpc.credentials[4].access-key=" + MCP_TIANSHU_REGISTRY_ACCESS_KEY);
     }
 
     @Test
@@ -1153,9 +1153,9 @@ class GatewayLiveTopologyIT {
         );
 
         assertThat(httpProvider.arguments())
-                .contains("--gateway.test.service-version=1.0.0-live")
+                .contains("--yuheng.test.service-version=1.0.0-live")
                 .noneMatch(argument -> argument.startsWith(
-                        "--egon.cola.component.gateway.reporting."
+                        "--egon.cola.component.yuheng.reporting."
                                 + "artifact-version="
                 ));
     }
@@ -1165,8 +1165,8 @@ class GatewayLiveTopologyIT {
         GatewayProcessSpec ddc = ddcSpec(testInfrastructure(), 18070);
 
         assertThat(ddc.arguments()).contains(
-                "--egon.cola.component.ddc.admin.security.local-dev=true",
-                "--egon.cola.component.ddc.admin.security.jwt."
+                "--egon.cola.component.tianshu.admin.security.local-dev=true",
+                "--egon.cola.component.tianshu.admin.security.jwt."
                         + "hmac-secret-base64="
                         + Base64.getEncoder().encodeToString(
                         ADMIN_JWT_SECRET
@@ -1174,23 +1174,23 @@ class GatewayLiveTopologyIT {
                 "--egon.cola.component.rpc.provider.port="
                         + ddcRpcPort(18070),
                 "--egon.cola.component.rpc.provider.registration-mode=DISABLED",
-                "--egon.cola.component.ddc.admin.rpc."
+                "--egon.cola.component.tianshu.admin.rpc."
                         + "signature-enabled=true",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "credential-id=gateway-live-runtime",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "access-key=" + DDC_RUNTIME_ACCESS_KEY,
-                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
-                        + "secret=" + DDC_RUNTIME_SECRET_KEY,
-                "--egon.cola.component.ddc.admin.rpc.credentials[0]."
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0]."
+                        + "credential-id=yuheng-live-runtime",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0]."
+                        + "access-key=" + TIANSHU_RUNTIME_ACCESS_KEY,
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0]."
+                        + "secret=" + TIANSHU_RUNTIME_SECRET_KEY,
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0]."
                         + "client-type=SDK",
-                "--egon.cola.component.ddc.admin.rpc.credentials[1]."
-                        + "credential-id=gateway-live-registry",
-                "--egon.cola.component.ddc.admin.rpc.credentials[1]."
+                "--egon.cola.component.tianshu.admin.rpc.credentials[1]."
+                        + "credential-id=yuheng-live-registry",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[1]."
                         + "client-type=REGISTRY",
-                "--egon.cola.component.ddc.admin.rpc.credentials[2]."
-                        + "credential-id=gateway-live-management",
-                "--egon.cola.component.ddc.admin.rpc.credentials[2]."
+                "--egon.cola.component.tianshu.admin.rpc.credentials[2]."
+                        + "credential-id=yuheng-live-management",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[2]."
                         + "client-type=MANAGEMENT"
         );
     }
@@ -1221,20 +1221,20 @@ class GatewayLiveTopologyIT {
         );
 
         assertThat(consumer.arguments()).contains(
-                "--egon.cola.component.ddc.registry.enabled=true"
+                "--egon.cola.component.tianshu.registry.enabled=true"
         );
     }
 
     private GatewayTestInfrastructure testInfrastructure() {
         GatewayTestInfrastructure infrastructure =
                 mock(GatewayTestInfrastructure.class);
-        when(infrastructure.ddcRedisHost()).thenReturn("ddc-live-host");
+        when(infrastructure.ddcRedisHost()).thenReturn("tianshu-live-host");
         when(infrastructure.ddcRedisPort()).thenReturn(16379);
         when(infrastructure.rateLimitRedisHost()).thenReturn("rate-live-host");
         when(infrastructure.rateLimitRedisPort()).thenReturn(26379);
         when(infrastructure.kafkaBootstrapServers()).thenReturn("kafka:19092");
         when(infrastructure.jdbcUrl("gateway_admin")).thenReturn("jdbc:postgresql://db:5432/gateway_admin");
-        when(infrastructure.postgresUsername()).thenReturn("gateway-test");
+        when(infrastructure.postgresUsername()).thenReturn("yuheng-test");
         when(infrastructure.postgresPassword()).thenReturn("test-only-password");
         return infrastructure;
     }
@@ -1245,11 +1245,11 @@ class GatewayLiveTopologyIT {
             URI ddcBase) {
         return ddcRuntimeRpc(builder, ddcBase)
                 .argument(
-                        "egon.cola.component.ddc.redis.host",
+                        "egon.cola.component.tianshu.redis.host",
                         infrastructure.ddcRedisHost()
                 )
                 .argument(
-                        "egon.cola.component.ddc.redis.port",
+                        "egon.cola.component.tianshu.redis.port",
                         infrastructure.ddcRedisPort()
                 );
     }
@@ -1264,29 +1264,29 @@ class GatewayLiveTopologyIT {
             GatewayProcessSpec.Builder builder, URI ddcBase, GatewayEngineRoleEnum role) {
         return builder
                 .argument(
-                        "egon.cola.component.ddc.rpc.target",
+                        "egon.cola.component.tianshu.rpc.target",
                         ddcRpcTarget(ddcBase)
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.tls."
+                        "egon.cola.component.tianshu.rpc.tls."
                                 + "development-plaintext",
                         true
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.auth.runtime.access-key",
-                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_RUNTIME_ACCESS_KEY : DDC_RUNTIME_ACCESS_KEY
+                        "egon.cola.component.tianshu.rpc.auth.runtime.access-key",
+                        role == GatewayEngineRoleEnum.MCP ? MCP_TIANSHU_RUNTIME_ACCESS_KEY : TIANSHU_RUNTIME_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key",
-                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_RUNTIME_SECRET_KEY : DDC_RUNTIME_SECRET_KEY
+                        "egon.cola.component.tianshu.rpc.auth.runtime.secret-key",
+                        role == GatewayEngineRoleEnum.MCP ? MCP_TIANSHU_RUNTIME_SECRET_KEY : TIANSHU_RUNTIME_SECRET_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.auth.registry.access-key",
-                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_REGISTRY_ACCESS_KEY : DDC_REGISTRY_ACCESS_KEY
+                        "egon.cola.component.tianshu.rpc.auth.registry.access-key",
+                        role == GatewayEngineRoleEnum.MCP ? MCP_TIANSHU_REGISTRY_ACCESS_KEY : TIANSHU_REGISTRY_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.auth.registry.secret-key",
-                        role == GatewayEngineRoleEnum.MCP ? MCP_DDC_REGISTRY_SECRET_KEY : DDC_REGISTRY_SECRET_KEY
+                        "egon.cola.component.tianshu.rpc.auth.registry.secret-key",
+                        role == GatewayEngineRoleEnum.MCP ? MCP_TIANSHU_REGISTRY_SECRET_KEY : TIANSHU_REGISTRY_SECRET_KEY
                 );
     }
 
@@ -1306,7 +1306,7 @@ class GatewayLiveTopologyIT {
             return GatewayProcessHarness.availablePort();
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "failed to allocate DDC RPC port",
+                    "failed to allocate Tianshu RPC port",
                     exception
             );
         }
@@ -1316,7 +1316,7 @@ class GatewayLiveTopologyIT {
             GatewayTestInfrastructure infrastructure,
             int port) {
         GatewayProcessSpec.Builder builder = GatewayProcessSpec.builder(
-                        "ddc-admin",
+                        "tianshu-admin",
                         "top.egon.cola.component.tianshu.admin."
                                 + "DynamicConfigCenterAdminApplication"
                 )
@@ -1334,19 +1334,19 @@ class GatewayLiveTopologyIT {
                         infrastructure.postgresPassword()
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.redis.host",
+                        "egon.cola.component.tianshu.admin.redis.host",
                         infrastructure.ddcRedisHost()
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.redis.port",
+                        "egon.cola.component.tianshu.admin.redis.port",
                         infrastructure.ddcRedisPort()
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.security.local-dev",
+                        "egon.cola.component.tianshu.admin.security.local-dev",
                         true
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.security.jwt."
+                        "egon.cola.component.tianshu.admin.security.jwt."
                                 + "hmac-secret-base64",
                         Base64.getEncoder().encodeToString(
                                 ADMIN_JWT_SECRET
@@ -1367,227 +1367,227 @@ class GatewayLiveTopologyIT {
                         true
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc.signature-enabled",
+                        "egon.cola.component.tianshu.admin.rpc.signature-enabled",
                         true
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].credential-id",
-                        "gateway-live-runtime"
+                        "yuheng-live-runtime"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].access-key",
-                        DDC_RUNTIME_ACCESS_KEY
+                        TIANSHU_RUNTIME_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].secret",
-                        DDC_RUNTIME_SECRET_KEY
+                        TIANSHU_RUNTIME_SECRET_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].client-type",
                         "SDK"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].app-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].env-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].biz-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].namespace-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].allowed-operations[0]",
                         "SDK_REGISTER"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].allowed-operations[1]",
                         "SDK_HEARTBEAT"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].allowed-operations[2]",
                         "SDK_OFFLINE"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].allowed-operations[3]",
                         "CONFIG_PULL"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[0].allowed-operations[4]",
                         "PUBLISH_ACK"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].credential-id",
-                        "gateway-live-registry"
+                        "yuheng-live-registry"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].access-key",
-                        DDC_REGISTRY_ACCESS_KEY
+                        TIANSHU_REGISTRY_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].secret",
-                        DDC_REGISTRY_SECRET_KEY
+                        TIANSHU_REGISTRY_SECRET_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].client-type",
                         "REGISTRY"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].app-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].env-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].biz-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].namespace-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].allowed-operations[0]",
                         "REGISTRY_REGISTER"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].allowed-operations[1]",
                         "REGISTRY_HEARTBEAT"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].allowed-operations[2]",
                         "REGISTRY_DEREGISTER"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[1].allowed-operations[3]",
                         "REGISTRY_READ"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].credential-id",
-                        "gateway-live-management"
+                        "yuheng-live-management"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].access-key",
-                        DDC_MANAGEMENT_ACCESS_KEY
+                        TIANSHU_MANAGEMENT_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].secret",
-                        DDC_MANAGEMENT_SECRET_KEY
+                        TIANSHU_MANAGEMENT_SECRET_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].client-type",
                         "MANAGEMENT"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].app-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].env-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].biz-code-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].namespace-patterns[0]",
                         "*"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[0]",
                         "MANAGEMENT_CONFIG_READ"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[1]",
                         "MANAGEMENT_CONFIG_WRITE"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[2]",
                         "MANAGEMENT_PUBLISH"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[3]",
                         "MANAGEMENT_TASK_READ"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[4]",
                         "MANAGEMENT_TASK_RETRY"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[5]",
                         "MANAGEMENT_INSTANCE_READ"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[6]",
                         "MANAGEMENT_SCOPE_READ"
                 )
                 .argument(
-                        "egon.cola.component.ddc.admin.rpc."
+                        "egon.cola.component.tianshu.admin.rpc."
                                 + "credentials[2].allowed-operations[7]",
                         "MANAGEMENT_REGISTRY_READ"
                 )
                 .startupTimeout(STARTUP_TIMEOUT);
-        addDdcCredential(builder, 3, "gateway-live-mcp-runtime", MCP_DDC_RUNTIME_ACCESS_KEY,
-                MCP_DDC_RUNTIME_SECRET_KEY, "SDK",
+        addDdcCredential(builder, 3, "yuheng-live-mcp-runtime", MCP_TIANSHU_RUNTIME_ACCESS_KEY,
+                MCP_TIANSHU_RUNTIME_SECRET_KEY, "SDK",
                 List.of("SDK_REGISTER", "SDK_HEARTBEAT", "SDK_OFFLINE", "CONFIG_PULL", "PUBLISH_ACK"));
-        addDdcCredential(builder, 4, "gateway-live-mcp-registry", MCP_DDC_REGISTRY_ACCESS_KEY,
-                MCP_DDC_REGISTRY_SECRET_KEY, "REGISTRY",
+        addDdcCredential(builder, 4, "yuheng-live-mcp-registry", MCP_TIANSHU_REGISTRY_ACCESS_KEY,
+                MCP_TIANSHU_REGISTRY_SECRET_KEY, "REGISTRY",
                 List.of("REGISTRY_REGISTER", "REGISTRY_HEARTBEAT", "REGISTRY_DEREGISTER", "REGISTRY_READ"));
         return builder.build();
     }
 
     private void addDdcCredential(GatewayProcessSpec.Builder builder, int index, String id,
                                   String accessKey, String secret, String clientType, List<String> operations) {
-        String prefix = "egon.cola.component.ddc.admin.rpc.credentials[" + index + "].";
+        String prefix = "egon.cola.component.tianshu.admin.rpc.credentials[" + index + "].";
         builder.argument(prefix + "credential-id", id).argument(prefix + "access-key", accessKey)
                 .argument(prefix + "secret", secret).argument(prefix + "client-type", clientType);
         for (String dimension : List.of("app-code", "env", "biz-code", "namespace")) {
@@ -1603,12 +1603,12 @@ class GatewayLiveTopologyIT {
             URI ddcBase,
             int port) {
         String masterKey = Base64.getEncoder().encodeToString(
-                "gateway-live-master-key-32-byte!".getBytes(
+                "yuheng-live-master-key-32-byte!".getBytes(
                         java.nio.charset.StandardCharsets.UTF_8
                 )
         );
         return GatewayProcessSpec.builder(
-                        "gateway-admin",
+                        "yuheng-admin",
                         "top.egon.cola.component.yuheng.admin."
                                 + "GatewayAdminApplication"
                 )
@@ -1633,46 +1633,46 @@ class GatewayLiveTopologyIT {
                         "spring.data.redis.port",
                         infrastructure.ddcRedisPort()
                 )
-                .argument("gateway.admin.ddc.enabled", true)
+                .argument("yuheng.admin.tianshu.enabled", true)
                 .argument(
-                        "egon.cola.component.ddc.rpc.target",
+                        "egon.cola.component.tianshu.rpc.target",
                         ddcRpcTarget(ddcBase)
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.tls."
+                        "egon.cola.component.tianshu.rpc.tls."
                                 + "development-plaintext",
                         true
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.auth.management."
+                        "egon.cola.component.tianshu.rpc.auth.management."
                                 + "access-key",
-                        DDC_MANAGEMENT_ACCESS_KEY
+                        TIANSHU_MANAGEMENT_ACCESS_KEY
                 )
                 .argument(
-                        "egon.cola.component.ddc.rpc.auth.management."
+                        "egon.cola.component.tianshu.rpc.auth.management."
                                 + "secret-key",
-                        DDC_MANAGEMENT_SECRET_KEY
+                        TIANSHU_MANAGEMENT_SECRET_KEY
                 )
                 .argument(
-                        "gateway.admin.definition-reconcile-delay",
+                        "yuheng.admin.definition-reconcile-delay",
                         "500ms"
                 )
                 .argument(
-                        "gateway.admin.secrets.master-key-base64",
+                        "yuheng.admin.secrets.master-key-base64",
                         masterKey
                 )
                 .argument(
-                        "gateway.admin.security.hmac-secret-base64",
+                        "yuheng.admin.security.hmac-secret-base64",
                         Base64.getEncoder().encodeToString(
                                 ADMIN_JWT_SECRET
                         )
                 )
                 .argument(
-                        "gateway.admin.observability.kafka.enabled",
+                        "yuheng.admin.observability.kafka.enabled",
                         true
                 )
                 .argument(
-                        "gateway.admin.observability.kafka."
+                        "yuheng.admin.observability.kafka."
                                 + "bootstrap-servers",
                         infrastructure.kafkaBootstrapServers()
                 )
@@ -1750,60 +1750,60 @@ class GatewayLiveTopologyIT {
                 ddcBase
         )
                 .argument("server.port", port)
-                .argument("egon.cola.component.ddc.enabled", true)
+                .argument("egon.cola.component.tianshu.enabled", true)
                 .argument(
-                        "egon.cola.component.ddc.app-code",
+                        "egon.cola.component.tianshu.app-code",
                         APPLICATION_CODE
                 )
-                .argument("egon.cola.component.ddc.env", ENV)
+                .argument("egon.cola.component.tianshu.env", ENV)
                 .argument(
-                        "egon.cola.component.ddc.namespace",
+                        "egon.cola.component.tianshu.namespace",
                         NAMESPACE
                 )
-                .argument("egon.cola.component.ddc.registry.enabled", true)
-                .argument("gateway.test.env", ENV)
-                .argument("gateway.test.namespace", NAMESPACE)
-                .argument("gateway.test.provider-id", providerId)
-                .argument("gateway.test.service-version", SERVICE_VERSION)
-                .argument("gateway.test.advertised-host", "127.0.0.1")
-                .argument("gateway.test.advertised-port", port)
+                .argument("egon.cola.component.tianshu.registry.enabled", true)
+                .argument("yuheng.test.env", ENV)
+                .argument("yuheng.test.namespace", NAMESPACE)
+                .argument("yuheng.test.provider-id", providerId)
+                .argument("yuheng.test.service-version", SERVICE_VERSION)
+                .argument("yuheng.test.advertised-host", "127.0.0.1")
+                .argument("yuheng.test.advertised-port", port)
                 .argument(
-                        "egon.cola.component.gateway.reporting.enabled",
+                        "egon.cola.component.yuheng.reporting.enabled",
                         reportingEnabled
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "admin-base-url",
                         adminBase
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "application-code",
                         APPLICATION_CODE
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "application-name",
                         "Gateway Live HTTP Provider"
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.env",
+                        "egon.cola.component.yuheng.reporting.env",
                         ENV
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.namespace",
+                        "egon.cola.component.yuheng.reporting.namespace",
                         NAMESPACE
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.build-id",
-                        "gateway-live-build"
+                        "egon.cola.component.yuheng.reporting.build-id",
+                        "yuheng-live-build"
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.access-key",
+                        "egon.cola.component.yuheng.reporting.access-key",
                         accessKey
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.secret-key",
+                        "egon.cola.component.yuheng.reporting.secret-key",
                         secretKey
                 )
                 .startupTimeout(STARTUP_TIMEOUT)
@@ -1829,17 +1829,17 @@ class GatewayLiveTopologyIT {
                 ddcBase
         )
                 .argument("server.port", managementPort)
-                .argument("egon.cola.component.ddc.enabled", true)
+                .argument("egon.cola.component.tianshu.enabled", true)
                 .argument(
-                        "egon.cola.component.ddc.app-code",
+                        "egon.cola.component.tianshu.app-code",
                         RPC_APPLICATION_CODE
                 )
-                .argument("egon.cola.component.ddc.env", ENV)
+                .argument("egon.cola.component.tianshu.env", ENV)
                 .argument(
-                        "egon.cola.component.ddc.namespace",
+                        "egon.cola.component.tianshu.namespace",
                         NAMESPACE
                 )
-                .argument("egon.cola.component.ddc.registry.enabled", true)
+                .argument("egon.cola.component.tianshu.registry.enabled", true)
                 .argument("egon.cola.component.rpc.enabled", true)
                 .argument(
                         "egon.cola.component.rpc.tls.development-plaintext",
@@ -1863,51 +1863,51 @@ class GatewayLiveTopologyIT {
                                 + "advertised-port",
                         rpcPort
                 )
-                .argument("gateway.test.env", ENV)
-                .argument("gateway.test.namespace", NAMESPACE)
-                .argument("gateway.test.provider-id", "rpc-provider-live")
+                .argument("yuheng.test.env", ENV)
+                .argument("yuheng.test.namespace", NAMESPACE)
+                .argument("yuheng.test.provider-id", "rpc-provider-live")
                 .argument(
-                        "egon.cola.component.gateway.reporting.enabled",
+                        "egon.cola.component.yuheng.reporting.enabled",
                         true
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "admin-base-url",
                         adminBase
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "application-code",
                         RPC_APPLICATION_CODE
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "application-name",
                         "Gateway Live RPC Provider"
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.env",
+                        "egon.cola.component.yuheng.reporting.env",
                         ENV
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.namespace",
+                        "egon.cola.component.yuheng.reporting.namespace",
                         NAMESPACE
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "artifact-version",
                         "1.0.0-live"
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.build-id",
-                        "gateway-live-rpc-build"
+                        "egon.cola.component.yuheng.reporting.build-id",
+                        "yuheng-live-rpc-build"
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.access-key",
+                        "egon.cola.component.yuheng.reporting.access-key",
                         accessKey
                 )
                 .argument(
-                        "egon.cola.component.gateway.reporting.secret-key",
+                        "egon.cola.component.yuheng.reporting.secret-key",
                         secretKey
                 )
                 .startupTimeout(STARTUP_TIMEOUT)
@@ -1929,17 +1929,17 @@ class GatewayLiveTopologyIT {
                 ddcBase
         )
                 .argument("server.port", port)
-                .argument("egon.cola.component.ddc.enabled", true)
+                .argument("egon.cola.component.tianshu.enabled", true)
                 .argument(
-                        "egon.cola.component.ddc.app-code",
-                        "gateway-test-rpc-consumer"
+                        "egon.cola.component.tianshu.app-code",
+                        "yuheng-test-rpc-consumer"
                 )
-                .argument("egon.cola.component.ddc.env", ENV)
+                .argument("egon.cola.component.tianshu.env", ENV)
                 .argument(
-                        "egon.cola.component.ddc.namespace",
+                        "egon.cola.component.tianshu.namespace",
                         NAMESPACE
                 )
-                .argument("egon.cola.component.ddc.registry.enabled", true)
+                .argument("egon.cola.component.tianshu.registry.enabled", true)
                 .argument("egon.cola.component.rpc.enabled", true)
                 .argument(
                         "egon.cola.component.rpc.tls.development-plaintext",
@@ -1951,20 +1951,20 @@ class GatewayLiveTopologyIT {
                 )
                 .argument(
                         "egon.cola.component.rpc.consumer."
-                                + "gateway-discovery-timeout-ms",
+                                + "yuheng-discovery-timeout-ms",
                         30000
                 )
                 .argument(
                         "egon.cola.component.rpc.consumer."
-                                + "gateway-service-name",
-                        RPC_GATEWAY_SERVICE_NAME
+                                + "yuheng-service-name",
+                        RPC_YUHENG_SERVICE_NAME
                 )
                 .argument(
-                        "egon.cola.component.rpc.consumer.gateway-group",
+                        "egon.cola.component.rpc.consumer.yuheng-group",
                         "default"
                 )
                 .argument(
-                        "egon.cola.component.rpc.consumer.gateway-version",
+                        "egon.cola.component.rpc.consumer.yuheng-version",
                         "1.0.0"
                 )
                 .startupTimeout(STARTUP_TIMEOUT)
@@ -1976,7 +1976,7 @@ class GatewayLiveTopologyIT {
             GatewayLiveEnvironment environment, URI ddcBase) throws IOException {
         List<GatewayProcessHarness.ChildProcess> engines = new ArrayList<>();
         for (int replica = 1; replica <= 2; replica++) {
-            String name = "gateway-mcp-engine-" + replica;
+            String name = "yuheng-mcp-gateway-" + replica;
             engines.add(environment.start(mcpEngineSpec(environment.infrastructure(), ddcBase,
                     GatewayProcessHarness.availablePort(), GatewayProcessHarness.availablePort(),
                     environment.dataDirectory(name), name)));
@@ -2009,24 +2009,24 @@ class GatewayLiveTopologyIT {
     private GatewayProcessSpec mcpEngineSpec(
             GatewayTestInfrastructure infrastructure, URI ddcBase, int managementPort, int dataPort,
             Path dataDirectory, String instanceId) {
-        String prefix = "egon.cola.component.gateway.mcp-engine.";
+        String prefix = "egon.cola.component.yuheng.mcp-engine.";
         return ddcRuntimeRpc(GatewayProcessSpec.engineBuilder(instanceId, GatewayEngineRoleEnum.MCP,
                         URI.create("http://127.0.0.1:" + dataPort),
                         URI.create("http://127.0.0.1:" + managementPort)), ddcBase, GatewayEngineRoleEnum.MCP)
                 .argument("server.port", managementPort)
-                .argument("egon.cola.component.ddc.enabled", true)
-                .argument("egon.cola.component.ddc.biz-code", "infra")
-                .argument("egon.cola.component.ddc.app-code", "ge")
-                .argument("egon.cola.component.ddc.env", ENV)
-                .argument("egon.cola.component.ddc.namespace", NAMESPACE)
-                .argument("egon.cola.component.ddc.instance.id", instanceId)
-                .argument("egon.cola.component.ddc.registry.enabled", true)
-                .argument("egon.cola.component.ddc.registry.http.instance-id", instanceId)
-                .argument("egon.cola.component.ddc.registry.http.advertised-host", "127.0.0.1")
-                .argument("egon.cola.component.ddc.registry.http.port", dataPort)
-                .argument("egon.cola.component.ddc.redis.host", infrastructure.ddcRedisHost())
-                .argument("egon.cola.component.ddc.redis.port", infrastructure.ddcRedisPort())
-                .argument(prefix + "gateway-group-code", "default")
+                .argument("egon.cola.component.tianshu.enabled", true)
+                .argument("egon.cola.component.tianshu.biz-code", "infra")
+                .argument("egon.cola.component.tianshu.app-code", "ge")
+                .argument("egon.cola.component.tianshu.env", ENV)
+                .argument("egon.cola.component.tianshu.namespace", NAMESPACE)
+                .argument("egon.cola.component.tianshu.instance.id", instanceId)
+                .argument("egon.cola.component.tianshu.registry.enabled", true)
+                .argument("egon.cola.component.tianshu.registry.http.instance-id", instanceId)
+                .argument("egon.cola.component.tianshu.registry.http.advertised-host", "127.0.0.1")
+                .argument("egon.cola.component.tianshu.registry.http.port", dataPort)
+                .argument("egon.cola.component.tianshu.redis.host", infrastructure.ddcRedisHost())
+                .argument("egon.cola.component.tianshu.redis.port", infrastructure.ddcRedisPort())
+                .argument(prefix + "yuheng-group-code", "default")
                 .argument(prefix + "env", ENV)
                 .argument(prefix + "namespace", NAMESPACE)
                 .argument(prefix + "node-id", instanceId)
@@ -2042,9 +2042,9 @@ class GatewayLiveTopologyIT {
                 .argument("spring.datasource.url", infrastructure.jdbcUrl("gateway_admin"))
                 .argument("spring.datasource.username", infrastructure.postgresUsername())
                 .argument("spring.datasource.password", infrastructure.postgresPassword())
-                .argument("egon.cola.component.gateway.engine.mcp.redis.address",
+                .argument("egon.cola.component.yuheng.engine.mcp.redis.address",
                         "redis://" + infrastructure.ddcRedisHost() + ":" + infrastructure.ddcRedisPort())
-                .argument("egon.cola.component.gateway.engine.mcp.artifact-root",
+                .argument("egon.cola.component.yuheng.engine.mcp.artifact-root",
                         dataDirectory.resolveSibling("mcp-shared-artifacts"))
                 .startupTimeout(STARTUP_TIMEOUT).build();
     }
@@ -2065,7 +2065,7 @@ class GatewayLiveTopologyIT {
                 dataDirectory,
                 false,
                 0,
-                "gateway-engine-1"
+                "yuheng-biz-gateway-1"
         );
     }
 
@@ -2087,7 +2087,7 @@ class GatewayLiveTopologyIT {
                 dataDirectory,
                 rpcEnabled,
                 rpcPort,
-                "gateway-engine-1"
+                "yuheng-biz-gateway-1"
         );
     }
 
@@ -2112,77 +2112,77 @@ class GatewayLiveTopologyIT {
                 ddcBase
         )
                 .argument("server.port", managementPort)
-                .argument("egon.cola.component.ddc.enabled", true)
-                .argument("egon.cola.component.ddc.biz-code", "infra")
-                .argument("egon.cola.component.ddc.instance.id", instanceId)
-                .argument("egon.cola.component.ddc.registry.http.instance-id", instanceId)
-                .argument("egon.cola.component.ddc.registry.http.advertised-host", "127.0.0.1")
-                .argument("egon.cola.component.ddc.registry.http.port", publicPort)
+                .argument("egon.cola.component.tianshu.enabled", true)
+                .argument("egon.cola.component.tianshu.biz-code", "infra")
+                .argument("egon.cola.component.tianshu.instance.id", instanceId)
+                .argument("egon.cola.component.tianshu.registry.http.instance-id", instanceId)
+                .argument("egon.cola.component.tianshu.registry.http.advertised-host", "127.0.0.1")
+                .argument("egon.cola.component.tianshu.registry.http.port", publicPort)
                 .argument(
-                        "egon.cola.component.ddc.app-code",
+                        "egon.cola.component.tianshu.app-code",
                         "ge"
                 )
-                .argument("egon.cola.component.ddc.env", ENV)
+                .argument("egon.cola.component.tianshu.env", ENV)
                 .argument(
-                        "egon.cola.component.ddc.namespace",
+                        "egon.cola.component.tianshu.namespace",
                         NAMESPACE
                 )
-                .argument("egon.cola.component.ddc.registry.enabled", true)
+                .argument("egon.cola.component.tianshu.registry.enabled", true)
                 .argument(
-                        "egon.cola.component.gateway.engine."
-                                + "gateway-group-code",
+                        "egon.cola.component.yuheng.engine."
+                                + "yuheng-group-code",
                         "default"
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.env",
+                        "egon.cola.component.yuheng.engine.env",
                         ENV
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.namespace",
+                        "egon.cola.component.yuheng.engine.namespace",
                         NAMESPACE
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.node-id",
+                        "egon.cola.component.yuheng.engine.node-id",
                         instanceId
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.instance-id",
+                        "egon.cola.component.yuheng.engine.instance-id",
                         instanceId
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.data-directory",
+                        "egon.cola.component.yuheng.engine.data-directory",
                         dataDirectory
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.http."
+                        "egon.cola.component.yuheng.engine.http."
                                 + "public-port",
                         publicPort
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.http."
+                        "egon.cola.component.yuheng.engine.http."
                                 + "internal-port",
                         internalPort
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.rpc.enabled",
+                        "egon.cola.component.yuheng.engine.rpc.enabled",
                         rpcEnabled
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.kafka.enabled",
+                        "egon.cola.component.yuheng.engine.kafka.enabled",
                         true
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.kafka."
+                        "egon.cola.component.yuheng.engine.kafka."
                                 + "bootstrap-servers",
                         infrastructure.kafkaBootstrapServers()
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.traffic.redis."
+                        "egon.cola.component.yuheng.engine.traffic.redis."
                                 + "enabled",
                         true
                 )
                 .argument(
-                        "egon.cola.component.gateway.engine.traffic.redis."
+                        "egon.cola.component.yuheng.engine.traffic.redis."
                                 + "address",
                         "redis://"
                                 + infrastructure.rateLimitRedisHost()
@@ -2191,25 +2191,25 @@ class GatewayLiveTopologyIT {
                 );
         if (rpcEnabled) {
             builder.argument(
-                            "egon.cola.component.gateway.engine.rpc.port",
+                            "egon.cola.component.yuheng.engine.rpc.port",
                             rpcPort
                     )
                     .argument(
-                            "egon.cola.component.gateway.engine.rpc."
+                            "egon.cola.component.yuheng.engine.rpc."
                                     + "advertised-host",
                             "127.0.0.1"
                     )
                     .argument(
-                            "egon.cola.component.gateway.engine.rpc."
+                            "egon.cola.component.yuheng.engine.rpc."
                                     + "service-name",
-                            RPC_GATEWAY_SERVICE_NAME
+                            RPC_YUHENG_SERVICE_NAME
                     )
                     .argument(
-                            "egon.cola.component.gateway.engine.rpc.group",
+                            "egon.cola.component.yuheng.engine.rpc.group",
                             "default"
                     )
                     .argument(
-                            "egon.cola.component.gateway.engine.rpc.version",
+                            "egon.cola.component.yuheng.engine.rpc.version",
                             "1.0.0"
                     );
         }
@@ -2275,7 +2275,7 @@ class GatewayLiveTopologyIT {
                                 instance.path("status").asText()
                         ) == DdcInstanceStatus.ONLINE;
                         boolean hasDefinition = !instance.path("metadata")
-                                .path("gateway.definition-set-id")
+                                .path("yuheng.definition-set-id")
                                 .asText()
                                 .isBlank();
                         if (online && hasDefinition) {
@@ -2333,7 +2333,7 @@ class GatewayLiveTopologyIT {
                     return true;
                 },
                 STARTUP_TIMEOUT,
-                "Engine DDC config-client registration",
+                "Engine Tianshu config-client registration",
                 engines.getFirst()
         );
         engines.forEach(engine -> assertThat(engine.process().isAlive())
@@ -2358,7 +2358,7 @@ class GatewayLiveTopologyIT {
                                         + "/api/internal/inventory/"
                                         + sku
                         ))
-                        .header("Host", "internal.gateway.test")
+                        .header("Host", "internal.yuheng.test")
                         .timeout(Duration.ofSeconds(10))
                         .GET()
                         .build(),
@@ -2435,7 +2435,7 @@ class GatewayLiveTopologyIT {
                         ).asText();
                         if (definitionSetId.isBlank()) {
                             definitionSetId = instance.path("metadata")
-                                    .path("gateway.definition-set-id")
+                                    .path("yuheng.definition-set-id")
                                     .asText();
                         }
                         boolean hasDefinition = !definitionSetId.isBlank();
@@ -2511,7 +2511,7 @@ class GatewayLiveTopologyIT {
                                         + "/api/providers/"
                                         + requestId
                         ))
-                        .header("Host", "providers.gateway.test")
+                        .header("Host", "providers.yuheng.test")
                         .timeout(Duration.ofSeconds(10))
                         .GET()
                         .build(),
@@ -2556,7 +2556,7 @@ class GatewayLiveTopologyIT {
                     continue;
                 }
                 if (requiredRole != null && GatewayEngineRoleEnum.fromWire(
-                        node.path("metadata").path("gateway.engine.role").asText()).orElse(null) != requiredRole) {
+                        node.path("metadata").path("yuheng.engine.role").asText()).orElse(null) != requiredRole) {
                     continue;
                 }
                 String instanceId = node.path("instanceId").asText();
@@ -2606,7 +2606,7 @@ class GatewayLiveTopologyIT {
                 continue;
             }
             JsonNode metadata = node.path("metadata");
-            var role = GatewayEngineRoleEnum.fromWire(metadata.path("gateway.engine.role").asText());
+            var role = GatewayEngineRoleEnum.fromWire(metadata.path("yuheng.engine.role").asText());
             if (role.isEmpty() || !releaseId.equals(metadata.path("activeReleaseId").asText())
                     || !"ACK_SUCCESS".equals(metadata.path("lastApplyStatus").asText())
                     || metadata.path("activeRuleVersion").asText().isBlank()
@@ -2756,8 +2756,8 @@ class GatewayLiveTopologyIT {
                     )
             );
             String payload = encoder.encodeToString(("""
-                    {"sub":"gateway-live-test","exp":%d,
-                     "capabilities":["*"],"roles":["gateway-admin"]}
+                    {"sub":"yuheng-live-test","exp":%d,
+                     "capabilities":["*"],"roles":["yuheng-admin"]}
                     """.formatted(
                     Instant.now().plus(Duration.ofHours(12))
                             .getEpochSecond()

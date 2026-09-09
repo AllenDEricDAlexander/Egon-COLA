@@ -2,7 +2,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.busin
 
 import java.time.Instant;
 
-/** User Business authorization fact enriched with current DDC display fields. */
+/** User Business authorization fact enriched with current Tianshu display fields. */
 public record UserBusinessAccessVO(
         String accessId,
         String userId,

@@ -8,7 +8,7 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
 import java.time.Instant;
 import java.util.List;
 
-/** Application service for IdP-owned tenant membership facts and effective reads. */
+/** Application service for Tianquan-Shoubing-owned tenant membership facts and effective reads. */
 public interface TenantMembershipService {
 
     List<MembershipView> listByTenant(String tenantId);
@@ -40,7 +40,7 @@ public interface TenantMembershipService {
     ) {
     }
 
-    /** Complete IdP fact set consumed by local login, HTTP and RPC adapters. */
+    /** Complete Tianquan-Shoubing fact set consumed by local login, HTTP and RPC adapters. */
     record TenantMembershipProfile(
             String identitySub,
             String tenantId,

@@ -48,7 +48,7 @@ public class DdcInstanceEntity {
     @Column(name = "lease_expire_at")
     private LocalDateTime leaseExpireAt;
 
-    /** IdP Resource Server 稳定标识；stable IdP Resource Server identifier. */
+    /** Tianquan-Shoubing Resource Server 稳定标识；stable Tianquan-Shoubing Resource Server identifier. */
     @Column(name = "resource_server_id", length = 128)
     private String resourceServerId;
 

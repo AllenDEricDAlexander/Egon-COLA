@@ -29,7 +29,7 @@ class DdcRpcModuleBoundaryTest {
     @Test
     void declaresEveryPlannedPackageBoundary() {
         Path javaRoot = Path.of(
-                "src/main/java/top/egon/cola/component/rpc/ddc"
+                "src/main/java/top/egon/cola/component/rpc/tianshu"
         );
 
         assertThat(PACKAGES)
@@ -48,12 +48,12 @@ class DdcRpcModuleBoundaryTest {
                 .contains("egon-cola-component-rpc-starter")
                 .contains("egon-cola-tianshu-starter")
                 .doesNotContain("dynamic-config-center-admin")
-                .doesNotContain("platform-gateway");
+                .doesNotContain("egon-cola-yuheng");
 
         Path rpcStarterPom = Path.of("../egon-cola-component-rpc-starter/pom.xml");
         assertThat(Files.readString(rpcStarterPom))
                 .doesNotContain("dynamic-config-center")
-                .doesNotContain("rpc-ddc-adapter");
+                .doesNotContain("rpc-tianshu-adapter");
     }
 
     @Test
@@ -65,8 +65,8 @@ class DdcRpcModuleBoundaryTest {
                     .map(this::read)
                     .toList())
                     .allSatisfy(source -> assertThat(source)
-                            .doesNotContain("component.ddc.admin")
-                            .doesNotContain("platform.gateway"));
+                            .doesNotContain("component.tianshu.admin")
+                            .doesNotContain("component.yuheng.admin"));
         }
     }
 

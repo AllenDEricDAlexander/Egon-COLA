@@ -56,7 +56,7 @@ import java.util.stream.Collectors;
 @AutoConfigureAfter(IdpStarterAutoConfiguration.class)
 @EnableConfigurationProperties(Rbac3StarterProperties.class)
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.rbac3",
+        prefix = "egon.cola.platform.tianquan.jianshen",
         name = "enabled",
         havingValue = "true")
 public class Rbac3StarterAutoConfiguration {
@@ -162,7 +162,7 @@ public class Rbac3StarterAutoConfiguration {
      */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.platform.rbac3.authorization.service-token",
+            prefix = "egon.cola.platform.tianquan.jianshen.authorization.service-token",
             name = "enabled",
             havingValue = "true")
     @ConditionalOnMissingBean
@@ -261,7 +261,7 @@ public class Rbac3StarterAutoConfiguration {
             if (authentication instanceof Rbac3ContextAuthentication token) {
                 return token.context();
             }
-            throw new IllegalStateException("RBAC3 authentication is required");
+            throw new IllegalStateException("Tianquan-Jianshen authentication is required");
         };
     }
 
@@ -344,7 +344,7 @@ public class Rbac3StarterAutoConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     /**
-     * Registers the single Spring Method Security interceptor for RBAC3 declarations.
+     * Registers the single Spring Method Security interceptor for Tianquan-Jianshen declarations.
      */
     @Bean(name = "rbac3MethodAuthorizationInterceptor")
     @ConditionalOnMissingBean(name = "rbac3MethodAuthorizationInterceptor")

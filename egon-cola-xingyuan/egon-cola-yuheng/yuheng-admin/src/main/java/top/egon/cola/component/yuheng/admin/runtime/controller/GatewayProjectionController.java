@@ -25,15 +25,15 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayProjectionController {
 
     /**
@@ -66,7 +66,7 @@ public class GatewayProjectionController {
     @Operation(operationId = "admin.gatewayProjectionController.engineNodes")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @GetMapping("/gateway-groups/{gatewayGroupId}/engine-nodes")
+    @GetMapping("/yuheng-groups/{gatewayGroupId}/engine-nodes")
     public GatewayProjectionEnvelopeVO<List<DdcManagementConfigClientInstance>> engineNodes(
             @PathVariable String gatewayGroupId) {
         return service.engineNodes(gatewayGroupId);
@@ -177,7 +177,7 @@ public class GatewayProjectionController {
     @Operation(operationId = "admin.gatewayProjectionController.consistency")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @GetMapping("/gateway-groups/{gatewayGroupId}/runtime-consistency")
+    @GetMapping("/yuheng-groups/{gatewayGroupId}/runtime-consistency")
     public top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayRuntimeConsistencyVO consistency(
             @PathVariable String gatewayGroupId) {
         return service.runtimeConsistency(gatewayGroupId);

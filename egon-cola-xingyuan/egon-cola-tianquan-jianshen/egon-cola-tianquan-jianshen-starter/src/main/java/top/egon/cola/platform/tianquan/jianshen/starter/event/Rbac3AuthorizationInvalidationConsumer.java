@@ -7,7 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Applies monotonic RBAC3 invalidations without session or Redis key scans.
+ * Applies monotonic Tianquan-Jianshen invalidations without session or Redis key scans.
  */
 public final class Rbac3AuthorizationInvalidationConsumer {
 
@@ -49,7 +49,7 @@ public final class Rbac3AuthorizationInvalidationConsumer {
                             required(event.identitySub(), "identitySub"));
             case "RBAC_TENANT_POLICY_CHANGED" -> cache.invalidateTenant(systemCode, event.tenantId());
             default -> throw new IllegalArgumentException(
-                    "unsupported RBAC3 invalidation event: " + event.type());
+                    "unsupported Tianquan-Jianshen invalidation event: " + event.type());
         }
     }
 
@@ -72,7 +72,7 @@ public final class Rbac3AuthorizationInvalidationConsumer {
         return value.trim();
     }
 
-    /** Stable event envelope used by the RBAC3 invalidation stream. */
+    /** Stable event envelope used by the Tianquan-Jianshen invalidation stream. */
     public record Event(
             String eventId,
             String type,

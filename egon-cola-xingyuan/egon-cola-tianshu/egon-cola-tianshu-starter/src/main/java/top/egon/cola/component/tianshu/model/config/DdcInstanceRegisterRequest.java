@@ -74,7 +74,7 @@ public class DdcInstanceRegisterRequest {
      */
     private Map<String, String> metadata = Map.of();
 
-    /** Opaque IdP SERVICE access token used for this registration. */
+    /** Opaque Tianquan-Shoubing SERVICE access token used for this registration. */
     private String registrationToken;
 
 

@@ -42,11 +42,11 @@ import java.time.Duration;
 import java.util.function.Supplier;
 
 /**
- * 将统一 IdP 身份验证能力装配到非 Servlet 的 Gateway 安全扩展点。
+ * 将统一 Tianquan-Shoubing 身份验证能力装配到非 Servlet 的 Gateway 安全扩展点。
  * 本配置串联凭据提取、保留头清理、共享 JWT 与用户状态校验、网关认证以及可信身份映射；
  * 它只确认调用者身份，不决定路由是否有权访问。
  *
- * <p>Auto-configures unified IdP identity verification for the non-Servlet Gateway security SPI.
+ * <p>Auto-configures unified Tianquan-Shoubing identity verification for the non-Servlet Gateway security SPI.
  * It connects credential extraction, reserved-header sanitization, shared JWT and user-state
  * verification, Gateway authentication, and trusted-identity mapping. It confirms caller identity
  * only and does not decide whether that identity may access a route.</p>
@@ -54,16 +54,16 @@ import java.util.function.Supplier;
 @AutoConfiguration(before = IdpStarterAutoConfiguration.class)
 @EnableConfigurationProperties(IdpGatewayAdapterProperties.class)
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.idp.gateway",
+        prefix = "egon.cola.platform.tianquan.shoubing.gateway",
         name = "enabled",
         havingValue = "true")
 @Import(IdpGatewayRedissonConfiguration.class)
 public class IdpGatewayAdapterAutoConfiguration {
 
     /**
-     * 创建 Gateway IdP 自动配置实例。
+     * 创建 Gateway Tianquan-Shoubing 自动配置实例。
      *
-     * <p>Creates the Gateway IdP auto-configuration instance.</p>
+     * <p>Creates the Gateway Tianquan-Shoubing auto-configuration instance.</p>
      */
     public IdpGatewayAdapterAutoConfiguration() {
     }
@@ -73,7 +73,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      *
      * <p>Creates the rules that remove reserved request headers before identity mapping.</p>
      *
-     * @return IdP 保留头清理器；IdP reserved-header sanitizer
+     * @return Tianquan-Shoubing 保留头清理器；Tianquan-Shoubing reserved-header sanitizer
      */
     @Bean
     @ConditionalOnMissingBean
@@ -87,7 +87,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      * <p>Creates the Gateway Bearer credential extractor.</p>
      *
      * @param sanitizer 保留头清理器；reserved-header sanitizer
-     * @return IdP Bearer 凭据提取器；IdP Bearer credential extractor
+     * @return Tianquan-Shoubing Bearer 凭据提取器；Tianquan-Shoubing Bearer credential extractor
      */
     @Bean
     @ConditionalOnMissingBean
@@ -107,7 +107,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      *
      * <p>Creates the Gateway-specific JWT decoder with one-time JWK refresh support.</p>
      *
-     * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
+     * @param properties Gateway Tianquan-Shoubing 适配器配置；Gateway Tianquan-Shoubing adapter settings
      * @return 名为 {@code idpGatewayJwtDecoder} 的 JWT 解码器；JWT decoder named
      *         {@code idpGatewayJwtDecoder}
      */
@@ -127,7 +127,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      *
      * @param redisson Gateway 专用 Redis 客户端；Gateway-specific Redis client
      * @param objectMapper Resource 状态 JSON 反序列化器；Resource-state JSON deserializer
-     * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
+     * @param properties Gateway Tianquan-Shoubing 适配器配置；Gateway Tianquan-Shoubing adapter settings
      * @return Resource Server 状态读取器；Resource Server state reader
      */
     @Bean(name = "idpGatewayResourceServerStateReader")
@@ -150,7 +150,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      *
      * @param redisson Gateway 专用 Redis 客户端；Gateway-specific Redis client
      * @param objectMapper OAuth Client 状态 JSON 反序列化器；OAuth Client-state JSON deserializer
-     * @param properties Gateway IdP 适配器配置；Gateway IdP adapter settings
+     * @param properties Gateway Tianquan-Shoubing 适配器配置；Gateway Tianquan-Shoubing adapter settings
      * @return OAuth Client 状态读取器；OAuth Client state reader
      */
     @Bean(name = "idpGatewayOAuthClientStateReader")
@@ -167,9 +167,9 @@ public class IdpGatewayAdapterAutoConfiguration {
     }
 
     /**
-     * 创建从可信路由标识解析 IdP Resource Server 的解析器。
+     * 创建从可信路由标识解析 Tianquan-Shoubing Resource Server 的解析器。
      *
-     * <p>Creates the resolver that maps trusted route identity to an IdP Resource Server.</p>
+     * <p>Creates the resolver that maps trusted route identity to an Tianquan-Shoubing Resource Server.</p>
      */
     @Bean
     @ConditionalOnBean(name = "idpGatewayRedissonClient")
@@ -292,7 +292,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      * <p>Creates the Gateway identity authentication provider.</p>
      *
      * @param verifier Gateway JWT 验证端口；Gateway JWT verification port
-     * @return IdP 身份认证提供者；IdP identity authentication provider
+     * @return Tianquan-Shoubing 身份认证提供者；Tianquan-Shoubing identity authentication provider
      */
     @Bean
     @ConditionalOnBean(IdpGatewayJwtVerifier.class)
@@ -309,7 +309,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      *
      * <p>Creates the mapper that turns verified identity into trusted downstream headers.</p>
      *
-     * @return IdP 可信身份映射器；IdP trusted-identity mapper
+     * @return Tianquan-Shoubing 可信身份映射器；Tianquan-Shoubing trusted-identity mapper
      */
     @Bean
     @ConditionalOnMissingBean
@@ -323,7 +323,7 @@ public class IdpGatewayAdapterAutoConfiguration {
      * <p>Creates a Nimbus decoder from the JWK Set endpoint and validates the issuer. The exact
      * audience is validated dynamically against the trusted route Resource.</p>
      *
-     * @param properties 已完成校验的 Gateway IdP 配置；validated Gateway IdP settings
+     * @param properties 已完成校验的 Gateway Tianquan-Shoubing 配置；validated Gateway Tianquan-Shoubing settings
      * @return 配置完成的 JWT 解码器；configured JWT decoder
      */
     private JwtDecoder decoder(IdpGatewayAdapterProperties properties) {
@@ -342,7 +342,7 @@ public class IdpGatewayAdapterAutoConfiguration {
                     .resolve("/internal/v1/oauth2/refresh-token/validate")
                     .toString();
         } catch (RuntimeException exception) {
-            throw new IllegalStateException("invalid IdP refresh URI", exception);
+            throw new IllegalStateException("invalid Tianquan-Shoubing refresh URI", exception);
         }
     }
 }

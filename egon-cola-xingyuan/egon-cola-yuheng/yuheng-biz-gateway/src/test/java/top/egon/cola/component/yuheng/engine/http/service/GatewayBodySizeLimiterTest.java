@@ -40,7 +40,7 @@ class GatewayBodySizeLimiterTest {
                 ).block()
         );
 
-        assertEquals("GATEWAY_REQUEST_BODY_TOO_LARGE", failure.code());
+        assertEquals("YUHENG_REQUEST_BODY_TOO_LARGE", failure.code());
         assertEquals(0, first.refCnt());
         assertEquals(0, second.refCnt());
         assertEquals(0, discarded.refCnt());
@@ -71,7 +71,7 @@ class GatewayBodySizeLimiterTest {
                 )
         );
 
-        assertEquals("GATEWAY_RESPONSE_BODY_TOO_LARGE", failure.code());
+        assertEquals("YUHENG_RESPONSE_BODY_TOO_LARGE", failure.code());
         assertEquals(0, first.refCnt());
         assertEquals(0, second.refCnt());
         assertEquals(0, discarded.refCnt());

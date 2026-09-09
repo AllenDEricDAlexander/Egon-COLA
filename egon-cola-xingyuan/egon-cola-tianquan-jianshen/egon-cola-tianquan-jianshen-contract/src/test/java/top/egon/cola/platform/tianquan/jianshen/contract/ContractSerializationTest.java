@@ -178,7 +178,7 @@ class ContractSerializationTest {
                         "finance",
                         List.of(new ApplicationAccessScope(
                                 "application-1", "finance-web")))),
-                "sha256:gateway-scope",
+                "sha256:yuheng-scope",
                 generated,
                 generated.plusSeconds(3600));
     }

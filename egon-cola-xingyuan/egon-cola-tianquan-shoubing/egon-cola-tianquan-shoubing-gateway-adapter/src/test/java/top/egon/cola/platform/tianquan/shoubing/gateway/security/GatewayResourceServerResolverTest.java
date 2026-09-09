@@ -20,9 +20,9 @@ class GatewayResourceServerResolverTest {
 
     private static final IdentityResourceServerState RESOURCE =
             new IdentityResourceServerState(
-                    "resource-rbac3", URI.create(
-                    "https://api.example/prod/permission/rbac3"),
-                    "permission", "rbac3", "prod",
+                    "resource-tianquan-jianshen", URI.create(
+                    "https://api.example/prod/permission/tianquan-jianshen"),
+                    "permission", "tianquan-jianshen", "prod",
                     ResourceServerStatus.ACTIVE, 12L);
 
     @Test
@@ -30,26 +30,26 @@ class GatewayResourceServerResolverTest {
         GatewayResourceServerResolver resolver = resolver();
 
         assertThat(resolver.resolve(Map.of(
-                "idp.biz-code", "permission",
-                "idp.app-code", "rbac3",
-                "idp.env", "prod"))).isEqualTo(RESOURCE);
+                "tianquan-shoubing.biz-code", "permission",
+                "tianquan-shoubing.app-code", "tianquan-jianshen",
+                "tianquan-shoubing.env", "prod"))).isEqualTo(RESOURCE);
         assertThatThrownBy(() -> resolver.resolve(Map.of(
-                "idp.biz-code", "permission",
-                "idp.app-code", "idp",
-                "idp.env", "prod")))
+                "tianquan-shoubing.biz-code", "permission",
+                "tianquan-shoubing.app-code", "tianquan-shoubing",
+                "tianquan-shoubing.env", "prod")))
                 .isInstanceOf(GatewayResourceServerResolver
                         .ResourceResolutionException.class)
-                .hasMessageContaining("IDP_RESOURCE_NOT_FOUND");
+                .hasMessageContaining("TIANQUAN_SHOUBING_RESOURCE_NOT_FOUND");
     }
 
     @Test
     void resolvesMcpResourceUriAndRejectsInactiveProjection() {
         assertThat(resolver().resolve(Map.of(
-                "idp.resource-uri",
-                "https://api.example/prod/permission/rbac3")))
+                "tianquan-shoubing.resource-uri",
+                "https://api.example/prod/permission/tianquan-jianshen")))
                 .isEqualTo(RESOURCE);
         GatewayResourceServerResolver inactive = new GatewayResourceServerResolver(
-                key -> "resource-rbac3",
+                key -> "resource-tianquan-jianshen",
                 id -> Optional.of(new IdentityResourceServerState(
                         RESOURCE.resourceServerId(), RESOURCE.resourceUri(),
                         RESOURCE.bizCode(), RESOURCE.appCode(), RESOURCE.environment(),
@@ -57,20 +57,20 @@ class GatewayResourceServerResolverTest {
                 "scope:", "uri:");
 
         assertThatThrownBy(() -> inactive.resolve(Map.of(
-                "idp.resource-uri", RESOURCE.resourceUri().toString())))
-                .hasMessageContaining("IDP_RESOURCE_NOT_ACTIVE");
+                "tianquan-shoubing.resource-uri", RESOURCE.resourceUri().toString())))
+                .hasMessageContaining("TIANQUAN_SHOUBING_RESOURCE_NOT_ACTIVE");
     }
 
     private GatewayResourceServerResolver resolver() {
         return new GatewayResourceServerResolver(
                 key -> key.startsWith("scope:")
                         && key.equals("scope:" + GatewayResourceServerResolver.sha256(
-                        "permission:rbac3:prod"))
+                        "permission:tianquan-jianshen:prod"))
                         || key.startsWith("uri:")
                         && key.equals("uri:" + GatewayResourceServerResolver.sha256(
                         RESOURCE.resourceUri().toString()))
-                        ? "resource-rbac3" : null,
-                id -> "resource-rbac3".equals(id)
+                        ? "resource-tianquan-jianshen" : null,
+                id -> "resource-tianquan-jianshen".equals(id)
                         ? Optional.of(RESOURCE) : Optional.empty(),
                 "scope:", "uri:");
     }

@@ -93,7 +93,7 @@ class DdcRpcProviderDirectoryTest {
                         "127.0.0.1",
                         19091,
                         true,
-                        Map.of("gateway.weight", "80"),
+                        Map.of("yuheng.weight", "80"),
                         30,
                         10,
                         now.minusSeconds(10),
@@ -135,7 +135,7 @@ class DdcRpcProviderDirectoryTest {
         listener.getValue().accept(new DdcServiceSnapshot(
                 key, 28,
                 List.of(instance(key, "provider-default", Map.of()),
-                        instance(key, "provider-invalid", Map.of("gateway.weight", "bad"))),
+                        instance(key, "provider-invalid", Map.of("yuheng.weight", "bad"))),
                 now));
 
         assertThat(observed.get().endpoints())

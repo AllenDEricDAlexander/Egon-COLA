@@ -77,34 +77,34 @@ class DdcRpcServerInterceptorTest {
         PullConfigRequest request = request("biz-a", "dev", "app-a");
 
         assertRejected(request, new Metadata(), Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_REQUIRED");
+                "TIANSHU_SIGNATURE_REQUIRED");
 
         Metadata malformed = signed(request, NOW.toEpochMilli(), "nonce-bad-ts");
         malformed.removeAll(DdcRpcMetadataKeys.TIMESTAMP);
         malformed.put(DdcRpcMetadataKeys.TIMESTAMP, "not-a-number");
         assertRejected(request, malformed, Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_INVALID");
+                "TIANSHU_SIGNATURE_INVALID");
 
         Metadata unknownAccess = signed(
                 request, NOW.toEpochMilli(), "nonce-unknown-access");
         unknownAccess.removeAll(DdcRpcMetadataKeys.ACCESS_KEY);
         unknownAccess.put(DdcRpcMetadataKeys.ACCESS_KEY, "unknown");
         assertRejected(request, unknownAccess, Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_INVALID");
+                "TIANSHU_SIGNATURE_INVALID");
 
         Metadata wrongContract = signed(
                 request, NOW.toEpochMilli(), "nonce-contract");
         wrongContract.removeAll(DdcRpcMetadataKeys.CONTRACT_VERSION);
         wrongContract.put(DdcRpcMetadataKeys.CONTRACT_VERSION, "v2");
         assertRejected(request, wrongContract, Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_INVALID");
+                "TIANSHU_SIGNATURE_INVALID");
 
         assertRejected(
                 request,
                 signed(request, NOW.minusSeconds(301).toEpochMilli(),
                         "nonce-expired"),
                 Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_EXPIRED"
+                "TIANSHU_SIGNATURE_EXPIRED"
         );
         verifyNoInteractions(facade);
     }
@@ -116,14 +116,14 @@ class DdcRpcServerInterceptorTest {
         badHash.removeAll(DdcRpcMetadataKeys.CONTENT_SHA256);
         badHash.put(DdcRpcMetadataKeys.CONTENT_SHA256, "0".repeat(64));
         assertRejected(request, badHash, Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_INVALID");
+                "TIANSHU_SIGNATURE_INVALID");
 
         Metadata badSignature = signed(
                 request, NOW.toEpochMilli(), "nonce-signature");
         badSignature.removeAll(DdcRpcMetadataKeys.SIGNATURE);
         badSignature.put(DdcRpcMetadataKeys.SIGNATURE, "0".repeat(64));
         assertRejected(request, badSignature, Status.Code.UNAUTHENTICATED,
-                "DDC_SIGNATURE_INVALID");
+                "TIANSHU_SIGNATURE_INVALID");
 
         Metadata replay = signed(request, NOW.toEpochMilli(), "nonce-replay");
         RecordingServerCall<PullConfigRequest, PullConfigResponse> first =
@@ -133,7 +133,7 @@ class DdcRpcServerInterceptorTest {
                 invoke(request, replay);
         assertThat(second.status().getCode())
                 .isEqualTo(Status.Code.UNAUTHENTICATED);
-        assertThat(errorCode(second)).isEqualTo("DDC_SIGNATURE_REPLAY");
+        assertThat(errorCode(second)).isEqualTo("TIANSHU_SIGNATURE_REPLAY");
     }
 
     @Test
@@ -151,7 +151,7 @@ class DdcRpcServerInterceptorTest {
                 allowedScope,
                 signed(allowedScope, NOW.toEpochMilli(), "wrong-operation"),
                 Status.Code.PERMISSION_DENIED,
-                "DDC_HMAC_SCOPE_DENIED"
+                "TIANSHU_HMAC_SCOPE_DENIED"
         );
 
         DdcAdminProperties scopedProperties = properties(List.of(
@@ -167,7 +167,7 @@ class DdcRpcServerInterceptorTest {
                 wrongScope,
                 signed(wrongScope, NOW.toEpochMilli(), "wrong-scope"),
                 Status.Code.PERMISSION_DENIED,
-                "DDC_HMAC_SCOPE_DENIED"
+                "TIANSHU_HMAC_SCOPE_DENIED"
         );
 
         MethodDescriptor<StringValue, StringValue> unknown =
@@ -189,7 +189,7 @@ class DdcRpcServerInterceptorTest {
         );
         assertThat(unknownCall.status().getCode())
                 .isEqualTo(Status.Code.PERMISSION_DENIED);
-        assertThat(errorCode(unknownCall)).isEqualTo("DDC_HMAC_SCOPE_DENIED");
+        assertThat(errorCode(unknownCall)).isEqualTo("TIANSHU_HMAC_SCOPE_DENIED");
         verifyNoInteractions(facade);
     }
 
@@ -226,7 +226,7 @@ class DdcRpcServerInterceptorTest {
         );
 
         assertThat(call.status().getCode()).isEqualTo(Status.Code.UNAVAILABLE);
-        assertThat(errorCode(call)).isEqualTo("DDC_NONCE_STORE_UNAVAILABLE");
+        assertThat(errorCode(call)).isEqualTo("TIANSHU_NONCE_STORE_UNAVAILABLE");
         assertThat(call.status().getDescription()).doesNotContain("redis-secret");
         verifyNoInteractions(facade);
     }

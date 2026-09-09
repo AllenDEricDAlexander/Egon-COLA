@@ -23,12 +23,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
- * 通过单线程有界队列异步投递 DDC 发布确认，并对瞬时故障进行指数退避重试。
- * Asynchronously delivers DDC publication acknowledgments through a bounded single-thread queue with
+ * 通过单线程有界队列异步投递 Tianshu 发布确认，并对瞬时故障进行指数退避重试。
+ * Asynchronously delivers Tianshu publication acknowledgments through a bounded single-thread queue with
  * exponential-backoff retries for transient failures.
  *
- * <p>同一变化、实例和租约组合在待处理期间会被去重。仅由 DDC 客户端明确标记的瞬时故障可重试。</p>
- * <p>The same change, instance, and lease tuple is deduplicated while pending. Only transient failures explicitly marked by the DDC client are retryable.</p>
+ * <p>同一变化、实例和租约组合在待处理期间会被去重。仅由 Tianshu 客户端明确标记的瞬时故障可重试。</p>
+ * <p>The same change, instance, and lease tuple is deduplicated while pending. Only transient failures explicitly marked by the Tianshu client are retryable.</p>
  */
 public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
 
@@ -40,10 +40,10 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     /**
      * ACK 投递工作线程名称。 Name of the ACK delivery worker thread.
      */
-    private static final String WORKER_NAME = "egon-cola-ddc-ack-delivery";
+    private static final String WORKER_NAME = "egon-cola-tianshu-ack-delivery";
 
     /**
-     * 执行 ACK 端口调用的 DDC 客户端。 DDC client performing ACK Port calls.
+     * 执行 ACK 端口调用的 Tianshu 客户端。 Tianshu client performing ACK Port calls.
      */
     private final DdcConfigClient adminClient;
 
@@ -126,7 +126,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
      * 创建 ACK 投递组件并校验配置。
      * Creates the ACK delivery component and validates its settings.
      *
-     * @param adminClient DDC 管理端客户端; DDC administration client
+     * @param adminClient Tianshu 管理端客户端; Tianshu administration client
      * @param properties  ACK 投递配置; ACK delivery settings
      * @throws IllegalArgumentException 依赖为空或配置无效时抛出; thrown when a dependency is null or settings are invalid
      */
@@ -169,7 +169,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
             if (pending.size() >= properties.getQueueCapacity()) {
                 saturated.incrementAndGet();
                 LOGGER.warn(
-                        "DDC ACK delivery queue saturated changeId={} instanceId={} "
+                        "Tianshu ACK delivery queue saturated changeId={} instanceId={} "
                                 + "leaseId={} pending={} capacity={}",
                         key.changeId(),
                         key.instanceId(),
@@ -439,7 +439,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
             if (current != null && schedule(current, delivery, delayMs)) {
                 retried.incrementAndGet();
                 LOGGER.warn(
-                        "DDC ACK delivery retry scheduled changeId={} instanceId={} "
+                        "Tianshu ACK delivery retry scheduled changeId={} instanceId={} "
                                 + "leaseId={} attempt={} delayMs={} cause={}",
                         delivery.key().changeId(),
                         delivery.key().instanceId(),
@@ -455,7 +455,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
         if (retryable && attempt >= properties.getMaxAttempts()) {
             exhausted.incrementAndGet();
             LOGGER.warn(
-                    "DDC ACK delivery exhausted changeId={} instanceId={} leaseId={} "
+                    "Tianshu ACK delivery exhausted changeId={} instanceId={} leaseId={} "
                             + "attempts={} cause={}",
                     delivery.key().changeId(),
                     delivery.key().instanceId(),
@@ -466,7 +466,7 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
         } else if (!retryable) {
             nonRetryableFailures.incrementAndGet();
             LOGGER.warn(
-                    "DDC ACK delivery rejected without retry changeId={} instanceId={} "
+                    "Tianshu ACK delivery rejected without retry changeId={} instanceId={} "
                             + "leaseId={} attempt={} cause={}",
                     delivery.key().changeId(),
                     delivery.key().instanceId(),
@@ -518,8 +518,8 @@ public class DdcAckDelivery implements SmartLifecycle, AutoCloseable {
     }
 
     /**
-     * 根据传输中立异常或 DDC 业务异常的明确重试标志判断是否重试。
-     * Determines retryability from an explicit neutral transport or DDC business failure marker.
+     * 根据传输中立异常或 Tianshu 业务异常的明确重试标志判断是否重试。
+     * Determines retryability from an explicit neutral transport or Tianshu business failure marker.
      *
      * @param exception 投递异常; delivery exception
      * @return 异常可重试时为 {@code true}; {@code true} when the failure is retryable

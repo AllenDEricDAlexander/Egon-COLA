@@ -347,9 +347,9 @@ public final class ProviderCandidateFilter {
             enabled = policy.serviceEnabled();
             apply(policy.serviceOverride());
             apply(policy.instanceOverrides().get(instance.instanceId()));
-            zone = metadata.get("gateway.zone");
-            region = metadata.get("gateway.region");
-            tags = parseTags(metadata.get("gateway.tags"));
+            zone = metadata.get("yuheng.zone");
+            region = metadata.get("yuheng.region");
+            tags = parseTags(metadata.get("yuheng.tags"));
         }
 
         /**
@@ -366,12 +366,12 @@ public final class ProviderCandidateFilter {
             if (override.enabled() != null) {
                 enabled = override.enabled();
             }
-            put("gateway.weight", override.weight());
-            put("gateway.zone", override.zone());
-            put("gateway.region", override.region());
+            put("yuheng.weight", override.weight());
+            put("yuheng.zone", override.zone());
+            put("yuheng.region", override.region());
             if (override.tags() != null) {
                 metadata.put(
-                        "gateway.tags",
+                        "yuheng.tags",
                         String.join(",", override.tags().stream().sorted()
                                 .toList())
                 );
@@ -400,18 +400,18 @@ public final class ProviderCandidateFilter {
          * @return 返回 weight 的处理结果；returns the result of the operation.
          */
         private int weight() {
-            String raw = metadata.getOrDefault("gateway.weight", "100");
+            String raw = metadata.getOrDefault("yuheng.weight", "100");
             try {
                 int result = Integer.parseInt(raw);
                 if (result < 0 || result > 10000) {
                     throw new IllegalArgumentException(
-                            "gateway.weight must be between 0 and 10000"
+                            "yuheng.weight must be between 0 and 10000"
                     );
                 }
                 return result;
             } catch (NumberFormatException invalid) {
                 throw new IllegalArgumentException(
-                        "gateway.weight must be an integer",
+                        "yuheng.weight must be an integer",
                         invalid
                 );
             }
@@ -468,7 +468,7 @@ public final class ProviderCandidateFilter {
                 String tag = value.trim();
                 if (tag.isEmpty()) {
                     throw new IllegalArgumentException(
-                            "gateway.tags contains an empty tag"
+                            "yuheng.tags contains an empty tag"
                     );
                 }
                 result.add(tag);

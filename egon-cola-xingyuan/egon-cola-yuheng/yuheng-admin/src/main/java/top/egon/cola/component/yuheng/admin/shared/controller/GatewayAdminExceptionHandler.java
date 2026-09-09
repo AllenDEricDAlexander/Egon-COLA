@@ -30,13 +30,13 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestControllerAdvice
-@Tag(name = "gateway-admin")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayAdminExceptionHandler {
 
     /**
@@ -52,7 +52,7 @@ public class GatewayAdminExceptionHandler {
             McpAppArtifactStore.ArtifactConflictException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_MCP_ARTIFACT_IMMUTABLE",
+                        "YUHENG_MCP_ARTIFACT_IMMUTABLE",
                         error.getMessage(),
                         null,
                         List.of(),
@@ -74,7 +74,7 @@ public class GatewayAdminExceptionHandler {
             McpAppArtifactStore.ArtifactRejectedException error) {
         return ResponseEntity.unprocessableEntity().body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_MCP_ARTIFACT_REJECTED",
+                        "YUHENG_MCP_ARTIFACT_REJECTED",
                         error.getMessage(),
                         null,
                         List.of(),
@@ -120,7 +120,7 @@ public class GatewayAdminExceptionHandler {
             GatewayApplicationAlreadyExistsException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS",
+                        "YUHENG_ADMIN_APPLICATION_ALREADY_EXISTS",
                         error.getMessage(),
                         null,
                         List.of(),
@@ -142,7 +142,7 @@ public class GatewayAdminExceptionHandler {
             GatewayAdminRevisionConflictException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_REVISION_CONFLICT",
+                        "YUHENG_ADMIN_REVISION_CONFLICT",
                         "draft or resource revision is stale",
                         error.currentRevision(),
                         List.of(),
@@ -164,7 +164,7 @@ public class GatewayAdminExceptionHandler {
             GatewayAdminIdempotencyConflictException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_IDEMPOTENCY_CONFLICT",
+                        "YUHENG_ADMIN_IDEMPOTENCY_CONFLICT",
                         error.getMessage(),
                         null,
                         List.of(),
@@ -186,7 +186,7 @@ public class GatewayAdminExceptionHandler {
             ObjectOptimisticLockingFailureException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_REVISION_CONFLICT",
+                        "YUHENG_ADMIN_REVISION_CONFLICT",
                         "resource was modified concurrently",
                         null,
                         List.of(),
@@ -208,7 +208,7 @@ public class GatewayAdminExceptionHandler {
             DataIntegrityViolationException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_RESOURCE_CONFLICT",
+                        "YUHENG_ADMIN_RESOURCE_CONFLICT",
                         "resource violates a uniqueness or reference constraint",
                         null,
                         List.of(),
@@ -230,7 +230,7 @@ public class GatewayAdminExceptionHandler {
             GatewayAdminNotFoundException error) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_NOT_FOUND",
+                        "YUHENG_ADMIN_NOT_FOUND",
                         error.getMessage(),
                         null,
                         List.of(),
@@ -245,7 +245,7 @@ public class GatewayAdminExceptionHandler {
             GatewayOpenApiSourceNotAvailableException error) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_OPENAPI_SOURCE_NOT_AVAILABLE",
+                        "YUHENG_OPENAPI_SOURCE_NOT_AVAILABLE",
                         error.getMessage(),
                         null,
                         List.of(),
@@ -276,7 +276,7 @@ public class GatewayAdminExceptionHandler {
                 .toList();
         return ResponseEntity.unprocessableEntity().body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_VALIDATION_FAILED",
+                        "YUHENG_ADMIN_VALIDATION_FAILED",
                         "request validation failed",
                         null,
                         fields,
@@ -298,7 +298,7 @@ public class GatewayAdminExceptionHandler {
                 .toList();
         return ResponseEntity.unprocessableEntity().body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_VALIDATION_FAILED",
+                        "YUHENG_ADMIN_VALIDATION_FAILED",
                         "request validation failed",
                         null,
                         fields,
@@ -320,7 +320,7 @@ public class GatewayAdminExceptionHandler {
             IllegalArgumentException error) {
         return ResponseEntity.unprocessableEntity().body(
                 new GatewayAdminErrorVO(
-                        "GATEWAY_ADMIN_VALIDATION_FAILED",
+                        "YUHENG_ADMIN_VALIDATION_FAILED",
                         error.getMessage(),
                         null,
                         List.of(new GatewayAdminFieldErrorVO(
@@ -345,10 +345,10 @@ public class GatewayAdminExceptionHandler {
     public ResponseEntity<GatewayAdminErrorVO> invalidState(
             IllegalStateException error) {
         boolean unavailable = error.getMessage() != null
-                && (error.getMessage().contains("DDC")
+                && (error.getMessage().contains("Tianshu")
                 || error.getMessage().contains("PROTECTOR"));
         String code = unavailable
-                ? "GATEWAY_ADMIN_DDC_UNAVAILABLE"
+                ? "YUHENG_ADMIN_TIANSHU_UNAVAILABLE"
                 : errorCode(error.getMessage());
         return ResponseEntity.status(
                 unavailable
@@ -373,13 +373,13 @@ public class GatewayAdminExceptionHandler {
      */
     private String errorCode(String message) {
         if (message != null
-                && message.startsWith("GATEWAY_ADMIN_")) {
+                && message.startsWith("YUHENG_ADMIN_")) {
             int separator = message.indexOf(':');
             return separator < 0
                     ? message
                     : message.substring(0, separator);
         }
-        return "GATEWAY_ADMIN_RESOURCE_CONFLICT";
+        return "YUHENG_ADMIN_RESOURCE_CONFLICT";
     }
 
 

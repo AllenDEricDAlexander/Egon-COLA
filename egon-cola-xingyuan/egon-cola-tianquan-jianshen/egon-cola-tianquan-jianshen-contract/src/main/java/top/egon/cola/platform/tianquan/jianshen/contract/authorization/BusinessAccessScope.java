@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Minimal DDC Business identity and its authorized Application children.
+ * Minimal Tianshu Business identity and its authorized Application children.
  */
 public record BusinessAccessScope(
         String businessId,

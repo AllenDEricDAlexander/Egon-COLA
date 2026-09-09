@@ -5,7 +5,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.Identit
 import java.time.Instant;
 import java.util.List;
 
-/** Application service for IdP-owned tenant catalog lifecycle. */
+/** Application service for Tianquan-Shoubing-owned tenant catalog lifecycle. */
 public interface TenantService {
 
     List<TenantView> list();

@@ -181,7 +181,7 @@ public final class GatewayTrafficGovernance {
                                 );
                         if (!permit.acquired()) {
                             throw rejected(
-                                    "GATEWAY_CONCURRENCY_REJECTED",
+                                    "YUHENG_CONCURRENCY_REJECTED",
                                     503,
                                     "RESOURCE_EXHAUSTED",
                                     0
@@ -250,8 +250,8 @@ public final class GatewayTrafficGovernance {
             if (!decision.allowed()) {
                 String code = decision.backendUnavailable()
                         && policy.failureMode() == RateLimitFailureMode.DENY
-                        ? "GATEWAY_RATE_LIMIT_BACKEND_UNAVAILABLE"
-                        : "GATEWAY_RATE_LIMITED";
+                        ? "YUHENG_RATE_LIMIT_BACKEND_UNAVAILABLE"
+                        : "YUHENG_RATE_LIMITED";
                 throw rejected(
                         code,
                         429,
@@ -350,7 +350,7 @@ public final class GatewayTrafficGovernance {
             GatewayTrafficContext context) {
         return switch (scope) {
             case GLOBAL -> "global";
-            case GATEWAY_GROUP -> safe(context.applicationCode(), "group");
+            case YUHENG_GROUP -> safe(context.applicationCode(), "group");
             case APPLICATION -> safe(
                     context.applicationCode(),
                     "application"
@@ -738,7 +738,7 @@ public final class GatewayTrafficGovernance {
                                 );
                         if (!permit.acquired()) {
                             throw rejected(
-                                    "GATEWAY_CONCURRENCY_REJECTED",
+                                    "YUHENG_CONCURRENCY_REJECTED",
                                     503,
                                     "RESOURCE_EXHAUSTED",
                                     0
@@ -757,7 +757,7 @@ public final class GatewayTrafficGovernance {
                         );
                         if (!circuit.acquired()) {
                             throw rejected(
-                                    "GATEWAY_CIRCUIT_OPEN",
+                                    "YUHENG_CIRCUIT_OPEN",
                                     503,
                                     "UNAVAILABLE",
                                     0

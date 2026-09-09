@@ -5,7 +5,7 @@ import java.util.Set;
 /**
  * 类型 `Rbac3ReservedHeaderSanitizer` 位于当前包内，是类型，用于承载 `Rbac3 Reserved Header Sanitizer` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3ReservedHeaderSanitizer` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Reserved Header Sanitizer`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Declares the only RBAC3 identity headers the Gateway may generate.
+ * Declares the only Tianquan-Jianshen identity headers the Gateway may generate.
  */
 public final class Rbac3ReservedHeaderSanitizer {
 
@@ -18,11 +18,11 @@ public final class Rbac3ReservedHeaderSanitizer {
      */
     private static final Set<String> RESERVED = Set.of(
             "authorization",
-            "x-egon-gateway-tenant-id",
-            "x-egon-gateway-user-id",
-            "x-egon-gateway-auth-version",
-            "x-egon-gateway-policy-version",
-            "x-egon-gateway-trace-id"
+            "x-egon-yuheng-tenant-id",
+            "x-egon-yuheng-user-id",
+            "x-egon-yuheng-auth-version",
+            "x-egon-yuheng-policy-version",
+            "x-egon-yuheng-trace-id"
     );
 
     /**

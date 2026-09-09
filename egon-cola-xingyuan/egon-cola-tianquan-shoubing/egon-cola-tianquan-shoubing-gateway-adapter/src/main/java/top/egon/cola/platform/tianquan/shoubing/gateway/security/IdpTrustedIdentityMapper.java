@@ -27,12 +27,12 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
      *
      * <p>Stable identifier used by Gateway policy to select this identity mapper.</p>
      */
-    public static final String MAPPER_ID = "idp-identity";
+    public static final String MAPPER_ID = "tianquan-shoubing-identity";
 
     /**
-     * 创建固定 IdP 可信身份映射器。
+     * 创建固定 Tianquan-Shoubing 可信身份映射器。
      *
-     * <p>Creates the fixed IdP trusted-identity mapper.</p>
+     * <p>Creates the fixed Tianquan-Shoubing trusted-identity mapper.</p>
      */
     public IdpTrustedIdentityMapper() {
     }
@@ -68,7 +68,7 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
      * backend.</p>
      *
      * @param context 当前 Gateway 认证上下文；current Gateway authentication context
-     * @return 包含固定 IdP 身份头的可信身份；trusted identity containing fixed IdP headers
+     * @return 包含固定 Tianquan-Shoubing 身份头的可信身份；trusted identity containing fixed Tianquan-Shoubing headers
      * @throws IllegalArgumentException 当主体未认证、租户缺失或必需声明缺失时；when the
      *                                  principal is unauthenticated, the tenant is absent, or a
      *                                  required claim is missing
@@ -78,7 +78,7 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
         GatewayPrincipal principal = context.principal();
         if (!principal.authenticated()) {
             throw new IllegalArgumentException(
-                    "authenticated IdP principal is required"
+                    "authenticated Tianquan-Shoubing principal is required"
             );
         }
         if ("USER".equals(principal.principalType())) {
@@ -93,30 +93,30 @@ public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
             headers.put("X-Egon-Tenant-Id", principal.tenantId());
         }
         headers.put("X-Egon-Token-Id", required(
-                attributes, "idp.token-id"));
+                attributes, "tianquan-shoubing.token-id"));
         if ("SERVICE".equals(principal.principalType())) {
             headers.put("X-Egon-Client-Id", required(
-                    attributes, "idp.client-id"));
+                    attributes, "tianquan-shoubing.client-id"));
             headers.put("X-Egon-Resource-Uri", required(
-                    attributes, "idp.resource-uri"));
+                    attributes, "tianquan-shoubing.resource-uri"));
             headers.put("X-Egon-Resource-Version", required(
-                    attributes, "idp.resource-version"));
+                    attributes, "tianquan-shoubing.resource-version"));
             headers.put("X-Egon-Source-Biz", required(
-                    attributes, "idp.source-biz"));
+                    attributes, "tianquan-shoubing.source-biz"));
             headers.put("X-Egon-Source-App", required(
-                    attributes, "idp.source-app"));
+                    attributes, "tianquan-shoubing.source-app"));
             headers.put("X-Egon-Source-Env", required(
-                    attributes, "idp.source-env"));
+                    attributes, "tianquan-shoubing.source-env"));
             headers.put("X-Egon-Service-Scopes", required(
-                    attributes, "idp.service-scopes"));
+                    attributes, "tianquan-shoubing.service-scopes"));
             headers.put("X-Egon-Credential-Id", required(
-                    attributes, "idp.credential-id"));
+                    attributes, "tianquan-shoubing.credential-id"));
         } else {
-            throw new IllegalArgumentException("unsupported IdP principal type");
+            throw new IllegalArgumentException("unsupported Tianquan-Shoubing principal type");
         }
         Map<String, String> rpcMetadata = new LinkedHashMap<>();
         headers.forEach((name, value) -> rpcMetadata.put(
-                "egon-gateway-" + name.substring("X-Egon-".length())
+                "egon-yuheng-" + name.substring("X-Egon-".length())
                         .toLowerCase(java.util.Locale.ROOT), value));
         return new TrustedIdentity(headers, rpcMetadata);
     }

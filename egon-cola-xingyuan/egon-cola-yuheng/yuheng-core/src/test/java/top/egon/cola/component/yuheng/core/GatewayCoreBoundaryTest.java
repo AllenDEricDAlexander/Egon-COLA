@@ -15,7 +15,7 @@ class GatewayCoreBoundaryTest {
     void coreSourceDoesNotImportRuntimeFrameworksOrProductModules()
             throws Exception {
         Path sourceRoot = Path.of(
-                "src/main/java/top/egon/cola/component/gateway/core"
+                "src/main/java/top/egon/cola/component/yuheng/core"
         );
         try (Stream<Path> files = Files.walk(sourceRoot)) {
             List<String> forbiddenImports = files

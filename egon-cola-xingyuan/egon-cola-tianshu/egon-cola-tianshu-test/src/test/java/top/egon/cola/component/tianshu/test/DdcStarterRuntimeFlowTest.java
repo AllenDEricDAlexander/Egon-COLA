@@ -43,20 +43,20 @@ import static org.mockito.Mockito.when;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = {
-        "egon.cola.component.ddc.enabled=true",
-        "egon.cola.component.ddc.biz-code=demo-biz",
-        "egon.cola.component.ddc.app-code=demo-app",
-        "egon.cola.component.ddc.env=dev",
-        "egon.cola.component.ddc.namespace=default",
-        "egon.cola.component.ddc.rpc.target=dns:///127.0.0.1:19080",
-        "egon.cola.component.ddc.rpc.tls.development-plaintext=true",
-        "egon.cola.component.ddc.redis.enabled=true",
-        "egon.cola.component.ddc.consistency.fail-fast=true",
-        "egon.cola.component.ddc.instance.lease-seconds=7200",
-        "egon.cola.component.ddc.instance.heartbeat-interval-seconds=3600",
-        "egon.cola.platform.idp.resource-uri=https://api.example/ddc",
-        "egon.cola.platform.idp.service-client.app-id=ddc-app",
-        "egon.cola.platform.idp.service-client.registration-id=ddc-registration",
+        "egon.cola.component.tianshu.enabled=true",
+        "egon.cola.component.tianshu.biz-code=demo-biz",
+        "egon.cola.component.tianshu.app-code=demo-app",
+        "egon.cola.component.tianshu.env=dev",
+        "egon.cola.component.tianshu.namespace=default",
+        "egon.cola.component.tianshu.rpc.target=dns:///127.0.0.1:19080",
+        "egon.cola.component.tianshu.rpc.tls.development-plaintext=true",
+        "egon.cola.component.tianshu.redis.enabled=true",
+        "egon.cola.component.tianshu.consistency.fail-fast=true",
+        "egon.cola.component.tianshu.instance.lease-seconds=7200",
+        "egon.cola.component.tianshu.instance.heartbeat-interval-seconds=3600",
+        "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/tianshu",
+        "egon.cola.platform.tianquan.shoubing.service-client.app-id=tianshu-app",
+        "egon.cola.platform.tianquan.shoubing.service-client.registration-id=tianshu-registration",
         "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration,"
                 + "org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration"

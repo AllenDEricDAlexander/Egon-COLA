@@ -14,7 +14,7 @@
     <artifactId>yuheng-core</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-core</name>
-    <description>Framework-free data-plane model and SPI for Egon COLA Gateway.</description>
+    <description>Framework-free data-plane model and SPI for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>

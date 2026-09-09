@@ -59,7 +59,7 @@ public final class ReactorNettyHttpUpstreamAdapter
             "x-forwarded-host",
             "x-forwarded-proto",
             "x-egon-principal",
-            "x-ddc-secret",
+            "x-tianshu-secret",
             "x-admin-token"
     );
 
@@ -101,7 +101,7 @@ public final class ReactorNettyHttpUpstreamAdapter
             int maxConnections,
             int pendingAcquireMaxCount,
             Duration idleTimeout) {
-        connectionProvider = ConnectionProvider.builder("gateway-http-upstream")
+        connectionProvider = ConnectionProvider.builder("yuheng-http-upstream")
                 .maxConnections(maxConnections)
                 .pendingAcquireMaxCount(pendingAcquireMaxCount)
                 .maxIdleTime(idleTimeout)

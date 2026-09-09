@@ -48,7 +48,7 @@ class McpGatewayEngineContextTest {
                     assertFalse(context.containsBean("gatewayRpcSlotRuntime"));
                     assertFalse(context.containsBean("gatewayHttpServer"));
                     var metadata = context.getBean("gatewayRuntimeMetadata", DdcInstanceMetadataContributor.class);
-                    assertEquals("MCP", metadata.metadata().get("gateway.engine.role"));
+                    assertEquals("MCP", metadata.metadata().get("yuheng.engine.role"));
                     assertTrue(context.getBean(McpGatewayEngineRuntime.class).running());
                     assertFalse(context.getBean(McpGatewayEngineRuntime.class).ready());
                 });
@@ -76,22 +76,22 @@ class McpGatewayEngineContextTest {
         Properties base = yaml("application.yml");
         Properties operations = yaml("application-operations.yml");
         assertEquals(base.stringPropertyNames(), operations.stringPropertyNames());
-        assertEquals("${GATEWAY_MCP_ENABLED:true}",
-                base.getProperty("egon.cola.component.gateway.engine.mcp.enabled"));
+        assertEquals("${YUHENG_MCP_ENABLED:true}",
+                base.getProperty("egon.cola.component.yuheng.engine.mcp.enabled"));
         assertEquals("MCP", base.getProperty(
-                "egon.cola.component.ddc.registry.http.metadata.gateway.engine.role"));
+                "egon.cola.component.tianshu.registry.http.metadata.yuheng.engine.role"));
         assertFalse(base.stringPropertyNames().stream().anyMatch(key ->
-                key.startsWith("egon.cola.component.gateway.engine.http.")
-                        || key.startsWith("egon.cola.component.gateway.engine.rpc.")));
-        assertEquals("${DDC_APP_CODE:gme}", base.getProperty("egon.cola.component.ddc.app-code"));
-        assertTrue(base.getProperty("egon.cola.component.ddc.rpc.auth.runtime.secret-key")
-                .contains("GATEWAY_MCP_DDC_RPC_RUNTIME_SECRET_KEY"));
+                key.startsWith("egon.cola.component.yuheng.engine.http.")
+                        || key.startsWith("egon.cola.component.yuheng.engine.rpc.")));
+        assertEquals("${TIANSHU_APP_CODE:gme}", base.getProperty("egon.cola.component.tianshu.app-code"));
+        assertTrue(base.getProperty("egon.cola.component.tianshu.rpc.auth.runtime.secret-key")
+                .contains("YUHENG_MCP_TIANSHU_RPC_RUNTIME_SECRET_KEY"));
     }
 
     private ApplicationContextRunner runner() {
-        String prefix = "egon.cola.component.gateway.mcp-engine.";
+        String prefix = "egon.cola.component.yuheng.mcp-engine.";
         return new ApplicationContextRunner().withUserConfiguration(McpGatewayEngineConfiguration.class)
-                .withPropertyValues(prefix + "gateway-group-code=orders", prefix + "env=local",
+                .withPropertyValues(prefix + "yuheng-group-code=orders", prefix + "env=local",
                         prefix + "namespace=default", prefix + "node-id=mcp-test", prefix + "instance-id=mcp-test",
                         prefix + "data-directory=" + dataDirectory,
                         prefix + "listener.enabled=false", prefix + "listener.port=0",

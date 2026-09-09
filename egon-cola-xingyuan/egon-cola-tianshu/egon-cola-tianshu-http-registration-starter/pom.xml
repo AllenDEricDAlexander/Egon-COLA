@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianshu-http-registration-starter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianshu-http-registration-starter</name>
-    <description>Spring HTTP provider registration and DDC lease runtime.</description>
+    <description>Spring HTTP provider registration and Tianshu lease runtime.</description>
 
     <dependencies>
         <dependency>

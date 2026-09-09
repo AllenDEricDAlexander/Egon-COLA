@@ -51,7 +51,7 @@ class GatewayAdminConfigurationTest {
                 .withBean("gatewayProjectionClock", java.time.Clock.class,
                         () -> new GatewayAdminConfiguration().gatewayProjectionClock())
                 .withBean("unrelatedClock", java.time.Clock.class, java.time.Clock::systemDefaultZone)
-                .withBean("gateway.admin-top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties",
+                .withBean("yuheng.admin-top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties",
                         top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties.class,
                         top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties::new)
                 .withBean(org.springframework.validation.beanvalidation.MethodValidationPostProcessor.class,
@@ -100,8 +100,8 @@ class GatewayAdminConfigurationTest {
                 .filter(java.util.Objects::nonNull)
                 .map(Value::value))
                 .contains(
-                        "${gateway.admin.observability.kafka.topic:"
-                                + "egon.gateway.call.v1}"
+                        "${yuheng.admin.observability.kafka.topic:"
+                                + "egon.yuheng.call.v1}"
                 );
     }
 

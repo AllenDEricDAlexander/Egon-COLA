@@ -37,7 +37,7 @@ class DdcRegistryLifecycleTest {
         );
         verifyLifecycle(
                 registry,
-                registration("gateway-1", DdcServiceKind.INTERNAL_GATEWAY, 19090)
+                registration("yuheng-1", DdcServiceKind.INTERNAL_GATEWAY, 19090)
         );
     }
 

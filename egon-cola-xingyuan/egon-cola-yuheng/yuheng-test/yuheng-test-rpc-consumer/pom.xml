@@ -14,7 +14,7 @@
     <artifactId>yuheng-test-rpc-consumer</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-test-rpc-consumer</name>
-    <description>Real RPC consumer test application for Egon COLA Gateway.</description>
+    <description>Real RPC consumer test application for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>
@@ -45,7 +45,7 @@
     </dependencies>
 
     <build>
-        <finalName>gateway-test-rpc-consumer</finalName>
+        <finalName>yuheng-test-rpc-consumer</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

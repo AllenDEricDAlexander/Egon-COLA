@@ -20,7 +20,7 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthErrorVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthTokenVO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.ClientSecretBasicAuthenticator;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.ddc.IdpRuntimePolicy;
+import top.egon.cola.platform.tianquan.shoubing.admin.support.tianshu.IdpRuntimePolicy;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.ClientCredentialsTokenService;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.ClientSecretAuthentication;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.OAuthException;
@@ -42,13 +42,13 @@ import java.util.TreeSet;
  * Stateless USER refresh/revoke/logout and SERVICE client-credentials transport.
  */
 @RestController
-@Tag(name = "idp-oauth-token", description = "IdP OAuth Token 接口组")
+@Tag(name = "tianquan-shoubing-oauth-token", description = "Tianquan-Shoubing OAuth Token 接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        interfaceGroupCode = "idp-oauth"
+        interfaceGroupCode = "tianquan-shoubing-oauth"
 )
 
 public class OAuthTokenController {
@@ -66,7 +66,7 @@ public class OAuthTokenController {
             ClientCredentialsTokenService clientCredentialsTokens,
             IdpRuntimePolicy runtimePolicy,
             @Qualifier("idpClock") Clock clock,
-            @Value("${egon.idp.oauth.refresh-cookie-secure:true}")
+            @Value("${egon.tianquan-shoubing.oauth.refresh-cookie-secure:true}")
             boolean secureCookie) {
         this.tokens = Objects.requireNonNull(tokens, "tokens");
         this.clientAuthenticator = Objects.requireNonNull(clientAuthenticator,
@@ -80,9 +80,9 @@ public class OAuthTokenController {
 
     @PostMapping(value = "/oauth2/token", consumes = "application/x-www-form-urlencoded")
     @Operation(
-            operationId = "idp-oauth-token-v1",
+            operationId = "tianquan-shoubing-oauth-token-v1",
             summary = "刷新 USER Access Token 或签发 SERVICE Access Token",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -115,9 +115,9 @@ public class OAuthTokenController {
 
     @PostMapping(value = "/oauth2/revoke", consumes = "application/x-www-form-urlencoded")
     @Operation(
-            operationId = "idp-oauth-revoke-v1",
+            operationId = "tianquan-shoubing-oauth-revoke-v1",
             summary = "撤销 USER Refresh Token",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -138,9 +138,9 @@ public class OAuthTokenController {
 
     @PostMapping("/oauth2/logout")
     @Operation(
-            operationId = "idp-oauth-logout-v1",
+            operationId = "tianquan-shoubing-oauth-logout-v1",
             summary = "注销并删除 USER Refresh Token",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

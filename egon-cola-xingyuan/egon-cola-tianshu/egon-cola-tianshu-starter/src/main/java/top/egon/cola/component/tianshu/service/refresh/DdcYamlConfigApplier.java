@@ -83,7 +83,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
     private final DdcConfigFormatStrategyRegistry formatStrategies;
 
     /**
-     * 当前环境中的可替换 DDC 动态属性源。 Replaceable DDC dynamic property source in the current environment.
+     * 当前环境中的可替换 Tianshu 动态属性源。 Replaceable Tianshu dynamic property source in the current environment.
      */
     private final DdcDynamicPropertySource propertySource;
 
@@ -98,7 +98,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
      * @param eventPublisher      应用事件发布器; application event publisher
      * @param maxConfigBytes        YAML UTF-8 字节数上限; maximum YAML size in UTF-8 bytes
      * @param formatStrategies    配置格式策略注册表; configuration-format strategy registry
-     * @throws IllegalStateException 环境中缺少 DDC ConfigData 属性源时抛出; thrown when the DDC ConfigData source is absent
+     * @throws IllegalStateException 环境中缺少 Tianshu ConfigData 属性源时抛出; thrown when the Tianshu ConfigData source is absent
      */
     public DdcYamlConfigApplier(
             ConfigurableEnvironment environment,
@@ -242,7 +242,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
             );
         } catch (IOException exception) {
             throw new IllegalArgumentException(
-                    "DDC YAML resource cannot be parsed",
+                    "Tianshu YAML resource cannot be parsed",
                     exception
             );
         }
@@ -261,7 +261,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                 : content.getBytes(StandardCharsets.UTF_8).length;
         if (size > maxConfigBytes) {
             throw new IllegalArgumentException(
-                    "DDC YAML resource exceeds the UTF-8 limit of "
+                    "Tianshu YAML resource exceeds the UTF-8 limit of "
                             + maxConfigBytes + " bytes"
             );
         }
@@ -434,7 +434,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
                 );
             } catch (RuntimeException rollbackFailure) {
                 LOGGER.warn(
-                        "DDC config leaf rollback failed for key={}",
+                        "Tianshu config leaf rollback failed for key={}",
                         applied.key(),
                         rollbackFailure
                 );
@@ -446,7 +446,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
         try {
             rebinder.rebind(diff.changedKeys(), Set.of());
         } catch (RuntimeException rollbackFailure) {
-            LOGGER.warn("DDC configuration properties rollback failed", rollbackFailure);
+            LOGGER.warn("Tianshu configuration properties rollback failed", rollbackFailure);
         }
     }
 
@@ -461,7 +461,7 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
             eventPublisher.publishEvent(event);
         } catch (RuntimeException exception) {
             LOGGER.warn(
-                    "DDC configuration change listener failed for version={}",
+                    "Tianshu configuration change listener failed for version={}",
                     event.version(),
                     exception
             );
@@ -469,12 +469,12 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
     }
 
     /**
-     * 在环境属性源树中定位规范名称的 DDC 动态属性源。
-     * Locates the canonically named DDC dynamic property source in the environment property-source tree.
+     * 在环境属性源树中定位规范名称的 Tianshu 动态属性源。
+     * Locates the canonically named Tianshu dynamic property source in the environment property-source tree.
      *
      * @param environment 可配置 Spring 环境; configurable Spring environment
-     * @return DDC 动态属性源; DDC dynamic property source
-     * @throws IllegalStateException 未导入 DDC ConfigData 资源时抛出; thrown when the DDC ConfigData resource was not imported
+     * @return Tianshu 动态属性源; Tianshu dynamic property source
+     * @throws IllegalStateException 未导入 Tianshu ConfigData 资源时抛出; thrown when the Tianshu ConfigData resource was not imported
      */
     private DdcDynamicPropertySource findPropertySource(
             ConfigurableEnvironment environment) {
@@ -485,8 +485,8 @@ public class DdcYamlConfigApplier implements SmartInitializingSingleton {
             }
         }
         throw new IllegalStateException(
-                "DDC ConfigData source is missing; add "
-                        + "spring.config.import=ddc:application.yml"
+                "Tianshu ConfigData source is missing; add "
+                        + "spring.config.import=tianshu:application.yml"
         );
     }
 

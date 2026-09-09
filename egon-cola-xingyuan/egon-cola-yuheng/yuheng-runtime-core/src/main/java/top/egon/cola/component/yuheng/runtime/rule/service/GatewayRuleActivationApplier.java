@@ -42,7 +42,7 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRuleActivationApplier} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRuleActivationApplier}; do not couple callers to its representation when the owning type exposes an API.
      */
-    public static final String ACTIVE_CONFIG_KEY = "gateway.rules.active";
+    public static final String ACTIVE_CONFIG_KEY = "yuheng.rules.active";
 
     /**
      * 中文说明：保存 codec 对应的状态、依赖或配置值；字段类型为 {@code GatewayRuleJsonCodec}，由 {@code GatewayRuleActivationApplier} 在其生命周期内读取或更新。
@@ -274,7 +274,7 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
      */
     public synchronized boolean restoreLkg() {
         // Recheck under the same monitor as apply: a bootstrap caller may have observed null
-        // while the first DDC activation was still running. Its ACK version must win over LKG.
+        // while the first Tianshu activation was still running. Its ACK version must win over LKG.
         if (active.get() != null) {
             return true;
         }
@@ -290,7 +290,7 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
         codec.verify(snapshot);
         if (!stored.artifactSha256().equals(snapshot.artifactSha256())) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHECKSUM_MISMATCH: LKG"
+                    "YUHENG_RULE_CHECKSUM_MISMATCH: LKG"
             );
         }
         T prepared = validateCompiled(snapshot, compiler.compile(snapshot));
@@ -336,7 +336,7 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
                     .getBytes(StandardCharsets.UTF_8);
             if (value.length != activation.totalSize()) {
                 throw new IllegalArgumentException(
-                        "GATEWAY_RULE_CHECKSUM_MISMATCH: total size"
+                        "YUHENG_RULE_CHECKSUM_MISMATCH: total size"
                 );
             }
             return value;
@@ -369,7 +369,7 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
         )
                 || snapshotJson.length != activation.totalSize()) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHECKSUM_MISMATCH: activation"
+                    "YUHENG_RULE_CHECKSUM_MISMATCH: activation"
             );
         }
     }
@@ -477,7 +477,7 @@ public final class GatewayRuleActivationApplier<T extends GatewayCompiledRulesDT
                 || !snapshot.releaseId().equals(compiled.releaseId())
                 || !snapshot.artifactSha256().equals(compiled.ruleChecksum())) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_COMPILE_FAILED: compiled identity mismatch");
+                    "YUHENG_RULE_COMPILE_FAILED: compiled identity mismatch");
         }
         return compiled;
     }

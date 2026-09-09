@@ -182,7 +182,7 @@ public class DdcPublishStateTransitionService {
                 PublishStatus.FAILED.name(),
                 now(),
                 "TARGET_VALIDATION",
-                "DDC_TARGET_LEASE_EXPIRED",
+                "TIANSHU_TARGET_LEASE_EXPIRED",
                 retryableStatuses
         );
         if (changed == 1) {

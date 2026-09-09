@@ -50,7 +50,7 @@ public class McpJobController {
             summary = "返回原始本地输入",
             tags = {"mcp", "query"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     @EgonMcpTool(
@@ -73,7 +73,7 @@ public class McpJobController {
             summary = "确定性查询",
             tags = {"mcp", "query"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     @EgonMcpTool(
@@ -96,7 +96,7 @@ public class McpJobController {
             summary = "确定性写操作",
             tags = {"mcp", "command"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     public WriteView write(
@@ -113,7 +113,7 @@ public class McpJobController {
             summary = "用于一次性审批验证的高风险操作",
             tags = {"mcp", "command", "high-risk"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.FALSE)
     @EgonMcpTool(
@@ -137,7 +137,7 @@ public class McpJobController {
             summary = "创建可恢复或等待输入的本地任务",
             tags = {"mcp", "job", "command"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.FALSE)
     public JobView startJob(
@@ -163,7 +163,7 @@ public class McpJobController {
             summary = "列出确定性本地任务",
             tags = {"mcp", "job", "query"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public List<JobView> jobs() {
@@ -178,7 +178,7 @@ public class McpJobController {
             summary = "读取本地任务",
             tags = {"mcp", "job", "query"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.AUTO)
     public JobView job(@PathVariable
@@ -192,7 +192,7 @@ public class McpJobController {
             summary = "向等待输入的任务提交一次输入",
             tags = {"mcp", "job", "command"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     public JobView submitInput(
@@ -223,7 +223,7 @@ public class McpJobController {
             summary = "取消未结束的本地任务",
             tags = {"mcp", "job", "command"})
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE)
     public JobView cancelJob(@PathVariable

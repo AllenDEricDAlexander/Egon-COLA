@@ -198,14 +198,14 @@ class GatewayDefinitionIngestionServiceTest {
                         provider,
                         Map.of(
                                 "$schema", "https://json-schema.org/draft/2020-12/schema",
-                                "x-egon-schema-model", "gateway-operation-request/v2",
+                                "x-egon-schema-model", "yuheng-operation-request/v2",
                                 "type", "object",
                                 "properties", Map.of(),
                                 "additionalProperties", false
                         ),
                         Map.of(
                                 "$schema", "https://json-schema.org/draft/2020-12/schema",
-                                "x-egon-schema-model", "gateway-operation-response/v2",
+                                "x-egon-schema-model", "yuheng-operation-response/v2",
                                 "type", "object",
                                 "properties", Map.of(),
                                 "additionalProperties", false

@@ -6,8 +6,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 /**
- * DDC RPC 规范请求的 HMAC-SHA256 签名器。
- * / HMAC-SHA256 signer for canonical DDC RPC requests.
+ * Tianshu RPC 规范请求的 HMAC-SHA256 签名器。
+ * / HMAC-SHA256 signer for canonical Tianshu RPC requests.
  */
 public final class DdcRpcRequestSigner {
 

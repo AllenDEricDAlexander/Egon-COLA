@@ -25,13 +25,13 @@ class Rbac3MigrationContractTest {
             "db/migration/V1__create_rbac3_schema.sql";
     private static final String STRONG_AUTH_MIGRATION =
             "db/migration/V2__add_session_strong_authentication_time.sql";
-    private static final String IDP_MIGRATION =
+    private static final String TIANQUAN_SHOUBING_MIGRATION =
             "db/migration/V3__adopt_idp_identity.sql";
     private static final String TENANT_SESSION_MIGRATION =
             "db/migration/V4__scope_session_identity_by_tenant.sql";
     private static final String STATELESS_IDENTITY_MIGRATION =
             "db/migration/V5__remove_sessions_and_minimize_authorization_user.sql";
-    private static final String DDC_AUTHORIZATION_SCOPE_MIGRATION =
+    private static final String TIANSHU_AUTHORIZATION_SCOPE_MIGRATION =
             "db/migration/V6__adopt_ddc_business_application_authorization_scope.sql";
     private static final String GLOBAL_CATALOG_MIGRATION =
             "db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql";
@@ -43,7 +43,7 @@ class Rbac3MigrationContractTest {
             "db/migration/V10__seed_builtin_roles_and_permissions.sql";
     private static final String BUILTIN_BUSINESS_ACCESS_MIGRATION =
             "db/migration/V11__seed_builtin_user_business_access.sql";
-    private static final String RBAC3_ABOUT_PERMISSION_MIGRATION =
+    private static final String TIANQUAN_JIANSHEN_ABOUT_PERMISSION_MIGRATION =
             "db/migration/V12__seed_rbac3_about_permission.sql";
     private static final String RESOURCE_GRANTS_MIGRATION =
             "db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql";
@@ -104,8 +104,8 @@ class Rbac3MigrationContractTest {
         String sql = resourceSql(CURRENT_BASELINE);
         assertThat(sql).contains("create table rbac3_role_resource_grant")
                 .contains("create table rbac3_resource_api_binding")
-                .contains("rbac3.bootstrap.tenant_ids")
-                .contains("rbac3.bootstrap.identity_sub")
+                .contains("tianquan-jianshen.bootstrap.tenant_ids")
+                .contains("tianquan-jianshen.bootstrap.identity_sub")
                 .doesNotContain("create table rbac3_tenant (")
                 .doesNotContain("create table rbac3_user_credential")
                 .doesNotContain("create table rbac3_session")
@@ -137,19 +137,19 @@ class Rbac3MigrationContractTest {
     void migrationHistoryKeepsV1ImmutableAndAddsStrongAuthenticationTimeInV2()
             throws Exception {
         assertThat(listMigrationResources()).containsExactly(
-            MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
+            MIGRATION, STRONG_AUTH_MIGRATION, TIANQUAN_SHOUBING_MIGRATION,
             TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
-                DDC_AUTHORIZATION_SCOPE_MIGRATION, GLOBAL_CATALOG_MIGRATION,
+                TIANSHU_AUTHORIZATION_SCOPE_MIGRATION, GLOBAL_CATALOG_MIGRATION,
                 EXTERNAL_TENANT_MIGRATION,
                 APPLICATION_CODE_COMPATIBILITY_MIGRATION,
                 BUILTIN_AUTHORIZATION_MIGRATION,
                 BUILTIN_BUSINESS_ACCESS_MIGRATION,
-                RBAC3_ABOUT_PERMISSION_MIGRATION,
+                TIANQUAN_JIANSHEN_ABOUT_PERMISSION_MIGRATION,
                 RESOURCE_GRANTS_MIGRATION, CURRENT_BASELINE);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");
-        assertThat(resourceSql(IDP_MIGRATION))
+        assertThat(resourceSql(TIANQUAN_SHOUBING_MIGRATION))
                 .contains("add column identity_sub varchar(512)")
                 .contains("context_version bigint not null default 0");
         assertThat(resourceSql(TENANT_SESSION_MIGRATION))
@@ -162,7 +162,7 @@ class Rbac3MigrationContractTest {
                 .contains("drop table rbac3_user_credential")
                 .contains("add column identity_sub varchar(200) not null")
                 .contains("create table rbac3_user_active_role");
-        assertThat(resourceSql(DDC_AUTHORIZATION_SCOPE_MIGRATION).toLowerCase())
+        assertThat(resourceSql(TIANSHU_AUTHORIZATION_SCOPE_MIGRATION).toLowerCase())
                 .contains("ddc_application_id varchar(64) not null")
                 .contains("ddc_business_id varchar(64) not null")
                 .contains("create table rbac3_user_business_access")
@@ -423,8 +423,8 @@ class Rbac3MigrationContractTest {
                 .contains("insert into rbac3_role")
                 .contains("insert into rbac3_role_permission")
                 .contains("insert into rbac3_user_role_assignment")
-                .contains("rbac3.bootstrap.tenant_ids")
-                .contains("rbac3.bootstrap.identity_sub")
+                .contains("tianquan-jianshen.bootstrap.tenant_ids")
+                .contains("tianquan-jianshen.bootstrap.identity_sub")
                 .contains("rbac3_local_admin")
                 .contains("idp_local_admin")
                 .contains("gateway_local_admin")
@@ -474,7 +474,7 @@ class Rbac3MigrationContractTest {
         assertThatThrownBy(() ->
                 Rbac3FlywayPostgresqlIT.ownsGeneratedSchema("public", true)
         ).isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("unsafe RBAC3 integration schema");
+                .hasMessageContaining("unsafe Tianquan-Jianshen integration schema");
         assertThat(Rbac3FlywayPostgresqlIT.ownsGeneratedSchema(
                 "rbac3_it_0123456789abcdef", false
         )).isFalse();
@@ -516,7 +516,7 @@ class Rbac3MigrationContractTest {
 
     private String resourceSql(String resource) throws IOException {
         try (var input = getClass().getClassLoader().getResourceAsStream(resource)) {
-            assertThat(input).as("RBAC3 migration resource " + resource).isNotNull();
+            assertThat(input).as("Tianquan-Jianshen migration resource " + resource).isNotNull();
             return normalize(new String(input.readAllBytes(), StandardCharsets.UTF_8));
         }
     }

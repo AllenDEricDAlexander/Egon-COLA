@@ -15,7 +15,7 @@ public final class GatewayRequestBodyTooLargeException
      *
      * 用法 / Usage: 该字段通过 {@code GatewayRequestBodyTooLargeException} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayRequestBodyTooLargeException}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String CODE = "GATEWAY_REQUEST_BODY_TOO_LARGE";
+    private static final String CODE = "YUHENG_REQUEST_BODY_TOO_LARGE";
 
     /**
      * 中文说明：创建 {@code GatewayRequestBodyTooLargeException} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。

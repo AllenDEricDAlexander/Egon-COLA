@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class McpCorePackageBoundaryTest {
 
     private static final Path SOURCE_ROOT = Path.of(
-            "src/main/java/top/egon/cola/component/gateway/mcp"
+            "src/main/java/top/egon/cola/component/yuheng/mcp"
     );
 
     @Test

@@ -16,6 +16,6 @@ public final class GatewayConnectTimeoutException
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
      */
     GatewayConnectTimeoutException() {
-        super("GATEWAY_CONNECT_TIMEOUT", "upstream connect timed out");
+        super("YUHENG_CONNECT_TIMEOUT", "upstream connect timed out");
     }
 }

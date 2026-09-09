@@ -68,13 +68,13 @@ class SingleFlightSnapshotLoaderTest {
                 cache,
                 (systemCode, principal) -> {
                     throw new Rbac3AuthorizationClient.AuthorizationUnavailableException(
-                            "RBAC3_UNAVAILABLE");
+                            "TIANQUAN_JIANSHEN_UNAVAILABLE");
                 },
                 "finance", Duration.ofMinutes(5), clock);
 
         assertThatThrownBy(() -> loader.load(principal()))
                 .isInstanceOf(Rbac3AuthorizationClient.AuthorizationUnavailableException.class)
-                .hasMessageContaining("RBAC3_UNAVAILABLE");
+                .hasMessageContaining("TIANQUAN_JIANSHEN_UNAVAILABLE");
         assertThat(cache.get(key)).isEmpty();
     }
 
@@ -148,7 +148,7 @@ class SingleFlightSnapshotLoaderTest {
         assertThatThrownBy(() -> loader.load(principal()))
                 .isInstanceOf(
                         Rbac3AuthorizationClient.AuthorizationUnavailableException.class)
-                .hasMessage("RBAC3_AUTHORIZATION_CACHE_UNAVAILABLE")
+                .hasMessage("TIANQUAN_JIANSHEN_AUTHORIZATION_CACHE_UNAVAILABLE")
                 .hasRootCauseMessage("redis unavailable");
     }
 

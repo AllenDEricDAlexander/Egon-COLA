@@ -63,7 +63,7 @@ class GatewayProcessHarnessTest {
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("already running");
         var sharedDirectory = GatewayProcessSpec.engineBuilder("other", GatewayEngineRoleEnum.MCP,
                 URI.create("http://127.0.0.1:18084"), URI.create("http://127.0.0.1:18085"))
-                .argument("egon.cola.component.gateway.mcp-engine.data-directory",
+                .argument("egon.cola.component.yuheng.mcp-engine.data-directory",
                         GatewayProcessHarness.runtimeDataDirectory(api, null)).build();
         assertThatThrownBy(() -> GatewayProcessHarness.validateProcessIsolation(sharedDirectory, List.of(api)))
                 .isInstanceOf(IllegalArgumentException.class).hasMessageContaining("LKG directory");
@@ -91,7 +91,7 @@ class GatewayProcessHarnessTest {
     private GatewayProcessSpec engine(String name, GatewayEngineRoleEnum role, int dataPort, int managementPort) {
         return GatewayProcessSpec.engineBuilder(name, role, URI.create("http://127.0.0.1:" + dataPort),
                 URI.create("http://127.0.0.1:" + managementPort))
-                .argument("egon.cola.component.gateway." + (role == GatewayEngineRoleEnum.MCP ? "mcp-engine" : "engine")
+                .argument("egon.cola.component.yuheng." + (role == GatewayEngineRoleEnum.MCP ? "mcp-engine" : "engine")
                         + ".data-directory", temporaryDirectory.resolve(name)).build();
     }
 
@@ -115,17 +115,17 @@ class GatewayProcessHarnessTest {
                         "example.AdminApplication"
                 )
                 .argument("server.port", 18080)
-                .argument("gateway.admin.secret-key", "do-not-log")
+                .argument("yuheng.admin.secret-key", "do-not-log")
                 .environment("DATABASE_PASSWORD", "do-not-log-either")
                 .startupTimeout(Duration.ofSeconds(30))
                 .build();
 
         assertThat(spec.arguments()).contains(
-                "--gateway.admin.secret-key=do-not-log"
+                "--yuheng.admin.secret-key=do-not-log"
         );
         assertThat(spec.redactedArguments())
-                .contains("--gateway.admin.secret-key=******")
-                .doesNotContain("--gateway.admin.secret-key=do-not-log");
+                .contains("--yuheng.admin.secret-key=******")
+                .doesNotContain("--yuheng.admin.secret-key=do-not-log");
         assertThat(spec.redactedEnvironment())
                 .containsEntry("DATABASE_PASSWORD", "******");
         assertThat(spec.startupTimeout()).isEqualTo(Duration.ofSeconds(30));
@@ -144,8 +144,8 @@ class GatewayProcessHarnessTest {
 
     @Test
     void prioritizesTheMainApplicationClasspathEntry() {
-        Path gatewayEngine = temporaryDirectory.resolve("gateway-engine.jar");
-        Path ddcAdmin = temporaryDirectory.resolve("ddc-admin.jar");
+        Path gatewayEngine = temporaryDirectory.resolve("yuheng-biz-gateway.jar");
+        Path ddcAdmin = temporaryDirectory.resolve("tianshu-admin.jar");
         String classPath = String.join(
                 File.pathSeparator,
                 gatewayEngine.toString(),
@@ -160,9 +160,9 @@ class GatewayProcessHarnessTest {
 
     @Test
     void resolvesAnAttachedExecutableArchive() throws Exception {
-        Path thinArchive = temporaryDirectory.resolve("gateway-admin.jar");
+        Path thinArchive = temporaryDirectory.resolve("yuheng-admin.jar");
         Path executableArchive = temporaryDirectory.resolve(
-                "gateway-admin-exec.jar"
+                "yuheng-admin-exec.jar"
         );
         Files.createFile(thinArchive);
         Files.createFile(executableArchive);
@@ -178,10 +178,10 @@ class GatewayProcessHarnessTest {
                 Duration.ofSeconds(2),
                 Duration.ofSeconds(2))) {
             GatewayProcessHarness.ChildProcess engineOne = harness.start(
-                    probeSpec("gateway-engine-1", false, null)
+                    probeSpec("yuheng-biz-gateway-1", false, null)
             );
             GatewayProcessHarness.ChildProcess engineTwo = harness.start(
-                    probeSpec("gateway-engine-2", false, null)
+                    probeSpec("yuheng-biz-gateway-2", false, null)
             );
             awaitReady(harness, engineOne);
             awaitReady(harness, engineTwo);

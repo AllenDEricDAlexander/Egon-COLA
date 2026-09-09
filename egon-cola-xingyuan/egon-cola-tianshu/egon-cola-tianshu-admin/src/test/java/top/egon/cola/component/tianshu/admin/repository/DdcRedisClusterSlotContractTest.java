@@ -53,7 +53,7 @@ class DdcRedisClusterSlotContractTest {
                 DdcRedisKeys.registryInstance(serviceKey, "scope") + ":lock"
         );
 
-        assertThat(keys).allMatch(key -> key.startsWith("ddc:v3:{"));
+        assertThat(keys).allMatch(key -> key.startsWith("tianshu:v3:{"));
         assertOneSlot(keys);
     }
 

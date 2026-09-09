@@ -1,14 +1,14 @@
 {
   "schemaVersion": 1,
-  "description": "Operator-reviewed expectations for an existing RBAC3 Gateway release",
-  "gatewayGroupId": "replace-with-dedicated-gateway-group-id",
+  "description": "Operator-reviewed expectations for an existing Tianquan-Jianshen Yuheng release",
+  "gatewayGroupId": "replace-with-dedicated-yuheng-group-id",
   "releaseId": "replace-with-explicit-release-id",
   "service": {
     "env": "replace-with-environment",
     "namespace": "replace-with-namespace",
     "serviceKind": "HTTP_PROVIDER",
     "protocol": "http",
-    "serviceName": "rbac3-admin",
+    "serviceName": "tianquan-jianshen-admin",
     "group": "default",
     "artifactVersion": "replace-with-artifact-version"
   },

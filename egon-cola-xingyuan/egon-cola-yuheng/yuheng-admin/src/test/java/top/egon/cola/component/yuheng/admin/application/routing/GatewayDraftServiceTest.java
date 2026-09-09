@@ -45,7 +45,7 @@ class GatewayDraftServiceTest {
         AtomicReference<top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO> saved =
                 new AtomicReference<>();
         when(fixture.idempotency.find(
-                "GATEWAY_DRAFT",
+                "YUHENG_DRAFT",
                 "group-1",
                 "idem-1"
         )).thenAnswer(ignored -> Optional.ofNullable(saved.get()));
@@ -102,7 +102,7 @@ class GatewayDraftServiceTest {
         Map<String, Object> legacy = legacyRoute("/v1/**");
         top.egon.cola.component.yuheng.admin.routing.domain.dto.GatewayRouteMutationDTO command = mutation(legacy);
         when(fixture.idempotency.find(
-                "GATEWAY_DRAFT",
+                "YUHENG_DRAFT",
                 "group-1",
                 "idem-1"
         )).thenReturn(Optional.of(legacyRecord(
@@ -130,7 +130,7 @@ class GatewayDraftServiceTest {
                 legacyRoute("/v1/**")
         );
         when(fixture.idempotency.find(
-                "GATEWAY_DRAFT",
+                "YUHENG_DRAFT",
                 "group-1",
                 "idem-1"
         )).thenReturn(Optional.of(legacyRecord(
@@ -338,7 +338,7 @@ class GatewayDraftServiceTest {
 
     private top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO legacyRecord(String digest) {
         return new top.egon.cola.component.yuheng.admin.shared.domain.po.IdempotencyPO(
-                "GATEWAY_DRAFT",
+                "YUHENG_DRAFT",
                 "group-1",
                 "idem-1",
                 digest,

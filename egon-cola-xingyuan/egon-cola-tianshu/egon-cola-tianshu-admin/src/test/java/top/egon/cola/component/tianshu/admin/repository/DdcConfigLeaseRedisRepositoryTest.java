@@ -186,20 +186,20 @@ class DdcConfigLeaseRedisRepositoryTest {
         when(redisson.getLock(anyString())).thenReturn(lock);
         when(redisson.<String>getSet(
                 DdcRedisKeys.configLeaseInstances(
-                        "permission", "prod", "idp"
+                        "permission", "prod", "tianquan-shoubing"
                 ),
                 StringCodec.INSTANCE
         )).thenReturn(instances);
         when(instances.readAll()).thenReturn(Set.of("covered", "newer"));
         when(redisson.<String>getBucket(
                 DdcRedisKeys.configLeaseInstance(
-                        "permission", "prod", "idp", "covered"
+                        "permission", "prod", "tianquan-shoubing", "covered"
                 ),
                 StringCodec.INSTANCE
         )).thenReturn(covered);
         when(redisson.<String>getBucket(
                 DdcRedisKeys.configLeaseInstance(
-                        "permission", "prod", "idp", "newer"
+                        "permission", "prod", "tianquan-shoubing", "newer"
                 ),
                 StringCodec.INSTANCE
         )).thenReturn(newer);
@@ -212,10 +212,10 @@ class DdcConfigLeaseRedisRepositoryTest {
                 );
 
         int removed = repository.revokeResourceAdmission(
-                "permission-idp-prod",
+                "permission-tianquan-shoubing-prod",
                 "permission",
                 "prod",
-                "idp",
+                "tianquan-shoubing",
                 7L
         );
 
@@ -230,10 +230,10 @@ class DdcConfigLeaseRedisRepositoryTest {
         return new ObjectMapper().writeValueAsString(java.util.Map.of(
                 "instanceId", instanceId,
                 "leaseId", "lease-" + instanceId,
-                "resourceServerId", "permission-idp-prod",
+                "resourceServerId", "permission-tianquan-shoubing-prod",
                 "resourceVersion", version,
                 "bizCode", "permission",
-                "appCode", "idp",
+                "appCode", "tianquan-shoubing",
                 "env", "prod"
         ));
     }

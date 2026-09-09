@@ -98,14 +98,14 @@ class DdcHttpRegistrationAutoConfigurationTest {
             assertThat(registry.registration.serviceKey().env())
                     .isEqualTo("test");
             assertThat(registry.registration.instanceId())
-                    .isEqualTo("ddc-runtime-1");
+                    .isEqualTo("tianshu-runtime-1");
             assertThat(registry.registration.serviceKey().serviceName())
                     .isEqualTo("orders");
             assertThat(registry.registration.serviceKey().version())
                     .isEqualTo(SERVICE_VERSION);
             assertThat(registry.registration.metadata())
                     .containsEntry(
-                            "gateway.definition-set-id",
+                            "yuheng.definition-set-id",
                             "definition-set-a"
                     );
 
@@ -117,7 +117,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
                     .isEqualTo(Status.UP);
             assertThat(healthIndicator.health().getDetails())
                     .containsEntry("state", "REGISTERED")
-                    .containsEntry("instanceId", "ddc-runtime-1")
+                    .containsEntry("instanceId", "tianshu-runtime-1")
                     .containsEntry("leaseId", "lease-1")
                     .containsKey("leaseExpireAt");
         });
@@ -135,7 +135,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
                 ))
                 .withPropertyValues(requiredProperties())
                 .withPropertyValues(
-                        "egon.cola.component.ddc.registry.http.version=1.0.0"
+                        "egon.cola.component.tianshu.registry.http.version=1.0.0"
                 )
                 .withBean(
                         DdcServiceKeyFactory.class,
@@ -161,8 +161,8 @@ class DdcHttpRegistrationAutoConfigurationTest {
                             .isEqualTo("1.0.0");
                     assertThat(registry.registration.metadata())
                             .doesNotContainKeys(
-                                    "gateway.definition-set-id",
-                                    "gateway.build-id"
+                                    "yuheng.definition-set-id",
+                                    "yuheng.build-id"
                             );
                 });
     }
@@ -177,8 +177,8 @@ class DdcHttpRegistrationAutoConfigurationTest {
                 ))
                 .withPropertyValues(requiredProperties())
                 .withPropertyValues(
-                        "egon.cola.component.ddc.registry.http.instance-id=explicit-provider",
-                        "egon.cola.component.ddc.registry.http.version=1.0.0"
+                        "egon.cola.component.tianshu.registry.http.instance-id=explicit-provider",
+                        "egon.cola.component.tianshu.registry.http.version=1.0.0"
                 )
                 .withBean(
                         DdcServiceKeyFactory.class,
@@ -202,7 +202,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
     @Test
     void backsOffWhenDisabledOrRegistryIsMissing() {
         contextRunner.withPropertyValues(
-                "egon.cola.component.ddc.registry.http.enabled=false"
+                "egon.cola.component.tianshu.registry.http.enabled=false"
         ).run(context -> assertThat(context).doesNotHaveBean(
                 DdcHttpRegistrationRuntime.class
         ));
@@ -259,7 +259,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
                 DdcServiceRegistryClient.class,
                 () -> registry
         ).withPropertyValues(
-                "egon.cola.component.ddc.registry.http.fail-fast=false"
+                "egon.cola.component.tianshu.registry.http.fail-fast=false"
         ).run(context -> {
             DdcHttpRegistrationRuntime runtime = context.getBean(
                     DdcHttpRegistrationRuntime.class
@@ -313,16 +313,16 @@ class DdcHttpRegistrationAutoConfigurationTest {
 
     private String[] requiredProperties() {
         return new String[]{
-                "egon.cola.component.ddc.registry.http.enabled=true",
-                "egon.cola.component.ddc.registry.http.advertised-host=127.0.0.1",
-                "egon.cola.component.ddc.registry.http.port=0",
-                "egon.cola.component.ddc.registry.http.lease-seconds=3",
-                "egon.cola.component.ddc.registry.http.heartbeat-interval-seconds=1",
-                "egon.cola.component.ddc.env=test",
-                "egon.cola.component.ddc.namespace=gateway-test",
-                "egon.cola.platform.idp.resource-uri=https://api.example/ddc",
-                "egon.cola.platform.idp.service-client.app-id=ddc-app",
-                "egon.cola.platform.idp.service-client.registration-id=ddc-registration",
+                "egon.cola.component.tianshu.registry.http.enabled=true",
+                "egon.cola.component.tianshu.registry.http.advertised-host=127.0.0.1",
+                "egon.cola.component.tianshu.registry.http.port=0",
+                "egon.cola.component.tianshu.registry.http.lease-seconds=3",
+                "egon.cola.component.tianshu.registry.http.heartbeat-interval-seconds=1",
+                "egon.cola.component.tianshu.env=test",
+                "egon.cola.component.tianshu.namespace=yuheng-test",
+                "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/tianshu",
+                "egon.cola.platform.tianquan.shoubing.service-client.app-id=tianshu-app",
+                "egon.cola.platform.tianquan.shoubing.service-client.registration-id=tianshu-registration",
                 "spring.application.name=orders"
         };
     }
@@ -337,9 +337,9 @@ class DdcHttpRegistrationAutoConfigurationTest {
             @Override
             public Map<String, String> metadata() {
                 return Map.of(
-                        "gateway.definition-set-id",
+                        "yuheng.definition-set-id",
                         "definition-set-a",
-                        "gateway.build-id",
+                        "yuheng.build-id",
                         "build-a"
                 );
             }
@@ -351,7 +351,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
         properties.setBizCode("test-biz");
         properties.setAppCode("orders");
         properties.setEnv("test");
-        properties.setNamespace("gateway-test");
+        properties.setNamespace("yuheng-test");
         return new DdcServiceKeyFactory(properties);
     }
 
@@ -370,7 +370,7 @@ class DdcHttpRegistrationAutoConfigurationTest {
 
     private DdcInstanceIdentity ddcInstanceIdentity() {
         return new DdcInstanceIdentity(
-                "ddc-runtime-1",
+                "tianshu-runtime-1",
                 "test-biz",
                 "orders",
                 "test",

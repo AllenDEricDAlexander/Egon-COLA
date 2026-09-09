@@ -6,10 +6,10 @@ root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 platform_root="$root/egon-cola-xingyuan"
 
 declare -a platforms=(
-  "IDP|$platform_root/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java|$platform_root/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web"
-  "RBAC3|$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java|$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web"
-  "Gateway|$platform_root/egon-cola-yuheng/yuheng-admin/src/main/java|$platform_root/egon-cola-yuheng/yuheng-admin-web"
-  "DDC|$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java|$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin-web"
+  "Tianquan-Shoubing|$platform_root/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java|$platform_root/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web"
+  "Tianquan-Jianshen|$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java|$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web"
+  "Yuheng|$platform_root/egon-cola-yuheng/yuheng-admin/src/main/java|$platform_root/egon-cola-yuheng/yuheng-admin-web"
+  "Tianshu|$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java|$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin-web"
 )
 
 for entry in "${platforms[@]}"; do
@@ -38,19 +38,19 @@ assert_contains() {
 
 assert_contains "$platform_root/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx" 'startApp'
 assert_contains "$platform_root/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx" "typeof candidate !== 'string'"
-assert_contains "$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java" '/api/v1/ddc/configs/page'
+assert_contains "$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/management/DdcAdminSecurityConfiguration.java" '/api/v1/tianshu/configs/page'
 assert_contains "$platform_root/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx" 'bindings'
 assert_contains "$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json" '"code": "iam.permissions"'
-assert_contains "$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts" '/api/rbac3/v1/iam/permissions'
+assert_contains "$platform_root/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts" '/api/tianquan-jianshen/v1/iam/permissions'
 assert_contains "$platform_root/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx" '/openapi-sync'
 assert_contains "$platform_root/egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.tsx" 'openapiSnapshotDocument'
-assert_contains "$root/scripts/unified-xingyuan/start-local-stack.sh" 'UNIFIED_PLATFORM_ADVERTISED_HOST:-127.0.0.1'
+assert_contains "$root/scripts/unified-xingyuan/start-local-stack.sh" 'UNIFIED_XINGYUAN_ADVERTISED_HOST:-127.0.0.1'
 
 if ! python3 "$root/scripts/unified-xingyuan/controller_ui_coverage.py" --repo-root "$root" --format text; then
   printf '%s\n' 'ASSERTION FAILED: external Controller/UI coverage has unexplained management methods' >&2
   exit 1
 fi
 
-printf '%s\n' 'Covered key repairs: Portal Wujie Core mount, shared path guard, DDC page authorization, DDC binding route, RBAC3 permission route, Gateway OpenAPI synchronization route.'
-printf '%s\n' 'Intentional exclusions: protocol endpoints (/oauth2, /me, metadata, token), internal/RPC controllers, database/Redis/engine direct access, and active Gateway release publication.'
-printf '%s\n' 'Evidence boundary: this is a static source inventory; it does not prove a running process has reloaded the new Web build or that an active Gateway release contains draft changes.'
+printf '%s\n' 'Covered key repairs: Portal Wujie Core mount, shared path guard, Tianshu page authorization, Tianshu binding route, Tianquan-Jianshen permission route, Yuheng OpenAPI synchronization route.'
+printf '%s\n' 'Intentional exclusions: protocol endpoints (/oauth2, /me, metadata, token), internal/RPC controllers, database/Redis/engine direct access, and active Yuheng release publication.'
+printf '%s\n' 'Evidence boundary: this is a static source inventory; it does not prove a running process has reloaded the new Web build or that an active Yuheng release contains draft changes.'

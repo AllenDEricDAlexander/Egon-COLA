@@ -14,10 +14,10 @@ public class RpcProviderMetadataConfiguration {
     public RpcProviderMetadataContributor gatewayTestMetadata(
             Environment environment) {
         return ignored -> Map.of(
-                "gateway.zone",
-                environment.getProperty("gateway.test.zone", "zone-a"),
-                "gateway.weight",
-                environment.getProperty("gateway.test.weight", "100")
+                "yuheng.zone",
+                environment.getProperty("yuheng.test.zone", "zone-a"),
+                "yuheng.weight",
+                environment.getProperty("yuheng.test.weight", "100")
         );
     }
 }

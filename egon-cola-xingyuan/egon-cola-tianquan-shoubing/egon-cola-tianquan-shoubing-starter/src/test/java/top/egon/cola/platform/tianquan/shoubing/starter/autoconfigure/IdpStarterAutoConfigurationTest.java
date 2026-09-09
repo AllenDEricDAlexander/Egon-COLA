@@ -54,11 +54,11 @@ class IdpStarterAutoConfigurationTest {
                     .withBean(RedissonClient.class,
                             () -> mock(RedissonClient.class))
                     .withPropertyValues(
-                            "egon.cola.platform.idp.enabled=true",
-                            "egon.cola.platform.idp.issuer=https://idp.local",
-                            "egon.cola.platform.idp.jwk-set-uri=https://idp.local/oauth2/jwks",
-                            "egon.cola.platform.idp.resource-server-id=resource-rbac3-prod",
-                            "egon.cola.platform.idp.resource-uri=https://api.example/prod/permission/rbac3");
+                            "egon.cola.platform.tianquan.shoubing.enabled=true",
+                            "egon.cola.platform.tianquan.shoubing.issuer=https://tianquan-shoubing.local",
+                            "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
+                            "egon.cola.platform.tianquan.shoubing.resource-server-id=resource-tianquan-jianshen-prod",
+                            "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/prod/permission/tianquan-jianshen");
 
     @Test
     void providesIdentityOnlyFilterBeforeRbac3Filter() {
@@ -153,13 +153,13 @@ class IdpStarterAutoConfigurationTest {
                 .withBean(RedissonClient.class,
                         () -> mock(RedissonClient.class))
                 .withPropertyValues(
-                        "egon.cola.platform.idp.enabled=true",
-                        "egon.cola.platform.idp.issuer=https://idp.local",
-                        "egon.cola.platform.idp.jwk-set-uri=https://idp.local/oauth2/jwks",
-                        "egon.cola.platform.idp.resource-server-id=resource-ddc-local",
-                        "egon.cola.platform.idp.resource-uri=https://api.example/local/platform/ddc",
-                        "egon.cola.component.ddc.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=false")
+                        "egon.cola.platform.tianquan.shoubing.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.issuer=https://tianquan-shoubing.local",
+                        "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
+                        "egon.cola.platform.tianquan.shoubing.resource-server-id=resource-tianshu-local",
+                        "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/local/platform/tianshu",
+                        "egon.cola.component.tianshu.enabled=false",
+                        "egon.cola.component.tianshu.registry.enabled=false")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(IdpJwtVerifier.class);
@@ -171,11 +171,11 @@ class IdpStarterAutoConfigurationTest {
     @Test
     void providesServiceClientWhenRegistrationIsConfigured() {
         ClientRegistration registration = ClientRegistration
-                .withRegistrationId("egon-idp")
+                .withRegistrationId("egon-tianquan-shoubing")
                 .clientId("orders-key")
                 .clientSecret("orders-secret")
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .tokenUri("https://idp.local/oauth2/token")
+                .tokenUri("https://tianquan-shoubing.local/oauth2/token")
                 .build();
         new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
@@ -187,13 +187,13 @@ class IdpStarterAutoConfigurationTest {
                         () -> new InMemoryClientRegistrationRepository(
                                 registration))
                 .withPropertyValues(
-                        "egon.cola.platform.idp.enabled=true",
-                        "egon.cola.platform.idp.issuer=https://idp.local",
-                        "egon.cola.platform.idp.jwk-set-uri=https://idp.local/oauth2/jwks",
-                        "egon.cola.platform.idp.resource-server-id=rs-idp-prod",
-                        "egon.cola.platform.idp.resource-uri=https://api.example/idp",
-                        "egon.cola.platform.idp.service-client.app-id=orders-app",
-                        "egon.cola.platform.idp.service-client.registration-id=egon-idp")
+                        "egon.cola.platform.tianquan.shoubing.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.issuer=https://tianquan-shoubing.local",
+                        "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
+                        "egon.cola.platform.tianquan.shoubing.resource-server-id=rs-tianquan-shoubing-prod",
+                        "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/tianquan-shoubing",
+                        "egon.cola.platform.tianquan.shoubing.service-client.app-id=orders-app",
+                        "egon.cola.platform.tianquan.shoubing.service-client.registration-id=egon-tianquan-shoubing")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).hasSingleBean(
@@ -208,21 +208,21 @@ class IdpStarterAutoConfigurationTest {
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class))
                 .withPropertyValues(
-                        "egon.cola.platform.idp.enabled=true",
-                        "egon.cola.platform.idp.admission.private-key-path=/run/secrets/idp.pem")
+                        "egon.cola.platform.tianquan.shoubing.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.admission.private-key-path=/run/secrets/tianquan-shoubing.pem")
                 .run(context -> assertThat(context)
                         .hasFailed()
                         .getFailure()
                         .hasMessageContaining("migration")
                         .hasMessageContaining("admission.private-key-path")
-                        .hasMessageNotContaining("/run/secrets/idp.pem"));
+                        .hasMessageNotContaining("/run/secrets/tianquan-shoubing.pem"));
     }
 
     @Test
     void decoderAcceptsAccessTokenTypeValidatedByIdpVerifier()
             throws Exception {
         RSAKey key = new RSAKeyGenerator(2048)
-                .keyID("idp-local")
+                .keyID("tianquan-shoubing-local")
                 .algorithm(JWSAlgorithm.RS256)
                 .generate();
         byte[] jwkSet = ("{\"keys\":["
@@ -244,12 +244,12 @@ class IdpStarterAutoConfigurationTest {
         server.start();
         try {
             String issuer = "http://127.0.0.1:" + server.getAddress().getPort();
-            String resource = "https://api.example/local/permission/rbac3";
+            String resource = "https://api.example/local/permission/tianquan-jianshen";
             IdpStarterProperties properties = new IdpStarterProperties();
             properties.setEnabled(true);
             properties.setIssuer(issuer);
             properties.setJwkSetUri(issuer + "/oauth2/jwks");
-            properties.setResourceServerId("permission-rbac3-local");
+            properties.setResourceServerId("permission-tianquan-jianshen-local");
             properties.setResourceUri(URI.create(resource));
             JwtDecoder decoder = new IdpStarterAutoConfiguration()
                     .idpJwtDecoder(properties);
@@ -257,11 +257,11 @@ class IdpStarterAutoConfigurationTest {
             SignedJWT token = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256)
                             .type(new JOSEObjectType("at+jwt"))
-                            .keyID("idp-local")
+                            .keyID("tianquan-shoubing-local")
                             .build(),
                     new JWTClaimsSet.Builder()
                             .issuer(issuer)
-                            .subject("idp-service")
+                            .subject("tianquan-shoubing-service")
                             .audience(List.of(resource))
                             .issueTime(Date.from(now))
                             .notBeforeTime(Date.from(now))
@@ -272,7 +272,7 @@ class IdpStarterAutoConfigurationTest {
             token.sign(new RSASSASigner(key));
 
             assertThat(decoder.decode(token.serialize()).getSubject())
-                    .isEqualTo("idp-service");
+                    .isEqualTo("tianquan-shoubing-service");
         } finally {
             server.stop(0);
         }

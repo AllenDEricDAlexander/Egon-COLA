@@ -4,8 +4,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Narrow read-only boundary from RBAC3 to the DDC Business/Application catalog.
- * RBAC3 never writes master data through this port.
+ * Narrow read-only boundary from Tianquan-Jianshen to the Tianshu Business/Application catalog.
+ * Tianquan-Jianshen never writes master data through this port.
  */
 public interface DdcCatalogGateway {
 

@@ -76,7 +76,7 @@ class GatewayTelemetryTest {
                     null
             );
             request.finish("COMPLETE", "SUCCESS", null);
-            telemetry.startDdcApply("gateway.rules.active", 12)
+            telemetry.startDdcApply("yuheng.rules.active", 12)
                     .success();
             telemetry.startKafkaSend("event-1", traceId)
                     .failure(new IllegalStateException("broker down"));
@@ -101,7 +101,7 @@ class GatewayTelemetryTest {
                     "operation-1",
                     requestSpan.getAttributes().get(
                             AttributeKey.stringKey(
-                                    "gateway.operation.id"
+                                    "yuheng.operation.id"
                             )
                     )
             );
@@ -109,7 +109,7 @@ class GatewayTelemetryTest {
                     "HTTP_STREAMING",
                     requestSpan.getAttributes().get(
                             AttributeKey.stringKey(
-                                    "gateway.transport.mode"
+                                    "yuheng.transport.mode"
                             )
                     )
             );
@@ -117,7 +117,7 @@ class GatewayTelemetryTest {
                     "FIRST_BODY_BUFFER_SENT",
                     requestSpan.getAttributes().get(
                             AttributeKey.stringKey(
-                                    "gateway.commit.point"
+                                    "yuheng.commit.point"
                             )
                     )
             );
@@ -125,22 +125,22 @@ class GatewayTelemetryTest {
                     "HTTP",
                     attemptSpan.getAttributes().get(
                             AttributeKey.stringKey(
-                                    "gateway.provider.protocol"
+                                    "yuheng.provider.protocol"
                             )
                     )
             );
             assertEquals(
                     StatusCode.ERROR,
-                    span(exporter, "gateway.engine.kafka.send")
+                    span(exporter, "yuheng.engine.kafka.send")
                             .getStatus()
                             .getStatusCode()
             );
             assertEquals(
                     "SUCCESS",
-                    span(exporter, "gateway.engine.ddc.apply")
+                    span(exporter, "yuheng.engine.tianshu.apply")
                             .getAttributes()
                             .get(AttributeKey.stringKey(
-                                    "gateway.outcome"
+                                    "yuheng.outcome"
                             ))
             );
         } finally {
@@ -150,7 +150,7 @@ class GatewayTelemetryTest {
 
     private ObservationRegistry registry(
             OpenTelemetrySdk openTelemetry) {
-        var apiTracer = openTelemetry.getTracer("gateway-test");
+        var apiTracer = openTelemetry.getTracer("yuheng-test");
         OtelTracer tracer = new OtelTracer(
                 apiTracer,
                 new OtelCurrentTraceContext(),

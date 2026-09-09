@@ -24,7 +24,7 @@ public final class AggregatedGatewayBody implements GatewayBody, AutoCloseable {
         }
         if (content.length > maxBytes) {
             throw new GatewayRequestRejectedException(
-                    "GATEWAY_REQUEST_BODY_TOO_LARGE",
+                    "YUHENG_REQUEST_BODY_TOO_LARGE",
                     413,
                     "request body exceeds configured limit"
             );

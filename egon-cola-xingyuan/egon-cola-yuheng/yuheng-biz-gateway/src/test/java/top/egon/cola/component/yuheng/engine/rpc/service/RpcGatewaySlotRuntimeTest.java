@@ -177,7 +177,7 @@ class RpcGatewaySlotRuntimeTest {
         );
         assertEquals(
                 "engine",
-                registry.registration.metadata().get("gateway.component")
+                registry.registration.metadata().get("yuheng.component")
         );
 
         runtime.beginDrain();
@@ -291,11 +291,11 @@ class RpcGatewaySlotRuntimeTest {
 
     private IdpStarterProperties idpProperties() {
         IdpStarterProperties properties = new IdpStarterProperties();
-        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        properties.setResourceUri(java.net.URI.create("https://api.example/tianshu"));
         IdpStarterProperties.ServiceClient client =
                 new IdpStarterProperties.ServiceClient();
-        client.setAppId("ddc-app");
-        client.setRegistrationId("ddc-registration");
+        client.setAppId("tianshu-app");
+        client.setRegistrationId("tianshu-registration");
         properties.setServiceClient(client);
         return properties;
     }
@@ -313,7 +313,7 @@ class RpcGatewaySlotRuntimeTest {
                 "default",
                 "engine-a",
                 "127.0.0.1",
-                "gateway-internal",
+                "yuheng-internal",
                 "default",
                 "v1",
                 "group-a",
@@ -442,7 +442,7 @@ class RpcGatewaySlotRuntimeTest {
                                 value -> Math.max(0, value - 1)
                         ) > 0) {
                             throw new IllegalStateException(
-                                    "IdP service token unavailable"
+                                    "Tianquan-Shoubing service token unavailable"
                             );
                         }
                         Instant issuedAt = Instant.now();

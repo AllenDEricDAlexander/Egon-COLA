@@ -26,12 +26,12 @@ import java.util.List;
 
 /** User Business grant and derived Application access endpoints. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam")
+@RequestMapping("/api/tianquan-jianshen/v1/iam")
 @Tag(name = "user-business-access", description = "用户业务域授权接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -46,9 +46,9 @@ public class UserBusinessAccessController {
     @GetMapping("/users/{userId}/business-accesses")
     @RequiresPermission(value = "system:user-business-access:read")
     @Operation(
-            operationId = "rbac3-user-business-access-list-v1",
+            operationId = "tianquan-jianshen-user-business-access-list-v1",
             summary = "查询用户业务域授权",
-            tags = {"rbac3", "user", "business"}
+            tags = {"tianquan-jianshen", "user", "business"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -61,9 +61,9 @@ public class UserBusinessAccessController {
     @PutMapping("/users/{userId}/business-accesses")
     @RequiresPermission(value = "system:user-business-access:manage")
     @Operation(
-            operationId = "rbac3-user-business-access-replace-v1",
+            operationId = "tianquan-jianshen-user-business-access-replace-v1",
             summary = "替换用户人工业务域授权",
-            tags = {"rbac3", "user", "business"}
+            tags = {"tianquan-jianshen", "user", "business"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -79,9 +79,9 @@ public class UserBusinessAccessController {
     @GetMapping("/users/{userId}/application-accesses")
     @RequiresPermission(value = "system:user-application-access:read")
     @Operation(
-            operationId = "rbac3-user-application-access-list-v1",
+            operationId = "tianquan-jianshen-user-application-access-list-v1",
             summary = "查询用户派生应用访问范围",
-            tags = {"rbac3", "user", "application"}
+            tags = {"tianquan-jianshen", "user", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

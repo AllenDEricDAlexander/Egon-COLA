@@ -150,7 +150,7 @@ public class DdcConfigurationPropertiesRebinder
                 || bean.asBindTarget().getBindMethod()
                 == BindMethod.VALUE_OBJECT) {
             throw new IllegalStateException(
-                    "DDC refreshable @ConfigurationProperties bean '"
+                    "Tianshu refreshable @ConfigurationProperties bean '"
                             + beanName + "' must use JavaBean binding"
             );
         }
@@ -164,7 +164,7 @@ public class DdcConfigurationPropertiesRebinder
         }
         if (!writable) {
             throw new IllegalStateException(
-                    "DDC refreshable @ConfigurationProperties bean '"
+                    "Tianshu refreshable @ConfigurationProperties bean '"
                             + beanName + "' must expose writable properties"
             );
         }

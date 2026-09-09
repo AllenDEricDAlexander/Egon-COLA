@@ -31,7 +31,7 @@ public interface RuntimePublicationRepository {
      * Invalidates an unusable user publication while retaining monotonic version watermarks.
      *
      * @param tenantId 租户标识；tenant identifier
-     * @param identitySub IdP 身份标识；IdP subject identifier
+     * @param identitySub Tianquan-Shoubing 身份标识；Tianquan-Shoubing subject identifier
      * @param userId RBAC 用户标识；RBAC user identifier
      * @param authVersion 当前授权版本；current authorization version
      * @param policyVersion 当前策略版本；current policy version

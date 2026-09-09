@@ -66,7 +66,7 @@ public class ResourceServerConfig {
      * / Creates the Resource Server lifecycle transactional-event adapter.
      *
      * @param outbox 标准事务发件箱 / standard transactional outbox
-     * @param clock IdP UTC 业务时钟 / IdP UTC business clock
+     * @param clock Tianquan-Shoubing UTC 业务时钟 / Tianquan-Shoubing UTC business clock
      * @return Resource Server 事件适配器 / Resource Server event adapter
      */
     @Bean
@@ -80,10 +80,10 @@ public class ResourceServerConfig {
     }
 
     /**
-     * 创建按投递临时持有 Direct RPC 客户端的 DDC 生命周期投递器。
-     * / Creates the DDC lifecycle handler that owns a Direct RPC client only for one delivery.
+     * 创建按投递临时持有 Direct RPC 客户端的 Tianshu 生命周期投递器。
+     * / Creates the Tianshu lifecycle handler that owns a Direct RPC client only for one delivery.
      *
-     * @param factory DDC Direct RPC 客户端工厂 / DDC Direct RPC client factory
+     * @param factory Tianshu Direct RPC 客户端工厂 / Tianshu Direct RPC client factory
      * @param objectMapper JSON 编解码器 / JSON codec
      * @return Resource 停用投递器 / Resource-disabled delivery handler
      */

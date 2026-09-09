@@ -40,7 +40,7 @@ class Rbac3UserDetailsLoaderTest {
         assertThat(details.activeRoles()).singleElement()
                 .satisfies(role -> {
                     assertThat(role.roleId()).isEqualTo("role-1");
-                    assertThat(role.applicationCode()).isEqualTo("rbac3-admin");
+                    assertThat(role.applicationCode()).isEqualTo("tianquan-jianshen-admin");
                 });
     }
 
@@ -58,7 +58,7 @@ class Rbac3UserDetailsLoaderTest {
 
     private IdentityPrincipal identity() {
         return new IdentityPrincipal(
-                "alice-sub", "tenant-a", "access-jti", Set.of("rbac3-admin"),
+                "alice-sub", "tenant-a", "access-jti", Set.of("tianquan-jianshen-admin"),
                 NOW.minusSeconds(30), NOW.plusSeconds(300),
                 AuthenticationContext.password());
     }
@@ -67,7 +67,7 @@ class Rbac3UserDetailsLoaderTest {
             String subject,
             String tenant) {
         return new SystemAuthorizationSnapshot(
-                tenant, subject, "user-1", "rbac3-admin", 4L, 7L,
+                tenant, subject, "user-1", "tianquan-jianshen-admin", 4L, 7L,
                 List.of("role-1"), Set.of("payment:read"), Map.of(), Map.of(),
                 "sha256:snapshot", NOW, NOW.plusSeconds(300));
     }

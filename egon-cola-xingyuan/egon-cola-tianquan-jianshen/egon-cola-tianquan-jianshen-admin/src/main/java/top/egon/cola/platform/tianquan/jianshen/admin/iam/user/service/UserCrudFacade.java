@@ -18,7 +18,7 @@ import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
 
 /**
- * Owns only the RBAC tenant membership and IdP subject binding.
+ * Owns only the RBAC tenant membership and Tianquan-Shoubing subject binding.
  * It deliberately has no password, credential, or profile operations.
  */
 @Service

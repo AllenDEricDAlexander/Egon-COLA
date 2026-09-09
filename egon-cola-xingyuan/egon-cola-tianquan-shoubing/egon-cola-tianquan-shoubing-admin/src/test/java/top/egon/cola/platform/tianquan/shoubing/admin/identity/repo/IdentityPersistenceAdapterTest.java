@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @DataJpaTest(properties = {
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop",
-        "spring.datasource.url=jdbc:h2:mem:idp-persistence;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
+        "spring.datasource.url=jdbc:h2:mem:tianquan-shoubing-persistence;MODE=PostgreSQL;DB_CLOSE_DELAY=-1"
 })
 @ContextConfiguration(classes = IdentityPersistenceAdapterTest.TestApplication.class)
 @Import(IdentityPersistenceAdapter.class)

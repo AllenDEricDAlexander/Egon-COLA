@@ -50,18 +50,18 @@ public record ProviderInstance(
     }
 
     public int weight() {
-        String raw = metadata.getOrDefault("gateway.weight", "100");
+        String raw = metadata.getOrDefault("yuheng.weight", "100");
         try {
             int value = Integer.parseInt(raw);
             if (value < 1 || value > 10000) {
                 throw new IllegalArgumentException(
-                        "gateway.weight must be between 1 and 10000"
+                        "yuheng.weight must be between 1 and 10000"
                 );
             }
             return value;
         } catch (NumberFormatException exception) {
             throw new IllegalArgumentException(
-                    "gateway.weight must be an integer",
+                    "yuheng.weight must be an integer",
                     exception
             );
         }

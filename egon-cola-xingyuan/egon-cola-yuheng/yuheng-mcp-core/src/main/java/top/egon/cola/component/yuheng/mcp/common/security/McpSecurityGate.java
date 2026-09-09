@@ -202,7 +202,7 @@ public final class McpSecurityGate {
     private Mono<Void> authorize(McpAuthorizationRequest request) {
         return Mono.from(authorization.authorize(request))
                 .switchIfEmpty(Mono.error(forbidden(
-                        "RBAC3_AUTHORIZATION_EMPTY",
+                        "TIANQUAN_JIANSHEN_AUTHORIZATION_EMPTY",
                         null
                 )))
                 .flatMap(decision -> decision.allowed()
@@ -214,7 +214,7 @@ public final class McpSecurityGate {
                 .onErrorMap(
                         failure -> !(failure instanceof McpProtocolException),
                         failure -> forbidden(
-                                "RBAC3_AUTHORIZATION_UNAVAILABLE",
+                                "TIANQUAN_JIANSHEN_AUTHORIZATION_UNAVAILABLE",
                                 null
                         )
                 );
@@ -606,34 +606,34 @@ public final class McpSecurityGate {
                 Map<String, Object> attributes) {
             Objects.requireNonNull(attributes, "attributes");
             return new IdentityContext(
-                    text(attributes, "identity.issuer", "idp.issuer"),
+                    text(attributes, "identity.issuer", "tianquan-shoubing.issuer"),
                     text(attributes, "identity.subject", "callerId"),
                     text(attributes, "identity.tenant-id", "tenantId"),
                     text(
                             attributes,
                             "identity.client-id",
-                            "idp.client-id",
-                            "idp.audience"
+                            "tianquan-shoubing.client-id",
+                            "tianquan-shoubing.audience"
                     ),
                     text(
                             attributes,
                             "identity.token-id",
-                            "idp.token-id"
+                            "tianquan-shoubing.token-id"
                     ),
-                    text(attributes, "identity.resource-uri", "idp.resource-uri"),
+                    text(attributes, "identity.resource-uri", "tianquan-shoubing.resource-uri"),
                     instant(
                             attributes,
                             "identity.issued-at",
-                            "idp.issued-at"
+                            "tianquan-shoubing.issued-at"
                     ),
                     instant(
                             attributes,
                             "identity.expires-at",
-                            "idp.expires-at"
+                            "tianquan-shoubing.expires-at"
                     ),
-                    optionalNumber(attributes, "rbac3.auth-version"),
-                    optionalNumber(attributes, "rbac3.context-version"),
-                    optionalNumber(attributes, "rbac3.policy-version"),
+                    optionalNumber(attributes, "tianquan-jianshen.auth-version"),
+                    optionalNumber(attributes, "tianquan-jianshen.context-version"),
+                    optionalNumber(attributes, "tianquan-jianshen.policy-version"),
                     bearerToken(attributes)
             );
         }

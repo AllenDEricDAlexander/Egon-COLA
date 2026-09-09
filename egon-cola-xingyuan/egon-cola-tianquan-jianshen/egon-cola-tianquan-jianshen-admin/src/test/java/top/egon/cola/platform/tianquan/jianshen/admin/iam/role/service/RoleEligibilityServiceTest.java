@@ -50,15 +50,15 @@ class RoleEligibilityServiceTest {
         stubApplicationLookup();
         when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
                 .thenReturn(Set.of("biz-1"));
-        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(
+        when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(
                 new ApplicationCatalogEntry(
-                        "ddc-app-1", "biz-1", "orders",
+                        "tianshu-app-1", "biz-1", "orders",
                         "console", "Console", true, true)));
 
         boolean actual = service.isEffective("7", "9", "1", NOW);
 
         verify(businessAccessStore).effectiveBusinessIds(7L, 9L, NOW);
-        verify(catalog).findApplication("ddc-app-1");
+        verify(catalog).findApplication("tianshu-app-1");
         assertThat(actual).isTrue();
     }
 
@@ -67,16 +67,16 @@ class RoleEligibilityServiceTest {
         stubApplicationLookup();
         when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
                 .thenReturn(Set.of("biz-1"));
-        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(
+        when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(
                 new ApplicationCatalogEntry(
-                        "ddc-app-1", "biz-1", "orders",
+                        "tianshu-app-1", "biz-1", "orders",
                         "console", "Console", true, true)));
 
         Optional<EffectiveApplicationScope> actual = service.resolveEffectiveScope(
                 "7", "9", "1", NOW);
 
         assertThat(actual).contains(new EffectiveApplicationScope(
-                "biz-1", "orders", "ddc-app-1", "console"));
+                "biz-1", "orders", "tianshu-app-1", "console"));
     }
 
     @ParameterizedTest
@@ -85,7 +85,7 @@ class RoleEligibilityServiceTest {
         stubApplicationLookup();
         when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
                 .thenReturn(Set.of("biz-1"));
-        when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(entry));
+        when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(entry));
 
         assertThat(service.resolveEffectiveScope("7", "9", "1", NOW)).isEmpty();
         assertThat(service.isEffective("7", "9", "1", NOW)).isFalse();
@@ -96,7 +96,7 @@ class RoleEligibilityServiceTest {
         stubApplicationLookup();
         when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
                 .thenReturn(Set.of("biz-1"));
-        when(catalog.findApplication("ddc-app-1"))
+        when(catalog.findApplication("tianshu-app-1"))
                 .thenThrow(new IllegalStateException("rpc unavailable"));
 
         assertThat(service.isEffective("7", "9", "1", NOW)).isFalse();
@@ -123,7 +123,7 @@ class RoleEligibilityServiceTest {
         when(applicationQuery.setParameter(anyString(), any())).thenReturn(applicationQuery);
         when(roleQuery.getResultList()).thenReturn(List.of(1L));
         when(applicationQuery.getResultList()).thenReturn(Collections.singletonList(
-                new Object[]{1L, "ddc-app-1", "biz-1", "ACTIVE"}));
+                new Object[]{1L, "tianshu-app-1", "biz-1", "ACTIVE"}));
         when(businessAccessStore.effectiveBusinessIds(7L, 9L, NOW))
                 .thenReturn(Set.of());
 
@@ -138,22 +138,22 @@ class RoleEligibilityServiceTest {
         when(entityManager.createNativeQuery(anyString())).thenReturn(applicationQuery);
         when(applicationQuery.setParameter(anyString(), any())).thenReturn(applicationQuery);
         when(applicationQuery.getResultList()).thenReturn(Collections.singletonList(
-                new Object[]{1L, "ddc-app-1", "biz-1", "ACTIVE"}));
+                new Object[]{1L, "tianshu-app-1", "biz-1", "ACTIVE"}));
     }
 
     private static Stream<ApplicationCatalogEntry> invalidDdcScopes() {
         return Stream.of(
                 new ApplicationCatalogEntry(
-                        "ddc-app-1", "biz-1", "orders",
+                        "tianshu-app-1", "biz-1", "orders",
                         "console", "Console", false, true),
                 new ApplicationCatalogEntry(
-                        "ddc-app-1", "biz-1", "orders",
+                        "tianshu-app-1", "biz-1", "orders",
                         "console", "Console", true, false),
                 new ApplicationCatalogEntry(
-                        "ddc-app-1", "biz-2", "orders",
+                        "tianshu-app-1", "biz-2", "orders",
                         "console", "Console", true, true),
                 new ApplicationCatalogEntry(
-                        "ddc-app-2", "biz-1", "orders",
+                        "tianshu-app-2", "biz-1", "orders",
                         "console", "Console", true, true));
     }
 }

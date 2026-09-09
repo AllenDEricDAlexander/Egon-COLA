@@ -21,15 +21,15 @@ public final class DdcAdminSecurityPropertiesValidator {
         if (!security.isLocalDev()) {
             required(
                     security.getJwt().getIssuer(),
-                    "DDC Admin JWT issuer is required"
+                    "Tianshu Admin JWT issuer is required"
             );
             required(
                     security.getJwt().getAudience(),
-                    "DDC Admin JWT audience is required"
+                    "Tianshu Admin JWT audience is required"
             );
             if (!properties.getRpc().isSignatureEnabled()) {
                 throw new IllegalStateException(
-                        "DDC RPC signatures are required outside local-dev"
+                        "Tianshu RPC signatures are required outside local-dev"
                 );
             }
         }
@@ -41,17 +41,17 @@ public final class DdcAdminSecurityPropertiesValidator {
             DdcAdminProperties.Registration registration) {
         if (registration == null) {
             throw new IllegalStateException(
-                    "DDC registration settings are required"
+                    "Tianshu registration settings are required"
             );
         }
         required(
                 registration.getRequiredScope(),
-                "DDC registration scope is required"
+                "Tianshu registration scope is required"
         );
         if (registration.getResourceUri() != null
                 && !registration.getResourceUri().isAbsolute()) {
             throw new IllegalStateException(
-                    "DDC registration Resource URI must be absolute"
+                    "Tianshu registration Resource URI must be absolute"
             );
         }
     }
@@ -59,12 +59,12 @@ public final class DdcAdminSecurityPropertiesValidator {
     private static void validateRpc(DdcAdminProperties.Rpc rpc) {
         if (rpc.getAllowedClockSkewSeconds() <= 0) {
             throw new IllegalStateException(
-                    "DDC RPC allowed clock skew must be positive"
+                    "Tianshu RPC allowed clock skew must be positive"
             );
         }
         if (rpc.getNonceCacheMaxSize() <= 0) {
             throw new IllegalStateException(
-                    "DDC RPC nonce cache size must be positive"
+                    "Tianshu RPC nonce cache size must be positive"
             );
         }
         if (!rpc.isSignatureEnabled()) {
@@ -76,7 +76,7 @@ public final class DdcAdminSecurityPropertiesValidator {
                         : rpc.getCredentials();
         if (credentials.isEmpty()) {
             throw new IllegalStateException(
-                    "DDC RPC credentials are required"
+                    "Tianshu RPC credentials are required"
             );
         }
         Set<String> credentialIds = new HashSet<>();
@@ -84,32 +84,32 @@ public final class DdcAdminSecurityPropertiesValidator {
         for (DdcAdminProperties.Credential credential : credentials) {
             String credentialId = required(
                     credential.getCredentialId(),
-                    "DDC RPC credential id is required"
+                    "Tianshu RPC credential id is required"
             );
             if (!credentialIds.add(credentialId)) {
                 throw new IllegalStateException(
-                        "Duplicate DDC RPC credential id: "
+                        "Duplicate Tianshu RPC credential id: "
                                 + credentialId
                 );
             }
             String accessKey = required(
                     credential.getAccessKey(),
-                    "DDC RPC credential access key is required: "
+                    "Tianshu RPC credential access key is required: "
                             + credentialId
             );
             if (!accessKeys.add(accessKey)) {
                 throw new IllegalStateException(
-                        "Duplicate DDC RPC credential access key"
+                        "Duplicate Tianshu RPC credential access key"
                 );
             }
             required(
                     credential.getSecret(),
-                    "DDC RPC credential secret is required: "
+                    "Tianshu RPC credential secret is required: "
                             + credentialId
             );
             required(
                     credential.getClientType(),
-                    "DDC RPC credential client type is required: "
+                    "Tianshu RPC credential client type is required: "
                             + credentialId
             );
         }

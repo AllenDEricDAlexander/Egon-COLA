@@ -7,7 +7,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.dom
 public final class Rbac3RuntimeEventCatalog {
 
     /** 运行时授权事件通道。Runtime authorization-event channel. */
-    public static final String CHANNEL = "rbac3-runtime";
+    public static final String CHANNEL = "tianquan-jianshen-runtime";
 
     private Rbac3RuntimeEventCatalog() {
     }

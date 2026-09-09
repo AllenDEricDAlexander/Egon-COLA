@@ -17,9 +17,9 @@ public final class DdcRegistrationAuthenticationException extends DdcAdminExcept
     private static final long serialVersionUID = 1L;
 
     /**
-     * 使用稳定 DDC 错误状态创建注册认证异常。
+     * 使用稳定 Tianshu 错误状态创建注册认证异常。
      *
-     * <p>Creates a registration-authentication exception with a stable DDC error status.</p>
+     * <p>Creates a registration-authentication exception with a stable Tianshu error status.</p>
      *
      * @param status 注册认证错误状态；registration-authentication error status
      */

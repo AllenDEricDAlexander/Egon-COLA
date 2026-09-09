@@ -36,7 +36,7 @@ class DdcServiceRegistrationTest {
 
         assertThat(first.canonicalValue()).isEqualTo(String.join(
                 "\n",
-                "ddc-service-key-v3",
+                "tianshu-service-key-v3",
                 "retail",
                 "local",
                 "order",
@@ -76,9 +76,9 @@ class DdcServiceRegistrationTest {
         for (int i = 0; i < 32; i++) {
             metadata.put("business.key-" + i, "value-" + i);
         }
-        metadata.put("gateway.weight", "250");
-        metadata.put("gateway.zone", "cn-east-1a");
-        metadata.put("gateway.health-state", "UP");
+        metadata.put("yuheng.weight", "250");
+        metadata.put("yuheng.zone", "cn-east-1a");
+        metadata.put("yuheng.health-state", "UP");
 
         DdcServiceRegistration registration = registration(metadata);
 

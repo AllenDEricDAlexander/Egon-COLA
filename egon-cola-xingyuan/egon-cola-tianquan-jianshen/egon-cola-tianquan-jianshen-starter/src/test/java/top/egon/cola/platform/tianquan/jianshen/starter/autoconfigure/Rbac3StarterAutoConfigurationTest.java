@@ -25,7 +25,7 @@ class Rbac3StarterAutoConfigurationTest {
     @Test
     void isOptInAndBacksOffForConsumerAuthorizationService() {
         AuthorizationService consumer = mock(AuthorizationService.class);
-        runner.withPropertyValues("egon.cola.platform.rbac3.enabled=true")
+        runner.withPropertyValues("egon.cola.platform.tianquan.jianshen.enabled=true")
                 .withBean(ObjectMapper.class, ObjectMapper::new)
                 .withBean(SensitiveStrategyRegistry.class,
                         SensitiveStrategyRegistry::defaults)

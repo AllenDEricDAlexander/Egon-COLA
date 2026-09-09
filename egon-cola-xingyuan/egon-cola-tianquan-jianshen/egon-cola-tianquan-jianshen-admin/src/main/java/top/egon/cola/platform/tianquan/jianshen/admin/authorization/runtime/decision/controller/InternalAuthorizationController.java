@@ -39,9 +39,9 @@ import java.util.Objects;
 @RequestMapping("/internal/v1/authorization")
 @Tag(name = "internal-authorization", description = "内部授权决策接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "internal-authorization"
 )
@@ -68,9 +68,9 @@ public class InternalAuthorizationController {
     @GetMapping("/snapshots/current")
     @top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope("service:authorization:snapshot")
     @Operation(
-            operationId = "rbac3-internal-system-snapshot-v2",
+            operationId = "tianquan-jianshen-internal-system-snapshot-v2",
             summary = "按已验证用户身份读取系统授权快照",
-            tags = {"rbac3", "internal", "authorization"}
+            tags = {"tianquan-jianshen", "internal", "authorization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL
@@ -88,9 +88,9 @@ public class InternalAuthorizationController {
     @PostMapping("/decisions")
     @top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope("service:authorization:decide")
     @Operation(
-            operationId = "rbac3-internal-authorization-decision-v2",
+            operationId = "tianquan-jianshen-internal-authorization-decision-v2",
             summary = "使用已验证用户身份执行类型化授权决策",
-            tags = {"rbac3", "internal", "authorization"}
+            tags = {"tianquan-jianshen", "internal", "authorization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL
@@ -108,9 +108,9 @@ public class InternalAuthorizationController {
     @PostMapping("/resource-access-decisions")
     @top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope("service:authorization:decide")
     @Operation(
-            operationId = "rbac3-internal-resource-access-decision-v2",
+            operationId = "tianquan-jianshen-internal-resource-access-decision-v2",
             summary = "判定已验证用户是否具备应用入口权限",
-            tags = {"rbac3", "internal", "authorization"}
+            tags = {"tianquan-jianshen", "internal", "authorization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL
@@ -132,9 +132,9 @@ public class InternalAuthorizationController {
     @PostMapping("/fences/verify")
     @top.egon.cola.platform.tianquan.shoubing.starter.security.RequiresServiceScope("service:authorization:fence")
     @Operation(
-            operationId = "rbac3-internal-authorization-fence-verify-v2",
+            operationId = "tianquan-jianshen-internal-authorization-fence-verify-v2",
             summary = "校验用户授权传播 Fence",
-            tags = {"rbac3", "internal", "authorization"}
+            tags = {"tianquan-jianshen", "internal", "authorization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL

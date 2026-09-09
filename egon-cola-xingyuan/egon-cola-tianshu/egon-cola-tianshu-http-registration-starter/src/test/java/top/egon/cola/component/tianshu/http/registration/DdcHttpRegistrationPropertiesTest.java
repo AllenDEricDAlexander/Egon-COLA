@@ -16,20 +16,20 @@ class DdcHttpRegistrationPropertiesTest {
             new ApplicationContextRunner()
                     .withUserConfiguration(PropertiesConfiguration.class)
                     .withPropertyValues(
-                            "egon.cola.component.ddc.registry.http.enabled=true",
-                            "egon.cola.component.ddc.registry.http.env=test",
-                            "egon.cola.component.ddc.registry.http.namespace=gateway-test",
-                            "egon.cola.component.ddc.registry.http.instance-id=orders-1",
-                            "egon.cola.component.ddc.registry.http.service-name=orders",
-                            "egon.cola.component.ddc.registry.http.group=blue",
-                            "egon.cola.component.ddc.registry.http.version=1.0.0",
-                            "egon.cola.component.ddc.registry.http.protocol=http",
-                            "egon.cola.component.ddc.registry.http.advertised-host=127.0.0.1",
-                            "egon.cola.component.ddc.registry.http.port=0",
-                            "egon.cola.component.ddc.registry.http.lease-seconds=30",
-                            "egon.cola.component.ddc.registry.http.heartbeat-interval-seconds=10",
-                            "egon.cola.component.ddc.registry.http.fail-fast=true",
-                            "egon.cola.component.ddc.registry.http.metadata.gateway.weight=100"
+                            "egon.cola.component.tianshu.registry.http.enabled=true",
+                            "egon.cola.component.tianshu.registry.http.env=test",
+                            "egon.cola.component.tianshu.registry.http.namespace=yuheng-test",
+                            "egon.cola.component.tianshu.registry.http.instance-id=orders-1",
+                            "egon.cola.component.tianshu.registry.http.service-name=orders",
+                            "egon.cola.component.tianshu.registry.http.group=blue",
+                            "egon.cola.component.tianshu.registry.http.version=1.0.0",
+                            "egon.cola.component.tianshu.registry.http.protocol=http",
+                            "egon.cola.component.tianshu.registry.http.advertised-host=127.0.0.1",
+                            "egon.cola.component.tianshu.registry.http.port=0",
+                            "egon.cola.component.tianshu.registry.http.lease-seconds=30",
+                            "egon.cola.component.tianshu.registry.http.heartbeat-interval-seconds=10",
+                            "egon.cola.component.tianshu.registry.http.fail-fast=true",
+                            "egon.cola.component.tianshu.registry.http.metadata.yuheng.weight=100"
                     );
 
     @Test
@@ -43,7 +43,7 @@ class DdcHttpRegistrationPropertiesTest {
                     properties.toRuntime(
                             "1.0.0",
                             Map.of(
-                                    "gateway.definition-set-id",
+                                    "yuheng.definition-set-id",
                                     "definition-set-a"
                             ),
                             18101
@@ -51,7 +51,7 @@ class DdcHttpRegistrationPropertiesTest {
 
             assertThat(properties.isEnabled()).isTrue();
             assertThat(runtime.env()).isEqualTo("test");
-            assertThat(runtime.namespace()).isEqualTo("gateway-test");
+            assertThat(runtime.namespace()).isEqualTo("yuheng-test");
             assertThat(runtime.instanceId()).isEqualTo("orders-1");
             assertThat(runtime.serviceName()).isEqualTo("orders");
             assertThat(runtime.group()).isEqualTo("blue");
@@ -59,11 +59,11 @@ class DdcHttpRegistrationPropertiesTest {
             assertThat(runtime.host()).isEqualTo("127.0.0.1");
             assertThat(runtime.port()).isEqualTo(18101);
             assertThat(runtime.metadata()).containsEntry(
-                    "gateway.definition-set-id",
+                    "yuheng.definition-set-id",
                     "definition-set-a"
             );
             assertThat(runtime.metadata()).containsEntry(
-                    "gateway.weight",
+                    "yuheng.weight",
                     "100"
             );
         });
@@ -72,8 +72,8 @@ class DdcHttpRegistrationPropertiesTest {
     @Test
     void rejectsProductionLoopbackAddress() {
         assertInvalid(
-                "egon.cola.component.ddc.registry.http.env=prod",
-                "egon.cola.component.ddc.registry.http.port=8080",
+                "egon.cola.component.tianshu.registry.http.env=prod",
+                "egon.cola.component.tianshu.registry.http.port=8080",
                 "wildcard or loopback provider host is not allowed"
         );
     }
@@ -81,7 +81,7 @@ class DdcHttpRegistrationPropertiesTest {
     @Test
     void rejectsHeartbeatThatIsNotShorterThanLease() {
         assertInvalid(
-                "egon.cola.component.ddc.registry.http.heartbeat-interval-seconds=30",
+                "egon.cola.component.tianshu.registry.http.heartbeat-interval-seconds=30",
                 "heartbeat interval must be positive and less than lease"
         );
     }
@@ -89,7 +89,7 @@ class DdcHttpRegistrationPropertiesTest {
     @Test
     void rejectsUnsupportedProtocol() {
         assertInvalid(
-                "egon.cola.component.ddc.registry.http.protocol=grpc",
+                "egon.cola.component.tianshu.registry.http.protocol=grpc",
                 "protocol must be http or https"
         );
     }

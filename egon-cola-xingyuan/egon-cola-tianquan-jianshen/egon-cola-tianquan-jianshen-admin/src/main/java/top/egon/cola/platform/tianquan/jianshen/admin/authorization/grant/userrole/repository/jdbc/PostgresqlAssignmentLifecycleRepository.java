@@ -31,7 +31,7 @@ public class PostgresqlAssignmentLifecycleRepository
      * 含义与用法：读取、传递或更新 `ACTOR` 时应保持 `PostgresqlAssignmentLifecycleRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `ACTOR`, preserve `PostgresqlAssignmentLifecycleRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final String ACTOR = "rbac3-assignment-lifecycle-worker";
+    private static final String ACTOR = "tianquan-jianshen-assignment-lifecycle-worker";
 
     /**
      * 字段 `entityManager` 表示 `PostgresqlAssignmentLifecycleRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。

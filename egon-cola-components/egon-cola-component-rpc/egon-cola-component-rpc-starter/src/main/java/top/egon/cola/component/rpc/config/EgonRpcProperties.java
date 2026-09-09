@@ -228,7 +228,7 @@ public class EgonRpcProperties {
 
         private long gatewayDiscoveryTimeoutMs = 5000;
 
-        private String gatewayServiceName = "egon-gateway-rpc";
+        private String gatewayServiceName = "egon-yuheng-rpc";
 
         private String gatewayGroup = "default";
 

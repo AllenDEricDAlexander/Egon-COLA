@@ -1,6 +1,6 @@
 spring:
   application:
-    name: gateway-test-rpc-consumer
+    name: yuheng-test-rpc-consumer
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -20,26 +20,26 @@ egon:
     component:
       id:
         enabled: false
-      ddc:
+      tianshu:
         enabled: false
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           load-balancing-policy: round_robin
           tls:
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         registry:
           enabled: false
       rpc:
         enabled: false
         consumer:
           enabled: false
-          gateway-service-name: egon-gateway-rpc
-          gateway-group: default
-          gateway-version: 1.0.0
+          yuheng-service-name: egon-yuheng-rpc
+          yuheng-group: default
+          yuheng-version: 1.0.0

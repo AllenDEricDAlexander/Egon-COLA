@@ -88,7 +88,7 @@ public final class ReactorNettyWebSocketUpstreamAdapter
      * 用法 / Usage: 该字段通过 {@code ReactorNettyWebSocketUpstreamAdapter} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code ReactorNettyWebSocketUpstreamAdapter}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final AttributeKey<Boolean> SUBPROTOCOL_OMITTED =
-            AttributeKey.valueOf("gateway.ws.subprotocol.omitted");
+            AttributeKey.valueOf("yuheng.ws.subprotocol.omitted");
 
     /**
      * 中文说明：保存 客户端 对应的状态、依赖或配置值；字段类型为 {@code HttpClient}，由 {@code ReactorNettyWebSocketUpstreamAdapter} 在其生命周期内读取或更新。
@@ -200,7 +200,7 @@ public final class ReactorNettyWebSocketUpstreamAdapter
             connection.dispose();
             return GatewayWebSocketHandshakeResult.rejected(
                     502,
-                    "GATEWAY_WEBSOCKET_INVALID_UPSTREAM_SESSION",
+                    "YUHENG_WEBSOCKET_INVALID_UPSTREAM_SESSION",
                     "upstream did not expose a WebSocket session"
             );
         }
@@ -219,7 +219,7 @@ public final class ReactorNettyWebSocketUpstreamAdapter
             peer.dispose();
             return GatewayWebSocketHandshakeResult.rejected(
                     502,
-                    "GATEWAY_WEBSOCKET_SUBPROTOCOL_MISMATCH",
+                    "YUHENG_WEBSOCKET_SUBPROTOCOL_MISMATCH",
                     "upstream selected an unoffered subprotocol"
             );
         }
@@ -257,7 +257,7 @@ public final class ReactorNettyWebSocketUpstreamAdapter
         }
         return GatewayWebSocketHandshakeResult.rejected(
                 status,
-                "GATEWAY_WEBSOCKET_UPSTREAM_HANDSHAKE_FAILED",
+                "YUHENG_WEBSOCKET_UPSTREAM_HANDSHAKE_FAILED",
                 failure.getClass().getSimpleName()
         );
     }

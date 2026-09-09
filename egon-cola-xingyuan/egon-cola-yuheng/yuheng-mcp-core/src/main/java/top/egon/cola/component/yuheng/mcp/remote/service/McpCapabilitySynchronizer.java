@@ -166,7 +166,7 @@ public final class McpCapabilitySynchronizer {
                 "protocolVersion", provider.dialect().protocolVersion(),
                 "capabilities", Map.of(),
                 "clientInfo", Map.of(
-                        "name", "egon-cola-gateway",
+                        "name", "egon-cola-yuheng",
                         "version", "5.3.2"
                 )
         );

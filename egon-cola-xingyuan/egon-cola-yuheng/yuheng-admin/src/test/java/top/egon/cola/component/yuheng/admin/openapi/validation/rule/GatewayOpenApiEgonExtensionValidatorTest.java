@@ -24,6 +24,6 @@ class GatewayOpenApiEgonExtensionValidatorTest {
                            "artifactVersion":"1.0.0","buildId":"other-build","openapiGroup":"orders"}}
                         """
                 )
-        ).code()).isEqualTo("GATEWAY_OPENAPI_BUILD_MISMATCH");
+        ).code()).isEqualTo("YUHENG_OPENAPI_BUILD_MISMATCH");
     }
 }

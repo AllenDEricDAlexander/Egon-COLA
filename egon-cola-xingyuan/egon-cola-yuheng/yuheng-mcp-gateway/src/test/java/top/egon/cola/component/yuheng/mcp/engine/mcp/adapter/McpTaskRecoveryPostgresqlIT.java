@@ -34,15 +34,15 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class McpTaskRecoveryPostgresqlIT {
 
     private final String jdbcUrl = environment(
-            "GATEWAY_MCP_TEST_POSTGRES_URL"
+            "YUHENG_MCP_TEST_POSTGRES_URL"
     );
 
     private final String user = environment(
-            "GATEWAY_MCP_TEST_POSTGRES_USER"
+            "YUHENG_MCP_TEST_POSTGRES_USER"
     );
 
     private final String password = environment(
-            "GATEWAY_MCP_TEST_POSTGRES_PASSWORD"
+            "YUHENG_MCP_TEST_POSTGRES_PASSWORD"
     );
 
     private final String schema = "gateway_mcp_task_"

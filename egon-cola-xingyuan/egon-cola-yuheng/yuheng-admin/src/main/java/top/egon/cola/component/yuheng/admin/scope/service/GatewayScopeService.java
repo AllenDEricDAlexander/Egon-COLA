@@ -132,7 +132,7 @@ public class GatewayScopeService {
         } catch (DdcManagementClientException
                  | UnsupportedOperationException error) {
             throw new IllegalStateException(
-                    "DDC scope catalog is unavailable",
+                    "Tianshu scope catalog is unavailable",
                     error
             );
         }
@@ -151,7 +151,7 @@ public class GatewayScopeService {
                 .filter(value -> exact(value, query))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "DDC scope binding is not enabled"
+                        "Tianshu scope binding is not enabled"
                 ));
     }
 
@@ -165,7 +165,7 @@ public class GatewayScopeService {
     private DdcManagementClient client() {
         if (client == null) {
             throw new IllegalStateException(
-                    "DDC management client is not configured"
+                    "Tianshu management client is not configured"
             );
         }
         return client;

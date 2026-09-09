@@ -32,14 +32,14 @@ import java.util.Map;
 @EnableMethodSecurity
 public class GatewayAdminSecurityConfiguration {
 
-    /** Allows the management API to serve both RBAC3 users and scoped publishers. */
+    /** Allows the management API to serve both Tianquan-Jianshen users and scoped publishers. */
     @Bean
     public IdpEndpointAuthenticationPolicy
             gatewayAdminEndpointAuthenticationPolicy() {
         return new IdpEndpointAuthenticationPolicy(
                 List.of(),
                 List.of(),
-                List.of("/api/v1/gateway/admin/**"),
+                List.of("/api/v1/yuheng/admin/**"),
                 true
         );
     }
@@ -85,7 +85,7 @@ public class GatewayAdminSecurityConfiguration {
                 ))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(
-                                "/api/v1/gateway/openapi/interface-definitions/**",
+                                "/api/v1/yuheng/openapi/interface-definitions/**",
                                 "/actuator/health/**",
                                 "/actuator/info"
                         ).permitAll()
@@ -95,11 +95,11 @@ public class GatewayAdminSecurityConfiguration {
                         .authenticationEntryPoint((request, response, error) ->
                                 writeSecurityError(response, objectMapper,
                                         HttpServletResponse.SC_UNAUTHORIZED,
-                                        "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"))
+                                        "YUHENG_ADMIN_AUTHENTICATION_REQUIRED"))
                         .accessDeniedHandler((request, response, error) ->
                                 writeSecurityError(response, objectMapper,
                                         HttpServletResponse.SC_FORBIDDEN,
-                                        "GATEWAY_ADMIN_CAPABILITY_REQUIRED")));
+                                        "YUHENG_ADMIN_CAPABILITY_REQUIRED")));
         if (idpFilter != null && rbac3Filter != null
                 && serviceAuthorityFilter != null) {
             http.addFilterBefore(idpFilter, AnonymousAuthenticationFilter.class);
@@ -111,7 +111,7 @@ public class GatewayAdminSecurityConfiguration {
                     GatewayAdminServiceAuthorityFilter.class);
         } else {
             throw new IllegalStateException(
-                    "IdP, Gateway service, and RBAC3 authentication filters must be configured together");
+                    "Tianquan-Shoubing, Gateway service, and Tianquan-Jianshen authentication filters must be configured together");
         }
         return http.build();
     }

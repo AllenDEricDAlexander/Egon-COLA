@@ -20,7 +20,7 @@ import java.util.Objects;
 
 /** CI-only global resource registration endpoint; it never accepts a tenant id. */
 @RestController
-@RequestMapping("/api/rbac3/v1/registration")
+@RequestMapping("/api/tianquan-jianshen/v1/registration")
 public class CiResourceRegistrationController {
 
     private final CiResourceRegistrationService service;
@@ -32,9 +32,9 @@ public class CiResourceRegistrationController {
     @PutMapping("/businesses/{businessCode}/applications/{applicationCode}/frontend-resources")
     @RequiresServiceScope(CiResourceRegistrationService.REGISTRATION_SCOPE)
     @Operation(
-            operationId = "rbac3-resource-registration-v1",
+            operationId = "tianquan-jianshen-resource-registration-v1",
             summary = "接收流水线前端资源注册",
-            tags = {"rbac3", "resource", "ci"}
+            tags = {"tianquan-jianshen", "resource", "ci"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

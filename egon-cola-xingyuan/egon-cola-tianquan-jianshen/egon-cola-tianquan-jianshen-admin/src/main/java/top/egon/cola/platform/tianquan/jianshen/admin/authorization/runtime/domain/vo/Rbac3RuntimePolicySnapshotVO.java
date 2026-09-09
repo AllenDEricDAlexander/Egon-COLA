@@ -4,7 +4,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Runtime RBAC policy; token and authentication lifecycle are IdP concerns.
+ * Runtime RBAC policy; token and authentication lifecycle are Tianquan-Shoubing concerns.
  */
 public record Rbac3RuntimePolicySnapshotVO(
         int maximumActiveRoots,

@@ -15,18 +15,18 @@ import java.net.InetAddress;
 import java.util.Properties;
 
 /**
- * 根据配置、运行环境和可选扩展创建稳定的 DDC 实例身份。
- * Creates a stable DDC instance identity from configuration, runtime facts, and an optional extension.
+ * 根据配置、运行环境和可选扩展创建稳定的 Tianshu 实例身份。
+ * Creates a stable Tianshu instance identity from configuration, runtime facts, and an optional extension.
  */
 public class DdcInstanceIdentityFactory {
 
     /**
      * 包含构建期 SDK 版本的类路径资源。 Classpath resource containing the build-time SDK version.
      */
-    private static final String VERSION_RESOURCE = "META-INF/egon-cola-ddc.properties";
+    private static final String VERSION_RESOURCE = "META-INF/egon-cola-tianshu.properties";
 
     /**
-     * DDC 客户端配置。 DDC client configuration.
+     * Tianshu 客户端配置。 Tianshu client configuration.
      */
     private final DdcProperties properties;
     /**
@@ -38,7 +38,7 @@ public class DdcInstanceIdentityFactory {
      * 创建使用配置或 UUIDv7 生成实例标识的工厂。
      * Creates a factory that obtains instance identifiers from configuration or UUIDv7 generation.
      *
-     * @param properties DDC 客户端配置; DDC client configuration
+     * @param properties Tianshu 客户端配置; Tianshu client configuration
      */
     public DdcInstanceIdentityFactory(DdcProperties properties) {
         this(properties, null);
@@ -48,7 +48,7 @@ public class DdcInstanceIdentityFactory {
      * 创建支持自定义实例标识提供器的工厂。
      * Creates a factory supporting a custom instance identifier provider.
      *
-     * @param properties         DDC 客户端配置; DDC client configuration
+     * @param properties         Tianshu 客户端配置; Tianshu client configuration
      * @param instanceIdProvider 可选实例标识提供器; optional instance identifier provider
      */
     public DdcInstanceIdentityFactory(
@@ -59,8 +59,8 @@ public class DdcInstanceIdentityFactory {
     }
 
     /**
-     * 构建当前进程的 DDC 实例身份。
-     * Builds the DDC instance identity for the current process.
+     * 构建当前进程的 Tianshu 实例身份。
+     * Builds the Tianshu instance identity for the current process.
      *
      * @return 当前实例身份; current instance identity
      * @throws DdcException 自定义标识为空或 SDK 版本资源无效时抛出; thrown for a blank custom identifier or invalid SDK version resource
@@ -95,7 +95,7 @@ public class DdcInstanceIdentityFactory {
         if (instanceIdProvider != null) {
             String provided = normalized(instanceIdProvider.getInstanceId());
             if (provided == null) {
-                throw new DdcException("custom DDC instance id must not be blank");
+                throw new DdcException("custom Tianshu instance id must not be blank");
             }
             return provided;
         }
@@ -115,8 +115,8 @@ public class DdcInstanceIdentityFactory {
     }
 
     /**
-     * 从构建期资源读取有效的 DDC SDK 版本。
-     * Reads a valid DDC SDK version from the build-time resource.
+     * 从构建期资源读取有效的 Tianshu SDK 版本。
+     * Reads a valid Tianshu SDK version from the build-time resource.
      *
      * @return SDK 版本; SDK version
      * @throws DdcException 资源缺失、无法读取或仍包含占位符时抛出; thrown when the resource is missing, unreadable, or unresolved
@@ -127,11 +127,11 @@ public class DdcInstanceIdentityFactory {
             version.load(input);
             String value = version.getProperty("sdk.version");
             if (value == null || value.isBlank() || value.contains("${")) {
-                throw new DdcException("DDC SDK version resource is invalid");
+                throw new DdcException("Tianshu SDK version resource is invalid");
             }
             return value;
         } catch (IOException exception) {
-            throw new DdcException("load DDC SDK version failed", exception);
+            throw new DdcException("load Tianshu SDK version failed", exception);
         }
     }
 

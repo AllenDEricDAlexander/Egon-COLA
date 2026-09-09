@@ -13,8 +13,8 @@ import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 import java.util.function.Consumer;
 
 /**
- * DDC 服务注册、租约维护、发现与订阅客户端契约。
- * / Client contract for DDC service registration, lease maintenance, discovery, and subscription.
+ * Tianshu 服务注册、租约维护、发现与订阅客户端契约。
+ * / Client contract for Tianshu service registration, lease maintenance, discovery, and subscription.
  */
 public interface DdcServiceRegistryClient {
 

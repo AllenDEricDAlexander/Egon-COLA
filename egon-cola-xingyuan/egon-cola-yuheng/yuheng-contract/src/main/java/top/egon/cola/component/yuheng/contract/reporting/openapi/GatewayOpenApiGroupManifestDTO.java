@@ -12,7 +12,7 @@ import java.util.List;
 
 /**
  * The bounded, normalized OpenAPI group membership contract published through
- * DDC and consumed by Gateway Admin. It deliberately contains locations and
+ * Tianshu and consumed by Gateway Admin. It deliberately contains locations and
  * build identity only; it never carries a document or credential.
  */
 public record GatewayOpenApiGroupManifestDTO(

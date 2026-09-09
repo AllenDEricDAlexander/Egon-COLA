@@ -43,7 +43,7 @@ class TenantContextFilterTest {
 
         authenticate(principal("tenant-1", Set.of()));
         MockHttpServletRequest forged = request("/api/v1/auth/bootstrap");
-        forged.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
+        forged.addHeader("X-TIANQUAN-JIANSHEN-Target-Tenant", "tenant-2");
         assertEquals(403, execute(forged).getStatus());
     }
 
@@ -51,7 +51,7 @@ class TenantContextFilterTest {
     void rejectsTenantConflictBeforeTheRequestChain() throws Exception {
         authenticate(principal("tenant-1", Set.of()));
         MockHttpServletRequest request = request("/api/v1/auth/bootstrap");
-        request.addHeader("X-RBAC3-Tenant", "tenant-2");
+        request.addHeader("X-TIANQUAN-JIANSHEN-Tenant", "tenant-2");
         MockFilterChain chain = new MockFilterChain();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -65,7 +65,7 @@ class TenantContextFilterTest {
     void allowsExplicitPlatformTargetOnlyWithPermission() throws Exception {
         authenticate(principal("platform", Set.of("system:platform:admin", "system:tenant:target")));
         MockHttpServletRequest request = request("/api/v1/platform/tenants/users");
-        request.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
+        request.addHeader("X-TIANQUAN-JIANSHEN-Target-Tenant", "tenant-2");
         MockFilterChain chain = new MockFilterChain();
         MockHttpServletResponse response = new MockHttpServletResponse();
 
@@ -79,8 +79,8 @@ class TenantContextFilterTest {
     @Test
     void targetTenantPermissionAloneDoesNotImplyPlatformAdministration() throws Exception {
         authenticate(principal("platform", Set.of("system:tenant:target")));
-        MockHttpServletRequest request = request("/api/rbac3/v1/platform/tenants/users");
-        request.addHeader("X-RBAC3-Target-Tenant", "tenant-2");
+        MockHttpServletRequest request = request("/api/tianquan-jianshen/v1/platform/tenants/users");
+        request.addHeader("X-TIANQUAN-JIANSHEN-Target-Tenant", "tenant-2");
         assertEquals(403, execute(request).getStatus());
     }
 
@@ -90,7 +90,7 @@ class TenantContextFilterTest {
         ServiceIdentityPrincipal principal = new ServiceIdentityPrincipal(
                 "finance-service", "tenant-1", "finance-service",
                 "service-token-1",
-                URI.create("https://api.example/prod/permission/rbac3"),
+                URI.create("https://api.example/prod/permission/tianquan-jianshen"),
                 12L, Set.of("service:authorization:decide"),
                 "finance", "finance-web", "prod", "credential-1",
                 issuedAt, issuedAt.plusSeconds(300));
@@ -98,8 +98,8 @@ class TenantContextFilterTest {
                 UsernamePasswordAuthenticationToken.authenticated(
                         principal, "n/a", Set.of()));
         MockHttpServletRequest request = request(
-                "/api/rbac3/v1/internal/authorization/decisions");
-        request.addHeader("X-RBAC3-Tenant", "tenant-1");
+                "/api/tianquan-jianshen/v1/internal/authorization/decisions");
+        request.addHeader("X-TIANQUAN-JIANSHEN-Tenant", "tenant-1");
         MockFilterChain chain = new MockFilterChain();
 
         filter.doFilter(request, new MockHttpServletResponse(), chain);
@@ -128,10 +128,10 @@ class TenantContextFilterTest {
     private Rbac3UserDetails principal(String tenantId, Set<String> permissions) {
         Instant now = Instant.parse("2026-08-10T00:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
-                "user-1", tenantId, "access-token", Set.of("rbac3-admin-web"),
+                "user-1", tenantId, "access-token", Set.of("tianquan-jianshen-admin-web"),
                 now, now.plusSeconds(300), AuthenticationContext.of("PASSWORD", now));
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                tenantId, "user-1", "user-1", "rbac3-admin", 1L, 1L,
+                tenantId, "user-1", "user-1", "tianquan-jianshen-admin", 1L, 1L,
                 List.of(), permissions, Map.of(), Map.of(),
                 "sha256:test", now, now.plusSeconds(300));
         return new Rbac3UserDetails(identity, snapshot);

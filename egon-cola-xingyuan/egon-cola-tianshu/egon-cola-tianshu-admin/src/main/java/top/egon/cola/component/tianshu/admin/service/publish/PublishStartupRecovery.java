@@ -66,14 +66,14 @@ public class PublishStartupRecovery implements ApplicationRunner {
     }
 
     @Scheduled(
-            fixedDelayString = "${egon.cola.component.ddc.admin.publish.recovery-stale-ms:120000}",
-            initialDelayString = "${egon.cola.component.ddc.admin.publish.recovery-stale-ms:120000}"
+            fixedDelayString = "${egon.cola.component.tianshu.admin.publish.recovery-stale-ms:120000}",
+            initialDelayString = "${egon.cola.component.tianshu.admin.publish.recovery-stale-ms:120000}"
     )
     public int recoverStale() {
         long staleMs = properties.getPublish().getRecoveryStaleMs();
         if (staleMs <= 0) {
             throw new IllegalStateException(
-                    "DDC publish recovery stale interval must be positive"
+                    "Tianshu publish recovery stale interval must be positive"
             );
         }
         LocalDateTime staleBefore = LocalDateTime.ofInstant(

@@ -55,7 +55,7 @@ class DdcRpcClientFactoryTest {
                     .isEqualTo("biz");
             assertThat(servicesRequest.get().getQuery().getServiceKind())
                     .isEqualTo(top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                            .DdcServiceKind.DDC_SERVICE_KIND_RPC_PROVIDER);
+                            .DdcServiceKind.TIANSHU_SERVICE_KIND_RPC_PROVIDER);
             assertThat(findRequest.get().getScope().getAppCode())
                     .isEqualTo("app");
         } finally {

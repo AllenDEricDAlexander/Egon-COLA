@@ -34,7 +34,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Adapts the fixed IdP identity-only Gateway security chain to MCP ingress.
+ * Adapts the fixed Tianquan-Shoubing identity-only Gateway security chain to MCP ingress.
  * 补充说明 / Supplementary summary: {@code McpGatewayIdentityAuthenticator} 是类型，位于当前 Gateway 模块的相关包中，负责MCP网关身份Authenticator相关的职责与边界。
  * English supplement: {@code McpGatewayIdentityAuthenticator} is a type in the current Gateway module; it owns the mcp gateway identity authenticator-related responsibility and boundary.
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
@@ -50,10 +50,10 @@ public final class McpGatewayIdentityAuthenticator
      */
     private static final GatewaySecurityPolicy IDENTITY_ONLY_POLICY =
             new GatewaySecurityPolicy(
-                    "gateway-mcp-idp",
+                    "yuheng-mcp-tianquan-shoubing",
                     AuthenticationMode.REQUIRED,
-                    List.of("idp-user-cookie"),
-                    List.of("idp-jwt"),
+                    List.of("tianquan-shoubing-user-cookie"),
+                    List.of("tianquan-shoubing-jwt"),
                     List.of(),
                     AuthorizationDecisionMode.ALL_ALLOW,
                     null,
@@ -139,7 +139,7 @@ public final class McpGatewayIdentityAuthenticator
         GatewayAuthContext auth = new GatewayAuthContext(
                 accessZone,
                 GatewayProtocol.HTTP,
-                "gateway.mcp." + server.serverCode(),
+                "yuheng.mcp." + server.serverCode(),
                 null,
                 IDENTITY_ONLY_POLICY.policyId(),
                 request.path(),
@@ -159,9 +159,9 @@ public final class McpGatewayIdentityAuthenticator
                 request.header("traceparent"),
                 request.header("tracestate"),
                 accessZone,
-                "gateway",
+                "yuheng",
                 engineNodeId,
-                "gateway.mcp." + server.serverCode(),
+                "yuheng.mcp." + server.serverCode(),
                 null,
                 "mcp-runtime",
                 anonymous,
@@ -245,7 +245,7 @@ public final class McpGatewayIdentityAuthenticator
      * @return 返回 安全Attributes 的处理结果；returns the result of the operation.
      */
     static Map<String, String> securityAttributes(McpRuntimeServer server) {
-        return Map.of("idp.resource-uri", server.resourceUri());
+        return Map.of("tianquan-shoubing.resource-uri", server.resourceUri());
     }
 
     /**

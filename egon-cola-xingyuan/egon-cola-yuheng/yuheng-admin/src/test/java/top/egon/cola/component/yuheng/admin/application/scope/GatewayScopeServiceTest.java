@@ -40,7 +40,7 @@ class GatewayScopeServiceTest {
                 binding("binding-ops", "ops", true)
         ));
         when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-                .thenReturn(List.of(application("gateway-order")));
+                .thenReturn(List.of(application("yuheng-order")));
 
         assertThat(service.list())
                 .extracting(
@@ -48,8 +48,8 @@ class GatewayScopeServiceTest {
                         top.egon.cola.component.yuheng.admin.scope.domain.vo.GatewayScopeVO::gatewayApplicationId
                 )
                 .containsExactly(
-                        tuple("default", "gateway-order"),
-                        tuple("ops", "gateway-order")
+                        tuple("default", "yuheng-order"),
+                        tuple("ops", "yuheng-order")
                 );
     }
 
@@ -57,14 +57,14 @@ class GatewayScopeServiceTest {
     void reportsDdcFailureInsteadOfReturningStaticScopes() {
         when(client.getScopeBindings(any()))
                 .thenThrow(new DdcManagementClientException(
-                        "DDC_MANAGEMENT_IO_ERROR",
+                        "TIANSHU_MANAGEMENT_IO_ERROR",
                         "offline",
                         null
                 ));
 
         assertThatThrownBy(service::list)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("DDC scope catalog");
+                .hasMessageContaining("Tianshu scope catalog");
     }
 
     private DdcManagementScopeBinding binding(
@@ -76,7 +76,7 @@ class GatewayScopeServiceTest {
                 "retail",
                 namespace,
                 "local",
-                "ddc-order",
+                "tianshu-order",
                 "order",
                 "Order",
                 enabled

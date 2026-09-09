@@ -33,15 +33,15 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/mcp/remote")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/mcp/remote")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class McpRemoteProviderController {
 
     /**
@@ -95,7 +95,7 @@ public class McpRemoteProviderController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/providers")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO createProvider(
             @Valid @RequestBody McpRemoteProviderRequestDTO request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -124,7 +124,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/providers/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO updateProvider(
             @PathVariable String id,
             @Valid @RequestBody McpRemoteProviderRequestDTO request,
@@ -154,7 +154,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/providers/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO deleteProvider(
             @PathVariable String id,
             @Valid @RequestBody top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpServerMutationRequestDTO request,
@@ -181,7 +181,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/providers/{id}/discover")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:test','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:test','CAP_*')")
     public List<top.egon.cola.component.yuheng.admin.mcp.domain.po.McpRemoteCapabilityPO> discover(
             @PathVariable String id) {
         return service.remoteCapabilities(id);
@@ -219,7 +219,7 @@ public class McpRemoteProviderController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/mounts")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO createMount(
             @Valid @RequestBody McpRemoteMountRequestDTO request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -248,7 +248,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/mounts/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO updateMount(
             @PathVariable String id,
             @Valid @RequestBody McpRemoteMountRequestDTO request,
@@ -278,7 +278,7 @@ public class McpRemoteProviderController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/mounts/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO deleteMount(
             @PathVariable String id,
             @Valid @RequestBody top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpServerMutationRequestDTO request,

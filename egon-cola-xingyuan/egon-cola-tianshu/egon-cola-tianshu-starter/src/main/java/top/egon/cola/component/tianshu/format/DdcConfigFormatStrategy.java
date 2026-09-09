@@ -6,8 +6,8 @@ import top.egon.cola.component.tianshu.model.config.DdcConfigFormat;
 import java.io.IOException;
 
 /**
- * 将一种配置内容格式解析为 DDC 动态属性源的策略接口。
- * Strategy interface that parses one configuration content format into a DDC dynamic property source.
+ * 将一种配置内容格式解析为 Tianshu 动态属性源的策略接口。
+ * Strategy interface that parses one configuration content format into a Tianshu dynamic property source.
  *
  * <p>该接口是新增配置文件类型的唯一扩展点。调用方只通过格式注册表选择策略，不感知具体解析器。</p>
  * <p>This interface is the sole extension point for additional configuration file types. Callers select a

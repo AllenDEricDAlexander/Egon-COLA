@@ -28,15 +28,15 @@ class GatewayOpenApiRegistrationContributorTest {
         assertThat(contributor.serviceVersion()).isEqualTo("1.0.0");
         assertThat(contributor.metadata()).containsExactlyInAnyOrderEntriesOf(
                 Map.of(
-                        "gateway.definition-source", "OPENAPI31",
-                        "gateway.openapi.enabled", "true",
-                        "gateway.openapi.path-template", "/v3/api-docs/{group}",
-                        "gateway.openapi.spec", "3.1",
-                        "gateway.openapi.groups", "inventory,orders",
-                        "gateway.openapi.resource-uri",
+                        "yuheng.definition-source", "OPENAPI31",
+                        "yuheng.openapi.enabled", "true",
+                        "yuheng.openapi.path-template", "/v3/api-docs/{group}",
+                        "yuheng.openapi.spec", "3.1",
+                        "yuheng.openapi.groups", "inventory,orders",
+                        "yuheng.openapi.resource-uri",
                         "https://order-service.example.test",
-                        "gateway.artifact-version", "1.0.0",
-                        "gateway.build-id", "build-1"
+                        "yuheng.artifact-version", "1.0.0",
+                        "yuheng.build-id", "build-1"
                 )
         );
     }

@@ -36,15 +36,15 @@ import java.util.UUID;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/mcp/approvals")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:approve','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/mcp/approvals")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:approve','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class McpApprovalController {
 
     /**
@@ -179,7 +179,7 @@ public class McpApprovalController {
     private McpApprovalOwnerVO owner(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_AUTHENTICATION_REQUIRED"
+                    "YUHENG_ADMIN_AUTHENTICATION_REQUIRED"
             );
         }
         if (authentication.getPrincipal()
@@ -191,12 +191,12 @@ public class McpApprovalController {
                             .sorted()
                             .findFirst()
                             .orElseThrow(() -> new IllegalStateException(
-                                    "GATEWAY_ADMIN_RESOURCE_AUDIENCE_REQUIRED"
+                                    "YUHENG_ADMIN_RESOURCE_AUDIENCE_REQUIRED"
                             ))
             );
         }
         throw new IllegalStateException(
-                "GATEWAY_ADMIN_IDENTITY_PRINCIPAL_REQUIRED"
+                "YUHENG_ADMIN_IDENTITY_PRINCIPAL_REQUIRED"
         );
     }
 

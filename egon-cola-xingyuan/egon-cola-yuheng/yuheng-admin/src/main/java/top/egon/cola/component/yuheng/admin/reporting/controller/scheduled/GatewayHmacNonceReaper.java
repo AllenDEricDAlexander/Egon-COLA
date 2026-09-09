@@ -49,7 +49,7 @@ public class GatewayHmacNonceReaper {
      *
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayHmacNonceReaper.reap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
-    @Scheduled(fixedDelayString = "${gateway.admin.hmac.reap-delay:PT5M}")
+    @Scheduled(fixedDelayString = "${yuheng.admin.hmac.reap-delay:PT5M}")
     public void reap() {
         nonces.deleteExpired(clock.instant());
     }

@@ -51,8 +51,8 @@ public final class GatewayProcessHarness implements AutoCloseable {
     public GatewayProcessHarness(String scope) throws IOException {
         this(Path.of(
                 System.getProperty(
-                        "gateway.process.output.directory",
-                        "target/gateway-process-it"
+                        "yuheng.process.output.directory",
+                        "target/yuheng-process-it"
                 ),
                 scope
         ).toAbsolutePath());
@@ -214,8 +214,8 @@ public final class GatewayProcessHarness implements AutoCloseable {
             return fallback;
         }
         String prefix = spec.engineRole() == top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum.MCP
-                ? "--egon.cola.component.gateway.mcp-engine.data-directory="
-                : "--egon.cola.component.gateway.engine.data-directory=";
+                ? "--egon.cola.component.yuheng.mcp-engine.data-directory="
+                : "--egon.cola.component.yuheng.engine.data-directory=";
         List<String> values = spec.arguments().stream().filter(argument -> argument.startsWith(prefix))
                 .map(argument -> argument.substring(prefix.length())).toList();
         if (values.size() != 1 || values.getFirst().isBlank()) {

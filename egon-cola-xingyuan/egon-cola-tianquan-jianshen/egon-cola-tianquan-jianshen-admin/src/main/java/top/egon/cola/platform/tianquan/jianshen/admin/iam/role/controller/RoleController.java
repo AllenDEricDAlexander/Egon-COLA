@@ -45,12 +45,12 @@ import java.util.List;
  * Semantics and usage: use `RoleController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/roles")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/roles")
 @Tag(name = "role-permission", description = "角色与权限接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -101,9 +101,9 @@ public class RoleController {
     @GetMapping
     @RequiresPermission(value = "system:role:read")
     @Operation(
-            operationId = "rbac3-role-list-v1",
+            operationId = "tianquan-jianshen-role-list-v1",
             summary = "查询租户角色",
-            tags = {"rbac3", "role"}
+            tags = {"tianquan-jianshen", "role"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -127,9 +127,9 @@ public class RoleController {
     @PostMapping
     @RequiresPermission(value = "system:role:create")
     @Operation(
-            operationId = "rbac3-role-create-v1",
+            operationId = "tianquan-jianshen-role-create-v1",
             summary = "创建应用角色",
-            tags = {"rbac3", "role"}
+            tags = {"tianquan-jianshen", "role"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -170,9 +170,9 @@ public class RoleController {
     @PutMapping("/{roleId}")
     @RequiresPermission(value = "system:role:update")
     @Operation(
-            operationId = "rbac3-role-update-v1",
+            operationId = "tianquan-jianshen-role-update-v1",
             summary = "更新角色可变属性",
-            tags = {"rbac3", "role"}
+            tags = {"tianquan-jianshen", "role"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -209,9 +209,9 @@ public class RoleController {
     @PostMapping("/{roleId}/inheritances")
     @RequiresPermission(value = "system:role-inheritance:manage")
     @Operation(
-            operationId = "rbac3-role-inheritance-add-v1",
+            operationId = "tianquan-jianshen-role-inheritance-add-v1",
             summary = "新增角色继承边并重建闭包",
-            tags = {"rbac3", "role", "inheritance"}
+            tags = {"tianquan-jianshen", "role", "inheritance"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -243,9 +243,9 @@ public class RoleController {
     @DeleteMapping("/{roleId}/inheritances/{juniorRoleId}")
     @RequiresPermission(value = "system:role-inheritance:manage")
     @Operation(
-            operationId = "rbac3-role-inheritance-remove-v1",
+            operationId = "tianquan-jianshen-role-inheritance-remove-v1",
             summary = "删除角色继承边并重建闭包",
-            tags = {"rbac3", "role", "inheritance"}
+            tags = {"tianquan-jianshen", "role", "inheritance"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -275,9 +275,9 @@ public class RoleController {
     @GetMapping("/{roleId}/impact-analysis")
     @RequiresPermission(value = "system:role:read")
     @Operation(
-            operationId = "rbac3-role-impact-v1",
+            operationId = "tianquan-jianshen-role-impact-v1",
             summary = "分析角色族与权限扩张影响",
-            tags = {"rbac3", "role", "impact"}
+            tags = {"tianquan-jianshen", "role", "impact"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

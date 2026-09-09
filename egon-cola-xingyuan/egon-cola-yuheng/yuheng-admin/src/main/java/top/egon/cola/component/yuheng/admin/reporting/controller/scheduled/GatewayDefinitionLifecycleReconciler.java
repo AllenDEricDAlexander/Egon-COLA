@@ -157,7 +157,7 @@ public class GatewayDefinitionLifecycleReconciler {
      */
     @Scheduled(
             fixedDelayString =
-                    "${gateway.admin.definition-reconcile-delay:30000}"
+                    "${yuheng.admin.definition-reconcile-delay:30000}"
     )
     public void reconcile() {
         if (client == null) {
@@ -246,7 +246,7 @@ public class GatewayDefinitionLifecycleReconciler {
             Instant now) {
         return new GatewayAuditLogPO(
                 UuidV7.simpleString(),
-                "gateway-definition-reconciler",
+                "yuheng-definition-reconciler",
                 "SYSTEM",
                 "SCHEDULED_RECONCILER",
                 null,

@@ -50,23 +50,23 @@ class IdentityPrincipalTest {
                 "alice-sub",
                 "tenant-a",
                 "jti-a",
-                Set.of("https://api.egon.internal/prod/permission/idp"),
+                Set.of("https://api.egon.internal/prod/permission/tianquan-shoubing"),
                 Instant.EPOCH,
                 Instant.EPOCH.plusSeconds(300),
                 AuthenticationContext.password()
         );
         ServiceIdentityPrincipal service = new ServiceIdentityPrincipal(
-                "idp-service",
+                "tianquan-shoubing-service",
                 "tenant-a",
-                "idp-service",
+                "tianquan-shoubing-service",
                 "jti-service",
                 URI.create(
-                        "https://api.egon.internal/prod/permission/rbac3"
+                        "https://api.egon.internal/prod/permission/tianquan-jianshen"
                 ),
                 7L,
-                Set.of("rbac3:policy:read"),
+                Set.of("tianquan-jianshen:policy:read"),
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
                 "key-2026-01",
                 Instant.EPOCH,
@@ -75,6 +75,6 @@ class IdentityPrincipalTest {
 
         assertEquals(PrincipalType.USER, user.principalType());
         assertEquals(PrincipalType.SERVICE, service.principalType());
-        assertEquals(Set.of("rbac3:policy:read"), service.scopes());
+        assertEquals(Set.of("tianquan-jianshen:policy:read"), service.scopes());
     }
 }

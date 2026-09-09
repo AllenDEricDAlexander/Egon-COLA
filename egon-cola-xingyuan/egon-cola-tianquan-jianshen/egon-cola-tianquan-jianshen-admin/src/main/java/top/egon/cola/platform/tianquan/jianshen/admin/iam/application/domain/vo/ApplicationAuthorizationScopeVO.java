@@ -1,6 +1,6 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.application.domain.vo;
 
-/** Tenant-local RBAC authorization scope backed by a DDC Application. */
+/** Tenant-local RBAC authorization scope backed by a Tianshu Application. */
 public record ApplicationAuthorizationScopeVO(
         String applicationId,
         String ddcBusinessId,

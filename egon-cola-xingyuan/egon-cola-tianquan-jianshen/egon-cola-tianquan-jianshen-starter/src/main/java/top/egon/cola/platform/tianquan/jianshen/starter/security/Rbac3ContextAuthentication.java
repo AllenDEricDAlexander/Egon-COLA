@@ -6,7 +6,7 @@ import top.egon.cola.platform.tianquan.jianshen.starter.authorization.Authorizat
  * 类型 `Rbac3ContextAuthentication` 位于当前包内，是接口，用于承载 `Rbac3 Context Authentication` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3ContextAuthentication` is an interface in its package and carries the responsibility, state, or contract for `Rbac3 Context Authentication`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  *
- * Authentication contract retaining the bound RBAC3 runtime context.
+ * Authentication contract retaining the bound Tianquan-Jianshen runtime context.
  */
 public interface Rbac3ContextAuthentication {
 

@@ -29,7 +29,7 @@ public final class GatewayOperationSchemaValidator {
      * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final String REQUEST_MODEL =
-            "gateway-operation-request/v2";
+            "yuheng-operation-request/v2";
 
     /**
      * 中文说明：表示 响应模型 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -38,7 +38,7 @@ public final class GatewayOperationSchemaValidator {
      * 用法 / Usage: 该字段通过 {@code GatewayOperationSchemaValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayOperationSchemaValidator}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final String RESPONSE_MODEL =
-            "gateway-operation-response/v2";
+            "yuheng-operation-response/v2";
 
     /**
      * 中文说明：表示 HTTPLOCATIONS 这一固定值；它属于 {@code GatewayOperationSchemaValidator} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。

@@ -16,28 +16,28 @@ class GatewayEngineRbac3ConfigurationTest {
         loader.setResources(new ClassPathResource("application.yml"));
         Properties properties = loader.getObject();
 
-        assertEquals("${GATEWAY_MCP_RBAC3_ENABLED:false}", value(
+        assertEquals("${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}", value(
                 properties,
-                "egon.cola.platform.rbac3.enabled"
+                "egon.cola.platform.tianquan.jianshen.enabled"
         ));
         assertEquals("false", value(
                 properties,
-                "egon.cola.platform.rbac3.register-filter"
+                "egon.cola.platform.tianquan.jianshen.register-filter"
         ));
-        assertEquals("${GATEWAY_MCP_RBAC3_SYSTEM_CODE:mock-backend}", value(
+        assertEquals("${YUHENG_MCP_TIANQUAN_JIANSHEN_SYSTEM_CODE:mock-backend}", value(
                 properties,
-                "egon.cola.platform.rbac3.system-code"
+                "egon.cola.platform.tianquan.jianshen.system-code"
         ));
-        assertEquals("${GATEWAY_MCP_RBAC3_REDIS_ADDRESS:redis://127.0.0.1:6379}",
+        assertEquals("${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_ADDRESS:redis://127.0.0.1:6379}",
                 value(properties,
-                        "egon.cola.platform.rbac3.runtime.redis-address"));
-        assertEquals("${GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE:}", value(
+                        "egon.cola.platform.tianquan.jianshen.runtime.redis-address"));
+        assertEquals("${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_PASSWORD_FILE:}", value(
                 properties,
-                "egon.cola.platform.rbac3.runtime.password-file"
+                "egon.cola.platform.tianquan.jianshen.runtime.password-file"
         ));
-        assertEquals("${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}", value(
+        assertEquals("${YUHENG_MCP_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:}", value(
                 properties,
-                "egon.cola.platform.rbac3.authorization.endpoint"
+                "egon.cola.platform.tianquan.jianshen.authorization.endpoint"
         ));
     }
 

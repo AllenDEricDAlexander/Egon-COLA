@@ -1,9 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.contract;
 
 /**
- * IdP Access Token 的主体类型。
+ * Tianquan-Shoubing Access Token 的主体类型。
  *
- * <p>Principal type carried by an IdP Access Token.</p>
+ * <p>Principal type carried by an Tianquan-Shoubing Access Token.</p>
  */
 public enum PrincipalType {
 

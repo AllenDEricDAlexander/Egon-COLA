@@ -28,7 +28,7 @@ public record GatewayError(
 
     public static GatewayError internal(String traceId) {
         return new GatewayError(
-                "GATEWAY_INTERNAL_ERROR",
+                "YUHENG_INTERNAL_ERROR",
                 GatewayErrorCategory.INTERNAL_ERROR,
                 "Gateway request failed",
                 traceId,

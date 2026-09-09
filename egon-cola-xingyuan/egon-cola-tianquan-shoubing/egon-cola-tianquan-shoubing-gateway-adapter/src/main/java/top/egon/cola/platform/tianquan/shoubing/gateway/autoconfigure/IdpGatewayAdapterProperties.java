@@ -7,20 +7,20 @@ import java.time.Duration;
 import java.util.Set;
 
 /**
- * 描述 Gateway 接入统一 IdP 时使用的验证与运行时配置。
+ * 描述 Gateway 接入统一 Tianquan-Shoubing 时使用的验证与运行时配置。
  * 验证配置限定受信任的签发方、JWK 和 Resource 投影键空间；运行时配置用于建立独立的 Redis 状态连接。
  *
- * <p>Describes verification and runtime settings for integrating the Gateway with the unified IdP.
+ * <p>Describes verification and runtime settings for integrating the Gateway with the unified Tianquan-Shoubing.
  * Verification settings constrain the trusted issuer, JWK source, and Resource projection key
  * space, while runtime settings establish the dedicated Redis state connection.</p>
  */
-@ConfigurationProperties("egon.cola.platform.idp.gateway")
+@ConfigurationProperties("egon.cola.platform.tianquan.shoubing.gateway")
 public class IdpGatewayAdapterProperties {
 
     /**
-     * 是否启用 Gateway IdP 适配器。
+     * 是否启用 Gateway Tianquan-Shoubing 适配器。
      *
-     * <p>Whether the Gateway IdP adapter is enabled.</p>
+     * <p>Whether the Gateway Tianquan-Shoubing adapter is enabled.</p>
      */
     private boolean enabled;
 
@@ -39,9 +39,9 @@ public class IdpGatewayAdapterProperties {
     private String jwkSetUri;
 
     /**
-     * IdP 用户实时状态在 Redis 中使用的键前缀。
+     * Tianquan-Shoubing 用户实时状态在 Redis 中使用的键前缀。
      *
-     * <p>Redis key prefix used for current IdP user-state projections.</p>
+     * <p>Redis key prefix used for current Tianquan-Shoubing user-state projections.</p>
      */
     private String platformAudience = "platform";
 
@@ -54,7 +54,7 @@ public class IdpGatewayAdapterProperties {
     private URI refreshStatusResourceUri;
 
     private Set<String> refreshStatusScopes = Set.of(
-            "idp:refresh-token:validate");
+            "tianquan-shoubing:refresh-token:validate");
 
     private java.util.Set<String> trustedOrigins = java.util.Set.of();
 
@@ -78,9 +78,9 @@ public class IdpGatewayAdapterProperties {
     private final Runtime runtime = new Runtime();
 
     /**
-     * 创建使用默认值初始化的 Gateway IdP 适配器配置。
+     * 创建使用默认值初始化的 Gateway Tianquan-Shoubing 适配器配置。
      *
-     * <p>Creates Gateway IdP adapter settings initialized with their defaults.</p>
+     * <p>Creates Gateway Tianquan-Shoubing adapter settings initialized with their defaults.</p>
      */
     public IdpGatewayAdapterProperties() {
     }
@@ -261,9 +261,9 @@ public class IdpGatewayAdapterProperties {
     }
 
     /**
-     * 校验启用 Gateway IdP 验证所必需的配置。
+     * 校验启用 Gateway Tianquan-Shoubing 验证所必需的配置。
      *
-     * <p>Validates settings required to enable Gateway IdP verification.</p>
+     * <p>Validates settings required to enable Gateway Tianquan-Shoubing verification.</p>
      *
      * @throws IllegalStateException 当必要配置缺失或集合包含空值时；when a required setting is
      *                               missing or a configured set contains a blank value
@@ -278,7 +278,7 @@ public class IdpGatewayAdapterProperties {
         resource(refreshStatusResourceUri, "refreshStatusResourceUri");
         if (refreshStatusScopes == null || refreshStatusScopes.isEmpty()) {
             throw new IllegalStateException(
-                    "egon.cola.platform.idp.gateway.refreshStatusScopes is required");
+                    "egon.cola.platform.tianquan.shoubing.yuheng.refreshStatusScopes is required");
         }
         refreshStatusScopes.forEach(scope -> required(
                 scope, "refreshStatusScopes"));
@@ -300,7 +300,7 @@ public class IdpGatewayAdapterProperties {
     private void required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
-                    "egon.cola.platform.idp.gateway." + field + " is required");
+                    "egon.cola.platform.tianquan.shoubing.yuheng." + field + " is required");
         }
     }
 
@@ -309,16 +309,16 @@ public class IdpGatewayAdapterProperties {
                 || value.getFragment() != null
                 || !value.equals(value.normalize())) {
             throw new IllegalStateException(
-                    "egon.cola.platform.idp.gateway." + field
+                    "egon.cola.platform.tianquan.shoubing.yuheng." + field
                             + " must be an absolute normalized URI without a fragment");
         }
     }
 
     /**
-     * 描述 Gateway 读取 IdP Resource/Client 运行态所需的 Redis 连接参数。
+     * 描述 Gateway 读取 Tianquan-Shoubing Resource/Client 运行态所需的 Redis 连接参数。
      * 密码通过文件路径注入，避免把明文凭据直接放入常规配置值。
      *
-     * <p>Describes Redis connection settings used by the Gateway to read current IdP user state.
+     * <p>Describes Redis connection settings used by the Gateway to read current Tianquan-Shoubing user state.
      * The password is supplied through a file path so plaintext credentials need not be stored in
      * ordinary configuration values.</p>
      */

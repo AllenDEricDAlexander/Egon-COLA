@@ -17,9 +17,9 @@ public record GatewayTestScope(
                 .replace("-", "");
         return new GatewayTestScope(
                 suffix,
-                "gateway-" + suffix,
+                "yuheng-" + suffix,
                 "test-" + suffix,
-                "gateway-call-" + suffix,
+                "yuheng-call-" + suffix,
                 baseDirectory.resolve("engine-" + suffix)
         );
     }

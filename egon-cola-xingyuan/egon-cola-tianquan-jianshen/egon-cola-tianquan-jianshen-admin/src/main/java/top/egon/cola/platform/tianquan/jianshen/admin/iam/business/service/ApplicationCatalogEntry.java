@@ -1,6 +1,6 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.business.service;
 
-/** DDC-owned Application catalog data, including parent Business state. */
+/** Tianshu-owned Application catalog data, including parent Business state. */
 public record ApplicationCatalogEntry(
         String ddcApplicationId,
         String ddcBusinessId,

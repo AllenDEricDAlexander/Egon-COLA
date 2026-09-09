@@ -21,17 +21,17 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.RegisterServiceRequ
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.UpsertConfigRequest;
 
 /**
- * 从已发布的 DDC unary protobuf 请求中提取鉴权作用域。
- * / Extracts authorization scope from published DDC unary protobuf requests.
+ * 从已发布的 Tianshu unary protobuf 请求中提取鉴权作用域。
+ * / Extracts authorization scope from published Tianshu unary protobuf requests.
  */
 public final class DdcRpcScopeExtractor {
 
     private static final String CONFIG =
-            "egon.ddc.v1.DdcConfigRuntimeService/";
+            "egon.tianshu.v1.DdcConfigRuntimeService/";
     private static final String REGISTRY =
-            "egon.ddc.v1.DdcServiceRegistryService/";
+            "egon.tianshu.v1.DdcServiceRegistryService/";
     private static final String MANAGEMENT =
-            "egon.ddc.v1.DdcManagementService/";
+            "egon.tianshu.v1.DdcManagementService/";
 
     /** 严格提取方法对应的客户端类型和作用域。 / Strictly extracts client type and scope. */
     public Scope extract(String fullMethodName, Message request) {
@@ -88,7 +88,7 @@ public final class DdcRpcScopeExtractor {
             case MANAGEMENT + "GetInstances" -> managementQuery(
                     type(request, GetInstancesRequest.class));
             default -> throw new IllegalArgumentException(
-                    "Unknown DDC RPC method");
+                    "Unknown Tianshu RPC method");
         };
     }
 
@@ -179,7 +179,7 @@ public final class DdcRpcScopeExtractor {
 
     private <T extends Message> T type(Message value, Class<T> expected) {
         if (!expected.isInstance(value)) {
-            throw new IllegalArgumentException("Unexpected DDC RPC request type");
+            throw new IllegalArgumentException("Unexpected Tianshu RPC request type");
         }
         return expected.cast(value);
     }

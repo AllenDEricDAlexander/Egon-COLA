@@ -16,31 +16,31 @@ class GatewayOpenAiTransportLiveIT {
 
     @Test
     @EnabledIfSystemProperty(
-            named = "gateway.live.openai.test",
+            named = "yuheng.live.openai.test",
             matches = "true"
     )
     void createsManualRealtimeOperationAndProxiesWebSocketFrames()
             throws Exception {
         String runId = System.getProperty(
-                "gateway.live.openai.run-id",
+                "yuheng.live.openai.run-id",
                 Long.toString(System.currentTimeMillis())
         );
-        String applicationId = required("gateway.live.openai.application-id");
+        String applicationId = required("yuheng.live.openai.application-id");
         String gatewayGroupId = required(
-                "gateway.live.openai.gateway-group-id"
+                "yuheng.live.openai.yuheng-group-id"
         );
         URI gatewayUri = URI.create(required(
-                "gateway.live.openai.websocket-uri"
+                "yuheng.live.openai.websocket-uri"
         ));
         GatewayAdminTestClient admin = new GatewayAdminTestClient(
-                URI.create(required("gateway.live.openai.admin-base-uri")),
-                required("gateway.live.openai.admin-token")
+                URI.create(required("yuheng.live.openai.admin-base-uri")),
+                required("yuheng.live.openai.admin-token")
         );
 
         JsonNode interfaceGroup = admin.createManualInterfaceGroup(
                 applicationId,
                 Map.of(
-                        "businessCode", "gateway-live",
+                        "businessCode", "yuheng-live",
                         "businessName", "Gateway Live",
                         "entityCode", "openai-realtime-" + runId,
                         "entityName", "OpenAI Realtime",
@@ -58,15 +58,15 @@ class GatewayOpenAiTransportLiveIT {
                         Map.entry(
                                 "providerServiceName",
                                 System.getProperty(
-                                        "gateway.live.openai.provider-service",
-                                        "gateway-test-http-provider"
+                                        "yuheng.live.openai.provider-service",
+                                        "yuheng-test-http-provider"
                                 )
                         ),
                         Map.entry("group", "default"),
                         Map.entry(
                                 "version",
                                 System.getProperty(
-                                        "gateway.live.openai.provider-version",
+                                        "yuheng.live.openai.provider-version",
                                         "1.0.0-live"
                                 )
                         ),

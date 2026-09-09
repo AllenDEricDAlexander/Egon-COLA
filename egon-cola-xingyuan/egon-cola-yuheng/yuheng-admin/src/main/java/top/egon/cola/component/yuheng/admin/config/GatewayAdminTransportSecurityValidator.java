@@ -26,7 +26,7 @@ public final class GatewayAdminTransportSecurityValidator
      * 用法 / Usage: 该字段通过 {@code GatewayAdminTransportSecurityValidator} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayAdminTransportSecurityValidator}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final String PREFIX =
-            "gateway.admin.transport-security";
+            "yuheng.admin.transport-security";
 
     /**
      * 中文说明：保存 environment 对应的状态、依赖或配置值；字段类型为 {@code Environment}，由 {@code GatewayAdminTransportSecurityValidator} 在其生命周期内读取或更新。

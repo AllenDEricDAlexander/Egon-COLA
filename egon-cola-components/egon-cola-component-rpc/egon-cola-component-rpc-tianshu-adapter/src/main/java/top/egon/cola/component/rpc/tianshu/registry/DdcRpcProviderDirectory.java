@@ -13,8 +13,8 @@ import top.egon.cola.component.rpc.consumer.provider.RpcProviderSubscription;
 import java.util.function.Consumer;
 
 /**
- * DDC RPC Provider 发现到中立 Provider Directory SPI 的桥接。
- * / Bridge from DDC RPC Provider discovery to the neutral Provider Directory SPI.
+ * Tianshu RPC Provider 发现到中立 Provider Directory SPI 的桥接。
+ * / Bridge from Tianshu RPC Provider discovery to the neutral Provider Directory SPI.
  */
 public final class DdcRpcProviderDirectory implements RpcProviderDirectory {
 

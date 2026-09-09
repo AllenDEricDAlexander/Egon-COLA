@@ -14,7 +14,7 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 public final class DdcServiceKeyFactory {
 
     /**
-     * 提供当前客户端默认范围的 DDC 配置。 / DDC properties providing the current client's default scope.
+     * 提供当前客户端默认范围的 Tianshu 配置。 / Tianshu properties providing the current client's default scope.
      */
     private final DdcProperties properties;
 
@@ -22,7 +22,7 @@ public final class DdcServiceKeyFactory {
      * 创建服务键工厂。
      * / Creates a service-key factory.
      *
-     * @param properties 当前客户端的 DDC 配置 / DDC properties for the current client
+     * @param properties 当前客户端的 Tianshu 配置 / Tianshu properties for the current client
      */
     public DdcServiceKeyFactory(DdcProperties properties) {
         this.properties = properties;
@@ -202,7 +202,7 @@ public final class DdcServiceKeyFactory {
         String bizCode = properties.getBizCode();
         if (bizCode == null || bizCode.isBlank()) {
             throw new IllegalStateException(
-                    "DDC biz-code is required: egon.cola.component.ddc.biz-code"
+                    "Tianshu biz-code is required: egon.cola.component.tianshu.biz-code"
             );
         }
         return bizCode.trim();

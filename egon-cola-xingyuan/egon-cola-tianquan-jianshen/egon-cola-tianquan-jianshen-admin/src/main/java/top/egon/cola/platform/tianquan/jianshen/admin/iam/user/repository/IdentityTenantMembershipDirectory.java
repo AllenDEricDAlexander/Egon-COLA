@@ -17,10 +17,10 @@ import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import java.util.Objects;
 
 /**
- * Fail-closed RBAC adapter for the authoritative IdP tenant membership fact.
+ * Fail-closed RBAC adapter for the authoritative Tianquan-Shoubing tenant membership fact.
  *
  * <p>The adapter returns only a small verification marker. It never caches or
- * persists the IdP profile and it maps transport, missing and malformed
+ * persists the Tianquan-Shoubing profile and it maps transport, missing and malformed
  * responses to stable RBAC violations.</p>
  */
 @Component
@@ -39,7 +39,7 @@ public final class IdentityTenantMembershipDirectory {
     @EgonRpcReference(
             mode = RpcReferenceMode.DIRECT,
             bizCode = "permission",
-            appCode = "idp",
+            appCode = "tianquan-shoubing",
             timeoutMs = 1500)
     private IdentityDirectoryRpc rpc;
 
@@ -51,7 +51,7 @@ public final class IdentityTenantMembershipDirectory {
     }
 
     /**
-     * Requires the current IdP tenant, identity and membership statuses to be
+     * Requires the current Tianquan-Shoubing tenant, identity and membership statuses to be
      * ACTIVE before an RBAC write may continue.
      */
     public MembershipVerification requireActive(
@@ -61,7 +61,7 @@ public final class IdentityTenantMembershipDirectory {
         String normalizedIdentitySub = identitySub(identitySub);
         IdentityDirectoryRpc client = rpc;
         if (client == null) {
-            LOGGER.error("IdP identity RPC reference was not injected");
+            LOGGER.error("Tianquan-Shoubing identity RPC reference was not injected");
             throw unavailable();
         }
 
@@ -73,7 +73,7 @@ public final class IdentityTenantMembershipDirectory {
                             .setIdentitySub(normalizedIdentitySub)
                             .build());
         } catch (RuntimeException unavailable) {
-            LOGGER.error("IdP tenant membership RPC call failed: clientType={}, message={}",
+            LOGGER.error("Tianquan-Shoubing tenant membership RPC call failed: clientType={}, message={}",
                     client.getClass().getName(), unavailable.getMessage(), unavailable);
             throw unavailable();
         }

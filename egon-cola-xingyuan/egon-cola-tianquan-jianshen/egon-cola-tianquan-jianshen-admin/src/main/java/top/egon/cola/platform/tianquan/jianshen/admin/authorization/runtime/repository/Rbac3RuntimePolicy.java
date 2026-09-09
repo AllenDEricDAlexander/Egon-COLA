@@ -8,7 +8,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
 /**
  * 类型 `Rbac3RuntimePolicy` 位于当前包内，是接口，用于承载 `Rbac3 Runtime Policy` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3RuntimePolicy` is an interface in its package and carries the responsibility, state, or contract for `Rbac3 Runtime Policy`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Supplies one complete runtime-policy snapshot to each RBAC3 command.
+ * Supplies one complete runtime-policy snapshot to each Tianquan-Jianshen command.
  */
 @FunctionalInterface
 public interface Rbac3RuntimePolicy {

@@ -185,7 +185,7 @@ public final class DirectoryProviderSelector implements ProviderSelector {
         );
         if (loadBalancer == null) {
             throw new IllegalStateException(
-                    "GATEWAY_LOAD_BALANCER_UNAVAILABLE: "
+                    "YUHENG_LOAD_BALANCER_UNAVAILABLE: "
                             + resolved.loadBalancer()
             );
         }

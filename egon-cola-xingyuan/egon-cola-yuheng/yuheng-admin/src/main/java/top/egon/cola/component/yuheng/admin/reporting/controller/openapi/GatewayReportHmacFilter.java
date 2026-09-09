@@ -46,7 +46,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
      * 用法 / Usage: 该字段通过 {@code GatewayReportHmacFilter} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayReportHmacFilter}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final String PREFIX =
-            "/api/v1/gateway/openapi/interface-definitions/";
+            "/api/v1/yuheng/openapi/interface-definitions/";
 
     /**
      * 中文说明：表示 MAXBODYBYTES 这一固定值；它属于 {@code GatewayReportHmacFilter} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -139,7 +139,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
             GatewayHmacNonceRepository nonces,
             ObjectProvider<GatewaySecretProtector> protector,
             ObjectMapper objectMapper,
-            @Value("${gateway.admin.hmac.allowed-skew:PT5M}")
+            @Value("${yuheng.admin.hmac.allowed-skew:PT5M}")
             Duration allowedSkew) {
         this(
                 credentials,
@@ -214,7 +214,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
             if (cached.body.length > MAX_BODY_BYTES) {
                 throw new GatewayReportAuthenticationFailure(
                         413,
-                        "GATEWAY_REPORT_BODY_TOO_LARGE"
+                        "YUHENG_REPORT_BODY_TOO_LARGE"
                 );
             }
             GatewayReportAuthentication authentication =
@@ -249,7 +249,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
     private GatewayReportAuthentication authenticate(
             GatewayCachedBodyRequest request) {
         if (request.getHeader("X-Admin-Actor-Id") != null) {
-            throw failure("GATEWAY_REPORT_CREDENTIAL_REQUIRED");
+            throw failure("YUHENG_REPORT_CREDENTIAL_REQUIRED");
         }
         String accessKey = header(
                 request,
@@ -259,32 +259,32 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         Instant now = clock.instant();
         Instant signedAt = Instant.ofEpochMilli(timestamp);
         if (Duration.between(signedAt, now).abs().compareTo(allowedSkew) > 0) {
-            throw failure("GATEWAY_REPORT_TIMESTAMP_INVALID");
+            throw failure("YUHENG_REPORT_TIMESTAMP_INVALID");
         }
         top.egon.cola.component.yuheng.admin.credential.domain.po.GatewayCredentialPO credential =
                 credentials.findByAccessKey(accessKey)
                         .filter(value -> active(value, now))
                         .orElseThrow(() ->
-                                failure("GATEWAY_REPORT_CREDENTIAL_INVALID"));
+                                failure("YUHENG_REPORT_CREDENTIAL_INVALID"));
         GatewayApplicationPO application =
                 applications.findByIdAndDeletedFalse(
                                 credential.applicationId()
                         )
                         .orElseThrow(() ->
-                                failure("GATEWAY_REPORT_SCOPE_INVALID"));
+                                failure("YUHENG_REPORT_SCOPE_INVALID"));
         String requestedApplication = header(
                 request,
-                "X-Gateway-Application-Code"
+                "X-Yuheng-Application-Code"
         );
         if (!application.getApplicationCode().equals(
                 requestedApplication
         )) {
-            throw failure("GATEWAY_REPORT_SCOPE_INVALID");
+            throw failure("YUHENG_REPORT_SCOPE_INVALID");
         }
         if (protector == null) {
             throw new GatewayReportAuthenticationFailure(
                     503,
-                    "GATEWAY_REPORT_SECRET_PROTECTOR_UNAVAILABLE"
+                    "YUHENG_REPORT_SECRET_PROTECTOR_UNAVAILABLE"
             );
         }
         String nonce = header(request, GatewayRequestSigner.NONCE_HEADER);
@@ -300,7 +300,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
                 canonical.contentSha256(),
                 header(request, GatewayRequestSigner.CONTENT_SHA256_HEADER)
         )) {
-            throw failure("GATEWAY_REPORT_BODY_DIGEST_INVALID");
+            throw failure("YUHENG_REPORT_BODY_DIGEST_INVALID");
         }
         String secret;
         try {
@@ -312,13 +312,13 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
                     credential.applicationId() + ":" + accessKey
             );
         } catch (RuntimeException unavailable) {
-            throw failure("GATEWAY_REPORT_CREDENTIAL_INVALID");
+            throw failure("YUHENG_REPORT_CREDENTIAL_INVALID");
         }
         if (!signer.matches(
                 signer.sign(canonical, secret),
                 header(request, GatewayRequestSigner.SIGNATURE_HEADER)
         )) {
-            throw failure("GATEWAY_REPORT_SIGNATURE_INVALID");
+            throw failure("YUHENG_REPORT_SIGNATURE_INVALID");
         }
         if (!nonces.claim(
                 accessKey,
@@ -328,7 +328,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
         )) {
             throw new GatewayReportAuthenticationFailure(
                     409,
-                    "GATEWAY_REPORT_REPLAYED"
+                    "YUHENG_REPORT_REPLAYED"
             );
         }
         return new GatewayReportAuthentication(
@@ -374,7 +374,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
                     GatewayRequestSigner.TIMESTAMP_HEADER
             ));
         } catch (NumberFormatException invalid) {
-            throw failure("GATEWAY_REPORT_TIMESTAMP_INVALID");
+            throw failure("YUHENG_REPORT_TIMESTAMP_INVALID");
         }
     }
 
@@ -390,7 +390,7 @@ public class GatewayReportHmacFilter extends OncePerRequestFilter {
     private String header(HttpServletRequest request, String name) {
         String value = request.getHeader(name);
         if (value == null || value.isBlank()) {
-            throw failure("GATEWAY_REPORT_HEADER_MISSING");
+            throw failure("YUHENG_REPORT_HEADER_MISSING");
         }
         return value.trim();
     }

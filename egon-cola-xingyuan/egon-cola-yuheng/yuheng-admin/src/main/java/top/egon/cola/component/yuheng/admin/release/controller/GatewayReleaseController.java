@@ -28,15 +28,15 @@ import java.util.Map;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayReleaseController {
 
     /**
@@ -71,8 +71,8 @@ public class GatewayReleaseController {
     @Operation(operationId = "admin.gatewayReleaseController.create")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @PostMapping("/gateway-groups/{gatewayGroupId}/releases")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:releases:write','CAP_*')")
+    @PostMapping("/yuheng-groups/{gatewayGroupId}/releases")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:releases:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO create(
             @PathVariable String gatewayGroupId,
             @Valid @RequestBody GatewayReleaseCreateRequestDTO request,
@@ -134,7 +134,7 @@ public class GatewayReleaseController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/releases/{releaseId}/retry")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:releases:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:releases:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO retry(
             @PathVariable String releaseId,
             AdminActor actor) {
@@ -158,8 +158,8 @@ public class GatewayReleaseController {
     @Operation(operationId = "admin.gatewayReleaseController.rollback")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @PostMapping("/gateway-groups/{gatewayGroupId}/rollback")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:releases:write','CAP_*')")
+    @PostMapping("/yuheng-groups/{gatewayGroupId}/rollback")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:releases:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO rollback(
             @PathVariable String gatewayGroupId,
             @Valid @RequestBody GatewayReleaseRollbackRequestDTO request,
@@ -187,7 +187,7 @@ public class GatewayReleaseController {
     @Operation(operationId = "admin.gatewayReleaseController.history")
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
-    @GetMapping("/gateway-groups/{gatewayGroupId}/releases")
+    @GetMapping("/yuheng-groups/{gatewayGroupId}/releases")
     public List<top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayReleaseVO> history(
             @PathVariable String gatewayGroupId) {
         return service.history(gatewayGroupId);

@@ -26,8 +26,8 @@ class DdcRegistryAutoConfigurationTest {
                             DdcRegistryAutoConfiguration.class
                     ))
                     .withPropertyValues(
-                            "egon.cola.component.ddc.enabled=false",
-                            "egon.cola.component.ddc.registry.enabled=true"
+                            "egon.cola.component.tianshu.enabled=false",
+                            "egon.cola.component.tianshu.registry.enabled=true"
                     )
                     .withBean(
                             IdpServiceOAuth2Client.class,
@@ -125,9 +125,9 @@ class DdcRegistryAutoConfigurationTest {
                         DdcRegistryAutoConfiguration.class
                 ))
                 .withPropertyValues(
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false",
-                        "egon.cola.component.ddc.registry.enabled=false"
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=false",
+                        "egon.cola.component.tianshu.registry.enabled=false"
                 )
                 .withBean(
                         DdcConfigClient.class,

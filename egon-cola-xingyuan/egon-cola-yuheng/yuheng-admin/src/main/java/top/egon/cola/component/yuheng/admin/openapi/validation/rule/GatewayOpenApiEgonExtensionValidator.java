@@ -31,7 +31,7 @@ public class GatewayOpenApiEgonExtensionValidator
             GatewayOpenApiDocumentDTO document) {
         if (document == null || document.documentJson() == null) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_MISSING",
+                    "YUHENG_OPENAPI_DOCUMENT_MISSING",
                     "OpenAPI document is missing"
             );
         }
@@ -40,7 +40,7 @@ public class GatewayOpenApiEgonExtensionValidator
         if (service == null || !service.isObject()
                 || !versionOne(service.get("version"))) {
             return invalid(
-                    "GATEWAY_OPENAPI_EGON_SERVICE",
+                    "YUHENG_OPENAPI_EGON_SERVICE",
                     "x-egon-service version 1 is required"
             );
         }
@@ -56,14 +56,14 @@ public class GatewayOpenApiEgonExtensionValidator
                 document.candidate().artifactVersion()
         )) {
             return invalid(
-                    "GATEWAY_OPENAPI_SERVICE_MISMATCH",
+                    "YUHENG_OPENAPI_SERVICE_MISMATCH",
                     "x-egon-service does not match the trusted Provider identity"
             );
         }
         if (!matches(service, "buildId", document.candidate().buildId())) {
             return invalid(
-                    "GATEWAY_OPENAPI_BUILD_MISMATCH",
-                    "x-egon-service buildId does not match the DDC manifest"
+                    "YUHENG_OPENAPI_BUILD_MISMATCH",
+                    "x-egon-service buildId does not match the Tianshu manifest"
             );
         }
         if (!matches(
@@ -72,7 +72,7 @@ public class GatewayOpenApiEgonExtensionValidator
                 document.candidate().openapiGroup()
         )) {
             return invalid(
-                    "GATEWAY_OPENAPI_GROUP_MISMATCH",
+                    "YUHENG_OPENAPI_GROUP_MISMATCH",
                     "x-egon-service openapiGroup does not match the target"
             );
         }
@@ -98,7 +98,7 @@ public class GatewayOpenApiEgonExtensionValidator
                             && (!extension.isObject()
                             || !versionOne(extension.get("version")))) {
                         return invalid(
-                                "GATEWAY_OPENAPI_EXTENSION_VERSION",
+                                "YUHENG_OPENAPI_EXTENSION_VERSION",
                                 "x-egon operation extension must use version 1"
                         );
                     }

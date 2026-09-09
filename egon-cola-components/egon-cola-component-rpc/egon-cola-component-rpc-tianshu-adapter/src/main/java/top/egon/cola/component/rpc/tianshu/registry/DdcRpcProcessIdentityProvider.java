@@ -9,7 +9,7 @@ import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
 
 import java.net.InetAddress;
 
-/** 在 DDC 启用时使 RPC 注册复用同一物理实例身份。 / Reuses DDC physical identity for RPC registration. */
+/** 在 Tianshu 启用时使 RPC 注册复用同一物理实例身份。 / Reuses Tianshu physical identity for RPC registration. */
 public final class DdcRpcProcessIdentityProvider implements RpcProcessIdentityProvider {
 
     private final ObjectProvider<DdcInstanceIdentity> ddcIdentity;

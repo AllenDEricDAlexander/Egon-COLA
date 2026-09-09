@@ -16,28 +16,28 @@ class DefaultDdcConfigApplierRegistryTest {
         AtomicReference<String> appliedBy = new AtomicReference<>();
         DdcConfigApplier fallback = (key, value, version) -> appliedBy.set("fallback");
         DefaultDdcConfigApplierRegistry registry = new DefaultDdcConfigApplierRegistry(fallback);
-        registry.registerPrefix("gateway.", (key, value, version) -> appliedBy.set("gateway"));
-        registry.registerPrefix("gateway.route.", (key, value, version) -> appliedBy.set("route"));
-        registry.registerExact("gateway.route.primary", (key, value, version) -> appliedBy.set("exact"));
+        registry.registerPrefix("yuheng.", (key, value, version) -> appliedBy.set("yuheng"));
+        registry.registerPrefix("yuheng.route.", (key, value, version) -> appliedBy.set("route"));
+        registry.registerExact("yuheng.route.primary", (key, value, version) -> appliedBy.set("exact"));
         registry.freeze();
 
-        registry.resolve("gateway.route.primary").apply("gateway.route.primary", "value", 1L);
+        registry.resolve("yuheng.route.primary").apply("yuheng.route.primary", "value", 1L);
         assertThat(appliedBy).hasValue("exact");
 
-        registry.resolve("gateway.route.secondary").apply("gateway.route.secondary", "value", 1L);
+        registry.resolve("yuheng.route.secondary").apply("yuheng.route.secondary", "value", 1L);
         assertThat(appliedBy).hasValue("route");
 
-        registry.resolve("gateway.timeout").apply("gateway.timeout", "value", 1L);
-        assertThat(appliedBy).hasValue("gateway");
+        registry.resolve("yuheng.timeout").apply("yuheng.timeout", "value", 1L);
+        assertThat(appliedBy).hasValue("yuheng");
 
         registry.resolve("application.name").apply("application.name", "value", 1L);
         assertThat(appliedBy).hasValue("fallback");
 
         assertThat(registry.hasExplicitRegistration(
-                "gateway.route.primary"
+                "yuheng.route.primary"
         )).isTrue();
         assertThat(registry.hasExplicitRegistration(
-                "gateway.route.secondary"
+                "yuheng.route.secondary"
         )).isTrue();
         assertThat(registry.hasExplicitRegistration(
                 "application.name"
@@ -49,22 +49,22 @@ class DefaultDdcConfigApplierRegistryTest {
         DdcConfigApplier applier = (key, value, version) -> {
         };
         DefaultDdcConfigApplierRegistry registry = new DefaultDdcConfigApplierRegistry(applier);
-        registry.registerExact("gateway.route.primary", applier);
-        registry.registerPrefix("gateway.route.", applier);
+        registry.registerExact("yuheng.route.primary", applier);
+        registry.registerPrefix("yuheng.route.", applier);
 
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> registry.registerExact("gateway.route.primary", applier))
+                .isThrownBy(() -> registry.registerExact("yuheng.route.primary", applier))
                 .withMessageContaining("already registered");
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> registry.registerPrefix("gateway.route.", applier))
+                .isThrownBy(() -> registry.registerPrefix("yuheng.route.", applier))
                 .withMessageContaining("already registered");
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> registry.registerPrefix("gateway.route", applier))
+                .isThrownBy(() -> registry.registerPrefix("yuheng.route", applier))
                 .withMessageContaining("end with");
         assertThatIllegalArgumentException()
                 .isThrownBy(() -> registry.registerExact(" ", applier));
         assertThatIllegalArgumentException()
-                .isThrownBy(() -> registry.registerExact("gateway.route.secondary", null));
+                .isThrownBy(() -> registry.registerExact("yuheng.route.secondary", null));
     }
 
     @Test
@@ -78,10 +78,10 @@ class DefaultDdcConfigApplierRegistryTest {
 
         assertThat(registry.frozen()).isTrue();
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry.registerExact("gateway.route.primary", applier))
+                .isThrownBy(() -> registry.registerExact("yuheng.route.primary", applier))
                 .withMessageContaining("frozen");
         assertThatIllegalStateException()
-                .isThrownBy(() -> registry.registerPrefix("gateway.route.", applier))
+                .isThrownBy(() -> registry.registerPrefix("yuheng.route.", applier))
                 .withMessageContaining("frozen");
     }
 }

@@ -22,13 +22,13 @@ import java.util.Objects;
  */
 @RestController
 @RequestMapping("/api/v1/auth")
-@Tag(name = "gateway-admin")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayAuthBootstrapController {
 
     /**
@@ -61,7 +61,7 @@ public class GatewayAuthBootstrapController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/bootstrap")
-    @RequiresPermission("gateway:read")
+    @RequiresPermission("yuheng:read")
     public AuthorizationBootstrapView bootstrap() {
         Rbac3AboutView about = bootstrap.current();
         return AuthorizationBootstrapView.from(about);

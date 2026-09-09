@@ -14,7 +14,7 @@ class DdcAuthBootstrapControllerConditionTest {
     @Test
     void doesNotRequireRbacBootstrapWhenRbacIsDisabled() {
         contextRunner
-                .withPropertyValues("egon.cola.platform.rbac3.enabled=false")
+                .withPropertyValues("egon.cola.platform.tianquan.jianshen.enabled=false")
                 .run(context -> {
                     assertThat(context).hasNotFailed();
                     assertThat(context).doesNotHaveBean(

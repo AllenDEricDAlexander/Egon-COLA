@@ -50,10 +50,10 @@ class Rbac3RoleActivationGatewayDiscoveryTest {
 
         assertThat(idsByMethod).containsExactlyInAnyOrderEntriesOf(Map.of(
                 "candidates",
-                "rbac3-role-activation-candidates-v1",
+                "tianquan-jianshen-role-activation-candidates-v1",
                 "current",
-                "rbac3-role-activation-current-v1",
+                "tianquan-jianshen-role-activation-current-v1",
                 "replace",
-                "rbac3-role-activation-replace-v1"));
+                "tianquan-jianshen-role-activation-replace-v1"));
     }
 }

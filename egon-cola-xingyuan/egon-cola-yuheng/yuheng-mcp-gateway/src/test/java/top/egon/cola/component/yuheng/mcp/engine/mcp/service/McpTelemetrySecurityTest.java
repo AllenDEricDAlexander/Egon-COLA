@@ -66,7 +66,7 @@ class McpTelemetrySecurityTest {
                         Map.ofEntries(
                                 Map.entry("callerId", "user-7"),
                                 Map.entry("tenantId", "tenant-a"),
-                                Map.entry("idp.client-id", "developer-web"),
+                                Map.entry("tianquan-shoubing.client-id", "developer-web"),
                                 Map.entry("traceparent", bearer),
                                 Map.entry("originalBearerToken", bearer),
                                 Map.entry("taskId", taskId),
@@ -184,7 +184,7 @@ class McpTelemetrySecurityTest {
                 )
         )).block();
 
-        assertEquals(1L, meters.get("gateway.mcp.requests")
+        assertEquals(1L, meters.get("yuheng.mcp.requests")
                 .timer()
                 .count());
         assertTrue(audit.get().contains("MCP_FORBIDDEN"));
@@ -294,7 +294,7 @@ class McpTelemetrySecurityTest {
                 "Developer capabilities",
                 "Use reviewed tools.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30,
                 true
         );

@@ -27,17 +27,17 @@ import static org.mockito.Mockito.mock;
 class IdpPublishedOpenApiContractTest {
 
     private static final Map<String, String> DOMAIN_GROUPS = Map.of(
-            "identity", "idp-identity", "identity-audit", "idp-audit",
-            "identity-auth", "idp-auth", "identity-profile", "idp-profile",
-            "oauth-protocol", "idp-oauth");
+            "identity", "tianquan-shoubing-identity", "identity-audit", "tianquan-shoubing-audit",
+            "identity-auth", "tianquan-shoubing-auth", "identity-profile", "tianquan-shoubing-profile",
+            "oauth-protocol", "tianquan-shoubing-oauth");
 
     @Test
     void allPublishedHandlersCanBeCustomizedForTheDeclaredGroup() throws Exception {
         GatewayOpenApiProperties properties = new GatewayOpenApiProperties();
         properties.setPublishedGroups(List.copyOf(DOMAIN_GROUPS.values()));
         PropertySource<?> yaml = new YamlPropertySourceLoader().load(
-                "idp", new ClassPathResource("application.yml")).getFirst();
-        assertThat(indexed(yaml, "egon.cola.component.gateway.openapi.published-groups"))
+                "tianquan-shoubing", new ClassPathResource("application.yml")).getFirst();
+        assertThat(indexed(yaml, "egon.cola.component.yuheng.openapi.published-groups"))
                 .containsExactlyInAnyOrderElementsOf(DOMAIN_GROUPS.values());
         OperationCustomizer customizer = new EgonOperationCustomizer(properties);
         var scanner = new ClassPathScanningCandidateComponentProvider(false);

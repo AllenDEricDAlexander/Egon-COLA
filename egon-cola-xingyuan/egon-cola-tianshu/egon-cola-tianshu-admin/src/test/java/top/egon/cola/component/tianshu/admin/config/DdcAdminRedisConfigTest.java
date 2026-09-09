@@ -29,11 +29,11 @@ class DdcAdminRedisConfigTest {
                         DdcAdminRedisConfig.class
                 )
                 .withPropertyValues(
-                        "egon.cola.platform.idp.enabled=true",
-                        "egon.cola.platform.idp.issuer=https://idp.example",
-                        "egon.cola.platform.idp.jwk-set-uri=https://idp.example/oauth2/jwks",
-                        "egon.cola.platform.idp.resource-server-id=ddc-local",
-                        "egon.cola.platform.idp.resource-uri=https://resource.example/ddc"
+                        "egon.cola.platform.tianquan.shoubing.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.issuer=https://tianquan-shoubing.example",
+                        "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.example/oauth2/jwks",
+                        "egon.cola.platform.tianquan.shoubing.resource-server-id=tianshu-local",
+                        "egon.cola.platform.tianquan.shoubing.resource-uri=https://resource.example/tianshu"
                 )
                 .run(context -> {
                     assertThat(context).hasNotFailed();

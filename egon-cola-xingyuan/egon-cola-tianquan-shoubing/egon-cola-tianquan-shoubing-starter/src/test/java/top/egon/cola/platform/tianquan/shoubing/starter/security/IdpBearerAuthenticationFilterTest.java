@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 class IdpBearerAuthenticationFilterTest {
 
     private static final URI RESOURCE_URI = URI.create(
-            "https://api.example/prod/permission/rbac3"
+            "https://api.example/prod/permission/tianquan-jianshen"
     );
 
     @AfterEach
@@ -92,7 +92,7 @@ class IdpBearerAuthenticationFilterTest {
                 1L,
                 Set.of("service:read"),
                 "platform",
-                "rbac3",
+                "tianquan-jianshen",
                 "local",
                 "credential-1",
                 Instant.parse("2026-08-02T08:00:00Z"),
@@ -128,9 +128,9 @@ class IdpBearerAuthenticationFilterTest {
                 "service-token-1",
                 RESOURCE_URI,
                 1L,
-                Set.of("gateway:application:read"),
+                Set.of("yuheng:application:read"),
                 "platform",
-                "gateway-admin",
+                "yuheng-admin",
                 "local",
                 "credential-1",
                 Instant.parse("2026-08-02T08:00:00Z"),
@@ -146,11 +146,11 @@ class IdpBearerAuthenticationFilterTest {
                 new IdpEndpointAuthenticationPolicy(
                         List.of(),
                         List.of(),
-                        List.of("/api/v1/gateway/admin/**"),
+                        List.of("/api/v1/yuheng/admin/**"),
                         true),
                 new ObjectMapper());
         var request = new MockHttpServletRequest(
-                "GET", "/api/v1/gateway/admin/applications");
+                "GET", "/api/v1/yuheng/admin/applications");
         request.addHeader("Authorization", "Bearer service-token");
         var chain = new CapturingFilterChain();
 
@@ -168,22 +168,22 @@ class IdpBearerAuthenticationFilterTest {
                         token -> jwt(now),
                         resourceId -> Optional.of(
                                 new IdentityResourceServerState(
-                                        "resource-rbac3-prod",
+                                        "resource-tianquan-jianshen-prod",
                                         RESOURCE_URI,
                                         "permission",
-                                        "rbac3",
+                                        "tianquan-jianshen",
                                         "prod",
                                         ResourceServerStatus.ACTIVE,
                                         12L)),
                         clientId -> Optional.of(
                                 new IdentityOAuthClientStateReader
                                         .IdentityOAuthClientState(
-                                        "rbac3-service",
+                                        "tianquan-jianshen-service",
                                         OAuthClient.ClientType.CONFIDENTIAL,
                                         OAuthClient.Status.ACTIVE,
-                                        "resource-idp-prod",
+                                        "resource-tianquan-shoubing-prod",
                                         3L)),
-                        "resource-rbac3-prod",
+                        "resource-tianquan-jianshen-prod",
                         RESOURCE_URI,
                         "egon-platform",
                         java.time.Clock.fixed(now, java.time.ZoneOffset.UTC)),
@@ -196,7 +196,7 @@ class IdpBearerAuthenticationFilterTest {
                 .header("alg", "RS256")
                 .header("kid", "key-1")
                 .header("typ", "at+jwt")
-                .issuer("https://idp.local")
+                .issuer("https://tianquan-shoubing.local")
                 .subject("identity-1")
                 .audience(List.of("egon-platform"))
                 .issuedAt(now)

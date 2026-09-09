@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.model.management;
 
 /**
- * 命名空间、环境与应用之间的 DDC 作用域绑定。 /
- * DDC scope binding among a namespace, environment, and application.
+ * 命名空间、环境与应用之间的 Tianshu 作用域绑定。 /
+ * Tianshu scope binding among a namespace, environment, and application.
  *
  * @param bindingId     绑定标识 / binding identifier
  * @param bizCode       业务编码 / business code

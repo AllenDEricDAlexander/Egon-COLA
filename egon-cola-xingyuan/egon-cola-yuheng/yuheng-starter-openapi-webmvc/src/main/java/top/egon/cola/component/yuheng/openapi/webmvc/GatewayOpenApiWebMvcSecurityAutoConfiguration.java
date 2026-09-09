@@ -39,7 +39,7 @@ import java.util.Set;
 })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.gateway.openapi",
+        prefix = "egon.cola.component.yuheng.openapi",
         name = "enabled",
         havingValue = "true"
 )
@@ -64,7 +64,7 @@ public class GatewayOpenApiWebMvcSecurityAutoConfiguration {
                 .httpBasic(basic -> basic.disable())
                 .logout(logout -> logout.disable())
                 .authorizeHttpRequests(authorize -> authorize
-                        .anyRequest().hasAuthority("SCOPE_gateway.openapi.read"))
+                        .anyRequest().hasAuthority("SCOPE_yuheng.openapi.read"))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(
                         Customizer.withDefaults()))
                 .build();

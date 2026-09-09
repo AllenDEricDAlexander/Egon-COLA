@@ -33,14 +33,14 @@ import java.util.List;
 import java.util.Objects;
 
 @RestController
-@RequestMapping("/api/v1/identity/clients")
+@RequestMapping("/api/v1/tianquan-shoubing/clients")
 @Tag(name = "oauth-clients", description = "OAuth客户端接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp-identity"
+        interfaceGroupCode = "tianquan-shoubing-identity"
 )
 
 public class OAuthClientController {
@@ -61,9 +61,9 @@ public class OAuthClientController {
 
     @GetMapping
     @Operation(
-            operationId = "idp-oauth-client-list-v1",
+            operationId = "tianquan-shoubing-oauth-client-list-v1",
             summary = "查询OAuth客户端",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -71,16 +71,16 @@ public class OAuthClientController {
     public List<OAuthClientVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:oauth-client:read");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:read");
         return clients.list();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
-            operationId = "idp-oauth-client-create-v1",
+            operationId = "tianquan-shoubing-oauth-client-create-v1",
             summary = "创建OAuth客户端",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -90,16 +90,16 @@ public class OAuthClientController {
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             HttpServletResponse response
     ) {
-        authorization.require(principal, "idp:oauth-client:create");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:create");
         response.setHeader("Cache-Control", "no-store");
         return clients.create(request, operator(principal));
     }
 
     @PostMapping("/{clientId}/secret-rotations")
     @Operation(
-            operationId = "idp-oauth-client-secret-rotate-v1",
+            operationId = "tianquan-shoubing-oauth-client-secret-rotate-v1",
             summary = "轮换OAuth客户端Secret",
-            tags = {"idp", "oauth-client", "secret"}
+            tags = {"tianquan-shoubing", "oauth-client", "secret"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -110,16 +110,16 @@ public class OAuthClientController {
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal,
             HttpServletResponse response
     ) {
-        authorization.require(principal, "idp:oauth-client:update");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:update");
         response.setHeader("Cache-Control", "no-store");
         return clients.rotateSecret(clientId, request, operator(principal));
     }
 
     @PatchMapping("/{clientId}")
     @Operation(
-            operationId = "idp-oauth-client-update-v1",
+            operationId = "tianquan-shoubing-oauth-client-update-v1",
             summary = "更新OAuth客户端",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -129,15 +129,15 @@ public class OAuthClientController {
             @Valid @RequestBody UpdateOAuthClientDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:oauth-client:update");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:update");
         return clients.update(clientId, request);
     }
 
     @PutMapping("/{clientId}/redirect-uris")
     @Operation(
-            operationId = "idp-oauth-client-redirect-put-v1",
+            operationId = "tianquan-shoubing-oauth-client-redirect-put-v1",
             summary = "登记OAuth回调地址",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -147,15 +147,15 @@ public class OAuthClientController {
             @Valid @RequestBody OAuthValueDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:oauth-client:update");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:update");
         return clients.putRedirectUri(clientId, request.value());
     }
 
     @DeleteMapping("/{clientId}/redirect-uris")
     @Operation(
-            operationId = "idp-oauth-client-redirect-delete-v1",
+            operationId = "tianquan-shoubing-oauth-client-redirect-delete-v1",
             summary = "删除OAuth回调地址",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -165,15 +165,15 @@ public class OAuthClientController {
             @Valid @RequestBody OAuthValueDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:oauth-client:update");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:update");
         return clients.deleteRedirectUri(clientId, request.value());
     }
 
     @PutMapping("/{clientId}/resource-uris")
     @Operation(
-            operationId = "idp-oauth-client-resource-put-v1",
+            operationId = "tianquan-shoubing-oauth-client-resource-put-v1",
             summary = "登记OAuth Resource URI",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -183,15 +183,15 @@ public class OAuthClientController {
             @Valid @RequestBody OAuthValueDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:oauth-client:update");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:update");
         return clients.putResourceUri(clientId, request.value());
     }
 
     @DeleteMapping("/{clientId}/resource-uris")
     @Operation(
-            operationId = "idp-oauth-client-resource-delete-v1",
+            operationId = "tianquan-shoubing-oauth-client-resource-delete-v1",
             summary = "删除OAuth Resource URI",
-            tags = {"idp", "oauth-client"}
+            tags = {"tianquan-shoubing", "oauth-client"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -201,7 +201,7 @@ public class OAuthClientController {
             @Valid @RequestBody OAuthValueDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:oauth-client:update");
+        authorization.require(principal, "tianquan-shoubing:oauth-client:update");
         return clients.deleteResourceUri(clientId, request.value());
     }
 

@@ -38,12 +38,12 @@ import java.util.HexFormat;
  * Semantics and usage: use `RoleActivationController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/auth")
+@RequestMapping("/api/tianquan-jianshen/v1/auth")
 @Tag(name = "role-activation", description = "当前会话角色激活接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -108,9 +108,9 @@ public class RoleActivationController {
     @GetMapping("/role-activation-candidates")
     @RequiresPermission(value = "system:role-activation:read")
     @Operation(
-            operationId = "rbac3-role-activation-candidates-v1",
+            operationId = "tianquan-jianshen-role-activation-candidates-v1",
             summary = "查询当前会话可激活的规范根角色",
-            tags = {"rbac3", "role-activation"}
+            tags = {"tianquan-jianshen", "role-activation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -133,9 +133,9 @@ public class RoleActivationController {
     @GetMapping("/role-activations")
     @RequiresPermission(value = "system:role-activation:read")
     @Operation(
-            operationId = "rbac3-role-activation-current-v1",
+            operationId = "tianquan-jianshen-role-activation-current-v1",
             summary = "查询当前会话已激活的规范根角色",
-            tags = {"rbac3", "role-activation"}
+            tags = {"tianquan-jianshen", "role-activation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -159,9 +159,9 @@ public class RoleActivationController {
     @PutMapping("/role-activations")
     @RequiresPermission(value = "system:role-activation:use")
     @Operation(
-            operationId = "rbac3-role-activation-replace-v1",
+            operationId = "tianquan-jianshen-role-activation-replace-v1",
             summary = "原子替换当前会话激活角色集合",
-            tags = {"rbac3", "role-activation"}
+            tags = {"tianquan-jianshen", "role-activation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

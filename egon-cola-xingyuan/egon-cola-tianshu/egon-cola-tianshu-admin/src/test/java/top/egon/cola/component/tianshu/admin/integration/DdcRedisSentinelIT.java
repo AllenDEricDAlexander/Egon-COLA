@@ -30,7 +30,7 @@ class DdcRedisSentinelIT {
 
     private static final String REDIS_IMAGE = "redis:7.4-alpine";
 
-    private static final String MASTER_NAME = "ddc-master";
+    private static final String MASTER_NAME = "tianshu-master";
 
     private static final String MASTER_ALIAS = "redis-master";
 

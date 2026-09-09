@@ -11,17 +11,17 @@ import java.time.Clock;
 import java.util.Objects;
 
 /**
- * Verifies DDC registration credentials through the shared IdP SERVICE-token verifier.
+ * Verifies Tianshu registration credentials through the shared Tianquan-Shoubing SERVICE-token verifier.
  *
- * <p>The IdP verifier owns JWT algorithm, issuer, signature, client state and Resource
- * projection checks. This adapter adds the DDC-specific PLATFORM context, audience, scope and
+ * <p>The Tianquan-Shoubing verifier owns JWT algorithm, issuer, signature, client state and Resource
+ * projection checks. This adapter adds the Tianshu-specific PLATFORM context, audience, scope and
  * physical request binding checks before a lease service can persist the identity.</p>
  */
 public final class IdpJwtDdcRegistrationCredentialVerifier
         implements DdcRegistrationCredentialVerifier {
 
     /** Least-privilege scope required for register and heartbeat mutations. */
-    public static final String REGISTRATION_SCOPE = "ddc:registration:write";
+    public static final String REGISTRATION_SCOPE = "tianshu:registration:write";
 
     private final ServiceAccessTokenVerifier serviceTokens;
 
@@ -33,7 +33,7 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
 
     private final Clock clock;
 
-    /** Creates the production DDC registration verifier. */
+    /** Creates the production Tianshu registration verifier. */
     public IdpJwtDdcRegistrationCredentialVerifier(
             ServiceAccessTokenVerifier serviceTokens,
             String resourceServerId,

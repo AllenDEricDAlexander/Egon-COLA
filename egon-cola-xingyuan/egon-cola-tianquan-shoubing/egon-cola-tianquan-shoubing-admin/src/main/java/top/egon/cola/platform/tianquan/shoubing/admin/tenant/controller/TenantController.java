@@ -41,17 +41,17 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-/** HTTP administration surface for the IdP-owned tenant authority. */
+/** HTTP administration surface for the Tianquan-Shoubing-owned tenant authority. */
 @Validated
 @RestController
-@RequestMapping("/api/v1/identity/tenants")
+@RequestMapping("/api/v1/tianquan-shoubing/tenants")
 @Tag(name = "identity-tenants", description = "统一身份租户接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp-identity"
+        interfaceGroupCode = "tianquan-shoubing-identity"
 )
 
 public class TenantController {
@@ -78,9 +78,9 @@ public class TenantController {
 
     @GetMapping
     @Operation(
-            operationId = "idp-tenant-list-v1",
+            operationId = "tianquan-shoubing-tenant-list-v1",
             summary = "查询身份租户",
-            tags = {"idp", "tenant"}
+            tags = {"tianquan-shoubing", "tenant"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -94,7 +94,7 @@ public class TenantController {
             @RequestParam(required = false) IdentityTenantEntity.Status status,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:tenant:read");
+        authorization.require(principal, "tianquan-shoubing:tenant:read");
         validatePage(page, size);
         String normalizedQuery = normalizedQuery(query);
         List<TenantVO> filtered = tenants.list().stream()
@@ -112,9 +112,9 @@ public class TenantController {
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
-            operationId = "idp-tenant-create-v1",
+            operationId = "tianquan-shoubing-tenant-create-v1",
             summary = "创建身份租户",
-            tags = {"idp", "tenant"}
+            tags = {"tianquan-shoubing", "tenant"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -123,7 +123,7 @@ public class TenantController {
             @Valid @RequestBody CreateTenantDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:tenant:manage");
+        authorization.require(principal, "tianquan-shoubing:tenant:manage");
         return tenant(tenants.create(new TenantService.CreateTenantCommand(
                 request.tenantCode(),
                 request.tenantName(),
@@ -134,9 +134,9 @@ public class TenantController {
 
     @PatchMapping("/{tenantId}")
     @Operation(
-            operationId = "idp-tenant-update-v1",
+            operationId = "tianquan-shoubing-tenant-update-v1",
             summary = "更新身份租户",
-            tags = {"idp", "tenant"}
+            tags = {"tianquan-shoubing", "tenant"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -146,7 +146,7 @@ public class TenantController {
             @Valid @RequestBody UpdateTenantDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:tenant:manage");
+        authorization.require(principal, "tianquan-shoubing:tenant:manage");
         return tenant(tenants.update(
                 tenantId,
                 new TenantService.UpdateTenantCommand(
@@ -161,9 +161,9 @@ public class TenantController {
 
     @GetMapping("/{tenantId}/members")
     @Operation(
-            operationId = "idp-tenant-membership-list-v1",
+            operationId = "tianquan-shoubing-tenant-membership-list-v1",
             summary = "查询身份租户成员",
-            tags = {"idp", "tenant", "membership"}
+            tags = {"tianquan-shoubing", "tenant", "membership"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -179,7 +179,7 @@ public class TenantController {
             IdentityTenantMembershipEntity.Status status,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:tenant:read");
+        authorization.require(principal, "tianquan-shoubing:tenant:read");
         validatePage(page, size);
         String normalizedQuery = normalizedQuery(query);
         List<TenantMembershipVO> filtered = memberships.listByTenant(tenantId)
@@ -197,9 +197,9 @@ public class TenantController {
 
     @PutMapping("/{tenantId}/members/{identitySub}")
     @Operation(
-            operationId = "idp-tenant-membership-upsert-v1",
+            operationId = "tianquan-shoubing-tenant-membership-upsert-v1",
             summary = "更新身份租户成员",
-            tags = {"idp", "tenant", "membership"}
+            tags = {"tianquan-shoubing", "tenant", "membership"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -210,7 +210,7 @@ public class TenantController {
             @Valid @RequestBody UpsertTenantMembershipDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:tenant:manage");
+        authorization.require(principal, "tianquan-shoubing:tenant:manage");
         TenantMembershipService.MembershipView view = memberships.upsert(
                 new TenantMembershipService.UpsertMembershipCommand(
                         tenantId,

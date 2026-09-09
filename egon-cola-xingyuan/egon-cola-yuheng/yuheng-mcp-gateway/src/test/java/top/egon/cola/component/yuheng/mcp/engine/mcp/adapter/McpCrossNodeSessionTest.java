@@ -103,7 +103,7 @@ class McpCrossNodeSessionTest {
                 Map.of(
                         "callerId", "user-2",
                         "tenantId", "tenant-1",
-                        "idp.client-id", "client-1"
+                        "tianquan-shoubing.client-id", "client-1"
                 )
         );
 

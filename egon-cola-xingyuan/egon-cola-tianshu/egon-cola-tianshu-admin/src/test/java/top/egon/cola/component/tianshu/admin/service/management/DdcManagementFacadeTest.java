@@ -140,53 +140,53 @@ class DdcManagementFacadeTest {
     @Test
     void upsertMapsStableRequestToDraftService() {
         DdcConfigVO saved = config(
-                "gateway",
+                "yuheng",
                 "dev",
                 "runtime",
                 "application.yml",
                 2L,
                 false
         );
-        when(configService.upsert(any(), eq(1L), eq("gateway-admin")))
+        when(configService.upsert(any(), eq(1L), eq("yuheng-admin")))
                 .thenReturn(saved);
 
         DdcManagementConfig response = facade.upsert(new DdcManagementConfigUpsertRequest(
-                "gateway",
+                "yuheng",
                 "dev",
                 "runtime",
                 "application.yml",
-                "gateway:\n  routes: []\n",
+                "yuheng:\n  routes: []\n",
                 "YAML",
                 "route draft",
                 1L,
-                "gateway-admin"
+                "yuheng-admin"
         ));
 
         assertThat(response.resourceName()).isEqualTo("application.yml");
         assertThat(response.version()).isEqualTo(2L);
-        verify(configService).upsert(any(), eq(1L), eq("gateway-admin"));
+        verify(configService).upsert(any(), eq(1L), eq("yuheng-admin"));
     }
 
     @Test
     void deleteMapsTheFixedYamlResourceToConfigService() {
         DdcManagementConfigDeleteRequest request =
                 new DdcManagementConfigDeleteRequest(
-                        "gateway",
+                        "yuheng",
                         "dev",
                         "runtime",
                         2L,
-                        "gateway-admin",
+                        "yuheng-admin",
                         "release removed"
                 );
 
         facade.delete(request);
 
         verify(configService).delete(
-                "gateway",
+                "yuheng",
                 "dev",
                 "runtime",
                 2L,
-                "gateway-admin",
+                "yuheng-admin",
                 "release removed"
         );
     }
@@ -194,7 +194,7 @@ class DdcManagementFacadeTest {
     @Test
     void exactConfigQueryPreservesDisabledDeletedManagementState() {
         DdcConfigVO value = config(
-                "gateway",
+                "yuheng",
                 "dev",
                 "runtime",
                 "application.yml",
@@ -202,26 +202,26 @@ class DdcManagementFacadeTest {
                 true
         );
         when(configService.find(
-                "gateway", "dev", "runtime"
+                "yuheng", "dev", "runtime"
         )).thenReturn(Optional.of(value));
 
         DdcManagementConfig response = facade.findConfig(new DdcManagementConfigQuery(
-                "gateway", "dev", "runtime"
+                "yuheng", "dev", "runtime"
         ));
 
         assertThat(response.enabled()).isFalse();
         assertThat(response.deleted()).isTrue();
-        verify(configService).find("gateway", "dev", "runtime");
+        verify(configService).find("yuheng", "dev", "runtime");
     }
 
     @Test
     void missingExactConfigUsesStableManagementCode() {
         when(configService.find(
-                "gateway", "dev", "runtime"
+                "yuheng", "dev", "runtime"
         )).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> facade.findConfig(new DdcManagementConfigQuery(
-                "gateway", "dev", "runtime"
+                "yuheng", "dev", "runtime"
         )))
                 .isInstanceOfSatisfying(DdcAdminException.class, exception -> {
                     assertThat(exception.getCode())
@@ -315,7 +315,7 @@ class DdcManagementFacadeTest {
         value.setAppCode(appCode);
         value.setEnv(env);
         value.setResourceName(key);
-        value.setContent("gateway:\n  enabled: true\n");
+        value.setContent("yuheng:\n  enabled: true\n");
         value.setFormat("YAML");
         value.setCurrentVersion(version);
         value.setEnabled(!deleted);

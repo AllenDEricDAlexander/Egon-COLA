@@ -35,6 +35,6 @@ class GatewayOpenApiReferenceValidatorTest {
                            "artifactVersion":"1.0.0","buildId":"build-1","openapiGroup":"orders"}}
                         """
                 )
-        ).code()).isEqualTo("GATEWAY_OPENAPI_EXTERNAL_REF");
+        ).code()).isEqualTo("YUHENG_OPENAPI_EXTERNAL_REF");
     }
 }

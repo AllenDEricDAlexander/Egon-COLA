@@ -68,7 +68,7 @@ class DdcConfigPagingRepositoryTest {
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
         entity.setId(id);
         entity.setBizCode(bizCode);
-        entity.setAppCode("gateway");
+        entity.setAppCode("yuheng");
         entity.setEnv("prod");
         entity.setResourceName(id + ".yml");
         entity.setContent("feature:\n  enabled: true\n");
@@ -84,7 +84,7 @@ class DdcConfigPagingRepositoryTest {
         entity.setId(id);
         entity.setConfigId("config-1");
         entity.setBizCode("infra");
-        entity.setAppCode("gateway");
+        entity.setAppCode("yuheng");
         entity.setEnv("prod");
         entity.setResourceName("application.yml");
         entity.setVersion(version);

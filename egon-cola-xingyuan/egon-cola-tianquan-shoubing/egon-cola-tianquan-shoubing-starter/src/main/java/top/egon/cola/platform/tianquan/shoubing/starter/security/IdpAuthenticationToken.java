@@ -7,10 +7,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * 表示已通过 IdP 校验的 Spring Security 身份凭据。
+ * 表示已通过 Tianquan-Shoubing 校验的 Spring Security 身份凭据。
  * 该对象只携带 {@link IdpPrincipal}，不保存原始访问令牌，也不附带业务权限。
  *
- * <p>Represents a Spring Security authentication established by IdP verification. It carries only
+ * <p>Represents a Spring Security authentication established by Tianquan-Shoubing verification. It carries only
  * the {@link IdpPrincipal}; it does not retain the raw access token or attach business
  * authorities.</p>
  */

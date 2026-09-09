@@ -92,7 +92,7 @@ class ProviderLoadBalancersTest {
                 "127.0.0.1",
                 8080,
                 false,
-                Map.of("gateway.weight", Integer.toString(weight)),
+                Map.of("yuheng.weight", Integer.toString(weight)),
                 Instant.now().plusSeconds(60),
                 ProviderRegistryState.REGISTERED,
                 ProviderHealthState.HEALTHY,

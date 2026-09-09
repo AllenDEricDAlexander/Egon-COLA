@@ -6,7 +6,7 @@ import top.egon.cola.component.common.core.exception.CommonException;
 import java.io.Serial;
 
 /**
- * 表示 DDC 领域或远程交互失败的统一异常。 Represents a common exception for DDC domain and remote-interaction failures.
+ * 表示 Tianshu 领域或远程交互失败的统一异常。 Represents a common exception for Tianshu domain and remote-interaction failures.
  */
 public class DdcException extends CommonException {
 

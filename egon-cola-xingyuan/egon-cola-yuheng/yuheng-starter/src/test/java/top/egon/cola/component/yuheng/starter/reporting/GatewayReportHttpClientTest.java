@@ -48,7 +48,7 @@ class GatewayReportHttpClientTest {
                         "access-key"
                 ))
                 .andExpect(header(
-                        "X-Gateway-Report-Id",
+                        "X-Yuheng-Report-Id",
                         report.report().reportId()
                 ))
                 .andRespond(withSuccess("""

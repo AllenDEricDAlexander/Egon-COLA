@@ -104,7 +104,7 @@ public final class GatewayRuleCanonicalizer {
         String contentSha = sha256(canonicalBytes(snapshot.content()));
         if (!contentSha.equals(snapshot.ruleContentSha256())) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHECKSUM_MISMATCH: content"
+                    "YUHENG_RULE_CHECKSUM_MISMATCH: content"
             );
         }
         Map<String, Object> material = Map.of(
@@ -117,7 +117,7 @@ public final class GatewayRuleCanonicalizer {
         if (!sha256(canonicalBytes(material))
                 .equals(snapshot.artifactSha256())) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHECKSUM_MISMATCH: artifact"
+                    "YUHENG_RULE_CHECKSUM_MISMATCH: artifact"
             );
         }
     }

@@ -35,12 +35,12 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.UpsertConfigRequest
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.UpsertConfigResponse;
 
 /**
- * DDC 管理 RPC 门面契约。
- * / RPC facade contract for DDC management operations.
+ * Tianshu 管理 RPC 门面契约。
+ * / RPC facade contract for Tianshu management operations.
  */
 @EgonRpcService(
         grpcClass = DdcManagementServiceGrpc.class,
-        group = "ddc",
+        group = "tianshu",
         version = "1.0.0"
 )
 public interface DdcManagementRpc {

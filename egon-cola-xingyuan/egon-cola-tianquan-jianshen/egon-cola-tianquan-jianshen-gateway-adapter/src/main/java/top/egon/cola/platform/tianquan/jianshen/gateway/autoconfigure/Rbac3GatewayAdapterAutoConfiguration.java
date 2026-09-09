@@ -19,17 +19,17 @@ import top.egon.cola.platform.tianquan.jianshen.gateway.security.Rbac3ReservedHe
 import java.time.Clock;
 
 /**
- * Wires the RBAC3 Gateway authorization adapter.
+ * Wires the Tianquan-Jianshen Gateway authorization adapter.
  *
- * <p>Authentication is deliberately absent here. The IdP Gateway adapter
- * authenticates the IdP-issued access token and supplies a
- * {@code GatewayPrincipal}; this adapter only reads RBAC3's published runtime
+ * <p>Authentication is deliberately absent here. The Tianquan-Shoubing Gateway adapter
+ * authenticates the Tianquan-Shoubing-issued access token and supplies a
+ * {@code GatewayPrincipal}; this adapter only reads Tianquan-Jianshen's published runtime
  * authorization scope projection and evaluates the target BIZ and APP.</p>
  */
 @AutoConfiguration
 @EnableConfigurationProperties(Rbac3GatewayAdapterProperties.class)
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.rbac3.gateway",
+        prefix = "egon.cola.platform.tianquan.jianshen.gateway",
         name = "enabled",
         havingValue = "true")
 @Import(Rbac3GatewayRedissonConfiguration.class)

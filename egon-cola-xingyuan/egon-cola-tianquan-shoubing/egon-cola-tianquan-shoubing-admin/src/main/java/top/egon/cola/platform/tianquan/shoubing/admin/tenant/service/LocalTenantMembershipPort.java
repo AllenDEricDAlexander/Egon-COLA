@@ -5,7 +5,7 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
 import java.util.List;
 import java.util.Objects;
 
-/** Adapts the IdP-local membership read model to the core login port. */
+/** Adapts the Tianquan-Shoubing-local membership read model to the core login port. */
 public final class LocalTenantMembershipPort implements TenantMembershipPort {
 
     private final TenantMembershipService memberships;

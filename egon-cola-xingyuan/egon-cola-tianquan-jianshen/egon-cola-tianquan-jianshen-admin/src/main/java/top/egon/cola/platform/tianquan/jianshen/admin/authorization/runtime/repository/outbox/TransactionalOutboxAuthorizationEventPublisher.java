@@ -18,7 +18,7 @@ import java.util.Objects;
 /**
  * 类型 `TransactionalOutboxAuthorizationEventPublisher` 位于当前包内，是类型，用于承载 `Transactional Outbox Authorization Event Adapter` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `TransactionalOutboxAuthorizationEventPublisher` is a type in its package and carries the responsibility, state, or contract for `Transactional Outbox Authorization Event Adapter`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Adapts RBAC3 logical authorization events to the public transactional-outbox API.
+ * Adapts Tianquan-Jianshen logical authorization events to the public transactional-outbox API.
  */
 public final class TransactionalOutboxAuthorizationEventPublisher
         implements AuthorizationEventPublisher {
@@ -40,21 +40,21 @@ public final class TransactionalOutboxAuthorizationEventPublisher
      * Meaning and usage: when reading, passing, or updating `DESTINATIONS`, preserve `TransactionalOutboxAuthorizationEventPublisher`'s lifecycle, immutability, and thread-safety constraints.
      */
     private static final Map<String, String> DESTINATIONS = Map.ofEntries(
-            Map.entry("RBAC3_USER_ACTIVE_ROLES_REPLACED",
-                    "rbac3.role-activation.changed.v1"),
-            Map.entry("ASSIGNMENT_CHANGED", "rbac3.assignment.changed.v1"),
-            Map.entry("RESOURCE_CATALOG_UPDATED", "rbac3.resource.catalog.updated.v1"),
-            Map.entry("RESOURCE_ARCHIVED", "rbac3.role.policy-changed.v1"),
-            Map.entry("ROLE_CREATED", "rbac3.role.policy-changed.v1"),
-            Map.entry("ROLE_UPDATED", "rbac3.role.policy-changed.v1"),
-            Map.entry("ROLE_INHERITANCE_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("ROLE_PERMISSION_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("SOD_SET_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("ROLE_PREREQUISITE_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("ROLE_CARDINALITY_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("DATA_RULE_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("FIELD_RULE_CHANGED", "rbac3.role.policy-changed.v1"),
-            Map.entry("OPERATION_SOD_RULE_CHANGED", "rbac3.role.policy-changed.v1"));
+            Map.entry("TIANQUAN_JIANSHEN_USER_ACTIVE_ROLES_REPLACED",
+                    "tianquan-jianshen.role-activation.changed.v1"),
+            Map.entry("ASSIGNMENT_CHANGED", "tianquan-jianshen.assignment.changed.v1"),
+            Map.entry("RESOURCE_CATALOG_UPDATED", "tianquan-jianshen.resource.catalog.updated.v1"),
+            Map.entry("RESOURCE_ARCHIVED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("ROLE_CREATED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("ROLE_UPDATED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("ROLE_INHERITANCE_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("ROLE_PERMISSION_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("SOD_SET_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("ROLE_PREREQUISITE_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("ROLE_CARDINALITY_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("DATA_RULE_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("FIELD_RULE_CHANGED", "tianquan-jianshen.role.policy-changed.v1"),
+            Map.entry("OPERATION_SOD_RULE_CHANGED", "tianquan-jianshen.role.policy-changed.v1"));
 
     /**
      * 字段 `outbox` 表示 `TransactionalOutboxAuthorizationEventPublisher` 中与 `outbox` 相关的状态、依赖、配置或结果（声明类型 `TransactionalOutbox`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -146,11 +146,11 @@ public final class TransactionalOutboxAuthorizationEventPublisher
                 .toUpperCase(Locale.ROOT);
         String destination = DESTINATIONS.get(normalized);
         if (destination == null && normalized.endsWith("_CHANGED")) {
-            destination = "rbac3.role.policy-changed.v1";
+            destination = "tianquan-jianshen.role.policy-changed.v1";
         }
         if (destination == null) {
             throw new IllegalArgumentException(
-                    "unsupported RBAC3 authorization event type: " + normalized);
+                    "unsupported Tianquan-Jianshen authorization event type: " + normalized);
         }
         return destination;
     }
@@ -182,7 +182,7 @@ public final class TransactionalOutboxAuthorizationEventPublisher
             }
         }
         throw new IllegalArgumentException(
-                "RBAC3 authorization event requires a non-negative aggregate version");
+                "Tianquan-Jianshen authorization event requires a non-negative aggregate version");
     }
 
     /**

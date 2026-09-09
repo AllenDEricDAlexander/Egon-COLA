@@ -12,7 +12,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.po.TenantSco
 import java.time.Instant;
 import java.util.Objects;
 
-/** A tenant-scoped user authorization grant for a DDC Business. */
+/** A tenant-scoped user authorization grant for a Tianshu Business. */
 @Entity(name = "UserBusinessAccessEntity")
 @Table(name = "rbac3_user_business_access")
 public class UserBusinessAccessPO extends TenantScopedPO {

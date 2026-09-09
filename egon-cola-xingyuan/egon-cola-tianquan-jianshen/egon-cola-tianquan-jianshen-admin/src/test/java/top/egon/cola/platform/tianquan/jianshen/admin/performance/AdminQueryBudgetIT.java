@@ -55,7 +55,7 @@ class AdminQueryBudgetIT {
 
     @Test
     void calibratedEnvironmentMayEnforceCandidateReadBudget() {
-        Assumptions.assumeTrue(Boolean.getBoolean("rbac3.performance.enforce"));
+        Assumptions.assumeTrue(Boolean.getBoolean("tianquan-jianshen.performance.enforce"));
         RoleActivationCandidateService service = new RoleActivationCandidateService(
                 (tenant, user, at) -> candidateFacts());
 

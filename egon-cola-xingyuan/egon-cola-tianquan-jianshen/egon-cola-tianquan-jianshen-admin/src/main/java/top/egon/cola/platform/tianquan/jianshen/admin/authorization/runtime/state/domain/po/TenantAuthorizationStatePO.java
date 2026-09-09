@@ -9,7 +9,7 @@ import jakarta.persistence.Version;
 import java.time.Instant;
 import java.util.Objects;
 
-/** RBAC-owned tenant authorization state after IdP catalog externalization. */
+/** RBAC-owned tenant authorization state after Tianquan-Shoubing catalog externalization. */
 @Entity(name = "TenantAuthorizationStateEntity")
 @Table(name = "rbac3_tenant_authorization_state")
 public class TenantAuthorizationStatePO {

@@ -26,7 +26,7 @@ class GatewayOpenApiSyncReconcilerTest {
         Scheduled scheduled = method.getAnnotation(Scheduled.class);
 
         assertThat(scheduled.fixedDelayString())
-                .isEqualTo("${gateway.admin.openapi.reconcile-delay:PT30S}");
+                .isEqualTo("${yuheng.admin.openapi.reconcile-delay:PT30S}");
 
         reconciler.reconcile();
 

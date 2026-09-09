@@ -25,8 +25,8 @@ public final class GatewayLiveEnvironment implements AutoCloseable {
         this(
                 scenario,
                 Path.of(System.getProperty(
-                        "gateway.live.output.directory",
-                        "target/gateway-live-it"
+                        "yuheng.live.output.directory",
+                        "target/yuheng-live-it"
                 ))
         );
     }

@@ -42,13 +42,13 @@ public class GatewayOpenApiLimitValidator implements GatewayOpenApiValidationRul
             GatewayOpenApiDocumentDTO document) {
         if (document == null) {
             return GatewayOpenApiValidationResult.invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_MISSING",
+                    "YUHENG_OPENAPI_DOCUMENT_MISSING",
                     "OpenAPI document is missing"
             );
         }
         if (document.rawBytes().length > limits.maximumDocumentBytes()) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_TOO_LARGE",
+                    "YUHENG_OPENAPI_DOCUMENT_TOO_LARGE",
                     "OpenAPI document exceeds the configured byte limit"
             );
         }
@@ -56,21 +56,21 @@ public class GatewayOpenApiLimitValidator implements GatewayOpenApiValidationRul
         int operations = operationCount(root);
         if (operations > limits.maximumOperations()) {
             return invalid(
-                    "GATEWAY_OPENAPI_OPERATION_LIMIT",
+                    "YUHENG_OPENAPI_OPERATION_LIMIT",
                     "OpenAPI operation count exceeds the configured limit"
             );
         }
         int schemaNodes = schemaNodeCount(root);
         if (schemaNodes > limits.maximumSchemaNodes()) {
             return invalid(
-                    "GATEWAY_OPENAPI_SCHEMA_LIMIT",
+                    "YUHENG_OPENAPI_SCHEMA_LIMIT",
                     "OpenAPI schema count exceeds the configured limit"
             );
         }
         int referenceDepth = referenceDepth(root);
         if (referenceDepth > limits.maximumReferenceDepth()) {
             return invalid(
-                    "GATEWAY_OPENAPI_REFERENCE_DEPTH",
+                    "YUHENG_OPENAPI_REFERENCE_DEPTH",
                     "OpenAPI reference depth exceeds the configured limit"
             );
         }

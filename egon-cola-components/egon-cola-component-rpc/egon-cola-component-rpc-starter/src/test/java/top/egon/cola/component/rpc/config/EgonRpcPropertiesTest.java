@@ -48,7 +48,7 @@ class EgonRpcPropertiesTest {
         assertThat(new EgonRpcProperties()
                 .getConsumer()
                 .getGatewayServiceName())
-                .isEqualTo("egon-gateway-rpc");
+                .isEqualTo("egon-yuheng-rpc");
     }
 
     @Test

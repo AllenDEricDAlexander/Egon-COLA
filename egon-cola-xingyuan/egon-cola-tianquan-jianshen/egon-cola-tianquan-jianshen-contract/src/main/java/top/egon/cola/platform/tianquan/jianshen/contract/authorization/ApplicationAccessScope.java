@@ -1,7 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.contract.authorization;
 
 /**
- * Minimal DDC Application identity exposed to the Gateway authorization layer.
+ * Minimal Tianshu Application identity exposed to the Gateway authorization layer.
  */
 public record ApplicationAccessScope(
         String applicationId,

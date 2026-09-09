@@ -20,9 +20,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 使用本系统的 RBAC3 快照增强 IdP 已认证的用户请求，服务请求保持 IdP 身份不变。
- * Enriches an IdP-authenticated user request with this system's RBAC3 snapshot while leaving
- * service requests under the IdP identity.
+ * 使用本系统的 Tianquan-Jianshen 快照增强 Tianquan-Shoubing 已认证的用户请求，服务请求保持 Tianquan-Shoubing 身份不变。
+ * Enriches an Tianquan-Shoubing-authenticated user request with this system's Tianquan-Jianshen snapshot while leaving
+ * service requests under the Tianquan-Shoubing identity.
  */
 public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter {
 
@@ -75,8 +75,8 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getRequestURI();
-        // IdP protocol and identity endpoints are authenticated by IdP only;
-        // they must not require an RBAC3 authorization snapshot.
+        // Tianquan-Shoubing protocol and identity endpoints are authenticated by Tianquan-Shoubing only;
+        // they must not require an Tianquan-Jianshen authorization snapshot.
         return path.startsWith("/internal/") || path.startsWith("/oauth2/");
     }
 
@@ -144,6 +144,6 @@ public final class Rbac3BearerAuthenticationFilter extends OncePerRequestFilter 
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(
                 "code", reasonCode,
-                "message", "RBAC3 authorization context is unavailable"));
+                "message", "Tianquan-Jianshen authorization context is unavailable"));
     }
 }

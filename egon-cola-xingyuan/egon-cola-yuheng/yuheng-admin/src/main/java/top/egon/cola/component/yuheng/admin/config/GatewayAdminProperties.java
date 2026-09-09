@@ -11,7 +11,7 @@ import top.egon.cola.component.yuheng.admin.config.properties.GatewayRuleChunkPr
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@ConfigurationProperties(prefix = "gateway.admin")
+@ConfigurationProperties(prefix = "yuheng.admin")
 public class GatewayAdminProperties {
 
     /**
@@ -72,6 +72,22 @@ public class GatewayAdminProperties {
      */
     public void setDdc(GatewayAdminDdcProperties ddc) {
         this.ddc = ddc;
+    }
+
+    /**
+     * Binds the renamed external {@code yuheng.admin.tianshu} configuration
+     * while preserving the existing Java accessor contract.
+     */
+    public GatewayAdminDdcProperties getTianshu() {
+        return ddc;
+    }
+
+    /**
+     * Binds the renamed external {@code yuheng.admin.tianshu} configuration
+     * while preserving the existing Java accessor contract.
+     */
+    public void setTianshu(GatewayAdminDdcProperties tianshu) {
+        this.ddc = tianshu;
     }
 
 

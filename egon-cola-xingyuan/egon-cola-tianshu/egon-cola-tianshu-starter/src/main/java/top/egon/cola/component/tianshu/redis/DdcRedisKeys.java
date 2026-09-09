@@ -5,20 +5,20 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
 
 /**
- * 生成 DDC 配置、租约、发布和服务注册使用的 Redis 键。
- * 当前键格式版本为 v3，所有键均以 {@code ddc:v3:} 开头。
- * Generates Redis keys used by DDC configuration, leases, publications, and service registry.
- * The current key format version is v3, and every key starts with {@code ddc:v3:}.
+ * 生成 Tianshu 配置、租约、发布和服务注册使用的 Redis 键。
+ * 当前键格式版本为 v3，所有键均以 {@code tianshu:v3:} 开头。
+ * Generates Redis keys used by Tianshu configuration, leases, publications, and service registry.
+ * The current key format version is v3, and every key starts with {@code tianshu:v3:}.
  */
 public final class DdcRedisKeys {
 
     /**
-     * 所有 DDC Redis 键的固定前缀。 Fixed prefix for all DDC Redis keys.
+     * 所有 Tianshu Redis 键的固定前缀。 Fixed prefix for all Tianshu Redis keys.
      */
-    private static final String PREFIX = "ddc";
+    private static final String PREFIX = "tianshu";
 
     /**
-     * 当前 DDC Redis 键格式版本。 Current DDC Redis key format version.
+     * 当前 Tianshu Redis 键格式版本。 Current Tianshu Redis key format version.
      */
     private static final String KEY_VERSION = "v3";
 

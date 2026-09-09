@@ -7,9 +7,9 @@ import java.net.URI;
 import java.util.Objects;
 
 /**
- * IdP Resource Server 运行态投影的可信只读视图。
+ * Tianquan-Shoubing Resource Server 运行态投影的可信只读视图。
  *
- * <p>Trusted read-only view of an IdP Resource Server runtime projection.</p>
+ * <p>Trusted read-only view of an Tianquan-Shoubing Resource Server runtime projection.</p>
  *
  * @param resourceServerId Resource Server 标识；Resource Server identifier
  * @param resourceUri 唯一 Resource URI；unique Resource URI

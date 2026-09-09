@@ -59,7 +59,7 @@ class RpcTcpCallTest {
             gateway = new MockRpcGateway(
                     gatewayRegistry,
                     "test",
-                    "mock-gateway-1",
+                    "mock-yuheng-1",
                     MockGatewayProperties.defaults(),
                     List.of(EchoServiceGrpc.getEchoMethod()
                             .getFullMethodName())
@@ -108,7 +108,7 @@ class RpcTcpCallTest {
             assertThat(gateway.channelFactory().size()).isOne();
             assertThat(consumerRegistry.subscribedQueries())
                     .allSatisfy(query -> assertThat(query.serviceName())
-                            .isEqualTo("egon-gateway-rpc"));
+                            .isEqualTo("egon-yuheng-rpc"));
             assertThat(backend.allInstances())
                     .extracting(instance -> instance.serviceIdentity())
                     .containsExactlyInAnyOrder(
@@ -118,7 +118,7 @@ class RpcTcpCallTest {
                                     "1.0.0"
                             ),
                             new RpcServiceIdentity(
-                                    "egon-gateway-rpc",
+                                    "egon-yuheng-rpc",
                                     "default",
                                     "1.0.0"
                             )

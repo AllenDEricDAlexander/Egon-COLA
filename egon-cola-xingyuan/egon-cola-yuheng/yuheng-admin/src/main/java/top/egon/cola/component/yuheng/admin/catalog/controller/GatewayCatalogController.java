@@ -31,15 +31,15 @@ import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayCatalogController {
 
     /**
@@ -93,7 +93,7 @@ public class GatewayCatalogController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/applications/{applicationId}/manual-interface-groups")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:catalog:write','CAP_*')")
     public GatewayCatalogResourceCreatedVO createInterfaceGroup(
             @PathVariable String applicationId,
             @Valid @RequestBody GatewayManualInterfaceGroupRequestDTO request,
@@ -131,7 +131,7 @@ public class GatewayCatalogController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/interface-groups/{interfaceGroupId}/manual-operations")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:catalog:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO createOperation(
             @PathVariable String interfaceGroupId,
             @Valid @RequestBody GatewayManualOperationRequestDTO request,
@@ -175,7 +175,7 @@ public class GatewayCatalogController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/operations/{operationId}/metadata")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:catalog:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO updateMetadata(
             @PathVariable String operationId,
             @Valid @RequestBody GatewayManualMetadataRequestDTO request,
@@ -206,7 +206,7 @@ public class GatewayCatalogController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/operations/{operationId}/manual-definition")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:catalog:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO updateDefinition(
             @PathVariable String operationId,
             @Valid @RequestBody GatewayManualDefinitionRequestDTO request,
@@ -232,7 +232,7 @@ public class GatewayCatalogController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/operations/{operationId}/deprecate")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:catalog:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:catalog:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO deprecate(
             @PathVariable String operationId,
             AdminActor actor) {

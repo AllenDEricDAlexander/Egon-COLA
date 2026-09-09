@@ -59,7 +59,7 @@ class JdbcGatewayOpenApiSnapshotRepositoryTest {
                 List.of("snapshot-1"),
                 "set-http-1"
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("GATEWAY_OPENAPI_SNAPSHOT_CONFLICT");
+                .hasMessageContaining("YUHENG_OPENAPI_SNAPSHOT_CONFLICT");
     }
 
     @Test

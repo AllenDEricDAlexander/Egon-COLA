@@ -1,7 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.decision.domain.dto;
 
 /**
- * User entry-permission request bound to an IdP subject and tenant.
+ * User entry-permission request bound to an Tianquan-Shoubing subject and tenant.
  */
 public record ResourceAccessRequestDTO(
         String identitySub,

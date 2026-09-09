@@ -30,7 +30,7 @@ class AccessTokenClaimsIT {
     private static final Instant NOW = Instant.now()
             .minusSeconds(5)
             .truncatedTo(ChronoUnit.SECONDS);
-    private static final String ISSUER = "https://idp.example.test";
+    private static final String ISSUER = "https://tianquan-shoubing.example.test";
     private static final String AUDIENCE = "platform";
 
     private RSAPublicKey publicKey;
@@ -47,7 +47,7 @@ class AccessTokenClaimsIT {
         tokens = new Rs256TokenService(
                 publicKey,
                 privateKey,
-                "idp-key-1",
+                "tianquan-shoubing-key-1",
                 ISSUER
         );
     }
@@ -68,7 +68,7 @@ class AccessTokenClaimsIT {
         Jwt jwt = tokens.jwtDecoder().decode(token);
 
         assertEquals("RS256", jwt.getHeaders().get("alg"));
-        assertEquals("idp-key-1", jwt.getHeaders().get("kid"));
+        assertEquals("tianquan-shoubing-key-1", jwt.getHeaders().get("kid"));
         assertEquals("at+jwt", jwt.getHeaders().get("typ"));
         assertEquals(ISSUER, jwt.getIssuer().toString());
         assertEquals("alice-sub", jwt.getSubject());
@@ -136,7 +136,7 @@ class AccessTokenClaimsIT {
         Rs256TokenService normalized = new Rs256TokenService(
                 publicKey,
                 privateKey,
-                "idp-key-1",
+                "tianquan-shoubing-key-1",
                 ISSUER + '/'
         );
 

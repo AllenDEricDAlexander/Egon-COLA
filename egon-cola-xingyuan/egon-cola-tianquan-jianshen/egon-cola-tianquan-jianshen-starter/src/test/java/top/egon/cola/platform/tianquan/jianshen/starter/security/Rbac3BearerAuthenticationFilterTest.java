@@ -92,7 +92,7 @@ class Rbac3BearerAuthenticationFilterTest {
         assertThat(seen.get().getAuthorities())
                 .extracting("authority")
                 .containsExactlyInAnyOrder(
-                        "RBAC3_payment:read", "CAP_payment:read");
+                        "TIANQUAN_JIANSHEN_payment:read", "CAP_payment:read");
         assertThat(seen.get().getName()).isEqualTo("alice-sub");
         assertThat(seen.get().getPrincipal()).isInstanceOf(Rbac3UserDetails.class);
     }
@@ -122,7 +122,7 @@ class Rbac3BearerAuthenticationFilterTest {
                 loader, new ObjectMapper());
         ServiceIdentityPrincipal principal = new ServiceIdentityPrincipal(
                 "finance-service", "tenant-a", "finance-service", "token-1",
-                URI.create("https://api.example/prod/permission/rbac3"),
+                URI.create("https://api.example/prod/permission/tianquan-jianshen"),
                 12L, Set.of("service:participation:write"),
                 "finance", "finance-web", "prod", "credential-1",
                 NOW.minusSeconds(30), NOW.plusSeconds(300));
@@ -145,7 +145,7 @@ class Rbac3BearerAuthenticationFilterTest {
         SingleFlightSnapshotLoader loader = mock(SingleFlightSnapshotLoader.class);
         when(loader.load(principal)).thenThrow(
                 new Rbac3AuthorizationClient.AuthorizationUnavailableException(
-                        "RBAC3_UNAVAILABLE"));
+                        "TIANQUAN_JIANSHEN_UNAVAILABLE"));
         Rbac3BearerAuthenticationFilter filter = new Rbac3BearerAuthenticationFilter(
                 loader, new ObjectMapper());
         SecurityContextHolder.getContext().setAuthentication(
@@ -155,7 +155,7 @@ class Rbac3BearerAuthenticationFilterTest {
         filter.doFilter(new MockHttpServletRequest(), response, new MockFilterChain());
 
         assertThat(response.getStatus()).isEqualTo(503);
-        assertThat(response.getContentAsString()).contains("RBAC3_UNAVAILABLE");
+        assertThat(response.getContentAsString()).contains("TIANQUAN_JIANSHEN_UNAVAILABLE");
     }
 
     private IdentityPrincipal principal() {

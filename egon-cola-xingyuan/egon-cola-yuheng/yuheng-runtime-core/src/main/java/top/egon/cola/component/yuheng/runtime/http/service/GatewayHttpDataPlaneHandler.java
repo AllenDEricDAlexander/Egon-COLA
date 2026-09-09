@@ -46,7 +46,7 @@ public interface GatewayHttpDataPlaneHandler {
             GatewayInboundHttpRequest request) {
         return Mono.just(GatewayWebSocketHandshakeResult.rejected(
                 426,
-                "GATEWAY_WEBSOCKET_NOT_SUPPORTED",
+                "YUHENG_WEBSOCKET_NOT_SUPPORTED",
                 "the selected data plane does not support WebSocket"
         ));
     }
@@ -66,7 +66,7 @@ public interface GatewayHttpDataPlaneHandler {
         upstream.dispose();
         downstream.dispose();
         return Mono.error(new IllegalStateException(
-                "GATEWAY_WEBSOCKET_NOT_SUPPORTED"
+                "YUHENG_WEBSOCKET_NOT_SUPPORTED"
         ));
     }
 }

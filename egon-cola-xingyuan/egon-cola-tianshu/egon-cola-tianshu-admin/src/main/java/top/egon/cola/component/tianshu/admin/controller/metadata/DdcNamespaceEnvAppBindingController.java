@@ -24,14 +24,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/namespace-env-app-bindings")
-@Tag(name = "ddc-admin-ddc-namespace-env-app-binding-controller", description = "DdcNamespaceEnvAppBindingController 管理接口组")
+@RequestMapping("/api/v1/tianshu/namespace-env-app-bindings")
+@Tag(name = "tianshu-admin-tianshu-namespace-env-app-binding-controller", description = "DdcNamespaceEnvAppBindingController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcNamespaceEnvAppBindingController {
 
@@ -42,7 +42,7 @@ public class DdcNamespaceEnvAppBindingController {
         this.bindingService = bindingService;
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.list")
+    @Operation(operationId = "tianshu.ddcNamespaceEnvAppBindingController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcNamespaceEnvAppBindingVO>> list(
@@ -54,7 +54,7 @@ public class DdcNamespaceEnvAppBindingController {
                 bizCode, namespaceCode, env, appCode));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.page")
+    @Operation(operationId = "tianshu.ddcNamespaceEnvAppBindingController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcNamespaceEnvAppBindingVO> page(
@@ -67,7 +67,7 @@ public class DdcNamespaceEnvAppBindingController {
                 bizCode, namespaceCode, env, appCode, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.create")
+    @Operation(operationId = "tianshu.ddcNamespaceEnvAppBindingController.create")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcNamespaceEnvAppBindingVO> create(
@@ -75,7 +75,7 @@ public class DdcNamespaceEnvAppBindingController {
         return ResultRecord.success(bindingService.create(request));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.update")
+    @Operation(operationId = "tianshu.ddcNamespaceEnvAppBindingController.update")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     public ResultRecord<DdcNamespaceEnvAppBindingVO> update(
@@ -84,7 +84,7 @@ public class DdcNamespaceEnvAppBindingController {
         return ResultRecord.success(bindingService.update(id, request));
     }
 
-    @Operation(operationId = "ddc.ddcNamespaceEnvAppBindingController.delete")
+    @Operation(operationId = "tianshu.ddcNamespaceEnvAppBindingController.delete")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     public ResultRecord<Void> delete(@PathVariable("id") String id) {

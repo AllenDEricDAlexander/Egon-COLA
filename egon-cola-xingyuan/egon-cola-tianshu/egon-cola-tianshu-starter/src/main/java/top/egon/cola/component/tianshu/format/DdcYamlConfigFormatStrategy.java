@@ -17,8 +17,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 使用 Spring Boot 原生加载器将远程 YAML 解析为保留来源信息的 DDC 动态属性源。
- * Parses remote YAML into an origin-aware DDC dynamic property source with Spring Boot's native loader.
+ * 使用 Spring Boot 原生加载器将远程 YAML 解析为保留来源信息的 Tianshu 动态属性源。
+ * Parses remote YAML into an origin-aware Tianshu dynamic property source with Spring Boot's native loader.
  */
 public final class DdcYamlConfigFormatStrategy
         implements DdcConfigFormatStrategy {
@@ -44,7 +44,7 @@ public final class DdcYamlConfigFormatStrategy
     /**
      * 动态属性源名称前缀。 Dynamic property-source name prefix.
      */
-    private static final String PROPERTY_SOURCE_PREFIX = "ddc:";
+    private static final String PROPERTY_SOURCE_PREFIX = "tianshu:";
 
     /**
      * Spring Boot 原生 YAML 属性源加载器。 Spring Boot native YAML property-source loader.
@@ -119,7 +119,7 @@ public final class DdcYamlConfigFormatStrategy
                                          long version) throws IOException {
         if (content == null || content.isBlank()) {
             throw new IllegalArgumentException(
-                    "DDC remote YAML must not be empty"
+                    "Tianshu remote YAML must not be empty"
             );
         }
         String propertySourceName = PROPERTY_SOURCE_PREFIX + resourceName;
@@ -129,24 +129,24 @@ public final class DdcYamlConfigFormatStrategy
         );
         if (sources.size() != 1) {
             throw new IllegalArgumentException(
-                    "DDC remote YAML must contain exactly one document"
+                    "Tianshu remote YAML must contain exactly one document"
             );
         }
         if (!(sources.getFirst() instanceof EnumerablePropertySource<?> source)) {
             throw new IllegalStateException(
-                    "DDC YAML loader returned a non-enumerable PropertySource"
+                    "Tianshu YAML loader returned a non-enumerable PropertySource"
             );
         }
         String[] propertyNames = source.getPropertyNames();
         if (propertyNames.length == 0) {
             throw new IllegalArgumentException(
-                    "DDC remote YAML must contain a mapping"
+                    "Tianshu remote YAML must contain a mapping"
             );
         }
         if (propertyNames[0].equals("document")
                 || propertyNames[0].startsWith("document[")) {
             throw new IllegalArgumentException(
-                    "DDC remote YAML root must be a mapping"
+                    "Tianshu remote YAML root must be a mapping"
             );
         }
         DdcReservedConfigurationKeys.validate(source);
@@ -220,13 +220,13 @@ public final class DdcYamlConfigFormatStrategy
         }
 
         /**
-         * 返回标明资源来自 DDC 远端的诊断描述。 Returns a diagnostic description identifying the resource as remote DDC content.
+         * 返回标明资源来自 Tianshu 远端的诊断描述。 Returns a diagnostic description identifying the resource as remote Tianshu content.
          *
-         * @return 远程 DDC 资源描述。 remote DDC resource description
+         * @return 远程 Tianshu 资源描述。 remote Tianshu resource description
          */
         @Override
         public String getDescription() {
-            return "DDC remote " + resourceName;
+            return "Tianshu remote " + resourceName;
         }
     }
 }

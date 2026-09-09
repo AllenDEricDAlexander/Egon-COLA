@@ -11,7 +11,7 @@ import java.time.Duration;
  * 语义与用法：将 `Rbac3StarterProperties` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `Rbac3StarterProperties` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
-@ConfigurationProperties("egon.cola.platform.rbac3")
+@ConfigurationProperties("egon.cola.platform.tianquan.jianshen")
 public class Rbac3StarterProperties {
 
     /**

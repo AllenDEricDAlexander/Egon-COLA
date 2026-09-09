@@ -26,14 +26,14 @@ import java.util.List;
 import java.util.Objects;
 
 @RestController
-@RequestMapping("/api/v1/identity/signing-keys")
+@RequestMapping("/api/v1/tianquan-shoubing/signing-keys")
 @Tag(name = "signing-keys", description = "签名密钥接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp-identity"
+        interfaceGroupCode = "tianquan-shoubing-identity"
 )
 
 public class SigningKeyController {
@@ -54,9 +54,9 @@ public class SigningKeyController {
 
     @GetMapping
     @Operation(
-            operationId = "idp-signing-key-list-v1",
+            operationId = "tianquan-shoubing-signing-key-list-v1",
             summary = "查询签名密钥",
-            tags = {"idp", "signing-key"}
+            tags = {"tianquan-shoubing", "signing-key"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -64,16 +64,16 @@ public class SigningKeyController {
     public List<SigningKeyVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:signing-key:read");
+        authorization.require(principal, "tianquan-shoubing:signing-key:read");
         return keys.list();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
-            operationId = "idp-signing-key-publish-v1",
+            operationId = "tianquan-shoubing-signing-key-publish-v1",
             summary = "预发布签名密钥",
-            tags = {"idp", "signing-key"}
+            tags = {"tianquan-shoubing", "signing-key"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -82,15 +82,15 @@ public class SigningKeyController {
             @Valid @RequestBody PublishSigningKeyDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:signing-key:publish");
+        authorization.require(principal, "tianquan-shoubing:signing-key:publish");
         return keys.publish(request);
     }
 
     @PostMapping("/{kid}/activate")
     @Operation(
-            operationId = "idp-signing-key-activate-v1",
+            operationId = "tianquan-shoubing-signing-key-activate-v1",
             summary = "激活签名密钥",
-            tags = {"idp", "signing-key"}
+            tags = {"tianquan-shoubing", "signing-key"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -101,15 +101,15 @@ public class SigningKeyController {
             @PositiveOrZero long expectedVersion,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:signing-key:activate");
+        authorization.require(principal, "tianquan-shoubing:signing-key:activate");
         return keys.activate(kid, expectedVersion);
     }
 
     @PostMapping("/{kid}/retire")
     @Operation(
-            operationId = "idp-signing-key-retire-v1",
+            operationId = "tianquan-shoubing-signing-key-retire-v1",
             summary = "退役签名密钥",
-            tags = {"idp", "signing-key"}
+            tags = {"tianquan-shoubing", "signing-key"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -120,7 +120,7 @@ public class SigningKeyController {
             @PositiveOrZero long expectedVersion,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:signing-key:retire");
+        authorization.require(principal, "tianquan-shoubing:signing-key:retire");
         return keys.retire(kid, expectedVersion);
     }
 }

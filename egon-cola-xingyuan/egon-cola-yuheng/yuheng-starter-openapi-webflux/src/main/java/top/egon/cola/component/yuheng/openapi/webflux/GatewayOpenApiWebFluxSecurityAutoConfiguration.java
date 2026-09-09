@@ -40,7 +40,7 @@ import java.util.Set;
 })
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.REACTIVE)
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.gateway.openapi",
+        prefix = "egon.cola.component.yuheng.openapi",
         name = "enabled",
         havingValue = "true"
 )
@@ -60,7 +60,7 @@ public class GatewayOpenApiWebFluxSecurityAutoConfiguration {
                         "/v3/api-docs/**"))
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .authorizeExchange(authorize -> authorize
-                        .anyExchange().hasAuthority("SCOPE_gateway.openapi.read"))
+                        .anyExchange().hasAuthority("SCOPE_yuheng.openapi.read"))
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(
                         Customizer.withDefaults()))
                 .build();

@@ -12,7 +12,7 @@ class DdcAdminTransportSecurityValidatorTest {
         assertThatThrownBy(() ->
                 DdcAdminTransportSecurityValidator.validate(
                         new MockEnvironment(),
-                        "egon.cola.component.ddc.admin.transport-security"
+                        "egon.cola.component.tianshu.admin.transport-security"
                 )
         ).isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining(".mode is required");

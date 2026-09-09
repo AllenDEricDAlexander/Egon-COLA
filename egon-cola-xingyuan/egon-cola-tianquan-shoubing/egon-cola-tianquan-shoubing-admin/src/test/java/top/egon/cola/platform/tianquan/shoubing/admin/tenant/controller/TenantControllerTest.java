@@ -65,7 +65,7 @@ class TenantControllerTest {
                 tenant("10002", "beta", "Beta", IdentityTenantEntity.Status.SUSPENDED)
         ));
 
-        mockMvc.perform(get("/api/v1/identity/tenants")
+        mockMvc.perform(get("/api/v1/tianquan-shoubing/tenants")
                         .param("page", "0")
                         .param("size", "1")
                         .param("query", "ac")
@@ -77,7 +77,7 @@ class TenantControllerTest {
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:tenant:read")
+                eq("tianquan-shoubing:tenant:read")
         );
     }
 
@@ -92,7 +92,7 @@ class TenantControllerTest {
                         IdentityTenantEntity.Status.INITIALIZING
                 ));
 
-        mockMvc.perform(post("/api/v1/identity/tenants")
+        mockMvc.perform(post("/api/v1/tianquan-shoubing/tenants")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -110,7 +110,7 @@ class TenantControllerTest {
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:tenant:manage")
+                eq("tianquan-shoubing:tenant:manage")
         );
     }
 
@@ -124,7 +124,7 @@ class TenantControllerTest {
                         IdentityTenantEntity.Status.ACTIVE
                 ));
 
-        mockMvc.perform(patch("/api/v1/identity/tenants/{tenantId}", "10001")
+        mockMvc.perform(patch("/api/v1/tianquan-shoubing/tenants/{tenantId}", "10001")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {
@@ -139,7 +139,7 @@ class TenantControllerTest {
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:tenant:manage")
+                eq("tianquan-shoubing:tenant:manage")
         );
     }
 
@@ -164,13 +164,13 @@ class TenantControllerTest {
         ));
 
         mockMvc.perform(get(
-                        "/api/v1/identity/tenants/{tenantId}/members",
+                        "/api/v1/tianquan-shoubing/tenants/{tenantId}/members",
                         "10001"
                 ))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content[0].identitySub").value("user-1"));
         mockMvc.perform(put(
-                        "/api/v1/identity/tenants/{tenantId}/members/{identitySub}",
+                        "/api/v1/tianquan-shoubing/tenants/{tenantId}/members/{identitySub}",
                         "10001",
                         "user-1"
                 ).contentType(MediaType.APPLICATION_JSON)
@@ -185,11 +185,11 @@ class TenantControllerTest {
 
         verify(authorization).require(
                 isNull(),
-                eq("idp:tenant:read")
+                eq("tianquan-shoubing:tenant:read")
         );
         verify(authorization).require(
                 isNull(),
-                eq("idp:tenant:manage")
+                eq("tianquan-shoubing:tenant:manage")
         );
     }
 

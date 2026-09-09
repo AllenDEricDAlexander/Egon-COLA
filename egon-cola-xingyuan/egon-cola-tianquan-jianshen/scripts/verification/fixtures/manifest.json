@@ -1,10 +1,10 @@
 {
   "applicationId": "replace-with-dedicated-application-id",
-  "definitionSetId": "rbac3-it-definition-v1",
+  "definitionSetId": "tianquan-jianshen-it-definition-v1",
   "manifest": {
-    "schemaVersion": "rbac3-resource-manifest/v1",
-    "applicationCode": "rbac3-it-app",
-    "applicationName": "RBAC3 verification fixture",
+    "schemaVersion": "tianquan-jianshen-resource-manifest/v1",
+    "applicationCode": "tianquan-jianshen-it-app",
+    "applicationName": "Tianquan-Jianshen verification fixture",
     "artifactVersion": "1.0.0-it",
     "buildId": "replace-with-run-id",
     "manifestVersion": 1,
@@ -12,9 +12,9 @@
     "checksum": "replace-with-canonical-sha256",
     "apps": [
       {
-        "code": "rbac3-it-app",
+        "code": "tianquan-jianshen-it-app",
         "parentCode": null,
-        "name": "RBAC3 verification fixture",
+        "name": "Tianquan-Jianshen verification fixture",
         "order": 0,
         "path": null,
         "componentKey": null,

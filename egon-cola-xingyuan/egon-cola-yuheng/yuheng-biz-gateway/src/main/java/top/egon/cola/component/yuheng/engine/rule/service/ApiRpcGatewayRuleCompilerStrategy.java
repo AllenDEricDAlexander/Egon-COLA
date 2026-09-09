@@ -226,7 +226,7 @@ public final class ApiRpcGatewayRuleCompilerStrategy implements GatewayRuleCompi
                     );
                     if (operation == null) {
                         throw new IllegalArgumentException(
-                                "GATEWAY_RULE_COMPILE_FAILED: unknown operation"
+                                "YUHENG_RULE_COMPILE_FAILED: unknown operation"
                         );
                     }
                     return new RuntimeHttpRoute(
@@ -301,7 +301,7 @@ public final class ApiRpcGatewayRuleCompilerStrategy implements GatewayRuleCompi
                             .count();
                     if (securityReferences > 1) {
                         throw new IllegalArgumentException(
-                                "GATEWAY_RULE_COMPILE_FAILED: operation "
+                                "YUHENG_RULE_COMPILE_FAILED: operation "
                                         + operation.operationId()
                                         + " references multiple security "
                                         + "policies"
@@ -316,7 +316,7 @@ public final class ApiRpcGatewayRuleCompilerStrategy implements GatewayRuleCompi
                             .count();
                     if (loadBalanceReferences > 1) {
                         throw new IllegalArgumentException(
-                                "GATEWAY_RULE_COMPILE_FAILED: operation "
+                                "YUHENG_RULE_COMPILE_FAILED: operation "
                                         + operation.operationId()
                                         + " references multiple load balance "
                                         + "policies"
@@ -327,7 +327,7 @@ public final class ApiRpcGatewayRuleCompilerStrategy implements GatewayRuleCompi
                             .count();
                     if (corsReferences > 1) {
                         throw new IllegalArgumentException(
-                                "GATEWAY_RULE_COMPILE_FAILED: operation "
+                                "YUHENG_RULE_COMPILE_FAILED: operation "
                                         + operation.operationId()
                                         + " references multiple CORS policies"
                         );
@@ -464,7 +464,7 @@ public final class ApiRpcGatewayRuleCompilerStrategy implements GatewayRuleCompi
         );
         if (descriptorSha == null || descriptorSha.isBlank()) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_COMPILE_FAILED: RPC descriptor is missing"
+                    "YUHENG_RULE_COMPILE_FAILED: RPC descriptor is missing"
             );
         }
         long timeoutMillis = Long.parseLong(

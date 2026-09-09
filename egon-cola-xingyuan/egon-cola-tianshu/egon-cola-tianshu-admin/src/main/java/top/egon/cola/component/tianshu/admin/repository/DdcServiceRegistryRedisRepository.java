@@ -406,7 +406,7 @@ public class DdcServiceRegistryRedisRepository {
             return objectMapper.readTree(value);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException(
-                    "deserialize DDC service instance failed", exception);
+                    "deserialize Tianshu service instance failed", exception);
         }
     }
 
@@ -571,7 +571,7 @@ public class DdcServiceRegistryRedisRepository {
             }
             return objectMapper.treeToValue(node, DdcServiceInstance.class);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("deserialize DDC service instance failed", exception);
+            throw new IllegalStateException("deserialize Tianshu service instance failed", exception);
         }
     }
 
@@ -579,7 +579,7 @@ public class DdcServiceRegistryRedisRepository {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("serialize DDC service registry value failed", exception);
+            throw new IllegalStateException("serialize Tianshu service registry value failed", exception);
         }
     }
 

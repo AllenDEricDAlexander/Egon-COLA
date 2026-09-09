@@ -207,7 +207,7 @@ public record ActiveHealthProbePolicy(
      */
     public String httpMethod(ProviderInstance instance) {
         return instance.metadata().getOrDefault(
-                "gateway.health.method",
+                "yuheng.health.method",
                 httpMethod
         ).toUpperCase(Locale.ROOT);
     }
@@ -222,7 +222,7 @@ public record ActiveHealthProbePolicy(
      */
     public String httpPath(ProviderInstance instance) {
         return path(instance.metadata().getOrDefault(
-                "gateway.health.path",
+                "yuheng.health.path",
                 httpPath
         ));
     }
@@ -237,7 +237,7 @@ public record ActiveHealthProbePolicy(
      */
     public Set<Integer> httpSuccessStatuses(ProviderInstance instance) {
         String configured = instance.metadata().get(
-                "gateway.health.success-statuses"
+                "yuheng.health.success-statuses"
         );
         if (configured == null || configured.isBlank()) {
             return httpSuccessStatuses;
@@ -265,7 +265,7 @@ public record ActiveHealthProbePolicy(
      */
     public String rpcServiceName(ProviderInstance instance) {
         return instance.metadata().getOrDefault(
-                "gateway.health.rpc-service",
+                "yuheng.health.rpc-service",
                 rpcServiceName
         );
     }

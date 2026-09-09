@@ -15,10 +15,10 @@ class Rbac3PlatformAdminBootstrapCliIT {
         var cli = new Rbac3PlatformAdminBootstrapCli(port);
         int result = cli.run(new String[]{
                         "bootstrap-platform-admin", "--tenant-id", "17",
-                "--identity-sub", "idp-subject"
+                "--identity-sub", "tianquan-shoubing-subject"
         });
         assertEquals(0, result);
-        assertEquals("idp-subject", port.identitySub);
+        assertEquals("tianquan-shoubing-subject", port.identitySub);
         assertEquals("17", port.tenantId);
 
         assertThrows(IllegalStateException.class, () -> cli.run(new String[]{
@@ -27,7 +27,7 @@ class Rbac3PlatformAdminBootstrapCliIT {
         }));
         assertThrows(IllegalArgumentException.class, () -> cli.run(new String[]{
                         "bootstrap-platform-admin", "--tenant-id", "17",
-                "--identity-sub", "idp-subject", "--password", "leak"
+                "--identity-sub", "tianquan-shoubing-subject", "--password", "leak"
         }));
     }
 

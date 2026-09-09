@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.model.lease;
 
 /**
- * DDC 租约持有方角色。
- * / Role of a DDC lease holder.
+ * Tianshu 租约持有方角色。
+ * / Role of a Tianshu lease holder.
  */
 public enum DdcLeaseRole {
 

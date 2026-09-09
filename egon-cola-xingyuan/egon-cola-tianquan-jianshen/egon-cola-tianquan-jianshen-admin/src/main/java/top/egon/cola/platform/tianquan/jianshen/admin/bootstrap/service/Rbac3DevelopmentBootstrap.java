@@ -16,12 +16,12 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Idempotently prepares local RBAC membership for an IdP subject.
+ * Idempotently prepares local RBAC membership for an Tianquan-Shoubing subject.
  */
 @Component
 @Profile("local")
 @ConditionalOnProperty(
-        prefix = "egon.rbac3.development-bootstrap",
+        prefix = "egon.tianquan-jianshen.development-bootstrap",
         name = "enabled",
         havingValue = "true")
 public class Rbac3DevelopmentBootstrap implements ApplicationRunner {
@@ -36,9 +36,9 @@ public class Rbac3DevelopmentBootstrap implements ApplicationRunner {
             DevelopmentBootstrapPort bootstrap,
             IdentityTenantMembershipDirectory memberships,
             RuntimeProjectionExecutor runtimeProjection,
-            @Value("${egon.rbac3.development-bootstrap.tenant-ids:}")
+            @Value("${egon.tianquan-jianshen.development-bootstrap.tenant-ids:}")
             String tenantIds,
-            @Value("${egon.rbac3.development-bootstrap.identity-sub:}")
+            @Value("${egon.tianquan-jianshen.development-bootstrap.identity-sub:}")
             String identitySub) {
         this.bootstrap = Objects.requireNonNull(bootstrap, "bootstrap");
         this.memberships = Objects.requireNonNull(memberships, "memberships");

@@ -111,8 +111,8 @@ public final class AuthorizationDecisionService {
     }
 
     /**
-     * 判定 IdP 用户是否具备进入目标 AuthorizationDecisionResourceVO Server 应用的入口权限。
-     * Decides whether an IdP user has the entry permission for a target AuthorizationDecisionResourceVO Server application.
+     * 判定 Tianquan-Shoubing 用户是否具备进入目标 AuthorizationDecisionResourceVO Server 应用的入口权限。
+     * Decides whether an Tianquan-Shoubing user has the entry permission for a target AuthorizationDecisionResourceVO Server application.
      *
      * <p>该接口只返回最小判定和授权版本，不返回角色、权限集合、数据范围或字段策略。
      * This API returns only the minimal decision and authorization versions; roles, permission
@@ -172,7 +172,7 @@ public final class AuthorizationDecisionService {
      * 判断规则异常是否表示用户身份或成员关系已经不可用。
      * Determines whether a rule violation represents an inactive identity or membership.
      *
-     * @param reasonCode RBAC3 原因码 / RBAC3 reason code
+     * @param reasonCode Tianquan-Jianshen 原因码 / Tianquan-Jianshen reason code
      * @return 若主体上下文不可用则为 {@code true} / {@code true} when the subject context is inactive
      * 用法：调用 `isInactiveIdentity` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `isInactiveIdentity`, then continue the business flow using its result, exception, or side effect.
@@ -262,7 +262,7 @@ public final class AuthorizationDecisionService {
      *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 租户标识 / tenant identifier
-     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
      * @return 应用受限的用户快照 / application-bound user snapshot
      * 用法：调用 `snapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `snapshot`, then continue the business flow using its result, exception, or side effect.
@@ -282,7 +282,7 @@ public final class AuthorizationDecisionService {
      *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 租户标识 / tenant identifier
-     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
      * @return 单应用授权快照 / single-application authorization snapshot
      * 用法：调用 `boundSnapshot` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `boundSnapshot`, then continue the business flow using its result, exception, or side effect.
@@ -312,7 +312,7 @@ public final class AuthorizationDecisionService {
      *
      * @param caller 已认证调用服务 / authenticated calling service
      * @param tenantId 租户标识 / tenant identifier
-     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
      * @return Fence 判定 / fence decision
      * 用法：调用 `verifyFence` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `verifyFence`, then continue the business flow using its result, exception, or side effect.
@@ -336,7 +336,7 @@ public final class AuthorizationDecisionService {
      * Requires the user subject to be free of a propagation fence.
      *
      * @param tenantId 租户标识 / tenant identifier
-     * @param identitySub IdP 稳定主体标识 / stable IdP subject
+     * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
      * 用法：调用 `requireUnfenced` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
      * Usage: provide contract-compliant arguments before calling `requireUnfenced`, then continue the business flow using its result, exception, or side effect.
      */

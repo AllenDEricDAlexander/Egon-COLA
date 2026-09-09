@@ -61,7 +61,7 @@ public final class McpTaskOperationExecutor implements McpTaskExecutor {
     private final Function<String, URI> resourceResolver;
 
     /**
-     * IdP SERVICE Token 提供器；IdP SERVICE-token supplier.
+     * Tianquan-Shoubing SERVICE Token 提供器；Tianquan-Shoubing SERVICE-token supplier.
      * 补充说明 / Supplementary summary: 保存 tokenSupplier 对应的状态、依赖或配置值；字段类型为 {@code McpTaskServiceTokenSupplier}，由 {@code McpTaskOperationExecutor} 在其生命周期内读取或更新。
      * English supplement: Holds the state, dependency, or configuration represented by token supplier; its type is {@code McpTaskServiceTokenSupplier}, and {@code McpTaskOperationExecutor} reads or updates it during its lifecycle.
      * 用法 / Usage: 该字段通过 {@code McpTaskOperationExecutor} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpTaskOperationExecutor}; do not couple callers to its representation when the owning type exposes an API.

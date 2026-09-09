@@ -23,18 +23,18 @@ import java.util.Set;
 public final class SystemAuthorizationSnapshotService {
 
     private static final Duration DEFAULT_TTL = Duration.ofHours(12);
-    private static final String RBAC3_ADMIN_SYSTEM = "rbac3-admin";
+    private static final String TIANQUAN_JIANSHEN_ADMIN_SYSTEM = "tianquan-jianshen-admin";
     private static final Set<String> ROLE_ACTIVATION_PERMISSIONS = Set.of(
             "system:about:read",
             "system:role-activation:read",
             "system:role-activation:use"
     );
-    private static final String DDC_ADMIN_SYSTEM = "ddc-admin";
-    private static final Set<String> DDC_BOOTSTRAP_PERMISSIONS = Set.of(
-            "DDC_READ",
-            "DDC_WRITE",
-            "DDC_PUBLISH",
-            "DDC_CACHE"
+    private static final String TIANSHU_ADMIN_SYSTEM = "tianshu-admin";
+    private static final Set<String> TIANSHU_BOOTSTRAP_PERMISSIONS = Set.of(
+            "TIANSHU_READ",
+            "TIANSHU_WRITE",
+            "TIANSHU_PUBLISH",
+            "TIANSHU_CACHE"
     );
     private final AuthorizationSnapshotRepository snapshots;
     private final InitialAuthorizationContextRepository initialContexts;
@@ -55,9 +55,9 @@ public final class SystemAuthorizationSnapshotService {
     }
 
     /**
-     * Creates the snapshot projector with an optional local DDC bootstrap context.
+     * Creates the snapshot projector with an optional local Tianshu bootstrap context.
      * The bootstrap context is intentionally disabled by default so a deployed
-     * RBAC3 instance still fails closed until its runtime snapshot is published.
+     * Tianquan-Jianshen instance still fails closed until its runtime snapshot is published.
      */
     public SystemAuthorizationSnapshotService(
             AuthorizationSnapshotRepository snapshots,
@@ -96,15 +96,15 @@ public final class SystemAuthorizationSnapshotService {
                 .orElse(null);
         if (app == null) {
             // Selecting a business role must not remove an active member's own role-selection entry.
-            // This does not bootstrap DDC or grant any RBAC management capability.
-            if (RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+            // This does not bootstrap Tianshu or grant any RBAC management capability.
+            if (TIANQUAN_JIANSHEN_ADMIN_SYSTEM.equals(systemCode)) {
                 return initialSnapshot(tenantId, identitySub, systemCode)
                         .orElseThrow(() -> new Rbac3RuleViolation("AUTHORIZATION_DENIED"));
             }
             throw new Rbac3RuleViolation("AUTHORIZATION_DENIED");
         }
         Set<String> permissions = app.permissions();
-        if (RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+        if (TIANQUAN_JIANSHEN_ADMIN_SYSTEM.equals(systemCode)) {
             permissions = new LinkedHashSet<>(permissions);
             permissions.addAll(ROLE_ACTIVATION_PERMISSIONS);
         }
@@ -136,11 +136,11 @@ public final class SystemAuthorizationSnapshotService {
             String systemCode
     ) {
         Set<String> permissions;
-        if (RBAC3_ADMIN_SYSTEM.equals(systemCode)) {
+        if (TIANQUAN_JIANSHEN_ADMIN_SYSTEM.equals(systemCode)) {
             permissions = ROLE_ACTIVATION_PERMISSIONS;
-        } else if (DDC_ADMIN_SYSTEM.equals(systemCode)
+        } else if (TIANSHU_ADMIN_SYSTEM.equals(systemCode)
                 && ddcInitialContextEnabled) {
-            permissions = DDC_BOOTSTRAP_PERMISSIONS;
+            permissions = TIANSHU_BOOTSTRAP_PERMISSIONS;
         } else {
             return Optional.empty();
         }

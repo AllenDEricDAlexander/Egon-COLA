@@ -9,8 +9,8 @@ class DdcAdminWebResourceTest {
     @Test
     void noLongerShipsTheBundledAdminWeb() {
         assertThat(DdcAdminWebResourceTest.class.getClassLoader()
-                .getResource("static/ddc-admin/index.html"))
-                .as("the admin jar must not bundle the extracted ddc-admin web")
+                .getResource("static/tianshu-admin/index.html"))
+                .as("the admin jar must not bundle the extracted tianshu-admin web")
                 .isNull();
     }
 }

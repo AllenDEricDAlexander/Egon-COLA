@@ -42,7 +42,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=2",
         "spring.flyway.enabled=false",
-        "egon.cola.component.ddc.enabled=false"
+        "egon.cola.component.tianshu.enabled=false"
 })
 class DdcPublishServiceFailureTest {
 

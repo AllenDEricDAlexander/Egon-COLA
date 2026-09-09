@@ -28,23 +28,23 @@ class ClientCredentialsAccessPolicyTest {
     void setUp() {
         resources = new ResourceServerPolicyTest.FakeResourceServerStore();
         source = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
         target = resource(
-                "permission-rbac3-prod",
-                "rbac3",
-                "rbac3-service"
+                "permission-tianquan-jianshen-prod",
+                "tianquan-jianshen",
+                "tianquan-jianshen-service"
         );
         resources.resources.put(source.resourceServerId(), source);
         resources.resources.put(target.resourceServerId(), target);
         sourceClient = new OAuthClient(
-                "idp-service",
+                "tianquan-shoubing-service",
                 OAuthClient.ClientType.CONFIDENTIAL,
                 OAuthClient.Status.ACTIVE,
                 false,
-                List.of("https://idp.example.test/internal/callback")
+                List.of("https://tianquan-shoubing.example.test/internal/callback")
         );
         resources.grants.put(
                 ResourceServerPolicyTest.FakeResourceServerStore.key(
@@ -59,8 +59,8 @@ class ClientCredentialsAccessPolicyTest {
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         "tenant-001",
                         Set.of(
-                                "rbac3:policy:read",
-                                "rbac3:identity:resolve"
+                                "tianquan-jianshen:policy:read",
+                                "tianquan-jianshen:identity:resolve"
                         ),
                         ClientResourceGrant.Status.ACTIVE,
                         5L
@@ -76,12 +76,12 @@ class ClientCredentialsAccessPolicyTest {
                         sourceClient,
                         target,
                         "tenant-001",
-                        Set.of("rbac3:policy:read")
+                        Set.of("tianquan-jianshen:policy:read")
                 );
 
-        assertEquals(Set.of("rbac3:policy:read"), access.scopes());
+        assertEquals(Set.of("tianquan-jianshen:policy:read"), access.scopes());
         assertEquals("permission", access.sourceBizCode());
-        assertEquals("idp", access.sourceAppCode());
+        assertEquals("tianquan-shoubing", access.sourceAppCode());
         assertEquals("prod", access.sourceEnvironment());
         assertEquals(ServiceTokenContext.TENANT, access.scopeContext());
         assertEquals("tenant-001", access.tenantId());
@@ -101,7 +101,7 @@ class ClientCredentialsAccessPolicyTest {
                         target.resourceServerId(),
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         null,
-                        Set.of("ddc:registration:write"),
+                        Set.of("tianshu:registration:write"),
                         ClientResourceGrant.Status.ACTIVE,
                         6L,
                         ServiceTokenContext.PLATFORM
@@ -113,7 +113,7 @@ class ClientCredentialsAccessPolicyTest {
                         sourceClient,
                         target,
                         null,
-                        Set.of("ddc:registration:write")
+                        Set.of("tianshu:registration:write")
                 );
 
         assertEquals(ServiceTokenContext.PLATFORM, access.scopeContext());
@@ -142,7 +142,7 @@ class ClientCredentialsAccessPolicyTest {
                         target.resourceServerId(),
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         null,
-                        Set.of("ddc:registration:write"),
+                        Set.of("tianshu:registration:write"),
                         ClientResourceGrant.Status.ACTIVE,
                         6L,
                         ServiceTokenContext.PLATFORM
@@ -150,14 +150,14 @@ class ClientCredentialsAccessPolicyTest {
         );
 
         assertEquals(
-                "IDP_SERVICE_RESOURCE_GRANT_NOT_FOUND",
+                "TIANQUAN_SHOUBING_SERVICE_RESOURCE_GRANT_NOT_FOUND",
                 assertThrows(
                         ResourceAuthorizationException.class,
                         () -> policy.authorize(
                                 sourceClient,
                                 target,
                                 "tenant-001",
-                                Set.of("ddc:registration:write")
+                                Set.of("tianshu:registration:write")
                         )
                 ).code()
         );
@@ -167,7 +167,7 @@ class ClientCredentialsAccessPolicyTest {
                         sourceClient,
                         target,
                         "*",
-                        Set.of("ddc:registration:write")
+                        Set.of("tianshu:registration:write")
                 )
         );
     }
@@ -177,15 +177,15 @@ class ClientCredentialsAccessPolicyTest {
         assertThrows(
                 IllegalArgumentException.class,
                 () -> new ServiceIdentityPrincipal(
-                        "idp-service",
+                        "tianquan-shoubing-service",
                         "tenant-001",
                         "client-id",
                         "jti-service",
-                        URI.create("https://ddc.example.test"),
+                        URI.create("https://tianshu.example.test"),
                         1L,
-                        Set.of("ddc:registration:write"),
+                        Set.of("tianshu:registration:write"),
                         "permission",
-                        "idp",
+                        "tianquan-shoubing",
                         "prod",
                         "secret-1",
                         Instant.EPOCH,
@@ -199,14 +199,14 @@ class ClientCredentialsAccessPolicyTest {
                 () -> new ServiceAccessTokenClaims(
                         "client-id",
                         "client-id",
-                        URI.create("https://ddc.example.test"),
+                        URI.create("https://tianshu.example.test"),
                         null,
                         "permission",
-                        "idp",
+                        "tianquan-shoubing",
                         "prod",
                         "secret-1",
                         1L,
-                        Set.of("ddc:registration:write"),
+                        Set.of("tianshu:registration:write"),
                         "jti-service",
                         Instant.EPOCH,
                         Instant.EPOCH,
@@ -225,11 +225,11 @@ class ClientCredentialsAccessPolicyTest {
                         sourceClient,
                         target,
                         "tenant-002",
-                        Set.of("rbac3:policy:read")
+                        Set.of("tianquan-jianshen:policy:read")
                 )
         );
         assertEquals(
-                "IDP_SERVICE_RESOURCE_GRANT_NOT_FOUND",
+                "TIANQUAN_SHOUBING_SERVICE_RESOURCE_GRANT_NOT_FOUND",
                 tenantFailure.code()
         );
 
@@ -239,20 +239,20 @@ class ClientCredentialsAccessPolicyTest {
                         sourceClient,
                         target,
                         "tenant-001",
-                        Set.of("rbac3:policy:write")
+                        Set.of("tianquan-jianshen:policy:write")
                 )
         );
-        assertEquals("IDP_SERVICE_SCOPE_INVALID", scopeFailure.code());
+        assertEquals("TIANQUAN_SHOUBING_SERVICE_SCOPE_INVALID", scopeFailure.code());
     }
 
     @Test
     void rejectsPublicOrDisabledSourceClient() {
         OAuthClient publicClient = new OAuthClient(
-                "idp-service",
+                "tianquan-shoubing-service",
                 OAuthClient.ClientType.PUBLIC,
                 OAuthClient.Status.ACTIVE,
                 true,
-                List.of("https://idp.example.test/oauth/callback")
+                List.of("https://tianquan-shoubing.example.test/oauth/callback")
         );
 
         assertThrows(ResourceAuthorizationException.class, () ->
@@ -260,14 +260,14 @@ class ClientCredentialsAccessPolicyTest {
                         publicClient,
                         target,
                         "tenant-001",
-                        Set.of("rbac3:policy:read")
+                        Set.of("tianquan-jianshen:policy:read")
                 ));
         assertThrows(ResourceAuthorizationException.class, () ->
                 policy.authorize(
                         sourceClient.withStatus(OAuthClient.Status.DISABLED),
                         target,
                         "tenant-001",
-                        Set.of("rbac3:policy:read")
+                        Set.of("tianquan-jianshen:policy:read")
                 ));
     }
 

@@ -139,9 +139,9 @@ class DdcManagementRpcProviderTest {
                 serviceKey, 4L, now, List.of());
         DdcResourceAdmissionRevocationRequest revocation =
                 new DdcResourceAdmissionRevocationRequest(
-                        "permission-idp-prod",
+                        "permission-tianquan-shoubing-prod",
                         "permission",
-                        "idp",
+                        "tianquan-shoubing",
                         "prod",
                         7L
                 );

@@ -1,9 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.contract;
 
 /**
- * IdP 内部和适配层共用的稳定错误码。
+ * Tianquan-Shoubing 内部和适配层共用的稳定错误码。
  *
- * <p>Stable error codes shared by IdP core and adapters.</p>
+ * <p>Stable error codes shared by Tianquan-Shoubing core and adapters.</p>
  */
 public enum IdpErrorCode {
     /** 用户凭据无效。 / User credentials are invalid. */
@@ -29,29 +29,29 @@ public enum IdpErrorCode {
     /** 身份运行态不可用。 / Identity runtime state is unavailable. */
     IDENTITY_STATE_UNAVAILABLE,
     /** Resource Server 不存在。 / Resource Server does not exist. */
-    IDP_RESOURCE_SERVER_NOT_FOUND,
+    TIANQUAN_SHOUBING_RESOURCE_SERVER_NOT_FOUND,
     /** Resource Server 已禁用。 / Resource Server is disabled. */
-    IDP_RESOURCE_SERVER_DISABLED,
+    TIANQUAN_SHOUBING_RESOURCE_SERVER_DISABLED,
     /** Resource Server 业务域不匹配。 / Resource Server business domain mismatches. */
-    IDP_RESOURCE_SERVER_BIZ_MISMATCH,
+    TIANQUAN_SHOUBING_RESOURCE_SERVER_BIZ_MISMATCH,
     /** Resource Server 应用不匹配。 / Resource Server application mismatches. */
-    IDP_RESOURCE_SERVER_APP_MISMATCH,
+    TIANQUAN_SHOUBING_RESOURCE_SERVER_APP_MISMATCH,
     /** Resource Server 环境不匹配。 / Resource Server environment mismatches. */
-    IDP_RESOURCE_SERVER_ENV_MISMATCH,
+    TIANQUAN_SHOUBING_RESOURCE_SERVER_ENV_MISMATCH,
     /** Resource Server 凭证无效。 / Resource Server credential is invalid. */
-    IDP_RESOURCE_SERVER_CREDENTIAL_INVALID,
+    TIANQUAN_SHOUBING_RESOURCE_SERVER_CREDENTIAL_INVALID,
     /** Client Assertion Audience 无效。 / Client Assertion audience is invalid. */
-    IDP_CLIENT_ASSERTION_AUDIENCE_INVALID,
+    TIANQUAN_SHOUBING_CLIENT_ASSERTION_AUDIENCE_INVALID,
     /** Client Assertion 已被使用。 / Client Assertion was already used. */
-    IDP_CLIENT_ASSERTION_REPLAYED,
+    TIANQUAN_SHOUBING_CLIENT_ASSERTION_REPLAYED,
     /** Resource Server 准入暂时不可用。 / Resource Server admission is unavailable. */
-    IDP_RESOURCE_ADMISSION_UNAVAILABLE,
+    TIANQUAN_SHOUBING_RESOURCE_ADMISSION_UNAVAILABLE,
     /** USER Resource Grant 不存在。 / USER Resource Grant does not exist. */
-    IDP_USER_RESOURCE_GRANT_NOT_FOUND,
+    TIANQUAN_SHOUBING_USER_RESOURCE_GRANT_NOT_FOUND,
     /** Service Resource Grant 不存在。 / Service Resource Grant does not exist. */
-    IDP_SERVICE_RESOURCE_GRANT_NOT_FOUND,
+    TIANQUAN_SHOUBING_SERVICE_RESOURCE_GRANT_NOT_FOUND,
     /** SERVICE Scope 无效。 / SERVICE scope is invalid. */
-    IDP_SERVICE_SCOPE_INVALID,
+    TIANQUAN_SHOUBING_SERVICE_SCOPE_INVALID,
     /** USER 无目标应用入口权限。 / USER lacks target application entry permission. */
-    IDP_RESOURCE_ACCESS_DENIED
+    TIANQUAN_SHOUBING_RESOURCE_ACCESS_DENIED
 }

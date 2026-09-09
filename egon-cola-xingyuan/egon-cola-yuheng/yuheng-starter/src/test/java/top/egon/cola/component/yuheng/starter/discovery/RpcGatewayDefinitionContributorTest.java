@@ -38,12 +38,12 @@ class RpcGatewayDefinitionContributorTest {
 
         assertThat(operation.requestSchema())
                 .containsEntry("x-egon-schema-model",
-                        "gateway-operation-request/v2")
+                        "yuheng-operation-request/v2")
                 .containsEntry("type", "object")
                 .containsEntry("messageType", "google.protobuf.Type");
         assertThat(operation.responseSchema())
                 .containsEntry("x-egon-schema-model",
-                        "gateway-operation-response/v2")
+                        "yuheng-operation-response/v2")
                 .containsEntry("type", "object")
                 .containsEntry("messageType", "google.protobuf.Type");
         assertThat(properties(operation.requestSchema()))
@@ -193,7 +193,7 @@ class RpcGatewayDefinitionContributorTest {
             throws Descriptors.DescriptorValidationException {
         DescriptorProtos.FileDescriptorProto file =
                 DescriptorProtos.FileDescriptorProto.newBuilder()
-                        .setName("rpc-gateway-definition-test.proto")
+                        .setName("rpc-yuheng-definition-test.proto")
                         .setPackage("test")
                         .addDependency(Type.getDescriptor().getFile().getName())
                         .addService(DescriptorProtos.ServiceDescriptorProto

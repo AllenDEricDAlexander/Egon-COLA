@@ -23,14 +23,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/envs")
-@Tag(name = "ddc-admin-ddc-env-controller", description = "DdcEnvController 管理接口组")
+@RequestMapping("/api/v1/tianshu/envs")
+@Tag(name = "tianshu-admin-tianshu-env-controller", description = "DdcEnvController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcEnvController {
 
@@ -40,7 +40,7 @@ public class DdcEnvController {
         this.envService = envService;
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.list")
+    @Operation(operationId = "tianshu.ddcEnvController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcEnvEntity>> list(
@@ -51,7 +51,7 @@ public class DdcEnvController {
                 bizCode, namespaceCode, keyword));
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.page")
+    @Operation(operationId = "tianshu.ddcEnvController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcEnvEntity> page(
@@ -63,21 +63,21 @@ public class DdcEnvController {
                 bizCode, namespaceCode, keyword, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.detail")
+    @Operation(operationId = "tianshu.ddcEnvController.detail")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{code}")
     public ResultRecord<DdcEnvEntity> detail(@PathVariable("code") String code) {
         return ResultRecord.success(envService.findByEnvCode(code));
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.save")
+    @Operation(operationId = "tianshu.ddcEnvController.save")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcEnvEntity> save(@RequestBody DdcEnvEntity request) {
         return ResultRecord.success(envService.save(request));
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.update")
+    @Operation(operationId = "tianshu.ddcEnvController.update")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{code}")
     public ResultRecord<DdcEnvEntity> update(
@@ -86,7 +86,7 @@ public class DdcEnvController {
         return ResultRecord.success(envService.update(code, request));
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.delete")
+    @Operation(operationId = "tianshu.ddcEnvController.delete")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{code}")
     public ResultRecord<Void> delete(@PathVariable("code") String code) {
@@ -94,7 +94,7 @@ public class DdcEnvController {
         return ResultRecord.success(null);
     }
 
-    @Operation(operationId = "ddc.ddcEnvController.setEnabled")
+    @Operation(operationId = "tianshu.ddcEnvController.setEnabled")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{code}/enabled")
     public ResultRecord<DdcEnvEntity> setEnabled(

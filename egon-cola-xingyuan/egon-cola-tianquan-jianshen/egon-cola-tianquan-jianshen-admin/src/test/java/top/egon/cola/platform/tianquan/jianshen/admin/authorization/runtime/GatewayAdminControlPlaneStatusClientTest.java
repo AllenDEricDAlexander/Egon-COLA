@@ -58,12 +58,12 @@ class GatewayAdminControlPlaneStatusClientTest {
                 if (uri.getPath().endsWith("/providers/instances")) {
                     return response(200, """
                             {"value":{"instances":[{"instanceId":"instance-1",
-                              "status":"UP","serviceKey":{"bizCode":"rbac3",
-                              "appCode":"rbac3-admin","env":"prod",
+                              "status":"UP","serviceKey":{"bizCode":"tianquan-jianshen",
+                              "appCode":"tianquan-jianshen-admin","env":"prod",
                               "namespace":"default","serviceKind":"HTTP_PROVIDER",
-                              "protocol":"http","serviceName":"rbac3-admin",
+                              "protocol":"http","serviceName":"tianquan-jianshen-admin",
                               "group":"default","version":"1.0.0"},
-                              "metadata":{"gateway.definition-set-id":"definition-1"}}]}}
+                              "metadata":{"yuheng.definition-set-id":"definition-1"}}]}}
                             """);
                 }
                 return response(200, """
@@ -80,16 +80,16 @@ class GatewayAdminControlPlaneStatusClientTest {
         assertThat(result.release().definitionSetId()).isEqualTo("definition-1");
         assertThat(result.providers().instances()).singleElement()
                 .satisfies(instance -> {
-                    assertThat(instance.serviceKey().bizCode()).isEqualTo("rbac3");
-                    assertThat(instance.serviceKey().appCode()).isEqualTo("rbac3-admin");
+                    assertThat(instance.serviceKey().bizCode()).isEqualTo("tianquan-jianshen");
+                    assertThat(instance.serviceKey().appCode()).isEqualTo("tianquan-jianshen-admin");
                     assertThat(instance.serviceKey().serviceName())
-                            .isEqualTo("rbac3-admin");
+                            .isEqualTo("tianquan-jianshen-admin");
                     assertThat(instance.definitionSetId()).isEqualTo("definition-1");
                 });
         assertThat(result.consistency().consistent()).isTrue();
         assertThat(calls).hasSize(3);
         assertThat(calls.get(1).getQuery())
-                .contains("bizCode=rbac3", "appCode=rbac3-admin");
+                .contains("bizCode=tianquan-jianshen", "appCode=tianquan-jianshen-admin");
     }
 
     @Test
@@ -103,10 +103,10 @@ class GatewayAdminControlPlaneStatusClientTest {
             throw new IOException("secret-token timed out");
         }).snapshot();
 
-        assertThat(forbidden.release().reasonCode()).isEqualTo("GATEWAY_STATUS_FORBIDDEN");
+        assertThat(forbidden.release().reasonCode()).isEqualTo("YUHENG_STATUS_FORBIDDEN");
         assertThat(serverFailure.release().reasonCode())
-                .isEqualTo("GATEWAY_STATUS_UNAVAILABLE");
-        assertThat(timeout.release().reasonCode()).isEqualTo("GATEWAY_STATUS_UNAVAILABLE");
+                .isEqualTo("YUHENG_STATUS_UNAVAILABLE");
+        assertThat(timeout.release().reasonCode()).isEqualTo("YUHENG_STATUS_UNAVAILABLE");
         assertThat(forbidden.toString() + serverFailure + timeout)
                 .doesNotContain("secret-token", "denied");
     }
@@ -115,8 +115,8 @@ class GatewayAdminControlPlaneStatusClientTest {
             GatewayAdminStatusCredentialProvider credentials,
             GatewayAdminControlPlaneTransport transport) {
         return new GatewayAdminControlPlaneStatusClient(
-                URI.create("https://gateway-admin.example.test"),
-                "gateway-group-1", "release-1", credentials, transport,
+                URI.create("https://yuheng-admin.example.test"),
+                "yuheng-group-1", "release-1", credentials, transport,
                 new ObjectMapper().findAndRegisterModules(),
                 Clock.fixed(NOW, ZoneOffset.UTC), Duration.ofSeconds(2));
     }

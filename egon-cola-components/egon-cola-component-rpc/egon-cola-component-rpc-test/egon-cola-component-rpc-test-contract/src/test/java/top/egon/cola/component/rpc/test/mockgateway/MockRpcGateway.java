@@ -117,7 +117,7 @@ public final class MockRpcGateway implements AutoCloseable {
         heartbeat = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
                     runnable,
-                    "mock-rpc-gateway-heartbeat"
+                    "mock-rpc-yuheng-heartbeat"
             );
             thread.setDaemon(true);
             return thread;
@@ -224,7 +224,7 @@ public final class MockRpcGateway implements AutoCloseable {
                 endpoint.leaseId()
         ));
         LOGGER.info(
-                "RPC_MOCK_GATEWAY_FORWARD invocationId={} providerId={}",
+                "RPC_MOCK_YUHENG_FORWARD invocationId={} providerId={}",
                 invocationId,
                 endpoint.instanceId()
         );

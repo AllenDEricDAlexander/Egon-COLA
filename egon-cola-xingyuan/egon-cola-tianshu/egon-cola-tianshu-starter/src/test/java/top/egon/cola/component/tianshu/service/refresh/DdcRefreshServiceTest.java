@@ -163,7 +163,7 @@ class DdcRefreshServiceTest {
         DdcDynamicPropertySource source =
                 (DdcDynamicPropertySource) harness.environment
                         .getPropertySources()
-                        .get("ddc:application.yml");
+                        .get("tianshu:application.yml");
         DdcDynamicPropertySource replacement =
                 new DdcYamlConfigFormatStrategy().load(
                         "application.yml",
@@ -219,7 +219,7 @@ class DdcRefreshServiceTest {
                 egon:
                   cola:
                     component:
-                      ddc:
+                      tianshu:
                         enabled: false
                 """, 2L));
 

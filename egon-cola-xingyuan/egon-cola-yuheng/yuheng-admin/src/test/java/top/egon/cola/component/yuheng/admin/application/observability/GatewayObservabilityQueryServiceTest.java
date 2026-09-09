@@ -23,10 +23,10 @@ class GatewayObservabilityQueryServiceTest {
                 mock(GatewayObservabilityRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
-        when(store.dashboard(eq("test"), eq("gateway"), any()))
+        when(store.dashboard(eq("test"), eq("yuheng"), any()))
                 .thenReturn(summary("AVAILABLE"));
         when(projections.scopeCounts(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         ))
                 .thenReturn(new top.egon.cola.component.yuheng.admin.runtime.service.GatewayProjectionCounts(
                         2,
@@ -48,7 +48,7 @@ class GatewayObservabilityQueryServiceTest {
 
         top.egon.cola.component.yuheng.admin.observability.domain.vo.GatewayDashboardVO result =
                 service.dashboard(
-                        "test-biz", "orders", "test", "gateway"
+                        "test-biz", "orders", "test", "yuheng"
                 );
 
         assertThat(result.readyEngines()).isEqualTo(2);
@@ -65,12 +65,12 @@ class GatewayObservabilityQueryServiceTest {
                 mock(GatewayObservabilityRepository.class);
         GatewayProjectionService projections =
                 mock(GatewayProjectionService.class);
-        when(store.dashboard(eq("test"), eq("gateway"), any()))
+        when(store.dashboard(eq("test"), eq("yuheng"), any()))
                 .thenReturn(summary("NO_DATA"));
         when(projections.scopeCounts(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         ))
-                .thenThrow(new IllegalStateException("DDC unavailable"));
+                .thenThrow(new IllegalStateException("Tianshu unavailable"));
         GatewayObservabilityQueryService service =
                 new GatewayObservabilityQueryService(
                         store,
@@ -79,7 +79,7 @@ class GatewayObservabilityQueryServiceTest {
                 );
 
         assertThat(service.dashboard(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         )
                 .observabilityState()).isEqualTo(
                         "PROJECTION_UNAVAILABLE"

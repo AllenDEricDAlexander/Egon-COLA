@@ -12,14 +12,14 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class McpGatewayEnginePropertiesTest {
 
-    private static final String PREFIX = "egon.cola.component.gateway.mcp-engine.";
+    private static final String PREFIX = "egon.cola.component.yuheng.mcp-engine.";
     private final ApplicationContextRunner runner = new ApplicationContextRunner()
             .withUserConfiguration(PropertiesConfiguration.class);
 
     @Test
     void bindsImmutableBootstrapDefaultsWithoutRemappingLegacyMcpKeys() {
         runner.withPropertyValues(validValues())
-                .withPropertyValues("egon.cola.component.gateway.engine.mcp.issuer=https://issuer.example.test")
+                .withPropertyValues("egon.cola.component.yuheng.engine.mcp.issuer=https://issuer.example.test")
                 .run(context -> {
                     assertNull(context.getStartupFailure());
                     var properties = context.getBean(McpGatewayEngineProperties.class);
@@ -34,12 +34,12 @@ class McpGatewayEnginePropertiesTest {
 
     @Test
     void rejectsMissingIdentityBeforeAnyListenerCanStart() {
-        for (String identity : List.of("gateway-group-code", "env", "namespace",
+        for (String identity : List.of("yuheng-group-code", "env", "namespace",
                 "node-id", "instance-id", "data-directory")) {
             runner.withPropertyValues(validValues()).withPropertyValues(PREFIX + identity + "=")
                     .run(context -> assertNotNull(context.getStartupFailure(), identity));
         }
-        runner.withPropertyValues(PREFIX + "gateway-group-code=orders",
+        runner.withPropertyValues(PREFIX + "yuheng-group-code=orders",
                         PREFIX + "env=local", PREFIX + "namespace=default",
                         PREFIX + "instance-id=instance-1", PREFIX + "data-directory=data/mcp",
                         PREFIX + "listener.tls.development-plaintext=true",
@@ -73,7 +73,7 @@ class McpGatewayEnginePropertiesTest {
 
     private String[] validValues() {
         return new String[]{
-                PREFIX + "gateway-group-code=orders", PREFIX + "env=local",
+                PREFIX + "yuheng-group-code=orders", PREFIX + "env=local",
                 PREFIX + "namespace=default", PREFIX + "node-id=mcp-node-1",
                 PREFIX + "instance-id=mcp-instance-1", PREFIX + "data-directory=./data/mcp-node-1",
                 PREFIX + "listener.tls.development-plaintext=true",

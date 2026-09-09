@@ -1,6 +1,6 @@
 {
-  "DELETE /api/rbac3/v1/roles/{roleId}/inheritances/{juniorRoleId}" : {
-    "name" : "rbac3-role-inheritance-remove-v1",
+  "DELETE /api/tianquan-jianshen/v1/roles/{roleId}/inheritances/{juniorRoleId}" : {
+    "name" : "tianquan-jianshen-role-inheritance-remove-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -37,7 +37,7 @@
       },
       "required" : [ "path", "query" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -95,11 +95,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "DELETE /api/rbac3/v1/roles/{roleId}/permissions/{permissionId}" : {
-    "name" : "rbac3-role-permission-unbind-v1",
+  "DELETE /api/tianquan-jianshen/v1/roles/{roleId}/permissions/{permissionId}" : {
+    "name" : "tianquan-jianshen-role-permission-unbind-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -136,7 +136,7 @@
       },
       "required" : [ "path", "query" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -179,18 +179,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/applications" : {
-    "name" : "rbac3-application-list-v1",
+  "GET /api/tianquan-jianshen/v1/applications" : {
+    "name" : "tianquan-jianshen-application-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -239,11 +239,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/applications/{applicationId}/resources" : {
-    "name" : "rbac3-application-resource-list-v1",
+  "GET /api/tianquan-jianshen/v1/applications/{applicationId}/resources" : {
+    "name" : "tianquan-jianshen-application-resource-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -262,7 +262,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -323,11 +323,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/audit-logs" : {
-    "name" : "rbac3-audit-log-list-v1",
+  "GET /api/tianquan-jianshen/v1/audit-logs" : {
+    "name" : "tianquan-jianshen-audit-log-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -398,7 +398,7 @@
       },
       "required" : [ "query", "header" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -494,18 +494,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/auth/bootstrap" : {
-    "name" : "rbac3-auth-bootstrap-v1",
+  "GET /api/tianquan-jianshen/v1/auth/bootstrap" : {
+    "name" : "tianquan-jianshen-auth-bootstrap-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -935,18 +935,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/auth/role-activation-candidates" : {
-    "name" : "rbac3-role-activation-candidates-v1",
+  "GET /api/tianquan-jianshen/v1/auth/role-activation-candidates" : {
+    "name" : "tianquan-jianshen-role-activation-candidates-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1069,18 +1069,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/auth/role-activations" : {
-    "name" : "rbac3-role-activation-current-v1",
+  "GET /api/tianquan-jianshen/v1/auth/role-activations" : {
+    "name" : "tianquan-jianshen-role-activation-current-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1149,18 +1149,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/data-rules" : {
-    "name" : "rbac3-data-rule-list-v1",
+  "GET /api/tianquan-jianshen/v1/data-rules" : {
+    "name" : "tianquan-jianshen-data-rule-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1230,11 +1230,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/directory-snapshots/{snapshotId}" : {
-    "name" : "rbac3-directory-snapshot-get-v1",
+  "GET /api/tianquan-jianshen/v1/directory-snapshots/{snapshotId}" : {
+    "name" : "tianquan-jianshen-directory-snapshot-get-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1253,7 +1253,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1315,18 +1315,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/field-rules" : {
-    "name" : "rbac3-field-rule-list-v1",
+  "GET /api/tianquan-jianshen/v1/field-rules" : {
+    "name" : "tianquan-jianshen-field-rule-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1384,11 +1384,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/internal/business-participations/conflicts" : {
-    "name" : "rbac3-business-participation-conflicts-v1",
+  "GET /api/tianquan-jianshen/v1/internal/business-participations/conflicts" : {
+    "name" : "tianquan-jianshen-business-participation-conflicts-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1424,7 +1424,7 @@
       },
       "required" : [ "query" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1472,11 +1472,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/manageable-roles" : {
-    "name" : "rbac3-manageable-role-search-v1",
+  "GET /api/tianquan-jianshen/v1/manageable-roles" : {
+    "name" : "tianquan-jianshen-manageable-role-search-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1493,7 +1493,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1541,11 +1541,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/manageable-users" : {
-    "name" : "rbac3-manageable-user-search-v1",
+  "GET /api/tianquan-jianshen/v1/manageable-users" : {
+    "name" : "tianquan-jianshen-manageable-user-search-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1562,7 +1562,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1604,18 +1604,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/management-capabilities/me" : {
-    "name" : "rbac3-management-capabilities-mine-v1",
+  "GET /api/tianquan-jianshen/v1/management-capabilities/me" : {
+    "name" : "tianquan-jianshen-management-capabilities-mine-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1663,18 +1663,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/management-policies" : {
-    "name" : "rbac3-management-policy-list-v1",
+  "GET /api/tianquan-jianshen/v1/management-policies" : {
+    "name" : "tianquan-jianshen-management-policy-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1801,11 +1801,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/management-policies/{policyId}" : {
-    "name" : "rbac3-management-policy-get-v1",
+  "GET /api/tianquan-jianshen/v1/management-policies/{policyId}" : {
+    "name" : "tianquan-jianshen-management-policy-get-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1824,7 +1824,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -1948,18 +1948,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/operation-sod-rules" : {
-    "name" : "rbac3-operation-sod-list-v1",
+  "GET /api/tianquan-jianshen/v1/operation-sod-rules" : {
+    "name" : "tianquan-jianshen-operation-sod-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2014,11 +2014,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/org-units" : {
-    "name" : "rbac3-directory-org-unit-list-v1",
+  "GET /api/tianquan-jianshen/v1/org-units" : {
+    "name" : "tianquan-jianshen-directory-org-unit-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2041,7 +2041,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2102,11 +2102,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/platform/tenants" : {
-    "name" : "rbac3-platform-tenant-list-v1",
+  "GET /api/tianquan-jianshen/v1/xingyuan/tenants" : {
+    "name" : "tianquan-jianshen-xingyuan-tenant-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2139,7 +2139,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2210,11 +2210,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/platform/tenants/{tenantId}" : {
-    "name" : "rbac3-platform-tenant-get-v1",
+  "GET /api/tianquan-jianshen/v1/xingyuan/tenants/{tenantId}" : {
+    "name" : "tianquan-jianshen-xingyuan-tenant-get-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2233,7 +2233,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2283,11 +2283,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/positions" : {
-    "name" : "rbac3-directory-position-list-v1",
+  "GET /api/tianquan-jianshen/v1/positions" : {
+    "name" : "tianquan-jianshen-directory-position-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2307,7 +2307,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2358,11 +2358,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/resource-manifests/{manifestId}" : {
-    "name" : "rbac3-resource-manifest-get-v1",
+  "GET /api/tianquan-jianshen/v1/resource-manifests/{manifestId}" : {
+    "name" : "tianquan-jianshen-resource-manifest-get-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2381,7 +2381,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2427,11 +2427,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/resource-manifests/{manifestId}/validation" : {
-    "name" : "rbac3-resource-manifest-validation-v1",
+  "GET /api/tianquan-jianshen/v1/resource-manifests/{manifestId}/validation" : {
+    "name" : "tianquan-jianshen-resource-manifest-validation-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2450,7 +2450,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2498,11 +2498,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/roles" : {
-    "name" : "rbac3-role-list-v1",
+  "GET /api/tianquan-jianshen/v1/roles" : {
+    "name" : "tianquan-jianshen-role-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2519,7 +2519,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2580,11 +2580,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/roles/{roleId}/impact-analysis" : {
-    "name" : "rbac3-role-impact-v1",
+  "GET /api/tianquan-jianshen/v1/roles/{roleId}/impact-analysis" : {
+    "name" : "tianquan-jianshen-role-impact-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2603,7 +2603,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2661,18 +2661,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/runtime/gateway-ddc-status" : {
-    "name" : "rbac3-runtime-gateway-ddc-status-v1",
+  "GET /api/tianquan-jianshen/v1/runtime/yuheng-tianshu-status" : {
+    "name" : "tianquan-jianshen-runtime-yuheng-tianshu-status-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2854,11 +2854,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/runtime/mutations" : {
-    "name" : "rbac3-runtime-mutations-v1",
+  "GET /api/tianquan-jianshen/v1/runtime/mutations" : {
+    "name" : "tianquan-jianshen-runtime-mutations-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2885,7 +2885,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -2953,18 +2953,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/runtime/status" : {
-    "name" : "rbac3-runtime-status-v1",
+  "GET /api/tianquan-jianshen/v1/runtime/status" : {
+    "name" : "tianquan-jianshen-runtime-status-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3146,18 +3146,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/sessions/me" : {
-    "name" : "rbac3-session-list-mine-v1",
+  "GET /api/tianquan-jianshen/v1/sessions/me" : {
+    "name" : "tianquan-jianshen-session-list-mine-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3219,18 +3219,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/sod-sets" : {
-    "name" : "rbac3-sod-set-list-v1",
+  "GET /api/tianquan-jianshen/v1/sod-sets" : {
+    "name" : "tianquan-jianshen-sod-set-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3292,11 +3292,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/users" : {
-    "name" : "rbac3-directory-user-list-v1",
+  "GET /api/tianquan-jianshen/v1/users" : {
+    "name" : "tianquan-jianshen-directory-user-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3335,7 +3335,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3412,11 +3412,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/users/{userId}" : {
-    "name" : "rbac3-directory-user-get-v1",
+  "GET /api/tianquan-jianshen/v1/users/{userId}" : {
+    "name" : "tianquan-jianshen-directory-user-get-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3435,7 +3435,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3491,11 +3491,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "GET /api/rbac3/v1/users/{userId}/role-assignments" : {
-    "name" : "rbac3-assignment-list-v1",
+  "GET /api/tianquan-jianshen/v1/users/{userId}/role-assignments" : {
+    "name" : "tianquan-jianshen-assignment-list-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3514,7 +3514,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3577,18 +3577,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "GET /api/v1/auth/bootstrap" : {
-    "name" : "rbac3-unified-auth-bootstrap-v1",
+    "name" : "tianquan-jianshen-unified-auth-bootstrap-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3643,11 +3643,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "GET /internal/v1/authorization/contexts/{tenantId}/{sessionId}" : {
-    "name" : "rbac3-internal-system-snapshot-v1",
+    "name" : "tianquan-jianshen-internal-system-snapshot-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3682,7 +3682,7 @@
       },
       "required" : [ "path", "query" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3921,11 +3921,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "GET /internal/v1/authorization/sessions/{sessionId}/snapshot" : {
-    "name" : "rbac3-internal-session-snapshot-v1",
+    "name" : "tianquan-jianshen-internal-session-snapshot-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -3944,7 +3944,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4258,11 +4258,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "GET /internal/v1/identity/{identitySub}/tenants" : {
-    "name" : "rbac3-internal-identity-tenants-v1",
+    "name" : "tianquan-jianshen-internal-identity-tenants-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4291,7 +4291,7 @@
       },
       "required" : [ "path", "query" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4339,18 +4339,18 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/auth/logout" : {
-    "name" : "rbac3-auth-logout-v1",
+  "POST /api/tianquan-jianshen/v1/auth/logout" : {
+    "name" : "tianquan-jianshen-auth-logout-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties" : false,
       "properties" : { },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4386,11 +4386,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/data-rules" : {
-    "name" : "rbac3-data-rule-create-v1",
+  "POST /api/tianquan-jianshen/v1/data-rules" : {
+    "name" : "tianquan-jianshen-data-rule-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4454,7 +4454,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4497,11 +4497,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/field-rules" : {
-    "name" : "rbac3-field-rule-create-v1",
+  "POST /api/tianquan-jianshen/v1/field-rules" : {
+    "name" : "tianquan-jianshen-field-rule-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4550,7 +4550,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4593,11 +4593,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/internal/business-participations" : {
-    "name" : "rbac3-business-participation-record-v1",
+  "POST /api/tianquan-jianshen/v1/internal/business-participations" : {
+    "name" : "tianquan-jianshen-business-participation-record-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4637,7 +4637,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4676,11 +4676,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/internal/directory-snapshots" : {
-    "name" : "rbac3-directory-snapshot-submit-v1",
+  "POST /api/tianquan-jianshen/v1/internal/directory-snapshots" : {
+    "name" : "tianquan-jianshen-directory-snapshot-submit-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4717,7 +4717,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -4764,11 +4764,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/internal/resource-manifests" : {
-    "name" : "rbac3-resource-manifest-submit-v1",
+  "POST /api/tianquan-jianshen/v1/internal/resource-manifests" : {
+    "name" : "tianquan-jianshen-resource-manifest-submit-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5165,7 +5165,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5202,11 +5202,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/management-policies" : {
-    "name" : "rbac3-management-policy-create-v1",
+  "POST /api/tianquan-jianshen/v1/management-policies" : {
+    "name" : "tianquan-jianshen-management-policy-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5330,7 +5330,7 @@
       },
       "required" : [ "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5454,11 +5454,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/management-policies/{policyId}/disable" : {
-    "name" : "rbac3-management-policy-disable-v1",
+  "POST /api/tianquan-jianshen/v1/management-policies/{policyId}/disable" : {
+    "name" : "tianquan-jianshen-management-policy-disable-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5490,7 +5490,7 @@
       },
       "required" : [ "path", "header" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5614,11 +5614,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/operation-sod-rules" : {
-    "name" : "rbac3-operation-sod-create-v1",
+  "POST /api/tianquan-jianshen/v1/operation-sod-rules" : {
+    "name" : "tianquan-jianshen-operation-sod-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5667,7 +5667,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5710,11 +5710,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/platform/tenants" : {
-    "name" : "rbac3-platform-tenant-create-v1",
+  "POST /api/tianquan-jianshen/v1/xingyuan/tenants" : {
+    "name" : "tianquan-jianshen-xingyuan-tenant-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5742,7 +5742,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5792,11 +5792,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/resource-manifests/{manifestId}/activate" : {
-    "name" : "rbac3-resource-manifest-activate-v1",
+  "POST /api/tianquan-jianshen/v1/resource-manifests/{manifestId}/activate" : {
+    "name" : "tianquan-jianshen-resource-manifest-activate-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5853,7 +5853,7 @@
       },
       "required" : [ "path", "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5896,11 +5896,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/resource-manifests/{manifestId}/impact-analysis" : {
-    "name" : "rbac3-resource-manifest-impact-v1",
+  "POST /api/tianquan-jianshen/v1/resource-manifests/{manifestId}/impact-analysis" : {
+    "name" : "tianquan-jianshen-resource-manifest-impact-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5919,7 +5919,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -5974,11 +5974,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/resources/{resourceId}/archive" : {
-    "name" : "rbac3-resource-archive-v1",
+  "POST /api/tianquan-jianshen/v1/resources/{resourceId}/archive" : {
+    "name" : "tianquan-jianshen-resource-archive-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6008,7 +6008,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6048,11 +6048,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/roles" : {
-    "name" : "rbac3-role-create-v1",
+  "POST /api/tianquan-jianshen/v1/roles" : {
+    "name" : "tianquan-jianshen-role-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6103,7 +6103,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6146,11 +6146,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/roles/{roleId}/inheritances" : {
-    "name" : "rbac3-role-inheritance-add-v1",
+  "POST /api/tianquan-jianshen/v1/roles/{roleId}/inheritances" : {
+    "name" : "tianquan-jianshen-role-inheritance-add-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6189,7 +6189,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6247,11 +6247,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/roles/{roleId}/permissions" : {
-    "name" : "rbac3-role-permission-bind-v1",
+  "POST /api/tianquan-jianshen/v1/roles/{roleId}/permissions" : {
+    "name" : "tianquan-jianshen-role-permission-bind-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6301,7 +6301,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6344,11 +6344,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/roles/{roleId}/prerequisite-groups" : {
-    "name" : "rbac3-role-prerequisite-save-v1",
+  "POST /api/tianquan-jianshen/v1/roles/{roleId}/prerequisite-groups" : {
+    "name" : "tianquan-jianshen-role-prerequisite-save-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6394,7 +6394,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6437,11 +6437,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/runtime/mutations/{mutationId}/retry" : {
-    "name" : "rbac3-runtime-mutation-retry-v1",
+  "POST /api/tianquan-jianshen/v1/runtime/mutations/{mutationId}/retry" : {
+    "name" : "tianquan-jianshen-runtime-mutation-retry-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6460,7 +6460,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6496,11 +6496,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/sessions/{sessionId}/revoke" : {
-    "name" : "rbac3-session-revoke-v1",
+  "POST /api/tianquan-jianshen/v1/sessions/{sessionId}/revoke" : {
+    "name" : "tianquan-jianshen-session-revoke-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6519,7 +6519,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6555,11 +6555,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/simulations/authorization" : {
-    "name" : "rbac3-authorization-simulation-v1",
+  "POST /api/tianquan-jianshen/v1/simulations/authorization" : {
+    "name" : "tianquan-jianshen-authorization-simulation-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -6671,7 +6671,7 @@
       },
       "required" : [ "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7132,11 +7132,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/simulations/role-change-impact" : {
-    "name" : "rbac3-role-change-impact-simulation-v1",
+  "POST /api/tianquan-jianshen/v1/simulations/role-change-impact" : {
+    "name" : "tianquan-jianshen-role-change-impact-simulation-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7172,7 +7172,7 @@
       },
       "required" : [ "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7247,11 +7247,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/sod-sets" : {
-    "name" : "rbac3-sod-set-create-v1",
+  "POST /api/tianquan-jianshen/v1/sod-sets" : {
+    "name" : "tianquan-jianshen-sod-set-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7303,7 +7303,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7346,11 +7346,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/users/{userId}/role-assignments" : {
-    "name" : "rbac3-assignment-create-v1",
+  "POST /api/tianquan-jianshen/v1/users/{userId}/role-assignments" : {
+    "name" : "tianquan-jianshen-assignment-create-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7413,7 +7413,7 @@
       },
       "required" : [ "path", "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7459,11 +7459,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/users/{userId}/role-assignments/{assignmentId}/resume" : {
-    "name" : "rbac3-assignment-resume-v1",
+  "POST /api/tianquan-jianshen/v1/users/{userId}/role-assignments/{assignmentId}/resume" : {
+    "name" : "tianquan-jianshen-assignment-resume-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7517,7 +7517,7 @@
       },
       "required" : [ "path", "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7563,11 +7563,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/users/{userId}/role-assignments/{assignmentId}/revoke" : {
-    "name" : "rbac3-assignment-revoke-v1",
+  "POST /api/tianquan-jianshen/v1/users/{userId}/role-assignments/{assignmentId}/revoke" : {
+    "name" : "tianquan-jianshen-assignment-revoke-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7621,7 +7621,7 @@
       },
       "required" : [ "path", "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7667,11 +7667,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/users/{userId}/role-assignments/{assignmentId}/suspend" : {
-    "name" : "rbac3-assignment-suspend-v1",
+  "POST /api/tianquan-jianshen/v1/users/{userId}/role-assignments/{assignmentId}/suspend" : {
+    "name" : "tianquan-jianshen-assignment-suspend-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7725,7 +7725,7 @@
       },
       "required" : [ "path", "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7771,11 +7771,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "POST /api/rbac3/v1/users/{userId}/sessions/revoke-all" : {
-    "name" : "rbac3-session-revoke-all-v1",
+  "POST /api/tianquan-jianshen/v1/users/{userId}/sessions/revoke-all" : {
+    "name" : "tianquan-jianshen-session-revoke-all-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7794,7 +7794,7 @@
       },
       "required" : [ "path" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7831,11 +7831,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "POST /internal/v1/authorization/decisions" : {
-    "name" : "rbac3-internal-authorization-decision-v1",
+    "name" : "tianquan-jianshen-internal-authorization-decision-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -7905,7 +7905,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8135,11 +8135,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "POST /internal/v1/authorization/fences/verify" : {
-    "name" : "rbac3-internal-authorization-fence-verify-v1",
+    "name" : "tianquan-jianshen-internal-authorization-fence-verify-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8159,7 +8159,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8203,11 +8203,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "POST /internal/v1/authorization/resource-access-decisions" : {
-    "name" : "rbac3-internal-resource-access-decision-v1",
+    "name" : "tianquan-jianshen-internal-resource-access-decision-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8243,7 +8243,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8296,11 +8296,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "POST /internal/v1/identity/bindings" : {
-    "name" : "rbac3-internal-identity-bind-v1",
+    "name" : "tianquan-jianshen-internal-identity-bind-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8332,7 +8332,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8381,11 +8381,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
   "POST /internal/v1/identity/resolve" : {
-    "name" : "rbac3-internal-identity-resolve-v1",
+    "name" : "tianquan-jianshen-internal-identity-resolve-v1",
     "externalAccessible" : false,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8413,7 +8413,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8469,11 +8469,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/auth/role-activations" : {
-    "name" : "rbac3-role-activation-replace-v1",
+  "PUT /api/tianquan-jianshen/v1/auth/role-activations" : {
+    "name" : "tianquan-jianshen-role-activation-replace-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8498,7 +8498,7 @@
       },
       "required" : [ "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8567,11 +8567,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/data-rules/{ruleId}" : {
-    "name" : "rbac3-data-rule-update-v1",
+  "PUT /api/tianquan-jianshen/v1/data-rules/{ruleId}" : {
+    "name" : "tianquan-jianshen-data-rule-update-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8645,7 +8645,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8688,11 +8688,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/field-rules/{ruleId}" : {
-    "name" : "rbac3-field-rule-update-v1",
+  "PUT /api/tianquan-jianshen/v1/field-rules/{ruleId}" : {
+    "name" : "tianquan-jianshen-field-rule-update-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8751,7 +8751,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8794,11 +8794,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/management-policies/{policyId}" : {
-    "name" : "rbac3-management-policy-update-v1",
+  "PUT /api/tianquan-jianshen/v1/management-policies/{policyId}" : {
+    "name" : "tianquan-jianshen-management-policy-update-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -8935,7 +8935,7 @@
       },
       "required" : [ "path", "header", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9059,11 +9059,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/operation-sod-rules/{ruleId}" : {
-    "name" : "rbac3-operation-sod-update-v1",
+  "PUT /api/tianquan-jianshen/v1/operation-sod-rules/{ruleId}" : {
+    "name" : "tianquan-jianshen-operation-sod-update-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9122,7 +9122,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9165,11 +9165,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/platform/tenants/{tenantId}/status" : {
-    "name" : "rbac3-platform-tenant-status-v1",
+  "PUT /api/tianquan-jianshen/v1/xingyuan/tenants/{tenantId}/status" : {
+    "name" : "tianquan-jianshen-xingyuan-tenant-status-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9208,7 +9208,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9258,11 +9258,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/roles/{roleId}" : {
-    "name" : "rbac3-role-update-v1",
+  "PUT /api/tianquan-jianshen/v1/roles/{roleId}" : {
+    "name" : "tianquan-jianshen-role-update-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9313,7 +9313,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9356,11 +9356,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/roles/{roleId}/cardinality" : {
-    "name" : "rbac3-role-cardinality-save-v1",
+  "PUT /api/tianquan-jianshen/v1/roles/{roleId}/cardinality" : {
+    "name" : "tianquan-jianshen-role-cardinality-save-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9408,7 +9408,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9451,11 +9451,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/sod-sets/{setId}" : {
-    "name" : "rbac3-sod-set-update-v1",
+  "PUT /api/tianquan-jianshen/v1/sod-sets/{setId}" : {
+    "name" : "tianquan-jianshen-sod-set-update-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9517,7 +9517,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9560,11 +9560,11 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   },
-  "PUT /api/rbac3/v1/users/{userId}/status" : {
-    "name" : "rbac3-directory-user-status-v1",
+  "PUT /api/tianquan-jianshen/v1/users/{userId}/status" : {
+    "name" : "tianquan-jianshen-directory-user-status-v1",
     "externalAccessible" : true,
     "requestSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9603,7 +9603,7 @@
       },
       "required" : [ "path", "body" ],
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-request/v2"
+      "x-egon-schema-model" : "yuheng-operation-request/v2"
     },
     "responseSchema" : {
       "$schema" : "https://json-schema.org/draft/2020-12/schema",
@@ -9659,7 +9659,7 @@
         }
       },
       "type" : "object",
-      "x-egon-schema-model" : "gateway-operation-response/v2"
+      "x-egon-schema-model" : "yuheng-operation-response/v2"
     }
   }
 }

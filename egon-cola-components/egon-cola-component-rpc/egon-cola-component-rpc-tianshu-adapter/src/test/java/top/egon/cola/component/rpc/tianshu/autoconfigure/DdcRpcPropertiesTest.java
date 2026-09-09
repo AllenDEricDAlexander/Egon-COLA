@@ -16,20 +16,20 @@ class DdcRpcPropertiesTest {
     void bindsDirectTransportAndIndependentCredentials() {
         DdcRpcProperties properties = new Binder(
                 new MapConfigurationPropertySource(Map.of(
-                        "egon.cola.component.ddc.rpc.target", "dns:///ddc-admin:19080",
-                        "egon.cola.component.ddc.rpc.connect-timeout", "2s",
-                        "egon.cola.component.ddc.rpc.default-timeout", "7s",
-                        "egon.cola.component.ddc.rpc.auth.runtime.access-key", "runtime-ak",
-                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key", "runtime-sk",
-                        "egon.cola.component.ddc.rpc.auth.registry.access-key", "registry-ak",
-                        "egon.cola.component.ddc.rpc.auth.registry.secret-key", "registry-sk",
-                        "egon.cola.component.ddc.rpc.auth.management.access-key", "management-ak",
-                        "egon.cola.component.ddc.rpc.auth.management.secret-key", "management-sk"
+                        "egon.cola.component.tianshu.rpc.target", "dns:///tianshu-admin:19080",
+                        "egon.cola.component.tianshu.rpc.connect-timeout", "2s",
+                        "egon.cola.component.tianshu.rpc.default-timeout", "7s",
+                        "egon.cola.component.tianshu.rpc.auth.runtime.access-key", "runtime-ak",
+                        "egon.cola.component.tianshu.rpc.auth.runtime.secret-key", "runtime-sk",
+                        "egon.cola.component.tianshu.rpc.auth.registry.access-key", "registry-ak",
+                        "egon.cola.component.tianshu.rpc.auth.registry.secret-key", "registry-sk",
+                        "egon.cola.component.tianshu.rpc.auth.management.access-key", "management-ak",
+                        "egon.cola.component.tianshu.rpc.auth.management.secret-key", "management-sk"
                 )))
-                .bind("egon.cola.component.ddc.rpc", DdcRpcProperties.class)
+                .bind("egon.cola.component.tianshu.rpc", DdcRpcProperties.class)
                 .orElseThrow(AssertionError::new);
 
-        assertThat(properties.requireTarget()).isEqualTo("dns:///ddc-admin:19080");
+        assertThat(properties.requireTarget()).isEqualTo("dns:///tianshu-admin:19080");
         assertThat(properties.getConnectTimeout()).isEqualTo(Duration.ofSeconds(2));
         assertThat(properties.getDefaultTimeout()).isEqualTo(Duration.ofSeconds(7));
         assertThat(properties.runtimeCredential().accessKey()).isEqualTo("runtime-ak");
@@ -56,6 +56,6 @@ class DdcRpcPropertiesTest {
 
         assertThatThrownBy(properties::requireTarget)
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("egon.cola.component.ddc.rpc.target");
+                .hasMessageContaining("egon.cola.component.tianshu.rpc.target");
     }
 }

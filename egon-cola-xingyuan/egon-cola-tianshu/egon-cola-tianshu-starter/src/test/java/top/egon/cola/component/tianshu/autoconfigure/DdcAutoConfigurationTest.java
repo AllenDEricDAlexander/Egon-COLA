@@ -90,7 +90,7 @@ class DdcAutoConfigurationTest {
 
     @Test
     void doesNotCreateBeansWhenDisabled() {
-        contextRunner.withPropertyValues("egon.cola.component.ddc.enabled=false")
+        contextRunner.withPropertyValues("egon.cola.component.tianshu.enabled=false")
                 .run(context -> {
                     assertThat(context).doesNotHaveBean(DdcLocalConfigState.class);
                     assertThat(context).doesNotHaveBean(DdcFieldBindingService.class);
@@ -110,12 +110,12 @@ class DdcAutoConfigurationTest {
                         () -> mock(DdcConfigClient.class)
                 )
                 .withPropertyValues(
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false"
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=false"
                 )
                 .run(context -> assertThat(output).contains(
-                        "DDC remote lifecycle is disabled because "
-                                + "egon.cola.component.ddc.redis.enabled=false; "
+                        "Tianshu remote lifecycle is disabled because "
+                                + "egon.cola.component.tianshu.redis.enabled=false; "
                                 + "no registration, pull, subscription, heartbeat, or ACK will run"
                 ));
     }
@@ -128,11 +128,11 @@ class DdcAutoConfigurationTest {
                         () -> mock(DdcConfigClient.class)
                 )
                 .withPropertyValues(
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false",
-                        "egon.cola.component.ddc.app-code=demo",
-                        "egon.cola.component.ddc.env=dev",
-                        "egon.cola.component.ddc.namespace=default")
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=false",
+                        "egon.cola.component.tianshu.app-code=demo",
+                        "egon.cola.component.tianshu.env=dev",
+                        "egon.cola.component.tianshu.namespace=default")
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcProperties.class);
                     assertThat(context).hasSingleBean(DdcAckDeliveryProperties.class);
@@ -164,8 +164,8 @@ class DdcAutoConfigurationTest {
                             () -> applicationClient
                     )
                     .withPropertyValues(
-                            "egon.cola.component.ddc.enabled=true",
-                            "egon.cola.component.ddc.redis.enabled=true"
+                            "egon.cola.component.tianshu.enabled=true",
+                            "egon.cola.component.tianshu.redis.enabled=true"
                     )
                     .run(context -> {
                         assertThat(context.getBean("ddcRedissonClient"))
@@ -188,8 +188,8 @@ class DdcAutoConfigurationTest {
                         () -> dedicatedClient
                 )
                 .withPropertyValues(
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=true"
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=true"
                 )
                 .run(context -> {
                     assertThat(context.getBean("ddcRedissonClient"))
@@ -204,8 +204,8 @@ class DdcAutoConfigurationTest {
         contextRunner
                 .withBean(DdcConfigClient.class, () -> client)
                 .withPropertyValues(
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false"
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=false"
                 )
                 .run(context -> assertThat(context.getBean(DdcConfigClient.class))
                         .isSameAs(client));
@@ -214,8 +214,8 @@ class DdcAutoConfigurationTest {
     @Test
     void enabledRuntimeFailsFastWithoutConfigPort() {
         contextRunner.withPropertyValues(
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.redis.enabled=false"
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.redis.enabled=false"
                 )
                 .run(context -> {
                     assertThat(context).hasFailed();

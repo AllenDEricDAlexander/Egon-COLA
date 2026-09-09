@@ -37,8 +37,8 @@ class RuleBackedHttpGatewaySecurityProcessorTest {
                         new HttpRouteMatch(route, Map.of("id", "1")));
 
         assertEquals(Map.of(
-                "idp.biz-code", "commerce",
-                "idp.app-code", "orders",
-                "idp.env", "prod"), attributes);
+                "tianquan-shoubing.biz-code", "commerce",
+                "tianquan-shoubing.app-code", "orders",
+                "tianquan-shoubing.env", "prod"), attributes);
     }
 }

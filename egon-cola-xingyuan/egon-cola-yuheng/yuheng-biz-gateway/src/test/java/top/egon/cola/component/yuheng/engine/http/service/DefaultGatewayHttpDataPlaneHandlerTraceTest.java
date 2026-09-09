@@ -92,7 +92,7 @@ class DefaultGatewayHttpDataPlaneHandlerTraceTest {
                 events.getFirst().routing().namespace()
         );
         assertEquals(
-                "GATEWAY_ROUTE_NOT_FOUND",
+                "YUHENG_ROUTE_NOT_FOUND",
                 events.getFirst().result().gatewayErrorCode()
         );
     }

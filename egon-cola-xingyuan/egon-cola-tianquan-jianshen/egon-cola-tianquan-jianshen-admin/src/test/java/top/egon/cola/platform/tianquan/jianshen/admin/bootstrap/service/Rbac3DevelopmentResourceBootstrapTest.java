@@ -54,7 +54,7 @@ class Rbac3DevelopmentResourceBootstrapTest {
                 Instant.parse("2026-09-06T05:00:00Z"), Set.of(101L, 102L));
 
         verify(resources).setParameter("permissionIds", Set.of(101L, 102L));
-        verify(resources).setParameter("buildId", "local-rbac3-resource-catalog-v1");
+        verify(resources).setParameter("buildId", "local-tianquan-jianshen-resource-catalog-v1");
     }
 
     @Test

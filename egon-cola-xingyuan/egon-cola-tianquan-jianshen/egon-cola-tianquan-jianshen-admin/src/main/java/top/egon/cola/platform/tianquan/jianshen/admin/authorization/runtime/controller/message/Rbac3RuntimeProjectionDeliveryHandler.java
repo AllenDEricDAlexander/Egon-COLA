@@ -18,7 +18,7 @@ import java.util.Set;
 /**
  * 类型 `Rbac3RuntimeProjectionDeliveryHandler` 位于当前包内，是类型，用于承载 `Rbac3 Runtime Projection Delivery Handler` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3RuntimeProjectionDeliveryHandler` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Runtime Projection Delivery Handler`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Dispatches the fixed RBAC3 logical event catalog to the runtime projector.
+ * Dispatches the fixed Tianquan-Jianshen logical event catalog to the runtime projector.
  */
 public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHandler {
 
@@ -30,15 +30,15 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
      * Meaning and usage: when reading, passing, or updating `DESTINATIONS`, preserve `Rbac3RuntimeProjectionDeliveryHandler`'s lifecycle, immutability, and thread-safety constraints.
      */
     private static final Set<String> DESTINATIONS = Set.of(
-            "rbac3.directory.snapshot-activated.v1",
-            "rbac3.user.status-changed.v1",
-            "rbac3.assignment.changed.v1",
-            "rbac3.role.policy-changed.v1",
-            "rbac3.management-policy.changed.v1",
-            "rbac3.role-activation.changed.v1",
-            "rbac3.resource.catalog.updated.v1",
-            "rbac3.authorization.mutation-committed.v1",
-            "rbac3.participation.recorded.v1");
+            "tianquan-jianshen.directory.snapshot-activated.v1",
+            "tianquan-jianshen.user.status-changed.v1",
+            "tianquan-jianshen.assignment.changed.v1",
+            "tianquan-jianshen.role.policy-changed.v1",
+            "tianquan-jianshen.management-policy.changed.v1",
+            "tianquan-jianshen.role-activation.changed.v1",
+            "tianquan-jianshen.resource.catalog.updated.v1",
+            "tianquan-jianshen.authorization.mutation-committed.v1",
+            "tianquan-jianshen.participation.recorded.v1");
 
     /**
      * 字段 `sink` 表示 `Rbac3RuntimeProjectionDeliveryHandler` 中与 `sink` 相关的状态、依赖、配置或结果（声明类型 `ProjectionSink`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -114,7 +114,7 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
     public void validateDestination(String destination) {
         if (!DESTINATIONS.contains(destination)) {
             throw new IllegalArgumentException(
-                    "unsupported RBAC3 runtime destination: " + destination);
+                    "unsupported Tianquan-Jianshen runtime destination: " + destination);
         }
     }
 
@@ -135,25 +135,25 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
             EventEnvelopeVO envelope = parse(context.payload());
             if (!context.destination().equals(envelope.eventType())) {
                 return DeliveryResult.permanentFailure(
-                        "RBAC3_EVENT_DESTINATION_MISMATCH",
+                        "TIANQUAN_JIANSHEN_EVENT_DESTINATION_MISMATCH",
                         "event type does not match the outbox destination");
             }
             Rbac3RuntimeProjectionDeliveryHandlerProjectionOutcomeEnum outcome = sink.project(envelope);
             return switch (outcome) {
                 case APPLIED, ALREADY_APPLIED -> DeliveryResult.success();
                 case RETRYABLE_FAILURE -> DeliveryResult.retryableFailure(
-                        "RBAC3_RUNTIME_PROJECTION_RETRYABLE",
+                        "TIANQUAN_JIANSHEN_RUNTIME_PROJECTION_RETRYABLE",
                         "runtime projection has not converged");
                 case PERMANENT_FAILURE -> DeliveryResult.permanentFailure(
-                        "RBAC3_RUNTIME_PROJECTION_REJECTED",
+                        "TIANQUAN_JIANSHEN_RUNTIME_PROJECTION_REJECTED",
                         "runtime projection rejected the event");
             };
         } catch (IllegalArgumentException invalid) {
             return DeliveryResult.permanentFailure(
-                    "RBAC3_EVENT_INVALID", safeMessage(invalid));
+                    "TIANQUAN_JIANSHEN_EVENT_INVALID", safeMessage(invalid));
         } catch (RuntimeException unavailable) {
             return DeliveryResult.retryableFailure(
-                    "RBAC3_RUNTIME_UNAVAILABLE", "runtime projection is unavailable");
+                    "TIANQUAN_JIANSHEN_RUNTIME_UNAVAILABLE", "runtime projection is unavailable");
         }
     }
 
@@ -175,7 +175,7 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
             int schemaVersion = value.path("schemaVersion").asInt(-1);
             long aggregateVersion = value.path("aggregateVersion").asLong(-1L);
             if (schemaVersion != 1 || aggregateVersion < 0L) {
-                throw new IllegalArgumentException("unsupported RBAC3 event version");
+                throw new IllegalArgumentException("unsupported Tianquan-Jianshen event version");
             }
             @SuppressWarnings("unchecked")
             Map<String, String> safePayload = objectMapper.convertValue(
@@ -192,7 +192,7 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
         } catch (IllegalArgumentException invalid) {
             throw invalid;
         } catch (Exception invalid) {
-            throw new IllegalArgumentException("invalid RBAC3 event envelope", invalid);
+            throw new IllegalArgumentException("invalid Tianquan-Jianshen event envelope", invalid);
         }
     }
 
@@ -245,7 +245,7 @@ public final class Rbac3RuntimeProjectionDeliveryHandler implements DeliveryHand
     private String safeMessage(IllegalArgumentException invalid) {
         String message = invalid.getMessage();
         return message == null || message.isBlank()
-                ? "invalid RBAC3 event envelope"
+                ? "invalid Tianquan-Jianshen event envelope"
                 : message.substring(0, Math.min(256, message.length()));
     }
 

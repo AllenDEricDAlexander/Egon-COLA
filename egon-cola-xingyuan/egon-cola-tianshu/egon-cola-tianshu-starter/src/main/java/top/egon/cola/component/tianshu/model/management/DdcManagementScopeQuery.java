@@ -3,7 +3,7 @@ package top.egon.cola.component.tianshu.model.management;
 import org.springframework.lang.Nullable;
 
 /**
- * DDC 作用域绑定的查询条件。 / Query filters for DDC scope bindings.
+ * Tianshu 作用域绑定的查询条件。 / Query filters for Tianshu scope bindings.
  *
  * @param bizCode       业务编码，可为空以不按该项过滤 / business code, nullable to omit this filter
  * @param namespaceCode 命名空间编码，可为空以不按该项过滤 / namespace code, nullable to omit this filter

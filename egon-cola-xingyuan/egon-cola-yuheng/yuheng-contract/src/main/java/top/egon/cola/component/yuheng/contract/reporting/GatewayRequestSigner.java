@@ -11,21 +11,21 @@ import java.security.MessageDigest;
  */
 public final class GatewayRequestSigner {
 
-    /** 为保持现有报告协议兼容而保留的访问密钥请求头。 */
-    public static final String ACCESS_KEY_HEADER = "X-DDC-Access-Key";
+    /** Yuheng 向 Tianshu 报告时使用的访问密钥请求头。 */
+    public static final String ACCESS_KEY_HEADER = "X-TIANSHU-Access-Key";
 
-    /** 为保持现有报告协议兼容而保留的时间戳请求头。 */
-    public static final String TIMESTAMP_HEADER = "X-DDC-Timestamp";
+    /** Yuheng 向 Tianshu 报告时使用的时间戳请求头。 */
+    public static final String TIMESTAMP_HEADER = "X-TIANSHU-Timestamp";
 
-    /** 为保持现有报告协议兼容而保留的 nonce 请求头。 */
-    public static final String NONCE_HEADER = "X-DDC-Nonce";
+    /** Yuheng 向 Tianshu 报告时使用的 nonce 请求头。 */
+    public static final String NONCE_HEADER = "X-TIANSHU-Nonce";
 
-    /** 为保持现有报告协议兼容而保留的内容摘要请求头。 */
+    /** Yuheng 向 Tianshu 报告时使用的内容摘要请求头。 */
     public static final String CONTENT_SHA256_HEADER =
-            "X-DDC-Content-SHA256";
+            "X-TIANSHU-Content-SHA256";
 
-    /** 为保持现有报告协议兼容而保留的签名请求头。 */
-    public static final String SIGNATURE_HEADER = "X-DDC-Signature";
+    /** Yuheng 向 Tianshu 报告时使用的签名请求头。 */
+    public static final String SIGNATURE_HEADER = "X-TIANSHU-Signature";
 
     public String sign(
             GatewayCanonicalRequest request,

@@ -14,7 +14,7 @@ import java.time.Instant;
  * @param environment 环境；environment
  * @param displayName 展示名称；display name
  * @param managementClientId 管理 Client；management Client
- * @param rbacApplicationCode RBAC3 应用；RBAC3 application
+ * @param rbacApplicationCode Tianquan-Jianshen 应用；Tianquan-Jianshen application
  * @param entryPermissionCode USER 入口权限；USER entry permission
  * @param status Resource Server 状态；Resource Server status
  * @param version 乐观锁和投影版本；optimistic-lock and projection version

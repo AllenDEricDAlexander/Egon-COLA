@@ -55,12 +55,12 @@ import java.util.stream.Collectors;
  * Semantics and usage: use `ManagementPolicyController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/tianquan-jianshen/v1")
 @Tag(name = "management-policy", description = "委托管理策略接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -133,9 +133,9 @@ public class ManagementPolicyController {
     @GetMapping("/management-policies")
     @RequiresPermission(value = "system:management-policy:read")
     @Operation(
-            operationId = "rbac3-management-policy-list-v1",
+            operationId = "tianquan-jianshen-management-policy-list-v1",
             summary = "查询完整委托管理策略",
-            tags = {"rbac3", "management-policy"}
+            tags = {"tianquan-jianshen", "management-policy"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -157,9 +157,9 @@ public class ManagementPolicyController {
     @GetMapping("/management-policies/{policyId}")
     @RequiresPermission(value = "system:management-policy:read")
     @Operation(
-            operationId = "rbac3-management-policy-get-v1",
+            operationId = "tianquan-jianshen-management-policy-get-v1",
             summary = "读取委托管理策略完整聚合",
-            tags = {"rbac3", "management-policy"}
+            tags = {"tianquan-jianshen", "management-policy"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -185,9 +185,9 @@ public class ManagementPolicyController {
     @PostMapping("/management-policies")
     @RequiresPermission(value = "system:management-policy:manage")
     @Operation(
-            operationId = "rbac3-management-policy-create-v1",
+            operationId = "tianquan-jianshen-management-policy-create-v1",
             summary = "创建完整委托管理策略",
-            tags = {"rbac3", "management-policy"}
+            tags = {"tianquan-jianshen", "management-policy"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -217,9 +217,9 @@ public class ManagementPolicyController {
     @PutMapping("/management-policies/{policyId}")
     @RequiresPermission(value = "system:management-policy:manage")
     @Operation(
-            operationId = "rbac3-management-policy-update-v1",
+            operationId = "tianquan-jianshen-management-policy-update-v1",
             summary = "按版本完整替换委托管理策略",
-            tags = {"rbac3", "management-policy"}
+            tags = {"tianquan-jianshen", "management-policy"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -250,9 +250,9 @@ public class ManagementPolicyController {
     @PostMapping("/management-policies/{policyId}/disable")
     @RequiresPermission(value = "system:management-policy:manage")
     @Operation(
-            operationId = "rbac3-management-policy-disable-v1",
+            operationId = "tianquan-jianshen-management-policy-disable-v1",
             summary = "禁用委托管理策略并保留历史明细",
-            tags = {"rbac3", "management-policy"}
+            tags = {"tianquan-jianshen", "management-policy"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -287,9 +287,9 @@ public class ManagementPolicyController {
      */
     @GetMapping("/management-capabilities/me")
     @Operation(
-            operationId = "rbac3-management-capabilities-mine-v1",
+            operationId = "tianquan-jianshen-management-capabilities-mine-v1",
             summary = "查询当前操作者委托管理能力",
-            tags = {"rbac3", "management-policy", "capability"}
+            tags = {"tianquan-jianshen", "management-policy", "capability"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -312,9 +312,9 @@ public class ManagementPolicyController {
      */
     @GetMapping("/manageable-users")
     @Operation(
-            operationId = "rbac3-manageable-user-search-v1",
+            operationId = "tianquan-jianshen-manageable-user-search-v1",
             summary = "按委托范围搜索可管理用户",
-            tags = {"rbac3", "management-policy", "user"}
+            tags = {"tianquan-jianshen", "management-policy", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -340,9 +340,9 @@ public class ManagementPolicyController {
      */
     @GetMapping("/manageable-roles")
     @Operation(
-            operationId = "rbac3-manageable-role-search-v1",
+            operationId = "tianquan-jianshen-manageable-role-search-v1",
             summary = "按委托白名单搜索可管理角色根",
-            tags = {"rbac3", "management-policy", "role"}
+            tags = {"tianquan-jianshen", "management-policy", "role"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

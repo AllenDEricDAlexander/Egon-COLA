@@ -28,7 +28,7 @@ class GatewayOpenApiControllerTest {
     @Test
     void exposesReadOnlySyncOperationAndDocumentContracts() throws Exception {
         GatewayOpenApiQueryService service = mock(GatewayOpenApiQueryService.class);
-        when(service.listSyncStates("platform", "gateway", "test", "orders"))
+        when(service.listSyncStates("xingyuan", "yuheng", "test", "orders"))
                 .thenReturn(List.of(new GatewayOpenApiSyncStateVO(
                         "sync-1", "application-1", "build-1", "1.0.0", "orders",
                         "VALID", "snapshot-1", "set-1", 2, 1,
@@ -62,26 +62,26 @@ class GatewayOpenApiControllerTest {
                 .setControllerAdvice(new GatewayAdminExceptionHandler())
                 .build();
 
-        mvc.perform(get("/api/v1/gateway/admin/openapi/sync-states")
-                        .queryParam("bizCode", "platform")
-                        .queryParam("namespace", "gateway")
+        mvc.perform(get("/api/v1/yuheng/admin/openapi/sync-states")
+                        .queryParam("bizCode", "xingyuan")
+                        .queryParam("namespace", "yuheng")
                         .queryParam("env", "test")
                         .queryParam("appCode", "orders"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].openapiGroup").value("orders"))
                 .andExpect(jsonPath("$[0].status").value("VALID"));
 
-        mvc.perform(get("/api/v1/gateway/admin/openapi/snapshots/snapshot-1/document"))
+        mvc.perform(get("/api/v1/yuheng/admin/openapi/snapshots/snapshot-1/document"))
                 .andExpect(status().isOk())
                 .andExpect(header().string("ETag", "\"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb\""))
                 .andExpect(jsonPath("$.document.openapi").value("3.1.0"));
 
-        mvc.perform(get("/api/v1/gateway/admin/operations/operation-1/openapi"))
+        mvc.perform(get("/api/v1/yuheng/admin/operations/operation-1/openapi"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.openapiGroup").value("orders"))
                 .andExpect(jsonPath("$.operation.operationId").value("getOrder"));
 
-        verify(service).listSyncStates("platform", "gateway", "test", "orders");
+        verify(service).listSyncStates("xingyuan", "yuheng", "test", "orders");
         verify(service).getSnapshotDocument("snapshot-1");
         verify(service).getOperationOpenApi("operation-1");
     }
@@ -97,9 +97,9 @@ class GatewayOpenApiControllerTest {
                 .setControllerAdvice(new GatewayAdminExceptionHandler())
                 .build();
 
-        mvc.perform(get("/api/v1/gateway/admin/openapi/snapshots/missing/document"))
+        mvc.perform(get("/api/v1/yuheng/admin/openapi/snapshots/missing/document"))
                 .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.code").value("GATEWAY_ADMIN_NOT_FOUND"));
+                .andExpect(jsonPath("$.code").value("YUHENG_ADMIN_NOT_FOUND"));
     }
 
     @Test
@@ -112,9 +112,9 @@ class GatewayOpenApiControllerTest {
                 .setControllerAdvice(new GatewayAdminExceptionHandler())
                 .build();
 
-        mvc.perform(get("/api/v1/gateway/admin/operations/rpc-operation/openapi"))
+        mvc.perform(get("/api/v1/yuheng/admin/operations/rpc-operation/openapi"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code")
-                        .value("GATEWAY_OPENAPI_SOURCE_NOT_AVAILABLE"));
+                        .value("YUHENG_OPENAPI_SOURCE_NOT_AVAILABLE"));
     }
 }

@@ -160,7 +160,7 @@ class GatewayCatalogServiceTest {
                 "admin",
                 top.egon.cola.component.yuheng.admin.shared.domain.enums.AdminActorTypeEnum.USER,
                 Set.of("*"),
-                Set.of("GATEWAY_ADMIN")
+                Set.of("YUHENG_ADMIN")
         );
     }
 

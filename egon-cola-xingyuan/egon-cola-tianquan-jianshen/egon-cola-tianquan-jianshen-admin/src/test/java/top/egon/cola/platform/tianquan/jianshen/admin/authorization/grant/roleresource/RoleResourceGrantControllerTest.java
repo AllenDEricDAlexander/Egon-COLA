@@ -19,7 +19,7 @@ class RoleResourceGrantControllerTest {
     void exposesOnlyResourceTreeAndAtomicReplaceUnderIamRoles() {
         RequestMapping mapping = RoleResourceGrantController.class
                 .getAnnotation(RequestMapping.class);
-        assertEquals("/api/rbac3/v1/iam/roles/{roleId}/resources",
+        assertEquals("/api/tianquan-jianshen/v1/iam/roles/{roleId}/resources",
                 mapping.value()[0]);
 
         Method tree = Arrays.stream(RoleResourceGrantController.class.getDeclaredMethods())

@@ -17,9 +17,9 @@ class Rbac3ExternalTenantV8IT {
 
         assertThat(normalized)
                 .contains("current_setting(")
-                .contains("rbac3.tenant_authority.gate_id")
-                .contains("rbac3.tenant_authority.source_count")
-                .contains("rbac3.tenant_authority.orphan_count")
+                .contains("tianquan-jianshen.tenant_authority.gate_id")
+                .contains("tianquan-jianshen.tenant_authority.source_count")
+                .contains("tianquan-jianshen.tenant_authority.orphan_count")
                 .contains("raise exception")
                 .contains("create table rbac3_tenant_authorization_state")
                 .contains("drop table rbac3_tenant");

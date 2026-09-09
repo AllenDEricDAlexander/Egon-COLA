@@ -132,7 +132,7 @@ class IdpHttpProviderPublicationGateTest {
         when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
         when(coordinator.currentSession()).thenReturn(Optional.of(
                 new DdcLeaseSession(
-                        "idp-1",
+                        "tianquan-shoubing-1",
                         "lease-secret",
                         DdcLeaseRole.CONFIG_CLIENT,
                         30,

@@ -102,7 +102,7 @@ class GatewayProjectionServiceTest {
         var groups = mock(GatewayGroupRepository.class);
         var releases = mock(GatewayReleaseService.class);
         when(groups.findByIdAndDeletedFalse("group-1")).thenReturn(Optional.of(new GatewayGroupPO(
-                "group-1", "edge", "Edge", "test", "gateway", null, "admin", now)));
+                "group-1", "edge", "Edge", "test", "yuheng", null, "admin", now)));
         var target = new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleaseTargetPO(
                 "old-node", "old-lease", "SUCCESS", 12L, "artifact-sha", null, now.minusSeconds(5), GatewayEngineRoleEnum.API_RPC);
         when(releases.history("group-1")).thenReturn(List.of(release("release-1", target, now)));
@@ -117,7 +117,7 @@ class GatewayProjectionServiceTest {
                 "activeRuleChecksum", "artifact-sha", "lastApplyStatus", "ACK_SUCCESS",
                 "lastAckAt", now.minusSeconds(4).toString()));
         if (role != null) {
-            metadata.put("gateway.engine.role", role);
+            metadata.put("yuheng.engine.role", role);
         }
         metadata.putAll(overrides);
         return new DdcManagementConfigClientInstance("infra", "test", "MCP".equals(role) ? "gme" : "ge", id, "lease-" + id,
@@ -143,7 +143,7 @@ class GatewayProjectionServiceTest {
                 "test-biz",
                 "orders",
                 "test",
-                "gateway",
+                "yuheng",
                 null,
                 null,
                 null,
@@ -153,7 +153,7 @@ class GatewayProjectionServiceTest {
 
         verify(client).getServiceKeys(new DdcManagementServiceQuery(
                 "test-biz",
-                "gateway",
+                "yuheng",
                 "test",
                 "orders",
                 null,
@@ -182,7 +182,7 @@ class GatewayProjectionServiceTest {
                 "test-biz",
                 "orders",
                 "test",
-                "gateway",
+                "yuheng",
                 null,
                 "RPC",
                 "orders-rpc",
@@ -193,7 +193,7 @@ class GatewayProjectionServiceTest {
         assertThat(projection.value()).isEmpty();
         verify(client).getInstances(new DdcManagementServiceQuery(
                 "test-biz",
-                "gateway",
+                "yuheng",
                 "test",
                 "orders",
                 "RPC_PROVIDER",
@@ -240,7 +240,7 @@ class GatewayProjectionServiceTest {
         when(groups
                 .findAllByEnvAndNamespaceAndDeletedFalseOrderByCreatedAtDesc(
                         "test",
-                        "gateway"
+                        "yuheng"
                 )).thenReturn(List.of());
         GatewayProjectionService service = projectionService(
                 groups,
@@ -251,7 +251,7 @@ class GatewayProjectionServiceTest {
         );
 
         var projection = service.instances(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         );
 
         assertThat(projection.stale()).isFalse();
@@ -265,7 +265,7 @@ class GatewayProjectionServiceTest {
         assertThat(projection.value().getFirst().definitionSetId())
                 .isEqualTo("definition-http");
         assertThat(service.scopeCounts(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         ))
                 .extracting(
                         top.egon.cola.component.yuheng.admin.runtime.service.GatewayProjectionCounts
@@ -286,7 +286,7 @@ class GatewayProjectionServiceTest {
                 "edge",
                 "Edge",
                 "test",
-                "gateway",
+                "yuheng",
                 null,
                 "admin",
                 now
@@ -321,7 +321,7 @@ class GatewayProjectionServiceTest {
                         now.minusSeconds(2),
                         now.plusSeconds(30),
                         Map.of(
-                                "gateway.engine.role", "API_RPC",
+                                "yuheng.engine.role", "API_RPC",
                                 "activeReleaseId", "release-1",
                                 "activeRuleVersion", "12",
                                 "activeRuleChecksum", "artifact-sha",
@@ -358,7 +358,7 @@ class GatewayProjectionServiceTest {
                 "edge",
                 "Edge",
                 "test",
-                "gateway",
+                "yuheng",
                 null,
                 "admin",
                 now
@@ -379,7 +379,7 @@ class GatewayProjectionServiceTest {
                 release("release-1", historicalTarget, now)
         ));
         Map<String, String> currentMetadata = Map.of(
-                "gateway.engine.role", "API_RPC",
+                "yuheng.engine.role", "API_RPC",
                 "activeReleaseId", "release-1",
                 "activeRuleVersion", "12",
                 "activeRuleChecksum", "artifact-sha",
@@ -453,7 +453,7 @@ class GatewayProjectionServiceTest {
                 "edge",
                 "Edge",
                 "test",
-                "gateway",
+                "yuheng",
                 null,
                 "admin",
                 now
@@ -474,7 +474,7 @@ class GatewayProjectionServiceTest {
                 release("release-1", target, now)
         ));
         Map<String, String> currentMetadata = Map.of(
-                "gateway.engine.role", "API_RPC",
+                "yuheng.engine.role", "API_RPC",
                 "activeReleaseId", "release-1",
                 "activeRuleVersion", "12",
                 "activeRuleChecksum", "artifact-sha",
@@ -533,7 +533,7 @@ class GatewayProjectionServiceTest {
                 "edge",
                 "Edge",
                 "test",
-                "gateway",
+                "yuheng",
                 null,
                 "admin",
                 now
@@ -568,7 +568,7 @@ class GatewayProjectionServiceTest {
                         now.minusSeconds(2),
                         now.plusSeconds(30),
                         Map.of(
-                                "gateway.engine.role", "API_RPC",
+                                "yuheng.engine.role", "API_RPC",
                                 "activeReleaseId", "release-0",
                                 "activeRuleVersion", "11",
                                 "activeRuleChecksum", "old-sha",
@@ -647,7 +647,7 @@ class GatewayProjectionServiceTest {
 
     private GatewayReleasePublicationPO activation(GatewayEngineRoleEnum role, long version, Instant now) {
         return new GatewayReleasePublicationPO("release-1", 1, role.ordinal(),
-                GatewayPublicationPhaseEnum.ACTIVATION, "gateway.rules.active", null, "sha",
+                GatewayPublicationPhaseEnum.ACTIVATION, "yuheng.rules.active", null, "sha",
                 version - 1, "change-" + role, version, GatewayPublicationStatusEnum.SUCCESS,
                 null, null, now.minusSeconds(10), now.minusSeconds(5),
                 new GatewayPublicationScopeDTO("infra", "test", role == GatewayEngineRoleEnum.API_RPC ? "ge" : "gme", role));
@@ -663,7 +663,7 @@ class GatewayProjectionServiceTest {
 
     @Test
     void rejectsAValidRoleReportedFromTheOtherRolesScope() {
-        var wrongScope = roleNode("mcp", "API_RPC", Map.of("gateway.engine.role", "MCP"));
+        var wrongScope = roleNode("mcp", "API_RPC", Map.of("yuheng.engine.role", "MCP"));
         var projection = roleProjection(List.of(roleNode("api", "API_RPC", Map.of()), wrongScope));
         assertThat(projection.consistent()).isFalse();
         assertThat(projection.nodes().getLast().reason()).isEqualTo("TARGET_SCOPE_MISMATCH");
@@ -745,8 +745,8 @@ class GatewayProjectionServiceTest {
                             18090,
                             false,
                             Map.of(
-                                    "gateway.weight", "80",
-                                    "gateway.definition-set-id",
+                                    "yuheng.weight", "80",
+                                    "yuheng.definition-set-id",
                                     "definition-" + query.protocol()
                             ),
                             "UP",

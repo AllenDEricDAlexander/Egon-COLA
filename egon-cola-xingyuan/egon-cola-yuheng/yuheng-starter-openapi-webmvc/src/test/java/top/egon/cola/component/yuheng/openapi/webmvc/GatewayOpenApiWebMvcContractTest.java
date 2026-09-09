@@ -30,14 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest(
         classes = GatewayOpenApiWebMvcContractTest.TestApplication.class,
         properties = {
-                "egon.cola.component.gateway.openapi.enabled=true",
-                "egon.cola.component.gateway.openapi.biz-code=trade",
-                "egon.cola.component.gateway.openapi.application-code=order-service",
-                "egon.cola.component.gateway.openapi.resource-uri=https://order-service.example.test",
-                "egon.cola.component.gateway.openapi.artifact-version=1.0.0",
-                "egon.cola.component.gateway.openapi.build-id=build-1",
-                "egon.cola.component.gateway.openapi.published-groups[0]=orders",
-                "egon.cola.component.gateway.openapi.published-groups[1]=inventory",
+                "egon.cola.component.yuheng.openapi.enabled=true",
+                "egon.cola.component.yuheng.openapi.biz-code=trade",
+                "egon.cola.component.yuheng.openapi.application-code=order-service",
+                "egon.cola.component.yuheng.openapi.resource-uri=https://order-service.example.test",
+                "egon.cola.component.yuheng.openapi.artifact-version=1.0.0",
+                "egon.cola.component.yuheng.openapi.build-id=build-1",
+                "egon.cola.component.yuheng.openapi.published-groups[0]=orders",
+                "egon.cola.component.yuheng.openapi.published-groups[1]=inventory",
                 "springdoc.group-configs[0].group=inventory",
                 "springdoc.group-configs[0].paths-to-match[0]=/orders",
                 "egon.cola.component.id.enabled=false",
@@ -113,8 +113,8 @@ class GatewayOpenApiWebMvcContractTest {
             return token -> Jwt.withTokenValue(token)
                     .header("alg", "none")
                     .claim("scope", "wrong".equals(token)
-                            ? "gateway.other"
-                            : "gateway.openapi.read")
+                            ? "yuheng.other"
+                            : "yuheng.openapi.read")
                     .issuedAt(Instant.now())
                     .expiresAt(Instant.now().plusSeconds(60))
                     .build();

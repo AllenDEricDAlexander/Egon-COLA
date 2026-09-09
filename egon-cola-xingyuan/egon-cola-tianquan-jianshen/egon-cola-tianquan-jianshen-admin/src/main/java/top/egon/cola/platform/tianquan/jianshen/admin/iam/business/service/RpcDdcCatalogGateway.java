@@ -10,7 +10,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * DDC Management RPC adapter for the RBAC3 catalog boundary.
+ * Tianshu Management RPC adapter for the Tianquan-Jianshen catalog boundary.
  * The client is owned by application configuration and is not created per request.
  */
 public final class RpcDdcCatalogGateway implements DdcCatalogGateway {

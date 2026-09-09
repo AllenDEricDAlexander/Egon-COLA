@@ -20,7 +20,7 @@ import java.util.Objects;
  * 不一致的默认值。</p>
  */
 @Validated
-@ConfigurationProperties(prefix = "gateway.admin.openapi")
+@ConfigurationProperties(prefix = "yuheng.admin.openapi")
 public class GatewayAdminOpenApiProperties {
 
     private boolean enabled;
@@ -58,7 +58,7 @@ public class GatewayAdminOpenApiProperties {
     private List<String> allowedCidrs = new ArrayList<>();
 
     @NotBlank
-    private String requiredScope = "gateway.openapi.read";
+    private String requiredScope = "yuheng.openapi.read";
 
     /** Explicit local-only escape hatch; production remains HTTPS-only. */
     private boolean allowDevelopmentHttp;

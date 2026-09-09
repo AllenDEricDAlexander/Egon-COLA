@@ -29,7 +29,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.serv
 /**
  * 类型 `Rbac3WorkerConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Worker Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3WorkerConfiguration` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Worker Configuration`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Schedules bounded, reentrant RBAC3 recovery work.
+ * Schedules bounded, reentrant Tianquan-Jianshen recovery work.
  */
 @Configuration(proxyBeanMethods = false)
 @EnableScheduling

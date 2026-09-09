@@ -34,7 +34,7 @@ class ServiceInstanceMetaCodecTest {
         @Test
         @DisplayName("metadata written before health reporting decodes to defaults")
         void legacyMetadataDecodesToDefaults() {
-            Map<String, String> legacy = Map.of("gateway.weight", "250", "team", "payments");
+            Map<String, String> legacy = Map.of("yuheng.weight", "250", "team", "payments");
 
             ServiceInstanceMeta meta = ServiceInstanceMetaCodec.decode(legacy);
 
@@ -89,7 +89,7 @@ class ServiceInstanceMetaCodecTest {
             // Decode runs on the routing hot path against data another process wrote.
             // Throwing here would drop the whole service out of discovery.
             ServiceInstanceMeta meta = ServiceInstanceMetaCodec.decode(
-                    Map.of("gateway.weight", "not-a-number"));
+                    Map.of("yuheng.weight", "not-a-number"));
 
             assertEquals(ServiceInstanceMeta.DEFAULT_WEIGHT, meta.weight());
         }
@@ -98,16 +98,16 @@ class ServiceInstanceMetaCodecTest {
         @DisplayName("an out-of-range weight falls back rather than failing construction")
         void outOfRangeWeightFallsBack() {
             assertEquals(ServiceInstanceMeta.DEFAULT_WEIGHT,
-                    ServiceInstanceMetaCodec.decode(Map.of("gateway.weight", "99999")).weight());
+                    ServiceInstanceMetaCodec.decode(Map.of("yuheng.weight", "99999")).weight());
             assertEquals(ServiceInstanceMeta.DEFAULT_WEIGHT,
-                    ServiceInstanceMetaCodec.decode(Map.of("gateway.weight", "0")).weight());
+                    ServiceInstanceMetaCodec.decode(Map.of("yuheng.weight", "0")).weight());
         }
 
         @Test
         @DisplayName("values violating the key's pattern are discarded, not propagated")
         void patternViolationsAreDiscarded() {
             ServiceInstanceMeta meta = ServiceInstanceMetaCodec.decode(
-                    Map.of("gateway.zone", "bad zone!", "gateway.management-path", "no-leading-slash"));
+                    Map.of("yuheng.zone", "bad zone!", "yuheng.management-path", "no-leading-slash"));
 
             assertEquals("", meta.zone());
             assertEquals("", meta.managementPath());
@@ -117,7 +117,7 @@ class ServiceInstanceMetaCodecTest {
         @DisplayName("an unparseable health timestamp becomes null")
         void malformedInstantBecomesNull() {
             assertNull(ServiceInstanceMetaCodec.decode(
-                    Map.of("gateway.health-checked-at", "yesterday")).lastHealthCheckAt());
+                    Map.of("yuheng.health-checked-at", "yesterday")).lastHealthCheckAt());
         }
 
         @Test
@@ -137,18 +137,18 @@ class ServiceInstanceMetaCodecTest {
         @DisplayName("a malformed weight is rejected on the write path")
         void rejectsMalformedWeight() {
             assertThrows(IllegalArgumentException.class,
-                    () -> ServiceInstanceMetaCodec.validate("gateway.weight", "abc"));
+                    () -> ServiceInstanceMetaCodec.validate("yuheng.weight", "abc"));
             assertThrows(IllegalArgumentException.class,
-                    () -> ServiceInstanceMetaCodec.validate("gateway.weight", "0"));
+                    () -> ServiceInstanceMetaCodec.validate("yuheng.weight", "0"));
         }
 
         @Test
         @DisplayName("unsorted tags are rejected so the wire form stays canonical")
         void rejectsUnsortedTags() {
-            ServiceInstanceMetaCodec.validate("gateway.tags", "a=1,b=2");
+            ServiceInstanceMetaCodec.validate("yuheng.tags", "a=1,b=2");
 
             assertThrows(IllegalArgumentException.class,
-                    () -> ServiceInstanceMetaCodec.validate("gateway.tags", "b=2,a=1"));
+                    () -> ServiceInstanceMetaCodec.validate("yuheng.tags", "b=2,a=1"));
         }
 
         @Test
@@ -156,17 +156,17 @@ class ServiceInstanceMetaCodecTest {
         void acceptsUnknownReservedKeys() {
             // A newer provider may report a key this build predates; rejecting it would make
             // rolling upgrades order-dependent.
-            ServiceInstanceMetaCodec.validate("gateway.some-future-key", "whatever");
+            ServiceInstanceMetaCodec.validate("yuheng.some-future-key", "whatever");
         }
 
         @Test
         @DisplayName("an unrecognised health state is rejected, but UNKNOWN is accepted")
         void validatesHealthState() {
-            ServiceInstanceMetaCodec.validate("gateway.health-state", "UNKNOWN");
-            ServiceInstanceMetaCodec.validate("gateway.health-state", "OUT_OF_SERVICE");
+            ServiceInstanceMetaCodec.validate("yuheng.health-state", "UNKNOWN");
+            ServiceInstanceMetaCodec.validate("yuheng.health-state", "OUT_OF_SERVICE");
 
             assertThrows(IllegalArgumentException.class,
-                    () -> ServiceInstanceMetaCodec.validate("gateway.health-state", "SORT_OF_UP"));
+                    () -> ServiceInstanceMetaCodec.validate("yuheng.health-state", "SORT_OF_UP"));
         }
     }
 
@@ -180,13 +180,13 @@ class ServiceInstanceMetaCodecTest {
             // Regression guard: if weight reverts to its default, the old entry must go,
             // otherwise the instance keeps routing at the previous weight forever.
             Map<String, String> existing = new LinkedHashMap<>();
-            existing.put("gateway.weight", "900");
+            existing.put("yuheng.weight", "900");
             existing.put("team", "payments");
 
             Map<String, String> merged = ServiceInstanceMetaCodec.merge(
                     existing, ServiceInstanceMeta.defaults());
 
-            assertFalse(merged.containsKey("gateway.weight"));
+            assertFalse(merged.containsKey("yuheng.weight"));
             assertEquals("payments", merged.get("team"));
         }
 

@@ -31,15 +31,15 @@ import java.util.List;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/gateway-groups")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/yuheng-groups")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class GatewayGroupController {
 
     /**
@@ -91,7 +91,7 @@ public class GatewayGroupController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:groups:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.group.domain.vo.GatewayGroupVO create(
             @Valid @RequestBody GatewayGroupCreateRequestDTO request,
             AdminActor actor,
@@ -142,7 +142,7 @@ public class GatewayGroupController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:groups:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.group.domain.vo.GatewayGroupVO update(
             @PathVariable String id,
             @Valid @RequestBody GatewayGroupUpdateRequestDTO request,
@@ -174,7 +174,7 @@ public class GatewayGroupController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/enable")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:groups:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.group.domain.vo.GatewayGroupVO enable(
             @PathVariable String id,
             AdminActor actor) {
@@ -199,7 +199,7 @@ public class GatewayGroupController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/disable")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:groups:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:groups:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.group.domain.vo.GatewayGroupVO disable(
             @PathVariable String id,
             AdminActor actor) {

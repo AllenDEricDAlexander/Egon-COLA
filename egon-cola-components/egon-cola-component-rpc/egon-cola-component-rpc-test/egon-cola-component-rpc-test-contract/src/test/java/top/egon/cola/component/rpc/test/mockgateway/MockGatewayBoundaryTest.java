@@ -15,13 +15,13 @@ class MockGatewayBoundaryTest {
                 .toString()).contains("test-classes");
 
         assertMissing(
-                "top.egon.cola.component.rpc.gateway.RpcGatewayNodeRegistrar"
+                "top.egon.cola.component.rpc.yuheng.RpcGatewayNodeRegistrar"
         );
         assertMissing(
-                "top.egon.cola.component.rpc.gateway.RpcProviderDirectory"
+                "top.egon.cola.component.rpc.yuheng.RpcProviderDirectory"
         );
         assertMissing(
-                "top.egon.cola.component.rpc.gateway.RpcUnaryForwarder"
+                "top.egon.cola.component.rpc.yuheng.RpcUnaryForwarder"
         );
     }
 

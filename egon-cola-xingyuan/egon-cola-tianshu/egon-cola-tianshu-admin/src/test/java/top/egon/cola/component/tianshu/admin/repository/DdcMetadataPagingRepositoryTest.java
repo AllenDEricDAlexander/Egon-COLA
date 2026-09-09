@@ -56,7 +56,7 @@ class DdcMetadataPagingRepositoryTest {
         envRepository.save(env("env-dev", "dev", 10));
         envRepository.save(env("env-prod", "prod", 20));
 
-        appRepository.save(app("app-gateway", "infra", "gateway"));
+        appRepository.save(app("app-gateway", "infra", "yuheng"));
         appRepository.save(app("app-worker", "infra", "worker"));
         appRepository.save(app("app-checkout", "retail", "checkout"));
 
@@ -87,7 +87,7 @@ class DdcMetadataPagingRepositoryTest {
                 "infra",
                 "default",
                 "prod",
-                "gateway",
+                "yuheng",
                 PageRequest.of(0, 10));
 
         assertThat(envPage.getTotalElements()).isEqualTo(1);
@@ -97,14 +97,14 @@ class DdcMetadataPagingRepositoryTest {
         assertThat(appPage.getTotalElements()).isEqualTo(1);
         assertThat(appPage.getContent())
                 .extracting(DdcAppEntity::getAppCode)
-                .containsExactly("gateway");
+                .containsExactly("yuheng");
         assertThat(disabledNamespacePage).isEmpty();
         assertThat(bindingPage.getTotalElements()).isEqualTo(1);
         assertThat(bindingPage.getContent()).singleElement().satisfies(row -> {
             assertThat(row.bizCode()).isEqualTo("infra");
             assertThat(row.namespaceCode()).isEqualTo("default");
             assertThat(row.env()).isEqualTo("prod");
-            assertThat(row.appCode()).isEqualTo("gateway");
+            assertThat(row.appCode()).isEqualTo("yuheng");
         });
     }
 

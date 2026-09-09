@@ -19,7 +19,7 @@ class ApplicationControllerTest {
     void declaresTheApplicationScopeRoutesUnderIam() {
         RequestMapping mapping = ApplicationController.class
                 .getAnnotation(RequestMapping.class);
-        assertThat(mapping.value()).containsExactly("/api/rbac3/v1/iam");
+        assertThat(mapping.value()).containsExactly("/api/tianquan-jianshen/v1/iam");
         Stream<String> routes = Arrays.stream(ApplicationController.class.getDeclaredMethods())
                 .flatMap(method -> {
                     if (method.isAnnotationPresent(PostMapping.class)) {

@@ -39,15 +39,15 @@ import java.util.Set;
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 @RestController
-@RequestMapping("/api/v1/gateway/admin/mcp/apps")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:read','CAP_*')")
-@Tag(name = "gateway-admin")
+@RequestMapping("/api/v1/yuheng/admin/mcp/apps")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:read','CAP_*')")
+@Tag(name = "yuheng-admin")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "gateway-admin",
+        entityDomainCode = "yuheng-admin",
         entityDomainName = "Gateway Admin 管理实体域",
-        interfaceGroupCode = "gateway-admin")
+        interfaceGroupCode = "yuheng-admin")
 public class McpAppAdminController {
 
     /**
@@ -101,7 +101,7 @@ public class McpAppAdminController {
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/artifacts")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO register(
             @Valid @RequestBody McpArtifactRequestDTO request,
             @RequestHeader("Idempotency-Key") String idempotencyKey,
@@ -144,7 +144,7 @@ public class McpAppAdminController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO upload(
             @RequestParam @NotBlank String gatewayGroupId,
             @RequestParam @NotBlank String appCode,
@@ -215,7 +215,7 @@ public class McpAppAdminController {
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/artifacts/{id}")
-    @PreAuthorize("hasAnyAuthority('CAP_gateway:mcp:write','CAP_*')")
+    @PreAuthorize("hasAnyAuthority('CAP_yuheng:mcp:write','CAP_*')")
     public top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO revoke(
             @PathVariable String id,
             @Valid @RequestBody top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpServerMutationRequestDTO request,

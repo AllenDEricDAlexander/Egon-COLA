@@ -453,7 +453,7 @@ public class JdbcGatewayDefinitionReportRepository
             if (!sourceType.name().equals(row.sourceType())) {
                 if (!canMigrateLegacySource(sourceType, row.sourceType())) {
                     throw new IllegalStateException(
-                            "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
+                            "YUHENG_ADMIN_DEFINITION_SOURCE_CONFLICT: "
                                     + group.code()
                     );
                 }
@@ -596,7 +596,7 @@ public class JdbcGatewayDefinitionReportRepository
                     operation.protocol()
             )) {
                 throw new IllegalStateException(
-                        "GATEWAY_ADMIN_DEFINITION_SOURCE_CONFLICT: "
+                        "YUHENG_ADMIN_DEFINITION_SOURCE_CONFLICT: "
                                 + operation.operationKey()
                 );
             }
@@ -619,7 +619,7 @@ public class JdbcGatewayDefinitionReportRepository
                     operation.protocol()
             )) {
                 throw new IllegalStateException(
-                        "GATEWAY_ADMIN_RPC_DESCRIPTOR_GROUP_CONFLICT: "
+                        "YUHENG_ADMIN_RPC_DESCRIPTOR_GROUP_CONFLICT: "
                                 + operation.operationKey()
                 );
             }

@@ -53,7 +53,7 @@ public final class DdcHmacCredentialRegistry {
                     credential
             ) != null) {
                 throw new IllegalStateException(
-                        "Duplicate DDC HMAC access key"
+                        "Duplicate Tianshu HMAC access key"
                 );
             }
         }

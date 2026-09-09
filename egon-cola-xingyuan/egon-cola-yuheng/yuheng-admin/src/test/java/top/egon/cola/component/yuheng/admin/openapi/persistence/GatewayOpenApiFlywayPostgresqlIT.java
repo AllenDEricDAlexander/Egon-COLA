@@ -32,7 +32,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(
-        named = "GATEWAY_OPENAPI_TEST_POSTGRES_URL",
+        named = "YUHENG_OPENAPI_TEST_POSTGRES_URL",
         matches = ".+"
 )
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -43,13 +43,13 @@ class GatewayOpenApiFlywayPostgresqlIT {
     );
 
     private final String jdbcUrl = requiredEnvironment(
-            "GATEWAY_OPENAPI_TEST_POSTGRES_URL"
+            "YUHENG_OPENAPI_TEST_POSTGRES_URL"
     );
     private final String user = requiredEnvironment(
-            "GATEWAY_OPENAPI_TEST_POSTGRES_USER"
+            "YUHENG_OPENAPI_TEST_POSTGRES_USER"
     );
     private final String password = requiredEnvironment(
-            "GATEWAY_OPENAPI_TEST_POSTGRES_PASSWORD"
+            "YUHENG_OPENAPI_TEST_POSTGRES_PASSWORD"
     );
     private final String schema = "gateway_openapi_"
             + UUID.randomUUID().toString().replace("-", "");

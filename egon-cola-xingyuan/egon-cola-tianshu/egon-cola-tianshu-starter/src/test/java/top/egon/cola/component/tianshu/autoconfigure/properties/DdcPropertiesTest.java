@@ -27,7 +27,7 @@ class DdcPropertiesTest {
 
         assertThatThrownBy(instance::validate)
                 .hasMessage(
-                        "egon.cola.component.ddc.instance.heartbeat-interval-seconds "
+                        "egon.cola.component.tianshu.instance.heartbeat-interval-seconds "
                                 + "must be positive and less than lease-seconds"
                 );
 
@@ -35,7 +35,7 @@ class DdcPropertiesTest {
 
         assertThatThrownBy(instance::validate)
                 .hasMessage(
-                        "egon.cola.component.ddc.instance.heartbeat-interval-seconds "
+                        "egon.cola.component.tianshu.instance.heartbeat-interval-seconds "
                                 + "must be positive and less than lease-seconds"
                 );
 

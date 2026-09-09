@@ -17,7 +17,7 @@ import java.util.regex.Pattern;
  * @param appCode               应用编码；application code
  * @param environment           运行环境；runtime environment
  * @param managementClientId    管理与机器身份 Client；management and machine-identity Client
- * @param rbacApplicationCode   USER 权限所属 RBAC3 应用；RBAC3 application owning USER permissions
+ * @param rbacApplicationCode   USER 权限所属 Tianquan-Jianshen 应用；Tianquan-Jianshen application owning USER permissions
  * @param entryPermissionCode   USER 进入应用所需权限；permission required for USER application entry
  * @param admissionTicketTtl    准入票据有效期；admission-ticket lifetime
  * @param status                Resource Server 状态；Resource Server status

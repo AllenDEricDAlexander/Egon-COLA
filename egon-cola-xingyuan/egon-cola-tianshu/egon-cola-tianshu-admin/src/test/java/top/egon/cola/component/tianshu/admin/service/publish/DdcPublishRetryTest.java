@@ -72,8 +72,8 @@ import static org.mockito.Mockito.when;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=1",
         "spring.flyway.enabled=false",
-        "egon.cola.component.ddc.admin.publish.default-timeout-ms=2000",
-        "egon.cola.component.ddc.admin.publish.max-timeout-ms=5000"
+        "egon.cola.component.tianshu.admin.publish.default-timeout-ms=2000",
+        "egon.cola.component.tianshu.admin.publish.max-timeout-ms=5000"
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishRetryTest {
@@ -183,7 +183,7 @@ class DdcPublishRetryTest {
                 .satisfies(updated -> {
                     assertThat(updated.getStatus()).isEqualTo(PublishStatus.FAILED.name());
                     assertThat(updated.getErrorMessage())
-                            .isEqualTo("DDC_TARGET_LEASE_EXPIRED");
+                            .isEqualTo("TIANSHU_TARGET_LEASE_EXPIRED");
                     assertThat(updated.getAttemptCount()).isZero();
                 });
         verify(redisRepository, never()).dispatch(any());

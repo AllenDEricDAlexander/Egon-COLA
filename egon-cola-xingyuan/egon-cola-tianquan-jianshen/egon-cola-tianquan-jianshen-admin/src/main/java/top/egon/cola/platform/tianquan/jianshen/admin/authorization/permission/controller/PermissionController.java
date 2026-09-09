@@ -25,11 +25,11 @@ import java.util.List;
 
 /** Global permission catalog CRUD and ACTIVE selector endpoints. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/permissions")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/permissions")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -44,9 +44,9 @@ public class PermissionController {
     @GetMapping
     @RequiresPermission(value = "system:permission:read")
     @Operation(
-            operationId = "rbac3-permission-list-v1",
+            operationId = "tianquan-jianshen-permission-list-v1",
             summary = "查询全局权限字符",
-            tags = {"rbac3", "permission"}
+            tags = {"tianquan-jianshen", "permission"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -60,9 +60,9 @@ public class PermissionController {
     @GetMapping("/{id}")
     @RequiresPermission(value = "system:permission:read")
     @Operation(
-            operationId = "rbac3-permission-get-v1",
+            operationId = "tianquan-jianshen-permission-get-v1",
             summary = "查询权限详情",
-            tags = {"rbac3", "permission"}
+            tags = {"tianquan-jianshen", "permission"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -74,9 +74,9 @@ public class PermissionController {
     @PostMapping
     @RequiresPermission(value = "system:permission:manage")
     @Operation(
-            operationId = "rbac3-permission-create-v1",
+            operationId = "tianquan-jianshen-permission-create-v1",
             summary = "创建权限",
-            tags = {"rbac3", "permission"}
+            tags = {"tianquan-jianshen", "permission"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -91,9 +91,9 @@ public class PermissionController {
     @PutMapping("/{id}/status")
     @RequiresPermission(value = "system:permission:manage")
     @Operation(
-            operationId = "rbac3-permission-status-v1",
+            operationId = "tianquan-jianshen-permission-status-v1",
             summary = "变更权限状态",
-            tags = {"rbac3", "permission"}
+            tags = {"tianquan-jianshen", "permission"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

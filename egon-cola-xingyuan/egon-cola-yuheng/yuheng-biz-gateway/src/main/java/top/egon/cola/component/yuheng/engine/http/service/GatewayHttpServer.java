@@ -282,7 +282,7 @@ public final class GatewayHttpServer implements AutoCloseable {
                     if (active == null) {
                         return Mono.just(GatewayOutboundHttpResponse.text(
                                 503,
-                                "GATEWAY_ENGINE_DRAINING"
+                                "YUHENG_ENGINE_DRAINING"
                         ));
                     }
                     AtomicBoolean responseHandedOff = new AtomicBoolean();
@@ -336,7 +336,7 @@ public final class GatewayHttpServer implements AutoCloseable {
                         return Mono.just(
                                 GatewayWebSocketHandshakeResult.rejected(
                                         503,
-                                        "GATEWAY_ENGINE_DRAINING",
+                                        "YUHENG_ENGINE_DRAINING",
                                         "gateway engine is draining"
                                 )
                         );

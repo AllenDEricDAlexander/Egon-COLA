@@ -14,7 +14,7 @@
     <artifactId>yuheng-starter-openapi</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-starter-openapi</name>
-    <description>Framework-neutral OpenAPI governance extensions for Gateway providers.</description>
+    <description>Framework-neutral OpenAPI governance extensions for Yuheng providers.</description>
 
     <dependencies>
         <dependency>

@@ -161,7 +161,7 @@ public final class GatewayKafkaCallEventConsumer
         );
         worker = Thread.ofPlatform()
                 .daemon(true)
-                .name("gateway-admin-call-event-consumer")
+                .name("yuheng-admin-call-event-consumer")
                 .start(this::consume);
     }
 

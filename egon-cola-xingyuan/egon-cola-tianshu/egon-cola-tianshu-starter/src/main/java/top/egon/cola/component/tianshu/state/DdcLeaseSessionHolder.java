@@ -7,8 +7,8 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 线程安全地保存当前 DDC 租约会话。
- * Thread-safe holder for the current DDC lease session.
+ * 线程安全地保存当前 Tianshu 租约会话。
+ * Thread-safe holder for the current Tianshu lease session.
  */
 public class DdcLeaseSessionHolder {
 

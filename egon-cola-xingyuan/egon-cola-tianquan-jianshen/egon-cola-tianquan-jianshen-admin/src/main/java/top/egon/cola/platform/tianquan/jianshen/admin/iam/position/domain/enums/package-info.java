@@ -1,5 +1,5 @@
 /**
- * top.egon.cola.platform.tianquan.jianshen.admin.iam.position.domain.enums 负责 RBAC3 IAM 聚合模块中的本边界类型。
- * Package top.egon.cola.platform.tianquan.jianshen.admin.iam.position.domain.enums contains the types for this boundary of the RBAC3 IAM aggregation.
+ * top.egon.cola.platform.tianquan.jianshen.admin.iam.position.domain.enums 负责 Tianquan-Jianshen IAM 聚合模块中的本边界类型。
+ * Package top.egon.cola.platform.tianquan.jianshen.admin.iam.position.domain.enums contains the types for this boundary of the Tianquan-Jianshen IAM aggregation.
  */
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.position.domain.enums;

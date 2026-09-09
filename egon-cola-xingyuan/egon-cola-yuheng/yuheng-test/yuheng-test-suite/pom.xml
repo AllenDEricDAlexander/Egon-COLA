@@ -14,7 +14,7 @@
     <artifactId>yuheng-test-suite</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-test-suite</name>
-    <description>End-to-end test suite for Egon COLA Gateway.</description>
+    <description>End-to-end test suite for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>

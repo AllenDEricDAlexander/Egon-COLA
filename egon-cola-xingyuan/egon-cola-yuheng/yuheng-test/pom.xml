@@ -14,7 +14,7 @@
     <artifactId>yuheng-test</artifactId>
     <packaging>pom</packaging>
     <name>yuheng-test</name>
-    <description>Real applications and end-to-end tests for Egon COLA Gateway.</description>
+    <description>Real applications and end-to-end tests for Egon COLA Yuheng.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
@@ -35,10 +35,10 @@
 
     <profiles>
         <profile>
-            <id>gateway-live</id>
+            <id>yuheng-live</id>
             <properties>
-                <gateway.live.test>true</gateway.live.test>
-                <gateway.live.infrastructure>testcontainers</gateway.live.infrastructure>
+                <yuheng.live.test>true</yuheng.live.test>
+                <yuheng.live.infrastructure>testcontainers</yuheng.live.infrastructure>
             </properties>
             <build>
                 <plugins>
@@ -53,8 +53,8 @@
                                 </goals>
                                 <configuration>
                                     <systemPropertyVariables>
-                                        <gateway.live.test>${gateway.live.test}</gateway.live.test>
-                                        <gateway.live.infrastructure>${gateway.live.infrastructure}</gateway.live.infrastructure>
+                                        <yuheng.live.test>${yuheng.live.test}</yuheng.live.test>
+                                        <yuheng.live.infrastructure>${yuheng.live.infrastructure}</yuheng.live.infrastructure>
                                         <jdk.httpclient.allowRestrictedHeaders>host</jdk.httpclient.allowRestrictedHeaders>
                                     </systemPropertyVariables>
                                 </configuration>

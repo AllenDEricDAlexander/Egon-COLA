@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
-/** Coordinates tenant purchase/enablement against the global DDC-backed application catalog. */
+/** Coordinates tenant purchase/enablement against the global Tianshu-backed application catalog. */
 public final class TenantApplicationFacade {
 
     private final DdcCatalogGateway catalog;
@@ -82,11 +82,11 @@ public final class TenantApplicationFacade {
         String id = required(ddcApplicationId, "ddcApplicationId");
         Optional<ApplicationCatalogEntry> entry = catalog.findApplication(id);
         if (entry.isEmpty()) {
-            throw new IllegalStateException("DDC application is not available");
+            throw new IllegalStateException("Tianshu application is not available");
         }
         ApplicationCatalogEntry value = entry.get();
         if (!value.applicationEnabled() || !value.businessEnabled()) {
-            throw new IllegalStateException("DDC application or business is disabled");
+            throw new IllegalStateException("Tianshu application or business is disabled");
         }
         return value;
     }

@@ -555,7 +555,7 @@ public class DdcConfigService {
                 );
         if (configs.size() > 1) {
             throw new DdcAdminException(
-                    "DDC scope contains multiple configuration resources"
+                    "Tianshu scope contains multiple configuration resources"
             );
         }
         return configs.stream().findFirst();

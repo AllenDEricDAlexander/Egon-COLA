@@ -16,7 +16,7 @@ import java.util.Objects;
 
 public final class GatewayAdminTestClient {
 
-    private static final String API = "/api/v1/gateway/admin";
+    private static final String API = "/api/v1/yuheng/admin";
 
     private final URI baseUri;
 
@@ -96,7 +96,7 @@ public final class GatewayAdminTestClient {
 
     public JsonNode createGroup(Object request)
             throws IOException, InterruptedException {
-        return post(API + "/gateway-groups", request);
+        return post(API + "/yuheng-groups", request);
     }
 
     public JsonNode putRoute(
@@ -129,7 +129,7 @@ public final class GatewayAdminTestClient {
     public JsonNode release(String groupId, Object request)
             throws IOException, InterruptedException {
         return post(
-                API + "/gateway-groups/" + segment(groupId) + "/releases",
+                API + "/yuheng-groups/" + segment(groupId) + "/releases",
                 request
         );
     }
@@ -137,20 +137,20 @@ public final class GatewayAdminTestClient {
     public JsonNode rollback(String groupId, Object request)
             throws IOException, InterruptedException {
         return post(
-                API + "/gateway-groups/" + segment(groupId) + "/rollback",
+                API + "/yuheng-groups/" + segment(groupId) + "/rollback",
                 request
         );
     }
 
     public JsonNode runtimeConsistency(String groupId)
             throws IOException, InterruptedException {
-        return get(API + "/gateway-groups/" + segment(groupId)
+        return get(API + "/yuheng-groups/" + segment(groupId)
                 + "/runtime-consistency");
     }
 
     public JsonNode engineNodes(String groupId)
             throws IOException, InterruptedException {
-        return get(API + "/gateway-groups/" + segment(groupId)
+        return get(API + "/yuheng-groups/" + segment(groupId)
                 + "/engine-nodes");
     }
 
@@ -242,7 +242,7 @@ public final class GatewayAdminTestClient {
     }
 
     private String draft(String groupId) {
-        return API + "/gateway-groups/" + segment(groupId) + "/draft";
+        return API + "/yuheng-groups/" + segment(groupId) + "/draft";
     }
 
     private String segment(String value) {

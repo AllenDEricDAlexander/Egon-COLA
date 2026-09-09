@@ -28,16 +28,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
  * 中文说明：使用独占随机 schema 验证双角色发布迁移及真实 JDBC 读写，不启动应用。
  * English summary: Verifies migration and JDBC persistence in an owned random schema without starting an app.
  */
-@EnabledIfEnvironmentVariable(named = "GATEWAY_IT_POSTGRES_URL", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "GATEWAY_IT_POSTGRES_USER", matches = ".+")
-@EnabledIfEnvironmentVariable(named = "GATEWAY_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "YUHENG_IT_POSTGRES_URL", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "YUHENG_IT_POSTGRES_USER", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "YUHENG_IT_POSTGRES_PASSWORD_FILE", matches = ".+")
 class GatewayPublicationTargetsPostgresqlIT {
 
     @Test
     void upgradesWithoutInventingHistoricalTargetsAndPersistsIndependentRoleVersions() throws Exception {
-        String url = System.getenv("GATEWAY_IT_POSTGRES_URL");
-        String user = System.getenv("GATEWAY_IT_POSTGRES_USER");
-        String password = Files.readString(Path.of(System.getenv("GATEWAY_IT_POSTGRES_PASSWORD_FILE"))).trim();
+        String url = System.getenv("YUHENG_IT_POSTGRES_URL");
+        String user = System.getenv("YUHENG_IT_POSTGRES_USER");
+        String password = Files.readString(Path.of(System.getenv("YUHENG_IT_POSTGRES_PASSWORD_FILE"))).trim();
         String schema = "gateway_targets_it_" + UUID.randomUUID().toString().replace("-", "");
         assertThat(schema).matches("gateway_targets_it_[a-z0-9]+");
         boolean created = false;
@@ -53,7 +53,7 @@ class GatewayPublicationTargetsPostgresqlIT {
                     INSERT INTO gateway_release_publication (
                         release_id, attempt_no, phase_order, phase_type, config_key, content_value,
                         content_sha256, change_id, ddc_status, created_at, updated_at
-                    ) VALUES ('release-1', 1, 0, 'ACTIVATION', 'gateway.rules.active', '{}',
+                    ) VALUES ('release-1', 1, 0, 'ACTIVATION', 'yuheng.rules.active', '{}',
                               repeat('a', 64), 'historical', 'PLANNED', now(), now())
                     """);
 
@@ -73,7 +73,7 @@ class GatewayPublicationTargetsPostgresqlIT {
             for (var target : List.of(api, mcp)) {
                 String changeId = target.engineRole().name();
                 long version = target.engineRole() == GatewayEngineRoleEnum.API_RPC ? 3L : 40L;
-                journal.resolveDocument(changeId, version, "gateway: {rules: {active: '{}'}}", now);
+                journal.resolveDocument(changeId, version, "yuheng: {rules: {active: '{}'}}", now);
                 journal.markSubmitted(changeId, now);
                 journal.markResult(changeId, version + 1, GatewayPublicationStatusEnum.FAILED,
                         "retry", "retry", now);
@@ -119,7 +119,7 @@ class GatewayPublicationTargetsPostgresqlIT {
 
     private GatewayReleasePublicationPO phase(GatewayPublicationScopeDTO scope, int order, Instant now) {
         return new GatewayReleasePublicationPO("release-1", 1, order, GatewayPublicationPhaseEnum.ACTIVATION,
-                "gateway.rules.active", "{}", "a".repeat(64), null, scope.engineRole().name(), null,
+                "yuheng.rules.active", "{}", "a".repeat(64), null, scope.engineRole().name(), null,
                 GatewayPublicationStatusEnum.PLANNED, null, null, now, now, scope);
     }
 

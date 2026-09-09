@@ -19,15 +19,15 @@ class RpcProviderMetadataConfigurationTest {
         ).contribute(null);
 
         assertThat(metadata).containsEntry(
-                "gateway.zone",
+                "yuheng.zone",
                 "zone-a"
         ).containsEntry(
-                "gateway.weight",
+                "yuheng.weight",
                 "100"
         ).doesNotContainKeys(
-                "gateway.definition-set-id",
-                "gateway.artifact-version",
-                "gateway.build-id"
+                "yuheng.definition-set-id",
+                "yuheng.artifact-version",
+                "yuheng.build-id"
         );
     }
 }

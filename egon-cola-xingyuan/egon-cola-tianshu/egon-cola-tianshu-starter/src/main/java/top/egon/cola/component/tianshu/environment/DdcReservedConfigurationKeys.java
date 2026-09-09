@@ -14,10 +14,10 @@ import java.util.List;
 public final class DdcReservedConfigurationKeys {
 
     /**
-     * DDC 自身引导配置及 Spring ConfigData/Profile 控制键。 DDC bootstrap and Spring ConfigData/profile control keys.
+     * Tianshu 自身引导配置及 Spring ConfigData/Profile 控制键。 Tianshu bootstrap and Spring ConfigData/profile control keys.
      */
     private static final List<ConfigurationPropertyName> RESERVED = List.of(
-            ConfigurationPropertyName.of("egon.cola.component.ddc"),
+            ConfigurationPropertyName.of("egon.cola.component.tianshu"),
             ConfigurationPropertyName.of("spring.config"),
             ConfigurationPropertyName.of("spring.profiles.active"),
             ConfigurationPropertyName.of("spring.profiles.default"),
@@ -47,7 +47,7 @@ public final class DdcReservedConfigurationKeys {
                 );
                 String location = origin == null ? "" : " at " + origin;
                 throw new IllegalArgumentException(
-                        "DDC remote YAML contains reserved key '"
+                        "Tianshu remote YAML contains reserved key '"
                                 + candidate + '\'' + location
                 );
             }

@@ -155,7 +155,7 @@ public final class GatewayCallEventDispatcher
         this.sink = Objects.requireNonNull(sink, "sink");
         worker = Thread.ofPlatform()
                 .daemon(true)
-                .name("gateway-call-event-dispatcher")
+                .name("yuheng-call-event-dispatcher")
                 .unstarted(this::run);
         worker.start();
     }

@@ -42,7 +42,7 @@ class InternalRefreshTokenSecurityIT {
                         Instant.now().plusSeconds(60)
                 ));
         var service = new TestingAuthenticationToken(
-                "gateway-engine", null);
+                "yuheng-biz-gateway", null);
         service.setAuthenticated(true);
 
         mockMvc.perform(post(

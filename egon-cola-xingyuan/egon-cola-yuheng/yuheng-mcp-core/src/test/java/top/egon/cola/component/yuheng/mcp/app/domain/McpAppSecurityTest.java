@@ -50,7 +50,7 @@ class McpAppSecurityTest {
                         null,
                         null,
                         Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                        "https://resource.egon.top/gateway",
+                        "https://resource.egon.top/yuheng",
                         30L,
                         true
                 )), List.of(), List.of(), List.of(), List.of(),
@@ -153,7 +153,7 @@ class McpAppSecurityTest {
                 app(
                         SAFE_HTML,
                         SAFE_CSP,
-                        Set.of("gateway:dashboard:read"),
+                        Set.of("yuheng:dashboard:read"),
                         Set.of("https://api.example.com"),
                         "text/html"
                 ),
@@ -165,7 +165,7 @@ class McpAppSecurityTest {
         return app(
                 content,
                 csp,
-                Set.of("gateway:dashboard:read"),
+                Set.of("yuheng:dashboard:read"),
                 Set.of("https://api.example.com")
         );
     }

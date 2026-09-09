@@ -11,9 +11,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * IdP 授权的单 Resource、单租户 SERVICE Access Token 可信声明。
+ * Tianquan-Shoubing 授权的单 Resource、单租户 SERVICE Access Token 可信声明。
  *
- * <p>Trusted claims for an IdP-authorized, single-Resource and single-tenant SERVICE access
+ * <p>Trusted claims for an Tianquan-Shoubing-authorized, single-Resource and single-tenant SERVICE access
  * token.</p>
  *
  * @param subject 服务 Client 主体标识；service Client subject identifier
@@ -25,7 +25,7 @@ import java.util.TreeSet;
  * @param sourceEnvironment 来源环境；source environment
  * @param credentialId 验证成功的 Secret 记录标识；verified Secret record identifier
  * @param resourceVersion 目标 Resource 版本；target Resource version
- * @param scopes 本次授权的 IdP Service Scope；IdP Service scopes granted for this token
+ * @param scopes 本次授权的 Tianquan-Shoubing Service Scope；Tianquan-Shoubing Service scopes granted for this token
  * @param tokenId JWT ID；JWT ID
  * @param issuedAt 签发时间；issuance instant
  * @param notBefore 生效时间；not-before instant

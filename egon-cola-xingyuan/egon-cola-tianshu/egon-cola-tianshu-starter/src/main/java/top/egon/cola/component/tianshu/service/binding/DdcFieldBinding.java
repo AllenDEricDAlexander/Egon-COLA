@@ -3,8 +3,8 @@ package top.egon.cola.component.tianshu.service.binding;
 import java.lang.reflect.Field;
 
 /**
- * 描述一个需要由 DDC 重新解析 Spring 配置表达式的字段。
- * Describes a field whose Spring configuration expression must be re-resolved by DDC.
+ * 描述一个需要由 Tianshu 重新解析 Spring 配置表达式的字段。
+ * Describes a field whose Spring configuration expression must be re-resolved by Tianshu.
  */
 public class DdcFieldBinding {
 

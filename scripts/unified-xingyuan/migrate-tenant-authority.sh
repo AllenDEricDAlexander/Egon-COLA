@@ -15,9 +15,9 @@ fail() {
 usage() {
   cat <<'EOF'
 Usage:
-  migrate-tenant-authority.sh export-rbac3 --db-url URL --freeze-marker FILE --output FILE
-  migrate-tenant-authority.sh import-idp --db-url URL --freeze-marker FILE --artifact FILE
-  migrate-tenant-authority.sh verify-idp --artifact FILE [--db-url URL]
+  migrate-tenant-authority.sh export-tianquan-jianshen --db-url URL --freeze-marker FILE --output FILE
+  migrate-tenant-authority.sh import-tianquan-shoubing --db-url URL --freeze-marker FILE --artifact FILE
+  migrate-tenant-authority.sh verify-tianquan-shoubing --artifact FILE [--db-url URL]
   migrate-tenant-authority.sh verify-rbac --artifact FILE [--db-url URL]
   migrate-tenant-authority.sh report --artifact FILE --output FILE
 
@@ -122,7 +122,7 @@ validate_artifact_shape() {
   local artifact="$1"
   jq -e '
     .schemaVersion == 1
-    and .source == "rbac3"
+    and .source == "tianquan-jianshen"
     and (.tenants | type) == "array"
     and (.memberships | type) == "array"
     and (.counts.tenants == (.tenants | length))
@@ -162,7 +162,7 @@ validate_artifact() {
 }
 
 psql_bin() {
-  printf '%s' "${UNIFIED_PLATFORM_PSQL_BIN:-psql}"
+  printf '%s' "${UNIFIED_XINGYUAN_PSQL_BIN:-psql}"
 }
 
 run_psql_query() {
@@ -184,12 +184,12 @@ export_rbac3() {
       --db-url) db_url="${2:-}"; shift 2 ;;
       --freeze-marker) freeze_marker="${2:-}"; shift 2 ;;
       --output) output="${2:-}"; shift 2 ;;
-      *) fail "unknown export-rbac3 option: ${option}" ;;
+      *) fail "unknown export-tianquan-jianshen option: ${option}" ;;
     esac
   done
   require_db_url "${db_url}"
-  [[ -n "${freeze_marker}" ]] || fail '--freeze-marker is required for export-rbac3'
-  [[ -n "${output}" ]] || fail '--output is required for export-rbac3'
+  [[ -n "${freeze_marker}" ]] || fail '--freeze-marker is required for export-tianquan-jianshen'
+  [[ -n "${output}" ]] || fail '--output is required for export-tianquan-jianshen'
   require_frozen_marker "${freeze_marker}"
   require_command jq
 
@@ -202,7 +202,7 @@ export_rbac3() {
   run_psql_query "${db_url}" \
     'SELECT id, code, name, status, settings::text FROM rbac3_tenant ORDER BY id' \
     >"${tenants_tsv}"
-  if [[ -n "${UNIFIED_PLATFORM_MIGRATION_FIXTURE_DIR:-}" ]]; then
+  if [[ -n "${UNIFIED_XINGYUAN_MIGRATION_FIXTURE_DIR:-}" ]]; then
     identity_sub_on_user=1
     external_identity_table=0
   else
@@ -225,7 +225,7 @@ export_rbac3() {
        WHERE upper(e.provider_code) = '\''IDP'\''
        ORDER BY u.tenant_id, e.identity_sub'
   else
-    fail 'RBAC3 identity membership source is unavailable'
+    fail 'Tianquan-Jianshen identity membership source is unavailable'
   fi
   run_psql_query "${db_url}" "${membership_query}" >"${memberships_tsv}"
   tsv_to_json tenants "${tenants_tsv}" "${tenants_json}"
@@ -237,7 +237,7 @@ export_rbac3() {
     --slurpfile memberships "${memberships_json}" \
     --argjson tenantsCount "${counts_tenants}" \
     --argjson membershipsCount "${counts_memberships}" \
-    '{schemaVersion: 1, source: "rbac3", counts: {
+    '{schemaVersion: 1, source: "tianquan-jianshen", counts: {
         tenants: $tenantsCount,
         memberships: $membershipsCount,
         tenantStatuses: ($tenants[0] | group_by(.status) | map({key: .[0].status, value: length}) | from_entries),
@@ -252,7 +252,7 @@ export_rbac3() {
   printf '%s  %s\n' "${checksum}" "$(basename "${output}")" \
     >"${output}.sha256.tmp"
   atomic_install "${output}.sha256.tmp" "${output}.sha256"
-  printf 'export-rbac3: PASS tenants=%s memberships=%s checksum=%s\n' \
+  printf 'export-tianquan-jianshen: PASS tenants=%s memberships=%s checksum=%s\n' \
     "${counts_tenants}" "${counts_memberships}" "${checksum}"
   rm -f "${tenants_tsv}" "${memberships_tsv}" "${tenants_json}" "${memberships_json}"
 }
@@ -289,18 +289,18 @@ import_idp() {
       --db-url) db_url="${2:-}"; shift 2 ;;
       --freeze-marker) freeze_marker="${2:-}"; shift 2 ;;
       --artifact) artifact="${2:-}"; shift 2 ;;
-      *) fail "unknown import-idp option: ${option}" ;;
+      *) fail "unknown import-tianquan-shoubing option: ${option}" ;;
     esac
   done
   require_db_url "${db_url}"
-  [[ -n "${freeze_marker}" ]] || fail '--freeze-marker is required for import-idp'
-  [[ -n "${artifact}" ]] || fail '--artifact is required for import-idp'
+  [[ -n "${freeze_marker}" ]] || fail '--freeze-marker is required for import-tianquan-shoubing'
+  [[ -n "${artifact}" ]] || fail '--artifact is required for import-tianquan-shoubing'
   require_frozen_marker "${freeze_marker}"
   validate_artifact "${artifact}"
   sql_file="$(mktemp "${TMPDIR:-/tmp}/tenant-authority-import.XXXXXX.sql")"
-  import_log="${UNIFIED_PLATFORM_MIGRATION_IMPORT_LOG:-}"
+  import_log="${UNIFIED_XINGYUAN_MIGRATION_IMPORT_LOG:-}"
   write_import_sql "${artifact}" "${sql_file}"
-  if [[ -n "${UNIFIED_PLATFORM_MIGRATION_FIXTURE_DIR:-}" ]]; then
+  if [[ -n "${UNIFIED_XINGYUAN_MIGRATION_FIXTURE_DIR:-}" ]]; then
     : >"${import_log:-/dev/null}"
     jq -r '.tenants[] | "tenant\t" + .id' "${artifact}" >>"${import_log:-/dev/null}"
     jq -r '.memberships[] | "membership\t" + .tenantId + "\t" + .identitySub' "${artifact}" \
@@ -311,7 +311,7 @@ import_idp() {
     "${psql_command}" "${db_url}" --set ON_ERROR_STOP=1 --single-transaction \
       --file "${sql_file}" >/dev/null
   fi
-  printf 'import-idp: PASS tenants=%s memberships=%s\n' \
+  printf 'import-tianquan-shoubing: PASS tenants=%s memberships=%s\n' \
     "$(jq '.counts.tenants' "${artifact}")" "$(jq '.counts.memberships' "${artifact}")"
   rm -f "${sql_file}"
 }
@@ -327,7 +327,7 @@ verify_idp_database() {
   IFS=$'\t' read -r duplicate_count orphan_count placeholder_count grant_orphan_count <<<"${result}"
   [[ "${duplicate_count:-}" == '0' && "${orphan_count:-}" == '0' \
       && "${placeholder_count:-}" == '0' && "${grant_orphan_count:-}" == '0' ]] \
-    || fail 'IdP database duplicate, orphan, placeholder, or grant invariant failed'
+    || fail 'Tianquan-Shoubing database duplicate, orphan, placeholder, or grant invariant failed'
 }
 
 verify_rbac_database() {
@@ -351,16 +351,16 @@ verify_idp() {
     case "${option}" in
       --artifact) artifact="${2:-}"; shift 2 ;;
       --db-url) db_url="${2:-}"; shift 2 ;;
-      *) fail "unknown verify-idp option: ${option}" ;;
+      *) fail "unknown verify-tianquan-shoubing option: ${option}" ;;
     esac
   done
-  [[ -n "${artifact}" ]] || fail '--artifact is required for verify-idp'
+  [[ -n "${artifact}" ]] || fail '--artifact is required for verify-tianquan-shoubing'
   validate_artifact "${artifact}"
   if [[ -n "${db_url}" ]]; then
     require_db_url "${db_url}"
     verify_idp_database "${db_url}"
   fi
-  printf 'verify-idp: PASS tenants=%s memberships=%s\n' \
+  printf 'verify-tianquan-shoubing: PASS tenants=%s memberships=%s\n' \
     "$(jq '.counts.tenants' "${artifact}")" "$(jq '.counts.memberships' "${artifact}")"
 }
 
@@ -404,7 +404,7 @@ report() {
     --arg checksum "${checksum}" \
     --argjson counts "$(jq '.counts' "${artifact}")" \
     '{schemaVersion: 1, status: "PASS", artifact: $artifact, checksum: $checksum,
-      counts: $counts, verification: {idp: "PASS", rbac: "PASS"}}' \
+      counts: $counts, verification: {tianquan-shoubing: "PASS", rbac: "PASS"}}' \
     >"${temp_report}"
   atomic_install "${temp_report}" "${output}"
   printf 'report: PASS artifact=%s checksum=%s\n' "$(basename "${artifact}")" "${checksum}"
@@ -420,9 +420,9 @@ main() {
   shift
   require_command jq
   case "${command_name}" in
-    export-rbac3) export_rbac3 "$@" ;;
-    import-idp) import_idp "$@" ;;
-    verify-idp) verify_idp "$@" ;;
+    export-tianquan-jianshen) export_rbac3 "$@" ;;
+    import-tianquan-shoubing) import_idp "$@" ;;
+    verify-tianquan-shoubing) verify_idp "$@" ;;
     verify-rbac) verify_rbac "$@" ;;
     report) report "$@" ;;
     *) usage >&2; fail "unknown command: ${command_name}" ;;

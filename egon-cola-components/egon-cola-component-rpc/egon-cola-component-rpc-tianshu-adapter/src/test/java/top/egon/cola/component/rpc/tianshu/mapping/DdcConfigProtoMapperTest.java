@@ -124,7 +124,7 @@ class DdcConfigProtoMapperTest {
                         .setAppCode("order"))
                 .setResourceName("application.yml")
                 .setContent("a: b")
-                .setFormat(DdcConfigFormat.DDC_CONFIG_FORMAT_UNSPECIFIED)
+                .setFormat(DdcConfigFormat.TIANSHU_CONFIG_FORMAT_UNSPECIFIED)
                 .build();
         assertThatThrownBy(() -> mapper.fromConfig(unknown))
                 .isInstanceOf(IllegalArgumentException.class)

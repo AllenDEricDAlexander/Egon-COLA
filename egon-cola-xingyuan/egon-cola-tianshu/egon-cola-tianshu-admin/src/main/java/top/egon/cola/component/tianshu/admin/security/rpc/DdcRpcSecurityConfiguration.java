@@ -10,8 +10,8 @@ import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
 /**
- * 将 DDC RPC 认证与异常映射接入中立 RPC Provider 扩展点。
- * / Connects DDC RPC authentication and error mapping to neutral provider hooks.
+ * 将 Tianshu RPC 认证与异常映射接入中立 RPC Provider 扩展点。
+ * / Connects Tianshu RPC authentication and error mapping to neutral provider hooks.
  */
 @Configuration(proxyBeanMethods = false)
 public class DdcRpcSecurityConfiguration {

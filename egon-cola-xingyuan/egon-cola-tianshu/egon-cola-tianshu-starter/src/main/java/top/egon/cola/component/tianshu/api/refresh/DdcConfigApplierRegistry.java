@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.api.refresh;
 
 /**
- * DDC 配置应用器注册表。
- * Registry of DDC configuration appliers.
+ * Tianshu 配置应用器注册表。
+ * Registry of Tianshu configuration appliers.
  */
 public interface DdcConfigApplierRegistry {
 

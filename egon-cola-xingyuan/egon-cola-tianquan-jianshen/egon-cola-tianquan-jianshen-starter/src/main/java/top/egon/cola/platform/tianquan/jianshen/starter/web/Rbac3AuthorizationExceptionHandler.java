@@ -35,7 +35,7 @@ public final class Rbac3AuthorizationExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                 "code", exception.reasonCode(),
-                "message", "RBAC3 authorization denied"));
+                "message", "Tianquan-Jianshen authorization denied"));
     }
 
     /**
@@ -54,6 +54,6 @@ public final class Rbac3AuthorizationExceptionHandler {
     ) {
         return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(Map.of(
                 "code", exception.reasonCode(),
-                "message", "RBAC3 authorization runtime unavailable"));
+                "message", "Tianquan-Jianshen authorization runtime unavailable"));
     }
 }

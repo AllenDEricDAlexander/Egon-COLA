@@ -21,14 +21,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonApiCatalog;
 import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 
 @RestController
-@RequestMapping("/api/v1/ddc/registry")
-@Tag(name = "ddc-admin-ddc-registry-admin-controller", description = "DdcRegistryAdminController 管理接口组")
+@RequestMapping("/api/v1/tianshu/registry")
+@Tag(name = "tianshu-admin-tianshu-registry-admin-controller", description = "DdcRegistryAdminController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcRegistryAdminController {
 
@@ -44,7 +44,7 @@ public class DdcRegistryAdminController {
         this.pageService = pageService;
     }
 
-    @Operation(operationId = "ddc.ddcRegistryAdminController.services")
+    @Operation(operationId = "tianshu.ddcRegistryAdminController.services")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/services")
     public ResultRecord<DdcManagementServiceCatalog> services(
@@ -74,7 +74,7 @@ public class DdcRegistryAdminController {
         )));
     }
 
-    @Operation(operationId = "ddc.ddcRegistryAdminController.pageServices")
+    @Operation(operationId = "tianshu.ddcRegistryAdminController.pageServices")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/services/page")
     public PageResultRecord<DdcManagementServiceKey> pageServices(
@@ -101,7 +101,7 @@ public class DdcRegistryAdminController {
         ));
     }
 
-    @Operation(operationId = "ddc.ddcRegistryAdminController.instances")
+    @Operation(operationId = "tianshu.ddcRegistryAdminController.instances")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/instances")
     public ResultRecord<DdcManagementServiceSnapshot> instances(
@@ -127,7 +127,7 @@ public class DdcRegistryAdminController {
         )));
     }
 
-    @Operation(operationId = "ddc.ddcRegistryAdminController.pageInstances")
+    @Operation(operationId = "tianshu.ddcRegistryAdminController.pageInstances")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/instances/page")
     public PageResultRecord<DdcManagementServiceInstance> pageInstances(

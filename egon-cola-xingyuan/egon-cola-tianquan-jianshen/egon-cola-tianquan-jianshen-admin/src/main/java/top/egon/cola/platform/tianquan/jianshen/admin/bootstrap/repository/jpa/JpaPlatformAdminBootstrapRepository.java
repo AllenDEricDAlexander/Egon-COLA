@@ -58,7 +58,7 @@ public class JpaPlatformAdminBootstrapRepository
      * 含义与用法：读取、传递或更新 `ACTOR` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `ACTOR`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final String ACTOR = "rbac3-platform-bootstrap";
+    private static final String ACTOR = "tianquan-jianshen-platform-bootstrap";
     /**
      * 字段 `APPLICATION_CODE` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `APPLICATION CODE` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `APPLICATION_CODE` stores the `APPLICATION CODE`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.
@@ -66,7 +66,7 @@ public class JpaPlatformAdminBootstrapRepository
      * 含义与用法：读取、传递或更新 `APPLICATION_CODE` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `APPLICATION_CODE`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final String APPLICATION_CODE = "rbac3-admin";
+    private static final String APPLICATION_CODE = "tianquan-jianshen-admin";
     /**
      * 字段 `ROLE_CODE` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `ROLE CODE` 相关的状态、依赖、配置或结果（声明类型 `String`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `ROLE_CODE` stores the `ROLE CODE`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `String`); its lifecycle and value semantics are defined by its declared type and owning object.

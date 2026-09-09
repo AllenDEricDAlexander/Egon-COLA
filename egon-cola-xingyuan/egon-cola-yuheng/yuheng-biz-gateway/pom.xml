@@ -14,7 +14,7 @@
     <artifactId>yuheng-biz-gateway</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-biz-gateway</name>
-    <description>Executable data plane for Egon COLA Gateway.</description>
+    <description>Executable data plane for Egon COLA Yuheng.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>

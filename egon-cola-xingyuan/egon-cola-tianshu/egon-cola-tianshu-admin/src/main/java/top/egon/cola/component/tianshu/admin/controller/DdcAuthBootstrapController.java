@@ -15,21 +15,21 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermiss
 
 import java.util.Objects;
 
-/** Unified SSO bootstrap endpoint for the DDC administration web application. */
+/** Unified SSO bootstrap endpoint for the Tianshu administration web application. */
 @RestController
-@RequestMapping({"/api/v1/auth", "/api/v1/ddc/auth"})
+@RequestMapping({"/api/v1/auth", "/api/v1/tianshu/auth"})
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.rbac3",
+        prefix = "egon.cola.platform.tianquan.jianshen",
         name = "enabled",
         havingValue = "true"
 )
-@Tag(name = "ddc-admin-ddc-auth-bootstrap-controller", description = "DdcAuthBootstrapController 管理接口组")
+@Tag(name = "tianshu-admin-tianshu-auth-bootstrap-controller", description = "DdcAuthBootstrapController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcAuthBootstrapController {
 
@@ -39,10 +39,10 @@ public class DdcAuthBootstrapController {
         this.bootstrap = Objects.requireNonNull(bootstrap, "bootstrap");
     }
 
-    @Operation(operationId = "ddc.ddcAuthBootstrapController.bootstrap")
+    @Operation(operationId = "tianshu.ddcAuthBootstrapController.bootstrap")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/bootstrap")
-    @RequiresPermission("DDC_READ")
+    @RequiresPermission("TIANSHU_READ")
     public AuthorizationBootstrapView bootstrap() {
         Rbac3AboutView about = bootstrap.current();
         return AuthorizationBootstrapView.from(about);

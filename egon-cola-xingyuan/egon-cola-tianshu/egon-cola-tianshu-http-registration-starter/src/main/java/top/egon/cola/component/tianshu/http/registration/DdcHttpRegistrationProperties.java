@@ -9,10 +9,10 @@ import java.util.Map;
 public class DdcHttpRegistrationProperties {
 
     public static final String PREFIX =
-            "egon.cola.component.ddc.registry.http";
+            "egon.cola.component.tianshu.registry.http";
 
-    /** Fixed least-privilege scope required for DDC registration and heartbeat. */
-    public static final String REGISTRATION_SCOPE = "ddc:registration:write";
+    /** Fixed least-privilege scope required for Tianshu registration and heartbeat. */
+    public static final String REGISTRATION_SCOPE = "tianshu:registration:write";
 
     private boolean enabled;
 

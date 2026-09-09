@@ -5,9 +5,9 @@ import top.egon.cola.platform.tianquan.shoubing.core.token.RefreshTokenClaims;
 import top.egon.cola.platform.tianquan.shoubing.core.token.ServiceAccessTokenClaims;
 
 /**
- * IdP USER、SERVICE 和内部 Refresh Token 的签名与验证端口。
+ * Tianquan-Shoubing USER、SERVICE 和内部 Refresh Token 的签名与验证端口。
  *
- * <p>Signing and verification port for IdP USER, SERVICE, and internal refresh tokens.</p>
+ * <p>Signing and verification port for Tianquan-Shoubing USER, SERVICE, and internal refresh tokens.</p>
  */
 public interface TokenSigner {
 

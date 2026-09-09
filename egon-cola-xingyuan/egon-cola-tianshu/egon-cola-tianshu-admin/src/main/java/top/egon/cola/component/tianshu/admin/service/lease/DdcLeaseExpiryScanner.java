@@ -50,8 +50,8 @@ public class DdcLeaseExpiryScanner {
 
     @Transactional
     @Scheduled(
-            fixedDelayString = "${egon.cola.component.ddc.admin.lease.scan-interval-millis:5000}",
-            initialDelayString = "${egon.cola.component.ddc.admin.lease.scan-interval-millis:5000}"
+            fixedDelayString = "${egon.cola.component.tianshu.admin.lease.scan-interval-millis:5000}",
+            initialDelayString = "${egon.cola.component.tianshu.admin.lease.scan-interval-millis:5000}"
     )
     public int scanExpired() {
         Instant now = clock.instant();

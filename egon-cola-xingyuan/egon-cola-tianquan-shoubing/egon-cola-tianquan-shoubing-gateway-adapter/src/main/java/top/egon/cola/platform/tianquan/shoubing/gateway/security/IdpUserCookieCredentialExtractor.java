@@ -23,7 +23,7 @@ import java.util.Set;
 public final class IdpUserCookieCredentialExtractor
         implements GatewayCredentialExtractor {
 
-    public static final String EXTRACTOR_ID = "idp-user-cookie";
+    public static final String EXTRACTOR_ID = "tianquan-shoubing-user-cookie";
     private static final int MAX_TOKEN_LENGTH = 8192;
     private static final Set<String> UNSAFE = Set.of(
             "POST", "PUT", "PATCH", "DELETE");
@@ -186,7 +186,7 @@ public final class IdpUserCookieCredentialExtractor
         return new CredentialExtractionResult(
                 List.of(),
                 sanitizer.fieldsToRemove(),
-                "GATEWAY_CREDENTIAL_INVALID");
+                "YUHENG_CREDENTIAL_INVALID");
     }
 
     private static String required(String value, String field) {

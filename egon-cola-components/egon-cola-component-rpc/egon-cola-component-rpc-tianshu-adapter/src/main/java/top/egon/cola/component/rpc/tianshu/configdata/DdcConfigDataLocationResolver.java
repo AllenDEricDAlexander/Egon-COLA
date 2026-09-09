@@ -14,15 +14,15 @@ import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
 import java.util.List;
 
 /**
- * 解析 {@code ddc:application.yml} ConfigData 位置并注册引导客户端。 Resolves the {@code ddc:application.yml} ConfigData location and registers the bootstrap client.
+ * 解析 {@code tianshu:application.yml} ConfigData 位置并注册引导客户端。 Resolves the {@code tianshu:application.yml} ConfigData location and registers the bootstrap client.
  */
 public final class DdcConfigDataLocationResolver
         implements ConfigDataLocationResolver<DdcConfigDataResource> {
 
     /**
-     * DDC ConfigData 位置前缀。 DDC ConfigData location prefix.
+     * Tianshu ConfigData 位置前缀。 Tianshu ConfigData location prefix.
      */
-    public static final String PREFIX = "ddc:";
+    public static final String PREFIX = "tianshu:";
 
     /**
      * Adapter 唯一支持的远程资源名。 The only remote resource name supported by the adapter.
@@ -33,14 +33,14 @@ public final class DdcConfigDataLocationResolver
     /**
      * 用于引导阶段绑定配置的属性前缀。 Property prefix used for bootstrap binding.
      */
-    private static final String PROPERTIES_PREFIX = "egon.cola.component.ddc";
+    private static final String PROPERTIES_PREFIX = "egon.cola.component.tianshu";
 
-    /** DDC Direct RPC 引导属性前缀。 / DDC Direct RPC bootstrap property prefix. */
+    /** Tianshu Direct RPC 引导属性前缀。 / Tianshu Direct RPC bootstrap property prefix. */
     private static final String RPC_PROPERTIES_PREFIX =
-            "egon.cola.component.ddc.rpc";
+            "egon.cola.component.tianshu.rpc";
 
     /**
-     * 判断位置是否使用 DDC 前缀。 Determines whether the location uses the DDC prefix.
+     * 判断位置是否使用 Tianshu 前缀。 Determines whether the location uses the Tianshu prefix.
      *
      * @param context  ConfigData 解析上下文。 ConfigData resolution context
      * @param location 待判断的位置。 location to inspect
@@ -53,11 +53,11 @@ public final class DdcConfigDataLocationResolver
     }
 
     /**
-     * 校验位置和客户端属性，并构造唯一 DDC ConfigData 资源。 Validates the location and client properties and creates the single DDC ConfigData resource.
+     * 校验位置和客户端属性，并构造唯一 Tianshu ConfigData 资源。 Validates the location and client properties and creates the single Tianshu ConfigData resource.
      *
      * @param context  ConfigData 解析上下文。 ConfigData resolution context
      * @param location 待解析的位置。 location to resolve
-     * @return DDC 禁用时为空，否则包含一个资源。 an empty list when DDC is disabled, otherwise one resource
+     * @return Tianshu 禁用时为空，否则包含一个资源。 an empty list when Tianshu is disabled, otherwise one resource
      * @throws ConfigDataLocationNotFoundException 位置解析失败时抛出。 thrown when the location cannot be resolved
      * @throws ConfigDataResourceNotFoundException 资源解析失败时抛出。 thrown when the resource cannot be resolved
      * @throws IllegalArgumentException            资源名或必需属性无效时抛出。 thrown when the resource name or required properties are invalid
@@ -74,7 +74,7 @@ public final class DdcConfigDataLocationResolver
                     .getByResourceName(resourceName);
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException(
-                    "DDC ConfigData only supports YAML resources: "
+                    "Tianshu ConfigData only supports YAML resources: "
                             + resourceName,
                     exception
             );
@@ -120,7 +120,7 @@ public final class DdcConfigDataLocationResolver
      * 校验远程作用域、YAML 大小限制和 Direct RPC 引导配置。
      * Validates the remote scope, YAML size limit, and Direct RPC bootstrap settings.
      *
-     * @param properties 待校验的 DDC 属性。 DDC properties to validate
+     * @param properties 待校验的 Tianshu 属性。 Tianshu properties to validate
      * @throws IllegalArgumentException 任一必需设置无效时抛出。 thrown when any required setting is invalid
      */
     private void validate(

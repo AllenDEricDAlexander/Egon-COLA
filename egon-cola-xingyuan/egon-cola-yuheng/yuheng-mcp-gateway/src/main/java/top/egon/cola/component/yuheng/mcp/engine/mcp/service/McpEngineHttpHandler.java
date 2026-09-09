@@ -606,8 +606,8 @@ public final class McpEngineHttpHandler {
                 identity(identity, "tenantId", "identity.tenant-id"),
                 identity(
                         identity,
-                        "idp.client-id",
-                        "idp.audience",
+                        "tianquan-shoubing.client-id",
+                        "tianquan-shoubing.audience",
                         "identity.client-id"
                 ),
                 clock.instant()
@@ -657,8 +657,8 @@ public final class McpEngineHttpHandler {
                             "identity.tenant-id"
                     )) && session.clientId().equals(identity(
                             identity,
-                            "idp.client-id",
-                            "idp.audience",
+                            "tianquan-shoubing.client-id",
+                            "tianquan-shoubing.audience",
                             "identity.client-id"
                     ));
                     if (!matches) {

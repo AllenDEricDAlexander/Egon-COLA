@@ -62,7 +62,7 @@ class GatewayTrafficGovernanceTest {
                         Duration.ofSeconds(2)
                 ).block()
         );
-        assertEquals("GATEWAY_RATE_LIMITED", rejected.code());
+        assertEquals("YUHENG_RATE_LIMITED", rejected.code());
     }
 
     @Test
@@ -89,7 +89,7 @@ class GatewayTrafficGovernanceTest {
                         Duration.ofSeconds(2)
                 ).block()
         );
-        assertEquals("GATEWAY_CONCURRENCY_REJECTED", rejected.code());
+        assertEquals("YUHENG_CONCURRENCY_REJECTED", rejected.code());
 
         first.close();
         governance.acquire(

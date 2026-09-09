@@ -11,8 +11,8 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 /**
- * 基于实际 protobuf 请求创建 DDC HMAC Metadata 的客户端拦截器工厂。
- * / Client interceptor factory that creates DDC HMAC Metadata from the actual
+ * 基于实际 protobuf 请求创建 Tianshu HMAC Metadata 的客户端拦截器工厂。
+ * / Client interceptor factory that creates Tianshu HMAC Metadata from the actual
  * protobuf request.
  */
 public final class DdcRpcClientInterceptorFactory

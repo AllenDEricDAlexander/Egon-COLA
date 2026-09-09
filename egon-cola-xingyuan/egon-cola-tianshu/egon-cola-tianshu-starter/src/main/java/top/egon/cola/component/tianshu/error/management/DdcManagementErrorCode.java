@@ -3,19 +3,19 @@ package top.egon.cola.component.tianshu.error.management;
 import top.egon.cola.component.common.core.enums.ErrorStatus;
 
 /**
- * DDC 管理客户端需要识别并转换为专用行为的服务端错误。 /
- * Server errors recognized by the DDC management client for specialized handling.
+ * Tianshu 管理客户端需要识别并转换为专用行为的服务端错误。 /
+ * Server errors recognized by the Tianshu management client for specialized handling.
  */
 public enum DdcManagementErrorCode implements ErrorStatus {
 
     /**
      * 查询的配置不存在。 / The requested configuration does not exist.
      */
-    CONFIG_NOT_FOUND(56004, "DDC_CONFIG_NOT_FOUND", "config not found"),
+    CONFIG_NOT_FOUND(56004, "TIANSHU_CONFIG_NOT_FOUND", "config not found"),
     /**
      * 查询的发布任务不存在。 / The requested publication task does not exist.
      */
-    PUBLISH_TASK_NOT_FOUND(56014, "DDC_PUBLISH_TASK_NOT_FOUND", "publish task not found");
+    PUBLISH_TASK_NOT_FOUND(56014, "TIANSHU_PUBLISH_TASK_NOT_FOUND", "publish task not found");
 
     /**
      * 数值业务错误码。 / Numeric business error code.

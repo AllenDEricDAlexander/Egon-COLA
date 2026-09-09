@@ -6,20 +6,20 @@ import java.net.URI;
 import java.time.Duration;
 
 /**
- * 描述普通 Servlet 资源服务器接入统一 IdP 时使用的配置。
+ * 描述普通 Servlet 资源服务器接入统一 Tianquan-Shoubing 时使用的配置。
  * 配置决定受信任的签发方、公钥来源、当前唯一 Resource，以及身份运行态的 Redis 键空间。
  *
  * <p>Describes the configuration used when a regular Servlet resource server integrates with
- * the unified IdP. The settings define the trusted issuer, public-key source, exact current
+ * the unified Tianquan-Shoubing. The settings define the trusted issuer, public-key source, exact current
  * Resource, and Redis key spaces containing current identity runtime state.</p>
  */
-@ConfigurationProperties("egon.cola.platform.idp")
+@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")
 public class IdpStarterProperties {
 
     /**
-     * 是否启用 IdP Starter 自动装配。
+     * 是否启用 Tianquan-Shoubing Starter 自动装配。
      *
-     * <p>Whether IdP Starter auto-configuration is enabled.</p>
+     * <p>Whether Tianquan-Shoubing Starter auto-configuration is enabled.</p>
      */
     private boolean enabled;
 
@@ -81,9 +81,9 @@ public class IdpStarterProperties {
     private ServiceClient serviceClient = new ServiceClient();
 
     /**
-     * 创建使用默认值初始化的 IdP Starter 配置。
+     * 创建使用默认值初始化的 Tianquan-Shoubing Starter 配置。
      *
-     * <p>Creates IdP Starter settings initialized with their defaults.</p>
+     * <p>Creates Tianquan-Shoubing Starter settings initialized with their defaults.</p>
      */
     public IdpStarterProperties() {
     }
@@ -314,7 +314,7 @@ public class IdpStarterProperties {
     private void required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalStateException(
-                    "egon.cola.platform.idp." + field + " is required");
+                    "egon.cola.platform.tianquan.shoubing." + field + " is required");
         }
     }
 
@@ -332,7 +332,7 @@ public class IdpStarterProperties {
                 || value.getFragment() != null
                 || !value.equals(value.normalize())) {
             throw new IllegalStateException(
-                    "egon.cola.platform.idp." + field
+                    "egon.cola.platform.tianquan.shoubing." + field
                             + " must be an absolute normalized URI without a fragment"
             );
         }
@@ -374,12 +374,12 @@ public class IdpStarterProperties {
             if (appId == null || appId.isBlank()
                     || registrationId == null || registrationId.isBlank()) {
                 throw new IllegalStateException(
-                        "egon.cola.platform.idp.service-client.app-id and registration-id are required"
+                        "egon.cola.platform.tianquan.shoubing.service-client.app-id and registration-id are required"
                 );
             }
             if (renewalSkew == null || renewalSkew.isNegative()) {
                 throw new IllegalStateException(
-                        "egon.cola.platform.idp.service-client.renewal-skew must be non-negative"
+                        "egon.cola.platform.tianquan.shoubing.service-client.renewal-skew must be non-negative"
                 );
             }
         }

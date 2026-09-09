@@ -1,9 +1,9 @@
 package top.egon.cola.component.tianshu.admin.security.registration;
 
 /**
- * 校验 IdP PLATFORM SERVICE Token 并返回可持久化的 verified identity。
+ * 校验 Tianquan-Shoubing PLATFORM SERVICE Token 并返回可持久化的 verified identity。
  *
- * <p>Verifies an IdP PLATFORM SERVICE token and returns an identity safe to persist.</p>
+ * <p>Verifies an Tianquan-Shoubing PLATFORM SERVICE token and returns an identity safe to persist.</p>
  */
 @FunctionalInterface
 public interface DdcRegistrationCredentialVerifier {
@@ -14,7 +14,7 @@ public interface DdcRegistrationCredentialVerifier {
      * <p>Validates the token signature, context, current Resource state, and exact request
      * binding.</p>
      *
-     * @param registrationToken IdP 签发的原始 SERVICE Token；raw SERVICE token issued by IdP
+     * @param registrationToken Tianquan-Shoubing 签发的原始 SERVICE Token；raw SERVICE token issued by Tianquan-Shoubing
      * @param bizCode 注册请求业务域；business domain in the registration request
      * @param appCode 注册请求应用；application in the registration request
      * @param env 注册请求环境；environment in the registration request

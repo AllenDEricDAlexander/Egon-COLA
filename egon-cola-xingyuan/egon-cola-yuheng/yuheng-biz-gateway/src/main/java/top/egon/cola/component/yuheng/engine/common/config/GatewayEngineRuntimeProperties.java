@@ -12,7 +12,7 @@ import java.util.List;
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@ConfigurationProperties(prefix = "egon.cola.component.gateway.engine")
+@ConfigurationProperties(prefix = "egon.cola.component.yuheng.engine")
 public class GatewayEngineRuntimeProperties {
 
     /**
@@ -45,7 +45,7 @@ public class GatewayEngineRuntimeProperties {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntimeProperties} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntimeProperties}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private String nodeId = "gateway-engine";
+    private String nodeId = "yuheng-biz-gateway";
 
     /**
      * 中文说明：保存 instanceId 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayEngineRuntimeProperties} 在其生命周期内读取或更新。
@@ -53,7 +53,7 @@ public class GatewayEngineRuntimeProperties {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntimeProperties} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntimeProperties}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private String instanceId = "gateway-engine";
+    private String instanceId = "yuheng-biz-gateway";
 
     /**
      * 中文说明：保存 dataDirectory 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayEngineRuntimeProperties} 在其生命周期内读取或更新。
@@ -61,7 +61,7 @@ public class GatewayEngineRuntimeProperties {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntimeProperties} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntimeProperties}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private String dataDirectory = "./data/gateway-engine";
+    private String dataDirectory = "./data/yuheng-biz-gateway";
 
     /**
      * 中文说明：保存 http 对应的状态、依赖或配置值；字段类型为 {@code Http}，由 {@code GatewayEngineRuntimeProperties} 在其生命周期内读取或更新。
@@ -1149,7 +1149,7 @@ public class GatewayEngineRuntimeProperties {
          *
          * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntimeProperties.Rpc} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntimeProperties.Rpc}; do not couple callers to its representation when the owning type exposes an API.
          */
-        private String serviceName = "egon-gateway-rpc";
+        private String serviceName = "egon-yuheng-rpc";
 
         /**
          * 中文说明：保存 group 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code GatewayEngineRuntimeProperties.Rpc} 在其生命周期内读取或更新。
@@ -2074,7 +2074,7 @@ public class GatewayEngineRuntimeProperties {
          *
          * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntimeProperties.Kafka} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntimeProperties.Kafka}; do not couple callers to its representation when the owning type exposes an API.
          */
-        private String topic = "egon.gateway.call.v1";
+        private String topic = "egon.yuheng.call.v1";
 
         /**
          * 中文说明：保存 maxQueuedEvents 对应的状态、依赖或配置值；字段类型为 {@code int}，由 {@code GatewayEngineRuntimeProperties.Kafka} 在其生命周期内读取或更新。

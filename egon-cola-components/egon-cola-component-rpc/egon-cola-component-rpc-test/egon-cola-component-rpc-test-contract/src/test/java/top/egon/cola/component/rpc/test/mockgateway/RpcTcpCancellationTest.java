@@ -58,7 +58,7 @@ class RpcTcpCancellationTest {
         MockRpcGateway gateway = new MockRpcGateway(
                 new InMemoryRpcRegistryClient(backend),
                 "test",
-                "mock-gateway-cancel",
+                "mock-yuheng-cancel",
                 MockGatewayProperties.defaults(),
                 List.of(EchoServiceGrpc.getEchoMethod().getFullMethodName())
         );

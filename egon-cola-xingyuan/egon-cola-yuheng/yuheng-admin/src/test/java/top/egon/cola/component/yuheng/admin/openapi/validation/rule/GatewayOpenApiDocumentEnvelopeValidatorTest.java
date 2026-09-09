@@ -28,7 +28,7 @@ class GatewayOpenApiDocumentEnvelopeValidatorTest {
         )).satisfies(result -> {
             assertThat(result.valid()).isFalse();
             assertThat(result.code()).isEqualTo(
-                    "GATEWAY_OPENAPI_CONTENT_TYPE"
+                    "YUHENG_OPENAPI_CONTENT_TYPE"
             );
         });
         assertThat(new GatewayOpenApiDocumentEnvelopeValidator().validate(
@@ -38,6 +38,6 @@ class GatewayOpenApiDocumentEnvelopeValidatorTest {
                         "application/json",
                         302
                 )
-        ).code()).isEqualTo("GATEWAY_OPENAPI_HTTP_STATUS");
+        ).code()).isEqualTo("YUHENG_OPENAPI_HTTP_STATUS");
     }
 }

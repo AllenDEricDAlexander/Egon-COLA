@@ -25,7 +25,7 @@ public class MockBackendSecurityConfiguration {
         Rbac3BearerAuthenticationFilter rbac3Filter = rbac3Filters.getIfAvailable();
         if (idpFilter == null || rbac3Filter == null) {
             throw new IllegalStateException(
-                    "IdP and RBAC3 authentication filters are required");
+                    "Tianquan-Shoubing and Tianquan-Jianshen authentication filters are required");
         }
         http
                 .csrf(csrf -> csrf.disable())

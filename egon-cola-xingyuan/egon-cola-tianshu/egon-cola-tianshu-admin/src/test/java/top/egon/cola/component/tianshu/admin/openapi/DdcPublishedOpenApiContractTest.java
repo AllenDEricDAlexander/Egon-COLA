@@ -23,7 +23,7 @@ class DdcPublishedOpenApiContractTest {
     @Test
     void allPublishedHandlersCanBeCustomizedForTheDeclaredGroup() throws Exception {
         GatewayOpenApiProperties properties = new GatewayOpenApiProperties();
-        properties.setPublishedGroups(List.of("ddc"));
+        properties.setPublishedGroups(List.of("tianshu"));
         OperationCustomizer customizer = new EgonOperationCustomizer(properties);
         var scanner = new ClassPathScanningCandidateComponentProvider(false);
         scanner.addIncludeFilter(new AnnotationTypeFilter(RestController.class));
@@ -33,7 +33,7 @@ class DdcPublishedOpenApiContractTest {
             Class<?> controller = Class.forName(name);
             Object instance = mock(controller);
             assertThat(controller.getAnnotation(EgonApiCatalog.class).interfaceGroupCode())
-                    .as("published Group of %s", name).isEqualTo("ddc");
+                    .as("published Group of %s", name).isEqualTo("tianshu");
             for (var method : controller.getDeclaredMethods()) {
                 if (AnnotatedElementUtils.findMergedAnnotation(method, RequestMapping.class) == null) {
                     continue;
@@ -48,7 +48,7 @@ class DdcPublishedOpenApiContractTest {
                 assertThat(operation.getExtensions()).containsKey("x-egon");
                 var extension = (java.util.Map<?, ?>) operation.getExtensions().get("x-egon");
                 var catalog = (java.util.Map<?, ?>) extension.get("catalog");
-                assertThat(catalog.get("interfaceGroupCode")).isEqualTo("ddc");
+                assertThat(catalog.get("interfaceGroupCode")).isEqualTo("tianshu");
                 operations++;
             }
         }

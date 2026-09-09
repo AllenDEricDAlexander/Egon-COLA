@@ -50,7 +50,7 @@ class RpcMultiProviderDirectoryTest {
         MockRpcGateway gateway = new MockRpcGateway(
                 new InMemoryRpcRegistryClient(backend),
                 "test",
-                "mock-gateway-multi",
+                "mock-yuheng-multi",
                 MockGatewayProperties.defaults(),
                 List.of(EchoServiceGrpc.getEchoMethod().getFullMethodName())
         );

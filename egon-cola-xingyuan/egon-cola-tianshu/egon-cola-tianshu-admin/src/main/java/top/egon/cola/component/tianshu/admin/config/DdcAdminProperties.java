@@ -6,7 +6,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.List;
 
-@ConfigurationProperties(prefix = "egon.cola.component.ddc.admin")
+@ConfigurationProperties(prefix = "egon.cola.component.tianshu.admin")
 public class DdcAdminProperties {
 
     private long maxConfigBytes = 1024L * 1024L;
@@ -21,7 +21,7 @@ public class DdcAdminProperties {
 
     private Publish publish = new Publish();
 
-    /** DDC registration credential verification settings. */
+    /** Tianshu registration credential verification settings. */
     private Registration registration = new Registration();
 
     public long getMaxConfigBytes() {
@@ -73,9 +73,9 @@ public class DdcAdminProperties {
     }
 
     /**
-     * 返回 DDC registration credential verification settings。
+     * 返回 Tianshu registration credential verification settings。
      *
-     * <p>Returns DDC registration credential verification settings.</p>
+     * <p>Returns Tianshu registration credential verification settings.</p>
      *
      * @return registration 配置；registration settings
      */
@@ -84,9 +84,9 @@ public class DdcAdminProperties {
     }
 
     /**
-     * 设置 DDC registration credential verification settings。
+     * 设置 Tianshu registration credential verification settings。
      *
-     * <p>Sets DDC registration credential verification settings.</p>
+     * <p>Sets Tianshu registration credential verification settings.</p>
      *
      * @param registration registration 配置；registration settings
      */
@@ -413,25 +413,25 @@ public class DdcAdminProperties {
     }
 
     /**
-     * IdP PLATFORM SERVICE registration verification settings。
+     * Tianquan-Shoubing PLATFORM SERVICE registration verification settings。
      *
-     * <p>IdP PLATFORM SERVICE registration verification settings.</p>
+     * <p>Tianquan-Shoubing PLATFORM SERVICE registration verification settings.</p>
      */
     public static class Registration {
 
-        /** DDC Resource Server stable identifier. */
+        /** Tianshu Resource Server stable identifier. */
         private String resourceServerId;
 
-        /** DDC Resource URI used as the token audience. */
+        /** Tianshu Resource URI used as the token audience. */
         private URI resourceUri;
 
         /** Least-privilege registration scope. */
-        private String requiredScope = "ddc:registration:write";
+        private String requiredScope = "tianshu:registration:write";
 
         /**
-         * 返回 DDC Resource Server 稳定标识。
+         * 返回 Tianshu Resource Server 稳定标识。
          *
-         * <p>Returns the DDC Resource Server stable identifier.</p>
+         * <p>Returns the Tianshu Resource Server stable identifier.</p>
          *
          * @return Resource Server stable identifier
          */
@@ -440,9 +440,9 @@ public class DdcAdminProperties {
         }
 
         /**
-         * 设置 DDC Resource Server 稳定标识。
+         * 设置 Tianshu Resource Server 稳定标识。
          *
-         * <p>Sets the DDC Resource Server stable identifier.</p>
+         * <p>Sets the Tianshu Resource Server stable identifier.</p>
          *
          * @param resourceServerId Resource Server stable identifier
          */
@@ -451,9 +451,9 @@ public class DdcAdminProperties {
         }
 
         /**
-         * 返回 DDC Resource URI。
+         * 返回 Tianshu Resource URI。
          *
-         * <p>Returns the DDC Resource URI.</p>
+         * <p>Returns the Tianshu Resource URI.</p>
          *
          * @return Resource URI
          */
@@ -462,9 +462,9 @@ public class DdcAdminProperties {
         }
 
         /**
-         * 设置 DDC Resource URI。
+         * 设置 Tianshu Resource URI。
          *
-         * <p>Sets the DDC Resource URI.</p>
+         * <p>Sets the Tianshu Resource URI.</p>
          *
          * @param resourceUri Resource URI
          */
@@ -473,9 +473,9 @@ public class DdcAdminProperties {
         }
 
         /**
-         * 返回 DDC registration scope。
+         * 返回 Tianshu registration scope。
          *
-         * <p>Returns the least-privilege DDC registration scope.</p>
+         * <p>Returns the least-privilege Tianshu registration scope.</p>
          *
          * @return registration scope
          */
@@ -484,9 +484,9 @@ public class DdcAdminProperties {
         }
 
         /**
-         * 设置 DDC registration scope。
+         * 设置 Tianshu registration scope。
          *
-         * <p>Sets the least-privilege DDC registration scope.</p>
+         * <p>Sets the least-privilege Tianshu registration scope.</p>
          *
          * @param requiredScope registration scope
          */
@@ -498,7 +498,7 @@ public class DdcAdminProperties {
     public static class Publish {
 
         /**
-         * Redis notification content threshold; larger resources are pulled through DDC RPC.
+         * Redis notification content threshold; larger resources are pulled through Tianshu RPC.
          */
         private long inlineContentMaxBytes = 4L * 1024L * 1024L;
 

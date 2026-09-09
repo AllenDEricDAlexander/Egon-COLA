@@ -23,7 +23,7 @@ class Rbac3AdminSecurityConfigurationTest {
         ))).isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.SERVICE);
         assertThat(policy.requirement(new MockHttpServletRequest(
                 "GET",
-                "/api/rbac3/v1/iam/roles"
+                "/api/tianquan-jianshen/v1/iam/roles"
         ))).isEqualTo(IdpEndpointAuthenticationPolicy.Requirement.USER);
     }
 

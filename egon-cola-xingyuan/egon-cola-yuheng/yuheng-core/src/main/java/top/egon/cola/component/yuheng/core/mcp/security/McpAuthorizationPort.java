@@ -30,7 +30,7 @@ public interface McpAuthorizationPort {
                 long policyVersion) {
             return new Decision(
                     true,
-                    "RBAC3_PERMISSION_ALLOWED",
+                    "TIANQUAN_JIANSHEN_PERMISSION_ALLOWED",
                     authVersion,
                     contextVersion,
                     policyVersion

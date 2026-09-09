@@ -40,7 +40,7 @@ class DdcEnvControllerTest {
     void listDelegatesToService() throws Exception {
         when(envService.list(null, null, null)).thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/v1/ddc/envs"))
+        mockMvc.perform(get("/api/v1/tianshu/envs"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
@@ -56,7 +56,7 @@ class DdcEnvControllerTest {
                 .thenReturn(new PageImpl<>(
                         List.of(env), PageRequest.of(0, 10), 1));
 
-        mockMvc.perform(get("/api/v1/ddc/envs/page")
+        mockMvc.perform(get("/api/v1/tianshu/envs/page")
                         .param("bizCode", "pay-biz")
                         .param("namespaceCode", "ops")
                         .param("keyword", "pro")
@@ -74,7 +74,7 @@ class DdcEnvControllerTest {
         doThrow(new CommonException(DdcErrorStatus.ENV_IN_USE))
                 .when(envService).delete("prod");
 
-        mockMvc.perform(delete("/api/v1/ddc/envs/prod"))
+        mockMvc.perform(delete("/api/v1/tianshu/envs/prod"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.ENV_IN_USE.getCode()));

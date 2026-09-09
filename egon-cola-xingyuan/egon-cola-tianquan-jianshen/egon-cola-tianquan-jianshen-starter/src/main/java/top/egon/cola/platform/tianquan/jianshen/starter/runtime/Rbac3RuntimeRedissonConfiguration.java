@@ -24,7 +24,7 @@ import java.nio.file.Path;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-        prefix = "egon.cola.platform.rbac3.runtime",
+        prefix = "egon.cola.platform.tianquan.jianshen.runtime",
         name = "redis-enabled",
         havingValue = "true")
 public class Rbac3RuntimeRedissonConfiguration {
@@ -51,7 +51,7 @@ public class Rbac3RuntimeRedissonConfiguration {
         if (address == null || (!address.startsWith("redis://")
                 && !address.startsWith("rediss://"))) {
             throw new IllegalArgumentException(
-                    "RBAC3 runtime Redis address must use redis:// or rediss://");
+                    "Tianquan-Jianshen runtime Redis address must use redis:// or rediss://");
         }
         Config config = new Config();
         config.setCodec(new JsonJacksonCodec(objectMapper.copy()));
@@ -84,12 +84,12 @@ public class Rbac3RuntimeRedissonConfiguration {
             String value = Files.readString(Path.of(file.trim())).trim();
             if (value.isEmpty()) {
                 throw new IllegalArgumentException(
-                        "RBAC3 runtime Redis password file is empty");
+                        "Tianquan-Jianshen runtime Redis password file is empty");
             }
             return value;
         } catch (IOException exception) {
             throw new IllegalStateException(
-                    "Cannot read RBAC3 runtime Redis password file", exception);
+                    "Cannot read Tianquan-Jianshen runtime Redis password file", exception);
         }
     }
 }

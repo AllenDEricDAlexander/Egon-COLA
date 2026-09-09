@@ -164,7 +164,7 @@ class GatewayOpenApiInvocationSchemaAdapterTest {
 
         Map<String, Object> response = adapter.responseSchema(root, operation);
         assertThat(response).containsEntry("type", "null")
-                .containsEntry("x-egon-schema-model", "gateway-operation-response/v2");
+                .containsEntry("x-egon-schema-model", "yuheng-operation-response/v2");
     }
 
     @Test

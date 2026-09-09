@@ -42,15 +42,15 @@ class ServiceScopeAuthorizationTest {
     private ServiceIdentityPrincipal service() {
         Instant issuedAt = Instant.parse("2026-08-02T08:00:00Z");
         return new ServiceIdentityPrincipal(
-                "rbac3-service",
+                "tianquan-jianshen-service",
                 "tenant-1",
-                "rbac3-service",
+                "tianquan-jianshen-service",
                 "token-1",
-                URI.create("https://api.example/prod/permission/rbac3"),
+                URI.create("https://api.example/prod/permission/tianquan-jianshen"),
                 12L,
                 Set.of("service:authorization:snapshot"),
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
                 "key-1",
                 issuedAt,

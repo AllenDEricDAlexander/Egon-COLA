@@ -307,7 +307,7 @@ public final class RpcInvocationExecutor {
                 return EgonRpcErrorCode.RPC_RATE_LIMITED;
             }
             return plan.referenceMode() == RpcReferenceMode.GATEWAY
-                    ? EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                    ? EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
                     : EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE;
         }
 
@@ -329,7 +329,7 @@ public final class RpcInvocationExecutor {
             }
             if (cause instanceof EgonRpcException exception) {
                 return exception.getCode() == EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE
-                        || exception.getCode() == EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE
+                        || exception.getCode() == EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
                         || exception.getCode() == EgonRpcErrorCode.RPC_RATE_LIMITED;
             }
             return false;

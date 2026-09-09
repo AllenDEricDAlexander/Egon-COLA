@@ -100,7 +100,7 @@ public class JpaTenantApplicationRepository implements ApplicationResourceReposi
         TenantApplicationPO entitlement = new TenantApplicationPO(
                 idGenerator.nextLongId(), tenant, application.getId(),
                 TenantApplicationStatusEnum.ACTIVE, now, null,
-                "DDC", catalog.ddcApplicationId(), null, null, actorId, now);
+                "Tianshu", catalog.ddcApplicationId(), null, null, actorId, now);
         entityManager.persist(entitlement);
         return toAuthorizationScope(entitlement, application);
     }

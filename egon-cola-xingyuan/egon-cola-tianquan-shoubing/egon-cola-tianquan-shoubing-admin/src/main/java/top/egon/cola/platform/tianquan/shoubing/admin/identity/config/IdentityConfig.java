@@ -2,7 +2,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.identity.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.ddc.IdpRuntimePolicy;
+import top.egon.cola.platform.tianquan.shoubing.admin.support.tianshu.IdpRuntimePolicy;
 import top.egon.cola.platform.tianquan.shoubing.core.audit.IdentitySecurityEventPort;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityFacade;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.UsernameNormalizer;

@@ -13,7 +13,7 @@ class ResourceCrudControllerTest {
         RequestMapping mapping = ApplicationResourceController.class
                 .getAnnotation(RequestMapping.class);
         assertThat(mapping).isNotNull();
-        assertThat(mapping.value()).containsExactly("/api/rbac3/v1/iam/resource-catalog");
+        assertThat(mapping.value()).containsExactly("/api/tianquan-jianshen/v1/iam/resource-catalog");
         assertThat(ApplicationResourceController.class.getDeclaredMethods())
                 .noneMatch(method -> java.util.Arrays.stream(method.getParameters())
                         .anyMatch(parameter -> parameter.getName().equals("tenantId")));

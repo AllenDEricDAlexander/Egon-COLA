@@ -37,14 +37,14 @@ class Rbac3ModuleBoundaryTest {
         Path platform = Path.of(System.getProperty("basedir")).getParent();
         try (var children = Files.list(platform)) {
             assertFalse(children.map(path -> path.getFileName().toString())
-                    .anyMatch(name -> name.matches(".*rbac3.*-test(s)?")));
+                    .anyMatch(name -> name.matches(".*tianquan-jianshen.*-test(s)?")));
         }
     }
 
     @Test
     void iamDomainsUseTheApprovedPackageRoots() throws Exception {
         Path sourceRoot = Path.of(System.getProperty("basedir"))
-                .resolve("src/main/java/top/egon/cola/platform/rbac3/admin");
+                .resolve("src/main/java/top/egon/cola/platform/tianquan/jianshen/admin");
         List<String> targetRoots = List.of(
                 "iam/user", "iam/role", "iam/business", "iam/application",
                 "iam/organization", "iam/position", "authorization",
@@ -86,7 +86,7 @@ class Rbac3ModuleBoundaryTest {
     @Test
     void registrationAndRuntimeBoundariesAreSeparated() throws Exception {
         Path sourceRoot = Path.of(System.getProperty("basedir"))
-                .resolve("src/main/java/top/egon/cola/platform/rbac3/admin");
+                .resolve("src/main/java/top/egon/cola/platform/tianquan/jianshen/admin");
         List<String> violations = new ArrayList<>();
         try (var files = Files.walk(sourceRoot)) {
             files.filter(path -> path.toString().endsWith(".java"))

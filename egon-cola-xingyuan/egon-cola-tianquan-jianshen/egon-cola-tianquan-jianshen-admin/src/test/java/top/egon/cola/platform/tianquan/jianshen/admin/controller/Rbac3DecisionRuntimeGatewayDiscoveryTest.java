@@ -70,26 +70,26 @@ class Rbac3DecisionRuntimeGatewayDiscoveryTest {
     void exposesInternalDecisionParticipationAuditSimulationAndRuntimeOperations() {
         assertThat(operationIds(InternalAuthorizationController.class))
                 .contains(
-                        "rbac3-internal-system-snapshot-v2",
-                        "rbac3-internal-authorization-decision-v2",
-                        "rbac3-internal-resource-access-decision-v2",
-                        "rbac3-internal-authorization-fence-verify-v2");
+                        "tianquan-jianshen-internal-system-snapshot-v2",
+                        "tianquan-jianshen-internal-authorization-decision-v2",
+                        "tianquan-jianshen-internal-resource-access-decision-v2",
+                        "tianquan-jianshen-internal-authorization-fence-verify-v2");
         assertThat(operationIds(ParticipationController.class))
                 .contains(
-                        "rbac3-business-participation-record-v1",
-                        "rbac3-business-participation-conflicts-v1");
+                        "tianquan-jianshen-business-participation-record-v1",
+                        "tianquan-jianshen-business-participation-conflicts-v1");
         assertThat(operationIds(AuditController.class))
-                .contains("rbac3-audit-log-list-v1");
+                .contains("tianquan-jianshen-audit-log-list-v1");
         assertThat(operationIds(AuthorizationSimulationController.class))
                 .contains(
-                        "rbac3-authorization-simulation-v1",
-                        "rbac3-role-change-impact-simulation-v1");
+                        "tianquan-jianshen-authorization-simulation-v1",
+                        "tianquan-jianshen-role-change-impact-simulation-v1");
         assertThat(operationIds(RuntimeController.class))
                 .contains(
-                        "rbac3-runtime-status-v1",
-                        "rbac3-runtime-mutations-v1",
-                        "rbac3-runtime-mutation-retry-v1",
-                        "rbac3-runtime-gateway-ddc-status-v1");
+                        "tianquan-jianshen-runtime-status-v1",
+                        "tianquan-jianshen-runtime-mutations-v1",
+                        "tianquan-jianshen-runtime-mutation-retry-v1",
+                        "tianquan-jianshen-runtime-yuheng-tianshu-status-v1");
         assertThat(exposures(InternalAuthorizationController.class))
                 .containsOnly(EgonGatewayPolicy.Exposure.INTERNAL);
         assertThat(exposures(ParticipationController.class))

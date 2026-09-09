@@ -113,7 +113,7 @@ public final class McpGatewayHttpServer implements AutoCloseable {
             ActiveRequest active;
             synchronized (drainMonitor) {
                 if (!accepting) {
-                    return Mono.just(GatewayOutboundHttpResponse.text(503, "GATEWAY_ENGINE_DRAINING"));
+                    return Mono.just(GatewayOutboundHttpResponse.text(503, "YUHENG_ENGINE_DRAINING"));
                 }
                 active = new ActiveRequest();
                 activeRequests.add(active);

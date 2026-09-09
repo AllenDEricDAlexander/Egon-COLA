@@ -9,7 +9,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * 中文说明：角色编译结果的最小共享视图；DDC 版本由激活状态单独维护。
+ * 中文说明：角色编译结果的最小共享视图；Tianshu 版本由激活状态单独维护。
  * English summary: Minimal immutable compiled-rule view shared by role-local runtimes.
  * 用法 / Usage: Implement with a validated immutable role record; checksum identifies the artifact.
  */

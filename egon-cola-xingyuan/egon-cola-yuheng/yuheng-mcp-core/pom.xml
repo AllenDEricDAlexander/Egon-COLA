@@ -14,7 +14,7 @@
     <artifactId>yuheng-mcp-core</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-mcp-core</name>
-    <description>Shared protocol and runtime core for Egon Gateway MCP.</description>
+    <description>Shared protocol and runtime core for Egon Yuheng MCP.</description>
 
     <dependencies>
         <dependency>

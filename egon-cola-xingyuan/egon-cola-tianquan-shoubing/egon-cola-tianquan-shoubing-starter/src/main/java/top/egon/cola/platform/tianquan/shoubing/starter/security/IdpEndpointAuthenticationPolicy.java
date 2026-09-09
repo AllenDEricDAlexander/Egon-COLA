@@ -8,7 +8,7 @@ import java.util.List;
 import java.util.Objects;
 
 /**
- * Selects the credential type allowed for an IdP-protected endpoint.
+ * Selects the credential type allowed for an Tianquan-Shoubing-protected endpoint.
  *
  * <p>The owning application may explicitly mark public and SERVICE-only path patterns. All
  * other paths default to USER, while an application that does not want an implicit default can
@@ -29,11 +29,11 @@ public final class IdpEndpointAuthenticationPolicy {
          */
         PUBLIC,
         /**
-         * A verified IdP USER access token is required when credentials are present.
+         * A verified Tianquan-Shoubing USER access token is required when credentials are present.
          */
         USER,
         /**
-         * A verified IdP SERVICE access token is required when credentials are present.
+         * A verified Tianquan-Shoubing SERVICE access token is required when credentials are present.
          */
         SERVICE,
         /**

@@ -16,9 +16,9 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 @RequestMapping("/api")
 @Tag(name = "orders")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台域",
-        entityDomainCode = "gateway-test",
+        entityDomainCode = "yuheng-test",
         entityDomainName = "网关测试实体域",
         interfaceGroupCode = "orders"
 )

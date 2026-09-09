@@ -13,7 +13,7 @@ import java.time.Duration;
  * 语义与用法：将 `Rbac3GatewayStatusProperties` 作为 `当前包` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
  * Semantics and usage: use `Rbac3GatewayStatusProperties` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
-@ConfigurationProperties("egon.rbac3.gateway-status")
+@ConfigurationProperties("egon.tianquan-jianshen.yuheng-status")
 public class Rbac3GatewayStatusProperties {
 
     /**
@@ -121,7 +121,7 @@ public class Rbac3GatewayStatusProperties {
     public Duration requireTimeout() {
         if (timeout == null || timeout.isZero() || timeout.isNegative()) {
             throw new IllegalArgumentException(
-                    "egon.rbac3.gateway-status.timeout must be positive");
+                    "egon.tianquan-jianshen.yuheng-status.timeout must be positive");
         }
         return timeout;
     }
@@ -206,7 +206,7 @@ public class Rbac3GatewayStatusProperties {
     private static <T> T required(T value, String field) {
         if (value == null) {
             throw new IllegalArgumentException(
-                    "egon.rbac3.gateway-status." + field + " is required");
+                    "egon.tianquan-jianshen.yuheng-status." + field + " is required");
         }
         return value;
     }
@@ -225,7 +225,7 @@ public class Rbac3GatewayStatusProperties {
     private static String required(String value, String field) {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException(
-                    "egon.rbac3.gateway-status." + field + " is required");
+                    "egon.tianquan-jianshen.yuheng-status." + field + " is required");
         }
         return value.trim();
     }

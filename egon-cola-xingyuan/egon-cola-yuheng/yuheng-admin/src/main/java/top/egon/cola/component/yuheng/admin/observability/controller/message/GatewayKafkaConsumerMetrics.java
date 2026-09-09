@@ -69,16 +69,16 @@ public final class GatewayKafkaConsumerMetrics {
             Clock clock) {
         this.clock = clock;
         retries = registry.counter(
-                "gateway.admin.kafka.consumer.retries"
+                "yuheng.admin.kafka.consumer.retries"
         );
         deadLetters = registry.counter(
-                "gateway.admin.kafka.consumer.dead.letters"
+                "yuheng.admin.kafka.consumer.dead.letters"
         );
         workerRestarts = registry.counter(
-                "gateway.admin.kafka.consumer.worker.restarts"
+                "yuheng.admin.kafka.consumer.worker.restarts"
         );
         Gauge.builder(
-                        "gateway.admin.kafka.consumer.event.lag",
+                        "yuheng.admin.kafka.consumer.event.lag",
                         eventLagMs,
                         AtomicLong::get
                 )

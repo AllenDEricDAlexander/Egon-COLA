@@ -30,7 +30,7 @@ public final class GatewayStreamIdleTimeoutException
      */
     GatewayStreamIdleTimeoutException(GatewayStreamDirection direction) {
         super(
-                "GATEWAY_" + direction + "_STREAM_IDLE_TIMEOUT",
+                "YUHENG_" + direction + "_STREAM_IDLE_TIMEOUT",
                 direction.name().toLowerCase() + " stream timed out"
         );
         this.direction = Objects.requireNonNull(direction, "direction");

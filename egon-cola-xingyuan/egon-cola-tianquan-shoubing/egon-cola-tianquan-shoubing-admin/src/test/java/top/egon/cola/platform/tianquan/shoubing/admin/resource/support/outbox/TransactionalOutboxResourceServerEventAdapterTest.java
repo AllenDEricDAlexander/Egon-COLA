@@ -46,25 +46,25 @@ class TransactionalOutboxResourceServerEventAdapterTest {
         assertThat(message.destination())
                 .isEqualTo("identity.resource-server.disabled.v1");
         assertThat(message.idempotencyKey())
-                .isEqualTo("permission-idp-prod:disabled:1");
+                .isEqualTo("permission-tianquan-shoubing-prod:disabled:1");
         assertThat(message.payload()).isInstanceOf(Map.class);
         assertThat(message.payload().toString())
-                .contains("permission-idp-prod", "permission", "idp", "prod")
+                .contains("permission-tianquan-shoubing-prod", "permission", "tianquan-shoubing", "prod")
                 .doesNotContain("jwk", "private", "secret", "credential");
     }
 
     private static IdentityResourceServerEntity resource() {
         return IdentityResourceServerEntity.create(
                 "row-1",
-                "permission-idp-prod",
-                "https://api.egon.internal/prod/permission/idp",
+                "permission-tianquan-shoubing-prod",
+                "https://api.egon.internal/prod/permission/tianquan-shoubing",
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "IdP Production",
-                "idp-service",
-                "idp",
-                "idp:access",
+                "Tianquan-Shoubing Production",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access",
                 300,
                 IdentityResourceServerEntity.Status.ACTIVE,
                 Instant.parse("2026-08-10T00:00:00Z")

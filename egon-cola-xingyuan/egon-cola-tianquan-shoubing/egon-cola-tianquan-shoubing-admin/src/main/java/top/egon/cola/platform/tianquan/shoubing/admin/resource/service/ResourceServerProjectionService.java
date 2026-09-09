@@ -19,9 +19,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 将 IdP Resource Server 权威数据投影到 Redis 运行态索引。
+ * 将 Tianquan-Shoubing Resource Server 权威数据投影到 Redis 运行态索引。
  *
- * <p>Projects authoritative IdP Resource Server data into Redis runtime indexes.</p>
+ * <p>Projects authoritative Tianquan-Shoubing Resource Server data into Redis runtime indexes.</p>
  *
  * <p>每次管理变更使用一个 Redis 原子写批次；序列化或 Redis 写入失败会向上抛出，使外层
  * 数据库事务回滚，不返回陈旧 ACTIVE 状态。</p>

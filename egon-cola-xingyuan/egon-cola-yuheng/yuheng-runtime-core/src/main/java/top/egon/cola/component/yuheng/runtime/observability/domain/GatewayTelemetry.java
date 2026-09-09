@@ -32,7 +32,7 @@ public final class GatewayTelemetry {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayTelemetry} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayTelemetry}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String REQUEST = "gateway.engine.request";
+    private static final String REQUEST = "yuheng.engine.request";
 
     /**
      * 中文说明：表示 ATTEMPT 这一固定值；它属于 {@code GatewayTelemetry} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -41,7 +41,7 @@ public final class GatewayTelemetry {
      * 用法 / Usage: 该字段通过 {@code GatewayTelemetry} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayTelemetry}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final String ATTEMPT =
-            "gateway.engine.provider.attempt";
+            "yuheng.engine.provider.attempt";
 
     /**
      * 中文说明：表示 DDCAPPLY 这一固定值；它属于 {@code GatewayTelemetry} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -49,7 +49,7 @@ public final class GatewayTelemetry {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayTelemetry} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayTelemetry}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String DDC_APPLY = "gateway.engine.ddc.apply";
+    private static final String TIANSHU_APPLY = "yuheng.engine.tianshu.apply";
 
     /**
      * 中文说明：表示 KAFKASEND 这一固定值；它属于 {@code GatewayTelemetry} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -57,7 +57,7 @@ public final class GatewayTelemetry {
      *
      * 用法 / Usage: 该字段通过 {@code GatewayTelemetry} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayTelemetry}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final String KAFKA_SEND = "gateway.engine.kafka.send";
+    private static final String KAFKA_SEND = "yuheng.engine.kafka.send";
 
     /**
      * 中文说明：保存 注册表 对应的状态、依赖或配置值；字段类型为 {@code ObservationRegistry}，由 {@code GatewayTelemetry} 在其生命周期内读取或更新。
@@ -177,13 +177,13 @@ public final class GatewayTelemetry {
                         registry
                 )
                 .contextualName("gateway " + protocol.toLowerCase())
-                .lowCardinalityKeyValue("gateway.protocol", protocol)
+                .lowCardinalityKeyValue("yuheng.protocol", protocol)
                 .lowCardinalityKeyValue(
-                        "gateway.access.zone",
+                        "yuheng.access.zone",
                         accessZone
                 )
                 .highCardinalityKeyValue(
-                        "gateway.trace.id",
+                        "yuheng.trace.id",
                         selectedTrace.traceId()
                 )
                 .start();
@@ -204,10 +204,10 @@ public final class GatewayTelemetry {
      * @return 返回 startDdcApply 的处理结果；returns the result of the operation.
      */
     public Operation startDdcApply(String key, long version) {
-        return operation(DDC_APPLY)
-                .low("gateway.operation", "ddc.apply")
-                .high("ddc.config.key", key)
-                .high("ddc.config.version", Long.toString(version))
+        return operation(TIANSHU_APPLY)
+                .low("yuheng.operation", "tianshu.apply")
+                .high("tianshu.config.key", key)
+                .high("tianshu.config.version", Long.toString(version))
                 .start();
     }
 
@@ -224,10 +224,10 @@ public final class GatewayTelemetry {
             String eventId,
             String traceId) {
         return operation(KAFKA_SEND)
-                .low("gateway.operation", "kafka.send")
+                .low("yuheng.operation", "kafka.send")
                 .low("messaging.system", "kafka")
                 .high("messaging.message.id", eventId)
-                .high("gateway.trace.id", traceId)
+                .high("yuheng.trace.id", traceId)
                 .start();
     }
 
@@ -419,15 +419,15 @@ public final class GatewayTelemetry {
                 String operationId,
                 String routeId) {
             observation.highCardinalityKeyValue(
-                    "gateway.group.id",
+                    "yuheng.group.id",
                     safe(gatewayGroupId)
             );
             observation.highCardinalityKeyValue(
-                    "gateway.operation.id",
+                    "yuheng.operation.id",
                     safe(operationId)
             );
             observation.highCardinalityKeyValue(
-                    "gateway.route.id",
+                    "yuheng.route.id",
                     safe(routeId)
             );
         }
@@ -446,15 +446,15 @@ public final class GatewayTelemetry {
                 String commitPoint,
                 String terminationReason) {
             observation.lowCardinalityKeyValue(
-                    "gateway.transport.mode",
+                    "yuheng.transport.mode",
                     safe(transportMode)
             );
             observation.lowCardinalityKeyValue(
-                    "gateway.commit.point",
+                    "yuheng.commit.point",
                     safe(commitPoint)
             );
             observation.lowCardinalityKeyValue(
-                    "gateway.termination.reason",
+                    "yuheng.termination.reason",
                     safe(terminationReason)
             );
         }
@@ -490,19 +490,19 @@ public final class GatewayTelemetry {
                     .contextualName("gateway provider "
                             + providerProtocol.toLowerCase())
                     .lowCardinalityKeyValue(
-                            "gateway.protocol",
+                            "yuheng.protocol",
                             protocol
                     )
                     .lowCardinalityKeyValue(
-                            "gateway.provider.protocol",
+                            "yuheng.provider.protocol",
                             providerProtocol
                     )
                     .highCardinalityKeyValue(
-                            "gateway.provider.instance.id",
+                            "yuheng.provider.instance.id",
                             safe(providerInstanceId)
                     )
                     .highCardinalityKeyValue(
-                            "gateway.attempt.number",
+                            "yuheng.attempt.number",
                             Integer.toString(number)
                     )
                     .start();
@@ -542,7 +542,7 @@ public final class GatewayTelemetry {
                 return;
             }
             if (retryReason != null && !retryReason.isBlank()) {
-                attempt.high("gateway.retry.reason", retryReason);
+                attempt.high("yuheng.retry.reason", retryReason);
             }
             if (failure == null && "ERROR".equals(outcome)) {
                 failure = new TelemetryFailure("provider attempt failed");
@@ -571,16 +571,16 @@ public final class GatewayTelemetry {
             );
             attempts.clear();
             observation.lowCardinalityKeyValue(
-                    "gateway.outcome",
+                    "yuheng.outcome",
                     safe(outcome)
             );
             observation.lowCardinalityKeyValue(
-                    "gateway.terminal.stage",
+                    "yuheng.terminal.stage",
                     safe(terminalStage)
             );
             if (errorCode != null && !errorCode.isBlank()) {
                 observation.highCardinalityKeyValue(
-                        "gateway.error.code",
+                        "yuheng.error.code",
                         errorCode
                 );
                 observation.error(new TelemetryFailure(errorCode));
@@ -708,7 +708,7 @@ public final class GatewayTelemetry {
                 return;
             }
             observation.lowCardinalityKeyValue(
-                    "gateway.outcome",
+                    "yuheng.outcome",
                     outcome
             );
             if (failure != null) {

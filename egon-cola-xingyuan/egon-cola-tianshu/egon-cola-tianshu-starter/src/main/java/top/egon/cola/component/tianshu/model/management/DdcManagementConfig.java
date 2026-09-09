@@ -3,7 +3,7 @@ package top.egon.cola.component.tianshu.model.management;
 import java.time.Instant;
 
 /**
- * DDC 管理接口返回的配置快照。 / Configuration snapshot returned by the DDC management API.
+ * Tianshu 管理接口返回的配置快照。 / Configuration snapshot returned by the Tianshu management API.
  *
  * @param bizCode     业务编码 / business code
  * @param env         环境编码 / environment code

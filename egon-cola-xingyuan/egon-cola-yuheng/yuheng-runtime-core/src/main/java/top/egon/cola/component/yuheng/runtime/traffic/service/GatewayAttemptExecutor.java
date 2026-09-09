@@ -43,7 +43,7 @@ public final class GatewayAttemptExecutor {
         Objects.requireNonNull(attempt, "attempt");
         Objects.requireNonNull(retryable, "retryable");
         if (totalBudget.isZero() || totalBudget.isNegative()) {
-            return Mono.error(new TimeoutException("GATEWAY_TIMEOUT"));
+            return Mono.error(new TimeoutException("YUHENG_TIMEOUT"));
         }
         if (policy.enabled() && (!idempotent || !replayableBody)) {
             return Mono.error(new IllegalArgumentException(
@@ -89,7 +89,7 @@ public final class GatewayAttemptExecutor {
             long required = backoff.toNanos()
                     + policy.minimumAttemptBudget().toNanos();
             if (remaining < required) {
-                return Mono.error(new TimeoutException("GATEWAY_TIMEOUT"));
+                return Mono.error(new TimeoutException("YUHENG_TIMEOUT"));
             }
             return Mono.delay(backoff).then(executeAttempt(
                     policy,

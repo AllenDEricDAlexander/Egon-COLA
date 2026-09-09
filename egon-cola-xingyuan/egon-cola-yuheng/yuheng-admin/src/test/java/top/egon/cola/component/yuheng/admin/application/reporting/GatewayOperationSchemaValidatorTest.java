@@ -29,7 +29,7 @@ class GatewayOperationSchemaValidatorTest {
     @Test
     void rejectsV1MissingAndMismatchedSchemaModels() {
         Map<String, Object> request = new LinkedHashMap<>(requestSchema());
-        request.put("x-egon-schema-model", "gateway-operation-request/v1");
+        request.put("x-egon-schema-model", "yuheng-operation-request/v1");
         assertThatThrownBy(() -> validator.validate(
                 "orders:get",
                 "HTTP",
@@ -132,7 +132,7 @@ class GatewayOperationSchemaValidatorTest {
     private Map<String, Object> requestSchema() {
         return Map.of(
                 "$schema", "https://json-schema.org/draft/2020-12/schema",
-                "x-egon-schema-model", "gateway-operation-request/v2",
+                "x-egon-schema-model", "yuheng-operation-request/v2",
                 "type", "object",
                 "properties", Map.of(
                         "path", grouped("id"),
@@ -145,7 +145,7 @@ class GatewayOperationSchemaValidatorTest {
     private Map<String, Object> responseSchema() {
         return Map.of(
                 "$schema", "https://json-schema.org/draft/2020-12/schema",
-                "x-egon-schema-model", "gateway-operation-response/v2",
+                "x-egon-schema-model", "yuheng-operation-response/v2",
                 "type", "object",
                 "properties", Map.of(),
                 "additionalProperties", false

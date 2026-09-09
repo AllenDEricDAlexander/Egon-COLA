@@ -51,21 +51,21 @@ class GatewayReportingAutoConfigurationTest {
     @Test
     void publishesStableIdentityWhenEnabled() {
         runner.withPropertyValues(
-                        "egon.cola.component.gateway.reporting.enabled=true",
-                        "egon.cola.component.gateway.reporting.admin-base-url="
+                        "egon.cola.component.yuheng.reporting.enabled=true",
+                        "egon.cola.component.yuheng.reporting.admin-base-url="
                                 + "http://127.0.0.1:18080",
-                        "egon.cola.component.gateway.reporting.biz-code=test-biz",
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting.biz-code=test-biz",
+                        "egon.cola.component.yuheng.reporting."
                                 + "application-code=inventory",
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting."
                                 + "application-name=Inventory",
-                        "egon.cola.component.gateway.reporting.env=test",
-                        "egon.cola.component.gateway.reporting.namespace=default",
-                        "egon.cola.component.gateway.reporting."
+                        "egon.cola.component.yuheng.reporting.env=test",
+                        "egon.cola.component.yuheng.reporting.namespace=default",
+                        "egon.cola.component.yuheng.reporting."
                                 + "artifact-version=1.0.0",
-                        "egon.cola.component.gateway.reporting.build-id=build-1",
-                        "egon.cola.component.gateway.reporting.access-key=ak",
-                        "egon.cola.component.gateway.reporting.secret-key=sk"
+                        "egon.cola.component.yuheng.reporting.build-id=build-1",
+                        "egon.cola.component.yuheng.reporting.access-key=ak",
+                        "egon.cola.component.yuheng.reporting.secret-key=sk"
                 )
                 .withBean(
                         GatewayReportHttpClient.class,
@@ -89,7 +89,7 @@ class GatewayReportingAutoConfigurationTest {
                     assertThat(httpContributor.serviceVersion())
                             .isEqualTo("1.0.0");
                     assertThat(httpContributor.metadata()).containsEntry(
-                            "gateway.definition-set-id",
+                            "yuheng.definition-set-id",
                             context.getBean(GatewayDefinitionIdentity.class)
                                     .definitionSetId()
                     );
@@ -110,13 +110,13 @@ class GatewayReportingAutoConfigurationTest {
                             GatewayDefinitionIdentity.class
                     );
                     assertThat(rpcMetadata).containsEntry(
-                            "gateway.definition-set-id",
+                            "yuheng.definition-set-id",
                             identity.definitionSetId()
                     ).containsEntry(
-                            "gateway.artifact-version",
+                            "yuheng.artifact-version",
                             "1.0.0"
                     ).containsEntry(
-                            "gateway.build-id",
+                            "yuheng.build-id",
                             "build-1"
                     );
                 });

@@ -89,7 +89,7 @@ class GatewayAdminPackageArchitectureTest {
         assertTrue(!queryService.contains("DdcManagementClient"));
         assertTrue(!queryService.contains("upsertDiscovered"));
         assertTrue(!queryService.contains("markFailure"));
-        assertTrue(controller.contains("CAP_gateway:read"));
+        assertTrue(controller.contains("CAP_yuheng:read"));
         assertTrue(!controller.contains("JdbcTemplate"));
         assertTrue(!controller.contains("GatewayProviderOpenApiClient"));
     }

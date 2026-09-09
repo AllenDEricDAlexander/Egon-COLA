@@ -22,7 +22,7 @@ import java.util.TreeMap;
  * @param metadata                 不可变的实例元数据 / immutable instance metadata
  * @param leaseSeconds             租约有效期秒数 / lease duration in seconds
  * @param heartbeatIntervalSeconds 心跳间隔秒数 / heartbeat interval in seconds
- * @param registrationToken       Opaque IdP SERVICE access token / opaque SERVICE access token
+ * @param registrationToken       Opaque Tianquan-Shoubing SERVICE access token / opaque SERVICE access token
  */
 public record DdcServiceRegistration(
         String instanceId,
@@ -36,7 +36,7 @@ public record DdcServiceRegistration(
         String registrationToken
 ) {
 
-    /** Maximum opaque credential size accepted by DDC transport models. */
+    /** Maximum opaque credential size accepted by Tianshu transport models. */
     public static final int MAX_REGISTRATION_TOKEN_LENGTH = 8192;
 
     /**
@@ -141,7 +141,7 @@ public record DdcServiceRegistration(
                 throw new IllegalArgumentException("metadata value must not exceed 512 characters");
             }
             String lowerKey = normalizedKey.toLowerCase(Locale.ROOT);
-            if (lowerKey.startsWith("ddc.")
+            if (lowerKey.startsWith("tianshu.")
                     || lowerKey.startsWith("egon.internal.")
                     || lowerKey.startsWith("egon.rpc.")
                     && !validRpcFrameworkMetadata(lowerKey, normalizedValue)) {

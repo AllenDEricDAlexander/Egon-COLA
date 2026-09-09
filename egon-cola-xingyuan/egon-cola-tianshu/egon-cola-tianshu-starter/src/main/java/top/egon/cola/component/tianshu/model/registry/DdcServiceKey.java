@@ -79,7 +79,7 @@ public record DdcServiceKey(
     public String canonicalValue() {
         return String.join(
                 "\n",
-                "ddc-service-key-v3",
+                "tianshu-service-key-v3",
                 bizCode,
                 env,
                 appCode,

@@ -33,7 +33,7 @@ public class GatewayOpenApiDnsPolicy {
                         return Arrays.asList(InetAddress.getAllByName(host));
                     } catch (UnknownHostException failure) {
                         throw new GatewayOpenApiFetchException(
-                                "GATEWAY_OPENAPI_DNS_FAILED",
+                                "YUHENG_OPENAPI_DNS_FAILED",
                                 true,
                                 "provider DNS resolution failed"
                         );
@@ -74,7 +74,7 @@ public class GatewayOpenApiDnsPolicy {
         List<InetAddress> addresses = resolver.apply(normalizedHost);
         if (addresses == null || addresses.isEmpty()) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_DNS_EMPTY",
+                    "YUHENG_OPENAPI_DNS_EMPTY",
                     true,
                     "provider DNS returned no address"
             );
@@ -86,7 +86,7 @@ public class GatewayOpenApiDnsPolicy {
                 address -> !allowed(address)
         )) {
             throw new GatewayOpenApiFetchException(
-                    "GATEWAY_OPENAPI_TARGET_FORBIDDEN",
+                    "YUHENG_OPENAPI_TARGET_FORBIDDEN",
                     false,
                     "provider target is not allowlisted"
             );

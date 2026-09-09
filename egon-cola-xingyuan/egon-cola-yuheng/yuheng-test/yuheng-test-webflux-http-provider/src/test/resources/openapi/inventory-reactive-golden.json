@@ -19,8 +19,8 @@
   ],
   "x-egon-service": {
     "version": 1,
-    "bizCode": "gateway-test",
-    "applicationCode": "gateway-test-webflux-http-provider",
+    "bizCode": "yuheng-test",
+    "applicationCode": "yuheng-test-webflux-http-provider",
     "artifactVersion": "1.0.0-live",
     "buildId": "local-webflux",
     "openapiGroup": "inventory-reactive"

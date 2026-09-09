@@ -4,8 +4,8 @@ import java.util.Locale;
 import java.util.Set;
 
 /**
- * 定义 DDC 配置资源支持的内容格式。
- * Defines content formats supported by DDC configuration resources.
+ * 定义 Tianshu 配置资源支持的内容格式。
+ * Defines content formats supported by Tianshu configuration resources.
  *
  * <p>当前版本只实现 YAML。新增格式时应同时增加对应的
  * {@code DdcConfigFormatStrategy}，不应在调用方增加格式分支。</p>
@@ -61,13 +61,13 @@ public enum DdcConfigFormat {
      */
     public static DdcConfigFormat from(String value) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("DDC config format must not be blank");
+            throw new IllegalArgumentException("Tianshu config format must not be blank");
         }
         try {
             return valueOf(value.trim().toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException(
-                    "Unsupported DDC config format: " + value,
+                    "Unsupported Tianshu config format: " + value,
                     exception
             );
         }

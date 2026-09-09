@@ -6,7 +6,7 @@ import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
 
-/** Versioned patch for an IdP-owned tenant catalog row. */
+/** Versioned patch for an Tianquan-Shoubing-owned tenant catalog row. */
 public record UpdateTenantDTO(
         @NotNull
         @PositiveOrZero

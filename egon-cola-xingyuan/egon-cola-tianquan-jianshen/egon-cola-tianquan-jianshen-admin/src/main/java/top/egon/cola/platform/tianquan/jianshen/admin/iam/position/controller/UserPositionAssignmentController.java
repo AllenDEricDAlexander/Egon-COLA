@@ -25,12 +25,12 @@ import java.util.List;
 
 /** User position membership endpoints. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/users/{userId}/positions")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/users/{userId}/positions")
 @Tag(name = "iam-user-position", description = "用户岗位任职接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -45,9 +45,9 @@ public class UserPositionAssignmentController {
     @GetMapping
     @RequiresPermission(value = "system:user-position:read")
     @Operation(
-            operationId = "rbac3-iam-user-position-list-v1",
+            operationId = "tianquan-jianshen-iam-user-position-list-v1",
             summary = "查询用户岗位任职",
-            tags = {"rbac3", "iam", "user", "position"}
+            tags = {"tianquan-jianshen", "iam", "user", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -60,9 +60,9 @@ public class UserPositionAssignmentController {
     @PostMapping
     @RequiresPermission(value = "system:user-position:manage")
     @Operation(
-            operationId = "rbac3-iam-user-position-create-v1",
+            operationId = "tianquan-jianshen-iam-user-position-create-v1",
             summary = "新增用户岗位任职",
-            tags = {"rbac3", "iam", "user", "position"}
+            tags = {"tianquan-jianshen", "iam", "user", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -78,9 +78,9 @@ public class UserPositionAssignmentController {
     @DeleteMapping("/{assignmentId}")
     @RequiresPermission(value = "system:user-position:manage")
     @Operation(
-            operationId = "rbac3-iam-user-position-revoke-v1",
+            operationId = "tianquan-jianshen-iam-user-position-revoke-v1",
             summary = "撤销用户岗位任职",
-            tags = {"rbac3", "iam", "user", "position"}
+            tags = {"tianquan-jianshen", "iam", "user", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

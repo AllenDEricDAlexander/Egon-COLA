@@ -83,14 +83,14 @@
                 <directory>src/main/resources</directory>
                 <filtering>false</filtering>
                 <excludes>
-                    <exclude>META-INF/egon-cola-ddc.properties</exclude>
+                    <exclude>META-INF/egon-cola-tianshu.properties</exclude>
                 </excludes>
             </resource>
             <resource>
                 <directory>src/main/resources</directory>
                 <filtering>true</filtering>
                 <includes>
-                    <include>META-INF/egon-cola-ddc.properties</include>
+                    <include>META-INF/egon-cola-tianshu.properties</include>
                 </includes>
             </resource>
         </resources>

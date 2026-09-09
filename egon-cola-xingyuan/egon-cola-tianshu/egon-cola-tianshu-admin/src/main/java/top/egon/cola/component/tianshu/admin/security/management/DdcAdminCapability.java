@@ -2,13 +2,13 @@ package top.egon.cola.component.tianshu.admin.security.management;
 
 public enum DdcAdminCapability {
 
-    READ("DDC_READ"),
+    READ("TIANSHU_READ"),
 
-    WRITE("DDC_WRITE"),
+    WRITE("TIANSHU_WRITE"),
 
-    PUBLISH("DDC_PUBLISH"),
+    PUBLISH("TIANSHU_PUBLISH"),
 
-    CACHE("DDC_CACHE"),
+    CACHE("TIANSHU_CACHE"),
 
     ALL("*");
 

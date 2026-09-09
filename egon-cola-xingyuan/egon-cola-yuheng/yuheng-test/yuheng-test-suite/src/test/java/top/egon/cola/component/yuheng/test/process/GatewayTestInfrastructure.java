@@ -3,7 +3,7 @@ package top.egon.cola.component.yuheng.test.process;
 public final class GatewayTestInfrastructure implements AutoCloseable {
 
     private static final String INFRASTRUCTURE_PROPERTY =
-            "gateway.live.infrastructure";
+            "yuheng.live.infrastructure";
 
     private final GatewayInfrastructureBackend backend;
 

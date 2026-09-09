@@ -53,7 +53,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * 含义与用法：读取、传递或更新 `ACTOR` 时应保持 `JpaDevelopmentTopologyBootstrapRepository` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `ACTOR`, preserve `JpaDevelopmentTopologyBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final String ACTOR = "rbac3-development-bootstrap";
+    private static final String ACTOR = "tianquan-jianshen-development-bootstrap";
 
     /**
      * 字段 `entityManager` 表示 `JpaDevelopmentTopologyBootstrapRepository` 中与 `entity Manager` 相关的状态、依赖、配置或结果（声明类型 `EntityManager`）；其生命周期和取值含义由声明类型及所属对象共同确定。
@@ -496,7 +496,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private static PermissionRiskLevelEnum risk(String permissionCode) {
-        if (permissionCode.endsWith(":read") || permissionCode.equals("DDC_READ")) {
+        if (permissionCode.endsWith(":read") || permissionCode.equals("TIANSHU_READ")) {
             return PermissionRiskLevelEnum.MEDIUM;
         }
         return permissionCode.endsWith(":admin")

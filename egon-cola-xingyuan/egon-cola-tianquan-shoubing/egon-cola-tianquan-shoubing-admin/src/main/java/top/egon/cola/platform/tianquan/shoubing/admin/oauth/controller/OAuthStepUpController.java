@@ -28,13 +28,13 @@ import java.util.Objects;
  * Re-authenticates the current subject and replaces only its short-lived USER AT.
  */
 @RestController
-@Tag(name = "idp-oauth-step-up", description = "IdP OAuth 二次认证接口组")
+@Tag(name = "tianquan-shoubing-oauth-step-up", description = "Tianquan-Shoubing OAuth 二次认证接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        interfaceGroupCode = "idp-oauth"
+        interfaceGroupCode = "tianquan-shoubing-oauth"
 )
 
 public class OAuthStepUpController {
@@ -48,7 +48,7 @@ public class OAuthStepUpController {
             IdentityFacade identities,
             TokenFacade tokens,
             @Qualifier("idpClock") Clock clock,
-            @Value("${egon.idp.oauth.refresh-cookie-secure:true}")
+            @Value("${egon.tianquan-shoubing.oauth.refresh-cookie-secure:true}")
             boolean secureCookie) {
         this.identities = Objects.requireNonNull(identities, "identities");
         this.tokens = Objects.requireNonNull(tokens, "tokens");
@@ -58,9 +58,9 @@ public class OAuthStepUpController {
 
     @PostMapping("/oauth2/step-up")
     @Operation(
-            operationId = "idp-oauth-step-up-v1",
+            operationId = "tianquan-shoubing-oauth-step-up-v1",
             summary = "重新校验密码并签发强化认证 USER Access Token",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

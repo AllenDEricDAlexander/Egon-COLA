@@ -115,7 +115,7 @@ class GatewayReleaseReconcilerTest {
                 eq(GatewayReleaseStatus.FAILED),
                 eq(false),
                 eq("018f22d8155d70008000000000000001"),
-                eq("DDC_PUBLISH_FAILED"),
+                eq("TIANSHU_PUBLISH_FAILED"),
                 eq("failed"),
                 eq(List.of()),
                 eq(NOW)

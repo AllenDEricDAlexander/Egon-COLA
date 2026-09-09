@@ -11,7 +11,7 @@ public final class Rbac3RuntimeKeyFactory {
     }
 
     /**
-     * Current publication pointer for one IdP subject.
+     * Current publication pointer for one Tianquan-Shoubing subject.
      */
     public String user(String tenantId, String identitySub) {
         return prefix(tenantId) + "user:" + segment(identitySub, "identitySub");
@@ -33,7 +33,7 @@ public final class Rbac3RuntimeKeyFactory {
         if (authVersion < 0) {
             throw new IllegalArgumentException("authVersion must not be negative");
         }
-        return prefix(tenantId) + "gateway-scope:"
+        return prefix(tenantId) + "yuheng-scope:"
                 + segment(identitySub, "identitySub") + ':' + authVersion;
     }
 
@@ -70,7 +70,7 @@ public final class Rbac3RuntimeKeyFactory {
     }
 
     private String prefix(String tenantId) {
-        return "rbac3:{" + segment(tenantId, "tenantId") + "}:";
+        return "tianquan-jianshen:{" + segment(tenantId, "tenantId") + "}:";
     }
 
     private String segment(String value, String field) {

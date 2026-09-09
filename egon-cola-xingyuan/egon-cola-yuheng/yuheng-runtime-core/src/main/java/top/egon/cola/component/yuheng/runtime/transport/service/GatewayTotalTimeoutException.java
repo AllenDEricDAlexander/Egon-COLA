@@ -16,6 +16,6 @@ public final class GatewayTotalTimeoutException
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
      */
     GatewayTotalTimeoutException() {
-        super("GATEWAY_TOTAL_TIMEOUT", "gateway request timed out");
+        super("YUHENG_TOTAL_TIMEOUT", "gateway request timed out");
     }
 }

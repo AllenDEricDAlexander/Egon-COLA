@@ -158,7 +158,7 @@ public final class GatewayRuleCompiler {
                         offset,
                         offset + length
                 );
-                String key = "gateway.rules.chunk."
+                String key = "yuheng.rules.chunk."
                         + releaseId
                         + "."
                         + index;
@@ -418,7 +418,7 @@ public final class GatewayRuleCompiler {
      */
     private IllegalArgumentException invalid(String detail) {
         return new IllegalArgumentException(
-                "GATEWAY_RELEASE_VALIDATION_FAILED: " + detail
+                "YUHENG_RELEASE_VALIDATION_FAILED: " + detail
         );
     }
 }

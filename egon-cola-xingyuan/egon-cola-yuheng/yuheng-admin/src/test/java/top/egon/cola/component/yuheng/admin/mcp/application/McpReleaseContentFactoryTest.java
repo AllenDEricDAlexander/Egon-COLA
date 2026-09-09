@@ -453,7 +453,7 @@ class McpReleaseContentFactoryTest {
                 null,
                 null,
                 Set.of("STABLE_2025_11_25"),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30,
                 new AdminActor(
                         "admin",

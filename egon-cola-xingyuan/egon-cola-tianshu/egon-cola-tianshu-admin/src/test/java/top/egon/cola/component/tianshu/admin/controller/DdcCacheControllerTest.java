@@ -38,16 +38,16 @@ class DdcCacheControllerTest {
                 "application.yml", "db", "redis", 2L, 2L, true
         );
         when(cacheService.page(
-                eq("infra"), eq("prod"), eq("gateway"),
+                eq("infra"), eq("prod"), eq("yuheng"),
                 any(PageQuery.class)
         )).thenReturn(new PageImpl<>(
                 List.of(row), PageRequest.of(0, 1), 3
         ));
 
-        mockMvc.perform(get("/api/v1/ddc/cache/check/page")
+        mockMvc.perform(get("/api/v1/tianshu/cache/check/page")
                         .param("bizCode", "infra")
                         .param("env", "prod")
-                        .param("appCode", "gateway")
+                        .param("appCode", "yuheng")
                         .param("pageNo", "1")
                         .param("pageSize", "10"))
                 .andExpect(status().isOk())

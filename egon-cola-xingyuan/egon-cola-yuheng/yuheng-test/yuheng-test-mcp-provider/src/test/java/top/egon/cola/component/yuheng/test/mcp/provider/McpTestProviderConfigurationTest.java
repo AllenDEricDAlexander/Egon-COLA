@@ -21,10 +21,10 @@ class McpTestProviderConfigurationTest {
     @Test
     void bindsHostLocalDdcEnvironment() {
         contextRunner.withSystemProperties(
-                        "DDC_RPC_TARGET=dns:///127.0.0.1:19110",
-                        "DDC_RPC_RUNTIME_ACCESS_KEY=ddc-access",
-                        "DDC_RPC_RUNTIME_SECRET_KEY=ddc-secret",
-                        "DDC_REGISTRY_REDIS_PASSWORD=redis-secret",
+                        "TIANSHU_RPC_TARGET=dns:///127.0.0.1:19110",
+                        "TIANSHU_RPC_RUNTIME_ACCESS_KEY=tianshu-access",
+                        "TIANSHU_RPC_RUNTIME_SECRET_KEY=tianshu-secret",
+                        "TIANSHU_REGISTRY_REDIS_PASSWORD=redis-secret",
                         "MCP_TEST_PROVIDER_INSTANCE_ID=mcp-provider-local-1"
                 )
                 .run(context -> {
@@ -35,9 +35,9 @@ class McpTestProviderConfigurationTest {
                     assertThat(rpc.getTarget())
                             .isEqualTo("dns:///127.0.0.1:19110");
                     assertThat(rpc.getAuth().getRuntime().getAccessKey())
-                            .isEqualTo("ddc-access");
+                            .isEqualTo("tianshu-access");
                     assertThat(rpc.getAuth().getRuntime().getSecretKey())
-                            .isEqualTo("ddc-secret");
+                            .isEqualTo("tianshu-secret");
                     assertThat(ddc.getRedis().getPassword())
                             .isEqualTo("redis-secret");
                     assertThat(ddc.getInstance().getId())

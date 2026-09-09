@@ -50,7 +50,7 @@ class GatewayRpcContractTest {
                 CreateOrderRequest.getDescriptor()
                         .findFieldByName("customer_id")
                         .getOptions()
-                        .getExtension(SchemaOptions.gatewaySchema)
+                        .getExtension(SchemaOptions.yuhengSchema)
                         .getDescription()
         );
         assertEquals(
@@ -60,7 +60,7 @@ class GatewayRpcContractTest {
                         .getMessageType()
                         .findFieldByName("province")
                         .getOptions()
-                        .getExtension(SchemaOptions.gatewaySchema)
+                        .getExtension(SchemaOptions.yuhengSchema)
                         .getDescription()
         );
         assertEquals(
@@ -68,7 +68,7 @@ class GatewayRpcContractTest {
                 OrderResponse.getDescriptor()
                         .findFieldByName("provider_id")
                         .getOptions()
-                        .getExtension(SchemaOptions.gatewaySchema)
+                        .getExtension(SchemaOptions.yuhengSchema)
                         .getDescription()
         );
     }

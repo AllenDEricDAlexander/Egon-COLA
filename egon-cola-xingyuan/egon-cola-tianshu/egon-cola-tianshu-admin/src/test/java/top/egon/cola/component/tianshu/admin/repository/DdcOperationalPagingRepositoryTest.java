@@ -51,8 +51,8 @@ class DdcOperationalPagingRepositoryTest {
         publishTaskRepository.save(task(
                 "task-retail", "019-retail", "retail", "FAILED"));
 
-        instanceRepository.save(instance("instance-1", "infra", "gateway"));
-        instanceRepository.save(instance("instance-2", "infra", "gateway"));
+        instanceRepository.save(instance("instance-1", "infra", "yuheng"));
+        instanceRepository.save(instance("instance-2", "infra", "yuheng"));
         instanceRepository.save(instance("instance-other", "infra", "worker"));
 
         savePublishedConfig("cache-config-1", "cache-version-1", "application.yml");
@@ -61,7 +61,7 @@ class DdcOperationalPagingRepositoryTest {
         Page<DdcPublishTaskEntity> tasks = publishTaskRepository.search(
                 "infra",
                 "prod",
-                "gateway",
+                "yuheng",
                 "FAILED",
                 "019",
                 PageRequest.of(0, 10));
@@ -69,14 +69,14 @@ class DdcOperationalPagingRepositoryTest {
                 .findByBizCodeAndEnvAndAppCode(
                         "infra",
                         "prod",
-                        "gateway",
+                        "yuheng",
                         PageRequest.of(0, 10,
                                 Sort.by(Sort.Direction.DESC, "updatedAt", "id")));
         Page<DdcConfigVersionEntity> versions = versionRepository
                 .findPublishedRuntimeVersions(
                         "infra",
                         "prod",
-                        "gateway",
+                        "yuheng",
                         "DELETE",
                         PageRequest.of(0, 1));
 
@@ -98,7 +98,7 @@ class DdcOperationalPagingRepositoryTest {
         entity.setChangeId(changeId);
         entity.setBizCode(bizCode);
         entity.setEnv("prod");
-        entity.setAppCode("gateway");
+        entity.setAppCode("yuheng");
         entity.setStatus(status);
         entity.setCreatedAt(LocalDateTime.now());
         entity.setUpdatedAt(LocalDateTime.now());
@@ -131,7 +131,7 @@ class DdcOperationalPagingRepositoryTest {
         item.setId(configId);
         item.setBizCode("infra");
         item.setEnv("prod");
-        item.setAppCode("gateway");
+        item.setAppCode("yuheng");
         item.setResourceName(resourceName);
         item.setContent("feature:\n  enabled: true\n");
         item.setFormat("YAML");
@@ -146,7 +146,7 @@ class DdcOperationalPagingRepositoryTest {
         version.setConfigId(configId);
         version.setBizCode("infra");
         version.setEnv("prod");
-        version.setAppCode("gateway");
+        version.setAppCode("yuheng");
         version.setResourceName(resourceName);
         version.setVersion(1L);
         version.setNewContent(item.getContent());

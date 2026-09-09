@@ -20,20 +20,20 @@ import java.util.Objects;
 @RestController
 @Tag(name = "oauth-userinfo", description = "统一身份本人信息接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity-profile",
         entityDomainName = "统一身份本人信息域",
-        interfaceGroupCode = "idp-profile"
+        interfaceGroupCode = "tianquan-shoubing-profile"
 )
 
 public class OAuthUserInfoController {
 
     @GetMapping("/oauth2/userinfo")
     @Operation(
-            operationId = "idp-oauth-userinfo-v1",
+            operationId = "tianquan-shoubing-oauth-userinfo-v1",
             summary = "查询 OAuth 当前身份声明",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

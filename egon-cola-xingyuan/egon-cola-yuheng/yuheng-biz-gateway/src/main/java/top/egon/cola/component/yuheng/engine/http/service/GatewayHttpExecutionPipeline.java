@@ -42,24 +42,24 @@ public final class GatewayHttpExecutionPipeline {
         executor = new DefaultGatewayExecutor(
                 new DefaultGatewayFilterChain(List.of(
                         filter(
-                                "gateway-http-cors",
+                                "yuheng-http-cors",
                                 GatewayFilterStage.CORS,
                                 (exchange, chain) -> exchange.cors(chain)
                         ),
                         filter(
-                                "gateway-http-security",
+                                "yuheng-http-security",
                                 GatewayFilterStage.AUTHENTICATION,
                                 (exchange, chain) ->
                                         exchange.security(chain)
                         ),
                         filter(
-                                "gateway-http-governance",
+                                "yuheng-http-governance",
                                 GatewayFilterStage.RATE_CONCURRENCY,
                                 (exchange, chain) ->
                                         exchange.governance(chain)
                         ),
                         filter(
-                                "gateway-http-invocation",
+                                "yuheng-http-invocation",
                                 GatewayFilterStage.INVOCATION,
                                 (exchange, chain) -> exchange.invoke()
                         )

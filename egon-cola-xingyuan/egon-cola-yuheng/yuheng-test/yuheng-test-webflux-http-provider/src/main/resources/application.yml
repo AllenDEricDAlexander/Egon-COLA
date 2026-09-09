@@ -1,13 +1,13 @@
 spring:
   application:
-    name: gateway-test-webflux-http-provider
+    name: yuheng-test-webflux-http-provider
   main:
     web-application-type: reactive
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -26,9 +26,9 @@ management:
       probes:
         enabled: true
 
-gateway:
+yuheng:
   test:
-    service-version: ${GATEWAY_TEST_SERVICE_VERSION:1.0.0-live}
+    service-version: ${YUHENG_TEST_SERVICE_VERSION:1.0.0-live}
 
 springdoc:
   api-docs:
@@ -44,57 +44,57 @@ springdoc:
 egon:
   cola:
     platform:
-      idp:
+      tianquan-shoubing:
         service-client:
-          app-id: ${GATEWAY_TEST_DDC_APP_ID:gateway-test-webflux-http-provider}
-          registration-id: ${GATEWAY_TEST_DDC_REGISTRATION_ID:gateway-test-webflux-http-provider}
+          app-id: ${YUHENG_TEST_TIANSHU_APP_ID:yuheng-test-webflux-http-provider}
+          registration-id: ${YUHENG_TEST_TIANSHU_REGISTRATION_ID:yuheng-test-webflux-http-provider}
     component:
       id:
         enabled: false
-      ddc:
+      tianshu:
         enabled: false
-        registration-resource-uri: ${DDC_REGISTRATION_RESOURCE_URI:https://ddc.egon.internal/local}
-        biz-code: ${DDC_BIZ_CODE:test-biz}
-        app-code: ${DDC_APP_CODE:gateway-test-http-provider}
+        registration-resource-uri: ${TIANSHU_REGISTRATION_RESOURCE_URI:https://tianshu.egon.internal/local}
+        biz-code: ${TIANSHU_BIZ_CODE:test-biz}
+        app-code: ${TIANSHU_APP_CODE:yuheng-test-http-provider}
         env: test
-        namespace: gateway-test
+        namespace: yuheng-test
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           load-balancing-policy: round_robin
           tls:
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         registry:
           enabled: false
           http:
             enabled: true
-            instance-id: ${gateway.test.provider-id:webflux-http-provider-default}
-            service-name: gateway-test-http-provider
+            instance-id: ${yuheng.test.provider-id:webflux-http-provider-default}
+            service-name: yuheng-test-http-provider
             group: default
-            version: ${gateway.test.service-version}
+            version: ${yuheng.test.service-version}
             protocol: http
-            advertised-host: ${gateway.test.advertised-host:127.0.0.1}
-            port: ${gateway.test.advertised-port:0}
+            advertised-host: ${yuheng.test.advertised-host:127.0.0.1}
+            port: ${yuheng.test.advertised-port:0}
             lease-seconds: 30
             heartbeat-interval-seconds: 10
             fail-fast: true
             metadata:
-              gateway.zone: ${gateway.test.zone:zone-b}
-              gateway.weight: ${gateway.test.weight:100}
-      gateway:
+              yuheng.zone: ${yuheng.test.zone:zone-b}
+              yuheng.weight: ${yuheng.test.weight:100}
+      yuheng:
         openapi:
           enabled: true
-          publish-to-ddc: true
+          publish-to-tianshu: true
           published-groups:
             - inventory-reactive
-          biz-code: ${GATEWAY_TEST_BIZ_CODE:gateway-test}
-          application-code: gateway-test-webflux-http-provider
-          resource-uri: ${GATEWAY_TEST_RESOURCE_URI:https://gateway-test-webflux-http-provider.example.test}
-          artifact-version: ${gateway.test.service-version}
-          build-id: ${GATEWAY_TEST_BUILD_ID:local-webflux}
+          biz-code: ${YUHENG_TEST_BIZ_CODE:yuheng-test}
+          application-code: yuheng-test-webflux-http-provider
+          resource-uri: ${YUHENG_TEST_RESOURCE_URI:https://yuheng-test-webflux-http-provider.example.test}
+          artifact-version: ${yuheng.test.service-version}
+          build-id: ${YUHENG_TEST_BUILD_ID:local-webflux}

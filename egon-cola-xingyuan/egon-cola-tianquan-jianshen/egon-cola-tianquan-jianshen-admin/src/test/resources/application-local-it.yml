@@ -3,9 +3,9 @@ spring:
     activate:
       on-profile: local-it
 
-rbac3:
+tianquan-jianshen:
   integration-test:
     postgres:
-      url: ${RBAC3_IT_POSTGRES_URL}
-      user: ${RBAC3_IT_POSTGRES_USER}
-      password-file: ${RBAC3_IT_POSTGRES_PASSWORD_FILE}
+      url: ${TIANQUAN_JIANSHEN_IT_POSTGRES_URL}
+      user: ${TIANQUAN_JIANSHEN_IT_POSTGRES_USER}
+      password-file: ${TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE}

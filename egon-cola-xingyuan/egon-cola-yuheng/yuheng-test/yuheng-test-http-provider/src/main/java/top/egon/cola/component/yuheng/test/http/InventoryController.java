@@ -25,7 +25,7 @@ public class InventoryController {
     private final String providerId;
 
     public InventoryController(
-            @Value("${gateway.test.provider-id:http-provider-default}")
+            @Value("${yuheng.test.provider-id:http-provider-default}")
             String providerId) {
         this.providerId = providerId;
     }
@@ -37,7 +37,7 @@ public class InventoryController {
             tags = {"internal", "query"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.INTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.AUTO
     )

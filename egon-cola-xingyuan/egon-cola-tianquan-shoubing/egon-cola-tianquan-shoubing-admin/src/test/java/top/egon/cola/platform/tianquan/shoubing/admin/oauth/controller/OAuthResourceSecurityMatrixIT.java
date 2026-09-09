@@ -22,15 +22,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
- * 验收 USER 与 SERVICE Resource 授权边界以及 IdP 自身的精确 Resource 配置。
- * Accepts the USER/SERVICE Resource authorization boundary and IdP's exact Resource configuration.
+ * 验收 USER 与 SERVICE Resource 授权边界以及 Tianquan-Shoubing 自身的精确 Resource 配置。
+ * Accepts the USER/SERVICE Resource authorization boundary and Tianquan-Shoubing's exact Resource configuration.
  */
 class OAuthResourceSecurityMatrixIT {
 
-    private static final URI IDP_URI = URI.create(
-            "https://api.egon.internal/prod/permission/idp");
-    private static final URI RBAC3_URI = URI.create(
-            "https://api.egon.internal/prod/permission/rbac3");
+    private static final URI TIANQUAN_SHOUBING_URI = URI.create(
+            "https://api.egon.internal/prod/permission/tianquan-shoubing");
+    private static final URI TIANQUAN_JIANSHEN_URI = URI.create(
+            "https://api.egon.internal/prod/permission/tianquan-jianshen");
 
     @Test
     void serviceGrantIsTenantAndScopeBoundWithoutConsultingUserAuthorization() {
@@ -42,7 +42,7 @@ class OAuthResourceSecurityMatrixIT {
                 confidentialClient(), store.rbac3, "tenant-1",
                 Set.of("service:authorization:decide"));
 
-        assertThat(access.targetResourceUri()).isEqualTo(RBAC3_URI);
+        assertThat(access.targetResourceUri()).isEqualTo(TIANQUAN_JIANSHEN_URI);
         assertThat(access.tenantId()).isEqualTo("tenant-1");
         assertThat(access.scopes())
                 .containsExactly("service:authorization:decide");
@@ -51,28 +51,28 @@ class OAuthResourceSecurityMatrixIT {
                 Set.of("service:authorization:decide")))
                 .isInstanceOfSatisfying(ResourceAuthorizationException.class,
                         error -> assertThat(error.code())
-                                .isEqualTo("IDP_SERVICE_RESOURCE_GRANT_NOT_FOUND"));
+                                .isEqualTo("TIANQUAN_SHOUBING_SERVICE_RESOURCE_GRANT_NOT_FOUND"));
         assertThatThrownBy(() -> policy.authorize(
                 confidentialClient(), store.rbac3, "tenant-1",
                 Set.of("service:authorization:snapshot")))
                 .isInstanceOfSatisfying(ResourceAuthorizationException.class,
                         error -> assertThat(error.code())
-                                .isEqualTo("IDP_SERVICE_SCOPE_INVALID"));
+                                .isEqualTo("TIANQUAN_SHOUBING_SERVICE_SCOPE_INVALID"));
     }
 
     @Test
     void disabledTargetStopsBothUserAndServiceAuthorization() {
         MatrixStore store = new MatrixStore();
         store.rbac3 = resource(
-                "permission-rbac3-prod", RBAC3_URI, "rbac3",
-                "rbac3-service", ResourceServerStatus.DISABLED);
+                "permission-tianquan-jianshen-prod", TIANQUAN_JIANSHEN_URI, "tianquan-jianshen",
+                "tianquan-jianshen-service", ResourceServerStatus.DISABLED);
 
         assertThatThrownBy(() -> new ClientCredentialsAccessPolicy(store)
                 .authorize(confidentialClient(), store.rbac3, "tenant-1",
                         Set.of("service:authorization:decide")))
                 .isInstanceOfSatisfying(ResourceAuthorizationException.class,
                         error -> assertThat(error.code())
-                                .isEqualTo("IDP_RESOURCE_SERVER_DISABLED"));
+                                .isEqualTo("TIANQUAN_SHOUBING_RESOURCE_SERVER_DISABLED"));
     }
 
     @Test
@@ -90,7 +90,7 @@ class OAuthResourceSecurityMatrixIT {
 
     private static OAuthClient confidentialClient() {
         return new OAuthClient(
-                "idp-service", OAuthClient.ClientType.CONFIDENTIAL,
+                "tianquan-shoubing-service", OAuthClient.ClientType.CONFIDENTIAL,
                 OAuthClient.Status.ACTIVE, false, List.of());
     }
 
@@ -109,10 +109,10 @@ class OAuthResourceSecurityMatrixIT {
     private static final class MatrixStore implements ResourceServerStore {
 
         private final ResourceServer idp = resource(
-                "permission-idp-prod", IDP_URI, "idp", "idp-service",
+                "permission-tianquan-shoubing-prod", TIANQUAN_SHOUBING_URI, "tianquan-shoubing", "tianquan-shoubing-service",
                 ResourceServerStatus.ACTIVE);
         private ResourceServer rbac3 = resource(
-                "permission-rbac3-prod", RBAC3_URI, "rbac3", "rbac3-service",
+                "permission-tianquan-jianshen-prod", TIANQUAN_JIANSHEN_URI, "tianquan-jianshen", "tianquan-jianshen-service",
                 ResourceServerStatus.ACTIVE);
 
         @Override
@@ -146,7 +146,7 @@ class OAuthResourceSecurityMatrixIT {
         public Optional<ResourceServer> findByManagementClientId(
                 String clientId
         ) {
-            return "idp-service".equals(clientId)
+            return "tianquan-shoubing-service".equals(clientId)
                     ? Optional.of(idp) : Optional.empty();
         }
 
@@ -158,13 +158,13 @@ class OAuthResourceSecurityMatrixIT {
                 String tenantId
         ) {
             if (grantType == ResourceGrantType.USER_DELEGATION
-                    && "idp-admin-web".equals(clientId)) {
+                    && "tianquan-shoubing-admin-web".equals(clientId)) {
                 return Optional.of(new ClientResourceGrant(
                         clientId, resourceServerId, grantType, null, Set.of(),
                         ClientResourceGrant.Status.ACTIVE, 2L));
             }
             if (grantType == ResourceGrantType.CLIENT_CREDENTIALS
-                    && "idp-service".equals(clientId)
+                    && "tianquan-shoubing-service".equals(clientId)
                     && rbac3.resourceServerId().equals(resourceServerId)
                     && "tenant-1".equals(tenantId)) {
                 return Optional.of(new ClientResourceGrant(

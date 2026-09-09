@@ -153,7 +153,7 @@ public final class GatewayDefinitionReportFactory {
                                         "java.specification.version",
                                         "unknown"
                                 ),
-                                "starter", "egon-cola-gateway"
+                                "starter", "egon-cola-yuheng"
                         )
                 );
         List<GatewayInterfaceDefinitionReport.BusinessDomain> domains =

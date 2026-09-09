@@ -190,17 +190,17 @@ class McpLocalToolFlowTest {
                         Map.entry("tenantId", "tenant-a"),
                         Map.entry("clientIp", "127.0.0.1"),
                         Map.entry("traceparent", "00-trace-parent"),
-                        Map.entry("idp.issuer", "https://idp.internal"),
-                        Map.entry("idp.client-id", "finance-web"),
-                        Map.entry("idp.token-id", "token-1"),
-                        Map.entry("idp.resource-uri",
-                                "https://resource.egon.top/gateway-mcp"),
+                        Map.entry("tianquan-shoubing.issuer", "https://tianquan-shoubing.internal"),
+                        Map.entry("tianquan-shoubing.client-id", "finance-web"),
+                        Map.entry("tianquan-shoubing.token-id", "token-1"),
+                        Map.entry("tianquan-shoubing.resource-uri",
+                                "https://resource.egon.top/yuheng-mcp"),
                         Map.entry(
-                                "idp.issued-at",
+                                "tianquan-shoubing.issued-at",
                                 "2026-08-02T04:59:30Z"
                         ),
                         Map.entry(
-                                "idp.expires-at",
+                                "tianquan-shoubing.expires-at",
                                 "2026-08-02T05:05:00Z"
                         )
                 )
@@ -215,7 +215,7 @@ class McpLocalToolFlowTest {
                 "Billing operations",
                 "Use approved billing capabilities.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 30,
                 true
         );

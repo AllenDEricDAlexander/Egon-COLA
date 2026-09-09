@@ -20,8 +20,8 @@ import java.util.Map;
 import java.util.TreeMap;
 
 /**
- * DDC 共享领域类型与 protobuf 类型之间的显式转换和边界校验。
- * / Explicit conversion and boundary validation between shared DDC domain and
+ * Tianshu 共享领域类型与 protobuf 类型之间的显式转换和边界校验。
+ * / Explicit conversion and boundary validation between shared Tianshu domain and
  * protobuf types.
  */
 public final class DdcCommonProtoMapper {
@@ -174,23 +174,23 @@ public final class DdcCommonProtoMapper {
         requireObject(value, "lease role");
         return switch (value) {
             case CONFIG_CLIENT -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseRole.DDC_LEASE_ROLE_CONFIG_CLIENT;
+                    .DdcLeaseRole.TIANSHU_LEASE_ROLE_CONFIG_CLIENT;
             case RPC_PROVIDER -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseRole.DDC_LEASE_ROLE_RPC_PROVIDER;
+                    .DdcLeaseRole.TIANSHU_LEASE_ROLE_RPC_PROVIDER;
             case HTTP_PROVIDER -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseRole.DDC_LEASE_ROLE_HTTP_PROVIDER;
+                    .DdcLeaseRole.TIANSHU_LEASE_ROLE_HTTP_PROVIDER;
             case INTERNAL_GATEWAY -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseRole.DDC_LEASE_ROLE_INTERNAL_GATEWAY;
+                    .DdcLeaseRole.TIANSHU_LEASE_ROLE_INTERNAL_GATEWAY;
         };
     }
 
     public DdcLeaseRole fromProtoLeaseRole(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcLeaseRole value) {
         return switch (value) {
-            case DDC_LEASE_ROLE_CONFIG_CLIENT -> DdcLeaseRole.CONFIG_CLIENT;
-            case DDC_LEASE_ROLE_RPC_PROVIDER -> DdcLeaseRole.RPC_PROVIDER;
-            case DDC_LEASE_ROLE_HTTP_PROVIDER -> DdcLeaseRole.HTTP_PROVIDER;
-            case DDC_LEASE_ROLE_INTERNAL_GATEWAY -> DdcLeaseRole.INTERNAL_GATEWAY;
+            case TIANSHU_LEASE_ROLE_CONFIG_CLIENT -> DdcLeaseRole.CONFIG_CLIENT;
+            case TIANSHU_LEASE_ROLE_RPC_PROVIDER -> DdcLeaseRole.RPC_PROVIDER;
+            case TIANSHU_LEASE_ROLE_HTTP_PROVIDER -> DdcLeaseRole.HTTP_PROVIDER;
+            case TIANSHU_LEASE_ROLE_INTERNAL_GATEWAY -> DdcLeaseRole.INTERNAL_GATEWAY;
             default -> throw unknown("lease role", value);
         };
     }
@@ -200,26 +200,26 @@ public final class DdcCommonProtoMapper {
         requireObject(value, "lease operation status");
         return switch (value) {
             case RENEWED -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseOperationStatus.DDC_LEASE_OPERATION_STATUS_RENEWED;
+                    .DdcLeaseOperationStatus.TIANSHU_LEASE_OPERATION_STATUS_RENEWED;
             case DELETED -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseOperationStatus.DDC_LEASE_OPERATION_STATUS_DELETED;
+                    .DdcLeaseOperationStatus.TIANSHU_LEASE_OPERATION_STATUS_DELETED;
             case NOT_FOUND -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseOperationStatus.DDC_LEASE_OPERATION_STATUS_NOT_FOUND;
+                    .DdcLeaseOperationStatus.TIANSHU_LEASE_OPERATION_STATUS_NOT_FOUND;
             case LEASE_MISMATCH -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseOperationStatus.DDC_LEASE_OPERATION_STATUS_LEASE_MISMATCH;
+                    .DdcLeaseOperationStatus.TIANSHU_LEASE_OPERATION_STATUS_LEASE_MISMATCH;
             case NOT_DELETED -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcLeaseOperationStatus.DDC_LEASE_OPERATION_STATUS_NOT_DELETED;
+                    .DdcLeaseOperationStatus.TIANSHU_LEASE_OPERATION_STATUS_NOT_DELETED;
         };
     }
 
     public DdcLeaseOperationStatus fromProtoLeaseOperationStatus(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcLeaseOperationStatus value) {
         return switch (value) {
-            case DDC_LEASE_OPERATION_STATUS_RENEWED -> DdcLeaseOperationStatus.RENEWED;
-            case DDC_LEASE_OPERATION_STATUS_DELETED -> DdcLeaseOperationStatus.DELETED;
-            case DDC_LEASE_OPERATION_STATUS_NOT_FOUND -> DdcLeaseOperationStatus.NOT_FOUND;
-            case DDC_LEASE_OPERATION_STATUS_LEASE_MISMATCH -> DdcLeaseOperationStatus.LEASE_MISMATCH;
-            case DDC_LEASE_OPERATION_STATUS_NOT_DELETED -> DdcLeaseOperationStatus.NOT_DELETED;
+            case TIANSHU_LEASE_OPERATION_STATUS_RENEWED -> DdcLeaseOperationStatus.RENEWED;
+            case TIANSHU_LEASE_OPERATION_STATUS_DELETED -> DdcLeaseOperationStatus.DELETED;
+            case TIANSHU_LEASE_OPERATION_STATUS_NOT_FOUND -> DdcLeaseOperationStatus.NOT_FOUND;
+            case TIANSHU_LEASE_OPERATION_STATUS_LEASE_MISMATCH -> DdcLeaseOperationStatus.LEASE_MISMATCH;
+            case TIANSHU_LEASE_OPERATION_STATUS_NOT_DELETED -> DdcLeaseOperationStatus.NOT_DELETED;
             default -> throw unknown("lease operation status", value);
         };
     }
@@ -229,20 +229,20 @@ public final class DdcCommonProtoMapper {
         requireObject(value, "service kind");
         return switch (value) {
             case RPC_PROVIDER -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcServiceKind.DDC_SERVICE_KIND_RPC_PROVIDER;
+                    .DdcServiceKind.TIANSHU_SERVICE_KIND_RPC_PROVIDER;
             case HTTP_PROVIDER -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcServiceKind.DDC_SERVICE_KIND_HTTP_PROVIDER;
+                    .DdcServiceKind.TIANSHU_SERVICE_KIND_HTTP_PROVIDER;
             case INTERNAL_GATEWAY -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcServiceKind.DDC_SERVICE_KIND_INTERNAL_GATEWAY;
+                    .DdcServiceKind.TIANSHU_SERVICE_KIND_INTERNAL_GATEWAY;
         };
     }
 
     public DdcServiceKind fromProtoServiceKind(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcServiceKind value) {
         return switch (value) {
-            case DDC_SERVICE_KIND_RPC_PROVIDER -> DdcServiceKind.RPC_PROVIDER;
-            case DDC_SERVICE_KIND_HTTP_PROVIDER -> DdcServiceKind.HTTP_PROVIDER;
-            case DDC_SERVICE_KIND_INTERNAL_GATEWAY -> DdcServiceKind.INTERNAL_GATEWAY;
+            case TIANSHU_SERVICE_KIND_RPC_PROVIDER -> DdcServiceKind.RPC_PROVIDER;
+            case TIANSHU_SERVICE_KIND_HTTP_PROVIDER -> DdcServiceKind.HTTP_PROVIDER;
+            case TIANSHU_SERVICE_KIND_INTERNAL_GATEWAY -> DdcServiceKind.INTERNAL_GATEWAY;
             default -> throw unknown("service kind", value);
         };
     }
@@ -252,23 +252,23 @@ public final class DdcCommonProtoMapper {
         requireObject(value, "ack status");
         return switch (value) {
             case SUCCESS -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcAckStatus.DDC_ACK_STATUS_SUCCESS;
+                    .DdcAckStatus.TIANSHU_ACK_STATUS_SUCCESS;
             case FAILED -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcAckStatus.DDC_ACK_STATUS_FAILED;
+                    .DdcAckStatus.TIANSHU_ACK_STATUS_FAILED;
             case IGNORED -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcAckStatus.DDC_ACK_STATUS_IGNORED;
+                    .DdcAckStatus.TIANSHU_ACK_STATUS_IGNORED;
             case TIMEOUT -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                    .DdcAckStatus.DDC_ACK_STATUS_TIMEOUT;
+                    .DdcAckStatus.TIANSHU_ACK_STATUS_TIMEOUT;
         };
     }
 
     public DdcAckStatus fromProtoAckStatus(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAckStatus value) {
         return switch (value) {
-            case DDC_ACK_STATUS_SUCCESS -> DdcAckStatus.SUCCESS;
-            case DDC_ACK_STATUS_FAILED -> DdcAckStatus.FAILED;
-            case DDC_ACK_STATUS_IGNORED -> DdcAckStatus.IGNORED;
-            case DDC_ACK_STATUS_TIMEOUT -> DdcAckStatus.TIMEOUT;
+            case TIANSHU_ACK_STATUS_SUCCESS -> DdcAckStatus.SUCCESS;
+            case TIANSHU_ACK_STATUS_FAILED -> DdcAckStatus.FAILED;
+            case TIANSHU_ACK_STATUS_IGNORED -> DdcAckStatus.IGNORED;
+            case TIANSHU_ACK_STATUS_TIMEOUT -> DdcAckStatus.TIMEOUT;
             default -> throw unknown("ack status", value);
         };
     }
@@ -280,7 +280,7 @@ public final class DdcCommonProtoMapper {
         }
         if ("PENDING".equalsIgnoreCase(value)) {
             return top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAckStatus
-                    .DDC_ACK_STATUS_PENDING;
+                    .TIANSHU_ACK_STATUS_PENDING;
         }
         return toProto(DdcAckStatus.valueOf(value.toUpperCase(java.util.Locale.ROOT)));
     }
@@ -288,7 +288,7 @@ public final class DdcCommonProtoMapper {
     public String fromProtoAckStatusText(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAckStatus value) {
         if (value == top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcAckStatus
-                .DDC_ACK_STATUS_PENDING) {
+                .TIANSHU_ACK_STATUS_PENDING) {
             return "PENDING";
         }
         return fromProtoAckStatus(value).name();
@@ -301,7 +301,7 @@ public final class DdcCommonProtoMapper {
                     require(value, "config format").toUpperCase(java.util.Locale.ROOT));
             return switch (format) {
                 case YAML -> top.egon.cola.component.rpc.tianshu.contract.proto.v1
-                        .DdcConfigFormat.DDC_CONFIG_FORMAT_YAML;
+                        .DdcConfigFormat.TIANSHU_CONFIG_FORMAT_YAML;
             };
         } catch (IllegalArgumentException exception) {
             throw new IllegalArgumentException("Unsupported config format: " + value, exception);
@@ -311,7 +311,7 @@ public final class DdcCommonProtoMapper {
     public String fromProtoFormat(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcConfigFormat value) {
         return switch (value) {
-            case DDC_CONFIG_FORMAT_YAML -> DdcConfigFormat.YAML.name();
+            case TIANSHU_CONFIG_FORMAT_YAML -> DdcConfigFormat.YAML.name();
             default -> throw unknown("config format", value);
         };
     }
@@ -320,19 +320,19 @@ public final class DdcCommonProtoMapper {
             DdcManagementPublishStatus value) {
         requireObject(value, "publish status");
         return top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcPublishStatus
-                .valueOf("DDC_PUBLISH_STATUS_" + value.name());
+                .valueOf("TIANSHU_PUBLISH_STATUS_" + value.name());
     }
 
     public DdcManagementPublishStatus fromProtoPublishStatus(
             top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcPublishStatus value) {
         if (value == top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcPublishStatus
-                .DDC_PUBLISH_STATUS_UNSPECIFIED
+                .TIANSHU_PUBLISH_STATUS_UNSPECIFIED
                 || value == top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcPublishStatus
                 .UNRECOGNIZED) {
             throw unknown("publish status", value);
         }
         return DdcManagementPublishStatus.valueOf(
-                value.name().substring("DDC_PUBLISH_STATUS_".length()));
+                value.name().substring("TIANSHU_PUBLISH_STATUS_".length()));
     }
 
     public Timestamp toTimestamp(Instant value) {
@@ -396,7 +396,7 @@ public final class DdcCommonProtoMapper {
         requireObject(message, "message");
         if (message.getSerializedSize() > maxMessageBytes) {
             throw new IllegalArgumentException(
-                    "DDC RPC message exceeds " + maxMessageBytes + " bytes");
+                    "Tianshu RPC message exceeds " + maxMessageBytes + " bytes");
         }
         return message;
     }

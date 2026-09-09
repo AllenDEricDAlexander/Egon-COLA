@@ -10,9 +10,9 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 从 IdP Redis 运行态键空间读取 OAuth Client 投影。
+ * 从 Tianquan-Shoubing Redis 运行态键空间读取 OAuth Client 投影。
  *
- * <p>Reads OAuth Client projections from the IdP Redis runtime key space.</p>
+ * <p>Reads OAuth Client projections from the Tianquan-Shoubing Redis runtime key space.</p>
  */
 public final class RedisIdentityOAuthClientStateReader
         implements IdentityOAuthClientStateReader {

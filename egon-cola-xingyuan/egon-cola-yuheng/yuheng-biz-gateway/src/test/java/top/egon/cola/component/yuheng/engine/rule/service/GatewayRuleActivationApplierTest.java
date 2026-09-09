@@ -286,7 +286,7 @@ class GatewayRuleActivationApplierTest {
                         offset,
                         offset + length
                 );
-                String configKey = "gateway.rules.chunk."
+                String configKey = "yuheng.rules.chunk."
                         + releaseId
                         + "."
                         + index;

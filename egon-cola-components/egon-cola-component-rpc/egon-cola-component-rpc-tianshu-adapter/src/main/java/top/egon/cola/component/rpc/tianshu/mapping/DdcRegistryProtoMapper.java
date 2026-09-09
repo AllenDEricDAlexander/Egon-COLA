@@ -12,8 +12,8 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.HeartbeatServiceReq
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.RegisterServiceRequest;
 
 /**
- * DDC 服务注册 Port 模型与 protobuf 请求响应之间的显式映射。
- * / Explicit mapping between DDC registry Port models and protobuf requests
+ * Tianshu 服务注册 Port 模型与 protobuf 请求响应之间的显式映射。
+ * / Explicit mapping between Tianshu registry Port models and protobuf requests
  * and responses.
  */
 public final class DdcRegistryProtoMapper {

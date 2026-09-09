@@ -430,7 +430,7 @@ public class JpaManagementPolicyRepository implements
             Instant databaseNow
     ) {
         String normalized = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
-        // RBAC owns membership identifiers only; profile search belongs to IdP.
+        // RBAC owns membership identifiers only; profile search belongs to Tianquan-Shoubing.
         List<Object[]> rows = entityManager.createQuery("""
                         select u.id, u.identitySub from UserEntity u
                          where u.tenantId = :tenantId and u.status = :status

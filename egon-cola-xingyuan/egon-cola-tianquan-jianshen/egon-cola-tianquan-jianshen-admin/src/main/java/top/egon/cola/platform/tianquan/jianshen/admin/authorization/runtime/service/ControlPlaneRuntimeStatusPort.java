@@ -8,7 +8,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
 /**
  * 类型 `ControlPlaneRuntimeStatusPort` 位于当前包内，是接口，用于承载 `Control Plane Runtime Status Port` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `ControlPlaneRuntimeStatusPort` is an interface in its package and carries the responsibility, state, or contract for `Control Plane Runtime Status Port`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Read-only boundary for Gateway definition, DDC lease and release observations.
+ * Read-only boundary for Gateway definition, Tianshu lease and release observations.
  */
 @FunctionalInterface
 public interface ControlPlaneRuntimeStatusPort {

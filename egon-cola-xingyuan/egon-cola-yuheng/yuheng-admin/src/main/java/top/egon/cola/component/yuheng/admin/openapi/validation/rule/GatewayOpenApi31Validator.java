@@ -43,7 +43,7 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
             GatewayOpenApiDocumentDTO document) {
         if (document == null || document.documentJson() == null) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_MISSING",
+                    "YUHENG_OPENAPI_DOCUMENT_MISSING",
                     "OpenAPI document is missing"
             );
         }
@@ -51,7 +51,7 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
         String version = text(root, "openapi");
         if (version == null || !version.matches("3\\.1\\.\\d+")) {
             return invalid(
-                    "GATEWAY_OPENAPI_SPEC_VERSION",
+                    "YUHENG_OPENAPI_SPEC_VERSION",
                     "OpenAPI document must use version 3.1.x"
             );
         }
@@ -60,14 +60,14 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
                 || blank(text(info, "title"))
                 || blank(text(info, "version"))) {
             return invalid(
-                    "GATEWAY_OPENAPI_INFO",
+                    "YUHENG_OPENAPI_INFO",
                     "OpenAPI info.title and info.version are required"
             );
         }
         JsonNode paths = root.get("paths");
         if (paths == null || !paths.isObject() || paths.isEmpty()) {
             return invalid(
-                    "GATEWAY_OPENAPI_PATHS",
+                    "YUHENG_OPENAPI_PATHS",
                     "OpenAPI paths must contain at least one path"
             );
         }
@@ -81,7 +81,7 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
             if (!path.startsWith("/") || path.contains("..")
                     || !pathItem.isObject()) {
                 return invalid(
-                        "GATEWAY_OPENAPI_PATH",
+                        "YUHENG_OPENAPI_PATH",
                         "OpenAPI path keys must be absolute templates"
                 );
             }
@@ -94,20 +94,20 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
                 JsonNode operation = pathItem.get(field);
                 if (operation == null || !operation.isObject()) {
                     return invalid(
-                            "GATEWAY_OPENAPI_OPERATION",
+                            "YUHENG_OPENAPI_OPERATION",
                             "OpenAPI operations must be JSON objects"
                     );
                 }
                 String operationId = text(operation, "operationId");
                 if (blank(operationId)) {
                     return invalid(
-                            "GATEWAY_OPENAPI_OPERATION_ID",
+                            "YUHENG_OPENAPI_OPERATION_ID",
                             "every OpenAPI operation requires operationId"
                     );
                 }
                 if (!operationIds.add(operationId)) {
                     return invalid(
-                            "GATEWAY_OPENAPI_OPERATION_ID",
+                            "YUHENG_OPENAPI_OPERATION_ID",
                             "operationId must be unique within one Group"
                     );
                 }
@@ -115,7 +115,7 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
                 if (responses == null || !responses.isObject()
                         || responses.isEmpty()) {
                     return invalid(
-                            "GATEWAY_OPENAPI_RESPONSES",
+                            "YUHENG_OPENAPI_RESPONSES",
                             "every OpenAPI operation requires responses"
                     );
                 }
@@ -124,7 +124,7 @@ public class GatewayOpenApi31Validator implements GatewayOpenApiValidationRule {
         }
         if (operations == 0) {
             return invalid(
-                    "GATEWAY_OPENAPI_OPERATIONS",
+                    "YUHENG_OPENAPI_OPERATIONS",
                     "OpenAPI paths must contain an HTTP operation"
             );
         }

@@ -43,7 +43,7 @@ public class GatewayOpenApiMcpProjectionValidator
             GatewayOpenApiDocumentDTO document) {
         if (document == null || document.documentJson() == null) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_MISSING",
+                    "YUHENG_OPENAPI_DOCUMENT_MISSING",
                     "OpenAPI document is missing"
             );
         }
@@ -70,14 +70,14 @@ public class GatewayOpenApiMcpProjectionValidator
                 }
                 if (!extension.isObject()) {
                     return invalid(
-                            "GATEWAY_OPENAPI_MCP_EXTENSION",
+                            "YUHENG_OPENAPI_MCP_EXTENSION",
                             "x-egon.mcp must be an object"
                     );
                 }
                 JsonNode enabled = extension.get("enabled");
                 if (enabled != null && !enabled.isBoolean()) {
                     return invalid(
-                            "GATEWAY_OPENAPI_MCP_EXTENSION",
+                            "YUHENG_OPENAPI_MCP_EXTENSION",
                             "x-egon.mcp enabled must be boolean"
                     );
                 }
@@ -86,14 +86,14 @@ public class GatewayOpenApiMcpProjectionValidator
                 }
                 if (text(extension, "serverCode") == null) {
                     return invalid(
-                            "GATEWAY_OPENAPI_MCP_SERVER",
+                            "YUHENG_OPENAPI_MCP_SERVER",
                             "enabled MCP exposure requires serverCode"
                     );
                 }
                 String risk = text(extension, "riskLevel");
                 if (risk == null || !RISK_LEVELS.contains(risk)) {
                     return invalid(
-                            "GATEWAY_OPENAPI_MCP_RISK",
+                            "YUHENG_OPENAPI_MCP_RISK",
                             "enabled MCP exposure requires a valid riskLevel"
                     );
                 }
@@ -122,7 +122,7 @@ public class GatewayOpenApiMcpProjectionValidator
         }
         if (!values.isArray()) {
             return invalid(
-                    "GATEWAY_OPENAPI_MCP_PERMISSIONS",
+                    "YUHENG_OPENAPI_MCP_PERMISSIONS",
                     "MCP permissions must be an ordered string array"
             );
         }
@@ -132,7 +132,7 @@ public class GatewayOpenApiMcpProjectionValidator
             JsonNode node = nodes.next();
             if (!node.isTextual() || node.asText().isBlank()) {
                 return invalid(
-                        "GATEWAY_OPENAPI_MCP_PERMISSIONS",
+                        "YUHENG_OPENAPI_MCP_PERMISSIONS",
                         "MCP permissions must contain nonblank strings"
                 );
             }
@@ -144,7 +144,7 @@ public class GatewayOpenApiMcpProjectionValidator
         if (!sorted.equals(permissions)
                 || sorted.stream().distinct().count() != sorted.size()) {
             return invalid(
-                    "GATEWAY_OPENAPI_MCP_PERMISSIONS",
+                    "YUHENG_OPENAPI_MCP_PERMISSIONS",
                     "MCP permissions must be sorted and unique"
             );
         }
@@ -162,7 +162,7 @@ public class GatewayOpenApiMcpProjectionValidator
                 if (contentTypes.next().toLowerCase(Locale.ROOT)
                         .startsWith("multipart/")) {
                     return invalid(
-                            "GATEWAY_OPENAPI_MCP_MULTIPART",
+                            "YUHENG_OPENAPI_MCP_MULTIPART",
                             "multipart MCP operations are not supported"
                     );
                 }
@@ -185,7 +185,7 @@ public class GatewayOpenApiMcpProjectionValidator
                     if (contentType.equals("text/event-stream")
                             || contentType.equals("application/x-ndjson")) {
                         return invalid(
-                                "GATEWAY_OPENAPI_MCP_STREAMING",
+                                "YUHENG_OPENAPI_MCP_STREAMING",
                                 "streaming MCP operations are not supported"
                         );
                     }
@@ -211,7 +211,7 @@ public class GatewayOpenApiMcpProjectionValidator
                         && ("header".equals(parameter.path("in").asText())
                         || "cookie".equals(parameter.path("in").asText()))) {
                     return invalid(
-                            "GATEWAY_OPENAPI_MCP_REQUIRED_PARAMETER",
+                            "YUHENG_OPENAPI_MCP_REQUIRED_PARAMETER",
                             "required header or cookie MCP parameters are not supported"
                     );
                 }

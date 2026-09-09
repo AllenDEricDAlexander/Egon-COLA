@@ -10,7 +10,7 @@ if [[ "${1:-}" == '--static-only' ]]; then
 fi
 
 for command in java npm curl jq openssl psql createdb redis-cli awk; do
-  unified_platform_require_command "${command}"
+  unified_xingyuan_require_command "${command}"
 done
 
 ensure_frontend_dependencies() {
@@ -18,7 +18,7 @@ ensure_frontend_dependencies() {
   if [[ -x "${vite}" ]]; then
     return
   fi
-  unified_platform_stage "installing locked ${label} dependencies"
+  unified_xingyuan_stage "installing locked ${label} dependencies"
   (
     cd "${install_dir}"
     npm ci
@@ -26,25 +26,25 @@ ensure_frontend_dependencies() {
 }
 
 ensure_frontend_dependencies \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/node_modules/.bin/vite" \
-  'IdP Admin Web'
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/node_modules/.bin/vite" \
+  'Tianquan-Shoubing Admin Web'
 ensure_frontend_dependencies \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/node_modules/.bin/vite" \
-  'RBAC3 workspace'
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/node_modules/.bin/vite" \
+  'Tianquan-Jianshen workspace'
 ensure_frontend_dependencies \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/node_modules/.bin/vite" \
-  'Gateway Admin Web'
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/node_modules/.bin/vite" \
+  'Yuheng Admin Web'
 ensure_frontend_dependencies \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/node_modules/.bin/vite" \
-  'DDC Admin Web'
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/node_modules/.bin/vite" \
+  'Tianshu Admin Web'
 ensure_frontend_dependencies \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-xingyuan-admin-portal" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/node_modules/.bin/vite" \
-  'Platform Admin Portal'
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-xingyuan-admin-portal" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/node_modules/.bin/vite" \
+  'Xingyuan Admin Portal'
 
 cleanup_required=true
 cleanup() {
@@ -56,7 +56,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-unified_platform_stage 'initializing databases, JWT authorization, DDC, and Gateway topology'
+unified_xingyuan_stage 'initializing databases, JWT authorization, Tianshu, and Yuheng topology'
 "${script_dir}/start-local-stack.sh"
 "${script_dir}/stop-local-stack.sh"
 cleanup_required=false
@@ -70,32 +70,32 @@ jar_paths=(
   'egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar'
 )
 for relative_path in "${jar_paths[@]}"; do
-  [[ -s "${unified_platform_repo_root}/${relative_path}" ]] \
-    || unified_platform_fail "missing executable JAR: ${relative_path}"
+  [[ -s "${unified_xingyuan_repo_root}/${relative_path}" ]] \
+    || unified_xingyuan_fail "missing executable JAR: ${relative_path}"
 done
 
-for service in idp rbac3 gateway-admin gateway-engine ddc; do
-  properties_file="${unified_platform_env_dir}/${service}.properties"
+for service in tianquan-shoubing tianquan-jianshen yuheng-admin yuheng-biz-gateway tianshu; do
+  properties_file="${unified_xingyuan_env_dir}/${service}.properties"
   [[ -s "${properties_file}" ]] \
-    || unified_platform_fail "missing runtime properties: ${properties_file}"
+    || unified_xingyuan_fail "missing runtime properties: ${properties_file}"
   [[ "$(stat -f '%Lp' "${properties_file}")" == '600' ]] \
-    || unified_platform_fail "runtime properties must have mode 600: ${properties_file}"
+    || unified_xingyuan_fail "runtime properties must have mode 600: ${properties_file}"
 done
 
-grep -q '^RBAC3_DEVELOPMENT_IDENTITY_SUB=.' \
-  "${unified_platform_env_dir}/rbac3.properties" \
-  || unified_platform_fail 'RBAC3 direct-run identity binding was not initialized'
+grep -q '^TIANQUAN_JIANSHEN_DEVELOPMENT_IDENTITY_SUB=.' \
+  "${unified_xingyuan_env_dir}/tianquan-jianshen.properties" \
+  || unified_xingyuan_fail 'Tianquan-Jianshen direct-run identity binding was not initialized'
 
 for web_dir in \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web" \
-  "${unified_platform_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web"; do
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web" \
+  "${unified_xingyuan_repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web"; do
   [[ -s "${web_dir}/.env.local" ]] \
-    || unified_platform_fail "missing generated frontend login environment: ${web_dir}"
+    || unified_xingyuan_fail "missing generated frontend login environment: ${web_dir}"
 done
 
 printf 'Direct-run artifacts are ready. Runtime configuration: %s\n' \
-  "${unified_platform_env_dir}"
+  "${unified_xingyuan_env_dir}"
 printf 'Run the documented java -jar and npm run dev commands from %s.\n' \
-  "${unified_platform_repo_root}"
+  "${unified_xingyuan_repo_root}"

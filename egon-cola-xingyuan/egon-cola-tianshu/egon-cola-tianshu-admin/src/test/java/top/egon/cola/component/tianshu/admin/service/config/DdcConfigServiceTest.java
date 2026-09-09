@@ -44,7 +44,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=2",
         "spring.flyway.enabled=false",
-        "egon.cola.component.ddc.enabled=false"
+        "egon.cola.component.tianshu.enabled=false"
 })
 class DdcConfigServiceTest {
 
@@ -98,7 +98,7 @@ class DdcConfigServiceTest {
     @Test
     void pagesConfigsAndVersionsWithoutMaterializingTheFullResult() {
         DdcConfigVO first = configService.create(
-                config("infra", "prod", "gateway", "gateway config"),
+                config("infra", "prod", "yuheng", "gateway config"),
                 "tester");
         configService.create(
                 config("infra", "prod", "worker", "worker config"),
@@ -167,7 +167,7 @@ class DdcConfigServiceTest {
         ), "tester");
         DdcConfigUpdateRequest update = new DdcConfigUpdateRequest(
                 created.getId(),
-                "egon:\n  cola:\n    component:\n      ddc:\n        enabled: false\n",
+                "egon:\n  cola:\n    component:\n      tianshu:\n        enabled: false\n",
                 "invalid",
                 created.getCurrentVersion()
         );
@@ -204,53 +204,53 @@ class DdcConfigServiceTest {
         DdcConfigCreateRequest request = new DdcConfigCreateRequest(
                 "infra",
                 "dev",
-                "gateway",
+                "yuheng",
                 null,
                 "application.yml",
-                "gateway:\n  enabled: false\n",
+                "yuheng:\n  enabled: false\n",
                 "YAML",
                 "routes"
         );
-        DdcConfigVO created = configService.upsert(request, null, "gateway-admin");
+        DdcConfigVO created = configService.upsert(request, null, "yuheng-admin");
         DdcConfigVO updated = configService.upsert(
                 new DdcConfigCreateRequest(
                         "infra",
                         "dev",
-                        "gateway",
+                        "yuheng",
                         null,
                         "application.yml",
-                        "gateway:\n  enabled: true\n",
+                        "yuheng:\n  enabled: true\n",
                         "YAML",
                         "routes"
                 ),
                 created.getCurrentVersion(),
-                "gateway-admin"
+                "yuheng-admin"
         );
 
         assertThat(updated.getCurrentVersion()).isEqualTo(2L);
         assertThatThrownBy(() -> configService.delete(
                 "infra",
                 "dev",
-                "gateway",
+                "yuheng",
                 1L,
-                "gateway-admin",
+                "yuheng-admin",
                 "release removed"
         )).hasMessageContaining("version");
 
         DdcConfigVO deleted = configService.delete(
                 "infra",
                 "dev",
-                "gateway",
+                "yuheng",
                 updated.getCurrentVersion(),
-                "gateway-admin",
+                "yuheng-admin",
                 "release removed"
         );
         DdcConfigVO repeated = configService.delete(
                 "infra",
                 "dev",
-                "gateway",
+                "yuheng",
                 deleted.getCurrentVersion(),
-                "gateway-admin",
+                "yuheng-admin",
                 "repeat"
         );
 

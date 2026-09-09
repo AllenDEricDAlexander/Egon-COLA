@@ -1,8 +1,8 @@
 package top.egon.cola.component.rpc.tianshu.security;
 
 /**
- * DDC Credential 可授权的稳定 RPC 操作。
- * / Stable RPC operations authorized by a DDC credential.
+ * Tianshu Credential 可授权的稳定 RPC 操作。
+ * / Stable RPC operations authorized by a Tianshu credential.
  */
 public enum DdcRpcOperation {
     SDK_REGISTER,

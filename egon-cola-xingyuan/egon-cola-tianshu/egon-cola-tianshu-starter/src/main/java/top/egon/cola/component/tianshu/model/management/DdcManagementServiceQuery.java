@@ -3,7 +3,7 @@ package top.egon.cola.component.tianshu.model.management;
 import org.springframework.lang.Nullable;
 
 /**
- * DDC 服务目录与实例快照的查询条件。 / Query filters for DDC service catalogs and instance snapshots.
+ * Tianshu 服务目录与实例快照的查询条件。 / Query filters for Tianshu service catalogs and instance snapshots.
  *
  * @param bizCode       业务编码，可为空以不按该项过滤 / business code, nullable to omit this filter
  * @param namespaceCode 用于授权与可见性过滤的命名空间编码 / namespace code used for authorization and visibility filtering

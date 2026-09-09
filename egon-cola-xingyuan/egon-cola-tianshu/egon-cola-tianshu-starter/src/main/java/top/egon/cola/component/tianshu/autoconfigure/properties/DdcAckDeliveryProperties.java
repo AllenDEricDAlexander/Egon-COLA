@@ -5,11 +5,11 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 
 /**
- * DDC 发布确认异步投递配置。
- * Configuration for asynchronous DDC publication acknowledgment delivery.
+ * Tianshu 发布确认异步投递配置。
+ * Configuration for asynchronous Tianshu publication acknowledgment delivery.
  */
 @ConfigurationProperties(
-        prefix = "egon.cola.component.ddc.ack-delivery",
+        prefix = "egon.cola.component.tianshu.ack-delivery",
         ignoreInvalidFields = true
 )
 public class DdcAckDeliveryProperties {

@@ -112,11 +112,11 @@ class DdcLeaseLifecycleTest {
 
     private IdpStarterProperties idpProperties() {
         IdpStarterProperties properties = new IdpStarterProperties();
-        properties.setResourceUri(java.net.URI.create("https://api.example/ddc"));
+        properties.setResourceUri(java.net.URI.create("https://api.example/tianshu"));
         IdpStarterProperties.ServiceClient client =
                 new IdpStarterProperties.ServiceClient();
-        client.setAppId("ddc-app");
-        client.setRegistrationId("ddc-registration");
+        client.setAppId("tianshu-app");
+        client.setRegistrationId("tianshu-registration");
         properties.setServiceClient(client);
         return properties;
     }

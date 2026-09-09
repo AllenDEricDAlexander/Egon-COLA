@@ -45,12 +45,12 @@ import java.util.List;
  * Semantics and usage: use `AssignmentController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/users/{userId}/role-assignments")
+@RequestMapping("/api/tianquan-jianshen/v1/users/{userId}/role-assignments")
 @Tag(name = "role-assignment", description = "角色任职接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -124,9 +124,9 @@ public class AssignmentController {
      */
     @GetMapping
     @Operation(
-            operationId = "rbac3-assignment-list-v1",
+            operationId = "tianquan-jianshen-assignment-list-v1",
             summary = "查询用户角色任职及历史状态",
-            tags = {"rbac3", "assignment"}
+            tags = {"tianquan-jianshen", "assignment"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -158,9 +158,9 @@ public class AssignmentController {
     @PostMapping
     @RequiresPermission(value = "system:role-assignment:manage")
     @Operation(
-            operationId = "rbac3-assignment-create-v1",
+            operationId = "tianquan-jianshen-assignment-create-v1",
             summary = "按完整委托策略创建角色任职",
-            tags = {"rbac3", "assignment"}
+            tags = {"tianquan-jianshen", "assignment"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -207,9 +207,9 @@ public class AssignmentController {
     @PostMapping("/{assignmentId}/revoke")
     @RequiresPermission(value = "system:role-assignment:manage")
     @Operation(
-            operationId = "rbac3-assignment-revoke-v1",
+            operationId = "tianquan-jianshen-assignment-revoke-v1",
             summary = "撤销角色任职并保留历史",
-            tags = {"rbac3", "assignment"}
+            tags = {"tianquan-jianshen", "assignment"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -241,9 +241,9 @@ public class AssignmentController {
     @PostMapping("/{assignmentId}/suspend")
     @RequiresPermission(value = "system:role-assignment:manage")
     @Operation(
-            operationId = "rbac3-assignment-suspend-v1",
+            operationId = "tianquan-jianshen-assignment-suspend-v1",
             summary = "暂停角色任职",
-            tags = {"rbac3", "assignment"}
+            tags = {"tianquan-jianshen", "assignment"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -275,9 +275,9 @@ public class AssignmentController {
     @PostMapping("/{assignmentId}/resume")
     @RequiresPermission(value = "system:role-assignment:manage")
     @Operation(
-            operationId = "rbac3-assignment-resume-v1",
+            operationId = "tianquan-jianshen-assignment-resume-v1",
             summary = "恢复角色任职",
-            tags = {"rbac3", "assignment"}
+            tags = {"tianquan-jianshen", "assignment"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

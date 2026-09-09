@@ -54,12 +54,12 @@ import java.util.List;
  * Semantics and usage: use `ConstraintController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/policies")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/policies")
 @Tag(name = "authorization-constraint", description = "授权约束接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -99,9 +99,9 @@ public class ConstraintController {
     @GetMapping("/sod-sets")
     @RequiresPermission(value = "system:authorization-constraint:read")
     @Operation(
-            operationId = "rbac3-sod-set-list-v1",
+            operationId = "tianquan-jianshen-sod-set-list-v1",
             summary = "查询SSD和DSD集合",
-            tags = {"rbac3", "constraint"}
+            tags = {"tianquan-jianshen", "constraint"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -124,9 +124,9 @@ public class ConstraintController {
     @PostMapping("/sod-sets")
     @RequiresPermission(value = "system:authorization-constraint:manage")
     @Operation(
-            operationId = "rbac3-sod-set-create-v1",
+            operationId = "tianquan-jianshen-sod-set-create-v1",
             summary = "创建SSD或DSD集合",
-            tags = {"rbac3", "constraint"}
+            tags = {"tianquan-jianshen", "constraint"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -152,9 +152,9 @@ public class ConstraintController {
     @PutMapping("/sod-sets/{setId}")
     @RequiresPermission(value = "system:authorization-constraint:manage")
     @Operation(
-            operationId = "rbac3-sod-set-update-v1",
+            operationId = "tianquan-jianshen-sod-set-update-v1",
             summary = "更新SSD或DSD集合",
-            tags = {"rbac3", "constraint"}
+            tags = {"tianquan-jianshen", "constraint"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -181,9 +181,9 @@ public class ConstraintController {
     @PostMapping("/roles/{roleId}/prerequisite-groups")
     @RequiresPermission(value = "system:authorization-constraint:manage")
     @Operation(
-            operationId = "rbac3-role-prerequisite-save-v1",
+            operationId = "tianquan-jianshen-role-prerequisite-save-v1",
             summary = "替换角色前置条件组",
-            tags = {"rbac3", "constraint"}
+            tags = {"tianquan-jianshen", "constraint"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -218,9 +218,9 @@ public class ConstraintController {
     @PutMapping("/roles/{roleId}/cardinality")
     @RequiresPermission(value = "system:authorization-constraint:manage")
     @Operation(
-            operationId = "rbac3-role-cardinality-save-v1",
+            operationId = "tianquan-jianshen-role-cardinality-save-v1",
             summary = "配置角色容量",
-            tags = {"rbac3", "constraint"}
+            tags = {"tianquan-jianshen", "constraint"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -253,9 +253,9 @@ public class ConstraintController {
     @GetMapping("/data-rules")
     @RequiresPermission(value = "system:data-rule:read")
     @Operation(
-            operationId = "rbac3-data-rule-list-v1",
+            operationId = "tianquan-jianshen-data-rule-list-v1",
             summary = "查询数据规则",
-            tags = {"rbac3", "data-rule"}
+            tags = {"tianquan-jianshen", "data-rule"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -278,9 +278,9 @@ public class ConstraintController {
     @PostMapping("/data-rules")
     @RequiresPermission(value = "system:data-rule:manage")
     @Operation(
-            operationId = "rbac3-data-rule-create-v1",
+            operationId = "tianquan-jianshen-data-rule-create-v1",
             summary = "创建类型化数据规则",
-            tags = {"rbac3", "data-rule"}
+            tags = {"tianquan-jianshen", "data-rule"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -307,9 +307,9 @@ public class ConstraintController {
     @PutMapping("/data-rules/{ruleId}")
     @RequiresPermission(value = "system:data-rule:manage")
     @Operation(
-            operationId = "rbac3-data-rule-update-v1",
+            operationId = "tianquan-jianshen-data-rule-update-v1",
             summary = "更新类型化数据规则",
-            tags = {"rbac3", "data-rule"}
+            tags = {"tianquan-jianshen", "data-rule"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -334,9 +334,9 @@ public class ConstraintController {
     @GetMapping("/field-rules")
     @RequiresPermission(value = "system:field-rule:read")
     @Operation(
-            operationId = "rbac3-field-rule-list-v1",
+            operationId = "tianquan-jianshen-field-rule-list-v1",
             summary = "查询字段规则",
-            tags = {"rbac3", "field-rule"}
+            tags = {"tianquan-jianshen", "field-rule"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -359,9 +359,9 @@ public class ConstraintController {
     @PostMapping("/field-rules")
     @RequiresPermission(value = "system:field-rule:manage")
     @Operation(
-            operationId = "rbac3-field-rule-create-v1",
+            operationId = "tianquan-jianshen-field-rule-create-v1",
             summary = "创建字段访问规则",
-            tags = {"rbac3", "field-rule"}
+            tags = {"tianquan-jianshen", "field-rule"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -388,9 +388,9 @@ public class ConstraintController {
     @PutMapping("/field-rules/{ruleId}")
     @RequiresPermission(value = "system:field-rule:manage")
     @Operation(
-            operationId = "rbac3-field-rule-update-v1",
+            operationId = "tianquan-jianshen-field-rule-update-v1",
             summary = "更新字段访问规则",
-            tags = {"rbac3", "field-rule"}
+            tags = {"tianquan-jianshen", "field-rule"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -415,9 +415,9 @@ public class ConstraintController {
     @GetMapping("/operation-sod-rules")
     @RequiresPermission(value = "system:operation-sod:read")
     @Operation(
-            operationId = "rbac3-operation-sod-list-v1",
+            operationId = "tianquan-jianshen-operation-sod-list-v1",
             summary = "查询同对象职责分离规则",
-            tags = {"rbac3", "operation-sod"}
+            tags = {"tianquan-jianshen", "operation-sod"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -440,9 +440,9 @@ public class ConstraintController {
     @PostMapping("/operation-sod-rules")
     @RequiresPermission(value = "system:operation-sod:manage")
     @Operation(
-            operationId = "rbac3-operation-sod-create-v1",
+            operationId = "tianquan-jianshen-operation-sod-create-v1",
             summary = "创建同对象职责分离规则",
-            tags = {"rbac3", "operation-sod"}
+            tags = {"tianquan-jianshen", "operation-sod"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -469,9 +469,9 @@ public class ConstraintController {
     @PutMapping("/operation-sod-rules/{ruleId}")
     @RequiresPermission(value = "system:operation-sod:manage")
     @Operation(
-            operationId = "rbac3-operation-sod-update-v1",
+            operationId = "tianquan-jianshen-operation-sod-update-v1",
             summary = "更新同对象职责分离规则",
-            tags = {"rbac3", "operation-sod"}
+            tags = {"tianquan-jianshen", "operation-sod"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

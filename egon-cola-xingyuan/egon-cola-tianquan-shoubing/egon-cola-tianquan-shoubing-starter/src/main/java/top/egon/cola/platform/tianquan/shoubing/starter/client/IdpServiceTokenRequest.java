@@ -10,7 +10,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Typed input for one IdP SERVICE-token authorization.
+ * Typed input for one Tianquan-Shoubing SERVICE-token authorization.
  *
  * <p>The caller supplies only the target resource, tenant context and scopes;
  * client registration and Secret material remain in Spring configuration.</p>

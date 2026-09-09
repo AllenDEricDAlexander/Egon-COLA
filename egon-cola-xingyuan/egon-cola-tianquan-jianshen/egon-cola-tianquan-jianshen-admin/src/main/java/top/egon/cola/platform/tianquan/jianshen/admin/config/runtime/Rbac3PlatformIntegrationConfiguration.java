@@ -23,8 +23,8 @@ import top.egon.cola.component.yuheng.starter.GatewayReportingProperties;
 import top.egon.cola.component.yuheng.starter.reporting.GatewayReportingState;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.AuthorizationEventPublisher;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.DdcConfigClientStatusRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.DdcProviderLeaseStatusRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.DdcConfigClientStatusRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.config.flyway.Rbac3FlywayConfiguration;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.http.GatewayAdminStatusCredentialProvider;
@@ -51,7 +51,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
 /**
  * 类型 `Rbac3PlatformIntegrationConfiguration` 位于当前包内，是类型，用于承载 `Rbac3 Platform Integration Configuration` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3PlatformIntegrationConfiguration` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Platform Integration Configuration`; callers normally use it through its public API, Spring assembly, or implementation relationship.
- * Wires component-owned Gateway, DDC and Outbox runtimes into RBAC3 ports.
+ * Wires component-owned Gateway, Tianshu and Outbox runtimes into Tianquan-Jianshen ports.
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3PlatformIntegrationConfiguration {
@@ -101,7 +101,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
+    @ConditionalOnProperty(prefix = "egon.cola.component.yuheng.reporting",
             name = "enabled", havingValue = "true")
     ServiceIdentityVO rbac3ServiceIdentity(
             GatewayReportingProperties properties) {
@@ -125,7 +125,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
+    @ConditionalOnProperty(prefix = "egon.cola.component.yuheng.reporting",
             name = "enabled", havingValue = "true")
     GatewayAdminStatusCredentialProvider gatewayAdminStatusCredentialProvider(
             Rbac3GatewayStatusProperties properties,
@@ -150,7 +150,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
+    @ConditionalOnProperty(prefix = "egon.cola.component.yuheng.reporting",
             name = "enabled", havingValue = "true")
     GatewayAdminControlPlaneStatusClient gatewayAdminControlPlaneStatusClient(
             Rbac3GatewayStatusProperties properties,
@@ -182,7 +182,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
+    @ConditionalOnProperty(prefix = "egon.cola.component.yuheng.reporting",
             name = "enabled", havingValue = "true")
     GatewayDefinitionStatusRepository gatewayDefinitionStatusService(
             GatewayReportingState state,
@@ -203,7 +203,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      */
     @Bean
     @ConditionalOnBean(ServiceIdentityVO.class)
-    @ConditionalOnProperty(prefix = "egon.cola.component.ddc.registry.http",
+    @ConditionalOnProperty(prefix = "egon.cola.component.tianshu.registry.http",
             name = "enabled", havingValue = "true")
     DdcProviderLeaseStatusRepository ddcProviderLeaseStatusService(
             DdcHttpRegistrationRuntime runtime,
@@ -224,7 +224,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
     */
     @Bean(name = "ddcHttpRegistrationServerReadyListener")
-    @ConditionalOnProperty(prefix = "egon.cola.component.ddc.registry.http",
+    @ConditionalOnProperty(prefix = "egon.cola.component.tianshu.registry.http",
             name = "enabled", havingValue = "true")
     ApplicationListener<ApplicationEvent> ddcHttpRegistrationServerReadyListener(
             DdcRuntimeCoordinator coordinator,
@@ -249,7 +249,7 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
+    @ConditionalOnProperty(prefix = "egon.cola.component.yuheng.reporting",
             name = "enabled", havingValue = "true")
     GatewayDdcRuntimeStatusService gatewayDdcRuntimeStatusService(
             GatewayDefinitionStatusRepository definition,
@@ -333,10 +333,10 @@ public class Rbac3PlatformIntegrationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     @Bean("rbac3Readiness")
-    @ConditionalOnProperty(prefix = "egon.cola.component.gateway.reporting",
+    @ConditionalOnProperty(prefix = "egon.cola.component.yuheng.reporting",
             name = "enabled", havingValue = "true")
     Rbac3ReadinessIndicator rbac3ReadinessIndicator(
-            @Qualifier(Rbac3FlywayConfiguration.RBAC3_FLYWAY) Flyway rbac3Flyway,
+            @Qualifier(Rbac3FlywayConfiguration.TIANQUAN_JIANSHEN_FLYWAY) Flyway rbac3Flyway,
             @Qualifier(Rbac3FlywayConfiguration.OUTBOX_FLYWAY) Flyway outboxFlyway,
             EntityManagerFactory entityManagerFactory,
             TransactionalOutbox outbox,

@@ -103,7 +103,7 @@ public final class DistributedTokenBucketRateLimiter {
             RateLimitFailureMode failureMode) {
         String redisKey = String.join(
                 ":",
-                "gateway",
+                "yuheng",
                 "ratelimit",
                 safe(env),
                 safe(namespace),

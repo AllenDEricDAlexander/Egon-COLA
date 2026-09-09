@@ -15,7 +15,7 @@ class ProviderModelTest {
     void treatsInstanceAndLeaseAsRuntimeIdentityAndExpiresLocally() {
         ProviderInstance instance = instance(
                 Instant.parse("2026-07-25T00:00:30Z"),
-                Map.of("gateway.weight", "200")
+                Map.of("yuheng.weight", "200")
         );
 
         assertTrue(instance.availableAt(
@@ -33,12 +33,12 @@ class ProviderModelTest {
                 IllegalArgumentException.class,
                 () -> instance(
                         Instant.parse("2026-07-25T00:00:30Z"),
-                        Map.of("gateway.token", "secret")
+                        Map.of("yuheng.token", "secret")
                 )
         );
         ProviderInstance invalid = instance(
                 Instant.parse("2026-07-25T00:00:30Z"),
-                Map.of("gateway.weight", "0")
+                Map.of("yuheng.weight", "0")
         );
         assertThrows(IllegalArgumentException.class, invalid::weight);
     }

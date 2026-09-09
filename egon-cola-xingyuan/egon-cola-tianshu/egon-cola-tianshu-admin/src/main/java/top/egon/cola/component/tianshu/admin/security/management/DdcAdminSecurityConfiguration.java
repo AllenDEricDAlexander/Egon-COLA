@@ -46,95 +46,95 @@ public class DdcAdminSecurityConfiguration {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/auth/bootstrap",
-                                "/api/v1/ddc/auth/bootstrap"
+                                "/api/v1/tianshu/auth/bootstrap"
                         )
                         .authenticated()
-                        .requestMatchers("/api/v1/ddc/cache/**")
+                        .requestMatchers("/api/v1/tianshu/cache/**")
                         .hasAnyAuthority(
                                 DdcAdminCapability.CACHE.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/v1/ddc/configs/*/publish",
-                                "/api/v1/ddc/publish-tasks/*/retry"
+                                "/api/v1/tianshu/configs/*/publish",
+                                "/api/v1/tianshu/publish-tasks/*/retry"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.PUBLISH.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/v1/ddc/configs",
-                                "/api/v1/ddc/configs/*/versions",
-                                "/api/v1/ddc/apps",
-                                "/api/v1/ddc/apps/*",
-                                "/api/v1/ddc/bizs",
-                                "/api/v1/ddc/bizs/*",
-                                "/api/v1/ddc/envs",
-                                "/api/v1/ddc/envs/*",
-                                "/api/v1/ddc/namespaces",
-                                "/api/v1/ddc/namespaces/*",
-                                "/api/v1/ddc/namespace-env-app-bindings",
-                                "/api/v1/ddc/instances",
-                                "/api/v1/ddc/registry/**",
-                                "/api/v1/ddc/publish-tasks",
-                                "/api/v1/ddc/publish-tasks/*"
+                                "/api/v1/tianshu/configs",
+                                "/api/v1/tianshu/configs/*/versions",
+                                "/api/v1/tianshu/apps",
+                                "/api/v1/tianshu/apps/*",
+                                "/api/v1/tianshu/bizs",
+                                "/api/v1/tianshu/bizs/*",
+                                "/api/v1/tianshu/envs",
+                                "/api/v1/tianshu/envs/*",
+                                "/api/v1/tianshu/namespaces",
+                                "/api/v1/tianshu/namespaces/*",
+                                "/api/v1/tianshu/namespace-env-app-bindings",
+                                "/api/v1/tianshu/instances",
+                                "/api/v1/tianshu/registry/**",
+                                "/api/v1/tianshu/publish-tasks",
+                                "/api/v1/tianshu/publish-tasks/*"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.READ.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.GET,
-                                "/api/v1/ddc/configs/page",
-                                "/api/v1/ddc/configs/*/versions/page",
-                                "/api/v1/ddc/apps/page",
-                                "/api/v1/ddc/bizs/page",
-                                "/api/v1/ddc/envs/page",
-                                "/api/v1/ddc/namespaces/page",
-                                "/api/v1/ddc/namespace-env-app-bindings/page",
-                                "/api/v1/ddc/instances/page",
-                                "/api/v1/ddc/publish-tasks/page"
+                                "/api/v1/tianshu/configs/page",
+                                "/api/v1/tianshu/configs/*/versions/page",
+                                "/api/v1/tianshu/apps/page",
+                                "/api/v1/tianshu/bizs/page",
+                                "/api/v1/tianshu/envs/page",
+                                "/api/v1/tianshu/namespaces/page",
+                                "/api/v1/tianshu/namespace-env-app-bindings/page",
+                                "/api/v1/tianshu/instances/page",
+                                "/api/v1/tianshu/publish-tasks/page"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.READ.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.POST,
-                                "/api/v1/ddc/configs",
-                                "/api/v1/ddc/configs/*/rollback",
-                                "/api/v1/ddc/apps",
-                                "/api/v1/ddc/bizs",
-                                "/api/v1/ddc/envs",
-                                "/api/v1/ddc/namespaces",
-                                "/api/v1/ddc/namespace-env-app-bindings"
+                                "/api/v1/tianshu/configs",
+                                "/api/v1/tianshu/configs/*/rollback",
+                                "/api/v1/tianshu/apps",
+                                "/api/v1/tianshu/bizs",
+                                "/api/v1/tianshu/envs",
+                                "/api/v1/tianshu/namespaces",
+                                "/api/v1/tianshu/namespace-env-app-bindings"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.PUT,
-                                "/api/v1/ddc/configs/*",
-                                "/api/v1/ddc/apps/*",
-                                "/api/v1/ddc/apps/*/enabled",
-                                "/api/v1/ddc/bizs/*",
-                                "/api/v1/ddc/bizs/*/enabled",
-                                "/api/v1/ddc/envs/*",
-                                "/api/v1/ddc/envs/*/enabled",
-                                "/api/v1/ddc/namespaces/*",
-                                "/api/v1/ddc/namespaces/*/enabled",
-                                "/api/v1/ddc/namespace-env-app-bindings/*"
+                                "/api/v1/tianshu/configs/*",
+                                "/api/v1/tianshu/apps/*",
+                                "/api/v1/tianshu/apps/*/enabled",
+                                "/api/v1/tianshu/bizs/*",
+                                "/api/v1/tianshu/bizs/*/enabled",
+                                "/api/v1/tianshu/envs/*",
+                                "/api/v1/tianshu/envs/*/enabled",
+                                "/api/v1/tianshu/namespaces/*",
+                                "/api/v1/tianshu/namespaces/*/enabled",
+                                "/api/v1/tianshu/namespace-env-app-bindings/*"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
                         )
                         .requestMatchers(
                                 HttpMethod.DELETE,
-                                "/api/v1/ddc/configs/*",
-                                "/api/v1/ddc/apps/*",
-                                "/api/v1/ddc/bizs/*",
-                                "/api/v1/ddc/envs/*",
-                                "/api/v1/ddc/namespaces/*",
-                                "/api/v1/ddc/namespace-env-app-bindings/*"
+                                "/api/v1/tianshu/configs/*",
+                                "/api/v1/tianshu/apps/*",
+                                "/api/v1/tianshu/bizs/*",
+                                "/api/v1/tianshu/envs/*",
+                                "/api/v1/tianshu/namespaces/*",
+                                "/api/v1/tianshu/namespace-env-app-bindings/*"
                         ).hasAnyAuthority(
                                 DdcAdminCapability.WRITE.authority(),
                                 DdcAdminCapability.ALL.authority()
@@ -150,7 +150,7 @@ public class DdcAdminSecurityConfiguration {
             http.addFilterAfter(rbac3Filter, IdpBearerAuthenticationFilter.class);
         } else {
             throw new IllegalStateException(
-                    "IdP and RBAC3 authentication filters must be configured together");
+                    "Tianquan-Shoubing and Tianquan-Jianshen authentication filters must be configured together");
         }
         return http.build();
     }

@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-jianshen-starter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-jianshen-starter</name>
-    <description>Business application authorization starter for Egon COLA RBAC3.</description>
+    <description>Business application authorization starter for Egon COLA Tianquan-Jianshen.</description>
 
     <dependencies>
         <dependency>

@@ -20,7 +20,7 @@ class McpGatewayIdentityAuthenticatorTest {
         );
 
         assertEquals(
-                Map.of("idp.resource-uri",
+                Map.of("tianquan-shoubing.resource-uri",
                         "https://resource.egon.top/mcp/billing"),
                 McpGatewayIdentityAuthenticator.securityAttributes(server)
         );

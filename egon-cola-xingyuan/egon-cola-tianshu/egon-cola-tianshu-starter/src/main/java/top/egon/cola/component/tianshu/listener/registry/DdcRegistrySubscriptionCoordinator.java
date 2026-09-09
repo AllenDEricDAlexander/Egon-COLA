@@ -56,7 +56,7 @@ public final class DdcRegistrySubscriptionCoordinator implements AutoCloseable {
                 Executors.newSingleThreadScheduledExecutor(runnable -> {
                     Thread thread = new Thread(
                             runnable,
-                            "egon-cola-ddc-registry"
+                            "egon-cola-tianshu-registry"
                     );
                     thread.setDaemon(true);
                     return thread;

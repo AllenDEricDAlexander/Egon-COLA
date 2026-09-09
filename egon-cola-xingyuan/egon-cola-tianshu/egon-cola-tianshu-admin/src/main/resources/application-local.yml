@@ -1,37 +1,37 @@
 spring:
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/egon_ddc_local}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://127.0.0.1:5432/egon_tianshu_local}
     username: ${SPRING_DATASOURCE_USERNAME:postgres}
     password: ${SPRING_DATASOURCE_PASSWORD}
 
 egon:
   cola:
     platform:
-      idp:
-        issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
-        jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-      rbac3:
+      tianquan-shoubing:
+        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+      tianquan-jianshen:
         runtime:
-          redis-address: ${DDC_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
-          password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
+          redis-address: ${TIANSHU_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+          password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
         authorization:
-          endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+          endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
           service-token:
-            enabled: ${DDC_RBAC3_SERVICE_TOKEN_ENABLED:false}
-            resource-uri: ${DDC_RBAC3_SERVICE_TOKEN_RESOURCE_URI:}
-            scopes: ${DDC_RBAC3_SERVICE_TOKEN_SCOPES:}
+            enabled: ${TIANSHU_TIANQUAN_JIANSHEN_SERVICE_TOKEN_ENABLED:false}
+            resource-uri: ${TIANSHU_TIANQUAN_JIANSHEN_SERVICE_TOKEN_RESOURCE_URI:}
+            scopes: ${TIANSHU_TIANQUAN_JIANSHEN_SERVICE_TOKEN_SCOPES:}
     component:
-      ddc:
+      tianshu:
         admin:
           redis:
-            password: ${DDC_REDIS_PASSWORD}
+            password: ${TIANSHU_REDIS_PASSWORD}
       rpc:
         tls:
           development-plaintext: true
-      gateway:
+      yuheng:
         reporting:
-          enabled: ${DDC_GATEWAY_REPORTING_ENABLED:false}
+          enabled: ${TIANSHU_YUHENG_REPORTING_ENABLED:false}
           env: local
           namespace: default
-          application-code: ddc
+          application-code: tianshu
           artifact-version: local

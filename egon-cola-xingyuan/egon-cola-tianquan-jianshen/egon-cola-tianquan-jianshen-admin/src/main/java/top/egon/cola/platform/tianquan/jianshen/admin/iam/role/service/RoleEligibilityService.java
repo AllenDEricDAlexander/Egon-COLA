@@ -16,10 +16,10 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Resolves whether a role's local Application and DDC Business are currently usable.
+ * Resolves whether a role's local Application and Tianshu Business are currently usable.
  *
  * <p>The rule is deliberately fail-closed: a missing local scope, missing Business grant,
- * disabled DDC record, or DDC lookup failure never produces an effective role.</p>
+ * disabled Tianshu record, or Tianshu lookup failure never produces an effective role.</p>
  */
 @Service
 public final class RoleEligibilityService {
@@ -43,7 +43,7 @@ public final class RoleEligibilityService {
 
     /**
      * Returns whether the local Application is active, has an effective Business grant,
-     * and still points to enabled DDC Application and Business records.
+     * and still points to enabled Tianshu Application and Business records.
      */
     public boolean isEffective(
             String tenantId,
@@ -63,7 +63,7 @@ public final class RoleEligibilityService {
     }
 
     /**
-     * Resolves the effective DDC Business/Application identity for a local Application.
+     * Resolves the effective Tianshu Business/Application identity for a local Application.
      */
     public Optional<EffectiveApplicationScope> resolveEffectiveScope(
             String tenantId,
@@ -79,7 +79,7 @@ public final class RoleEligibilityService {
             return resolveEffectiveScope(tenant, user, application, at);
         } catch (RuntimeException unavailableOrInvalid) {
             LOG.debug(
-                    "DDC application eligibility is unavailable for applicationId={}",
+                    "Tianshu application eligibility is unavailable for applicationId={}",
                     applicationId,
                     unavailableOrInvalid
             );
@@ -102,7 +102,7 @@ public final class RoleEligibilityService {
             return resolveEffectiveScope(tenant, user, application, at).isPresent();
         } catch (RuntimeException unavailableOrInvalid) {
             LOG.debug(
-                    "DDC application eligibility is unavailable for applicationCode={}",
+                    "Tianshu application eligibility is unavailable for applicationCode={}",
                     applicationCode,
                     unavailableOrInvalid
             );

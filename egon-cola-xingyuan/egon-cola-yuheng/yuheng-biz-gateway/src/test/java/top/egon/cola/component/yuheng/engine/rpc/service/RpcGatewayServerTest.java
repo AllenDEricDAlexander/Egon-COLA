@@ -128,7 +128,7 @@ class RpcGatewayServerTest {
         MethodDescriptor<byte[], byte[]> method =
                 RawByteMarshaller.INSTANCE.descriptor("test.Echo/Call");
         Metadata misleadingTrailers = new Metadata();
-        misleadingTrailers.put(RpcMetadataKeys.FAILURE_STAGE, "gateway");
+        misleadingTrailers.put(RpcMetadataKeys.FAILURE_STAGE, "yuheng");
         Server providerServer = NettyServerBuilder.forPort(0)
                 .addService(ServerServiceDefinition.builder("test.Echo")
                         .addMethod(

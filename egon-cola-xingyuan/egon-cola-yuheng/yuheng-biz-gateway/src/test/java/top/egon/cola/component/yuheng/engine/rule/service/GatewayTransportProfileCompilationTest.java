@@ -199,11 +199,11 @@ class GatewayTransportProfileCompilationTest {
     void boundLegacySubsecondTimeoutCompilesForDefaultRoute() {
         GatewayEngineRuntimeProperties properties = new Binder(
                 new MapConfigurationPropertySource(Map.of(
-                        "egon.cola.component.gateway.engine.http.upstream-timeout",
+                        "egon.cola.component.yuheng.engine.http.upstream-timeout",
                         "PT0.5S"
                 ))
         ).bind(
-                "egon.cola.component.gateway.engine",
+                "egon.cola.component.yuheng.engine",
                 Bindable.of(GatewayEngineRuntimeProperties.class)
         ).get();
         GatewayTransportDefaults defaults = new GatewayEngineConfiguration()

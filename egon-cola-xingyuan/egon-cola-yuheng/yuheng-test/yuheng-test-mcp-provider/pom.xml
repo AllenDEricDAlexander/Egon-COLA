@@ -58,7 +58,7 @@
     </dependencies>
 
     <build>
-        <finalName>gateway-test-mcp-provider</finalName>
+        <finalName>yuheng-test-mcp-provider</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

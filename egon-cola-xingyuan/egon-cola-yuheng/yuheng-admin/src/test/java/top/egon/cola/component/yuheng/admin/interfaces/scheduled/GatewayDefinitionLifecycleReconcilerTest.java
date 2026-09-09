@@ -52,13 +52,13 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "orders",
                         "Orders",
                         "test",
-                        "gateway",
+                        "yuheng",
                         null,
                         "admin",
                         now
                 )));
         when(projections.instances(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         )).thenReturn(
                 new top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<>(
                         List.of(provider(
@@ -68,7 +68,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                                 now.plusSeconds(30)
                         )),
                         now,
-                        "DDC_SERVICE_REGISTRY",
+                        "TIANSHU_SERVICE_REGISTRY",
                         false,
                         null
                 )
@@ -112,18 +112,18 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "orders",
                         "Orders",
                         "test",
-                        "gateway",
+                        "yuheng",
                         null,
                         "admin",
                         now
                 )));
         when(projections.instances(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         )).thenReturn(
                 new top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<>(
                         List.of(),
                         now.minusSeconds(30),
-                        "DDC_SERVICE_REGISTRY",
+                        "TIANSHU_SERVICE_REGISTRY",
                         true,
                         "unavailable"
                 )
@@ -167,18 +167,18 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "orders",
                         "Orders",
                         "test",
-                        "gateway",
+                        "yuheng",
                         null,
                         "admin",
                         now
                 )));
         when(projections.instances(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         )).thenReturn(
                 new top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<>(
                         List.of(),
                         now,
-                        "DDC_SERVICE_REGISTRY",
+                        "TIANSHU_SERVICE_REGISTRY",
                         false,
                         null
                 )
@@ -229,13 +229,13 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         "orders",
                         "Orders",
                         "test",
-                        "gateway",
+                        "yuheng",
                         null,
                         "admin",
                         now
                 )));
         when(projections.instances(
-                "test-biz", "orders", "test", "gateway"
+                "test-biz", "orders", "test", "yuheng"
         )).thenReturn(new top.egon.cola.component.yuheng.admin.runtime.domain.vo
                 .GatewayProjectionEnvelopeVO<>(
                 List.of(provider(
@@ -245,7 +245,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         now.plusSeconds(30)
                 )),
                 now,
-                "DDC_SERVICE_REGISTRY",
+                "TIANSHU_SERVICE_REGISTRY",
                 false,
                 null
         ));
@@ -294,7 +294,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                 null,
                 "zone-a",
                 100,
-                Map.of("gateway.definition-set-id", definitionSetId),
+                Map.of("yuheng.definition-set-id", definitionSetId),
                 definitionSetId,
                 status,
                 expireAt,

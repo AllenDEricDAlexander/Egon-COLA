@@ -3,28 +3,28 @@ package top.egon.cola.component.rpc.test.process;
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
 import org.redisson.config.Config;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.ddc.api.client.DdcServiceRegistryClient;
-import top.egon.cola.component.ddc.api.registry.DdcRegistrySubscription;
-import top.egon.cola.component.ddc.listener.registry.DdcRegistrySubscriptionCoordinator;
-import top.egon.cola.component.ddc.model.registry.DdcServiceCatalogSnapshot;
-import top.egon.cola.component.ddc.model.registry.DdcServiceInstance;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKey;
-import top.egon.cola.component.ddc.model.registry.DdcServiceKind;
-import top.egon.cola.component.ddc.model.registry.DdcServiceQuery;
-import top.egon.cola.component.ddc.model.registry.DdcServiceRegistration;
-import top.egon.cola.component.ddc.model.registry.DdcServiceLeaseRequest;
-import top.egon.cola.component.ddc.model.registry.DdcServiceSnapshot;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
+import top.egon.cola.component.tianshu.api.registry.DdcRegistrySubscription;
+import top.egon.cola.component.tianshu.listener.registry.DdcRegistrySubscriptionCoordinator;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceCatalogSnapshot;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceInstance;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceKey;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceQuery;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceRegistration;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceLeaseRequest;
+import top.egon.cola.component.tianshu.model.registry.DdcServiceSnapshot;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayEndpoint;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewayQuery;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySnapshot;
 import top.egon.cola.component.rpc.consumer.gateway.RpcGatewaySubscription;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
-import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
-import top.egon.cola.component.rpc.ddc.client.DdcRpcClientFactory;
-import top.egon.cola.component.rpc.ddc.client.DdcRpcClientHandle;
-import top.egon.cola.component.rpc.ddc.client.registry.RpcDdcServiceRegistryClient;
-import top.egon.cola.component.rpc.ddc.registry.RpcDdcRegistrySnapshotLoader;
+import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientFactory;
+import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientHandle;
+import top.egon.cola.component.rpc.tianshu.client.registry.RpcDdcServiceRegistryClient;
+import top.egon.cola.component.rpc.tianshu.registry.RpcDdcRegistrySnapshotLoader;
 import top.egon.cola.component.rpc.provider.registration.RpcLeaseOperationResult;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
@@ -60,13 +60,13 @@ public final class RpcMockGatewayApplication {
         MockRpcGateway gateway = new MockRpcGateway(
                 new ProcessDdcRpcRegistry(registry.client(), properties.getEnv()),
                 properties.getEnv(),
-                "mock-gateway:" + ProcessHandle.current().pid(),
+                "mock-yuheng:" + ProcessHandle.current().pid(),
                 new MockGatewayProperties(
                         "egon-internal-rpc-gateway",
                         "default",
                         "1.0.0",
                         "127.0.0.1",
-                        Integer.parseInt(required(values, "gateway.port")),
+                        Integer.parseInt(required(values, "yuheng.port")),
                         "127.0.0.1",
                         15,
                         3
@@ -86,12 +86,12 @@ public final class RpcMockGatewayApplication {
         };
         Runtime.getRuntime().addShutdownHook(new Thread(
                 cleanup,
-                "rpc-mock-gateway-shutdown"
+                "rpc-mock-yuheng-shutdown"
         ));
         try {
             gateway.start();
             System.out.printf(
-                    "RPC_MOCK_GATEWAY_READY port=%d%n",
+                    "RPC_MOCK_YUHENG_READY port=%d%n",
                     gateway.port()
             );
             shutdown.await();
@@ -105,16 +105,16 @@ public final class RpcMockGatewayApplication {
         properties.setBizCode("test-biz");
         properties.setAppCode("test-app");
         properties.getRedis().setHost(
-                required(values, "ddc.redis.host")
+                required(values, "tianshu.redis.host")
         );
         properties.getRedis().setPort(Integer.parseInt(
-                required(values, "ddc.redis.port")
+                required(values, "tianshu.redis.port")
         ));
         properties.getRedis().setPassword(
-                values.get("ddc.redis.password")
+                values.get("tianshu.redis.password")
         );
-        properties.setEnv(required(values, "ddc.env"));
-        properties.setNamespace(required(values, "ddc.namespace"));
+        properties.setEnv(required(values, "tianshu.env"));
+        properties.setNamespace(required(values, "tianshu.namespace"));
         properties.getRegistry().setReconcileIntervalSeconds(1);
         return properties;
     }
@@ -124,13 +124,13 @@ public final class RpcMockGatewayApplication {
             DdcProperties properties) {
         RedissonClient redisson = redisson(properties);
         DdcRpcProperties rpc = new DdcRpcProperties();
-        rpc.setTarget(required(values, "ddc.target"));
+        rpc.setTarget(required(values, "tianshu.target"));
         rpc.getTls().setDevelopmentPlaintext(true);
         rpc.getAuth().getRegistry().setAccessKey(
-                required(values, "ddc.access-key")
+                required(values, "tianshu.access-key")
         );
         rpc.getAuth().getRegistry().setSecretKey(
-                required(values, "ddc.secret-key")
+                required(values, "tianshu.secret-key")
         );
         DdcRpcClientHandle<DdcServiceRegistryClient> handle =
                 new DdcRpcClientFactory(
@@ -141,7 +141,7 @@ public final class RpcMockGatewayApplication {
                                 properties.getEnv(),
                                 "127.0.0.1",
                                 ProcessHandle.current().pid(),
-                                "mock-gateway:" + ProcessHandle.current().pid()
+                                "mock-yuheng:" + ProcessHandle.current().pid()
                         )
                 ).registryClient();
         RpcDdcServiceRegistryClient client =
@@ -418,7 +418,7 @@ public final class RpcMockGatewayApplication {
         }
 
         private RpcLeaseOperationResult result(
-                top.egon.cola.component.ddc.model.lease
+                top.egon.cola.component.tianshu.model.lease
                         .DdcLeaseOperationResult value) {
             return new RpcLeaseOperationResult(
                     RpcLeaseOperationResult.Status.valueOf(

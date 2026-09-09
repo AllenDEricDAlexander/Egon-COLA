@@ -147,7 +147,7 @@ class GatewayReportHmacFilterTest {
         );
         assertThat(replay.getStatus()).isEqualTo(409);
         assertThat(replay.getContentAsString())
-                .contains("GATEWAY_REPORT_REPLAYED");
+                .contains("YUHENG_REPORT_REPLAYED");
     }
 
     private MockHttpServletRequest signed(
@@ -156,7 +156,7 @@ class GatewayReportHmacFilterTest {
             String secret,
             byte[] body) {
         String path =
-                "/api/v1/gateway/openapi/interface-definitions/reports";
+                "/api/v1/yuheng/openapi/interface-definitions/reports";
         String nonce = "nonce-1";
         GatewayCanonicalRequest canonical = new GatewayCanonicalRequest(
                 "POST",
@@ -186,7 +186,7 @@ class GatewayReportHmacFilterTest {
                 signer.sign(canonical, secret)
         );
         request.addHeader(
-                "X-Gateway-Application-Code",
+                "X-Yuheng-Application-Code",
                 "inventory"
         );
         return request;

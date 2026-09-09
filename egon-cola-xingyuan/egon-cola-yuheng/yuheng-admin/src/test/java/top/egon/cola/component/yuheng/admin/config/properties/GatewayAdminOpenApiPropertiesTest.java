@@ -41,7 +41,7 @@ class GatewayAdminOpenApiPropertiesTest {
         assertThat(properties.getDriftSampleInterval())
                 .isEqualTo(Duration.ofMinutes(5));
         assertThat(properties.getRequiredScope())
-                .isEqualTo("gateway.openapi.read");
+                .isEqualTo("yuheng.openapi.read");
     }
 
     @Test
@@ -90,9 +90,9 @@ class GatewayAdminOpenApiPropertiesTest {
         for (PropertySource<?> source : sources) {
             if (source instanceof EnumerablePropertySource<?> enumerable) {
                 for (String key : enumerable.getPropertyNames()) {
-                    if (key.startsWith("gateway.admin.openapi.")) {
+                    if (key.startsWith("yuheng.admin.openapi.")) {
                         keys.add(key.substring(
-                                "gateway.admin.openapi.".length()
+                                "yuheng.admin.openapi.".length()
                         ));
                     }
                 }

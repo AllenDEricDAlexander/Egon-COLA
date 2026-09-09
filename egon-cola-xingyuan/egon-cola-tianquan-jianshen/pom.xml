@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-jianshen</artifactId>
     <packaging>pom</packaging>
     <name>egon-cola-tianquan-jianshen</name>
-    <description>RBAC3 permission platform for Egon COLA.</description>
+    <description>Tianquan-Jianshen permission platform for Egon COLA.</description>
 
     <modules>
         <module>egon-cola-tianquan-jianshen-contract</module>

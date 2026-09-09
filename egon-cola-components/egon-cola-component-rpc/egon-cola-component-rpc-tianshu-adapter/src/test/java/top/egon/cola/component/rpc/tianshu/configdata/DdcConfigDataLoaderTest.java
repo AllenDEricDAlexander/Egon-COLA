@@ -106,9 +106,9 @@ class DdcConfigDataLoaderTest {
                 egon:
                   cola:
                     component:
-                      ddc:
+                      tianshu:
                         rpc:
-                          target: dns:///remote-ddc:19080
+                          target: dns:///remote-tianshu:19080
                 """, 1L);
 
         assertThatThrownBy(() -> loader.load(
@@ -119,7 +119,7 @@ class DdcConfigDataLoaderTest {
                 resource(false)
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining(
-                        "egon.cola.component.ddc.rpc.target"
+                        "egon.cola.component.tianshu.rpc.target"
                 );
     }
 

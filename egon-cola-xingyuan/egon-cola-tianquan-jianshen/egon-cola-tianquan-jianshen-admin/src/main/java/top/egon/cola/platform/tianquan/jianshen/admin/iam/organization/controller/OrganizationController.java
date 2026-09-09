@@ -27,12 +27,12 @@ import java.util.List;
 
 /** CRUD and tree operations for RBAC-owned MANUAL organization units. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/organizations")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/organizations")
 @Tag(name = "iam-organization", description = "IAM组织接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -47,9 +47,9 @@ public class OrganizationController {
     @GetMapping
     @RequiresPermission(value = "system:organization:read")
     @Operation(
-            operationId = "rbac3-iam-organization-list-v1",
+            operationId = "tianquan-jianshen-iam-organization-list-v1",
             summary = "查询手工组织",
-            tags = {"rbac3", "iam", "organization"}
+            tags = {"tianquan-jianshen", "iam", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -62,9 +62,9 @@ public class OrganizationController {
     @PostMapping
     @RequiresPermission(value = "system:organization:manage")
     @Operation(
-            operationId = "rbac3-iam-organization-create-v1",
+            operationId = "tianquan-jianshen-iam-organization-create-v1",
             summary = "创建手工组织",
-            tags = {"rbac3", "iam", "organization"}
+            tags = {"tianquan-jianshen", "iam", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -79,9 +79,9 @@ public class OrganizationController {
     @PutMapping("/{orgUnitId}")
     @RequiresPermission(value = "system:organization:manage")
     @Operation(
-            operationId = "rbac3-iam-organization-update-v1",
+            operationId = "tianquan-jianshen-iam-organization-update-v1",
             summary = "更新或移动手工组织",
-            tags = {"rbac3", "iam", "organization"}
+            tags = {"tianquan-jianshen", "iam", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -97,9 +97,9 @@ public class OrganizationController {
     @DeleteMapping("/{orgUnitId}")
     @RequiresPermission(value = "system:organization:manage")
     @Operation(
-            operationId = "rbac3-iam-organization-delete-v1",
+            operationId = "tianquan-jianshen-iam-organization-delete-v1",
             summary = "停用手工组织",
-            tags = {"rbac3", "iam", "organization"}
+            tags = {"tianquan-jianshen", "iam", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

@@ -11,7 +11,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Resolves IdP USER online state for an already authenticated Gateway principal.
+ * Resolves Tianquan-Shoubing USER online state for an already authenticated Gateway principal.
  */
 public final class IdpUserOnlineStateProvider {
 

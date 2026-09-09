@@ -1,16 +1,16 @@
 spring:
   application:
-    name: egon-cola-gateway-mcp-engine
+    name: egon-cola-yuheng-mcp-gateway
   profiles:
     default: local
   config:
     import:
-      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-mcp-engine.properties
-      - optional:ddc:application.yml
+      - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/yuheng-mcp-gateway.properties
+      - optional:tianshu:application.yml
   datasource:
-    url: ${GATEWAY_MCP_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/gateway_admin}
-    username: ${GATEWAY_MCP_POSTGRES_USER:postgres}
-    password: ${GATEWAY_MCP_POSTGRES_PASSWORD:postgres}
+    url: ${YUHENG_MCP_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/gateway_admin}
+    username: ${YUHENG_MCP_POSTGRES_USER:postgres}
+    password: ${YUHENG_MCP_POSTGRES_PASSWORD:postgres}
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -19,7 +19,7 @@ spring:
 
 server:
   address: 127.0.0.1
-  port: ${egon.cola.component.gateway.mcp-engine.management-port}
+  port: ${egon.cola.component.yuheng.mcp-engine.management-port}
   shutdown: graceful
 
 management:
@@ -40,137 +40,137 @@ management:
 egon:
   cola:
     platform:
-      idp:
-        enabled: ${DDC_ENABLED:true}
+      tianquan-shoubing:
+        enabled: ${TIANSHU_ENABLED:true}
         register-filter: false
-        issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
-        jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-        resource-server-id: ${GATEWAY_MCP_ENGINE_RESOURCE_SERVER_ID:}
-        resource-uri: ${GATEWAY_MCP_ENGINE_RESOURCE_URI:}
-        gateway:
-          enabled: ${IDP_GATEWAY_ENABLED:true}
-          issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
-          jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-          idp-refresh-uri: ${IDP_REFRESH_URI:http://127.0.0.1:18120/oauth2/token}
-          access-token-cookie-name: ${IDP_ACCESS_TOKEN_COOKIE_NAME:__Host-egon_user_at}
-          refresh-token-cookie-name: ${IDP_REFRESH_TOKEN_COOKIE_NAME:__Host-egon_user_rt}
-          refresh-status-resource-uri: ${IDP_REFRESH_STATUS_RESOURCE_URI:https://api.egon.internal/local/permission/idp}
-          refresh-status-scopes: ${IDP_REFRESH_STATUS_SCOPES:idp:refresh-token:validate}
-          trusted-origins: ${IDP_GATEWAY_TRUSTED_ORIGINS:}
+        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+        resource-server-id: ${YUHENG_MCP_ENGINE_RESOURCE_SERVER_ID:}
+        resource-uri: ${YUHENG_MCP_ENGINE_RESOURCE_URI:}
+        yuheng:
+          enabled: ${TIANQUAN_SHOUBING_YUHENG_ENABLED:true}
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          tianquan-shoubing-refresh-uri: ${TIANQUAN_SHOUBING_REFRESH_URI:http://127.0.0.1:18120/oauth2/token}
+          access-token-cookie-name: ${TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME:__Host-egon_user_at}
+          refresh-token-cookie-name: ${TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME:__Host-egon_user_rt}
+          refresh-status-resource-uri: ${TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI:https://api.egon.internal/local/permission/tianquan-shoubing}
+          refresh-status-scopes: ${TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES:tianquan-shoubing:refresh-token:validate}
+          trusted-origins: ${TIANQUAN_SHOUBING_YUHENG_TRUSTED_ORIGINS:}
           user-state-key-prefix: "identity:v1:user:"
           runtime:
             redis-enabled: true
-            redis-address: ${IDP_REDIS_ADDRESS:redis://127.0.0.1:6379}
-            database: ${IDP_REDIS_DATABASE:0}
-            password-file: ${IDP_REDIS_PASSWORD_FILE:}
-            timeout: ${IDP_REDIS_TIMEOUT:2s}
-      rbac3:
-        enabled: ${GATEWAY_MCP_RBAC3_ENABLED:false}
+            redis-address: ${TIANQUAN_SHOUBING_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
+            password-file: ${TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE:}
+            timeout: ${TIANQUAN_SHOUBING_REDIS_TIMEOUT:2s}
+      tianquan-jianshen:
+        enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}
         register-filter: false
-        system-code: ${GATEWAY_MCP_RBAC3_SYSTEM_CODE:mock-backend}
+        system-code: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SYSTEM_CODE:mock-backend}
         runtime:
-          redis-enabled: ${GATEWAY_MCP_RBAC3_ENABLED:false}
-          redis-address: ${GATEWAY_MCP_RBAC3_REDIS_ADDRESS:redis://127.0.0.1:6379}
-          database: ${GATEWAY_MCP_RBAC3_REDIS_DATABASE:0}
-          password-file: ${GATEWAY_MCP_RBAC3_REDIS_PASSWORD_FILE:}
+          redis-enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}
+          redis-address: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_ADDRESS:redis://127.0.0.1:6379}
+          database: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_DATABASE:0}
+          password-file: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_PASSWORD_FILE:}
         authorization:
-          endpoint: ${GATEWAY_MCP_RBAC3_AUTHORIZATION_ENDPOINT:}
-        gateway:
-          enabled: ${GATEWAY_MCP_RBAC3_SCOPE_ENABLED:true}
+          endpoint: ${YUHENG_MCP_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:}
+        yuheng:
+          enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED:true}
           runtime:
-            redis-enabled: ${GATEWAY_MCP_RBAC3_SCOPE_ENABLED:true}
-            redis-address: ${GATEWAY_MCP_RBAC3_SCOPE_REDIS_ADDRESS:redis://127.0.0.1:6379}
-            database: ${GATEWAY_MCP_RBAC3_SCOPE_REDIS_DATABASE:8}
-            password-file: ${GATEWAY_MCP_RBAC3_SCOPE_REDIS_PASSWORD_FILE:}
-            timeout: ${GATEWAY_MCP_RBAC3_SCOPE_REDIS_TIMEOUT:2s}
+            redis-enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED:true}
+            redis-address: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_DATABASE:8}
+            password-file: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_PASSWORD_FILE:}
+            timeout: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_TIMEOUT:2s}
     component:
       rpc:
         tls:
-          enabled: ${IDP_ADMISSION_RPC_TLS_ENABLED:true}
-          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}}
-          certificate-chain-path: ${IDP_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
-          private-key-path: ${IDP_ADMISSION_RPC_PRIVATE_KEY_PATH:}
-          trust-certificate-collection-path: ${IDP_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
-      ddc:
-        enabled: ${DDC_ENABLED:true}
-        biz-code: ${DDC_BIZ_CODE:infra}
-        env: ${DDC_ENV:local}
-        app-code: ${DDC_APP_CODE:ge}
-        max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
+          enabled: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TLS_ENABLED:true}
+          development-plaintext: ${TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}}
+          certificate-chain-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      tianshu:
+        enabled: ${TIANSHU_ENABLED:true}
+        biz-code: ${TIANSHU_BIZ_CODE:infra}
+        env: ${TIANSHU_ENV:local}
+        app-code: ${TIANSHU_APP_CODE:ge}
+        max-config-bytes: ${TIANSHU_MAX_CONFIG_BYTES:1048576}
         instance:
-          id: ${GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID:}
+          id: ${YUHENG_MCP_ENGINE_TIANSHU_INSTANCE_ID:}
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${DDC_RPC_TLS_ENABLED:true}
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:
-              access-key: ${GATEWAY_MCP_DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${GATEWAY_MCP_DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${YUHENG_MCP_TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${YUHENG_MCP_TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${GATEWAY_MCP_DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${GATEWAY_MCP_DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${YUHENG_MCP_TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${YUHENG_MCP_TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         redis:
           enabled: true
-          mode: ${DDC_REDIS_MODE:SINGLE}
-          host: ${DDC_REDIS_HOST:127.0.0.1}
-          port: ${DDC_REDIS_PORT:6379}
-          password: ${DDC_REDIS_PASSWORD:}
-          database: ${DDC_REDIS_DATABASE:0}
+          mode: ${TIANSHU_REDIS_MODE:SINGLE}
+          host: ${TIANSHU_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REDIS_PORT:6379}
+          password: ${TIANSHU_REDIS_PASSWORD:}
+          database: ${TIANSHU_REDIS_DATABASE:0}
         registry:
-          enabled: ${DDC_REGISTRY_ENABLED:true}
+          enabled: ${TIANSHU_REGISTRY_ENABLED:true}
           http:
-            enabled: ${GATEWAY_MCP_ENGINE_DDC_REGISTRATION_ENABLED:true}
-            instance-id: ${GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID:}
-            service-name: egon-cola-gateway-mcp-engine
-            version: ${GATEWAY_MCP_ENGINE_VERSION:5.3.2}
+            enabled: ${YUHENG_MCP_ENGINE_TIANSHU_REGISTRATION_ENABLED:true}
+            instance-id: ${YUHENG_MCP_ENGINE_TIANSHU_INSTANCE_ID:}
+            service-name: egon-cola-yuheng-mcp-gateway
+            version: ${YUHENG_MCP_ENGINE_VERSION:5.3.2}
             protocol: http
-            advertised-host: ${GATEWAY_MCP_ENGINE_DDC_ADVERTISED_HOST:127.0.0.1}
-            port: ${GATEWAY_MCP_ENGINE_DDC_ADVERTISED_PORT:18084}
+            advertised-host: ${YUHENG_MCP_ENGINE_TIANSHU_ADVERTISED_HOST:127.0.0.1}
+            port: ${YUHENG_MCP_ENGINE_TIANSHU_ADVERTISED_PORT:18084}
             metadata:
-              gateway.component: engine
-              gateway.engine.role: MCP
-      gateway:
+              yuheng.component: engine
+              yuheng.engine.role: MCP
+      yuheng:
         mcp-engine:
-          gateway-group-code: ${GATEWAY_MCP_ENGINE_GROUP_CODE:default}
-          env: ${GATEWAY_MCP_ENGINE_ENV:dev}
-          namespace: ${GATEWAY_MCP_ENGINE_NAMESPACE:default}
-          node-id: ${GATEWAY_MCP_ENGINE_NODE_ID:gateway-mcp-engine}
-          instance-id: ${GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID:gateway-mcp-engine}
-          data-directory: ${GATEWAY_MCP_ENGINE_DATA_DIRECTORY:./data/gateway-mcp-engine}
-          management-port: ${GATEWAY_MCP_ENGINE_MANAGEMENT_PORT:18085}
+          yuheng-group-code: ${YUHENG_MCP_ENGINE_GROUP_CODE:default}
+          env: ${YUHENG_MCP_ENGINE_ENV:dev}
+          namespace: ${YUHENG_MCP_ENGINE_NAMESPACE:default}
+          node-id: ${YUHENG_MCP_ENGINE_NODE_ID:yuheng-mcp-gateway}
+          instance-id: ${YUHENG_MCP_ENGINE_TIANSHU_INSTANCE_ID:yuheng-mcp-gateway}
+          data-directory: ${YUHENG_MCP_ENGINE_DATA_DIRECTORY:./data/yuheng-mcp-gateway}
+          management-port: ${YUHENG_MCP_ENGINE_MANAGEMENT_PORT:18085}
           listener:
             enabled: true
-            host: ${GATEWAY_MCP_ENGINE_HOST:0.0.0.0}
-            port: ${GATEWAY_MCP_ENGINE_PORT:18084}
-            maximum-request-bytes: ${GATEWAY_MCP_ENGINE_MAXIMUM_REQUEST_BYTES:2097152}
-            drain-timeout: ${GATEWAY_MCP_ENGINE_DRAIN_TIMEOUT:10s}
+            host: ${YUHENG_MCP_ENGINE_HOST:0.0.0.0}
+            port: ${YUHENG_MCP_ENGINE_PORT:18084}
+            maximum-request-bytes: ${YUHENG_MCP_ENGINE_MAXIMUM_REQUEST_BYTES:2097152}
+            drain-timeout: ${YUHENG_MCP_ENGINE_DRAIN_TIMEOUT:10s}
             tls:
-              enabled: ${GATEWAY_MCP_ENGINE_TLS_ENABLED:true}
-              development-plaintext: ${GATEWAY_MCP_ENGINE_DEVELOPMENT_PLAINTEXT:false}
-              certificate-chain-path: ${GATEWAY_MCP_ENGINE_CERTIFICATE_CHAIN_PATH:}
-              private-key-path: ${GATEWAY_MCP_ENGINE_PRIVATE_KEY_PATH:}
-              trust-certificate-collection-path: ${GATEWAY_MCP_ENGINE_TRUST_CERTIFICATE_COLLECTION_PATH:}
-              client-certificate-required: ${GATEWAY_MCP_ENGINE_CLIENT_CERTIFICATE_REQUIRED:false}
+              enabled: ${YUHENG_MCP_ENGINE_TLS_ENABLED:true}
+              development-plaintext: ${YUHENG_MCP_ENGINE_DEVELOPMENT_PLAINTEXT:false}
+              certificate-chain-path: ${YUHENG_MCP_ENGINE_CERTIFICATE_CHAIN_PATH:}
+              private-key-path: ${YUHENG_MCP_ENGINE_PRIVATE_KEY_PATH:}
+              trust-certificate-collection-path: ${YUHENG_MCP_ENGINE_TRUST_CERTIFICATE_COLLECTION_PATH:}
+              client-certificate-required: ${YUHENG_MCP_ENGINE_CLIENT_CERTIFICATE_REQUIRED:false}
           outbound:
-            max-connections: ${GATEWAY_MCP_ENGINE_OUTBOUND_MAX_CONNECTIONS:512}
-            pending-acquire-max-count: ${GATEWAY_MCP_ENGINE_OUTBOUND_PENDING_ACQUIRE_MAX_COUNT:1024}
-            idle-timeout: ${GATEWAY_MCP_ENGINE_OUTBOUND_IDLE_TIMEOUT:30s}
-            request-timeout: ${GATEWAY_MCP_ENGINE_OUTBOUND_REQUEST_TIMEOUT:5s}
-            maximum-request-bytes: ${GATEWAY_MCP_ENGINE_OUTBOUND_MAXIMUM_REQUEST_BYTES:1073741824}
-            maximum-response-bytes: ${GATEWAY_MCP_ENGINE_OUTBOUND_MAXIMUM_RESPONSE_BYTES:4194304}
-            channel-drain-timeout: ${GATEWAY_MCP_ENGINE_OUTBOUND_CHANNEL_DRAIN_TIMEOUT:5s}
+            max-connections: ${YUHENG_MCP_ENGINE_OUTBOUND_MAX_CONNECTIONS:512}
+            pending-acquire-max-count: ${YUHENG_MCP_ENGINE_OUTBOUND_PENDING_ACQUIRE_MAX_COUNT:1024}
+            idle-timeout: ${YUHENG_MCP_ENGINE_OUTBOUND_IDLE_TIMEOUT:30s}
+            request-timeout: ${YUHENG_MCP_ENGINE_OUTBOUND_REQUEST_TIMEOUT:5s}
+            maximum-request-bytes: ${YUHENG_MCP_ENGINE_OUTBOUND_MAXIMUM_REQUEST_BYTES:1073741824}
+            maximum-response-bytes: ${YUHENG_MCP_ENGINE_OUTBOUND_MAXIMUM_RESPONSE_BYTES:4194304}
+            channel-drain-timeout: ${YUHENG_MCP_ENGINE_OUTBOUND_CHANNEL_DRAIN_TIMEOUT:5s}
             rpc-tls:
-              enabled: ${GATEWAY_MCP_ENGINE_OUTBOUND_RPC_TLS_ENABLED:true}
-              development-plaintext: ${GATEWAY_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT:false}
-              certificate-chain-path: ${GATEWAY_MCP_ENGINE_OUTBOUND_RPC_CERTIFICATE_CHAIN_PATH:}
-              private-key-path: ${GATEWAY_MCP_ENGINE_OUTBOUND_RPC_PRIVATE_KEY_PATH:}
-              trust-certificate-collection-path: ${GATEWAY_MCP_ENGINE_OUTBOUND_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
-              client-certificate-required: ${GATEWAY_MCP_ENGINE_OUTBOUND_RPC_CLIENT_CERTIFICATE_REQUIRED:false}
+              enabled: ${YUHENG_MCP_ENGINE_OUTBOUND_RPC_TLS_ENABLED:true}
+              development-plaintext: ${YUHENG_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT:false}
+              certificate-chain-path: ${YUHENG_MCP_ENGINE_OUTBOUND_RPC_CERTIFICATE_CHAIN_PATH:}
+              private-key-path: ${YUHENG_MCP_ENGINE_OUTBOUND_RPC_PRIVATE_KEY_PATH:}
+              trust-certificate-collection-path: ${YUHENG_MCP_ENGINE_OUTBOUND_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+              client-certificate-required: ${YUHENG_MCP_ENGINE_OUTBOUND_RPC_CLIENT_CERTIFICATE_REQUIRED:false}
           active-health:
-            enabled: ${GATEWAY_MCP_ENGINE_ACTIVE_HEALTH_ENABLED:false}
+            enabled: ${YUHENG_MCP_ENGINE_ACTIVE_HEALTH_ENABLED:false}
             interval: 10s
             jitter-ratio: 0.2
             timeout: 2s
@@ -184,44 +184,44 @@ egon:
             rpc-connect-fallback: true
         engine:
           mcp:
-            enabled: ${GATEWAY_MCP_ENABLED:true}
-            artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
-            session-ttl: ${GATEWAY_MCP_SESSION_TTL:PT30M}
-            stream-wait: ${GATEWAY_MCP_STREAM_WAIT:PT15S}
-            maximum-request-bytes: ${GATEWAY_MCP_MAXIMUM_REQUEST_BYTES:16777216}
-            maximum-resource-bytes: ${GATEWAY_MCP_MAXIMUM_RESOURCE_BYTES:67108864}
-            maximum-app-artifact-bytes: ${GATEWAY_MCP_MAXIMUM_APP_ARTIFACT_BYTES:16777216}
-            maximum-subscriptions-per-client: ${GATEWAY_MCP_MAXIMUM_SUBSCRIPTIONS_PER_CLIENT:100}
-            maximum-active-tasks-per-client: ${GATEWAY_MCP_MAXIMUM_ACTIVE_TASKS_PER_CLIENT:100}
+            enabled: ${YUHENG_MCP_ENABLED:true}
+            artifact-root: ${YUHENG_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/yuheng-mcp-artifacts}
+            session-ttl: ${YUHENG_MCP_SESSION_TTL:PT30M}
+            stream-wait: ${YUHENG_MCP_STREAM_WAIT:PT15S}
+            maximum-request-bytes: ${YUHENG_MCP_MAXIMUM_REQUEST_BYTES:16777216}
+            maximum-resource-bytes: ${YUHENG_MCP_MAXIMUM_RESOURCE_BYTES:67108864}
+            maximum-app-artifact-bytes: ${YUHENG_MCP_MAXIMUM_APP_ARTIFACT_BYTES:16777216}
+            maximum-subscriptions-per-client: ${YUHENG_MCP_MAXIMUM_SUBSCRIPTIONS_PER_CLIENT:100}
+            maximum-active-tasks-per-client: ${YUHENG_MCP_MAXIMUM_ACTIVE_TASKS_PER_CLIENT:100}
             tasks:
-              lease-duration: ${GATEWAY_MCP_TASK_LEASE_DURATION:PT30S}
-              poll-interval: ${GATEWAY_MCP_TASK_POLL_INTERVAL:PT2S}
-              default-ttl: ${GATEWAY_MCP_TASK_DEFAULT_TTL:PT24H}
-              cleanup-interval: ${GATEWAY_MCP_TASK_CLEANUP_INTERVAL:PT10M}
+              lease-duration: ${YUHENG_MCP_TASK_LEASE_DURATION:PT30S}
+              poll-interval: ${YUHENG_MCP_TASK_POLL_INTERVAL:PT2S}
+              default-ttl: ${YUHENG_MCP_TASK_DEFAULT_TTL:PT24H}
+              cleanup-interval: ${YUHENG_MCP_TASK_CLEANUP_INTERVAL:PT10M}
               service-token:
-                enabled: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED:false}
-                scopes: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES:mcp:operation:invoke}
-                renewal-skew: ${GATEWAY_MCP_TASK_SERVICE_TOKEN_RENEWAL_SKEW:30s}
+                enabled: ${YUHENG_MCP_TASK_SERVICE_TOKEN_ENABLED:false}
+                scopes: ${YUHENG_MCP_TASK_SERVICE_TOKEN_SCOPES:mcp:operation:invoke}
+                renewal-skew: ${YUHENG_MCP_TASK_SERVICE_TOKEN_RENEWAL_SKEW:30s}
             remote:
-              discovery-timeout: ${GATEWAY_MCP_REMOTE_DISCOVERY_TIMEOUT:PT20S}
-              call-timeout: ${GATEWAY_MCP_REMOTE_CALL_TIMEOUT:PT60S}
-              health-interval: ${GATEWAY_MCP_REMOTE_HEALTH_INTERVAL:PT30S}
-              capability-sync-interval: ${GATEWAY_MCP_REMOTE_CAPABILITY_SYNC_INTERVAL:PT5M}
-              circuit-open-duration: ${GATEWAY_MCP_REMOTE_CIRCUIT_OPEN_DURATION:PT30S}
-              maximum-concurrent-calls: ${GATEWAY_MCP_REMOTE_MAXIMUM_CONCURRENT_CALLS:32}
-              failure-threshold: ${GATEWAY_MCP_REMOTE_FAILURE_THRESHOLD:3}
+              discovery-timeout: ${YUHENG_MCP_REMOTE_DISCOVERY_TIMEOUT:PT20S}
+              call-timeout: ${YUHENG_MCP_REMOTE_CALL_TIMEOUT:PT60S}
+              health-interval: ${YUHENG_MCP_REMOTE_HEALTH_INTERVAL:PT30S}
+              capability-sync-interval: ${YUHENG_MCP_REMOTE_CAPABILITY_SYNC_INTERVAL:PT5M}
+              circuit-open-duration: ${YUHENG_MCP_REMOTE_CIRCUIT_OPEN_DURATION:PT30S}
+              maximum-concurrent-calls: ${YUHENG_MCP_REMOTE_MAXIMUM_CONCURRENT_CALLS:32}
+              failure-threshold: ${YUHENG_MCP_REMOTE_FAILURE_THRESHOLD:3}
               token-forwarding: false
             security:
               origin-validation: true
               protected-resource-metadata: true
               token-forwarding: false
             audit:
-              enabled: ${GATEWAY_MCP_AUDIT_ENABLED:true}
+              enabled: ${YUHENG_MCP_AUDIT_ENABLED:true}
               body-log-enabled: false
             redis:
-              enabled: ${GATEWAY_MCP_REDIS_ENABLED:true}
-              address: ${GATEWAY_MCP_REDIS_ADDRESS:redis://127.0.0.1:6379}
-              database: ${GATEWAY_MCP_REDIS_DATABASE:0}
-              password: ${GATEWAY_MCP_REDIS_PASSWORD:}
-              key-prefix: ${GATEWAY_MCP_REDIS_KEY_PREFIX:gateway:mcp:}
-              stream-max-length: ${GATEWAY_MCP_STREAM_MAX_LENGTH:256}
+              enabled: ${YUHENG_MCP_REDIS_ENABLED:true}
+              address: ${YUHENG_MCP_REDIS_ADDRESS:redis://127.0.0.1:6379}
+              database: ${YUHENG_MCP_REDIS_DATABASE:0}
+              password: ${YUHENG_MCP_REDIS_PASSWORD:}
+              key-prefix: ${YUHENG_MCP_REDIS_KEY_PREFIX:yuheng:mcp:}
+              stream-max-length: ${YUHENG_MCP_STREAM_MAX_LENGTH:256}

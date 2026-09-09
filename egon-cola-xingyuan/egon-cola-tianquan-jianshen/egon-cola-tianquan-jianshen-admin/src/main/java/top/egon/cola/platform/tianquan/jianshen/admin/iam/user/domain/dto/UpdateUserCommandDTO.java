@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.iam.user.domain.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.PositiveOrZero;
 
-/** Command for changing only the local IdP subject binding. */
+/** Command for changing only the local Tianquan-Shoubing subject binding. */
 public record UpdateUserCommandDTO(
         @NotBlank String identitySub,
         @PositiveOrZero long expectedAuthVersion) {

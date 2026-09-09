@@ -3,65 +3,65 @@ package top.egon.cola.component.tianshu.error;
 import top.egon.cola.component.common.core.enums.ErrorStatus;
 
 /**
- * 汇总 DDC 对外返回的稳定错误码、状态标识和默认消息。 Enumerates stable DDC error codes, status identifiers, and default messages exposed to callers.
+ * 汇总 Tianshu 对外返回的稳定错误码、状态标识和默认消息。 Enumerates stable Tianshu error codes, status identifiers, and default messages exposed to callers.
  */
 public enum DdcErrorStatus implements ErrorStatus {
 
     /**
      * 请求字段、格式或业务约束无效。 The request violates field, format, or business constraints.
      */
-    INVALID_REQUEST(56000, "DDC_INVALID_REQUEST", "invalid DDC request"),
+    INVALID_REQUEST(56000, "TIANSHU_INVALID_REQUEST", "invalid Tianshu request"),
     /**
      * 指定租约不存在或已不可用。 The requested lease does not exist or is no longer available.
      */
-    LEASE_NOT_FOUND(56001, "DDC_LEASE_NOT_FOUND", "lease not found"),
+    LEASE_NOT_FOUND(56001, "TIANSHU_LEASE_NOT_FOUND", "lease not found"),
     /**
      * 请求中的租约标识与实例当前租约不一致。 The supplied lease identifier does not match the instance's current lease.
      */
-    LEASE_MISMATCH(56002, "DDC_LEASE_MISMATCH", "lease mismatch"),
+    LEASE_MISMATCH(56002, "TIANSHU_LEASE_MISMATCH", "lease mismatch"),
     /**
      * 实例标识已被不兼容的注册占用。 The instance identifier is already held by an incompatible registration.
      */
-    INSTANCE_ID_CONFLICT(56003, "DDC_INSTANCE_ID_CONFLICT", "instance id conflict"),
+    INSTANCE_ID_CONFLICT(56003, "TIANSHU_INSTANCE_ID_CONFLICT", "instance id conflict"),
     /**
      * 同一作用域已有发布流程正在执行。 A publication is already running for the same scope.
      */
-    PUBLISH_IN_PROGRESS(56010, "DDC_PUBLISH_IN_PROGRESS", "publish already in progress"),
+    PUBLISH_IN_PROGRESS(56010, "TIANSHU_PUBLISH_IN_PROGRESS", "publish already in progress"),
     /**
      * 发布作用域内没有可接收配置的存活实例。 No live configuration instance can receive the publication.
      */
-    NO_LIVE_INSTANCE(56011, "DDC_NO_LIVE_INSTANCE", "no live config instance"),
+    NO_LIVE_INSTANCE(56011, "TIANSHU_NO_LIVE_INSTANCE", "no live config instance"),
     /**
      * 相同变更标识对应了不同的发布内容。 The same change identifier was reused for different publication content.
      */
-    CHANGE_ID_CONFLICT(56012, "DDC_CHANGE_ID_CONFLICT", "change id conflict"),
+    CHANGE_ID_CONFLICT(56012, "TIANSHU_CHANGE_ID_CONFLICT", "change id conflict"),
     /**
      * 发布目标的租约在确认前已经过期。 A target lease expired before publication acknowledgement.
      */
-    TARGET_LEASE_EXPIRED(56013, "DDC_TARGET_LEASE_EXPIRED", "publish target lease expired"),
+    TARGET_LEASE_EXPIRED(56013, "TIANSHU_TARGET_LEASE_EXPIRED", "publish target lease expired"),
     /**
      * 当前接口要求签名但请求未提供签名信息。 The endpoint requires signing but the request omitted signature data.
      */
-    SIGNATURE_REQUIRED(56020, "DDC_SIGNATURE_REQUIRED", "signature required"),
+    SIGNATURE_REQUIRED(56020, "TIANSHU_SIGNATURE_REQUIRED", "signature required"),
     /**
      * 请求签名与服务端计算结果不一致。 The request signature does not match the server calculation.
      */
-    SIGNATURE_INVALID(56021, "DDC_SIGNATURE_INVALID", "signature invalid"),
+    SIGNATURE_INVALID(56021, "TIANSHU_SIGNATURE_INVALID", "signature invalid"),
     /**
      * 请求时间戳超出允许的签名有效窗口。 The request timestamp falls outside the allowed signature window.
      */
-    SIGNATURE_EXPIRED(56022, "DDC_SIGNATURE_EXPIRED", "signature expired"),
+    SIGNATURE_EXPIRED(56022, "TIANSHU_SIGNATURE_EXPIRED", "signature expired"),
     /**
      * 签名 nonce 已被使用，疑似重放请求。 The signature nonce has already been used, indicating a replay.
      */
-    SIGNATURE_REPLAY(56023, "DDC_SIGNATURE_REPLAY", "signature nonce replayed"),
+    SIGNATURE_REPLAY(56023, "TIANSHU_SIGNATURE_REPLAY", "signature nonce replayed"),
     /**
-     * 注册或心跳缺少 IdP Resource Server 准入票据。
-     * The registration or heartbeat omitted its IdP Resource Server admission ticket.
+     * 注册或心跳缺少 Tianquan-Shoubing Resource Server 准入票据。
+     * The registration or heartbeat omitted its Tianquan-Shoubing Resource Server admission ticket.
      */
     RESOURCE_ADMISSION_REQUIRED(
             56024,
-            "DDC_RESOURCE_ADMISSION_REQUIRED",
+            "TIANSHU_RESOURCE_ADMISSION_REQUIRED",
             "resource admission ticket required"
     ),
     /**
@@ -70,7 +70,7 @@ public enum DdcErrorStatus implements ErrorStatus {
      */
     RESOURCE_ADMISSION_INVALID(
             56025,
-            "DDC_RESOURCE_ADMISSION_INVALID",
+            "TIANSHU_RESOURCE_ADMISSION_INVALID",
             "resource admission is invalid"
     ),
     /**
@@ -79,76 +79,76 @@ public enum DdcErrorStatus implements ErrorStatus {
      */
     RESOURCE_ADMISSION_EXPIRED(
             56026,
-            "DDC_RESOURCE_ADMISSION_EXPIRED",
+            "TIANSHU_RESOURCE_ADMISSION_EXPIRED",
             "resource admission ticket expired"
     ),
     /**
-     * 准入票据中的实例身份与 DDC 请求不一致。
-     * The instance identity in the admission ticket does not match the DDC request.
+     * 准入票据中的实例身份与 Tianshu 请求不一致。
+     * The instance identity in the admission ticket does not match the Tianshu request.
      */
     RESOURCE_ADMISSION_BINDING_MISMATCH(
             56027,
-            "DDC_RESOURCE_ADMISSION_BINDING_MISMATCH",
+            "TIANSHU_RESOURCE_ADMISSION_BINDING_MISMATCH",
             "resource admission binding mismatch"
     ),
     /**
      * 指定业务不存在。 The requested business does not exist.
      */
-    BIZ_NOT_FOUND(56030, "DDC_BIZ_NOT_FOUND", "biz not found"),
+    BIZ_NOT_FOUND(56030, "TIANSHU_BIZ_NOT_FOUND", "biz not found"),
     /**
      * 待创建的业务编码已经存在。 The business code being created already exists.
      */
-    BIZ_CODE_EXISTS(56031, "DDC_BIZ_CODE_EXISTS", "biz code already exists"),
+    BIZ_CODE_EXISTS(56031, "TIANSHU_BIZ_CODE_EXISTS", "biz code already exists"),
     /**
      * 业务仍包含应用，不能执行删除。 The business still owns applications and cannot be deleted.
      */
-    BIZ_IN_USE(56032, "DDC_BIZ_IN_USE", "biz still has apps"),
+    BIZ_IN_USE(56032, "TIANSHU_BIZ_IN_USE", "biz still has apps"),
     /**
      * 指定应用不存在。 The requested application does not exist.
      */
-    APP_NOT_FOUND(56033, "DDC_APP_NOT_FOUND", "app not found"),
+    APP_NOT_FOUND(56033, "TIANSHU_APP_NOT_FOUND", "app not found"),
     /**
      * 业务下待创建的应用编码已经存在。 The application code being created already exists in the business.
      */
-    APP_CODE_EXISTS(56034, "DDC_APP_CODE_EXISTS", "app code already exists"),
+    APP_CODE_EXISTS(56034, "TIANSHU_APP_CODE_EXISTS", "app code already exists"),
     /**
      * 应用仍包含命名空间，不能执行删除。 The application still owns namespaces and cannot be deleted.
      */
-    APP_IN_USE(56035, "DDC_APP_IN_USE", "app still has namespaces"),
+    APP_IN_USE(56035, "TIANSHU_APP_IN_USE", "app still has namespaces"),
     /**
      * 指定命名空间不存在。 The requested namespace does not exist.
      */
-    NAMESPACE_NOT_FOUND(56036, "DDC_NAMESPACE_NOT_FOUND", "namespace not found"),
+    NAMESPACE_NOT_FOUND(56036, "TIANSHU_NAMESPACE_NOT_FOUND", "namespace not found"),
     /**
      * 待创建的命名空间编码已经存在。 The namespace code being created already exists.
      */
-    NAMESPACE_CODE_EXISTS(56037, "DDC_NAMESPACE_CODE_EXISTS", "namespace already exists"),
+    NAMESPACE_CODE_EXISTS(56037, "TIANSHU_NAMESPACE_CODE_EXISTS", "namespace already exists"),
     /**
      * 命名空间仍包含配置，不能执行删除。 The namespace still contains configurations and cannot be deleted.
      */
-    NAMESPACE_IN_USE(56038, "DDC_NAMESPACE_IN_USE", "namespace still has configs"),
+    NAMESPACE_IN_USE(56038, "TIANSHU_NAMESPACE_IN_USE", "namespace still has configs"),
     /**
      * 指定环境不存在。 The requested environment does not exist.
      */
-    ENV_NOT_FOUND(56039, "DDC_ENV_NOT_FOUND", "env not found"),
+    ENV_NOT_FOUND(56039, "TIANSHU_ENV_NOT_FOUND", "env not found"),
     /**
      * 待创建的环境编码已经存在。 The environment code being created already exists.
      */
-    ENV_CODE_EXISTS(56040, "DDC_ENV_CODE_EXISTS", "env code already exists"),
+    ENV_CODE_EXISTS(56040, "TIANSHU_ENV_CODE_EXISTS", "env code already exists"),
     /**
      * 环境仍被作用域绑定引用，不能执行删除。 The environment is still referenced by scope bindings and cannot be deleted.
      */
-    ENV_IN_USE(56041, "DDC_ENV_IN_USE", "env is still referenced"),
+    ENV_IN_USE(56041, "TIANSHU_ENV_IN_USE", "env is still referenced"),
     /**
      * 请求命中的业务-环境-应用作用域已禁用。 The resolved business-environment-application scope is disabled.
      */
-    SCOPE_DISABLED(56042, "DDC_SCOPE_DISABLED", "scope disabled"),
+    SCOPE_DISABLED(56042, "TIANSHU_SCOPE_DISABLED", "scope disabled"),
     /**
      * 相同的命名空间、环境和应用绑定已经存在。 The same namespace, environment, and application binding already exists.
      */
     NAMESPACE_BINDING_EXISTS(
             56043,
-            "DDC_NAMESPACE_BINDING_EXISTS",
+            "TIANSHU_NAMESPACE_BINDING_EXISTS",
             "namespace environment app binding already exists"
     ),
     /**
@@ -156,13 +156,13 @@ public enum DdcErrorStatus implements ErrorStatus {
      */
     NAMESPACE_BINDING_NOT_FOUND(
             56044,
-            "DDC_NAMESPACE_BINDING_NOT_FOUND",
+            "TIANSHU_NAMESPACE_BINDING_NOT_FOUND",
             "namespace environment app binding not found"
     ),
     /**
-     * DDC 内部处理发生未归类故障。 An unclassified internal DDC processing failure occurred.
+     * Tianshu 内部处理发生未归类故障。 An unclassified internal Tianshu processing failure occurred.
      */
-    INTERNAL_FAILURE(56999, "DDC_INTERNAL_FAILURE", "DDC internal failure");
+    INTERNAL_FAILURE(56999, "TIANSHU_INTERNAL_FAILURE", "Tianshu internal failure");
 
     /**
      * 对外稳定数值错误码。 Stable numeric error code exposed to callers.

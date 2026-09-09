@@ -65,27 +65,27 @@ public final class HttpRbac3AuthorizationClient implements Rbac3AuthorizationCli
         try {
             HttpResponse response = transport.get(uri, serviceToken, userToken, timeout);
             if (response.statusCode() == 401 || response.statusCode() == 403 || response.statusCode() == 404) {
-                throw new AuthorizationDeniedException("RBAC3_AUTHORIZATION_DENIED");
+                throw new AuthorizationDeniedException("TIANQUAN_JIANSHEN_AUTHORIZATION_DENIED");
             }
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new AuthorizationUnavailableException("RBAC3_AUTHORIZATION_UNAVAILABLE");
+                throw new AuthorizationUnavailableException("TIANQUAN_JIANSHEN_AUTHORIZATION_UNAVAILABLE");
             }
             JsonNode data = objectMapper.readTree(response.body()).get("data");
             if (data == null || data.isNull()) {
-                throw new AuthorizationUnavailableException("RBAC3_AUTHORIZATION_RESPONSE_INVALID");
+                throw new AuthorizationUnavailableException("TIANQUAN_JIANSHEN_AUTHORIZATION_RESPONSE_INVALID");
             }
             return objectMapper.treeToValue(data, SystemAuthorizationSnapshot.class);
         } catch (AuthorizationDeniedException | AuthorizationUnavailableException exception) {
             throw exception;
         } catch (IOException | RuntimeException exception) {
-            throw new AuthorizationUnavailableException("RBAC3_AUTHORIZATION_UNAVAILABLE", exception);
+            throw new AuthorizationUnavailableException("TIANQUAN_JIANSHEN_AUTHORIZATION_UNAVAILABLE", exception);
         }
     }
 
     private static String requiredUserToken(String value) {
         if (value == null || value.isBlank() || value.length() > 16_384) {
             throw new AuthorizationUnavailableException(
-                    "RBAC3_USER_TOKEN_UNAVAILABLE"
+                    "TIANQUAN_JIANSHEN_USER_TOKEN_UNAVAILABLE"
             );
         }
         return value.trim();
@@ -97,7 +97,7 @@ public final class HttpRbac3AuthorizationClient implements Rbac3AuthorizationCli
                 || "127.0.0.1".equals(value.getHost()) || "::1".equals(value.getHost());
         if (!"https".equalsIgnoreCase(value.getScheme())
                 && !("http".equalsIgnoreCase(value.getScheme()) && loopback)) {
-            throw new IllegalArgumentException("RBAC3 authorization endpoint must use HTTPS or loopback HTTP");
+            throw new IllegalArgumentException("Tianquan-Jianshen authorization endpoint must use HTTPS or loopback HTTP");
         }
         return value;
     }

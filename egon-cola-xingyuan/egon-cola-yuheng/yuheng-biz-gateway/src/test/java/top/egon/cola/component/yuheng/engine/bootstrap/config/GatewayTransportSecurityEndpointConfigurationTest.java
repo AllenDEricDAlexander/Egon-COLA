@@ -18,7 +18,7 @@ class GatewayTransportSecurityEndpointConfigurationTest {
                         .getAnnotation(ConditionalOnProperty.class);
 
         assertEquals(
-                "egon.cola.component.gateway.engine.tls-reload",
+                "egon.cola.component.yuheng.engine.tls-reload",
                 condition.prefix()
         );
         assertTrue(Arrays.asList(condition.name()).contains("enabled"));

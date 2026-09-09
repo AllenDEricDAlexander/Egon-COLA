@@ -61,12 +61,12 @@ class IdpGatewayAdapterAutoConfigurationTest {
     @Test
     void registersOnlyIdentityCapabilitiesWhenRedisIsAvailable() {
         runner.withPropertyValues(
-                        "egon.cola.platform.idp.gateway.enabled=true",
-                        "egon.cola.platform.idp.gateway.issuer=https://idp.local",
-                        "egon.cola.platform.idp.gateway.jwk-set-uri=https://idp.local/oauth2/jwks",
-                        "egon.cola.platform.idp.gateway.idp-refresh-uri=https://idp.local/oauth2/token",
-                        "egon.cola.platform.idp.gateway.refresh-status-resource-uri=https://api.idp.local",
-                        "egon.cola.platform.idp.gateway.runtime.redis-enabled=false")
+                        "egon.cola.platform.tianquan.shoubing.yuheng.enabled=true",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.issuer=https://tianquan-shoubing.local",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.tianquan-shoubing-refresh-uri=https://tianquan-shoubing.local/oauth2/token",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.refresh-status-resource-uri=https://api.tianquan-shoubing.local",
+                        "egon.cola.platform.tianquan.shoubing.yuheng.runtime.redis-enabled=false")
                 .withBean("idpGatewayRedissonClient", RedissonClient.class,
                         () -> mock(RedissonClient.class))
                 .run(context -> {
@@ -76,11 +76,11 @@ class IdpGatewayAdapterAutoConfigurationTest {
                     assertThat(context).doesNotHaveBean(
                             GatewayAuthorizationProvider.class);
                     assertThat(context.getBean(GatewayCredentialExtractor.class)
-                            .extractorId()).isEqualTo("idp-user-cookie");
+                            .extractorId()).isEqualTo("tianquan-shoubing-user-cookie");
                     assertThat(context.getBean(GatewayAuthenticationProvider.class)
-                            .providerId()).isEqualTo("idp-jwt");
+                            .providerId()).isEqualTo("tianquan-shoubing-jwt");
                     assertThat(context.getBean(GatewayIdentityMapper.class)
-                            .mapperId()).isEqualTo("idp-identity");
+                            .mapperId()).isEqualTo("tianquan-shoubing-identity");
                 });
     }
 
@@ -88,7 +88,7 @@ class IdpGatewayAdapterAutoConfigurationTest {
     void decoderAcceptsAccessTokenTypeValidatedByIdpVerifier()
             throws Exception {
         RSAKey key = new RSAKeyGenerator(2048)
-                .keyID("idp-local")
+                .keyID("tianquan-shoubing-local")
                 .algorithm(JWSAlgorithm.RS256)
                 .generate();
         byte[] jwkSet = ("{\"keys\":["
@@ -118,14 +118,14 @@ class IdpGatewayAdapterAutoConfigurationTest {
             properties.setJwkSetUri(issuer + "/oauth2/jwks");
             properties.setIdpRefreshUri(issuer + "/oauth2/token");
             properties.setRefreshStatusResourceUri(
-                    java.net.URI.create("https://api.idp.local"));
+                    java.net.URI.create("https://api.tianquan-shoubing.local"));
             JwtDecoder decoder = new IdpGatewayAdapterAutoConfiguration()
                     .idpGatewayJwtDecoder(properties);
             Instant now = Instant.now();
             SignedJWT token = new SignedJWT(
                     new JWSHeader.Builder(JWSAlgorithm.RS256)
                             .type(new JOSEObjectType("at+jwt"))
-                            .keyID("idp-local")
+                            .keyID("tianquan-shoubing-local")
                             .build(),
                     new JWTClaimsSet.Builder()
                             .issuer(issuer)

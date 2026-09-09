@@ -48,7 +48,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 candidate(
                         "change-1",
                         "release-old",
-                        "gateway.rules.chunk.release-old.0",
+                        "yuheng.rules.chunk.release-old.0",
                         3L
                 );
         when(journal.findChunkCleanupCandidates(
@@ -107,7 +107,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 candidate(
                         "change-2",
                         "release-old",
-                        "gateway.rules.chunk.release-old.1",
+                        "yuheng.rules.chunk.release-old.1",
                         4L
                 );
         when(journal.findChunkCleanupCandidates(any()))
@@ -140,7 +140,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 candidate(
                         "change-3",
                         "release-old",
-                        "gateway.rules.chunk.release-old.2",
+                        "yuheng.rules.chunk.release-old.2",
                         5L
                 );
         when(journal.findChunkCleanupCandidates(any()))
@@ -246,7 +246,7 @@ class GatewayRuleChunkGarbageCollectorTest {
         return new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO(
                 changeId,
                 releaseId,
-                "gateway-engine-orders",
+                "yuheng-biz-gateway-orders",
                 "test",
                 "default",
                 configKey,

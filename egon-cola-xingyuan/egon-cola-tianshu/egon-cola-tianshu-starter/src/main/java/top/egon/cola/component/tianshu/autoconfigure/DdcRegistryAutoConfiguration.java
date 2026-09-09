@@ -18,7 +18,7 @@ import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 @AutoConfiguration(after = DdcAutoConfiguration.class)
 @EnableConfigurationProperties(DdcProperties.class)
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.ddc.registry",
+        prefix = "egon.cola.component.tianshu.registry",
         name = "enabled",
         havingValue = "true",
         matchIfMissing = false
@@ -26,9 +26,9 @@ import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 public class DdcRegistryAutoConfiguration {
 
     /**
-     * 创建从 DDC 作用域属性生成服务键的工厂。 Creates the factory that derives service keys from DDC scope properties.
+     * 创建从 Tianshu 作用域属性生成服务键的工厂。 Creates the factory that derives service keys from Tianshu scope properties.
      *
-     * @param properties DDC 属性。 DDC properties
+     * @param properties Tianshu 属性。 Tianshu properties
      * @return 服务键工厂。 service-key factory
      */
     @Bean

@@ -62,8 +62,8 @@ import java.util.Locale;
 import java.util.Optional;
 
 /**
- * DDC 管理 Port 模型与 protobuf 请求响应之间的显式映射。
- * / Explicit mapping between DDC management Port models and protobuf requests
+ * Tianshu 管理 Port 模型与 protobuf 请求响应之间的显式映射。
+ * / Explicit mapping between Tianshu management Port models and protobuf requests
  * and responses.
  */
 public final class DdcManagementProtoMapper {
@@ -93,7 +93,7 @@ public final class DdcManagementProtoMapper {
         }
         var builder = GetBizRequest.newBuilder();
         if (hasId) {
-            builder.setDdcBusinessId(value.id());
+            builder.setTianshuBusinessId(value.id());
         } else {
             builder.setBizCode(value.bizCode());
         }
@@ -103,8 +103,8 @@ public final class DdcManagementProtoMapper {
     public DdcManagementBizLookup fromGetBizRequest(GetBizRequest value) {
         common.checked(value);
         return switch (value.getSelectorCase()) {
-            case DDC_BUSINESS_ID -> new DdcManagementBizLookup(
-                    value.getDdcBusinessId(), null);
+            case TIANSHU_BUSINESS_ID -> new DdcManagementBizLookup(
+                    value.getTianshuBusinessId(), null);
             case BIZ_CODE -> new DdcManagementBizLookup(
                     null, value.getBizCode());
             case SELECTOR_NOT_SET -> throw new IllegalArgumentException(
@@ -179,7 +179,7 @@ public final class DdcManagementProtoMapper {
 
     public GetAppRequest toGetAppRequest(String ddcApplicationId) {
         return common.checked(GetAppRequest.newBuilder()
-                .setDdcApplicationId(DdcCommonProtoMapper.require(
+                .setTianshuApplicationId(DdcCommonProtoMapper.require(
                         ddcApplicationId, "ddcApplicationId"))
                 .build());
     }
@@ -187,7 +187,7 @@ public final class DdcManagementProtoMapper {
     public String fromGetAppRequest(GetAppRequest value) {
         common.checked(value);
         return DdcCommonProtoMapper.require(
-                value.getDdcApplicationId(), "ddcApplicationId");
+                value.getTianshuApplicationId(), "ddcApplicationId");
     }
 
     public ListAppsRequest toListAppsRequest(DdcManagementAppQuery value) {
@@ -202,7 +202,7 @@ public final class DdcManagementProtoMapper {
                     "exactly one business id or bizCode is required");
         }
         if (hasBusinessId) {
-            builder.setDdcBusinessId(value.businessId());
+            builder.setTianshuBusinessId(value.businessId());
         } else {
             builder.setBizCode(value.bizCode());
         }
@@ -218,7 +218,7 @@ public final class DdcManagementProtoMapper {
         String businessId = null;
         String bizCode = null;
         switch (value.getBusinessSelectorCase()) {
-            case DDC_BUSINESS_ID -> businessId = value.getDdcBusinessId();
+            case TIANSHU_BUSINESS_ID -> businessId = value.getTianshuBusinessId();
             case BIZ_CODE -> bizCode = value.getBizCode();
             case BUSINESSSELECTOR_NOT_SET -> throw new IllegalArgumentException(
                     "exactly one business id or bizCode is required");

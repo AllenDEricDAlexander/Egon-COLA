@@ -72,7 +72,7 @@ class GatewaySecurityChainTest {
                     assertEquals(
                             "user-1",
                             result.trustedIdentity().httpHeaders().get(
-                                    "X-Egon-Gateway-Principal-Id"
+                                    "X-Egon-Yuheng-Principal-Id"
                             )
                     );
                     assertEquals(
@@ -98,7 +98,7 @@ class GatewaySecurityChainTest {
                         GatewayProtocol.HTTP
                 ))
                 .expectErrorSatisfies(error -> assertEquals(
-                        "GATEWAY_AUTHENTICATION_REQUIRED",
+                        "YUHENG_AUTHENTICATION_REQUIRED",
                         ((GatewaySecurityException) error).code()
                 ))
                 .verify();
@@ -138,7 +138,7 @@ class GatewaySecurityChainTest {
                         GatewayProtocol.HTTP
                 ))
                 .expectErrorSatisfies(error -> assertEquals(
-                        "GATEWAY_AUTHORIZATION_DENIED",
+                        "YUHENG_AUTHORIZATION_DENIED",
                         ((GatewaySecurityException) error).code()
                 ))
                 .verify();
@@ -165,7 +165,7 @@ class GatewaySecurityChainTest {
                         GatewayProtocol.HTTP
                 ))
                 .expectErrorSatisfies(error -> assertEquals(
-                        "GATEWAY_SECURITY_PROVIDER_TIMEOUT",
+                        "YUHENG_SECURITY_PROVIDER_TIMEOUT",
                         ((GatewaySecurityException) error).code()
                 ))
                 .verify();
@@ -196,7 +196,7 @@ class GatewaySecurityChainTest {
                 .expectErrorSatisfies(error -> {
                     GatewaySecurityException security =
                             (GatewaySecurityException) error;
-                    assertEquals("GATEWAY_AUTHENTICATION_FAILED", security.code());
+                    assertEquals("YUHENG_AUTHENTICATION_FAILED", security.code());
                     assertEquals(401, security.httpStatus());
                     assertEquals(List.of("at=; Max-Age=0", "rt=; Max-Age=0"),
                             security.responseHeaders().get("set-cookie"));
@@ -227,7 +227,7 @@ class GatewaySecurityChainTest {
                 .expectErrorSatisfies(error -> {
                     GatewaySecurityException security =
                             (GatewaySecurityException) error;
-                    assertEquals("GATEWAY_SECURITY_PROVIDER_ERROR", security.code());
+                    assertEquals("YUHENG_SECURITY_PROVIDER_ERROR", security.code());
                     assertEquals(503, security.httpStatus());
                     assertTrue(security.responseHeaders().isEmpty());
                 })
@@ -405,7 +405,7 @@ class GatewaySecurityChainTest {
             public TrustedIdentity map(GatewayAuthContext context) {
                 return new TrustedIdentity(
                         Map.of(
-                                "X-Egon-Gateway-Principal-Id",
+                                "X-Egon-Yuheng-Principal-Id",
                                 context.principal().principalId()
                         ),
                         Map.of()

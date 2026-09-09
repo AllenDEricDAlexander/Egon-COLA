@@ -75,7 +75,7 @@ class DdcHttpProviderRegistrationTest {
                 "127.0.0.1",
                 18081,
                 secure,
-                Map.of("gateway.zone", "cn-east"),
+                Map.of("yuheng.zone", "cn-east"),
                 30,
                 10,
                 "admission.jwt.value"

@@ -384,7 +384,7 @@ class DdcActiveActiveAdminIT {
         NameResolverRegistry.getDefaultRegistry().register(resolver);
         try {
             DdcRpcClientHandle<DdcConfigClient> handle =
-                    ddcClientFactory("active-active:///ddc").configClient();
+                    ddcClientFactory("active-active:///tianshu").configClient();
             clients.add(handle);
             assertThat(handle.client().pull()).isNotNull();
             nodeA.close();
@@ -404,7 +404,7 @@ class DdcActiveActiveAdminIT {
 
     private String[] nodeArguments(String id) {
         return new String[]{
-                "--spring.application.name=ddc-active-active-" + id,
+                "--spring.application.name=tianshu-active-active-" + id,
                 "--server.port=0",
                 "--spring.jmx.enabled=false",
                 "--spring.datasource.url=" + POSTGRES.getJdbcUrl(),
@@ -412,25 +412,25 @@ class DdcActiveActiveAdminIT {
                 "--spring.datasource.password=" + POSTGRES.getPassword(),
                 "--spring.jpa.hibernate.ddl-auto=validate",
                 "--spring.flyway.enabled=true",
-                "--egon.cola.platform.idp.enabled=false",
-                "--egon.cola.platform.rbac3.enabled=false",
-                "--egon.cola.component.ddc.enabled=false",
-                "--egon.cola.component.ddc.registry.enabled=false",
-                "--egon.cola.component.ddc.admin.security.local-dev=true",
-                "--egon.cola.component.ddc.admin.redis.host=" + REDIS.getHost(),
-                "--egon.cola.component.ddc.admin.redis.port=" + REDIS.getMappedPort(6379),
-                "--egon.cola.component.ddc.admin.rpc.signature-enabled=true",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].credential-id=active-active",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].access-key=" + ACCESS_KEY,
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].secret=" + SECRET,
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].client-type=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].app-code-patterns[0]=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].env-patterns[0]=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].biz-code-patterns[0]=*",
-                "--egon.cola.component.ddc.admin.rpc.credentials[0].allowed-operations[0]=*",
-                "--egon.cola.component.ddc.admin.publish.scan-interval-ms=3600000",
-                "--egon.cola.component.ddc.admin.publish.recovery-stale-ms=3600000",
-                "--egon.cola.component.ddc.admin.lease.scan-interval-millis=3600000",
+                "--egon.cola.platform.tianquan.shoubing.enabled=false",
+                "--egon.cola.platform.tianquan.jianshen.enabled=false",
+                "--egon.cola.component.tianshu.enabled=false",
+                "--egon.cola.component.tianshu.registry.enabled=false",
+                "--egon.cola.component.tianshu.admin.security.local-dev=true",
+                "--egon.cola.component.tianshu.admin.redis.host=" + REDIS.getHost(),
+                "--egon.cola.component.tianshu.admin.redis.port=" + REDIS.getMappedPort(6379),
+                "--egon.cola.component.tianshu.admin.rpc.signature-enabled=true",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].credential-id=active-active",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].access-key=" + ACCESS_KEY,
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].secret=" + SECRET,
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].client-type=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].app-code-patterns[0]=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].env-patterns[0]=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].biz-code-patterns[0]=*",
+                "--egon.cola.component.tianshu.admin.rpc.credentials[0].allowed-operations[0]=*",
+                "--egon.cola.component.tianshu.admin.publish.scan-interval-ms=3600000",
+                "--egon.cola.component.tianshu.admin.publish.recovery-stale-ms=3600000",
+                "--egon.cola.component.tianshu.admin.lease.scan-interval-millis=3600000",
                 "--egon.cola.component.rpc.enabled=true",
                 "--egon.cola.component.rpc.provider.enabled=true",
                 "--egon.cola.component.rpc.provider.port=0",
@@ -712,7 +712,7 @@ class DdcActiveActiveAdminIT {
             return new NameResolver() {
                 @Override
                 public String getServiceAuthority() {
-                    return "ddc-active-active";
+                    return "tianshu-active-active";
                 }
 
                 @Override

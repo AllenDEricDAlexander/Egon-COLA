@@ -13,7 +13,7 @@ import java.util.Set;
  *
  * @param grantType 授权类型；grant type
  * @param tenantId 服务授权绑定租户；tenant bound to a service grant
- * @param allowedScopes IdP 许可的服务 Scope；service scopes allowed by IdP
+ * @param allowedScopes Tianquan-Shoubing 许可的服务 Scope；service scopes allowed by Tianquan-Shoubing
  * @param expectedResourceVersion Resource Server 期望版本；expected Resource Server version
  * @param expectedGrantVersion 已有 Grant 期望版本，新建时为空；expected existing Grant version, null for create
  */

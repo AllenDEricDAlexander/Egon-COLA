@@ -49,7 +49,7 @@ class GatewayEngineConfigurationTest {
         var identity = org.mockito.Mockito.mock(
                 top.egon.cola.component.tianshu.model.instance.DdcInstanceIdentity.class);
         org.mockito.Mockito.when(identity.instanceId()).thenReturn("api-test");
-        String prefix = "egon.cola.component.gateway.engine.";
+        String prefix = "egon.cola.component.yuheng.engine.";
         new org.springframework.boot.test.context.runner.ApplicationContextRunner()
                 .withUserConfiguration(GatewayEngineConfiguration.class)
                 .withPropertyValues(prefix + "data-directory=" + dataDirectory,
@@ -87,7 +87,7 @@ class GatewayEngineConfigurationTest {
                     assertFalse(context.containsBean("gatewayMcpTaskService"));
                     var metadata = context.getBean("gatewayRuntimeMetadata",
                             top.egon.cola.component.tianshu.api.extension.DdcInstanceMetadataContributor.class).metadata();
-                    assertEquals("API_RPC", metadata.get("gateway.engine.role"));
+                    assertEquals("API_RPC", metadata.get("yuheng.engine.role"));
                 });
     }
 
@@ -99,8 +99,8 @@ class GatewayEngineConfigurationTest {
         operations.setResources(new ClassPathResource("application-operations.yml"));
         assertEquals(base.getObject().stringPropertyNames(), operations.getObject().stringPropertyNames());
         assertFalse(base.getObject().stringPropertyNames().stream().anyMatch(
-                key -> key.contains("gateway.engine.mcp.") || key.startsWith("spring.datasource.")));
-        assertFalse(base.getObject().values().stream().anyMatch(value -> value.toString().contains("GATEWAY_MCP_")));
+                key -> key.contains("yuheng.engine.mcp.") || key.startsWith("spring.datasource.")));
+        assertFalse(base.getObject().values().stream().anyMatch(value -> value.toString().contains("YUHENG_MCP_")));
     }
 
     @Test
@@ -137,38 +137,38 @@ class GatewayEngineConfigurationTest {
         YamlPropertiesFactoryBean loader = new YamlPropertiesFactoryBean();
         loader.setResources(new ClassPathResource("application.yml"));
 
-        assertEquals("${DDC_BIZ_CODE:infra}", loader.getObject()
-                .getProperty("egon.cola.component.ddc.biz-code"));
-        assertEquals("${DDC_ENV:local}", loader.getObject()
-                .getProperty("egon.cola.component.ddc.env"));
-        assertEquals("${DDC_APP_CODE:ge}", loader.getObject()
-                .getProperty("egon.cola.component.ddc.app-code"));
-        assertEquals("${DDC_RPC_TARGET:dns:///ddc-admin:19080}",
+        assertEquals("${TIANSHU_BIZ_CODE:infra}", loader.getObject()
+                .getProperty("egon.cola.component.tianshu.biz-code"));
+        assertEquals("${TIANSHU_ENV:local}", loader.getObject()
+                .getProperty("egon.cola.component.tianshu.env"));
+        assertEquals("${TIANSHU_APP_CODE:ge}", loader.getObject()
+                .getProperty("egon.cola.component.tianshu.app-code"));
+        assertEquals("${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}",
                 loader.getObject().getProperty(
-                        "egon.cola.component.ddc.rpc.target"
+                        "egon.cola.component.tianshu.rpc.target"
                 ));
         assertEquals("round_robin", loader.getObject().getProperty(
-                "egon.cola.component.ddc.rpc.load-balancing-policy"
+                "egon.cola.component.tianshu.rpc.load-balancing-policy"
         ));
-        assertEquals("${GATEWAY_ENGINE_DDC_REGISTRATION_ENABLED:true}",
+        assertEquals("${YUHENG_ENGINE_TIANSHU_REGISTRATION_ENABLED:true}",
                 loader.getObject().getProperty(
-                        "egon.cola.component.ddc.registry.http.enabled"));
-        assertEquals("egon-cola-gateway-engine", loader.getObject()
+                        "egon.cola.component.tianshu.registry.http.enabled"));
+        assertEquals("egon-cola-yuheng-biz-gateway", loader.getObject()
                 .getProperty(
-                        "egon.cola.component.ddc.registry.http.service-name"));
+                        "egon.cola.component.tianshu.registry.http.service-name"));
         assertEquals("engine", loader.getObject().getProperty(
-                "egon.cola.component.ddc.registry.http.metadata.gateway.component"));
+                "egon.cola.component.tianshu.registry.http.metadata.yuheng.component"));
     }
 
     @Test
     void bindsLegacyUpstreamTimeoutAlongsideIndependentSafetyDefaults() {
         GatewayEngineRuntimeProperties properties = new Binder(
                 new MapConfigurationPropertySource(Map.of(
-                        "egon.cola.component.gateway.engine.http.upstream-timeout",
+                        "egon.cola.component.yuheng.engine.http.upstream-timeout",
                         "PT7S"
                 ))
         ).bind(
-                "egon.cola.component.gateway.engine",
+                "egon.cola.component.yuheng.engine",
                 Bindable.of(GatewayEngineRuntimeProperties.class)
         ).get();
 
@@ -239,13 +239,13 @@ class GatewayEngineConfigurationTest {
     void boundLegacyAggregatedLimitStillRejectsSixtyFiveMib() {
         GatewayEngineRuntimeProperties properties = new Binder(
                 new MapConfigurationPropertySource(Map.of(
-                        "egon.cola.component.gateway.engine.http.max-body-bytes",
+                        "egon.cola.component.yuheng.engine.http.max-body-bytes",
                         Long.toString(65L * MIB),
-                        "egon.cola.component.gateway.engine.http.absolute-max-request-body-bytes",
+                        "egon.cola.component.yuheng.engine.http.absolute-max-request-body-bytes",
                         Long.toString(1024L * MIB)
                 ))
         ).bind(
-                "egon.cola.component.gateway.engine",
+                "egon.cola.component.yuheng.engine",
                 Bindable.of(GatewayEngineRuntimeProperties.class)
         ).get();
         enableDevelopmentPlaintext(properties);
@@ -439,10 +439,10 @@ class GatewayEngineConfigurationTest {
         AnnotationConfigApplicationContext context =
                 new AnnotationConfigApplicationContext();
         context.getEnvironment().getPropertySources().addFirst(
-                new MapPropertySource("gateway-rate-limit-test", Map.of(
-                        "egon.cola.component.gateway.engine.traffic.redis.enabled",
+                new MapPropertySource("yuheng-rate-limit-test", Map.of(
+                        "egon.cola.component.yuheng.engine.traffic.redis.enabled",
                         "true",
-                        "egon.cola.component.gateway.engine.traffic.redis.address",
+                        "egon.cola.component.yuheng.engine.traffic.redis.address",
                         "redis://127.0.0.1:6379"
                 ))
         );
@@ -450,7 +450,7 @@ class GatewayEngineConfigurationTest {
         context.register(configurationType);
         context.addBeanFactoryPostProcessor(beanFactory -> {
             for (String beanName : beanFactory.getBeanDefinitionNames()) {
-                if ((beanName.startsWith("gateway") || beanName.startsWith("apiRpcGateway"))
+                if ((beanName.startsWith("yuheng") || beanName.startsWith("apiRpcGateway"))
                         && !beanName.equals("gatewayRateLimitRedissonClient")
                         && !beanName.equals("gatewayEngineConfiguration")
                         && !beanName.contains("GatewayEngineConfiguration")
@@ -478,7 +478,7 @@ class GatewayEngineConfigurationTest {
         @Override
         @Bean(name = "gatewayRateLimitRedissonClient")
         @ConditionalOnProperty(
-                prefix = "gateway.test",
+                prefix = "yuheng.test",
                 name = "rate-limit-client-producer",
                 havingValue = "true"
         )

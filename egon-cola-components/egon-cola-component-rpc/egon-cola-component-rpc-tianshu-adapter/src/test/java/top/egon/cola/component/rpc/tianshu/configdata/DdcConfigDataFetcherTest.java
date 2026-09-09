@@ -61,11 +61,11 @@ class DdcConfigDataFetcherTest {
 
         assertThatThrownBy(() -> multiple.load("application.yml"))
                 .hasMessage(
-                        "DDC scope must contain exactly one application.yml"
+                        "Tianshu scope must contain exactly one application.yml"
                 );
         assertThatThrownBy(() -> wrongType.load("application.yml"))
                 .hasMessage(
-                        "DDC scope must contain only application.yml with YAML type"
+                        "Tianshu scope must contain only application.yml with YAML type"
                 );
     }
 
@@ -91,10 +91,10 @@ class DdcConfigDataFetcherTest {
         );
 
         assertThatThrownBy(() -> invalidVersion.load("application.yml"))
-                .hasMessage("DDC application.yml must have a positive version");
+                .hasMessage("Tianshu application.yml must have a positive version");
         assertThatThrownBy(() -> oversized.load("application.yml"))
                 .hasMessage(
-                        "DDC application.yml exceeds the UTF-8 limit of 5 bytes"
+                        "Tianshu application.yml exceeds the UTF-8 limit of 5 bytes"
                 );
     }
 

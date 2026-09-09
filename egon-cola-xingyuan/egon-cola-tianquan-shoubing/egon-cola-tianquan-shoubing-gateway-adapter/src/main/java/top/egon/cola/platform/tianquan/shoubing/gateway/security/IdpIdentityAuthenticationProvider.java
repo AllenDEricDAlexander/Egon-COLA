@@ -19,11 +19,11 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * 在 Gateway 安全链中执行仅身份级的 IdP 认证。
+ * 在 Gateway 安全链中执行仅身份级的 Tianquan-Shoubing 认证。
  * JWT 解码和 Redis 状态读取可能阻塞，因此验证工作调度到有界弹性线程池；
  * 任意验证异常都收敛为拒绝结果，不向下游泄露内部失败细节。
  *
- * <p>Performs identity-only IdP authentication in the Gateway security chain. JWT decoding and
+ * <p>Performs identity-only Tianquan-Shoubing authentication in the Gateway security chain. JWT decoding and
  * Redis state access may block, so verification runs on the bounded-elastic scheduler. Any
  * verification exception is converted into a denial without exposing internal failure details
  * downstream.</p>
@@ -36,7 +36,7 @@ public final class IdpIdentityAuthenticationProvider
      *
      * <p>Stable identifier used by Gateway policy to select this authentication provider.</p>
      */
-    public static final String PROVIDER_ID = "idp-jwt";
+    public static final String PROVIDER_ID = "tianquan-shoubing-jwt";
 
     /**
      * 访问令牌验证端口。
@@ -46,9 +46,9 @@ public final class IdpIdentityAuthenticationProvider
     private final TokenVerifier verifier;
 
     /**
-     * 创建 IdP 身份认证提供者。
+     * 创建 Tianquan-Shoubing 身份认证提供者。
      *
-     * <p>Creates the IdP identity authentication provider.</p>
+     * <p>Creates the Tianquan-Shoubing identity authentication provider.</p>
      *
      * @param verifier 访问令牌验证端口；access-token verification port
      */
@@ -97,13 +97,13 @@ public final class IdpIdentityAuthenticationProvider
     ) {
         if (!"bearer".equalsIgnoreCase(credential.type())) {
             return Mono.just(AuthenticationDecision.deny(
-                    "IDP_CREDENTIAL_TYPE_INVALID"));
+                    "TIANQUAN_SHOUBING_CREDENTIAL_TYPE_INVALID"));
         }
         return Mono.fromCallable(() -> decision(verifier.verify(
                         context, credential.tokenReference())))
                 .subscribeOn(Schedulers.boundedElastic())
                 .onErrorReturn(AuthenticationDecision.error(
-                        "IDP_AUTHENTICATION_FAILED"));
+                        "TIANQUAN_SHOUBING_AUTHENTICATION_FAILED"));
     }
 
     /**
@@ -127,27 +127,27 @@ public final class IdpIdentityAuthenticationProvider
         }
         IdpPrincipal principal = verification.principal();
         Map<String, String> attributes = new LinkedHashMap<>();
-        attributes.put("idp.token-id", principal.tokenId());
-        attributes.put("idp.issued-at", principal.issuedAt().toString());
-        attributes.put("idp.expires-at", principal.expiresAt().toString());
+        attributes.put("tianquan-shoubing.token-id", principal.tokenId());
+        attributes.put("tianquan-shoubing.issued-at", principal.issuedAt().toString());
+        attributes.put("tianquan-shoubing.expires-at", principal.expiresAt().toString());
         if (principal instanceof IdentityPrincipal user) {
-            attributes.put("idp.audience", user.audience().stream()
+            attributes.put("tianquan-shoubing.audience", user.audience().stream()
                     .sorted()
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException(
                             "USER audience is required")));
-            attributes.put("idp-auth-acr", user.authenticationContext().acr());
-            attributes.put("idp-auth-time", user.authenticationContext().authTime().toString());
+            attributes.put("tianquan-shoubing-auth-acr", user.authenticationContext().acr());
+            attributes.put("tianquan-shoubing-auth-time", user.authenticationContext().authTime().toString());
         } else if (principal instanceof ServiceIdentityPrincipal service) {
-            attributes.put("idp.client-id", service.clientId());
-            attributes.put("idp.resource-uri", service.resourceUri().toString());
-            attributes.put("idp.resource-version", Long.toString(service.resourceVersion()));
-            attributes.put("idp.source-biz", service.sourceBizCode());
-            attributes.put("idp.source-app", service.sourceAppCode());
-            attributes.put("idp.source-env", service.sourceEnvironment());
-            attributes.put("idp.service-scopes", String.join(
+            attributes.put("tianquan-shoubing.client-id", service.clientId());
+            attributes.put("tianquan-shoubing.resource-uri", service.resourceUri().toString());
+            attributes.put("tianquan-shoubing.resource-version", Long.toString(service.resourceVersion()));
+            attributes.put("tianquan-shoubing.source-biz", service.sourceBizCode());
+            attributes.put("tianquan-shoubing.source-app", service.sourceAppCode());
+            attributes.put("tianquan-shoubing.source-env", service.sourceEnvironment());
+            attributes.put("tianquan-shoubing.service-scopes", String.join(
                     " ", new java.util.TreeSet<>(service.scopes())));
-            attributes.put("idp.credential-id", service.credentialId());
+            attributes.put("tianquan-shoubing.credential-id", service.credentialId());
         }
         return AuthenticationDecision.allow(new GatewayPrincipal(
                 principal.subject(),

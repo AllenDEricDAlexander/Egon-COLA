@@ -8,7 +8,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl.ClientSecretBasicAuthenticator;
-import top.egon.cola.platform.tianquan.shoubing.admin.support.ddc.IdpRuntimePolicy;
+import top.egon.cola.platform.tianquan.shoubing.admin.support.tianshu.IdpRuntimePolicy;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.ClientCredentialsTokenService;
 import top.egon.cola.platform.tianquan.shoubing.core.oauth.ClientSecretAuthentication;
 import top.egon.cola.platform.tianquan.shoubing.core.token.ServiceAccessToken;
@@ -40,7 +40,7 @@ class OAuthTokenClientCredentialsTest {
 
     private static final Instant NOW = Instant.parse("2026-08-22T00:00:00Z");
     private static final URI RESOURCE = URI.create(
-            "https://api.example/prod/permission/rbac3"
+            "https://api.example/prod/permission/tianquan-jianshen"
     );
 
     private final TokenFacade tokens = mock(TokenFacade.class);

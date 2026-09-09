@@ -187,7 +187,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
             } catch (RuntimeException exception) {
                 cleanupStartup();
                 throw new EgonRpcException(
-                        EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
+                        EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE,
                         "RPC Gateway discovery failed",
                         exception
                 );
@@ -262,7 +262,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
                 .toList();
         if (state != RpcGatewayState.READY || candidates.isEmpty()) {
             throw new EgonRpcException(
-                    EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
+                    EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE,
                     "the RPC Gateway is unavailable"
             );
         }
@@ -443,7 +443,7 @@ public class RpcConsumerGatewayManager implements SmartLifecycle {
     private void failStartup() {
         cleanupStartup();
         throw new EgonRpcException(
-                EgonRpcErrorCode.RPC_GATEWAY_UNAVAILABLE,
+                EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE,
                 "RPC Gateway discovery failed"
         );
     }

@@ -20,8 +20,8 @@ import top.egon.cola.component.tianshu.state.DdcLeaseSessionHolder;
 import java.util.List;
 
 /**
- * 协调 DDC YAML 快照初始化、发布消息应用、版本幂等判断和 ACK 反馈。
- * Coordinates DDC YAML snapshot initialization, publication application, version idempotency checks, and ACK feedback.
+ * 协调 Tianshu YAML 快照初始化、发布消息应用、版本幂等判断和 ACK 反馈。
+ * Coordinates Tianshu YAML snapshot initialization, publication application, version idempotency checks, and ACK feedback.
  */
 public class DdcRefreshService {
 
@@ -47,7 +47,7 @@ public class DdcRefreshService {
     private final DdcYamlConfigApplier yamlConfigApplier;
 
     /**
-     * DDC client used to resolve notifications that intentionally omit large content payloads.
+     * Tianshu client used to resolve notifications that intentionally omit large content payloads.
      */
     private final DdcConfigClient configClient;
 
@@ -77,7 +77,7 @@ public class DdcRefreshService {
      *
      * @param repository        本地配置仓库; local configuration repository
      * @param yamlConfigApplier YAML 配置应用器; YAML configuration applier
-     * @param adminClient       DDC 管理端客户端; DDC administration client
+     * @param adminClient       Tianshu 管理端客户端; Tianshu administration client
      * @param sessionHolder     租约会话持有器; lease session holder
      */
     public DdcRefreshService(DdcLocalConfigState repository,
@@ -121,7 +121,7 @@ public class DdcRefreshService {
      * @param repository        local configuration repository
      * @param yamlConfigApplier YAML configuration applier
      * @param ackDelivery       asynchronous acknowledgement delivery
-     * @param adminClient       DDC client used to pull deferred content
+     * @param adminClient       Tianshu client used to pull deferred content
      * @param sessionHolder     current lease-session holder
      */
     public DdcRefreshService(DdcLocalConfigState repository,
@@ -178,7 +178,7 @@ public class DdcRefreshService {
         }
         if (configs.size() != 1) {
             throw new IllegalArgumentException(
-                    "DDC scope must contain exactly one YAML resource"
+                    "Tianshu scope must contain exactly one YAML resource"
             );
         }
         applySnapshot(configs.getFirst());
@@ -208,7 +208,7 @@ public class DdcRefreshService {
             );
             if (relation == VersionRelation.CHECKSUM_CONFLICT) {
                 LOGGER.warn(
-                        "DDC snapshot checksum conflict for resource={} version={}",
+                        "Tianshu snapshot checksum conflict for resource={} version={}",
                         resourceName,
                         config.getVersion()
                 );
@@ -257,14 +257,14 @@ public class DdcRefreshService {
         try {
             if (!ackSubmitter.submit(ack(message, session, outcome))) {
                 LOGGER.warn(
-                        "DDC ACK delivery rejected for changeId={} instanceId={}",
+                        "Tianshu ACK delivery rejected for changeId={} instanceId={}",
                         message.getChangeId(),
                         session.instanceId()
                 );
             }
         } catch (RuntimeException exception) {
             LOGGER.warn(
-                    "DDC ACK delivery failed for changeId={} instanceId={}",
+                    "Tianshu ACK delivery failed for changeId={} instanceId={}",
                     message.getChangeId(),
                     session.instanceId()
             );
@@ -285,7 +285,7 @@ public class DdcRefreshService {
                 || config.getVersion() == null
                 || config.getVersion() <= 0) {
             throw new IllegalArgumentException(
-                    "DDC scope resource must match the imported YAML resource"
+                    "Tianshu scope resource must match the imported YAML resource"
             );
         }
     }
@@ -358,7 +358,7 @@ public class DdcRefreshService {
             return new AckOutcome(
                     DdcAckStatus.FAILED,
                     local.version(),
-                    "DDC config checksum conflict"
+                    "Tianshu config checksum conflict"
             );
         }
         try {
@@ -384,7 +384,7 @@ public class DdcRefreshService {
     }
 
     /**
-     * Resolves a deferred notification from the authoritative DDC RPC snapshot and verifies its version and checksum.
+     * Resolves a deferred notification from the authoritative Tianshu RPC snapshot and verifies its version and checksum.
      *
      * @param message publication notification
      * @return complete configuration content
@@ -395,7 +395,7 @@ public class DdcRefreshService {
         }
         if (configClient == null) {
             throw new IllegalStateException(
-                    "DDC deferred content requires a configuration client"
+                    "Tianshu deferred content requires a configuration client"
             );
         }
         List<DdcConfigValue> configs = configClient.pull(
@@ -421,7 +421,7 @@ public class DdcRefreshService {
             }
         }
         throw new IllegalStateException(
-                "DDC deferred content snapshot is unavailable"
+                "Tianshu deferred content snapshot is unavailable"
         );
     }
 
@@ -512,7 +512,7 @@ public class DdcRefreshService {
      * @return 可安全返回管理端的错误消息; error message safe to return to the administration endpoint
      */
     private String safeErrorMessage(RuntimeException exception) {
-        String prefix = "DDC config apply failed";
+        String prefix = "Tianshu config apply failed";
         String detail = exception.getMessage();
         String message = detail == null || detail.isBlank()
                 ? prefix
@@ -599,7 +599,7 @@ public class DdcRefreshService {
      * 将管理客户端适配为始终同步成功返回的 ACK 提交器。
      * Adapts an administration client to an ACK submitter that returns success after synchronous delivery.
      *
-     * @param adminClient DDC 管理端客户端; DDC administration client
+     * @param adminClient Tianshu 管理端客户端; Tianshu administration client
      * @return 同步 ACK 提交器; synchronous ACK submitter
      */
     private static AckSubmitter directAck(DdcConfigClient adminClient) {

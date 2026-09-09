@@ -26,7 +26,7 @@ class UserControllerTest {
     @Test
     void declaresUserCrudRoutesUnderIam() {
         RequestMapping mapping = UserController.class.getAnnotation(RequestMapping.class);
-        assertThat(mapping.value()).containsExactly("/api/rbac3/v1/iam");
+        assertThat(mapping.value()).containsExactly("/api/tianquan-jianshen/v1/iam");
 
         Stream<String> routes = Arrays.stream(UserController.class.getDeclaredMethods())
                 .flatMap(method -> {

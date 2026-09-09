@@ -136,9 +136,9 @@ public final class GatewayAdminControlPlaneStatusClient
             Clock clock,
             Duration timeout) {
         this(adminBaseUri, gatewayGroupId, releaseId, new GatewayServiceKey(
-                        "rbac3", "rbac3-admin", "prod", "default",
+                        "tianquan-jianshen", "tianquan-jianshen-admin", "prod", "default",
                         "HTTP_PROVIDER", "http",
-                        "rbac3-admin", "default", "1.0.0"),
+                        "tianquan-jianshen-admin", "default", "1.0.0"),
                 credentials, new JdkGatewayAdminControlPlaneTransport(timeout), objectMapper, clock, timeout);
     }
 
@@ -197,9 +197,9 @@ public final class GatewayAdminControlPlaneStatusClient
             Clock clock,
             Duration timeout) {
         this(adminBaseUri, gatewayGroupId, releaseId, new GatewayServiceKey(
-                        "rbac3", "rbac3-admin", "prod", "default",
+                        "tianquan-jianshen", "tianquan-jianshen-admin", "prod", "default",
                         "HTTP_PROVIDER", "http",
-                        "rbac3-admin", "default", "1.0.0"),
+                        "tianquan-jianshen-admin", "default", "1.0.0"),
                 credentials, transport, objectMapper, clock, timeout);
     }
 
@@ -281,7 +281,7 @@ public final class GatewayAdminControlPlaneStatusClient
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     private GatewayReleaseObservationVO release(String token) {
-        GatewayAdminControlPlaneResponse response = get("/api/v1/gateway/admin/releases/" + encode(releaseId), token);
+        GatewayAdminControlPlaneResponse response = get("/api/v1/yuheng/admin/releases/" + encode(releaseId), token);
         if (!response.success()) {
             return GatewayReleaseObservationVO.unknown(releaseId, response.reasonCode());
         }
@@ -313,7 +313,7 @@ public final class GatewayAdminControlPlaneStatusClient
                 + "&group=" + encode(providerServiceKey.group())
                 + "&version=" + encode(providerServiceKey.version());
         GatewayAdminControlPlaneResponse response = get(
-                "/api/v1/gateway/admin/providers/instances" + query, token);
+                "/api/v1/yuheng/admin/providers/instances" + query, token);
         if (!response.success()) {
             return GatewayProviderObservationVO.unknown(response.reasonCode());
         }
@@ -334,7 +334,7 @@ public final class GatewayAdminControlPlaneStatusClient
      */
     private GatewayConsistencyObservationVO consistency(String token) {
         GatewayAdminControlPlaneResponse response = get(
-                "/api/v1/gateway/admin/gateway-groups/" + encode(gatewayGroupId)
+                "/api/v1/yuheng/admin/yuheng-groups/" + encode(gatewayGroupId)
                         + "/runtime-consistency", token);
         if (!response.success()) {
             return GatewayConsistencyObservationVO.unknown(response.reasonCode());
@@ -362,14 +362,14 @@ public final class GatewayAdminControlPlaneStatusClient
         try {
             GatewayAdminControlPlaneHttpResponseVO result = transport.get(adminBaseUri.resolve(path), token, timeout);
             if (result.statusCode() == 403) {
-                return GatewayAdminControlPlaneResponse.failure("GATEWAY_STATUS_FORBIDDEN");
+                return GatewayAdminControlPlaneResponse.failure("YUHENG_STATUS_FORBIDDEN");
             }
             if (result.statusCode() < 200 || result.statusCode() >= 300) {
-                return GatewayAdminControlPlaneResponse.failure("GATEWAY_STATUS_UNAVAILABLE");
+                return GatewayAdminControlPlaneResponse.failure("YUHENG_STATUS_UNAVAILABLE");
             }
             return GatewayAdminControlPlaneResponse.success(objectMapper.readTree(result.body()));
         } catch (Exception unavailable) {
-            return GatewayAdminControlPlaneResponse.failure("GATEWAY_STATUS_UNAVAILABLE");
+            return GatewayAdminControlPlaneResponse.failure("YUHENG_STATUS_UNAVAILABLE");
         }
     }
 
@@ -401,7 +401,7 @@ public final class GatewayAdminControlPlaneStatusClient
                             text(serviceKey, "serviceKind"), text(serviceKey, "protocol"),
                             text(serviceKey, "serviceName"), text(serviceKey, "group"),
                             firstText(serviceKey, "version", "artifactVersion")),
-                    recursiveText(node.path("metadata"), "gateway.definition-set-id")));
+                    recursiveText(node.path("metadata"), "yuheng.definition-set-id")));
             return;
         }
         node.elements().forEachRemaining(value -> collectInstances(value, target));

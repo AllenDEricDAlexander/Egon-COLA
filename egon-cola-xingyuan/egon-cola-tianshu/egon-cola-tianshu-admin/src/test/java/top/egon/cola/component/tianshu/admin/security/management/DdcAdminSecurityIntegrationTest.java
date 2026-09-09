@@ -61,7 +61,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 @Import(DdcAdminSecurityConfiguration.class)
 @TestPropertySource(properties = {
-        "egon.cola.component.ddc.admin.security.local-dev=true"
+        "egon.cola.component.tianshu.admin.security.local-dev=true"
 })
 class DdcAdminSecurityIntegrationTest {
 
@@ -114,34 +114,34 @@ class DdcAdminSecurityIntegrationTest {
                 .andExpect(status().isOk());
         mockMvc.perform(get("/actuator/info"))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/ddc/configs"))
+        mockMvc.perform(get("/api/v1/tianshu/configs"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code")
-                        .value("DDC_ADMIN_AUTHENTICATION_REQUIRED"));
+                        .value("TIANSHU_ADMIN_AUTHENTICATION_REQUIRED"));
     }
 
     @Test
     void protectsRegistryAdminReadsWithReadCapability() throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/registry/services"))
+        mockMvc.perform(get("/api/v1/tianshu/registry/services"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/v1/ddc/registry/services")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(get("/api/v1/tianshu/registry/services")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isOk());
     }
 
     @Test
     void protectsNamespaceBindingsWithReadAndWriteCapabilities()
             throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/namespace-env-app-bindings"))
+        mockMvc.perform(get("/api/v1/tianshu/namespace-env-app-bindings"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(get("/api/v1/ddc/namespace-env-app-bindings")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(get("/api/v1/tianshu/namespace-env-app-bindings")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/v1/ddc/namespace-env-app-bindings")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(post("/api/v1/tianshu/namespace-env-app-bindings")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(post("/api/v1/ddc/namespace-env-app-bindings")
-                        .with(authority("CAP_DDC_WRITE")))
+        mockMvc.perform(post("/api/v1/tianshu/namespace-env-app-bindings")
+                        .with(authority("CAP_TIANSHU_WRITE")))
                 .andExpect(status().isOk());
     }
 
@@ -151,23 +151,23 @@ class DdcAdminSecurityIntegrationTest {
         when(configService.page(any(), any())).thenReturn(Page.empty());
         when(publishTaskQueryService.page(any(), any())).thenReturn(Page.empty());
 
-        mockMvc.perform(get("/api/v1/ddc/configs/page")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(get("/api/v1/tianshu/configs/page")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/ddc/publish-tasks/page")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(get("/api/v1/tianshu/publish-tasks/page")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/ddc/apps/page")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(get("/api/v1/tianshu/apps/page")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isOk());
-        mockMvc.perform(get("/api/v1/ddc/apps/page")
-                        .with(authority("CAP_DDC_WRITE")))
+        mockMvc.perform(get("/api/v1/tianshu/apps/page")
+                        .with(authority("CAP_TIANSHU_WRITE")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void rejectsDdcAdminPageAfterWebExtraction() throws Exception {
-        mockMvc.perform(get("/ddc-admin/index.html"))
+        mockMvc.perform(get("/tianshu-admin/index.html"))
                 .andExpect(status().is4xxClientError());
     }
 
@@ -176,7 +176,7 @@ class DdcAdminSecurityIntegrationTest {
         assertThat(handlerMapping.getHandlerMethods().keySet())
                 .flatExtracting(mapping -> mapping.getPatternValues())
                 .noneMatch(path -> path.startsWith(
-                        "/api/v1/ddc/" + "openapi"
+                        "/api/v1/tianshu/" + "openapi"
                 ));
     }
 
@@ -184,20 +184,20 @@ class DdcAdminSecurityIntegrationTest {
     void enforcesReadWriteAndWildcardCapabilities() throws Exception {
         when(configService.list(any())).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/ddc/configs")
-                        .with(authority("CAP_DDC_READ")))
+        mockMvc.perform(get("/api/v1/tianshu/configs")
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/v1/ddc/configs")
-                        .with(authority("CAP_DDC_READ"))
+        mockMvc.perform(post("/api/v1/tianshu/configs")
+                        .with(authority("CAP_TIANSHU_READ"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(configBody()))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(post("/api/v1/ddc/configs")
-                        .with(authority("CAP_DDC_WRITE"))
+        mockMvc.perform(post("/api/v1/tianshu/configs")
+                        .with(authority("CAP_TIANSHU_WRITE"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(configBody()))
                 .andExpect(status().isOk());
-        mockMvc.perform(post("/api/v1/ddc/configs")
+        mockMvc.perform(post("/api/v1/tianshu/configs")
                         .with(authority("CAP_*"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(configBody()))
@@ -206,10 +206,10 @@ class DdcAdminSecurityIntegrationTest {
 
     @Test
     void tokenAuthorizationClaimsDoNotGrantDdcPermission() throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/configs")
+        mockMvc.perform(get("/api/v1/tianshu/configs")
                         .with(jwt().jwt(token -> token.subject("limited-user")
                                 .claim("roles", List.of("ADMIN"))
-                                .claim("capabilities", List.of("DDC_READ")))))
+                                .claim("capabilities", List.of("TIANSHU_READ")))))
                 .andExpect(status().isForbidden());
     }
 
@@ -217,15 +217,15 @@ class DdcAdminSecurityIntegrationTest {
     void rbac3SnapshotGrantsDdcPermission() throws Exception {
         when(configService.list(any())).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/ddc/configs")
-                        .with(authentication(rbac3("DDC_READ"))))
+        mockMvc.perform(get("/api/v1/tianshu/configs")
+                        .with(authentication(rbac3("TIANSHU_READ"))))
                 .andExpect(status().isOk());
     }
 
     @Test
     void rbac3PrincipalUsesTheStableIdentitySubjectAsOperator() throws Exception {
-        mockMvc.perform(post("/api/v1/ddc/configs")
-                        .with(authentication(rbac3("DDC_WRITE")))
+        mockMvc.perform(post("/api/v1/tianshu/configs")
+                        .with(authentication(rbac3("TIANSHU_WRITE")))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(configBody()))
                 .andExpect(status().isOk());
@@ -238,45 +238,45 @@ class DdcAdminSecurityIntegrationTest {
     @Test
     void reservesPublishAndCacheOperationsForExactCapabilities()
             throws Exception {
-        mockMvc.perform(post("/api/v1/ddc/configs/config-1/publish")
-                        .with(authority("CAP_DDC_WRITE"))
+        mockMvc.perform(post("/api/v1/tianshu/configs/config-1/publish")
+                        .with(authority("CAP_TIANSHU_WRITE"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{}"))
                 .andExpect(status().isForbidden());
         mockMvc.perform(post(
-                        "/api/v1/ddc/publish-tasks/change-1/retry"
-                ).with(authority("CAP_DDC_READ")))
+                        "/api/v1/tianshu/publish-tasks/change-1/retry"
+                ).with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/v1/ddc/cache/check")
+        mockMvc.perform(get("/api/v1/tianshu/cache/check")
                         .param("appCode", "app-a")
                         .param("env", "dev")
                         .param("bizCode", "biz-a")
-                        .with(authority("CAP_DDC_READ")))
+                        .with(authority("CAP_TIANSHU_READ")))
                 .andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/v1/ddc/cache/check")
+        mockMvc.perform(get("/api/v1/tianshu/cache/check")
                         .param("appCode", "app-a")
                         .param("env", "dev")
                         .param("bizCode", "biz-a")
-                        .with(authority("CAP_DDC_CACHE")))
+                        .with(authority("CAP_TIANSHU_CACHE")))
                 .andExpect(status().isOk());
     }
 
     @Test
     void deniesAuthenticatedRequestsOutsideDeclaredRoutes()
             throws Exception {
-        mockMvc.perform(get("/api/v1/ddc/unknown")
+        mockMvc.perform(get("/api/v1/tianshu/unknown")
                         .with(authority("CAP_*")))
                 .andExpect(status().isForbidden());
     }
 
     @Test
     void usesJwtSubjectAsTrustedOperator() throws Exception {
-        mockMvc.perform(post("/api/v1/ddc/configs")
+        mockMvc.perform(post("/api/v1/tianshu/configs")
                         .param("operator", "claimed-user")
                         .with(jwt()
                                 .jwt(token -> token.subject("admin-42"))
                                 .authorities(new SimpleGrantedAuthority(
-                                        "CAP_DDC_WRITE"
+                                        "CAP_TIANSHU_WRITE"
                                 )))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(configBody()))
@@ -303,11 +303,11 @@ class DdcAdminSecurityIntegrationTest {
         Instant now = Instant.parse("2026-08-02T04:00:00Z");
         IdentityPrincipal identity = new IdentityPrincipal(
                 "admin-sub", "tenant-a", "token-1",
-                java.util.Set.of("ddc-admin-web"), now, now.plusSeconds(900),
+                java.util.Set.of("tianshu-admin-web"), now, now.plusSeconds(900),
                 AuthenticationContext.password());
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                "tenant-a", "admin-sub", "101", "ddc-admin",
-                3, 4, List.of("ddc-reader"), java.util.Set.of(permission),
+                "tenant-a", "admin-sub", "101", "tianshu-admin",
+                3, 4, List.of("tianshu-reader"), java.util.Set.of(permission),
                 Map.of(), Map.of(), "sha256:ddc", now, now.plusSeconds(900));
         return new Rbac3AuthenticationToken(
                 new AuthorizationService.RuntimeAuthorizationContext(
@@ -341,7 +341,7 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     @RestController
-    @RequestMapping("/api/v1/ddc/registry")
+    @RequestMapping("/api/v1/tianshu/registry")
     static class RegistryInfoController {
 
         @GetMapping("/services")
@@ -351,7 +351,7 @@ class DdcAdminSecurityIntegrationTest {
     }
 
     @RestController
-    @RequestMapping("/api/v1/ddc/namespace-env-app-bindings")
+    @RequestMapping("/api/v1/tianshu/namespace-env-app-bindings")
     static class BindingInfoController {
 
         @GetMapping
@@ -369,12 +369,12 @@ class DdcAdminSecurityIntegrationTest {
     static class PagedInfoController {
 
         @GetMapping({
-                "/api/v1/ddc/apps/page",
-                "/api/v1/ddc/bizs/page",
-                "/api/v1/ddc/envs/page",
-                "/api/v1/ddc/namespaces/page",
-                "/api/v1/ddc/namespace-env-app-bindings/page",
-                "/api/v1/ddc/instances/page"
+                "/api/v1/tianshu/apps/page",
+                "/api/v1/tianshu/bizs/page",
+                "/api/v1/tianshu/envs/page",
+                "/api/v1/tianshu/namespaces/page",
+                "/api/v1/tianshu/namespace-env-app-bindings/page",
+                "/api/v1/tianshu/instances/page"
         })
         Map<String, Object> page() {
             return Map.of("records", List.of());

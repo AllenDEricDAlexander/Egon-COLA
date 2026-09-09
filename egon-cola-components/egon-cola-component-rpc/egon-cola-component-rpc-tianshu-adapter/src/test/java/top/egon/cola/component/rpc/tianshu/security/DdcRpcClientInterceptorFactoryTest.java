@@ -87,9 +87,9 @@ class DdcRpcClientInterceptorFactoryTest {
 
         assertThat(resolver.operationsByBareMethod()).containsExactlyInAnyOrderEntriesOf(expected);
         assertThatThrownBy(() -> resolver.resolve(
-                "egon.ddc.v1.DdcConfigRuntimeService/Unknown"))
+                "egon.tianshu.v1.DdcConfigRuntimeService/Unknown"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Unknown DDC RPC method");
+                .hasMessageContaining("Unknown Tianshu RPC method");
     }
 
     @Test

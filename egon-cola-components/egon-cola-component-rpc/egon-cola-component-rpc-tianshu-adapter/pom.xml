@@ -13,7 +13,7 @@
 
     <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
     <name>egon-cola-component-rpc-tianshu-adapter</name>
-    <description>Direct RPC transport adapter for the DDC platform.</description>
+    <description>Direct RPC transport adapter for the Tianshu platform.</description>
 
     <dependencies>
         <dependency>

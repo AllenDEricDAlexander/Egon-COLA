@@ -19,7 +19,7 @@ public record DdcServicePrincipal(
 ) implements Principal {
 
     static final Context.Key<DdcServicePrincipal> CONTEXT_KEY =
-            Context.key("egon-ddc-service-principal");
+            Context.key("egon-tianshu-service-principal");
 
     public static final String REQUEST_ATTRIBUTE =
             DdcServicePrincipal.class.getName();
@@ -29,7 +29,7 @@ public record DdcServicePrincipal(
         DdcServicePrincipal principal = CONTEXT_KEY.get();
         if (principal == null) {
             throw new IllegalStateException(
-                    "Authenticated DDC RPC principal is required");
+                    "Authenticated Tianshu RPC principal is required");
         }
         return principal;
     }

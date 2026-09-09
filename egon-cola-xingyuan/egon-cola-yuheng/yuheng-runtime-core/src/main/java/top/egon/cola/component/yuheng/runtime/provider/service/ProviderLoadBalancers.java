@@ -74,7 +74,7 @@ public final class ProviderLoadBalancers {
     private static List<ProviderInstance> checked(
             List<ProviderInstance> candidates) {
         if (candidates == null || candidates.isEmpty()) {
-            throw new IllegalStateException("GATEWAY_PROVIDER_UNAVAILABLE");
+            throw new IllegalStateException("YUHENG_PROVIDER_UNAVAILABLE");
         }
         return candidates.stream()
                 .sorted(Comparator.comparing(ProviderInstance::runtimeIdentity))

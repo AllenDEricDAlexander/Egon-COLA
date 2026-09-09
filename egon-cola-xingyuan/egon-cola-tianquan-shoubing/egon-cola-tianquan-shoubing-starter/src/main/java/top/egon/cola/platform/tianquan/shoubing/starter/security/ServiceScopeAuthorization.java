@@ -4,11 +4,11 @@ import org.springframework.security.core.Authentication;
 import top.egon.cola.platform.tianquan.shoubing.contract.ServiceIdentityPrincipal;
 
 /**
- * 对已验证 SERVICE Principal 执行本地 IdP Scope 判断。
- * 本类只读取 Token 中由 IdP 签名授权的 Scope，不调用 RBAC3 或远程服务。
+ * 对已验证 SERVICE Principal 执行本地 Tianquan-Shoubing Scope 判断。
+ * 本类只读取 Token 中由 Tianquan-Shoubing 签名授权的 Scope，不调用 Tianquan-Jianshen 或远程服务。
  *
- * <p>Performs local IdP scope decisions for a verified SERVICE principal. It reads only scopes
- * authorized and signed by IdP and never calls RBAC3 or a remote service.</p>
+ * <p>Performs local Tianquan-Shoubing scope decisions for a verified SERVICE principal. It reads only scopes
+ * authorized and signed by Tianquan-Shoubing and never calls Tianquan-Jianshen or a remote service.</p>
  */
 public final class ServiceScopeAuthorization {
 

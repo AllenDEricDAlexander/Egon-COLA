@@ -11,7 +11,7 @@ import java.util.Set;
  * @param resourceServerId Resource Server 标识；Resource Server identifier
  * @param grantType 授权类型；grant type
  * @param tenantId 服务授权租户；service-grant tenant
- * @param allowedScopes IdP 许可 Scope；scopes allowed by IdP
+ * @param allowedScopes Tianquan-Shoubing 许可 Scope；scopes allowed by Tianquan-Shoubing
  * @param status 授权状态；grant status
  * @param version 乐观锁版本；optimistic-lock version
  */

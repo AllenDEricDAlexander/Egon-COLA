@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * Bounded Reactor Netty client for the internal IdP refresh endpoint.
+ * Bounded Reactor Netty client for the internal Tianquan-Shoubing refresh endpoint.
  */
 public final class ReactorNettyIdpRefreshClient implements IdpRefreshClient {
 

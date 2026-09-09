@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-jianshen-contract</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-jianshen-contract</name>
-    <description>Stable serializable contracts for the Egon COLA RBAC3 platform.</description>
+    <description>Stable serializable contracts for the Egon COLA Tianquan-Jianshen platform.</description>
 
     <dependencies>
         <dependency>

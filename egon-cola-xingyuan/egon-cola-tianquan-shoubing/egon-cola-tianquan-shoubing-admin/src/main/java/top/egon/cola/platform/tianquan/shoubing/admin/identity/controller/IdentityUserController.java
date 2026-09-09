@@ -28,14 +28,14 @@ import java.util.List;
 import java.util.Objects;
 
 @RestController
-@RequestMapping("/api/v1/identity/users")
+@RequestMapping("/api/v1/tianquan-shoubing/users")
 @Tag(name = "identity-users", description = "统一身份用户接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "identity",
         entityDomainName = "统一身份实体域",
-        interfaceGroupCode = "idp-identity"
+        interfaceGroupCode = "tianquan-shoubing-identity"
 )
 
 public class IdentityUserController {
@@ -56,9 +56,9 @@ public class IdentityUserController {
 
     @GetMapping
     @Operation(
-            operationId = "idp-identity-user-list-v1",
+            operationId = "tianquan-shoubing-identity-user-list-v1",
             summary = "查询全局身份用户",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -66,16 +66,16 @@ public class IdentityUserController {
     public List<IdentityUserVO> list(
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity-user:read");
+        authorization.require(principal, "tianquan-shoubing:identity-user:read");
         return users.list();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     @Operation(
-            operationId = "idp-identity-user-create-v1",
+            operationId = "tianquan-shoubing-identity-user-create-v1",
             summary = "创建全局身份用户",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -84,15 +84,15 @@ public class IdentityUserController {
             @Valid @RequestBody CreateIdentityUserDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity-user:create");
+        authorization.require(principal, "tianquan-shoubing:identity-user:create");
         return users.create(request);
     }
 
     @PatchMapping("/{subject}")
     @Operation(
-            operationId = "idp-identity-user-update-v1",
+            operationId = "tianquan-shoubing-identity-user-update-v1",
             summary = "更新全局身份用户",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -102,15 +102,15 @@ public class IdentityUserController {
             @Valid @RequestBody UpdateIdentityUserDTO request,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity-user:update");
+        authorization.require(principal, "tianquan-shoubing:identity-user:update");
         return users.update(subject, request);
     }
 
     @PostMapping("/{subject}/password-reset")
     @Operation(
-            operationId = "idp-identity-user-password-reset-v1",
+            operationId = "tianquan-shoubing-identity-user-password-reset-v1",
             summary = "重置身份用户密码",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -119,15 +119,15 @@ public class IdentityUserController {
             @PathVariable("subject") String subject,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity-user:password-reset");
+        authorization.require(principal, "tianquan-shoubing:identity-user:password-reset");
         return users.resetPassword(subject);
     }
 
     @PostMapping("/{subject}/revoke-all")
     @Operation(
-            operationId = "idp-identity-user-revoke-all-v1",
+            operationId = "tianquan-shoubing-identity-user-revoke-all-v1",
             summary = "撤销身份用户全部会话",
-            tags = {"idp", "identity"}
+            tags = {"tianquan-shoubing", "identity"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -136,7 +136,7 @@ public class IdentityUserController {
             @PathVariable("subject") String subject,
             @AuthenticationPrincipal(expression = "identity()") IdentityPrincipal principal
     ) {
-        authorization.require(principal, "idp:identity-user:revoke-all");
+        authorization.require(principal, "tianquan-shoubing:identity-user:revoke-all");
         return users.revokeAll(subject);
     }
 }

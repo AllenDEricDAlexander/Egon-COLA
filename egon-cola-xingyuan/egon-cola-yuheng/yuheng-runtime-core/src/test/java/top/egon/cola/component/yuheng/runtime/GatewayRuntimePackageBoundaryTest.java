@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatewayRuntimePackageBoundaryTest {
 
     private static final Path SOURCE_ROOT = Path.of(
-            "src/main/java/top/egon/cola/component/gateway/runtime"
+            "src/main/java/top/egon/cola/component/yuheng/runtime"
     );
 
     @Test

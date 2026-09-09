@@ -17,9 +17,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Read-only RBAC adapter for optional IdP identity display enrichment.
+ * Read-only RBAC adapter for optional Tianquan-Shoubing identity display enrichment.
  *
- * <p>Authorization rows remain usable when IdP is unavailable; callers receive an explicit
+ * <p>Authorization rows remain usable when Tianquan-Shoubing is unavailable; callers receive an explicit
  * partial marker instead of persisting a profile copy in RBAC.</p>
  */
 @Component
@@ -30,7 +30,7 @@ public final class IdentityProfileDirectory {
     @EgonRpcReference(
             mode = RpcReferenceMode.DIRECT,
             bizCode = "permission",
-            appCode = "idp",
+            appCode = "tianquan-shoubing",
             timeoutMs = 1500)
     private IdentityDirectoryRpc rpc;
 
@@ -42,7 +42,7 @@ public final class IdentityProfileDirectory {
     }
 
     /**
-     * Resolves a bounded batch of IdP profiles and converts transport failures to an unavailable
+     * Resolves a bounded batch of Tianquan-Shoubing profiles and converts transport failures to an unavailable
      * result. The returned data is never written to an RBAC entity.
      */
     public BatchResult batchGet(Collection<String> subjects) {

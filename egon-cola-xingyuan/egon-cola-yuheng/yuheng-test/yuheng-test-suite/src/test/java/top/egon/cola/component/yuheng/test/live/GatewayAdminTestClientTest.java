@@ -44,7 +44,7 @@ class GatewayAdminTestClientTest {
         assertThat(request.get()).satisfies(capture -> {
             assertThat(capture.method()).isEqualTo("POST");
             assertThat(capture.path())
-                    .isEqualTo("/api/v1/gateway/admin/applications");
+                    .isEqualTo("/api/v1/yuheng/admin/applications");
             assertThat(capture.authorization())
                     .isEqualTo("Bearer test-token");
             assertThat(capture.body()).contains("\"applicationCode\":\"orders\"");
@@ -52,26 +52,26 @@ class GatewayAdminTestClientTest {
 
         client.runtimeConsistency("group/one");
         assertThat(request.get().path()).isEqualTo(
-                "/api/v1/gateway/admin/gateway-groups/group%2Fone/"
+                "/api/v1/yuheng/admin/yuheng-groups/group%2Fone/"
                         + "runtime-consistency"
         );
 
         client.getDraft("group/one");
         assertThat(request.get().method()).isEqualTo("GET");
         assertThat(request.get().path()).isEqualTo(
-                "/api/v1/gateway/admin/gateway-groups/group%2Fone/draft"
+                "/api/v1/yuheng/admin/yuheng-groups/group%2Fone/draft"
         );
 
         client.providerInstances(
                 "test",
-                "gateway-live",
+                "yuheng-live",
                 "HTTP",
                 "orders",
                 "default",
                 "1.0.0-live"
         );
         assertThat(request.get().query()).isEqualTo(
-                "env=test&namespace=gateway-live&protocol=HTTP"
+                "env=test&namespace=yuheng-live&protocol=HTTP"
                         + "&serviceName=orders&group=default"
                         + "&version=1.0.0-live"
         );

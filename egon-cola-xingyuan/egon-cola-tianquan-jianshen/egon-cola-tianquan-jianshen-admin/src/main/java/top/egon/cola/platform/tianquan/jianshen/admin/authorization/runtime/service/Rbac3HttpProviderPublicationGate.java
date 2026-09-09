@@ -133,7 +133,7 @@ public final class Rbac3HttpProviderPublicationGate
         int configuredPort = providerProperties.getPort();
         if (configuredPort > 0 && configuredPort != serverPort) {
             throw new IllegalStateException(
-                    "RBAC3 HTTP provider port does not match the root web server");
+                    "Tianquan-Jianshen HTTP provider port does not match the root web server");
         }
         if (published.compareAndSet(false, true)) {
             providerRuntime.onHttpServerReady(serverPort);
@@ -149,13 +149,13 @@ public final class Rbac3HttpProviderPublicationGate
      */
     private void requireConfigClientReady() {
         if (coordinator.state() != DdcRuntimeState.READY) {
-            throw new IllegalStateException("DDC config client is not ready");
+            throw new IllegalStateException("Tianshu config client is not ready");
         }
         boolean leasePresent = coordinator.currentSession()
                 .filter(lease -> lease.role() == DdcLeaseRole.CONFIG_CLIENT)
                 .isPresent();
         if (!leasePresent) {
-            throw new IllegalStateException("DDC config client lease is missing");
+            throw new IllegalStateException("Tianshu config client lease is missing");
         }
     }
 }

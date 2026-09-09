@@ -8,7 +8,7 @@ import java.util.concurrent.TimeUnit;
 
 public final class RedisDdcNonceStore implements DdcNonceStore {
 
-    private static final String KEY_PREFIX = "ddc:security:nonce:";
+    private static final String KEY_PREFIX = "tianshu:security:nonce:";
 
     private final RedissonClient redisson;
 

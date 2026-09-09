@@ -2,16 +2,16 @@
 
 set -euo pipefail
 
-RBAC3_VERIFICATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-RBAC3_MODULE_ROOT="$(cd "${RBAC3_VERIFICATION_DIR}/../.." && pwd)"
-RBAC3_REPOSITORY_ROOT="$(cd "${RBAC3_MODULE_ROOT}/../.." && pwd)"
+TIANQUAN_JIANSHEN_VERIFICATION_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+TIANQUAN_JIANSHEN_MODULE_ROOT="$(cd "${TIANQUAN_JIANSHEN_VERIFICATION_DIR}/../.." && pwd)"
+TIANQUAN_JIANSHEN_REPOSITORY_ROOT="$(cd "${TIANQUAN_JIANSHEN_MODULE_ROOT}/../.." && pwd)"
 
 rbac3_note() {
-  printf '[rbac3-verification] %s\n' "$*"
+  printf '[tianquan-jianshen-verification] %s\n' "$*"
 }
 
 rbac3_die() {
-  printf '[rbac3-verification] ERROR: %s\n' "$*" >&2
+  printf '[tianquan-jianshen-verification] ERROR: %s\n' "$*" >&2
   exit 1
 }
 
@@ -59,8 +59,8 @@ rbac3_validate_schema() {
 rbac3_validate_redis_prefix() {
   local run_id="$1"
   local prefix="$2"
-  [[ "${prefix}" == "rbac3:it:${run_id}:" ]] \
-    || rbac3_die "fixture Redis prefix must equal rbac3:it:<runId>:"
+  [[ "${prefix}" == "tianquan-jianshen:it:${run_id}:" ]] \
+    || rbac3_die "fixture Redis prefix must equal tianquan-jianshen:it:<runId>:"
 }
 
 rbac3_validate_http_url() {
@@ -98,13 +98,13 @@ rbac3_redis_args() {
   rbac3_require_env "${database_name}"
   rbac3_validate_uint "${port_name}"
   rbac3_validate_uint "${database_name}"
-  RBAC3_REDIS_ARGS=(
+  TIANQUAN_JIANSHEN_REDIS_ARGS=(
     --host "${!host_name}"
     --port "${!port_name}"
     --raw
     --no-auth-warning
   )
-  RBAC3_REDIS_DATABASE="${!database_name}"
+  TIANQUAN_JIANSHEN_REDIS_DATABASE="${!database_name}"
   local password_name="${prefix}_PASSWORD_FILE"
   if [[ -n "${!password_name:-}" ]]; then
     rbac3_require_secret_file "${password_name}"
@@ -118,19 +118,19 @@ rbac3_redis_args() {
 rbac3_redis_ping() {
   local prefix="$1"
   rbac3_redis_args "${prefix}"
-  redis-cli "${RBAC3_REDIS_ARGS[@]}" -n "${RBAC3_REDIS_DATABASE}" ping \
+  redis-cli "${TIANQUAN_JIANSHEN_REDIS_ARGS[@]}" -n "${TIANQUAN_JIANSHEN_REDIS_DATABASE}" ping \
     | grep -Fxq 'PONG'
 }
 
 rbac3_postgres_args() {
-  rbac3_require_env RBAC3_IT_POSTGRES_URL
-  rbac3_require_env RBAC3_IT_POSTGRES_USER
-  rbac3_require_secret_file RBAC3_IT_POSTGRES_PASSWORD_FILE
-  PGPASSWORD="$(rbac3_read_secret "${RBAC3_IT_POSTGRES_PASSWORD_FILE}")"
+  rbac3_require_env TIANQUAN_JIANSHEN_IT_POSTGRES_URL
+  rbac3_require_env TIANQUAN_JIANSHEN_IT_POSTGRES_USER
+  rbac3_require_secret_file TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE
+  PGPASSWORD="$(rbac3_read_secret "${TIANQUAN_JIANSHEN_IT_POSTGRES_PASSWORD_FILE}")"
   export PGPASSWORD
-  RBAC3_PSQL_ARGS=(
-    "${RBAC3_IT_POSTGRES_URL}"
-    --username "${RBAC3_IT_POSTGRES_USER}"
+  TIANQUAN_JIANSHEN_PSQL_ARGS=(
+    "${TIANQUAN_JIANSHEN_IT_POSTGRES_URL}"
+    --username "${TIANQUAN_JIANSHEN_IT_POSTGRES_USER}"
     --no-password
     --set ON_ERROR_STOP=1
   )

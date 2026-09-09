@@ -42,8 +42,8 @@ class GatewayDdcRulePublisherTest {
                         "infra",
                         "test",
                         "ge",
-                        "gateway.rules.chunk.release-1.0",
-                        "gateway:\n  rules:\n    chunk:\n"
+                        "yuheng.rules.chunk.release-1.0",
+                        "yuheng:\n  rules:\n    chunk:\n"
                                 + "      release-1:\n        '0': value\n",
                         1L,
                         changeId,
@@ -83,7 +83,7 @@ class GatewayDdcRulePublisherTest {
                 " ",
                 "test",
                 "ge",
-                "gateway.rules.active",
+                "yuheng.rules.active",
                 "{}",
                 1L,
                 UuidV7.string(),
@@ -117,7 +117,7 @@ class GatewayDdcRulePublisherTest {
         assertThatThrownBy(() -> publisher.ensureReadyTarget(
                 new top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayPublicationScopeDTO("infra", "test", "ge", top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum.API_RPC)
         )).isInstanceOf(IllegalStateException.class)
-                .hasMessage("GATEWAY_RELEASE_NO_READY_TARGET: API_RPC");
+                .hasMessage("YUHENG_RELEASE_NO_READY_TARGET: API_RPC");
     }
 
     private GatewayDdcPublicationCommand command(
@@ -127,7 +127,7 @@ class GatewayDdcRulePublisherTest {
                 "infra",
                 "test",
                 "ge",
-                "gateway.rules.active",
+                "yuheng.rules.active",
                 "{}",
                 expectedVersion,
                 changeId,

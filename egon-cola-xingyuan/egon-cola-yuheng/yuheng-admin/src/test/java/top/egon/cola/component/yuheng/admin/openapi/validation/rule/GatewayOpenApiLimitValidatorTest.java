@@ -22,7 +22,7 @@ class GatewayOpenApiLimitValidatorTest {
                 "{\"a\":1}".getBytes(StandardCharsets.UTF_8),
                 "application/json",
                 200
-        )).code()).isEqualTo("GATEWAY_OPENAPI_DOCUMENT_TOO_LARGE");
+        )).code()).isEqualTo("YUHENG_OPENAPI_DOCUMENT_TOO_LARGE");
     }
 
     @Test
@@ -42,6 +42,6 @@ class GatewayOpenApiLimitValidatorTest {
 
         assertThat(validator.validate(
                 GatewayOpenApiValidationTestFixture.document(json)
-        ).code()).isEqualTo("GATEWAY_OPENAPI_OPERATION_LIMIT");
+        ).code()).isEqualTo("YUHENG_OPENAPI_OPERATION_LIMIT");
     }
 }

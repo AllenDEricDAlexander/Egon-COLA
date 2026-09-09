@@ -34,16 +34,16 @@ class GatewayAdminApplicationConfigurationTest {
                     ))
                     .withUserConfiguration(DdcRegistryTestConfiguration.class)
                     .withPropertyValues(
-                            "egon.cola.component.ddc.biz-code=infra",
-                            "egon.cola.component.ddc.env=local",
-                            "egon.cola.component.ddc.app-code=ga",
-                            "egon.cola.component.ddc.registration-resource-uri=https://resource.example.test/gateway-admin",
-                            "egon.cola.component.ddc.registry.http.enabled=true",
-                            "egon.cola.component.ddc.registry.http.service-name=egon-cola-gateway-admin",
-                            "egon.cola.component.ddc.registry.http.version=5.3.2",
-                            "egon.cola.component.ddc.registry.http.advertised-host=127.0.0.1",
-                            "egon.cola.component.ddc.registry.http.port=8080",
-                            "egon.cola.component.ddc.registry.http.metadata.gateway.component=admin"
+                            "egon.cola.component.tianshu.biz-code=infra",
+                            "egon.cola.component.tianshu.env=local",
+                            "egon.cola.component.tianshu.app-code=ga",
+                            "egon.cola.component.tianshu.registration-resource-uri=https://resource.example.test/yuheng-admin",
+                            "egon.cola.component.tianshu.registry.http.enabled=true",
+                            "egon.cola.component.tianshu.registry.http.service-name=egon-cola-yuheng-admin",
+                            "egon.cola.component.tianshu.registry.http.version=5.3.2",
+                            "egon.cola.component.tianshu.registry.http.advertised-host=127.0.0.1",
+                            "egon.cola.component.tianshu.registry.http.port=8080",
+                            "egon.cola.component.tianshu.registry.http.metadata.yuheng.component=admin"
                     );
 
     @Test
@@ -72,10 +72,10 @@ class GatewayAdminApplicationConfigurationTest {
             DdcHttpRegistrationProperties provider = context.getBean(
                     DdcHttpRegistrationProperties.class
             );
-            assertEquals("egon-cola-gateway-admin", provider.getServiceName());
+            assertEquals("egon-cola-yuheng-admin", provider.getServiceName());
             assertEquals(
                     "admin",
-                    provider.getMetadata().get("gateway.component")
+                    provider.getMetadata().get("yuheng.component")
             );
         });
     }
@@ -86,42 +86,42 @@ class GatewayAdminApplicationConfigurationTest {
         loader.setResources(new ClassPathResource("application.yml"));
         Properties properties = loader.getObject();
 
-        assertEquals("${GATEWAY_ADMIN_RESOURCE_SERVER_ID}", properties
-                .getProperty("egon.cola.platform.idp.resource-server-id"));
-        assertEquals("${GATEWAY_ADMIN_RESOURCE_URI}", properties
-                .getProperty("egon.cola.platform.idp.resource-uri"));
+        assertEquals("${YUHENG_ADMIN_RESOURCE_SERVER_ID}", properties
+                .getProperty("egon.cola.platform.tianquan-shoubing.resource-server-id"));
+        assertEquals("${YUHENG_ADMIN_RESOURCE_URI}", properties
+                .getProperty("egon.cola.platform.tianquan-shoubing.resource-uri"));
         assertThat(properties.stringPropertyNames())
-                .noneMatch(key -> key.startsWith("egon.cola.platform.idp.admission."));
-        assertEquals("${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}", properties
-                .getProperty("egon.cola.component.ddc.biz-code"));
+                .noneMatch(key -> key.startsWith("egon.cola.platform.tianquan-shoubing.admission."));
+        assertEquals("${YUHENG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}", properties
+                .getProperty("egon.cola.component.tianshu.biz-code"));
         assertEquals("${DEPLOYMENT_ENV}", properties
-                .getProperty("egon.cola.component.ddc.env"));
-        assertEquals("${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}", properties
-                .getProperty("egon.cola.component.ddc.app-code"));
-        assertEquals("${DDC_RPC_TARGET:dns:///ddc-admin:19080}", properties.getProperty(
-                        "egon.cola.component.ddc.rpc.target"
+                .getProperty("egon.cola.component.tianshu.env"));
+        assertEquals("${YUHENG_ADMIN_RESOURCE_APP_CODE:yuheng-admin}", properties
+                .getProperty("egon.cola.component.tianshu.app-code"));
+        assertEquals("${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}", properties.getProperty(
+                        "egon.cola.component.tianshu.rpc.target"
                 ));
         assertEquals("round_robin", properties.getProperty(
-                "egon.cola.component.ddc.rpc.load-balancing-policy"
+                "egon.cola.component.tianshu.rpc.load-balancing-policy"
         ));
         assertThat(properties.getProperty(
-                "gateway.admin.ddc." + "endpoint"
+                "yuheng.admin.tianshu." + "endpoint"
         )).isNull();
         assertThat(properties.getProperty(
-                "egon.cola.component.ddc.admin." + "endpoint"
+                "egon.cola.component.tianshu.admin." + "endpoint"
         )).isNull();
-        assertEquals("${GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE:infra}",
+        assertEquals("${YUHENG_ADMIN_TIANSHU_API_RPC_BIZ_CODE:infra}",
                 properties.getProperty(
-                        "gateway.admin.ddc.api-rpc-biz-code"
+                        "yuheng.admin.tianshu.api-rpc-biz-code"
                 ));
-        assertEquals("${GATEWAY_ADMIN_DDC_API_RPC_APP_CODE:ge}",
+        assertEquals("${YUHENG_ADMIN_TIANSHU_API_RPC_APP_CODE:ge}",
                 properties.getProperty(
-                        "gateway.admin.ddc.api-rpc-app-code"
+                        "yuheng.admin.tianshu.api-rpc-app-code"
                 ));
-        assertEquals("${GATEWAY_ADMIN_DDC_MCP_BIZ_CODE:infra}",
-                properties.getProperty("gateway.admin.ddc.mcp-biz-code"));
-        assertEquals("${GATEWAY_ADMIN_DDC_MCP_APP_CODE:gme}",
-                properties.getProperty("gateway.admin.ddc.mcp-app-code"));
+        assertEquals("${YUHENG_ADMIN_TIANSHU_MCP_BIZ_CODE:infra}",
+                properties.getProperty("yuheng.admin.tianshu.mcp-biz-code"));
+        assertEquals("${YUHENG_ADMIN_TIANSHU_MCP_APP_CODE:gme}",
+                properties.getProperty("yuheng.admin.tianshu.mcp-app-code"));
     }
 
     @Test
@@ -131,15 +131,15 @@ class GatewayAdminApplicationConfigurationTest {
                         DdcRpcAutoConfiguration.class
                 ))
                 .withPropertyValues(
-                        "spring.application.name=gateway-admin-test",
-                        "egon.cola.component.ddc.enabled=true",
-                        "egon.cola.component.ddc.biz-code=infra",
-                        "egon.cola.component.ddc.env=test",
-                        "egon.cola.component.ddc.app-code=ga",
-                        "egon.cola.component.ddc.rpc.target=dns:///127.0.0.1:19080",
-                        "egon.cola.component.ddc.rpc.tls.development-plaintext=true",
-                        "egon.cola.component.ddc.rpc.auth.runtime.access-key=test",
-                        "egon.cola.component.ddc.rpc.auth.runtime.secret-key=test"
+                        "spring.application.name=yuheng-admin-test",
+                        "egon.cola.component.tianshu.enabled=true",
+                        "egon.cola.component.tianshu.biz-code=infra",
+                        "egon.cola.component.tianshu.env=test",
+                        "egon.cola.component.tianshu.app-code=ga",
+                        "egon.cola.component.tianshu.rpc.target=dns:///127.0.0.1:19080",
+                        "egon.cola.component.tianshu.rpc.tls.development-plaintext=true",
+                        "egon.cola.component.tianshu.rpc.auth.runtime.access-key=test",
+                        "egon.cola.component.tianshu.rpc.auth.runtime.secret-key=test"
                 )
                 .run(context -> {
                     assertThat(context).hasSingleBean(DdcConfigClient.class);

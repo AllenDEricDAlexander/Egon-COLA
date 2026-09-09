@@ -40,7 +40,7 @@ class DdcNamespaceEnvAppBindingControllerTest {
                         "app-ge", "ge", "Gateway Engine", true
                 )));
 
-        mockMvc.perform(get("/api/v1/ddc/namespace-env-app-bindings")
+        mockMvc.perform(get("/api/v1/tianshu/namespace-env-app-bindings")
                         .param("bizCode", "infra")
                         .param("namespaceCode", "ops")
                         .param("env", "prod")
@@ -61,7 +61,7 @@ class DdcNamespaceEnvAppBindingControllerTest {
                 .thenReturn(new PageImpl<>(
                         List.of(row), PageRequest.of(0, 10), 1));
 
-        mockMvc.perform(get("/api/v1/ddc/namespace-env-app-bindings/page")
+        mockMvc.perform(get("/api/v1/tianshu/namespace-env-app-bindings/page")
                         .param("bizCode", "infra")
                         .param("namespaceCode", "ops")
                         .param("env", "prod")

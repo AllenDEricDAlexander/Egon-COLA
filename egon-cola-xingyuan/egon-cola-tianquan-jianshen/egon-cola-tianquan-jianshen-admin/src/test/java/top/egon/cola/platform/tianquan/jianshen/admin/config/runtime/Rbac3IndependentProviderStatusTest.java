@@ -14,7 +14,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.ProviderLeaseStatusVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.RedisProjectionStatusVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.RuntimeStatusVO;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.DdcConfigClientStatusRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.DdcConfigClientStatusRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service.GatewayDdcRuntimeStatusService;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service.Rbac3OperationalRuntimeStatusService;
 
@@ -37,15 +37,15 @@ class Rbac3IndependentProviderStatusTest {
     void reportsTheActualHttpLeaseWhenLegacyGatewayReportingIsDisabled() {
         DdcHttpRegistrationRuntime provider = mock(DdcHttpRegistrationRuntime.class);
         when(provider.state()).thenReturn(DdcHttpRegistrationState.REGISTERED);
-        when(provider.instanceId()).thenReturn("rbac3-local-1");
+        when(provider.instanceId()).thenReturn("tianquan-jianshen-local-1");
         when(provider.lease()).thenReturn(Optional.of(new DdcLeaseSession(
-                "rbac3-local-1", "lease-1", DdcLeaseRole.HTTP_PROVIDER, 30, 10,
+                "tianquan-jianshen-local-1", "lease-1", DdcLeaseRole.HTTP_PROVIDER, 30, 10,
                 NOW, NOW.plusSeconds(30))));
 
         RuntimeStatusVO status = status(new StaticListableBeanFactory(Map.of("httpRuntime", provider)));
 
         assertThat(status.providerLease()).isEqualTo(new ProviderLeaseStatusVO(
-                "REGISTERED", "rbac3-local-1", NOW.plusSeconds(30)));
+                "REGISTERED", "tianquan-jianshen-local-1", NOW.plusSeconds(30)));
         assertThat(status.definition()).isEqualTo(new DefinitionStatusVO(
                 "UNKNOWN", null, List.of("CONTROL_PLANE_DISABLED")));
         assertThat(status.gatewayRelease().status()).isEqualTo("UNKNOWN");

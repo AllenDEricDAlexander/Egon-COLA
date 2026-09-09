@@ -30,7 +30,7 @@ import java.util.Objects;
 @RequestMapping("/internal/v1/oauth2/refresh-token")
 @Tag(name = "internal-refresh-token", description = "内部 Refresh Token 状态接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
@@ -49,11 +49,11 @@ public class InternalRefreshTokenController {
 
     @PostMapping(value = "/validate",
             consumes = "application/x-www-form-urlencoded")
-    @RequiresServiceScope("idp:refresh-token:validate")
+    @RequiresServiceScope("tianquan-shoubing:refresh-token:validate")
     @Operation(
-            operationId = "idp-internal-refresh-token-validate-v1",
+            operationId = "tianquan-shoubing-internal-refresh-token-validate-v1",
             summary = "验证 USER Refresh Token 在线状态",
-            tags = {"idp", "internal", "oauth"}
+            tags = {"tianquan-shoubing", "internal", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.INTERNAL

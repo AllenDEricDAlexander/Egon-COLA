@@ -41,7 +41,7 @@ public final class GatewayRuleApplierRegistrar {
                 Objects.requireNonNull(activation, "activation")
         );
         registry.registerPrefix(
-                "gateway.rules.chunk.",
+                "yuheng.rules.chunk.",
                 Objects.requireNonNull(chunks, "chunks")
         );
     }

@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GatewayInfrastructureLiveIT {
 
     @Test
-    @EnabledIfSystemProperty(named = "gateway.live.test", matches = "true")
+    @EnabledIfSystemProperty(named = "yuheng.live.test", matches = "true")
     void provisionsPhysicallySeparatedStateAndEventInfrastructure() {
         try (GatewayLiveEnvironment environment =
                      new GatewayLiveEnvironment("infrastructure")) {

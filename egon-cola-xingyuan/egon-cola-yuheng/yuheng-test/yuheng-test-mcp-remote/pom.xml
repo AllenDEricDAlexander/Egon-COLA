@@ -38,7 +38,7 @@
     </dependencies>
 
     <build>
-        <finalName>gateway-test-mcp-remote</finalName>
+        <finalName>yuheng-test-mcp-remote</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

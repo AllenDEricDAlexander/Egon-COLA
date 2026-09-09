@@ -32,14 +32,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/configs")
-@Tag(name = "ddc-admin-ddc-config-controller", description = "DdcConfigController 管理接口组")
+@RequestMapping("/api/v1/tianshu/configs")
+@Tag(name = "tianshu-admin-tianshu-config-controller", description = "DdcConfigController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcConfigController {
 
@@ -52,14 +52,14 @@ public class DdcConfigController {
         this.publishService = publishService;
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.list")
+    @Operation(operationId = "tianshu.ddcConfigController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcConfigVO>> list(DdcConfigQueryRequest request) {
         return ResultRecord.success(configService.list(request));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.page")
+    @Operation(operationId = "tianshu.ddcConfigController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcConfigVO> page(
@@ -68,7 +68,7 @@ public class DdcConfigController {
         return DdcAdminPageSupport.result(configService.page(request, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.create")
+    @Operation(operationId = "tianshu.ddcConfigController.create")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcConfigVO> create(@RequestBody DdcConfigCreateRequest request,
@@ -80,7 +80,7 @@ public class DdcConfigController {
         ));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.update")
+    @Operation(operationId = "tianshu.ddcConfigController.update")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     public ResultRecord<DdcConfigVO> update(@PathVariable("id") String id,
@@ -94,7 +94,7 @@ public class DdcConfigController {
         ));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.delete")
+    @Operation(operationId = "tianshu.ddcConfigController.delete")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     public ResultRecord<DdcConfigVO> delete(@PathVariable("id") String id,
@@ -108,7 +108,7 @@ public class DdcConfigController {
         ));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.publish")
+    @Operation(operationId = "tianshu.ddcConfigController.publish")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/publish")
     public ResultRecord<DdcPublishResultVO> publish(@PathVariable("id") String id,
@@ -127,14 +127,14 @@ public class DdcConfigController {
         ));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.versions")
+    @Operation(operationId = "tianshu.ddcConfigController.versions")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}/versions")
     public ResultRecord<List<DdcConfigVersionVO>> versions(@PathVariable("id") String id) {
         return ResultRecord.success(configService.versions(id));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.pageVersions")
+    @Operation(operationId = "tianshu.ddcConfigController.pageVersions")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}/versions/page")
     public PageResultRecord<DdcConfigVersionVO> pageVersions(
@@ -144,7 +144,7 @@ public class DdcConfigController {
                 configService.pageVersions(id, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcConfigController.rollback")
+    @Operation(operationId = "tianshu.ddcConfigController.rollback")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{id}/rollback")
     public ResultRecord<DdcConfigVO> rollback(@PathVariable("id") String id,
@@ -166,13 +166,13 @@ public class DdcConfigController {
                 || authentication.getName() == null
                 || authentication.getName().isBlank()) {
             throw new IllegalStateException(
-                    "Authenticated DDC Admin principal is required"
+                    "Authenticated Tianshu Admin principal is required"
             );
         }
         String actor = auditValue(authentication.getName());
         if (actor.isBlank()) {
             throw new IllegalStateException(
-                    "Authenticated DDC Admin principal is required"
+                    "Authenticated Tianshu Admin principal is required"
             );
         }
         String trusted = "user:" + actor;

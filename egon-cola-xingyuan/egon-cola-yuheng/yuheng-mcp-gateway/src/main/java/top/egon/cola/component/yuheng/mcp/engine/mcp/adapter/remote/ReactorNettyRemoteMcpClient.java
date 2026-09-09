@@ -201,7 +201,7 @@ public final class ReactorNettyRemoteMcpClient
                         Map.of(),
                         "clientInfo",
                         Map.of(
-                                "name", "egon-cola-gateway",
+                                "name", "egon-cola-yuheng",
                                 "version", "5.3.2"
                         )
                 ),

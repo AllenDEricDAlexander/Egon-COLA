@@ -26,7 +26,7 @@ public class ReactiveInventoryController {
     private final String providerId;
 
     public ReactiveInventoryController(
-            @Value("${gateway.test.provider-id:webflux-http-provider-default}")
+            @Value("${yuheng.test.provider-id:webflux-http-provider-default}")
             String providerId) {
         this.providerId = providerId;
     }
@@ -38,7 +38,7 @@ public class ReactiveInventoryController {
             tags = {"query", "webflux"}
     )
     @EgonGatewayPolicy(
-            owner = "gateway-test",
+            owner = "yuheng-test",
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL,
             idempotency = EgonGatewayPolicy.Idempotency.TRUE
     )

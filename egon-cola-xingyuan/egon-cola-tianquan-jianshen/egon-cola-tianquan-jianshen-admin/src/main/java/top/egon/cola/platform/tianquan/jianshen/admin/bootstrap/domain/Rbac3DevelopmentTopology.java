@@ -12,11 +12,11 @@ import java.util.List;
  */
 public final class Rbac3DevelopmentTopology {
 
-    /** RBAC3 管理应用权限；RBAC3 administration permissions.
-     * 含义与用法：读取、传递或更新 `RBAC3_PERMISSIONS` 时应保持 `Rbac3DevelopmentTopology` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `RBAC3_PERMISSIONS`, preserve `Rbac3DevelopmentTopology`'s lifecycle, immutability, and thread-safety constraints.
+    /** Tianquan-Jianshen 管理应用权限；Tianquan-Jianshen administration permissions.
+     * 含义与用法：读取、传递或更新 `TIANQUAN_JIANSHEN_PERMISSIONS` 时应保持 `Rbac3DevelopmentTopology` 的生命周期、不可变性和线程安全约束。
+     * Meaning and usage: when reading, passing, or updating `TIANQUAN_JIANSHEN_PERMISSIONS`, preserve `Rbac3DevelopmentTopology`'s lifecycle, immutability, and thread-safety constraints.
      */
-    private static final List<String> RBAC3_PERMISSIONS = List.of(
+    private static final List<String> TIANQUAN_JIANSHEN_PERMISSIONS = List.of(
             "system:application:manage",
             "system:application:read",
             "system:audit:read",
@@ -76,53 +76,53 @@ public final class Rbac3DevelopmentTopology {
      */
     private static final List<ApplicationDefinitionVO> APPLICATIONS = List.of(
             new ApplicationDefinitionVO(
-                    "rbac3-admin", "RBAC3 Administration", "RBAC3_LOCAL_ADMIN",
-                    0, RBAC3_PERMISSIONS),
+                    "tianquan-jianshen-admin", "Tianquan-Jianshen Administration", "TIANQUAN_JIANSHEN_LOCAL_ADMIN",
+                    0, TIANQUAN_JIANSHEN_PERMISSIONS),
             new ApplicationDefinitionVO(
-                    "idp-admin", "Identity Platform Administration", "IDP_LOCAL_ADMIN",
+                    "tianquan-shoubing-admin", "Tianquan-Shoubing Administration", "TIANQUAN_SHOUBING_LOCAL_ADMIN",
                     10, List.of(
-                    "idp:audit:read",
-                    "idp:bootstrap:read",
-                    "idp:identity:self:read",
-                    "idp:identity-user:create",
-                    "idp:identity-user:password-reset",
-                    "idp:identity-user:read",
-                    "idp:identity-user:revoke-all",
-                    "idp:identity-user:update",
-                    "idp:oauth-client:create",
-                    "idp:oauth-client:read",
-                    "idp:oauth-client:update",
-                    "idp:tenant:manage",
-                    "idp:tenant:read",
-                    "idp:resource-server:create",
-                    "idp:resource-server:grant",
-                    "idp:resource-server:key",
-                    "idp:resource-server:read",
-                    "idp:resource-server:status",
-                    "idp:resource-server:update",
-                    "idp:signing-key:activate",
-                    "idp:signing-key:publish",
-                    "idp:signing-key:read",
-                    "idp:signing-key:retire")),
+                    "tianquan-shoubing:audit:read",
+                    "tianquan-shoubing:bootstrap:read",
+                    "tianquan-shoubing:identity:self:read",
+                    "tianquan-shoubing:identity-user:create",
+                    "tianquan-shoubing:identity-user:password-reset",
+                    "tianquan-shoubing:identity-user:read",
+                    "tianquan-shoubing:identity-user:revoke-all",
+                    "tianquan-shoubing:identity-user:update",
+                    "tianquan-shoubing:oauth-client:create",
+                    "tianquan-shoubing:oauth-client:read",
+                    "tianquan-shoubing:oauth-client:update",
+                    "tianquan-shoubing:tenant:manage",
+                    "tianquan-shoubing:tenant:read",
+                    "tianquan-shoubing:resource-server:create",
+                    "tianquan-shoubing:resource-server:grant",
+                    "tianquan-shoubing:resource-server:key",
+                    "tianquan-shoubing:resource-server:read",
+                    "tianquan-shoubing:resource-server:status",
+                    "tianquan-shoubing:resource-server:update",
+                    "tianquan-shoubing:signing-key:activate",
+                    "tianquan-shoubing:signing-key:publish",
+                    "tianquan-shoubing:signing-key:read",
+                    "tianquan-shoubing:signing-key:retire")),
             new ApplicationDefinitionVO(
-                    "gateway-admin", "Gateway Administration", "GATEWAY_LOCAL_ADMIN",
+                    "yuheng-admin", "Gateway Administration", "YUHENG_LOCAL_ADMIN",
                     20, List.of(
-                    "gateway:read",
-                    "gateway:applications:write",
-                    "gateway:catalog:write",
-                    "gateway:credentials:write",
-                    "gateway:drafts:write",
-                    "gateway:groups:write",
-                    "gateway:mcp:approve",
-                    "gateway:mcp:read",
-                    "gateway:mcp:runtime:read",
-                    "gateway:mcp:test",
-                    "gateway:mcp:write",
-                    "gateway:releases:write")),
+                    "yuheng:read",
+                    "yuheng:applications:write",
+                    "yuheng:catalog:write",
+                    "yuheng:credentials:write",
+                    "yuheng:drafts:write",
+                    "yuheng:groups:write",
+                    "yuheng:mcp:approve",
+                    "yuheng:mcp:read",
+                    "yuheng:mcp:runtime:read",
+                    "yuheng:mcp:test",
+                    "yuheng:mcp:write",
+                    "yuheng:releases:write")),
             new ApplicationDefinitionVO(
-                    "ddc-admin", "Dynamic Configuration Administration",
-                    "DDC_LOCAL_ADMIN", 30,
-                    List.of("DDC_READ", "DDC_WRITE", "DDC_PUBLISH", "DDC_CACHE")),
+                    "tianshu-admin", "Dynamic Configuration Administration",
+                    "TIANSHU_LOCAL_ADMIN", 30,
+                    List.of("TIANSHU_READ", "TIANSHU_WRITE", "TIANSHU_PUBLISH", "TIANSHU_CACHE")),
             new ApplicationDefinitionVO(
                     "mock-backend", "Unified Identity Mock Backend",
                     "MOCK_LOCAL_ADMIN", 40,

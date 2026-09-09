@@ -49,15 +49,15 @@ class GatewayMcpFlywayPostgresqlIT {
     );
 
     private final String jdbcUrl = requiredEnvironment(
-            "GATEWAY_MCP_TEST_POSTGRES_URL"
+            "YUHENG_MCP_TEST_POSTGRES_URL"
     );
 
     private final String user = requiredEnvironment(
-            "GATEWAY_MCP_TEST_POSTGRES_USER"
+            "YUHENG_MCP_TEST_POSTGRES_USER"
     );
 
     private final String password = requiredEnvironment(
-            "GATEWAY_MCP_TEST_POSTGRES_PASSWORD"
+            "YUHENG_MCP_TEST_POSTGRES_PASSWORD"
     );
 
     private final String upgradeSchema = schema("upgrade");
@@ -172,7 +172,7 @@ class GatewayMcpFlywayPostgresqlIT {
                 ) VALUES (
                     'server-1', 'group-1', 'orders', 'Orders',
                     '["STABLE_2025_11_25"]'::jsonb,
-                    'https://resource.egon.top/gateway-mcp', TRUE,
+                    'https://resource.egon.top/yuheng-mcp', TRUE,
                     0, FALSE, ?, 'admin', ?, 'admin'
                 )
                 """, timestamp, timestamp);
@@ -291,7 +291,7 @@ class GatewayMcpFlywayPostgresqlIT {
                 ) VALUES (
                     'server-1', 'group-1', 'billing', 'Billing',
                     '["STABLE_2025_11_25"]'::jsonb,
-                    'https://resource.egon.top/gateway-mcp', 30,
+                    'https://resource.egon.top/yuheng-mcp', 30,
                     TRUE, 0, FALSE, ?, 'admin-1', ?, 'admin-1'
                 )
                 """, Timestamp.from(now), Timestamp.from(now));

@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-shoubing-rpc-contract</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-shoubing-rpc-contract</name>
-    <description>Stable Egon RPC contracts for internal IdP capabilities.</description>
+    <description>Stable Egon RPC contracts for internal Tianquan-Shoubing capabilities.</description>
 
     <dependencies>
         <dependency>

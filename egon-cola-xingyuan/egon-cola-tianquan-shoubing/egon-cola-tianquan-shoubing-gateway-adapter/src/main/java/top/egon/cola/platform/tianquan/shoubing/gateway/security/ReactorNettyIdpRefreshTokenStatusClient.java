@@ -13,7 +13,7 @@ import java.util.Objects;
 import java.util.function.Supplier;
 
 /**
- * Bounded Reactor Netty client for the IdP internal refresh-token status endpoint.
+ * Bounded Reactor Netty client for the Tianquan-Shoubing internal refresh-token status endpoint.
  */
 public final class ReactorNettyIdpRefreshTokenStatusClient
         implements IdpRefreshTokenStatusClient {

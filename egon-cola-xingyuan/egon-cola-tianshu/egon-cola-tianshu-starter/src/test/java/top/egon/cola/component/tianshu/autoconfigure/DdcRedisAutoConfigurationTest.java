@@ -26,9 +26,9 @@ class DdcRedisAutoConfigurationTest {
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(DdcRedisAutoConfiguration.class))
                     .withPropertyValues(
-                            "egon.cola.component.ddc.enabled=true",
-                            "egon.cola.component.ddc.redis.enabled=true",
-                            "egon.cola.component.ddc.registry.enabled=true"
+                            "egon.cola.component.tianshu.enabled=true",
+                            "egon.cola.component.tianshu.redis.enabled=true",
+                            "egon.cola.component.tianshu.registry.enabled=true"
                     )
                     .run(context -> {
                         assertThat(context).hasSingleBean(RedissonClient.class);

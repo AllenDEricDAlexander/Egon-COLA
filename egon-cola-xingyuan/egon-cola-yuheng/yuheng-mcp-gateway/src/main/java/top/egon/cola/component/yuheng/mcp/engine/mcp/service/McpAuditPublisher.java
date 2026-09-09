@@ -235,7 +235,7 @@ public final class McpAuditPublisher implements McpTelemetry {
                 "clientId",
                 codeAttribute(
                         request.attributes(),
-                        "idp.client-id",
+                        "tianquan-shoubing.client-id",
                         "identity.client-id"
                 )
         );

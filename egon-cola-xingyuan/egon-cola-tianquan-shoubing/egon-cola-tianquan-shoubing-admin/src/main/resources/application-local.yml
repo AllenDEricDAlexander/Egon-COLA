@@ -1,53 +1,53 @@
 spring:
   datasource:
-    url: ${IDP_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/egon_identity_local}
-    username: ${IDP_POSTGRES_USER:postgres}
-    password: ${IDP_POSTGRES_PASSWORD:HomeLab666}
+    url: ${TIANQUAN_SHOUBING_POSTGRES_URL:jdbc:postgresql://127.0.0.1:5432/egon_identity_local}
+    username: ${TIANQUAN_SHOUBING_POSTGRES_USER:postgres}
+    password: ${TIANQUAN_SHOUBING_POSTGRES_PASSWORD:HomeLab666}
   data:
     redis:
-      host: ${IDP_REDIS_HOST:127.0.0.1}
-      port: ${IDP_REDIS_PORT:6379}
-      password: ${IDP_REDIS_PASSWORD:HomeLab666}
-      database: ${IDP_REDIS_DATABASE:0}
+      host: ${TIANQUAN_SHOUBING_REDIS_HOST:127.0.0.1}
+      port: ${TIANQUAN_SHOUBING_REDIS_PORT:6379}
+      password: ${TIANQUAN_SHOUBING_REDIS_PASSWORD:HomeLab666}
+      database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
 
 egon.cola.platform:
-  idp:
-    issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
-    jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-  rbac3:
+  tianquan-shoubing:
+    issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+    jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+  tianquan-jianshen:
     runtime:
-      redis-address: ${IDP_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
-      password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets/redis.password}
+      redis-address: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+      password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
     authorization:
-      endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+      endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
 
 egon:
-  idp:
+  tianquan-shoubing:
     development-bootstrap:
-      enabled: ${IDP_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
-      key-directory: ${IDP_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/secrets}
-      rbac3-service-tenant-ids: ${IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS:${IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_ID:default}}
+      enabled: ${TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_ENABLED:false}
+      key-directory: ${TIANQUAN_SHOUBING_DEVELOPMENT_BOOTSTRAP_KEY_DIRECTORY:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets}
+      tianquan-jianshen-service-tenant-ids: ${TIANQUAN_SHOUBING_DEVELOPMENT_TIANQUAN_JIANSHEN_SERVICE_TENANT_IDS:${TIANQUAN_SHOUBING_DEVELOPMENT_TIANQUAN_JIANSHEN_SERVICE_TENANT_ID:default}}
     oauth:
-      issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
-      login-uri: ${IDP_OAUTH_LOGIN_URI:http://127.0.0.1:18121/login}
-      allowed-origins: ${IDP_OAUTH_ALLOWED_ORIGINS:http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152}
+      issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+      login-uri: ${TIANQUAN_SHOUBING_OAUTH_LOGIN_URI:http://127.0.0.1:18121/login}
+      allowed-origins: ${TIANQUAN_SHOUBING_OAUTH_ALLOWED_ORIGINS:http://127.0.0.1:18121,http://127.0.0.1:18125,http://127.0.0.1:18131,http://127.0.0.1:18141,http://127.0.0.1:18152}
       refresh-cookie-secure: false
   cola:
     component:
       rpc:
         tls:
-          development-plaintext: ${IDP_RPC_DEVELOPMENT_PLAINTEXT:true}
-      ddc:
+          development-plaintext: ${TIANQUAN_SHOUBING_RPC_DEVELOPMENT_PLAINTEXT:true}
+      tianshu:
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           tls:
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
         redis:
-          password: ${DDC_REGISTRY_REDIS_PASSWORD:HomeLab666}
-      gateway:
+          password: ${TIANSHU_REGISTRY_REDIS_PASSWORD:HomeLab666}
+      yuheng:
         reporting:
-          enabled: ${IDP_GATEWAY_REPORTING_ENABLED:false}
+          enabled: ${TIANQUAN_SHOUBING_YUHENG_REPORTING_ENABLED:false}
           env: local
           namespace: default
-          application-code: idp
+          application-code: tianquan-shoubing
           artifact-version: local

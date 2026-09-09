@@ -40,7 +40,7 @@ import java.util.Optional;
  * Read-only query facade for OpenAPI synchronization, fragments and snapshots.
  *
  * <p>中文：该 Facade 只组合本地 application/catalog/snapshot 投影；它不触发
- * DDC、Provider 网络、同步状态 CAS 或 Definition ingestion。</p>
+ * Tianshu、Provider 网络、同步状态 CAS 或 Definition ingestion。</p>
  */
 @Slf4j
 @Validated

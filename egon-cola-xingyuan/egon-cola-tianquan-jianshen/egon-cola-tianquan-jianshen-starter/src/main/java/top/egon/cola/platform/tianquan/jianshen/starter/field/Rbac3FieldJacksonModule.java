@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.module.SimpleModule;
 import top.egon.cola.component.common.desensitize.strategy.SensitiveStrategyRegistry;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.CurrentRbac3User;
 
-/** Jackson response module for RBAC3 field decisions. */
+/** Jackson response module for Tianquan-Jianshen field decisions. */
 public class Rbac3FieldJacksonModule extends SimpleModule {
 
     public Rbac3FieldJacksonModule(

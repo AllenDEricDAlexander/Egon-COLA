@@ -38,7 +38,7 @@ class IdpServiceOAuth2ClientTest {
     @Test
     void isolatesEveryAuthorizationDimension() {
         IdpServiceTokenRequest base = request(
-                "egon-idp",
+                "egon-tianquan-shoubing",
                 "orders-app",
                 ServiceTokenContext.TENANT,
                 "tenant-1",
@@ -51,28 +51,28 @@ class IdpServiceOAuth2ClientTest {
                 "orders:write"
         );
         assertThat(key).isEqualTo(ServiceAuthorizationKey.from(request(
-                "egon-idp",
+                "egon-tianquan-shoubing",
                 "orders-app",
                 ServiceTokenContext.TENANT,
                 "tenant-1",
                 Set.of("orders:write", "orders:read")
         )));
         assertThat(key).isNotEqualTo(ServiceAuthorizationKey.from(request(
-                "egon-idp",
+                "egon-tianquan-shoubing",
                 "orders-app",
                 ServiceTokenContext.TENANT,
                 "tenant-2",
                 base.scopes()
         )));
         assertThat(key).isNotEqualTo(ServiceAuthorizationKey.from(request(
-                "egon-idp",
+                "egon-tianquan-shoubing",
                 "other-app",
                 ServiceTokenContext.TENANT,
                 "tenant-1",
                 base.scopes()
         )));
         assertThat(key).isNotEqualTo(ServiceAuthorizationKey.from(request(
-                "egon-idp",
+                "egon-tianquan-shoubing",
                 "orders-app",
                 ServiceTokenContext.PLATFORM,
                 null,
@@ -108,7 +108,7 @@ class IdpServiceOAuth2ClientTest {
                 Duration.ofSeconds(30)
         );
         IdpServiceTokenRequest request = request(
-                "egon-idp",
+                "egon-tianquan-shoubing",
                 "orders-app",
                 ServiceTokenContext.TENANT,
                 "tenant-1",
@@ -185,12 +185,12 @@ class IdpServiceOAuth2ClientTest {
     }
 
     private static ClientRegistration registration() {
-        return ClientRegistration.withRegistrationId("egon-idp")
+        return ClientRegistration.withRegistrationId("egon-tianquan-shoubing")
                 .clientId("orders-key")
                 .clientSecret("orders-secret")
                 .scope("orders:read", "orders:write")
                 .authorizationGrantType(AuthorizationGrantType.CLIENT_CREDENTIALS)
-                .tokenUri("https://idp.example/oauth2/token")
+                .tokenUri("https://tianquan-shoubing.example/oauth2/token")
                 .build();
     }
 

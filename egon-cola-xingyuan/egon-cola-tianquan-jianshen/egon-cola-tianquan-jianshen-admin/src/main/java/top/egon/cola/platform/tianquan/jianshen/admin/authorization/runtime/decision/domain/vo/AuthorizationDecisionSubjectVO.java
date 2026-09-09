@@ -6,7 +6,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.dec
      *
      * @param tenantId 租户标识 / tenant identifier
      * @param userId RBAC 用户标识 / RBAC user identifier
- * @param identitySub IdP 稳定主体标识 / stable IdP subject
+ * @param identitySub Tianquan-Shoubing 稳定主体标识 / stable Tianquan-Shoubing subject
      * 语义与用法：将 `AuthorizationDecisionSubjectVO` 作为 `AuthorizationDecisionService` 的职责边界使用，优先依赖其已有构造、接口或 Spring 装配方式。
      * Semantics and usage: use `AuthorizationDecisionSubjectVO` as the responsibility boundary of `AuthorizationDecisionService`, following its existing construction, interface, or Spring-assembly mechanism.
      */
@@ -23,7 +23,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.dec
  * 含义与用法：读取、传递或更新 `userId` 时应保持 `AuthorizationDecisionSubjectVO` 的生命周期、不可变性和线程安全约束。
  * Meaning and usage: when reading, passing, or updating `userId`, preserve `AuthorizationDecisionSubjectVO`'s lifecycle, immutability, and thread-safety constraints.
  */ String userId, /**
- * 字段 `identitySub` 表示 IdP 稳定主体标识；Field `identitySub` stores the stable IdP subject.
+ * 字段 `identitySub` 表示 Tianquan-Shoubing 稳定主体标识；Field `identitySub` stores the stable Tianquan-Shoubing subject.
  *
  * 含义与用法：读取、传递或更新 `identitySub` 时应保持 `AuthorizationDecisionSubjectVO` 的生命周期、不可变性和线程安全约束。
  * Meaning and usage: preserve the lifecycle, immutability, and thread-safety constraints of `AuthorizationDecisionSubjectVO` when reading or passing `identitySub`.

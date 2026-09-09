@@ -28,7 +28,7 @@ class GatewayContextTest {
                 "lease-1",
                 "10.0.0.10",
                 8080,
-                Map.of("gateway.zone", "cn-east")
+                Map.of("yuheng.zone", "cn-east")
         );
         GatewayContext context = new GatewayContext(
                 "request-1",
@@ -36,7 +36,7 @@ class GatewayContextTest {
                 "00-trace-1-span-1-01",
                 null,
                 AccessZone.INTERNAL,
-                "gateway-group-1",
+                "yuheng-group-1",
                 "engine-node-1",
                 "operation-1",
                 "route-1",
@@ -61,7 +61,7 @@ class GatewayContextTest {
         assertEquals("request-1", context.requestId());
         assertEquals("trace-1", context.traceId());
         assertEquals(AccessZone.INTERNAL, context.accessZone());
-        assertEquals("gateway-group-1", context.gatewayGroupId());
+        assertEquals("yuheng-group-1", context.gatewayGroupId());
         assertEquals("engine-node-1", context.engineNodeId());
         assertEquals(
                 "operation-1",
@@ -83,7 +83,7 @@ class GatewayContextTest {
         Map<String, String> attributes = new LinkedHashMap<>();
         attributes.put("tenantId", "tenant-a");
         Map<String, String> metadata = new LinkedHashMap<>();
-        metadata.put("gateway.weight", "100");
+        metadata.put("yuheng.weight", "100");
         List<GatewayGovernanceDecision> decisions = new ArrayList<>();
         decisions.add(new GatewayGovernanceDecision(
                 "policy-1",
@@ -116,7 +116,7 @@ class GatewayContextTest {
         );
 
         attributes.put("role", "admin");
-        metadata.put("gateway.zone", "cn-east");
+        metadata.put("yuheng.zone", "cn-east");
         decisions.clear();
         diagnostics.clear();
 
@@ -125,7 +125,7 @@ class GatewayContextTest {
                 context.principal().orElseThrow().attributes()
         );
         assertEquals(
-                Map.of("gateway.weight", "100"),
+                Map.of("yuheng.weight", "100"),
                 context.providerSelection().orElseThrow().metadata()
         );
         assertEquals(1, context.governanceDecisions().size());
@@ -148,7 +148,7 @@ class GatewayContextTest {
                         null,
                         null,
                         AccessZone.PUBLIC,
-                        "gateway-group-1",
+                        "yuheng-group-1",
                         "engine-node-1",
                         null,
                         null,
@@ -176,7 +176,7 @@ class GatewayContextTest {
                 null,
                 null,
                 AccessZone.INTERNAL,
-                "gateway-group-1",
+                "yuheng-group-1",
                 "engine-node-1",
                 null,
                 null,

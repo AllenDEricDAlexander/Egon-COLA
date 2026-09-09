@@ -196,7 +196,7 @@ public final class ProtobufSchemaMapper {
             GatewaySchemaFieldOption option = option(field);
             if (option != null
                     && option.getRequired()
-                    == GatewayRequiredOption.GATEWAY_OPTIONAL
+                    == GatewayRequiredOption.YUHENG_OPTIONAL
                     && field.isRequired()) {
                 throw new IllegalArgumentException(
                         "protobuf Gateway Option cannot weaken required field: "
@@ -205,7 +205,7 @@ public final class ProtobufSchemaMapper {
             }
             return field.isRequired() || option != null
                     && option.getRequired()
-                    == GatewayRequiredOption.GATEWAY_REQUIRED;
+                    == GatewayRequiredOption.YUHENG_REQUIRED;
         }
 
         /**
@@ -246,9 +246,9 @@ public final class ProtobufSchemaMapper {
          */
         private GatewaySchemaFieldOption option(
                 Descriptors.FieldDescriptor field) {
-            return field.getOptions().hasExtension(SchemaOptions.gatewaySchema)
+            return field.getOptions().hasExtension(SchemaOptions.yuhengSchema)
                     ? field.getOptions().getExtension(
-                    SchemaOptions.gatewaySchema
+                    SchemaOptions.yuhengSchema
             ) : null;
         }
 

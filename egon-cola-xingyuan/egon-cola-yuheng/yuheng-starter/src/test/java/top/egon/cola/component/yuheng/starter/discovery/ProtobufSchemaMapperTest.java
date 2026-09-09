@@ -239,7 +239,7 @@ class ProtobufSchemaMapperTest {
                         .setName("order.proto")
                         .setPackage("shop.v1")
                         .setSyntax("proto3")
-                        .addDependency("egon/gateway/schema_options.proto")
+                        .addDependency("egon/yuheng/schema_options.proto")
                         .addDependency("google/protobuf/timestamp.proto")
                         .addDependency("google/protobuf/any.proto")
                         .addMessageType(address)
@@ -275,7 +275,7 @@ class ProtobufSchemaMapperTest {
     private DescriptorProtos.FieldOptions options(
             GatewaySchemaFieldOption option) {
         return DescriptorProtos.FieldOptions.newBuilder()
-                .setExtension(SchemaOptions.gatewaySchema, option)
+                .setExtension(SchemaOptions.yuhengSchema, option)
                 .build();
     }
 
@@ -286,7 +286,7 @@ class ProtobufSchemaMapperTest {
         return GatewaySchemaFieldOption.newBuilder()
                 .setDescription(description)
                 .setFormat(format)
-                .setRequired(GatewayRequiredOption.GATEWAY_REQUIRED)
+                .setRequired(GatewayRequiredOption.YUHENG_REQUIRED)
                 .setExample(example)
                 .build();
     }

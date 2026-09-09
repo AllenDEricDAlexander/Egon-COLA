@@ -14,7 +14,7 @@
     <artifactId>yuheng-contract</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-contract</name>
-    <description>Stable cross-process contracts for Egon COLA Gateway.</description>
+    <description>Stable cross-process contracts for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>

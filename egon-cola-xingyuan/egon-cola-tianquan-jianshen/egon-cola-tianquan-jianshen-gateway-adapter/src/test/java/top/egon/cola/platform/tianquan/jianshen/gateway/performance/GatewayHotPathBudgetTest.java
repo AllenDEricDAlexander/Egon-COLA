@@ -49,7 +49,7 @@ class GatewayHotPathBudgetTest {
                     .flatMap(path -> lines(path).stream())
                     .filter(line -> List.of(
                                     "EntityManager", "JdbcTemplate", "WebClient",
-                                    "RestClient", "rbac3-admin",
+                                    "RestClient", "tianquan-jianshen-admin",
                                     "operationMapping(", "permissions()")
                             .stream().anyMatch(line::contains))
                     .toList();
@@ -59,7 +59,7 @@ class GatewayHotPathBudgetTest {
 
     @Test
     void calibratedEnvironmentMayEnforceReactiveDecisionBudget() {
-        Assumptions.assumeTrue(Boolean.getBoolean("rbac3.performance.enforce"));
+        Assumptions.assumeTrue(Boolean.getBoolean("tianquan-jianshen.performance.enforce"));
         var provider = new Rbac3BizAppScopeAuthorizationProvider(
                 ignored -> AuthorizationDecision.allow());
 

@@ -26,7 +26,7 @@ public class DdcConfigChangeListener implements MessageListener<DdcPublishMessag
     /**
      * 创建作用域受限的 Redis 配置变更监听器。 Creates a scope-restricted Redis configuration-change listener.
      *
-     * @param properties     DDC 作用域属性。 DDC scope properties
+     * @param properties     Tianshu 作用域属性。 Tianshu scope properties
      * @param refreshService 配置刷新服务。 configuration refresh service
      */
     public DdcConfigChangeListener(DdcProperties properties, DdcRefreshService refreshService) {

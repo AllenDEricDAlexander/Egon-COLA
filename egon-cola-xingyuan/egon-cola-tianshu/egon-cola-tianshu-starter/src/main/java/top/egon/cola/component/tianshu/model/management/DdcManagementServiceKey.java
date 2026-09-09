@@ -1,7 +1,7 @@
 package top.egon.cola.component.tianshu.model.management;
 
 /**
- * DDC 服务注册表中的规范化服务键。 / Canonical service key in the DDC service registry.
+ * Tianshu 服务注册表中的规范化服务键。 / Canonical service key in the Tianshu service registry.
  *
  * @param bizCode     业务编码 / business code
  * @param env         环境编码 / environment code

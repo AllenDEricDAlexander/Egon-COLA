@@ -40,7 +40,7 @@ public class GatewayObservabilityRetentionReaper {
      */
     @Scheduled(
             fixedDelayString =
-                    "${gateway.admin.observability.retention-reap-ms:3600000}"
+                    "${yuheng.admin.observability.retention-reap-ms:3600000}"
     )
     public void reap() {
         service.purgeExpired();

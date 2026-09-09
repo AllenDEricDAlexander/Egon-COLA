@@ -10,11 +10,11 @@ import java.util.Objects;
 
 public final class IdpBootstrapRunner {
 
-    private static final String ADMIN_ARGUMENT = "--idp-bootstrap-admin=";
+    private static final String ADMIN_ARGUMENT = "--tianquan-shoubing-bootstrap-admin=";
     private static final String PASSWORD_ENVIRONMENT =
-            "IDP_BOOTSTRAP_PASSWORD";
+            "TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD";
     private static final String PASSWORD_FILE_ENVIRONMENT =
-            "IDP_BOOTSTRAP_PASSWORD_FILE";
+            "TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD_FILE";
 
     private final BootstrapPort bootstrapPort;
 

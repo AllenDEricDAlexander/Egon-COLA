@@ -15,23 +15,23 @@ class RedisIdentityResourceServerStateReaderTest {
     @Test
     void readsExactResourceProjection() {
         RedisIdentityResourceServerStateReader reader = reader("""
-                {"resourceServerId":"resource-rbac3-prod",
-                 "resourceUri":"https://api.example/prod/permission/rbac3",
-                 "bizCode":"permission","appCode":"rbac3",
+                {"resourceServerId":"resource-tianquan-jianshen-prod",
+                 "resourceUri":"https://api.example/prod/permission/tianquan-jianshen",
+                 "bizCode":"permission","appCode":"tianquan-jianshen",
                  "environment":"prod","status":"ACTIVE","version":12}
                 """);
 
-        var state = reader.read("resource-rbac3-prod").orElseThrow();
+        var state = reader.read("resource-tianquan-jianshen-prod").orElseThrow();
 
         assertThat(state.resourceServerId())
-                .isEqualTo("resource-rbac3-prod");
+                .isEqualTo("resource-tianquan-jianshen-prod");
         assertThat(state.version()).isEqualTo(12L);
     }
 
     @Test
     void rejectsMalformedOrMismatchedResourceProjection() {
         assertThatThrownBy(() -> reader("not-json")
-                .read("resource-rbac3-prod"))
+                .read("resource-tianquan-jianshen-prod"))
                 .isInstanceOf(RedisIdentityResourceServerStateReader
                         .StateUnavailableException.class);
         assertThatThrownBy(() -> reader("""
@@ -39,7 +39,7 @@ class RedisIdentityResourceServerStateReaderTest {
                  "resourceUri":"https://api.example/other",
                  "bizCode":"permission","appCode":"other",
                  "environment":"prod","status":"ACTIVE","version":1}
-                """).read("resource-rbac3-prod"))
+                """).read("resource-tianquan-jianshen-prod"))
                 .isInstanceOf(RedisIdentityResourceServerStateReader
                         .StateUnavailableException.class);
     }

@@ -80,7 +80,7 @@ class OAuthClientServiceImplTest {
 
     @Test
     void createsPublicPkceClientWithExactRedirectsAndResources() {
-        when(clients.existsById("gateway-admin-web")).thenReturn(false);
+        when(clients.existsById("yuheng-admin-web")).thenReturn(false);
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         IdentityResourceServerEntity resource = resource();
         when(resources.findByResourceUri(resource.getResourceUri()))
@@ -88,8 +88,8 @@ class OAuthClientServiceImplTest {
 
         CreatedOAuthClientVO created = service.create(
                 new CreateOAuthClientDTO(
-                        "gateway-admin-web",
-                        "Gateway Admin Web",
+                        "yuheng-admin-web",
+                        "Yuheng Admin Web",
                         900,
                         604800,
                         List.of("http://127.0.0.1:5173/oauth/callback"),
@@ -105,15 +105,15 @@ class OAuthClientServiceImplTest {
 
     @Test
     void createsMachineConfidentialClientWithoutBrowserValues() {
-        when(clients.existsById("idp-service")).thenReturn(false);
+        when(clients.existsById("tianquan-shoubing-service")).thenReturn(false);
         when(clients.save(any())).thenAnswer(
                 invocation -> invocation.getArgument(0)
         );
 
         CreatedOAuthClientVO created = service.create(new CreateOAuthClientDTO(
-                "idp-service-app",
-                "idp-service",
-                "IdP Service",
+                "tianquan-shoubing-service-app",
+                "tianquan-shoubing-service",
+                "Tianquan-Shoubing Service",
                 IdentityClientEntity.ClientType.CONFIDENTIAL,
                 300,
                 86_400,
@@ -122,7 +122,7 @@ class OAuthClientServiceImplTest {
         ));
 
         assertThat(created.clientType()).isEqualTo("CONFIDENTIAL");
-        assertThat(created.appId()).isEqualTo("idp-service-app");
+        assertThat(created.appId()).isEqualTo("tianquan-shoubing-service-app");
         assertThat(created.clientSecret()).isNotBlank();
         assertThat(created.secretHint()).hasSize(4);
         verify(secrets).save(any(IdentityClientSecretEntity.class));
@@ -132,34 +132,34 @@ class OAuthClientServiceImplTest {
     @Test
     void rotatesConfidentialSecretAndRevokesPreviousCredential() {
         IdentityClientEntity client = IdentityClientEntity.createConfidential(
-                "idp-service-app",
-                "idp-service",
-                "IdP Service",
+                "tianquan-shoubing-service-app",
+                "tianquan-shoubing-service",
+                "Tianquan-Shoubing Service",
                 300,
                 86_400,
                 NOW
         );
         IdentityClientSecretEntity active = IdentityClientSecretEntity.create(
                 "secret-old",
-                "idp-service",
+                "tianquan-shoubing-service",
                 "{argon2}old-hash",
                 "old1",
                 NOW
         );
-        when(clients.findByClientIdForUpdate("idp-service"))
+        when(clients.findByClientIdForUpdate("tianquan-shoubing-service"))
                 .thenReturn(Optional.of(client));
-        when(secrets.findActiveByClientIdForUpdate("idp-service"))
+        when(secrets.findActiveByClientIdForUpdate("tianquan-shoubing-service"))
                 .thenReturn(Optional.of(active));
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(secrets.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RotatedClientSecretVO rotated = service.rotateSecret(
-                "idp-service",
+                "tianquan-shoubing-service",
                 new RotateClientSecretDTO(0L)
         );
 
-        assertThat(rotated.clientId()).isEqualTo("idp-service");
-        assertThat(rotated.appId()).isEqualTo("idp-service-app");
+        assertThat(rotated.clientId()).isEqualTo("tianquan-shoubing-service");
+        assertThat(rotated.appId()).isEqualTo("tianquan-shoubing-service-app");
         assertThat(rotated.clientSecret()).isNotBlank();
         assertThat(active.getStatus())
                 .isEqualTo(IdentityClientSecretEntity.Status.REVOKED);
@@ -170,22 +170,22 @@ class OAuthClientServiceImplTest {
     @Test
     void provisionsInitialSecretForMigratedConfidentialClient() {
         IdentityClientEntity client = IdentityClientEntity.createConfidential(
-                "idp-service-app",
-                "idp-service",
-                "IdP Service",
+                "tianquan-shoubing-service-app",
+                "tianquan-shoubing-service",
+                "Tianquan-Shoubing Service",
                 300,
                 86_400,
                 NOW
         );
-        when(clients.findByClientIdForUpdate("idp-service"))
+        when(clients.findByClientIdForUpdate("tianquan-shoubing-service"))
                 .thenReturn(Optional.of(client));
-        when(secrets.findActiveByClientIdForUpdate("idp-service"))
+        when(secrets.findActiveByClientIdForUpdate("tianquan-shoubing-service"))
                 .thenReturn(Optional.empty());
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(secrets.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         RotatedClientSecretVO provisioned = service.rotateSecret(
-                "idp-service",
+                "tianquan-shoubing-service",
                 new RotateClientSecretDTO(0L)
         );
 
@@ -196,16 +196,16 @@ class OAuthClientServiceImplTest {
 
     @Test
     void rollsBackWhenSecretPersistenceFailsWithoutReturningPlaintext() {
-        when(clients.existsById("idp-service")).thenReturn(false);
+        when(clients.existsById("tianquan-shoubing-service")).thenReturn(false);
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         doThrow(new IllegalStateException("secret write failed"))
                 .when(secrets).save(any(IdentityClientSecretEntity.class));
 
         Throwable failure = org.assertj.core.api.Assertions.catchThrowable(() ->
                 service.create(new CreateOAuthClientDTO(
-                        "idp-service-app",
-                        "idp-service",
-                        "IdP Service",
+                        "tianquan-shoubing-service-app",
+                        "tianquan-shoubing-service",
+                        "Tianquan-Shoubing Service",
                         IdentityClientEntity.ClientType.CONFIDENTIAL,
                         300,
                         86_400,
@@ -221,19 +221,19 @@ class OAuthClientServiceImplTest {
     @Test
     void rejectsSecretRotationOnStaleClientVersion() {
         IdentityClientEntity client = IdentityClientEntity.createConfidential(
-                "idp-service-app",
-                "idp-service",
-                "IdP Service",
+                "tianquan-shoubing-service-app",
+                "tianquan-shoubing-service",
+                "Tianquan-Shoubing Service",
                 300,
                 86_400,
                 NOW
         );
-        when(clients.findByClientIdForUpdate("idp-service"))
+        when(clients.findByClientIdForUpdate("tianquan-shoubing-service"))
                 .thenReturn(Optional.of(client));
 
         assertThat(org.assertj.core.api.Assertions.catchThrowable(() ->
                 service.rotateSecret(
-                        "idp-service",
+                        "tianquan-shoubing-service",
                         new RotateClientSecretDTO(1L)
                 )
         )).hasMessage("stale OAuth client version");
@@ -242,19 +242,19 @@ class OAuthClientServiceImplTest {
     @Test
     void updatesClientUsingOptimisticVersionAndManagesExactValues() {
         IdentityClientEntity client = IdentityClientEntity.createPublic(
-                "gateway-admin-web",
-                "Gateway Admin Web",
+                "yuheng-admin-web",
+                "Yuheng Admin Web",
                 900,
                 604800,
                 NOW
         );
-        when(clients.findById("gateway-admin-web"))
+        when(clients.findById("yuheng-admin-web"))
                 .thenReturn(Optional.of(client));
         when(clients.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-        when(redirects.findByClientId("gateway-admin-web"))
+        when(redirects.findByClientId("yuheng-admin-web"))
                 .thenReturn(List.of());
         when(grants.findByClientIdAndGrantTypeAndStatus(
-                "gateway-admin-web",
+                "yuheng-admin-web",
                 IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION,
                 IdentityClientResourceGrantEntity.Status.ACTIVE
         ))
@@ -264,7 +264,7 @@ class OAuthClientServiceImplTest {
                 .thenReturn(Optional.of(resource));
 
         OAuthClientVO updated = service.update(
-                "gateway-admin-web",
+                "yuheng-admin-web",
                 new UpdateOAuthClientDTO(
                         "Gateway Web Disabled",
                         IdentityClientEntity.Status.DISABLED,
@@ -274,11 +274,11 @@ class OAuthClientServiceImplTest {
                 )
         );
         service.putRedirectUri(
-                "gateway-admin-web",
+                "yuheng-admin-web",
                 "http://127.0.0.1:5173/oauth/callback"
         );
         service.deleteResourceUri(
-                "gateway-admin-web",
+                "yuheng-admin-web",
                 resource.getResourceUri()
         );
 
@@ -286,7 +286,7 @@ class OAuthClientServiceImplTest {
         assertThat(updated.version()).isEqualTo(1L);
         verify(redirects).save(any(IdentityClientRedirectUriEntity.class));
         verify(grants).deleteByClientIdAndResourceServerIdAndGrantType(
-                "gateway-admin-web",
+                "yuheng-admin-web",
                 resource.getResourceServerId(),
                 IdentityClientResourceGrantEntity.GrantType.USER_DELEGATION
         );
@@ -295,15 +295,15 @@ class OAuthClientServiceImplTest {
     private static IdentityResourceServerEntity resource() {
         return IdentityResourceServerEntity.create(
                 "resource-row-1",
-                "platform-gateway-local",
-                "https://api.egon.internal/local/platform/gateway",
-                "platform",
-                "gateway",
+                "xingyuan-yuheng-local",
+                "https://api.egon.internal/local/platform/yuheng",
+                "xingyuan",
+                "yuheng",
                 "local",
-                "Gateway Local",
-                "gateway-admin-web",
-                "gateway",
-                "gateway:access",
+                "Yuheng Local",
+                "yuheng-admin-web",
+                "yuheng",
+                "yuheng:access",
                 300,
                 IdentityResourceServerEntity.Status.ACTIVE,
                 NOW

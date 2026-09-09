@@ -103,18 +103,18 @@ class HttpRbac3AuthorizationClientTest {
 
         assertThatThrownBy(() -> denied.fetch("finance", principal()))
                 .isInstanceOf(Rbac3AuthorizationClient.AuthorizationDeniedException.class)
-                .hasMessage("RBAC3_AUTHORIZATION_DENIED")
+                .hasMessage("TIANQUAN_JIANSHEN_AUTHORIZATION_DENIED")
                 .hasMessageNotContaining("do-not-leak-user-token");
         assertThatThrownBy(() -> unavailable.fetch("finance", principal()))
                 .isInstanceOf(Rbac3AuthorizationClient.AuthorizationUnavailableException.class)
-                .hasMessage("RBAC3_AUTHORIZATION_UNAVAILABLE")
+                .hasMessage("TIANQUAN_JIANSHEN_AUTHORIZATION_UNAVAILABLE")
                 .hasMessageNotContaining("do-not-leak-user-token");
     }
 
     @Test
     void rejectsClearTextNonLoopbackEndpoint() {
         assertThatThrownBy(() -> new HttpRbac3AuthorizationClient(
-                URI.create("http://rbac3.internal"), supplier(ignored -> "token"),
+                URI.create("http://tianquan-jianshen.internal"), supplier(ignored -> "token"),
                 Duration.ofSeconds(1), objectMapper(),
                 (uri, serviceToken, userToken, timeout) -> null))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -131,9 +131,9 @@ class HttpRbac3AuthorizationClientTest {
     private HttpTenantServiceTokenSupplier supplier(
             java.util.function.Function<String, String> value) {
         return new HttpTenantServiceTokenSupplier(
-                "rbac3-client", () -> value.apply("tenant-a"),
-                URI.create("https://rbac3.example/internal"),
-                Set.of("rbac3:authorization:read"), Duration.ofSeconds(5),
+                "tianquan-jianshen-client", () -> value.apply("tenant-a"),
+                URI.create("https://tianquan-jianshen.example/internal"),
+                Set.of("tianquan-jianshen:authorization:read"), Duration.ofSeconds(5),
                 Clock.systemUTC(), request ->
                 new HttpTenantServiceTokenSupplier.TokenResponse(
                         value.apply(request.tenantId()), "Bearer", 300));

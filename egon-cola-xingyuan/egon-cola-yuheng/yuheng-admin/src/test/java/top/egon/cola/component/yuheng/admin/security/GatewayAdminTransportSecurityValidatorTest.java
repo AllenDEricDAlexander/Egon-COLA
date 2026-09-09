@@ -9,7 +9,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class GatewayAdminTransportSecurityValidatorTest {
 
     private static final String PREFIX =
-            "gateway.admin.transport-security";
+            "yuheng.admin.transport-security";
 
     @Test
     void acceptsCompleteReloadablePemMtlsBundle() {

@@ -27,11 +27,11 @@ class CurrentRbac3UserTest {
     @Test
     void readsUserDetailsFromSecurityContextWithoutParameterInjection() {
         IdentityPrincipal identity = new IdentityPrincipal(
-                "subject", "tenant", "jti", Set.of("rbac3"),
+                "subject", "tenant", "jti", Set.of("tianquan-jianshen"),
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(300),
                 AuthenticationContext.password());
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                "tenant", "subject", "user", "rbac3", 1L, 1L,
+                "tenant", "subject", "user", "tianquan-jianshen", 1L, 1L,
                 List.of("role"), Set.of("permission"), Map.of(), Map.of(),
                 "checksum", Instant.EPOCH, Instant.EPOCH.plusSeconds(300));
         Rbac3UserDetails details = new Rbac3UserDetails(identity, snapshot);
@@ -47,11 +47,11 @@ class CurrentRbac3UserTest {
     @Test
     void readsUserDetailsFromProjectedRuntimeContext() {
         IdentityPrincipal identity = new IdentityPrincipal(
-                "subject", "tenant", "jti", Set.of("rbac3"),
+                "subject", "tenant", "jti", Set.of("tianquan-jianshen"),
                 Instant.EPOCH, Instant.EPOCH.plusSeconds(300),
                 AuthenticationContext.password());
         SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
-                "tenant", "subject", "user", "rbac3", 1L, 1L,
+                "tenant", "subject", "user", "tianquan-jianshen", 1L, 1L,
                 List.of("role"), Set.of("permission"), Map.of(), Map.of(),
                 "checksum", Instant.EPOCH, Instant.EPOCH.plusSeconds(300));
         var context = new AuthorizationService.RuntimeAuthorizationContext(

@@ -49,9 +49,9 @@ class RedisAuthorizationSnapshotCacheTest {
                 eq(RScript.Mode.READ_WRITE), anyString(),
                 eq(RScript.ReturnType.INTEGER), keys.capture(), any(Object[].class));
         assertThat(keys.getValue()).containsExactly(
-                "rbac3:authorization:finance:tenant-a:alice-sub",
-                "rbac3:authorization:finance:tenant-a:user:alice-sub",
-                "rbac3:authorization:finance:tenant-a:tenant");
+                "tianquan-jianshen:authorization:finance:tenant-a:alice-sub",
+                "tianquan-jianshen:authorization:finance:tenant-a:user:alice-sub",
+                "tianquan-jianshen:authorization:finance:tenant-a:tenant");
     }
 
     @Test
@@ -60,11 +60,11 @@ class RedisAuthorizationSnapshotCacheTest {
         RSet<String> userIndex = set();
         RSet<String> tenantIndex = set();
         RKeys redisKeys = mock(RKeys.class);
-        String dataKey = "rbac3:authorization:finance:tenant-a:alice-sub";
+        String dataKey = "tianquan-jianshen:authorization:finance:tenant-a:alice-sub";
         String userIndexKey =
-                "rbac3:authorization:finance:tenant-a:user:alice-sub";
+                "tianquan-jianshen:authorization:finance:tenant-a:user:alice-sub";
         String tenantIndexKey =
-                "rbac3:authorization:finance:tenant-a:tenant";
+                "tianquan-jianshen:authorization:finance:tenant-a:tenant";
         when(redisson.<String>getSet(eq(userIndexKey), any(Codec.class)))
                 .thenReturn(userIndex);
         when(redisson.<String>getSet(eq(tenantIndexKey), any(Codec.class)))

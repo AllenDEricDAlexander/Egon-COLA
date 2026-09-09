@@ -8,9 +8,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * 由 IdP Service Access Token 解析出的服务身份。
+ * 由 Tianquan-Shoubing Service Access Token 解析出的服务身份。
  *
- * <p>Service identity parsed from an IdP Service Access Token.</p>
+ * <p>Service identity parsed from an Tianquan-Shoubing Service Access Token.</p>
  *
  * @param subject           服务主体，等于 Client 标识；service subject, equal to the Client identifier
  * @param tenantId          Token 绑定租户，PLATFORM 时为空；tenant bound to the Token, null for PLATFORM
@@ -18,7 +18,7 @@ import java.util.TreeSet;
  * @param tokenId           Access Token jti；Access Token jti
  * @param resourceUri       目标 Resource URI；target Resource URI
  * @param resourceVersion   目标 Resource 版本；target Resource version
- * @param scopes            IdP 授权 Scope；scopes authorized by IdP
+ * @param scopes            Tianquan-Shoubing 授权 Scope；scopes authorized by Tianquan-Shoubing
  * @param sourceBizCode     源业务域；source business domain
  * @param sourceAppCode     源应用；source application
  * @param sourceEnvironment 源环境；source environment

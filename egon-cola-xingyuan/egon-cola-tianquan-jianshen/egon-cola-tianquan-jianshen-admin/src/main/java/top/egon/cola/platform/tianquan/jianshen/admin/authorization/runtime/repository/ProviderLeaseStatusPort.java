@@ -2,7 +2,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.rep
 
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.DdcProviderLeaseStatusVO;
 
-/** DDC 提供者租约状态查询端口。 DDC provider-lease status query port. */
+/** Tianshu 提供者租约状态查询端口。 Tianshu provider-lease status query port. */
 @FunctionalInterface
 public interface ProviderLeaseStatusPort {
 

@@ -357,7 +357,7 @@ public final class MicrometerMcpTelemetry implements McpTelemetry {
                 observation.error(failure);
             }
             observation.stop();
-            sample.stop(Timer.builder("gateway.mcp.requests")
+            sample.stop(Timer.builder("yuheng.mcp.requests")
                     .tags(tags.values(status, remoteProvider.get()))
                     .register(meters));
         }
@@ -487,7 +487,7 @@ public final class MicrometerMcpTelemetry implements McpTelemetry {
                 observation.error(failure);
             }
             observation.stop();
-            sample.stop(Timer.builder("gateway.mcp.children")
+            sample.stop(Timer.builder("yuheng.mcp.children")
                     .tags(tags.values(status, remoteProvider))
                     .tag("mcp.child.kind", kind.name())
                     .register(meters));

@@ -40,7 +40,7 @@ class McpUnifiedReleaseTest {
                 () -> service.requireValid(content("missing-operation"))
         );
 
-        assertEquals("GATEWAY_MCP_OPERATION_NOT_FOUND", error.code());
+        assertEquals("YUHENG_MCP_OPERATION_NOT_FOUND", error.code());
     }
 
     @Test
@@ -100,7 +100,7 @@ class McpUnifiedReleaseTest {
                         null,
                         null,
                         Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                        "https://resource.egon.top/gateway-mcp",
+                        "https://resource.egon.top/yuheng-mcp",
                         30,
                         true
                 )),

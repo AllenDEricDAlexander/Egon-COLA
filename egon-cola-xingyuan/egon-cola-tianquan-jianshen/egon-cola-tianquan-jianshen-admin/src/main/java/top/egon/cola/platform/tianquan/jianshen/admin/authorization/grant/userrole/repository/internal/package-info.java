@@ -1,5 +1,5 @@
 /**
- * 提供 RBAC3 Admin assignment、repository、internal 边界内的类型；调用方应只通过该边界公开契约协作。
- * Provides types within the RBAC3 Admin assignment.repository.internal boundary; callers collaborate only through its exposed contracts.
+ * 提供 Tianquan-Jianshen Admin assignment、repository、internal 边界内的类型；调用方应只通过该边界公开契约协作。
+ * Provides types within the Tianquan-Jianshen Admin assignment.repository.internal boundary; callers collaborate only through its exposed contracts.
  */
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.repository.internal;

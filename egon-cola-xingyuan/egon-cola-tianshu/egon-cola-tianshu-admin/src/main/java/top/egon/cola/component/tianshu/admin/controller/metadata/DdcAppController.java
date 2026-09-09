@@ -23,14 +23,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/apps")
-@Tag(name = "ddc-admin-ddc-app-controller", description = "DdcAppController 管理接口组")
+@RequestMapping("/api/v1/tianshu/apps")
+@Tag(name = "tianshu-admin-tianshu-app-controller", description = "DdcAppController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcAppController {
 
@@ -40,7 +40,7 @@ public class DdcAppController {
         this.appService = appService;
     }
 
-    @Operation(operationId = "ddc.ddcAppController.list")
+    @Operation(operationId = "tianshu.ddcAppController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcAppEntity>> list(
@@ -52,7 +52,7 @@ public class DdcAppController {
                 bizCode, namespaceCode, env, keyword));
     }
 
-    @Operation(operationId = "ddc.ddcAppController.page")
+    @Operation(operationId = "tianshu.ddcAppController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcAppEntity> page(
@@ -65,21 +65,21 @@ public class DdcAppController {
                 bizCode, namespaceCode, env, keyword, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcAppController.detail")
+    @Operation(operationId = "tianshu.ddcAppController.detail")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{id}")
     public ResultRecord<DdcAppEntity> detail(@PathVariable("id") String id) {
         return ResultRecord.success(appService.findById(id).orElse(null));
     }
 
-    @Operation(operationId = "ddc.ddcAppController.save")
+    @Operation(operationId = "tianshu.ddcAppController.save")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping
     public ResultRecord<DdcAppEntity> save(@RequestBody DdcAppEntity request) {
         return ResultRecord.success(appService.save(request));
     }
 
-    @Operation(operationId = "ddc.ddcAppController.update")
+    @Operation(operationId = "tianshu.ddcAppController.update")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}")
     public ResultRecord<DdcAppEntity> update(
@@ -88,7 +88,7 @@ public class DdcAppController {
         return ResultRecord.success(appService.update(id, request));
     }
 
-    @Operation(operationId = "ddc.ddcAppController.delete")
+    @Operation(operationId = "tianshu.ddcAppController.delete")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @DeleteMapping("/{id}")
     public ResultRecord<Void> delete(@PathVariable("id") String id) {
@@ -96,7 +96,7 @@ public class DdcAppController {
         return ResultRecord.success(null);
     }
 
-    @Operation(operationId = "ddc.ddcAppController.setEnabled")
+    @Operation(operationId = "tianshu.ddcAppController.setEnabled")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PutMapping("/{id}/enabled")
     public ResultRecord<DdcAppEntity> setEnabled(

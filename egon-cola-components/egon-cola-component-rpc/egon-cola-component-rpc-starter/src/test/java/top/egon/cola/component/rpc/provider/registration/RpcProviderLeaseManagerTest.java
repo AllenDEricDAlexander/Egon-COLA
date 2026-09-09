@@ -120,7 +120,7 @@ class RpcProviderLeaseManagerTest {
                 ));
         assertThat(registry.registration.metadata())
                 .containsEntry("egon.rpc.runtime-version", "test")
-                .containsEntry("gateway.weight", "100");
+                .containsEntry("yuheng.weight", "100");
     }
 
     @Test
@@ -129,7 +129,7 @@ class RpcProviderLeaseManagerTest {
         RpcProviderAvailabilityRegistry availability =
                 new RpcProviderAvailabilityRegistry();
         EgonRpcProperties properties = new EgonRpcProperties();
-        properties.getProvider().getMetadata().put("gateway.weight", "60");
+        properties.getProvider().getMetadata().put("yuheng.weight", "60");
         RpcProviderLeaseManager leases = manager(
                 registry,
                 availability,
@@ -141,7 +141,7 @@ class RpcProviderLeaseManagerTest {
         leases.registerAll();
 
         assertThat(registry.registration.metadata())
-                .containsEntry("gateway.weight", "60");
+                .containsEntry("yuheng.weight", "60");
     }
 
     @Test

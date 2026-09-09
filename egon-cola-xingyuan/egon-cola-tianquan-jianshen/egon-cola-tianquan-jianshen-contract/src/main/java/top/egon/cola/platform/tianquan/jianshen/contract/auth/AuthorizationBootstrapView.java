@@ -22,7 +22,7 @@ public record AuthorizationBootstrapView(
         long authVersion,
         long policyVersion) {
 
-    /** Converts the minimal RBAC3 about view to the stable web bootstrap shape. */
+    /** Converts the minimal Tianquan-Jianshen about view to the stable web bootstrap shape. */
     public static AuthorizationBootstrapView from(Rbac3AboutView about) {
         Rbac3AboutView.User source = about.user();
         return new AuthorizationBootstrapView(

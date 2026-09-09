@@ -1,6 +1,6 @@
 spring:
   application:
-    name: gateway-test-mcp-remote
+    name: yuheng-test-mcp-remote
 
 server:
   port: ${MCP_TEST_REMOTE_PORT:18151}

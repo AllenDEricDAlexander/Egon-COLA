@@ -17,7 +17,7 @@ import java.time.Clock;
 import java.util.List;
 import java.util.Objects;
 
-/** Default transactional tenant-membership service backed only by IdP state. */
+/** Default transactional tenant-membership service backed only by Tianquan-Shoubing state. */
 @Service
 public class TenantMembershipServiceImpl implements TenantMembershipService {
 

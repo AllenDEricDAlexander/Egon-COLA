@@ -135,7 +135,7 @@ public class GatewayGroupService {
         audit(
                 actor,
                 request,
-                "GATEWAY_GROUP",
+                "YUHENG_GROUP",
                 id,
                 "CREATE",
                 null,
@@ -214,7 +214,7 @@ public class GatewayGroupService {
         audit(
                 actor,
                 request,
-                "GATEWAY_GROUP",
+                "YUHENG_GROUP",
                 id,
                 "UPDATE",
                 before,
@@ -251,7 +251,7 @@ public class GatewayGroupService {
         audit(
                 actor,
                 request,
-                "GATEWAY_GROUP",
+                "YUHENG_GROUP",
                 id,
                 enabled ? "ENABLE" : "DISABLE",
                 Map.of("enabled", !enabled),

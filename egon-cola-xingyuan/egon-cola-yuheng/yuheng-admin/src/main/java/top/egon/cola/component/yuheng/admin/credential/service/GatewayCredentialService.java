@@ -330,7 +330,7 @@ public class GatewayCredentialService {
     private GatewaySecretProtector requireProtector() {
         if (protector == null) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_SECRET_PROTECTOR_NOT_CONFIGURED"
+                    "YUHENG_ADMIN_SECRET_PROTECTOR_NOT_CONFIGURED"
             );
         }
         return protector;
@@ -389,7 +389,7 @@ public class GatewayCredentialService {
                 "MANAGEMENT_API",
                 request.requestId(),
                 request.traceId(),
-                "GATEWAY_CREDENTIAL",
+                "YUHENG_CREDENTIAL",
                 accessKey,
                 action,
                 null,

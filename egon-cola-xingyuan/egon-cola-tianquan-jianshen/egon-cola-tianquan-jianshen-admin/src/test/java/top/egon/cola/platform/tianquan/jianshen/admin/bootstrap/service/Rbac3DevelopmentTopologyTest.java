@@ -12,7 +12,7 @@ class Rbac3DevelopmentTopologyTest {
 
     @Test
     void localAdministratorCoversManualDirectoryControllerPermissions() {
-        var permissions = application("rbac3-admin").permissions();
+        var permissions = application("tianquan-jianshen-admin").permissions();
         for (Class<?> controller : java.util.List.of(
                 top.egon.cola.platform.tianquan.jianshen.admin.iam.user.controller.UserController.class,
                 top.egon.cola.platform.tianquan.jianshen.admin.iam.user.controller.UserDirectoryController.class,
@@ -39,10 +39,10 @@ class Rbac3DevelopmentTopologyTest {
         assertThat(applications).extracting(
                         ApplicationDefinitionVO::applicationCode)
                 .containsExactly(
-                        "rbac3-admin",
-                        "idp-admin",
-                        "gateway-admin",
-                        "ddc-admin",
+                        "tianquan-jianshen-admin",
+                        "tianquan-shoubing-admin",
+                        "yuheng-admin",
+                        "tianshu-admin",
                         "mock-backend",
                         "mock-backend");
         assertThat(applications.stream()
@@ -53,37 +53,37 @@ class Rbac3DevelopmentTopologyTest {
                 assertThat(new HashSet<>(application.permissions()))
                         .hasSameSizeAs(application.permissions()));
 
-        assertThat(application("rbac3-admin").permissions()).contains(
+        assertThat(application("tianquan-jianshen-admin").permissions()).contains(
                 "system:bootstrap:read",
                 "system:role-activation:read",
                 "system:role-activation:use",
                 "system:role-resource:read",
                 "system:role-resource:manage",
                 "system:tenant:target");
-        assertThat(application("rbac3-admin").permissions())
+        assertThat(application("tianquan-jianshen-admin").permissions())
                 .doesNotContain("system:tenant:read", "system:tenant:manage");
-        assertThat(application("idp-admin").permissions()).contains(
-                "idp:bootstrap:read",
-                "idp:identity-user:read",
-                "idp:oauth-client:read",
-                "idp:tenant:read",
-                "idp:tenant:manage",
-                "idp:resource-server:read",
-                "idp:resource-server:create",
-                "idp:resource-server:update",
-                "idp:resource-server:status",
-                "idp:resource-server:key",
-                "idp:resource-server:grant");
-        assertThat(application("gateway-admin").permissions()).contains(
-                "gateway:read",
-                "gateway:releases:write",
-                "gateway:mcp:read",
-                "gateway:mcp:write",
-                "gateway:mcp:test",
-                "gateway:mcp:approve",
-                "gateway:mcp:runtime:read");
-        assertThat(application("ddc-admin").permissions()).containsExactly(
-                "DDC_READ", "DDC_WRITE", "DDC_PUBLISH", "DDC_CACHE");
+        assertThat(application("tianquan-shoubing-admin").permissions()).contains(
+                "tianquan-shoubing:bootstrap:read",
+                "tianquan-shoubing:identity-user:read",
+                "tianquan-shoubing:oauth-client:read",
+                "tianquan-shoubing:tenant:read",
+                "tianquan-shoubing:tenant:manage",
+                "tianquan-shoubing:resource-server:read",
+                "tianquan-shoubing:resource-server:create",
+                "tianquan-shoubing:resource-server:update",
+                "tianquan-shoubing:resource-server:status",
+                "tianquan-shoubing:resource-server:key",
+                "tianquan-shoubing:resource-server:grant");
+        assertThat(application("yuheng-admin").permissions()).contains(
+                "yuheng:read",
+                "yuheng:releases:write",
+                "yuheng:mcp:read",
+                "yuheng:mcp:write",
+                "yuheng:mcp:test",
+                "yuheng:mcp:approve",
+                "yuheng:mcp:runtime:read");
+        assertThat(application("tianshu-admin").permissions()).containsExactly(
+                "TIANSHU_READ", "TIANSHU_WRITE", "TIANSHU_PUBLISH", "TIANSHU_CACHE");
         assertThat(application("mock-backend").permissions()).contains(
                 "mock:read",
                 "mock:admin",

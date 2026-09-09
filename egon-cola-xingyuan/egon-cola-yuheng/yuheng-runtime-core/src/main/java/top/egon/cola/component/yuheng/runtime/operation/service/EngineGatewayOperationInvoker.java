@@ -206,7 +206,7 @@ public final class EngineGatewayOperationInvoker
         GatewayCompiledRulesDTO active = rules.get();
         if (active == null) {
             return Mono.error(new IllegalStateException(
-                    "GATEWAY_RULES_NOT_READY"
+                    "YUHENG_RULES_NOT_READY"
             ));
         }
         GatewayRuntimeOperation operation = active.snapshot()
@@ -218,11 +218,11 @@ public final class EngineGatewayOperationInvoker
                 ))
                 .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException(
-                        "GATEWAY_OPERATION_NOT_FOUND"
+                        "YUHENG_OPERATION_NOT_FOUND"
                 ));
         if (operation.deprecated()) {
             return Mono.error(new IllegalArgumentException(
-                    "GATEWAY_OPERATION_DEPRECATED"
+                    "YUHENG_OPERATION_DEPRECATED"
             ));
         }
         PreparedRequest prepared = prepare(operation, invocation);
@@ -242,7 +242,7 @@ public final class EngineGatewayOperationInvoker
             if (prepared.body().length > requestLimit) {
                 permit.close();
                 return Mono.error(new IllegalArgumentException(
-                        "GATEWAY_REQUEST_BODY_TOO_LARGE"
+                        "YUHENG_REQUEST_BODY_TOO_LARGE"
                 ));
             }
             long responseLimit = permit.responseSizeLimit(
@@ -306,7 +306,7 @@ public final class EngineGatewayOperationInvoker
                 .flatMap(result -> {
                     if (result.body().length > responseLimit) {
                         return Mono.error(new IllegalArgumentException(
-                                "GATEWAY_RESPONSE_BODY_TOO_LARGE"
+                                "YUHENG_RESPONSE_BODY_TOO_LARGE"
                         ));
                     }
                     if (requestPermit.retryPolicy().enabled()
@@ -415,7 +415,7 @@ public final class EngineGatewayOperationInvoker
             String name = matcher.group(1);
             if (!remaining.containsKey(name)) {
                 throw new IllegalArgumentException(
-                        "GATEWAY_OPERATION_ARGUMENT_MISSING: " + name
+                        "YUHENG_OPERATION_ARGUMENT_MISSING: " + name
                 );
             }
             String value = Objects.toString(remaining.remove(name), "");
@@ -428,7 +428,7 @@ public final class EngineGatewayOperationInvoker
         matcher.appendTail(resolved);
         if (!remaining.isEmpty()) {
             throw new IllegalArgumentException(
-                    "GATEWAY_OPERATION_PATH_ARGUMENT_UNKNOWN: "
+                    "YUHENG_OPERATION_PATH_ARGUMENT_UNKNOWN: "
                             + remaining.keySet().iterator().next()
             );
         }
@@ -545,7 +545,7 @@ public final class EngineGatewayOperationInvoker
             return objectMapper.writeValueAsBytes(body);
         } catch (Exception failure) {
             throw new IllegalArgumentException(
-                    "GATEWAY_OPERATION_ARGUMENTS_INVALID",
+                    "YUHENG_OPERATION_ARGUMENTS_INVALID",
                     failure
             );
         }

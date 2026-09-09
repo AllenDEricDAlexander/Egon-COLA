@@ -10,7 +10,7 @@ import java.time.Duration;
  * English supplement: {@code McpRuntimeProperties} is a mcp runtime properties properties in the current Gateway module; it owns the mcp runtime properties-related responsibility and boundary.
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
-@ConfigurationProperties(prefix = "egon.cola.component.gateway.engine.mcp")
+@ConfigurationProperties(prefix = "egon.cola.component.yuheng.engine.mcp")
 public class McpRuntimeProperties {
 
     /**
@@ -28,7 +28,7 @@ public class McpRuntimeProperties {
      * 用法 / Usage: 该字段通过 {@code McpRuntimeProperties} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code McpRuntimeProperties}; do not couple callers to its representation when the owning type exposes an API.
      */
     private String artifactRoot = System.getProperty("java.io.tmpdir")
-            + "/egon-cola/gateway-mcp-artifacts";
+            + "/egon-cola/yuheng-mcp-artifacts";
 
     /**
      * 中文说明：保存 会话Ttl 对应的状态、依赖或配置值；字段类型为 {@code Duration}，由 {@code McpRuntimeProperties} 在其生命周期内读取或更新。

@@ -23,7 +23,7 @@ public final class GatewayCallAccessLogger
      * 用法 / Usage: 该字段通过 {@code GatewayCallAccessLogger} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayCallAccessLogger}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final Logger LOGGER =
-            LoggerFactory.getLogger("gateway.call.access");
+            LoggerFactory.getLogger("yuheng.call.access");
 
     /**
      * 中文说明：表示 BODYLOGGER 这一固定值；它属于 {@code GatewayCallAccessLogger} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -32,7 +32,7 @@ public final class GatewayCallAccessLogger
      * 用法 / Usage: 该字段通过 {@code GatewayCallAccessLogger} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayCallAccessLogger}; do not couple callers to its representation when the owning type exposes an API.
      */
     private static final Logger BODY_LOGGER =
-            LoggerFactory.getLogger("gateway.body.access");
+            LoggerFactory.getLogger("yuheng.body.access");
 
     /**
      * 中文说明：执行 onComplete 操作；该方法是 {@code GatewayCallAccessLogger} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。

@@ -78,7 +78,7 @@ class RpcDdcServiceRegistryClientTest {
 
         verify(rpc).heartbeatService(argThat(request ->
                 request.getServiceKey().getServiceKind()
-                        == top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcServiceKind.DDC_SERVICE_KIND_RPC_PROVIDER
+                        == top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcServiceKind.TIANSHU_SERVICE_KIND_RPC_PROVIDER
                         && request.getRegistrationToken().equals("service-heartbeat-ticket")));
     }
 

@@ -26,7 +26,7 @@ public final class GatewayAdminRevisionConflictException
      * @param currentRevision 参数 currentRevision；parameter current revision。
      */
     public GatewayAdminRevisionConflictException(long currentRevision) {
-        super("GATEWAY_ADMIN_REVISION_CONFLICT");
+        super("YUHENG_ADMIN_REVISION_CONFLICT");
         this.currentRevision = currentRevision;
     }
 

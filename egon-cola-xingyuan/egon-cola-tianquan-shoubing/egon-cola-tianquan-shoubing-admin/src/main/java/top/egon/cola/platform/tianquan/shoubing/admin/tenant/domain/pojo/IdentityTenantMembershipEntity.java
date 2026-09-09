@@ -10,7 +10,7 @@ import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.Objects;
 
-/** IdP-owned tenant membership fact mapped to {@code identity_tenant_membership}. */
+/** Tianquan-Shoubing-owned tenant membership fact mapped to {@code identity_tenant_membership}. */
 @Entity
 @Table(name = "identity_tenant_membership")
 public class IdentityTenantMembershipEntity {

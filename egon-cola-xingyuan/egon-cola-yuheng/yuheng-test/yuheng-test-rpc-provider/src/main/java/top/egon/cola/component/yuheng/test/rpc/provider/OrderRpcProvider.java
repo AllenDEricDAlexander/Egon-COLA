@@ -16,7 +16,7 @@ public class OrderRpcProvider implements OrderRpc {
     private final String providerId;
 
     public OrderRpcProvider(
-            @Value("${gateway.test.provider-id:rpc-provider-default}")
+            @Value("${yuheng.test.provider-id:rpc-provider-default}")
             String providerId) {
         this.providerId = providerId;
     }
@@ -50,7 +50,7 @@ public class OrderRpcProvider implements OrderRpc {
     @Override
     public OrderResponse fail(FailRequest request) {
         throw Status.FAILED_PRECONDITION
-                .withDescription("gateway-test:" + request.getCode())
+                .withDescription("yuheng-test:" + request.getCode())
                 .asRuntimeException();
     }
 

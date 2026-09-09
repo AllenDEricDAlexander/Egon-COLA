@@ -47,7 +47,7 @@ class AssignmentAuthenticationContextTest {
         Rbac3UserDetails principal = mock(Rbac3UserDetails.class);
         when(principal.rbac3UserId()).thenReturn("2");
         when(principal.identity()).thenReturn(new IdentityPrincipal(
-                "subject-2", "1", "token-1", Set.of("rbac3"), now, now.plusSeconds(3600),
+                "subject-2", "1", "token-1", Set.of("tianquan-jianshen"), now, now.plusSeconds(3600),
                 AuthenticationContext.of(acr, now)));
         SecurityContextHolder.getContext().setAuthentication(
                 new UsernamePasswordAuthenticationToken(principal, null, List.of()));

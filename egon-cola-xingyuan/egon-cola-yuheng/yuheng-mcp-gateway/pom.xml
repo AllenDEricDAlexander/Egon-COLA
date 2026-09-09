@@ -14,7 +14,7 @@
     <artifactId>yuheng-mcp-gateway</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-mcp-gateway</name>
-    <description>Independent MCP Gateway role and runtime contracts.</description>
+    <description>Independent MCP Yuheng role and runtime contracts.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>

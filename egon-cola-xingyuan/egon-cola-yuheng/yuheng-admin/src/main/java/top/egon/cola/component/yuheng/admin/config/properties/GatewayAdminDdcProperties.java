@@ -8,7 +8,7 @@ import java.util.List;
 
 /**
  * 中文说明：{@code GatewayAdminDdcProperties} 是类型，位于当前 Gateway 模块的相关包中，负责Ddc相关的职责与边界。
- * English summary: {@code GatewayAdminDdcProperties} is a type in the current Gateway module; it owns the ddc-related responsibility and boundary.
+ * English summary: {@code GatewayAdminDdcProperties} is a type in the current Gateway module; it owns the tianshu-related responsibility and boundary.
  *
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
@@ -95,8 +95,8 @@ public class GatewayAdminDdcProperties {
     }
 
     /**
-     * 中文说明：固定两个角色各自的 DDC scope，禁止通过共享 scope 冒充独立引擎。
-     * English summary: Resolves two fixed role targets and rejects shared DDC scopes.
+     * 中文说明：固定两个角色各自的 Tianshu scope，禁止通过共享 scope 冒充独立引擎。
+     * English summary: Resolves two fixed role targets and rejects shared Tianshu scopes.
      */
     public List<GatewayPublicationScopeDTO> targets(String env) {
         GatewayPublicationScopeDTO apiRpc = new GatewayPublicationScopeDTO(
@@ -105,7 +105,7 @@ public class GatewayAdminDdcProperties {
                 mcpBizCode, env, mcpAppCode, GatewayEngineRoleEnum.MCP);
         if (apiRpc.bizCode().equals(mcp.bizCode())
                 && apiRpc.appCode().equals(mcp.appCode())) {
-            throw new IllegalArgumentException("Gateway engine roles require distinct DDC scopes");
+            throw new IllegalArgumentException("Gateway engine roles require distinct Tianshu scopes");
         }
         return List.of(apiRpc, mcp);
     }

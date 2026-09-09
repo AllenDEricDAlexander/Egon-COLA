@@ -31,7 +31,7 @@ public class IdpHttpExceptionHandler {
             HttpMessageNotReadableException.class
     })
     public ResponseEntity<ErrorResponse> invalidRequest(Exception exception) {
-        LOG.debug("Rejected invalid IdP request", exception);
+        LOG.debug("Rejected invalid Tianquan-Shoubing request", exception);
         return response(
                 HttpStatus.BAD_REQUEST,
                 "INVALID_REQUEST",
@@ -75,7 +75,7 @@ public class IdpHttpExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> internalError(Exception exception) {
-        LOG.error("Unhandled IdP request failure", exception);
+        LOG.error("Unhandled Tianquan-Shoubing request failure", exception);
         return response(
                 HttpStatus.INTERNAL_SERVER_ERROR,
                 "INTERNAL_ERROR",

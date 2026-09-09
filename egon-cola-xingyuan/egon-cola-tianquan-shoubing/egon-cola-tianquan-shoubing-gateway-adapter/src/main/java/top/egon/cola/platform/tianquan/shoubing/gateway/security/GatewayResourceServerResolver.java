@@ -15,8 +15,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 /**
- * 使用 Gateway 可信路由身份解析当前唯一的 IdP Resource Server。
- * Resolves the sole current IdP Resource Server from trusted Gateway route identity.
+ * 使用 Gateway 可信路由身份解析当前唯一的 Tianquan-Shoubing Resource Server。
+ * Resolves the sole current Tianquan-Shoubing Resource Server from trusted Gateway route identity.
  */
 public final class GatewayResourceServerResolver {
 
@@ -74,18 +74,18 @@ public final class GatewayResourceServerResolver {
      */
     public IdentityResourceServerState resolve(Map<String, String> attributes) {
         Objects.requireNonNull(attributes, "attributes");
-        String resourceUri = optional(attributes.get("idp.resource-uri"));
+        String resourceUri = optional(attributes.get("tianquan-shoubing.resource-uri"));
         String resourceId;
         try {
             if (resourceUri != null) {
                 resourceId = indexes.read(uriKeyPrefix + sha256(resourceUri));
             } else {
                 String bizCode = required(
-                        attributes.get("idp.biz-code"), "idp.biz-code");
+                        attributes.get("tianquan-shoubing.biz-code"), "tianquan-shoubing.biz-code");
                 String appCode = required(
-                        attributes.get("idp.app-code"), "idp.app-code");
+                        attributes.get("tianquan-shoubing.app-code"), "tianquan-shoubing.app-code");
                 String environment = required(
-                        attributes.get("idp.env"), "idp.env");
+                        attributes.get("tianquan-shoubing.env"), "tianquan-shoubing.env");
                 resourceId = indexes.read(scopeKeyPrefix + sha256(
                         bizCode + ":" + appCode + ":" + environment));
             }
@@ -93,33 +93,33 @@ public final class GatewayResourceServerResolver {
             throw invalid;
         } catch (RuntimeException unavailable) {
             throw new ResourceResolutionException(
-                    "IDP_RESOURCE_INDEX_UNAVAILABLE", unavailable);
+                    "TIANQUAN_SHOUBING_RESOURCE_INDEX_UNAVAILABLE", unavailable);
         }
         if (resourceId == null || resourceId.isBlank()) {
-            throw new ResourceResolutionException("IDP_RESOURCE_NOT_FOUND");
+            throw new ResourceResolutionException("TIANQUAN_SHOUBING_RESOURCE_NOT_FOUND");
         }
         IdentityResourceServerState state;
         try {
             state = states.read(resourceId.trim()).orElseThrow(
-                    () -> new ResourceResolutionException("IDP_RESOURCE_NOT_FOUND"));
+                    () -> new ResourceResolutionException("TIANQUAN_SHOUBING_RESOURCE_NOT_FOUND"));
         } catch (ResourceResolutionException invalid) {
             throw invalid;
         } catch (RuntimeException unavailable) {
             throw new ResourceResolutionException(
-                    "IDP_RESOURCE_STATE_UNAVAILABLE", unavailable);
+                    "TIANQUAN_SHOUBING_RESOURCE_STATE_UNAVAILABLE", unavailable);
         }
         if (state.status() != ResourceServerStatus.ACTIVE) {
-            throw new ResourceResolutionException("IDP_RESOURCE_NOT_ACTIVE");
+            throw new ResourceResolutionException("TIANQUAN_SHOUBING_RESOURCE_NOT_ACTIVE");
         }
         if (resourceUri != null
                 && !state.resourceUri().toString().equals(resourceUri)) {
-            throw new ResourceResolutionException("IDP_RESOURCE_URI_MISMATCH");
+            throw new ResourceResolutionException("TIANQUAN_SHOUBING_RESOURCE_URI_MISMATCH");
         }
         if (resourceUri == null
-                && (!state.bizCode().equals(attributes.get("idp.biz-code").trim())
-                || !state.appCode().equals(attributes.get("idp.app-code").trim())
-                || !state.environment().equals(attributes.get("idp.env").trim()))) {
-            throw new ResourceResolutionException("IDP_RESOURCE_ROUTE_MISMATCH");
+                && (!state.bizCode().equals(attributes.get("tianquan-shoubing.biz-code").trim())
+                || !state.appCode().equals(attributes.get("tianquan-shoubing.app-code").trim())
+                || !state.environment().equals(attributes.get("tianquan-shoubing.env").trim()))) {
+            throw new ResourceResolutionException("TIANQUAN_SHOUBING_RESOURCE_ROUTE_MISMATCH");
         }
         return state;
     }

@@ -3,8 +3,8 @@ package top.egon.cola.component.tianshu.api.extension;
 import java.util.Map;
 
 /**
- * 向 DDC 实例注册请求贡献自定义元数据的扩展接口。
- * Extension point that contributes custom metadata to DDC instance registration requests.
+ * 向 Tianshu 实例注册请求贡献自定义元数据的扩展接口。
+ * Extension point that contributes custom metadata to Tianshu instance registration requests.
  */
 @FunctionalInterface
 public interface DdcInstanceMetadataContributor {

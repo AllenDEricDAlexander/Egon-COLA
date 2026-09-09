@@ -44,6 +44,6 @@ class GatewayOpenApiMcpProjectionValidatorTest {
                            "artifactVersion":"1.0.0","buildId":"build-1","openapiGroup":"orders"}}
                         """
                 )
-        ).code()).isEqualTo("GATEWAY_OPENAPI_MCP_SERVER");
+        ).code()).isEqualTo("YUHENG_OPENAPI_MCP_SERVER");
     }
 }

@@ -25,7 +25,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
  * 类型 `Rbac3OperationalRuntimeStatusService` 位于当前包内，是类型，用于承载 `Rbac3 Operational Runtime Status Service` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
  * Type `Rbac3OperationalRuntimeStatusService` is a type in its package and carries the responsibility, state, or contract for `Rbac3 Operational Runtime Status Service`; callers normally use it through its public API, Spring assembly, or implementation relationship.
  *
- * Produces independent health facts for RBAC3 persistence and projection subsystems.
+ * Produces independent health facts for Tianquan-Jianshen persistence and projection subsystems.
  */
 @Repository
 public class Rbac3OperationalRuntimeStatusService {
@@ -99,7 +99,7 @@ public class Rbac3OperationalRuntimeStatusService {
      */
     public Rbac3OperationalRuntimeStatusService(
             EntityManager entityManager,
-            @Qualifier(Rbac3FlywayConfiguration.RBAC3_FLYWAY) Flyway rbac3Flyway,
+            @Qualifier(Rbac3FlywayConfiguration.TIANQUAN_JIANSHEN_FLYWAY) Flyway rbac3Flyway,
             @Qualifier(Rbac3FlywayConfiguration.OUTBOX_FLYWAY) Flyway outboxFlyway,
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             Clock clock) {

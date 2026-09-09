@@ -137,7 +137,7 @@ public final class RpcLoadBalancers {
                     }
                 }
             } catch (ReflectiveOperationException | RuntimeException ignored) {
-                // RpcEndpoint gains a default weight contract in the DDC step;
+                // RpcEndpoint gains a default weight contract in the Tianshu step;
                 // older/custom endpoint implementations remain weight 100 here.
             }
             return DEFAULT_WEIGHT;

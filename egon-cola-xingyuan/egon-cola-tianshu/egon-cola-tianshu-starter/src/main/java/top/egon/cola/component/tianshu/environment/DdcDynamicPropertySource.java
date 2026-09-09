@@ -14,7 +14,7 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 以原子快照承载 DDC YAML 的可枚举动态属性源，并保留属性来源信息。 Provides an enumerable dynamic property source backed by atomic DDC YAML snapshots while preserving property origins.
+ * 以原子快照承载 Tianshu YAML 的可枚举动态属性源，并保留属性来源信息。 Provides an enumerable dynamic property source backed by atomic Tianshu YAML snapshots while preserving property origins.
  */
 public final class DdcDynamicPropertySource
         extends EnumerablePropertySource<AtomicReference<DdcDynamicPropertySource.Snapshot>>

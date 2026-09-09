@@ -30,13 +30,13 @@ public class GatewayOpenApiDocumentEnvelopeValidator
             GatewayOpenApiDocumentDTO document) {
         if (document == null) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_MISSING",
+                    "YUHENG_OPENAPI_DOCUMENT_MISSING",
                     "OpenAPI document is missing"
             );
         }
         if (document.statusCode() < 200 || document.statusCode() >= 300) {
             return invalid(
-                    "GATEWAY_OPENAPI_HTTP_STATUS",
+                    "YUHENG_OPENAPI_HTTP_STATUS",
                     "provider returned an unacceptable HTTP status"
             );
         }
@@ -46,7 +46,7 @@ public class GatewayOpenApiDocumentEnvelopeValidator
                 .toLowerCase(Locale.ROOT);
         if (!"application/json".equals(mediaType)) {
             return invalid(
-                    "GATEWAY_OPENAPI_CONTENT_TYPE",
+                    "YUHENG_OPENAPI_CONTENT_TYPE",
                     "provider response is not JSON"
             );
         }
@@ -54,14 +54,14 @@ public class GatewayOpenApiDocumentEnvelopeValidator
                 || document.rawBytes().length
                 > GatewayOpenApiDocumentDTO.MAX_DOCUMENT_BYTES) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_TOO_LARGE",
+                    "YUHENG_OPENAPI_DOCUMENT_TOO_LARGE",
                     "provider OpenAPI document exceeds the supported limit"
             );
         }
         if (document.documentJson() == null
                 || !document.documentJson().isObject()) {
             return invalid(
-                    "GATEWAY_OPENAPI_DOCUMENT_OBJECT",
+                    "YUHENG_OPENAPI_DOCUMENT_OBJECT",
                     "provider OpenAPI document must be a JSON object"
             );
         }

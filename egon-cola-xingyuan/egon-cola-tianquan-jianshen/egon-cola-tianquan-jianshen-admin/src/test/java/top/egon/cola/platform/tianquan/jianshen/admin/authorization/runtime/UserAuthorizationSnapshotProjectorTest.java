@@ -57,7 +57,7 @@ class UserAuthorizationSnapshotProjectorTest {
 
         var projection = new UserAuthorizationSnapshotProjector(eligibility).project(
                 new ProjectionCommandDTO(
-                        "7", "idp-9", "9", 3, 8,
+                        "7", "tianquan-shoubing-9", "9", 3, 8,
                         NOW.plusSeconds(3600), resolution, facts, NOW));
 
         assertThat(projection.snapshot().appContexts()).isEmpty();
@@ -69,13 +69,13 @@ class UserAuthorizationSnapshotProjectorTest {
         RoleEligibilityService eligibility = mock(RoleEligibilityService.class);
         when(eligibility.resolveEffectiveScope("7", "9", "1", NOW))
                 .thenReturn(Optional.of(new EffectiveApplicationScope(
-                        "ddc-biz-2", "sales", "ddc-app-2", "portal")));
+                        "tianshu-biz-2", "sales", "tianshu-app-2", "portal")));
         when(eligibility.resolveEffectiveScope("7", "9", "2", NOW))
                 .thenReturn(Optional.of(new EffectiveApplicationScope(
-                        "ddc-biz-1", "finance", "ddc-app-1", "console")));
+                        "tianshu-biz-1", "finance", "tianshu-app-1", "console")));
         when(eligibility.resolveEffectiveScope("7", "9", "3", NOW))
                 .thenReturn(Optional.of(new EffectiveApplicationScope(
-                        "ddc-biz-1", "finance", "ddc-app-3", "analytics")));
+                        "tianshu-biz-1", "finance", "tianshu-app-3", "analytics")));
 
         var projection = new UserAuthorizationSnapshotProjector(eligibility)
                 .project(commandWithActiveApplications());
@@ -111,13 +111,13 @@ class UserAuthorizationSnapshotProjectorTest {
         RoleEligibilityService eligibility = mock(RoleEligibilityService.class);
         when(eligibility.resolveEffectiveScope("7", "9", "1", NOW))
                 .thenReturn(Optional.of(new EffectiveApplicationScope(
-                        "ddc-biz-2", "sales", "ddc-app-2", "portal")));
+                        "tianshu-biz-2", "sales", "tianshu-app-2", "portal")));
         when(eligibility.resolveEffectiveScope("7", "9", "2", NOW))
                 .thenReturn(Optional.of(new EffectiveApplicationScope(
-                        "ddc-biz-1", "finance", "ddc-app-1", "console")));
+                        "tianshu-biz-1", "finance", "tianshu-app-1", "console")));
         when(eligibility.resolveEffectiveScope("7", "9", "3", NOW))
                 .thenReturn(Optional.of(new EffectiveApplicationScope(
-                        "ddc-biz-1", "finance", "ddc-app-3", "analytics")));
+                        "tianshu-biz-1", "finance", "tianshu-app-3", "analytics")));
 
         var first = new UserAuthorizationSnapshotProjector(eligibility)
                 .project(commandWithActiveApplications());
@@ -189,7 +189,7 @@ class UserAuthorizationSnapshotProjectorTest {
                         3, 8, "full-snapshot-checksum"),
                 List.of("101", "102", "103"));
         return new ProjectionCommandDTO(
-                "7", "idp-9", "9", 3, 8,
+                "7", "tianquan-shoubing-9", "9", 3, 8,
                 NOW.plusSeconds(3600), resolution, facts, NOW);
     }
 }

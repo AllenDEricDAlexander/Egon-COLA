@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GatewayEnginePackageBoundaryTest {
 
     private static final Path SOURCE_ROOT = Path.of(
-            "src/main/java/top/egon/cola/component/gateway/engine"
+            "src/main/java/top/egon/cola/component/yuheng/engine"
     );
 
     @Test
@@ -120,7 +120,7 @@ class GatewayEnginePackageBoundaryTest {
             assertEquals(List.of(), forbidden);
         }
         String pom = Files.readString(Path.of("pom.xml"));
-        for (String artifact : List.of("gateway-mcp-core", "gateway-mcp-engine",
+        for (String artifact : List.of("yuheng-mcp-core", "yuheng-mcp-gateway",
                 "spring-boot-starter-jdbc", "postgresql")) {
             assertFalse(pom.contains(artifact), artifact);
         }

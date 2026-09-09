@@ -62,7 +62,7 @@ import java.util.Map;
          * Usage: provide contract-compliant arguments before calling `processAssignments`, then continue the business flow using its result, exception, or side effect.
          */
         @Scheduled(fixedDelayString =
-                "${egon.rbac3.worker.assignment-fixed-delay:5s}")
+                "${egon.tianquan-jianshen.worker.assignment-fixed-delay:5s}")
         void processAssignments() {
             assignmentWorker.runOnce();
         }
@@ -75,7 +75,7 @@ import java.util.Map;
          * Usage: provide contract-compliant arguments before calling `recoverMutations`, then continue the business flow using its result, exception, or side effect.
          */
         @Scheduled(fixedDelayString =
-                "${egon.rbac3.worker.mutation-fixed-delay:2s}")
+                "${egon.tianquan-jianshen.worker.mutation-fixed-delay:2s}")
         void recoverMutations() {
             mutationWorker.runOnce();
         }

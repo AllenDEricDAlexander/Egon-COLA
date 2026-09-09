@@ -62,13 +62,13 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
 
     /**
      * 为每次注册和心跳提供精确绑定的 SERVICE Token。 / Supplies an exactly bound SERVICE token for every registration and heartbeat.
-     * 补充说明 / Supplementary summary: 保存 IdP OAuth2 Client 对应的状态、依赖或配置值；字段类型为 {@code IdpServiceOAuth2Client}，由 {@code RpcGatewaySlotRuntime} 在其生命周期内读取或更新。
-     * English supplement: Holds the IdP OAuth2 Client used for registration and heartbeat tokens; {@code RpcGatewaySlotRuntime} reads it during its lifecycle.
+     * 补充说明 / Supplementary summary: 保存 Tianquan-Shoubing OAuth2 Client 对应的状态、依赖或配置值；字段类型为 {@code IdpServiceOAuth2Client}，由 {@code RpcGatewaySlotRuntime} 在其生命周期内读取或更新。
+     * English supplement: Holds the Tianquan-Shoubing OAuth2 Client used for registration and heartbeat tokens; {@code RpcGatewaySlotRuntime} reads it during its lifecycle.
      * 用法 / Usage: 该字段通过 {@code RpcGatewaySlotRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code RpcGatewaySlotRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
     private final IdpServiceOAuth2Client serviceClient;
 
-    /** IdP client registration and DDC resource settings. */
+    /** Tianquan-Shoubing client registration and Tianshu resource settings. */
     private final IdpStarterProperties idpProperties;
 
     /**
@@ -131,11 +131,11 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
      * 创建 Gateway RPC Slot 租约运行时。
      * / Creates the Gateway RPC-slot lease runtime.
      *
-     * @param registry DDC 服务注册客户端 / DDC service-registry client
+     * @param registry Tianshu 服务注册客户端 / Tianshu service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
      * @param properties RPC Slot 参数 / RPC-slot settings
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      * 补充说明 / Supplementary summary: 创建 {@code RpcGatewaySlotRuntime} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
      * English supplement: Creates an instance of {@code RpcGatewaySlotRuntime} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
@@ -166,7 +166,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
         scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
                     runnable,
-                    "gateway-rpc-slot-lease"
+                    "yuheng-rpc-slot-lease"
             );
             thread.setDaemon(true);
             return thread;
@@ -439,7 +439,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                         current.leaseId()
                 );
             } catch (RuntimeException ignored) {
-                // DDC TTL eventually removes an unclean slot lease.
+                // Tianshu TTL eventually removes an unclean slot lease.
             }
         }
     }
@@ -448,7 +448,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
      * 使用实际端口和新鲜 SERVICE Token 构造本轮注册。
      * / Builds the current registration with the actual port and a fresh SERVICE token.
      *
-     * @return DDC 服务注册请求 / DDC service registration
+     * @return Tianshu 服务注册请求 / Tianshu service registration
      * 补充说明 / Supplementary summary: 执行 registration 操作；该方法是 {@code RpcGatewaySlotRuntime} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English supplement: Executes the registration operation; this method is the invocation entry point on {@code RpcGatewaySlotRuntime} and performs the corresponding runtime, management, or protocol work.
      * 用法 / Usage: 调用方式 / Usage: {@code RpcGatewaySlotRuntime.registration(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
@@ -472,11 +472,11 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                         "egon.rpc.serialization", "protobuf",
                         "egon.rpc.runtime-version",
                         properties.rpcRuntimeVersion(),
-                        "gateway.engine-version",
+                        "yuheng.engine-version",
                         properties.gatewayVersion(),
-                        "gateway.group-code",
+                        "yuheng.group-code",
                         properties.gatewayGroupCode(),
-                        "gateway.component",
+                        "yuheng.component",
                         "engine"
                 ),
                 properties.leaseSeconds(),
@@ -486,8 +486,8 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
     }
 
     /**
-     * 为当前 Gateway 实例取得 DDC PLATFORM SERVICE Token。
-     * / Obtains a DDC PLATFORM SERVICE token for the current Gateway instance.
+     * 为当前 Gateway 实例取得 Tianshu PLATFORM SERVICE Token。
+     * / Obtains a Tianshu PLATFORM SERVICE token for the current Gateway instance.
      *
      * @return 不透明 SERVICE access token / opaque SERVICE access token
      */
@@ -497,7 +497,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
         client.validate();
         URI audience = Objects.requireNonNull(
                 idpProperties.getResourceUri(),
-                "egon.cola.platform.idp.resource-uri"
+                "egon.cola.platform.tianquan.shoubing.resource-uri"
         );
         return serviceClient.authorize(new IdpServiceTokenRequest(
                 client.getRegistrationId(),
@@ -505,7 +505,7 @@ public final class RpcGatewaySlotRuntime implements AutoCloseable {
                 audience,
                 ServiceTokenContext.PLATFORM,
                 null,
-                Set.of("ddc:registration:write")
+                Set.of("tianshu:registration:write")
         )).getTokenValue();
     }
 }

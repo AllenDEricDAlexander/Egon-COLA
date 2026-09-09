@@ -108,7 +108,7 @@ class McpGatewayRuleCompilerStrategyTest {
         McpRuntimeServer server = new McpRuntimeServer("server-1", "orders", "Orders",
                 "Order capabilities", "Use approved operations.",
                 Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                "https://resource.egon.top/gateway-mcp", 30, true);
+                "https://resource.egon.top/yuheng-mcp", 30, true);
         McpRuleContent mcp = new McpRuleContent(List.of(server), List.of(tool),
                 List.of(), List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
         GatewayRuleContent content = new GatewayRuleContent("group-1", "orders", "local", "default",

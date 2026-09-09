@@ -26,8 +26,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 /**
- * 在 HTTP 服务监听成功后，使用 IdP PLATFORM SERVICE Token 维护其 DDC 服务租约。
- * / Maintains an HTTP service's DDC lease with an IdP PLATFORM SERVICE token after the server starts listening.
+ * 在 HTTP 服务监听成功后，使用 Tianquan-Shoubing PLATFORM SERVICE Token 维护其 Tianshu 服务租约。
+ * / Maintains an HTTP service's Tianshu lease with an Tianquan-Shoubing PLATFORM SERVICE token after the server starts listening.
  */
 public final class DdcHttpRegistrationRuntime implements AutoCloseable {
 
@@ -40,13 +40,13 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
 
     private final DdcHttpRegistrationRuntimeProperties properties;
 
-    /** IdP OAuth2 Client facade used to acquire DDC registration tokens. */
+    /** Tianquan-Shoubing OAuth2 Client facade used to acquire Tianshu registration tokens. */
     private final IdpServiceOAuth2Client serviceClient;
 
-    /** IdP client registration and resource settings. */
+    /** Tianquan-Shoubing client registration and resource settings. */
     private final IdpStarterProperties idpProperties;
 
-    /** DDC PLATFORM Resource URI used as the registration token audience. */
+    /** Tianshu PLATFORM Resource URI used as the registration token audience. */
     private final URI registrationResourceUri;
 
     private final ScheduledExecutorService scheduler;
@@ -67,11 +67,11 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
      * 创建默认 Fail Closed 的 HTTP 注册运行时。
      * / Creates the HTTP registration runtime, which fails closed when a SERVICE token cannot be obtained.
      *
-     * @param registry DDC 服务注册客户端 / DDC service-registry client
+     * @param registry Tianshu 服务注册客户端 / Tianshu service-registry client
      * @param serviceKeyFactory 服务键工厂 / service-key factory
      * @param properties HTTP 注册参数 / HTTP registration settings
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      */
     public DdcHttpRegistrationRuntime(
             DdcServiceRegistryClient registry,
@@ -89,7 +89,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
         );
     }
 
-    /** Creates the runtime with an explicit DDC PLATFORM token audience. */
+    /** Creates the runtime with an explicit Tianshu PLATFORM token audience. */
     public DdcHttpRegistrationRuntime(
             DdcServiceRegistryClient registry,
             DdcServiceKeyFactory serviceKeyFactory,
@@ -112,7 +112,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
         this.scheduler = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
                     runnable,
-                    "ddc-http-registration-lease"
+                    "tianshu-http-registration-lease"
             );
             thread.setDaemon(true);
             return thread;
@@ -133,7 +133,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
         if (state.get() != DdcHttpRegistrationState.NEW
                 && state.get() != DdcHttpRegistrationState.WAITING_SERVER) {
             throw new IllegalStateException(
-                    "DDC HTTP registration runtime already initialized"
+                    "Tianshu HTTP registration runtime already initialized"
             );
         }
         state.set(DdcHttpRegistrationState.REGISTERING);
@@ -189,7 +189,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
         } catch (RuntimeException failure) {
             state.set(DdcHttpRegistrationState.RECOVERING);
             LOGGER.warn(
-                    "DDC HTTP registration heartbeat failed for {}",
+                    "Tianshu HTTP registration heartbeat failed for {}",
                     properties.instanceId(),
                     failure
             );
@@ -221,7 +221,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
                         current.leaseId()
                 );
             } catch (RuntimeException ignored) {
-                // TTL provides final cleanup after an unavailable DDC.
+                // TTL provides final cleanup after an unavailable Tianshu.
             }
         }
     }
@@ -268,7 +268,7 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
             register();
         } catch (RuntimeException failure) {
             LOGGER.warn(
-                    "DDC HTTP registration lease recovery failed for {}",
+                    "Tianshu HTTP registration lease recovery failed for {}",
                     properties.instanceId(),
                     failure
             );
@@ -300,8 +300,8 @@ public final class DdcHttpRegistrationRuntime implements AutoCloseable {
     }
 
     /**
-     * 为当前 HTTP 实例和精确物理作用域取得 DDC PLATFORM SERVICE Token。
-     * / Obtains a DDC PLATFORM SERVICE token for the current HTTP instance and exact physical scope.
+     * 为当前 HTTP 实例和精确物理作用域取得 Tianshu PLATFORM SERVICE Token。
+     * / Obtains a Tianshu PLATFORM SERVICE token for the current HTTP instance and exact physical scope.
      *
      * @return 不透明 SERVICE access token / opaque SERVICE access token
      */

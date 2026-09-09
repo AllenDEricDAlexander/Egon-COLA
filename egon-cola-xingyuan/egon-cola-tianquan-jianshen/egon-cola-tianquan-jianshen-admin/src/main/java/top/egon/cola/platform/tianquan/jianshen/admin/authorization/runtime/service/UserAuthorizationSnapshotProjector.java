@@ -91,7 +91,7 @@ public final class UserAuthorizationSnapshotProjector {
                                 .get(entry.getKey()).values())))
                 .toList();
         UserAuthorizationSnapshot snapshot = new UserAuthorizationSnapshot(
-                "rbac3-admin",
+                "tianquan-jianshen-admin",
                 command.tenantId(),
                 command.identitySub(),
                 command.userId(),
@@ -371,7 +371,7 @@ public final class UserAuthorizationSnapshotProjector {
         if (previousBusinessId != null
                 && !previousBusinessId.equals(scope.businessId())) {
             throw new IllegalArgumentException(
-                    "businessCode maps to multiple DDC Business identifiers");
+                    "businessCode maps to multiple Tianshu Business identifiers");
         }
         Map<String, ApplicationAccessScope> applications =
                 applicationsByBusinessCode.computeIfAbsent(
@@ -383,7 +383,7 @@ public final class UserAuthorizationSnapshotProjector {
         if (previousApplication != null
                 && !previousApplication.applicationId().equals(scope.applicationId())) {
             throw new IllegalArgumentException(
-                    "applicationCode maps to multiple DDC Application identifiers");
+                    "applicationCode maps to multiple Tianshu Application identifiers");
         }
     }
 }

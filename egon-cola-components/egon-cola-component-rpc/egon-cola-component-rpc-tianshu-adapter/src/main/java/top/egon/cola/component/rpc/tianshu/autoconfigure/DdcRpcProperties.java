@@ -7,10 +7,10 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcCredential;
 import java.time.Duration;
 
 /**
- * DDC 直连 RPC 的本地引导配置。
- * / Local bootstrap settings for direct DDC RPC transport.
+ * Tianshu 直连 RPC 的本地引导配置。
+ * / Local bootstrap settings for direct Tianshu RPC transport.
  */
-@ConfigurationProperties(prefix = "egon.cola.component.ddc.rpc")
+@ConfigurationProperties(prefix = "egon.cola.component.tianshu.rpc")
 public class DdcRpcProperties {
 
     private String target;
@@ -25,7 +25,7 @@ public class DdcRpcProperties {
     public String requireTarget() {
         if (target == null || target.isBlank()) {
             throw new IllegalStateException(
-                    "egon.cola.component.ddc.rpc.target is required"
+                    "egon.cola.component.tianshu.rpc.target is required"
             );
         }
         return target.trim();
@@ -73,7 +73,7 @@ public class DdcRpcProperties {
     private static Duration positive(Duration value, String name) {
         if (value == null || value.isZero() || value.isNegative()) {
             throw new IllegalArgumentException(
-                    "egon.cola.component.ddc.rpc." + name + " must be positive"
+                    "egon.cola.component.tianshu.rpc." + name + " must be positive"
             );
         }
         return value;
@@ -124,12 +124,12 @@ public class DdcRpcProperties {
         DdcRpcCredential require(String profile) {
             if (accessKey == null || accessKey.isBlank()) {
                 throw new IllegalStateException(
-                        "egon.cola.component.ddc.rpc." + profile + ".access-key is required"
+                        "egon.cola.component.tianshu.rpc." + profile + ".access-key is required"
                 );
             }
             if (secretKey == null || secretKey.isBlank()) {
                 throw new IllegalStateException(
-                        "egon.cola.component.ddc.rpc." + profile + ".secret-key is required"
+                        "egon.cola.component.tianshu.rpc." + profile + ".secret-key is required"
                 );
             }
             return new DdcRpcCredential(accessKey, secretKey);

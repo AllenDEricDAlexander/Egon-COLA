@@ -33,9 +33,9 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 使用 RS256 签发 IdP Access Token 与内部 Refresh Token 的服务。
+ * 使用 RS256 签发 Tianquan-Shoubing Access Token 与内部 Refresh Token 的服务。
  *
- * <p>Service that issues IdP access tokens and internal refresh tokens with RS256.</p>
+ * <p>Service that issues Tianquan-Shoubing access tokens and internal refresh tokens with RS256.</p>
  */
 public final class Rs256TokenService implements TokenSigner {
 
@@ -45,7 +45,7 @@ public final class Rs256TokenService implements TokenSigner {
     /** 含私钥的当前 RSA JWK；current RSA JWK including private key. */
     private final RSAKey rsaKey;
 
-    /** 规范化 IdP Issuer；normalized IdP issuer. */
+    /** 规范化 Tianquan-Shoubing Issuer；normalized Tianquan-Shoubing issuer. */
     private final String issuer;
 
     /** JWT 编码器；JWT encoder. */
@@ -65,7 +65,7 @@ public final class Rs256TokenService implements TokenSigner {
      * @param publicKey RSA 公钥；RSA public key
      * @param privateKey RSA 私钥；RSA private key
      * @param kid JWK 密钥标识；JWK key identifier
-     * @param issuer IdP Issuer；IdP issuer
+     * @param issuer Tianquan-Shoubing Issuer；Tianquan-Shoubing issuer
      */
     public Rs256TokenService(
             RSAPublicKey publicKey,
@@ -167,7 +167,7 @@ public final class Rs256TokenService implements TokenSigner {
         return encode(claimSet, "at+jwt");
     }
 
-    /** Signs a stable IdP-only refresh token. */
+    /** Signs a stable Tianquan-Shoubing-only refresh token. */
     @Override
     public String signRefresh(RefreshTokenClaims claims) {
         Objects.requireNonNull(claims, "claims");

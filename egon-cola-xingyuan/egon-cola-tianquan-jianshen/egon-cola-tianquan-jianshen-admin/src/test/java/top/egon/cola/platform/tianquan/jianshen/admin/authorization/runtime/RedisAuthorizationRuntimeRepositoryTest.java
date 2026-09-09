@@ -70,7 +70,7 @@ class RedisAuthorizationRuntimeRepositoryTest {
         assertThat(result).isNotNull();
         verify(script).eval(any(RScript.Mode.class), anyString(), any(RScript.ReturnType.class),
                 anyList(), any(Object[].class));
-        verify(cache).invalidateUser("rbac3-admin", "tenant-a", "subject-a");
+        verify(cache).invalidateUser("tianquan-jianshen-admin", "tenant-a", "subject-a");
     }
 
     @Test
@@ -78,14 +78,14 @@ class RedisAuthorizationRuntimeRepositoryTest {
         when(script.<Long>eval(any(RScript.Mode.class), anyString(), any(RScript.ReturnType.class),
                 anyList(), any(Object[].class))).thenReturn(-1L);
         assertThatThrownBy(() -> repository.publish(command("tenant-a", 43L, 3L)))
-                .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+                .hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         verifyNoInteractions(cache);
     }
 
     @Test
     void invalidatesRemovedApplicationCachesOnlyAfterTheNewSnapshotIsPublished() throws Exception {
         var previous = command("tenant-a", 43L, 3L).projection();
-        var oldSnapshot = new UserAuthorizationSnapshot("rbac3-admin", "tenant-a", "subject-a", "101", 43L, 3L,
+        var oldSnapshot = new UserAuthorizationSnapshot("tianquan-jianshen-admin", "tenant-a", "subject-a", "101", 43L, 3L,
                 List.of(new AppAuthorizationContext("5", "mock-backend", List.of("10"), List.of("20"), List.of("10"),
                         Set.of("mcp:read"), Map.of(), Map.of(), List.of("mcp.resource"), null)),
                 "old", NOW, NOW.plusSeconds(3600));
@@ -98,7 +98,7 @@ class RedisAuthorizationRuntimeRepositoryTest {
         order.verify(script).eval(any(RScript.Mode.class), anyString(), any(RScript.ReturnType.class), anyList(), any(Object[].class));
         order.verify(cache, times(2)).invalidateUser(anyString(), eq("tenant-a"), eq("subject-a"));
         verify(cache).invalidateUser("mock-backend", "tenant-a", "subject-a");
-        verify(cache).invalidateUser("rbac3-admin", "tenant-a", "subject-a");
+        verify(cache).invalidateUser("tianquan-jianshen-admin", "tenant-a", "subject-a");
     }
 
     @Test
@@ -168,7 +168,7 @@ class RedisAuthorizationRuntimeRepositoryTest {
         Instant expiresAt = NOW.plus(Duration.ofHours(1));
         var user = new RuntimeUserAuthorizationVO(tenant, "subject-a", "101", "ACTIVE",
                 authVersion, policyVersion, expiresAt);
-        var snapshot = new UserAuthorizationSnapshot("rbac3-admin", tenant, "subject-a", "101",
+        var snapshot = new UserAuthorizationSnapshot("tianquan-jianshen-admin", tenant, "subject-a", "101",
                 authVersion, policyVersion, List.of(), "full-" + policyVersion, NOW, expiresAt);
         var scope = new GatewayBizAppScopeSnapshot(tenant, "subject-a", "101", authVersion,
                 policyVersion, List.of(), "scope-" + policyVersion, NOW, expiresAt);

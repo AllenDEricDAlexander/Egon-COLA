@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-jianshen-gateway-adapter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-jianshen-gateway-adapter</name>
-    <description>Gateway security SPI adapter for Egon COLA RBAC3.</description>
+    <description>Yuheng security SPI adapter for Egon COLA Tianquan-Jianshen.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>

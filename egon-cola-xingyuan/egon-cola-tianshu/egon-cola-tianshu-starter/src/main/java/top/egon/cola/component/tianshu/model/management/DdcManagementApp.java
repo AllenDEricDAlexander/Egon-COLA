@@ -1,9 +1,9 @@
 package top.egon.cola.component.tianshu.model.management;
 
 /**
- * DDC 应用目录项。 / DDC application catalog entry.
+ * Tianshu 应用目录项。 / Tianshu application catalog entry.
  *
- * @param id              DDC 应用标识 / DDC application identifier
+ * @param id              Tianshu 应用标识 / Tianshu application identifier
  * @param businessId      所属业务域标识 / owning business identifier
  * @param bizCode         所属业务编码 / owning business code
  * @param appCode         应用编码 / application code

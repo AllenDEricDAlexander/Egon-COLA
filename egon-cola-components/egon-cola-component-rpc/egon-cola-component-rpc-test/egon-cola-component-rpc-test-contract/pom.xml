@@ -110,7 +110,7 @@
 
     <profiles>
         <profile>
-            <id>ddc-live-test</id>
+            <id>tianshu-live-test</id>
             <build>
                 <plugins>
                     <plugin>

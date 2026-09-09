@@ -34,7 +34,7 @@ class DdcResourceServerLifecycleDeliveryHandlerTest {
                 .isEqualTo(DeliveryResult.Kind.SUCCESS);
         verify(client, org.mockito.Mockito.times(2))
                 .revokeResourceAdmission(new DdcResourceAdmissionRevocationRequest(
-                        "permission-idp-prod", "permission", "idp", "prod", 7L
+                        "permission-tianquan-shoubing-prod", "permission", "tianquan-shoubing", "prod", 7L
                 ));
     }
 
@@ -42,7 +42,7 @@ class DdcResourceServerLifecycleDeliveryHandlerTest {
     void transientDdcFailureRemainsRetryable() {
         DdcManagementClient client = mock(DdcManagementClient.class);
         when(client.revokeResourceAdmission(any()))
-                .thenThrow(new IllegalStateException("DDC unavailable"));
+                .thenThrow(new IllegalStateException("Tianshu unavailable"));
         DdcResourceServerLifecycleDeliveryHandler handler =
                 new DdcResourceServerLifecycleDeliveryHandler(client);
 
@@ -50,7 +50,7 @@ class DdcResourceServerLifecycleDeliveryHandlerTest {
 
         assertThat(result.kind())
                 .isEqualTo(DeliveryResult.Kind.RETRYABLE_FAILURE);
-        assertThat(result.code()).isEqualTo("DDC_RESOURCE_REVOCATION_UNAVAILABLE");
+        assertThat(result.code()).isEqualTo("TIANSHU_RESOURCE_REVOCATION_UNAVAILABLE");
     }
 
     private static DeliveryContext context() {
@@ -59,7 +59,7 @@ class DdcResourceServerLifecycleDeliveryHandlerTest {
                 "identity-resource-runtime",
                 "identity.resource-server.disabled.v1",
                 """
-                        {"eventId":"event-1","eventType":"identity.resource-server.disabled.v1","schemaVersion":1,"occurredAt":"2026-08-10T00:00:00Z","aggregateType":"IDENTITY_RESOURCE_SERVER","aggregateId":"permission-idp-prod","aggregateVersion":7,"payload":{"resourceServerId":"permission-idp-prod","bizCode":"permission","appCode":"idp","env":"prod","resourceVersion":7}}
+                        {"eventId":"event-1","eventType":"identity.resource-server.disabled.v1","schemaVersion":1,"occurredAt":"2026-08-10T00:00:00Z","aggregateType":"IDENTITY_RESOURCE_SERVER","aggregateId":"permission-tianquan-shoubing-prod","aggregateVersion":7,"payload":{"resourceServerId":"permission-tianquan-shoubing-prod","bizCode":"permission","appCode":"tianquan-shoubing","env":"prod","resourceVersion":7}}
                         """,
                 "application/json",
                 "1",

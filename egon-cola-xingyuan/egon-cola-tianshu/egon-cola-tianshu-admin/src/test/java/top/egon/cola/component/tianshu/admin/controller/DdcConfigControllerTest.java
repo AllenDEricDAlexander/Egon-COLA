@@ -58,7 +58,7 @@ class DdcConfigControllerTest {
                 eq("user:controller-test [requested=tester]")
         )).thenReturn(vo);
 
-        mockMvc.perform(post("/api/v1/ddc/configs?operator=tester")
+        mockMvc.perform(post("/api/v1/tianshu/configs?operator=tester")
                         .principal(authentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -88,7 +88,7 @@ class DdcConfigControllerTest {
         ))
                 .thenReturn(result);
 
-        mockMvc.perform(post("/api/v1/ddc/configs/cfg1/publish?operator=tester")
+        mockMvc.perform(post("/api/v1/tianshu/configs/cfg1/publish?operator=tester")
                         .principal(authentication())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
@@ -110,7 +110,7 @@ class DdcConfigControllerTest {
         DdcConfigVO config = new DdcConfigVO();
         config.setId("config-1");
         config.setBizCode("infra");
-        config.setAppCode("gateway");
+        config.setAppCode("yuheng");
         config.setEnv("prod");
         DdcConfigVersionVO version = new DdcConfigVersionVO();
         version.setId("version-2");
@@ -125,7 +125,7 @@ class DdcConfigControllerTest {
                 .thenReturn(new PageImpl<>(
                         List.of(version), PageRequest.of(1, 20), 21));
 
-        mockMvc.perform(get("/api/v1/ddc/configs/page")
+        mockMvc.perform(get("/api/v1/tianshu/configs/page")
                         .param("bizCode", "infra")
                         .param("pageNo", "1")
                         .param("pageSize", "10"))
@@ -133,7 +133,7 @@ class DdcConfigControllerTest {
                 .andExpect(jsonPath("$.records[0].id").value("config-1"))
                 .andExpect(jsonPath("$.page.total").value(12));
 
-        mockMvc.perform(get("/api/v1/ddc/configs/config-1/versions/page")
+        mockMvc.perform(get("/api/v1/tianshu/configs/config-1/versions/page")
                         .param("pageNo", "2")
                         .param("pageSize", "20"))
                 .andExpect(status().isOk())

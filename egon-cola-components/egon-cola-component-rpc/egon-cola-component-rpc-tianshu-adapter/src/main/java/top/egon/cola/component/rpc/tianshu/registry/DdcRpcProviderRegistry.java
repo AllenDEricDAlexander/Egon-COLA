@@ -26,20 +26,20 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
-/** RPC Provider 中立注册 SPI 到 DDC 注册 Port 的桥接。 / Bridge from neutral RPC Provider registration to DDC. */
+/** RPC Provider 中立注册 SPI 到 Tianshu 注册 Port 的桥接。 / Bridge from neutral RPC Provider registration to Tianshu. */
 public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
 
     private final DdcServiceRegistryClient client;
     private final String bizCode;
     private final String appCode;
 
-    /** PLATFORM Resource URI accepted by DDC for service registration. */
+    /** PLATFORM Resource URI accepted by Tianshu for service registration. */
     private final URI registrationResourceUri;
 
-    /** IdP OAuth2 Client facade used for RPC Provider registration and heartbeats. */
+    /** Tianquan-Shoubing OAuth2 Client facade used for RPC Provider registration and heartbeats. */
     private final IdpServiceOAuth2Client serviceClient;
 
-    /** IdP client registration and DDC resource settings. */
+    /** Tianquan-Shoubing client registration and Tianshu resource settings. */
     private final IdpStarterProperties idpProperties;
 
     /** 按活动租约保存服务键，不保存原始 Token。 / Holds service keys by active lease and never stores raw tokens. */
@@ -47,14 +47,14 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
             new ConcurrentHashMap<>();
 
     /**
-     * 创建 RPC Provider 到 DDC 的 SERVICE Token 注册桥接器。
-     * / Creates the SERVICE-token registration bridge from RPC Provider to DDC.
+     * 创建 RPC Provider 到 Tianshu 的 SERVICE Token 注册桥接器。
+     * / Creates the SERVICE-token registration bridge from RPC Provider to Tianshu.
      *
-     * @param client DDC 服务注册客户端 / DDC service-registry client
+     * @param client Tianshu 服务注册客户端 / Tianshu service-registry client
      * @param bizCode 业务域编码 / business-domain code
      * @param appCode 应用编码 / application code
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      */
     public DdcRpcProviderRegistry(
             DdcServiceRegistryClient client,
@@ -73,15 +73,15 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
     }
 
     /**
-     * Creates a registry bridge with the DDC registration Resource URI.
-     * / Creates a registry bridge with the DDC registration Resource URI.
+     * Creates a registry bridge with the Tianshu registration Resource URI.
+     * / Creates a registry bridge with the Tianshu registration Resource URI.
      *
-     * @param client DDC service-registry client / DDC service-registry client
+     * @param client Tianshu service-registry client / Tianshu service-registry client
      * @param bizCode business-domain code / business-domain code
      * @param appCode application code / application code
-     * @param registrationResourceUri DDC registration Resource URI / DDC registration Resource URI
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param registrationResourceUri Tianshu registration Resource URI / Tianshu registration Resource URI
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      */
     public DdcRpcProviderRegistry(
             DdcServiceRegistryClient client,
@@ -95,7 +95,7 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
         this.appCode = appCode;
         this.registrationResourceUri = Objects.requireNonNull(
                 registrationResourceUri,
-                "egon.cola.component.ddc.registration-resource-uri"
+                "egon.cola.component.tianshu.registration-resource-uri"
         );
         this.serviceClient = Objects.requireNonNull(
                 serviceClient,
@@ -193,8 +193,8 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
     }
 
     /**
-     * 为 RPC Provider 取得 DDC PLATFORM SERVICE Token。
-     * / Obtains a DDC PLATFORM SERVICE token for the RPC Provider.
+     * 为 RPC Provider 取得 Tianshu PLATFORM SERVICE Token。
+     * / Obtains a Tianshu PLATFORM SERVICE token for the RPC Provider.
      *
      * @return 不透明 SERVICE access token / opaque SERVICE access token
      */
@@ -208,7 +208,7 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
                 registrationResourceUri,
                 ServiceTokenContext.PLATFORM,
                 null,
-                Set.of("ddc:registration:write")
+                Set.of("tianshu:registration:write")
         )).getTokenValue();
     }
 
@@ -224,7 +224,7 @@ public final class DdcRpcProviderRegistry implements RpcProviderRegistry {
         DdcServiceKey serviceKey = activeServices.get(lease.leaseId());
         if (serviceKey == null) {
             throw new IllegalStateException(
-                    "RPC Provider lease is not registered in DDC"
+                    "RPC Provider lease is not registered in Tianshu"
             );
         }
         return serviceKey;

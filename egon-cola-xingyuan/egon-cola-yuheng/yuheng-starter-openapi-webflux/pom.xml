@@ -14,7 +14,7 @@
     <artifactId>yuheng-starter-openapi-webflux</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-starter-openapi-webflux</name>
-    <description>Spring WebFlux OpenAPI API adapter for Egon COLA Gateway.</description>
+    <description>Spring WebFlux OpenAPI API adapter for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>

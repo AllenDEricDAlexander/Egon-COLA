@@ -12,7 +12,7 @@ public interface PlatformAdminBootstrapRepository {
      * Bootstraps the platform administrator and built-in permissions within one transaction boundary.
      *
      * @param tenantId 外部租户标识；external tenant id
-     * @param identitySub IdP 主体标识；IdP subject
+     * @param identitySub Tianquan-Shoubing 主体标识；Tianquan-Shoubing subject
      */
     void bootstrap(String tenantId, String identitySub);
 }

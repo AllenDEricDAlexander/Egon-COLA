@@ -165,7 +165,7 @@
 
     <profiles>
         <profile>
-            <id>ddc-active-active</id>
+            <id>tianshu-active-active</id>
             <build>
                 <plugins>
                     <plugin>
@@ -173,7 +173,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>ddc-active-active-it</id>
+                                <id>tianshu-active-active-it</id>
                                 <goals>
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>
@@ -190,7 +190,7 @@
             </build>
         </profile>
         <profile>
-            <id>ddc-redis-sentinel</id>
+            <id>tianshu-redis-sentinel</id>
             <build>
                 <plugins>
                     <plugin>
@@ -198,7 +198,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>ddc-redis-sentinel-it</id>
+                                <id>tianshu-redis-sentinel-it</id>
                                 <goals>
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>
@@ -215,7 +215,7 @@
             </build>
         </profile>
         <profile>
-            <id>ddc-redis-cluster</id>
+            <id>tianshu-redis-cluster</id>
             <build>
                 <plugins>
                     <plugin>
@@ -223,7 +223,7 @@
                         <artifactId>maven-failsafe-plugin</artifactId>
                         <executions>
                             <execution>
-                                <id>ddc-redis-cluster-it</id>
+                                <id>tianshu-redis-cluster-it</id>
                                 <goals>
                                     <goal>integration-test</goal>
                                     <goal>verify</goal>

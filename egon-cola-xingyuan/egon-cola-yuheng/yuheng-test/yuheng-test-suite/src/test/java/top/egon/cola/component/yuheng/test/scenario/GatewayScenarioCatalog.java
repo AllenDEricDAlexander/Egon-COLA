@@ -10,7 +10,7 @@ public final class GatewayScenarioCatalog {
     public static List<Scenario> all() {
         return List.of(
                 scenario("starter-report", "Starter", "Admin Catalog"),
-                scenario("provider-discovery", "DDC Registry", "Engine"),
+                scenario("provider-discovery", "Tianshu Registry", "Engine"),
                 scenario("http-forward", "HTTP Client", "HTTP Provider"),
                 scenario("rpc-forward", "RPC Consumer", "RPC Provider"),
                 scenario("http-to-rpc", "HTTP Client", "RPC Provider"),

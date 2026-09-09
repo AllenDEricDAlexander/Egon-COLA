@@ -20,11 +20,11 @@ class GatewayOpenApi31ValidatorTest {
                 GatewayOpenApiValidationTestFixture.document(
                         "{\"openapi\":\"3.0.3\",\"info\":{},\"paths\":{}}"
                 )
-        ).code()).isEqualTo("GATEWAY_OPENAPI_SPEC_VERSION");
+        ).code()).isEqualTo("YUHENG_OPENAPI_SPEC_VERSION");
         assertThat(new GatewayOpenApi31Validator().validate(
                 GatewayOpenApiValidationTestFixture.document(
                         "{\"openapi\":\"3.1.0\",\"paths\":{}}"
                 )
-        ).code()).isEqualTo("GATEWAY_OPENAPI_INFO");
+        ).code()).isEqualTo("YUHENG_OPENAPI_INFO");
     }
 }

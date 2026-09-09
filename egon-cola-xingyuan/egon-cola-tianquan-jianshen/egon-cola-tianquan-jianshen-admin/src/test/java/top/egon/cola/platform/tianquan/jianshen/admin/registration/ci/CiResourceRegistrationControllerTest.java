@@ -58,7 +58,7 @@ class CiResourceRegistrationControllerTest {
         CiResourceRegistrationController controller = new CiResourceRegistrationController(service);
         when(catalog.listApplications("biz-a", null)).thenReturn(List.of(
                 new ApplicationCatalogEntry(
-                        "ddc-app-a", "ddc-biz-a", "biz-a", "app-a",
+                        "tianshu-app-a", "tianshu-biz-a", "biz-a", "app-a",
                         "Application A", true, true)));
         CiResourceRegistrationRequestDTO request = request("build-1");
         CiResourceRegistrationResultVO result = new CiResourceRegistrationResultVO(
@@ -83,7 +83,7 @@ class CiResourceRegistrationControllerTest {
     void registrationEndpointRequiresServiceScopeAndHasNoTenantRequestField() {
         assertThat(CiResourceRegistrationController.class
                 .getAnnotation(RequestMapping.class).value()[0])
-                .isEqualTo("/api/rbac3/v1/registration");
+                .isEqualTo("/api/tianquan-jianshen/v1/registration");
         RequiresServiceScope required = java.util.Arrays.stream(
                         CiResourceRegistrationController.class.getDeclaredMethods())
                 .filter(method -> method.getName().equals("register"))
@@ -91,7 +91,7 @@ class CiResourceRegistrationControllerTest {
                 .orElseThrow()
                 .getAnnotation(RequiresServiceScope.class);
         assertThat(required).isNotNull();
-        assertThat(required.value()).isEqualTo("rbac3:resource-catalog:report");
+        assertThat(required.value()).isEqualTo("tianquan-jianshen:resource-catalog:report");
         assertThat(CiResourceRegistrationRequestDTO.class.getDeclaredFields())
                 .noneMatch(field -> field.getName().equals("tenantId"));
         assertThat(CiResourceRegistrationRequestDTO.Resource.class.getDeclaredFields())
@@ -118,8 +118,8 @@ class CiResourceRegistrationControllerTest {
     private ServiceIdentityPrincipal principal(String business, String application) {
         return new ServiceIdentityPrincipal(
                 "ci-client", "tenant-a", "ci-client", "token-1",
-                URI.create("https://idp.example.test/resource"), 1L,
-                Set.of("rbac3:resource-catalog:report"), business, application,
+                URI.create("https://tianquan-shoubing.example.test/resource"), 1L,
+                Set.of("tianquan-jianshen:resource-catalog:report"), business, application,
                 "ci", "kid-1", NOW, NOW.plusSeconds(300));
     }
 }

@@ -28,13 +28,13 @@ import java.util.List;
 
 /** Local RBAC Application authorization-scope endpoints. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam")
+@RequestMapping("/api/tianquan-jianshen/v1/iam")
 @Tag(name = "application-scope", description = "应用授权范围接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
-        entityDomainName = "RBAC3权限实体域",
+        entityDomainCode = "tianquan-jianshen",
+        entityDomainName = "Tianquan-Jianshen权限实体域",
         interfaceGroupCode = "iam"
 )
 public class ApplicationController {
@@ -48,9 +48,9 @@ public class ApplicationController {
     @PostMapping("/tenant-applications")
     @RequiresPermission(value = "system:application:manage")
     @Operation(
-            operationId = "rbac3-application-scope-admit-v1",
-            summary = "将 DDC 应用纳入租户授权范围",
-            tags = {"rbac3", "application"}
+            operationId = "tianquan-jianshen-application-scope-admit-v1",
+            summary = "将 Tianshu 应用纳入租户授权范围",
+            tags = {"tianquan-jianshen", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -65,9 +65,9 @@ public class ApplicationController {
     @GetMapping("/tenant-applications")
     @RequiresPermission(value = "system:application:read")
     @Operation(
-            operationId = "rbac3-application-scope-list-v1",
+            operationId = "tianquan-jianshen-application-scope-list-v1",
             summary = "查询租户应用授权范围",
-            tags = {"rbac3", "application"}
+            tags = {"tianquan-jianshen", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -79,9 +79,9 @@ public class ApplicationController {
     @GetMapping("/tenant-applications/{applicationId}")
     @RequiresPermission(value = "system:application:read")
     @Operation(
-            operationId = "rbac3-application-scope-get-v1",
+            operationId = "tianquan-jianshen-application-scope-get-v1",
             summary = "查询租户应用授权范围详情",
-            tags = {"rbac3", "application"}
+            tags = {"tianquan-jianshen", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -94,9 +94,9 @@ public class ApplicationController {
     @PutMapping("/tenant-applications/{applicationId}/status")
     @RequiresPermission(value = "system:application:manage")
     @Operation(
-            operationId = "rbac3-application-scope-status-v1",
+            operationId = "tianquan-jianshen-application-scope-status-v1",
             summary = "变更租户应用授权范围状态",
-            tags = {"rbac3", "application"}
+            tags = {"tianquan-jianshen", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -113,9 +113,9 @@ public class ApplicationController {
     @DeleteMapping("/tenant-applications/{applicationId}")
     @RequiresPermission(value = "system:application:manage")
     @Operation(
-            operationId = "rbac3-application-scope-remove-v1",
+            operationId = "tianquan-jianshen-application-scope-remove-v1",
             summary = "移除无依赖的租户应用授权范围",
-            tags = {"rbac3", "application"}
+            tags = {"tianquan-jianshen", "application"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

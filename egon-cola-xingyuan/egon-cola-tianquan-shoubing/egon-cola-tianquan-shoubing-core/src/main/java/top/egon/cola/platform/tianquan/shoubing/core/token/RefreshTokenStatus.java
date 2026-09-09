@@ -4,7 +4,7 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Minimal non-secret status returned for an IdP-owned refresh token.
+ * Minimal non-secret status returned for an Tianquan-Shoubing-owned refresh token.
  */
 public record RefreshTokenStatus(
         String subject,

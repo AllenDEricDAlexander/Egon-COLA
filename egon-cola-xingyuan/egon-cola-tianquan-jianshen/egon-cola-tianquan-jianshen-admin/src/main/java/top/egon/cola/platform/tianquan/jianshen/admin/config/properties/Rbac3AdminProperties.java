@@ -6,10 +6,10 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * RBAC3 administration settings. Token issuance, refresh-token lifetime and
- * user authentication state are owned by IdP and are intentionally absent.
+ * Tianquan-Jianshen administration settings. Token issuance, refresh-token lifetime and
+ * user authentication state are owned by Tianquan-Shoubing and are intentionally absent.
  */
-@ConfigurationProperties(prefix = "egon.rbac3")
+@ConfigurationProperties(prefix = "egon.tianquan-jianshen")
 public class Rbac3AdminProperties {
 
     private int maximumActiveRoots = 16;

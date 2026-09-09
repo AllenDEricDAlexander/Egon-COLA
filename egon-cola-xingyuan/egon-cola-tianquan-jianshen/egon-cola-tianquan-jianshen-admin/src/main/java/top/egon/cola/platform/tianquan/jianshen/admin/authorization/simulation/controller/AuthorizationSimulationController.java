@@ -25,12 +25,12 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermiss
  * HTTP entry point for authorization simulation.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/tianquan-jianshen/v1")
 @Tag(name = "authorization-simulation", description = "授权模拟接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -59,9 +59,9 @@ public class AuthorizationSimulationController {
     @PostMapping("/simulations/authorization")
     @RequiresPermission(value = "system:authorization-simulation:execute")
     @Operation(
-            operationId = "rbac3-authorization-simulation-v1",
+            operationId = "tianquan-jianshen-authorization-simulation-v1",
             summary = "基于一致快照执行无业务副作用的授权模拟",
-            tags = {"rbac3", "simulation"}
+            tags = {"tianquan-jianshen", "simulation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -86,9 +86,9 @@ public class AuthorizationSimulationController {
     @PostMapping("/simulations/role-change-impact")
     @RequiresPermission(value = "system:authorization-simulation:execute")
     @Operation(
-            operationId = "rbac3-role-change-impact-simulation-v1",
+            operationId = "tianquan-jianshen-role-change-impact-simulation-v1",
             summary = "查询带策略版本和证据校验和的角色变更影响",
-            tags = {"rbac3", "simulation"}
+            tags = {"tianquan-jianshen", "simulation"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

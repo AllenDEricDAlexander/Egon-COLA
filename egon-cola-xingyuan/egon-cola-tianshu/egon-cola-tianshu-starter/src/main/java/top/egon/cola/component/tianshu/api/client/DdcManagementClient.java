@@ -26,7 +26,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * DDC 管理开放接口的类型化客户端契约。 / Typed client contract for the DDC management OpenAPI.
+ * Tianshu 管理开放接口的类型化客户端契约。 / Typed client contract for the Tianshu management OpenAPI.
  */
 public interface DdcManagementClient {
 
@@ -47,9 +47,9 @@ public interface DdcManagementClient {
     List<DdcManagementBiz> listBizs(DdcManagementBizQuery query);
 
     /**
-     * 按 DDC 应用标识查询应用目录项。 / Looks up an application by DDC id.
+     * 按 Tianshu 应用标识查询应用目录项。 / Looks up an application by Tianshu id.
      *
-     * @param ddcApplicationId DDC 应用标识 / DDC application identifier
+     * @param ddcApplicationId Tianshu 应用标识 / Tianshu application identifier
      * @return 应用目录项，未找到时为空 / catalog entry, or empty when absent
      */
     Optional<DdcManagementApp> getApp(String ddcApplicationId);

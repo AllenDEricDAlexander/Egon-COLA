@@ -5,7 +5,7 @@ import java.util.List;
 /** Typed public JWK Set response without private key material. */
 public record OAuthJwkSetVO(List<Jwk> keys) {
 
-    /** Public RSA JWK fields emitted by the IdP. */
+    /** Public RSA JWK fields emitted by the Tianquan-Shoubing. */
     public record Jwk(
             String kty,
             String e,

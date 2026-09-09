@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 /** Uses isolated keys on an explicitly selected Redis; never starts or flushes a server. */
-@EnabledIfEnvironmentVariable(named = "RBAC3_TEST_REDIS_ADDRESS", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "TIANQUAN_JIANSHEN_TEST_REDIS_ADDRESS", matches = ".+")
 class RedisAuthorizationRuntimePublicationIntegrationTest {
 
     private final String tenant = "qa-publication-" + UUID.randomUUID();
@@ -42,10 +42,10 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
     @BeforeEach
     void connect() throws Exception {
         Config config = new Config();
-        var server = config.useSingleServer().setAddress(System.getenv("RBAC3_TEST_REDIS_ADDRESS"))
+        var server = config.useSingleServer().setAddress(System.getenv("TIANQUAN_JIANSHEN_TEST_REDIS_ADDRESS"))
                 .setConnectionPoolSize(4).setConnectionMinimumIdleSize(1)
-                .setDatabase(Integer.parseInt(System.getenv().getOrDefault("RBAC3_TEST_REDIS_DATABASE", "0")));
-        String passwordFile = System.getenv("RBAC3_TEST_REDIS_PASSWORD_FILE");
+                .setDatabase(Integer.parseInt(System.getenv().getOrDefault("TIANQUAN_JIANSHEN_TEST_REDIS_DATABASE", "0")));
+        String passwordFile = System.getenv("TIANQUAN_JIANSHEN_TEST_REDIS_PASSWORD_FILE");
         if (passwordFile != null) {
             server.setPassword(Files.readString(Path.of(passwordFile)).trim());
         }
@@ -69,7 +69,7 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
     @Test
     void stalePolicyCannotOverwriteSnapshotsAtTheSameAuthVersion() throws Exception {
         publish(43L, 4L);
-        assertThatThrownBy(() -> publish(43L, 3L)).hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+        assertThatThrownBy(() -> publish(43L, 3L)).hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         assertPublished(43L, 4L);
     }
 
@@ -80,11 +80,11 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
                 Clock.fixed(RedisAuthorizationRuntimeRepositoryTest.NOW, ZoneOffset.UTC),
                 (tenantId, subject) -> Optional.empty(), mock(AuthorizationSnapshotCache.class));
         assertThatThrownBy(() -> repository.invalidate(tenant, "subject-a", "101", 43L, 4L))
-                .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+                .hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         assertPublished(44L, 4L);
         repository.invalidate(tenant, "subject-a", "101", 45L, 4L);
         assertThat(redisson.getBucket(keys.user(tenant, "subject-a")).isExists()).isFalse();
-        assertThatThrownBy(() -> publish(44L, 4L)).hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+        assertThatThrownBy(() -> publish(44L, 4L)).hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
     }
 
     @Test
@@ -92,7 +92,7 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
         publish(44L, 4L);
         redisson.getKeys().delete(keys.user(tenant, "subject-a"),
                 keys.snapshot(tenant, "subject-a", 44L), keys.gatewayScope(tenant, "subject-a", 44L));
-        assertThatThrownBy(() -> publish(43L, 4L)).hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+        assertThatThrownBy(() -> publish(43L, 4L)).hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         assertThat(redisson.getBucket(keys.authVersion(tenant, "101")).remainTimeToLive()).isEqualTo(-1L);
         assertThat(redisson.getBucket(keys.policyVersion(tenant)).remainTimeToLive()).isEqualTo(-1L);
     }
@@ -101,7 +101,7 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
     void decimalVersionsRemainExactAboveLuaIntegerPrecision() throws Exception {
         publish(43L, 9007199254740993L);
         assertThatThrownBy(() -> publish(43L, 9007199254740992L))
-                .hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+                .hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
         assertPublished(43L, 9007199254740993L);
     }
 
@@ -115,7 +115,7 @@ class RedisAuthorizationRuntimePublicationIntegrationTest {
                     try {
                         publish(43L, policyVersion);
                     } catch (IllegalStateException conflict) {
-                        assertThat(conflict).hasMessage("RBAC3_RUNTIME_VERSION_CONFLICT");
+                        assertThat(conflict).hasMessage("TIANQUAN_JIANSHEN_RUNTIME_VERSION_CONFLICT");
                     }
                 }));
             }

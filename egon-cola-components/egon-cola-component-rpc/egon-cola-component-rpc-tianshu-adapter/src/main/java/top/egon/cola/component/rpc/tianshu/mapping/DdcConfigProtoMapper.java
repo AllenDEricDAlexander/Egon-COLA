@@ -16,8 +16,8 @@ import java.time.Instant;
 import java.util.List;
 
 /**
- * DDC 配置运行时 Port 模型与 protobuf 请求响应之间的显式映射。
- * / Explicit mapping between DDC configuration-runtime Port models and
+ * Tianshu 配置运行时 Port 模型与 protobuf 请求响应之间的显式映射。
+ * / Explicit mapping between Tianshu configuration-runtime Port models and
  * protobuf requests and responses.
  */
 public final class DdcConfigProtoMapper {

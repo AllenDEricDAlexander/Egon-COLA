@@ -40,6 +40,6 @@ class AggregatedGatewayBodyTest {
                 GatewayRequestRejectedException.class,
                 () -> new AggregatedGatewayBody(new byte[4], 3, false)
         );
-        assertEquals("GATEWAY_REQUEST_BODY_TOO_LARGE", exception.code());
+        assertEquals("YUHENG_REQUEST_BODY_TOO_LARGE", exception.code());
     }
 }

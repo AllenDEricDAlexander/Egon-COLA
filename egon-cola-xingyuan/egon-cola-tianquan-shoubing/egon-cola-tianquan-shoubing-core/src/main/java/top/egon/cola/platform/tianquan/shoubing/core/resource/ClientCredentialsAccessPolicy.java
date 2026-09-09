@@ -11,9 +11,9 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * IdP 内部完成的 CLIENT_CREDENTIALS 目标、租户和 Scope 授权策略。
+ * Tianquan-Shoubing 内部完成的 CLIENT_CREDENTIALS 目标、租户和 Scope 授权策略。
  *
- * <p>IdP-owned CLIENT_CREDENTIALS authorization policy for target, tenant, and scopes.</p>
+ * <p>Tianquan-Shoubing-owned CLIENT_CREDENTIALS authorization policy for target, tenant, and scopes.</p>
  */
 public final class ClientCredentialsAccessPolicy {
 
@@ -54,25 +54,25 @@ public final class ClientCredentialsAccessPolicy {
         Objects.requireNonNull(sourceClient, "sourceClient");
         Objects.requireNonNull(targetResource, "targetResource");
         if (sourceClient.status() != OAuthClient.Status.ACTIVE) {
-            deny("IDP_CLIENT_DISABLED", "OAuth Client is disabled");
+            deny("TIANQUAN_SHOUBING_CLIENT_DISABLED", "OAuth Client is disabled");
         }
         if (sourceClient.clientType()
                 != OAuthClient.ClientType.CONFIDENTIAL) {
             deny(
-                    "IDP_CLIENT_CREDENTIALS_UNAUTHORIZED",
+                    "TIANQUAN_SHOUBING_CLIENT_CREDENTIALS_UNAUTHORIZED",
                     "OAuth Client is not confidential"
             );
         }
         if (!targetResource.active()) {
             deny(
-                    "IDP_RESOURCE_SERVER_DISABLED",
+                    "TIANQUAN_SHOUBING_RESOURCE_SERVER_DISABLED",
                     "Target Resource Server is disabled"
             );
         }
         String safeTenantId = optionalTenant(tenantId);
         Set<String> safeScopes = scopes(requestedScopes);
         if (safeScopes.isEmpty()) {
-            deny("IDP_SERVICE_SCOPE_INVALID", "Requested scope is empty");
+            deny("TIANQUAN_SHOUBING_SERVICE_SCOPE_INVALID", "Requested scope is empty");
         }
         ClientResourceGrant grant = resources.findGrant(
                         sourceClient.clientId(),
@@ -82,12 +82,12 @@ public final class ClientCredentialsAccessPolicy {
                 )
                 .filter(ClientResourceGrant::active)
                 .orElseThrow(() -> new ResourceAuthorizationException(
-                        "IDP_SERVICE_RESOURCE_GRANT_NOT_FOUND",
+                        "TIANQUAN_SHOUBING_SERVICE_RESOURCE_GRANT_NOT_FOUND",
                         "Service Resource grant was not found"
                 ));
         if (!grant.allows(safeScopes)) {
             deny(
-                    "IDP_SERVICE_SCOPE_INVALID",
+                    "TIANQUAN_SHOUBING_SERVICE_SCOPE_INVALID",
                     "Requested scope exceeds the Service Resource grant"
             );
         }
@@ -96,7 +96,7 @@ public final class ClientCredentialsAccessPolicy {
                 )
                 .filter(ResourceServer::active)
                 .orElseThrow(() -> new ResourceAuthorizationException(
-                        "IDP_SOURCE_RESOURCE_NOT_FOUND",
+                        "TIANQUAN_SHOUBING_SOURCE_RESOURCE_NOT_FOUND",
                         "Source Resource Server was not found"
                 ));
         return new ServiceResourceAccess(

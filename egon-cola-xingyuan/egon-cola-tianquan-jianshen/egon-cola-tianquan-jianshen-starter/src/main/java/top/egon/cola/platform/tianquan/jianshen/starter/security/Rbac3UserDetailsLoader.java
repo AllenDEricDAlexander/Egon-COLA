@@ -27,7 +27,7 @@ public final class Rbac3UserDetailsLoader {
                 || !identity.subject().equals(snapshot.identitySub())
                 || !identity.tenantId().equals(snapshot.tenantId())) {
             throw new Rbac3AuthorizationClient.AuthorizationDeniedException(
-                    "RBAC3_AUTHORIZATION_BINDING_MISMATCH");
+                    "TIANQUAN_JIANSHEN_AUTHORIZATION_BINDING_MISMATCH");
         }
         return new Rbac3UserDetails(identity, snapshot);
     }

@@ -14,7 +14,7 @@
     <artifactId>yuheng-test-tianquan-shoubing-backend</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-test-tianquan-shoubing-backend</name>
-    <description>IdP and RBAC3 protected downstream fixture for Gateway topology tests.</description>
+    <description>Tianquan-Shoubing and Tianquan-Jianshen protected downstream fixture for Yuheng topology tests.</description>
 
     <dependencies>
         <dependency>
@@ -58,7 +58,7 @@
     </dependencies>
 
     <build>
-        <finalName>gateway-test-idp-backend</finalName>
+        <finalName>yuheng-test-tianquan-shoubing-backend</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

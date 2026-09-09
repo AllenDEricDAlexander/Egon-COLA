@@ -79,7 +79,7 @@ public final class GatewayCallEventConsumerHandler {
         } catch (IllegalArgumentException poison) {
             recordFailure(
                     record,
-                    "GATEWAY_CALL_EVENT_INVALID",
+                    "YUHENG_CALL_EVENT_INVALID",
                     poison
             );
             return GatewayCallEventConsumeResultEnum.POISON_RECORDED;
@@ -99,7 +99,7 @@ public final class GatewayCallEventConsumerHandler {
             RuntimeException failure) {
         recordFailure(
                 record,
-                "GATEWAY_CALL_EVENT_PROCESSING_FAILED",
+                "YUHENG_CALL_EVENT_PROCESSING_FAILED",
                 failure
         );
     }

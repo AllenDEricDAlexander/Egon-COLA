@@ -23,14 +23,14 @@ import top.egon.cola.component.yuheng.openapi.annotation.EgonGatewayPolicy;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/v1/ddc/publish-tasks")
-@Tag(name = "ddc-admin-ddc-publish-task-controller", description = "DdcPublishTaskController 管理接口组")
+@RequestMapping("/api/v1/tianshu/publish-tasks")
+@Tag(name = "tianshu-admin-tianshu-publish-task-controller", description = "DdcPublishTaskController 管理接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "ddc-admin",
+        entityDomainCode = "tianshu-admin",
         entityDomainName = "Dynamic Config Center 管理实体域",
-        interfaceGroupCode = "ddc"
+        interfaceGroupCode = "tianshu"
 )
 public class DdcPublishTaskController {
 
@@ -49,14 +49,14 @@ public class DdcPublishTaskController {
         this.publishTaskQueryService = publishTaskQueryService;
     }
 
-    @Operation(operationId = "ddc.ddcPublishTaskController.list")
+    @Operation(operationId = "tianshu.ddcPublishTaskController.list")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping
     public ResultRecord<List<DdcPublishTaskEntity>> list() {
         return ResultRecord.success(publishTaskRepository.findAll());
     }
 
-    @Operation(operationId = "ddc.ddcPublishTaskController.page")
+    @Operation(operationId = "tianshu.ddcPublishTaskController.page")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/page")
     public PageResultRecord<DdcPublishTaskEntity> page(
@@ -67,14 +67,14 @@ public class DdcPublishTaskController {
                 publishTaskQueryService.page(request, pageQuery));
     }
 
-    @Operation(operationId = "ddc.ddcPublishTaskController.detail")
+    @Operation(operationId = "tianshu.ddcPublishTaskController.detail")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @GetMapping("/{changeId}")
     public ResultRecord<DdcPublishTaskEntity> detail(@PathVariable("changeId") String changeId) {
         return ResultRecord.success(publishTaskRepository.findByChangeId(changeId).orElse(null));
     }
 
-    @Operation(operationId = "ddc.ddcPublishTaskController.retry")
+    @Operation(operationId = "tianshu.ddcPublishTaskController.retry")
     @EgonGatewayPolicy(exposure = EgonGatewayPolicy.Exposure.EXTERNAL)
     @PostMapping("/{changeId}/retry")
     public ResultRecord<DdcPublishResultVO> retry(

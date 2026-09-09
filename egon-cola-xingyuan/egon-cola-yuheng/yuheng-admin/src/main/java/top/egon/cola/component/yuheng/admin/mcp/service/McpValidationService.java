@@ -129,7 +129,7 @@ public class McpValidationService {
         } catch (IllegalArgumentException failure) {
             findings.add(new McpValidationFindingVO(
                     "$",
-                    "GATEWAY_MCP_RULE_INVALID",
+                    "YUHENG_MCP_RULE_INVALID",
                     failure.getMessage()
             ));
         }
@@ -189,7 +189,7 @@ public class McpValidationService {
     private void validateTool(McpRuntimeTool tool) {
         if (!RISK_LEVELS.contains(tool.riskLevel())) {
             invalid(
-                    "GATEWAY_MCP_RISK_INVALID",
+                    "YUHENG_MCP_RISK_INVALID",
                     "tools." + tool.name() + ".riskLevel",
                     "unsupported MCP Tool risk level"
             );
@@ -280,7 +280,7 @@ public class McpValidationService {
         if (isLocalPromptTemplate(prompt.sourceType())
                 && (prompt.template() == null || prompt.template().isBlank())) {
             invalid(
-                    "GATEWAY_MCP_PROMPT_TEMPLATE_REQUIRED",
+                    "YUHENG_MCP_PROMPT_TEMPLATE_REQUIRED",
                     path + ".template",
                     "local prompt template is required"
             );
@@ -303,7 +303,7 @@ public class McpValidationService {
         if (!tools.containsKey(policy.serverCode() + "\u0000"
                 + policy.toolName())) {
             invalid(
-                    "GATEWAY_MCP_TASK_TOOL_NOT_FOUND",
+                    "YUHENG_MCP_TASK_TOOL_NOT_FOUND",
                     "taskPolicies." + policy.taskPolicyId() + ".toolName",
                     "task policy references an unknown Tool"
             );
@@ -311,7 +311,7 @@ public class McpValidationService {
         if (policy.executionTimeoutSeconds() == 0
                 || policy.resultTtlSeconds() == 0) {
             invalid(
-                    "GATEWAY_MCP_TASK_POLICY_INVALID",
+                    "YUHENG_MCP_TASK_POLICY_INVALID",
                     "taskPolicies." + policy.taskPolicyId(),
                     "task timeout and result TTL must be positive"
             );
@@ -335,14 +335,14 @@ public class McpValidationService {
             requireServer(serverCodes, app.serverCode(), "apps");
             var artifact = artifacts.find(app.artifactId())
                     .orElseThrow(() -> error(
-                            "GATEWAY_MCP_ARTIFACT_NOT_FOUND",
+                            "YUHENG_MCP_ARTIFACT_NOT_FOUND",
                             "apps." + app.name() + ".artifactId",
                             "MCP App artifact was not found"
                     ));
             if (!artifact.sha256().equals(app.artifactSha256())
                     || !artifact.resourceUri().equals(app.resourceUri())) {
                 invalid(
-                        "GATEWAY_MCP_ARTIFACT_DIGEST_MISMATCH",
+                        "YUHENG_MCP_ARTIFACT_DIGEST_MISMATCH",
                         "apps." + app.name() + ".artifactSha256",
                         "MCP App artifact metadata is immutable"
                 );
@@ -350,7 +350,7 @@ public class McpValidationService {
             for (String tool : app.allowedTools()) {
                 if (!tools.containsKey(app.serverCode() + "\u0000" + tool)) {
                     invalid(
-                            "GATEWAY_MCP_APP_TOOL_NOT_FOUND",
+                            "YUHENG_MCP_APP_TOOL_NOT_FOUND",
                             "apps." + app.name() + ".allowedTools",
                             "MCP App references an unknown Tool"
                     );
@@ -382,7 +382,7 @@ public class McpValidationService {
                 );
             } catch (IllegalArgumentException failure) {
                 invalid(
-                        "GATEWAY_MCP_REMOTE_ENDPOINT_UNSAFE",
+                        "YUHENG_MCP_REMOTE_ENDPOINT_UNSAFE",
                         "remoteProviders." + provider.providerCode()
                                 + ".endpointReference",
                         failure.getMessage()
@@ -396,7 +396,7 @@ public class McpValidationService {
             );
             if (provider == null) {
                 invalid(
-                        "GATEWAY_MCP_REMOTE_PROVIDER_NOT_FOUND",
+                        "YUHENG_MCP_REMOTE_PROVIDER_NOT_FOUND",
                         "remoteMounts." + mount.mountId() + ".providerCode",
                         "remote MCP Provider was not found"
                 );
@@ -405,7 +405,7 @@ public class McpValidationService {
                     mount.capabilityFingerprint()
             )) {
                 invalid(
-                        "GATEWAY_MCP_REMOTE_FINGERPRINT_STALE",
+                        "YUHENG_MCP_REMOTE_FINGERPRINT_STALE",
                         "remoteMounts." + mount.mountId()
                                 + ".capabilityFingerprint",
                         "remote capability fingerprint must be rediscovered"
@@ -437,7 +437,7 @@ public class McpValidationService {
         if (isLocalPromptTemplate(sourceType)) {
             if (operationId != null || remoteMountId != null) {
                 invalid(
-                        "GATEWAY_MCP_BINDING_INVALID",
+                        "YUHENG_MCP_BINDING_INVALID",
                         path,
                         "local template cannot bind an Operation or mount"
                 );
@@ -450,7 +450,7 @@ public class McpValidationService {
                 && operationId == null && remoteMountId != null;
         if (!local && !remote) {
             invalid(
-                    "GATEWAY_MCP_BINDING_INVALID",
+                    "YUHENG_MCP_BINDING_INVALID",
                     path,
                     "MCP source binding is inconsistent"
             );
@@ -493,7 +493,7 @@ public class McpValidationService {
             validateBinding(driverType, operationId, remoteMountId, path);
         } else if (operationId != null || remoteMountId != null) {
             invalid(
-                    "GATEWAY_MCP_BINDING_INVALID",
+                    "YUHENG_MCP_BINDING_INVALID",
                     path,
                     "local resource driver cannot bind an Operation or mount"
             );
@@ -511,14 +511,14 @@ public class McpValidationService {
     private void requireOperation(String operationId, String path) {
         var operation = catalog.findOperation(operationId)
                 .orElseThrow(() -> error(
-                        "GATEWAY_MCP_OPERATION_NOT_FOUND",
+                        "YUHENG_MCP_OPERATION_NOT_FOUND",
                         path + ".operationId",
                         "gateway Operation " + operationId
                                 + " was not found"
                 ));
         if (catalog.loadDefinitions(operation.id()).isEmpty()) {
             invalid(
-                    "GATEWAY_MCP_OPERATION_DEFINITION_NOT_FOUND",
+                    "YUHENG_MCP_OPERATION_DEFINITION_NOT_FOUND",
                     path + ".operationId",
                     "gateway Operation has no active definition"
             );
@@ -541,7 +541,7 @@ public class McpValidationService {
             JsonNode root = objectMapper.readTree(schema);
             if (!root.isObject()) {
                 invalid(
-                        "GATEWAY_MCP_SCHEMA_INVALID",
+                        "YUHENG_MCP_SCHEMA_INVALID",
                         path,
                         "JSON Schema root must be an object"
                 );
@@ -550,7 +550,7 @@ public class McpValidationService {
                 String value = reference.asText();
                 if (!value.startsWith("#")) {
                     invalid(
-                            "GATEWAY_MCP_SCHEMA_EXTERNAL_REF_FORBIDDEN",
+                            "YUHENG_MCP_SCHEMA_EXTERNAL_REF_FORBIDDEN",
                             path,
                             "external JSON Schema references are forbidden"
                     );
@@ -558,7 +558,7 @@ public class McpValidationService {
             });
         } catch (JsonProcessingException failure) {
             invalid(
-                    "GATEWAY_MCP_SCHEMA_INVALID",
+                    "YUHENG_MCP_SCHEMA_INVALID",
                     path,
                     "JSON Schema cannot be parsed"
             );
@@ -581,7 +581,7 @@ public class McpValidationService {
             }
         } catch (IllegalArgumentException failure) {
             invalid(
-                    "GATEWAY_MCP_RESOURCE_URI_INVALID",
+                    "YUHENG_MCP_RESOURCE_URI_INVALID",
                     path,
                     "resource URI must be absolute and path-safe"
             );
@@ -599,7 +599,7 @@ public class McpValidationService {
     private void validateTemplate(String value, String path) {
         if (value.length() > 2048 || value.contains("..")) {
             invalid(
-                    "GATEWAY_MCP_URI_TEMPLATE_INVALID",
+                    "YUHENG_MCP_URI_TEMPLATE_INVALID",
                     path,
                     "resource URI template is too long or path-unsafe"
             );
@@ -607,7 +607,7 @@ public class McpValidationService {
         String sample = value.replaceAll("\\{[A-Za-z][A-Za-z0-9_]*}", "x");
         if (sample.contains("{") || sample.contains("}")) {
             invalid(
-                    "GATEWAY_MCP_URI_TEMPLATE_INVALID",
+                    "YUHENG_MCP_URI_TEMPLATE_INVALID",
                     path,
                     "resource URI template variables are invalid"
             );
@@ -627,7 +627,7 @@ public class McpValidationService {
         values.forEach(value -> {
             if (!PERMISSION.matcher(value).matches()) {
                 invalid(
-                        "GATEWAY_MCP_PERMISSION_INVALID",
+                        "YUHENG_MCP_PERMISSION_INVALID",
                         path,
                         "permission name is invalid: " + value
                 );
@@ -650,7 +650,7 @@ public class McpValidationService {
             String path) {
         if (!serverCodes.contains(serverCode)) {
             invalid(
-                    "GATEWAY_MCP_SERVER_NOT_FOUND",
+                    "YUHENG_MCP_SERVER_NOT_FOUND",
                     path,
                     "MCP capability references an unknown Server"
             );

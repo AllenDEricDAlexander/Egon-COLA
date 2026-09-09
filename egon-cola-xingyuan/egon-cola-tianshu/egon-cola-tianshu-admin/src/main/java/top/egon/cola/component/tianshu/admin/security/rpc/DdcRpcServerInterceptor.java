@@ -22,8 +22,8 @@ import java.util.Set;
 import java.util.regex.Pattern;
 
 /**
- * 在 Provider 执行前认证单条 DDC unary RPC 请求。
- * / Authenticates one DDC unary RPC request before provider execution.
+ * 在 Provider 执行前认证单条 Tianshu unary RPC 请求。
+ * / Authenticates one Tianshu unary RPC request before provider execution.
  */
 public final class DdcRpcServerInterceptor implements ServerInterceptor {
 
@@ -189,8 +189,8 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
             if (write(operation)) {
                 throw DdcRpcProviderExceptionMapper.status(
                         Status.UNAVAILABLE,
-                        "DDC_NONCE_STORE_UNAVAILABLE",
-                        "DDC nonce store is unavailable",
+                        "TIANSHU_NONCE_STORE_UNAVAILABLE",
+                        "Tianshu nonce store is unavailable",
                         true
                 );
             }
@@ -238,8 +238,8 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
     private StatusRuntimeException denied() {
         return DdcRpcProviderExceptionMapper.status(
                 Status.PERMISSION_DENIED,
-                "DDC_HMAC_SCOPE_DENIED",
-                "DDC HMAC credential scope denied",
+                "TIANSHU_HMAC_SCOPE_DENIED",
+                "Tianshu HMAC credential scope denied",
                 false
         );
     }
@@ -247,15 +247,15 @@ public final class DdcRpcServerInterceptor implements ServerInterceptor {
     private void validateConfiguration() {
         if (properties.getAllowedClockSkewSeconds() <= 0) {
             throw new IllegalStateException(
-                    "DDC RPC allowed clock skew must be positive");
+                    "Tianshu RPC allowed clock skew must be positive");
         }
         if (properties.isSignatureEnabled() && credentialRegistry.isEmpty()) {
             throw new IllegalStateException(
-                    "DDC RPC credentials are required when signatures are enabled");
+                    "Tianshu RPC credentials are required when signatures are enabled");
         }
         if (properties.isSignatureEnabled() && nonceStore == null) {
             throw new IllegalStateException(
-                    "Redis DdcNonceStore is required when DDC RPC signatures are enabled");
+                    "Redis DdcNonceStore is required when Tianshu RPC signatures are enabled");
         }
     }
 

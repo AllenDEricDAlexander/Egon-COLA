@@ -17,7 +17,7 @@ class RpcGatewayDirectoryContractsTest {
                 " ",
                 null,
                 null,
-                "gateway",
+                "yuheng",
                 "default",
                 "1.0.0"
         )).isInstanceOf(IllegalArgumentException.class);
@@ -25,7 +25,7 @@ class RpcGatewayDirectoryContractsTest {
                 "test",
                 "retail",
                 null,
-                "gateway",
+                "yuheng",
                 "default",
                 "1.0.0"
         )).isInstanceOf(IllegalArgumentException.class);
@@ -35,7 +35,7 @@ class RpcGatewayDirectoryContractsTest {
     void snapshotRequiresObservationTimeAndCopiesEndpoints() {
         List<RpcGatewayEndpoint> endpoints = new ArrayList<>();
         endpoints.add(new RpcGatewayEndpoint(
-                "gateway-1",
+                "yuheng-1",
                 "lease-1",
                 "127.0.0.1",
                 19090,

@@ -18,7 +18,7 @@ class GatewayRequestSignerTest {
     void canonicalizesAndSignsGatewayReportRequests() {
         GatewayCanonicalRequest request = new GatewayCanonicalRequest(
                 "post",
-                "/api/v1/gateway/openapi/interface-definitions/reports",
+                "/api/v1/yuheng/openapi/interface-definitions/reports",
                 Map.of(
                         "z", List.of("last"),
                         "space", List.of("a b"),
@@ -41,7 +41,7 @@ class GatewayRequestSignerTest {
         assertFalse(signer.matches(signature, signer.sign(
                 new GatewayCanonicalRequest(
                         "POST",
-                        "/api/v1/gateway/openapi/interface-definitions/reports",
+                        "/api/v1/yuheng/openapi/interface-definitions/reports",
                         Map.of(
                                 "z", List.of("last"),
                                 "space", List.of("a b"),

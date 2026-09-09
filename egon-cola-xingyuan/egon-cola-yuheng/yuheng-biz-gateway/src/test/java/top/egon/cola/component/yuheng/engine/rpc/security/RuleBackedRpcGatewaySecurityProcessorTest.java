@@ -78,9 +78,9 @@ class RuleBackedRpcGatewaySecurityProcessorTest {
         assertEquals(TOKEN, outcome.forwardingCredential().tokenReference());
         assertEquals(Set.of("authorization"), outcome.fieldsToRemove());
         assertEquals(Map.of(
-                "idp.biz-code", "finance",
-                "idp.app-code", "billing",
-                "idp.env", "prod"
+                "tianquan-shoubing.biz-code", "finance",
+                "tianquan-shoubing.app-code", "billing",
+                "tianquan-shoubing.env", "prod"
         ), authorization.get().attributes());
     }
 
@@ -114,9 +114,9 @@ class RuleBackedRpcGatewaySecurityProcessorTest {
                 );
 
         assertEquals(Map.of(
-                "idp.biz-code", "finance",
-                "idp.app-code", "billing",
-                "idp.env", "prod"
+                "tianquan-shoubing.biz-code", "finance",
+                "tianquan-shoubing.app-code", "billing",
+                "tianquan-shoubing.env", "prod"
         ), attributes);
     }
 

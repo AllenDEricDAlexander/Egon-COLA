@@ -41,19 +41,19 @@ import java.util.Set;
 @Profile("local")
 @Order(Ordered.HIGHEST_PRECEDENCE)
 @ConditionalOnProperty(
-        prefix = "egon.rbac3.development-bootstrap",
+        prefix = "egon.tianquan-jianshen.development-bootstrap",
         name = "auto-activate-local-admin-roles",
         havingValue = "true")
 public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
 
-    /** Classpath resource containing the local RBAC3 menu/page/action registry. */
+    /** Classpath resource containing the local Tianquan-Jianshen menu/page/action registry. */
     static final String RESOURCE_DEFINITIONS =
-            "bootstrap/rbac3-development-resource-definitions.json";
+            "bootstrap/tianquan-jianshen-development-resource-definitions.json";
 
     private static final long BOOTSTRAP_LOCK_KEY = 0x5242414333524553L;
-    private static final String ACTOR = "rbac3-development-resource-bootstrap";
-    private static final String BUILD_ID = "local-rbac3-resource-catalog-v1";
-    private static final String CHECKSUM = "local-rbac3-resource-catalog-v1";
+    private static final String ACTOR = "tianquan-jianshen-development-resource-bootstrap";
+    private static final String BUILD_ID = "local-tianquan-jianshen-resource-catalog-v1";
+    private static final String CHECKSUM = "local-tianquan-jianshen-resource-catalog-v1";
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
@@ -90,7 +90,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
             }
         }
 
-        long rbac3ApplicationId = requiredApplicationId(applicationIds, "rbac3-admin");
+        long rbac3ApplicationId = requiredApplicationId(applicationIds, "tianquan-jianshen-admin");
         for (DesiredResource resource : catalog.resources()) {
             if (resource.permissionCode() != null) {
                 permissionIds.put(resource.permissionCode(), ensurePermission(
@@ -233,7 +233,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
             return new Catalog(List.copyOf(resources.values()), List.copyOf(fields));
         } catch (IOException error) {
             throw new IllegalStateException(
-                    "local RBAC3 resource definitions cannot be read", error);
+                    "local Tianquan-Jianshen resource definitions cannot be read", error);
         }
     }
 
@@ -252,7 +252,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
     private long requiredApplicationId(Map<String, Long> applicationIds, String code) {
         Long applicationId = applicationIds.get(code);
         if (applicationId == null) {
-            throw new IllegalStateException("local RBAC3 application is missing: " + code);
+            throw new IllegalStateException("local Tianquan-Jianshen application is missing: " + code);
         }
         return applicationId;
     }
@@ -551,7 +551,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
     }
 
     private static String risk(String permissionCode) {
-        if (permissionCode.endsWith(":read") || "DDC_READ".equals(permissionCode)) {
+        if (permissionCode.endsWith(":read") || "TIANSHU_READ".equals(permissionCode)) {
             return "MEDIUM";
         }
         if (permissionCode.endsWith(":manage") || permissionCode.endsWith(":admin")

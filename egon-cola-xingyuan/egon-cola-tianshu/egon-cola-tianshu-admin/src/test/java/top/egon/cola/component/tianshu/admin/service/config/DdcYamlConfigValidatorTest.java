@@ -32,7 +32,7 @@ class DdcYamlConfigValidatorTest {
     @Test
     void rejectsDdcConfigImportAndProfileSelectionKeys() {
         assertInvalid(
-                "egon:\n  cola:\n    component:\n      ddc:\n        enabled: false\n",
+                "egon:\n  cola:\n    component:\n      tianshu:\n        enabled: false\n",
                 "reserved"
         );
         assertInvalid(

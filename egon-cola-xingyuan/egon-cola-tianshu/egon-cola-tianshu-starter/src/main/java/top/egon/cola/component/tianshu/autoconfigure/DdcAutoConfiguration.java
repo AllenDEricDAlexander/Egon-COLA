@@ -53,7 +53,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2C
 import java.util.List;
 
 /**
- * 在 DDC 启用时装配配置注入、远程租约、Redis 订阅和刷新运行时。 Configures value injection, remote leases, Redis subscription, and refresh runtime when DDC is enabled.
+ * 在 Tianshu 启用时装配配置注入、远程租约、Redis 订阅和刷新运行时。 Configures value injection, remote leases, Redis subscription, and refresh runtime when Tianshu is enabled.
  */
 @AutoConfiguration
 @EnableScheduling
@@ -62,7 +62,7 @@ import java.util.List;
         DdcAckDeliveryProperties.class,
         IdpStarterProperties.class
 })
-@ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(prefix = "egon.cola.component.tianshu", name = "enabled", havingValue = "true", matchIfMissing = false)
 public class DdcAutoConfiguration {
 
     /**
@@ -187,13 +187,13 @@ public class DdcAutoConfiguration {
      * @param fieldBindingService 字段绑定服务。 field-binding service
      * @param rebinder            配置属性重新绑定器。 configuration-properties rebinder
      * @param eventPublisher      应用事件发布器。 application event publisher
-     * @param properties          DDC 属性。 DDC properties
+     * @param properties          Tianshu 属性。 Tianshu properties
      * @param formatStrategies    配置格式策略注册表。 configuration-format strategy registry
      * @return YAML 配置应用器。 YAML configuration applier
      */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.redis",
+            prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -224,14 +224,14 @@ public class DdcAutoConfiguration {
      */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.redis",
+            prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "false"
     )
     public SmartInitializingSingleton ddcOfflineModeWarning() {
         return () -> LOGGER.warn(
-                "DDC remote lifecycle is disabled because "
-                        + "egon.cola.component.ddc.redis.enabled=false; "
+                "Tianshu remote lifecycle is disabled because "
+                        + "egon.cola.component.tianshu.redis.enabled=false; "
                         + "no registration, pull, subscription, heartbeat, or ACK will run"
         );
     }
@@ -257,13 +257,13 @@ public class DdcAutoConfiguration {
      * @param repository        本地配置仓库。 local configuration repository
      * @param yamlConfigApplier YAML 配置应用器。 YAML configuration applier
      * @param ackDelivery       确认投递器。 acknowledgement delivery
-     * @param adminClient        管理端客户端，用于拉取延迟通知中的大内容。 DDC client for deferred large content
+     * @param adminClient        管理端客户端，用于拉取延迟通知中的大内容。 Tianshu client for deferred large content
      * @param sessionHolder     当前租约会话持有器。 current lease-session holder
      * @return 配置刷新服务。 configuration refresh service
      */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.redis",
+            prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -283,10 +283,10 @@ public class DdcAutoConfiguration {
     }
 
     /**
-     * 创建静态 Bean 后处理器，在 Bean 初始化期间发现并绑定 DDC 字段。 Creates the static bean post-processor that discovers and binds DDC fields during bean initialization.
+     * 创建静态 Bean 后处理器，在 Bean 初始化期间发现并绑定 Tianshu 字段。 Creates the static bean post-processor that discovers and binds Tianshu fields during bean initialization.
      *
      * @param fieldBindingService 字段绑定服务。 field-binding service
-     * @return DDC Bean 后处理器。 DDC bean post-processor
+     * @return Tianshu Bean 后处理器。 Tianshu bean post-processor
      */
     @Bean
     @Role(BeanDefinition.ROLE_INFRASTRUCTURE)
@@ -297,13 +297,13 @@ public class DdcAutoConfiguration {
     /**
      * 创建负责校验发布消息并触发刷新的 Redis 监听器。 Creates the Redis listener that validates publication messages and triggers refresh.
      *
-     * @param properties     DDC 作用域属性。 DDC scope properties
+     * @param properties     Tianshu 作用域属性。 Tianshu scope properties
      * @param refreshService 配置刷新服务。 configuration refresh service
      * @return Redis 配置变更监听器。 Redis configuration-change listener
      */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.redis",
+            prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -316,14 +316,14 @@ public class DdcAutoConfiguration {
     /**
      * 创建当前业务、环境和应用 v3 配置变更 Topic。 Creates the v3 configuration-change topic for the current business, environment, and application.
      *
-     * @param redissonClient DDC Redisson 客户端。 DDC Redisson client
-     * @param properties     DDC 作用域属性。 DDC scope properties
+     * @param redissonClient Tianshu Redisson 客户端。 Tianshu Redisson client
+     * @param properties     Tianshu 作用域属性。 Tianshu scope properties
      * @return 配置变更 Topic。 configuration-change topic
      */
     @Bean("ddcRedisTopic")
     @ConditionalOnBean(name = "ddcRedissonClient")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.redis",
+            prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -371,9 +371,9 @@ public class DdcAutoConfiguration {
     /**
      * 从属性和可选自定义提供器创建稳定实例身份。 Creates a stable instance identity from properties and an optional custom provider.
      *
-     * @param properties         DDC 属性。 DDC properties
+     * @param properties         Tianshu 属性。 Tianshu properties
      * @param instanceIdProvider 可选实例标识提供器。 optional instance-identifier provider
-     * @return 当前 DDC 实例身份。 current DDC instance identity
+     * @return 当前 Tianshu 实例身份。 current Tianshu instance identity
      */
     @Bean
     public DdcInstanceIdentity ddcInstanceIdentity(
@@ -388,18 +388,18 @@ public class DdcAutoConfiguration {
     /**
      * 创建负责注册、心跳和下线的实例租约服务。 Creates the instance-lease service responsible for registration, heartbeat, and offline operations.
      *
-     * @param properties           DDC 属性。 DDC properties
+     * @param properties           Tianshu 属性。 Tianshu properties
      * @param adminClient          管理端客户端。 management client
      * @param identity             当前实例身份。 current instance identity
      * @param sessionHolder        租约会话持有器。 lease-session holder
      * @param metadataContributors 有序实例元数据贡献器。 ordered instance-metadata contributors
-     * @param serviceClient        IdP OAuth2 Client facade。 IdP OAuth2 Client facade
-     * @param idpProperties        IdP client settings。 IdP client settings
-     * @return DDC 实例服务。 DDC instance service
+     * @param serviceClient        Tianquan-Shoubing OAuth2 Client facade。 Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties        Tianquan-Shoubing client settings。 Tianquan-Shoubing client settings
+     * @return Tianshu 实例服务。 Tianshu instance service
     */
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.redis",
+            prefix = "egon.cola.component.tianshu.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -426,13 +426,13 @@ public class DdcAutoConfiguration {
     /**
      * 在 Redis 订阅存在时创建编排注册、初始拉取、对账和关闭的运行时协调器。 Creates the runtime coordinator orchestrating registration, initial pull, reconciliation, and shutdown when a Redis subscription exists.
      *
-     * @param properties      DDC 属性。 DDC properties
+     * @param properties      Tianshu 属性。 Tianshu properties
      * @param instanceService 实例租约服务。 instance-lease service
      * @param adminClient     管理端客户端。 management client
      * @param refreshService  配置刷新服务。 configuration refresh service
      * @param subscription    Redis 订阅句柄。 Redis subscription handle
      * @param sessionHolder   租约会话持有器。 lease-session holder
-     * @return DDC 运行时协调器。 DDC runtime coordinator
+     * @return Tianshu 运行时协调器。 Tianshu runtime coordinator
      */
     @Bean
     @ConditionalOnBean(DdcRedisTopicSubscription.class)

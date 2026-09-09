@@ -401,7 +401,7 @@ public class McpReleaseContentFactory {
         McpServerPO codeServer = serverByCode.get(codeServerCode);
         if (codeServer == null) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_SERVER_NOT_FOUND",
+                    "YUHENG_MCP_SERVER_NOT_FOUND",
                     "operations." + operation.operationKey()
                             + ".mcpExposure.mcpServerCode",
                     "MCP Server " + codeServerCode + " was not found"
@@ -416,7 +416,7 @@ public class McpReleaseContentFactory {
                 : serverById.get(override.serverId());
         if (effectiveServer == null) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_SERVER_NOT_FOUND",
+                    "YUHENG_MCP_SERVER_NOT_FOUND",
                     "managedTools." + toolId + ".serverId",
                     "override MCP Server was not found"
             );
@@ -438,7 +438,7 @@ public class McpReleaseContentFactory {
         String effectiveRisk = maximumRisk(codeRisk, minimumRisk);
         if (!Set.of("HTTP", "RPC").contains(operation.protocol())) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_OPERATION_PROTOCOL_UNSUPPORTED",
+                    "YUHENG_MCP_OPERATION_PROTOCOL_UNSUPPORTED",
                     "operations." + operation.operationKey() + ".protocol",
                     "managed MCP Tool requires HTTP or RPC Operation"
             );
@@ -446,7 +446,7 @@ public class McpReleaseContentFactory {
         if ("HTTP".equals(operation.protocol())
                 && bool(definition.attributes(), "streaming", false)) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_STREAMING_UNSUPPORTED",
+                    "YUHENG_MCP_STREAMING_UNSUPPORTED",
                     "operations." + operation.operationKey() + ".streaming",
                     "streaming Operation cannot be projected as an MCP Tool"
             );
@@ -670,7 +670,7 @@ public class McpReleaseContentFactory {
         String artifactId = required(value, "appArtifactId");
         var artifact = artifacts.find(artifactId)
                 .orElseThrow(() -> new McpValidationException(
-                        "GATEWAY_MCP_ARTIFACT_NOT_FOUND",
+                        "YUHENG_MCP_ARTIFACT_NOT_FOUND",
                         "apps." + draft.name() + ".appArtifactId",
                         "MCP App artifact was not found"
                 ));
@@ -737,7 +737,7 @@ public class McpReleaseContentFactory {
         var provider = providerById.get(draft.providerId());
         if (provider == null) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_REMOTE_PROVIDER_NOT_FOUND",
+                    "YUHENG_MCP_REMOTE_PROVIDER_NOT_FOUND",
                     "remoteMounts." + draft.id() + ".providerId",
                     "remote MCP Provider was not found"
             );
@@ -781,7 +781,7 @@ public class McpReleaseContentFactory {
         McpServerPO server = serverById.get(serverId);
         if (server == null) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_SERVER_NOT_FOUND",
+                    "YUHENG_MCP_SERVER_NOT_FOUND",
                     "serverId",
                     "MCP Server " + serverId + " was not found"
             );
@@ -914,7 +914,7 @@ public class McpReleaseContentFactory {
         int level = RISK_LEVELS.indexOf(value);
         if (level < 0) {
             throw new McpValidationException(
-                    "GATEWAY_MCP_RISK_INVALID",
+                    "YUHENG_MCP_RISK_INVALID",
                     "riskLevel",
                     "unsupported MCP Tool risk level " + value
             );

@@ -29,16 +29,16 @@ public final class TrustedIdentitySanitizer {
             "proxy-authorization",
             "cookie",
             "set-cookie",
-            "x-gateway-principal-id",
-            "x-gateway-tenant-id",
-            "x-gateway-authenticated",
-            "x-gateway-auth-provider",
-            "x-gateway-access-zone",
+            "x-yuheng-principal-id",
+            "x-yuheng-tenant-id",
+            "x-yuheng-authenticated",
+            "x-yuheng-auth-provider",
+            "x-yuheng-access-zone",
             "x-internal-request",
             "x-forwarded-internal",
-            "gateway-access-zone",
-            "gateway-principal-id",
-            "gateway-tenant-id"
+            "yuheng-access-zone",
+            "yuheng-principal-id",
+            "yuheng-tenant-id"
     );
 
     /**
@@ -47,7 +47,7 @@ public final class TrustedIdentitySanitizer {
      *
      * 用法 / Usage: 该字段通过 {@code TrustedIdentitySanitizer} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code TrustedIdentitySanitizer}; do not couple callers to its representation when the owning type exposes an API.
      */
-    private static final Set<String> IDP_TRUSTED_HTTP = Set.of(
+    private static final Set<String> TIANQUAN_SHOUBING_TRUSTED_HTTP = Set.of(
             "x-egon-principal-type",
             "x-egon-identity-sub",
             "x-egon-tenant-id",
@@ -132,8 +132,8 @@ public final class TrustedIdentitySanitizer {
         }
         identity.httpHeaders().forEach((name, value) -> {
             String lower = normalizedName(name);
-            if (!lower.startsWith("x-egon-gateway-")
-                    && !IDP_TRUSTED_HTTP.contains(lower)) {
+            if (!lower.startsWith("x-egon-yuheng-")
+                    && !TIANQUAN_SHOUBING_TRUSTED_HTTP.contains(lower)) {
                 throw new IllegalArgumentException(
                         "untrusted HTTP identity field " + name
                 );
@@ -164,7 +164,7 @@ public final class TrustedIdentitySanitizer {
         source.forEach((name, value) -> {
             String lower = normalizedName(name);
             if (safeInbound(lower, removals, false)
-                    && !lower.startsWith("egon-gateway-")) {
+                    && !lower.startsWith("egon-yuheng-")) {
                 result.put(lower, safeValue(value));
             }
         });
@@ -175,7 +175,7 @@ public final class TrustedIdentitySanitizer {
         }
         identity.rpcMetadata().forEach((name, value) -> {
             String lower = normalizedName(name);
-            if (!lower.startsWith("egon-gateway-")) {
+            if (!lower.startsWith("egon-yuheng-")) {
                 throw new IllegalArgumentException(
                         "untrusted RPC identity field " + name
                 );
@@ -200,14 +200,14 @@ public final class TrustedIdentitySanitizer {
             Set<String> removals,
             boolean authorizationForwardingAllowed) {
         boolean fixedSensitive = FIXED_SENSITIVE.contains(name)
-                || IDP_TRUSTED_HTTP.contains(name);
+                || TIANQUAN_SHOUBING_TRUSTED_HTTP.contains(name);
         fixedSensitive = fixedSensitive
                 && !(authorizationForwardingAllowed
                 && "authorization".equals(name));
         return !fixedSensitive
                 && !HOP_BY_HOP.contains(name)
                 && !removals.contains(name)
-                && !name.startsWith("x-egon-gateway-")
+                && !name.startsWith("x-egon-yuheng-")
                 && !name.startsWith("x-forwarded-");
     }
 

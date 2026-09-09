@@ -26,7 +26,7 @@ class DdcManagementContractBoundaryTest {
         }
 
         assertThat(sources.toString())
-                .doesNotContain("component.ddc.admin")
+                .doesNotContain("component.tianshu.admin")
                 .doesNotContain("jakarta.persistence")
                 .doesNotContain("org.redisson")
                 .doesNotContain("DdcConfigItemEntity")
@@ -47,7 +47,7 @@ class DdcManagementContractBoundaryTest {
     void compiledContractsDoNotReferenceAdminPersistenceOrRuntimeInfrastructure()
             throws IOException {
         List<String> forbidden = List.of(
-                "component/ddc/admin",
+                "component/tianshu/admin",
                 "jakarta/persistence",
                 "org/redisson",
                 "DdcConfigItemEntity",
@@ -69,7 +69,7 @@ class DdcManagementContractBoundaryTest {
     }
 
     private List<Path> contractRoots(String root) {
-        Path packageRoot = Path.of(root, "top/egon/cola/component/ddc");
+        Path packageRoot = Path.of(root, "top/egon/cola/component/tianshu");
         return List.of(
                 packageRoot.resolve("api/client"),
                 packageRoot.resolve("model/management"),

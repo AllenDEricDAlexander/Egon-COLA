@@ -309,7 +309,7 @@ public class DdcConfigLeaseRedisRepository {
         try {
             return objectMapper.readTree(value);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("deserialize DDC config lease failed", exception);
+            throw new IllegalStateException("deserialize Tianshu config lease failed", exception);
         }
     }
 
@@ -397,7 +397,7 @@ public class DdcConfigLeaseRedisRepository {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException exception) {
-            throw new IllegalStateException("serialize DDC config lease failed", exception);
+            throw new IllegalStateException("serialize Tianshu config lease failed", exception);
         }
     }
 }

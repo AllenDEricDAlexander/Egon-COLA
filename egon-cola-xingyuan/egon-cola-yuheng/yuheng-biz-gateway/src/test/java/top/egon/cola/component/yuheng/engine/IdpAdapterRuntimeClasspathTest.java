@@ -9,10 +9,10 @@ class IdpAdapterRuntimeClasspathTest {
     @Test
     void executableEngineCarriesIdentityAndBizAppScopeAdapters() {
         assertDoesNotThrow(() -> Class.forName(
-                "top.egon.cola.platform.tianquan.shoubing.gateway.autoconfigure."
+                "top.egon.cola.platform.tianquan.shoubing.yuheng.autoconfigure."
                         + "IdpGatewayAdapterAutoConfiguration"));
         assertDoesNotThrow(() -> Class.forName(
-                "top.egon.cola.platform.tianquan.jianshen.gateway.autoconfigure."
+                "top.egon.cola.platform.tianquan.jianshen.yuheng.autoconfigure."
                         + "Rbac3GatewayAdapterAutoConfiguration"));
     }
 }

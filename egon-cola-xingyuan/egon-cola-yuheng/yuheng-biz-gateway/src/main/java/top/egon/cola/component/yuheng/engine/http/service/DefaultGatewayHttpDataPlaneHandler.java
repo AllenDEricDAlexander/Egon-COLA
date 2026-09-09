@@ -1025,13 +1025,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 return Mono.just(observed(
                         error(
                                 404,
-                                "GATEWAY_ROUTE_NOT_FOUND",
+                                "YUHENG_ROUTE_NOT_FOUND",
                                 trace.traceId()
                         ),
                         observation,
                         "ROUTE",
                         "REJECTED",
-                        "GATEWAY_ROUTE_NOT_FOUND"
+                        "YUHENG_ROUTE_NOT_FOUND"
                 ));
             }
             observation.route(
@@ -1051,13 +1051,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 return Mono.just(observed(
                         error(
                                 404,
-                                "GATEWAY_ROUTE_NOT_FOUND",
+                                "YUHENG_ROUTE_NOT_FOUND",
                                 trace.traceId()
                         ),
                         observation,
                         "EXPOSURE",
                         "REJECTED",
-                        "GATEWAY_ROUTE_NOT_FOUND"
+                        "YUHENG_ROUTE_NOT_FOUND"
                 ));
             }
             HttpStageExchange exchange = new HttpStageExchange(
@@ -1078,14 +1078,14 @@ public final class DefaultGatewayHttpDataPlaneHandler
                             "COMPLETE",
                             category(response.status()),
                             response.status() >= 400
-                                    ? "GATEWAY_UPSTREAM_STATUS"
+                                    ? "YUHENG_UPSTREAM_STATUS"
                                     : null
                     ))
                     .doOnCancel(() -> publish(
                             observation,
                             "CLIENT",
                             "CANCELLED",
-                            "GATEWAY_CLIENT_CANCELLED",
+                            "YUHENG_CLIENT_CANCELLED",
                             null
                     ));
         } catch (GatewayRequestRejectedException rejected) {
@@ -1104,13 +1104,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
             return Mono.just(observed(
                     error(
                             500,
-                            "GATEWAY_INTERNAL_ERROR",
+                            "YUHENG_INTERNAL_ERROR",
                             trace.traceId()
                     ),
                     observation,
                     "INTERNAL",
                     "ERROR",
-                    "GATEWAY_INTERNAL_ERROR"
+                    "YUHENG_INTERNAL_ERROR"
             ));
         }
     }
@@ -1156,7 +1156,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     && !match.route().externalAccessible()) {
                 return Mono.just(GatewayWebSocketHandshakeResult.rejected(
                         404,
-                        "GATEWAY_ROUTE_NOT_FOUND",
+                        "YUHENG_ROUTE_NOT_FOUND",
                         "gateway route was not found"
                 ));
             }
@@ -1185,7 +1185,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                     observation,
                     "CLIENT",
                     "CANCELLED",
-                    "GATEWAY_CLIENT_CANCELLED",
+                    "YUHENG_CLIENT_CANCELLED",
                     null
             ));
         } catch (GatewayRequestRejectedException rejected) {
@@ -1197,7 +1197,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
         } catch (RuntimeException failure) {
             return Mono.just(GatewayWebSocketHandshakeResult.rejected(
                     500,
-                    "GATEWAY_INTERNAL_ERROR",
+                    "YUHENG_INTERNAL_ERROR",
                     "gateway WebSocket preparation failed"
             ));
         }
@@ -1474,7 +1474,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 == ProviderProtocolType.RPC) {
             if (httpRpcUpstream == null) {
                 invocation = Mono.error(new IllegalStateException(
-                        "GATEWAY_HTTP_RPC_BRIDGE_UNAVAILABLE"
+                        "YUHENG_HTTP_RPC_BRIDGE_UNAVAILABLE"
                 ));
             } else {
                 invocation = httpRpcUpstream.invoke(
@@ -1915,7 +1915,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
         };
         return error(
                 status,
-                "GATEWAY_RPC_UPSTREAM_"
+                "YUHENG_RPC_UPSTREAM_"
                         + failure.status().getCode().name(),
                 traceId
         );
@@ -1967,14 +1967,14 @@ public final class DefaultGatewayHttpDataPlaneHandler
                                 observation,
                                 "RESPONSE",
                                 "ERROR",
-                                "GATEWAY_RESPONSE_STREAM_ERROR",
+                                "YUHENG_RESPONSE_STREAM_ERROR",
                                 response.status()
                         ))
                         .doOnCancel(() -> publish(
                                 observation,
                                 "RESPONSE",
                                 "CANCELLED",
-                                "GATEWAY_CLIENT_CANCELLED",
+                                "YUHENG_CLIENT_CANCELLED",
                                 response.status()
                         ))
         );
@@ -2153,7 +2153,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                         match.route().gatewayGroupId()
                 ),
                 security.trustedIdentity().httpHeaders().get(
-                        "X-Egon-Gateway-Principal-Id"
+                        "X-Egon-Yuheng-Principal-Id"
                 ),
                 request.remoteAddress() == null
                         ? null
@@ -2578,25 +2578,25 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 return observed(
                         error(
                                 504,
-                                "GATEWAY_UPSTREAM_TIMEOUT",
+                                "YUHENG_UPSTREAM_TIMEOUT",
                                 trace.traceId()
                         ),
                         observation,
                         "UPSTREAM",
                         "TIMEOUT",
-                        "GATEWAY_UPSTREAM_TIMEOUT"
+                        "YUHENG_UPSTREAM_TIMEOUT"
                 );
             }
             return observed(
                     error(
                             502,
-                            "GATEWAY_UPSTREAM_CONNECT_FAILED",
+                            "YUHENG_UPSTREAM_CONNECT_FAILED",
                             trace.traceId()
                     ),
                     observation,
                     "UPSTREAM",
                     "ERROR",
-                    "GATEWAY_UPSTREAM_CONNECT_FAILED"
+                    "YUHENG_UPSTREAM_CONNECT_FAILED"
             );
         }
 
@@ -2803,7 +2803,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 return respondWebSocket(
                         GatewayWebSocketHandshakeResult.rejected(
                                 426,
-                                "GATEWAY_WEBSOCKET_ROUTE_REQUIRED",
+                                "YUHENG_WEBSOCKET_ROUTE_REQUIRED",
                                 "route is not configured for WebSocket"
                         )
                 );
@@ -2931,13 +2931,13 @@ public final class DefaultGatewayHttpDataPlaneHandler
             if (failure instanceof java.util.concurrent.TimeoutException) {
                 return error(
                         504,
-                        "GATEWAY_UPSTREAM_TIMEOUT",
+                        "YUHENG_UPSTREAM_TIMEOUT",
                         trace.traceId()
                 );
             }
             return error(
                     502,
-                    "GATEWAY_UPSTREAM_CONNECT_FAILED",
+                    "YUHENG_UPSTREAM_CONNECT_FAILED",
                     trace.traceId()
             );
         }
@@ -3252,7 +3252,7 @@ public final class DefaultGatewayHttpDataPlaneHandler
             finish(
                     ProviderCallClassification.CANCELLED,
                     "CANCELLED",
-                    "GATEWAY_CLIENT_CANCELLED",
+                    "YUHENG_CLIENT_CANCELLED",
                     false
             );
         }

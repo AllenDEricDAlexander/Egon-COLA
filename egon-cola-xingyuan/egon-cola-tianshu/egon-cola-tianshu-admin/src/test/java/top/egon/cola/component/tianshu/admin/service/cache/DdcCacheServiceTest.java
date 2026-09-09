@@ -92,29 +92,29 @@ class DdcCacheServiceTest {
         DdcRedisRepository redisRepository = mock(DdcRedisRepository.class);
         DdcConfigVersionEntity current = version("application.yml", "true", 2L);
         when(versionRepository.findPublishedRuntimeVersions(
-                eq("infra"), eq("prod"), eq("gateway"), eq("DELETE"),
+                eq("infra"), eq("prod"), eq("yuheng"), eq("DELETE"),
                 any(Pageable.class)))
                 .thenReturn(new PageImpl<>(
                         List.of(current), PageRequest.of(1, 1), 2));
         when(redisRepository.readConfigValue(
-                "infra", "prod", "gateway", "application.yml"))
+                "infra", "prod", "yuheng", "application.yml"))
                 .thenReturn("true");
         when(redisRepository.readConfigVersion(
-                "infra", "prod", "gateway", "application.yml"))
+                "infra", "prod", "yuheng", "application.yml"))
                 .thenReturn(2L);
         DdcCacheService service = new DdcCacheService(
                 configItemRepository, versionRepository, redisRepository);
 
         var page = service.page(
-                "infra", "prod", "gateway", new PageQuery(2, 1));
+                "infra", "prod", "yuheng", new PageQuery(2, 1));
 
         assertThat(page.getTotalElements()).isEqualTo(2);
         assertThat(page.getContent()).singleElement()
                 .satisfies(row -> assertThat(row.isMatched()).isTrue());
         verify(redisRepository).readConfigValue(
-                "infra", "prod", "gateway", "application.yml");
+                "infra", "prod", "yuheng", "application.yml");
         verify(redisRepository).readConfigVersion(
-                "infra", "prod", "gateway", "application.yml");
+                "infra", "prod", "yuheng", "application.yml");
         verifyNoMoreInteractions(redisRepository);
     }
 

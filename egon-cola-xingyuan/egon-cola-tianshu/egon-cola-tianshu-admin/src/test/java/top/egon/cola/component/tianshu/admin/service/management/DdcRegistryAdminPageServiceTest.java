@@ -27,14 +27,14 @@ class DdcRegistryAdminPageServiceTest {
 
     private final DdcManagementServiceQuery query =
             new DdcManagementServiceQuery(
-                    "infra", null, "prod", "gateway",
+                    "infra", null, "prod", "yuheng",
                     null, null, null, null, null
             );
 
     @Test
     void pagesSortedServiceKeysWithoutChangingCatalog() {
-        DdcManagementServiceKey a = service("gateway-a", "svc-a");
-        DdcManagementServiceKey b = service("gateway-b", "svc-b");
+        DdcManagementServiceKey a = service("yuheng-a", "svc-a");
+        DdcManagementServiceKey b = service("yuheng-b", "svc-b");
         when(facade.getServiceKeys(query)).thenReturn(
                 new DdcManagementServiceCatalog(
                         9L, Instant.EPOCH, List.of(b, a)
@@ -52,7 +52,7 @@ class DdcRegistryAdminPageServiceTest {
 
     @Test
     void pagesInstancesInStableStatusAndEndpointOrder() {
-        DdcManagementServiceKey key = service("gateway", "svc");
+        DdcManagementServiceKey key = service("yuheng", "svc");
         DdcManagementServiceInstance a = instance(
                 "instance-a", "192.168.1.1", 19000, "ONLINE"
         );

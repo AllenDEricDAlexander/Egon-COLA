@@ -38,7 +38,7 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
      */
     @Override
     public void apply(String key, String value, long version) {
-        if (!key.startsWith("gateway.rules.chunk.")) {
+        if (!key.startsWith("yuheng.rules.chunk.")) {
             throw new IllegalArgumentException("unexpected rule chunk key");
         }
         if (value == null) {
@@ -49,7 +49,7 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
             chunks.put(key, Base64.getDecoder().decode(value));
         } catch (IllegalArgumentException invalid) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHUNK_CHECKSUM_MISMATCH",
+                    "YUHENG_RULE_CHUNK_CHECKSUM_MISMATCH",
                     invalid
             );
         }
@@ -74,20 +74,20 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
                     .get(expectedIndex);
             if (reference.index() != expectedIndex) {
                 throw new IllegalArgumentException(
-                        "GATEWAY_RULE_CHUNK_MISSING: non-contiguous index"
+                        "YUHENG_RULE_CHUNK_MISSING: non-contiguous index"
                 );
             }
             byte[] value = chunks.get(reference.configKey());
             if (value == null || value.length != reference.size()) {
                 throw new IllegalArgumentException(
-                        "GATEWAY_RULE_CHUNK_MISSING: "
+                        "YUHENG_RULE_CHUNK_MISSING: "
                                 + reference.configKey()
                 );
             }
             if (!GatewayRuleJsonCodec.sha256(value)
                     .equals(reference.sha256())) {
                 throw new IllegalArgumentException(
-                        "GATEWAY_RULE_CHUNK_CHECKSUM_MISMATCH"
+                        "YUHENG_RULE_CHUNK_CHECKSUM_MISMATCH"
                 );
             }
             output.writeBytes(value);
@@ -95,7 +95,7 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
         byte[] assembled = output.toByteArray();
         if (assembled.length != activation.totalSize()) {
             throw new IllegalArgumentException(
-                    "GATEWAY_RULE_CHUNK_MISSING: total size mismatch"
+                    "YUHENG_RULE_CHUNK_MISSING: total size mismatch"
             );
         }
         return assembled;
@@ -124,7 +124,7 @@ public final class GatewayRuleChunkStore implements DdcConfigApplier {
         if (releaseId == null || releaseId.isBlank()) {
             throw new IllegalArgumentException("releaseId is required");
         }
-        String prefix = "gateway.rules.chunk." + releaseId + ".";
+        String prefix = "yuheng.rules.chunk." + releaseId + ".";
         int removed = 0;
         for (Map.Entry<String, byte[]> entry : chunks.entrySet()) {
             if (entry.getKey().startsWith(prefix)

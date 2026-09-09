@@ -94,7 +94,7 @@ class GatewayAdminOpenApiContractTest {
                     .isNotNull();
             assertThat(catalog.interfaceGroupCode())
                     .as("group for %s", controller.getName())
-                    .isEqualTo("gateway-admin");
+                    .isEqualTo("yuheng-admin");
             assertThat(controller.getAnnotation(Tag.class))
                     .as("tag for %s", controller.getName())
                     .isNotNull();

@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.error.management;
 
 /**
- * DDC 管理客户端在服务端拒绝请求、本地序列化或传输失败时抛出的异常。 /
- * Exception raised by the DDC management client for server rejection, local serialization, or transport failure.
+ * Tianshu 管理客户端在服务端拒绝请求、本地序列化或传输失败时抛出的异常。 /
+ * Exception raised by the Tianshu management client for server rejection, local serialization, or transport failure.
  */
 public final class DdcManagementClientException extends RuntimeException {
 

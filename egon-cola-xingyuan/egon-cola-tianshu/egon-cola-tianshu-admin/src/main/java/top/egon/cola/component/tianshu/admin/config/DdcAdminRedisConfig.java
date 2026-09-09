@@ -37,7 +37,7 @@ public class DdcAdminRedisConfig {
 
     @Bean("ddcAdminRedissonClient")
     @ConditionalOnMissingBean(name = "ddcAdminRedissonClient")
-    @ConditionalOnProperty(prefix = "egon.cola.component.ddc.admin.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = "egon.cola.component.tianshu.admin.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
     public RedissonClient ddcAdminRedissonClient(DdcAdminProperties properties) {
         DdcAdminProperties.Redis redis = properties.getRedis();
         return DdcRedisClientFactory.create(
@@ -76,7 +76,7 @@ public class DdcAdminRedisConfig {
         return new DdcConfigLeaseRedisRepository(redissonClient, objectMapper);
     }
 
-    /** Creates the DDC verifier backed by the shared IdP SERVICE-token verifier. */
+    /** Creates the Tianshu verifier backed by the shared Tianquan-Shoubing SERVICE-token verifier. */
     @Bean
     @ConditionalOnBean(name = "ddcAdminRedissonClient")
     @ConditionalOnMissingBean(DdcRegistrationCredentialVerifier.class)
@@ -97,14 +97,14 @@ public class DdcAdminRedisConfig {
                 : idpProperties.getResourceUri();
         return new IdpJwtDdcRegistrationCredentialVerifier(
                 serviceTokens,
-                required(resourceServerId, "DDC Resource Server id"),
+                required(resourceServerId, "Tianshu Resource Server id"),
                 Objects.requireNonNull(
                         resourceUri,
-                        "DDC Resource URI is required"
+                        "Tianshu Resource URI is required"
                 ),
                 required(
                         registration.getRequiredScope(),
-                        "DDC registration scope"
+                        "Tianshu registration scope"
                 ),
                 java.time.Clock.systemUTC()
         );

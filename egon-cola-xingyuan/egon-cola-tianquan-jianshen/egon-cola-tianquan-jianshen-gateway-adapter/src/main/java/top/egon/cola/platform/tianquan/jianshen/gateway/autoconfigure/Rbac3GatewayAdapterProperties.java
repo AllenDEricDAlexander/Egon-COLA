@@ -5,13 +5,13 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import java.time.Duration;
 
 /**
- * Configuration for the RBAC3 Gateway authorization adapter.
+ * Configuration for the Tianquan-Jianshen Gateway authorization adapter.
  *
  * <p>The adapter no longer verifies access tokens or owns identity/session
- * configuration. Token verification and refresh belong to the IdP Gateway
- * adapter. RBAC3 only needs its Redis runtime projection connection.</p>
+ * configuration. Token verification and refresh belong to the Tianquan-Shoubing Gateway
+ * adapter. Tianquan-Jianshen only needs its Redis runtime projection connection.</p>
  */
-@ConfigurationProperties("egon.cola.platform.rbac3.gateway")
+@ConfigurationProperties("egon.cola.platform.tianquan.jianshen.gateway")
 public class Rbac3GatewayAdapterProperties {
 
     private boolean enabled;
@@ -30,7 +30,7 @@ public class Rbac3GatewayAdapterProperties {
     }
 
     /**
-     * Redis connection settings for the published RBAC3 runtime projection.
+     * Redis connection settings for the published Tianquan-Jianshen runtime projection.
      */
     public static class Runtime {
 

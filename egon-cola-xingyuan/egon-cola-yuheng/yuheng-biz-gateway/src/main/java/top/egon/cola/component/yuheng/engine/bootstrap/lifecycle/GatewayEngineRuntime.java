@@ -37,7 +37,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
      * 用法 / Usage: 该字段通过 {@code GatewayEngineRuntime} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayEngineRuntime}; do not couple callers to its representation when the owning type exposes an API.
      */
     @NonNull
-    @Qualifier("egon.cola.component.gateway.engine-top.egon.cola.component.yuheng.engine.common.config.GatewayEngineRuntimeProperties")
+    @Qualifier("egon.cola.component.yuheng.engine-top.egon.cola.component.yuheng.engine.common.config.GatewayEngineRuntimeProperties")
     private final GatewayEngineRuntimeProperties properties;
 
     /**
@@ -136,7 +136,7 @@ public final class GatewayEngineRuntime implements SmartLifecycle {
         coordinator = Executors.newSingleThreadScheduledExecutor(runnable -> {
             Thread thread = new Thread(
                     runnable,
-                    "gateway-engine-readiness"
+                    "yuheng-biz-gateway-readiness"
             );
             thread.setDaemon(true);
             return thread;

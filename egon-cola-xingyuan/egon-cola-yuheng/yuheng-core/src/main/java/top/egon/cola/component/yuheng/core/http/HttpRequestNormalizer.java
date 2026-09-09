@@ -172,7 +172,7 @@ public final class HttpRequestNormalizer {
 
     private static void reject(String message) {
         throw new GatewayRequestRejectedException(
-                "GATEWAY_REQUEST_INVALID",
+                "YUHENG_REQUEST_INVALID",
                 400,
                 message
         );

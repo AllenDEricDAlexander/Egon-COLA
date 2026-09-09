@@ -28,7 +28,7 @@ class DdcConfigDataLocationResolverTest {
 
         assertThat(resolver.isResolvable(
                 context,
-                ConfigDataLocation.of("ddc:application.yml")
+                ConfigDataLocation.of("tianshu:application.yml")
         )).isTrue();
         assertThat(resolver.isResolvable(
                 context,
@@ -44,19 +44,19 @@ class DdcConfigDataLocationResolverTest {
         ConfigDataLocationResolverContext context = context(
                 bootstrapContext,
                 Map.of(
-                        "egon.cola.component.ddc.enabled", true,
-                        "egon.cola.component.ddc.biz-code", "orders",
-                        "egon.cola.component.ddc.env", "test",
-                        "egon.cola.component.ddc.namespace", "default",
-                        "egon.cola.component.ddc.app-code", "order-service",
-                        "egon.cola.component.ddc.rpc.target", "localhost:19080",
-                        "egon.cola.component.ddc.rpc.auth.enabled", false
+                        "egon.cola.component.tianshu.enabled", true,
+                        "egon.cola.component.tianshu.biz-code", "orders",
+                        "egon.cola.component.tianshu.env", "test",
+                        "egon.cola.component.tianshu.namespace", "default",
+                        "egon.cola.component.tianshu.app-code", "order-service",
+                        "egon.cola.component.tianshu.rpc.target", "localhost:19080",
+                        "egon.cola.component.tianshu.rpc.auth.enabled", false
                 )
         );
 
         List<DdcConfigDataResource> resources = resolver.resolve(
                 context,
-                ConfigDataLocation.of("optional:ddc:application.yml")
+                ConfigDataLocation.of("optional:tianshu:application.yml")
         );
 
         assertThat(resources).containsExactly(new DdcConfigDataResource(
@@ -77,12 +77,12 @@ class DdcConfigDataLocationResolverTest {
                 new DefaultBootstrapContext();
         ConfigDataLocationResolverContext context = context(
                 bootstrapContext,
-                Map.of("egon.cola.component.ddc.enabled", false)
+                Map.of("egon.cola.component.tianshu.enabled", false)
         );
 
         assertThat(resolver.resolve(
                 context,
-                ConfigDataLocation.of("ddc:application.yml")
+                ConfigDataLocation.of("tianshu:application.yml")
         )).isEmpty();
         assertThat(bootstrapContext.isRegistered(DdcConfigDataFetcher.class))
                 .isFalse();
@@ -92,44 +92,44 @@ class DdcConfigDataLocationResolverTest {
     void acceptsApplicationYamlNamesAndRejectsOtherResources() {
         ConfigDataLocationResolverContext context = context(
                 new DefaultBootstrapContext(),
-                Map.of("egon.cola.component.ddc.enabled", false)
+                Map.of("egon.cola.component.tianshu.enabled", false)
         );
 
         assertThat(resolver.resolve(
                 context,
-                ConfigDataLocation.of("ddc:application.yml")
+                ConfigDataLocation.of("tianshu:application.yml")
         )).isEmpty();
         assertThat(resolver.resolve(
                 context,
-                ConfigDataLocation.of("ddc:application.yaml")
+                ConfigDataLocation.of("tianshu:application.yaml")
         )).isEmpty();
 
         assertThatThrownBy(() -> resolver.resolve(
                 context,
-                ConfigDataLocation.of("ddc:feature.yaml")
+                ConfigDataLocation.of("tianshu:feature.yaml")
         )).isInstanceOf(IllegalArgumentException.class)
                 .hasMessage(
-                        "DDC ConfigData only supports YAML resources: feature.yaml"
+                        "Tianshu ConfigData only supports YAML resources: feature.yaml"
                 );
     }
 
     @Test
     void requiredLocationRejectsMissingRpcBootstrapWhileOptionalContinues() {
         Map<String, Object> properties = Map.of(
-                "egon.cola.component.ddc.enabled", true,
-                "egon.cola.component.ddc.biz-code", "orders",
-                "egon.cola.component.ddc.env", "test",
-                "egon.cola.component.ddc.namespace", "default",
-                "egon.cola.component.ddc.app-code", "order-service"
+                "egon.cola.component.tianshu.enabled", true,
+                "egon.cola.component.tianshu.biz-code", "orders",
+                "egon.cola.component.tianshu.env", "test",
+                "egon.cola.component.tianshu.namespace", "default",
+                "egon.cola.component.tianshu.app-code", "order-service"
         );
 
         assertThatThrownBy(() -> resolver.resolve(
                 context(new DefaultBootstrapContext(), properties),
-                ConfigDataLocation.of("ddc:application.yml")
-        )).hasMessageContaining("egon.cola.component.ddc.rpc.target");
+                ConfigDataLocation.of("tianshu:application.yml")
+        )).hasMessageContaining("egon.cola.component.tianshu.rpc.target");
         assertThat(resolver.resolve(
                 context(new DefaultBootstrapContext(), properties),
-                ConfigDataLocation.of("optional:ddc:application.yml")
+                ConfigDataLocation.of("optional:tianshu:application.yml")
         )).isEmpty();
     }
 

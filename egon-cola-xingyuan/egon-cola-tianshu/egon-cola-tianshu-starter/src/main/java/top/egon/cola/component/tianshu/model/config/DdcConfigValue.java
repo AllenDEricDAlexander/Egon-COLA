@@ -1,8 +1,8 @@
 package top.egon.cola.component.tianshu.model.config;
 
 /**
- * 从 DDC Admin 读取的单个配置值。
- * / Single configuration value read from DDC Admin.
+ * 从 Tianshu Admin 读取的单个配置值。
+ * / Single configuration value read from Tianshu Admin.
  */
 public class DdcConfigValue {
 

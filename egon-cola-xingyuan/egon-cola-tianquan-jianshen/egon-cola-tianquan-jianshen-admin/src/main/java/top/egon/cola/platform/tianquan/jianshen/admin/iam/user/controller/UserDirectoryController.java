@@ -40,12 +40,12 @@ import java.util.Map;
  * Tenant user-directory HTTP entry point.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1")
+@RequestMapping("/api/tianquan-jianshen/v1")
 @Tag(name = "user-directory", description = "租户用户与目录接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -78,9 +78,9 @@ public class UserDirectoryController {
     @GetMapping("/users")
     @RequiresPermission(value = "system:user:read")
     @Operation(
-            operationId = "rbac3-directory-user-list-v1",
+            operationId = "tianquan-jianshen-directory-user-list-v1",
             summary = "分页查询租户用户",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -109,9 +109,9 @@ public class UserDirectoryController {
     @GetMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:read")
     @Operation(
-            operationId = "rbac3-directory-user-get-v1",
+            operationId = "tianquan-jianshen-directory-user-get-v1",
             summary = "读取租户用户详情",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -135,9 +135,9 @@ public class UserDirectoryController {
     @PutMapping("/users/{userId}/status")
     @RequiresPermission(value = "system:user-status:manage")
     @Operation(
-            operationId = "rbac3-directory-user-status-v1",
+            operationId = "tianquan-jianshen-directory-user-status-v1",
             summary = "按授权版本变更租户用户状态",
-            tags = {"rbac3", "directory"}
+            tags = {"tianquan-jianshen", "directory"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

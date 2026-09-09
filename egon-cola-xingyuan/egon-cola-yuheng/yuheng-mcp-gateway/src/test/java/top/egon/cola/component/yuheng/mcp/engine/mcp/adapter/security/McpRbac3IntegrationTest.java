@@ -41,7 +41,7 @@ class McpRbac3IntegrationTest {
                     fetches.incrementAndGet();
                     return snapshot(systemCode);
                 },
-                "gateway-mcp",
+                "yuheng-mcp",
                 Duration.ofMinutes(5),
                 clock
         );
@@ -67,9 +67,9 @@ class McpRbac3IntegrationTest {
         assertTrue(allowed.allowed());
         assertEquals(7L, allowed.authVersion());
         assertFalse(missingPermission.allowed());
-        assertEquals("RBAC3_PERMISSION_DENIED", missingPermission.reasonCode());
+        assertEquals("TIANQUAN_JIANSHEN_PERMISSION_DENIED", missingPermission.reasonCode());
         assertFalse(staleSnapshot.allowed());
-        assertEquals("RBAC3_SNAPSHOT_FENCED", staleSnapshot.reasonCode());
+        assertEquals("TIANQUAN_JIANSHEN_SNAPSHOT_FENCED", staleSnapshot.reasonCode());
         assertEquals(1, fetches.get());
     }
 
@@ -85,12 +85,12 @@ class McpRbac3IntegrationTest {
             long minimumContextVersion,
             long minimumPolicyVersion) {
         return new McpAuthorizationRequest(
-                "https://idp.internal",
+                "https://tianquan-shoubing.internal",
                 "alice-sub",
                 "tenant-a",
                 "finance-web",
                 "token-1",
-                "https://resource.egon.top/gateway-mcp",
+                "https://resource.egon.top/yuheng-mcp",
                 NOW.minusSeconds(30),
                 NOW.plusSeconds(300),
                 permissions,

@@ -3,35 +3,35 @@ egon:
     component:
       id:
         enabled: false
-      ddc:
-        enabled: ${DDC_ENABLED:false}
-        app-code: ${DDC_APP_CODE:demo-app}
-        env: ${DDC_ENV:dev}
-        namespace: ${DDC_NAMESPACE:default}
+      tianshu:
+        enabled: ${TIANSHU_ENABLED:false}
+        app-code: ${TIANSHU_APP_CODE:demo-app}
+        env: ${TIANSHU_ENV:dev}
+        namespace: ${TIANSHU_NAMESPACE:default}
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${DDC_RPC_TLS_ENABLED:false}
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         redis:
-          enabled: ${DDC_REDIS_ENABLED:true}
-          mode: ${DDC_REDIS_MODE:SINGLE}
-          host: ${DDC_REDIS_HOST:127.0.0.1}
-          port: ${DDC_REDIS_PORT:6379}
-          password: ${DDC_REDIS_PASSWORD:}
-          database: ${DDC_REDIS_DATABASE:0}
+          enabled: ${TIANSHU_REDIS_ENABLED:true}
+          mode: ${TIANSHU_REDIS_MODE:SINGLE}
+          host: ${TIANSHU_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REDIS_PORT:6379}
+          password: ${TIANSHU_REDIS_PASSWORD:}
+          database: ${TIANSHU_REDIS_DATABASE:0}
         instance:
-          lease-seconds: ${DDC_LEASE_SECONDS:30}
-          heartbeat-interval-seconds: ${DDC_HEARTBEAT_INTERVAL_SECONDS:10}
+          lease-seconds: ${TIANSHU_LEASE_SECONDS:30}
+          heartbeat-interval-seconds: ${TIANSHU_HEARTBEAT_INTERVAL_SECONDS:10}
         registry:
-          enabled: ${DDC_REGISTRY_ENABLED:false}
+          enabled: ${TIANSHU_REGISTRY_ENABLED:false}
         consistency:
-          fail-fast: ${DDC_FAIL_FAST:true}
+          fail-fast: ${TIANSHU_FAIL_FAST:true}

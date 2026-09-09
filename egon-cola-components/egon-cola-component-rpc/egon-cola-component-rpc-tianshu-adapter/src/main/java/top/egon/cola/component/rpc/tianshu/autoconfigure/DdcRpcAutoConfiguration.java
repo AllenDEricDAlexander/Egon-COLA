@@ -37,8 +37,8 @@ import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2C
 import java.net.InetAddress;
 
 /**
- * 在业务 DDC 自动装配之前提供 Direct RPC Port 适配器。
- * / Supplies Direct RPC Port adapters before the business DDC auto-configurations.
+ * 在业务 Tianshu 自动装配之前提供 Direct RPC Port 适配器。
+ * / Supplies Direct RPC Port adapters before the business Tianshu auto-configurations.
  */
 @AutoConfiguration(
         after = {
@@ -74,7 +74,7 @@ public class DdcRpcAutoConfiguration {
     @Bean
     @Primary
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.registry",
+            prefix = "egon.cola.component.tianshu.registry",
             name = "enabled",
             havingValue = "true"
     )
@@ -87,7 +87,7 @@ public class DdcRpcAutoConfiguration {
 
     @Bean(destroyMethod = "close")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc",
+            prefix = "egon.cola.component.tianshu",
             name = "enabled",
             havingValue = "true"
     )
@@ -102,7 +102,7 @@ public class DdcRpcAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc",
+            prefix = "egon.cola.component.tianshu",
             name = "enabled",
             havingValue = "true"
     )
@@ -116,7 +116,7 @@ public class DdcRpcAutoConfiguration {
     @Bean(destroyMethod = "close")
     @ConditionalOnBean(name = "ddcRedissonClient")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.registry",
+            prefix = "egon.cola.component.tianshu.registry",
             name = "enabled",
             havingValue = "true"
     )
@@ -181,13 +181,13 @@ public class DdcRpcAutoConfiguration {
     }
 
     /**
-     * 创建携带 IdP PLATFORM SERVICE Token 的 RPC Provider 注册端口。
-     * / Creates the RPC Provider registry port that carries an IdP PLATFORM SERVICE token.
+     * 创建携带 Tianquan-Shoubing PLATFORM SERVICE Token 的 RPC Provider 注册端口。
+     * / Creates the RPC Provider registry port that carries an Tianquan-Shoubing PLATFORM SERVICE token.
      *
-     * @param client DDC 服务注册客户端 / DDC service-registry client
-     * @param properties DDC 物理作用域配置 / DDC physical-scope configuration
-     * @param serviceClient IdP OAuth2 Client facade / IdP OAuth2 Client facade
-     * @param idpProperties IdP client settings / IdP client settings
+     * @param client Tianshu 服务注册客户端 / Tianshu service-registry client
+     * @param properties Tianshu 物理作用域配置 / Tianshu physical-scope configuration
+     * @param serviceClient Tianquan-Shoubing OAuth2 Client facade / Tianquan-Shoubing OAuth2 Client facade
+     * @param idpProperties Tianquan-Shoubing client settings / Tianquan-Shoubing client settings
      * @return RPC Provider 注册端口 / RPC Provider registry port
      */
     @Bean

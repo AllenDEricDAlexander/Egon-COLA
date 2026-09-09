@@ -41,7 +41,7 @@ public class IdpPlatformConfiguration {
             ObjectMapper objectMapper,
             LongIdGenerator ids,
             @Qualifier("idpClock") Clock idpClock,
-            @Value("${egon.idp.identity-state-key-prefix:identity:v1:user:}")
+            @Value("${egon.tianquan-shoubing.identity-state-key-prefix:identity:v1:user:}")
             String stateKeyPrefix
     ) {
         return new IdentityOutboxPublisher(
@@ -102,7 +102,7 @@ public class IdpPlatformConfiguration {
 
     @Bean(name = "ddcHttpRegistrationServerReadyListener")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.ddc.registry.http",
+            prefix = "egon.cola.component.tianshu.registry.http",
             name = "enabled",
             havingValue = "true"
     )

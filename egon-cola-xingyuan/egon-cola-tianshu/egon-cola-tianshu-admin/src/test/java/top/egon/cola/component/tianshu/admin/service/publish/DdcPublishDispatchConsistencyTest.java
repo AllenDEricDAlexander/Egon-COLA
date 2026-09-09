@@ -64,7 +64,7 @@ import static org.mockito.Mockito.verify;
         "spring.jpa.hibernate.ddl-auto=create-drop",
         "spring.datasource.hikari.maximum-pool-size=2",
         "spring.flyway.enabled=false",
-        "egon.cola.component.ddc.admin.publish.inline-content-max-bytes=64"
+        "egon.cola.component.tianshu.admin.publish.inline-content-max-bytes=64"
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishDispatchConsistencyTest {

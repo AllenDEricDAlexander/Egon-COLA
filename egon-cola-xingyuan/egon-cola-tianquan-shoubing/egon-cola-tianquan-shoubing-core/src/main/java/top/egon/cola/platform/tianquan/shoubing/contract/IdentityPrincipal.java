@@ -5,9 +5,9 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * 由 IdP USER Access Token 解析出的用户身份。
+ * 由 Tianquan-Shoubing USER Access Token 解析出的用户身份。
  *
- * <p>User identity parsed from an IdP USER Access Token.</p>
+ * <p>User identity parsed from an Tianquan-Shoubing USER Access Token.</p>
  *
  * @param subject      用户身份标识；user identity subject
  * @param tenantId     当前租户；current tenant
@@ -60,10 +60,10 @@ public record IdentityPrincipal(
     }
 
     /**
-     * Returns this USER identity for principal projections that also support an RBAC3 wrapper.
+     * Returns this USER identity for principal projections that also support an Tianquan-Jianshen wrapper.
      *
      * <p>The method keeps Spring Security's {@code @AuthenticationPrincipal(expression =
-     * "identity()") } projection stable for both the native IdP principal and the RBAC3
+     * "identity()") } projection stable for both the native Tianquan-Shoubing principal and the Tianquan-Jianshen
      * {@code Rbac3UserDetails} wrapper.</p>
      *
      * @return this verified USER identity

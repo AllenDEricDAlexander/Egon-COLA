@@ -1,15 +1,15 @@
 spring:
   application:
-    name: gateway-test-mcp-provider
+    name: yuheng-test-mcp-provider
   security:
     oauth2:
       resourceserver:
         jwt:
-          jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
   config:
     import:
-      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/mcp-provider.properties
-      - optional:ddc:application.yml
+      - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/mcp-provider.properties
+      - optional:tianshu:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -40,14 +40,14 @@ springdoc:
 egon:
   cola:
     platform:
-      idp:
-        enabled: ${DDC_ENABLED:false}
+      tianquan-shoubing:
+        enabled: ${TIANSHU_ENABLED:false}
         register-filter: false
-        issuer: ${IDP_OAUTH_ISSUER:http://127.0.0.1:18120}
-        jwk-set-uri: ${IDP_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
         resource-server-id: ${MCP_PROVIDER_RESOURCE_SERVER_ID:}
         resource-uri: ${MCP_PROVIDER_RESOURCE_URI:}
-      rbac3:
+      tianquan-jianshen:
         enabled: true
         register-filter: false
         system-code: mock-backend
@@ -57,46 +57,46 @@ egon:
           database: ${MCP_PROVIDER_REDIS_DATABASE:8}
           password-file: ${MCP_PROVIDER_REDIS_PASSWORD_FILE:}
         authorization:
-          endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+          endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
     component:
       id:
         enabled: false
       rpc:
         tls:
-          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:true}
-      ddc:
-        enabled: ${DDC_ENABLED:false}
-        biz-code: ${DDC_BIZ_CODE:test-biz}
-        app-code: ${DDC_APP_CODE:gateway-test-mcp-provider}
-        env: ${DDC_ENV:local}
-        namespace: ${DDC_NAMESPACE:gateway-test}
+          development-plaintext: ${TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:true}
+      tianshu:
+        enabled: ${TIANSHU_ENABLED:false}
+        biz-code: ${TIANSHU_BIZ_CODE:test-biz}
+        app-code: ${TIANSHU_APP_CODE:yuheng-test-mcp-provider}
+        env: ${TIANSHU_ENV:local}
+        namespace: ${TIANSHU_NAMESPACE:yuheng-test}
         instance:
           id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///127.0.0.1:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///127.0.0.1:19080}
           load-balancing-policy: round_robin
           tls:
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
         redis:
-          enabled: ${DDC_REGISTRY_ENABLED:false}
+          enabled: ${TIANSHU_REGISTRY_ENABLED:false}
           mode: SINGLE
-          host: ${DDC_REGISTRY_REDIS_HOST:127.0.0.1}
-          port: ${DDC_REGISTRY_REDIS_PORT:6379}
-          password: ${DDC_REGISTRY_REDIS_PASSWORD:}
-          database: ${DDC_REGISTRY_REDIS_DATABASE:0}
+          host: ${TIANSHU_REGISTRY_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REGISTRY_REDIS_PORT:6379}
+          password: ${TIANSHU_REGISTRY_REDIS_PASSWORD:}
+          database: ${TIANSHU_REGISTRY_REDIS_DATABASE:0}
         registry:
-          enabled: ${DDC_REGISTRY_ENABLED:false}
+          enabled: ${TIANSHU_REGISTRY_ENABLED:false}
           http:
             enabled: true
             instance-id: ${MCP_TEST_PROVIDER_INSTANCE_ID:mcp-provider-1}
-            service-name: gateway-test-mcp-provider
+            service-name: yuheng-test-mcp-provider
             group: default
             version: 1.0.0
             protocol: http
@@ -105,14 +105,14 @@ egon:
             lease-seconds: 30
             heartbeat-interval-seconds: 10
             fail-fast: true
-      gateway:
+      yuheng:
         openapi:
           enabled: true
-          publish-to-ddc: true
+          publish-to-tianshu: true
           published-groups:
             - jobs
-          biz-code: ${DDC_BIZ_CODE:test-biz}
-          application-code: gateway-test-mcp-provider
-          resource-uri: ${MCP_PROVIDER_RESOURCE_URI:https://api.egon.internal/local/gateway-test-mcp-provider}
+          biz-code: ${TIANSHU_BIZ_CODE:test-biz}
+          application-code: yuheng-test-mcp-provider
+          resource-uri: ${MCP_PROVIDER_RESOURCE_URI:https://api.egon.internal/local/yuheng-test-mcp-provider}
           artifact-version: 1.0.0
           build-id: ${MCP_TEST_PROVIDER_BUILD_ID:local}

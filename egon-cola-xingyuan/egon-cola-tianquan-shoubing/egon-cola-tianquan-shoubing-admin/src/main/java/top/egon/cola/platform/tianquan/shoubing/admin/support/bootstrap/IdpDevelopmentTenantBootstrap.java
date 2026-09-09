@@ -15,12 +15,12 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 通过 IdP 应用服务初始化显式启用的本地测试租户与成员关系。
- * Initializes opt-in local tenant fixtures through the IdP application services.
+ * 通过 Tianquan-Shoubing 应用服务初始化显式启用的本地测试租户与成员关系。
+ * Initializes opt-in local tenant fixtures through the Tianquan-Shoubing application services.
  */
 @Component
 @Profile("local")
-@ConditionalOnProperty(prefix = "egon.idp.development-bootstrap", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = "egon.tianquan-shoubing.development-bootstrap", name = "enabled", havingValue = "true")
 @RequiredArgsConstructor
 public class IdpDevelopmentTenantBootstrap {
 
@@ -51,7 +51,7 @@ public class IdpDevelopmentTenantBootstrap {
                     .findFirst().orElseThrow(() -> new IllegalArgumentException(
                             "local service grant tenant does not exist: " + configured));
             if (!tenant.tenantId().matches("^[1-9][0-9]{0,18}$")) {
-                throw new IllegalStateException("IdP tenant ID must be a positive numeric identifier");
+                throw new IllegalStateException("Tianquan-Shoubing tenant ID must be a positive numeric identifier");
             }
             resolved.add(tenant.tenantId());
         }

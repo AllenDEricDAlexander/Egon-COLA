@@ -12,7 +12,7 @@ import top.egon.cola.component.rpc.tianshu.security.DdcRpcOperation;
 import java.util.List;
 import java.util.Optional;
 
-/** DDC 管理 Port 的按需 Direct RPC 适配器。 / On-demand Direct RPC adapter for the DDC management Port. */
+/** Tianshu 管理 Port 的按需 Direct RPC 适配器。 / On-demand Direct RPC adapter for the Tianshu management Port. */
 public final class RpcDdcManagementClient implements DdcManagementClient {
 
     private final DdcManagementRpc rpc;

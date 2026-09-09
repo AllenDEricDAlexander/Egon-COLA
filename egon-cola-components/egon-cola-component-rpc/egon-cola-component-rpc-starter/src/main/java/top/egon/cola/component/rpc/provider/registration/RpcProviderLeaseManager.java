@@ -208,15 +208,15 @@ public class RpcProviderLeaseManager {
                 .getAnnotation(EgonRpcService.class);
         int defaultWeight = contract == null ? 100 : contract.weight();
         validateWeight(defaultWeight);
-        String configuredWeight = metadata.get("gateway.weight");
+        String configuredWeight = metadata.get("yuheng.weight");
         if (configuredWeight == null || configuredWeight.isBlank()) {
-            metadata.put("gateway.weight", Integer.toString(defaultWeight));
+            metadata.put("yuheng.weight", Integer.toString(defaultWeight));
         } else {
             try {
                 validateWeight(Integer.parseInt(configuredWeight.trim()));
             } catch (NumberFormatException exception) {
                 throw new IllegalArgumentException(
-                        "RPC Provider gateway.weight must be an integer",
+                        "RPC Provider yuheng.weight must be an integer",
                         exception
                 );
             }
@@ -230,7 +230,7 @@ public class RpcProviderLeaseManager {
     private void validateWeight(int weight) {
         if (weight < 1 || weight > 10_000) {
             throw new IllegalArgumentException(
-                    "RPC Provider gateway.weight must be between 1 and 10000"
+                    "RPC Provider yuheng.weight must be between 1 and 10000"
             );
         }
     }

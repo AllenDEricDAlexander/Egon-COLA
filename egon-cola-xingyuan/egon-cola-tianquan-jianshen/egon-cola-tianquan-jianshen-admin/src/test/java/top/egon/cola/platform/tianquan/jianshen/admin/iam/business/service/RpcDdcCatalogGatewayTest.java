@@ -19,16 +19,16 @@ class RpcDdcCatalogGatewayTest {
     @Test
     void mapsApplicationWithParentBusinessFacts() {
         DdcManagementClient client = mock(DdcManagementClient.class);
-        when(client.getApp("ddc-app-1")).thenReturn(Optional.of(
+        when(client.getApp("tianshu-app-1")).thenReturn(Optional.of(
                 new DdcManagementApp(
-                        "ddc-app-1", "ddc-biz-1", "orders",
+                        "tianshu-app-1", "tianshu-biz-1", "orders",
                         "console", "Console", true, true)));
 
         RpcDdcCatalogGateway gateway = new RpcDdcCatalogGateway(client);
 
-        assertThat(gateway.findApplication("ddc-app-1"))
+        assertThat(gateway.findApplication("tianshu-app-1"))
                 .contains(new ApplicationCatalogEntry(
-                        "ddc-app-1", "ddc-biz-1", "orders",
+                        "tianshu-app-1", "tianshu-biz-1", "orders",
                         "console", "Console", true, true));
     }
 
@@ -36,13 +36,13 @@ class RpcDdcCatalogGatewayTest {
     void mapsBusinessCatalogAndDelegatesReadOnlyQuery() {
         DdcManagementClient client = mock(DdcManagementClient.class);
         when(client.listBizs(any())).thenReturn(List.of(
-                new DdcManagementBiz("ddc-biz-1", "orders", "Orders", true)));
+                new DdcManagementBiz("tianshu-biz-1", "orders", "Orders", true)));
 
         RpcDdcCatalogGateway gateway = new RpcDdcCatalogGateway(client);
 
         assertThat(gateway.listBusinesses("order"))
                 .containsExactly(new BusinessCatalogEntry(
-                        "ddc-biz-1", "orders", "Orders", true));
+                        "tianshu-biz-1", "orders", "Orders", true));
         verify(client).listBizs(
                 new top.egon.cola.component.tianshu.model.management.DdcManagementBizQuery(
                         "order", null));

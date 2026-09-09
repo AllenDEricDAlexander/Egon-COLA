@@ -47,23 +47,23 @@ class ClientResourceGrantControllerTest {
         when(resources.putGrant(any(), any(), any())).thenReturn(grant());
 
         mockMvc.perform(put(
-                        "/api/v1/identity/clients/{clientId}/resources/{resourceServerId}",
-                        "idp-service",
-                        "permission-rbac3-prod"
+                        "/api/v1/tianquan-shoubing/clients/{clientId}/resources/{resourceServerId}",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-prod"
                 ).contentType(MediaType.APPLICATION_JSON).content("""
                         {
                           "grantType":"CLIENT_CREDENTIALS",
                           "tenantId":"tenant-1",
-                          "allowedScopes":["rbac3:policy:read"],
+                          "allowedScopes":["tianquan-jianshen:policy:read"],
                           "expectedResourceVersion":0,
                           "expectedGrantVersion":null
                         }
                         """))
                 .andExpect(status().isOk());
         mockMvc.perform(delete(
-                        "/api/v1/identity/clients/{clientId}/resources/{resourceServerId}",
-                        "idp-service",
-                        "permission-rbac3-prod"
+                        "/api/v1/tianquan-shoubing/clients/{clientId}/resources/{resourceServerId}",
+                        "tianquan-shoubing-service",
+                        "permission-tianquan-jianshen-prod"
                 ).contentType(MediaType.APPLICATION_JSON).content("""
                         {
                           "grantType":"CLIENT_CREDENTIALS",
@@ -75,53 +75,53 @@ class ClientResourceGrantControllerTest {
                 .andExpect(status().isNoContent());
 
         verify(resources).deleteGrant(
-                eq("idp-service"),
-                eq("permission-rbac3-prod"),
+                eq("tianquan-shoubing-service"),
+                eq("permission-tianquan-jianshen-prod"),
                 any()
         );
         verify(authorization, org.mockito.Mockito.times(2)).require(
                 isNull(),
-                eq("idp:resource-server:grant")
+                eq("tianquan-shoubing:resource-server:grant")
         );
     }
 
     @Test
     void batchGrantRequiresExplicitApplicationCodes() throws Exception {
-        when(resources.batchGrants(eq("idp-service"), any()))
+        when(resources.batchGrants(eq("tianquan-shoubing-service"), any()))
                 .thenReturn(List.of(grant()));
 
         mockMvc.perform(post(
-                        "/api/v1/identity/clients/{clientId}/resource-grants/actions/batch",
-                        "idp-service"
+                        "/api/v1/tianquan-shoubing/clients/{clientId}/resource-grants/actions/batch",
+                        "tianquan-shoubing-service"
                 ).contentType(MediaType.APPLICATION_JSON).content("""
                         {
                           "bizCode":"permission",
                           "environment":"prod",
-                          "appCodes":["rbac3"],
+                          "appCodes":["tianquan-jianshen"],
                           "action":"UPSERT",
                           "grantType":"CLIENT_CREDENTIALS",
                           "tenantId":"tenant-1",
-                          "allowedScopes":["rbac3:policy:read"],
-                          "expectedResourceVersions":{"rbac3":0},
+                          "allowedScopes":["tianquan-jianshen:policy:read"],
+                          "expectedResourceVersions":{"tianquan-jianshen":0},
                           "expectedGrantVersions":{}
                         }
                         """))
                 .andExpect(status().isOk());
 
-        verify(resources).batchGrants(eq("idp-service"), any());
+        verify(resources).batchGrants(eq("tianquan-shoubing-service"), any());
         verify(authorization).require(
                 isNull(),
-                eq("idp:resource-server:grant")
+                eq("tianquan-shoubing:resource-server:grant")
         );
     }
 
     private static ClientResourceGrantVO grant() {
         return new ClientResourceGrantVO(
-                "idp-service",
-                "permission-rbac3-prod",
+                "tianquan-shoubing-service",
+                "permission-tianquan-jianshen-prod",
                 "CLIENT_CREDENTIALS",
                 "tenant-1",
-                Set.of("rbac3:policy:read"),
+                Set.of("tianquan-jianshen:policy:read"),
                 "ACTIVE",
                 0L
         );

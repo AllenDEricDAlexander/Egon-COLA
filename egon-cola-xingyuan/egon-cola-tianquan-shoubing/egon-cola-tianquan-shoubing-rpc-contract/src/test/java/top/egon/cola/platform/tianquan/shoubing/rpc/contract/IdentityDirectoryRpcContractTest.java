@@ -14,8 +14,8 @@ class IdentityDirectoryRpcContractTest {
                 .validate(IdentityDirectoryRpc.class);
 
         assertThat(contract.serviceName())
-                .isEqualTo("egon.idp.v1.IdentityDirectoryService");
-        assertThat(contract.group()).isEqualTo("idp");
+                .isEqualTo("egon.tianquan.shoubing.v1.IdentityDirectoryService");
+        assertThat(contract.group()).isEqualTo("tianquan-shoubing");
         assertThat(contract.version()).isEqualTo("1.0.0");
         assertThat(contract.methods()).hasSize(2);
         assertThat(contract.methods())
@@ -30,7 +30,7 @@ class IdentityDirectoryRpcContractTest {
                 .singleElement()
                 .extracting(method -> method.fullMethodName())
                 .isEqualTo(
-                        "egon.idp.v1.IdentityDirectoryService/BatchGetIdentityProfiles"
+                        "egon.tianquan.shoubing.v1.IdentityDirectoryService/BatchGetIdentityProfiles"
                 );
         assertThat(contract.methods())
                 .filteredOn(method -> method.methodName()
@@ -38,7 +38,7 @@ class IdentityDirectoryRpcContractTest {
                 .singleElement()
                 .extracting(method -> method.fullMethodName())
                 .isEqualTo(
-                        "egon.idp.v1.IdentityDirectoryService/GetTenantMembership"
+                        "egon.tianquan.shoubing.v1.IdentityDirectoryService/GetTenantMembership"
                 );
     }
 }

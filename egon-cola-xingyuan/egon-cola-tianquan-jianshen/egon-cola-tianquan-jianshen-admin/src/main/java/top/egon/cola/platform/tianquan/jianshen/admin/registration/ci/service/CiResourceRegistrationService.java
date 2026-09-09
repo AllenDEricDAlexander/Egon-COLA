@@ -11,7 +11,7 @@ import java.util.Objects;
 /** Validates and atomically delegates a CI-only global resource replacement. */
 public final class CiResourceRegistrationService {
 
-    public static final String REGISTRATION_SCOPE = "rbac3:resource-catalog:report";
+    public static final String REGISTRATION_SCOPE = "tianquan-jianshen:resource-catalog:report";
 
     private final DdcCatalogGateway catalog;
     private final CiResourceRegistrationStore store;
@@ -37,9 +37,9 @@ public final class CiResourceRegistrationService {
                 .stream()
                 .filter(value -> value.appCode().equals(applicationCode))
                 .findFirst()
-                .orElseThrow(() -> new SecurityException("DDC application is not available"));
+                .orElseThrow(() -> new SecurityException("Tianshu application is not available"));
         if (!application.applicationEnabled() || !application.businessEnabled()) {
-            throw new SecurityException("DDC application or business is disabled");
+            throw new SecurityException("Tianshu application or business is disabled");
         }
         String checksum = CiResourceRegistrationCanonicalizer.checksum(request);
         if (!checksum.equals(request.checksum())) {

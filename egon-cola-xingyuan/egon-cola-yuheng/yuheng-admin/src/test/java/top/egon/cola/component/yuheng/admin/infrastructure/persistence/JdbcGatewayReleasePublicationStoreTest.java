@@ -33,13 +33,13 @@ class JdbcGatewayReleasePublicationStoreTest {
         top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO chunk = record(
                 0,
                 CHUNK,
-                "gateway.rules.chunk.release-1.0",
+                "yuheng.rules.chunk.release-1.0",
                 "018f22d8-155d-7000-8000-000000000001"
         );
         top.egon.cola.component.yuheng.admin.release.domain.po.GatewayReleasePublicationPO activation = record(
                 1,
                 ACTIVATION,
-                "gateway.rules.active",
+                "yuheng.rules.active",
                 "018f22d8-155d-7000-8000-000000000002"
         );
         when(jdbc.query(
@@ -102,7 +102,7 @@ class JdbcGatewayReleasePublicationStoreTest {
         store.resolveDocument(
                 "018f22d8-155d-7000-8000-000000000001",
                 3L,
-                "gateway:\n  rules:\n    active: value\n",
+                "yuheng:\n  rules:\n    active: value\n",
                 NOW
         );
         store.markSubmitted(
@@ -164,10 +164,10 @@ class JdbcGatewayReleasePublicationStoreTest {
                 new top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO(
                         "change-1",
                         "release-old",
-                        "gateway-engine-orders",
+                        "yuheng-biz-gateway-orders",
                         "test",
                         "default",
-                        "gateway.rules.chunk.release-old.0",
+                        "yuheng.rules.chunk.release-old.0",
                         3L, new top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayPublicationScopeDTO("infra", "test", "ge", top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum.API_RPC)
                 );
         when(jdbc.query(

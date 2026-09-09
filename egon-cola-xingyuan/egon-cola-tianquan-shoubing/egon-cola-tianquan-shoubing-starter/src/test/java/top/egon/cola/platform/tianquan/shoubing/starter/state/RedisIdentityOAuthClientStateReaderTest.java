@@ -16,24 +16,24 @@ class RedisIdentityOAuthClientStateReaderTest {
     @Test
     void readsExactConfidentialClientProjection() {
         RedisIdentityOAuthClientStateReader reader = reader("""
-                {"clientId":"rbac3-service","clientType":"CONFIDENTIAL",
+                {"clientId":"tianquan-jianshen-service","clientType":"CONFIDENTIAL",
                  "status":"ACTIVE",
-                 "boundSourceResourceServerId":"resource-idp-prod",
+                 "boundSourceResourceServerId":"resource-tianquan-shoubing-prod",
                  "version":3}
                 """);
 
-        var state = reader.read("rbac3-service").orElseThrow();
+        var state = reader.read("tianquan-jianshen-service").orElseThrow();
 
         assertThat(state.clientType())
                 .isEqualTo(OAuthClient.ClientType.CONFIDENTIAL);
         assertThat(state.boundSourceResourceServerId())
-                .isEqualTo("resource-idp-prod");
+                .isEqualTo("resource-tianquan-shoubing-prod");
     }
 
     @Test
     void rejectsMalformedOrMismatchedClientProjection() {
         assertThatThrownBy(() -> reader("not-json")
-                .read("rbac3-service"))
+                .read("tianquan-jianshen-service"))
                 .isInstanceOf(RedisIdentityOAuthClientStateReader
                         .StateUnavailableException.class);
         assertThatThrownBy(() -> reader("""
@@ -41,7 +41,7 @@ class RedisIdentityOAuthClientStateReaderTest {
                  "status":"ACTIVE",
                  "boundSourceResourceServerId":"resource-other-prod",
                  "version":1}
-                """).read("rbac3-service"))
+                """).read("tianquan-jianshen-service"))
                 .isInstanceOf(RedisIdentityOAuthClientStateReader
                         .StateUnavailableException.class);
     }

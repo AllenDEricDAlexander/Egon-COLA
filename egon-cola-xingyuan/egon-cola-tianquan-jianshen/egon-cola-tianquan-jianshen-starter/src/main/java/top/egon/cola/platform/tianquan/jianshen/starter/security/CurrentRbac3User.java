@@ -7,7 +7,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.Optional;
 
 /**
- * Reads the current RBAC3 USER details from the request-bound SecurityContext.
+ * Reads the current Tianquan-Jianshen USER details from the request-bound SecurityContext.
  */
 public final class CurrentRbac3User {
 
@@ -31,6 +31,6 @@ public final class CurrentRbac3User {
     public Rbac3UserDetails require() {
         return current().orElseThrow(() ->
                 new AuthenticationCredentialsNotFoundException(
-                        "RBAC3 USER details are required"));
+                        "Tianquan-Jianshen USER details are required"));
     }
 }

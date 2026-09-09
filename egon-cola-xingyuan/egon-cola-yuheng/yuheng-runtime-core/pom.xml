@@ -14,7 +14,7 @@
     <artifactId>yuheng-runtime-core</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-runtime-core</name>
-    <description>Shared non-executable Gateway runtime capabilities.</description>
+    <description>Shared non-executable Yuheng runtime capabilities.</description>
 
     <dependencies>
         <dependency>

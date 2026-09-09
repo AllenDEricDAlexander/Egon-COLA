@@ -7,7 +7,7 @@ import java.util.Set;
 
 /**
  * User-scoped authorization state used while replacing active roots.
- * Authentication strength is an IdP concern and is intentionally absent.
+ * Authentication strength is an Tianquan-Shoubing concern and is intentionally absent.
  */
 public record UserAuthorizationStateVO(
         String tenantId,

@@ -23,8 +23,8 @@ class IdpBootstrapRunnerTest {
         IdpBootstrapRunner runner = new IdpBootstrapRunner(port);
 
         int result = runner.run(
-                new String[]{"--idp-bootstrap-admin=alice"},
-                Map.of("IDP_BOOTSTRAP_PASSWORD", "strong-password-1")
+                new String[]{"--tianquan-shoubing-bootstrap-admin=alice"},
+                Map.of("TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD", "strong-password-1")
         );
 
         assertEquals(0, result);
@@ -44,11 +44,11 @@ class IdpBootstrapRunnerTest {
         IdpBootstrapRunner runner = new IdpBootstrapRunner(port);
 
         int result = runner.run(
-                new String[]{"--idp-bootstrap-admin=alice"},
+                new String[]{"--tianquan-shoubing-bootstrap-admin=alice"},
                 Map.of(
-                        "IDP_BOOTSTRAP_PASSWORD_FILE",
+                        "TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD_FILE",
                         passwordFile.toString(),
-                        "IDP_BOOTSTRAP_PASSWORD",
+                        "TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD",
                         "environment-password-1"
                 )
         );
@@ -68,9 +68,9 @@ class IdpBootstrapRunnerTest {
         );
 
         assertThrows(IllegalStateException.class, () -> runner.run(
-                new String[]{"--idp-bootstrap-admin=alice"},
+                new String[]{"--tianquan-shoubing-bootstrap-admin=alice"},
                 Map.of(
-                        "IDP_BOOTSTRAP_PASSWORD_FILE",
+                        "TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD_FILE",
                         temporaryDirectory.resolve("missing.password").toString()
                 )
         ));
@@ -84,13 +84,13 @@ class IdpBootstrapRunnerTest {
 
         assertThrows(IllegalArgumentException.class, () -> runner.run(
                 new String[]{
-                        "--idp-bootstrap-admin=alice",
+                        "--tianquan-shoubing-bootstrap-admin=alice",
                         "--password=leaked"
                 },
-                Map.of("IDP_BOOTSTRAP_PASSWORD", "strong-password-1")
+                Map.of("TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD", "strong-password-1")
         ));
         assertThrows(IllegalStateException.class, () -> runner.run(
-                new String[]{"--idp-bootstrap-admin=alice"},
+                new String[]{"--tianquan-shoubing-bootstrap-admin=alice"},
                 Map.of()
         ));
     }

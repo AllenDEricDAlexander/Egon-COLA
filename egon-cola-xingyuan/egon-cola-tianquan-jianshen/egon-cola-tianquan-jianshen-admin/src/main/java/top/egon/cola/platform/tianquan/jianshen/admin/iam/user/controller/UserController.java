@@ -30,15 +30,15 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.CurrentRbac3Use
 import top.egon.cola.platform.tianquan.jianshen.starter.security.Rbac3UserDetails;
 import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermission;
 
-/** RBAC-only user membership administration. IdP owns credentials and profile data. */
+/** RBAC-only user membership administration. Tianquan-Shoubing owns credentials and profile data. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam")
+@RequestMapping("/api/tianquan-jianshen/v1/iam")
 @Tag(name = "iam-user", description = "IAM用户成员接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
-        entityDomainName = "RBAC3权限实体域",
+        entityDomainCode = "tianquan-jianshen",
+        entityDomainName = "Tianquan-Jianshen权限实体域",
         interfaceGroupCode = "iam"
 )
 public class UserController {
@@ -59,9 +59,9 @@ public class UserController {
     @GetMapping("/users")
     @RequiresPermission(value = "system:user:read")
     @Operation(
-            operationId = "rbac3-iam-user-list-v1",
+            operationId = "tianquan-jianshen-iam-user-list-v1",
             summary = "分页查询租户用户",
-            tags = {"rbac3", "iam", "user"}
+            tags = {"tianquan-jianshen", "iam", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -80,9 +80,9 @@ public class UserController {
     @PostMapping("/users")
     @RequiresPermission(value = "system:user:manage")
     @Operation(
-            operationId = "rbac3-iam-user-create-v1",
+            operationId = "tianquan-jianshen-iam-user-create-v1",
             summary = "创建RBAC用户成员",
-            tags = {"rbac3", "iam", "user"}
+            tags = {"tianquan-jianshen", "iam", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -97,9 +97,9 @@ public class UserController {
     @GetMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:read")
     @Operation(
-            operationId = "rbac3-iam-user-get-v1",
+            operationId = "tianquan-jianshen-iam-user-get-v1",
             summary = "查询RBAC用户成员",
-            tags = {"rbac3", "iam", "user"}
+            tags = {"tianquan-jianshen", "iam", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -111,9 +111,9 @@ public class UserController {
     @PutMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:manage")
     @Operation(
-            operationId = "rbac3-iam-user-update-v1",
+            operationId = "tianquan-jianshen-iam-user-update-v1",
             summary = "更新RBAC用户成员绑定",
-            tags = {"rbac3", "iam", "user"}
+            tags = {"tianquan-jianshen", "iam", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -129,9 +129,9 @@ public class UserController {
     @DeleteMapping("/users/{userId}")
     @RequiresPermission(value = "system:user:manage")
     @Operation(
-            operationId = "rbac3-iam-user-delete-v1",
+            operationId = "tianquan-jianshen-iam-user-delete-v1",
             summary = "归档RBAC用户成员",
-            tags = {"rbac3", "iam", "user"}
+            tags = {"tianquan-jianshen", "iam", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -147,9 +147,9 @@ public class UserController {
     @PutMapping("/users/{userId}/status")
     @RequiresPermission(value = "system:user-status:manage")
     @Operation(
-            operationId = "rbac3-iam-user-status-v1",
+            operationId = "tianquan-jianshen-iam-user-status-v1",
             summary = "变更RBAC用户成员状态",
-            tags = {"rbac3", "iam", "user"}
+            tags = {"tianquan-jianshen", "iam", "user"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

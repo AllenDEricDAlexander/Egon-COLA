@@ -161,7 +161,7 @@ class GatewayKafkaCallEventConsumerTest {
                 new top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayKafkaConsumerSettingsDTO(
                         "localhost:9092",
                         "calls",
-                        "gateway-admin",
+                        "yuheng-admin",
                         Duration.ofMillis(1),
                         Duration.ofMillis(10),
                         Duration.ofMillis(100),

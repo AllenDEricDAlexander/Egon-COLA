@@ -252,8 +252,8 @@ public class McpGatewayEngineConfiguration {
     }
 
     /**
-     * 中文说明：按固定编译策略装配局部原子激活，并注册同一个 DDC Active Key。
-     * English summary: Wires one role-local activation pipeline and registers the shared DDC key.
+     * 中文说明：按固定编译策略装配局部原子激活，并注册同一个 Tianshu Active Key。
+     * English summary: Wires one role-local activation pipeline and registers the shared Tianshu key.
      */
     @Bean("gatewayRuleActivationApplier")
     public GatewayRuleActivationApplier<McpGatewayCompiledRulesDTO> gatewayRuleActivationApplier(
@@ -285,22 +285,22 @@ public class McpGatewayEngineConfiguration {
     @Bean(name = "gatewayMcpRedissonClient", destroyMethod = "shutdown")
     @ConditionalOnMissingBean(name = "gatewayMcpRedissonClient")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp.redis",
+            prefix = "egon.cola.component.yuheng.engine.mcp.redis",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
     )
     public RedissonClient gatewayMcpRedissonClient(
             @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis.address:"
+                    "${egon.cola.component.yuheng.engine.mcp.redis.address:"
                             + "redis://127.0.0.1:6379}"
             ) String address,
             @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
+                    "${egon.cola.component.yuheng.engine.mcp.redis."
                             + "database:0}"
             ) int database,
             @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
+                    "${egon.cola.component.yuheng.engine.mcp.redis."
                             + "password:}"
             ) String password) {
         Config config = new Config();
@@ -332,11 +332,11 @@ public class McpGatewayEngineConfiguration {
             com.fasterxml.jackson.databind.ObjectMapper objectMapper,
             @Qualifier("gatewayClock") Clock gatewayClock,
             @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
-                            + "key-prefix:gateway:mcp:}"
+                    "${egon.cola.component.yuheng.engine.mcp.redis."
+                            + "key-prefix:yuheng:mcp:}"
             ) String keyPrefix,
             @Value(
-                    "${egon.cola.component.gateway.engine.mcp.redis."
+                    "${egon.cola.component.yuheng.engine.mcp.redis."
                             + "stream-max-length:256}"
             ) int maximumStreamLength) {
         return new RedisMcpSessionStore(
@@ -391,22 +391,22 @@ public class McpGatewayEngineConfiguration {
     }
 
     /**
-     * 创建异步 MCP 任务使用的 IdP SERVICE Token Adapter。
-     * Creates the IdP SERVICE-token adapter used by asynchronous MCP tasks.
+     * 创建异步 MCP 任务使用的 Tianquan-Shoubing SERVICE Token Adapter。
+     * Creates the Tianquan-Shoubing SERVICE-token adapter used by asynchronous MCP tasks.
      * 补充说明 / Supplementary summary: 执行 网关MCP任务服务TokenSupplier 操作；该方法是 {@code McpGatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English supplement: Executes the gateway mcp task service token supplier operation; this method is the invocation entry point on {@code McpGatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
      * 用法 / Usage: 调用方式 / Usage: {@code McpGatewayEngineConfiguration.gatewayMcpTaskServiceTokenSupplier(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     @Bean("gatewayMcpTaskServiceTokenSupplier")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp.tasks.service-token",
+            prefix = "egon.cola.component.yuheng.engine.mcp.tasks.service-token",
             name = "enabled",
             havingValue = "true"
     )
     public McpTaskServiceTokenSupplier gatewayMcpTaskServiceTokenSupplier(
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.scopes}")
+            @Value("${egon.cola.component.yuheng.engine.mcp.tasks.service-token.scopes}")
             Set<String> scopes,
-            @Value("${egon.cola.component.gateway.engine.mcp.tasks.service-token.renewal-skew}")
+            @Value("${egon.cola.component.yuheng.engine.mcp.tasks.service-token.renewal-skew}")
             Duration renewalSkew,
             @Qualifier("gatewayClock") Clock gatewayClock,
             IdpServiceOAuth2Client serviceClient,
@@ -440,7 +440,7 @@ public class McpGatewayEngineConfiguration {
             McpTaskServiceTokenSupplier.class
     })
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp",
+            prefix = "egon.cola.component.yuheng.engine.mcp",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -498,7 +498,7 @@ public class McpGatewayEngineConfiguration {
     @Bean("gatewayMcpHttpHandler")
     @ConditionalOnBean(RedisMcpSessionStore.class)
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp",
+            prefix = "egon.cola.component.yuheng.engine.mcp",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -518,7 +518,7 @@ public class McpGatewayEngineConfiguration {
             McpGatewayEngineProperties properties,
             McpRuntimeProperties mcpProperties,
             @Value(
-                    "${egon.cola.platform.idp.gateway.issuer:"
+                    "${egon.cola.platform.tianquan.shoubing.yuheng.issuer:"
                             + "http://127.0.0.1:18120}"
             ) String issuer) {
         mcpProperties.validate();
@@ -533,7 +533,7 @@ public class McpGatewayEngineConfiguration {
         McpAuthorizationPort authorization = snapshotLoader == null
                 ? request -> reactor.core.publisher.Mono.just(
                 McpAuthorizationPort.Decision.denied(
-                        "RBAC3_AUTHORIZATION_UNAVAILABLE",
+                        "TIANQUAN_JIANSHEN_AUTHORIZATION_UNAVAILABLE",
                         0L,
                         0L,
                         0L
@@ -836,7 +836,7 @@ public class McpGatewayEngineConfiguration {
             return;
         }
         registry.gauge(
-                "gateway.tls.certificate.expiry.epoch.seconds",
+                "yuheng.tls.certificate.expiry.epoch.seconds",
                 List.of(
                         io.micrometer.core.instrument.Tag.of(
                                 "listener",
@@ -862,7 +862,7 @@ public class McpGatewayEngineConfiguration {
      */
     @Bean("gatewayMcpRuntimeHealthIndicator")
     @ConditionalOnProperty(
-            prefix = "egon.cola.component.gateway.engine.mcp",
+            prefix = "egon.cola.component.yuheng.engine.mcp",
             name = "enabled",
             havingValue = "true",
             matchIfMissing = true
@@ -963,7 +963,7 @@ public class McpGatewayEngineConfiguration {
         return () -> {
             GatewayRuleRuntimeStatus status = activation.status();
             return Map.of(
-                    "gateway.engine.role", GatewayEngineRoleEnum.MCP.name(),
+                    "yuheng.engine.role", GatewayEngineRoleEnum.MCP.name(),
                     "activeReleaseId", value(status.activeReleaseId()),
                     "activeRuleVersion", Long.toString(status.activeDdcVersion()),
                     "activeRuleChecksum", value(status.artifactSha256()),

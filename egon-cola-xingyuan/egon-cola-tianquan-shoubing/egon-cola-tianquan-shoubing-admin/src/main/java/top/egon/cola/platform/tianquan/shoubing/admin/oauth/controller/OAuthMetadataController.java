@@ -17,23 +17,23 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * 发布 OAuth Authorization Server Metadata 与 IdP 公钥 JWK Set。
+ * 发布 OAuth Authorization Server Metadata 与 Tianquan-Shoubing 公钥 JWK Set。
  *
- * <p>Publishes OAuth Authorization Server Metadata and the IdP public JWK Set.</p>
+ * <p>Publishes OAuth Authorization Server Metadata and the Tianquan-Shoubing public JWK Set.</p>
  */
 @RestController
-@Tag(name = "idp-oauth-metadata", description = "IdP OAuth 元数据接口组")
+@Tag(name = "tianquan-shoubing-oauth-metadata", description = "Tianquan-Shoubing OAuth 元数据接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
         entityDomainCode = "oauth-protocol",
         entityDomainName = "OAuth 协议域",
-        interfaceGroupCode = "idp-oauth"
+        interfaceGroupCode = "tianquan-shoubing-oauth"
 )
 
 public class OAuthMetadataController {
 
-    /** 规范化 IdP Issuer；normalized IdP issuer. */
+    /** 规范化 Tianquan-Shoubing Issuer；normalized Tianquan-Shoubing issuer. */
     private final String issuer;
 
     /** RS256 Token 与公开 JWK 服务；RS256 token and public-JWK service. */
@@ -44,11 +44,11 @@ public class OAuthMetadataController {
      *
      * <p>Creates the OAuth Metadata controller.</p>
      *
-     * @param issuer IdP Issuer；IdP issuer
+     * @param issuer Tianquan-Shoubing Issuer；Tianquan-Shoubing issuer
      * @param tokens RS256 Token 服务；RS256 token service
      */
     public OAuthMetadataController(
-            @Value("${egon.idp.oauth.issuer}")
+            @Value("${egon.tianquan-shoubing.oauth.issuer}")
             String issuer,
             Rs256TokenService tokens
     ) {
@@ -65,9 +65,9 @@ public class OAuthMetadataController {
      */
     @GetMapping("/.well-known/oauth-authorization-server")
     @Operation(
-            operationId = "idp-oauth-metadata-v1",
+            operationId = "tianquan-shoubing-oauth-metadata-v1",
             summary = "查询 OAuth Authorization Server 元数据",
-            tags = {"idp", "oauth"}
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -84,17 +84,17 @@ public class OAuthMetadataController {
     }
 
     /**
-     * 返回不含私钥材料的 IdP JWK Set。
+     * 返回不含私钥材料的 Tianquan-Shoubing JWK Set。
      *
-     * <p>Returns the IdP JWK Set without private key material.</p>
+     * <p>Returns the Tianquan-Shoubing JWK Set without private key material.</p>
      *
      * @return 公开 JWK Set；public JWK Set
      */
     @GetMapping("/oauth2/jwks")
     @Operation(
-            operationId = "idp-oauth-jwks-v1",
-            summary = "查询 IdP 公钥 JWK Set",
-            tags = {"idp", "oauth"}
+            operationId = "tianquan-shoubing-oauth-jwks-v1",
+            summary = "查询 Tianquan-Shoubing 公钥 JWK Set",
+            tags = {"tianquan-shoubing", "oauth"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -104,7 +104,7 @@ public class OAuthMetadataController {
         if (!(rawKeys instanceof List<?> keys)
                 || keys.size() != 1
                 || !(keys.getFirst() instanceof Map<?, ?> key)) {
-            throw new IllegalStateException("IdP public JWK Set is invalid");
+            throw new IllegalStateException("Tianquan-Shoubing public JWK Set is invalid");
         }
         return new OAuthJwkSetVO(List.of(new OAuthJwkSetVO.Jwk(
                 text(key, "kty"),
@@ -119,7 +119,7 @@ public class OAuthMetadataController {
     private static String text(Map<?, ?> values, String key) {
         String value = optionalText(values, key);
         if (value == null || value.isBlank()) {
-            throw new IllegalStateException("IdP public JWK field is missing: " + key);
+            throw new IllegalStateException("Tianquan-Shoubing public JWK field is missing: " + key);
         }
         return value;
     }

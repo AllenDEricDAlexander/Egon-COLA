@@ -26,8 +26,8 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
- * 通过 IdP Client Credentials 为精确目标租户提供短期 SERVICE Access Token。
- * Supplies short-lived SERVICE access tokens for exact target tenants through IdP Client
+ * 通过 Tianquan-Shoubing Client Credentials 为精确目标租户提供短期 SERVICE Access Token。
+ * Supplies short-lived SERVICE access tokens for exact target tenants through Tianquan-Shoubing Client
  * Credentials.
  *
  * <p>每个租户使用独立缓存；请求使用端点绑定且不可重放的 {@code private_key_jwt}，不会把
@@ -56,7 +56,7 @@ public final class HttpTenantServiceTokenSupplier
     /** Spring Security OAuth2 Client facade used by the production path. */
     private final IdpServiceOAuth2Client serviceClient;
 
-    /** IdP registration settings used by the production path. */
+    /** Tianquan-Shoubing registration settings used by the production path. */
     private final IdpStarterProperties idpProperties;
 
     /** 每次请求创建新 Assertion 的工厂；factory creating a new assertion for every request.
@@ -69,11 +69,11 @@ public final class HttpTenantServiceTokenSupplier
      * 字段 `resourceUri` 表示 `HttpTenantServiceTokenSupplier` 中与 `resource Uri` 相关的状态、依赖、配置或结果（声明类型 `URI`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `resourceUri` stores the `resource Uri`-related state, dependency, configuration, or result of `HttpTenantServiceTokenSupplier` (declared type `URI`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
-     * RBAC3 Resource URI；RBAC3 Resource URI.
+     * Tianquan-Jianshen Resource URI；Tianquan-Jianshen Resource URI.
      */
     private final URI resourceUri;
 
-    /** 请求的 IdP Service Scope；requested IdP service scopes.
+    /** 请求的 Tianquan-Shoubing Service Scope；requested Tianquan-Shoubing service scopes.
      * 含义与用法：读取、传递或更新 `scopes` 时应保持 `HttpTenantServiceTokenSupplier` 的生命周期、不可变性和线程安全约束。
      * Meaning and usage: when reading, passing, or updating `scopes`, preserve `HttpTenantServiceTokenSupplier`'s lifecycle, immutability, and thread-safety constraints.
      */
@@ -107,10 +107,10 @@ public final class HttpTenantServiceTokenSupplier
      * 创建生产 HTTP Token 提供器。
      * Creates the production HTTP token supplier.
      *
-     * @param tokenEndpoint IdP Token Endpoint；IdP Token Endpoint
+     * @param tokenEndpoint Tianquan-Shoubing Token Endpoint；Tianquan-Shoubing Token Endpoint
      * @param assertions {@code private_key_jwt} Assertion 工厂；assertion factory
      * @param objectMapper OAuth JSON 响应解码器；OAuth JSON response decoder
-     * @param resourceUri 目标 RBAC3 Resource URI；target RBAC3 Resource URI
+     * @param resourceUri 目标 Tianquan-Jianshen Resource URI；target Tianquan-Jianshen Resource URI
      * @param scopes 请求的 Service Scope；requested service scopes
      * @param renewalSkew 提前续签窗口；renewal skew
      * @param clock UTC 业务时钟；UTC business clock
@@ -216,7 +216,7 @@ public final class HttpTenantServiceTokenSupplier
                 throw exception;
             } catch (RuntimeException exception) {
                 throw new IllegalStateException(
-                        "IDP_SERVICE_TOKEN_UNAVAILABLE",
+                        "TIANQUAN_SHOUBING_SERVICE_TOKEN_UNAVAILABLE",
                         exception
                 );
             }
@@ -240,7 +240,7 @@ public final class HttpTenantServiceTokenSupplier
                 || !"Bearer".equalsIgnoreCase(response.tokenType())
                 || response.expiresIn() <= renewalSkew.toSeconds()) {
             throw new IllegalStateException(
-                    "IDP_SERVICE_TOKEN_RESPONSE_INVALID"
+                    "TIANQUAN_SHOUBING_SERVICE_TOKEN_RESPONSE_INVALID"
             );
         }
         Instant renewAt = clock.instant()
@@ -286,7 +286,7 @@ public final class HttpTenantServiceTokenSupplier
                 if (response.statusCode() < 200
                         || response.statusCode() >= 300) {
                     throw new IllegalStateException(
-                            "IDP_SERVICE_TOKEN_UNAVAILABLE"
+                            "TIANQUAN_SHOUBING_SERVICE_TOKEN_UNAVAILABLE"
                     );
                 }
                 return mapper.readValue(
@@ -296,12 +296,12 @@ public final class HttpTenantServiceTokenSupplier
             } catch (InterruptedException exception) {
                 Thread.currentThread().interrupt();
                 throw new IllegalStateException(
-                        "IDP_SERVICE_TOKEN_UNAVAILABLE",
+                        "TIANQUAN_SHOUBING_SERVICE_TOKEN_UNAVAILABLE",
                         exception
                 );
             } catch (IOException | RuntimeException exception) {
                 throw new IllegalStateException(
-                        "IDP_SERVICE_TOKEN_UNAVAILABLE",
+                        "TIANQUAN_SHOUBING_SERVICE_TOKEN_UNAVAILABLE",
                         exception
                 );
             }

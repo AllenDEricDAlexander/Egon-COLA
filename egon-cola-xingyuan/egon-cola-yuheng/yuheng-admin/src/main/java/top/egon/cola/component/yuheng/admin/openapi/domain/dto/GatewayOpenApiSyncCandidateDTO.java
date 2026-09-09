@@ -18,9 +18,9 @@ import java.time.Instant;
 import java.util.Objects;
 
 /**
- * Trusted Provider target derived from a DDC instance and its group manifest.
+ * Trusted Provider target derived from a Tianshu instance and its group manifest.
  *
- * <p>中文：只允许由受信 DDC 服务实例、Manifest 和已解析 applicationId
+ * <p>中文：只允许由受信 Tianshu 服务实例、Manifest 和已解析 applicationId
  * 组装；调用方不能直接提交任意 URL。</p>
  */
 public record GatewayOpenApiSyncCandidateDTO(
@@ -184,11 +184,11 @@ public record GatewayOpenApiSyncCandidateDTO(
     }
 
     /**
-     * Builds a candidate only from a coherent DDC service snapshot, instance
+     * Builds a candidate only from a coherent Tianshu service snapshot, instance
      * and published group manifest.
      *
      * @param applicationId resolved physical Gateway application id
-     * @param snapshot DDC service snapshot
+     * @param snapshot Tianshu service snapshot
      * @param instance healthy candidate instance
      * @param manifest validated published group manifest
      * @param group group selected from the manifest
@@ -216,7 +216,7 @@ public record GatewayOpenApiSyncCandidateDTO(
      * the local plaintext policy; the default overload remains HTTPS-only.
      *
      * @param applicationId resolved physical Gateway application id
-     * @param snapshot DDC service snapshot
+     * @param snapshot Tianshu service snapshot
      * @param instance healthy candidate instance
      * @param manifest validated published group manifest
      * @param group group selected from the manifest
@@ -251,7 +251,7 @@ public record GatewayOpenApiSyncCandidateDTO(
         if (!"HTTP_PROVIDER".equals(service.serviceKind())
                 || (!secureHttp && !developmentHttp)) {
             throw new IllegalArgumentException(
-                    "DDC service is not an HTTP provider"
+                    "Tianshu service is not an HTTP provider"
             );
         }
         Instant observedAt = Objects.requireNonNull(
@@ -260,14 +260,14 @@ public record GatewayOpenApiSyncCandidateDTO(
         );
         if (!snapshot.instances().contains(instance)) {
             throw new IllegalArgumentException(
-                    "DDC instance is not part of the supplied snapshot"
+                    "Tianshu instance is not part of the supplied snapshot"
             );
         }
         if (instance.normalizedStatus() != DdcInstanceStatus.ONLINE
                 || instance.expireAt() == null
                 || !instance.expireAt().isAfter(observedAt)) {
             throw new IllegalArgumentException(
-                    "DDC instance is not healthy and unexpired"
+                    "Tianshu instance is not healthy and unexpired"
             );
         }
         return new GatewayOpenApiSyncCandidateDTO(

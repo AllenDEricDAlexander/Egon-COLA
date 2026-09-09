@@ -28,7 +28,7 @@ public final class SpringPasswordHashAdapter implements PasswordHashPort {
         );
         encoders.put("bcrypt", new BCryptPasswordEncoder());
         delegate = new DelegatingPasswordEncoder(ARGON2_ID, encoders);
-        dummyHash = delegate.encode("idp-dummy-password-1");
+        dummyHash = delegate.encode("tianquan-shoubing-dummy-password-1");
     }
 
     @Override

@@ -59,9 +59,9 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
     private final ObjectMapper objectMapper;
 
     /**
-     * 创建 IdP Bearer 身份过滤器。
+     * 创建 Tianquan-Shoubing Bearer 身份过滤器。
      *
-     * <p>Creates the IdP Bearer identity filter.</p>
+     * <p>Creates the Tianquan-Shoubing Bearer identity filter.</p>
      *
      * @param jwtVerifier 访问令牌验证器；access-token verifier
      * @param objectMapper 失败响应序列化器；failure-response serializer
@@ -247,6 +247,6 @@ public final class IdpBearerAuthenticationFilter extends OncePerRequestFilter {
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
         objectMapper.writeValue(response.getOutputStream(), Map.of(
                 "code", reasonCode,
-                "message", "IdP authentication failed"));
+                "message", "Tianquan-Shoubing authentication failed"));
     }
 }

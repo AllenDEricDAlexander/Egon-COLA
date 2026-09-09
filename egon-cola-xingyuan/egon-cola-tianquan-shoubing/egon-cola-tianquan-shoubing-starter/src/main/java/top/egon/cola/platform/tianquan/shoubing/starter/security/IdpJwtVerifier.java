@@ -26,7 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 
 /**
- * Validates IdP USER and SERVICE access tokens.
+ * Validates Tianquan-Shoubing USER and SERVICE access tokens.
  * USER validation is completely stateless; SERVICE validation keeps its existing
  * Resource/Client runtime checks.
  */
@@ -81,7 +81,7 @@ public final class IdpJwtVerifier {
     }
 
     /**
-     * Verifies a USER token without any Redis or IdP-user-state lookup.
+     * Verifies a USER token without any Redis or Tianquan-Shoubing-user-state lookup.
      */
     public AccessTokenVerification<IdentityPrincipal> verifyUser(String token) {
         try {

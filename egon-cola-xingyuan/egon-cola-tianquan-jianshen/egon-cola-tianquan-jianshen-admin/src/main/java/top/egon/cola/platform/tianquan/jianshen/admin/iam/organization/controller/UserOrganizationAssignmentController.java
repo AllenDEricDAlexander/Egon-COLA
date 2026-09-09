@@ -25,12 +25,12 @@ import java.util.List;
 
 /** User organization membership endpoints. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/users/{userId}/organizations")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/users/{userId}/organizations")
 @Tag(name = "iam-user-organization", description = "用户组织任职接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -45,9 +45,9 @@ public class UserOrganizationAssignmentController {
     @GetMapping
     @RequiresPermission(value = "system:user-organization:read")
     @Operation(
-            operationId = "rbac3-iam-user-organization-list-v1",
+            operationId = "tianquan-jianshen-iam-user-organization-list-v1",
             summary = "查询用户组织任职",
-            tags = {"rbac3", "iam", "user", "organization"}
+            tags = {"tianquan-jianshen", "iam", "user", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -60,9 +60,9 @@ public class UserOrganizationAssignmentController {
     @PostMapping
     @RequiresPermission(value = "system:user-organization:manage")
     @Operation(
-            operationId = "rbac3-iam-user-organization-create-v1",
+            operationId = "tianquan-jianshen-iam-user-organization-create-v1",
             summary = "新增用户组织任职",
-            tags = {"rbac3", "iam", "user", "organization"}
+            tags = {"tianquan-jianshen", "iam", "user", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -78,9 +78,9 @@ public class UserOrganizationAssignmentController {
     @DeleteMapping("/{assignmentId}")
     @RequiresPermission(value = "system:user-organization:manage")
     @Operation(
-            operationId = "rbac3-iam-user-organization-revoke-v1",
+            operationId = "tianquan-jianshen-iam-user-organization-revoke-v1",
             summary = "撤销用户组织任职",
-            tags = {"rbac3", "iam", "user", "organization"}
+            tags = {"tianquan-jianshen", "iam", "user", "organization"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

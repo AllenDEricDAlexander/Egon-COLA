@@ -1,6 +1,6 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.business.service;
 
-/** DDC-owned Business catalog data projected into RBAC3. */
+/** Tianshu-owned Business catalog data projected into Tianquan-Jianshen. */
 public record BusinessCatalogEntry(
         String ddcBusinessId,
         String bizCode,

@@ -18,7 +18,7 @@ public interface TenantAuthorizationStateRepository {
 
     long increment(Long tenantId, String actorId);
 
-    /** Typed marker created only after an upstream IdP membership gate succeeds. */
+    /** Typed marker created only after an upstream Tianquan-Shoubing membership gate succeeds. */
     record VerifiedTenant(Long tenantId) {
         public VerifiedTenant {
             if (tenantId == null || tenantId <= 0L) {

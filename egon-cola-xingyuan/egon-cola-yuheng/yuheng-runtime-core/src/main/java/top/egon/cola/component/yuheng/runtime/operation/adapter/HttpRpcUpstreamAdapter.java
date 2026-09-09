@@ -372,7 +372,7 @@ public final class HttpRpcUpstreamAdapter {
             GatewayCompiledRulesDTO active = rules.get();
             if (active == null) {
                 throw new IllegalStateException(
-                        "GATEWAY_RULES_NOT_READY"
+                        "YUHENG_RULES_NOT_READY"
                 );
             }
             GatewayRpcDescriptor descriptor = active.snapshot()
@@ -382,7 +382,7 @@ public final class HttpRpcUpstreamAdapter {
                     .filter(value -> value.sha256().equals(descriptorSha))
                     .findFirst()
                     .orElseThrow(() -> new IllegalStateException(
-                            "GATEWAY_RPC_DESCRIPTOR_NOT_FOUND"
+                            "YUHENG_RPC_DESCRIPTOR_NOT_FOUND"
                     ));
             return new HttpRpcDynamicMessageBridge(
                     new ProtobufDescriptorRegistry(

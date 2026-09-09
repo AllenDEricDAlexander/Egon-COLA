@@ -14,7 +14,7 @@
     <artifactId>egon-cola-tianquan-jianshen-admin</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-tianquan-jianshen-admin</name>
-    <description>Central authorization control plane for Egon COLA RBAC3.</description>
+    <description>Central authorization control plane for Egon COLA Tianquan-Jianshen.</description>
 
     <properties>
         <maven.deploy.skip>true</maven.deploy.skip>
@@ -151,7 +151,7 @@
 
     <profiles>
         <profile>
-            <id>rbac3-local-it</id>
+            <id>tianquan-jianshen-local-it</id>
             <build>
                 <plugins>
                     <plugin>

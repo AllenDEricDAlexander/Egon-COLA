@@ -1,5 +1,5 @@
 /**
- * DDC 管理查询、写入、发布任务、Resource 准入撤销与运维视图模型，构成 Starter 和 Admin 的共享管理契约。
+ * Tianshu 管理查询、写入、发布任务、Resource 准入撤销与运维视图模型，构成 Starter 和 Admin 的共享管理契约。
  * 本包不依赖 JPA、Redisson 或 Admin 实体；{@code api.client} 使用这些模型定义端口。
  *
  * <p>Management query, write, publication-task, Resource-admission revocation, and operational-view models shared by Starter and

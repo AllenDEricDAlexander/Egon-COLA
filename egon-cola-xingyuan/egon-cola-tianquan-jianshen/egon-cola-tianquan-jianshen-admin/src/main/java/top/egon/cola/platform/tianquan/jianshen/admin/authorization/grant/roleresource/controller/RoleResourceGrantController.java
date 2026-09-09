@@ -23,12 +23,12 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermiss
 
 /** Resource-first role authorization endpoints; permission characters stay server-side. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/roles/{roleId}/resources")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/roles/{roleId}/resources")
 @Tag(name = "role-resource-grant", description = "角色资源授权接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -47,9 +47,9 @@ public class RoleResourceGrantController {
     @GetMapping
     @RequiresPermission(value = "system:role-resource:read")
     @Operation(
-            operationId = "rbac3-role-resource-tree-v1",
+            operationId = "tianquan-jianshen-role-resource-tree-v1",
             summary = "查询角色资源树",
-            tags = {"rbac3", "role", "resource"}
+            tags = {"tianquan-jianshen", "role", "resource"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -65,9 +65,9 @@ public class RoleResourceGrantController {
     @PutMapping
     @RequiresPermission(value = "system:role-resource:manage")
     @Operation(
-            operationId = "rbac3-role-resource-replace-v1",
+            operationId = "tianquan-jianshen-role-resource-replace-v1",
             summary = "原子替换角色资源授权",
-            tags = {"rbac3", "role", "resource"}
+            tags = {"tianquan-jianshen", "role", "resource"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

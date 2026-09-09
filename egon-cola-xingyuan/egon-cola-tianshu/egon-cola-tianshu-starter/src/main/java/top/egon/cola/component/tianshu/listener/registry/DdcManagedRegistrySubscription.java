@@ -112,7 +112,7 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
                 queueRefresh();
             }
         } catch (JsonProcessingException exception) {
-            LOGGER.warn("DDC registry event is invalid", exception);
+            LOGGER.warn("Tianshu registry event is invalid", exception);
         }
     }
 
@@ -138,7 +138,7 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
         try {
             refreshWithTrace();
         } catch (RuntimeException exception) {
-            LOGGER.warn("DDC registry reconciliation failed", exception);
+            LOGGER.warn("Tianshu registry reconciliation failed", exception);
             expireLocal();
         }
     }
@@ -154,7 +154,7 @@ abstract class DdcManagedRegistrySubscription implements DdcRegistrySubscription
         try {
             listener.accept(value);
         } catch (RuntimeException exception) {
-            LOGGER.warn("DDC registry listener failed", exception);
+            LOGGER.warn("Tianshu registry listener failed", exception);
         }
     }
 

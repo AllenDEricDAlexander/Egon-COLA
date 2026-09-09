@@ -14,7 +14,7 @@
     <artifactId>yuheng-test-http-provider</artifactId>
     <packaging>jar</packaging>
     <name>yuheng-test-http-provider</name>
-    <description>Real HTTP provider test application for Egon COLA Gateway.</description>
+    <description>Real HTTP provider test application for Egon COLA Yuheng.</description>
 
     <dependencies>
         <dependency>
@@ -50,7 +50,7 @@
     </dependencies>
 
     <build>
-        <finalName>gateway-test-http-provider</finalName>
+        <finalName>yuheng-test-http-provider</finalName>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

@@ -3,8 +3,8 @@ package top.egon.cola.component.rpc.test.fixture;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.core.OAuth2AccessToken;
-import top.egon.cola.platform.idp.starter.client.IdpServiceOAuth2Client;
-import top.egon.cola.platform.idp.starter.client.IdpServiceTokenRequest;
+import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client;
+import top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceTokenRequest;
 
 import java.time.Instant;
 
@@ -13,7 +13,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 /**
- * Supplies the fixed IdP OAuth2 Client facade used by the RPC process test.
+ * Supplies the fixed Tianquan-Shoubing OAuth2 Client facade used by the RPC process test.
  */
 @Configuration(proxyBeanMethods = false)
 public class RpcTestAdmissionConfiguration {

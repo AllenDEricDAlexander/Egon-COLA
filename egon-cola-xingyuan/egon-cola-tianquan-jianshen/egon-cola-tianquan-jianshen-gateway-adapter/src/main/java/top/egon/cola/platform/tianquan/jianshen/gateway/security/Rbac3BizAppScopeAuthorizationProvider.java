@@ -10,13 +10,13 @@ import top.egon.cola.component.yuheng.core.security.GatewayAuthorizationProvider
 import java.util.Objects;
 
 /**
- * Adapts the blocking RBAC3 BIZ/APP scope reader to the reactive Gateway
+ * Adapts the blocking Tianquan-Jianshen BIZ/APP scope reader to the reactive Gateway
  * authorization SPI and fails closed when the scope runtime is unavailable.
  */
 public final class Rbac3BizAppScopeAuthorizationProvider
         implements GatewayAuthorizationProvider {
 
-    public static final String PROVIDER_ID = "rbac3-biz-app-scope";
+    public static final String PROVIDER_ID = "tianquan-jianshen-biz-app-scope";
 
     private final DecisionSource decisionSource;
 
@@ -34,7 +34,7 @@ public final class Rbac3BizAppScopeAuthorizationProvider
         return Mono.fromCallable(() -> decisionSource.authorize(context))
                 .subscribeOn(Schedulers.boundedElastic())
                 .onErrorReturn(AuthorizationDecision.error(
-                        "RBAC3_SCOPE_RUNTIME_UNAVAILABLE"));
+                        "TIANQUAN_JIANSHEN_SCOPE_RUNTIME_UNAVAILABLE"));
     }
 
     @FunctionalInterface

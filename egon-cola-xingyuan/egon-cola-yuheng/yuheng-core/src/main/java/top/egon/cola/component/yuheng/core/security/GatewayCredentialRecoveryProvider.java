@@ -17,7 +17,7 @@ public interface GatewayCredentialRecoveryProvider {
             AuthenticationFailure failure);
 
     /**
-     * Checks the IdP-owned online state after a USER access token is authenticated.
+     * Checks the Tianquan-Shoubing-owned online state after a USER access token is authenticated.
      * Providers that only support recovery remain compatible through the active default.
      */
     default Publisher<GatewayCredentialOnlineStateResult> validateAuthenticated(

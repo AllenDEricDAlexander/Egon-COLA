@@ -305,7 +305,7 @@ public class GatewayApplicationService {
                 "MANAGEMENT_API",
                 request.requestId(),
                 request.traceId(),
-                "GATEWAY_APPLICATION",
+                "YUHENG_APPLICATION",
                 id,
                 action,
                 null,

@@ -9,7 +9,7 @@ class GatewayRuleChunkStoreTest {
     @Test
     void removesChunkWhenDdcDeletesTheConfigurationLeaf() {
         GatewayRuleChunkStore store = new GatewayRuleChunkStore();
-        String key = "gateway.rules.chunk.release-1.0";
+        String key = "yuheng.rules.chunk.release-1.0";
 
         store.apply(key, "Y2h1bms=", 1L);
         assertThat(store.size()).isEqualTo(1);

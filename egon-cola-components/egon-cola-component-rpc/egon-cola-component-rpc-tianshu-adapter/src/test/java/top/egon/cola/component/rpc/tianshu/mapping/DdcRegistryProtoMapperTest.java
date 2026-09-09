@@ -105,7 +105,7 @@ class DdcRegistryProtoMapperTest {
                 top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcLeaseOperationResult
                         .newBuilder()
                         .setStatus(top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcLeaseOperationStatus
-                                .DDC_LEASE_OPERATION_STATUS_UNSPECIFIED)
+                                .TIANSHU_LEASE_OPERATION_STATUS_UNSPECIFIED)
                         .build()))
                 .isInstanceOf(IllegalArgumentException.class);
         assertThatThrownBy(() -> common.fromProtoLeaseOperationStatus(UNRECOGNIZED))

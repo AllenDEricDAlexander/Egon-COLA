@@ -18,7 +18,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.GatewayProviderObservationVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.GatewayReleaseObservationVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.ServiceIdentityVO;
-import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.ddc.DdcProviderLeaseStatusRepository;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.tianshu.DdcProviderLeaseStatusRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.http.GatewayAdminControlPlaneStatusClient;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service.GatewayDdcRuntimeStatusService;
 
@@ -42,16 +42,16 @@ class GatewayDdcConfigurationTest {
     private static final Instant NOW = Instant.parse("2026-07-30T12:00:00Z");
     private static final ServiceIdentityVO IDENTITY =
             new ServiceIdentityVO(
-                    "rbac3", "rbac3-admin", "prod", "default",
+                    "tianquan-jianshen", "tianquan-jianshen-admin", "prod", "default",
                     "HTTP_PROVIDER", "http",
-                    "rbac3-admin", "default", "1.0.0");
+                    "tianquan-jianshen-admin", "default", "1.0.0");
 
     @Test
     void productionProviderRequiresAnExplicitPortAndProductionYamlHasNoLocalFallback()
             throws Exception {
         assertThatThrownBy(() -> new DdcHttpRegistrationRuntimeProperties(
-                true, "prod", "default", "instance-1", "rbac3-admin",
-                "default", "1.0.0", "http", "rbac3.internal", 0,
+                true, "prod", "default", "instance-1", "tianquan-jianshen-admin",
+                "default", "1.0.0", "http", "tianquan-jianshen.internal", 0,
                 30, 10, true, Map.of()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("port=0 is only allowed in local/test");
@@ -61,7 +61,7 @@ class GatewayDdcConfigurationTest {
         if (Files.exists(yaml)) {
             assertThat(Files.readString(yaml))
                     .doesNotContain("localhost", "127.0.0.1")
-                    .contains("RBAC3_RESOURCE_BIZ_CODE", "RBAC3_ADVERTISED_PORT",
+                    .contains("TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE", "TIANQUAN_JIANSHEN_ADVERTISED_PORT",
                             "ddcRedissonClient",
                             "rbac3RuntimeRedissonClient");
         }
@@ -71,67 +71,67 @@ class GatewayDdcConfigurationTest {
     void productionEnablesIndependentDdcConfigAndRegistryLeases() throws Exception {
         PropertySource<?> production = yaml("application.yml");
 
-        assertThat(production.getProperty("egon.cola.component.ddc.enabled")).isEqualTo(true);
-        assertThat(production.getProperty("egon.cola.component.ddc.biz-code"))
-                .isEqualTo("${RBAC3_RESOURCE_BIZ_CODE:permission}");
-        assertThat(production.getProperty("egon.cola.component.ddc.app-code"))
-                .isEqualTo("${RBAC3_RESOURCE_APP_CODE:rbac3}");
-        assertThat(production.getProperty("egon.cola.component.ddc.env"))
+        assertThat(production.getProperty("egon.cola.component.tianshu.enabled")).isEqualTo(true);
+        assertThat(production.getProperty("egon.cola.component.tianshu.biz-code"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE:permission}");
+        assertThat(production.getProperty("egon.cola.component.tianshu.app-code"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_RESOURCE_APP_CODE:rbac3}");
+        assertThat(production.getProperty("egon.cola.component.tianshu.env"))
                 .isEqualTo("${DEPLOYMENT_ENV}");
-        assertThat(production.getProperty("egon.cola.component.ddc.namespace"))
+        assertThat(production.getProperty("egon.cola.component.tianshu.namespace"))
                 .isEqualTo("${DEPLOYMENT_NAMESPACE}");
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.rpc.target"))
-                .isEqualTo("${DDC_RPC_TARGET:dns:///ddc-admin:19080}");
+                "egon.cola.component.tianshu.rpc.target"))
+                .isEqualTo("${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}");
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.rpc.load-balancing-policy"))
+                "egon.cola.component.tianshu.rpc.load-balancing-policy"))
                 .isEqualTo("round_robin");
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.admin." + "endpoint"))
+                "egon.cola.component.tianshu.admin." + "endpoint"))
                 .isNull();
-        assertThat(production.getProperty("egon.cola.component.ddc.instance.id"))
-                .isEqualTo("${RBAC3_INSTANCE_ID}");
-        assertThat(production.getProperty("egon.cola.component.ddc.instance.lease-seconds"))
+        assertThat(production.getProperty("egon.cola.component.tianshu.instance.id"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_INSTANCE_ID}");
+        assertThat(production.getProperty("egon.cola.component.tianshu.instance.lease-seconds"))
                 .isEqualTo(30);
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.instance.heartbeat-interval-seconds"))
+                "egon.cola.component.tianshu.instance.heartbeat-interval-seconds"))
                 .isEqualTo(10);
-        assertThat(production.getProperty("egon.cola.component.ddc.consistency.fail-fast"))
+        assertThat(production.getProperty("egon.cola.component.tianshu.consistency.fail-fast"))
                 .isEqualTo(true);
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.consistency.reconcile-enabled"))
+                "egon.cola.component.tianshu.consistency.reconcile-enabled"))
                 .isEqualTo(true);
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.consistency.reconcile-interval-seconds"))
+                "egon.cola.component.tianshu.consistency.reconcile-interval-seconds"))
                 .isEqualTo(30);
-        assertThat(production.getProperty("egon.cola.component.ddc.registry.enabled"))
+        assertThat(production.getProperty("egon.cola.component.tianshu.registry.enabled"))
                 .isEqualTo(true);
         assertThat(production.getProperty(
-                "egon.cola.component.gateway.reporting.enabled"))
-                .isEqualTo("${RBAC3_GATEWAY_REPORTING_ENABLED:true}");
+                "egon.cola.component.yuheng.reporting.enabled"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_YUHENG_REPORTING_ENABLED:true}");
         assertThat(production.getProperty(
-                "egon.cola.component.ddc.registry.http.enabled"))
+                "egon.cola.component.tianshu.registry.http.enabled"))
                 .isEqualTo(true);
         assertThat(production.getProperty("egon.cola.component.rpc.enabled"))
-                .isEqualTo("${RBAC3_RPC_ENABLED:true}");
+                .isEqualTo("${TIANQUAN_JIANSHEN_RPC_ENABLED:true}");
         assertThat(production.getProperty(
                 "egon.cola.component.rpc.consumer.enabled"))
-                .isEqualTo("${RBAC3_RPC_CONSUMER_ENABLED:true}");
+                .isEqualTo("${TIANQUAN_JIANSHEN_RPC_CONSUMER_ENABLED:true}");
     }
 
     @Test
     void localProfileAllowsExplicitDdcAndProviderEnablement() throws Exception {
         PropertySource<?> local = yaml("application-local.yml");
 
-        assertThat(local.getProperty("egon.cola.component.ddc.enabled"))
-                .isEqualTo("${RBAC3_DDC_ENABLED:false}");
-        assertThat(local.getProperty("egon.cola.component.ddc.registry.enabled"))
-                .isEqualTo("${RBAC3_DDC_ENABLED:false}");
-        assertThat(local.getProperty("egon.cola.component.gateway.reporting.enabled"))
-                .isEqualTo("${RBAC3_GATEWAY_REPORTING_ENABLED:false}");
+        assertThat(local.getProperty("egon.cola.component.tianshu.enabled"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_TIANSHU_ENABLED:false}");
+        assertThat(local.getProperty("egon.cola.component.tianshu.registry.enabled"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_TIANSHU_ENABLED:false}");
+        assertThat(local.getProperty("egon.cola.component.yuheng.reporting.enabled"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_YUHENG_REPORTING_ENABLED:false}");
         assertThat(local.getProperty(
-                "egon.cola.component.ddc.registry.http.enabled"))
-                .isEqualTo("${RBAC3_HTTP_PROVIDER_ENABLED:false}");
+                "egon.cola.component.tianshu.registry.http.enabled"))
+                .isEqualTo("${TIANQUAN_JIANSHEN_HTTP_PROVIDER_ENABLED:false}");
     }
 
     @Test
@@ -177,9 +177,9 @@ class GatewayDdcConfigurationTest {
                 "REGISTERED", "instance-1", NOW.plusSeconds(30), IDENTITY));
 
         var wrongIdentity = new ServiceIdentityVO(
-                "other-biz", "rbac3-admin", "prod", "default",
+                "other-biz", "tianquan-jianshen-admin", "prod", "default",
                 "HTTP_PROVIDER", "http",
-                "rbac3-admin", "default", "1.0.0");
+                "tianquan-jianshen-admin", "default", "1.0.0");
         when(client.snapshot()).thenReturn(snapshot(
                 "definition-1", "1.0.0", wrongIdentity));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("NOT_ROUTABLE");
@@ -187,12 +187,12 @@ class GatewayDdcConfigurationTest {
         when(client.snapshot()).thenReturn(GatewayAdminSnapshotVO.class.cast(new GatewayAdminSnapshotVO(
                         new GatewayReleaseObservationVO(
                                 "UNKNOWN", "release-1", null, null, null,
-                                "GATEWAY_STATUS_UNAVAILABLE"),
+                                "YUHENG_STATUS_UNAVAILABLE"),
                         new GatewayProviderObservationVO(
-                                "UNKNOWN", List.of(), "GATEWAY_STATUS_UNAVAILABLE"),
+                                "UNKNOWN", List.of(), "YUHENG_STATUS_UNAVAILABLE"),
                         new GatewayConsistencyObservationVO(
                                 "UNKNOWN", null, null, false, null,
-                                "GATEWAY_STATUS_UNAVAILABLE"), NOW)));
+                                "YUHENG_STATUS_UNAVAILABLE"), NOW)));
         assertThat(status.status().gatewayRelease().status()).isEqualTo("UNKNOWN");
     }
 

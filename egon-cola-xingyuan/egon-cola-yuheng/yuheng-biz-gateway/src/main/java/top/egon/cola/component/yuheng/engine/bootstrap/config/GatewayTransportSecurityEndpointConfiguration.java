@@ -14,7 +14,7 @@ import top.egon.cola.component.yuheng.engine.rpc.service.RpcGatewayServer;
  */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(
-        prefix = "egon.cola.component.gateway.engine.tls-reload",
+        prefix = "egon.cola.component.yuheng.engine.tls-reload",
         name = "enabled",
         havingValue = "true"
 )

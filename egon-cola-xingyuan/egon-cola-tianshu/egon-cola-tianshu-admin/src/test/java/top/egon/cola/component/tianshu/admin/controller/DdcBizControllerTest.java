@@ -40,7 +40,7 @@ class DdcBizControllerTest {
     void listWithKeywordDelegatesToService() throws Exception {
         when(bizService.list("pay")).thenReturn(java.util.List.of());
 
-        mockMvc.perform(get("/api/v1/ddc/bizs").param("keyword", "pay"))
+        mockMvc.perform(get("/api/v1/tianshu/bizs").param("keyword", "pay"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isArray());
@@ -57,7 +57,7 @@ class DdcBizControllerTest {
                         List.of(biz), PageRequest.of(1, 20), 21
                 ));
 
-        mockMvc.perform(get("/api/v1/ddc/bizs/page")
+        mockMvc.perform(get("/api/v1/tianshu/bizs/page")
                         .param("keyword", "pay")
                         .param("pageNo", "2")
                         .param("pageSize", "20"))
@@ -73,7 +73,7 @@ class DdcBizControllerTest {
         doThrow(new CommonException(DdcErrorStatus.BIZ_IN_USE))
                 .when(bizService).delete("pay");
 
-        mockMvc.perform(delete("/api/v1/ddc/bizs/pay"))
+        mockMvc.perform(delete("/api/v1/tianshu/bizs/pay"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.code").value(DdcErrorStatus.BIZ_IN_USE.getCode()));

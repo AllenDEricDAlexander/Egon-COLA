@@ -15,12 +15,12 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.RegisterConfigClien
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.RegisterConfigClientResponse;
 
 /**
- * DDC 配置运行时 RPC 门面契约。
- * / RPC facade contract for the DDC configuration runtime.
+ * Tianshu 配置运行时 RPC 门面契约。
+ * / RPC facade contract for the Tianshu configuration runtime.
  */
 @EgonRpcService(
         grpcClass = DdcConfigRuntimeServiceGrpc.class,
-        group = "ddc",
+        group = "tianshu",
         version = "1.0.0"
 )
 public interface DdcConfigRuntimeRpc {

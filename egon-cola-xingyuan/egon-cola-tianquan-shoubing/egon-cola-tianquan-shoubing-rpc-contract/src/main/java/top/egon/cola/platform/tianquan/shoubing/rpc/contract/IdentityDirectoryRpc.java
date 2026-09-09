@@ -9,7 +9,7 @@ import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.GetTenantM
 import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.IdentityDirectoryServiceGrpc;
 
 /**
- * Read-only IdP identity directory contract for RBAC profile enrichment.
+ * Read-only Tianquan-Shoubing identity directory contract for RBAC profile enrichment.
  */
 @EgonRpcService(
         grpcClass = IdentityDirectoryServiceGrpc.class,
@@ -18,7 +18,7 @@ import top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1.IdentityDi
 )
 public interface IdentityDirectoryRpc {
 
-    String GROUP = "idp";
+    String GROUP = "tianquan-shoubing";
 
     String VERSION = "1.0.0";
 

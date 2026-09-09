@@ -55,10 +55,10 @@ class DdcPublishTaskControllerTest {
                 List.of(task), PageRequest.of(0, 10), 11
         ));
 
-        mockMvc.perform(get("/api/v1/ddc/publish-tasks/page")
+        mockMvc.perform(get("/api/v1/tianshu/publish-tasks/page")
                         .param("bizCode", "infra")
                         .param("env", "prod")
-                        .param("appCode", "gateway")
+                        .param("appCode", "yuheng")
                         .param("status", "FAILED")
                         .param("changeId", "change")
                         .param("pageNo", "1")
@@ -77,7 +77,7 @@ class DdcPublishTaskControllerTest {
         result.setStatus("SUCCESS");
         when(publishService.retry("change-1")).thenReturn(result);
 
-        mockMvc.perform(post("/api/v1/ddc/publish-tasks/change-1/retry"))
+        mockMvc.perform(post("/api/v1/tianshu/publish-tasks/change-1/retry"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.changeId").value("change-1"))

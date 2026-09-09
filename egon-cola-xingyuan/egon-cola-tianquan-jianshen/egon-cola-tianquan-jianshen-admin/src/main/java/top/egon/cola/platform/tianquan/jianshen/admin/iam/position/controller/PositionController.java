@@ -27,12 +27,12 @@ import java.util.List;
 
 /** CRUD operations for RBAC-owned MANUAL positions. */
 @RestController
-@RequestMapping("/api/rbac3/v1/iam/positions")
+@RequestMapping("/api/tianquan-jianshen/v1/iam/positions")
 @Tag(name = "iam-position", description = "IAM岗位接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
+        entityDomainCode = "tianquan-jianshen",
         entityDomainName = "RBAC3权限实体域",
         interfaceGroupCode = "iam"
 )
@@ -47,9 +47,9 @@ public class PositionController {
     @GetMapping
     @RequiresPermission(value = "system:position:read")
     @Operation(
-            operationId = "rbac3-iam-position-list-v1",
+            operationId = "tianquan-jianshen-iam-position-list-v1",
             summary = "查询手工岗位",
-            tags = {"rbac3", "iam", "position"}
+            tags = {"tianquan-jianshen", "iam", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -62,9 +62,9 @@ public class PositionController {
     @PostMapping
     @RequiresPermission(value = "system:position:manage")
     @Operation(
-            operationId = "rbac3-iam-position-create-v1",
+            operationId = "tianquan-jianshen-iam-position-create-v1",
             summary = "创建手工岗位",
-            tags = {"rbac3", "iam", "position"}
+            tags = {"tianquan-jianshen", "iam", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -79,9 +79,9 @@ public class PositionController {
     @PutMapping("/{positionId}")
     @RequiresPermission(value = "system:position:manage")
     @Operation(
-            operationId = "rbac3-iam-position-update-v1",
+            operationId = "tianquan-jianshen-iam-position-update-v1",
             summary = "更新手工岗位",
-            tags = {"rbac3", "iam", "position"}
+            tags = {"tianquan-jianshen", "iam", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -97,9 +97,9 @@ public class PositionController {
     @DeleteMapping("/{positionId}")
     @RequiresPermission(value = "system:position:manage")
     @Operation(
-            operationId = "rbac3-iam-position-delete-v1",
+            operationId = "tianquan-jianshen-iam-position-delete-v1",
             summary = "停用手工岗位",
-            tags = {"rbac3", "iam", "position"}
+            tags = {"tianquan-jianshen", "iam", "position"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

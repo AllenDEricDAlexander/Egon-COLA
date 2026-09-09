@@ -353,7 +353,7 @@ public class GatewayReleaseService {
                     GatewayReleaseStatus.UNKNOWN
             ).contains(release.status())) {
                 throw new IllegalStateException(
-                        "GATEWAY_ADMIN_RELEASE_NOT_RETRYABLE"
+                        "YUHENG_ADMIN_RELEASE_NOT_RETRYABLE"
                 );
             }
             int attempt = releases.nextAttempt(
@@ -493,12 +493,12 @@ public class GatewayReleaseService {
         ));
         if (!group.isEnabled()) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_GATEWAY_GROUP_DISABLED"
+                    "YUHENG_ADMIN_YUHENG_GROUP_DISABLED"
             );
         }
         if (releases.hasReleaseInProgress(gatewayGroupId)) {
             throw new IllegalStateException(
-                    "GATEWAY_ADMIN_RELEASE_IN_PROGRESS"
+                    "YUHENG_ADMIN_RELEASE_IN_PROGRESS"
             );
         }
         GatewayDraftPO draft = drafts.findById(gatewayGroupId)
@@ -594,8 +594,8 @@ public class GatewayReleaseService {
                             GatewayReleaseStatus.FAILED,
                             false,
                             null,
-                            "GATEWAY_ADMIN_DDC_UNAVAILABLE",
-                            "DDC management client is not configured",
+                            "YUHENG_ADMIN_TIANSHU_UNAVAILABLE",
+                            "Tianshu management client is not configured",
                             List.of(),
                             clock.instant()
                     ));
@@ -619,7 +619,7 @@ public class GatewayReleaseService {
                         outcome.changeId(),
                         outcome.successful()
                                 ? null
-                                : "DDC_PUBLISH_" + outcome.status(),
+                                : "TIANSHU_PUBLISH_" + outcome.status(),
                         outcome.result().errorMessage(),
                         targets,
                         clock.instant()
@@ -644,7 +644,7 @@ public class GatewayReleaseService {
                             GatewayReleaseStatus.UNKNOWN,
                             false,
                             null,
-                            "GATEWAY_ADMIN_DDC_UNAVAILABLE",
+                            "YUHENG_ADMIN_TIANSHU_UNAVAILABLE",
                             bounded(failure.getMessage()),
                             List.of(),
                             clock.instant()
@@ -908,7 +908,7 @@ public class GatewayReleaseService {
             top.egon.cola.component.yuheng.admin.routing.service.GatewayTransportValidationIssue issue =
                     issues.getFirst();
             throw new IllegalArgumentException(
-                    "GATEWAY_RELEASE_VALIDATION_FAILED: "
+                    "YUHENG_RELEASE_VALIDATION_FAILED: "
                             + issue.code()
                             + " at "
                             + issue.path()
@@ -1038,7 +1038,7 @@ public class GatewayReleaseService {
                 "MANAGEMENT_API",
                 request.requestId(),
                 request.traceId(),
-                "GATEWAY_RELEASE",
+                "YUHENG_RELEASE",
                 releaseId,
                 action,
                 null,
@@ -1184,7 +1184,7 @@ public class GatewayReleaseService {
      */
     private String bounded(String value) {
         if (value == null) {
-            return "DDC publish failed";
+            return "Tianshu publish failed";
         }
         return value.length() <= 1024 ? value : value.substring(0, 1024);
     }

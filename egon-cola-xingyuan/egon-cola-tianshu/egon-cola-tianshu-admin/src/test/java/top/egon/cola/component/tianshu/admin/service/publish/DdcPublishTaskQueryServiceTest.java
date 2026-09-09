@@ -26,7 +26,7 @@ class DdcPublishTaskQueryServiceTest {
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
         task.setId("task-1");
         when(repository.search(
-                eq("infra"), eq("prod"), eq("gateway"), eq("FAILED"),
+                eq("infra"), eq("prod"), eq("yuheng"), eq("FAILED"),
                 eq("019"), any(Pageable.class)))
                 .thenReturn(new PageImpl<>(
                         List.of(task), PageRequest.of(0, 10), 1));
@@ -44,7 +44,7 @@ class DdcPublishTaskQueryServiceTest {
         assertThat(page.getContent()).containsExactly(task);
         var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
         verify(repository).search(
-                eq("infra"), eq("prod"), eq("gateway"), eq("FAILED"),
+                eq("infra"), eq("prod"), eq("yuheng"), eq("FAILED"),
                 eq("019"), pageable.capture());
         assertThat(pageable.getValue().getSort().toString())
                 .isEqualTo("createdAt: DESC,id: DESC");

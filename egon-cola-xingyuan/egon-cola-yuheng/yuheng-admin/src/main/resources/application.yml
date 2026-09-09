@@ -1,12 +1,12 @@
 spring:
   application:
-    name: egon-cola-gateway-admin
+    name: egon-cola-yuheng-admin
   profiles:
     default: local
   config:
     import:
-      - optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/gateway-admin.properties
-      - optional:ddc:application.yml
+      - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/yuheng-admin.properties
+      - optional:tianshu:application.yml
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -17,17 +17,17 @@ spring:
 
 server:
   address: 0.0.0.0
-  port: ${GATEWAY_ADMIN_PORT:8080}
+  port: ${YUHENG_ADMIN_PORT:8080}
   shutdown: graceful
 
 springdoc:
   api-docs:
-    enabled: ${GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED:false}
+    enabled: ${YUHENG_ADMIN_HTTP_OPENAPI_ENABLED:false}
     version: OPENAPI_3_1
   group-configs:
-    - group: gateway-admin
+    - group: yuheng-admin
       paths-to-match:
-        - /api/v1/gateway/admin/**
+        - /api/v1/yuheng/admin/**
         - /api/v1/auth/bootstrap
 
 management:
@@ -41,141 +41,141 @@ management:
         enabled: true
       show-details: when-authorized
 
-gateway:
+yuheng:
   admin:
-    release-reconcile-enabled: ${GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED:true}
+    release-reconcile-enabled: ${YUHENG_ADMIN_RELEASE_RECONCILE_ENABLED:true}
     mcp:
-      artifact-root: ${GATEWAY_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/gateway-mcp-artifacts}
+      artifact-root: ${YUHENG_MCP_ARTIFACT_ROOT:${java.io.tmpdir}/egon-cola/yuheng-mcp-artifacts}
     transport-security:
       mode: DEVELOPMENT_PLAINTEXT
-    ddc:
+    tianshu:
       enabled: false
-      api-rpc-biz-code: ${GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE:infra}
-      api-rpc-app-code: ${GATEWAY_ADMIN_DDC_API_RPC_APP_CODE:ge}
-      mcp-biz-code: ${GATEWAY_ADMIN_DDC_MCP_BIZ_CODE:infra}
-      mcp-app-code: ${GATEWAY_ADMIN_DDC_MCP_APP_CODE:gme}
+      api-rpc-biz-code: ${YUHENG_ADMIN_TIANSHU_API_RPC_BIZ_CODE:infra}
+      api-rpc-app-code: ${YUHENG_ADMIN_TIANSHU_API_RPC_APP_CODE:ge}
+      mcp-biz-code: ${YUHENG_ADMIN_TIANSHU_MCP_BIZ_CODE:infra}
+      mcp-app-code: ${YUHENG_ADMIN_TIANSHU_MCP_APP_CODE:gme}
     openapi:
-      enabled: ${GATEWAY_ADMIN_OPENAPI_ENABLED:false}
-      allow-development-http: ${GATEWAY_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP:false}
-      reconcile-delay: ${GATEWAY_ADMIN_OPENAPI_RECONCILE_DELAY:PT30S}
-      batch-size: ${GATEWAY_ADMIN_OPENAPI_BATCH_SIZE:50}
-      maximum-instance-attempts: ${GATEWAY_ADMIN_OPENAPI_MAX_INSTANCE_ATTEMPTS:3}
-      claim-timeout: ${GATEWAY_ADMIN_OPENAPI_CLAIM_TIMEOUT:PT2M}
-      connect-timeout: ${GATEWAY_ADMIN_OPENAPI_CONNECT_TIMEOUT:PT3S}
-      read-timeout: ${GATEWAY_ADMIN_OPENAPI_READ_TIMEOUT:PT10S}
-      maximum-document-bytes: ${GATEWAY_ADMIN_OPENAPI_MAX_DOCUMENT_BYTES:5242880}
-      maximum-operations: ${GATEWAY_ADMIN_OPENAPI_MAX_OPERATIONS:5000}
-      maximum-schema-nodes: ${GATEWAY_ADMIN_OPENAPI_MAX_SCHEMA_NODES:50000}
-      maximum-ref-depth: ${GATEWAY_ADMIN_OPENAPI_MAX_REF_DEPTH:64}
-      retry-initial-delay: ${GATEWAY_ADMIN_OPENAPI_RETRY_INITIAL_DELAY:PT5S}
-      retry-maximum-delay: ${GATEWAY_ADMIN_OPENAPI_RETRY_MAXIMUM_DELAY:PT5M}
-      retry-jitter: ${GATEWAY_ADMIN_OPENAPI_RETRY_JITTER:0.20}
-      drift-sample-interval: ${GATEWAY_ADMIN_OPENAPI_DRIFT_SAMPLE_INTERVAL:PT5M}
+      enabled: ${YUHENG_ADMIN_OPENAPI_ENABLED:false}
+      allow-development-http: ${YUHENG_ADMIN_OPENAPI_ALLOW_DEVELOPMENT_HTTP:false}
+      reconcile-delay: ${YUHENG_ADMIN_OPENAPI_RECONCILE_DELAY:PT30S}
+      batch-size: ${YUHENG_ADMIN_OPENAPI_BATCH_SIZE:50}
+      maximum-instance-attempts: ${YUHENG_ADMIN_OPENAPI_MAX_INSTANCE_ATTEMPTS:3}
+      claim-timeout: ${YUHENG_ADMIN_OPENAPI_CLAIM_TIMEOUT:PT2M}
+      connect-timeout: ${YUHENG_ADMIN_OPENAPI_CONNECT_TIMEOUT:PT3S}
+      read-timeout: ${YUHENG_ADMIN_OPENAPI_READ_TIMEOUT:PT10S}
+      maximum-document-bytes: ${YUHENG_ADMIN_OPENAPI_MAX_DOCUMENT_BYTES:5242880}
+      maximum-operations: ${YUHENG_ADMIN_OPENAPI_MAX_OPERATIONS:5000}
+      maximum-schema-nodes: ${YUHENG_ADMIN_OPENAPI_MAX_SCHEMA_NODES:50000}
+      maximum-ref-depth: ${YUHENG_ADMIN_OPENAPI_MAX_REF_DEPTH:64}
+      retry-initial-delay: ${YUHENG_ADMIN_OPENAPI_RETRY_INITIAL_DELAY:PT5S}
+      retry-maximum-delay: ${YUHENG_ADMIN_OPENAPI_RETRY_MAXIMUM_DELAY:PT5M}
+      retry-jitter: ${YUHENG_ADMIN_OPENAPI_RETRY_JITTER:0.20}
+      drift-sample-interval: ${YUHENG_ADMIN_OPENAPI_DRIFT_SAMPLE_INTERVAL:PT5M}
       allowed-cidrs:
-        - ${GATEWAY_ADMIN_OPENAPI_ALLOWED_CIDR:}
-      required-scope: ${GATEWAY_ADMIN_OPENAPI_REQUIRED_SCOPE:gateway.openapi.read}
+        - ${YUHENG_ADMIN_OPENAPI_ALLOWED_CIDR:}
+      required-scope: ${YUHENG_ADMIN_OPENAPI_REQUIRED_SCOPE:yuheng.openapi.read}
     observability:
       retention: 168h
       kafka:
         enabled: false
-        topic: egon.gateway.call.v1
-        group-id: gateway-admin-call-events-v1
+        topic: egon.yuheng.call.v1
+        group-id: yuheng-admin-call-events-v1
 
 egon:
   cola:
     platform:
-      idp:
+      tianquan-shoubing:
         enabled: ${UNIFIED_IDENTITY_ENABLED:true}
         register-filter: false
-        issuer: ${IDP_OAUTH_ISSUER}
-        jwk-set-uri: ${IDP_JWK_SET_URI}
-        resource-server-id: ${GATEWAY_ADMIN_RESOURCE_SERVER_ID}
-        resource-uri: ${GATEWAY_ADMIN_RESOURCE_URI}
-      rbac3:
+        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER}
+        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI}
+        resource-server-id: ${YUHENG_ADMIN_RESOURCE_SERVER_ID}
+        resource-uri: ${YUHENG_ADMIN_RESOURCE_URI}
+      tianquan-jianshen:
         enabled: ${UNIFIED_IDENTITY_ENABLED:true}
         register-filter: false
-        system-code: gateway-admin
+        system-code: yuheng-admin
         runtime:
           redis-enabled: true
-          redis-address: ${GATEWAY_AUTHORIZATION_REDIS_ADDRESS}
-          database: ${GATEWAY_AUTHORIZATION_REDIS_DATABASE:0}
+          redis-address: ${YUHENG_AUTHORIZATION_REDIS_ADDRESS}
+          database: ${YUHENG_AUTHORIZATION_REDIS_DATABASE:0}
         authorization:
-          endpoint: ${RBAC3_AUTHORIZATION_ENDPOINT}
+          endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT}
           service-token:
-            enabled: ${GATEWAY_RBAC3_SERVICE_TOKEN_ENABLED:true}
-            resource-uri: ${GATEWAY_RBAC3_SERVICE_TOKEN_RESOURCE_URI}
-            scopes: ${GATEWAY_RBAC3_SERVICE_TOKEN_SCOPES}
+            enabled: ${YUHENG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_ENABLED:true}
+            resource-uri: ${YUHENG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_RESOURCE_URI}
+            scopes: ${YUHENG_TIANQUAN_JIANSHEN_SERVICE_TOKEN_SCOPES}
     component:
       rpc:
         tls:
-          enabled: ${IDP_ADMISSION_RPC_TLS_ENABLED:false}
-          development-plaintext: ${IDP_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}}
-          certificate-chain-path: ${IDP_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
-          private-key-path: ${IDP_ADMISSION_RPC_PRIVATE_KEY_PATH:}
-          trust-certificate-collection-path: ${IDP_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
-      ddc:
-        enabled: ${DDC_ENABLED:false}
-        biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
+          enabled: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TLS_ENABLED:false}
+          development-plaintext: ${TIANQUAN_SHOUBING_ADMISSION_RPC_DEVELOPMENT_PLAINTEXT:${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}}
+          certificate-chain-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_CERTIFICATE_CHAIN_PATH:}
+          private-key-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_PRIVATE_KEY_PATH:}
+          trust-certificate-collection-path: ${TIANQUAN_SHOUBING_ADMISSION_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+      tianshu:
+        enabled: ${TIANSHU_ENABLED:false}
+        biz-code: ${YUHENG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}
         env: ${DEPLOYMENT_ENV}
-        app-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
-        max-config-bytes: ${DDC_MAX_CONFIG_BYTES:1048576}
+        app-code: ${YUHENG_ADMIN_RESOURCE_APP_CODE:yuheng-admin}
+        max-config-bytes: ${TIANSHU_MAX_CONFIG_BYTES:1048576}
         rpc:
-          target: ${DDC_RPC_TARGET:dns:///ddc-admin:19080}
+          target: ${TIANSHU_RPC_TARGET:dns:///tianshu-admin:19080}
           load-balancing-policy: round_robin
           tls:
-            enabled: ${DDC_RPC_TLS_ENABLED:false}
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:false}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:false}
           auth:
             runtime:
-              access-key: ${DDC_RPC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_RPC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_REGISTRY_SECRET_KEY:}
             management:
-              access-key: ${DDC_RPC_MANAGEMENT_ACCESS_KEY:}
-              secret-key: ${DDC_RPC_MANAGEMENT_SECRET_KEY:}
+              access-key: ${TIANSHU_RPC_MANAGEMENT_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RPC_MANAGEMENT_SECRET_KEY:}
         redis:
           enabled: true
-          mode: ${DDC_REDIS_MODE:SINGLE}
-          host: ${DDC_REDIS_HOST:127.0.0.1}
-          port: ${DDC_REDIS_PORT:6379}
-          password: ${DDC_REDIS_PASSWORD:}
-          database: ${DDC_REDIS_DATABASE:0}
+          mode: ${TIANSHU_REDIS_MODE:SINGLE}
+          host: ${TIANSHU_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REDIS_PORT:6379}
+          password: ${TIANSHU_REDIS_PASSWORD:}
+          database: ${TIANSHU_REDIS_DATABASE:0}
         registry:
-          enabled: ${DDC_REGISTRY_ENABLED:false}
+          enabled: ${TIANSHU_REGISTRY_ENABLED:false}
           http:
-            enabled: ${GATEWAY_ADMIN_DDC_REGISTRATION_ENABLED:false}
-            service-name: gateway-admin
-            version: ${GATEWAY_ADMIN_VERSION:5.3.2}
+            enabled: ${YUHENG_ADMIN_TIANSHU_REGISTRATION_ENABLED:false}
+            service-name: yuheng-admin
+            version: ${YUHENG_ADMIN_VERSION:5.3.2}
             protocol: http
-            advertised-host: ${GATEWAY_ADMIN_DDC_ADVERTISED_HOST:127.0.0.1}
-            port: ${GATEWAY_ADMIN_DDC_ADVERTISED_PORT:0}
+            advertised-host: ${YUHENG_ADMIN_TIANSHU_ADVERTISED_HOST:127.0.0.1}
+            port: ${YUHENG_ADMIN_TIANSHU_ADVERTISED_PORT:0}
             metadata:
-              gateway.component: admin
-      gateway:
+              yuheng.component: admin
+      yuheng:
         openapi:
-          enabled: ${GATEWAY_ADMIN_HTTP_OPENAPI_ENABLED:false}
-          publish-to-ddc: ${GATEWAY_ADMIN_HTTP_OPENAPI_PUBLISH_TO_DDC:true}
+          enabled: ${YUHENG_ADMIN_HTTP_OPENAPI_ENABLED:false}
+          publish-to-tianshu: ${YUHENG_ADMIN_HTTP_OPENAPI_PUBLISH_TO_TIANSHU:true}
           published-groups:
-            - gateway-admin
-          biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
-          application-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
-          resource-uri: ${GATEWAY_ADMIN_RESOURCE_URI:}
-          artifact-version: ${GATEWAY_ADMIN_VERSION:local}
-          build-id: ${GATEWAY_ADMIN_BUILD_ID:local}
+            - yuheng-admin
+          biz-code: ${YUHENG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}
+          application-code: ${YUHENG_ADMIN_RESOURCE_APP_CODE:yuheng-admin}
+          resource-uri: ${YUHENG_ADMIN_RESOURCE_URI:}
+          artifact-version: ${YUHENG_ADMIN_VERSION:local}
+          build-id: ${YUHENG_ADMIN_BUILD_ID:local}
         reporting:
-          enabled: ${GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED:false}
-          admin-base-url: ${GATEWAY_ADMIN_BASE_URL:}
-          biz-code: ${GATEWAY_ADMIN_RESOURCE_BIZ_CODE:platform}
-          application-code: ${GATEWAY_ADMIN_RESOURCE_APP_CODE:gateway-admin}
-          application-name: Gateway Admin
+          enabled: ${YUHENG_ADMIN_YUHENG_REPORTING_ENABLED:false}
+          admin-base-url: ${YUHENG_ADMIN_BASE_URL:}
+          biz-code: ${YUHENG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}
+          application-code: ${YUHENG_ADMIN_RESOURCE_APP_CODE:yuheng-admin}
+          application-name: Yuheng Admin
           env: ${DEPLOYMENT_ENV:local}
           namespace: ${DEPLOYMENT_NAMESPACE:default}
-          artifact-version: ${GATEWAY_ADMIN_VERSION:local}
-          build-id: ${GATEWAY_ADMIN_BUILD_ID:local}
-          declared-hosts: ${GATEWAY_ADMIN_DECLARED_HOSTS:127.0.0.1}
+          artifact-version: ${YUHENG_ADMIN_VERSION:local}
+          build-id: ${YUHENG_ADMIN_BUILD_ID:local}
+          declared-hosts: ${YUHENG_ADMIN_DECLARED_HOSTS:127.0.0.1}
           fail-fast: true
-          access-key: ${GATEWAY_REPORT_ACCESS_KEY:}
-          secret-key: ${GATEWAY_REPORT_SECRET_KEY:}
-          state-file: ${GATEWAY_REPORT_STATE_FILE:}
+          access-key: ${YUHENG_REPORT_ACCESS_KEY:}
+          secret-key: ${YUHENG_REPORT_SECRET_KEY:}
+          state-file: ${YUHENG_REPORT_STATE_FILE:}

@@ -27,7 +27,7 @@ import java.util.List;
  * 用法 / Usage: Bind and validate before constructing listeners, providers or durable state.
  */
 @Validated
-@ConfigurationProperties(prefix = "egon.cola.component.gateway.mcp-engine", ignoreUnknownFields = false)
+@ConfigurationProperties(prefix = "egon.cola.component.yuheng.mcp-engine", ignoreUnknownFields = false)
 public record McpGatewayEngineProperties(
         @NotBlank @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_-]{0,63}") String gatewayGroupCode,
         @NotBlank @Size(max = 128) String env,

@@ -37,7 +37,7 @@ class McpMethodDispatcherTest {
                             McpProtocolDialect.STABLE_2025_11_25,
                             McpProtocolDialect.RC_2026_07_28
                     ),
-                    "https://resource.egon.top/gateway-mcp",
+                    "https://resource.egon.top/yuheng-mcp",
                     30,
                     true
             ),
@@ -90,7 +90,7 @@ class McpMethodDispatcherTest {
         assertEquals("billing", rcDescription.get("code"));
         assertEquals("Billing", rcDescription.get("name"));
         assertEquals("Use approved billing capabilities.", rcDescription.get("instructions"));
-        assertEquals("https://resource.egon.top/gateway-mcp", rcDescription.get("resourceUri"));
+        assertEquals("https://resource.egon.top/yuheng-mcp", rcDescription.get("resourceUri"));
         assertEquals(Map.of(), ping.result());
     }
 
@@ -100,7 +100,7 @@ class McpMethodDispatcherTest {
                 new McpRuntimeServer(
                         "minimal", "minimal", "Minimal", null, null,
                         Set.of(McpProtocolDialect.STABLE_2025_11_25),
-                        "https://resource.egon.top/gateway-mcp", 0, true
+                        "https://resource.egon.top/yuheng-mcp", 0, true
                 ),
                 McpProtocolDialect.STABLE_2025_11_25, "session-minimal", Map.of()
         );

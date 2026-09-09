@@ -15,7 +15,7 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.regex.Pattern;
 
-/** IdP-owned tenant catalog aggregate mapped to {@code identity_tenant}. */
+/** Tianquan-Shoubing-owned tenant catalog aggregate mapped to {@code identity_tenant}. */
 @Entity
 @Table(name = "identity_tenant")
 public class IdentityTenantEntity {
@@ -203,7 +203,7 @@ public class IdentityTenantEntity {
         return normalized;
     }
 
-    /** IdP tenant lifecycle state. */
+    /** Tianquan-Shoubing tenant lifecycle state. */
     public enum Status {
         INITIALIZING,
         ACTIVE,

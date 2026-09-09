@@ -31,13 +31,13 @@ import top.egon.cola.platform.tianquan.jianshen.starter.security.RequiresPermiss
  * Semantics and usage: use `RuntimeController` as the responsibility boundary of `the current package`, following its existing construction, interface, or Spring-assembly mechanism.
  */
 @RestController
-@RequestMapping("/api/rbac3/v1/runtime")
+@RequestMapping("/api/tianquan-jianshen/v1/runtime")
 @Tag(name = "authorization-runtime", description = "授权运行状态接口组")
 @EgonApiCatalog(
-        businessDomainCode = "platform",
+        businessDomainCode = "xingyuan",
         businessDomainName = "平台治理域",
-        entityDomainCode = "rbac3",
-        entityDomainName = "RBAC3权限实体域",
+        entityDomainCode = "tianquan-jianshen",
+        entityDomainName = "Tianquan-Jianshen权限实体域",
         interfaceGroupCode = "iam"
 )
 public class RuntimeController {
@@ -76,9 +76,9 @@ public class RuntimeController {
     @GetMapping("/status")
     @RequiresPermission(value = "system:authorization-runtime:read")
     @Operation(
-            operationId = "rbac3-runtime-status-v1",
+            operationId = "tianquan-jianshen-runtime-status-v1",
             summary = "查询授权运行状态",
-            tags = {"rbac3", "runtime"}
+            tags = {"tianquan-jianshen", "runtime"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -102,9 +102,9 @@ public class RuntimeController {
     @GetMapping("/mutations")
     @RequiresPermission(value = "system:authorization-runtime:read")
     @Operation(
-            operationId = "rbac3-runtime-mutations-v1",
+            operationId = "tianquan-jianshen-runtime-mutations-v1",
             summary = "游标查询授权 Mutation Journal",
-            tags = {"rbac3", "runtime"}
+            tags = {"tianquan-jianshen", "runtime"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -131,9 +131,9 @@ public class RuntimeController {
     @PostMapping("/mutations/{mutationId}/retry")
     @RequiresPermission(value = "system:authorization-runtime:operate")
     @Operation(
-            operationId = "rbac3-runtime-mutation-retry-v1",
+            operationId = "tianquan-jianshen-runtime-mutation-retry-v1",
             summary = "按 Mutation ID 触发幂等受控恢复",
-            tags = {"rbac3", "runtime"}
+            tags = {"tianquan-jianshen", "runtime"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL
@@ -154,12 +154,12 @@ public class RuntimeController {
      *
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-    @GetMapping("/gateway-ddc-status")
+    @GetMapping("/yuheng-tianshu-status")
     @RequiresPermission(value = "system:authorization-runtime:read")
     @Operation(
-            operationId = "rbac3-runtime-gateway-ddc-status-v1",
-            summary = "分别查询 Definition、DDC Lease 和 Gateway Release",
-            tags = {"rbac3", "runtime", "gateway", "ddc"}
+            operationId = "tianquan-jianshen-runtime-yuheng-tianshu-status-v1",
+            summary = "分别查询 Definition、Tianshu Lease 和 Gateway Release",
+            tags = {"tianquan-jianshen", "runtime", "yuheng", "tianshu"}
     )
     @EgonGatewayPolicy(
             exposure = EgonGatewayPolicy.Exposure.EXTERNAL

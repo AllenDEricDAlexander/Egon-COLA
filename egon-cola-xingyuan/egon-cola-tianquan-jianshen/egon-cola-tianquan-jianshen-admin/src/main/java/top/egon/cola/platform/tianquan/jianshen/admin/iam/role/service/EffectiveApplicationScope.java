@@ -1,7 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service;
 
 /**
- * DDC Business and Application identity after all local and catalog eligibility checks.
+ * Tianshu Business and Application identity after all local and catalog eligibility checks.
  */
 public record EffectiveApplicationScope(
         String businessId,

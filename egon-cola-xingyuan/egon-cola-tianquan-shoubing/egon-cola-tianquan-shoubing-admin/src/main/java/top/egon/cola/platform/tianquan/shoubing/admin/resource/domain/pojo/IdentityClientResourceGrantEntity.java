@@ -49,7 +49,7 @@ public class IdentityClientResourceGrantEntity {
     @Column(name = "tenant_id", length = 64)
     private String tenantId;
 
-    /** 服务访问许可 Scope 的 JSON 数组；JSON array of service scopes allowed by IdP. */
+    /** 服务访问许可 Scope 的 JSON 数组；JSON array of service scopes allowed by Tianquan-Shoubing. */
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "allowed_scopes", nullable = false, columnDefinition = "jsonb")
     private String allowedScopes;

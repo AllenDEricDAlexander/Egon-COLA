@@ -29,7 +29,7 @@ public final class Rbac3RuntimeProjectionRecovery implements
         RuntimeSnapshotRebuildService {
 
     private static final int PAGE_SIZE = 200;
-    private static final String ACTOR = "rbac3-runtime-recovery";
+    private static final String ACTOR = "tianquan-jianshen-runtime-recovery";
     private static final Set<String> RESELECTION_REASONS = Set.of(
             "ROLE_ACTIVATION_ASSIGNMENT_REQUIRED", "ROLE_ACTIVATION_SET_INVALID",
             "APP_ROLE_ACTIVATION_MUTEX_VIOLATION", "ACTIVE_ROLE_ROOT_LIMIT_EXCEEDED");

@@ -28,7 +28,7 @@ class IdentityProfileDirectoryTest {
 
         assertThat(reference.mode()).isEqualTo(RpcReferenceMode.DIRECT);
         assertThat(reference.bizCode()).isEqualTo("permission");
-        assertThat(reference.appCode()).isEqualTo("idp");
+        assertThat(reference.appCode()).isEqualTo("tianquan-shoubing");
     }
 
     @Test

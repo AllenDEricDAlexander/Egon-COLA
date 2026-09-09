@@ -46,9 +46,9 @@ class Rbac3AdminApplicationModeTest {
     @Test
     void disablesLongRunningInfrastructureForTheOneShotBootstrapCommand() {
         assertThat(Rbac3AdminApplication.bootstrapRuntimeProperties())
-                .containsEntry("egon.cola.component.ddc.enabled", false)
-                .containsEntry("egon.cola.component.gateway.reporting.enabled", false)
-                .containsEntry("egon.cola.component.ddc.registry.http.enabled", false)
+                .containsEntry("egon.cola.component.tianshu.enabled", false)
+                .containsEntry("egon.cola.component.yuheng.reporting.enabled", false)
+                .containsEntry("egon.cola.component.tianshu.registry.http.enabled", false)
                 .containsEntry(
                         "egon.cola.component.transactional-outbox.polling.enabled",
                         false)

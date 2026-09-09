@@ -136,7 +136,7 @@ class ParticipationConcurrencyIT {
                 "tenant-1",
                 "service-1",
                 "service-token-1",
-                URI.create("https://api.example/prod/permission/rbac3"),
+                URI.create("https://api.example/prod/permission/tianquan-jianshen"),
                 12L,
                 Set.of("service:participation:write",
                         "service:participation:read"),

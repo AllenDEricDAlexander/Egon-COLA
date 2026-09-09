@@ -53,7 +53,7 @@ public final class McpGatewayEngineRuntime implements SmartLifecycle {
         server.start();
         running = true;
         coordinator = Executors.newSingleThreadScheduledExecutor(runnable -> {
-            Thread thread = new Thread(runnable, "gateway-mcp-engine-readiness");
+            Thread thread = new Thread(runnable, "yuheng-mcp-gateway-readiness");
             thread.setDaemon(true);
             return thread;
         });

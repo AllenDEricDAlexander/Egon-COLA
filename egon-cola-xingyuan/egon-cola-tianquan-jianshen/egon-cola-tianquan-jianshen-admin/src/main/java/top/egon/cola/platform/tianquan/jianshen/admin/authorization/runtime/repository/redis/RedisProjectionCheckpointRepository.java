@@ -154,7 +154,7 @@ public class RedisProjectionCheckpointRepository
             bucket.expire(APPLIED_TTL);
             return;
         }
-        throw new IllegalStateException("RBAC3_PROJECTION_CHECKPOINT_OWNERSHIP_LOST");
+        throw new IllegalStateException("TIANQUAN_JIANSHEN_PROJECTION_CHECKPOINT_OWNERSHIP_LOST");
     }
 
     /**
@@ -199,7 +199,7 @@ public class RedisProjectionCheckpointRepository
             String aggregateType,
             String aggregateId) {
         return redisson.getBucket(
-                "rbac3:{" + part(tenantId) + "}:projection:"
+                "tianquan-jianshen:{" + part(tenantId) + "}:projection:"
                         + part(aggregateType) + ':' + part(aggregateId),
                 StringCodec.INSTANCE);
     }
@@ -236,13 +236,13 @@ public class RedisProjectionCheckpointRepository
     private static Checkpoint parse(String value) {
         String[] parts = value.split("\\|", -1);
         if (parts.length != 3) {
-            throw new IllegalStateException("RBAC3_PROJECTION_CHECKPOINT_INVALID");
+            throw new IllegalStateException("TIANQUAN_JIANSHEN_PROJECTION_CHECKPOINT_INVALID");
         }
         try {
             return new Checkpoint(parts[0], Long.parseLong(parts[1]), parts[2]);
         } catch (NumberFormatException invalid) {
             throw new IllegalStateException(
-                    "RBAC3_PROJECTION_CHECKPOINT_INVALID", invalid);
+                    "TIANQUAN_JIANSHEN_PROJECTION_CHECKPOINT_INVALID", invalid);
         }
     }
 
@@ -258,7 +258,7 @@ public class RedisProjectionCheckpointRepository
      */
     private static String part(String value) {
         if (value == null || !KEY_PART.matcher(value).matches()) {
-            throw new IllegalArgumentException("invalid RBAC3 projection key part");
+            throw new IllegalArgumentException("invalid Tianquan-Jianshen projection key part");
         }
         return value;
     }

@@ -51,7 +51,7 @@ import java.util.stream.Collectors;
 @Component("idpDevelopmentClientBootstrap")
 @Profile("local")
 @ConditionalOnProperty(
-        prefix = "egon.idp.development-bootstrap",
+        prefix = "egon.tianquan-shoubing.development-bootstrap",
         name = "enabled",
         havingValue = "true")
 public class IdpDevelopmentClientBootstrap
@@ -65,12 +65,12 @@ public class IdpDevelopmentClientBootstrap
 
     /** 开发环境中需要幂等创建的 Public Client；public Clients created idempotently for local use. */
     private static final List<ClientSpec> CLIENTS = List.of(
-            new ClientSpec("idp-admin-web", "IdP Admin Web", 18121),
-            new ClientSpec("rbac3-admin-web", "RBAC3 Admin Web", 18131),
-            new ClientSpec("gateway-admin-web", "Gateway Admin Web", 18141),
+            new ClientSpec("tianquan-shoubing-admin-web", "Tianquan-Shoubing Admin Web", 18121),
+            new ClientSpec("tianquan-jianshen-admin-web", "Tianquan-Jianshen Admin Web", 18131),
+            new ClientSpec("yuheng-admin-web", "Yuheng Admin Web", 18141),
             new ClientSpec(
-                    "ddc-admin-web",
-                    "DDC Admin Web",
+                    "tianshu-admin-web",
+                    "Tianshu Admin Web",
                     18152,
                     List.of("http://127.0.0.1:18151/oauth/callback")
             ),
@@ -78,20 +78,20 @@ public class IdpDevelopmentClientBootstrap
 
     /** 开发环境中需要幂等创建的机器 Client；machine Clients created idempotently for local use. */
     private static final List<MachineClientSpec> MACHINE_CLIENTS = List.of(
-            new MachineClientSpec("idp-service", "IdP Local Service"),
-            new MachineClientSpec("rbac3-service", "RBAC3 Local Service"),
-            new MachineClientSpec("ddc-service", "DDC Local Service"),
+            new MachineClientSpec("tianquan-shoubing-service", "Tianquan-Shoubing Local Service"),
+            new MachineClientSpec("tianquan-jianshen-service", "Tianquan-Jianshen Local Service"),
+            new MachineClientSpec("tianshu-service", "Tianshu Local Service"),
             new MachineClientSpec(
-                    "gateway-admin-service",
-                    "Gateway Admin Local Service"
+                    "yuheng-admin-service",
+                    "Yuheng Admin Local Service"
             ),
             new MachineClientSpec(
-                    "gateway-engine-service",
-                    "Gateway Engine Local Service"
+                    "yuheng-biz-gateway-service",
+                    "Yuheng Engine Local Service"
             ),
             new MachineClientSpec(
-                    "gateway-mcp-engine-service",
-                    "Gateway MCP Engine Local Service"
+                    "yuheng-mcp-gateway-service",
+                    "Yuheng MCP Engine Local Service"
             ),
             new MachineClientSpec(
                     "mock-backend-service",
@@ -106,67 +106,67 @@ public class IdpDevelopmentClientBootstrap
     /** 开发环境明确审批的应用级 Resource Server；explicitly approved local Resource Servers. */
     private static final List<ResourceSpec> RESOURCES = List.of(
             new ResourceSpec(
-                    "permission-idp-local",
-                    "https://api.egon.internal/local/permission/idp",
+                    "permission-tianquan-shoubing-local",
+                    "https://api.egon.internal/local/permission/tianquan-shoubing",
                     "permission",
-                    "idp",
-                    "IdP Local",
-                    "idp-service",
-                    "idp-admin",
-                    "idp:identity:self:read",
-                    "idp-admin-web"
+                    "tianquan-shoubing",
+                    "Tianquan-Shoubing Local",
+                    "tianquan-shoubing-service",
+                    "tianquan-shoubing-admin",
+                    "tianquan-shoubing:identity:self:read",
+                    "tianquan-shoubing-admin-web"
             ),
             new ResourceSpec(
-                    "permission-rbac3-local",
-                    "https://api.egon.internal/local/permission/rbac3",
+                    "permission-tianquan-jianshen-local",
+                    "https://api.egon.internal/local/permission/tianquan-jianshen",
                     "permission",
-                    "rbac3",
-                    "RBAC3 Local",
-                    "rbac3-service",
-                    "rbac3-admin",
+                    "tianquan-jianshen",
+                    "Tianquan-Jianshen Local",
+                    "tianquan-jianshen-service",
+                    "tianquan-jianshen-admin",
                     "system:tenant:read",
-                    "rbac3-admin-web"
+                    "tianquan-jianshen-admin-web"
             ),
             new ResourceSpec(
-                    "platform-ddc-local",
-                    "https://api.egon.internal/local/platform/ddc",
-                    "platform",
-                    "ddc",
-                    "DDC Local",
-                    "ddc-service",
-                    "ddc-admin",
-                    "DDC_READ",
-                    "ddc-admin-web"
+                    "platform-tianshu-local",
+                    "https://api.egon.internal/local/platform/tianshu",
+                    "xingyuan",
+                    "tianshu",
+                    "Tianshu Local",
+                    "tianshu-service",
+                    "tianshu-admin",
+                    "TIANSHU_READ",
+                    "tianshu-admin-web"
             ),
             new ResourceSpec(
-                    "platform-gateway-admin-local",
-                    "https://api.egon.internal/local/platform/gateway-admin",
-                    "platform",
-                    "gateway-admin",
-                    "Gateway Admin Local",
-                    "gateway-admin-service",
-                    "gateway-admin",
-                    "gateway:read",
-                    "gateway-admin-web"
+                    "platform-yuheng-admin-local",
+                    "https://api.egon.internal/local/platform/yuheng-admin",
+                    "xingyuan",
+                    "yuheng-admin",
+                    "Yuheng Admin Local",
+                    "yuheng-admin-service",
+                    "yuheng-admin",
+                    "yuheng:read",
+                    "yuheng-admin-web"
             ),
             new ResourceSpec(
-                    "identity-gateway-engine-default-local",
-                    "https://api.egon.internal/local/identity/gateway-engine-default",
+                    "identity-yuheng-biz-gateway-default-local",
+                    "https://api.egon.internal/local/identity/yuheng-biz-gateway-default",
                     "identity",
-                    "gateway-engine-default",
-                    "Gateway Engine Local",
-                    "gateway-engine-service",
+                    "yuheng-biz-gateway-default",
+                    "Yuheng Engine Local",
+                    "yuheng-biz-gateway-service",
                     "mock-backend",
                     "mock:read",
                     null
             ),
             new ResourceSpec(
-                    "identity-gateway-mcp-engine-default-local",
-                    "https://api.egon.internal/local/identity/gateway-mcp-engine-default",
+                    "identity-yuheng-mcp-gateway-default-local",
+                    "https://api.egon.internal/local/identity/yuheng-mcp-gateway-default",
                     "identity",
-                    "gateway-mcp-engine-default",
-                    "Gateway MCP Engine Local",
-                    "gateway-mcp-engine-service",
+                    "yuheng-mcp-gateway-default",
+                    "Yuheng MCP Engine Local",
+                    "yuheng-mcp-gateway-service",
                     "mock-backend",
                     "mock:read",
                     null
@@ -183,11 +183,11 @@ public class IdpDevelopmentClientBootstrap
                     "mock-backend"
             ),
             new ResourceSpec(
-                    "identity-gateway-test-mcp-provider-local",
-                    "https://api.egon.internal/local/identity/gateway-test-mcp-provider",
+                    "identity-yuheng-test-mcp-provider-local",
+                    "https://api.egon.internal/local/identity/yuheng-test-mcp-provider",
                     "identity",
-                    "gateway-test-mcp-provider",
-                    "Gateway MCP Provider Local",
+                    "yuheng-test-mcp-provider",
+                    "Yuheng MCP Provider Local",
                     "mcp-provider-service",
                     "mock-backend",
                     "mock:read",
@@ -195,74 +195,74 @@ public class IdpDevelopmentClientBootstrap
             )
     );
 
-    /** 需要访问 RBAC3 USER 决策接口的本地服务 Client；local service Clients calling RBAC3 USER decisions. */
-    private static final List<String> RBAC3_SERVICE_CLIENTS = List.of(
-            "idp-service",
-            "rbac3-service",
-            "ddc-service",
-            "gateway-admin-service",
-            "gateway-engine-service",
-            "gateway-mcp-engine-service",
+    /** 需要访问 Tianquan-Jianshen USER 决策接口的本地服务 Client；local service Clients calling Tianquan-Jianshen USER decisions. */
+    private static final List<String> TIANQUAN_JIANSHEN_SERVICE_CLIENTS = List.of(
+            "tianquan-shoubing-service",
+            "tianquan-jianshen-service",
+            "tianshu-service",
+            "yuheng-admin-service",
+            "yuheng-biz-gateway-service",
+            "yuheng-mcp-gateway-service",
             "mock-backend-service",
             "mcp-provider-service"
     );
 
-    /** RBAC3 内部 USER 决策接口所需 Scope；scopes required by RBAC3 internal USER-decision APIs. */
-    private static final Set<String> RBAC3_SERVICE_SCOPES = Set.of(
+    /** Tianquan-Jianshen 内部 USER 决策接口所需 Scope；scopes required by Tianquan-Jianshen internal USER-decision APIs. */
+    private static final Set<String> TIANQUAN_JIANSHEN_SERVICE_SCOPES = Set.of(
             "service:authorization:decide",
             "service:authorization:snapshot",
             "service:identity:resolve"
     );
 
-    /** Gateway USER 在线状态检查所需的 IdP 内部 Scope。 */
-    private static final Set<String> GATEWAY_REFRESH_STATUS_SCOPES = Set.of(
-            "idp:refresh-token:validate"
+    /** Gateway USER 在线状态检查所需的 Tianquan-Shoubing 内部 Scope。 */
+    private static final Set<String> YUHENG_REFRESH_STATUS_SCOPES = Set.of(
+            "tianquan-shoubing:refresh-token:validate"
     );
 
     /**
      * Gateway Admin 控制面 Service Token 所需 Scope；scopes required by the Gateway Admin
      * control-plane Service Token.
      */
-    private static final Set<String> GATEWAY_ADMIN_SERVICE_SCOPES = Set.of(
-            "gateway:read",
-            "gateway:applications:write",
-            "gateway:catalog:write",
-            "gateway:credentials:write",
-            "gateway:drafts:write",
-            "gateway:groups:write",
-            "gateway:mcp:approve",
-            "gateway:mcp:read",
-            "gateway:mcp:runtime:read",
-            "gateway:mcp:test",
-            "gateway:mcp:write",
-            "gateway:releases:write"
+    private static final Set<String> YUHENG_ADMIN_SERVICE_SCOPES = Set.of(
+            "yuheng:read",
+            "yuheng:applications:write",
+            "yuheng:catalog:write",
+            "yuheng:credentials:write",
+            "yuheng:drafts:write",
+            "yuheng:groups:write",
+            "yuheng:mcp:approve",
+            "yuheng:mcp:read",
+            "yuheng:mcp:runtime:read",
+            "yuheng:mcp:test",
+            "yuheng:mcp:write",
+            "yuheng:releases:write"
     );
 
     /** Gateway Admin 读取 Provider OpenAPI 文档所需的 PLATFORM Scope。 */
-    private static final Set<String> GATEWAY_OPENAPI_SERVICE_SCOPES = Set.of(
-            "gateway.openapi.read"
+    private static final Set<String> YUHENG_OPENAPI_SERVICE_SCOPES = Set.of(
+            "yuheng.openapi.read"
     );
 
     /** MCP Task Worker 的 Source Client；source Client used by the MCP task worker. */
     private static final String MCP_TASK_SERVICE_CLIENT =
-            "gateway-mcp-engine-service";
+            "yuheng-mcp-gateway-service";
 
     /** MCP Provider 的目标 Resource；target Resource exposed by the MCP Provider. */
     private static final String MCP_TASK_RESOURCE_SERVER =
-            "identity-gateway-test-mcp-provider-local";
+            "identity-yuheng-test-mcp-provider-local";
 
     /** MCP Task Worker 调用 Provider 所需 Scope；scope required to invoke the MCP Provider. */
     private static final Set<String> MCP_TASK_SERVICE_SCOPES =
             Set.of("mcp:operation:invoke");
 
-    /** 需要向 DDC 注册的本地服务 Client；local service Clients registering with DDC. */
-    private static final List<String> DDC_REGISTRATION_CLIENTS = List.of(
-            "ddc-service",
-            "idp-service",
-            "rbac3-service",
-            "gateway-admin-service",
-            "gateway-engine-service",
-            "gateway-mcp-engine-service",
+    /** 需要向 Tianshu 注册的本地服务 Client；local service Clients registering with Tianshu. */
+    private static final List<String> TIANSHU_REGISTRATION_CLIENTS = List.of(
+            "tianshu-service",
+            "tianquan-shoubing-service",
+            "tianquan-jianshen-service",
+            "yuheng-admin-service",
+            "yuheng-biz-gateway-service",
+            "yuheng-mcp-gateway-service",
             "mock-backend-service",
             "mcp-provider-service"
     );
@@ -292,24 +292,24 @@ public class IdpDevelopmentClientBootstrap
     @Qualifier("resourceServerProjectionService")
     private final ResourceServerProjectionService projections;
 
-    /** IdP 本地租户初始化；IdP-owned local tenant initialization. */
+    /** Tianquan-Shoubing 本地租户初始化；Tianquan-Shoubing-owned local tenant initialization. */
     @NonNull
     private final IdpDevelopmentTenantBootstrap developmentTenants;
 
     /** 本地机器 Client Secret 目录；local machine-Client Secret directory. */
     @NonNull
-    @Value("${egon.idp.development-bootstrap.key-directory:target/local-unified-platform/secrets}")
+    @Value("${egon.tianquan-shoubing.development-bootstrap.key-directory:target/local-unified-xingyuan/secrets}")
     private final String secretDirectory;
 
-    /** RBAC3 服务授权租户集合配置；configured tenants for RBAC3 service grants. */
-    @Value("${egon.idp.development-bootstrap.rbac3-service-tenant-ids:default}")
+    /** Tianquan-Jianshen 服务授权租户集合配置；configured tenants for Tianquan-Jianshen service grants. */
+    @Value("${egon.tianquan-shoubing.development-bootstrap.tianquan-jianshen-service-tenant-ids:default}")
     private final String rbac3ServiceTenantIds;
 
     /**
-     * 在 DDC 生命周期启动前，幂等对齐本地 Client、Resource 与显式 Grant。
+     * 在 Tianshu 生命周期启动前，幂等对齐本地 Client、Resource 与显式 Grant。
      *
      * <p>Idempotently reconciles local Clients, Resources, and explicit grants before the
-     * DDC lifecycle starts.</p>
+     * Tianshu lifecycle starts.</p>
      */
     @Override
     public void afterSingletonsInstantiated() {
@@ -336,7 +336,7 @@ public class IdpDevelopmentClientBootstrap
         reconcileGatewayRefreshStatusGrant();
         reconcileGatewayAdminServiceGrants(serviceTenantIds);
         reconcileMcpTaskServiceGrants(serviceTenantIds);
-        log.info("Reconciled local IdP development Client and Resource Server definitions");
+        log.info("Reconciled local Tianquan-Shoubing development Client and Resource Server definitions");
     }
 
     /**
@@ -582,17 +582,17 @@ public class IdpDevelopmentClientBootstrap
     }
 
     /**
-     * 给需要查询 USER 权限的服务显式登记到 RBAC3 的 Service Grant。
+     * 给需要查询 USER 权限的服务显式登记到 Tianquan-Jianshen 的 Service Grant。
      *
-     * <p>Explicitly grants services that query USER permissions access to the RBAC3 Resource.</p>
+     * <p>Explicitly grants services that query USER permissions access to the Tianquan-Jianshen Resource.</p>
      */
     private void reconcileRbac3ServiceGrants(Set<String> rbac3ServiceTenantIds) {
-        String target = "permission-rbac3-local";
-        String allowedScopes = RBAC3_SERVICE_SCOPES.stream()
+        String target = "permission-tianquan-jianshen-local";
+        String allowedScopes = TIANQUAN_JIANSHEN_SERVICE_SCOPES.stream()
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
-        RBAC3_SERVICE_CLIENTS.forEach(clientId -> {
+        TIANQUAN_JIANSHEN_SERVICE_CLIENTS.forEach(clientId -> {
             List<IdentityClientResourceGrantEntity> reusable =
                     new ArrayList<>(grants
                             .findByClientIdAndGrantTypeAndStatus(
@@ -604,7 +604,7 @@ public class IdpDevelopmentClientBootstrap
                             .filter(grant -> target.equals(
                                     grant.getResourceServerId()))
                             .filter(grant -> grant.getId().startsWith(
-                                    "dev-rbac3-grant-"))
+                                    "dev-tianquan-jianshen-grant-"))
                             .filter(grant -> !rbac3ServiceTenantIds.contains(
                                     grant.getTenantId()))
                             .toList());
@@ -661,21 +661,21 @@ public class IdpDevelopmentClientBootstrap
     }
 
     /**
-     * 给 Gateway Admin 控制面 Client 显式登记 IdP 签名的管理 Scope。
+     * 给 Gateway Admin 控制面 Client 显式登记 Tianquan-Shoubing 签名的管理 Scope。
      *
-     * <p>Explicitly grants the Gateway Admin control-plane Client the IdP-signed management
+     * <p>Explicitly grants the Gateway Admin control-plane Client the Tianquan-Shoubing-signed management
      * scopes used by the local catalog and route publisher.</p>
      */
     private void reconcileGatewayAdminServiceGrants(Set<String> rbac3ServiceTenantIds) {
-        String target = "platform-gateway-admin-local";
-        String allowedScopes = GATEWAY_ADMIN_SERVICE_SCOPES.stream()
+        String target = "platform-yuheng-admin-local";
+        String allowedScopes = YUHENG_ADMIN_SERVICE_SCOPES.stream()
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
         rbac3ServiceTenantIds.forEach(tenantId -> {
             Optional<IdentityClientResourceGrantEntity> exact =
                     grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
-                            "gateway-admin-service",
+                            "yuheng-admin-service",
                             target,
                             IdentityClientResourceGrantEntity.GrantType
                                     .CLIENT_CREDENTIALS,
@@ -684,7 +684,7 @@ public class IdpDevelopmentClientBootstrap
             IdentityClientResourceGrantEntity grant = exact.orElseGet(() ->
                     IdentityClientResourceGrantEntity.clientCredentials(
                             gatewayAdminServiceGrantId(tenantId),
-                            "gateway-admin-service",
+                            "yuheng-admin-service",
                             target,
                             tenantId,
                             allowedScopes,
@@ -718,23 +718,23 @@ public class IdpDevelopmentClientBootstrap
      * the provider document is application metadata, not a tenant operation.</p>
      */
     private void reconcileGatewayOpenApiServiceGrant() {
-        String allowedScopes = GATEWAY_OPENAPI_SERVICE_SCOPES.stream()
+        String allowedScopes = YUHENG_OPENAPI_SERVICE_SCOPES.stream()
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
-        for (String target : List.of("permission-idp-local", "permission-rbac3-local",
-                "platform-gateway-admin-local")) {
+        for (String target : List.of("permission-tianquan-shoubing-local", "permission-tianquan-jianshen-local",
+                "platform-yuheng-admin-local")) {
             Optional<IdentityClientResourceGrantEntity> existing =
                     grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
-                            "gateway-admin-service",
+                            "yuheng-admin-service",
                             target,
                             IdentityClientResourceGrantEntity.GrantType.CLIENT_CREDENTIALS,
                             null
                     );
             IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
                     IdentityClientResourceGrantEntity.platformClientCredentials(
-                            "dev-gateway-openapi-" + target,
-                            "gateway-admin-service",
+                            "dev-yuheng-openapi-" + target,
+                            "yuheng-admin-service",
                             target,
                             allowedScopes,
                             Instant.now()
@@ -758,13 +758,13 @@ public class IdpDevelopmentClientBootstrap
         }
     }
 
-    /** 给本地服务登记 DDC PLATFORM 注册授权。 */
+    /** 给本地服务登记 Tianshu PLATFORM 注册授权。 */
     private void reconcileDdcPlatformServiceGrants() {
-        String target = "platform-ddc-local";
-        DDC_REGISTRATION_CLIENTS.forEach(clientId -> {
-            String allowedScopes = "gateway-admin-service".equals(clientId)
-                    ? "[\"ddc:registration:write\",\"gateway.openapi.read\"]"
-                    : "[\"ddc:registration:write\"]";
+        String target = "platform-tianshu-local";
+        TIANSHU_REGISTRATION_CLIENTS.forEach(clientId -> {
+            String allowedScopes = "yuheng-admin-service".equals(clientId)
+                    ? "[\"tianshu:registration:write\",\"yuheng.openapi.read\"]"
+                    : "[\"tianshu:registration:write\"]";
             Optional<IdentityClientResourceGrantEntity> existing =
                     grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
                             clientId,
@@ -776,7 +776,7 @@ public class IdpDevelopmentClientBootstrap
             IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
                     IdentityClientResourceGrantEntity
                             .platformClientCredentials(
-                                    "dev-ddc-platform-grant-" + clientId,
+                                    "dev-tianshu-platform-grant-" + clientId,
                                     clientId,
                                     target,
                                     allowedScopes,
@@ -803,25 +803,25 @@ public class IdpDevelopmentClientBootstrap
         });
     }
 
-    /** 给 Gateway Engine 登记 IdP Refresh Token 状态检查的 PLATFORM 授权。 */
+    /** 给 Gateway Engine 登记 Tianquan-Shoubing Refresh Token 状态检查的 PLATFORM 授权。 */
     private void reconcileGatewayRefreshStatusGrant() {
-        String allowedScopes = GATEWAY_REFRESH_STATUS_SCOPES.stream()
+        String allowedScopes = YUHENG_REFRESH_STATUS_SCOPES.stream()
                 .sorted()
                 .map(scope -> "\"" + scope + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
         Optional<IdentityClientResourceGrantEntity> existing =
                 grants.findByClientIdAndResourceServerIdAndGrantTypeAndTenantId(
-                        "gateway-engine-service",
-                        "permission-idp-local",
+                        "yuheng-biz-gateway-service",
+                        "permission-tianquan-shoubing-local",
                         IdentityClientResourceGrantEntity.GrantType
                                 .CLIENT_CREDENTIALS,
                         null
                 );
         IdentityClientResourceGrantEntity grant = existing.orElseGet(() ->
                 IdentityClientResourceGrantEntity.platformClientCredentials(
-                        "dev-idp-refresh-status-platform-grant-gateway-engine",
-                        "gateway-engine-service",
-                        "permission-idp-local",
+                        "dev-tianquan-shoubing-refresh-status-platform-grant-yuheng-biz-gateway",
+                        "yuheng-biz-gateway-service",
+                        "permission-tianquan-shoubing-local",
                         allowedScopes,
                         Instant.now()
                 ));
@@ -933,7 +933,7 @@ public class IdpDevelopmentClientBootstrap
         String suffix = UUID.nameUUIDFromBytes(
                 tenantId.getBytes(StandardCharsets.UTF_8)
         ).toString().substring(0, 8);
-        return "dev-rbac3-grant-" + clientId + "-" + suffix;
+        return "dev-tianquan-jianshen-grant-" + clientId + "-" + suffix;
     }
 
     /**
@@ -954,7 +954,7 @@ public class IdpDevelopmentClientBootstrap
         String suffix = UUID.nameUUIDFromBytes(
                 tenantId.getBytes(StandardCharsets.UTF_8)
         ).toString().substring(0, 8);
-        return "dev-gateway-admin-grant-" + suffix;
+        return "dev-yuheng-admin-grant-" + suffix;
     }
 
     /**
@@ -1012,7 +1012,7 @@ public class IdpDevelopmentClientBootstrap
      * @param appCode 应用编码；application code
      * @param displayName 展示名称；display name
      * @param managementClientId 管理 Client；management Client
-     * @param rbacApplicationCode RBAC3 应用；RBAC3 application
+     * @param rbacApplicationCode Tianquan-Jianshen 应用；Tianquan-Jianshen application
      * @param entryPermissionCode 入口权限；entry permission
      * @param userClientId 获准请求 USER Token 的 Public Client；Public Client allowed to request
      * USER tokens

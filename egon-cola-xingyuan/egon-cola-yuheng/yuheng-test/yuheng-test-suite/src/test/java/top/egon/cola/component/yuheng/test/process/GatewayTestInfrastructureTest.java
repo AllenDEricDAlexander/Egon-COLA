@@ -8,24 +8,24 @@ import static org.assertj.core.api.Assertions.assertThat;
 class GatewayTestInfrastructureTest {
 
     private final String previousInfrastructure = System.getProperty(
-            "gateway.live.infrastructure"
+            "yuheng.live.infrastructure"
     );
 
     @AfterEach
     void restoreInfrastructureSelection() {
         if (previousInfrastructure == null) {
-            System.clearProperty("gateway.live.infrastructure");
+            System.clearProperty("yuheng.live.infrastructure");
             return;
         }
         System.setProperty(
-                "gateway.live.infrastructure",
+                "yuheng.live.infrastructure",
                 previousInfrastructure
         );
     }
 
     @Test
     void selectsLocalInfrastructureFromSystemProperty() {
-        System.setProperty("gateway.live.infrastructure", "local");
+        System.setProperty("yuheng.live.infrastructure", "local");
 
         assertThat(new GatewayTestInfrastructure().type())
                 .isEqualTo("local");

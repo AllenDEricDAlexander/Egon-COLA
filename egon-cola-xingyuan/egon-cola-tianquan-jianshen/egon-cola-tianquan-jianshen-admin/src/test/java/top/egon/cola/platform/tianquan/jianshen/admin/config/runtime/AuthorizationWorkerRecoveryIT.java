@@ -69,11 +69,11 @@ class AuthorizationWorkerRecoveryIT {
 
         assertThat(resolutions).hasValue(0);
         DeliveryResult result = handler.deliver(new DeliveryContext(
-                "message-1", "rbac3-runtime",
-                "rbac3.role-activation.changed.v1",
+                "message-1", "tianquan-jianshen-runtime",
+                "tianquan-jianshen.role-activation.changed.v1",
                 """
                         {"eventId":"event-1",
-                         "eventType":"rbac3.role-activation.changed.v1",
+                         "eventType":"tianquan-jianshen.role-activation.changed.v1",
                          "schemaVersion":1,
                          "occurredAt":"2026-07-30T12:00:00Z",
                          "tenantId":"7","aggregateType":"SESSION",
@@ -160,7 +160,7 @@ class AuthorizationWorkerRecoveryIT {
             String eventId,
             long version) {
         return new EventEnvelopeVO(
-                eventId, "rbac3.role-activation.changed.v1", 1, NOW,
+                eventId, "tianquan-jianshen.role-activation.changed.v1", 1, NOW,
                 "7", "SESSION", "99", version, "trace-1",
                 Map.of("mutationId", "900"));
     }

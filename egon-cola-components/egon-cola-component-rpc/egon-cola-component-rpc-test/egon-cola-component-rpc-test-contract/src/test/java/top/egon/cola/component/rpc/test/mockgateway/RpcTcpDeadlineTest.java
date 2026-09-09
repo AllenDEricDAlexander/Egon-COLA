@@ -56,7 +56,7 @@ class RpcTcpDeadlineTest {
         MockRpcGateway gateway = new MockRpcGateway(
                 new InMemoryRpcRegistryClient(backend),
                 "test",
-                "mock-gateway-deadline",
+                "mock-yuheng-deadline",
                 MockGatewayProperties.defaults(),
                 List.of(EchoServiceGrpc.getEchoMethod().getFullMethodName())
         );

@@ -18,7 +18,7 @@ import java.util.Set;
 import java.util.TreeSet;
 
 /**
- * Builds the IdP client-credentials request without putting the Secret in the form body.
+ * Builds the Tianquan-Shoubing client-credentials request without putting the Secret in the form body.
  *
  * <p>The Spring client provider supplies the registration; the facade binds the
  * request-specific resource, context, tenant and scopes through a short-lived

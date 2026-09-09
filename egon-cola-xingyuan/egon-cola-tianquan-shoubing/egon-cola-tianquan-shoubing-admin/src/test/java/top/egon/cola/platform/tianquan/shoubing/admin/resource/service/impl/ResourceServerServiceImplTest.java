@@ -72,13 +72,13 @@ class ResourceServerServiceImplTest {
 
     @Test
     void createsDisabledResourceAndProjectsIt() {
-        IdentityClientEntity client = client("idp-service");
-        when(clients.findById("idp-service")).thenReturn(Optional.of(client));
+        IdentityClientEntity client = client("tianquan-shoubing-service");
+        when(clients.findById("tianquan-shoubing-service")).thenReturn(Optional.of(client));
         when(resources.save(any())).thenAnswer(call -> call.getArgument(0));
 
         var created = service.create(createCommand());
 
-        assertThat(created.resourceServerId()).isEqualTo("permission-idp-prod");
+        assertThat(created.resourceServerId()).isEqualTo("permission-tianquan-shoubing-prod");
         assertThat(created.status()).isEqualTo("DISABLED");
         assertThat(created.status()).isEqualTo("DISABLED");
         verify(projections).projectResource(any(), any());
@@ -87,11 +87,11 @@ class ResourceServerServiceImplTest {
     @Test
     void rejectsDuplicateUriOrApplicationTripleBeforeWriting() {
         when(resources.findByResourceUri(
-                "https://api.egon.internal/prod/permission/idp"
+                "https://api.egon.internal/prod/permission/tianquan-shoubing"
         )).thenReturn(Optional.of(resource(
                 "permission-existing-prod",
                 "existing",
-                "idp-service"
+                "tianquan-shoubing-service"
         )));
 
         assertThatThrownBy(() -> service.create(createCommand()))
@@ -101,13 +101,13 @@ class ResourceServerServiceImplTest {
 
     @Test
     void rejectsManagementClientAlreadyBoundToAnotherResource() {
-        IdentityClientEntity client = client("idp-service");
-        when(clients.findById("idp-service")).thenReturn(Optional.of(client));
-        when(resources.findByManagementClientId("idp-service"))
+        IdentityClientEntity client = client("tianquan-shoubing-service");
+        when(clients.findById("tianquan-shoubing-service")).thenReturn(Optional.of(client));
+        when(resources.findByManagementClientId("tianquan-shoubing-service"))
                 .thenReturn(Optional.of(resource(
                         "permission-existing-prod",
                         "existing",
-                        "idp-service"
+                        "tianquan-shoubing-service"
                 )));
 
         assertThatThrownBy(() -> service.create(createCommand()))
@@ -119,39 +119,39 @@ class ResourceServerServiceImplTest {
     @Test
     void listsAndLoadsResourceAdministrationViews() {
         IdentityResourceServerEntity resource = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
         when(resources.findAll()).thenReturn(List.of(resource));
-        when(resources.findByResourceServerId("permission-idp-prod"))
+        when(resources.findByResourceServerId("permission-tianquan-shoubing-prod"))
                 .thenReturn(Optional.of(resource));
         assertThat(service.list()).extracting(ResourceServerVO::appCode)
-                .containsExactly("idp");
-        assertThat(service.detail("permission-idp-prod").resourceServerId())
-                .isEqualTo("permission-idp-prod");
+                .containsExactly("tianquan-shoubing");
+        assertThat(service.detail("permission-tianquan-shoubing-prod").resourceServerId())
+                .isEqualTo("permission-tianquan-shoubing-prod");
     }
 
     @Test
     void statusMutationsRequireCurrentVersions() {
         IdentityResourceServerEntity resource = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
-        IdentityClientEntity client = client("idp-service");
-        when(resources.findByResourceServerId("permission-idp-prod"))
+        IdentityClientEntity client = client("tianquan-shoubing-service");
+        when(resources.findByResourceServerId("permission-tianquan-shoubing-prod"))
                 .thenReturn(Optional.of(resource));
-        when(clients.findById("idp-service")).thenReturn(Optional.of(client));
+        when(clients.findById("tianquan-shoubing-service")).thenReturn(Optional.of(client));
         var enabled = service.enable(
-                "permission-idp-prod",
+                "permission-tianquan-shoubing-prod",
                 new ResourceVersionDTO(0L)
         );
 
         assertThat(enabled.status()).isEqualTo("ACTIVE");
         assertThat(enabled.version()).isEqualTo(1L);
         assertThatThrownBy(() -> service.disable(
-                "permission-idp-prod",
+                "permission-tianquan-shoubing-prod",
                 new ResourceVersionDTO(0L)
         )).isInstanceOf(IllegalStateException.class);
 
@@ -160,17 +160,17 @@ class ResourceServerServiceImplTest {
     @Test
     void disableEnqueuesExactResourceLifecycleEvent() {
         IdentityResourceServerEntity resource = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
-        when(resources.findByResourceServerId("permission-idp-prod"))
+        when(resources.findByResourceServerId("permission-tianquan-shoubing-prod"))
                 .thenReturn(Optional.of(resource));
-        when(clients.findById("idp-service"))
-                .thenReturn(Optional.of(client("idp-service")));
+        when(clients.findById("tianquan-shoubing-service"))
+                .thenReturn(Optional.of(client("tianquan-shoubing-service")));
 
         service.disable(
-                "permission-idp-prod",
+                "permission-tianquan-shoubing-prod",
                 new ResourceVersionDTO(0L)
         );
 
@@ -181,22 +181,22 @@ class ResourceServerServiceImplTest {
     @Test
     void serviceGrantRequiresTenantScopesAndProjectsWithoutRbac3() {
         IdentityResourceServerEntity resource = resource(
-                "permission-rbac3-prod",
-                "rbac3",
-                "rbac3-service"
+                "permission-tianquan-jianshen-prod",
+                "tianquan-jianshen",
+                "tianquan-jianshen-service"
         );
-        when(resources.findByResourceServerId("permission-rbac3-prod"))
+        when(resources.findByResourceServerId("permission-tianquan-jianshen-prod"))
                 .thenReturn(Optional.of(resource));
-        when(clients.existsById("idp-service")).thenReturn(true);
+        when(clients.existsById("tianquan-shoubing-service")).thenReturn(true);
         when(grants.save(any())).thenAnswer(call -> call.getArgument(0));
 
         var grant = service.putGrant(
-                "idp-service",
-                "permission-rbac3-prod",
+                "tianquan-shoubing-service",
+                "permission-tianquan-jianshen-prod",
                 new UpsertClientResourceGrantDTO(
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         "tenant-1",
-                        Set.of("rbac3:policy:read"),
+                        Set.of("tianquan-jianshen:policy:read"),
                         0L,
                         null
                 )
@@ -204,12 +204,12 @@ class ResourceServerServiceImplTest {
 
         assertThat(grant.tenantId()).isEqualTo("tenant-1");
         assertThat(grant.allowedScopes())
-                .containsExactly("rbac3:policy:read");
+                .containsExactly("tianquan-jianshen:policy:read");
         verify(projections).projectServiceGrant(any());
 
         assertThatThrownBy(() -> service.putGrant(
-                "idp-service",
-                "permission-rbac3-prod",
+                "tianquan-shoubing-service",
+                "permission-tianquan-jianshen-prod",
                 new UpsertClientResourceGrantDTO(
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         null,
@@ -223,18 +223,18 @@ class ResourceServerServiceImplTest {
     @Test
     void userDelegationGrantHasNoTenantOrServiceProjection() {
         IdentityResourceServerEntity resource = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
-        when(resources.findByResourceServerId("permission-idp-prod"))
+        when(resources.findByResourceServerId("permission-tianquan-shoubing-prod"))
                 .thenReturn(Optional.of(resource));
-        when(clients.existsById("idp-admin-web")).thenReturn(true);
+        when(clients.existsById("tianquan-shoubing-admin-web")).thenReturn(true);
         when(grants.save(any())).thenAnswer(call -> call.getArgument(0));
 
         var grant = service.putGrant(
-                "idp-admin-web",
-                "permission-idp-prod",
+                "tianquan-shoubing-admin-web",
+                "permission-tianquan-shoubing-prod",
                 new UpsertClientResourceGrantDTO(
                         ResourceGrantType.USER_DELEGATION,
                         null,
@@ -253,34 +253,34 @@ class ResourceServerServiceImplTest {
     @Test
     void batchStatusExpandsOnlyExplicitApplicationCodes() {
         IdentityResourceServerEntity idp = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
         IdentityResourceServerEntity rbac3 = resource(
-                "permission-rbac3-prod",
-                "rbac3",
-                "rbac3-service"
+                "permission-tianquan-jianshen-prod",
+                "tianquan-jianshen",
+                "tianquan-jianshen-service"
         );
         when(resources.findByBizCodeAndEnvironmentAndAppCodeIn(
                 "permission",
                 "prod",
-                List.of("idp", "rbac3")
+                List.of("tianquan-shoubing", "tianquan-jianshen")
         )).thenReturn(List.of(idp, rbac3));
-        when(clients.findById("idp-service"))
-                .thenReturn(Optional.of(client("idp-service")));
-        when(clients.findById("rbac3-service"))
-                .thenReturn(Optional.of(client("rbac3-service")));
+        when(clients.findById("tianquan-shoubing-service"))
+                .thenReturn(Optional.of(client("tianquan-shoubing-service")));
+        when(clients.findById("tianquan-jianshen-service"))
+                .thenReturn(Optional.of(client("tianquan-jianshen-service")));
         var results = service.batch(new BatchResourceServerActionDTO(
                 "permission",
                 "prod",
-                List.of("idp", "rbac3"),
+                List.of("tianquan-shoubing", "tianquan-jianshen"),
                 BatchResourceServerActionDTO.Action.ENABLE,
-                Map.of("idp", 0L, "rbac3", 0L)
+                Map.of("tianquan-shoubing", 0L, "tianquan-jianshen", 0L)
         ));
 
         assertThat(results).extracting(result -> result.appCode())
-                .containsExactlyInAnyOrder("idp", "rbac3");
+                .containsExactlyInAnyOrder("tianquan-shoubing", "tianquan-jianshen");
         assertThat(results).allMatch(result -> result.version() == 1L);
         verify(projections).projectResources(any());
         verify(projections, never()).projectResource(any(), any());
@@ -289,19 +289,19 @@ class ResourceServerServiceImplTest {
     @Test
     void batchServiceGrantsUseOneAtomicProjectionCall() {
         IdentityResourceServerEntity idp = resource(
-                "permission-idp-prod",
-                "idp",
-                "idp-service"
+                "permission-tianquan-shoubing-prod",
+                "tianquan-shoubing",
+                "tianquan-shoubing-service"
         );
         IdentityResourceServerEntity rbac3 = resource(
-                "permission-rbac3-prod",
-                "rbac3",
-                "rbac3-service"
+                "permission-tianquan-jianshen-prod",
+                "tianquan-jianshen",
+                "tianquan-jianshen-service"
         );
         when(resources.findByBizCodeAndEnvironmentAndAppCodeIn(
                 "permission",
                 "prod",
-                List.of("idp", "rbac3")
+                List.of("tianquan-shoubing", "tianquan-jianshen")
         )).thenReturn(List.of(idp, rbac3));
         when(clients.existsById("caller-service")).thenReturn(true);
         when(grants.save(any())).thenAnswer(call -> call.getArgument(0));
@@ -311,12 +311,12 @@ class ResourceServerServiceImplTest {
                 new BatchClientResourceGrantDTO(
                         "permission",
                         "prod",
-                        List.of("idp", "rbac3"),
+                        List.of("tianquan-shoubing", "tianquan-jianshen"),
                         BatchClientResourceGrantDTO.Action.UPSERT,
                         ResourceGrantType.CLIENT_CREDENTIALS,
                         "tenant-1",
                         Set.of("resource:read"),
-                        Map.of("idp", 0L, "rbac3", 0L),
+                        Map.of("tianquan-shoubing", 0L, "tianquan-jianshen", 0L),
                         Map.of()
                 )
         );
@@ -345,15 +345,15 @@ class ResourceServerServiceImplTest {
 
     private static CreateResourceServerDTO createCommand() {
         return new CreateResourceServerDTO(
-                "permission-idp-prod",
-                "https://api.egon.internal/prod/permission/idp",
+                "permission-tianquan-shoubing-prod",
+                "https://api.egon.internal/prod/permission/tianquan-shoubing",
                 "permission",
-                "idp",
+                "tianquan-shoubing",
                 "prod",
-                "IdP Production",
-                "idp-service",
-                "idp",
-                "idp:access"
+                "Tianquan-Shoubing Production",
+                "tianquan-shoubing-service",
+                "tianquan-shoubing",
+                "tianquan-shoubing:access"
         );
     }
 

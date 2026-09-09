@@ -4,8 +4,8 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 /**
- * 描述一次 DDC YAML 配置应用结果的不可变事件。
- * Immutable event describing the result of applying a DDC YAML configuration.
+ * 描述一次 Tianshu YAML 配置应用结果的不可变事件。
+ * Immutable event describing the result of applying a Tianshu YAML configuration.
  *
  * @param resourceName        配置资源名称; configuration resource name
  * @param version             配置版本; configuration version
