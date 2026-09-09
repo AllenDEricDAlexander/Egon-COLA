@@ -16,6 +16,11 @@
     <name>egon-cola-platform-idp-gateway-adapter</name>
     <description>Identity-only Gateway security adapter for Egon COLA.</description>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>

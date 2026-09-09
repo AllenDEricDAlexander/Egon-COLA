@@ -16,6 +16,11 @@
     <name>egon-cola-platform-rbac3-admin</name>
     <description>Central authorization control plane for Egon COLA RBAC3.</description>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>

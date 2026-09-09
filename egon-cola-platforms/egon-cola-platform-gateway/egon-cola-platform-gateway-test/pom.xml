@@ -16,6 +16,11 @@
     <name>egon-cola-platform-gateway-test</name>
     <description>Real applications and end-to-end tests for Egon COLA Gateway.</description>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <modules>
         <module>egon-cola-platform-gateway-test-http-provider</module>
         <module>egon-cola-platform-gateway-test-webflux-http-provider</module>

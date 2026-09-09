@@ -16,6 +16,11 @@
     <name>egon-cola-platform-gateway-mcp-engine</name>
     <description>Independent MCP Gateway role and runtime contracts.</description>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>

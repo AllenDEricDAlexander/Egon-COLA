@@ -16,6 +16,11 @@
     <name>egon-cola-platform-gateway-engine</name>
     <description>Executable data plane for Egon COLA Gateway.</description>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+        <gpg.skip>true</gpg.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>

@@ -334,6 +334,28 @@
                         <publishingServerId>${central.server.id}</publishingServerId>
                         <autoPublish>true</autoPublish>
                         <waitUntil>published</waitUntil>
+                        <!-- Keep executable Admin services and test fixtures out of Maven Central. -->
+                        <excludeArtifacts>
+                            <excludeArtifact>egon-cola-platform-dynamic-config-center-admin</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-dynamic-config-center-test</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-admin</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-engine</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-mcp-engine</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-http-provider</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-idp-backend</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-mcp-provider</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-mcp-remote</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-rpc-consumer</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-rpc-contract</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-rpc-provider</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-suite</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-gateway-test-webflux-http-provider</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-idp-admin</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-idp-gateway-adapter</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-rbac3-admin</excludeArtifact>
+                            <excludeArtifact>egon-cola-platform-rbac3-gateway-adapter</excludeArtifact>
+                        </excludeArtifacts>
                     </configuration>
                 </plugin>
                 <plugin>
