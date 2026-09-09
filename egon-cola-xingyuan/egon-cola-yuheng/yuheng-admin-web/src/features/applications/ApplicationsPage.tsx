@@ -83,8 +83,8 @@ export const ApplicationsPage = () => {
   const filters = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'])
   const bindings = useGatewayScopeBindings()
   const queryClient = useQueryClient()
-  const canWrite = useCapability('gateway:applications:write')
-  const canWriteCredential = useCapability('gateway:credentials:write')
+  const canWrite = useCapability('yuheng:applications:write')
+  const canWriteCredential = useCapability('yuheng:credentials:write')
   const [form] = Form.useForm()
   const [editing, setEditing] = useState<Application>()
   const [application, setApplication] = useState<Application>()
@@ -140,7 +140,7 @@ export const ApplicationsPage = () => {
     },
     onError: async (error) => {
       if (error instanceof GatewayApiError
-        && error.code === 'GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS') {
+        && error.code === 'YUHENG_ADMIN_APPLICATION_ALREADY_EXISTS') {
         await queryClient.invalidateQueries({
           queryKey: ['applications'],
         })
@@ -381,7 +381,7 @@ export const ApplicationsPage = () => {
                 <Descriptions.Item label="名称">{applicationDetail.data.displayName}</Descriptions.Item>
                 <Descriptions.Item label="环境">{applicationDetail.data.env}</Descriptions.Item>
                 <Descriptions.Item label="命名空间">{applicationDetail.data.namespace}</Descriptions.Item>
-                <Descriptions.Item label="DDC 匹配">{applicationDetail.data.ddcMatched ? '已匹配' : '未匹配'}</Descriptions.Item>
+                <Descriptions.Item label="Tianshu 匹配">{applicationDetail.data.ddcMatched ? '已匹配' : '未匹配'}</Descriptions.Item>
                 <Descriptions.Item label="Revision">{applicationDetail.data.revision}</Descriptions.Item>
                 <Descriptions.Item label="描述">{applicationDetail.data.description ?? '—'}</Descriptions.Item>
               </Descriptions>

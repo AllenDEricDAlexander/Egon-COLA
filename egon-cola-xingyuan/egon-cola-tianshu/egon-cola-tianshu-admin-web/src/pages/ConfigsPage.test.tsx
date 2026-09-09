@@ -109,7 +109,7 @@ describe('ConfigsPage', () => {
     expect(screen.getByText('共 13 条')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
-        '/api/v1/ddc/configs/page?includeDeleted=false&pageNo=1&pageSize=10',
+        '/api/v1/tianshu/configs/page?includeDeleted=false&pageNo=1&pageSize=10',
       ),
       expect.anything(),
     )
@@ -121,7 +121,7 @@ describe('ConfigsPage', () => {
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
-        '/api/v1/ddc/configs/cfg-1/versions/page?pageNo=1&pageSize=10',
+        '/api/v1/tianshu/configs/cfg-1/versions/page?pageNo=1&pageSize=10',
       ),
       expect.anything(),
     ))
@@ -157,11 +157,11 @@ describe('ConfigsPage', () => {
       .not.toHaveLength(0)
     expect(within(screen.getAllByRole('dialog').at(-1)!).getByText('作用域：pay-biz / dev / orders')).toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls.some(([input, init]) =>
-      String(input) === '/api/v1/ddc/configs/cfg-1'
+      String(input) === '/api/v1/tianshu/configs/cfg-1'
       && init?.method === 'DELETE')).toBe(false)
     clickLastButton(/删\s*除/)
     await waitFor(() => expect(vi.mocked(fetch).mock.calls.some(([input, init]) =>
-      String(input) === '/api/v1/ddc/configs/cfg-1'
+      String(input) === '/api/v1/tianshu/configs/cfg-1'
       && init?.method === 'DELETE')).toBe(true))
 
     fireEvent.click(screen.getByRole('button', { name: /更\s*多\s*操\s*作/ }))

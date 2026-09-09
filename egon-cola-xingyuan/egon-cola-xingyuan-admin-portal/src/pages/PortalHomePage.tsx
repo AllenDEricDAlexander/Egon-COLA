@@ -37,28 +37,28 @@ const configuredStandaloneUrl = (
 
 export const PORTAL_PLATFORM_ITEMS: readonly PortalPlatformItem[] = [
   {
-    key: 'idp',
+    key: 'tianquan-shoubing',
     label: '身份与安全',
-    path: '/platform/idp/overview',
-    standaloneUrl: configuredStandaloneUrl('VITE_IDP_ADMIN_WEB_URL', '/overview', '/idp/overview'),
+    path: '/xingyuan/tianquan-shoubing/overview',
+    standaloneUrl: configuredStandaloneUrl('VITE_TIANQUAN_SHOUBING_ADMIN_WEB_URL', '/overview', '/tianquan-shoubing/overview'),
   },
   {
-    key: 'rbac3',
+    key: 'tianquan-jianshen',
     label: '权限治理',
-    path: '/platform/rbac3/roles',
-    standaloneUrl: configuredStandaloneUrl('VITE_RBAC3_ADMIN_WEB_URL', '/roles', '/rbac3/roles'),
+    path: '/xingyuan/tianquan-jianshen/roles',
+    standaloneUrl: configuredStandaloneUrl('VITE_TIANQUAN_JIANSHEN_ADMIN_WEB_URL', '/roles', '/tianquan-jianshen/roles'),
   },
   {
-    key: 'gateway',
+    key: 'yuheng',
     label: 'API 网关',
-    path: '/platform/gateway/dashboard',
-    standaloneUrl: configuredStandaloneUrl('VITE_GATEWAY_ADMIN_WEB_URL', '/dashboard', '/gateway/dashboard'),
+    path: '/xingyuan/yuheng/dashboard',
+    standaloneUrl: configuredStandaloneUrl('VITE_YUHENG_ADMIN_WEB_URL', '/dashboard', '/yuheng/dashboard'),
   },
   {
-    key: 'ddc',
+    key: 'tianshu',
     label: '配置中心',
-    path: '/platform/ddc/registry',
-    standaloneUrl: configuredStandaloneUrl('VITE_DDC_ADMIN_WEB_URL', '/registry', '/ddc/registry'),
+    path: '/xingyuan/tianshu/registry',
+    standaloneUrl: configuredStandaloneUrl('VITE_TIANSHU_ADMIN_WEB_URL', '/registry', '/tianshu/registry'),
   },
 ]
 
@@ -94,7 +94,7 @@ export const navigationFor = (allowedPlatformKeys?: readonly PlatformKey[]): Ent
       key: item.key,
       label: item.label,
       path: item.path,
-      activePathPrefixes: [`/platform/${item.key}`],
+      activePathPrefixes: [`/xingyuan/${item.key}`],
     }))
 }
 
@@ -127,7 +127,7 @@ export const PortalHomePage = ({
   }
 
   const config = {
-    platformName: 'Egon COLA Platform',
+    platformName: 'Egon COLA Xingyuan',
     navigation: navigationFor(allowedPlatformKeys),
     footer: { version: '5.3.2' },
   }

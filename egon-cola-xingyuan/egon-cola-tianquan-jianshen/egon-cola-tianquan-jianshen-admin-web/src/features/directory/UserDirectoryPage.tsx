@@ -55,20 +55,20 @@ export const UserDirectoryPage = ({initialUserId = ''}: UserDirectoryPageProps) 
   const tenant = effectiveTenantId ?? 'none'
 
   const detail = useQuery({
-    queryKey: ['rbac3', 'directory-user', tenant, userId.trim()],
+    queryKey: ['tianquan-jianshen', 'directory-user', tenant, userId.trim()],
     queryFn: () => api.user(userId.trim()),
     enabled: status === 'READY' && userId.trim().length > 0,
   })
   const users = useQuery({
-    queryKey: ['rbac3', 'directory-users', tenant, submittedFilter],
+    queryKey: ['tianquan-jianshen', 'directory-users', tenant, submittedFilter],
     queryFn: () => api.users(submittedFilter),
     enabled: status === 'READY' && listMode,
   })
 
   const refreshUsers = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({queryKey: ['rbac3', 'directory-users']}),
-      queryClient.invalidateQueries({queryKey: ['rbac3', 'directory-user']}),
+      queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'directory-users']}),
+      queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'directory-user']}),
     ])
   }
 
@@ -108,8 +108,8 @@ export const UserDirectoryPage = ({initialUserId = ''}: UserDirectoryPageProps) 
       setUserId('')
       setDraftUserId('')
       await Promise.all([
-        queryClient.invalidateQueries({queryKey: ['rbac3', 'user-organization-assignments']}),
-        queryClient.invalidateQueries({queryKey: ['rbac3', 'user-position-assignments']}),
+        queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'user-organization-assignments']}),
+        queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'user-position-assignments']}),
       ])
       await refreshUsers()
     },

@@ -15,7 +15,7 @@ vi.mock('../../api/gatewayApi', () => ({
 vi.mock('../../hooks/useGatewayScopeBindings', () => ({
   useGatewayScopeBindings: () => ({
     data: [{
-      bindingId: 'binding-1', bizCode: 'retail', namespace: 'gateway', env: 'test', appCode: 'orders',
+      bindingId: 'binding-1', bizCode: 'retail', namespace: 'yuheng', env: 'test', appCode: 'orders',
       appName: 'Orders', connected: true,
     }],
     isLoading: false,

@@ -50,9 +50,9 @@ export default function EnvPage() {
     pageSize: pageState.page.pageSize,
   })
   const query = useQuery({
-    queryKey: ['ddc', 'envs', keyword, pageState.page],
+    queryKey: ['tianshu', 'envs', keyword, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcEnv>(
-      `/api/v1/ddc/envs/page?${queryString}`,
+      `/api/v1/tianshu/envs/page?${queryString}`,
       { signal },
     ),
     placeholderData: keepPreviousData,
@@ -60,7 +60,7 @@ export default function EnvPage() {
   })
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['ddc', 'envs'] })
+    await queryClient.invalidateQueries({ queryKey: ['tianshu', 'envs'] })
     await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
   }
 
@@ -69,11 +69,11 @@ export default function EnvPage() {
       item: DdcEnv | null
       values: EnvFormValues
     }) => item
-      ? ddcApi(`/api/v1/ddc/envs/${encodeURIComponent(item.envCode)}`, {
+      ? ddcApi(`/api/v1/tianshu/envs/${encodeURIComponent(item.envCode)}`, {
         method: 'PUT',
         body: values,
       })
-      : ddcApi('/api/v1/ddc/envs', { method: 'POST', body: values }),
+      : ddcApi('/api/v1/tianshu/envs', { method: 'POST', body: values }),
     onSuccess: async () => {
       setOpen(false)
       await invalidate()
@@ -87,7 +87,7 @@ export default function EnvPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ item, enabled }: { item: DdcEnv; enabled: boolean }) =>
       ddcApi(
-        `/api/v1/ddc/envs/${encodeURIComponent(item.envCode)}/enabled?enabled=${enabled}`,
+        `/api/v1/tianshu/envs/${encodeURIComponent(item.envCode)}/enabled?enabled=${enabled}`,
         { method: 'PUT' },
       ),
     onSuccess: async () => {
@@ -101,7 +101,7 @@ export default function EnvPage() {
 
   const removeMutation = useMutation({
     mutationFn: (item: DdcEnv) => ddcApi(
-      `/api/v1/ddc/envs/${encodeURIComponent(item.envCode)}`,
+      `/api/v1/tianshu/envs/${encodeURIComponent(item.envCode)}`,
       { method: 'DELETE' },
     ),
     onSuccess: async () => {
@@ -206,7 +206,7 @@ export default function EnvPage() {
     <div>
       <AdminPageHeader
         title="环境管理"
-        description="维护 DDC 环境编码、排序和启用状态。"
+        description="维护 Tianshu 环境编码、排序和启用状态。"
         extra={<Button type="primary" onClick={openCreate}>新建环境</Button>}
       />
       <Card size="small" style={{ marginBottom: 16 }}>

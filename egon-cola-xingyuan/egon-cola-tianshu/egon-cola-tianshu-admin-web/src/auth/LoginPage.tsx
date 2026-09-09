@@ -6,7 +6,7 @@ export default function LoginPage() {
   return (
     <div style={{ maxWidth: 480, margin: '96px auto', padding: '0 16px' }}>
       <Card>
-        <Typography.Title level={4}>DDC 管理端</Typography.Title>
+        <Typography.Title level={4}>Tianshu 管理端</Typography.Title>
         <Typography.Paragraph type="secondary">
           使用统一身份平台登录；页面不接收、不持久化任何手工 Token。
         </Typography.Paragraph>

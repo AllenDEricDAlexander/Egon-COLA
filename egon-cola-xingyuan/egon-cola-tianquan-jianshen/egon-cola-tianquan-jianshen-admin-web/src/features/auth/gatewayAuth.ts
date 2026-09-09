@@ -1,8 +1,8 @@
 import {createGatewayAuthClient} from '@egon-cola/xingyuan-admin-web-shared'
 
-/** Browser authentication stays in Gateway-owned HttpOnly cookies. */
+/** Browser authentication stays in Yuheng-owned HttpOnly cookies. */
 export const gatewayAuth = createGatewayAuthClient({
-    baseUrl: import.meta.env.VITE_GATEWAY_ORIGIN
-        ?? import.meta.env.VITE_RBAC3_API_BASE
+    baseUrl: import.meta.env.VITE_YUHENG_ORIGIN
+        ?? import.meta.env.VITE_TIANQUAN_JIANSHEN_API_BASE
         ?? '',
 })

@@ -25,16 +25,16 @@ interface NavItem {
 const ALL_NAV_ITEMS: NavItem[] = [
     {key: 'overview', label: '身份概览', path: '/overview', permission: ''},
     {key: 'identity', label: '身份目录', permission: '', children: [
-        {key: 'users', label: '全局用户', path: '/users', permission: 'idp:identity-user:read'},
-        {key: 'tenants', label: '租户目录', path: '/tenants', permission: 'idp:tenant:read'},
+        {key: 'users', label: '全局用户', path: '/users', permission: 'tianquan-shoubing:identity-user:read'},
+        {key: 'tenants', label: '租户目录', path: '/tenants', permission: 'tianquan-shoubing:tenant:read'},
     ]},
     {key: 'oauth', label: 'OAuth 与资源', permission: '', children: [
-        {key: 'clients', label: 'OAuth 客户端', path: '/clients', activePathPrefixes: ['/clients'], permission: 'idp:oauth-client:read'},
-        {key: 'resource-servers', label: 'Resource Server', path: '/resource-servers', permission: 'idp:resource-server:read'},
+        {key: 'clients', label: 'OAuth 客户端', path: '/clients', activePathPrefixes: ['/clients'], permission: 'tianquan-shoubing:oauth-client:read'},
+        {key: 'resource-servers', label: 'Resource Server', path: '/resource-servers', permission: 'tianquan-shoubing:resource-server:read'},
     ]},
     {key: 'security', label: '安全治理', permission: '', children: [
-        {key: 'keys', label: '签名密钥', path: '/keys', permission: 'idp:signing-key:read'},
-        {key: 'audits', label: '安全审计', path: '/audits', permission: 'idp:audit:read'},
+        {key: 'keys', label: '签名密钥', path: '/keys', permission: 'tianquan-shoubing:signing-key:read'},
+        {key: 'audits', label: '安全审计', path: '/audits', permission: 'tianquan-shoubing:audit:read'},
     ]},
 ]
 

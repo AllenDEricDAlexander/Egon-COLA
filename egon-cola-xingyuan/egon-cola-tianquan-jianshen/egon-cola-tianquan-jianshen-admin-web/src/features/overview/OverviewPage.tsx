@@ -10,7 +10,7 @@ export const OverviewPage = () => {
   const { effectiveTenantId } = useFeatureTenantContext()
   const api = overviewApi(useFeatureApi())
   const query = useQuery({
-    queryKey: ['rbac3', 'overview', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'overview', effectiveTenantId ?? 'none'],
     queryFn: api.runtime,
     enabled: status === 'READY',
   })

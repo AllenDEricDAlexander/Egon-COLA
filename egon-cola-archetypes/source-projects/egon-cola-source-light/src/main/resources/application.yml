@@ -181,19 +181,19 @@ egon:
           certificate-chain-path: ${RPC_CERTIFICATE_CHAIN_PATH:}
           private-key-path: ${RPC_PRIVATE_KEY_PATH:}
           trust-certificate-collection-path: ${RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
-      ddc:
+      tianshu:
         enabled: false
-        biz-code: ${DDC_BIZ_CODE:student-management}
-        app-code: ${DDC_APP_CODE:${spring.application.name}}
+        biz-code: ${TIANSHU_BIZ_CODE:student-management}
+        app-code: ${TIANSHU_APP_CODE:${spring.application.name}}
         env: ${APP_ENV:dev}
-        namespace: ${DDC_NAMESPACE:default}
-        registration-resource-uri: ${DDC_REGISTRATION_RESOURCE_URI:}
+        namespace: ${TIANSHU_NAMESPACE:default}
+        registration-resource-uri: ${TIANSHU_REGISTRATION_RESOURCE_URI:}
         redis:
           enabled: false
-          host: ${DDC_REDIS_HOST:localhost}
-          port: ${DDC_REDIS_PORT:6379}
-          password: ${DDC_REDIS_PASSWORD:}
-          database: ${DDC_REDIS_DATABASE:0}
+          host: ${TIANSHU_REDIS_HOST:localhost}
+          port: ${TIANSHU_REDIS_PORT:6379}
+          password: ${TIANSHU_REDIS_PASSWORD:}
+          database: ${TIANSHU_REDIS_DATABASE:0}
         consistency:
           fail-fast: true
         registry:
@@ -201,7 +201,7 @@ egon:
           http:
             enabled: false
             env: ${APP_ENV:dev}
-            namespace: ${DDC_NAMESPACE:default}
+            namespace: ${TIANSHU_NAMESPACE:default}
             instance-id: ${INSTANCE_ID:${HOSTNAME:local}}
             service-name: ${spring.application.name}
             version: 1.0.0
@@ -209,33 +209,33 @@ egon:
             port: ${server.port:8080}
             fail-fast: true
         rpc:
-          target: ${DDC_RPC_TARGET:}
+          target: ${TIANSHU_RPC_TARGET:}
           tls:
-            enabled: ${DDC_RPC_TLS_ENABLED:false}
-            development-plaintext: ${DDC_RPC_DEVELOPMENT_PLAINTEXT:true}
-            certificate-chain-path: ${DDC_RPC_CERTIFICATE_CHAIN_PATH:}
-            private-key-path: ${DDC_RPC_PRIVATE_KEY_PATH:}
-            trust-certificate-collection-path: ${DDC_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
+            enabled: ${TIANSHU_RPC_TLS_ENABLED:false}
+            development-plaintext: ${TIANSHU_RPC_DEVELOPMENT_PLAINTEXT:true}
+            certificate-chain-path: ${TIANSHU_RPC_CERTIFICATE_CHAIN_PATH:}
+            private-key-path: ${TIANSHU_RPC_PRIVATE_KEY_PATH:}
+            trust-certificate-collection-path: ${TIANSHU_RPC_TRUST_CERTIFICATE_COLLECTION_PATH:}
           auth:
-            enabled: ${DDC_RPC_AUTH_ENABLED:true}
+            enabled: ${TIANSHU_RPC_AUTH_ENABLED:true}
             runtime:
-              access-key: ${DDC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_REGISTRY_SECRET_KEY:}
-      gateway:
+              access-key: ${TIANSHU_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_REGISTRY_SECRET_KEY:}
+      yuheng:
         openapi:
           enabled: ${OPENAPI_GOVERNANCE_ENABLED:false}
-          publish-to-ddc: ${OPENAPI_PUBLISH_TO_DDC:false}
+          publish-to-tianshu: ${OPENAPI_PUBLISH_TO_TIANSHU:false}
     platform:
-      idp:
+      tianquan-shoubing:
         enabled: false
         register-filter: false
-        issuer: ${IDP_ISSUER:}
-        jwk-set-uri: ${IDP_JWK_SET_URI:}
-        resource-server-id: ${IDP_RESOURCE_SERVER_ID:}
-        resource-uri: ${IDP_RESOURCE_URI:}
+        issuer: ${TIANQUAN_SHOUBING_ISSUER:}
+        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:}
+        resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID:}
+        resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
         service-client:
-          app-id: ${IDP_SERVICE_APP_ID:}
-          registration-id: ddcregistration
+          app-id: ${TIANQUAN_SHOUBING_SERVICE_APP_ID:}
+          registration-id: tianshuregistration

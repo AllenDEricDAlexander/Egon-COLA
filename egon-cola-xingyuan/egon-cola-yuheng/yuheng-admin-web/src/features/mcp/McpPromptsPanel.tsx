@@ -45,7 +45,7 @@ export const McpPromptsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
 }) => {
   const [searchParams, setSearchParams] = useSearchParams()
   const scope = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'], 'prompt')
-  const canWrite = useCapability('gateway:mcp:write')
+  const canWrite = useCapability('yuheng:mcp:write')
   const collection = useMcpCapabilityCollection('prompts', serverId, gatewayGroupId, draftRevision)
   const applications = useQuery({
     queryKey: ['mcp-applications', scope],
@@ -232,7 +232,7 @@ export const McpPromptsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
             </Form.Item>
           )}
           <Form.Item name="arguments" label="Arguments（逗号分隔）"><Input /></Form.Item>
-          <Form.Item name="requiredPermissions" label="RBAC3 Permissions（逗号分隔）">
+          <Form.Item name="requiredPermissions" label="Tianquan-Jianshen Permissions（逗号分隔）">
             <Input />
           </Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>

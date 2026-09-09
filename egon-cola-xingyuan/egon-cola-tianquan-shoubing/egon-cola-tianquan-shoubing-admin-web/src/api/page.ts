@@ -30,6 +30,6 @@ export const normalizePage = <T>(value: readonly T[] | PageEnvelope<T>): Identit
     }
   }
 
-  if (!isPageEnvelope<T>(value)) throw new Error('IDP 分页响应格式无效')
+  if (!isPageEnvelope<T>(value)) throw new Error('Tianquan-Shoubing 分页响应格式无效')
   return value
 }

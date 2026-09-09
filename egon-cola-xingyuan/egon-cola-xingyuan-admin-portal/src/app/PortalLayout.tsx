@@ -38,8 +38,8 @@ export const PortalLayout = ({children}: PropsWithChildren) => {
   return (
     <div className="portal-layout">
       <EnterpriseLayout config={{
-        platformName: 'Egon COLA Platform',
-        logo: <img src="/favicon.png" alt="Egon COLA Platform" width={28} height={28}
+        platformName: 'Egon COLA Xingyuan',
+        logo: <img src="/favicon.png" alt="Egon COLA Xingyuan" width={28} height={28}
           style={{display: 'block', objectFit: 'contain'}} />,
         navigation: navigationFor(),
         hideFooter: true,
@@ -61,7 +61,7 @@ export const PortalLayout = ({children}: PropsWithChildren) => {
           {children}
         </div>
       </EnterpriseLayout>
-      <Modal title="登录 Egon COLA Platform" open={loginOpen} okText="登录"
+      <Modal title="登录 Egon COLA Xingyuan" open={loginOpen} okText="登录"
         confirmLoading={login.isPending} onOk={() => form.submit()}
         onCancel={() => {setLoginOpen(false); form.resetFields(); login.reset()}} destroyOnHidden>
         {login.error && <Alert type="error" showIcon title="登录失败，请检查租户和账号信息后重试"

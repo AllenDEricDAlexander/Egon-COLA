@@ -21,20 +21,20 @@ export const SigningKeyPage = () => {
     const [messageApi, contextHolder] = message.useMessage()
 
     const keysQuery = useQuery({
-        queryKey: ['idp', 'signing-keys'],
-        queryFn: () => httpClient.request<SigningKeyVO[]>('/api/v1/identity/signing-keys'),
+        queryKey: ['tianquan-shoubing', 'signing-keys'],
+        queryFn: () => httpClient.request<SigningKeyVO[]>('/api/v1/tianquan-shoubing/signing-keys'),
     })
 
     const publishMutation = useMutation({
         mutationFn: (v: { kid: string; encryptedPrivateKey: string; publicJwk: string }) =>
-            httpClient.request<SigningKeyVO>('/api/v1/identity/signing-keys', {
+            httpClient.request<SigningKeyVO>('/api/v1/tianquan-shoubing/signing-keys', {
                 method: 'POST',
                 body: JSON.stringify(v),
             }),
         onSuccess: async () => {
             setPublishOpen(false)
             form.resetFields()
-            await queryClient.invalidateQueries({queryKey: ['idp', 'signing-keys']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'signing-keys']})
             messageApi.success('签名密钥已预发布')
         },
         onError: (err) => {
@@ -45,11 +45,11 @@ export const SigningKeyPage = () => {
     const activateMutation = useMutation({
         mutationFn: ({kid, version}: { kid: string; version: number }) =>
             httpClient.request<SigningKeyVO>(
-                `/api/v1/identity/signing-keys/${encodeURIComponent(kid)}/activate?expectedVersion=${version}`,
+                `/api/v1/tianquan-shoubing/signing-keys/${encodeURIComponent(kid)}/activate?expectedVersion=${version}`,
                 {method: 'POST'},
             ),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({queryKey: ['idp', 'signing-keys']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'signing-keys']})
             messageApi.success('密钥已激活')
         },
         onError: (err) => {
@@ -60,11 +60,11 @@ export const SigningKeyPage = () => {
     const retireMutation = useMutation({
         mutationFn: ({kid, version}: { kid: string; version: number }) =>
             httpClient.request<SigningKeyVO>(
-                `/api/v1/identity/signing-keys/${encodeURIComponent(kid)}/retire?expectedVersion=${version}`,
+                `/api/v1/tianquan-shoubing/signing-keys/${encodeURIComponent(kid)}/retire?expectedVersion=${version}`,
                 {method: 'POST'},
             ),
         onSuccess: async () => {
-            await queryClient.invalidateQueries({queryKey: ['idp', 'signing-keys']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'signing-keys']})
             messageApi.success('密钥已退役')
         },
         onError: (err) => {
@@ -82,7 +82,7 @@ export const SigningKeyPage = () => {
                       <Button icon={<ReloadOutlined/>} onClick={() => {
                           void keysQuery.refetch()
                       }}>刷新</Button>
-                      {has('idp:signing-key:publish') && (
+                      {has('tianquan-shoubing:signing-key:publish') && (
                           <Button type="primary" icon={<PlusOutlined/>}
                                   onClick={() => setPublishOpen(true)}>预发布密钥</Button>
                       )}
@@ -90,7 +90,7 @@ export const SigningKeyPage = () => {
               }
           >
               <Typography.Paragraph type="secondary">
-                  私钥材料永不返回浏览器。公钥 JWK 供外部验证 IdP 签名用。密钥生命周期：预发布 → 激活 → 退役。
+                  私钥材料永不返回浏览器。公钥 JWK 供外部验证 Tianquan-Shoubing 签名用。密钥生命周期：预发布 → 激活 → 退役。
               </Typography.Paragraph>
               <PageState
                   loading={keysQuery.isPending}
@@ -124,14 +124,14 @@ export const SigningKeyPage = () => {
                               title: '操作', width: 160,
                               render: (_: unknown, row: SigningKeyVO) => (
                                   <Space size="small">
-                                      {has('idp:signing-key:activate') && row.status === 'PUBLISHED' && (
+                                      {has('tianquan-shoubing:signing-key:activate') && row.status === 'PUBLISHED' && (
                                           <Button size="small" icon={<CheckCircleOutlined/>} type="primary"
                                                   onClick={() => activateMutation.mutate({
                                                       kid: row.kid,
                                                       version: row.version
                                                   })}>激活</Button>
                                       )}
-                                      {has('idp:signing-key:retire') && row.status === 'ACTIVE' && (
+                                      {has('tianquan-shoubing:signing-key:retire') && row.status === 'ACTIVE' && (
                                           <Button size="small" icon={<StopOutlined/>} danger
                                                   onClick={() => retireMutation.mutate({
                                                       kid: row.kid,

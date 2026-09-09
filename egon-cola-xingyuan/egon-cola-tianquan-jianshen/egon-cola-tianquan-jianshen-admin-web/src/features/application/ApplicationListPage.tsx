@@ -12,8 +12,8 @@ export const ApplicationListPage = () => {
   const api = applicationApi(useFeatureApi())
   const queryClient = useQueryClient()
   const [selectedApplication, setSelectedApplication] = useState<TenantApplicationView | null>(null)
-  const queryKey = ['rbac3', 'tenant-applications', effectiveTenantId ?? 'none']
-  const detailKey = ['rbac3', 'tenant-application', effectiveTenantId ?? 'none', selectedApplication?.applicationId ?? 'none']
+  const queryKey = ['tianquan-jianshen', 'tenant-applications', effectiveTenantId ?? 'none']
+  const detailKey = ['tianquan-jianshen', 'tenant-application', effectiveTenantId ?? 'none', selectedApplication?.applicationId ?? 'none']
   const query = useQuery({
     queryKey,
     queryFn: api.tenantApplications,
@@ -27,7 +27,7 @@ export const ApplicationListPage = () => {
   const refresh = async () => {
     await Promise.all([
       queryClient.invalidateQueries({queryKey}),
-      queryClient.invalidateQueries({queryKey: ['rbac3', 'tenant-application']}),
+      queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'tenant-application']}),
     ])
   }
   const admit = useMutation({
@@ -56,7 +56,7 @@ export const ApplicationListPage = () => {
       <PermissionGuard permission="system:application:manage">
         <Form layout="inline" onFinish={(values) => admit.mutate(values)} style={{marginBottom: 16}}>
           <Form.Item name="ddcApplicationId" rules={[{required: true, whitespace: true}]}>
-            <Input placeholder="DDC Application ID" />
+            <Input placeholder="Tianshu Application ID" />
           </Form.Item>
           <Form.Item name="displayPriority" initialValue={0}>
             <InputNumber min={0} precision={0} />
@@ -121,8 +121,8 @@ export const ApplicationListPage = () => {
           {detail.data && (
             <Descriptions bordered column={1} size="small">
               <Descriptions.Item label="应用 ID">{detail.data.applicationId}</Descriptions.Item>
-              <Descriptions.Item label="DDC 业务 ID">{detail.data.ddcBusinessId}</Descriptions.Item>
-              <Descriptions.Item label="DDC 应用 ID">{detail.data.ddcApplicationId}</Descriptions.Item>
+              <Descriptions.Item label="Tianshu 业务 ID">{detail.data.ddcBusinessId}</Descriptions.Item>
+              <Descriptions.Item label="Tianshu 应用 ID">{detail.data.ddcApplicationId}</Descriptions.Item>
               <Descriptions.Item label="业务编码">{detail.data.businessCode}</Descriptions.Item>
               <Descriptions.Item label="应用编码">{detail.data.applicationCode}</Descriptions.Item>
               <Descriptions.Item label="应用名称">{detail.data.applicationName}</Descriptions.Item>

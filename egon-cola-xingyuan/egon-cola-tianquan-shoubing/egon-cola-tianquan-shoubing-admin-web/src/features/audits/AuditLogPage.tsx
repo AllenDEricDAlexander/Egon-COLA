@@ -54,8 +54,8 @@ export const AuditLogPage = () => {
   const requestQuery = buildAuditQuery(submitted)
 
   const query = useQuery({
-    queryKey: ['idp', 'audits', requestQuery],
-    queryFn: () => httpClient.request<AuditPageVO>(`/api/v1/identity/audits?${requestQuery}`),
+    queryKey: ['tianquan-shoubing', 'audits', requestQuery],
+    queryFn: () => httpClient.request<AuditPageVO>(`/api/v1/tianquan-shoubing/audits?${requestQuery}`),
   })
 
   return (

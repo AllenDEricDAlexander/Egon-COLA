@@ -1,4 +1,4 @@
-export type PlatformKey = 'idp' | 'rbac3' | 'gateway' | 'ddc'
+export type PlatformKey = 'tianquan-shoubing' | 'tianquan-jianshen' | 'yuheng' | 'tianshu'
 
 export interface ChildManifest {
   key: PlatformKey

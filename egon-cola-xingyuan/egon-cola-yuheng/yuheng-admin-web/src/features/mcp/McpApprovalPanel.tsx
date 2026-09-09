@@ -21,7 +21,7 @@ export const McpApprovalPanel = ({
   gatewayGroupId: string
   serverCode: string
 }) => {
-  const canApprove = useCapability('gateway:mcp:approve')
+  const canApprove = useCapability('yuheng:mcp:approve')
   const [form] = Form.useForm<ApprovalForm>()
   const [visibleToken, setVisibleToken] = useState<string>()
   const tools = useQuery({
@@ -48,7 +48,7 @@ export const McpApprovalPanel = ({
         style={{ marginBottom: 16 }}
       />
       {!canApprove ? (
-        <Typography.Text type="secondary">当前账号缺少 gateway:mcp:approve 能力。</Typography.Text>
+        <Typography.Text type="secondary">当前账号缺少 yuheng:mcp:approve 能力。</Typography.Text>
       ) : (
         <Form
           form={form}

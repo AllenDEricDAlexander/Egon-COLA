@@ -13,12 +13,12 @@ export const FieldDefinitionPage = () => {
   const queryClient = useQueryClient()
   const [applicationId, setApplicationId] = useState('')
   const applications = useQuery({
-    queryKey: ['rbac3', 'catalog-applications', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'catalog-applications', effectiveTenantId ?? 'none'],
     queryFn: api.applications,
     enabled: status === 'READY',
   })
   const resolvedApplicationId = applicationId || applications.data?.[0]?.applicationId || ''
-  const queryKey = ['rbac3', 'fields', effectiveTenantId ?? 'none', resolvedApplicationId]
+  const queryKey = ['tianquan-jianshen', 'fields', effectiveTenantId ?? 'none', resolvedApplicationId]
   const fields = useQuery({
     queryKey,
     queryFn: () => api.fields(resolvedApplicationId),

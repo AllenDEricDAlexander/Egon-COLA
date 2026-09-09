@@ -42,7 +42,7 @@ beforeEach(() => {
     state.forbidden = false
     state.request.mockReset().mockImplementation((path: string) => {
         if (state.forbidden) return Promise.reject(new ApiError('Forbidden', 403, 'FORBIDDEN'))
-        if (path.startsWith('/api/v1/identity/audits?')) {
+        if (path.startsWith('/api/v1/tianquan-shoubing/audits?')) {
             return Promise.resolve({content: [audit], totalElements: 1})
         }
         return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -69,7 +69,7 @@ describe('Identity audit administration', () => {
         const from = encodeURIComponent(new Date(2026, 8, 6, 15, 30).toISOString())
         const to = encodeURIComponent(new Date(2026, 8, 6, 16, 30).toISOString())
         await waitFor(() => expect(state.request).toHaveBeenLastCalledWith(
-            `/api/v1/identity/audits?page=0&size=20&from=${from}&to=${to}`,
+            `/api/v1/tianquan-shoubing/audits?page=0&size=20&from=${from}&to=${to}`,
         ))
         expect(screen.getByLabelText('开始时间')).toHaveValue('2026-09-06T15:30')
     })
@@ -87,7 +87,7 @@ describe('Identity audit administration', () => {
         expect(screen.getByTestId('location-search')).toHaveTextContent('actorSub=alice')
         expect(screen.getByTestId('location-search')).toHaveTextContent('traceId=trace-1')
         expect(state.request).toHaveBeenCalledWith(
-            '/api/v1/identity/audits?page=0&size=20&actorSub=alice&traceId=trace-1',
+            '/api/v1/tianquan-shoubing/audits?page=0&size=20&actorSub=alice&traceId=trace-1',
         )
     })
 

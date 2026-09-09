@@ -1,6 +1,6 @@
 # @egon-cola/xingyuan-admin-web-shared
 
-Egon COLA 四个管理 Web 平台（DDC / Gateway / IDP / RBAC3）共享的前端公共层。
+Egon COLA 四个管理 Web 平台（Tianshu / Yuheng / Tianquan-Shoubing / Tianquan-Jianshen）共享的前端公共层。
 
 ## 包含内容
 
@@ -18,7 +18,7 @@ import { EnterpriseLayout, type EnterpriseLayoutConfig } from '@egon-cola/xingyu
 import { egonFaviconPlugin } from '@egon-cola/xingyuan-admin-web-shared/vite-plugin'
 
 const config: EnterpriseLayoutConfig = {
-  platformName: 'Gateway Admin',
+  platformName: 'Yuheng Admin',
   navigation: [{ key: 'dashboard', label: '总览', path: '/dashboard' }],
   user: { name: 'admin', menu: [{ key: 'logout', label: '退出登录' }] },
   footer: { version: '5.2.3' },

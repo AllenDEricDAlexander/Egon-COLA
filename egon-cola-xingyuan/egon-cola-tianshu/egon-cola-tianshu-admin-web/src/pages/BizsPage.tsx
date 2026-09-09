@@ -49,9 +49,9 @@ export default function BizsPage() {
     pageSize: pageState.page.pageSize,
   })
   const query = useQuery({
-    queryKey: ['ddc', 'bizs', keyword, pageState.page],
+    queryKey: ['tianshu', 'bizs', keyword, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcBiz>(
-      `/api/v1/ddc/bizs/page?${queryString}`,
+      `/api/v1/tianshu/bizs/page?${queryString}`,
       { signal },
     ),
     placeholderData: keepPreviousData,
@@ -59,7 +59,7 @@ export default function BizsPage() {
   })
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['ddc', 'bizs'] })
+    await queryClient.invalidateQueries({ queryKey: ['tianshu', 'bizs'] })
     await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
   }
 
@@ -68,11 +68,11 @@ export default function BizsPage() {
       item: DdcBiz | null
       values: BizFormValues
     }) => item
-      ? ddcApi(`/api/v1/ddc/bizs/${encodeURIComponent(item.bizCode)}`, {
+      ? ddcApi(`/api/v1/tianshu/bizs/${encodeURIComponent(item.bizCode)}`, {
         method: 'PUT',
         body: values,
       })
-      : ddcApi('/api/v1/ddc/bizs', { method: 'POST', body: values }),
+      : ddcApi('/api/v1/tianshu/bizs', { method: 'POST', body: values }),
     onSuccess: async () => {
       setOpen(false)
       await invalidate()
@@ -86,7 +86,7 @@ export default function BizsPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ item, enabled }: { item: DdcBiz; enabled: boolean }) =>
       ddcApi(
-        `/api/v1/ddc/bizs/${encodeURIComponent(item.bizCode)}/enabled?enabled=${enabled}`,
+        `/api/v1/tianshu/bizs/${encodeURIComponent(item.bizCode)}/enabled?enabled=${enabled}`,
         { method: 'PUT' },
       ),
     onSuccess: async () => {
@@ -100,7 +100,7 @@ export default function BizsPage() {
 
   const removeMutation = useMutation({
     mutationFn: (item: DdcBiz) => ddcApi(
-      `/api/v1/ddc/bizs/${encodeURIComponent(item.bizCode)}`,
+      `/api/v1/tianshu/bizs/${encodeURIComponent(item.bizCode)}`,
       { method: 'DELETE' },
     ),
     onSuccess: async () => {
@@ -207,7 +207,7 @@ export default function BizsPage() {
     <div>
       <AdminPageHeader
         title="业务域管理"
-        description="维护 DDC 业务域及其启用状态。"
+        description="维护 Tianshu 业务域及其启用状态。"
         extra={<Button type="primary" onClick={openCreate}>新建业务域</Button>}
       />
       <Card size="small" style={{ marginBottom: 16 }}>

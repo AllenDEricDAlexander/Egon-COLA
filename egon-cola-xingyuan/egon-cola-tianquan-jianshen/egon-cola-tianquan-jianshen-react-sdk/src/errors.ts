@@ -1,4 +1,4 @@
-export const RBAC3_ERROR_DEFINITIONS = {
+export const TIANQUAN_JIANSHEN_ERROR_DEFINITIONS = {
   REQUEST_INVALID: { status: 400, retryable: false },
   AUTHENTICATION_REQUIRED: { status: 401, retryable: false },
   AUTHENTICATION_FAILED: { status: 401, retryable: false },
@@ -53,14 +53,14 @@ export const RBAC3_ERROR_DEFINITIONS = {
   DIRECTORY_RUNTIME_UNAVAILABLE: { status: 503, retryable: true },
 } as const
 
-export type Rbac3ErrorCode = keyof typeof RBAC3_ERROR_DEFINITIONS
+export type Rbac3ErrorCode = keyof typeof TIANQUAN_JIANSHEN_ERROR_DEFINITIONS
 
 export type Rbac3ErrorStatus =
-  (typeof RBAC3_ERROR_DEFINITIONS)[Rbac3ErrorCode]['status']
+  (typeof TIANQUAN_JIANSHEN_ERROR_DEFINITIONS)[Rbac3ErrorCode]['status']
 
 type Rbac3ErrorCodeForStatus<Status extends Rbac3ErrorStatus> = {
   [Code in Rbac3ErrorCode]:
-    (typeof RBAC3_ERROR_DEFINITIONS)[Code]['status'] extends Status
+    (typeof TIANQUAN_JIANSHEN_ERROR_DEFINITIONS)[Code]['status'] extends Status
       ? Code
       : never
 }[Rbac3ErrorCode]
@@ -106,7 +106,7 @@ export interface Rbac3ErrorResponse {
 }
 
 export const getRbac3ErrorDefinition = (code: Rbac3ErrorCode) =>
-  RBAC3_ERROR_DEFINITIONS[code]
+  TIANQUAN_JIANSHEN_ERROR_DEFINITIONS[code]
 
 export class Rbac3RequestError extends Error {
   readonly status: number

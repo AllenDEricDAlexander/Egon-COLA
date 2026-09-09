@@ -28,7 +28,7 @@ describe('App', () => {
     auth.authorized = false
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('no session')))
     renderWithQueryClient(<App />)
-    expect(await screen.findByText('DDC 管理端')).toBeInTheDocument()
+    expect(await screen.findByText('Tianshu 管理端')).toBeInTheDocument()
   })
 
   it('renders configuration client instances at the dedicated route', async () => {
@@ -40,10 +40,10 @@ describe('App', () => {
     })
     vi.stubGlobal('fetch', vi.fn((input) => {
       const url = String(input)
-      if (url.endsWith('/api/v1/ddc/auth/bootstrap')) {
+      if (url.endsWith('/api/v1/tianshu/auth/bootstrap')) {
         return Promise.resolve(jsonResponse({
           user: { identitySub: 'admin' },
-          permissions: ['DDC_READ'],
+          permissions: ['TIANSHU_READ'],
         }))
       }
       if (url.includes('/instances/page')) {

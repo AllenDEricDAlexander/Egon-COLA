@@ -2,14 +2,14 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { loadManifest } from './loader'
 
 const manifest = (overrides: Record<string, unknown> = {}) => ({
-  key: 'idp',
-  displayName: 'Identity Platform',
-  url: '/children/idp/assets/index.js',
-  standaloneUrl: '/idp/overview',
+  key: 'tianquan-shoubing',
+  displayName: 'Tianquan-Shoubing',
+  url: '/children/tianquan-shoubing/assets/index.js',
+  standaloneUrl: '/tianquan-shoubing/overview',
   version: '5.3.2',
-  contractVersion: 'platform-1',
+  contractVersion: 'xingyuan-1',
   compatibleHostRange: '>=5.0.0 <6.0.0',
-  requiredCapabilities: ['idp:read'],
+  requiredCapabilities: ['tianquan-shoubing:read'],
   ...overrides,
 })
 
@@ -28,10 +28,10 @@ describe('loadManifest', () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse(manifest()))
     vi.stubGlobal('fetch', fetchMock)
 
-    await expect(loadManifest('idp', 'local', new AbortController().signal)).resolves.toMatchObject({
-      key: 'idp',
-      url: '/children/idp/assets/index.js',
-      standaloneUrl: '/idp/overview',
+    await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal)).resolves.toMatchObject({
+      key: 'tianquan-shoubing',
+      url: '/children/tianquan-shoubing/assets/index.js',
+      standaloneUrl: '/tianquan-shoubing/overview',
     })
     expect(fetchMock).toHaveBeenCalledWith('/portal-manifest/local.json', {
       credentials: 'include',
@@ -40,21 +40,21 @@ describe('loadManifest', () => {
     expect(new Headers(fetchMock.mock.calls[0][1].headers).has('Authorization')).toBe(false)
   })
 
-  it('selects a platform entry and allows explicit local child origins', async () => {
+  it('selects a xingyuan entry and allows explicit local child origins', async () => {
     vi.stubEnv('VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
-      idp: manifest(),
-      gateway: manifest({
-        key: 'gateway',
+      tianquan-shoubing: manifest(),
+      yuheng: manifest({
+        key: 'yuheng',
         url: 'http://localhost:18141/',
         standaloneUrl: 'http://localhost:18141/dashboard',
-        requiredCapabilities: ['gateway:read'],
+        requiredCapabilities: ['yuheng:read'],
       }),
     })))
 
-    await expect(loadManifest('gateway', 'local', new AbortController().signal))
+    await expect(loadManifest('yuheng', 'local', new AbortController().signal))
       .resolves.toMatchObject({
-        key: 'gateway',
+        key: 'yuheng',
         url: 'http://localhost:18141/',
         standaloneUrl: 'http://localhost:18141/dashboard',
       })
@@ -63,7 +63,7 @@ describe('loadManifest', () => {
   it('rejects invalid manifests before a child can mount', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse(manifest({ url: '' }))))
 
-    await expect(loadManifest('idp', 'local', new AbortController().signal))
+    await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal))
       .rejects.toMatchObject({ code: 'MANIFEST_INVALID' })
   })
 
@@ -72,7 +72,7 @@ describe('loadManifest', () => {
       manifest({ compatibleHostRange: '>=9.0.0' }),
     )))
 
-    await expect(loadManifest('idp', 'local', new AbortController().signal))
+    await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal))
       .rejects.toMatchObject({ code: 'MANIFEST_VERSION_UNSUPPORTED' })
   })
 
@@ -82,7 +82,7 @@ describe('loadManifest', () => {
       accessToken: 'must-not-cross-the-boundary',
     }))))
 
-    await expect(loadManifest('idp', 'local', new AbortController().signal))
+    await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal))
       .rejects.toMatchObject({ code: 'MANIFEST_URL_NOT_ALLOWED' })
   })
 
@@ -90,6 +90,6 @@ describe('loadManifest', () => {
     const abort = new DOMException('aborted', 'AbortError')
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(abort))
 
-    await expect(loadManifest('idp', 'local', new AbortController().signal)).rejects.toBe(abort)
+    await expect(loadManifest('tianquan-shoubing', 'local', new AbortController().signal)).rejects.toBe(abort)
   })
 })

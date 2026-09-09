@@ -36,7 +36,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('gateway admin login', () => {
+describe('yuheng admin login', () => {
   it.each([
     ['/catalog', '接口目录'],
     [undefined, '运行总览'],
@@ -57,7 +57,7 @@ describe('gateway admin login', () => {
     )
     expect(await screen.findByText(expected!)).toBeInTheDocument()
   })
-    it('uses the Gateway cookie login flow and never renders token inputs', async () => {
+    it('uses the Yuheng cookie login flow and never renders token inputs', async () => {
     const { LoginPage } = await import('./LoginPage')
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
 

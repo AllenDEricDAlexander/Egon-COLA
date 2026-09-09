@@ -51,13 +51,13 @@ describe('BizsPage', () => {
     expect(await screen.findByText('支付业务域')).toBeInTheDocument()
     expect(screen.getByText('共 21 条')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/ddc/bizs/page?pageNo=1&pageSize=10'),
+      expect.stringContaining('/api/v1/tianshu/bizs/page?pageNo=1&pageSize=10'),
       expect.anything(),
     )
 
     fireEvent.click(screen.getByTitle('2'))
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/ddc/bizs/page?pageNo=2&pageSize=10'),
+      expect.stringContaining('/api/v1/tianshu/bizs/page?pageNo=2&pageSize=10'),
       expect.anything(),
     ))
   })
@@ -99,7 +99,7 @@ describe('BizsPage', () => {
       .mockResolvedValueOnce(jsonResponse({
         success: false,
         code: 56999,
-        status: 'DDC_INTERNAL_FAILURE',
+        status: 'TIANSHU_INTERNAL_FAILURE',
         message: '加载失败',
         data: null,
         traceId: 'error-trace',

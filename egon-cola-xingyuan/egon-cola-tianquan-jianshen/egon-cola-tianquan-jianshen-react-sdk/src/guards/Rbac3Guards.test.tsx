@@ -9,7 +9,7 @@ import {PermissionGuard} from './PermissionGuard'
 
 const about = {
   user: {subject: 'alice', tenantId: 'tenant-a', status: 'ACTIVE'},
-  currentApplicationCode: 'rbac3-admin',
+  currentApplicationCode: 'tianquan-jianshen-admin',
   activeRoles: [],
   permissions: ['orders:read'],
   resourceCodes: ['orders.read'],
@@ -45,7 +45,7 @@ const client = {
   getAbout: async () => about,
 } as unknown as Rbac3Client
 
-describe('RBAC3 guards', () => {
+describe('Tianquan-Jianshen guards', () => {
   it('hides permissions by default until about is ready', async () => {
     let releaseAbout: ((view: Rbac3AboutView) => void) | undefined
     const delayedClient = {

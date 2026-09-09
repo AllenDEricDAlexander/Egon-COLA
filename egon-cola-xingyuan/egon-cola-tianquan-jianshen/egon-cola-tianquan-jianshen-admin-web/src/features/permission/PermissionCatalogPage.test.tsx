@@ -53,9 +53,9 @@ const wrapper = (request: FeatureApiClient['request']) => ({children}: PropsWith
 describe('PermissionCatalogPage', () => {
   it('renders the permission controller and submits create/status paths', async () => {
     const request = vi.fn(async <T,>(path: string, options: FeatureApiRequest = {}): Promise<T> => {
-      if (path === '/api/rbac3/v1/iam/tenant-applications') return [{...application, applicationId: '820'}] as T
-      if (path === '/api/rbac3/v1/iam/resource-catalog/applications') return [application] as T
-      if (path === '/api/rbac3/v1/iam/permissions/91') return permission as T
+      if (path === '/api/tianquan-jianshen/v1/iam/tenant-applications') return [{...application, applicationId: '820'}] as T
+      if (path === '/api/tianquan-jianshen/v1/iam/resource-catalog/applications') return [application] as T
+      if (path === '/api/tianquan-jianshen/v1/iam/permissions/91') return permission as T
       if (options?.method === 'POST') return permission as T
       if (path.endsWith('/status')) return {...permission, status: 'DISABLED', version: 2} as T
       return (options.query?.applicationId === '71' ? [permission] : []) as T
@@ -63,23 +63,23 @@ describe('PermissionCatalogPage', () => {
     render(<PermissionCatalogPage />, {wrapper: wrapper(request)})
 
     await waitFor(() => expect(screen.getByText('orders.read')).toBeInTheDocument())
-    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/permissions', {query: {applicationId: '71', assignable: false}})
+    expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/permissions', {query: {applicationId: '71', assignable: false}})
 
     fireEvent.click(screen.getByText('orders.read'))
-    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/permissions/91', expect.anything()))
+    await waitFor(() => expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/permissions/91', expect.anything()))
 
     fireEvent.click(screen.getByRole('button', {name: '新建权限'}))
     fireEvent.change(document.getElementById('permissionCode')!, {target: {value: 'orders.write'}})
     fireEvent.change(document.getElementById('permissionName')!, {target: {value: '写入订单'}})
     fireEvent.click(screen.getByRole('button', {name: /保.*存/}))
     await waitFor(() => expect(request).toHaveBeenCalledWith(
-      '/api/rbac3/v1/iam/permissions',
+      '/api/tianquan-jianshen/v1/iam/permissions',
       expect.objectContaining({method: 'POST', body: expect.objectContaining({applicationId: '71', riskLevel: 'MEDIUM'})}),
     ))
 
     fireEvent.click(screen.getByRole('button', {name: /停.*用/}))
     await waitFor(() => expect(request).toHaveBeenCalledWith(
-      '/api/rbac3/v1/iam/permissions/91/status',
+      '/api/tianquan-jianshen/v1/iam/permissions/91/status',
       {method: 'PUT', body: {status: 'DISABLED', expectedVersion: 1}},
     ))
   })

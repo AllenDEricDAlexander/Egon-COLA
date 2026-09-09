@@ -5,30 +5,30 @@ import { extname, join, normalize } from 'node:path'
 
 const port = Number.parseInt(process.env.PORT ?? '8080', 10)
 const apiBase = new URL(
-  process.env.DDC_ADMIN_API_BASE_URL ?? 'http://ddc-admin:18080',
+  process.env.TIANSHU_ADMIN_API_BASE_URL ?? 'http://tianshu-admin:18080',
 )
 const developmentPlaintext =
-  process.env.DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
+  process.env.TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
 const tlsFile = (name) => {
   const path = process.env[name]
   if (!path) {
-    throw new Error(`${name} is required for DDC Admin mTLS`)
+    throw new Error(`${name} is required for Tianshu Admin mTLS`)
   }
   return readFileSync(path)
 }
 if (apiBase.protocol === 'http:' && !developmentPlaintext) {
   throw new Error(
-    'DDC Admin plaintext requires explicit development configuration',
+    'Tianshu Admin plaintext requires explicit development configuration',
   )
 }
 if (!['http:', 'https:'].includes(apiBase.protocol)) {
-  throw new Error('DDC Admin API must use HTTP or HTTPS')
+  throw new Error('Tianshu Admin API must use HTTP or HTTPS')
 }
 const apiTls = apiBase.protocol === 'https:'
   ? {
-      ca: tlsFile('DDC_ADMIN_API_TLS_CA_PATH'),
-      cert: tlsFile('DDC_ADMIN_API_TLS_CERTIFICATE_PATH'),
-      key: tlsFile('DDC_ADMIN_API_TLS_PRIVATE_KEY_PATH'),
+      ca: tlsFile('TIANSHU_ADMIN_API_TLS_CA_PATH'),
+      cert: tlsFile('TIANSHU_ADMIN_API_TLS_CERTIFICATE_PATH'),
+      key: tlsFile('TIANSHU_ADMIN_API_TLS_PRIVATE_KEY_PATH'),
       rejectUnauthorized: true,
       servername: apiBase.hostname,
     }
@@ -65,7 +65,7 @@ const proxy = (incoming, outgoing) => {
     if (!outgoing.headersSent) {
       outgoing.writeHead(502, { 'Content-Type': 'application/json' })
     }
-    outgoing.end('{"code":"DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE"}')
+    outgoing.end('{"code":"TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE"}')
   })
   incoming.pipe(upstream)
 }

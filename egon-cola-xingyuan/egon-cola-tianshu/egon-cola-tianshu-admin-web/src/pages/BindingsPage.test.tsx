@@ -68,7 +68,7 @@ describe('BindingsPage', () => {
 
     expect(await screen.findByText('订单服务')).toBeInTheDocument()
     expect(vi.mocked(fetch).mock.calls[0][0]).toEqual(
-      expect.stringContaining('/api/v1/ddc/namespace-env-app-bindings/page'),
+      expect.stringContaining('/api/v1/tianshu/namespace-env-app-bindings/page'),
     )
 
     fireEvent.click(screen.getByRole('button', { name: '新增绑定' }))
@@ -82,6 +82,6 @@ describe('BindingsPage', () => {
       init?.method === 'POST'
     ))).toBe(true))
     const postCall = vi.mocked(fetch).mock.calls.find(([, init]) => init?.method === 'POST')
-    expect(postCall?.[0]).toEqual('/api/v1/ddc/namespace-env-app-bindings')
+    expect(postCall?.[0]).toEqual('/api/v1/tianshu/namespace-env-app-bindings')
   })
 })

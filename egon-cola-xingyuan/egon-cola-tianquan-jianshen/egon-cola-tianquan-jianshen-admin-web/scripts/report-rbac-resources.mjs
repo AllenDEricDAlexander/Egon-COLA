@@ -90,7 +90,7 @@ export const reportResources = async ({
     throw new Error('expectedApplicationVersion must be a non-negative integer')
   }
   const request = projectReport(await loadDefinitions(definitionsPath), buildId.trim(), expectedApplicationVersion)
-  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/rbac3/v1/registration/businesses/${encodeURIComponent(businessCode.trim())}/applications/${encodeURIComponent(applicationCode.trim())}/frontend-resources`
+  const endpoint = `${baseUrl.replace(/\/$/, '')}/api/tianquan-jianshen/v1/registration/businesses/${encodeURIComponent(businessCode.trim())}/applications/${encodeURIComponent(applicationCode.trim())}/frontend-resources`
   const response = await fetcher(endpoint, {
     method: 'PUT',
     headers: {
@@ -108,12 +108,12 @@ export const reportResources = async ({
 
 const run = async () => {
   const result = await reportResources({
-    baseUrl: process.env.RBAC3_GATEWAY_BASE_URL,
-    businessCode: process.env.RBAC3_BUSINESS_CODE,
-    applicationCode: process.env.RBAC3_APPLICATION_CODE,
-    serviceAccessToken: process.env.RBAC3_SERVICE_ACCESS_TOKEN,
-    buildId: process.env.RBAC3_BUILD_ID,
-    expectedApplicationVersion: Number(process.env.RBAC3_EXPECTED_APPLICATION_VERSION ?? 0),
+    baseUrl: process.env.TIANQUAN_JIANSHEN_YUHENG_BASE_URL,
+    businessCode: process.env.TIANQUAN_JIANSHEN_BUSINESS_CODE,
+    applicationCode: process.env.TIANQUAN_JIANSHEN_APPLICATION_CODE,
+    serviceAccessToken: process.env.TIANQUAN_JIANSHEN_SERVICE_ACCESS_TOKEN,
+    buildId: process.env.TIANQUAN_JIANSHEN_BUILD_ID,
+    expectedApplicationVersion: Number(process.env.TIANQUAN_JIANSHEN_EXPECTED_APPLICATION_VERSION ?? 0),
   })
   process.stdout.write(`${JSON.stringify(result)}\n`)
 }

@@ -105,7 +105,7 @@ const validateDefinitions = (definitions: readonly FrontendResourceDefinition[])
   const codes = new Set<string>()
   for (const definition of definitions) {
     if (!definition.code || !definition.name || codes.has(definition.code)) {
-      throw new Error(`invalid or duplicate local RBAC3 resource code: ${definition.code}`)
+      throw new Error(`invalid or duplicate local Tianquan-Jianshen resource code: ${definition.code}`)
     }
     codes.add(definition.code)
     if (definition.kind !== 'ROUTE' && definition.kind !== 'ACTION'
@@ -127,7 +127,7 @@ const validateDefinitions = (definitions: readonly FrontendResourceDefinition[])
     const seen = new Set<string>()
     let parent = definition.parentCode
     while (parent) {
-      if (seen.has(parent)) throw new Error(`cyclic local RBAC3 resource parent chain: ${definition.code}`)
+      if (seen.has(parent)) throw new Error(`cyclic local Tianquan-Jianshen resource parent chain: ${definition.code}`)
       seen.add(parent)
       parent = definitions.find((value) => value.code === parent)?.parentCode
     }

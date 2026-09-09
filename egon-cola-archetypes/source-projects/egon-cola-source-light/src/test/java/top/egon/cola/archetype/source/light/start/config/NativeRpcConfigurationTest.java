@@ -50,15 +50,15 @@ class NativeRpcConfigurationTest {
         }
         var test = properties("application-test.yml");
         for (String suffix : new String[]{"rpc.enabled", "rpc.provider.enabled", "rpc.consumer.enabled",
-                "ddc.enabled", "ddc.registry.enabled", "ddc.redis.enabled", "ddc.registry.http.enabled",
-                "gateway.openapi.enabled", "gateway.openapi.publish-to-ddc"}) {
+                "tianshu.enabled", "tianshu.registry.enabled", "tianshu.redis.enabled", "tianshu.registry.http.enabled",
+                "yuheng.openapi.enabled", "yuheng.openapi.publish-to-tianshu"}) {
             assertThat(test.getProperty("egon.cola.component." + suffix)).as(suffix).isEqualTo("false");
         }
-        assertThat(test.getProperty("egon.cola.platform.idp.enabled")).isEqualTo("false");
+        assertThat(test.getProperty("egon.cola.platform.tianquan.shoubing.enabled")).isEqualTo("false");
         var prod = properties("application-prod.yml");
         assertThat(prod.getProperty("egon.cola.component.rpc.tls.enabled")).isEqualTo("${RPC_TLS_ENABLED:true}");
-        assertThat(prod.getProperty("egon.cola.component.ddc.rpc.tls.enabled")).isEqualTo("${DDC_RPC_TLS_ENABLED:true}");
-        assertThat(prod.getProperty("egon.cola.platform.idp.register-filter")).isEqualTo("false");
+        assertThat(prod.getProperty("egon.cola.component.tianshu.rpc.tls.enabled")).isEqualTo("${TIANSHU_RPC_TLS_ENABLED:true}");
+        assertThat(prod.getProperty("egon.cola.platform.tianquan.shoubing.register-filter")).isEqualTo("false");
     }
 
     @Test
@@ -74,20 +74,20 @@ class NativeRpcConfigurationTest {
         assertThat(rpc.isEnabled()).isFalse();
         assertThat(rpc.getProvider().getPort()).isEqualTo(50051);
         assertThat(rpc.getConsumer().getDefaultTimeoutMs()).isEqualTo(3000);
-        var ddc = binder.bind("egon.cola.component.ddc", top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties.class).get();
+        var ddc = binder.bind("egon.cola.component.tianshu", top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties.class).get();
         assertThat(ddc.getAppCode()).isEqualTo("egon-cola-source-light");
         assertThat(ddc.getEnv()).isEqualTo("test");
         assertThat(ddc.getRegistry().isEnabled()).isFalse();
-        var transport = binder.bind("egon.cola.component.ddc.rpc", top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties.class).get();
+        var transport = binder.bind("egon.cola.component.tianshu.rpc", top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties.class).get();
         assertThat(transport.getTls().isDevelopmentPlaintext()).isTrue();
-        var registration = binder.bind("egon.cola.component.ddc.registry.http", top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties.class).get();
+        var registration = binder.bind("egon.cola.component.tianshu.registry.http", top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationProperties.class).get();
         assertThat(registration.getServiceName()).isEqualTo("egon-cola-source-light");
         assertThat(registration.isEnabled()).isFalse();
         assertThat(registration.getPort()).isEqualTo(8181);
-        var idp = binder.bind("egon.cola.platform.idp", top.egon.cola.platform.idp.starter.autoconfigure.IdpStarterProperties.class).get();
+        var idp = binder.bind("egon.cola.platform.tianquan.shoubing", top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.class).get();
         assertThat(idp.isEnabled()).isFalse();
         assertThat(idp.isRegisterFilter()).isFalse();
-        assertThat(idp.getServiceClient().getRegistrationId()).isEqualTo("ddcregistration");
+        assertThat(idp.getServiceClient().getRegistrationId()).isEqualTo("tianshuregistration");
     }
 
     private Properties properties(String path) {
@@ -100,8 +100,8 @@ class NativeRpcConfigurationTest {
 
     private Set<String> nativeKeys(Properties values) {
         return values.stringPropertyNames().stream().filter(key -> key.startsWith("egon.cola.component.rpc.")
-                || key.startsWith("egon.cola.component.ddc.")
-                || key.startsWith("egon.cola.component.gateway.openapi.")
-                || key.startsWith("egon.cola.platform.idp.")).collect(Collectors.toSet());
+                || key.startsWith("egon.cola.component.tianshu.")
+                || key.startsWith("egon.cola.component.yuheng.openapi.")
+                || key.startsWith("egon.cola.platform.tianquan.shoubing.")).collect(Collectors.toSet());
     }
 }

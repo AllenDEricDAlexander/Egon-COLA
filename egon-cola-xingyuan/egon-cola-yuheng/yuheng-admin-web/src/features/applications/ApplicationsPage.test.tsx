@@ -97,7 +97,7 @@ beforeEach(() => {
   mocks.application.mockReset().mockResolvedValue({
     id: 'application-order',
     applicationCode: 'order',
-    displayName: 'Order Gateway',
+    displayName: 'Order Yuheng',
     ...scope,
     ddcMatched: true,
     revision: 0,
@@ -106,7 +106,7 @@ beforeEach(() => {
   mocks.createApplication.mockReset().mockResolvedValue({
     id: 'application-order',
     applicationCode: 'order',
-    displayName: 'Order Gateway',
+    displayName: 'Order Yuheng',
     ...scope,
     ddcMatched: true,
     revision: 0,
@@ -131,13 +131,13 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('ApplicationsPage DDC identity', () => {
+describe('ApplicationsPage Tianshu identity', () => {
   const chooseBinding = async () => {
     fireEvent.mouseDown(screen.getByLabelText('Scope Binding'))
     fireEvent.click(await screen.findByText('retail / order / local / ops / Order'))
   }
 
-  it('creates an application from the selected read-only DDC scope', async () => {
+  it('creates an application from the selected read-only Tianshu scope', async () => {
     renderPage()
     await screen.findByText('Application / Credential')
 
@@ -146,7 +146,7 @@ describe('ApplicationsPage DDC identity', () => {
     await chooseBinding()
 
     fireEvent.change(screen.getByLabelText('名称'), {
-      target: { value: 'Order Gateway' },
+      target: { value: 'Order Yuheng' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'OK' }))
 
@@ -155,7 +155,7 @@ describe('ApplicationsPage DDC identity', () => {
       namespace: 'ops',
       env: 'local',
       applicationCode: 'order',
-      displayName: 'Order Gateway',
+      displayName: 'Order Yuheng',
       description: undefined,
     }))
   })
@@ -163,20 +163,20 @@ describe('ApplicationsPage DDC identity', () => {
   it('shows duplicate physical application errors in the modal', async () => {
     mocks.createApplication.mockRejectedValue(new GatewayApiError(
       409,
-      'GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS',
-      'gateway application already exists: application-order',
+      'YUHENG_ADMIN_APPLICATION_ALREADY_EXISTS',
+      'yuheng application already exists: application-order',
     ))
     renderPage()
     await screen.findByText('Application / Credential')
     fireEvent.click(screen.getByRole('button', { name: '新建 Application' }))
     await chooseBinding()
     fireEvent.change(screen.getByLabelText('名称'), {
-      target: { value: 'Order Gateway' },
+      target: { value: 'Order Yuheng' },
     })
     fireEvent.click(screen.getByRole('button', { name: 'OK' }))
 
     expect(await screen.findByText(
-      'gateway application already exists: application-order',
+      'yuheng application already exists: application-order',
     )).toBeInTheDocument()
   })
 })
@@ -186,14 +186,14 @@ describe('ApplicationsPage OpenAPI aggregation', () => {
     mocks.applications.mockResolvedValue([{
       id: 'application-order',
       applicationCode: 'order',
-      displayName: 'Order Gateway',
+      displayName: 'Order Yuheng',
       ...scope,
       ddcMatched: true,
       revision: 0,
     }])
     renderPage()
 
-    await screen.findByText('Order Gateway')
+    await screen.findByText('Order Yuheng')
     fireEvent.click(screen.getByRole('button', { name: /详.*情/ }))
 
     expect(await screen.findByText('application-order')).toBeInTheDocument()
@@ -204,7 +204,7 @@ describe('ApplicationsPage OpenAPI aggregation', () => {
     mocks.applications.mockResolvedValue([{
       id: 'application-order',
       applicationCode: 'order',
-      displayName: 'Order Gateway',
+      displayName: 'Order Yuheng',
       ...scope,
       ddcMatched: true,
       revision: 0,
@@ -242,7 +242,7 @@ describe('ApplicationsPage OpenAPI aggregation', () => {
         operationCount: 1,
         schemaCount: 1,
         canonicalSha256: 'b'.repeat(64),
-        lastErrorCode: 'GATEWAY_OPENAPI_GROUP_DRIFT',
+        lastErrorCode: 'YUHENG_OPENAPI_GROUP_DRIFT',
         lastErrorMessage: 'inventory document drifted',
         lastAttemptAt: '2026-08-26T03:00:00Z',
         lastSuccessAt: null,
@@ -271,16 +271,16 @@ describe('ApplicationsPage OpenAPI aggregation', () => {
 
     renderPage()
 
-    expect(await screen.findByText('Order Gateway')).toBeInTheDocument()
+    expect(await screen.findByText('Order Yuheng')).toBeInTheDocument()
     expect(screen.getByText('INCONSISTENT_BUILD')).toBeInTheDocument()
     expect(screen.getByText('Aggregate · set 未完成')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', {
-      name: '展开 OpenAPI Groups Order Gateway',
+      name: '展开 OpenAPI Groups Order Yuheng',
     }))
 
     expect(await screen.findByText('inventory')).toBeInTheDocument()
-    expect(screen.getByText(/GATEWAY_OPENAPI_GROUP_DRIFT/)).toBeInTheDocument()
+    expect(screen.getByText(/YUHENG_OPENAPI_GROUP_DRIFT/)).toBeInTheDocument()
     expect(screen.getByText(/inventory document drifted/)).toBeInTheDocument()
   })
 })

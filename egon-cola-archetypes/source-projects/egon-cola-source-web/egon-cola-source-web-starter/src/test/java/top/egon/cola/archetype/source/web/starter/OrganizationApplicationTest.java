@@ -35,7 +35,7 @@ class OrganizationApplicationTest {
         assertThat(context.getBeansOfType(ConnectionFactory.class)).isEmpty();
         assertThat(Arrays.stream(context.getBeanDefinitionNames())
                 .filter(name -> name.toLowerCase().contains("nacos"))).isEmpty();
-        assertThat(environment.getProperty("egon.cola.component.ddc.registry.enabled")).isEqualTo("false");
+        assertThat(environment.getProperty("egon.cola.component.tianshu.registry.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("egon.cola.component.rpc.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.redis.enabled")).isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.rabbit.enabled")).isEqualTo("false");

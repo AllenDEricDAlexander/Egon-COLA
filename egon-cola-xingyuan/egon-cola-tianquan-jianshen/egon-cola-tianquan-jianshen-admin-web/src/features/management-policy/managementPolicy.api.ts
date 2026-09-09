@@ -47,27 +47,27 @@ export interface ManageableRoleView {
 }
 
 export const managementPolicyApi = (client: FeatureApiClient) => ({
-  list: () => client.request<readonly ManagementPolicyView[]>('/api/rbac3/v1/management-policies'),
+  list: () => client.request<readonly ManagementPolicyView[]>('/api/tianquan-jianshen/v1/management-policies'),
   get: (policyId: string) => client.request<ManagementPolicyView>(
-    `/api/rbac3/v1/management-policies/${encodeURIComponent(policyId)}`,
+    `/api/tianquan-jianshen/v1/management-policies/${encodeURIComponent(policyId)}`,
   ),
   create: (command: SaveManagementPolicyCommand, idempotencyKey: string) => client.request<ManagementPolicyView>(
-    '/api/rbac3/v1/management-policies',
+    '/api/tianquan-jianshen/v1/management-policies',
     { method: 'POST', body: command, headers: { 'Idempotency-Key': idempotencyKey } },
   ),
   update: (policy: ManagementPolicyView, command: SaveManagementPolicyCommand, idempotencyKey: string) => client.request<ManagementPolicyView>(
-    `/api/rbac3/v1/management-policies/${encodeURIComponent(policy.policyId)}`,
+    `/api/tianquan-jianshen/v1/management-policies/${encodeURIComponent(policy.policyId)}`,
     { method: 'PUT', body: command, headers: { 'If-Match': String(policy.version), 'Idempotency-Key': idempotencyKey } },
   ),
   disable: (policy: ManagementPolicyView, idempotencyKey: string) => client.request<ManagementPolicyView>(
-    `/api/rbac3/v1/management-policies/${encodeURIComponent(policy.policyId)}/disable`,
+    `/api/tianquan-jianshen/v1/management-policies/${encodeURIComponent(policy.policyId)}/disable`,
     { method: 'POST', headers: { 'If-Match': String(policy.version), 'Idempotency-Key': idempotencyKey } },
   ),
-  capabilities: () => client.request<ManagementCapabilityView>('/api/rbac3/v1/management-capabilities/me'),
+  capabilities: () => client.request<ManagementCapabilityView>('/api/tianquan-jianshen/v1/management-capabilities/me'),
   manageableUsers: (query?: string) => query?.trim()
-    ? client.request<readonly ManageableUserView[]>('/api/rbac3/v1/manageable-users', {query: {query: query.trim()}})
-    : client.request<readonly ManageableUserView[]>('/api/rbac3/v1/manageable-users'),
+    ? client.request<readonly ManageableUserView[]>('/api/tianquan-jianshen/v1/manageable-users', {query: {query: query.trim()}})
+    : client.request<readonly ManageableUserView[]>('/api/tianquan-jianshen/v1/manageable-users'),
   manageableRoles: (query?: string) => query?.trim()
-    ? client.request<readonly ManageableRoleView[]>('/api/rbac3/v1/manageable-roles', {query: {query: query.trim()}})
-    : client.request<readonly ManageableRoleView[]>('/api/rbac3/v1/manageable-roles'),
+    ? client.request<readonly ManageableRoleView[]>('/api/tianquan-jianshen/v1/manageable-roles', {query: {query: query.trim()}})
+    : client.request<readonly ManageableRoleView[]>('/api/tianquan-jianshen/v1/manageable-roles'),
 })

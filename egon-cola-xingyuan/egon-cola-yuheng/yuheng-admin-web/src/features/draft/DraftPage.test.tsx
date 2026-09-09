@@ -130,7 +130,7 @@ const operationDetail = (
     methodIdentity: `POST /${operationId}`,
     providerServiceIdentity: {
       env: 'test',
-      namespace: 'gateway',
+      namespace: 'yuheng',
       protocol,
       serviceName: 'openai-compatible-provider',
       group: 'default',
@@ -170,9 +170,9 @@ const renderDraftPage = () => {
   })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/gateway-groups/group-1/draft/routes']}>
+      <MemoryRouter initialEntries={['/yuheng-groups/group-1/draft/routes']}>
         <Routes>
-          <Route path="/gateway-groups/:groupId/draft/routes" element={<DraftPage />} />
+          <Route path="/yuheng-groups/:groupId/draft/routes" element={<DraftPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

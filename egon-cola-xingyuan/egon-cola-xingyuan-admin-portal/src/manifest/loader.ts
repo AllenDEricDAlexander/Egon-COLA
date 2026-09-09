@@ -106,7 +106,7 @@ const readManifest = (value: unknown, platformKey: PlatformKey): PlatformManifes
     ? root
     : root[platformKey] as Record<string, unknown> | undefined
   if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) {
-    throw invalid('Manifest does not contain the requested platform')
+    throw invalid('Manifest does not contain the requested xingyuan')
   }
   const requiredStrings = [
     'key',
@@ -122,7 +122,7 @@ const readManifest = (value: unknown, platformKey: PlatformKey): PlatformManifes
     throw invalid('Manifest is missing a required string field')
   }
   if (candidate.key !== platformKey) {
-    throw invalid('Manifest key does not match the requested platform')
+    throw invalid('Manifest key does not match the requested xingyuan')
   }
   if (!Array.isArray(candidate.requiredCapabilities)
     || candidate.requiredCapabilities.some((capability) => typeof capability !== 'string' || !capability)) {
@@ -170,7 +170,7 @@ export const loadManifest = async (
     if (isAbortError(error)) {
       throw error
     }
-    throw new ManifestLoadError('MANIFEST_FETCH_FAILED', 'Unable to load platform manifest')
+    throw new ManifestLoadError('MANIFEST_FETCH_FAILED', 'Unable to load xingyuan manifest')
   }
 
   if (!response.ok) {

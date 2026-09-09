@@ -39,13 +39,13 @@ export const McpServersPage = () => {
   const filters = readScopeSearchParams(searchParams, ['env', 'namespace'])
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const canWrite = useCapability('gateway:mcp:write')
+  const canWrite = useCapability('yuheng:mcp:write')
   const [selectedGroupId, setSelectedGroupId] = useState('')
   const [editing, setEditing] = useState<McpServer>()
   const [modalOpen, setModalOpen] = useState(false)
   const [form] = Form.useForm<ServerForm>()
   const groups = useQuery({
-    queryKey: ['gateway-groups'],
+    queryKey: ['yuheng-groups'],
     queryFn: ({ signal }) => gatewayApi.groups(signal),
   })
   const filteredGroups = useMemo(() => (groups.data ?? []).filter((group) =>
@@ -55,7 +55,7 @@ export const McpServersPage = () => {
     ? selectedGroupId
     : filteredGroups[0]?.id || ''
   const draft = useQuery({
-    queryKey: ['gateway-draft', gatewayGroupId],
+    queryKey: ['yuheng-draft', gatewayGroupId],
     queryFn: ({ signal }) => gatewayApi.draft(gatewayGroupId, signal),
     enabled: Boolean(gatewayGroupId),
   })
@@ -82,7 +82,7 @@ export const McpServersPage = () => {
       form.resetFields()
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-servers', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
       void message.success('MCP Server 已保存')
       if (!editing) navigate(`/mcp/servers/${result.resourceId}`)
@@ -98,7 +98,7 @@ export const McpServersPage = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-servers', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
       void message.success('MCP Server 已删除')
     },
@@ -137,9 +137,9 @@ export const McpServersPage = () => {
       <Space className="page-title" align="center" wrap>
         <Typography.Title level={2}>MCP Servers</Typography.Title>
         <Select
-          aria-label="Gateway Group"
+          aria-label="Yuheng Group"
           value={gatewayGroupId || undefined}
-          placeholder="选择 Gateway Group"
+          placeholder="选择 Yuheng Group"
           style={{ minWidth: 240 }}
           options={filteredGroups.map((group) => ({
             value: group.id,
@@ -161,7 +161,7 @@ export const McpServersPage = () => {
         </Button>
       </Space>
       {!gatewayGroupId ? (
-        <Typography.Text type="secondary">当前作用域尚未配置 Gateway Group。</Typography.Text>
+        <Typography.Text type="secondary">当前作用域尚未配置 Yuheng Group。</Typography.Text>
       ) : servers.error ? (
         <QueryFailure error={servers.error} retry={() => void servers.refetch()} />
       ) : (

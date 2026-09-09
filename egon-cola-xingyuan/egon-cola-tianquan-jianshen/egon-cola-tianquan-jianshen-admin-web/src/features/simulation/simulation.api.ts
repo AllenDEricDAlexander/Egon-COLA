@@ -48,13 +48,13 @@ export interface RoleChangeImpactView {
 export const simulationApi = (client: FeatureApiClient) => ({
   simulate: (command: AuthorizationSimulationCommand) => {
     const requestId = crypto.randomUUID()
-    return client.request<AuthorizationSimulationView>('/api/rbac3/v1/simulations/authorization', {
+    return client.request<AuthorizationSimulationView>('/api/tianquan-jianshen/v1/simulations/authorization', {
       method: 'POST', body: command, headers: { 'X-Request-Id': requestId, 'X-Trace-Id': requestId },
     })
   },
   roleChangeImpact: (roleId: string) => {
     const requestId = crypto.randomUUID()
-    return client.request<RoleChangeImpactView>('/api/rbac3/v1/simulations/role-change-impact', {
+    return client.request<RoleChangeImpactView>('/api/tianquan-jianshen/v1/simulations/role-change-impact', {
       method: 'POST',
       body: { roleId: roleId.trim(), at: new Date().toISOString() },
       headers: { 'X-Request-Id': requestId, 'X-Trace-Id': requestId },

@@ -19,7 +19,7 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
 
 export default function EnvSelect({ value, onChange, bizCode = '', namespaceCode = '', disabled, placeholder = '请选择或输入环境' }: Props) {
   const query = useScopeOption(withParams(
-    '/api/v1/ddc/envs',
+    '/api/v1/tianshu/envs',
     { bizCode, namespaceCode },
   ))
   const envs = query.data ?? []

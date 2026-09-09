@@ -1,12 +1,12 @@
 [
   {
-    "applicationCode": "gateway-test-http-provider",
-    "displayName": "Gateway Demo HTTP Providers",
+    "applicationCode": "yuheng-test-http-provider",
+    "displayName": "Yuheng Demo HTTP Providers",
     "description": "MVC and WebFlux demo providers"
   },
   {
-    "applicationCode": "gateway-test-rpc-provider",
-    "displayName": "Gateway Demo RPC Provider",
+    "applicationCode": "yuheng-test-rpc-provider",
+    "displayName": "Yuheng Demo RPC Provider",
     "description": "Egon RPC demo provider"
   }
 ]

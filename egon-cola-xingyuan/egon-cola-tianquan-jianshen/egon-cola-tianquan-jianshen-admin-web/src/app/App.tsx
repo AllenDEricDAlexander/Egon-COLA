@@ -9,7 +9,7 @@ import {createAdminQueryClient} from './queryClient'
 import {ApplicationRouter} from './router'
 
 const queryClient = createAdminQueryClient()
-const clients = createAdminApiClients(import.meta.env.VITE_RBAC3_API_BASE ?? '')
+const clients = createAdminApiClients(import.meta.env.VITE_TIANQUAN_JIANSHEN_API_BASE ?? '')
 
 export const App = ({ embedded = false }: { readonly embedded?: boolean }) => (
     <QueryClientProvider client={queryClient}>
@@ -17,7 +17,7 @@ export const App = ({ embedded = false }: { readonly embedded?: boolean }) => (
             <FeatureApiProvider client={clients.featureClient}>
                 <BrowserRouter>
                     <AppErrorBoundary onError={(error, info) => {
-                        console.error('[RBAC3] Unhandled error:', error, info.componentStack)
+                        console.error('[Tianquan-Jianshen] Unhandled error:', error, info.componentStack)
                     }}>
                         <AuthenticationShell>
                             <ApplicationRouter embedded={embedded}/>

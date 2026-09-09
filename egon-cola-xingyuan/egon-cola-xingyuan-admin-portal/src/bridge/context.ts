@@ -19,7 +19,7 @@ export interface ChildContext {
 const sensitiveKey = /token|secret|cookie|authorization|password|raw.?body|header/i
 
 const isPlatformKey = (value: unknown): value is PlatformKey => (
-  value === 'idp' || value === 'rbac3' || value === 'gateway' || value === 'ddc'
+  value === 'tianquan-shoubing' || value === 'tianquan-jianshen' || value === 'yuheng' || value === 'tianshu'
 )
 
 const sanitizeValue = (value: unknown, key?: string): SafeValue | undefined => {
@@ -49,7 +49,7 @@ const sanitizeValue = (value: unknown, key?: string): SafeValue | undefined => {
 
 export const sanitizeChildContext = (source: Record<string, unknown>): ChildContext => {
   if (!isPlatformKey(source.platformKey)) {
-    throw new Error('Invalid child platform key')
+    throw new Error('Invalid child xingyuan key')
   }
 
   const result: ChildContext = { platformKey: source.platformKey }

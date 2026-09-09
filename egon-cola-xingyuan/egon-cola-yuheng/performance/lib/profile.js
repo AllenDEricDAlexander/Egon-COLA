@@ -1,24 +1,24 @@
 import capacity from "../capacity.json";
 
-const profileName = __ENV.GATEWAY_PERF_PROFILE || "smoke";
+const profileName = __ENV.YUHENG_PERF_PROFILE || "smoke";
 const profile = capacity.profiles[profileName];
 
 if (!profile) {
-  throw new Error(`unknown GATEWAY_PERF_PROFILE: ${profileName}`);
+  throw new Error(`unknown YUHENG_PERF_PROFILE: ${profileName}`);
 }
 
 export function scenario(name, exec) {
   return {
     executor: "constant-arrival-rate",
     exec,
-    rate: numberEnv("GATEWAY_PERF_RATE", profile.ratePerSecond),
+    rate: numberEnv("YUHENG_PERF_RATE", profile.ratePerSecond),
     timeUnit: "1s",
-    duration: __ENV.GATEWAY_PERF_DURATION || profile.duration,
+    duration: __ENV.YUHENG_PERF_DURATION || profile.duration,
     preAllocatedVUs: numberEnv(
-      "GATEWAY_PERF_PRE_ALLOCATED_VUS",
+      "YUHENG_PERF_PRE_ALLOCATED_VUS",
       profile.preAllocatedVus,
     ),
-    maxVUs: numberEnv("GATEWAY_PERF_MAX_VUS", profile.maxVus),
+    maxVUs: numberEnv("YUHENG_PERF_MAX_VUS", profile.maxVus),
     tags: { scenario: name },
   };
 }

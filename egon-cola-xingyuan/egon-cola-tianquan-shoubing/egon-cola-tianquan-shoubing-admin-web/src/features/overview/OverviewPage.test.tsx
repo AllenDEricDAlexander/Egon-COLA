@@ -16,7 +16,7 @@ vi.mock('../../auth/AuthContext', () => ({
       activeRoleContexts: mocks.activeRoleContexts,
       permissions: [],
       apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
-      defaultApplicationCode: 'idp-admin', defaultRoute: null, authVersion: 2, policyVersion: 3,
+      defaultApplicationCode: 'tianquan-shoubing-admin', defaultRoute: null, authVersion: 2, policyVersion: 3,
     },
   }),
 }))
@@ -26,12 +26,12 @@ vi.mock('@egon-cola/xingyuan-admin-web-shared', async (importOriginal) => ({
   usePermission: () => ({has: () => false}),
 }))
 
-describe('IDP overview', () => {
+describe('Tianquan-Shoubing overview', () => {
   afterEach(cleanup)
   beforeEach(() => { mocks.activeRoleContexts = [] })
 
   it('renders the flat role descriptors returned by the bootstrap contract', async () => {
-    mocks.activeRoleContexts = [{roleId: 'role-1', roleCode: 'IDP_ADMIN', applicationCode: 'idp-admin'}]
+    mocks.activeRoleContexts = [{roleId: 'role-1', roleCode: 'TIANQUAN_SHOUBING_ADMIN', applicationCode: 'tianquan-shoubing-admin'}]
     mocks.request.mockResolvedValue({subject: 'admin-sub', tenantId: 'tenant-a'})
     render(
       <QueryClientProvider client={new QueryClient({defaultOptions: {queries: {retry: false}}})}>
@@ -58,14 +58,14 @@ describe('IDP overview', () => {
     )
 
     expect(await screen.findByText('当前统一身份')).toBeInTheDocument()
-    await waitFor(() => expect(mocks.request).toHaveBeenCalledWith('/api/v1/identity/me'))
+    await waitFor(() => expect(mocks.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/me'))
     expect(screen.getAllByText('admin-sub').length).toBeGreaterThan(0)
     expect(screen.getAllByText('tenant-a').length).toBeGreaterThan(0)
     expect(screen.queryByText('token-a')).not.toBeInTheDocument()
     expect(screen.queryByText('private-token-audience')).not.toBeInTheDocument()
-    expect(screen.queryByText('RBAC3 用户 ID')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tianquan-Jianshen 用户 ID')).not.toBeInTheDocument()
     expect(screen.queryByText('rbac-user-1')).not.toBeInTheDocument()
-    expect(screen.getByText('idp-admin')).toBeInTheDocument()
+    expect(screen.getByText('tianquan-shoubing-admin')).toBeInTheDocument()
     expect(screen.getByText('当前上下文未返回角色明细')).toBeInTheDocument()
   })
 })

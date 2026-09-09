@@ -229,7 +229,7 @@ describe('OperationPage OpenAPI projection', () => {
   it('surfaces a typed OpenAPI fragment failure with an explicit retry', async () => {
     mocks.operationOpenApi.mockRejectedValue(new GatewayApiError(
       409,
-      'GATEWAY_OPENAPI_SOURCE_NOT_AVAILABLE',
+      'YUHENG_OPENAPI_SOURCE_NOT_AVAILABLE',
       'current operation has no OpenAPI source',
     ))
 

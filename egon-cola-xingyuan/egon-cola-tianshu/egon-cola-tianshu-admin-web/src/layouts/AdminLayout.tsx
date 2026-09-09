@@ -49,9 +49,9 @@ export default function AdminLayout() {
   const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
 
   const config: EnterpriseLayoutConfig = {
-    platformName: 'DDC Admin',
+    platformName: 'Tianshu Admin',
     navigation,
-    actions: <Badge status="success" text="DDC 已连接" />,
+    actions: <Badge status="success" text="Tianshu 已连接" />,
     user: {
       name: identity,
       menu: [

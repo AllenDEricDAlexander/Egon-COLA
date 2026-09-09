@@ -30,7 +30,7 @@ const ensureBinding = async (scope: ConfigScope) => {
     appCode: scope.appCode,
   })
   const bindings = await ddcApi<DdcNamespaceEnvAppBinding[]>(
-    `/api/v1/ddc/namespace-env-app-bindings?${params.toString()}`,
+    `/api/v1/tianshu/namespace-env-app-bindings?${params.toString()}`,
   )
   if (!bindings.some((binding) => binding.enabled)) {
     throw new Error('当前命名空间、环境与应用尚未绑定，请先在命名空间管理中配置绑定')
@@ -85,17 +85,17 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
     setSaving(true)
     try {
       if (editing && config) {
-        await ddcApi(`/api/v1/ddc/configs/${encodeURIComponent(config.id)}`, {
+        await ddcApi(`/api/v1/tianshu/configs/${encodeURIComponent(config.id)}`, {
           method: 'PUT',
           body: {
             content: values.content,
-            changeReason: values.changeReason || 'DDC Admin Web update',
+            changeReason: values.changeReason || 'Tianshu Admin Web update',
             currentVersion: config.currentVersion,
           },
         })
       } else {
         await ensureBinding(scope)
-        await ddcApi('/api/v1/ddc/configs', {
+        await ddcApi('/api/v1/tianshu/configs', {
           method: 'POST',
           body: {
             ...scope,
@@ -106,7 +106,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
           },
         })
       }
-      await queryClient.invalidateQueries({ queryKey: ['ddc', 'configs'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianshu', 'configs'] })
       await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
       message.success('配置已保存')
       onSaved()
@@ -167,7 +167,7 @@ export default function ConfigEditorDialog({ open, config, defaultScope, onClose
         )}
         {editing && (
           <Form.Item name="changeReason" label="变更原因">
-            <Input placeholder="DDC Admin Web update" />
+            <Input placeholder="Tianshu Admin Web update" />
           </Form.Item>
         )}
       </Form>

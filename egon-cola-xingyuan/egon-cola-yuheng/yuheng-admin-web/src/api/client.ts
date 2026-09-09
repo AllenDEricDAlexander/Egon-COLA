@@ -1,7 +1,7 @@
 import type {AdminErrorBody} from './types'
 import {createLogicalTrace, type LogicalTrace, traceHeaders} from './trace'
 
-const API_BASE_URL = import.meta.env.VITE_GATEWAY_ORIGIN ?? ''
+const API_BASE_URL = import.meta.env.VITE_YUHENG_ORIGIN ?? ''
 const CONTRACT_VERSION = 'v1'
 
 const traceIdFromTraceparent = (value: string | null): string | undefined => {
@@ -60,7 +60,7 @@ const decodeError = async (response: Response): Promise<GatewayApiError> => {
   return new GatewayApiError(
     response.status,
     body.code ?? `HTTP_${response.status}`,
-    body.message ?? `Gateway Admin 请求失败（${response.status}）`,
+    body.message ?? `Yuheng Admin 请求失败（${response.status}）`,
     body.traceId ?? traceIdFromTraceparent(response.headers.get('traceparent')),
     body.currentRevision,
     body.errors,
@@ -74,7 +74,7 @@ export const apiRequest = async <T>(
   const trace = request.trace ?? createLogicalTrace()
   const headers = new Headers(request.headers)
   headers.set('Accept', 'application/json')
-  headers.set('X-Gateway-Contract-Version', CONTRACT_VERSION)
+  headers.set('X-Yuheng-Contract-Version', CONTRACT_VERSION)
   Object.entries(traceHeaders(trace)).forEach(([name, value]) => headers.set(name, value))
   if (request.idempotencyKey) {
     headers.set('Idempotency-Key', request.idempotencyKey)
@@ -99,11 +99,11 @@ export const apiRequest = async <T>(
     if (response.status === 204) {
       return undefined as T
     }
-    const responseContract = response.headers.get('X-Gateway-Contract-Version')
+    const responseContract = response.headers.get('X-Yuheng-Contract-Version')
     if (responseContract && responseContract !== CONTRACT_VERSION && request.method !== 'GET') {
       throw new GatewayApiError(
         409,
-        'GATEWAY_ADMIN_CONTRACT_MISMATCH',
+        'YUHENG_ADMIN_CONTRACT_MISMATCH',
         `服务端契约 ${responseContract} 与前端 ${CONTRACT_VERSION} 不兼容`,
         trace?.traceId,
       )
@@ -115,8 +115,8 @@ export const apiRequest = async <T>(
     }
     throw new GatewayApiError(
       0,
-      'GATEWAY_ADMIN_NETWORK_ERROR',
-      error instanceof Error ? error.message : 'Gateway Admin 网络请求失败',
+      'YUHENG_ADMIN_NETWORK_ERROR',
+      error instanceof Error ? error.message : 'Yuheng Admin 网络请求失败',
       trace?.traceId,
     )
   }

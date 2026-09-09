@@ -7,8 +7,8 @@ import {
 
 describe('reduceLifecycle', () => {
   it('requires cleanup before a remount can start', () => {
-    let state = reduceLifecycle(initialLifecycleState('gateway'), { type: 'LOAD' })
-    state = reduceLifecycle(state, { type: 'MOUNTED', cleanupToken: 'gateway:1' })
+    let state = reduceLifecycle(initialLifecycleState('yuheng'), { type: 'LOAD' })
+    state = reduceLifecycle(state, { type: 'MOUNTED', cleanupToken: 'yuheng:1' })
     state = reduceLifecycle(state, { type: 'UNMOUNT' })
 
     expect(state.status).toBe('UNMOUNTING')
@@ -21,33 +21,33 @@ describe('reduceLifecycle', () => {
 
   it('keeps a child crash local and supports an isolated retry', () => {
     const mounted: LifecycleState = {
-      ...initialLifecycleState('ddc'),
+      ...initialLifecycleState('tianshu'),
       status: 'MOUNTED',
-      cleanupToken: 'ddc:1',
+      cleanupToken: 'tianshu:1',
     }
     const crashed = reduceLifecycle(mounted, { type: 'CHILD_CRASHED', message: 'render failed' })
 
     expect(crashed).toMatchObject({
-      platformKey: 'ddc',
+      platformKey: 'tianshu',
       status: 'CRASHED',
       errorCode: 'CHILD_RUNTIME_ERROR',
       errorMessage: 'render failed',
     })
     expect(reduceLifecycle(crashed, { type: 'RETRY' })).toMatchObject({
-      platformKey: 'ddc',
+      platformKey: 'tianshu',
       status: 'LOADING',
       retryCount: 1,
     })
   })
 
-  it('records a mount failure without changing the selected platform', () => {
+  it('records a mount failure without changing the selected xingyuan', () => {
     const state = reduceLifecycle(
-      reduceLifecycle(initialLifecycleState('idp'), { type: 'LOAD' }),
+      reduceLifecycle(initialLifecycleState('tianquan-shoubing'), { type: 'LOAD' }),
       { type: 'MOUNT_FAILED', code: 'MANIFEST_VERSION_UNSUPPORTED', message: 'unsupported' },
     )
 
     expect(state).toMatchObject({
-      platformKey: 'idp',
+      platformKey: 'tianquan-shoubing',
       status: 'MOUNT_FAILED',
       errorCode: 'MANIFEST_VERSION_UNSUPPORTED',
       errorMessage: 'unsupported',

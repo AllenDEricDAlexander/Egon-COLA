@@ -11,7 +11,7 @@ export const McpCapabilityPreview = ({ serverId, gatewayGroupId }: {
   gatewayGroupId: string
 }) => {
   const navigate = useNavigate()
-  const canPublish = useCapability('gateway:releases:write')
+  const canPublish = useCapability('yuheng:releases:write')
   const preview = useQuery({
     queryKey: ['mcp-capability-preview', serverId],
     queryFn: ({ signal }) => gatewayApi.previewMcpServer(serverId, signal),
@@ -33,12 +33,12 @@ export const McpCapabilityPreview = ({ serverId, gatewayGroupId }: {
         <Button
           type="primary"
           disabled={!canPublish || report?.valid !== true}
-          onClick={() => navigate(`/gateway-groups/${gatewayGroupId}/releases`)}
+          onClick={() => navigate(`/yuheng-groups/${gatewayGroupId}/releases`)}
         >
           发布
         </Button>
         <Typography.Text type="secondary">
-          MCP 与 HTTP/RPC 共用一个 Gateway Draft 和 Release。
+          MCP 与 HTTP/RPC 共用一个 Yuheng Draft 和 Release。
         </Typography.Text>
       </Space>
       {validate.error && <QueryFailure error={validate.error} />}

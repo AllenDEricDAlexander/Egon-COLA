@@ -1,6 +1,6 @@
-# Gateway 性能、长稳与故障演练
+# Yuheng 性能、长稳与故障演练
 
-[English](README.md) | [Gateway 概览](../README.md)
+[English](README.md) | [Yuheng 概览](../README.md)
 
 本目录提供可复现的测试入口，不包含未经测量的性能承诺。`capacity.json` 中
 `PROVISIONAL_UNMEASURED` 表示阈值是发布候选门槛；只有在指定参考机器、数据规模和
@@ -18,33 +18,33 @@
 测试目标通过以下环境变量覆盖：
 
 ```text
-GATEWAY_PUBLIC_BASE_URL
-GATEWAY_INTERNAL_BASE_URL
-GATEWAY_RPC_CONSUMER_BASE_URL
-GATEWAY_PUBLIC_HOST
-GATEWAY_INTERNAL_HOST
-GATEWAY_RPC_HOST
+YUHENG_PUBLIC_BASE_URL
+YUHENG_INTERNAL_BASE_URL
+YUHENG_RPC_CONSUMER_BASE_URL
+YUHENG_PUBLIC_HOST
+YUHENG_INTERNAL_HOST
+YUHENG_RPC_HOST
 ```
 
 执行 smoke 或固定基线：
 
 ```bash
-GATEWAY_PERF_PROFILE=smoke ./run-k6.sh http
-GATEWAY_PERF_PROFILE=smoke ./run-k6.sh rpc
-GATEWAY_PERF_PROFILE=baseline ./run-k6.sh http
-GATEWAY_PERF_PROFILE=baseline ./run-k6.sh rpc
+YUHENG_PERF_PROFILE=smoke ./run-k6.sh http
+YUHENG_PERF_PROFILE=smoke ./run-k6.sh rpc
+YUHENG_PERF_PROFILE=baseline ./run-k6.sh http
+YUHENG_PERF_PROFILE=baseline ./run-k6.sh rpc
 ```
 
 脚本优先使用本机 k6，否则使用固定版本的 `grafana/k6` 镜像。吞吐、VUS 和时长可由
-`GATEWAY_PERF_RATE`、`GATEWAY_PERF_PRE_ALLOCATED_VUS`、
-`GATEWAY_PERF_MAX_VUS`、`GATEWAY_PERF_DURATION` 覆盖。结果默认进入
+`YUHENG_PERF_RATE`、`YUHENG_PERF_PRE_ALLOCATED_VUS`、
+`YUHENG_PERF_MAX_VUS`、`YUHENG_PERF_DURATION` 覆盖。结果默认进入
 `artifacts/*-summary.json`。容量文件中的 Rate 是每个 Scenario 的速率；HTTP/RPC
 脚本各含两个并行 Scenario，因此各自总到达率是该值的两倍。
 
 ## 24 小时长稳
 
 ```bash
-GATEWAY_SOAK_DURATION_SECONDS=86400 ./soak.sh
+YUHENG_SOAK_DURATION_SECONDS=86400 ./soak.sh
 ```
 
 长稳期间 `sample-resources.sh` 每 10 秒采集容器 CPU、Memory、Network、Block IO
@@ -60,16 +60,16 @@ Heap/Direct Memory/GC、EventLoop、Connection/Channel、Inflight/Queue、Kafka 
 ```bash
 ./faults.sh kafka 30
 ./faults.sh redis 30
-GATEWAY_FAULT_REDIS_SERVICE=ddc-redis ./faults.sh redis 30
+YUHENG_FAULT_REDIS_SERVICE=tianshu-redis ./faults.sh redis 30
 ./faults.sh postgres 30
-GATEWAY_PROVIDER_CONTAINER=gateway-test-http-provider ./faults.sh provider 30
+YUHENG_PROVIDER_CONTAINER=yuheng-test-http-provider ./faults.sh provider 30
 ```
 
 演练前必须存在 `deployment/.env` 且 Compose 拓扑已由操作者启动。每次演练将开始、
 恢复时间、前后状态及目标日志写入 `artifacts/`。验收时分别确认：
 
 - Kafka 暂停不改变业务响应，失败/丢弃指标可见；
-- 限流 Redis 按规则固定失败模式，DDC Redis 恢复后客户端重新收敛；
+- 限流 Redis 按规则固定失败模式，Tianshu Redis 恢复后客户端重新收敛；
 - PostgreSQL 暂停时读取面继续工作，管理写入明确失败且恢复后可重试；
 - 一个 Provider 暂停后从候选摘除，其他实例继续提供服务。
 

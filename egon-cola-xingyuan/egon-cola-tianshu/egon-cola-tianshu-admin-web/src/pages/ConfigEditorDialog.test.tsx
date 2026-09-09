@@ -69,7 +69,7 @@ describe('ConfigEditorDialog', () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
     const create = vi.mocked(fetch).mock.calls.find(([input, init]) =>
-      String(input) === '/api/v1/ddc/configs' && init?.method === 'POST')
+      String(input) === '/api/v1/tianshu/configs' && init?.method === 'POST')
     expect(create).toBeDefined()
     expect(JSON.parse(String(create?.[1]?.body))).toEqual({
       bizCode: 'pay', namespaceCode: 'default', env: 'dev', appCode: 'orders',
@@ -100,7 +100,7 @@ describe('ConfigEditorDialog', () => {
 
     await waitFor(() => expect(onSaved).toHaveBeenCalledOnce())
     const update = vi.mocked(fetch).mock.calls.find(([input, init]) =>
-      String(input) === '/api/v1/ddc/configs/cfg-1' && init?.method === 'PUT')
+      String(input) === '/api/v1/tianshu/configs/cfg-1' && init?.method === 'PUT')
     expect(JSON.parse(String(update?.[1]?.body))).toEqual({
       content: 'feature:\n  enabled: false\n',
       changeReason: '关闭功能',

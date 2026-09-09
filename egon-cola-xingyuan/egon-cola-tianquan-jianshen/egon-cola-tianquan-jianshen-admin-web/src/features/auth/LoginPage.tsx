@@ -3,10 +3,10 @@ import {gatewayAuth} from './gatewayAuth'
 
 export const LoginPage = ({onSuccess}: { readonly onSuccess: () => Promise<void> | void }) => {
   return (
-    <main className="rbac3-auth-page">
-      <Card title="RBAC3 权限平台" className="rbac3-login-card">
+    <main className="tianquan-jianshen-auth-page">
+      <Card title="Tianquan-Jianshen 权限平台" className="tianquan-jianshen-login-card">
         <Typography.Paragraph type="secondary">
-            通过 Gateway 统一身份入口登录。浏览器只使用 HttpOnly Cookie，RBAC3 只负责授权。
+            通过 Yuheng 统一身份入口登录。浏览器只使用 HttpOnly Cookie，Tianquan-Jianshen 只负责授权。
         </Typography.Paragraph>
         <Form
           layout="vertical"

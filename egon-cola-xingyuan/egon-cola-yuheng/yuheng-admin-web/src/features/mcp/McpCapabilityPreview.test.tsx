@@ -17,7 +17,7 @@ vi.mock('react-router-dom', () => ({ useNavigate: () => mocks.navigate }))
 
 beforeEach(() => {
   mocks.permissions.clear()
-  mocks.permissions.add('gateway:releases:write')
+  mocks.permissions.add('yuheng:releases:write')
   mocks.preview.mockReset().mockResolvedValue({ content: {}, validation: { valid: true, findings: [] } })
   mocks.validate.mockReset()
   mocks.navigate.mockReset()
@@ -36,12 +36,12 @@ describe('MCP unified release permission', () => {
     await screen.findByText('MCP 校验通过')
     expect(screen.getByRole('button', { name: '发 布' })).toBeEnabled()
     fireEvent.click(screen.getByRole('button', { name: '发 布' }))
-    expect(mocks.navigate).toHaveBeenCalledWith('/gateway-groups/group-1/releases')
+    expect(mocks.navigate).toHaveBeenCalledWith('/yuheng-groups/group-1/releases')
   })
 
   it('keeps publication disabled without the backend release capability', async () => {
     mocks.permissions.clear()
-    mocks.permissions.add('gateway:mcp:write')
+    mocks.permissions.add('yuheng:mcp:write')
     renderPreview()
     await screen.findByText('MCP 校验通过')
     expect(screen.getByRole('button', { name: '发 布' })).toBeDisabled()

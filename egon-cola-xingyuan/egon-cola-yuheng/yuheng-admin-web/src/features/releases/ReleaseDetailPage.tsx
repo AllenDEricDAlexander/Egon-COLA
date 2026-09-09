@@ -14,8 +14,8 @@ import { shouldPollRelease } from './releaseState'
 export const ReleaseDetailPage = () => {
   const { groupId = '', releaseId = '' } = useParams()
   const queryClient = useQueryClient()
-  const canPublish = useCapability('gateway:releases:write')
-  const canRollback = useCapability('gateway:releases:write')
+  const canPublish = useCapability('yuheng:releases:write')
+  const canRollback = useCapability('yuheng:releases:write')
   const [visible, setVisible] = useState(document.visibilityState === 'visible')
   const [rollbackOpen, setRollbackOpen] = useState(false)
   const [diffOpen, setDiffOpen] = useState(false)

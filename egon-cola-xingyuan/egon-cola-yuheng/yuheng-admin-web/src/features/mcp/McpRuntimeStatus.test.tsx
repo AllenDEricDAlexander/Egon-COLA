@@ -12,7 +12,7 @@ const node = (id: string, role: string) => ({
   leaseRole: 'CONFIG_CLIENT', status: 'ONLINE', registeredAt: '2026-09-05T00:00:00Z',
   lastHeartbeatAt: '2026-09-05T00:00:01Z', expireAt: '2026-09-05T00:01:00Z',
   observedAt: '2026-09-05T00:00:02Z', stale: false,
-  metadata: { 'gateway.engine.role': role },
+  metadata: { 'yuheng.engine.role': role },
 })
 const state = (id: string, reason?: string) => ({
   instanceId: id, leaseId: `lease-${id}`, leaseStatus: 'ONLINE',
@@ -23,7 +23,7 @@ const state = (id: string, reason?: string) => ({
 })
 const healthy = {
   targetReleaseId: 'release-1', targetReleaseStatus: 'SUCCESS', readyNodes: 2, totalNodes: 2,
-  consistent: true, stale: false, source: 'DDC_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:02Z',
+  consistent: true, stale: false, source: 'TIANSHU_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:02Z',
   nodes: [state('api-1'), state('mcp-1')],
 }
 

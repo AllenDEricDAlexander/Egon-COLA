@@ -27,6 +27,6 @@ describe('normalizePage', () => {
   })
 
   it('rejects an invalid page envelope', () => {
-    expect(() => normalizePage({ content: 'not-an-array' } as never)).toThrow('IDP 分页响应格式无效')
+    expect(() => normalizePage({ content: 'not-an-array' } as never)).toThrow('Tianquan-Shoubing 分页响应格式无效')
   })
 })

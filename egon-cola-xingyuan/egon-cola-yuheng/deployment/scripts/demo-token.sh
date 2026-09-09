@@ -13,7 +13,7 @@ base64_url() {
 issued_at="$(date +%s)"
 expires_at="$((issued_at + 43200))"
 header="$(printf '%s' '{"alg":"HS256","typ":"JWT"}' | base64_url)"
-payload="$(printf '{"sub":"gateway-demo","iat":%s,"exp":%s,"capabilities":["*"],"roles":["gateway-admin"]}' "${issued_at}" "${expires_at}" | base64_url)"
+payload="$(printf '{"sub":"yuheng-demo","iat":%s,"exp":%s,"capabilities":["*"],"roles":["yuheng-admin"]}' "${issued_at}" "${expires_at}" | base64_url)"
 signing_input="${header}.${payload}"
 key_hex="$(printf '%s' "$1" | openssl base64 -d -A | od -An -v -tx1 | tr -d ' \n')"
 signature="$(printf '%s' "${signing_input}" | openssl dgst -sha256 -mac HMAC -macopt "hexkey:${key_hex}" -binary | base64_url)"

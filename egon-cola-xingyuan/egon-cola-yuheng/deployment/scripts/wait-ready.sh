@@ -13,9 +13,9 @@ timeout_seconds="${2:-120}"
 [[ "${url}" == http://* || "${url}" == https://* ]] || { echo "expected HTTP(S) readiness URL" >&2; exit 2; }
 [[ "${timeout_seconds}" =~ ^[1-9][0-9]*$ ]] || { echo "timeout must be a positive integer" >&2; exit 2; }
 args=(--fail --silent --show-error --max-time 3)
-[[ -z "${GATEWAY_HEALTH_CA:-}" ]] || args+=(--cacert "${GATEWAY_HEALTH_CA}")
-if [[ -n "${GATEWAY_HEALTH_CERT:-}" || -n "${GATEWAY_HEALTH_KEY:-}" ]]; then
-  args+=(--cert "${GATEWAY_HEALTH_CERT:?both health certificate and key are required}" --key "${GATEWAY_HEALTH_KEY:?both health certificate and key are required}")
+[[ -z "${YUHENG_HEALTH_CA:-}" ]] || args+=(--cacert "${YUHENG_HEALTH_CA}")
+if [[ -n "${YUHENG_HEALTH_CERT:-}" || -n "${YUHENG_HEALTH_KEY:-}" ]]; then
+  args+=(--cert "${YUHENG_HEALTH_CERT:?both health certificate and key are required}" --key "${YUHENG_HEALTH_KEY:?both health certificate and key are required}")
 fi
 deadline="$((SECONDS + timeout_seconds))"
 until curl "${args[@]}" "${url}" >/dev/null; do

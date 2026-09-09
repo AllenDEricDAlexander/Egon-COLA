@@ -24,7 +24,7 @@ export const CentralLoginPage = () => {
       <Card className="login-card">
         <Typography.Title level={2}>Egon 统一身份平台</Typography.Title>
         <Typography.Paragraph type="secondary">
-            登录凭据只提交到 Gateway 的公开身份接口，USER AT/RT 由 IdP 写入 HttpOnly Cookie。
+            登录凭据只提交到 Yuheng 的公开身份接口，USER AT/RT 由 Tianquan-Shoubing 写入 HttpOnly Cookie。
         </Typography.Paragraph>
           {(error || auth.bootstrap === undefined && !auth.loading) && (
               <Alert type="error" showIcon message={error ?? '登录失败'}/>

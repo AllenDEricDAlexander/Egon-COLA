@@ -13,11 +13,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/oauth2': {
-        target: process.env.GATEWAY_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.YUHENG_AUTH_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
       '/api': {
-        target: process.env.GATEWAY_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.YUHENG_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },

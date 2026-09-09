@@ -20,7 +20,7 @@ const wrapper = ({ children }: PropsWithChildren) => {
   } as unknown as Rbac3Client
   const api: FeatureApiClient = {
     request: async <T,>(path: string) => {
-      if (path === '/api/rbac3/v1/iam/tenant-applications') {
+      if (path === '/api/tianquan-jianshen/v1/iam/tenant-applications') {
         return [{ applicationId: '71', ddcBusinessId: '7', ddcApplicationId: '71', businessCode: 'trade', applicationCode: 'orders', applicationName: '订单', status: 'ACTIVE', displayPriority: 1, version: 2 }] as T
       }
       if (path.includes('/resources')) {
@@ -76,6 +76,6 @@ describe('application pages', () => {
     const request = vi.fn().mockResolvedValue({})
     await applicationApi({request}).application('71')
 
-    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/tenant-applications/71')
+    expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/tenant-applications/71')
   })
 })

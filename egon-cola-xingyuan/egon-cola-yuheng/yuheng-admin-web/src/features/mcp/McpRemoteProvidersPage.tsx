@@ -46,8 +46,8 @@ const value = (content: Record<string, unknown>, name: string): string =>
 export const McpRemoteProvidersPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const filters = readScopeSearchParams(searchParams, ['env', 'namespace'])
-  const canWrite = useCapability('gateway:mcp:write')
-  const canTest = useCapability('gateway:mcp:test')
+  const canWrite = useCapability('yuheng:mcp:write')
+  const canTest = useCapability('yuheng:mcp:test')
   const queryClient = useQueryClient()
   const [selectedGroupId, setSelectedGroupId] = useState('')
   const [editing, setEditing] = useState<McpRemoteProvider>()
@@ -58,7 +58,7 @@ export const McpRemoteProvidersPage = () => {
   }>()
   const [form] = Form.useForm<ProviderForm>()
   const groups = useQuery({
-    queryKey: ['gateway-groups'],
+    queryKey: ['yuheng-groups'],
     queryFn: ({ signal }) => gatewayApi.groups(signal),
   })
   const filteredGroups = useMemo(() => (groups.data ?? []).filter((group) =>
@@ -68,7 +68,7 @@ export const McpRemoteProvidersPage = () => {
     ? selectedGroupId
     : filteredGroups[0]?.id || ''
   const draft = useQuery({
-    queryKey: ['gateway-draft', gatewayGroupId],
+    queryKey: ['yuheng-draft', gatewayGroupId],
     queryFn: ({ signal }) => gatewayApi.draft(gatewayGroupId, signal),
     enabled: Boolean(gatewayGroupId),
   })
@@ -107,7 +107,7 @@ export const McpRemoteProvidersPage = () => {
       setEditing(undefined)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-remote-providers', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
       void message.success('Remote MCP Provider 已保存')
     },
@@ -122,7 +122,7 @@ export const McpRemoteProvidersPage = () => {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-remote-providers', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
     },
   })
@@ -164,7 +164,7 @@ export const McpRemoteProvidersPage = () => {
       <Space className="page-title" align="center" wrap>
         <Typography.Title level={2}>Remote MCP Providers</Typography.Title>
         <Select
-          aria-label="Gateway Group"
+          aria-label="Yuheng Group"
           value={gatewayGroupId || undefined}
           style={{ minWidth: 240 }}
           options={filteredGroups.map((group) => ({
@@ -244,7 +244,7 @@ export const McpRemoteProvidersPage = () => {
             name="endpointReference"
             label="Endpoint Reference"
             rules={[{ required: true }]}
-            extra="只允许由 Gateway 管理、通过服务端安全校验的引用；Tool 表单不会接收 Provider URL。"
+            extra="只允许由 Yuheng 管理、通过服务端安全校验的引用；Tool 表单不会接收 Provider URL。"
           >
             <Input />
           </Form.Item>

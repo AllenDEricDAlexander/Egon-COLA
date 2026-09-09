@@ -103,19 +103,19 @@ export interface InheritanceCommand {
 
 export const roleApi = (client: FeatureApiClient) => ({
   roles: (applicationId?: string) => client.request<readonly RoleView[]>(
-    '/api/rbac3/v1/iam/roles',
+    '/api/tianquan-jianshen/v1/iam/roles',
     { query: { applicationId } },
   ),
   create: (command: CreateRoleCommand) => client.request<RoleMutationResult>(
-    '/api/rbac3/v1/iam/roles',
+    '/api/tianquan-jianshen/v1/iam/roles',
     { method: 'POST', body: command },
   ),
   update: (roleId: string, command: UpdateRoleCommand) => client.request<RoleMutationResult>(
-    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}`,
+    `/api/tianquan-jianshen/v1/iam/roles/${encodeURIComponent(roleId)}`,
     { method: 'PUT', body: command },
   ),
   addInheritance: (roleId: string, command: InheritanceCommand) => client.request<RoleImpactView>(
-    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/inheritances`,
+    `/api/tianquan-jianshen/v1/iam/roles/${encodeURIComponent(roleId)}/inheritances`,
     { method: 'POST', body: command },
   ),
   removeInheritance: (
@@ -123,17 +123,17 @@ export const roleApi = (client: FeatureApiClient) => ({
     juniorRoleId: string,
     query: { applicationId: string; expectedRoleVersion: number },
   ) => client.request<RoleImpactView>(
-    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/inheritances/${encodeURIComponent(juniorRoleId)}`,
+    `/api/tianquan-jianshen/v1/iam/roles/${encodeURIComponent(roleId)}/inheritances/${encodeURIComponent(juniorRoleId)}`,
     { method: 'DELETE', query },
   ),
   impact: (roleId: string) => client.request<RoleImpactView>(
-    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/impact-analysis`,
+    `/api/tianquan-jianshen/v1/iam/roles/${encodeURIComponent(roleId)}/impact-analysis`,
   ),
   resources: (roleId: string) => client.request<RoleResourceGrantTreeView>(
-    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
+    `/api/tianquan-jianshen/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
   ),
   replaceResources: (roleId: string, command: ReplaceRoleResourcesCommand) => client.request(
-    `/api/rbac3/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
+    `/api/tianquan-jianshen/v1/iam/roles/${encodeURIComponent(roleId)}/resources`,
     { method: 'PUT', body: command },
   ),
 })

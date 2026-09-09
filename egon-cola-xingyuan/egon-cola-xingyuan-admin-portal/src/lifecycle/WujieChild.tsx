@@ -16,7 +16,7 @@ export interface WujieChildProps {
 }
 
 const childRouteSuffix = (platformKey: ChildManifest['key'], routeIntent?: string): string => {
-  const prefix = `/platform/${platformKey}`
+  const prefix = `/xingyuan/${platformKey}`
   if (!routeIntent || (routeIntent !== prefix && !routeIntent.startsWith(`${prefix}/`))) {
     return ''
   }

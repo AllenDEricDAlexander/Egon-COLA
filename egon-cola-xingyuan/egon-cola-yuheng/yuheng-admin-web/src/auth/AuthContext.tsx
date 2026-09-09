@@ -2,7 +2,7 @@ import {createContext, type PropsWithChildren, useCallback, useContext, useEffec
 import {createGatewayAuthClient, createHttpClient,} from '@egon-cola/xingyuan-admin-web-shared'
 import type {AuthorizationBootstrap} from '../api/types'
 
-const gatewayOrigin = import.meta.env.VITE_GATEWAY_ORIGIN ?? ''
+const gatewayOrigin = import.meta.env.VITE_YUHENG_ORIGIN ?? ''
 const gatewayAuth = createGatewayAuthClient({baseUrl: gatewayOrigin})
 const httpClient = createHttpClient({
     baseUrl: gatewayOrigin,

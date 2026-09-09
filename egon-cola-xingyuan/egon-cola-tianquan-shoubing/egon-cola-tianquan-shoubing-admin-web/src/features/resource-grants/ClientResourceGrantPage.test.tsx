@@ -64,21 +64,21 @@ const renderPage = () => {
 }
 
 beforeEach(() => {
-  state.permissions = ['idp:resource-server:grant']
+  state.permissions = ['tianquan-shoubing:resource-server:grant']
   state.grantsAvailable = false
   state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-    if (path === '/api/v1/identity/resource-servers' && !options) return Promise.resolve([resourceServer])
-    if (path === '/api/v1/identity/clients/client-1/resources' && !options) {
+    if (path === '/api/v1/tianquan-shoubing/resource-servers' && !options) return Promise.resolve([resourceServer])
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources' && !options) {
       if (state.grantsAvailable) return Promise.resolve([grant])
       return Promise.reject(Object.assign(new Error('Grant query is not available'), { status: 404 }))
     }
-    if (path === '/api/v1/identity/clients/client-1/resources/orders-api' && options?.method === 'PUT') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api' && options?.method === 'PUT') {
       return Promise.resolve(grant)
     }
-    if (path === '/api/v1/identity/clients/client-1/resources/orders-api' && options?.method === 'DELETE') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api' && options?.method === 'DELETE') {
       return Promise.resolve(undefined)
     }
-    if (path === '/api/v1/identity/clients/client-1/resource-grants/actions/batch' && options?.method === 'POST') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resource-grants/actions/batch' && options?.method === 'POST') {
       return Promise.resolve([grant])
     }
     return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -104,7 +104,7 @@ describe('Client Resource Grant administration', () => {
     fireEvent.click(screen.getByRole('button', { name: /确定|OK/ }))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/v1/identity/clients/client-1/resources/orders-api',
+      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api',
       expect.objectContaining({
         method: 'PUT',
         body: JSON.stringify({
@@ -119,9 +119,9 @@ describe('Client Resource Grant administration', () => {
   it('uses the existing DELETE grant path and retains the row after a conflict', async () => {
     state.grantsAvailable = true
     state.request.mockImplementation((path: string, options?: RequestInit) => {
-      if (path === '/api/v1/identity/resource-servers' && !options) return Promise.resolve([resourceServer])
-      if (path === '/api/v1/identity/clients/client-1/resources' && !options) return Promise.resolve([grant])
-      if (path === '/api/v1/identity/clients/client-1/resources/orders-api' && options?.method === 'DELETE') {
+      if (path === '/api/v1/tianquan-shoubing/resource-servers' && !options) return Promise.resolve([resourceServer])
+      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources' && !options) return Promise.resolve([grant])
+      if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api' && options?.method === 'DELETE') {
         return Promise.reject(Object.assign(new Error('版本冲突'), {status: 409}))
       }
       return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -134,7 +134,7 @@ describe('Client Resource Grant administration', () => {
     fireEvent.click(screen.getByRole('button', {name: '确认删除'}))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/v1/identity/clients/client-1/resources/orders-api',
+      '/api/v1/tianquan-shoubing/clients/client-1/resources/orders-api',
       expect.objectContaining({
         method: 'DELETE',
         body: JSON.stringify({
@@ -161,7 +161,7 @@ describe('Client Resource Grant administration', () => {
     fireEvent.click(screen.getByRole('button', {name: '确认批量删除'}))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/v1/identity/clients/client-1/resource-grants/actions/batch',
+      '/api/v1/tianquan-shoubing/clients/client-1/resource-grants/actions/batch',
       expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({

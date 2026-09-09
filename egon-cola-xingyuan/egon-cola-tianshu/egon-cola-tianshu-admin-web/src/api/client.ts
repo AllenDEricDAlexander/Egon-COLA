@@ -55,7 +55,7 @@ const requestEnvelope = async (
     headers.set('Content-Type', 'application/json')
     body = JSON.stringify(options.body)
   }
-    const request = () => fetch(`${import.meta.env.VITE_GATEWAY_ORIGIN ?? ''}${path}`, {
+    const request = () => fetch(`${import.meta.env.VITE_YUHENG_ORIGIN ?? ''}${path}`, {
     method: options.method ?? 'GET',
     headers,
     body,
@@ -72,8 +72,8 @@ const requestEnvelope = async (
     }
     throw new DdcApiError(
       0,
-      'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE',
-      '无法连接 DDC 管理端',
+      'TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE',
+      '无法连接 Tianshu 管理端',
     )
   }
 
@@ -113,7 +113,7 @@ export async function ddcPageApi<T>(
       || typeof payload.page !== 'object') {
     throw new DdcApiError(
       500,
-      'DDC_INVALID_PAGE_RESPONSE',
+      'TIANSHU_INVALID_PAGE_RESPONSE',
       '分页响应格式无效',
       payload.traceId,
     )

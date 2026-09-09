@@ -13,11 +13,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/oauth2': {
-        target: process.env.DDC_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.TIANSHU_AUTH_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.TIANSHU_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },
@@ -25,11 +25,11 @@ export default defineConfig({
   preview: {
     proxy: {
       '/oauth2': {
-        target: process.env.DDC_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.TIANSHU_AUTH_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.TIANSHU_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },

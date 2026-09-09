@@ -38,38 +38,38 @@ interface WujieRuntimeWindow extends Window {
 }
 
 const navigation: readonly GatewayNavItem[] = [
-  { key: '/dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: '总览', capability: 'gateway:read' },
+  { key: '/dashboard', path: '/dashboard', icon: <DashboardOutlined />, label: '总览', capability: 'yuheng:read' },
   {
-    key: 'gateway-governance',
+    key: 'yuheng-governance',
     icon: <DeploymentUnitOutlined />,
     label: '网关治理',
-    capability: 'gateway:read',
+    capability: 'yuheng:read',
     children: [
-      {key: '/gateway-groups', path: '/gateway-groups', icon: <DeploymentUnitOutlined />, label: 'Gateway Group', capability: 'gateway:read'},
-      {key: '/applications', path: '/applications', icon: <KeyOutlined />, label: 'Application / Credential', capability: 'gateway:read'},
-      {key: '/openapi-sync', path: '/openapi-sync', icon: <ApiOutlined />, label: 'OpenAPI 同步', capability: 'gateway:read'},
-      {key: '/interface-catalog', path: '/interface-catalog', activePathPrefixes: ['/operations'], icon: <AppstoreOutlined />, label: '接口目录', capability: 'gateway:read'},
-      {key: '/providers', path: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'gateway:read'},
+      {key: '/yuheng-groups', path: '/yuheng-groups', icon: <DeploymentUnitOutlined />, label: 'Yuheng Group', capability: 'yuheng:read'},
+      {key: '/applications', path: '/applications', icon: <KeyOutlined />, label: 'Application / Credential', capability: 'yuheng:read'},
+      {key: '/openapi-sync', path: '/openapi-sync', icon: <ApiOutlined />, label: 'OpenAPI 同步', capability: 'yuheng:read'},
+      {key: '/interface-catalog', path: '/interface-catalog', activePathPrefixes: ['/operations'], icon: <AppstoreOutlined />, label: '接口目录', capability: 'yuheng:read'},
+      {key: '/providers', path: '/providers', icon: <ApiOutlined />, label: 'Provider', capability: 'yuheng:read'},
     ],
   },
   {
     key: 'mcp',
     icon: <RobotOutlined />,
     label: 'MCP',
-    capability: 'gateway:mcp:read',
+    capability: 'yuheng:mcp:read',
     children: [
-      {key: '/mcp/servers', path: '/mcp/servers', icon: <RobotOutlined />, label: 'MCP Control Plane', capability: 'gateway:mcp:read'},
-      {key: '/mcp/remote-providers', path: '/mcp/remote-providers', icon: <ShareAltOutlined />, label: 'Remote MCP', capability: 'gateway:mcp:read'},
+      {key: '/mcp/servers', path: '/mcp/servers', icon: <RobotOutlined />, label: 'MCP Control Plane', capability: 'yuheng:mcp:read'},
+      {key: '/mcp/remote-providers', path: '/mcp/remote-providers', icon: <ShareAltOutlined />, label: 'Remote MCP', capability: 'yuheng:mcp:read'},
     ],
   },
   {
     key: 'observability',
     icon: <EyeOutlined />,
     label: '观测与审计',
-    capability: 'gateway:read',
+    capability: 'yuheng:read',
     children: [
-      {key: '/observability/traces', path: '/observability/traces', icon: <EyeOutlined />, label: '调用观测', capability: 'gateway:read'},
-      {key: '/audit', path: '/audit', icon: <AuditOutlined />, label: '审计日志', capability: 'gateway:read'},
+      {key: '/observability/traces', path: '/observability/traces', icon: <EyeOutlined />, label: '调用观测', capability: 'yuheng:read'},
+      {key: '/audit', path: '/audit', icon: <AuditOutlined />, label: '审计日志', capability: 'yuheng:read'},
     ],
   },
 ]
@@ -78,14 +78,14 @@ export const AdminLayout = () => {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const auth = useAuth()
-  const canRead = useCapability('gateway:read')
-  const canReadMcp = useCapability('gateway:mcp:read')
+  const canRead = useCapability('yuheng:read')
+  const canReadMcp = useCapability('yuheng:mcp:read')
 
   const embedded = (window as WujieRuntimeWindow).$wujie?.props?.embedded === true
   const items: EnterpriseNavigationItem[] = filterNavigation(navigation, canRead, canReadMcp)
 
   const config: EnterpriseLayoutConfig = {
-    platformName: 'Gateway Admin',
+    platformName: 'Yuheng Admin',
     navigation: items,
     actions: (
       <Space size="middle" wrap>
@@ -127,7 +127,7 @@ const filterNavigation = (
   canRead: boolean,
   canReadMcp: boolean,
 ): EnterpriseNavigationItem[] => entries.flatMap((item): EnterpriseNavigationItem[] => {
-  const permitted = item.capability === 'gateway:mcp:read' ? canReadMcp : canRead
+  const permitted = item.capability === 'yuheng:mcp:read' ? canReadMcp : canRead
   if (!permitted) return []
   const children = item.children ? filterNavigation(item.children, canRead, canReadMcp) : []
   if (item.children && children.length === 0) return []

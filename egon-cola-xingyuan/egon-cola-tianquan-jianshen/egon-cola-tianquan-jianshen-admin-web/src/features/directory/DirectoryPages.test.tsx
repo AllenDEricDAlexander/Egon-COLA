@@ -58,17 +58,17 @@ describe('directory pages', () => {
       payload: {organizations: [], positions: [], users: []},
     })
 
-    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/organizations', {query: {parentId: '1001'}})
-    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/positions', {query: {orgUnitId: '1001'}})
-    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/iam/users/9007199254740999')
-    expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/iam/users', expect.objectContaining({query: {query: 'alice', status: 'ACTIVE', page: 0, size: 20}}))
-    expect(request).toHaveBeenNthCalledWith(5, '/api/rbac3/v1/iam/users', expect.objectContaining({method: 'POST'}))
-    expect(request).toHaveBeenNthCalledWith(6, '/api/rbac3/v1/iam/users/9007199254740999', expect.objectContaining({method: 'PUT'}))
-    expect(request).toHaveBeenNthCalledWith(7, '/api/rbac3/v1/iam/users/9007199254740999/status', expect.objectContaining({method: 'PUT'}))
-    expect(request).toHaveBeenNthCalledWith(8, '/api/rbac3/v1/iam/users/9007199254740999', {method: 'DELETE', query: {expectedAuthVersion: 5}})
-    expect(request).toHaveBeenNthCalledWith(9, '/api/rbac3/v1/iam/users/9007199254740999/organizations')
-    expect(request).toHaveBeenNthCalledWith(10, '/api/rbac3/v1/iam/users/9007199254740999/positions')
-    expect(request).toHaveBeenNthCalledWith(11, '/api/rbac3/v1/internal/directory-snapshots', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenNthCalledWith(1, '/api/tianquan-jianshen/v1/iam/organizations', {query: {parentId: '1001'}})
+    expect(request).toHaveBeenNthCalledWith(2, '/api/tianquan-jianshen/v1/iam/positions', {query: {orgUnitId: '1001'}})
+    expect(request).toHaveBeenNthCalledWith(3, '/api/tianquan-jianshen/v1/iam/users/9007199254740999')
+    expect(request).toHaveBeenNthCalledWith(4, '/api/tianquan-jianshen/v1/iam/users', expect.objectContaining({query: {query: 'alice', status: 'ACTIVE', page: 0, size: 20}}))
+    expect(request).toHaveBeenNthCalledWith(5, '/api/tianquan-jianshen/v1/iam/users', expect.objectContaining({method: 'POST'}))
+    expect(request).toHaveBeenNthCalledWith(6, '/api/tianquan-jianshen/v1/iam/users/9007199254740999', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenNthCalledWith(7, '/api/tianquan-jianshen/v1/iam/users/9007199254740999/status', expect.objectContaining({method: 'PUT'}))
+    expect(request).toHaveBeenNthCalledWith(8, '/api/tianquan-jianshen/v1/iam/users/9007199254740999', {method: 'DELETE', query: {expectedAuthVersion: 5}})
+    expect(request).toHaveBeenNthCalledWith(9, '/api/tianquan-jianshen/v1/iam/users/9007199254740999/organizations')
+    expect(request).toHaveBeenNthCalledWith(10, '/api/tianquan-jianshen/v1/iam/users/9007199254740999/positions')
+    expect(request).toHaveBeenNthCalledWith(11, '/api/tianquan-jianshen/v1/internal/directory-snapshots', expect.objectContaining({method: 'POST'}))
   })
 
   it('keeps user ids as strings and shows the source snapshot version', async () => {

@@ -14,25 +14,25 @@ export const ManagementPolicyPage = () => {
   const queryClient = useQueryClient()
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<ManagementPolicyView | null>(null)
-  const queryKey = ['rbac3', 'management-policies', effectiveTenantId ?? 'none']
+  const queryKey = ['tianquan-jianshen', 'management-policies', effectiveTenantId ?? 'none']
   const query = useQuery({ queryKey, queryFn: api.list, enabled: status === 'READY' })
   const capabilities = useQuery({
-    queryKey: ['rbac3', 'management-capabilities', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'management-capabilities', effectiveTenantId ?? 'none'],
     queryFn: api.capabilities,
     enabled: status === 'READY',
   })
   const detail = useQuery({
-    queryKey: ['rbac3', 'management-policy', effectiveTenantId ?? 'none', selected?.policyId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'management-policy', effectiveTenantId ?? 'none', selected?.policyId ?? 'none'],
     queryFn: () => api.get(selected!.policyId),
     enabled: status === 'READY' && selected !== null,
   })
   const manageableUsers = useQuery({
-    queryKey: ['rbac3', 'manageable-users', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'manageable-users', effectiveTenantId ?? 'none'],
     queryFn: () => api.manageableUsers(),
     enabled: status === 'READY' && open,
   })
   const manageableRoles = useQuery({
-    queryKey: ['rbac3', 'manageable-roles', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'manageable-roles', effectiveTenantId ?? 'none'],
     queryFn: () => api.manageableRoles(),
     enabled: status === 'READY' && open,
   })
@@ -40,7 +40,7 @@ export const ManagementPolicyPage = () => {
     'management-policies', 'management-capabilities', 'manageable-users',
     'manageable-roles', 'management-policy',
   ].map((key) => queryClient.invalidateQueries({
-    queryKey: ['rbac3', key, effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', key, effectiveTenantId ?? 'none'],
   })))
   const save = useMutation({
     mutationFn: (command: SaveManagementPolicyCommand) => selected

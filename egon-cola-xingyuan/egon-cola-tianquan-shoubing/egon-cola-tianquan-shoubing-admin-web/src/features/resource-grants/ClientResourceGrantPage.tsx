@@ -81,17 +81,17 @@ export const ClientResourceGrantPage = () => {
 
     const encodedClientId = clientId ? encodeURIComponent(clientId) : ''
     const rsQuery = useQuery({
-        queryKey: ['idp', 'resource-servers'],
+        queryKey: ['tianquan-shoubing', 'resource-servers'],
         queryFn: () => httpClient
-            .request<ResourceServerVO[] | ResourceServerPageVO>('/api/v1/identity/resource-servers')
+            .request<ResourceServerVO[] | ResourceServerPageVO>('/api/v1/tianquan-shoubing/resource-servers')
             .then(normalizePage),
     })
     const grantQuery = useQuery({
-        queryKey: ['idp', 'grants', clientId],
+        queryKey: ['tianquan-shoubing', 'grants', clientId],
         enabled: Boolean(clientId),
         retry: false,
         queryFn: () => httpClient
-            .request<GrantReadResponse>(`/api/v1/identity/clients/${encodedClientId}/resources`)
+            .request<GrantReadResponse>(`/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources`)
             .then(normalizePage),
     })
 
@@ -121,21 +121,21 @@ export const ClientResourceGrantPage = () => {
             && grant.grantType === firstSelectedGrantRow.grant.grantType
             && grant.tenantId === firstSelectedGrantRow.grant.tenantId),
     )
-    const canManageGrant = has('idp:resource-server:grant')
+    const canManageGrant = has('tianquan-shoubing:resource-server:grant')
     const grantReadUnavailable = statusOf(grantQuery.error) === 404
     const grantReadFailed = Boolean(grantQuery.error) && !grantReadUnavailable
 
     const invalidateGrantQueries = async () => {
         await Promise.all([
-            queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']}),
-            queryClient.invalidateQueries({queryKey: ['idp', 'grants', clientId]}),
+            queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers']}),
+            queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'grants', clientId]}),
         ])
     }
 
     const upsertMutation = useMutation({
         mutationFn: ({rsId, data}: {rsId: string; data: UpsertClientResourceGrantDTO}) =>
             httpClient.request<ClientResourceGrantVO>(
-                `/api/v1/identity/clients/${encodedClientId}/resources/${encodeURIComponent(rsId)}`,
+                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources/${encodeURIComponent(rsId)}`,
                 {method: 'PUT', body: JSON.stringify(data)},
             ),
         onSuccess: async () => {
@@ -158,7 +158,7 @@ export const ClientResourceGrantPage = () => {
                 expectedGrantVersion: grant.version,
             }
             return httpClient.request<void>(
-                `/api/v1/identity/clients/${encodedClientId}/resources/${encodeURIComponent(resourceServer.resourceServerId)}`,
+                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resources/${encodeURIComponent(resourceServer.resourceServerId)}`,
                 {method: 'DELETE', body: JSON.stringify(data)},
             )
         },
@@ -196,7 +196,7 @@ export const ClientResourceGrantPage = () => {
                 ])),
             }
             return httpClient.request<ClientResourceGrantVO[]>(
-                `/api/v1/identity/clients/${encodedClientId}/resource-grants/actions/batch`,
+                `/api/v1/tianquan-shoubing/clients/${encodedClientId}/resource-grants/actions/batch`,
                 {method: 'POST', body: JSON.stringify(data)},
             )
         },

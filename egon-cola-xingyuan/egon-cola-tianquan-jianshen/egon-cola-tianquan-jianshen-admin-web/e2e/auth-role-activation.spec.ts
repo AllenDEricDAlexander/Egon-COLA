@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test'
 
-test('contract fixture: Gateway cookie login carries no RBAC role or token payload', async ({page}) => {
+test('contract fixture: Yuheng cookie login carries no RBAC role or token payload', async ({page}) => {
     await page.route('**/api/v1/auth/about', (route) => route.fulfill({
         status: 401,
         json: {

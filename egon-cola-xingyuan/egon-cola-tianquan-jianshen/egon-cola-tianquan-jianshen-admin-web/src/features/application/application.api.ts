@@ -70,66 +70,66 @@ export interface ResourcePermissionMappingView {
 }
 
 export const applicationApi = (client: FeatureApiClient) => ({
-  tenantApplications: () => client.request<readonly TenantApplicationView[]>('/api/rbac3/v1/iam/tenant-applications'),
+  tenantApplications: () => client.request<readonly TenantApplicationView[]>('/api/tianquan-jianshen/v1/iam/tenant-applications'),
   application: (applicationId: string) => client.request<TenantApplicationView>(
-    `/api/rbac3/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
+    `/api/tianquan-jianshen/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
   ),
   admitTenantApplication: (ddcApplicationId: string, displayPriority: number) => client.request<TenantApplicationView>(
-    '/api/rbac3/v1/iam/tenant-applications',
+    '/api/tianquan-jianshen/v1/iam/tenant-applications',
     { method: 'POST', body: { ddcApplicationId, displayPriority } },
   ),
   changeTenantApplicationStatus: (applicationId: string, status: string, expectedVersion: number) => client.request<TenantApplicationView>(
-    `/api/rbac3/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}/status`,
+    `/api/tianquan-jianshen/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}/status`,
     { method: 'PUT', body: { status, expectedVersion } },
   ),
   removeTenantApplication: (applicationId: string, expectedVersion: number) => client.request<null>(
-    `/api/rbac3/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
+    `/api/tianquan-jianshen/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
     { method: 'DELETE', query: { expectedVersion } },
   ),
   applications: () => client.request<readonly { applicationId: string; applicationCode: string; applicationName: string; status: string; version: number }[]>(
-    '/api/rbac3/v1/iam/resource-catalog/applications',
+    '/api/tianquan-jianshen/v1/iam/resource-catalog/applications',
   ),
   resources: (applicationId: string) => client.request<readonly ResourceView[]>(
-    `/api/rbac3/v1/iam/resource-catalog/applications/${encodeURIComponent(applicationId)}/resources`,
+    `/api/tianquan-jianshen/v1/iam/resource-catalog/applications/${encodeURIComponent(applicationId)}/resources`,
   ),
   permissionMapping: (resourceId: string) => client.request<ResourcePermissionMappingView>(
-    `/api/rbac3/v1/iam/resources/${encodeURIComponent(resourceId)}/permission-mapping`,
+    `/api/tianquan-jianshen/v1/iam/resources/${encodeURIComponent(resourceId)}/permission-mapping`,
   ),
   updatePermissionMapping: (resourceId: string, command: { permissionId: string; expectedResourceVersion: number; reason?: string }) => client.request<ResourcePermissionMappingView>(
-    `/api/rbac3/v1/iam/resources/${encodeURIComponent(resourceId)}/permission-mapping`,
+    `/api/tianquan-jianshen/v1/iam/resources/${encodeURIComponent(resourceId)}/permission-mapping`,
     { method: 'PUT', body: command },
   ),
   fields: (applicationId: string, resourceId?: string) => client.request<readonly FieldDefinitionView[]>(
     resourceId
-      ? `/api/rbac3/v1/iam/resource-catalog/resources/${encodeURIComponent(resourceId)}/fields`
-      : `/api/rbac3/v1/iam/resource-catalog/applications/${encodeURIComponent(applicationId)}/fields`,
+      ? `/api/tianquan-jianshen/v1/iam/resource-catalog/resources/${encodeURIComponent(resourceId)}/fields`
+      : `/api/tianquan-jianshen/v1/iam/resource-catalog/applications/${encodeURIComponent(applicationId)}/fields`,
     resourceId ? { query: { applicationId } } : undefined,
   ),
   createField: (command: Omit<FieldDefinitionView, 'id' | 'status' | 'version'>) => client.request<FieldDefinitionView>(
-    '/api/rbac3/v1/iam/resource-catalog/fields',
+    '/api/tianquan-jianshen/v1/iam/resource-catalog/fields',
     { method: 'POST', body: command },
   ),
   changeFieldStatus: (id: string, status: string, expectedVersion: number) => client.request<FieldDefinitionView>(
-    `/api/rbac3/v1/iam/resource-catalog/fields/${encodeURIComponent(id)}/status`,
+    `/api/tianquan-jianshen/v1/iam/resource-catalog/fields/${encodeURIComponent(id)}/status`,
     { method: 'PUT', body: { status, expectedVersion } },
   ),
   archive: (resource: ResourceView) => client.request<{ readonly status: string }>(
-    `/api/rbac3/v1/iam/resource-catalog/resources/${encodeURIComponent(resource.resourceId)}/archive`,
+    `/api/tianquan-jianshen/v1/iam/resource-catalog/resources/${encodeURIComponent(resource.resourceId)}/archive`,
     { method: 'POST', body: { expectedVersion: resource.version } },
   ),
   permissions: (applicationId: string, assignable = false) => client.request<readonly PermissionView[]>(
-    '/api/rbac3/v1/iam/permissions',
+    '/api/tianquan-jianshen/v1/iam/permissions',
     { query: { applicationId, assignable } },
   ),
   permission: (id: string) => client.request<PermissionView>(
-    `/api/rbac3/v1/iam/permissions/${encodeURIComponent(id)}`,
+    `/api/tianquan-jianshen/v1/iam/permissions/${encodeURIComponent(id)}`,
   ),
   createPermission: (command: { applicationId: string; permissionCode: string; permissionName: string; riskLevel: string; description?: string }) => client.request<PermissionView>(
-    '/api/rbac3/v1/iam/permissions',
+    '/api/tianquan-jianshen/v1/iam/permissions',
     { method: 'POST', body: command },
   ),
   changePermissionStatus: (id: string, status: string, expectedVersion: number) => client.request<PermissionView>(
-    `/api/rbac3/v1/iam/permissions/${encodeURIComponent(id)}/status`,
+    `/api/tianquan-jianshen/v1/iam/permissions/${encodeURIComponent(id)}/status`,
     { method: 'PUT', body: { status, expectedVersion } },
   ),
 })

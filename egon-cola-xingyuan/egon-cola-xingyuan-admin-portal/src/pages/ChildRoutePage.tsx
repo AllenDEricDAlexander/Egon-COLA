@@ -14,7 +14,7 @@ import {
 } from '../lifecycle/lifecycleState'
 
 const isPlatformKey = (value: string | undefined): value is PlatformKey => (
-  value === 'idp' || value === 'rbac3' || value === 'gateway' || value === 'ddc'
+  value === 'tianquan-shoubing' || value === 'tianquan-jianshen' || value === 'yuheng' || value === 'tianshu'
 )
 
 const errorCopy = (error: unknown): string => {
@@ -61,7 +61,7 @@ export const ChildRoutePage = () => {
   const environment = import.meta.env.VITE_PORTAL_ENV ?? 'local'
   const [lifecycle, dispatch] = useReducer(
     reduceLifecycle,
-    platformKey ?? 'idp',
+    platformKey ?? 'tianquan-shoubing',
     initialLifecycleState,
   )
   const [mountKey, setMountKey] = useState(0)

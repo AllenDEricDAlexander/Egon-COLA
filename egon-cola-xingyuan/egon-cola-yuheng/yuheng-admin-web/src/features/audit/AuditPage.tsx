@@ -22,7 +22,7 @@ export const AuditPage = () => {
   const requestScope = hasRequiredScopeFields(scope, ['env', 'namespace'])
     ? scope as Pick<Scope, 'env' | 'namespace'>
     : undefined
-  const canRead = useCapability('gateway:read')
+  const canRead = useCapability('yuheng:read')
   const [selected, setSelected] = useState<AuditEntry>()
   const search = useMemo(() => {
     const next = new URLSearchParams(searchParams)

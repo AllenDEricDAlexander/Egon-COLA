@@ -39,8 +39,8 @@ export const McpTasksPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const canWrite = useCapability('gateway:mcp:write')
-  const canReadRuntime = useCapability('gateway:mcp:runtime:read')
+  const canWrite = useCapability('yuheng:mcp:write')
+  const canReadRuntime = useCapability('yuheng:mcp:runtime:read')
   const queryClient = useQueryClient()
   const collection = useMcpCapabilityCollection(
     'task-policies',
@@ -181,7 +181,7 @@ export const McpTasksPanel = ({ serverId, gatewayGroupId, draftRevision }: {
             <section>
               {!canReadRuntime ? (
                 <Typography.Text type="secondary">
-                  当前账号缺少 gateway:mcp:runtime:read 能力。
+                  当前账号缺少 yuheng:mcp:runtime:read 能力。
                 </Typography.Text>
               ) : (
                 <>

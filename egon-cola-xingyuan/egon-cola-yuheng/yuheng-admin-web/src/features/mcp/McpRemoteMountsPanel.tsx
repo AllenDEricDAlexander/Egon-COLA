@@ -40,8 +40,8 @@ export const McpRemoteMountsPanel = ({ serverId, gatewayGroupId, draftRevision }
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const canWrite = useCapability('gateway:mcp:write')
-  const canTest = useCapability('gateway:mcp:test')
+  const canWrite = useCapability('yuheng:mcp:write')
+  const canTest = useCapability('yuheng:mcp:test')
   const queryClient = useQueryClient()
   const [form] = Form.useForm<MountForm>()
   const [editing, setEditing] = useState<McpRemoteMount>()
@@ -96,7 +96,7 @@ export const McpRemoteMountsPanel = ({ serverId, gatewayGroupId, draftRevision }
       setEditing(undefined)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-remote-mounts', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
         queryClient.invalidateQueries({ queryKey: ['mcp-capability-preview', serverId] }),
       ])
       void message.success('Remote MCP Mount 已保存')
@@ -112,7 +112,7 @@ export const McpRemoteMountsPanel = ({ serverId, gatewayGroupId, draftRevision }
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-remote-mounts', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
     },
   })
@@ -240,7 +240,7 @@ export const McpRemoteMountsPanel = ({ serverId, gatewayGroupId, draftRevision }
               { value: 'REPLACE', label: 'Replace' },
             ]} />
           </Form.Item>
-          <Form.Item name="requiredPermissions" label="RBAC3 Permissions（逗号分隔）">
+          <Form.Item name="requiredPermissions" label="Tianquan-Jianshen Permissions（逗号分隔）">
             <Input />
           </Form.Item>
           <Form.Item name="enabled" label="启用" valuePropName="checked"><Switch /></Form.Item>

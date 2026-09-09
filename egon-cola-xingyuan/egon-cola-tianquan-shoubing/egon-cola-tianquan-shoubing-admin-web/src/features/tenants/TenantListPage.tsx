@@ -66,20 +66,20 @@ export const TenantListPage = () => {
     const [messageApi, contextHolder] = message.useMessage()
 
     const tenantsQuery = useQuery({
-        queryKey: ['idp', 'tenants', 0, 20],
-        queryFn: () => httpClient.request<TenantPageVO>('/api/v1/identity/tenants?page=0&size=20'),
+        queryKey: ['tianquan-shoubing', 'tenants', 0, 20],
+        queryFn: () => httpClient.request<TenantPageVO>('/api/v1/tianquan-shoubing/tenants?page=0&size=20'),
     })
 
     const createMutation = useMutation({
         mutationFn: (data: CreateTenantDTO) =>
-            httpClient.request<TenantVO>('/api/v1/identity/tenants', {
+            httpClient.request<TenantVO>('/api/v1/tianquan-shoubing/tenants', {
                 method: 'POST',
                 body: JSON.stringify(data),
             }),
         onSuccess: async () => {
             setCreateOpen(false)
             createForm.resetFields()
-            await queryClient.invalidateQueries({queryKey: ['idp', 'tenants']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'tenants']})
             messageApi.success('租户已创建')
         },
         onError: (err) => messageApi.error(err instanceof Error ? err.message : '创建失败'),
@@ -87,7 +87,7 @@ export const TenantListPage = () => {
 
     const updateMutation = useMutation({
         mutationFn: ({tenantId, data}: { tenantId: string; data: UpdateTenantDTO }) =>
-            httpClient.request<TenantVO>(`/api/v1/identity/tenants/${encodeURIComponent(tenantId)}`, {
+            httpClient.request<TenantVO>(`/api/v1/tianquan-shoubing/tenants/${encodeURIComponent(tenantId)}`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
             }),
@@ -95,17 +95,17 @@ export const TenantListPage = () => {
             setEditOpen(false)
             setDetailTenant(result)
             editForm.resetFields()
-            await queryClient.invalidateQueries({queryKey: ['idp', 'tenants']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'tenants']})
             messageApi.success('租户已更新')
         },
         onError: (err) => messageApi.error(err instanceof Error ? err.message : '更新失败'),
     })
 
     const membersQuery = useQuery({
-        queryKey: ['idp', 'tenant-members', detailTenant?.tenantId, 0, 20],
+        queryKey: ['tianquan-shoubing', 'tenant-members', detailTenant?.tenantId, 0, 20],
         enabled: memberOpen && !!detailTenant,
         queryFn: () => httpClient.request<TenantMembershipPageVO>(
-            `/api/v1/identity/tenants/${encodeURIComponent(detailTenant!.tenantId)}/members?page=0&size=20`,
+            `/api/v1/tianquan-shoubing/tenants/${encodeURIComponent(detailTenant!.tenantId)}/members?page=0&size=20`,
         ),
     })
 
@@ -115,7 +115,7 @@ export const TenantListPage = () => {
             identitySub: string
             data: UpsertTenantMembershipDTO
         }) => httpClient.request<TenantMembershipVO>(
-            `/api/v1/identity/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(identitySub)}`,
+            `/api/v1/tianquan-shoubing/tenants/${encodeURIComponent(tenantId)}/members/${encodeURIComponent(identitySub)}`,
             {
                 method: 'PUT',
                 body: JSON.stringify(data),
@@ -125,7 +125,7 @@ export const TenantListPage = () => {
             setMemberEdit(null)
             setMemberFormOpen(false)
             memberForm.resetFields()
-            await queryClient.invalidateQueries({queryKey: ['idp', 'tenant-members', detailTenant?.tenantId]})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'tenant-members', detailTenant?.tenantId]})
             messageApi.success('成员已保存')
         },
         onError: (err) => messageApi.error(err instanceof Error ? err.message : '成员保存失败'),
@@ -214,11 +214,11 @@ export const TenantListPage = () => {
         <>
             {contextHolder}
             <Card
-                title="IdP 租户目录"
+                title="Tianquan-Shoubing 租户目录"
                 extra={
                     <Space>
                         <Button icon={<ReloadOutlined/>} onClick={() => {void tenantsQuery.refetch()}}>刷新</Button>
-                        {has('idp:tenant:manage') && (
+                        {has('tianquan-shoubing:tenant:manage') && (
                             <Button type="primary" icon={<PlusOutlined/>} onClick={() => {
                                 createForm.resetFields()
                                 setCreateOpen(true)
@@ -268,7 +268,7 @@ export const TenantListPage = () => {
                 extra={detailTenant && (
                     <Space>
                         <Button icon={<TeamOutlined/>} onClick={openMembers}>成员</Button>
-                        {has('idp:tenant:manage') && detailTenant.status !== 'CLOSED' && (
+                        {has('tianquan-shoubing:tenant:manage') && detailTenant.status !== 'CLOSED' && (
                             <Button type="primary" icon={<EditOutlined/>} onClick={openEdit}>编辑</Button>
                         )}
                     </Space>
@@ -297,7 +297,7 @@ export const TenantListPage = () => {
                 open={memberOpen}
                 width={640}
                 onClose={() => setMemberOpen(false)}
-                extra={has('idp:tenant:manage') && detailTenant?.status !== 'CLOSED' && (
+                extra={has('tianquan-shoubing:tenant:manage') && detailTenant?.status !== 'CLOSED' && (
                     <Button icon={<PlusOutlined/>} onClick={() => openMemberEdit()}>新增/更新成员</Button>
                 )}
             >
@@ -323,7 +323,7 @@ export const TenantListPage = () => {
                             },
                             {title: '版本', dataIndex: 'version'},
                             {title: '更新时间', dataIndex: 'updatedAt'},
-                            ...(has('idp:tenant:manage') && detailTenant?.status !== 'CLOSED' ? [{
+                            ...(has('tianquan-shoubing:tenant:manage') && detailTenant?.status !== 'CLOSED' ? [{
                                 title: '操作',
                                 render: (_value: unknown, row: TenantMembershipVO) => (
                                     <Button size="small" onClick={() => openMemberEdit(row)}>编辑</Button>
@@ -335,7 +335,7 @@ export const TenantListPage = () => {
             </Drawer>
 
             <Modal
-                title="创建 IdP 租户"
+                title="创建 Tianquan-Shoubing 租户"
                 open={createOpen}
                 confirmLoading={createMutation.isPending}
                 onCancel={() => setCreateOpen(false)}

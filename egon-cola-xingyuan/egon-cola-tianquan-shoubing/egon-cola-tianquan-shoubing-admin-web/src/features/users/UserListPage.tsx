@@ -71,22 +71,22 @@ export const UserListPage = () => {
   const requestQuery = buildUserQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
   const usersQuery = useQuery({
-    queryKey: ['idp', 'users', requestQuery],
+    queryKey: ['tianquan-shoubing', 'users', requestQuery],
       queryFn: () => httpClient
-        .request<IdentityUserVO[] | IdentityUserPageVO>(`/api/v1/identity/users${requestQuery ? `?${requestQuery}` : ''}`)
+        .request<IdentityUserVO[] | IdentityUserPageVO>(`/api/v1/tianquan-shoubing/users${requestQuery ? `?${requestQuery}` : ''}`)
         .then(normalizePage),
   })
 
   const createMutation = useMutation({
       mutationFn: (v: CreateIdentityUserDTO) =>
-          httpClient.request<CreatedIdentityUserVO>('/api/v1/identity/users', {
+          httpClient.request<CreatedIdentityUserVO>('/api/v1/tianquan-shoubing/users', {
         method: 'POST',
               body: JSON.stringify(v),
       }),
     onSuccess: async (result) => {
         setCreateOpen(false)
         createForm.resetFields()
-        await queryClient.invalidateQueries({queryKey: ['idp', 'users']})
+        await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'users']})
         Modal.success({
             title: '用户已创建',
             content: (
@@ -108,14 +108,14 @@ export const UserListPage = () => {
             subject: string;
             data: { displayName: string; status: string; expectedVersion: number }
         }) =>
-            httpClient.request<IdentityUserVO>(`/api/v1/identity/users/${encodeURIComponent(subject)}`, {
+            httpClient.request<IdentityUserVO>(`/api/v1/tianquan-shoubing/users/${encodeURIComponent(subject)}`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
             }),
         onSuccess: async () => {
             setEditUser(null)
             editForm.resetFields()
-      await queryClient.invalidateQueries({ queryKey: ['idp', 'users'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianquan-shoubing', 'users'] })
             messageApi.success('用户已更新')
     },
         onError: (err) => {
@@ -125,7 +125,7 @@ export const UserListPage = () => {
 
   const resetPasswordMutation = useMutation({
     mutationFn: (subject: string) =>
-        httpClient.request<ResetPasswordVO>(`/api/v1/identity/users/${encodeURIComponent(subject)}/password-reset`, {method: 'POST'}),
+        httpClient.request<ResetPasswordVO>(`/api/v1/tianquan-shoubing/users/${encodeURIComponent(subject)}/password-reset`, {method: 'POST'}),
       onSuccess: (result) => {
           Modal.success({
               title: '密码已重置',
@@ -139,10 +139,10 @@ export const UserListPage = () => {
 
   const revokeMutation = useMutation({
     mutationFn: (subject: string) =>
-      httpClient.request(`/api/v1/identity/users/${encodeURIComponent(subject)}/revoke-all`, { method: 'POST' }),
+      httpClient.request(`/api/v1/tianquan-shoubing/users/${encodeURIComponent(subject)}/revoke-all`, { method: 'POST' }),
     onSuccess: async () => {
         messageApi.success('该用户全部会话已撤销')
-      await queryClient.invalidateQueries({ queryKey: ['idp', 'users'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianquan-shoubing', 'users'] })
     },
       onError: (err) => {
           messageApi.error(err instanceof Error ? err.message : '撤销失败')
@@ -164,7 +164,7 @@ export const UserListPage = () => {
                 <Button icon={<ReloadOutlined/>} onClick={() => {
                     void usersQuery.refetch()
                 }}>刷新</Button>
-                {has('idp:identity-user:create') && (
+                {has('tianquan-shoubing:identity-user:create') && (
                     <Button type="primary" icon={<PlusOutlined/>} onClick={() => setCreateOpen(true)}>创建用户</Button>
                 )}
             </Space>
@@ -239,14 +239,14 @@ export const UserListPage = () => {
                     title: '操作', width: 260,
                     render: (_: unknown, row: IdentityUserVO) => (
                         <Space size="small">
-                            {has('idp:identity-user:update') && (
+                            {has('tianquan-shoubing:identity-user:update') && (
                                 <Button size="small" icon={<EditOutlined/>} onClick={() => openEdit(row)}>编辑</Button>
                             )}
-                            {has('idp:identity-user:password-reset') && (
+                            {has('tianquan-shoubing:identity-user:password-reset') && (
                                 <Button size="small" icon={<LockOutlined/>}
                                         onClick={() => resetPasswordMutation.mutate(row.subject)}>重置密码</Button>
                             )}
-                            {has('idp:identity-user:revoke-all') && (
+                            {has('tianquan-shoubing:identity-user:revoke-all') && (
                                 <Button size="small" danger icon={<StopOutlined/>}
                                         onClick={() => revokeMutation.mutate(row.subject)}>撤销会话</Button>
                             )}

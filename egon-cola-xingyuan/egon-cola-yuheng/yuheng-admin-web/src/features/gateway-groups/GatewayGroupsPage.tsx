@@ -17,12 +17,12 @@ export const GatewayGroupsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams()
   const queryClient = useQueryClient()
   const bindings = useGatewayScopeBindings()
-  const canWrite = useCapability('gateway:groups:write')
+  const canWrite = useCapability('yuheng:groups:write')
   const [form] = Form.useForm()
   const [editing, setEditing] = useState<GatewayGroup>()
   const filters = readScopeSearchParams(searchParams, ['env', 'namespace'])
   const query = useQuery({
-    queryKey: ['gateway-groups'],
+    queryKey: ['yuheng-groups'],
     queryFn: ({ signal }) => gatewayApi.groups(signal),
   })
   const groups = useMemo(() => (query.data ?? []).filter((group) =>
@@ -48,16 +48,16 @@ export const GatewayGroupsPage = () => {
     onSuccess: async () => {
       setEditing(undefined)
       form.resetFields()
-      await queryClient.invalidateQueries({ queryKey: ['gateway-groups'] })
-      void message.success('Gateway Group 已保存')
+      await queryClient.invalidateQueries({ queryKey: ['yuheng-groups'] })
+      void message.success('Yuheng Group 已保存')
     },
   })
   const toggle = useMutation({
     mutationFn: (group: GatewayGroup) =>
       gatewayApi.setGroupEnabled(group.id, !group.enabled),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['gateway-groups'] })
-      void message.success('Gateway Group 状态已更新')
+      await queryClient.invalidateQueries({ queryKey: ['yuheng-groups'] })
+      void message.success('Yuheng Group 状态已更新')
     },
   })
   if (query.isLoading) return <LoadingBlock />
@@ -65,7 +65,7 @@ export const GatewayGroupsPage = () => {
   return (
     <section>
       <Space className="page-title">
-        <Typography.Title level={2}>Gateway Group</Typography.Title>
+        <Typography.Title level={2}>Yuheng Group</Typography.Title>
         <Button
           type="primary"
           disabled={!canWrite}
@@ -74,7 +74,7 @@ export const GatewayGroupsPage = () => {
             form.resetFields()
           }}
         >
-          新建 Gateway Group
+          新建 Yuheng Group
         </Button>
       </Space>
       <GatewayScopeFilter
@@ -100,7 +100,7 @@ export const GatewayGroupsPage = () => {
             title: '操作',
             render: (_, record) => (
               <Space>
-                <Button type="link" onClick={() => navigate(`/gateway-groups/${record.id}/overview`)}>
+                <Button type="link" onClick={() => navigate(`/yuheng-groups/${record.id}/overview`)}>
                   查看
                 </Button>
                 <Button
@@ -113,7 +113,7 @@ export const GatewayGroupsPage = () => {
                   编辑
                 </Button>
                 <Popconfirm
-                  title={record.enabled ? '确认停用 Gateway Group？' : '确认启用 Gateway Group？'}
+                  title={record.enabled ? '确认停用 Yuheng Group？' : '确认启用 Yuheng Group？'}
                   description={record.enabled ? '停用会阻止后续路由发布，请确认影响范围。' : undefined}
                   onConfirm={() => toggle.mutate(record)}
                 >
@@ -127,7 +127,7 @@ export const GatewayGroupsPage = () => {
         ]}
       />
       <Modal
-        title={editing?.id ? '编辑 Gateway Group' : '新建 Gateway Group'}
+        title={editing?.id ? '编辑 Yuheng Group' : '新建 Yuheng Group'}
         open={Boolean(editing)}
         onCancel={() => setEditing(undefined)}
         onOk={() => form.submit()}
@@ -143,7 +143,7 @@ export const GatewayGroupsPage = () => {
           {!editing?.id && (
             <Form.Item name="bindingId" label="Scope Binding" rules={[{ required: true }]}>
               <Select
-                placeholder="选择 Gateway Group Scope"
+                placeholder="选择 Yuheng Group Scope"
                 options={(bindings.data ?? []).map((binding) => ({
                   value: binding.bindingId,
                   label: `${binding.env} / ${binding.namespace} (${binding.appCode})`,

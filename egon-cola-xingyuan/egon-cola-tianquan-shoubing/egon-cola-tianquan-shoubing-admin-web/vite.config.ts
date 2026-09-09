@@ -27,11 +27,11 @@ export default defineConfig({
     strictPort: true,
     proxy: {
       '/oauth2': {
-        target: process.env.IDP_AUTH_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.TIANQUAN_SHOUBING_AUTH_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
       '/api': {
-        target: process.env.IDP_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
+        target: process.env.TIANQUAN_SHOUBING_ADMIN_PROXY ?? 'http://127.0.0.1:18180',
         changeOrigin: true,
       },
     },
@@ -42,9 +42,9 @@ export default defineConfig({
     setupFiles: './src/test/setup.ts',
     exclude: ['node_modules/**', 'dist/**'],
       env: {
-          VITE_IDP_ISSUER: 'http://127.0.0.1:18120',
-          VITE_IDP_CLIENT_ID: 'test-client',
-          VITE_IDP_RESOURCE: 'http://127.0.0.1:18120',
+          VITE_TIANQUAN_SHOUBING_ISSUER: 'http://127.0.0.1:18120',
+          VITE_TIANQUAN_SHOUBING_CLIENT_ID: 'test-client',
+          VITE_TIANQUAN_SHOUBING_RESOURCE: 'http://127.0.0.1:18120',
           VITE_DEFAULT_TENANT_ID: 'default',
       },
   },

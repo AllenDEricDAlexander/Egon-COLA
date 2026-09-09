@@ -69,8 +69,8 @@ export type IssuedCredential = Credential & {
 export type GatewayEngineRole = 'API_RPC' | 'MCP'
 
 export const gatewayEngineRoleOf = (metadata: unknown): GatewayEngineRole | undefined => {
-  if (!metadata || typeof metadata !== 'object' || !('gateway.engine.role' in metadata)) return undefined
-  const value = metadata['gateway.engine.role']
+  if (!metadata || typeof metadata !== 'object' || !('yuheng.engine.role' in metadata)) return undefined
+  const value = metadata['yuheng.engine.role']
   if (typeof value !== 'string') return undefined
   const role = value.trim()
   return role === 'API_RPC' || role === 'MCP' ? role : undefined

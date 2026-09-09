@@ -92,7 +92,7 @@ describe('RegistryPage', () => {
     expect(screen.getByText('共 12 条')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
-        '/api/v1/ddc/registry/services/page?pageNo=1&pageSize=10',
+        '/api/v1/tianshu/registry/services/page?pageNo=1&pageSize=10',
       ),
       expect.anything(),
     )

@@ -8,7 +8,7 @@ const about = (
   fieldPolicies: Record<string, unknown> = {},
 ) => ({
   user: {subject: 'alice', tenantId: 'tenant-a', status: 'ACTIVE'},
-  currentApplicationCode: 'rbac3-admin',
+  currentApplicationCode: 'tianquan-jianshen-admin',
   activeRoles: [],
   permissions,
   resourceCodes,

@@ -54,7 +54,7 @@ const createWrapper = (children: ReactNode, permissions: readonly string[]) => {
 
 beforeEach(() => {
     state.request.mockReset().mockImplementation((path: string, request?: {query?: Readonly<Record<string, unknown>>}) => {
-        if (path === '/api/rbac3/v1/iam/positions') {
+        if (path === '/api/tianquan-jianshen/v1/iam/positions') {
             expect(request?.query).toEqual({orgUnitId: '1001'})
             return Promise.resolve([position])
         }
@@ -71,7 +71,7 @@ describe('position administration page', () => {
         await waitFor(() => expect(screen.getByText('运营主管')).toBeInTheDocument())
         expect(screen.getByText('岗位')).toBeInTheDocument()
         expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/positions',
+            '/api/tianquan-jianshen/v1/iam/positions',
             expect.objectContaining({query: {orgUnitId: '1001'}}),
         )
         expect(state.request.mock.calls.some(([path]) => String(path).includes('/directory/users/'))).toBe(false)
@@ -89,7 +89,7 @@ describe('position administration page', () => {
         fireEvent.click(screen.getByRole('button', {name: /保\s*存/}))
 
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/positions',
+            '/api/tianquan-jianshen/v1/iam/positions',
             expect.objectContaining({
                 method: 'POST',
                 body: expect.objectContaining({
@@ -104,7 +104,7 @@ describe('position administration page', () => {
         fireEvent.click(screen.getByRole('button', {name: /编\s*辑/}))
         fireEvent.click(screen.getByRole('button', {name: /保\s*存/}))
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/positions/2001',
+            '/api/tianquan-jianshen/v1/iam/positions/2001',
             expect.objectContaining({
                 method: 'PUT',
                 body: expect.objectContaining({expectedVersion: 1}),
@@ -115,7 +115,7 @@ describe('position administration page', () => {
         fireEvent.click(screen.getByRole('button', {name: /归\s*档/}))
         fireEvent.click(screen.getByRole('button', {name: '确认停用岗位'}))
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/positions/2001',
+            '/api/tianquan-jianshen/v1/iam/positions/2001',
             {method: 'DELETE', query: {expectedVersion: 1}},
         ))
     })

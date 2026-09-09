@@ -114,7 +114,7 @@ afterEach(() => {
 })
 
 describe('McpServersPage', () => {
-  it('creates a Server against the selected Gateway draft revision', async () => {
+  it('creates a Server against the selected Yuheng draft revision', async () => {
     renderPage()
     await screen.findByText('MCP Servers')
     const add = screen.getByRole('button', { name: '新增 Server' })
@@ -123,7 +123,7 @@ describe('McpServersPage', () => {
     fireEvent.change(screen.getByLabelText('Server Code'), { target: { value: 'commerce' } })
     fireEvent.change(screen.getByLabelText('显示名称'), { target: { value: 'Commerce MCP' } })
     fireEvent.change(screen.getByLabelText('Resource URI'), {
-      target: { value: 'https://resource.egon.top/gateway-mcp-commerce' },
+      target: { value: 'https://resource.egon.top/yuheng-mcp-commerce' },
     })
     fireEvent.change(screen.getByLabelText('变更原因'), { target: { value: 'initial server' } })
     fireEvent.click(screen.getByRole('button', { name: 'OK' }))

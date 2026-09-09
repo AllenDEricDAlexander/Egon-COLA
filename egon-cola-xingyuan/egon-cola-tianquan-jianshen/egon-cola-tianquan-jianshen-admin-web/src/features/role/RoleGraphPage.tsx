@@ -63,7 +63,7 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
   const [roleForm] = Form.useForm<RoleFormValues>()
   const [inheritanceForm] = Form.useForm<InheritanceFormValues>()
   const tenant = effectiveTenantId ?? 'none'
-  const rolesKey = ['rbac3', 'roles', tenant, applicationId ?? 'all']
+  const rolesKey = ['tianquan-jianshen', 'roles', tenant, applicationId ?? 'all']
 
   const roles = useQuery({
     queryKey: rolesKey,
@@ -73,7 +73,7 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
   const visibleRoles = (roles.data ?? []).slice(0, MAX_RENDERED_ROLES)
   const impacts = useQueries({
     queries: visibleRoles.map((role) => ({
-      queryKey: ['rbac3', 'role-impact', tenant, role.roleId],
+      queryKey: ['tianquan-jianshen', 'role-impact', tenant, role.roleId],
       queryFn: () => api.impact(role.roleId),
       enabled: status === 'READY',
     })),
@@ -85,8 +85,8 @@ export const RoleGraphPage = ({applicationId}: RoleGraphPageProps) => {
 
   const refreshRoles = async () => {
     await Promise.all([
-      queryClient.invalidateQueries({queryKey: ['rbac3', 'roles']}),
-      queryClient.invalidateQueries({queryKey: ['rbac3', 'role-impact']}),
+      queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'roles']}),
+      queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'role-impact']}),
     ])
   }
 

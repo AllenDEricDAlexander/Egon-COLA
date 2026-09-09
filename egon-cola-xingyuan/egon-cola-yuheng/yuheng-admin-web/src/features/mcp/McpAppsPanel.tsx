@@ -51,7 +51,7 @@ export const McpAppsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const canWrite = useCapability('gateway:mcp:write')
+  const canWrite = useCapability('yuheng:mcp:write')
   const queryClient = useQueryClient()
   const bindings = useMcpCapabilityCollection(
     'app-bindings',
@@ -98,7 +98,7 @@ export const McpAppsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
       artifactForm.resetFields()
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-app-artifacts', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
       void message.success('MCP App Artifact 已完成安全校验并登记')
     },
@@ -114,7 +114,7 @@ export const McpAppsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
       setSelectedArtifact(undefined)
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['mcp-app-artifacts', gatewayGroupId] }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       ])
     },
   })

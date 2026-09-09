@@ -84,22 +84,22 @@ export const ResourceServerListPage = () => {
     const requestQuery = buildResourceServerQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
     const rsQuery = useQuery({
-        queryKey: ['idp', 'resource-servers', requestQuery],
+        queryKey: ['tianquan-shoubing', 'resource-servers', requestQuery],
         queryFn: () => httpClient
-            .request<ResourceServerVO[] | ResourceServerPageVO>(`/api/v1/identity/resource-servers${requestQuery ? `?${requestQuery}` : ''}`)
+            .request<ResourceServerVO[] | ResourceServerPageVO>(`/api/v1/tianquan-shoubing/resource-servers${requestQuery ? `?${requestQuery}` : ''}`)
             .then(normalizePage),
     })
 
     const createMutation = useMutation({
         mutationFn: (v: CreateResourceServerDTO) =>
-            httpClient.request<ResourceServerVO>('/api/v1/identity/resource-servers', {
+            httpClient.request<ResourceServerVO>('/api/v1/tianquan-shoubing/resource-servers', {
                 method: 'POST',
                 body: JSON.stringify(v),
             }),
         onSuccess: async () => {
             setCreateOpen(false)
             createForm.resetFields()
-            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers']})
             messageApi.success('Resource Server 已创建')
         },
         onError: (err) => {
@@ -110,13 +110,13 @@ export const ResourceServerListPage = () => {
     const enableMutation = useMutation({
         mutationFn: ({id, version}: { id: string; version: number }) =>
             httpClient.request<ResourceServerVO>(
-                `/api/v1/identity/resource-servers/${encodeURIComponent(id)}/enable`,
+                `/api/v1/tianquan-shoubing/resource-servers/${encodeURIComponent(id)}/enable`,
                 {method: 'POST', body: JSON.stringify({expectedVersion: version})},
             ),
         onSuccess: async (result) => {
             setStatusError(null)
             setDetailRs(result)
-            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers']})
             messageApi.success('已启用')
         },
         onError: (err) => {
@@ -128,13 +128,13 @@ export const ResourceServerListPage = () => {
     const disableMutation = useMutation({
         mutationFn: ({id, version}: { id: string; version: number }) =>
             httpClient.request<ResourceServerVO>(
-                `/api/v1/identity/resource-servers/${encodeURIComponent(id)}/disable`,
+                `/api/v1/tianquan-shoubing/resource-servers/${encodeURIComponent(id)}/disable`,
                 {method: 'POST', body: JSON.stringify({expectedVersion: version})},
             ),
         onSuccess: async (result) => {
             setStatusError(null)
             setDetailRs(result)
-            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers']})
             messageApi.success('已禁用')
         },
         onError: (err) => {
@@ -147,7 +147,7 @@ export const ResourceServerListPage = () => {
         mutationFn: ({action, rows}: {action: BatchResourceServerActionDTO['action']; rows: readonly ResourceServerVO[]}) => {
             const first = rows[0]
             if (!first) throw new Error('请选择 Resource Server')
-            return httpClient.request('/api/v1/identity/resource-servers/actions/batch', {
+            return httpClient.request('/api/v1/tianquan-shoubing/resource-servers/actions/batch', {
                 method: 'POST',
                 body: JSON.stringify({
                     bizCode: first.bizCode,
@@ -161,7 +161,7 @@ export const ResourceServerListPage = () => {
         onSuccess: async () => {
             setSelectedRows([])
             setStatusError(null)
-            await queryClient.invalidateQueries({queryKey: ['idp', 'resource-servers']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'resource-servers']})
             messageApi.success('批量操作已提交')
         },
         onError: (err) => {
@@ -178,7 +178,7 @@ export const ResourceServerListPage = () => {
                 extra={
                     <Space>
                         <Button icon={<ReloadOutlined/>} onClick={() => {void rsQuery.refetch()}}>刷新</Button>
-                        {has('idp:resource-server:create') && (
+                        {has('tianquan-shoubing:resource-server:create') && (
                             <Button type="primary" icon={<PlusOutlined/>} onClick={() => setCreateOpen(true)}>创建</Button>
                         )}
                     </Space>
@@ -219,7 +219,7 @@ export const ResourceServerListPage = () => {
                         </Space>
                     </Form.Item>
                 </Form>
-                {has('idp:resource-server:status') && selectedRows.length > 0 && (
+                {has('tianquan-shoubing:resource-server:status') && selectedRows.length > 0 && (
                     <Space style={{marginBottom: 16}}>
                         <Typography.Text>已选 {selectedRows.length} 个</Typography.Text>
                         <Button
@@ -292,14 +292,14 @@ export const ResourceServerListPage = () => {
                 extra={
                     detailRs && (
                         <Space>
-                            {has('idp:resource-server:status') && detailRs.status === 'DISABLED' && (
+                            {has('tianquan-shoubing:resource-server:status') && detailRs.status === 'DISABLED' && (
                                 <Button
                                     icon={<PlayCircleOutlined/>}
                                     loading={enableMutation.isPending}
                                     onClick={() => enableMutation.mutate({id: detailRs.resourceServerId, version: detailRs.version})}
                                 >启用</Button>
                             )}
-                            {has('idp:resource-server:status') && detailRs.status === 'ACTIVE' && (
+                            {has('tianquan-shoubing:resource-server:status') && detailRs.status === 'ACTIVE' && (
                                 <Button
                                     icon={<StopOutlined/>}
                                     danger
@@ -322,7 +322,7 @@ export const ResourceServerListPage = () => {
                             <Descriptions.Item label="应用">{detailRs.appCode}</Descriptions.Item>
                             <Descriptions.Item label="环境">{detailRs.environment}</Descriptions.Item>
                             <Descriptions.Item label="管理 Client">{detailRs.managementClientId}</Descriptions.Item>
-                            <Descriptions.Item label="RBAC3 应用">{detailRs.rbacApplicationCode}</Descriptions.Item>
+                            <Descriptions.Item label="Tianquan-Jianshen 应用">{detailRs.rbacApplicationCode}</Descriptions.Item>
                             <Descriptions.Item label="入口权限">{detailRs.entryPermissionCode}</Descriptions.Item>
                             <Descriptions.Item label="状态">
                                 <Tag color={STATUS_COLORS[detailRs.status] ?? 'default'}>{detailRs.status}</Tag>
@@ -387,8 +387,8 @@ export const ResourceServerListPage = () => {
                     <Form.Item name="managementClientId" label="管理 Client ID" rules={[{required: true}]}>
                         <Input placeholder="用于机器认证的 Client"/>
                     </Form.Item>
-                    <Form.Item name="rbacApplicationCode" label="RBAC3 应用" rules={[{required: true}]}>
-                        <Input placeholder="RBAC3 中的应用标识"/>
+                    <Form.Item name="rbacApplicationCode" label="Tianquan-Jianshen 应用" rules={[{required: true}]}>
+                        <Input placeholder="Tianquan-Jianshen 中的应用标识"/>
                     </Form.Item>
                     <Form.Item name="entryPermissionCode" label="入口权限" rules={[{required: true}]}>
                         <Input placeholder="app:resource:read"/>

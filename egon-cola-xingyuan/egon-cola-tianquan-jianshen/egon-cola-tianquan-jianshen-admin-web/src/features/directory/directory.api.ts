@@ -176,7 +176,7 @@ const normalizePositionAssignment = (command: PositionAssignmentCommand): Positi
 
 export const directoryApi = (client: FeatureApiClient) => ({
   users: (filters: UserDirectoryFilter = {}) => client.request<DirectoryPage<UserDirectoryView>>(
-    '/api/rbac3/v1/iam/users',
+    '/api/tianquan-jianshen/v1/iam/users',
     { query: {
       query: filters.query,
       status: filters.status,
@@ -187,80 +187,80 @@ export const directoryApi = (client: FeatureApiClient) => ({
     } },
   ),
   createUser: (command: CreateUserCommand) => client.request<UserDirectoryView>(
-    '/api/rbac3/v1/iam/users',
+    '/api/tianquan-jianshen/v1/iam/users',
     { method: 'POST', body: command },
   ),
   user: (userId: string) => client.request<UserDirectoryView>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}`,
   ),
   updateUser: (userId: string, command: UpdateUserCommand) => client.request<UserDirectoryView>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}`,
     { method: 'PUT', body: command },
   ),
   deleteUser: (userId: string, expectedAuthVersion: number) => client.request<null>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}`,
     { method: 'DELETE', query: { expectedAuthVersion } },
   ),
   changeUserStatus: (userId: string, command: UserStatusCommand) => client.request<UserDirectoryView>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/status`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/status`,
     { method: 'PUT', body: command },
   ),
   organizations: (parentId?: string) => client.request<readonly OrganizationView[]>(
-    '/api/rbac3/v1/iam/organizations',
+    '/api/tianquan-jianshen/v1/iam/organizations',
     {query: {parentId}},
   ),
   createOrganization: (command: OrganizationCommand) => client.request<OrganizationView>(
-    '/api/rbac3/v1/iam/organizations',
+    '/api/tianquan-jianshen/v1/iam/organizations',
     { method: 'POST', body: command },
   ),
   updateOrganization: (orgUnitId: string, command: OrganizationUpdateCommand) => client.request<OrganizationView>(
-    `/api/rbac3/v1/iam/organizations/${encodeURIComponent(orgUnitId)}`,
+    `/api/tianquan-jianshen/v1/iam/organizations/${encodeURIComponent(orgUnitId)}`,
     { method: 'PUT', body: command },
   ),
   deleteOrganization: (orgUnitId: string, expectedVersion: number) => client.request<null>(
-    `/api/rbac3/v1/iam/organizations/${encodeURIComponent(orgUnitId)}`,
+    `/api/tianquan-jianshen/v1/iam/organizations/${encodeURIComponent(orgUnitId)}`,
     { method: 'DELETE', query: { expectedVersion } },
   ),
   positions: (orgUnitId?: string) => client.request<readonly PositionView[]>(
-    '/api/rbac3/v1/iam/positions',
+    '/api/tianquan-jianshen/v1/iam/positions',
     {query: {orgUnitId}},
   ),
   createPosition: (command: PositionCommand) => client.request<PositionView>(
-    '/api/rbac3/v1/iam/positions',
+    '/api/tianquan-jianshen/v1/iam/positions',
     { method: 'POST', body: command },
   ),
   updatePosition: (positionId: string, command: PositionUpdateCommand) => client.request<PositionView>(
-    `/api/rbac3/v1/iam/positions/${encodeURIComponent(positionId)}`,
+    `/api/tianquan-jianshen/v1/iam/positions/${encodeURIComponent(positionId)}`,
     { method: 'PUT', body: command },
   ),
   deletePosition: (positionId: string, expectedVersion: number) => client.request<null>(
-    `/api/rbac3/v1/iam/positions/${encodeURIComponent(positionId)}`,
+    `/api/tianquan-jianshen/v1/iam/positions/${encodeURIComponent(positionId)}`,
     { method: 'DELETE', query: { expectedVersion } },
   ),
   organizationAssignments: (userId: string) => client.request<readonly UserOrganizationAssignmentView[]>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/organizations`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/organizations`,
   ),
   assignOrganization: (userId: string, command: OrganizationAssignmentCommand) => client.request<UserOrganizationAssignmentView>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/organizations`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/organizations`,
     { method: 'POST', body: normalizeOrganizationAssignment(command) },
   ),
   revokeOrganization: (userId: string, assignmentId: string, expectedVersion: number) => client.request<null>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/organizations/${encodeURIComponent(assignmentId)}`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/organizations/${encodeURIComponent(assignmentId)}`,
     { method: 'DELETE', query: { expectedVersion } },
   ),
   positionAssignments: (userId: string) => client.request<readonly UserPositionAssignmentView[]>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/positions`,
   ),
   assignPosition: (userId: string, command: PositionAssignmentCommand) => client.request<UserPositionAssignmentView>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/positions`,
     { method: 'POST', body: normalizePositionAssignment(command) },
   ),
   revokePosition: (userId: string, assignmentId: string, expectedVersion: number) => client.request<null>(
-    `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions/${encodeURIComponent(assignmentId)}`,
+    `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/positions/${encodeURIComponent(assignmentId)}`,
     { method: 'DELETE', query: { expectedVersion } },
   ),
   submitSnapshot: (command: DirectorySnapshotCommand) => client.request<DirectorySyncView>(
-    '/api/rbac3/v1/internal/directory-snapshots',
+    '/api/tianquan-jianshen/v1/internal/directory-snapshots',
     { method: 'POST', body: command },
   ),
 })

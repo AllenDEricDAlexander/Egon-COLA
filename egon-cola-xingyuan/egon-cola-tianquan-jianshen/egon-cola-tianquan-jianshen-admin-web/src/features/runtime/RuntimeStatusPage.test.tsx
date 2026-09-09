@@ -29,9 +29,9 @@ const wrapper = ({ children }: PropsWithChildren) => {
         })
     } as unknown as Rbac3Client
   const status = {
-    ddcConfigClient: { state: 'READY', instanceId: 'rbac3-1', leaseIdFingerprint: 'af0130b1190e', leaseExpireAt: '2026-08-01T00:00:30Z', configVersions: { 'rbac3.maximum-active-roots': 7 }, lastApplyFailureKey: null, lastApplyFailureVersion: null, lastApplyFailureCode: null },
+    ddcConfigClient: { state: 'READY', instanceId: 'tianquan-jianshen-1', leaseIdFingerprint: 'af0130b1190e', leaseExpireAt: '2026-08-01T00:00:30Z', configVersions: { 'tianquan-jianshen.maximum-active-roots': 7 }, lastApplyFailureKey: null, lastApplyFailureVersion: null, lastApplyFailureCode: null },
     definition: { status: 'ACCEPTED', definitionSetId: 'definition-7', warnings: [] },
-    providerLease: { state: 'RECOVERING', instanceId: 'rbac3-1', leaseExpireAt: null },
+    providerLease: { state: 'RECOVERING', instanceId: 'tianquan-jianshen-1', leaseExpireAt: null },
     gatewayRelease: { releaseId: null, status: 'MISSING', observedByEngineVersion: null }, checkedAt: '2026-08-01T00:00:00Z',
     flyway: { rbac3History: 'UP_TO_DATE', outboxHistory: 'UP_TO_DATE' }, redisProjection: { state: 'DEGRADED', checkpointLag: 3 },
     fence: { state: 'STALE', oldestAgeSeconds: 90 }, outbox: { state: 'LAGGING', pendingCount: 12, oldestAgeSeconds: 30 },
@@ -45,7 +45,7 @@ describe('runtime status page', () => {
   it('keeps definition lease release and recovery subsystems independent', async () => {
     render(<RuntimeStatusPage />, { wrapper })
     await waitFor(() => expect(screen.getAllByText('ACCEPTED').length).toBeGreaterThanOrEqual(1))
-    expect(screen.getByText('DDC Config Client')).toBeInTheDocument()
+    expect(screen.getByText('Tianshu Config Client')).toBeInTheDocument()
     expect(screen.getByText('READY')).toBeInTheDocument()
     expect(screen.getByText(/af0130b1190e/)).toBeInTheDocument()
     expect(screen.getAllByText('RECOVERING').length).toBeGreaterThanOrEqual(1)
@@ -56,9 +56,9 @@ describe('runtime status page', () => {
     expect(document.body.textContent).not.toMatch(/config-client-lease-secret-value|invalid-secret-like-value|internal storage locator|database statement|endpoint secret/i)
   }, 10_000)
 
-  it('renders the cross-platform Gateway and DDC status projection', async () => {
+  it('renders the cross-xingyuan Yuheng and Tianshu status projection', async () => {
     render(<RuntimeStatusPage />, { wrapper })
-    await waitFor(() => expect(screen.getByText('Gateway / DDC 聚合状态')).toBeInTheDocument())
+    await waitFor(() => expect(screen.getByText('Yuheng / Tianshu 聚合状态')).toBeInTheDocument())
     expect(screen.getByRole('button', { name: '刷新聚合状态' })).toBeInTheDocument()
     expect(screen.getAllByText('MISSING').length).toBeGreaterThanOrEqual(1)
   })

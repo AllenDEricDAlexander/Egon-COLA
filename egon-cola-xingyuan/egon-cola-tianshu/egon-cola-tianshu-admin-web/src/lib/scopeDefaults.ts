@@ -30,8 +30,8 @@ export const emptyScope: RegistryScope = {
 }
 
 export const configuredInitialScope = resolveInitialScope(
-  import.meta.env.VITE_DDC_ADMIN_DEFAULT_BIZ_CODE,
-  import.meta.env.VITE_DDC_ADMIN_DEFAULT_APP_CODE,
-  import.meta.env.VITE_DDC_ADMIN_DEFAULT_ENV,
-  import.meta.env.VITE_DDC_ADMIN_DEFAULT_NAMESPACE,
+  import.meta.env.VITE_TIANSHU_ADMIN_DEFAULT_BIZ_CODE,
+  import.meta.env.VITE_TIANSHU_ADMIN_DEFAULT_APP_CODE,
+  import.meta.env.VITE_TIANSHU_ADMIN_DEFAULT_ENV,
+  import.meta.env.VITE_TIANSHU_ADMIN_DEFAULT_NAMESPACE,
 )

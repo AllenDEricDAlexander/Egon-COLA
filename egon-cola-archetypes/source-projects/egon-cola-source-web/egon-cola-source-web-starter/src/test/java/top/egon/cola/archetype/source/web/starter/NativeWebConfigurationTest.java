@@ -10,9 +10,9 @@ import org.springframework.core.env.Environment;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.context.ActiveProfiles;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
-import top.egon.cola.component.ddc.autoconfigure.properties.DdcProperties;
-import top.egon.cola.component.rpc.ddc.autoconfigure.DdcRpcProperties;
-import top.egon.cola.component.ddc.http.registration.DdcHttpRegistrationProperties;
+import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
+import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.organization.facade.rpc.UserRpcService;
 import top.egon.cola.organization.facade.rpc.OrganizationRpcConverter;
@@ -40,10 +40,10 @@ class NativeWebConfigurationTest {
         assertThat(context.containsBean("ddcHttpRegistrationRuntime")).isFalse();
         assertThat(context.getBeansOfType(org.redisson.api.RedissonClient.class)).isEmpty();
         for (String suffix : new String[]{"rpc.enabled", "rpc.provider.enabled", "rpc.consumer.enabled",
-                "ddc.enabled", "ddc.registry.enabled", "ddc.redis.enabled", "ddc.registry.http.enabled"}) {
+                "tianshu.enabled", "tianshu.registry.enabled", "tianshu.redis.enabled", "tianshu.registry.http.enabled"}) {
             assertThat(environment.getProperty("egon.cola.component." + suffix)).as(suffix).isEqualTo("false");
         }
-        assertThat(environment.getProperty("egon.cola.platform.idp.enabled")).isEqualTo("false");
+        assertThat(environment.getProperty("egon.cola.platform.tianquan.shoubing.enabled")).isEqualTo("false");
     }
 
     @Test
@@ -62,9 +62,9 @@ class NativeWebConfigurationTest {
     void binds_actual_rpc_ddc_and_http_registration_prefixes() {
         var binder = Binder.get(environment);
         var rpc = binder.bind("egon.cola.component.rpc", EgonRpcProperties.class).get();
-        var ddc = binder.bind("egon.cola.component.ddc", DdcProperties.class).get();
-        var transport = binder.bind("egon.cola.component.ddc.rpc", DdcRpcProperties.class).get();
-        var http = binder.bind("egon.cola.component.ddc.registry.http", DdcHttpRegistrationProperties.class).get();
+        var ddc = binder.bind("egon.cola.component.tianshu", DdcProperties.class).get();
+        var transport = binder.bind("egon.cola.component.tianshu.rpc", DdcRpcProperties.class).get();
+        var http = binder.bind("egon.cola.component.tianshu.registry.http", DdcHttpRegistrationProperties.class).get();
         assertThat(rpc.isEnabled()).isFalse();
         assertThat(rpc.getProvider().getPort()).isEqualTo(50051);
         assertThat(ddc.getAppCode()).isEqualTo("egon-cola-source-web");
@@ -84,8 +84,8 @@ class NativeWebConfigurationTest {
 
     private Set<String> keys(Properties properties) {
         return properties.stringPropertyNames().stream().filter(key -> key.startsWith("egon.cola.component.rpc.")
-                || key.startsWith("egon.cola.component.ddc.") || key.startsWith("egon.cola.component.gateway.openapi.")
-                || key.startsWith("egon.cola.platform.idp.") || key.startsWith("organization.integrations.evaluation."))
+                || key.startsWith("egon.cola.component.tianshu.") || key.startsWith("egon.cola.component.yuheng.openapi.")
+                || key.startsWith("egon.cola.platform.tianquan.shoubing.") || key.startsWith("organization.integrations.evaluation."))
                 .collect(Collectors.toSet());
     }
 }

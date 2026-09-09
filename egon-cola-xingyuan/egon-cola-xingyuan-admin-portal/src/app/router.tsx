@@ -26,7 +26,7 @@ const StandaloneRedirectPage = () => {
 export const PortalRouter = () => (
   <Routes>
     <Route path="/" element={<Navigate to={PORTAL_PLATFORM_ITEMS[0].path} replace />} />
-    <Route path="/platform/:platformKey/*" element={<ChildRoutePage />} />
+    <Route path="/xingyuan/:platformKey/*" element={<ChildRoutePage />} />
     <Route path="/standalone/:platformKey" element={<StandaloneRedirectPage />} />
     <Route path="*" element={<Result status="404" title="页面不存在" subTitle="请从左侧平台菜单进入页面。" />} />
   </Routes>

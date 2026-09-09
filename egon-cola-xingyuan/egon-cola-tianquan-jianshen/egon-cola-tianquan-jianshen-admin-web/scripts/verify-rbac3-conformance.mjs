@@ -20,8 +20,8 @@ const forbiddenSource = [
 ]
 const forbiddenDist = [
   'report-rbac-resources.mjs',
-  'rbac3:resource-catalog:report',
-  'RBAC3_SERVICE_ACCESS_TOKEN',
+  'tianquan-jianshen:resource-catalog:report',
+  'TIANQUAN_JIANSHEN_SERVICE_ACCESS_TOKEN',
   'SERVICE_ACCESS_TOKEN',
   'RolePermission',
   'PermissionResource',
@@ -72,7 +72,7 @@ await access(join(packageRoot, 'scripts/report-rbac-resources.mjs'))
 for (const file of await files(sourceRoot)) {
   const source = await readFile(file, 'utf8')
   const violation = forbiddenSource.find((value) => source.includes(value))
-  if (violation) throw new Error(`forbidden RBAC3 web source symbol: ${violation} (${file})`)
+  if (violation) throw new Error(`forbidden Tianquan-Jianshen web source symbol: ${violation} (${file})`)
   if (source.includes("from 'scripts/") || source.includes('from "scripts/')) {
     throw new Error(`browser source imports CI scripts (${file})`)
   }
@@ -80,7 +80,7 @@ for (const file of await files(sourceRoot)) {
 for (const file of await files(distRoot)) {
   const source = await readFile(file, 'utf8')
   const violation = forbiddenDist.find((value) => source.includes(value))
-  if (violation) throw new Error(`forbidden RBAC3 web bundle material: ${violation} (${file})`)
+  if (violation) throw new Error(`forbidden Tianquan-Jianshen web bundle material: ${violation} (${file})`)
 }
 await assertSharedVersion()
-process.stdout.write('rbac3 conformance guard passed\n')
+process.stdout.write('tianquan-jianshen conformance guard passed\n')

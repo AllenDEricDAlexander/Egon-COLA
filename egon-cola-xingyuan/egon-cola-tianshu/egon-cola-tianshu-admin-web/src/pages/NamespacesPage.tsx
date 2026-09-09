@@ -75,9 +75,9 @@ export default function NamespacesPage() {
     pageSize: pageState.page.pageSize,
   })
   const query = useQuery({
-    queryKey: ['ddc', 'namespaces', submitted, pageState.page],
+    queryKey: ['tianshu', 'namespaces', submitted, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcNamespace>(
-      `/api/v1/ddc/namespaces/page?${queryString}`,
+      `/api/v1/tianshu/namespaces/page?${queryString}`,
       { signal },
     ),
     placeholderData: keepPreviousData,
@@ -85,7 +85,7 @@ export default function NamespacesPage() {
   })
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['ddc', 'namespaces'] })
+    await queryClient.invalidateQueries({ queryKey: ['tianshu', 'namespaces'] })
     await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
   }
 
@@ -94,11 +94,11 @@ export default function NamespacesPage() {
       item: DdcNamespace | null
       values: NamespaceFormValues
     }) => item
-      ? ddcApi(`/api/v1/ddc/namespaces/${encodeURIComponent(item.id)}`, {
+      ? ddcApi(`/api/v1/tianshu/namespaces/${encodeURIComponent(item.id)}`, {
         method: 'PUT',
         body: values,
       })
-      : ddcApi('/api/v1/ddc/namespaces', { method: 'POST', body: values }),
+      : ddcApi('/api/v1/tianshu/namespaces', { method: 'POST', body: values }),
     onSuccess: async () => {
       setOpen(false)
       await invalidate()
@@ -114,7 +114,7 @@ export default function NamespacesPage() {
       item: DdcNamespace
       enabled: boolean
     }) => ddcApi(
-      `/api/v1/ddc/namespaces/${encodeURIComponent(item.id)}/enabled?enabled=${enabled}`,
+      `/api/v1/tianshu/namespaces/${encodeURIComponent(item.id)}/enabled?enabled=${enabled}`,
       { method: 'PUT' },
     ),
     onSuccess: async () => {
@@ -128,7 +128,7 @@ export default function NamespacesPage() {
 
   const removeMutation = useMutation({
     mutationFn: (item: DdcNamespace) => ddcApi(
-      `/api/v1/ddc/namespaces/${encodeURIComponent(item.id)}`,
+      `/api/v1/tianshu/namespaces/${encodeURIComponent(item.id)}`,
       { method: 'DELETE' },
     ),
     onSuccess: async () => {
@@ -206,11 +206,11 @@ export default function NamespacesPage() {
       })
       const [currentBindings, envs, apps] = await Promise.all([
         ddcApi<DdcNamespaceEnvAppBinding[]>(
-          `/api/v1/ddc/namespace-env-app-bindings?${params.toString()}`,
+          `/api/v1/tianshu/namespace-env-app-bindings?${params.toString()}`,
         ),
-        ddcApi<DdcEnv[]>('/api/v1/ddc/envs'),
+        ddcApi<DdcEnv[]>('/api/v1/tianshu/envs'),
         ddcApi<DdcApp[]>(
-          `/api/v1/ddc/apps?bizCode=${encodeURIComponent(item.bizCode)}`,
+          `/api/v1/tianshu/apps?bizCode=${encodeURIComponent(item.bizCode)}`,
         ),
       ])
       const nextDraft: Record<string, string[]> = {}
@@ -249,13 +249,13 @@ export default function NamespacesPage() {
             enabled: true,
           }
           if (!existing) {
-            changes.push(ddcApi('/api/v1/ddc/namespace-env-app-bindings', {
+            changes.push(ddcApi('/api/v1/tianshu/namespace-env-app-bindings', {
               method: 'POST',
               body,
             }))
           } else if (!existing.enabled) {
             changes.push(ddcApi(
-              `/api/v1/ddc/namespace-env-app-bindings/${encodeURIComponent(existing.id)}`,
+              `/api/v1/tianshu/namespace-env-app-bindings/${encodeURIComponent(existing.id)}`,
               { method: 'PUT', body },
             ))
           }
@@ -263,7 +263,7 @@ export default function NamespacesPage() {
         current
           .filter((binding) => binding.enabled && !desired.has(binding.appCode))
           .forEach((binding) => changes.push(ddcApi(
-            `/api/v1/ddc/namespace-env-app-bindings/${encodeURIComponent(binding.id)}`,
+            `/api/v1/tianshu/namespace-env-app-bindings/${encodeURIComponent(binding.id)}`,
             { method: 'DELETE' },
           )))
       })

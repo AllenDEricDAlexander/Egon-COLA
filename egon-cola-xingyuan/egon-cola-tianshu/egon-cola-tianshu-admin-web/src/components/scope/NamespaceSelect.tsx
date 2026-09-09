@@ -18,7 +18,7 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
 
 export default function NamespaceSelect({ value, onChange, bizCode = '', disabled, placeholder = '请选择或输入命名空间' }: Props) {
   const query = useScopeOption(withParams(
-    '/api/v1/ddc/namespaces',
+    '/api/v1/tianshu/namespaces',
     { bizCode },
   ))
   const namespaces = query.data ?? []

@@ -9,8 +9,8 @@ RUN npm run build
 FROM node:22-alpine
 
 ENV PORT=8080
-ENV DDC_ADMIN_API_BASE_URL=http://ddc-admin:18080
-ENV DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT=true
+ENV TIANSHU_ADMIN_API_BASE_URL=http://tianshu-admin:18080
+ENV TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT=true
 
 WORKDIR /app
 COPY --from=build --chown=node:node /workspace/dist /app/dist

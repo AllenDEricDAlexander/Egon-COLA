@@ -3,9 +3,9 @@ import { check } from "k6";
 import { scenario, thresholds } from "./lib/profile.js";
 
 const consumerBaseUrl =
-  __ENV.GATEWAY_RPC_CONSUMER_BASE_URL || "http://127.0.0.1:18084";
+  __ENV.YUHENG_RPC_CONSUMER_BASE_URL || "http://127.0.0.1:18084";
 const internalBaseUrl =
-  __ENV.GATEWAY_INTERNAL_BASE_URL || "http://127.0.0.1:18082";
+  __ENV.YUHENG_INTERNAL_BASE_URL || "http://127.0.0.1:18082";
 
 export const options = {
   scenarios: {
@@ -36,7 +36,7 @@ export function httpToRpc() {
     JSON.stringify({ message: `perf-${id}` }),
     {
       headers: {
-        Host: __ENV.GATEWAY_RPC_HOST || "rpc.gateway.test",
+        Host: __ENV.YUHENG_RPC_HOST || "rpc.yuheng.test",
         "Content-Type": "application/json",
         "X-Trace-ID": `perf-http-rpc-${id}`,
       },

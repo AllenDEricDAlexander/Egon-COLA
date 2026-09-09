@@ -78,7 +78,7 @@ const OpenApiUnavailable = () => (
 export const OperationPage = () => {
   const { operationId = '' } = useParams()
   const queryClient = useQueryClient()
-  const canWrite = useCapability('gateway:catalog:write')
+  const canWrite = useCapability('yuheng:catalog:write')
   const [activeTab, setActiveTab] = useState('schema')
   const [downloadPending, setDownloadPending] = useState(false)
   const [actionError, setActionError] = useState<string>()

@@ -16,7 +16,7 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
   String(option?.value ?? '').toLowerCase().includes(input.toLowerCase())
 
 export default function BizSelect({ value, onChange, disabled, placeholder = '请选择或输入业务域' }: Props) {
-  const query = useScopeOption('/api/v1/ddc/bizs')
+  const query = useScopeOption('/api/v1/tianshu/bizs')
   const bizs = query.data ?? []
   return (
     <Select

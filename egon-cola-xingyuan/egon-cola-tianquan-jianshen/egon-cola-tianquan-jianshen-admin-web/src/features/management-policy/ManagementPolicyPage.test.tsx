@@ -42,7 +42,7 @@ describe('management policy page', () => {
   it.each(['save', 'disable'])('refreshes current-tenant delegation reads after %s', async (operation) => {
     const client = new QueryClient({defaultOptions: {queries: {retry: false, staleTime: Infinity}}})
     const invalidate = vi.spyOn(client, 'invalidateQueries')
-    client.setQueryData(['rbac3', 'management-capabilities', 'other-tenant'], {policyIds: ['other']})
+    client.setQueryData(['tianquan-jianshen', 'management-capabilities', 'other-tenant'], {policyIds: ['other']})
     let changed = false
     const policy = {policyId: '101', policyCode: 'QA_POLICY', name: '测试策略', status: 'ACTIVE',
       subjects: [], scopes: [], activationRootRoleIds: [], operations: [], version: 0}
@@ -74,9 +74,9 @@ describe('management policy page', () => {
     await screen.findByText('可用策略 1')
     for (const key of ['management-policies', 'management-capabilities', 'manageable-users',
       'manageable-roles', 'management-policy']) {
-      expect(invalidate).toHaveBeenCalledWith({queryKey: ['rbac3', key, '9']})
+      expect(invalidate).toHaveBeenCalledWith({queryKey: ['tianquan-jianshen', key, '9']})
     }
-    expect(client.getQueryState(['rbac3', 'management-capabilities', 'other-tenant'])?.isInvalidated).toBe(false)
+    expect(client.getQueryState(['tianquan-jianshen', 'management-capabilities', 'other-tenant'])?.isInvalidated).toBe(false)
   })
 
   it('shows one complete policy with all four authorization sets', async () => {
@@ -97,9 +97,9 @@ describe('management policy page', () => {
     await api.manageableUsers()
     await api.manageableRoles()
 
-    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/management-policies/101')
-    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/management-capabilities/me')
-    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/manageable-users')
-    expect(request).toHaveBeenNthCalledWith(4, '/api/rbac3/v1/manageable-roles')
+    expect(request).toHaveBeenNthCalledWith(1, '/api/tianquan-jianshen/v1/management-policies/101')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/tianquan-jianshen/v1/management-capabilities/me')
+    expect(request).toHaveBeenNthCalledWith(3, '/api/tianquan-jianshen/v1/manageable-users')
+    expect(request).toHaveBeenNthCalledWith(4, '/api/tianquan-jianshen/v1/manageable-roles')
   })
 })

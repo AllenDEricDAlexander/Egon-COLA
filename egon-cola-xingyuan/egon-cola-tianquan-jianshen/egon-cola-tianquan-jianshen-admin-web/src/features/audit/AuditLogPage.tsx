@@ -20,7 +20,7 @@ export const AuditLogPage = () => {
   const [filter, setFilter] = useState<AuditFilter>(makeInitialFilter)
   const [selected, setSelected] = useState<AuditView | null>(null)
   const query = useQuery({
-    queryKey: ['rbac3', 'audit', effectiveTenantId ?? 'none', filter],
+    queryKey: ['tianquan-jianshen', 'audit', effectiveTenantId ?? 'none', filter],
     queryFn: () => api.list(filter),
     enabled: status === 'READY',
   })

@@ -48,15 +48,15 @@ const renderPage = (initialEntry = '/users?page=2&size=20') => {
 const LocationProbe = () => <output data-testid="location-search">{useLocation().search}</output>
 
 beforeEach(() => {
-  state.permissions = ['idp:identity-user:read', 'idp:identity-user:create']
+  state.permissions = ['tianquan-shoubing:identity-user:read', 'tianquan-shoubing:identity-user:create']
   state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-    if (path.includes('/api/v1/identity/users?')) {
+    if (path.includes('/api/v1/tianquan-shoubing/users?')) {
       return Promise.resolve({ content: [user], page: 2, size: 20, totalElements: 41, totalPages: 3 })
     }
-    if (path === '/api/v1/identity/users' && options?.method === 'POST') {
+    if (path === '/api/v1/tianquan-shoubing/users' && options?.method === 'POST') {
       return Promise.resolve({ ...user, subject: 'new-sub', oneTimePassword: 'one-time-password' })
     }
-    if (path === '/api/v1/identity/users') return Promise.resolve([user])
+    if (path === '/api/v1/tianquan-shoubing/users') return Promise.resolve([user])
     return Promise.reject(new Error(`Unexpected request: ${path}`))
   })
 })

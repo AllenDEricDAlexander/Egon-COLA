@@ -26,7 +26,7 @@ describe('typed API client', () => {
       /^00-[0-9a-f]{32}-[0-9a-f]{16}-01$/,
     )
     expect(headers.get('x-egon-request-id')).toMatch(/^[0-9a-f]{32}$/)
-    expect(headers.get('X-Gateway-Contract-Version')).toBe('v1')
+    expect(headers.get('X-Yuheng-Contract-Version')).toBe('v1')
   })
 
   it('maps revision conflicts without discarding server evidence', async () => {
@@ -35,7 +35,7 @@ describe('typed API client', () => {
       vi.fn().mockResolvedValue(
         new Response(
           JSON.stringify({
-            code: 'GATEWAY_ADMIN_REVISION_CONFLICT',
+            code: 'YUHENG_ADMIN_REVISION_CONFLICT',
             message: 'stale draft',
             currentRevision: 9,
             traceId: 'a'.repeat(32),
@@ -52,7 +52,7 @@ describe('typed API client', () => {
     } satisfies Partial<GatewayApiError>)
   })
 
-    it('uses the Gateway cookie and never trusts an actor header', async () => {
+    it('uses the Yuheng cookie and never trusts an actor header', async () => {
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(JSON.stringify({ ok: true }), {
         status: 200,

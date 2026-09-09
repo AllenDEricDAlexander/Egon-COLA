@@ -32,7 +32,7 @@ export const McpRuntimeStatus = ({ gatewayGroupId }: { gatewayGroupId: string })
   return (
     <Space direction="vertical" size="large" className="full-width">
       <Typography.Title level={3}>MCP Engine</Typography.Title>
-      {stale && <Alert type="warning" showIcon title="DDC 运行态投影已过期，当前显示最后已知状态。" />}
+      {stale && <Alert type="warning" showIcon title="Tianshu 运行态投影已过期，当前显示最后已知状态。" />}
       {!online.length && <Alert type="warning" showIcon title="MCP Engine 不可用" />}
       <Card>
         <Descriptions>

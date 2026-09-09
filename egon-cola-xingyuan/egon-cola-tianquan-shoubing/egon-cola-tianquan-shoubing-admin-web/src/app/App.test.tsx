@@ -6,18 +6,18 @@ import {App} from './App'
 const admin = vi.hoisted(() => ({
   request: vi.fn(),
   permissions: [
-    'idp:identity-user:read',
-    'idp:oauth-client:read',
-    'idp:oauth-client:create',
-    'idp:oauth-client:update',
-    'idp:tenant:read',
-    'idp:tenant:manage',
-    'idp:resource-server:read',
-    'idp:resource-server:create',
-    'idp:resource-server:status',
-    'idp:resource-server:grant',
-    'idp:signing-key:read',
-    'idp:audit:read',
+    'tianquan-shoubing:identity-user:read',
+    'tianquan-shoubing:oauth-client:read',
+    'tianquan-shoubing:oauth-client:create',
+    'tianquan-shoubing:oauth-client:update',
+    'tianquan-shoubing:tenant:read',
+    'tianquan-shoubing:tenant:manage',
+    'tianquan-shoubing:resource-server:read',
+    'tianquan-shoubing:resource-server:create',
+    'tianquan-shoubing:resource-server:status',
+    'tianquan-shoubing:resource-server:grant',
+    'tianquan-shoubing:signing-key:read',
+    'tianquan-shoubing:audit:read',
   ],
 }))
 
@@ -38,14 +38,14 @@ vi.mock('../auth/AuthContext', () => ({
 
 beforeEach(() => {
   admin.permissions = [
-    'idp:identity-user:read', 'idp:oauth-client:read', 'idp:oauth-client:create',
-    'idp:oauth-client:update', 'idp:tenant:read', 'idp:tenant:manage',
-    'idp:resource-server:read', 'idp:resource-server:create',
-    'idp:resource-server:status', 'idp:resource-server:grant',
-    'idp:signing-key:read', 'idp:audit:read',
+    'tianquan-shoubing:identity-user:read', 'tianquan-shoubing:oauth-client:read', 'tianquan-shoubing:oauth-client:create',
+    'tianquan-shoubing:oauth-client:update', 'tianquan-shoubing:tenant:read', 'tianquan-shoubing:tenant:manage',
+    'tianquan-shoubing:resource-server:read', 'tianquan-shoubing:resource-server:create',
+    'tianquan-shoubing:resource-server:status', 'tianquan-shoubing:resource-server:grant',
+    'tianquan-shoubing:signing-key:read', 'tianquan-shoubing:audit:read',
   ]
   admin.request.mockReset().mockImplementation((path: string) => {
-    if (path === '/api/v1/identity/users?page=0&size=20') {
+    if (path === '/api/v1/tianquan-shoubing/users?page=0&size=20') {
       return Promise.resolve({
         content: [{
           subject: 'alice-sub',
@@ -61,7 +61,7 @@ beforeEach(() => {
         totalPages: 1,
       })
     }
-    if (path === '/api/v1/identity/users') {
+    if (path === '/api/v1/tianquan-shoubing/users') {
       return Promise.resolve([{
         subject: 'alice-sub',
         username: 'alice',
@@ -69,19 +69,19 @@ beforeEach(() => {
         status: 'ACTIVE',
       }])
     }
-    if (path === '/api/v1/identity/clients?page=0&size=20') {
+    if (path === '/api/v1/tianquan-shoubing/clients?page=0&size=20') {
       return Promise.resolve({
         content: [{
-          appId: 'idp-admin-web',
-          clientId: 'idp-admin-web',
-          clientName: 'IdP Admin Web',
+          appId: 'tianquan-shoubing-admin-web',
+          clientId: 'tianquan-shoubing-admin-web',
+          clientName: 'Tianquan-Shoubing Admin Web',
           clientType: 'PUBLIC',
           status: 'ACTIVE',
           pkceRequired: true,
           accessTokenTtlSeconds: 900,
           refreshTokenTtlSeconds: 604800,
           redirectUris: ['http://127.0.0.1:18121/oauth/callback'],
-          resourceUris: ['https://api.egon.internal/local/permission/idp'],
+          resourceUris: ['https://api.egon.internal/local/permission/tianquan-shoubing'],
           version: 1,
           createdAt: '2026-08-06T10:00:00Z',
           updatedAt: '2026-08-06T10:00:00Z',
@@ -92,27 +92,27 @@ beforeEach(() => {
         totalPages: 1,
       })
     }
-    if (path === '/api/v1/identity/clients') {
+    if (path === '/api/v1/tianquan-shoubing/clients') {
       return Promise.resolve([{
-        appId: 'idp-admin-web',
-        clientId: 'idp-admin-web',
-        clientName: 'IdP Admin Web',
+        appId: 'tianquan-shoubing-admin-web',
+        clientId: 'tianquan-shoubing-admin-web',
+        clientName: 'Tianquan-Shoubing Admin Web',
         clientType: 'PUBLIC',
         status: 'ACTIVE',
         pkceRequired: true,
         accessTokenTtlSeconds: 900,
         refreshTokenTtlSeconds: 604800,
         redirectUris: ['http://127.0.0.1:18121/oauth/callback'],
-        resourceUris: ['https://api.egon.internal/local/permission/idp'],
+        resourceUris: ['https://api.egon.internal/local/permission/tianquan-shoubing'],
         version: 1,
         createdAt: '2026-08-06T10:00:00Z',
         updatedAt: '2026-08-06T10:00:00Z',
       }])
     }
-    if (path === '/api/v1/identity/clients/client-1/resources') {
+    if (path === '/api/v1/tianquan-shoubing/clients/client-1/resources') {
       return Promise.reject(Object.assign(new Error('Grant read endpoint is not available'), {status: 404}))
     }
-    if (path === '/api/v1/identity/resource-servers') {
+    if (path === '/api/v1/tianquan-shoubing/resource-servers') {
       return Promise.resolve([{
         resourceServerId: 'orders-api',
         resourceUri: 'https://api.example.com/orders',
@@ -129,7 +129,7 @@ beforeEach(() => {
         updatedAt: '2026-08-06T10:00:00Z',
       }])
     }
-    if (path === '/api/v1/identity/tenants?page=0&size=20') {
+    if (path === '/api/v1/tianquan-shoubing/tenants?page=0&size=20') {
       return Promise.resolve({
         content: [{
           tenantId: 'tenant-1',
@@ -147,7 +147,7 @@ beforeEach(() => {
         totalPages: 1,
       })
     }
-    if (path === '/api/v1/identity/signing-keys') {
+    if (path === '/api/v1/tianquan-shoubing/signing-keys') {
       return Promise.resolve([{
         kid: 'kid-1',
         algorithm: 'RS256',
@@ -156,7 +156,7 @@ beforeEach(() => {
         version: 1,
       }])
     }
-    if (path === '/api/v1/identity/audits?page=0&size=20') {
+    if (path === '/api/v1/tianquan-shoubing/audits?page=0&size=20') {
       return Promise.resolve({
         content: [{
           id: 'audit-1',
@@ -179,8 +179,8 @@ beforeEach(() => {
 
 afterEach(cleanup)
 
-describe('IdP Admin application providers', () => {
-  it('renders the IDP domain navigation when embedded', async () => {
+describe('Tianquan-Shoubing Admin application providers', () => {
+  it('renders the Tianquan-Shoubing domain navigation when embedded', async () => {
     const originalMatchMedia = window.matchMedia
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
@@ -214,11 +214,11 @@ describe('IdP Admin application providers', () => {
   })
 
   it.each([
-    ['/users', '/api/v1/identity/users', 'alice'],
-    ['/clients', '/api/v1/identity/clients', 'IdP Admin Web'],
-    ['/tenants', '/api/v1/identity/tenants?page=0&size=20', 'Acme'],
-    ['/keys', '/api/v1/identity/signing-keys', 'kid-1'],
-    ['/audits', '/api/v1/identity/audits?page=0&size=20', 'LOGIN_SUCCEEDED'],
+    ['/users', '/api/v1/tianquan-shoubing/users', 'alice'],
+    ['/clients', '/api/v1/tianquan-shoubing/clients', 'Tianquan-Shoubing Admin Web'],
+    ['/tenants', '/api/v1/tianquan-shoubing/tenants?page=0&size=20', 'Acme'],
+    ['/keys', '/api/v1/tianquan-shoubing/signing-keys', 'kid-1'],
+    ['/audits', '/api/v1/tianquan-shoubing/audits?page=0&size=20', 'LOGIN_SUCCEEDED'],
   ])('renders the data page at %s', async (route, requestPath, expectedText) => {
     window.history.replaceState({}, '', route)
 
@@ -234,7 +234,7 @@ describe('IdP Admin application providers', () => {
     render(<App />)
 
     await waitFor(() => expect(screen.getByText('alice')).toBeInTheDocument())
-    expect(admin.request).toHaveBeenCalledWith('/api/v1/identity/users?page=0&size=20')
+    expect(admin.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/users?page=0&size=20')
   })
 
   it('keeps Resource Server management free of retired Client JWK and Admission controls', async () => {
@@ -244,11 +244,11 @@ describe('IdP Admin application providers', () => {
 
     await waitFor(() => expect(screen.getByText('Orders API')).toBeInTheDocument())
     expect(screen.queryByText(/JWK|准入|Admission/)).not.toBeInTheDocument()
-    expect(admin.request).toHaveBeenCalledWith('/api/v1/identity/resource-servers')
+    expect(admin.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/resource-servers')
   })
 
   it('recursively prunes unauthorized navigation groups', async () => {
-    admin.permissions = ['idp:identity-user:read']
+    admin.permissions = ['tianquan-shoubing:identity-user:read']
     window.history.replaceState({}, '', '/users')
 
     render(<App />)

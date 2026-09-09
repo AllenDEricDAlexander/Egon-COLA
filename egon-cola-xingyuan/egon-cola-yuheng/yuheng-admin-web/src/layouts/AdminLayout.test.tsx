@@ -19,7 +19,7 @@ vi.mock('../auth/AuthContext', () => ({
 }))
 
 vi.mock('../app/capabilities', () => ({
-  useCapability: (capability: string) => capability === 'gateway:mcp:read' ? mocks.mcp : true,
+  useCapability: (capability: string) => capability === 'yuheng:mcp:read' ? mocks.mcp : true,
 }))
 
 const renderLayout = (path = '/dashboard', embedded = false) => {
@@ -58,16 +58,16 @@ afterEach(() => {
 })
 
 describe('AdminLayout', () => {
-  it('keeps Gateway navigation in embedded mode', () => {
+  it('keeps Yuheng navigation in embedded mode', () => {
     renderLayout('/dashboard', true)
 
     expect(screen.getByText('网关治理')).toBeInTheDocument()
-    expect(screen.queryByText('Gateway Admin')).not.toBeInTheDocument()
+    expect(screen.queryByText('Yuheng Admin')).not.toBeInTheDocument()
   })
 
   it('keeps the shared shell while removing global scope selectors', () => {
     renderLayout()
-    expect(screen.getByText('Gateway Admin')).toBeInTheDocument()
+    expect(screen.getByText('Yuheng Admin')).toBeInTheDocument()
     expect(screen.getByText('总览')).toBeInTheDocument()
     expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument()
     expect(screen.queryByRole('menu', {name: '主导航'})).not.toBeInTheDocument()

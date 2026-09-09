@@ -57,9 +57,9 @@ export default function ConfigsPage() {
   const [versionsConfig, setVersionsConfig] = useState<DdcConfig | null>(null)
 
   const configsQuery = useQuery({
-    queryKey: ['ddc', 'configs', submittedScope, configPage.page],
+    queryKey: ['tianshu', 'configs', submittedScope, configPage.page],
     queryFn: ({ signal }) => ddcPageApi<DdcConfig>(
-      `/api/v1/ddc/configs/page?${buildQuery({
+      `/api/v1/tianshu/configs/page?${buildQuery({
         ...submittedScope,
         includeDeleted: false,
         pageNo: configPage.page.pageNo,
@@ -74,13 +74,13 @@ export default function ConfigsPage() {
   const versionsQuery = useQuery({
     enabled: versionsConfig !== null,
     queryKey: [
-      'ddc',
+      'tianshu',
       'config-versions',
       versionsConfig?.id,
       versionPage.page,
     ],
     queryFn: ({ signal }) => ddcPageApi<DdcConfigVersion>(
-      `/api/v1/ddc/configs/${encodeURIComponent(versionsConfig!.id)}/versions/page?${buildQuery({
+      `/api/v1/tianshu/configs/${encodeURIComponent(versionsConfig!.id)}/versions/page?${buildQuery({
         pageNo: versionPage.page.pageNo,
         pageSize: versionPage.page.pageSize,
       })}`,
@@ -91,12 +91,12 @@ export default function ConfigsPage() {
   })
 
   const invalidateConfigs = () => queryClient.invalidateQueries({
-    queryKey: ['ddc', 'configs'],
+    queryKey: ['tianshu', 'configs'],
   })
 
   const publishMutation = useMutation({
     mutationFn: (config: DdcConfig) => ddcApi<DdcPublishResult>(
-      `/api/v1/ddc/configs/${encodeURIComponent(config.id)}/publish`,
+      `/api/v1/tianshu/configs/${encodeURIComponent(config.id)}/publish`,
       {
         method: 'POST',
         body: {
@@ -118,7 +118,7 @@ export default function ConfigsPage() {
 
   const deleteMutation = useMutation({
     mutationFn: (config: DdcConfig) => ddcApi(
-      `/api/v1/ddc/configs/${encodeURIComponent(config.id)}`,
+      `/api/v1/tianshu/configs/${encodeURIComponent(config.id)}`,
       { method: 'DELETE' },
     ),
     onSuccess: async () => {
@@ -142,13 +142,13 @@ export default function ConfigsPage() {
       config: DdcConfig
       version: DdcConfigVersion
     }) => ddcApi(
-      `/api/v1/ddc/configs/${encodeURIComponent(config.id)}/rollback`,
+      `/api/v1/tianshu/configs/${encodeURIComponent(config.id)}/rollback`,
       {
         method: 'POST',
         body: {
           configId: config.id,
           version: version.version,
-          reason: 'rollback from DDC Admin Web',
+          reason: 'rollback from Tianshu Admin Web',
         },
       },
     ),

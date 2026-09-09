@@ -2,13 +2,13 @@ import {expect, type Page, type Route, test} from '@playwright/test'
 
 const prefix = `e2e-${Date.now()}`
 const allCapabilities = [
-  'gateway:read',
-  'gateway:groups:write',
-  'gateway:applications:write',
-  'gateway:credentials:write',
-  'gateway:catalog:write',
-  'gateway:drafts:write',
-  'gateway:releases:write',
+  'yuheng:read',
+  'yuheng:groups:write',
+  'yuheng:applications:write',
+  'yuheng:credentials:write',
+  'yuheng:catalog:write',
+  'yuheng:drafts:write',
+  'yuheng:releases:write',
 ]
 
 const json = (route: Route, body: unknown, status = 200) =>
@@ -41,7 +41,7 @@ const authorization = (permissions = allCapabilities) => ({
 const group = {
   id: `${prefix}-group-id`,
   gatewayGroupCode: `${prefix}-group`,
-  displayName: 'E2E Gateway',
+  displayName: 'E2E Yuheng',
   env: 'dev',
   namespace: 'default',
   enabled: true,
@@ -91,7 +91,7 @@ const openApiSyncStates = [
     operationCount: 1,
     schemaCount: 1,
     canonicalSha256: 'b'.repeat(64),
-    lastErrorCode: 'GATEWAY_OPENAPI_GROUP_DRIFT',
+    lastErrorCode: 'YUHENG_OPENAPI_GROUP_DRIFT',
     lastErrorMessage: 'inventory document drifted',
     lastAttemptAt: '2026-07-25T00:00:00Z',
     lastSuccessAt: null,
@@ -210,7 +210,7 @@ const authenticate = async (
     await page.route('**/oauth2/login/csrf', (route) => json(route, {token: 'csrf-fixture'}))
     await page.route('**/oauth2/login', (route) => json(route, {
         identitySub: `${prefix}-actor`,
-        displayName: 'Gateway E2E',
+        displayName: 'Yuheng E2E',
         mustChangePassword: false,
   }))
     await page.route('**/api/v1/auth/bootstrap', (route) =>
@@ -219,7 +219,7 @@ const authenticate = async (
 }
 
 const installReadFixtures = async (page: Page) => {
-  await page.route('**/api/v1/gateway/admin/scopes', (route) => json(route, [{
+  await page.route('**/api/v1/yuheng/admin/scopes', (route) => json(route, [{
     bindingId: `${prefix}-scope`,
     bizCode: 'e2e',
     appCode: application.applicationCode,
@@ -228,7 +228,7 @@ const installReadFixtures = async (page: Page) => {
     namespace: 'default',
     connected: true,
   }]))
-  await page.route('**/api/v1/gateway/admin/dashboard**', (route) => json(route, {
+  await page.route('**/api/v1/yuheng/admin/dashboard**', (route) => json(route, {
     gatewayGroups: 1,
     readyEngines: 2,
     totalEngines: 2,
@@ -239,14 +239,14 @@ const installReadFixtures = async (page: Page) => {
     requestSeries: [],
     protocolCalls: [],
   }))
-  await page.route('**/api/v1/gateway/admin/gateway-groups*', (route) =>
+  await page.route('**/api/v1/yuheng/admin/yuheng-groups*', (route) =>
     json(route, [group]))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}`, (route) =>
     json(route, group))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/engine-nodes`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/engine-nodes`, (route) =>
     json(route, {
       value: [{
-        appCode: 'gateway',
+        appCode: 'yuheng',
         env: 'dev',
         namespace: 'default',
         instanceId: 'engine-1',
@@ -258,10 +258,10 @@ const installReadFixtures = async (page: Page) => {
         expireAt: '2099-01-01T00:00:00Z',
       }],
       observedAt: '2026-07-25T00:00:01Z',
-      source: 'DDC_CONFIG_CLIENT',
+      source: 'TIANSHU_CONFIG_CLIENT',
       stale: false,
     }))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/runtime-consistency`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/runtime-consistency`, (route) =>
     json(route, {
       targetReleaseId: release.releaseId,
       targetReleaseStatus: 'SUCCESS',
@@ -269,16 +269,16 @@ const installReadFixtures = async (page: Page) => {
       readyEngineNodeCount: 2,
       consistent: true,
       observedAt: '2026-07-25T00:00:01Z',
-      source: 'DDC_CONFIG_CLIENT',
+      source: 'TIANSHU_CONFIG_CLIENT',
       stale: false,
     }))
-  await page.route('**/api/v1/gateway/admin/applications*', (route) =>
+  await page.route('**/api/v1/yuheng/admin/applications*', (route) =>
     json(route, [application]))
-  await page.route('**/api/v1/gateway/admin/openapi/sync-states*', (route) =>
+  await page.route('**/api/v1/yuheng/admin/openapi/sync-states*', (route) =>
     json(route, openApiSyncStates))
-  await page.route(`**/api/v1/gateway/admin/operations/${openApiOperation.id}`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/operations/${openApiOperation.id}`, (route) =>
     json(route, { operation: openApiOperation, definitions: [openApiDefinition] }))
-  await page.route(`**/api/v1/gateway/admin/operations/${rpcOperation.id}`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/operations/${rpcOperation.id}`, (route) =>
     json(route, {
       operation: rpcOperation,
       definitions: [{
@@ -288,11 +288,11 @@ const installReadFixtures = async (page: Page) => {
         descriptorSnapshot: { fullMethodName: 'orders.Order/GetOrder' },
       }],
     }))
-  await page.route(`**/api/v1/gateway/admin/operations/${openApiOperation.id}/openapi`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/operations/${openApiOperation.id}/openapi`, (route) =>
     json(route, openApiFragment))
-  await page.route(`**/api/v1/gateway/admin/openapi/snapshots/${openApiSnapshot.snapshotId}/document`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/openapi/snapshots/${openApiSnapshot.snapshotId}/document`, (route) =>
     json(route, openApiSnapshot))
-  await page.route(`**/api/v1/gateway/admin/applications/${application.id}/catalog`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/applications/${application.id}/catalog`, (route) =>
     json(route, {
       applicationId: application.id,
       businessDomains: [{
@@ -323,16 +323,16 @@ const installReadFixtures = async (page: Page) => {
         }],
       }],
     }))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft`, (route) =>
     json(route, emptyDraft))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft/diff`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft/diff`, (route) =>
     json(route, { routes: [], policies: [] }))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/releases`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/releases`, (route) =>
     json(route, route.request().method() === 'POST' ? release : [release],
       route.request().method() === 'POST' ? 201 : 200))
-  await page.route(`**/api/v1/gateway/admin/releases/${release.releaseId}`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/releases/${release.releaseId}`, (route) =>
     json(route, release))
-  await page.route('**/api/v1/gateway/admin/providers/instances*', (route) =>
+  await page.route('**/api/v1/yuheng/admin/providers/instances*', (route) =>
     json(route, {
       value: [{
         serviceKey: 'HTTP_PROVIDER:HTTP:orders::',
@@ -349,12 +349,12 @@ const installReadFixtures = async (page: Page) => {
         observedAt: '2026-07-25T00:00:01Z',
       }],
       observedAt: '2026-07-25T00:00:01Z',
-      source: 'DDC_SERVICE_REGISTRY',
+      source: 'TIANSHU_SERVICE_REGISTRY',
       stale: false,
     }))
-  await page.route('**/api/v1/gateway/admin/observability/traces*', (route) =>
+  await page.route('**/api/v1/yuheng/admin/observability/traces*', (route) =>
     json(route, { items: [], page: 0, size: 20, total: 0 }))
-  await page.route('**/api/v1/gateway/admin/audit*', (route) =>
+  await page.route('**/api/v1/yuheng/admin/audit*', (route) =>
     json(route, { items: [], page: 0, size: 20, total: 0 }))
 }
 
@@ -363,7 +363,7 @@ test('login, logout and a later 401 clear the browser session', async ({ page })
     await page.route('**/oauth2/login/csrf', (route) => json(route, {token: 'csrf-fixture'}))
     await page.route('**/oauth2/login', async (route) => {
         loggedIn = true
-        await json(route, {identitySub: `${prefix}-actor`, displayName: 'Gateway E2E', mustChangePassword: false})
+        await json(route, {identitySub: `${prefix}-actor`, displayName: 'Yuheng E2E', mustChangePassword: false})
   })
     await page.route('**/oauth2/logout', async (route) => {
         loggedIn = false
@@ -373,48 +373,48 @@ test('login, logout and a later 401 clear the browser session', async ({ page })
         loggedIn ? json(route, authorization()) : json(route, {code: 'AUTHENTICATION_REQUIRED'}, 401))
   await installReadFixtures(page)
   await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
-  await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Yuheng Admin' })).toBeVisible()
     await page.getByLabel('租户 ID').fill('default')
     await page.getByLabel('用户名').fill('alice')
     await page.getByLabel('密码').fill('secret')
   await page.getByRole('button', { name: '使用统一身份登录' }).click()
   await page.goto('/dashboard?bizCode=e2e&appCode=' + application.applicationCode + '&env=dev&namespace=default')
-  await expect(page.getByText('Gateway E2E')).toBeVisible()
+  await expect(page.getByText('Yuheng E2E')).toBeVisible()
 
-  await page.goto('/gateway-groups')
-  await expect(page.getByText('Gateway E2E')).toBeVisible()
-  await page.route('**/api/v1/gateway/admin/providers/instances*', (route) =>
+  await page.goto('/yuheng-groups')
+  await expect(page.getByText('Yuheng E2E')).toBeVisible()
+  await page.route('**/api/v1/yuheng/admin/providers/instances*', (route) =>
     json(route, { code: 'TOKEN_EXPIRED' }, 401))
   await page.getByRole('link', { name: 'Provider' }).click()
-  await expect(page.getByRole('heading', { name: 'Gateway Admin' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Yuheng Admin' })).toBeVisible()
 
     await page.getByRole('button', {name: '退出'}).click()
-    await expect(page.getByRole('heading', {name: 'Gateway Admin'})).toBeVisible()
+    await expect(page.getByRole('heading', {name: 'Yuheng Admin'})).toBeVisible()
 })
 
 test('server capabilities hide mutations and missing read renders 403', async ({ page }) => {
-  await authenticate(page, ['gateway:read'])
+  await authenticate(page, ['yuheng:read'])
   await installReadFixtures(page)
-  await page.goto('/gateway-groups')
-  await expect(page.getByRole('button', { name: '新建 Gateway Group' })).toBeDisabled()
+  await page.goto('/yuheng-groups')
+  await expect(page.getByRole('button', { name: '新建 Yuheng Group' })).toBeDisabled()
 
     await page.unroute('**/api/v1/auth/bootstrap')
     await page.route('**/api/v1/auth/bootstrap', (route) => json(route, authorization([])))
   await page.reload()
-  await expect(page.getByText('当前账号缺少 gateway:read 能力')).toBeVisible()
+  await expect(page.getByText('当前账号缺少 yuheng:read 能力')).toBeVisible()
 })
 
-test('gateway group create, edit and disable use management APIs', async ({ page }) => {
+test('yuheng group create, edit and disable use management APIs', async ({ page }) => {
   await authenticate(page)
   await installReadFixtures(page)
   const create = page.waitForRequest((request) =>
-    request.url().endsWith('/gateway-groups') && request.method() === 'POST')
-  await page.route('**/api/v1/gateway/admin/gateway-groups', (route) =>
+    request.url().endsWith('/yuheng-groups') && request.method() === 'POST')
+  await page.route('**/api/v1/yuheng/admin/yuheng-groups', (route) =>
     json(route, group, 201))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/disable`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/disable`, (route) =>
     json(route, { ...group, enabled: false }))
-  await page.goto('/gateway-groups')
-  await page.getByRole('button', { name: '新建 Gateway Group' }).click()
+  await page.goto('/yuheng-groups')
+  await page.getByRole('button', { name: '新建 Yuheng Group' }).click()
   await page.getByLabel('Group Code').fill(`${prefix}-new-group`)
   await page.getByLabel('名称').fill('New E2E Group')
   await page.getByLabel('Scope Binding').click()
@@ -428,7 +428,7 @@ test('gateway group create, edit and disable use management APIs', async ({ page
 test('application and credential lifecycle never re-displays old secrets', async ({ page }) => {
   await authenticate(page)
   await installReadFixtures(page)
-  await page.route(`**/api/v1/gateway/admin/applications/${application.id}/credentials`, (route) =>
+  await page.route(`**/api/v1/yuheng/admin/applications/${application.id}/credentials`, (route) =>
     json(route, route.request().method() === 'POST' ? {
       id: 'credential-1',
       accessKey: 'gw_e2e',
@@ -456,7 +456,7 @@ test('OpenAPI sync groups show aggregate failure and stay separate from routes',
     name: '展开 OpenAPI Groups E2E Application',
   }).click()
   await expect(page.getByText('inventory')).toBeVisible()
-  await expect(page.getByText('GATEWAY_OPENAPI_GROUP_DRIFT')).toBeVisible()
+  await expect(page.getByText('YUHENG_OPENAPI_GROUP_DRIFT')).toBeVisible()
 
   await page.goto(`/operations/${openApiOperation.id}`)
   await expect(page.getByText('GET /orders/{id}')).toBeVisible()
@@ -474,7 +474,7 @@ test('OpenAPI sync groups show aggregate failure and stay separate from routes',
   await expect(page.getByText('当前 Operation 没有 OpenAPI source')).toBeVisible()
   await expect(page.getByRole('tab', { name: 'OpenAPI' })).toHaveCount(0)
 
-  await page.goto(`/gateway-groups/${group.id}/draft/routes`)
+  await page.goto(`/yuheng-groups/${group.id}/draft/routes`)
   await expect(page.getByText('Route ID')).toBeVisible()
   await expect(page.getByText('route-auto')).toHaveCount(0)
 })
@@ -519,16 +519,16 @@ test('draft route supports structured editing and confirmed deletion', async ({ 
       enabled: true,
     }],
   }
-  await page.unroute(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`)
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`, (route) =>
+  await page.unroute(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft`)
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft`, (route) =>
     json(route, draft))
   await page.route('**/draft/routes/route-1', (route) =>
     json(route, { revision: 2, resourceId: 'route-1', replayed: false }))
-  await page.route('**/api/v1/gateway/admin/operations/operation-1', (route) => json(route, {
+  await page.route('**/api/v1/yuheng/admin/operations/operation-1', (route) => json(route, {
     operation: { protocol: 'HTTP', externalAccessible: false },
     definitions: [],
   }))
-  await page.goto(`/gateway-groups/${group.id}/draft/routes`)
+  await page.goto(`/yuheng-groups/${group.id}/draft/routes`)
   await page.getByRole('button', { name: /编\s*辑/ }).click()
   await page.getByLabel('Path Pattern').fill('/orders/{id}')
   const update = page.waitForRequest((request) =>
@@ -550,19 +550,19 @@ test('policy edit and delete preserve revision controls', async ({ page }) => {
       enabled: true,
     }],
   }
-  await page.unroute(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`)
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`, (route) =>
+  await page.unroute(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft`)
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft`, (route) =>
     json(route, draft))
   const deletion = page.waitForRequest((request) =>
     request.url().endsWith('/draft/policies/policy-1') && request.method() === 'DELETE')
   await page.route('**/draft/policies/policy-1', (route) =>
     json(route, { revision: 2, resourceId: 'policy-1', replayed: false }))
-  await page.goto(`/gateway-groups/${group.id}/draft/policies`)
+  await page.goto(`/yuheng-groups/${group.id}/draft/policies`)
   await page.getByRole('button', { name: /删\s*除/ }).click()
   await page.getByRole('button', { name: '确 定' }).click()
   expect((await deletion).postDataJSON()).toMatchObject({
     expectedRevision: 1,
-    changeReason: 'Delete policy from Gateway Admin Web',
+    changeReason: 'Delete policy from Yuheng Admin Web',
   })
 })
 
@@ -572,9 +572,9 @@ test('draft validation and publish create a release', async ({ page }) => {
   await page.route('**/draft/validate', (route) =>
     json(route, { valid: true, errors: [], warnings: [] }))
   const publish = page.waitForRequest((request) =>
-    request.url().endsWith(`/gateway-groups/${group.id}/releases`)
+    request.url().endsWith(`/yuheng-groups/${group.id}/releases`)
       && request.method() === 'POST')
-  await page.goto(`/gateway-groups/${group.id}/releases`)
+  await page.goto(`/yuheng-groups/${group.id}/releases`)
   await page.getByRole('button', { name: '校验并发布' }).click()
   await page.getByRole('dialog', { name: '发布确认' }).locator('textarea').fill('E2E publish')
   await page.getByRole('button', { name: /确\s*定/ }).click()
@@ -587,9 +587,9 @@ test('draft validation and publish create a release', async ({ page }) => {
 test('release targets and group consistency expose every engine', async ({ page }) => {
   await authenticate(page)
   await installReadFixtures(page)
-  await page.goto(`/gateway-groups/${group.id}/overview`)
+  await page.goto(`/yuheng-groups/${group.id}/overview`)
   await expect(page.getByText('2 / 2')).toBeVisible()
-  await page.goto(`/gateway-groups/${group.id}/releases/${release.releaseId}`)
+  await page.goto(`/yuheng-groups/${group.id}/releases/${release.releaseId}`)
   await expect(page.getByText('engine-1')).toBeVisible()
   await expect(page.getByText('lease-1')).toBeVisible()
 })

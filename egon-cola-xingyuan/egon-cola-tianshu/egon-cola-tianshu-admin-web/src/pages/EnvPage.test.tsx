@@ -70,7 +70,7 @@ describe('EnvPage', () => {
       .mockResolvedValueOnce(jsonResponse({
         success: false,
         code: 56999,
-        status: 'DDC_INTERNAL_FAILURE',
+        status: 'TIANSHU_INTERNAL_FAILURE',
         message: '加载失败',
         data: null,
         timestamp: 1,

@@ -252,10 +252,10 @@ export const ConstraintPage = () => {
   const enabled = status === 'READY'
   const [editor, setEditor] = useState<EditorState | null>(null)
   const [form] = Form.useForm<ConstraintFormValues>()
-  const sod = useQuery({queryKey: ['rbac3', 'sod', tenant], queryFn: api.sodSets, enabled})
-  const data = useQuery({queryKey: ['rbac3', 'data-rules', tenant], queryFn: api.dataRules, enabled})
-  const fields = useQuery({queryKey: ['rbac3', 'field-rules', tenant], queryFn: api.fieldRules, enabled})
-  const operations = useQuery({queryKey: ['rbac3', 'operation-sod', tenant], queryFn: api.operationSodRules, enabled})
+  const sod = useQuery({queryKey: ['tianquan-jianshen', 'sod', tenant], queryFn: api.sodSets, enabled})
+  const data = useQuery({queryKey: ['tianquan-jianshen', 'data-rules', tenant], queryFn: api.dataRules, enabled})
+  const fields = useQuery({queryKey: ['tianquan-jianshen', 'field-rules', tenant], queryFn: api.fieldRules, enabled})
+  const operations = useQuery({queryKey: ['tianquan-jianshen', 'operation-sod', tenant], queryFn: api.operationSodRules, enabled})
   const save = useMutation({
     mutationFn: ({kind, rowId, values}: RuleSaveInput) => {
       if (kind === 'sod') {
@@ -275,10 +275,10 @@ export const ConstraintPage = () => {
     },
     onSuccess: async () => {
       setEditor(null)
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'sod', tenant]})
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'data-rules', tenant]})
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'field-rules', tenant]})
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'operation-sod', tenant]})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'sod', tenant]})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'data-rules', tenant]})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'field-rules', tenant]})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'operation-sod', tenant]})
     },
   })
   const savePrerequisites = useMutation({
@@ -288,7 +288,7 @@ export const ConstraintPage = () => {
       prerequisiteRoleIds: listValue(values.prerequisiteRoleIds),
       expectedRoleVersion: values.expectedRoleVersion,
     } satisfies PrerequisiteGroupCommand),
-    onSuccess: () => queryClient.invalidateQueries({queryKey: ['rbac3', 'about']}),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'about']}),
   })
   const saveCardinality = useMutation({
     mutationFn: (values: CardinalityFormValues) => api.saveCardinality(values.roleId.trim(), {
@@ -298,7 +298,7 @@ export const ConstraintPage = () => {
       validTo: isoDateTime(values.validTo),
       expectedVersion: values.expectedVersion,
     } satisfies CardinalityCommand),
-    onSuccess: () => queryClient.invalidateQueries({queryKey: ['rbac3', 'about']}),
+    onSuccess: () => queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'about']}),
   })
   const mutationError = save.error ?? savePrerequisites.error ?? saveCardinality.error
   const openEditor = (kind: RuleKind, row?: ConstraintRow) => {

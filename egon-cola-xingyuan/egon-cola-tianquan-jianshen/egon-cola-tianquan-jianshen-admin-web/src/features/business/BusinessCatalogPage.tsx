@@ -15,12 +15,12 @@ export const BusinessCatalogPage = () => {
   const [keyword, setKeyword] = useState('')
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessCatalogView | null>(null)
   const businesses = useQuery({
-    queryKey: ['rbac3', 'business-catalog', tenant, keyword],
+    queryKey: ['tianquan-jianshen', 'business-catalog', tenant, keyword],
     queryFn: () => api.businesses(keyword),
     enabled: status === 'READY',
   })
   const applications = useQuery({
-    queryKey: ['rbac3', 'business-applications', tenant, selectedBusiness?.ddcBusinessId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'business-applications', tenant, selectedBusiness?.ddcBusinessId ?? 'none'],
     queryFn: () => api.applications(selectedBusiness!.ddcBusinessId),
     enabled: status === 'READY' && selectedBusiness !== null,
   })
@@ -28,7 +28,7 @@ export const BusinessCatalogPage = () => {
   return (
     <Card title="业务目录">
       <Typography.Paragraph type="secondary">
-        查看 DDC 注册的业务域及其应用目录；目录由平台侧投影，当前页面不直接访问 DDC。
+        查看 Tianshu 注册的业务域及其应用目录；目录由平台侧投影，当前页面不直接访问 Tianshu。
       </Typography.Paragraph>
       <Space.Compact block style={{marginBottom: 16}}>
         <Input

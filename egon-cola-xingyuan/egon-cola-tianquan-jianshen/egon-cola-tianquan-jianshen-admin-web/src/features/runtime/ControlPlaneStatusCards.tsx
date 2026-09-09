@@ -6,13 +6,13 @@ const statusColor = (status: string) => ['ACCEPTED', 'ACTIVE', 'READY', 'REGISTE
 export const ControlPlaneStatusCards = ({ status }: { readonly status: ControlPlaneRuntimeStatus }) => (
   <Space orientation="vertical" size="middle" style={{ width: '100%' }}>
     <Row gutter={16}>
-      <Col span={6}><StatusCard title="DDC Config Client" status={status.ddcConfigClient.state} detail={`${status.ddcConfigClient.instanceId ?? '-'} · ${status.ddcConfigClient.leaseIdFingerprint ?? '无租约指纹'} · ${status.ddcConfigClient.leaseExpireAt ?? '无有效租约'}${status.ddcConfigClient.lastApplyFailureCode ? ` · ${status.ddcConfigClient.lastApplyFailureCode}` : ''}`} /></Col>
-      <Col span={6}><StatusCard title="Gateway Definition" status={status.definition.status} detail={status.definition.definitionSetId ?? '-'} /></Col>
-      <Col span={6}><StatusCard title="DDC HTTP Provider Lease" status={status.providerLease.state} detail={`${status.providerLease.instanceId ?? '-'} · ${status.providerLease.leaseExpireAt ?? '无有效租约'}`} /></Col>
-      <Col span={6}><StatusCard title="Gateway Release" status={status.gatewayRelease.status} detail={`${status.gatewayRelease.releaseId ?? '-'} · ${status.gatewayRelease.observedByEngineVersion ?? '未观测'}`} /></Col>
+      <Col span={6}><StatusCard title="Tianshu Config Client" status={status.ddcConfigClient.state} detail={`${status.ddcConfigClient.instanceId ?? '-'} · ${status.ddcConfigClient.leaseIdFingerprint ?? '无租约指纹'} · ${status.ddcConfigClient.leaseExpireAt ?? '无有效租约'}${status.ddcConfigClient.lastApplyFailureCode ? ` · ${status.ddcConfigClient.lastApplyFailureCode}` : ''}`} /></Col>
+      <Col span={6}><StatusCard title="Yuheng Definition" status={status.definition.status} detail={status.definition.definitionSetId ?? '-'} /></Col>
+      <Col span={6}><StatusCard title="Tianshu HTTP Provider Lease" status={status.providerLease.state} detail={`${status.providerLease.instanceId ?? '-'} · ${status.providerLease.leaseExpireAt ?? '无有效租约'}`} /></Col>
+      <Col span={6}><StatusCard title="Yuheng Release" status={status.gatewayRelease.status} detail={`${status.gatewayRelease.releaseId ?? '-'} · ${status.gatewayRelease.observedByEngineVersion ?? '未观测'}`} /></Col>
     </Row>
     <Row gutter={16}>
-      <Col span={6}><StatusCard title="RBAC3 Flyway History" status={status.flyway?.rbac3History ?? 'UNKNOWN'} /></Col>
+      <Col span={6}><StatusCard title="Tianquan-Jianshen Flyway History" status={status.flyway?.rbac3History ?? 'UNKNOWN'} /></Col>
       <Col span={6}><StatusCard title="Outbox Flyway History" status={status.flyway?.outboxHistory ?? 'UNKNOWN'} /></Col>
       <Col span={6}><StatusCard title="Redis Projection" status={status.redisProjection?.state ?? 'UNKNOWN'} detail={`Checkpoint Lag ${status.redisProjection?.checkpointLag ?? '-'}`} /></Col>
       <Col span={6}><StatusCard title="Outbox" status={status.outbox?.state ?? 'UNKNOWN'} detail={`Pending ${status.outbox?.pendingCount ?? '-'} · Oldest ${status.outbox?.oldestAgeSeconds ?? '-'}s`} /></Col>

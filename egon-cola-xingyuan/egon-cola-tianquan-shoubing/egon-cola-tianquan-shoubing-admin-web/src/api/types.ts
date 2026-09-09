@@ -67,7 +67,7 @@ export interface UpdateIdentityUserDTO {
     expectedVersion: number
 }
 
-// ─── IdP Tenants and Memberships ─────────────────────────────────
+// ─── Tianquan-Shoubing Tenants and Memberships ─────────────────────────────────
 export type TenantStatus = 'INITIALIZING' | 'ACTIVE' | 'SUSPENDED' | 'CLOSED'
 export type TenantMembershipStatus = 'ACTIVE' | 'DISABLED'
 

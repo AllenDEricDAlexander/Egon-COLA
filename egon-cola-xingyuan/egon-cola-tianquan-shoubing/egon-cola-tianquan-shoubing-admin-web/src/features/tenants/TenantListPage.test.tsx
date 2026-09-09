@@ -58,19 +58,19 @@ const renderPage = () => {
 }
 
 beforeEach(() => {
-    state.permissions = ['idp:tenant:read', 'idp:tenant:manage']
+    state.permissions = ['tianquan-shoubing:tenant:read', 'tianquan-shoubing:tenant:manage']
     state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-        if (path === '/api/v1/identity/tenants?page=0&size=20' && !options) {
+        if (path === '/api/v1/tianquan-shoubing/tenants?page=0&size=20' && !options) {
             return Promise.resolve({content: [tenant], page: 0, size: 20, totalElements: 1, totalPages: 1})
         }
-        if (path === '/api/v1/identity/tenants' && options?.method === 'POST') return Promise.resolve(tenant)
-        if (path === '/api/v1/identity/tenants/tenant-1' && options?.method === 'PATCH') {
+        if (path === '/api/v1/tianquan-shoubing/tenants' && options?.method === 'POST') return Promise.resolve(tenant)
+        if (path === '/api/v1/tianquan-shoubing/tenants/tenant-1' && options?.method === 'PATCH') {
             return Promise.resolve({...tenant, tenantName: 'Acme Updated', version: 3})
         }
-        if (path === '/api/v1/identity/tenants/tenant-1/members?page=0&size=20') {
+        if (path === '/api/v1/tianquan-shoubing/tenants/tenant-1/members?page=0&size=20') {
             return Promise.resolve({content: [membership], page: 0, size: 20, totalElements: 1, totalPages: 1})
         }
-        if (path === '/api/v1/identity/tenants/tenant-1/members/alice-sub' && options?.method === 'PUT') {
+        if (path === '/api/v1/tianquan-shoubing/tenants/tenant-1/members/alice-sub' && options?.method === 'PUT') {
             return Promise.resolve(membership)
         }
         return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -79,7 +79,7 @@ beforeEach(() => {
 
 afterEach(cleanup)
 
-describe('IdP tenant and membership administration', () => {
+describe('Tianquan-Shoubing tenant and membership administration', () => {
     it('prefills tenant editing on first open and again after saving', async () => {
         renderPage()
         fireEvent.click(await screen.findByText('Acme'))
@@ -92,7 +92,7 @@ describe('IdP tenant and membership administration', () => {
         fireEvent.change(nameInput, {target: {value: 'Acme Updated'}})
         fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/v1/identity/tenants/tenant-1',
+            '/api/v1/tianquan-shoubing/tenants/tenant-1',
             expect.objectContaining({
                 method: 'PATCH',
                 body: JSON.stringify({tenantName: 'Acme Updated', status: 'ACTIVE', settings: {region: 'cn'}, expectedVersion: 2}),
@@ -119,12 +119,12 @@ describe('IdP tenant and membership administration', () => {
         expect(form.getByText('ACTIVE')).toBeInTheDocument()
         fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/v1/identity/tenants/tenant-1/members/alice-sub',
+            '/api/v1/tianquan-shoubing/tenants/tenant-1/members/alice-sub',
             expect.objectContaining({method: 'PUT', body: JSON.stringify({status: 'ACTIVE', expectedVersion: 4})}),
         ))
     })
 
-    it('guards management actions and maps tenant/member mutations to IdP APIs', async () => {
+    it('guards management actions and maps tenant/member mutations to Tianquan-Shoubing APIs', async () => {
         renderPage()
         await waitFor(() => expect(screen.getByText('Acme')).toBeInTheDocument())
 
@@ -133,7 +133,7 @@ describe('IdP tenant and membership administration', () => {
         fireEvent.change(screen.getByLabelText('租户名称'), {target: {value: 'New Tenant'}})
         fireEvent.click(screen.getAllByRole('button', {name: /确定|OK/})[0])
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/v1/identity/tenants',
+            '/api/v1/tianquan-shoubing/tenants',
             expect.objectContaining({method: 'POST'}),
         ))
 
@@ -145,17 +145,17 @@ describe('IdP tenant and membership administration', () => {
         fireEvent.click(screen.getAllByRole('button', {name: /确定|OK/}).at(-1)!)
 
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/v1/identity/tenants/tenant-1/members/alice-sub',
+            '/api/v1/tianquan-shoubing/tenants/tenant-1/members/alice-sub',
             expect.objectContaining({
                 method: 'PUT',
                 body: JSON.stringify({status: 'ACTIVE'}),
             }),
         ))
-        expect(state.request.mock.calls.every(([path]) => !String(path).includes('/rbac3/'))).toBe(true)
+        expect(state.request.mock.calls.every(([path]) => !String(path).includes('/tianquan-jianshen/'))).toBe(true)
     })
 
     it('hides create, update and membership actions without tenant manage permission', async () => {
-        state.permissions = ['idp:tenant:read']
+        state.permissions = ['tianquan-shoubing:tenant:read']
         renderPage()
         await waitFor(() => expect(screen.getByText('Acme')).toBeInTheDocument())
         expect(screen.queryByRole('button', {name: /创建租户/})).not.toBeInTheDocument()

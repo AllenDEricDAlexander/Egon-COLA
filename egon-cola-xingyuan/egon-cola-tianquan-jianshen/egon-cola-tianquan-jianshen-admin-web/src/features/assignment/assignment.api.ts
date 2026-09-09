@@ -33,10 +33,10 @@ export type AssignmentOperation = 'revoke' | 'suspend' | 'resume'
 
 export const assignmentApi = (client: FeatureApiClient) => ({
   list: (userId: string) => client.request<readonly AssignmentView[]>(
-    `/api/rbac3/v1/users/${encodeURIComponent(userId)}/role-assignments`,
+    `/api/tianquan-jianshen/v1/users/${encodeURIComponent(userId)}/role-assignments`,
   ),
   create: (userId: string, command: CreateAssignmentCommand, idempotencyKey: string) => client.request(
-    `/api/rbac3/v1/users/${encodeURIComponent(userId)}/role-assignments`,
+    `/api/tianquan-jianshen/v1/users/${encodeURIComponent(userId)}/role-assignments`,
     { method: 'POST', body: command, headers: { 'Idempotency-Key': idempotencyKey } },
   ),
   change: (
@@ -46,7 +46,7 @@ export const assignmentApi = (client: FeatureApiClient) => ({
     command: ChangeAssignmentCommand,
     idempotencyKey: string,
   ) => client.request(
-    `/api/rbac3/v1/users/${encodeURIComponent(userId)}/role-assignments/${encodeURIComponent(assignmentId)}/${operation}`,
+    `/api/tianquan-jianshen/v1/users/${encodeURIComponent(userId)}/role-assignments/${encodeURIComponent(assignmentId)}/${operation}`,
     { method: 'POST', body: command, headers: { 'Idempotency-Key': idempotencyKey } },
   ),
 })

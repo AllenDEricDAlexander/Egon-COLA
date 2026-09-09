@@ -6,19 +6,19 @@ import type { ChildManifest } from '../manifest/types'
 import { WujieChild } from './WujieChild'
 
 const manifest: ChildManifest = {
-  key: 'idp',
+  key: 'tianquan-shoubing',
   displayName: '身份与安全',
-  url: '/children/idp/',
+  url: '/children/tianquan-shoubing/',
   standaloneUrl: '/overview',
   version: '5.3.2',
-  contractVersion: 'platform-1',
+  contractVersion: 'xingyuan-1',
   compatibleHostRange: '>=5.3.2 <6.0.0',
   requiredCapabilities: [],
 }
 
 const context: ChildContext = {
-  platformKey: 'idp',
-  routeIntent: '/platform/idp/overview',
+  platformKey: 'tianquan-shoubing',
+  routeIntent: '/xingyuan/tianquan-shoubing/overview',
   scopeDisplay: 'default',
   hostVersion: '5.3.2',
 }
@@ -41,19 +41,19 @@ describe('WujieChild', () => {
 
     await waitFor(() => expect(onState).toHaveBeenCalledWith({
       type: 'MOUNTED',
-      cleanupToken: 'idp:5.3.2',
+      cleanupToken: 'tianquan-shoubing:5.3.2',
     }))
-    expect(screen.getByTestId('wujie-host-idp')).toBeInTheDocument()
+    expect(screen.getByTestId('wujie-host-tianquan-shoubing')).toBeInTheDocument()
     expect(vi.mocked(startApp)).toHaveBeenCalledWith(expect.objectContaining({
-      name: 'idp',
+      name: 'tianquan-shoubing',
       url: expect.stringMatching(/\/overview$/),
-      el: screen.getByTestId('wujie-host-idp'),
+      el: screen.getByTestId('wujie-host-tianquan-shoubing'),
       attrs: {src: 'about:blank'},
       degradeAttrs: {title: '身份与安全', style: 'display:block;width:100%;height:100%;border:0;box-shadow:none'},
       fiber: false,
       sync: false,
     }))
-    expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({
+    expect(screen.getByTestId('wujie-host-tianquan-shoubing')).toHaveStyle({
       height: '100%',
       minHeight: '0',
       overflow: 'auto',
@@ -71,7 +71,7 @@ describe('WujieChild', () => {
       code: 'CHILD_MOUNT_FAILED',
       message: 'Child mount rejected',
     }))
-    expect(screen.getByTestId('wujie-host-idp')).toBeInTheDocument()
+    expect(screen.getByTestId('wujie-host-tianquan-shoubing')).toBeInTheDocument()
   })
 
   it('destroys the Core instance when the host unmounts', async () => {
@@ -80,7 +80,7 @@ describe('WujieChild', () => {
 
     await waitFor(() => expect(onState).toHaveBeenCalledWith({
       type: 'MOUNTED',
-      cleanupToken: 'idp:5.3.2',
+      cleanupToken: 'tianquan-shoubing:5.3.2',
     }))
     rendered.unmount()
 

@@ -16,12 +16,12 @@ const DashboardPage = lazy(() =>
   })),
 )
 const GatewayGroupsPage = lazy(() =>
-  import('../features/gateway-groups/GatewayGroupsPage').then((module) => ({
+  import('../features/yuheng-groups/GatewayGroupsPage').then((module) => ({
     default: module.GatewayGroupsPage,
   })),
 )
 const GatewayGroupDetailPage = lazy(() =>
-  import('../features/gateway-groups/GatewayGroupDetailPage').then((module) => ({
+  import('../features/yuheng-groups/GatewayGroupDetailPage').then((module) => ({
     default: module.GatewayGroupDetailPage,
   })),
 )
@@ -97,7 +97,7 @@ const router = createBrowserRouter([
     path: '/',
     element: (
       <RequireAuth>
-        <RequireCapability capability="gateway:read">
+        <RequireCapability capability="yuheng:read">
           <AdminLayout />
         </RequireCapability>
       </RequireAuth>
@@ -106,18 +106,18 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate replace to="/dashboard" /> },
       { path: 'dashboard', element: <DashboardPage /> },
-      { path: 'gateway-groups', element: <GatewayGroupsPage /> },
+      { path: 'yuheng-groups', element: <GatewayGroupsPage /> },
       {
         path: 'applications',
-        element: <RequireCapability capability="gateway:read"><ApplicationsPage /></RequireCapability>,
+        element: <RequireCapability capability="yuheng:read"><ApplicationsPage /></RequireCapability>,
       },
       { path: 'openapi-sync', element: <OpenApiSyncPage /> },
-      { path: 'gateway-groups/:groupId/overview', element: <GatewayGroupDetailPage /> },
-      { path: 'gateway-groups/:groupId/draft/routes', element: <DraftPage /> },
-      { path: 'gateway-groups/:groupId/draft/policies', element: <DraftPage /> },
-      { path: 'gateway-groups/:groupId/releases', element: <ReleasesPage /> },
+      { path: 'yuheng-groups/:groupId/overview', element: <GatewayGroupDetailPage /> },
+      { path: 'yuheng-groups/:groupId/draft/routes', element: <DraftPage /> },
+      { path: 'yuheng-groups/:groupId/draft/policies', element: <DraftPage /> },
+      { path: 'yuheng-groups/:groupId/releases', element: <ReleasesPage /> },
       {
-        path: 'gateway-groups/:groupId/releases/:releaseId',
+        path: 'yuheng-groups/:groupId/releases/:releaseId',
         element: <ReleaseDetailPage />,
       },
       { path: 'interface-catalog', element: <CatalogPage /> },
@@ -127,7 +127,7 @@ const router = createBrowserRouter([
       {
         path: 'mcp/servers',
         element: (
-          <RequireCapability capability="gateway:mcp:read">
+          <RequireCapability capability="yuheng:mcp:read">
             <McpServersPage />
           </RequireCapability>
         ),
@@ -135,7 +135,7 @@ const router = createBrowserRouter([
       {
         path: 'mcp/servers/:serverId',
         element: (
-          <RequireCapability capability="gateway:mcp:read">
+          <RequireCapability capability="yuheng:mcp:read">
             <McpServerWorkbenchPage />
           </RequireCapability>
         ),
@@ -143,7 +143,7 @@ const router = createBrowserRouter([
       {
         path: 'mcp/remote-providers',
         element: (
-          <RequireCapability capability="gateway:mcp:read">
+          <RequireCapability capability="yuheng:mcp:read">
             <McpRemoteProvidersPage />
           </RequireCapability>
         ),
@@ -151,7 +151,7 @@ const router = createBrowserRouter([
       { path: 'observability/traces', element: <TracesPage /> },
       {
         path: 'audit',
-        element: <RequireCapability capability="gateway:read"><AuditPage /></RequireCapability>,
+        element: <RequireCapability capability="yuheng:read"><AuditPage /></RequireCapability>,
       },
       { path: '*', element: <Result status="404" title="404" subTitle="页面不存在" /> },
     ],

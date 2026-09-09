@@ -13,7 +13,7 @@ const node = (id: string, role: string) => ({
   leaseRole: 'CONFIG_CLIENT', status: 'ONLINE', registeredAt: '2026-09-05T00:00:00Z',
   lastHeartbeatAt: '2026-09-05T00:00:01Z', expireAt: '2026-09-05T00:01:00Z',
   observedAt: '2026-09-05T00:00:02Z', stale: false,
-  metadata: { 'gateway.engine.role': role },
+  metadata: { 'yuheng.engine.role': role },
 })
 const state = (id: string, reason?: string) => ({
   instanceId: id, leaseId: `lease-${id}`, leaseStatus: 'ONLINE',
@@ -24,7 +24,7 @@ const state = (id: string, reason?: string) => ({
 })
 const healthy = {
   targetReleaseId: 'release-1', targetReleaseStatus: 'SUCCESS', readyNodes: 2, totalNodes: 2,
-  consistent: true, stale: false, source: 'DDC_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:02Z',
+  consistent: true, stale: false, source: 'TIANSHU_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:02Z',
   nodes: [state('api-1'), state('mcp-1')],
 }
 
@@ -47,13 +47,13 @@ const renderPage = (cached = false) => {
     client.setQueryData(['engine-nodes', 'group-1'], [node('api-1', 'API_RPC'), node('mcp-1', 'MCP')])
   }
   return render(<QueryClientProvider client={client}>
-    <MemoryRouter initialEntries={['/gateway-groups/group-1']}>
-      <Routes><Route path="/gateway-groups/:groupId" element={<GatewayGroupDetailPage />} /></Routes>
+    <MemoryRouter initialEntries={['/yuheng-groups/group-1']}>
+      <Routes><Route path="/yuheng-groups/:groupId" element={<GatewayGroupDetailPage />} /></Routes>
     </MemoryRouter>
   </QueryClientProvider>)
 }
 
-describe('Gateway group role projection', () => {
+describe('Yuheng group role projection', () => {
   it('renders both role cards and per-node release evidence', async () => {
     renderPage()
     expect(await screen.findByRole('heading', { name: 'API / RPC Engine' })).toBeVisible()

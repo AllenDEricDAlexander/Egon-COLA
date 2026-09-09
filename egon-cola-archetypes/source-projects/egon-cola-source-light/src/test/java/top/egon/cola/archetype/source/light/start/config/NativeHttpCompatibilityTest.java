@@ -52,17 +52,17 @@ class NativeHttpCompatibilityTest {
 
     @org.junit.jupiter.api.Nested
     @SpringBootTest(classes = StudentManagementApplication.class, properties = {
-            "egon.cola.component.gateway.openapi.enabled=true",
-            "egon.cola.component.gateway.openapi.publish-to-ddc=false",
-            "egon.cola.component.gateway.openapi.published-groups[0]=public",
-            "egon.cola.component.gateway.openapi.biz-code=student-management",
-            "egon.cola.component.gateway.openapi.application-code=light",
-            "egon.cola.component.gateway.openapi.resource-uri=https://light.example.test",
-            "egon.cola.component.gateway.openapi.artifact-version=1.0.0",
-            "egon.cola.component.gateway.openapi.build-id=contract-test",
+            "egon.cola.component.yuheng.openapi.enabled=true",
+            "egon.cola.component.yuheng.openapi.publish-to-tianshu=false",
+            "egon.cola.component.yuheng.openapi.published-groups[0]=public",
+            "egon.cola.component.yuheng.openapi.biz-code=student-management",
+            "egon.cola.component.yuheng.openapi.application-code=light",
+            "egon.cola.component.yuheng.openapi.resource-uri=https://light.example.test",
+            "egon.cola.component.yuheng.openapi.artifact-version=1.0.0",
+            "egon.cola.component.yuheng.openapi.build-id=contract-test",
             "springdoc.group-configs[0].group=public",
             "springdoc.group-configs[0].paths-to-match=/governed-probe",
-            "egon.cola.component.gateway.openapi.published-groups[1]=legacy",
+            "egon.cola.component.yuheng.openapi.published-groups[1]=legacy",
             "springdoc.group-configs[1].group=legacy",
             "springdoc.group-configs[1].paths-to-match=/api/**"
     })
@@ -107,7 +107,7 @@ class NativeHttpCompatibilityTest {
             return token -> org.springframework.security.oauth2.jwt.Jwt.withTokenValue(token)
                     .header("alg", "none").subject("test-reader")
                     .issuedAt(java.time.Instant.now()).expiresAt(java.time.Instant.now().plusSeconds(60))
-                    .claim("scope", "docs-token".equals(token) ? "gateway.openapi.read" : "unrelated")
+                    .claim("scope", "docs-token".equals(token) ? "yuheng.openapi.read" : "unrelated")
                     .build();
         }
     }

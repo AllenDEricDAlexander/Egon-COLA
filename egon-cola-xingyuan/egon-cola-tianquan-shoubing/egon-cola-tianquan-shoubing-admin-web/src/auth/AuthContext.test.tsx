@@ -31,8 +31,8 @@ afterEach(() => {
     vi.clearAllMocks()
 })
 
-describe('IdP authentication hydration', () => {
-    it('hydrates authorization from the Gateway cookie bootstrap without browser token state', async () => {
+describe('Tianquan-Shoubing authentication hydration', () => {
+    it('hydrates authorization from the Yuheng cookie bootstrap without browser token state', async () => {
         state.bootstrap.mockResolvedValue({
             user: {id: 'user-1', tenantId: 'default', identitySub: 'alice-sub', status: 'ACTIVE'},
             activeRoleContexts: [], permissions: [], apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},

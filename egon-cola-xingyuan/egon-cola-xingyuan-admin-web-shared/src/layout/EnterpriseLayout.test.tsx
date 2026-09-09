@@ -6,7 +6,7 @@ import { EnterpriseLayout } from './EnterpriseLayout'
 import type { EnterpriseLayoutConfig } from './types'
 
 const config: EnterpriseLayoutConfig = {
-  platformName: 'DDC Admin',
+  platformName: 'Tianshu Admin',
   navigation: [
     { key: 'runtime', label: '运行状态', children: [
       { key: 'registry', label: '服务注册', path: '/registry' },
@@ -78,10 +78,10 @@ afterEach(() => {
 })
 
 describe('EnterpriseLayout', () => {
-  it('renders platform name, navigation, user and footer on desktop', () => {
+  it('renders xingyuan name, navigation, user and footer on desktop', () => {
     renderLayout()
 
-    expect(screen.getByText('DDC Admin')).toBeInTheDocument()
+    expect(screen.getByText('Tianshu Admin')).toBeInTheDocument()
     expect(screen.getByRole('navigation', { name: '主菜单' })).toBeInTheDocument()
     expect(screen.queryByRole('menu', { name: '主导航' })).not.toBeInTheDocument()
     expect(screen.getByText('服务注册')).toBeInTheDocument()
@@ -89,14 +89,14 @@ describe('EnterpriseLayout', () => {
     expect(screen.getByText('配置资源')).toBeInTheDocument()
     expect(screen.getByText('Mario')).toBeInTheDocument()
     expect(screen.getByText('版本 v5.3.2')).toBeInTheDocument()
-    expect(screen.getByText(`© ${new Date().getFullYear()} Egon COLA · DDC Admin`))
+    expect(screen.getByText(`© ${new Date().getFullYear()} Egon COLA · Tianshu Admin`))
       .toBeInTheDocument()
   })
 
   it('keeps the domain menu while hiding duplicate embedded shell regions', () => {
     renderLayoutWith({...config, hideHeader: true, hideFooter: true})
 
-    expect(screen.queryByText('DDC Admin')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tianshu Admin')).not.toBeInTheDocument()
     expect(screen.queryByText(/版本 v5\.3\.2/)).not.toBeInTheDocument()
     expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument()
     expect(screen.getByText('服务注册')).toBeInTheDocument()
@@ -163,7 +163,7 @@ describe('EnterpriseLayout', () => {
     const deepLinkConfig: EnterpriseLayoutConfig = {
       platformName: 'Deep Link Admin',
       navigation: [{
-        key: 'gateway', label: '网关治理', children: [
+        key: 'yuheng', label: '网关治理', children: [
           {key: 'catalog', label: '接口目录', path: '/interface-catalog', activePathPrefixes: ['/operations']},
         ],
       }],

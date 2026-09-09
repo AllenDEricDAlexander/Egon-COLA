@@ -55,17 +55,17 @@ const renderPage = (initialEntry = '/clients') => {
 
 beforeEach(() => {
     state.permissions = [
-        'idp:oauth-client:read',
-        'idp:oauth-client:create',
-        'idp:oauth-client:update',
-        'idp:resource-server:grant',
+        'tianquan-shoubing:oauth-client:read',
+        'tianquan-shoubing:oauth-client:create',
+        'tianquan-shoubing:oauth-client:update',
+        'tianquan-shoubing:resource-server:grant',
     ]
     state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-        if (path === '/api/v1/identity/clients?page=0&size=20' && !options) {
+        if (path === '/api/v1/tianquan-shoubing/clients?page=0&size=20' && !options) {
             return Promise.resolve({content: [client], page: 0, size: 20, totalElements: 1, totalPages: 1})
         }
-        if (path === '/api/v1/identity/clients' && !options) return Promise.resolve([client])
-        if (path === '/api/v1/identity/clients' && options?.method === 'POST') {
+        if (path === '/api/v1/tianquan-shoubing/clients' && !options) return Promise.resolve([client])
+        if (path === '/api/v1/tianquan-shoubing/clients' && options?.method === 'POST') {
             return Promise.resolve({
                 clientId: client.clientId,
                 appId: client.appId,
@@ -78,7 +78,7 @@ beforeEach(() => {
                 createdAt: '2026-08-22T01:00:00Z',
             })
         }
-        if (path === `/api/v1/identity/clients/${client.clientId}/secret-rotations`) {
+        if (path === `/api/v1/tianquan-shoubing/clients/${client.clientId}/secret-rotations`) {
             return Promise.resolve({
                 clientId: client.clientId,
                 appId: client.appId,
@@ -88,7 +88,7 @@ beforeEach(() => {
                 rotatedAt: '2026-08-22T02:00:00Z',
             })
         }
-        if (path === `/api/v1/identity/clients/${client.clientId}` && options?.method === 'PATCH') {
+        if (path === `/api/v1/tianquan-shoubing/clients/${client.clientId}` && options?.method === 'PATCH') {
             return Promise.resolve({...client, clientName: 'Order Service Updated', version: 4})
         }
         return Promise.reject(new Error(`Unexpected request: ${path}`))
@@ -106,7 +106,7 @@ describe('OAuth client secret administration', () => {
         renderPage('/clients?page=0&size=20')
         await waitFor(() => expect(screen.getByText('Order Service')).toBeInTheDocument())
         expect(screen.getByText('共 1 条')).toBeInTheDocument()
-        expect(state.request).toHaveBeenCalledWith('/api/v1/identity/clients?page=0&size=20')
+        expect(state.request).toHaveBeenCalledWith('/api/v1/tianquan-shoubing/clients?page=0&size=20')
 
         fireEvent.click(screen.getByText('Order Service'))
         expect(screen.getByRole('dialog')).toHaveTextContent('order-service-prod')
@@ -124,10 +124,10 @@ describe('OAuth client secret administration', () => {
         fireEvent.click(screen.getByRole('button', {name: /确定|OK/}))
 
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            `/api/v1/identity/clients/${client.clientId}`,
+            `/api/v1/tianquan-shoubing/clients/${client.clientId}`,
             expect.objectContaining({method: 'PATCH'}),
         ))
-        expect(invalidateQueries).toHaveBeenCalledWith(expect.objectContaining({queryKey: ['idp', 'clients']}))
+        expect(invalidateQueries).toHaveBeenCalledWith(expect.objectContaining({queryKey: ['tianquan-shoubing', 'clients']}))
     })
 
     it('shows App ID and one-time create credentials without persisting the secret', async () => {
@@ -162,7 +162,7 @@ describe('OAuth client secret administration', () => {
 
         await waitFor(() => expect(screen.getByText('one-time-secret-2')).toBeInTheDocument())
         expect(state.request).toHaveBeenCalledWith(
-            `/api/v1/identity/clients/${client.clientId}/secret-rotations`,
+            `/api/v1/tianquan-shoubing/clients/${client.clientId}/secret-rotations`,
             expect.objectContaining({
                 method: 'POST',
                 body: JSON.stringify({expectedVersion: client.version}),
@@ -171,7 +171,7 @@ describe('OAuth client secret administration', () => {
     })
 
     it('does not render management actions without the matching permission', async () => {
-        state.permissions = ['idp:oauth-client:read']
+        state.permissions = ['tianquan-shoubing:oauth-client:read']
         renderPage()
         await waitFor(() => expect(screen.getByText('Order Service')).toBeInTheDocument())
         expect(screen.queryByRole('button', {name: '创建客户端'})).not.toBeInTheDocument()

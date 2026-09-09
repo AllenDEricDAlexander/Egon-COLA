@@ -61,8 +61,8 @@ const wrapper = ({children}: PropsWithChildren) => {
 
 beforeEach(() => {
   state.request.mockReset().mockImplementation((path: string, request?: {method?: string}) => {
-    if (path === '/api/rbac3/v1/iam/users/7/organizations' && !request?.method) return Promise.resolve([organizationAssignment])
-    if (path === '/api/rbac3/v1/iam/users/7/positions' && !request?.method) return Promise.resolve([positionAssignment])
+    if (path === '/api/tianquan-jianshen/v1/iam/users/7/organizations' && !request?.method) return Promise.resolve([organizationAssignment])
+    if (path === '/api/tianquan-jianshen/v1/iam/users/7/positions' && !request?.method) return Promise.resolve([positionAssignment])
     if (request?.method === 'POST' || request?.method === 'DELETE') return Promise.resolve(null)
     return Promise.reject(new Error(`Unexpected request: ${path}`))
   })
@@ -75,7 +75,7 @@ describe('user relation panel', () => {
     render(<UserRelationsPanel userId="7" authVersion={3}/>, {wrapper})
 
     await waitFor(() => expect(screen.getByText('1001')).toBeInTheDocument())
-    expect(state.request).toHaveBeenCalledWith('/api/rbac3/v1/iam/users/7/positions', {})
+    expect(state.request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/users/7/positions', {})
   })
 
   it('maps trimmed relation form values and empty validTo to null', async () => {
@@ -89,7 +89,7 @@ describe('user relation panel', () => {
     fireEvent.click(screen.getByRole('button', {name: '保存组织关系'}))
 
     await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-      '/api/rbac3/v1/iam/users/7/organizations',
+      '/api/tianquan-jianshen/v1/iam/users/7/organizations',
       expect.objectContaining({
         method: 'POST',
         body: {
@@ -110,10 +110,10 @@ describe('user relation panel', () => {
     await api.revokeOrganization('7', 'org-assignment-1', 4)
     await api.revokePosition('7', 'position-assignment-1', 5)
 
-    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/iam/users/7/organizations/org-assignment-1', {
+    expect(request).toHaveBeenNthCalledWith(1, '/api/tianquan-jianshen/v1/iam/users/7/organizations/org-assignment-1', {
       method: 'DELETE', query: {expectedVersion: 4},
     })
-    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/iam/users/7/positions/position-assignment-1', {
+    expect(request).toHaveBeenNthCalledWith(2, '/api/tianquan-jianshen/v1/iam/users/7/positions/position-assignment-1', {
       method: 'DELETE', query: {expectedVersion: 5},
     })
   })

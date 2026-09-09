@@ -14,7 +14,7 @@ const roles: readonly { role: GatewayEngineRole; label: string }[] = [
 export const GatewayGroupDetailPage = () => {
   const { groupId = '' } = useParams()
   const group = useQuery({
-    queryKey: ['gateway-group', groupId],
+    queryKey: ['yuheng-group', groupId],
     queryFn: ({ signal }) => gatewayApi.group(groupId, signal),
     enabled: Boolean(groupId),
   })
@@ -106,9 +106,9 @@ export const GatewayGroupDetailPage = () => {
                       <Descriptions.Item label="数据状态"><StatusTag status={stale ? 'STALE' : 'FRESH'} /></Descriptions.Item>
                     </Descriptions>
                   </Card>
-                  {stale && <Alert type="warning" showIcon title="DDC 运行态投影已过期，当前显示最后已知状态。" />}
+                  {stale && <Alert type="warning" showIcon title="Tianshu 运行态投影已过期，当前显示最后已知状态。" />}
                   {unknown.length > 0 && <Alert type="warning" showIcon title={`未知 Engine 角色（${unknown.length}）`}
-                    description={unknown.map(node => `${node.instanceId}: ${node.metadata?.['gateway.engine.role'] || 'ROLE_MISSING'}`).join('；')} />}
+                    description={unknown.map(node => `${node.instanceId}: ${node.metadata?.['yuheng.engine.role'] || 'ROLE_MISSING'}`).join('；')} />}
                   {roles.map(roleCard)}
                 </>
               )}
@@ -138,9 +138,9 @@ export const GatewayGroupDetailPage = () => {
         {
           key: 'actions', label: '工作台', children: (
             <Space>
-              <Link to={`/gateway-groups/${groupId}/draft/routes`}>Draft Routes</Link>
-              <Link to={`/gateway-groups/${groupId}/draft/policies`}>Draft Policies</Link>
-              <Link to={`/gateway-groups/${groupId}/releases`}>Releases</Link>
+              <Link to={`/yuheng-groups/${groupId}/draft/routes`}>Draft Routes</Link>
+              <Link to={`/yuheng-groups/${groupId}/draft/policies`}>Draft Policies</Link>
+              <Link to={`/yuheng-groups/${groupId}/releases`}>Releases</Link>
             </Space>
           ),
         },

@@ -35,9 +35,9 @@ export default function RegistryPage() {
     useState<RegistryService | null>(null)
 
   const servicesQuery = useQuery({
-    queryKey: ['ddc', 'registry-services', submitted, servicePage.page],
+    queryKey: ['tianshu', 'registry-services', submitted, servicePage.page],
     queryFn: ({ signal }) => ddcPageApi<RegistryService>(
-      `/api/v1/ddc/registry/services/page?${buildQuery({
+      `/api/v1/tianshu/registry/services/page?${buildQuery({
         ...submitted,
         pageNo: servicePage.page.pageNo,
         pageSize: servicePage.page.pageSize,
@@ -51,13 +51,13 @@ export default function RegistryPage() {
   const instancesQuery = useQuery({
     enabled: selectedService !== null,
     queryKey: [
-      'ddc',
+      'tianshu',
       'registry-instances',
       selectedService?.serviceId,
       instancePage.page,
     ],
     queryFn: ({ signal }) => ddcPageApi<RegistryInstance>(
-      `/api/v1/ddc/registry/instances/page?${buildQuery({
+      `/api/v1/tianshu/registry/instances/page?${buildQuery({
         bizCode: selectedService!.bizCode,
         env: selectedService!.env,
         appCode: selectedService!.appCode,
@@ -216,7 +216,7 @@ export default function RegistryPage() {
           </Card>
         </Col>
       </Row>
-      <Card className="ddc-admin-table-card" size="small" title="服务目录">
+      <Card className="tianshu-admin-table-card" size="small" title="服务目录">
         <PageState
           loading={servicesQuery.isPending}
           error={servicesQuery.error}

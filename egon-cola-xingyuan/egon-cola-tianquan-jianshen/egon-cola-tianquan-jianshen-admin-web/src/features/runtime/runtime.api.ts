@@ -33,11 +33,11 @@ export interface MutationView {
 export interface MutationPage { readonly items: readonly MutationView[]; readonly nextCursor: string | null }
 
 export const runtimeApi = (client: FeatureApiClient) => ({
-  status: () => client.request<ControlPlaneRuntimeStatus>('/api/rbac3/v1/runtime/status'),
-  gatewayDdcStatus: () => client.request<ControlPlaneRuntimeStatus>('/api/rbac3/v1/runtime/gateway-ddc-status'),
-  mutations: (status?: string, cursor?: string) => client.request<MutationPage>('/api/rbac3/v1/runtime/mutations', { query: { status, cursor, limit: 50 } }),
+  status: () => client.request<ControlPlaneRuntimeStatus>('/api/tianquan-jianshen/v1/runtime/status'),
+  gatewayDdcStatus: () => client.request<ControlPlaneRuntimeStatus>('/api/tianquan-jianshen/v1/runtime/yuheng-tianshu-status'),
+  mutations: (status?: string, cursor?: string) => client.request<MutationPage>('/api/tianquan-jianshen/v1/runtime/mutations', { query: { status, cursor, limit: 50 } }),
   retryMutation: (mutationId: string) => client.request<{ readonly mutationId: string; readonly status: string }>(
-    `/api/rbac3/v1/runtime/mutations/${encodeURIComponent(mutationId)}/retry`,
+    `/api/tianquan-jianshen/v1/runtime/mutations/${encodeURIComponent(mutationId)}/retry`,
     { method: 'POST' },
   ),
 })

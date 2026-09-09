@@ -122,7 +122,7 @@ describe('NamespacesPage', () => {
     expect(document.querySelector('.ant-checkbox-group')).not.toBeInTheDocument()
     expect(document.querySelector('.ant-select-multiple')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/api/v1/ddc/namespace-env-app-bindings?'),
+      expect.stringContaining('/api/v1/tianshu/namespace-env-app-bindings?'),
       expect.anything(),
     )
     expect(document.querySelector('.ant-drawer-content-wrapper'))
@@ -137,7 +137,7 @@ describe('NamespacesPage', () => {
         ? jsonResponse({
           success: false,
           code: 56999,
-          status: 'DDC_INTERNAL_FAILURE',
+          status: 'TIANSHU_INTERNAL_FAILURE',
           message: '加载失败',
           data: null,
           timestamp: 1,

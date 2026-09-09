@@ -44,7 +44,7 @@ describe('useScopeOption', () => {
     )
 
     const { result } = renderHook(
-      () => useScopeOption('/api/v1/ddc/bizs'),
+      () => useScopeOption('/api/v1/tianshu/bizs'),
       { wrapper },
     )
 
@@ -53,11 +53,11 @@ describe('useScopeOption', () => {
     ]))
     expect(fetch).toHaveBeenCalledTimes(1)
     expect(fetch).toHaveBeenCalledWith(
-      '/api/v1/ddc/bizs',
+      '/api/v1/tianshu/bizs',
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     )
-    expect(scopeOptionKey('/api/v1/ddc/bizs'))
-      .toEqual(['ddc', 'scope-options', '/api/v1/ddc/bizs'])
+    expect(scopeOptionKey('/api/v1/tianshu/bizs'))
+      .toEqual(['tianshu', 'scope-options', '/api/v1/tianshu/bizs'])
   })
 
   it('shares cached options and refetches when the cascade path changes', async () => {
@@ -70,14 +70,14 @@ describe('useScopeOption', () => {
     )
     const { rerender } = renderHook(
       ({ path }: { path: string }) => useScopeOption(path),
-      { initialProps: { path: '/api/v1/ddc/apps' }, wrapper },
+      { initialProps: { path: '/api/v1/tianshu/apps' }, wrapper },
     )
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1))
 
-    rerender({ path: '/api/v1/ddc/apps' })
+    rerender({ path: '/api/v1/tianshu/apps' })
     expect(fetch).toHaveBeenCalledTimes(1)
 
-    rerender({ path: '/api/v1/ddc/apps?bizCode=pay-biz' })
+    rerender({ path: '/api/v1/tianshu/apps?bizCode=pay-biz' })
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2))
     expect(String(vi.mocked(fetch).mock.calls[1][0]))
       .toContain('bizCode=pay-biz')

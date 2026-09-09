@@ -126,7 +126,7 @@ describe('InstancesPage', () => {
     expect(screen.getByText('共 21 条')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
-        '/api/v1/ddc/instances/page?bizCode=pay-biz&env=prod&appCode=orders&pageNo=1&pageSize=10',
+        '/api/v1/tianshu/instances/page?bizCode=pay-biz&env=prod&appCode=orders&pageNo=1&pageSize=10',
       ),
       expect.anything(),
     )
@@ -135,7 +135,7 @@ describe('InstancesPage', () => {
 
   it('resets to the first server page when the scope is submitted again', async () => {
     mockScopeEndpoints((url) => {
-      const pageNo = Number(new URL(url, 'http://ddc.test').searchParams.get('pageNo') ?? '1')
+      const pageNo = Number(new URL(url, 'http://tianshu.test').searchParams.get('pageNo') ?? '1')
       return jsonResponse(pageRecord([instance], 21, pageNo))
     })
     renderWithQueryClient(<InstancesPage />)
@@ -165,7 +165,7 @@ describe('InstancesPage', () => {
         return jsonResponse({
           success: false,
           code: 500,
-          status: 'DDC_INTERNAL_FAILURE',
+          status: 'TIANSHU_INTERNAL_FAILURE',
           message: '实例列表加载失败',
           data: null,
           traceId: 'trace-instances-error',

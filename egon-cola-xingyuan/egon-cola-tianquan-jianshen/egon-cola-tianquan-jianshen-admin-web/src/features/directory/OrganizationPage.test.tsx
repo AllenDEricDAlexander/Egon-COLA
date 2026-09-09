@@ -55,8 +55,8 @@ const createWrapper = (children: ReactNode, permissions: readonly string[]) => {
 
 beforeEach(() => {
     state.request.mockReset().mockImplementation((path: string) => {
-        if (path === '/api/rbac3/v1/iam/organizations') return Promise.resolve([organization])
-        if (path === '/api/rbac3/v1/iam/organizations/1001') return Promise.resolve(organization)
+        if (path === '/api/tianquan-jianshen/v1/iam/organizations') return Promise.resolve([organization])
+        if (path === '/api/tianquan-jianshen/v1/iam/organizations/1001') return Promise.resolve(organization)
         return Promise.reject(new Error(`Unexpected request: ${path}`))
     })
 })
@@ -70,7 +70,7 @@ describe('organization administration page', () => {
         await waitFor(() => expect(screen.getByText('总部')).toBeInTheDocument())
         expect(screen.getByText('组织')).toBeInTheDocument()
         expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/organizations',
+            '/api/tianquan-jianshen/v1/iam/organizations',
             expect.anything(),
         )
         expect(state.request.mock.calls.some(([path]) => String(path).includes('/directory/users/'))).toBe(false)
@@ -87,7 +87,7 @@ describe('organization administration page', () => {
         fireEvent.click(screen.getByRole('button', {name: /保\s*存/}))
 
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/organizations',
+            '/api/tianquan-jianshen/v1/iam/organizations',
             expect.objectContaining({
                 method: 'POST',
                 body: expect.objectContaining({
@@ -102,7 +102,7 @@ describe('organization administration page', () => {
         fireEvent.click(screen.getByRole('button', {name: /编\s*辑/}))
         fireEvent.click(screen.getByRole('button', {name: /保\s*存/}))
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/organizations/1001',
+            '/api/tianquan-jianshen/v1/iam/organizations/1001',
             expect.objectContaining({
                 method: 'PUT',
                 body: expect.objectContaining({expectedVersion: 1}),
@@ -113,7 +113,7 @@ describe('organization administration page', () => {
         fireEvent.click(screen.getByRole('button', {name: /归\s*档/}))
         fireEvent.click(screen.getByRole('button', {name: '确认停用组织'}))
         await waitFor(() => expect(state.request).toHaveBeenCalledWith(
-            '/api/rbac3/v1/iam/organizations/1001',
+            '/api/tianquan-jianshen/v1/iam/organizations/1001',
             {method: 'DELETE', query: {expectedVersion: 1}},
         ))
     })

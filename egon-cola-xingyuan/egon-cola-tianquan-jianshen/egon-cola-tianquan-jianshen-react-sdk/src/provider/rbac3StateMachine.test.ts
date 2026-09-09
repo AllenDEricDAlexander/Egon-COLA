@@ -4,7 +4,7 @@ import {
   transitionRbac3State,
 } from './rbac3StateMachine'
 
-describe('RBAC3 state machine', () => {
+describe('Tianquan-Jianshen state machine', () => {
   it('requires explicit about before anything is ready', () => {
     const loading = transitionRbac3State(initialRbac3MachineState, {
       type: 'INITIALIZE',

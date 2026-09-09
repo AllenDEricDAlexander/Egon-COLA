@@ -52,7 +52,7 @@ import type {
     ValidationReport,
 } from './types'
 
-const admin = '/api/v1/gateway/admin'
+const admin = '/api/v1/yuheng/admin'
 const queryString = (values: Record<string, string | undefined>): string => {
   const params = new URLSearchParams()
   Object.entries(values).forEach(([name, value]) => {
@@ -143,7 +143,7 @@ export const gatewayApi = {
   dashboard: (scope: Scope, signal?: AbortSignal) =>
     apiRequest<DashboardSummary>(withQuery(`${admin}/dashboard`, scope), { signal }),
   groups: (signal?: AbortSignal) =>
-    apiRequest<GatewayGroup[]>(`${admin}/gateway-groups`, { signal }),
+    apiRequest<GatewayGroup[]>(`${admin}/yuheng-groups`, { signal }),
   createGroup: (
     group: {
       gatewayGroupCode: string
@@ -153,7 +153,7 @@ export const gatewayApi = {
       description?: string
     },
     trace = createLogicalTrace(),
-  ) => apiRequest<GatewayGroup>(`${admin}/gateway-groups`, {
+  ) => apiRequest<GatewayGroup>(`${admin}/yuheng-groups`, {
     method: 'POST',
     body: group,
     trace,
@@ -163,7 +163,7 @@ export const gatewayApi = {
     groupId: string,
     group: { displayName: string; description?: string; expectedRevision: number },
     trace = createLogicalTrace(),
-  ) => apiRequest<GatewayGroup>(`${admin}/gateway-groups/${groupId}`, {
+  ) => apiRequest<GatewayGroup>(`${admin}/yuheng-groups/${groupId}`, {
     method: 'PUT',
     body: group,
     trace,
@@ -174,14 +174,14 @@ export const gatewayApi = {
     enabled: boolean,
     trace = createLogicalTrace(),
   ) => apiRequest<GatewayGroup>(
-    `${admin}/gateway-groups/${groupId}/${enabled ? 'enable' : 'disable'}`,
+    `${admin}/yuheng-groups/${groupId}/${enabled ? 'enable' : 'disable'}`,
     { method: 'POST', trace, idempotencyKey: newIdempotencyKey() },
   ),
   group: (groupId: string, signal?: AbortSignal) =>
-    apiRequest<GatewayGroup>(`${admin}/gateway-groups/${groupId}`, { signal }),
+    apiRequest<GatewayGroup>(`${admin}/yuheng-groups/${groupId}`, { signal }),
   engineNodes: async (groupId: string, signal?: AbortSignal) => {
     const projection = await apiRequest<ProjectionEnvelope<EngineNodeResponse[]>>(
-      `${admin}/gateway-groups/${groupId}/engine-nodes`,
+      `${admin}/yuheng-groups/${groupId}/engine-nodes`,
       { signal },
     )
     return projection.value.map((node) => ({
@@ -193,7 +193,7 @@ export const gatewayApi = {
   },
   consistency: async (groupId: string, signal?: AbortSignal) => {
     const value = await apiRequest<RuntimeConsistencyResponse>(
-      `${admin}/gateway-groups/${groupId}/runtime-consistency`,
+      `${admin}/yuheng-groups/${groupId}/runtime-consistency`,
       { signal },
     )
     return {
@@ -346,7 +346,7 @@ export const gatewayApi = {
     ),
   draft: async (groupId: string, signal?: AbortSignal) =>
     mapDraft(await apiRequest<DraftResponse>(
-      `${admin}/gateway-groups/${groupId}/draft`,
+      `${admin}/yuheng-groups/${groupId}/draft`,
       { signal },
     )),
   saveRoute: (
@@ -363,7 +363,7 @@ export const gatewayApi = {
   ) => {
     const idempotencyKey = newIdempotencyKey()
     return apiRequest<DraftMutationResult>(
-      `${admin}/gateway-groups/${groupId}/draft/routes/${routeId}`,
+      `${admin}/yuheng-groups/${groupId}/draft/routes/${routeId}`,
       {
       method: 'PUT',
       body: { ...route, expectedRevision: revision, idempotencyKey },
@@ -387,7 +387,7 @@ export const gatewayApi = {
   ) => {
     const idempotencyKey = newIdempotencyKey()
     return apiRequest<DraftMutationResult>(
-      `${admin}/gateway-groups/${groupId}/draft/policies/${policyId}`,
+      `${admin}/yuheng-groups/${groupId}/draft/policies/${policyId}`,
       {
         method: 'PUT',
         body: { ...policy, expectedRevision: revision, idempotencyKey },
@@ -404,7 +404,7 @@ export const gatewayApi = {
   ) => {
     const idempotencyKey = newIdempotencyKey()
     return apiRequest<DraftMutationResult>(
-      `${admin}/gateway-groups/${groupId}/draft/routes/${routeId}`,
+      `${admin}/yuheng-groups/${groupId}/draft/routes/${routeId}`,
       {
       method: 'DELETE',
       body: { expectedRevision: revision, changeReason, idempotencyKey },
@@ -420,7 +420,7 @@ export const gatewayApi = {
   ) => {
     const idempotencyKey = newIdempotencyKey()
     return apiRequest<DraftMutationResult>(
-      `${admin}/gateway-groups/${groupId}/draft/policies/${policyId}`,
+      `${admin}/yuheng-groups/${groupId}/draft/policies/${policyId}`,
       {
       method: 'DELETE',
       body: { expectedRevision: revision, changeReason, idempotencyKey },
@@ -429,17 +429,17 @@ export const gatewayApi = {
     )
   },
   validateDraft: (groupId: string, trace: LogicalTrace | undefined) =>
-    apiRequest<ValidationReport>(`${admin}/gateway-groups/${groupId}/draft/validate`, {
+    apiRequest<ValidationReport>(`${admin}/yuheng-groups/${groupId}/draft/validate`, {
       method: 'POST',
       trace,
     }),
   draftDiff: (groupId: string, signal?: AbortSignal) =>
-    apiRequest<Record<string, unknown>>(`${admin}/gateway-groups/${groupId}/draft/diff`, {
+    apiRequest<Record<string, unknown>>(`${admin}/yuheng-groups/${groupId}/draft/diff`, {
       signal,
     }),
   releases: async (groupId: string, signal?: AbortSignal) =>
     (await apiRequest<ReleaseResponse[]>(
-      `${admin}/gateway-groups/${groupId}/releases`,
+      `${admin}/yuheng-groups/${groupId}/releases`,
       { signal },
     )).map(mapRelease),
   release: (
@@ -462,7 +462,7 @@ export const gatewayApi = {
     changeReason: string,
     trace = createLogicalTrace(),
   ) =>
-    apiRequest<ReleaseResponse>(`${admin}/gateway-groups/${groupId}/releases`, {
+    apiRequest<ReleaseResponse>(`${admin}/yuheng-groups/${groupId}/releases`, {
       method: 'POST',
       body: { expectedDraftRevision: draftRevision, changeReason },
       trace,
@@ -471,7 +471,7 @@ export const gatewayApi = {
   retryRelease: (releaseId: string, trace = createLogicalTrace()) =>
     apiRequest<ReleaseResponse>(`${admin}/releases/${releaseId}/retry`, {
       method: 'POST',
-      body: { reason: 'Retry from Gateway Admin Web' },
+      body: { reason: 'Retry from Yuheng Admin Web' },
       trace,
       idempotencyKey: newIdempotencyKey(),
     }).then(mapRelease),
@@ -482,7 +482,7 @@ export const gatewayApi = {
     reason: string,
     trace = createLogicalTrace(),
   ) =>
-    apiRequest<ReleaseResponse>(`${admin}/gateway-groups/${groupId}/rollback`, {
+    apiRequest<ReleaseResponse>(`${admin}/yuheng-groups/${groupId}/rollback`, {
       method: 'POST',
       body: {
         sourceReleaseId: releaseId,

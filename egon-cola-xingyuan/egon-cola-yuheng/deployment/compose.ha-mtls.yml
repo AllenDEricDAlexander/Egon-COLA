@@ -1,87 +1,87 @@
-name: egon-cola-gateway
+name: egon-cola-yuheng
 
 services:
-  ddc-admin-2:
+  tianshu-admin-2:
     environment:
-      EGON_COLA_COMPONENT_DDC_ADMIN_TRANSPORT_SECURITY_MODE: MTLS
+      EGON_COLA_COMPONENT_TIANSHU_ADMIN_TRANSPORT_SECURITY_MODE: MTLS
       SERVER_SSL_ENABLED: "true"
       SERVER_SSL_CLIENT_AUTH: need
       SERVER_SSL_BUNDLE: management
       SPRING_SSL_BUNDLE_PEM_MANAGEMENT_RELOAD_ON_UPDATE: "true"
-      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_CERTIFICATE: file:/run/egon-tls/ddc-admin-2.crt
-      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_PRIVATE_KEY: file:/run/egon-tls/ddc-admin-2.key
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_CERTIFICATE: file:/run/egon-tls/tianshu-admin-2.crt
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_PRIVATE_KEY: file:/run/egon-tls/tianshu-admin-2.key
       SPRING_SSL_BUNDLE_PEM_MANAGEMENT_TRUSTSTORE_CERTIFICATE: file:/run/egon-tls/ca.crt
-      DDC_RPC_TLS_ENABLED: "true"
-      DDC_RPC_DEVELOPMENT_PLAINTEXT: "false"
-      DDC_RPC_CERTIFICATE_CHAIN_PATH: /run/egon-tls/ddc-admin-2.crt
-      DDC_RPC_PRIVATE_KEY_PATH: /run/egon-tls/ddc-admin-2.key
-      DDC_RPC_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
+      TIANSHU_RPC_TLS_ENABLED: "true"
+      TIANSHU_RPC_DEVELOPMENT_PLAINTEXT: "false"
+      TIANSHU_RPC_CERTIFICATE_CHAIN_PATH: /run/egon-tls/tianshu-admin-2.crt
+      TIANSHU_RPC_PRIVATE_KEY_PATH: /run/egon-tls/tianshu-admin-2.key
+      TIANSHU_RPC_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
     healthcheck:
       test:
         - CMD-SHELL
         - >-
           bash -o pipefail -ec 'printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" |
-          openssl s_client -quiet -connect 127.0.0.1:18080 -servername ddc-admin-2
-          -verify_return_error -verify_hostname ddc-admin-2 -CAfile /run/egon-tls/ca.crt
-          -cert /run/egon-tls/ddc-admin-2.crt -key /run/egon-tls/ddc-admin-2.key |
+          openssl s_client -quiet -connect 127.0.0.1:18080 -servername tianshu-admin-2
+          -verify_return_error -verify_hostname tianshu-admin-2 -CAfile /run/egon-tls/ca.crt
+          -cert /run/egon-tls/tianshu-admin-2.crt -key /run/egon-tls/tianshu-admin-2.key |
           grep -q " 200 "'
       interval: 5s
       timeout: 5s
       retries: 20
     volumes:
-      - ${GATEWAY_TLS_DIRECTORY:?set GATEWAY_TLS_DIRECTORY}:/run/egon-tls:ro
+      - ${YUHENG_TLS_DIRECTORY:?set YUHENG_TLS_DIRECTORY}:/run/egon-tls:ro
 
-  gateway-admin:
+  yuheng-admin:
     environment:
-      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
-  gateway-admin-2:
+  yuheng-admin-2:
     environment:
-      GATEWAY_ADMIN_TRANSPORT_SECURITY_MODE: MTLS
+      YUHENG_ADMIN_TRANSPORT_SECURITY_MODE: MTLS
       SERVER_SSL_ENABLED: "true"
       SERVER_SSL_CLIENT_AUTH: need
       SERVER_SSL_BUNDLE: management
       SPRING_SSL_BUNDLE_PEM_MANAGEMENT_RELOAD_ON_UPDATE: "true"
-      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_CERTIFICATE: file:/run/egon-tls/gateway-admin-2.crt
-      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_PRIVATE_KEY: file:/run/egon-tls/gateway-admin-2.key
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_CERTIFICATE: file:/run/egon-tls/yuheng-admin-2.crt
+      SPRING_SSL_BUNDLE_PEM_MANAGEMENT_KEYSTORE_PRIVATE_KEY: file:/run/egon-tls/yuheng-admin-2.key
       SPRING_SSL_BUNDLE_PEM_MANAGEMENT_TRUSTSTORE_CERTIFICATE: file:/run/egon-tls/ca.crt
-      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
-      EGON_COLA_COMPONENT_DDC_RPC_TLS_ENABLED: "true"
-      EGON_COLA_COMPONENT_DDC_RPC_TLS_DEVELOPMENT_PLAINTEXT: "false"
-      EGON_COLA_COMPONENT_DDC_RPC_TLS_CERTIFICATE_CHAIN_PATH: /run/egon-tls/gateway-admin-2.crt
-      EGON_COLA_COMPONENT_DDC_RPC_TLS_PRIVATE_KEY_PATH: /run/egon-tls/gateway-admin-2.key
-      EGON_COLA_COMPONENT_DDC_RPC_TLS_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TLS_ENABLED: "true"
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TLS_DEVELOPMENT_PLAINTEXT: "false"
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TLS_CERTIFICATE_CHAIN_PATH: /run/egon-tls/yuheng-admin-2.crt
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TLS_PRIVATE_KEY_PATH: /run/egon-tls/yuheng-admin-2.key
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TLS_TRUST_CERTIFICATE_COLLECTION_PATH: /run/egon-tls/ca.crt
     healthcheck:
       test:
         - CMD-SHELL
         - >-
           bash -o pipefail -ec 'printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" |
-          openssl s_client -quiet -connect 127.0.0.1:18080 -servername gateway-admin-2
-          -verify_return_error -verify_hostname gateway-admin-2 -CAfile /run/egon-tls/ca.crt
-          -cert /run/egon-tls/gateway-admin-2.crt -key /run/egon-tls/gateway-admin-2.key |
+          openssl s_client -quiet -connect 127.0.0.1:18080 -servername yuheng-admin-2
+          -verify_return_error -verify_hostname yuheng-admin-2 -CAfile /run/egon-tls/ca.crt
+          -cert /run/egon-tls/yuheng-admin-2.crt -key /run/egon-tls/yuheng-admin-2.key |
           grep -q " 200 "'
       interval: 5s
       timeout: 5s
       retries: 20
     volumes:
-      - ${GATEWAY_TLS_DIRECTORY:?set GATEWAY_TLS_DIRECTORY}:/run/egon-tls:ro
+      - ${YUHENG_TLS_DIRECTORY:?set YUHENG_TLS_DIRECTORY}:/run/egon-tls:ro
 
-  gateway-engine:
+  yuheng-biz-gateway:
     environment:
-      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
-  gateway-engine-2:
+  yuheng-biz-gateway-2:
     environment:
-      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
-  gateway-mcp-engine:
+  yuheng-mcp-gateway:
     environment:
-      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
-  gateway-mcp-engine-2:
+  yuheng-mcp-gateway-2:
     environment:
-      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET: dns:///control-plane-proxy:19080
 
-  gateway-admin-web:
+  yuheng-admin-web:
     environment:
-      GATEWAY_ADMIN_API_BASE_URL: https://control-plane-proxy:18080
+      YUHENG_ADMIN_API_BASE_URL: https://control-plane-proxy:18080

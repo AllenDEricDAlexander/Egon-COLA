@@ -2,7 +2,7 @@ import {createContext, type PropsWithChildren, useCallback, useContext, useEffec
 import {createGatewayAuthClient, createHttpClient,} from '@egon-cola/xingyuan-admin-web-shared'
 import type {AuthorizationBootstrap} from '../api/types'
 
-const gatewayOrigin = import.meta.env.VITE_GATEWAY_ORIGIN ?? ''
+const gatewayOrigin = import.meta.env.VITE_YUHENG_ORIGIN ?? ''
 
 const gatewayAuth = createGatewayAuthClient({baseUrl: gatewayOrigin})
 const httpClient = createHttpClient({
@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
         setLoading(true)
         await gatewayAuth.login({tenantId, username, password})
         setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>(
-            '/api/v1/identity/auth/bootstrap',
+            '/api/v1/tianquan-shoubing/auth/bootstrap',
         ))
         setLoading(false)
   }, [])
@@ -51,7 +51,7 @@ export const AuthProvider = ({ children }: PropsWithChildren) => {
   useEffect(() => {
     let active = true
       void gatewayAuth.bootstrap<AuthorizationBootstrap>(
-          '/api/v1/identity/auth/bootstrap',
+          '/api/v1/tianquan-shoubing/auth/bootstrap',
       )
           .then((value) => {
               if (active) setBootstrap(value)

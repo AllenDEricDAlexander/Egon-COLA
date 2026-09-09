@@ -118,8 +118,8 @@ class EvaluationDataSourceModeTest {
                 Map.entry("EVALUATION_SHARD_1_REPLICA_0_USERNAME", "sa"),
                 Map.entry("EVALUATION_SHARD_1_REPLICA_0_PASSWORD", ""),
                 Map.entry("egon.cola.component.rpc.enabled", "false"),
-                Map.entry("egon.cola.component.ddc.enabled", "false"),
-                Map.entry("egon.cola.component.ddc.registry.enabled", "false"),
+                Map.entry("egon.cola.component.tianshu.enabled", "false"),
+                Map.entry("egon.cola.component.tianshu.registry.enabled", "false"),
                 Map.entry("spring.main.banner-mode", "off"));
     }
 

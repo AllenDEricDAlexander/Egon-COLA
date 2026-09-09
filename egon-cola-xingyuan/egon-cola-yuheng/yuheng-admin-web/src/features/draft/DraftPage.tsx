@@ -136,7 +136,7 @@ export const DraftPage = () => {
   const { groupId = '' } = useParams()
   const location = useLocation()
   const queryClient = useQueryClient()
-  const canWrite = useCapability('gateway:drafts:write')
+  const canWrite = useCapability('yuheng:drafts:write')
   const [routeForm] = Form.useForm<RouteEditorValues>()
   const [policyForm] = Form.useForm()
   const [routeOpen, setRouteOpen] = useState(false)
@@ -225,7 +225,7 @@ export const DraftPage = () => {
         groupId,
         route.routeId,
         draft.data!.revision,
-        'Delete route from Gateway Admin Web',
+        'Delete route from Yuheng Admin Web',
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['draft', groupId] })
@@ -239,7 +239,7 @@ export const DraftPage = () => {
         groupId,
         policy.policyId,
         draft.data!.revision,
-        'Delete policy from Gateway Admin Web',
+        'Delete policy from Yuheng Admin Web',
       ),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['draft', groupId] })
@@ -313,7 +313,7 @@ export const DraftPage = () => {
       routeId: route.routeId,
       operationId: route.operationId,
       enabled: route.enabled,
-      changeReason: 'Edit route from Gateway Admin Web',
+      changeReason: 'Edit route from Yuheng Admin Web',
     })
     setRouteOpen(true)
     void loadRouteOperation(route.operationId)
@@ -534,7 +534,7 @@ export const DraftPage = () => {
                                     : undefined,
                                   advancedContent: '{}',
                                   enabled: row.enabled,
-                                  changeReason: 'Edit policy from Gateway Admin Web',
+                                  changeReason: 'Edit policy from Yuheng Admin Web',
                                 })
                                 setPolicyOpen(true)
                               }}

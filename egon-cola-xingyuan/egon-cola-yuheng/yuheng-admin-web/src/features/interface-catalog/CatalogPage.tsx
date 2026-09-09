@@ -88,7 +88,7 @@ export const CatalogPage = () => {
   const [hierarchyForm] = Form.useForm()
   const [operationForm] = Form.useForm()
   const queryClient = useQueryClient()
-  const canWrite = useCapability('gateway:catalog:write')
+  const canWrite = useCapability('yuheng:catalog:write')
   const applications = useQuery({
     queryKey: ['applications', filters],
     queryFn: ({ signal }) => gatewayApi.applications(filters, signal),

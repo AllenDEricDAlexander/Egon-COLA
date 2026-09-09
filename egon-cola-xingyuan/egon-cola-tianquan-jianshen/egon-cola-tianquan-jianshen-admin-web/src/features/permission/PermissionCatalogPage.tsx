@@ -31,23 +31,23 @@ export const PermissionCatalogPage = () => {
   const [permissionForm] = Form.useForm<PermissionFormValues>()
   const tenant = effectiveTenantId ?? 'none'
   const applications = useQuery({
-    queryKey: ['rbac3', 'resource-applications', tenant],
+    queryKey: ['tianquan-jianshen', 'resource-applications', tenant],
     queryFn: api.applications,
     enabled: status === 'READY',
   })
 
   const resolvedApplicationId = applicationId || applications.data?.[0]?.applicationId || ''
   const permissions = useQuery({
-    queryKey: ['rbac3', 'permissions', tenant, resolvedApplicationId],
+    queryKey: ['tianquan-jianshen', 'permissions', tenant, resolvedApplicationId],
     queryFn: () => api.permissions(resolvedApplicationId),
     enabled: status === 'READY' && resolvedApplicationId.length > 0,
   })
   const permissionDetail = useQuery({
-    queryKey: ['rbac3', 'permission', tenant, selectedPermission?.id ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'permission', tenant, selectedPermission?.id ?? 'none'],
     queryFn: () => api.permission(selectedPermission!.id),
     enabled: status === 'READY' && selectedPermission !== null,
   })
-  const queryKey = ['rbac3', 'permissions', tenant, resolvedApplicationId]
+  const queryKey = ['tianquan-jianshen', 'permissions', tenant, resolvedApplicationId]
   const create = useMutation({
     mutationFn: (values: PermissionFormValues) => api.createPermission({
       applicationId: resolvedApplicationId,

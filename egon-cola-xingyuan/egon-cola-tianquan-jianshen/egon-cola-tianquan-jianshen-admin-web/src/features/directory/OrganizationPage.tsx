@@ -37,7 +37,7 @@ export const OrganizationPage = () => {
     const [editorForm] = Form.useForm<OrganizationFormValues>()
     const parentId = searchParams.get('parentId')?.trim() || undefined
     const tenant = effectiveTenantId ?? 'none'
-    const queryKey = ['rbac3', 'organizations', tenant, parentId ?? 'root']
+    const queryKey = ['tianquan-jianshen', 'organizations', tenant, parentId ?? 'root']
     const query = useQuery({
         queryKey,
         queryFn: () => api.organizations(parentId),
@@ -102,7 +102,7 @@ export const OrganizationPage = () => {
         },
         onSuccess: async () => {
             closeEditor()
-            await queryClient.invalidateQueries({queryKey: ['rbac3', 'organizations']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'organizations']})
         },
     })
     const archive = useMutation({
@@ -112,7 +112,7 @@ export const OrganizationPage = () => {
         ),
         onSuccess: async () => {
             closeEditor()
-            await queryClient.invalidateQueries({queryKey: ['rbac3', 'organizations']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'organizations']})
         },
     })
     const mutationError = save.error ?? archive.error
@@ -130,7 +130,7 @@ export const OrganizationPage = () => {
             )}
         >
             <Typography.Paragraph type="secondary">
-                维护 RBAC3 手工组织层级；租户范围由当前授权上下文决定，组织节点 ID 始终按字符串展示。
+                维护 Tianquan-Jianshen 手工组织层级；租户范围由当前授权上下文决定，组织节点 ID 始终按字符串展示。
             </Typography.Paragraph>
             <Form
                 form={filterForm}

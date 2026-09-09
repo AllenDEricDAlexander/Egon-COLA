@@ -25,10 +25,10 @@ const wrapper = (request: FeatureApiClient['request']) => ({children}: PropsWith
 }
 
 describe('business catalog page', () => {
-  it('loads DDC businesses and applications through the RBAC catalog controller', async () => {
+  it('loads Tianshu businesses and applications through the RBAC catalog controller', async () => {
     const request = vi.fn<FeatureApiClient['request']>(async <T,>(path: string, requestOptions?: FeatureApiRequest): Promise<T> => {
       void requestOptions
-      if (path === '/api/rbac3/v1/iam/catalog/businesses') {
+      if (path === '/api/tianquan-jianshen/v1/iam/catalog/businesses') {
         return [{ddcBusinessId: 'business-1', bizCode: 'trade', bizName: '交易域', enabled: true}] as T
       }
       return [{ddcApplicationId: 'application-1', ddcBusinessId: 'business-1', bizCode: 'trade', appCode: 'orders', appName: '订单应用', applicationEnabled: true, businessEnabled: true}] as T
@@ -38,6 +38,6 @@ describe('business catalog page', () => {
     await waitFor(() => expect(screen.getByText('交易域')).toBeInTheDocument())
     fireEvent.click(screen.getByText('交易域'))
     await waitFor(() => expect(screen.getByText('订单应用')).toBeInTheDocument())
-    expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/catalog/businesses/business-1/applications', expect.anything())
+    expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/catalog/businesses/business-1/applications', expect.anything())
   })
 })

@@ -52,7 +52,7 @@ export const DashboardPage = () => {
         )}
       />
       <Row gutter={[16, 16]}>
-        <Col xs={24} md={8} xl={4}><Card><Statistic title="Gateway Group" value={data.gatewayGroups} /></Card></Col>
+        <Col xs={24} md={8} xl={4}><Card><Statistic title="Yuheng Group" value={data.gatewayGroups} /></Card></Col>
         <Col xs={24} md={8} xl={4}><Card><Statistic title="Ready Engine" value={data.readyEngines} suffix={`/ ${data.totalEngines}`} /></Card></Col>
         <Col xs={24} md={8} xl={4}><Card><Statistic title="版本不一致 Group" value={data.inconsistentGroups} /></Card></Col>
         <Col xs={24} md={8} xl={4}><Card><Statistic title="活跃 Provider" value={data.activeProviders} /></Card></Col>

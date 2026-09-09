@@ -95,15 +95,15 @@ export const ClientListPage = () => {
     const requestQuery = buildClientQuery(submitted, searchParams.has('page') || searchParams.has('size'))
 
   const clientsQuery = useQuery({
-    queryKey: ['idp', 'clients', requestQuery],
+    queryKey: ['tianquan-shoubing', 'clients', requestQuery],
       queryFn: () => httpClient
-          .request<OAuthClientVO[] | OAuthClientPageVO>(`/api/v1/identity/clients${requestQuery ? `?${requestQuery}` : ''}`)
+          .request<OAuthClientVO[] | OAuthClientPageVO>(`/api/v1/tianquan-shoubing/clients${requestQuery ? `?${requestQuery}` : ''}`)
           .then(normalizePage),
   })
 
   const createMutation = useMutation({
       mutationFn: (v: CreateOAuthClientDTO) =>
-      httpClient.request<CreatedOAuthClientVO>('/api/v1/identity/clients', {
+      httpClient.request<CreatedOAuthClientVO>('/api/v1/tianquan-shoubing/clients', {
         method: 'POST',
               body: JSON.stringify(v),
       }),
@@ -115,7 +115,7 @@ export const ClientListPage = () => {
         } else {
             messageApi.success('客户端已创建')
         }
-        await queryClient.invalidateQueries({queryKey: ['idp', 'clients']})
+        await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'clients']})
         createMutation.reset()
     },
       onError: (err) => {
@@ -126,7 +126,7 @@ export const ClientListPage = () => {
     const rotateMutation = useMutation({
         mutationFn: (client: OAuthClientVO) =>
             httpClient.request<RotatedClientSecretVO>(
-                `/api/v1/identity/clients/${encodeURIComponent(client.clientId)}/secret-rotations`,
+                `/api/v1/tianquan-shoubing/clients/${encodeURIComponent(client.clientId)}/secret-rotations`,
                 {
                     method: 'POST',
                     body: JSON.stringify({expectedVersion: client.version}),
@@ -144,7 +144,7 @@ export const ClientListPage = () => {
                     updatedAt: result.rotatedAt,
                 }
                 : current)
-            await queryClient.invalidateQueries({queryKey: ['idp', 'clients']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'clients']})
             rotateMutation.reset()
         },
         onError: (err) => {
@@ -154,14 +154,14 @@ export const ClientListPage = () => {
 
     const updateMutation = useMutation({
         mutationFn: ({clientId, data}: { clientId: string; data: UpdateOAuthClientDTO }) =>
-            httpClient.request<OAuthClientVO>(`/api/v1/identity/clients/${encodeURIComponent(clientId)}`, {
+            httpClient.request<OAuthClientVO>(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}`, {
                 method: 'PATCH',
                 body: JSON.stringify(data),
             }),
         onSuccess: async (result) => {
             setEditOpen(false)
             setDetailClient(result)
-            await queryClient.invalidateQueries({queryKey: ['idp', 'clients']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'clients']})
             messageApi.success('客户端已更新')
         },
         onError: (err) => {
@@ -172,7 +172,7 @@ export const ClientListPage = () => {
     const addUriMutation = useMutation({
         mutationFn: ({clientId, type, value}: { clientId: string; type: 'redirect' | 'resource'; value: string }) => {
             const suffix = type === 'redirect' ? 'redirect-uris' : 'resource-uris'
-            return httpClient.request<OAuthClientVO>(`/api/v1/identity/clients/${encodeURIComponent(clientId)}/${suffix}`, {
+            return httpClient.request<OAuthClientVO>(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}/${suffix}`, {
                 method: 'PUT',
                 body: JSON.stringify({value}),
             })
@@ -181,7 +181,7 @@ export const ClientListPage = () => {
             setAddUriType(null)
             uriForm.resetFields()
             setDetailClient(result)
-            await queryClient.invalidateQueries({queryKey: ['idp', 'clients']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-shoubing', 'clients']})
             messageApi.success('地址已添加')
         },
         onError: (err) => {
@@ -192,14 +192,14 @@ export const ClientListPage = () => {
     const deleteUriMutation = useMutation({
         mutationFn: ({clientId, type, value}: { clientId: string; type: 'redirect' | 'resource'; value: string }) => {
             const suffix = type === 'redirect' ? 'redirect-uris' : 'resource-uris'
-            return httpClient.request<OAuthClientVO>(`/api/v1/identity/clients/${encodeURIComponent(clientId)}/${suffix}`, {
+            return httpClient.request<OAuthClientVO>(`/api/v1/tianquan-shoubing/clients/${encodeURIComponent(clientId)}/${suffix}`, {
                 method: 'DELETE',
                 body: JSON.stringify({value}),
             })
         },
         onSuccess: async (result) => {
             setDetailClient(result)
-      await queryClient.invalidateQueries({ queryKey: ['idp', 'clients'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianquan-shoubing', 'clients'] })
             messageApi.success('地址已删除')
     },
         onError: (err) => {
@@ -232,7 +232,7 @@ export const ClientListPage = () => {
                   <Button icon={<ReloadOutlined/>} onClick={() => {
                       void clientsQuery.refetch()
                   }}>刷新</Button>
-                  {has('idp:oauth-client:create') && (
+                  {has('tianquan-shoubing:oauth-client:create') && (
                       <Button type="primary" icon={<PlusOutlined/>}
                               onClick={() => {
                                   clearOneTimeCredentials()
@@ -332,13 +332,13 @@ export const ClientListPage = () => {
             extra={
                 detailClient && (
                     <Space>
-                        {has('idp:resource-server:grant') && (
+                        {has('tianquan-shoubing:resource-server:grant') && (
                             <Button
                                 onClick={() => navigate(`/clients/${encodeURIComponent(detailClient.clientId)}/resource-grants`)}>
                                 <LinkOutlined/> Resource Grant
                             </Button>
                         )}
-                        {has('idp:oauth-client:update') && (
+                        {has('tianquan-shoubing:oauth-client:update') && (
                             <Space>
                                 {detailClient.clientType === 'CONFIDENTIAL' && (
                                     <Button onClick={() => setRotateOpen(true)}>轮换 Secret</Button>
@@ -381,7 +381,7 @@ export const ClientListPage = () => {
                     <Card
                         size="small"
                         title="回调地址 (redirect_uri)"
-                        extra={has('idp:oauth-client:update') && (
+                        extra={has('tianquan-shoubing:oauth-client:update') && (
                             <Button size="small" onClick={() => {
                                 setAddUriType('redirect');
                                 uriForm.resetFields()
@@ -397,7 +397,7 @@ export const ClientListPage = () => {
                                     dataSource={[...detailClient.redirectUris]}
                                     renderItem={(uri: string) => (
                                         <List.Item extra={
-                                            has('idp:oauth-client:update') && (
+                                            has('tianquan-shoubing:oauth-client:update') && (
                                                 <Popconfirm title="确认删除该回调地址？"
                                                             onConfirm={() => deleteUriMutation.mutate({
                                                                 clientId: detailClient.clientId,
@@ -419,7 +419,7 @@ export const ClientListPage = () => {
                     <Card
                         size="small"
                         title="Resource URI"
-                        extra={has('idp:oauth-client:update') && (
+                        extra={has('tianquan-shoubing:oauth-client:update') && (
                             <Button size="small" onClick={() => {
                                 setAddUriType('resource');
                                 uriForm.resetFields()
@@ -434,7 +434,7 @@ export const ClientListPage = () => {
                                     dataSource={[...detailClient.resourceUris]}
                                     renderItem={(uri: string) => (
                                         <List.Item extra={
-                                            has('idp:oauth-client:update') && (
+                                            has('tianquan-shoubing:oauth-client:update') && (
                                                 <Popconfirm title="确认删除该 Resource URI？"
                                                             onConfirm={() => deleteUriMutation.mutate({
                                                                 clientId: detailClient.clientId,
@@ -537,7 +537,7 @@ export const ClientListPage = () => {
                         type="warning"
                         showIcon
                         title="Secret 仅显示一次"
-                        description="请立即复制并保存。关闭此窗口后 IdP 不会再次返回 Secret 明文。"
+                        description="请立即复制并保存。关闭此窗口后 Tianquan-Shoubing 不会再次返回 Secret 明文。"
                     />
                     <Descriptions column={1} bordered size="small">
                         <Descriptions.Item label="App ID">

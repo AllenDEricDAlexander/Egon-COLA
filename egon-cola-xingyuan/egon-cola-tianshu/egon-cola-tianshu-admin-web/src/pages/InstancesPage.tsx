@@ -30,9 +30,9 @@ export default function InstancesPage() {
 
   const instancesQuery = useQuery({
     enabled: submitted !== null,
-    queryKey: ['ddc', 'instances', submitted, pageState.page],
+    queryKey: ['tianshu', 'instances', submitted, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcInstance>(
-      `/api/v1/ddc/instances/page?${buildQuery({
+      `/api/v1/tianshu/instances/page?${buildQuery({
         bizCode: submitted!.bizCode,
         env: submitted!.env,
         appCode: submitted!.appCode,

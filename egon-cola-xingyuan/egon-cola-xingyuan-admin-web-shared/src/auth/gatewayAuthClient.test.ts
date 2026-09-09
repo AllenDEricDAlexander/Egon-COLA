@@ -14,7 +14,7 @@ afterEach(() => {
 })
 
 describe('createGatewayAuthClient', () => {
-    it('normalizes the Gateway origin and sends the transient CSRF header with cookies', async () => {
+    it('normalizes the Yuheng origin and sends the transient CSRF header with cookies', async () => {
         const fetcher = vi.fn()
             .mockResolvedValueOnce(response({token: 'csrf-token'}))
             .mockResolvedValueOnce(response({
@@ -43,7 +43,7 @@ describe('createGatewayAuthClient', () => {
         const loginInit = fetcher.mock.calls[1]?.[1] as RequestInit
         const loginHeaders = new Headers(loginInit.headers)
         expect(loginInit.credentials).toBe('include')
-        expect(loginHeaders.get('X-IDP-CSRF')).toBe('csrf-token')
+        expect(loginHeaders.get('X-Tianquan-Shoubing-CSRF')).toBe('csrf-token')
         expect(JSON.parse(String(loginInit.body))).toEqual({
             tenantId: '1',
             username: 'alice',
@@ -63,7 +63,7 @@ describe('createGatewayAuthClient', () => {
         expect(error.code).toBe('HTTP_ERROR')
         expect(error.path).toBe('/oauth2/userinfo')
         expect(error.status).toBe(401)
-        expect(error.message).toBe('Gateway authentication request failed (401)')
+        expect(error.message).toBe('Yuheng authentication request failed (401)')
         expect(error.message).not.toContain('password')
         expect(error.message).not.toContain('token')
     })
@@ -88,6 +88,6 @@ describe('createGatewayAuthClient', () => {
             code: 'NETWORK_OR_TIMEOUT',
             path: '/api/v1/auth/bootstrap',
         })
-        expect(networkError.message).toBe('Gateway authentication service is unreachable')
+        expect(networkError.message).toBe('Yuheng authentication service is unreachable')
     })
 })

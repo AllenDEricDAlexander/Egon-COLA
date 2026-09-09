@@ -21,9 +21,9 @@ export const LoginPage = () => {
   return (
     <main className="login-shell">
       <Card className="login-card">
-        <Typography.Title level={2}>Gateway Admin</Typography.Title>
+        <Typography.Title level={2}>Yuheng Admin</Typography.Title>
         <Typography.Paragraph type="secondary">
-            通过 Gateway 的公开身份接口登录；USER AT/RT 仅由 IdP 写入 HttpOnly Cookie。
+            通过 Yuheng 的公开身份接口登录；USER AT/RT 仅由 Tianquan-Shoubing 写入 HttpOnly Cookie。
         </Typography.Paragraph>
         {auth.error && <Alert type="error" showIcon message={auth.error} />}
         <Form<LoginForm>

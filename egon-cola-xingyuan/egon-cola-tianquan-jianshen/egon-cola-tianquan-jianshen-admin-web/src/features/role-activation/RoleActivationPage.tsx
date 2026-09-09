@@ -17,12 +17,12 @@ export const RoleActivationPage = () => {
   const queryClient = useQueryClient()
     const enabled = ['READY', 'ACTIVATION_REQUIRED'].includes(authorization.status)
   const candidates = useQuery({
-      queryKey: ['rbac3', 'activation-candidates', effectiveTenantId ?? 'none', authorization.about?.authVersion ?? 'none'],
+      queryKey: ['tianquan-jianshen', 'activation-candidates', effectiveTenantId ?? 'none', authorization.about?.authVersion ?? 'none'],
     queryFn: api.candidates,
     enabled,
   })
   const current = useQuery({
-    queryKey: ['rbac3', 'active-roles', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'active-roles', effectiveTenantId ?? 'none'],
     queryFn: api.current,
     enabled,
   })
@@ -53,8 +53,8 @@ export const RoleActivationPage = () => {
       await replaceActiveRoles(request)
       setSelectionOverride(null)
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['rbac3', 'active-roles'] }),
-        queryClient.invalidateQueries({ queryKey: ['rbac3', 'activation-candidates'] }),
+        queryClient.invalidateQueries({ queryKey: ['tianquan-jianshen', 'active-roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['tianquan-jianshen', 'activation-candidates'] }),
       ])
     } catch (error) {
       if (isStepUpRequired(error)) {
@@ -78,8 +78,8 @@ export const RoleActivationPage = () => {
       setStepUpCredential('')
       setSelectionOverride(null)
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['rbac3', 'active-roles'] }),
-        queryClient.invalidateQueries({ queryKey: ['rbac3', 'activation-candidates'] }),
+        queryClient.invalidateQueries({ queryKey: ['tianquan-jianshen', 'active-roles'] }),
+        queryClient.invalidateQueries({ queryKey: ['tianquan-jianshen', 'activation-candidates'] }),
       ])
     } catch (error) {
       setStepUpCredential('')
@@ -161,7 +161,7 @@ export const RoleActivationPage = () => {
         ]}
       >
         <Typography.Paragraph type="secondary">
-            所选角色包含高风险或关键权限。请重新输入当前密码，Gateway 会更新当前用户的短期 Access Token，然后继续激活原角色集合。
+            所选角色包含高风险或关键权限。请重新输入当前密码，Yuheng 会更新当前用户的短期 Access Token，然后继续激活原角色集合。
         </Typography.Paragraph>
         {stepUpError !== null && (
           <Alert

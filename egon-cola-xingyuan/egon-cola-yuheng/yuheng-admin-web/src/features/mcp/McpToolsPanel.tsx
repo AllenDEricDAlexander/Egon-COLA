@@ -47,7 +47,7 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const canWrite = useCapability('gateway:mcp:write')
+  const canWrite = useCapability('yuheng:mcp:write')
   const queryClient = useQueryClient()
   const [messageApi, messageContext] = message.useMessage()
   const [form] = Form.useForm<OverrideForm>()
@@ -66,7 +66,7 @@ export const McpToolsPanel = ({ serverId, gatewayGroupId, draftRevision }: {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['mcp-managed-tools', gatewayGroupId] }),
       queryClient.invalidateQueries({ queryKey: ['mcp-tool-references', gatewayGroupId] }),
-      queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       queryClient.invalidateQueries({ queryKey: ['mcp-capability-preview', serverId] }),
     ])
   }

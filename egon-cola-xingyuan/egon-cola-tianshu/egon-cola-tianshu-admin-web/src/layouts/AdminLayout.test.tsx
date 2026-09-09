@@ -60,24 +60,24 @@ afterEach(() => {
 })
 
 describe('AdminLayout', () => {
-  it('keeps DDC runtime and metadata navigation when embedded', () => {
+  it('keeps Tianshu runtime and metadata navigation when embedded', () => {
     setViewport(1280)
     renderLayout('/registry', true)
 
     expect(screen.getByText('运行状态')).toBeInTheDocument()
     expect(screen.getByText('元数据管理')).toBeInTheDocument()
-    expect(screen.queryByText('DDC Admin')).not.toBeInTheDocument()
+    expect(screen.queryByText('Tianshu Admin')).not.toBeInTheDocument()
   })
 
   it('renders the unified Banner and grouped left navigation on desktop', () => {
     setViewport(1280)
     renderLayout()
 
-    expect(screen.getByText('DDC Admin')).toBeInTheDocument()
+    expect(screen.getByText('Tianshu Admin')).toBeInTheDocument()
     expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument()
     expect(screen.queryByRole('menu', {name: '主导航'})).not.toBeInTheDocument()
     expect(screen.getByText('服务注册')).toBeInTheDocument()
-    expect(screen.getByText('DDC 已连接')).toBeInTheDocument()
+    expect(screen.getByText('Tianshu 已连接')).toBeInTheDocument()
     expect(screen.getByText('Mario')).toBeInTheDocument()
     expect(screen.getByText('注册页内容')).toBeInTheDocument()
     expect(screen.getByText('版本 v5.3.2')).toBeInTheDocument()

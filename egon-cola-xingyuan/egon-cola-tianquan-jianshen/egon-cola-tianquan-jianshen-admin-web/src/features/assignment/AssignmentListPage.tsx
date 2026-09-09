@@ -25,9 +25,9 @@ export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
   const users = directoryApi(client)
   const queryClient = useQueryClient()
   const [editorOpen, setEditorOpen] = useState(false)
-  const queryKey = ['rbac3', 'assignments', effectiveTenantId ?? 'none', userId]
+  const queryKey = ['tianquan-jianshen', 'assignments', effectiveTenantId ?? 'none', userId]
   const query = useQuery({ queryKey, queryFn: () => api.list(userId), enabled: status === 'READY' })
-  const userQueryKey = ['rbac3', 'directory-user', effectiveTenantId ?? 'none', userId]
+  const userQueryKey = ['tianquan-jianshen', 'directory-user', effectiveTenantId ?? 'none', userId]
   const targetUser = useQuery({
     queryKey: userQueryKey,
     queryFn: () => users.user(userId),
@@ -37,7 +37,7 @@ export const AssignmentListPage = ({ userId }: AssignmentListPageProps) => {
     await Promise.all([
       queryClient.invalidateQueries({queryKey}),
       queryClient.invalidateQueries({queryKey: userQueryKey}),
-      queryClient.invalidateQueries({queryKey: ['rbac3', 'directory-users']}),
+      queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'directory-users']}),
     ])
   }
   const create = useMutation({

@@ -37,7 +37,7 @@ const AdminLayout = ({ children, embedded = false }: PropsWithChildren<{ readonl
   if (!about) return null
   // 导航由 SDK 的 visibleNavigation 提供（含权限过滤），shared 只负责渲染与高亮。
   const config: EnterpriseLayoutConfig = {
-    platformName: 'RBAC3 权限平台',
+    platformName: 'Tianquan-Jianshen 权限平台',
     navigation: visibleNavigation(about),
     user: {
         name: about.user.subject,

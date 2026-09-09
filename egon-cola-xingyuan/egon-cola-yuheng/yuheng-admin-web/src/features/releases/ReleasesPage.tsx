@@ -13,7 +13,7 @@ import { StatusTag } from '../../components/StatusTag'
 export const ReleasesPage = () => {
   const { groupId = '' } = useParams()
   const queryClient = useQueryClient()
-  const canPublish = useCapability('gateway:releases:write')
+  const canPublish = useCapability('yuheng:releases:write')
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState('')
   const [trace] = useState(() => createLogicalTrace())
@@ -63,7 +63,7 @@ export const ReleasesPage = () => {
         dataSource={releases.data ?? []}
         scroll={{ x: 1000 }}
         columns={[
-          { title: 'Release ID', render: (_, row) => <Link to={`/gateway-groups/${groupId}/releases/${row.id}`}>{row.id}</Link> },
+          { title: 'Release ID', render: (_, row) => <Link to={`/yuheng-groups/${groupId}/releases/${row.id}`}>{row.id}</Link> },
           { title: 'Draft Revision', dataIndex: 'draftRevision' },
           { title: '状态', render: (_, row) => <StatusTag status={row.status} partialApplied={row.partialApplied} /> },
           { title: 'Change ID', dataIndex: 'changeId' },

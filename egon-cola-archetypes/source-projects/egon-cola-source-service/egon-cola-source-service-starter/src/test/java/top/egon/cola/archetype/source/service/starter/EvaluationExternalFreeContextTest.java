@@ -14,7 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @ActiveProfiles("test")
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
-        properties = {"egon.cola.component.rpc.enabled=false", "egon.cola.component.ddc.enabled=false"})
+        properties = {"egon.cola.component.rpc.enabled=false", "egon.cola.component.tianshu.enabled=false"})
 class EvaluationExternalFreeContextTest {
 
     @Autowired private ApplicationContext context;

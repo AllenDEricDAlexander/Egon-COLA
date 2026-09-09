@@ -5,30 +5,30 @@ import { extname, join, normalize } from 'node:path'
 
 const port = Number.parseInt(process.env.PORT ?? '8080', 10)
 const apiBase = new URL(
-  process.env.GATEWAY_ADMIN_API_BASE_URL ?? 'http://gateway-admin:18080',
+  process.env.YUHENG_ADMIN_API_BASE_URL ?? 'http://yuheng-admin:18080',
 )
 const developmentPlaintext =
-  process.env.GATEWAY_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
+  process.env.YUHENG_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
 const tlsFile = (name) => {
   const path = process.env[name]
   if (!path) {
-    throw new Error(`${name} is required for Gateway Admin mTLS`)
+    throw new Error(`${name} is required for Yuheng Admin mTLS`)
   }
   return readFileSync(path)
 }
 if (apiBase.protocol === 'http:' && !developmentPlaintext) {
   throw new Error(
-    'Gateway Admin plaintext requires explicit development configuration',
+    'Yuheng Admin plaintext requires explicit development configuration',
   )
 }
 if (!['http:', 'https:'].includes(apiBase.protocol)) {
-  throw new Error('Gateway Admin API must use HTTP or HTTPS')
+  throw new Error('Yuheng Admin API must use HTTP or HTTPS')
 }
 const apiTls = apiBase.protocol === 'https:'
   ? {
-      ca: tlsFile('GATEWAY_ADMIN_API_TLS_CA_PATH'),
-      cert: tlsFile('GATEWAY_ADMIN_API_TLS_CERTIFICATE_PATH'),
-      key: tlsFile('GATEWAY_ADMIN_API_TLS_PRIVATE_KEY_PATH'),
+      ca: tlsFile('YUHENG_ADMIN_API_TLS_CA_PATH'),
+      cert: tlsFile('YUHENG_ADMIN_API_TLS_CERTIFICATE_PATH'),
+      key: tlsFile('YUHENG_ADMIN_API_TLS_PRIVATE_KEY_PATH'),
       rejectUnauthorized: true,
       servername: apiBase.hostname,
     }
@@ -65,7 +65,7 @@ const proxy = (incoming, outgoing) => {
     if (!outgoing.headersSent) {
       outgoing.writeHead(502, { 'Content-Type': 'application/json' })
     }
-    outgoing.end('{"code":"GATEWAY_ADMIN_WEB_UPSTREAM_UNAVAILABLE"}')
+    outgoing.end('{"code":"YUHENG_ADMIN_WEB_UPSTREAM_UNAVAILABLE"}')
   })
   incoming.pipe(upstream)
 }

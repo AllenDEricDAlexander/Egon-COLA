@@ -10,7 +10,7 @@ export interface EnterpriseHeaderProps extends EnterpriseHeaderConfig {
   readonly onOpenNavigation?: () => void
 }
 
-/** Unified top Banner: brand, platform state/actions, user area, and mobile tree trigger. */
+/** Unified top Banner: brand, xingyuan state/actions, user area, and mobile tree trigger. */
 export const EnterpriseHeader = ({
   platformName,
   logo,

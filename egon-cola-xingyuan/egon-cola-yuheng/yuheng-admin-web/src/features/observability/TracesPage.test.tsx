@@ -34,8 +34,8 @@ const pageWithNewTrace: Page<TraceSummary> = {
     gatewayGroupId: 'group-local',
     operationKey: 'GET /api/orders/{id}',
     statusCategory: 'SUCCESS',
-    engineInstanceId: 'gateway-engine-local-1',
-    providerService: 'gateway-test-http-provider',
+    engineInstanceId: 'yuheng-biz-gateway-local-1',
+    providerService: 'yuheng-test-http-provider',
   }],
   page: 1,
   size: 20,
@@ -73,7 +73,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-it('shows a gateway call that arrives after the page was opened', async () => {
+it('shows a yuheng call that arrives after the page was opened', async () => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })

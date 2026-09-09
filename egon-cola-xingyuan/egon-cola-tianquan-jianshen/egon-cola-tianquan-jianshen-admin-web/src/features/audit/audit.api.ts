@@ -35,7 +35,7 @@ export interface AuditFilter {
 export const auditApi = (client: FeatureApiClient) => ({
   list: (filter: AuditFilter) => {
     const requestId = crypto.randomUUID()
-    return client.request<AuditPage>('/api/rbac3/v1/audit-logs', {
+    return client.request<AuditPage>('/api/tianquan-jianshen/v1/audit-logs', {
       query: {
         from: filter.from,
         to: filter.to,

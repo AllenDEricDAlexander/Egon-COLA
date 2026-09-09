@@ -9,7 +9,7 @@ PERFORMANCE_DIRECTORY="$(
 DEPLOYMENT_DIRECTORY="${PERFORMANCE_DIRECTORY}/../deployment"
 TARGET="${1:-}"
 DURATION_SECONDS="${2:-30}"
-OUTPUT_DIRECTORY="${GATEWAY_PERF_OUTPUT_DIRECTORY:-${PERFORMANCE_DIRECTORY}/artifacts}"
+OUTPUT_DIRECTORY="${YUHENG_PERF_OUTPUT_DIRECTORY:-${PERFORMANCE_DIRECTORY}/artifacts}"
 PAUSED_TARGET=""
 TARGET_KIND=""
 
@@ -24,10 +24,10 @@ case "${TARGET}" in
     TARGET_KIND="compose"
     ;;
   redis)
-    PAUSED_TARGET="${GATEWAY_FAULT_REDIS_SERVICE:-rate-limit-redis}"
+    PAUSED_TARGET="${YUHENG_FAULT_REDIS_SERVICE:-rate-limit-redis}"
     if [[ "${PAUSED_TARGET}" != "rate-limit-redis" \
-        && "${PAUSED_TARGET}" != "ddc-redis" ]]; then
-      echo "GATEWAY_FAULT_REDIS_SERVICE must be rate-limit-redis or ddc-redis" >&2
+        && "${PAUSED_TARGET}" != "tianshu-redis" ]]; then
+      echo "YUHENG_FAULT_REDIS_SERVICE must be rate-limit-redis or tianshu-redis" >&2
       exit 2
     fi
     TARGET_KIND="compose"
@@ -37,9 +37,9 @@ case "${TARGET}" in
     TARGET_KIND="compose"
     ;;
   provider)
-    PAUSED_TARGET="${GATEWAY_PROVIDER_CONTAINER:-}"
+    PAUSED_TARGET="${YUHENG_PROVIDER_CONTAINER:-}"
     if [[ -z "${PAUSED_TARGET}" ]]; then
-      echo "GATEWAY_PROVIDER_CONTAINER is required for provider faults" >&2
+      echo "YUHENG_PROVIDER_CONTAINER is required for provider faults" >&2
       exit 2
     fi
     TARGET_KIND="container"

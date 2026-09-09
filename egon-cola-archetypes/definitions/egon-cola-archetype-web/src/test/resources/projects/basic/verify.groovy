@@ -349,7 +349,7 @@ assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-
 }
 ['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
     def config = new File(projectDir, 'student-management-organization-starter/src/main/resources/' + profile).text
-    ['rpc:', 'ddc:', 'provider:', 'consumer:', 'registry:', 'gateway:', 'openapi:', 'idp:'].each { token ->
+    ['rpc:', 'tianshu:', 'provider:', 'consumer:', 'registry:', 'yuheng:', 'openapi:', 'tianquan-shoubing:'].each { token ->
         assert config.contains(token): "Missing native configuration ${token} in ${profile}"
     }
     assert !config.contains('DUBBO_') && !config.contains('NACOS_')
@@ -369,7 +369,7 @@ assert nativeOperations == ["createUser", "getUser", "assignRole", "grantPermiss
 ['docker', 'podman', 'nerdctl'].each { engine ->
     ['', '.prod'].each { profile ->
         def compose = new File(projectDir, "deploy/compose/compose.${engine}${profile}.yaml").text
-        assert compose.contains('DDC_APP_CODE: ${DDC_APP_CODE:?Set DDC_APP_CODE}')
+        assert compose.contains('TIANSHU_APP_CODE: ${TIANSHU_APP_CODE:?Set TIANSHU_APP_CODE}')
         ['${artifactId}', '${rootArtifactId}', '${parentArtifactId}'].each { marker ->
             assert !compose.contains(marker): "Unexpanded archetype variable in Compose: ${marker}"
         }

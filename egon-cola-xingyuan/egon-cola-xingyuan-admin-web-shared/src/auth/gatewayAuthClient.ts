@@ -42,7 +42,7 @@ export class GatewayAuthError extends Error {
 }
 
 /**
- * Browser authentication transport for the public Gateway identity routes.
+ * Browser authentication transport for the public Yuheng identity routes.
  * USER access and refresh tokens stay in HttpOnly cookies; this client never
  * reads, stores, parses, or returns either token.
  */
@@ -78,14 +78,14 @@ export const createGatewayAuthClient = (
             throw new GatewayAuthError(
                 'NETWORK_OR_TIMEOUT',
                 path,
-                'Gateway authentication service is unreachable',
+                'Yuheng authentication service is unreachable',
             )
         }
         if (!response.ok) {
             throw new GatewayAuthError(
                 'HTTP_ERROR',
                 path,
-                `Gateway authentication request failed (${response.status})`,
+                `Yuheng authentication request failed (${response.status})`,
                 response.status,
             )
         }
@@ -97,7 +97,7 @@ export const createGatewayAuthClient = (
             throw new GatewayAuthError(
                 'INVALID_RESPONSE',
                 path,
-                'Gateway authentication response is invalid',
+                'Yuheng authentication response is invalid',
                 response.status,
             )
         }
@@ -117,14 +117,14 @@ export const createGatewayAuthClient = (
             throw new GatewayAuthError(
                 'NETWORK_OR_TIMEOUT',
                 path,
-                'Gateway authentication service is unreachable',
+                'Yuheng authentication service is unreachable',
             )
         }
         if (!response.ok) {
             throw new GatewayAuthError(
                 'CSRF_FAILED',
                 path,
-                `Gateway login security challenge failed (${response.status})`,
+                `Yuheng login security challenge failed (${response.status})`,
                 response.status,
             )
         }
@@ -135,7 +135,7 @@ export const createGatewayAuthClient = (
             throw new GatewayAuthError(
                 'INVALID_RESPONSE',
                 path,
-                'Gateway login CSRF response is invalid',
+                'Yuheng login CSRF response is invalid',
                 response.status,
             )
         }
@@ -143,7 +143,7 @@ export const createGatewayAuthClient = (
             throw new GatewayAuthError(
                 'CSRF_FAILED',
                 path,
-                'Gateway login CSRF response is invalid',
+                'Yuheng login CSRF response is invalid',
                 response.status,
             )
         }
@@ -157,7 +157,7 @@ export const createGatewayAuthClient = (
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-IDP-CSRF': csrfToken,
+                    'X-Tianquan-Shoubing-CSRF': csrfToken,
                 },
                 body: JSON.stringify({
                     tenantId: required(credentials.tenantId, 'tenantId'),

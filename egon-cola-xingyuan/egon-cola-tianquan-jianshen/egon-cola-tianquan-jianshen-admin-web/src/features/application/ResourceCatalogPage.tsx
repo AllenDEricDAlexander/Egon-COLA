@@ -20,12 +20,12 @@ export const ResourceCatalogPage = ({ applicationId: initialApplicationId }: Res
   const [selectedApplicationId, setSelectedApplicationId] = useState(initialApplicationId ?? '')
   const [mappingResource, setMappingResource] = useState<ResourceView | null>(null)
   const applications = useQuery({
-    queryKey: ['rbac3', 'catalog-applications', effectiveTenantId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'catalog-applications', effectiveTenantId ?? 'none'],
     queryFn: api.applications,
     enabled: status === 'READY',
   })
   const applicationId = selectedApplicationId || applications.data?.[0]?.applicationId || ''
-  const queryKey = ['rbac3', 'resources', effectiveTenantId ?? 'none', applicationId]
+  const queryKey = ['tianquan-jianshen', 'resources', effectiveTenantId ?? 'none', applicationId]
   const query = useQuery({
     queryKey,
     queryFn: () => api.resources(applicationId),
@@ -36,7 +36,7 @@ export const ResourceCatalogPage = ({ applicationId: initialApplicationId }: Res
     onSuccess: () => queryClient.invalidateQueries({ queryKey }),
   })
   const mapping = useQuery({
-    queryKey: ['rbac3', 'resource-permission-mapping', effectiveTenantId ?? 'none', mappingResource?.resourceId ?? 'none'],
+    queryKey: ['tianquan-jianshen', 'resource-permission-mapping', effectiveTenantId ?? 'none', mappingResource?.resourceId ?? 'none'],
     queryFn: () => api.permissionMapping(mappingResource!.resourceId),
     enabled: status === 'READY' && mappingResource !== null,
   })
@@ -49,7 +49,7 @@ export const ResourceCatalogPage = ({ applicationId: initialApplicationId }: Res
       },
     ),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'resource-permission-mapping', effectiveTenantId ?? 'none', mappingResource?.resourceId ?? 'none']})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'resource-permission-mapping', effectiveTenantId ?? 'none', mappingResource?.resourceId ?? 'none']})
       await queryClient.invalidateQueries({queryKey})
       setMappingResource(null)
     },

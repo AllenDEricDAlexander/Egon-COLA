@@ -50,7 +50,7 @@ export const ProvidersPage = () => {
       <Alert
         showIcon
         type="info"
-        message="这里展示 DDC 注册与 Engine 健康投影，不是静态路由配置。Provider 地址不能写入 Route。"
+        message="这里展示 Tianshu 注册与 Engine 健康投影，不是静态路由配置。Provider 地址不能写入 Route。"
       />
       <Table<ProviderInstance>
         className="section-row"

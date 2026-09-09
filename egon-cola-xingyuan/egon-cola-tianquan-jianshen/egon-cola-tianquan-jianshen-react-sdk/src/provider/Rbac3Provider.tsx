@@ -56,7 +56,7 @@ export const Rbac3Provider = ({
                 .then(async (about) => {
                     // The initial RBAC context permits only reading self context and
                     // choosing roles; it does not yet represent a ready application.
-                    if (about.currentApplicationCode === 'rbac3-admin'
+                    if (about.currentApplicationCode === 'tianquan-jianshen-admin'
                         && about.activeRoles.length === 0
                         && about.permissions.includes('system:role-activation:use')) {
                         await loadActivation()

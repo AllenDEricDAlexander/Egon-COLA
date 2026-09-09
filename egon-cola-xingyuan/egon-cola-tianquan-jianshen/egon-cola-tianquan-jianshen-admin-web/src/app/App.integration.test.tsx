@@ -9,7 +9,7 @@ import {applicationRouteDescriptors, localResourceRegistry, resolveApplicationLa
 
 const about = (permissions: readonly string[], resourceCodes?: readonly string[]): Rbac3AboutView => ({
   user: { subject: 'mario', tenantId: '9', status: 'ACTIVE' },
-  currentApplicationCode: 'rbac3-admin',
+  currentApplicationCode: 'tianquan-jianshen-admin',
   activeRoles: [],
   permissions,
   resourceCodes: resourceCodes ?? localResourceRegistry.definitions
@@ -26,13 +26,13 @@ const about = (permissions: readonly string[], resourceCodes?: readonly string[]
 const wrapper = (permissions: readonly string[], path: string, resourceCodes?: readonly string[]) => ({ children }: { readonly children: React.ReactNode }) => {
     const sdk = {getAbout: async () => about(permissions, resourceCodes)} as unknown as Rbac3Client
   const feature: FeatureApiClient = { request: async <T,>(requestPath: string) => {
-    if (requestPath === '/api/rbac3/v1/iam/organizations') {
+    if (requestPath === '/api/tianquan-jianshen/v1/iam/organizations') {
       return [{
         orgUnitId: '1001', snapshotId: null, type: 'DEPARTMENT', code: 'hq', name: '总部',
         parentId: null, path: 'hq', depth: 0, status: 'ACTIVE',
       }] as T
     }
-    if (requestPath === '/api/rbac3/v1/iam/positions') {
+    if (requestPath === '/api/tianquan-jianshen/v1/iam/positions') {
       return [{
         positionId: '2001', snapshotId: null, code: 'ops-admin', name: '运营主管',
         orgUnitId: '1001', status: 'ACTIVE',
@@ -53,7 +53,7 @@ const wrapper = (permissions: readonly string[], path: string, resourceCodes?: r
 }
 
 describe('application router', () => {
-  it('keeps IAM navigation inside the embedded RBAC3 child', async () => {
+  it('keeps IAM navigation inside the embedded Tianquan-Jianshen child', async () => {
     const originalMatchMedia = window.matchMedia
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
@@ -77,7 +77,7 @@ describe('application router', () => {
       fireEvent.click(screen.getByText('目录'))
       expect(screen.getByText('用户')).toBeInTheDocument()
       expect(screen.getByText('IAM')).toBeInTheDocument()
-      expect(screen.queryByText('RBAC3 权限平台')).not.toBeInTheDocument()
+      expect(screen.queryByText('Tianquan-Jianshen 权限平台')).not.toBeInTheDocument()
     } finally {
       Object.defineProperty(window, 'matchMedia', {
         configurable: true,

@@ -30,70 +30,70 @@ class GatewayComposeConfigurationTest {
     @Test
     void deploymentSeparatesFourRoleReplicasAndPreservesThePublicRoute() throws IOException {
         Map<String, Object> services = map(compose().get("services"));
-        assertThat(services).containsKeys("gateway-engine", "gateway-engine-2",
-                "gateway-mcp-engine", "gateway-mcp-engine-2", "gateway-data-plane-proxy");
+        assertThat(services).containsKeys("yuheng-biz-gateway", "yuheng-biz-gateway-2",
+                "yuheng-mcp-gateway", "yuheng-mcp-gateway-2", "yuheng-data-plane-proxy");
         var identities = new java.util.HashSet<Object>();
         var stateVolumes = new java.util.HashSet<String>();
-        for (String name : List.of("gateway-engine", "gateway-engine-2", "gateway-mcp-engine", "gateway-mcp-engine-2")) {
+        for (String name : List.of("yuheng-biz-gateway", "yuheng-biz-gateway-2", "yuheng-mcp-gateway", "yuheng-mcp-gateway-2")) {
             var service = map(services.get(name));
             var environment = map(service.get("environment"));
-            boolean mcp = name.startsWith("gateway-mcp");
-            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_APP_CODE", mcp ? "gme" : "ge")
-                    .containsEntry("EGON_COLA_COMPONENT_DDC_BIZ_CODE", "${GATEWAY_BIZ_CODE}")
-                    .containsEntry("EGON_COLA_COMPONENT_DDC_ENV", "${GATEWAY_ENV:-local}")
-                    .containsEntry("EGON_COLA_COMPONENT_DDC_NAMESPACE", "${GATEWAY_NAMESPACE:-default}");
-            assertThat(identities.add(environment.get("EGON_COLA_COMPONENT_DDC_INSTANCE_ID"))).isTrue();
+            boolean mcp = name.startsWith("yuheng-mcp");
+            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_TIANSHU_APP_CODE", mcp ? "gme" : "ge")
+                    .containsEntry("EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE", "${YUHENG_BIZ_CODE}")
+                    .containsEntry("EGON_COLA_COMPONENT_TIANSHU_ENV", "${YUHENG_ENV:-local}")
+                    .containsEntry("EGON_COLA_COMPONENT_TIANSHU_NAMESPACE", "${YUHENG_NAMESPACE:-default}");
+            assertThat(identities.add(environment.get("EGON_COLA_COMPONENT_TIANSHU_INSTANCE_ID"))).isTrue();
             assertThat(stateVolumes.add(String.valueOf(list(service.get("volumes")).getFirst()))).isTrue();
             assertThat(map(service.get("healthcheck"))).containsKey("test");
             if (mcp) {
                 assertThat(map(service.get("build")).get("context"))
                         .isEqualTo("../yuheng-mcp-gateway");
-                assertThat(environment).containsEntry("GATEWAY_MCP_POSTGRES_URL", "jdbc:postgresql://postgres:5432/gateway_admin")
-                        .containsEntry("GATEWAY_MCP_ARTIFACT_ROOT", "/var/lib/egon-gateway-mcp/artifacts")
-                        .containsEntry("EGON_COLA_COMPONENT_DDC_RPC_AUTH_RUNTIME_ACCESS_KEY", "${GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY}");
-                assertThat(environment.keySet()).noneMatch(key -> key.contains("GATEWAY_ENGINE_RPC_"));
+                assertThat(environment).containsEntry("YUHENG_MCP_POSTGRES_URL", "jdbc:postgresql://postgres:5432/gateway_admin")
+                        .containsEntry("YUHENG_MCP_ARTIFACT_ROOT", "/var/lib/egon-yuheng-mcp/artifacts")
+                        .containsEntry("EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_RUNTIME_ACCESS_KEY", "${YUHENG_MCP_TIANSHU_RUNTIME_ACCESS_KEY}");
+                assertThat(environment.keySet()).noneMatch(key -> key.contains("YUHENG_ENGINE_RPC_"));
             } else {
                 assertThat(environment.keySet()).noneMatch(key -> key.contains("MCP") || key.contains("DATASOURCE"));
-                assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_RPC_AUTH_RUNTIME_ACCESS_KEY", "${DDC_RUNTIME_ACCESS_KEY}");
+                assertThat(environment).containsEntry("EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_RUNTIME_ACCESS_KEY", "${TIANSHU_RUNTIME_ACCESS_KEY}");
             }
         }
-        var proxy = map(services.get("gateway-data-plane-proxy"));
+        var proxy = map(services.get("yuheng-data-plane-proxy"));
         assertThat(list(proxy.get("ports"))).contains("18081:18081");
-        assertThat(list(map(services.get("gateway-engine")).get("ports"))).doesNotContain("18081:18081");
+        assertThat(list(map(services.get("yuheng-biz-gateway")).get("ports"))).doesNotContain("18081:18081");
         String routes = Files.readString(deploymentFile("haproxy.data-plane.cfg"));
         assertThat(routes).contains("path_beg /mcp/ /legacy/mcp/ /.well-known/oauth-protected-resource/mcp/",
                 "use_backend gateway_mcp_engines if is_mcp", "default_backend gateway_api_rpc_engines",
-                "gateway-mcp-engine:18084", "gateway-mcp-engine-2:18084", "/actuator/health/readiness");
+                "yuheng-mcp-gateway:18084", "yuheng-mcp-gateway-2:18084", "/actuator/health/readiness");
         assertThat(Files.readString(deploymentFile("haproxy.cfg"))).doesNotContain("gateway_mcp_engines", "path_beg");
     }
 
     @Test
     void allOverlaysPreserveRoleIdentityStateTlsAndPortIsolation() throws IOException {
         Map<String, Object> base = map(compose().get("services"));
-        var roles = List.of("gateway-engine", "gateway-engine-2", "gateway-mcp-engine", "gateway-mcp-engine-2");
+        var roles = List.of("yuheng-biz-gateway", "yuheng-biz-gateway-2", "yuheng-mcp-gateway", "yuheng-mcp-gateway-2");
         for (String file : List.of("compose.ha.yml", "compose.ha-mtls.yml")) {
             var services = map(compose(file).get("services"));
             for (String role : roles) {
                 assertThat(map(map(services.get(role)).get("environment")))
-                        .containsEntry("EGON_COLA_COMPONENT_DDC_RPC_TARGET", "dns:///control-plane-proxy:19080");
+                        .containsEntry("EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET", "dns:///control-plane-proxy:19080");
             }
         }
         var tls = map(compose("compose.mtls.yml").get("services"));
         for (String role : roles) {
             var environment = map(map(tls.get(role)).get("environment"));
-            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_DDC_RPC_TLS_CERTIFICATE_CHAIN_PATH",
+            assertThat(environment).containsEntry("EGON_COLA_COMPONENT_TIANSHU_RPC_TLS_CERTIFICATE_CHAIN_PATH",
                     "/run/egon-tls/" + role + ".crt");
             assertThat(environment).containsEntry("SERVER_ADDRESS", "0.0.0.0");
-            if (role.startsWith("gateway-mcp")) {
-                assertThat(environment).containsEntry("GATEWAY_MCP_ENGINE_CERTIFICATE_CHAIN_PATH", "/run/egon-tls/" + role + ".crt")
-                        .containsEntry("GATEWAY_MCP_ENGINE_DEVELOPMENT_PLAINTEXT", "false")
-                        .containsEntry("GATEWAY_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT", "false");
+            if (role.startsWith("yuheng-mcp")) {
+                assertThat(environment).containsEntry("YUHENG_MCP_ENGINE_CERTIFICATE_CHAIN_PATH", "/run/egon-tls/" + role + ".crt")
+                        .containsEntry("YUHENG_MCP_ENGINE_DEVELOPMENT_PLAINTEXT", "false")
+                        .containsEntry("YUHENG_MCP_ENGINE_OUTBOUND_RPC_DEVELOPMENT_PLAINTEXT", "false");
             } else {
-                assertThat(environment).containsEntry("EGON_COLA_COMPONENT_GATEWAY_ENGINE_TLS_RELOAD_ENABLED", "false");
+                assertThat(environment).containsEntry("EGON_COLA_COMPONENT_YUHENG_ENGINE_TLS_RELOAD_ENABLED", "false");
             }
         }
         for (var services : List.of(base, tls)) {
-            for (String first : List.of("gateway-engine", "gateway-mcp-engine")) {
+            for (String first : List.of("yuheng-biz-gateway", "yuheng-mcp-gateway")) {
                 assertThat(map(map(services.get(first)).get("environment")).keySet())
                         .containsExactlyInAnyOrderElementsOf(map(map(services.get(first + "-2")).get("environment")).keySet());
             }
@@ -122,28 +122,28 @@ class GatewayComposeConfigurationTest {
     @Test
     void ddcReplicasLoadACompleteListWithSeparateMcpCredentials() throws IOException {
         Map<String, Object> config;
-        try (InputStream input = Files.newInputStream(deploymentFile("ddc-rpc-credentials.yml"))) {
+        try (InputStream input = Files.newInputStream(deploymentFile("tianshu-rpc-credentials.yml"))) {
             config = map(new Yaml().load(input));
         }
-        for (String key : List.of("egon", "cola", "component", "ddc", "admin", "rpc")) {
+        for (String key : List.of("egon", "cola", "component", "tianshu", "admin", "rpc")) {
             config = map(config.get(key));
         }
         var credentials = list(config.get("credentials"));
         assertThat(credentials).hasSize(5);
         assertThat(credentials).extracting(value -> map(value).get("credential-id"))
-                .containsExactly("runtime", "registry", "management", "gateway-mcp-runtime", "gateway-mcp-registry");
-        assertThat(map(credentials.get(3))).containsEntry("access-key", "${GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY}");
-        assertThat(map(credentials.get(4))).containsEntry("access-key", "${GATEWAY_MCP_DDC_REGISTRY_ACCESS_KEY}");
-        for (var entry : Map.of("compose.yml", "ddc-admin", "compose.ha.yml", "ddc-admin-2").entrySet()) {
+                .containsExactly("runtime", "registry", "management", "yuheng-mcp-runtime", "yuheng-mcp-registry");
+        assertThat(map(credentials.get(3))).containsEntry("access-key", "${YUHENG_MCP_TIANSHU_RUNTIME_ACCESS_KEY}");
+        assertThat(map(credentials.get(4))).containsEntry("access-key", "${YUHENG_MCP_TIANSHU_REGISTRY_ACCESS_KEY}");
+        for (var entry : Map.of("compose.yml", "tianshu-admin", "compose.ha.yml", "tianshu-admin-2").entrySet()) {
             var service = map(map(compose(entry.getKey()).get("services")).get(entry.getValue()));
             assertThat(map(service.get("environment")))
-                    .containsEntry("SPRING_CONFIG_ADDITIONAL_LOCATION", "file:/run/egon-config/ddc-rpc-credentials.yml")
-                    .containsKeys("GATEWAY_MCP_DDC_RUNTIME_SECRET_KEY", "GATEWAY_MCP_DDC_REGISTRY_SECRET_KEY");
-            assertThat(list(service.get("volumes"))).contains("./ddc-rpc-credentials.yml:/run/egon-config/ddc-rpc-credentials.yml:ro");
+                    .containsEntry("SPRING_CONFIG_ADDITIONAL_LOCATION", "file:/run/egon-config/tianshu-rpc-credentials.yml")
+                    .containsKeys("YUHENG_MCP_TIANSHU_RUNTIME_SECRET_KEY", "YUHENG_MCP_TIANSHU_REGISTRY_SECRET_KEY");
+            assertThat(list(service.get("volumes"))).contains("./tianshu-rpc-credentials.yml:/run/egon-config/tianshu-rpc-credentials.yml:ro");
         }
     }
 
-    private static final Path GATEWAY_DEPLOYMENT = Path.of(
+    private static final Path YUHENG_DEPLOYMENT = Path.of(
             "egon-cola-xingyuan",
             "egon-cola-yuheng",
             "deployment"
@@ -177,40 +177,40 @@ class GatewayComposeConfigurationTest {
         Map<String, Object> services = map(compose.get("services"));
 
         assertEngineCoordinates(
-                map(services.get("gateway-engine")),
-                "gateway-engine"
+                map(services.get("yuheng-biz-gateway")),
+                "yuheng-biz-gateway"
         );
         assertEngineCoordinates(
-                map(services.get("gateway-engine-2")),
-                "gateway-engine-2"
+                map(services.get("yuheng-biz-gateway-2")),
+                "yuheng-biz-gateway-2"
         );
-        assertThat(map(map(services.get("gateway-admin")).get("environment")))
+        assertThat(map(map(services.get("yuheng-admin")).get("environment")))
                 .doesNotContainKeys(
-                        "EGON_COLA_COMPONENT_DDC_REDIS_HOST",
-                        "EGON_COLA_COMPONENT_DDC_REDIS_PORT"
+                        "EGON_COLA_COMPONENT_TIANSHU_REDIS_HOST",
+                        "EGON_COLA_COMPONENT_TIANSHU_REDIS_PORT"
                 );
     }
 
     @Test
     void ddcAdminExposesDirectRpcAlongsideHumanHttp() throws IOException {
         Map<String, Object> service = map(
-                map(compose().get("services")).get("ddc-admin")
+                map(compose().get("services")).get("tianshu-admin")
         );
         Map<String, Object> environment = map(service.get("environment"));
 
         assertThat(environment)
-                .containsEntry("DDC_RPC_PORT", 19080)
+                .containsEntry("TIANSHU_RPC_PORT", 19080)
                 .containsEntry(
-                        "DDC_RPC_DEVELOPMENT_PLAINTEXT",
+                        "TIANSHU_RPC_DEVELOPMENT_PLAINTEXT",
                         "true"
                 )
                 .containsKeys(
-                        "DDC_RPC_RUNTIME_ACCESS_KEY",
-                        "DDC_RPC_RUNTIME_SECRET_KEY",
-                        "DDC_RPC_REGISTRY_ACCESS_KEY",
-                        "DDC_RPC_REGISTRY_SECRET_KEY",
-                        "DDC_RPC_MANAGEMENT_ACCESS_KEY",
-                        "DDC_RPC_MANAGEMENT_SECRET_KEY"
+                        "TIANSHU_RPC_RUNTIME_ACCESS_KEY",
+                        "TIANSHU_RPC_RUNTIME_SECRET_KEY",
+                        "TIANSHU_RPC_REGISTRY_ACCESS_KEY",
+                        "TIANSHU_RPC_REGISTRY_SECRET_KEY",
+                        "TIANSHU_RPC_MANAGEMENT_ACCESS_KEY",
+                        "TIANSHU_RPC_MANAGEMENT_SECRET_KEY"
                 );
         assertThat(list(service.get("ports")))
                 .contains("18070:18080", "19080:19080");
@@ -224,42 +224,42 @@ class GatewayComposeConfigurationTest {
             throws IOException {
         Map<String, Object> services = map(compose().get("services"));
         for (String serviceName : List.of(
-                "gateway-admin",
-                "gateway-engine",
-                "gateway-engine-2")) {
+                "yuheng-admin",
+                "yuheng-biz-gateway",
+                "yuheng-biz-gateway-2")) {
             Map<String, Object> environment = map(
                     map(services.get(serviceName)).get("environment")
             );
             assertThat(environment)
                     .as(serviceName)
                     .containsEntry(
-                            "EGON_COLA_COMPONENT_DDC_RPC_TARGET",
-                            "dns:///ddc-admin:19080"
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET",
+                            "dns:///tianshu-admin:19080"
                     )
                     .containsEntry(
-                            "EGON_COLA_COMPONENT_DDC_RPC_LOAD_BALANCING_POLICY",
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_LOAD_BALANCING_POLICY",
                             "round_robin"
                     );
             assertNoLegacyDdcHttpConfiguration(environment);
         }
-        assertThat(map(map(services.get("gateway-admin"))
+        assertThat(map(map(services.get("yuheng-admin"))
                 .get("environment")))
                 .containsKeys(
-                        "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                        "EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_"
                                 + "MANAGEMENT_ACCESS_KEY",
-                        "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                        "EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_"
                                 + "MANAGEMENT_SECRET_KEY"
                 );
         for (String serviceName : List.of(
-                "gateway-engine",
-                "gateway-engine-2")) {
+                "yuheng-biz-gateway",
+                "yuheng-biz-gateway-2")) {
             assertThat(map(map(services.get(serviceName))
                     .get("environment")))
                     .as(serviceName)
                     .containsKeys(
-                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_"
                                     + "RUNTIME_ACCESS_KEY",
-                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_"
                                     + "REGISTRY_ACCESS_KEY"
                     );
         }
@@ -282,13 +282,13 @@ class GatewayComposeConfigurationTest {
             assertThat(environment)
                     .as(serviceName)
                     .containsEntry(
-                            "EGON_COLA_COMPONENT_DDC_RPC_TARGET",
-                            "dns:///ddc-admin:19080"
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET",
+                            "dns:///tianshu-admin:19080"
                     )
                     .containsKeys(
-                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_"
                                     + "RUNTIME_ACCESS_KEY",
-                            "EGON_COLA_COMPONENT_DDC_RPC_AUTH_"
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_AUTH_"
                                     + "REGISTRY_ACCESS_KEY"
                     );
             assertNoLegacyDdcHttpConfiguration(environment);
@@ -301,7 +301,7 @@ class GatewayComposeConfigurationTest {
         Map<String, Object> services = map(
                 compose("compose.ha.yml").get("services")
         );
-        Map<String, Object> secondDdc = map(services.get("ddc-admin-2"));
+        Map<String, Object> secondDdc = map(services.get("tianshu-admin-2"));
         Map<String, Object> secondDdcEnvironment = map(
                 secondDdc.get("environment")
         );
@@ -310,31 +310,31 @@ class GatewayComposeConfigurationTest {
         );
 
         assertThat(secondDdcEnvironment)
-                .containsEntry("DDC_RPC_PORT", 19080)
+                .containsEntry("TIANSHU_RPC_PORT", 19080)
                 .containsEntry(
                         "SPRING_DATASOURCE_URL",
                         "jdbc:postgresql://postgres:5432/gateway_ddc"
                 )
                 .containsEntry(
-                        "EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST",
-                        "ddc-redis"
+                        "EGON_COLA_COMPONENT_TIANSHU_ADMIN_REDIS_HOST",
+                        "tianshu-redis"
                 );
         assertThat(list(secondDdc.get("ports")))
                 .contains("18170:18080", "19180:19080");
         assertThat(list(proxy.get("ports"))).contains("19280:19080");
 
         for (String serviceName : List.of(
-                "gateway-admin",
-                "gateway-admin-2",
-                "gateway-engine",
-                "gateway-engine-2")) {
+                "yuheng-admin",
+                "yuheng-admin-2",
+                "yuheng-biz-gateway",
+                "yuheng-biz-gateway-2")) {
             Map<String, Object> environment = map(
                     map(services.get(serviceName)).get("environment")
             );
             assertThat(environment)
                     .as(serviceName)
                     .containsEntry(
-                            "EGON_COLA_COMPONENT_DDC_RPC_TARGET",
+                            "EGON_COLA_COMPONENT_TIANSHU_RPC_TARGET",
                             "dns:///control-plane-proxy:19080"
                     );
             assertNoLegacyDdcHttpConfiguration(environment);
@@ -346,25 +346,25 @@ class GatewayComposeConfigurationTest {
         Properties environment = deploymentEnvironment();
 
         assertThat(environment)
-                .containsEntry("GATEWAY_BIZ_CODE", "default")
-                .containsEntry("GATEWAY_RPC_SERVICE_NAME", "egon-gateway-rpc")
-                .containsEntry("GATEWAY_RPC_GROUP", "default")
-                .containsEntry("GATEWAY_RPC_VERSION", "1.0.0");
+                .containsEntry("YUHENG_BIZ_CODE", "default")
+                .containsEntry("YUHENG_RPC_SERVICE_NAME", "egon-yuheng-rpc")
+                .containsEntry("YUHENG_RPC_GROUP", "default")
+                .containsEntry("YUHENG_RPC_VERSION", "1.0.0");
     }
 
     @Test
     void servicesUseDistinctExplicitMachineIds() throws IOException {
         Map<String, Object> services = map(compose().get("services"));
-        assertMachineId(services, "ddc-admin", "1");
-        assertMachineId(services, "gateway-admin", "2");
-        assertMachineId(services, "gateway-engine", "10");
-        assertMachineId(services, "gateway-engine-2", "11");
+        assertMachineId(services, "tianshu-admin", "1");
+        assertMachineId(services, "yuheng-admin", "2");
+        assertMachineId(services, "yuheng-biz-gateway", "10");
+        assertMachineId(services, "yuheng-biz-gateway-2", "11");
 
         Map<String, Object> haServices = map(
                 compose("compose.ha.yml").get("services")
         );
-        assertMachineId(haServices, "ddc-admin-2", "3");
-        assertMachineId(haServices, "gateway-admin-2", "4");
+        assertMachineId(haServices, "tianshu-admin-2", "3");
+        assertMachineId(haServices, "yuheng-admin-2", "4");
     }
 
     @Test
@@ -397,13 +397,13 @@ class GatewayComposeConfigurationTest {
         );
         Map<String, String> expectedArtifacts = Map.of(
                 "http-provider-mvc",
-                "gateway-test-http-provider-exec.jar",
+                "yuheng-test-http-provider-exec.jar",
                 "http-provider-webflux",
-                "gateway-test-webflux-http-provider-exec.jar",
+                "yuheng-test-webflux-http-provider-exec.jar",
                 "rpc-provider",
-                "gateway-test-rpc-provider-exec.jar",
+                "yuheng-test-rpc-provider-exec.jar",
                 "rpc-consumer",
-                "gateway-test-rpc-consumer-exec.jar"
+                "yuheng-test-rpc-consumer-exec.jar"
         );
 
         expectedArtifacts.forEach((serviceName, artifactName) -> {
@@ -425,7 +425,7 @@ class GatewayComposeConfigurationTest {
         MutablePropertySources sources = new MutablePropertySources();
         sources.addFirst(new MapPropertySource(
                 "test-override",
-                Map.of("gateway.test.service-version", "2.0.0-test")
+                Map.of("yuheng.test.service-version", "2.0.0-test")
         ));
         new YamlPropertySourceLoader()
                 .load(
@@ -439,7 +439,7 @@ class GatewayComposeConfigurationTest {
                 new PropertySourcesPropertyResolver(sources);
 
         assertThat(resolver.getProperty(
-                "egon.cola.component.gateway.openapi.artifact-version"
+                "egon.cola.component.yuheng.openapi.artifact-version"
         )).isEqualTo("2.0.0-test");
     }
 
@@ -462,26 +462,26 @@ class GatewayComposeConfigurationTest {
         Map<String, Object> environment = map(service.get("environment"));
         assertThat(environment)
                 .containsEntry(
-                        "EGON_COLA_COMPONENT_DDC_BIZ_CODE",
-                        "${GATEWAY_BIZ_CODE}"
+                        "EGON_COLA_COMPONENT_TIANSHU_BIZ_CODE",
+                        "${YUHENG_BIZ_CODE}"
                 )
-                .containsEntry("EGON_COLA_COMPONENT_DDC_REDIS_HOST", "ddc-redis")
-                .containsEntry("EGON_COLA_COMPONENT_DDC_REDIS_PORT", 6379)
+                .containsEntry("EGON_COLA_COMPONENT_TIANSHU_REDIS_HOST", "tianshu-redis")
+                .containsEntry("EGON_COLA_COMPONENT_TIANSHU_REDIS_PORT", 6379)
                 .containsEntry(
-                        "EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_ADVERTISED_HOST",
+                        "EGON_COLA_COMPONENT_YUHENG_ENGINE_RPC_ADVERTISED_HOST",
                         advertisedHost
                 )
                 .containsEntry(
-                        "EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_SERVICE_NAME",
-                        "${GATEWAY_RPC_SERVICE_NAME}"
+                        "EGON_COLA_COMPONENT_YUHENG_ENGINE_RPC_SERVICE_NAME",
+                        "${YUHENG_RPC_SERVICE_NAME}"
                 )
                 .containsEntry(
-                        "EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_GROUP",
-                        "${GATEWAY_RPC_GROUP}"
+                        "EGON_COLA_COMPONENT_YUHENG_ENGINE_RPC_GROUP",
+                        "${YUHENG_RPC_GROUP}"
                 )
                 .containsEntry(
-                        "EGON_COLA_COMPONENT_GATEWAY_ENGINE_RPC_VERSION",
-                        "${GATEWAY_RPC_VERSION}"
+                        "EGON_COLA_COMPONENT_YUHENG_ENGINE_RPC_VERSION",
+                        "${YUHENG_RPC_VERSION}"
                 );
 
         StandardEnvironment springEnvironment = new StandardEnvironment();
@@ -495,15 +495,15 @@ class GatewayComposeConfigurationTest {
         ConfigurationPropertySources.attach(springEnvironment);
         DdcProperties ddc = Binder.get(springEnvironment)
                 .bind(
-                        "egon.cola.component.ddc",
+                        "egon.cola.component.tianshu",
                         DdcProperties.class
                 )
                 .orElseThrow(() -> new IllegalStateException(
-                        "DDC Compose environment did not bind"
+                        "Tianshu Compose environment did not bind"
                 ));
         GatewayEngineRuntimeProperties engine = Binder.get(springEnvironment)
                 .bind(
-                        "egon.cola.component.gateway.engine",
+                        "egon.cola.component.yuheng.engine",
                         GatewayEngineRuntimeProperties.class
                 )
                 .orElseThrow(() -> new IllegalStateException(
@@ -511,12 +511,12 @@ class GatewayComposeConfigurationTest {
                 ));
 
         assertThat(ddc.getBizCode()).isEqualTo("default");
-        assertThat(ddc.getRedis().getHost()).isEqualTo("ddc-redis");
+        assertThat(ddc.getRedis().getHost()).isEqualTo("tianshu-redis");
         assertThat(ddc.getRedis().getPort()).isEqualTo(6379);
         assertThat(engine.getRpc().getAdvertisedHost())
                 .isEqualTo(advertisedHost);
         assertThat(engine.getRpc().getServiceName())
-                .isEqualTo("egon-gateway-rpc");
+                .isEqualTo("egon-yuheng-rpc");
         assertThat(engine.getRpc().getGroup()).isEqualTo("default");
         assertThat(engine.getRpc().getVersion()).isEqualTo("1.0.0");
     }
@@ -524,10 +524,10 @@ class GatewayComposeConfigurationTest {
     private void assertNoLegacyDdcHttpConfiguration(
             Map<String, Object> environment) {
         assertThat(environment.keySet())
-                .noneMatch(key -> key.contains("DDC_ADMIN_ENDPOINT"))
-                .noneMatch(key -> key.contains("DDC_ADMIN_OPENAPI"))
-                .noneMatch(key -> key.startsWith("DDC_OPENAPI_"))
-                .noneMatch(key -> key.startsWith("GATEWAY_ADMIN_DDC_ENDPOINT"));
+                .noneMatch(key -> key.contains("TIANSHU_ADMIN_ENDPOINT"))
+                .noneMatch(key -> key.contains("TIANSHU_ADMIN_OPENAPI"))
+                .noneMatch(key -> key.startsWith("TIANSHU_OPENAPI_"))
+                .noneMatch(key -> key.startsWith("YUHENG_ADMIN_TIANSHU_ENDPOINT"));
     }
 
     private Map<String, Object> resolvedEnvironment(
@@ -634,7 +634,7 @@ class GatewayComposeConfigurationTest {
     }
 
     private Path deploymentFile(String fileName) {
-        return projectFile(GATEWAY_DEPLOYMENT.resolve(fileName));
+        return projectFile(YUHENG_DEPLOYMENT.resolve(fileName));
     }
 
     private Path projectFile(Path projectPath) {

@@ -81,7 +81,7 @@ class OpenArchitectureTest {
         noClasses()
                 .should().dependOnClassesThat()
                 .resideInAnyPackage(
-                        "org.springframework.cloud." + "gateway..",
+                        "org.springframework.cloud." + "yuheng..",
                         "org." + "fly" + "waydb..",
                         "org.liqui" + "base..",
                         "jakarta." + "persistence..",

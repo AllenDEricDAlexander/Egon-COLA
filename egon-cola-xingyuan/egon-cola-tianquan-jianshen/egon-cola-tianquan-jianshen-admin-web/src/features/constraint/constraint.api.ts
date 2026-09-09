@@ -116,48 +116,48 @@ export interface OperationSodRuleView {
 }
 
 export const constraintApi = (client: FeatureApiClient) => ({
-  sodSets: () => client.request<readonly SodSetView[]>('/api/rbac3/v1/iam/policies/sod-sets'),
+  sodSets: () => client.request<readonly SodSetView[]>('/api/tianquan-jianshen/v1/iam/policies/sod-sets'),
   createSod: (command: SodSetCommand) => client.request<MutationResult>(
-    '/api/rbac3/v1/iam/policies/sod-sets',
+    '/api/tianquan-jianshen/v1/iam/policies/sod-sets',
     {method: 'POST', body: command},
   ),
   updateSod: (setId: string, command: SodSetCommand) => client.request<MutationResult>(
-    `/api/rbac3/v1/iam/policies/sod-sets/${encodeURIComponent(setId)}`,
+    `/api/tianquan-jianshen/v1/iam/policies/sod-sets/${encodeURIComponent(setId)}`,
     {method: 'PUT', body: command},
   ),
   savePrerequisites: (roleId: string, command: PrerequisiteGroupCommand) => client.request<MutationResult>(
-    `/api/rbac3/v1/iam/policies/roles/${encodeURIComponent(roleId)}/prerequisite-groups`,
+    `/api/tianquan-jianshen/v1/iam/policies/roles/${encodeURIComponent(roleId)}/prerequisite-groups`,
     {method: 'POST', body: command},
   ),
   saveCardinality: (roleId: string, command: CardinalityCommand) => client.request<MutationResult>(
-    `/api/rbac3/v1/iam/policies/roles/${encodeURIComponent(roleId)}/cardinality`,
+    `/api/tianquan-jianshen/v1/iam/policies/roles/${encodeURIComponent(roleId)}/cardinality`,
     {method: 'PUT', body: command},
   ),
-  dataRules: () => client.request<readonly DataRuleView[]>('/api/rbac3/v1/iam/policies/data-rules'),
+  dataRules: () => client.request<readonly DataRuleView[]>('/api/tianquan-jianshen/v1/iam/policies/data-rules'),
   createDataRule: (command: DataRuleCommand) => client.request<MutationResult>(
-    '/api/rbac3/v1/iam/policies/data-rules',
+    '/api/tianquan-jianshen/v1/iam/policies/data-rules',
     {method: 'POST', body: command},
   ),
   updateDataRule: (ruleId: string, command: DataRuleCommand) => client.request<MutationResult>(
-    `/api/rbac3/v1/iam/policies/data-rules/${encodeURIComponent(ruleId)}`,
+    `/api/tianquan-jianshen/v1/iam/policies/data-rules/${encodeURIComponent(ruleId)}`,
     {method: 'PUT', body: command},
   ),
-  fieldRules: () => client.request<readonly FieldRuleView[]>('/api/rbac3/v1/iam/policies/field-rules'),
+  fieldRules: () => client.request<readonly FieldRuleView[]>('/api/tianquan-jianshen/v1/iam/policies/field-rules'),
   createFieldRule: (command: FieldRuleCommand) => client.request<MutationResult>(
-    '/api/rbac3/v1/iam/policies/field-rules',
+    '/api/tianquan-jianshen/v1/iam/policies/field-rules',
     {method: 'POST', body: command},
   ),
   updateFieldRule: (ruleId: string, command: FieldRuleCommand) => client.request<MutationResult>(
-    `/api/rbac3/v1/iam/policies/field-rules/${encodeURIComponent(ruleId)}`,
+    `/api/tianquan-jianshen/v1/iam/policies/field-rules/${encodeURIComponent(ruleId)}`,
     {method: 'PUT', body: command},
   ),
-  operationSodRules: () => client.request<readonly OperationSodRuleView[]>('/api/rbac3/v1/iam/policies/operation-sod-rules'),
+  operationSodRules: () => client.request<readonly OperationSodRuleView[]>('/api/tianquan-jianshen/v1/iam/policies/operation-sod-rules'),
   createOperationSodRule: (command: OperationSodRuleCommand) => client.request<MutationResult>(
-    '/api/rbac3/v1/iam/policies/operation-sod-rules',
+    '/api/tianquan-jianshen/v1/iam/policies/operation-sod-rules',
     {method: 'POST', body: command},
   ),
   updateOperationSodRule: (ruleId: string, command: OperationSodRuleCommand) => client.request<MutationResult>(
-    `/api/rbac3/v1/iam/policies/operation-sod-rules/${encodeURIComponent(ruleId)}`,
+    `/api/tianquan-jianshen/v1/iam/policies/operation-sod-rules/${encodeURIComponent(ruleId)}`,
     {method: 'PUT', body: command},
   ),
 })

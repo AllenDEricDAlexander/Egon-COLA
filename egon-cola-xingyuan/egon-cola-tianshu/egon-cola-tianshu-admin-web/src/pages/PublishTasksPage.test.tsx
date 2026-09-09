@@ -35,7 +35,7 @@ const pageRecord = (total = 12) => ({
 const failure = {
   success: false,
   code: 56999,
-  status: 'DDC_INTERNAL_FAILURE',
+  status: 'TIANSHU_INTERNAL_FAILURE',
   message: '发布任务加载失败',
   data: null,
   timestamp: 1,
@@ -115,7 +115,7 @@ describe('PublishTasksPage', () => {
     expect(screen.getByText('共 12 条')).toBeInTheDocument()
     expect(fetch).toHaveBeenCalledWith(
       expect.stringContaining(
-        '/api/v1/ddc/publish-tasks/page?pageNo=1&pageSize=10',
+        '/api/v1/tianshu/publish-tasks/page?pageNo=1&pageSize=10',
       ),
       expect.anything(),
     )

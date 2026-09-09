@@ -13,10 +13,10 @@ export class Rbac3ComponentRegistry {
   register(key: string, component: ComponentType): this {
     const normalized = requireLocalKey(key)
     if (this.components.has(normalized)) {
-      throw new Error(`duplicate RBAC3 component key: ${normalized}`)
+      throw new Error(`duplicate Tianquan-Jianshen component key: ${normalized}`)
     }
     if (typeof component !== 'function') {
-      throw new Error(`RBAC3 component key ${normalized} must reference a local React component`)
+      throw new Error(`Tianquan-Jianshen component key ${normalized} must reference a local React component`)
     }
     this.components.set(normalized, component)
     return this
@@ -33,7 +33,7 @@ export class Rbac3ComponentRegistry {
   require(key: string): ComponentType {
     const component = this.resolve(key)
     if (component === null) {
-      throw new Error(`unknown RBAC3 component key: ${key}`)
+      throw new Error(`unknown Tianquan-Jianshen component key: ${key}`)
     }
     return component
   }
@@ -47,7 +47,7 @@ const requireLocalKey = (value: string): string => {
   const key = value.trim()
   if (key.length === 0 || key.length > 128 || key.includes('://')
     || !/^[A-Za-z0-9][A-Za-z0-9._/-]*$/.test(key)) {
-    throw new Error('RBAC3 registry requires a local component key')
+    throw new Error('Tianquan-Jianshen registry requires a local component key')
   }
   return key
 }

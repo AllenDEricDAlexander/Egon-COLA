@@ -53,7 +53,7 @@ class OrganizationExternalFreeContextTest {
                 .map(name -> context.getType(name, false))
                 .filter(type -> type != null)
                 .map(Class::getName)
-                .filter(name -> name.contains("gateway")
+                .filter(name -> name.contains("yuheng")
                         || name.contains("fly" + "way")
                         || name.contains("jpa")
                         || name.contains("organization-" + "facade")

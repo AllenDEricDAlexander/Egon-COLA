@@ -4,7 +4,7 @@ import {setDdcUnauthorizedHandler} from '../api/client'
 import type {AuthorizationBootstrap} from '../api/types'
 
 const gatewayAuth = createGatewayAuthClient({
-    baseUrl: import.meta.env.VITE_GATEWAY_ORIGIN ?? '',
+    baseUrl: import.meta.env.VITE_YUHENG_ORIGIN ?? '',
 })
 
 export {gatewayAuth}
@@ -25,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string>()
     const identity = bootstrap?.user.identitySub ?? ''
-    const authorized = bootstrap?.permissions.includes('DDC_READ') ?? false
+    const authorized = bootstrap?.permissions.includes('TIANSHU_READ') ?? false
 
     const clearAuthorization = useCallback(() => {
         setBootstrap(undefined)
@@ -38,7 +38,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
             await gatewayAuth.login({tenantId, username, password})
             setBootstrap(await gatewayAuth.bootstrap<AuthorizationBootstrap>(
-                '/api/v1/ddc/auth/bootstrap',
+                '/api/v1/tianshu/auth/bootstrap',
             ))
         } catch (failure) {
             setError(failure instanceof Error ? failure.message : '统一身份登录失败')
@@ -60,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let active = true
       void gatewayAuth.bootstrap<AuthorizationBootstrap>(
-          '/api/v1/ddc/auth/bootstrap',
+          '/api/v1/tianshu/auth/bootstrap',
       )
           .then((value) => {
               if (active) setBootstrap(value)

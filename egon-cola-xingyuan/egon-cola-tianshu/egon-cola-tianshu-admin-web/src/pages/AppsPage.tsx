@@ -66,9 +66,9 @@ export default function AppsPage() {
     pageSize: pageState.page.pageSize,
   })
   const query = useQuery({
-    queryKey: ['ddc', 'apps', submitted, pageState.page],
+    queryKey: ['tianshu', 'apps', submitted, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcApp>(
-      `/api/v1/ddc/apps/page?${queryString}`,
+      `/api/v1/tianshu/apps/page?${queryString}`,
       { signal },
     ),
     placeholderData: keepPreviousData,
@@ -76,7 +76,7 @@ export default function AppsPage() {
   })
 
   const invalidate = async () => {
-    await queryClient.invalidateQueries({ queryKey: ['ddc', 'apps'] })
+    await queryClient.invalidateQueries({ queryKey: ['tianshu', 'apps'] })
     await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
   }
 
@@ -85,11 +85,11 @@ export default function AppsPage() {
       item: DdcApp | null
       values: AppFormValues
     }) => item
-      ? ddcApi(`/api/v1/ddc/apps/${encodeURIComponent(item.id)}`, {
+      ? ddcApi(`/api/v1/tianshu/apps/${encodeURIComponent(item.id)}`, {
         method: 'PUT',
         body: values,
       })
-      : ddcApi('/api/v1/ddc/apps', { method: 'POST', body: values }),
+      : ddcApi('/api/v1/tianshu/apps', { method: 'POST', body: values }),
     onSuccess: async () => {
       setOpen(false)
       await invalidate()
@@ -103,7 +103,7 @@ export default function AppsPage() {
   const toggleMutation = useMutation({
     mutationFn: ({ item, enabled }: { item: DdcApp; enabled: boolean }) =>
       ddcApi(
-        `/api/v1/ddc/apps/${encodeURIComponent(item.id)}/enabled?enabled=${enabled}`,
+        `/api/v1/tianshu/apps/${encodeURIComponent(item.id)}/enabled?enabled=${enabled}`,
         { method: 'PUT' },
       ),
     onSuccess: async () => {
@@ -117,7 +117,7 @@ export default function AppsPage() {
 
   const removeMutation = useMutation({
     mutationFn: (item: DdcApp) => ddcApi(
-      `/api/v1/ddc/apps/${encodeURIComponent(item.id)}`,
+      `/api/v1/tianshu/apps/${encodeURIComponent(item.id)}`,
       { method: 'DELETE' },
     ),
     onSuccess: async () => {

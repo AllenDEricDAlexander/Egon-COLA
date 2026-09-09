@@ -13,7 +13,7 @@ export interface PermissionSelectorProps {
 export const PermissionSelector = ({applicationId, value, onChange}: PermissionSelectorProps) => {
   const api = applicationApi(useFeatureApi())
   const permissions = useQuery({
-    queryKey: ['rbac3', 'assignable-permissions', applicationId],
+    queryKey: ['tianquan-jianshen', 'assignable-permissions', applicationId],
     queryFn: () => api.permissions(applicationId, true),
     enabled: applicationId.length > 0,
   })

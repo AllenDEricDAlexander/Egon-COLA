@@ -3,7 +3,7 @@ import { ddcApi } from '../../api/client'
 
 export type ScopeOption = { value: string; label: string }
 
-export const scopeOptionQueryKey = ['ddc', 'scope-options'] as const
+export const scopeOptionQueryKey = ['tianshu', 'scope-options'] as const
 
 export const scopeOptionKey = (path: string) => [
   ...scopeOptionQueryKey,

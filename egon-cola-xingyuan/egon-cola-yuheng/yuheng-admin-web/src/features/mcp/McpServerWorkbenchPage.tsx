@@ -25,7 +25,7 @@ export const McpServerWorkbenchPage = () => {
   })
   const gatewayGroupId = server.data?.gatewayGroupId ?? ''
   const draft = useQuery({
-    queryKey: ['gateway-draft', gatewayGroupId],
+    queryKey: ['yuheng-draft', gatewayGroupId],
     queryFn: ({ signal }) => gatewayApi.draft(gatewayGroupId, signal),
     enabled: Boolean(gatewayGroupId),
   })
@@ -35,7 +35,7 @@ export const McpServerWorkbenchPage = () => {
   if (!server.data) return <QueryFailure error={new Error('MCP Server 不存在')} />
   if (draft.isLoading) return <LoadingBlock />
   if (draft.error || !draft.data) {
-    return <QueryFailure error={draft.error ?? new Error('Gateway Draft 不存在')} />
+    return <QueryFailure error={draft.error ?? new Error('Yuheng Draft 不存在')} />
   }
 
   return (

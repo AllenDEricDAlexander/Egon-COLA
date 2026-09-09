@@ -61,9 +61,9 @@ const renderPage = () => {
   })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/gateway-groups/group-1/releases/release-1']}>
+      <MemoryRouter initialEntries={['/yuheng-groups/group-1/releases/release-1']}>
         <Routes>
-          <Route path="/gateway-groups/:groupId/releases/:releaseId" element={<ReleaseDetailPage />} />
+          <Route path="/yuheng-groups/:groupId/releases/:releaseId" element={<ReleaseDetailPage />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -99,7 +99,7 @@ afterEach(() => {
 })
 
 describe('ReleaseDetailPage evidence state', () => {
-  it('shows both role acknowledgements with independent DDC versions', async () => {
+  it('shows both role acknowledgements with independent Tianshu versions', async () => {
     mocks.release.mockResolvedValue({
       ...baseRelease,
       attempts: [{

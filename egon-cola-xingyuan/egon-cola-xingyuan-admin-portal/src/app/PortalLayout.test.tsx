@@ -25,15 +25,15 @@ const renderPortal = (router = false) => render(
 )
 
 describe('Portal shell', () => {
-  it('offers Gateway login in the host header and keeps the content frameless', async () => {
+  it('offers Yuheng login in the host header and keeps the content frameless', async () => {
     renderPortal()
     await screen.findByText('登录')
-    expect(screen.getByRole('img', {name: 'Egon COLA Platform'})).toHaveAttribute('src', '/favicon.png')
+    expect(screen.getByRole('img', {name: 'Egon COLA Xingyuan'})).toHaveAttribute('src', '/favicon.png')
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
     expect(screen.getByText('平台内容').closest('.ant-layout-content')).toHaveStyle({padding: '0px'})
     fireEvent.click(screen.getByRole('button', {name: /用户菜单|User Menu/}))
     fireEvent.click(await screen.findByRole('menuitem', {name: /登录/}))
-    const modal = await screen.findByRole('dialog', {name: '登录 Egon COLA Platform'})
+    const modal = await screen.findByRole('dialog', {name: '登录 Egon COLA Xingyuan'})
     fireEvent.change(within(modal).getByLabelText('租户 ID'), {target: {value: '123'}})
     fireEvent.change(within(modal).getByLabelText('用户名'), {target: {value: 'alice'}})
     fireEvent.change(within(modal).getByLabelText('密码'), {target: {value: 'example-password'}})
@@ -54,14 +54,14 @@ describe('Portal shell', () => {
     expect(await screen.findByText('退出登录失败，请重试')).toBeInTheDocument()
   })
 
-  it('opens a child platform directly instead of the introduction dashboard', async () => {
+  it('opens a child xingyuan directly instead of the introduction dashboard', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      key: 'idp', displayName: '身份与安全', url: '/children/idp/', standaloneUrl: '/idp/overview',
-      version: '5.3.2', contractVersion: 'platform-1', compatibleHostRange: '>=5.3.2 <6.0.0',
+      key: 'tianquan-shoubing', displayName: '身份与安全', url: '/children/tianquan-shoubing/', standaloneUrl: '/tianquan-shoubing/overview',
+      version: '5.3.2', contractVersion: 'xingyuan-1', compatibleHostRange: '>=5.3.2 <6.0.0',
       requiredCapabilities: [],
     }), {status: 200})))
     renderPortal(true)
-    expect(await screen.findByTestId('wujie-host-idp')).toBeInTheDocument()
+    expect(await screen.findByTestId('wujie-host-tianquan-shoubing')).toBeInTheDocument()
     expect(screen.queryByRole('heading', {name: '平台工作台'})).not.toBeInTheDocument()
     vi.unstubAllGlobals()
   })

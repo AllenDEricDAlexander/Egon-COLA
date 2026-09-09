@@ -30,7 +30,7 @@ describe('LoginPage', () => {
     vi.unstubAllGlobals()
   })
 
-    it('uses the Gateway cookie login flow and never renders a token input', async () => {
+    it('uses the Yuheng cookie login flow and never renders a token input', async () => {
     render(<MemoryRouter><LoginPage /></MemoryRouter>)
 
     expect(screen.queryByPlaceholderText(/Token/)).not.toBeInTheDocument()

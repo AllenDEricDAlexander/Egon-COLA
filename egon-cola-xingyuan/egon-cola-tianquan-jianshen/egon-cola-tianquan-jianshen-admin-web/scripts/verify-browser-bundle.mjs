@@ -5,8 +5,8 @@ import { fileURLToPath } from 'node:url'
 const dist = resolve(dirname(fileURLToPath(import.meta.url)), '..', 'dist')
 const forbidden = [
   'report-rbac-resources',
-  'rbac3:resource-catalog:report',
-  'RBAC3_SERVICE_ACCESS_TOKEN',
+  'tianquan-jianshen:resource-catalog:report',
+  'TIANQUAN_JIANSHEN_SERVICE_ACCESS_TOKEN',
   'SERVICE_ACCESS_TOKEN',
   'RolePermission',
   'PermissionResource',

@@ -112,7 +112,7 @@ backup_versioned_files() {
     done < <(
         find_project_poms
         find_readme_files
-        find_ddc_readme_files
+        find_tianshu_readme_files
     )
 
     ROLLBACK_REQUIRED=true
@@ -222,11 +222,11 @@ find_readme_files() {
     done
 }
 
-find_ddc_readme_files() {
-    local ddc_dir="$PROJECT_ROOT/egon-cola-xingyuan/egon-cola-tianshu"
+find_tianshu_readme_files() {
+    local tianshu_dir="$PROJECT_ROOT/egon-cola-xingyuan/egon-cola-tianshu"
     local readme
 
-    for readme in "$ddc_dir/README.md" "$ddc_dir/README.zh-CN.md"; do
+    for readme in "$tianshu_dir/README.md" "$tianshu_dir/README.zh-CN.md"; do
         [[ -f "$readme" ]] && printf '%s\0' "$readme"
     done
 }
@@ -266,7 +266,7 @@ verify_readme_archetype_versions() {
     done < <(find_readme_files)
 }
 
-update_ddc_readme_versions() {
+update_tianshu_readme_versions() {
     local current_version="$1"
     local new_version="$2"
     local current_tag="<version>$current_version</version>"
@@ -288,22 +288,22 @@ update_ddc_readme_versions() {
         sed "s|$escaped_current_tag|$new_tag|g" "$readme_file" > "$temp_file"
         cp "$temp_file" "$readme_file"
         updated_count=$((updated_count + 1))
-    done < <(find_ddc_readme_files)
+    done < <(find_tianshu_readme_files)
 
-    printf 'Updated %d DDC README file(s).\n' "$updated_count"
+    printf 'Updated %d Tianshu README file(s).\n' "$updated_count"
 }
 
-verify_ddc_readme_versions() {
+verify_tianshu_readme_versions() {
     local expected_version="$1"
     local expected_tag="<version>$expected_version</version>"
     local readme_file
 
     while IFS= read -r -d '' readme_file; do
         grep -Fq -- 'egon-cola-tianshu-starter' "$readme_file" || \
-            die "$readme_file does not document the DDC platform Starter"
+            die "$readme_file does not document the Tianshu platform Starter"
         grep -Fq -- "$expected_tag" "$readme_file" || \
-            die "$readme_file does not document DDC version $expected_version"
-    done < <(find_ddc_readme_files)
+            die "$readme_file does not document Tianshu version $expected_version"
+    done < <(find_tianshu_readme_files)
 }
 
 if [[ $# -ne 1 ]]; then
@@ -325,7 +325,7 @@ readonly CURRENT_VERSION
 
 verify_archetype_source_pom_versions "$CURRENT_VERSION"
 verify_archetype_source_projects_parent_version "$CURRENT_VERSION"
-verify_ddc_readme_versions "$CURRENT_VERSION"
+verify_tianshu_readme_versions "$CURRENT_VERSION"
 
 if [[ "$CURRENT_VERSION" == "$NEW_VERSION" ]]; then
     printf 'Egon-COLA is already at version %s. No changes made.\n' "$NEW_VERSION"
@@ -354,8 +354,8 @@ update_archetype_source_pom_versions "$CURRENT_VERSION" "$NEW_VERSION"
 verify_archetype_source_pom_versions "$NEW_VERSION"
 update_readme_archetype_versions "$NEW_VERSION"
 verify_readme_archetype_versions "$NEW_VERSION"
-update_ddc_readme_versions "$CURRENT_VERSION" "$NEW_VERSION"
-verify_ddc_readme_versions "$NEW_VERSION"
+update_tianshu_readme_versions "$CURRENT_VERSION" "$NEW_VERSION"
+verify_tianshu_readme_versions "$NEW_VERSION"
 
 UPDATED_VERSION="$(read_project_version)"
 readonly UPDATED_VERSION

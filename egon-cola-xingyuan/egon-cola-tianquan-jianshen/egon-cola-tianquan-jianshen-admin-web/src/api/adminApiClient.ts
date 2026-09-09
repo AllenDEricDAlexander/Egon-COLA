@@ -34,7 +34,7 @@ export const createAdminApiClients = (
       })
     } catch (cause) {
       throw new ApiError(
-        cause instanceof Error ? cause.message : 'RBAC3 network request failed',
+        cause instanceof Error ? cause.message : 'Tianquan-Jianshen network request failed',
         0, 'NETWORK_ERROR', {retryable: true},
       )
     }
@@ -43,7 +43,7 @@ export const createAdminApiClients = (
     if (isLegacyDataEnvelope(envelope)) return envelope.data
     if (envelope === null || typeof envelope !== 'object' || !('data' in envelope) || envelope.success !== true) {
       throw new ApiError(
-        envelope?.message ?? 'RBAC3 response envelope is invalid',
+        envelope?.message ?? 'Tianquan-Jianshen response envelope is invalid',
         response.status,
         envelope?.status ?? (envelope?.code === 401 ? 'AUTHENTICATION_REQUIRED' : 'INVALID_RESPONSE'),
         {retryable: false},
@@ -95,7 +95,7 @@ const readJson = async <T,>(response: Response): Promise<T | null> => {
 const responseError = async (response: Response): Promise<ApiError> => {
   const body = await readJson<Rbac3ErrorResponse & Partial<ResultRecord<unknown>>>(response)
   return new ApiError(
-    body?.error?.message ?? body?.message ?? 'RBAC3 request was rejected',
+    body?.error?.message ?? body?.message ?? 'Tianquan-Jianshen request was rejected',
     response.status,
     body?.error?.code ?? body?.status ?? 'INVALID_RESPONSE',
     {

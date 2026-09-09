@@ -71,12 +71,12 @@ describe('CachePage', () => {
     chooseScopeValue(bizInput, 'infra')
     chooseScopeValue(namespaceInput, 'default')
     chooseScopeValue(envInput, 'prod')
-    chooseScopeValue(appInput, 'gateway')
+    chooseScopeValue(appInput, 'yuheng')
 
     fireEvent.click(screen.getByRole('button', { name: /检\s*查\s*缓\s*存/ }))
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(
       expect.stringMatching(
-        /\/api\/v1\/ddc\/cache\/check\/page\?.*bizCode=infra.*env=prod.*appCode=gateway.*pageNo=1.*pageSize=10/,
+        /\/api\/v1\/tianshu\/cache\/check\/page\?.*bizCode=infra.*env=prod.*appCode=yuheng.*pageNo=1.*pageSize=10/,
       ),
       expect.anything(),
     ))

@@ -1,8 +1,8 @@
 import {describe, expect, expectTypeOf, it} from 'vitest'
 import type {ActivationRoot, FrontendResourceDefinition, ReplaceActiveRolesRequest, ResourceFieldDefinition,} from './types'
-import {getRbac3ErrorDefinition, RBAC3_ERROR_DEFINITIONS, type Rbac3ApiError, type Rbac3ErrorResponse,} from './errors'
+import {getRbac3ErrorDefinition, TIANQUAN_JIANSHEN_ERROR_DEFINITIONS, type Rbac3ApiError, type Rbac3ErrorResponse,} from './errors'
 
-describe('RBAC3 TypeScript contracts', () => {
+describe('Tianquan-Jianshen TypeScript contracts', () => {
     it('models role activation with the user authorization version', () => {
     const request: ReplaceActiveRolesRequest = {
       roleIds: ['50001', '51001'],
@@ -53,7 +53,7 @@ describe('RBAC3 TypeScript contracts', () => {
     it('classifies errors by stable code', () => {
         expect(getRbac3ErrorDefinition('ROLE_ACTIVATION_VERSION_CONFLICT'))
             .toEqual({status: 409, retryable: true})
-        expect(Object.values(RBAC3_ERROR_DEFINITIONS).map(({status}) => status))
+        expect(Object.values(TIANQUAN_JIANSHEN_ERROR_DEFINITIONS).map(({status}) => status))
             .toEqual(expect.arrayContaining([401, 403, 409, 422, 429, 503]))
   })
 

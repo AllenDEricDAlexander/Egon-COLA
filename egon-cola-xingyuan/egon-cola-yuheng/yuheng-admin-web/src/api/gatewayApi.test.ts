@@ -12,12 +12,12 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('gateway API response adapters', () => {
+describe('yuheng API response adapters', () => {
   it('accepts canonical role values without guessing malformed or absent metadata', () => {
-    expect(gatewayEngineRoleOf({ 'gateway.engine.role': ' API_RPC ' })).toBe('API_RPC')
-    expect(gatewayEngineRoleOf({ 'gateway.engine.role': 'MCP' })).toBe('MCP')
+    expect(gatewayEngineRoleOf({ 'yuheng.engine.role': ' API_RPC ' })).toBe('API_RPC')
+    expect(gatewayEngineRoleOf({ 'yuheng.engine.role': 'MCP' })).toBe('MCP')
     for (const metadata of [null, undefined, {}, { role: 'MCP' },
-      { 'gateway.engine.role': 12 }, { 'gateway.engine.role': 'mcp' }, { 'gateway.engine.role': 'COMBINED' }]) {
+      { 'yuheng.engine.role': 12 }, { 'yuheng.engine.role': 'mcp' }, { 'yuheng.engine.role': 'COMBINED' }]) {
       expect(gatewayEngineRoleOf(metadata)).toBeUndefined()
     }
     expect(normalizeEngineMetadata(['MCP'])).toEqual({})
@@ -30,19 +30,19 @@ describe('gateway API response adapters', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({ value: [
         { instanceId: 'old', metadata: null },
-        { instanceId: 'mcp', metadata: { 'gateway.engine.role': 'MCP', invalid: 12 } },
+        { instanceId: 'mcp', metadata: { 'yuheng.engine.role': 'MCP', invalid: 12 } },
       ], observedAt: '2026-09-05T00:00:00Z', stale: false }))
       .mockResolvedValueOnce(jsonResponse({ engineNodeCount: 1, readyEngineNodeCount: 0,
-        consistent: false, stale: false, source: 'DDC_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:00Z',
+        consistent: false, stale: false, source: 'TIANSHU_CONFIG_CLIENT', observedAt: '2026-09-05T00:00:00Z',
         nodes: [state] }))
     vi.stubGlobal('fetch', fetchMock)
     const nodes = await gatewayApi.engineNodes('group-1')
     expect(nodes[0].metadata).toEqual({})
-    expect(nodes[1].metadata).toEqual({ 'gateway.engine.role': 'MCP' })
+    expect(nodes[1].metadata).toEqual({ 'yuheng.engine.role': 'MCP' })
     expect((await gatewayApi.consistency('group-1')).nodes).toEqual([state])
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      '/api/v1/gateway/admin/gateway-groups/group-1/engine-nodes',
-      '/api/v1/gateway/admin/gateway-groups/group-1/runtime-consistency',
+      '/api/v1/yuheng/admin/yuheng-groups/group-1/engine-nodes',
+      '/api/v1/yuheng/admin/yuheng-groups/group-1/runtime-consistency',
     ])
   })
   it('loads OpenAPI sync states with encoded scope filters and immutable reads', async () => {
@@ -104,13 +104,13 @@ describe('gateway API response adapters', () => {
     await gatewayApi.openapiSnapshotDocument('snapshot-1')
 
     expect(fetchMock.mock.calls[0][0]).toBe(
-      '/api/v1/gateway/admin/openapi/sync-states?bizCode=retail&namespace=ops&env=test&appCode=orders',
+      '/api/v1/yuheng/admin/openapi/sync-states?bizCode=retail&namespace=ops&env=test&appCode=orders',
     )
     expect(fetchMock.mock.calls[1][0]).toBe(
-      '/api/v1/gateway/admin/operations/operation-1/openapi',
+      '/api/v1/yuheng/admin/operations/operation-1/openapi',
     )
     expect(fetchMock.mock.calls[2][0]).toBe(
-      '/api/v1/gateway/admin/openapi/snapshots/snapshot-1/document',
+      '/api/v1/yuheng/admin/openapi/snapshots/snapshot-1/document',
     )
     expect(fetchMock.mock.calls.every(([, request]) => (request as RequestInit).method === undefined)).toBe(true)
   })
@@ -122,7 +122,7 @@ describe('gateway API response adapters', () => {
     await gatewayApi.scopes()
 
     expect(fetchMock).toHaveBeenCalledOnce()
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/scopes')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/yuheng/admin/scopes')
   })
 
   it('loads groups across scopes and applications with optional page-local filters', async () => {
@@ -133,21 +133,21 @@ describe('gateway API response adapters', () => {
     await gatewayApi.applications({ bizCode: 'retail', env: 'prod' })
     await gatewayApi.applications()
 
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/gateway-groups')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/yuheng/admin/yuheng-groups')
     expect(fetchMock.mock.calls[1][0]).toBe(
-      '/api/v1/gateway/admin/applications?bizCode=retail&env=prod',
+      '/api/v1/yuheng/admin/applications?bizCode=retail&env=prod',
     )
-    expect(fetchMock.mock.calls[2][0]).toBe('/api/v1/gateway/admin/applications')
+    expect(fetchMock.mock.calls[2][0]).toBe('/api/v1/yuheng/admin/applications')
   })
 
-  it('loads an application detail through the Gateway application controller path', async () => {
+  it('loads an application detail through the Yuheng application controller path', async () => {
     const fetchMock = vi.fn().mockResolvedValue(jsonResponse({
       id: 'application-1',
       bizCode: 'retail',
       applicationCode: 'orders',
       displayName: 'Orders',
       env: 'test',
-      namespace: 'gateway',
+      namespace: 'yuheng',
       ddcMatched: true,
       revision: 4,
     }))
@@ -155,7 +155,7 @@ describe('gateway API response adapters', () => {
 
     await gatewayApi.application('application-1')
 
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/applications/application-1')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/yuheng/admin/applications/application-1')
   })
 
   it('loads MCP operation options from the selected application catalog only', async () => {
@@ -192,7 +192,7 @@ describe('gateway API response adapters', () => {
 
     expect(fetchMock).toHaveBeenCalledOnce()
     expect(fetchMock.mock.calls[0][0]).toBe(
-      '/api/v1/gateway/admin/applications/application-1/catalog',
+      '/api/v1/yuheng/admin/applications/application-1/catalog',
     )
   })
 
@@ -200,9 +200,9 @@ describe('gateway API response adapters', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(jsonResponse({
         value: [{
-          appCode: 'gateway-orders',
+          appCode: 'yuheng-orders',
           env: 'test',
-          namespace: 'gateway',
+          namespace: 'yuheng',
           instanceId: 'engine-1',
           leaseId: 'lease-1',
           host: '127.0.0.1',
@@ -214,7 +214,7 @@ describe('gateway API response adapters', () => {
           expireAt: '2026-07-25T08:00:35Z',
         }],
         observedAt: '2026-07-25T08:00:06Z',
-        source: 'DDC_CONFIG_CLIENT',
+        source: 'TIANSHU_CONFIG_CLIENT',
         stale: false,
       }))
       .mockResolvedValueOnce(jsonResponse({
@@ -233,7 +233,7 @@ describe('gateway API response adapters', () => {
           observedAt: '2026-07-25T08:00:06Z',
         }],
         observedAt: '2026-07-25T08:00:06Z',
-        source: 'DDC_SERVICE_REGISTRY',
+        source: 'TIANSHU_SERVICE_REGISTRY',
         stale: true,
         refreshError: 'using last known good snapshot',
       }))
@@ -244,7 +244,7 @@ describe('gateway API response adapters', () => {
       bizCode: 'test-biz',
       appCode: 'orders',
       env: 'test',
-      namespace: 'gateway',
+      namespace: 'yuheng',
     })
 
     expect(nodes[0]).toMatchObject({
@@ -358,7 +358,7 @@ describe('gateway API response adapters', () => {
       readyEngineNodeCount: 2,
       consistent: false,
       observedAt: '2026-07-25T08:00:00Z',
-      source: 'DDC_CONFIG_CLIENT',
+      source: 'TIANSHU_CONFIG_CLIENT',
       stale: false,
     })))
 
@@ -378,10 +378,10 @@ describe('gateway API response adapters', () => {
     await gatewayApi.mcpRemoteTools('group-1', 'server-1')
 
     expect(fetchMock.mock.calls[0][0]).toBe(
-      '/api/v1/gateway/admin/mcp/groups/group-1/managed-tools?serverId=server-1',
+      '/api/v1/yuheng/admin/mcp/groups/group-1/managed-tools?serverId=server-1',
     )
     expect(fetchMock.mock.calls[1][0]).toBe(
-      '/api/v1/gateway/admin/mcp/remote-tools?gatewayGroupId=group-1&serverId=server-1',
+      '/api/v1/yuheng/admin/mcp/remote-tools?gatewayGroupId=group-1&serverId=server-1',
     )
   })
 
@@ -406,7 +406,7 @@ describe('gateway API response adapters', () => {
     })
 
     expect(fetchMock.mock.calls[0][0]).toBe(
-      '/api/v1/gateway/admin/mcp/managed-tools/tool-1/override',
+      '/api/v1/yuheng/admin/mcp/managed-tools/tool-1/override',
     )
     const request = fetchMock.mock.calls[0][1] as RequestInit
     expect(request.method).toBe('PUT')
@@ -434,7 +434,7 @@ describe('gateway API response adapters', () => {
     await gatewayApi.updateOperationMetadata('op-1', {
       summary: 'Orders',
       tags: ['orders'],
-      owner: 'platform',
+      owner: 'xingyuan',
     })
     await gatewayApi.updateManualDefinition('op-1', {
       summary: 'Orders',
@@ -448,14 +448,14 @@ describe('gateway API response adapters', () => {
     await gatewayApi.deprecateOperation('op-1')
 
     expect(fetchMock.mock.calls.map(([path]) => path)).toEqual([
-      '/api/v1/gateway/admin/operations/op-1/metadata',
-      '/api/v1/gateway/admin/operations/op-1/manual-definition',
-      '/api/v1/gateway/admin/operations/op-1/deprecate',
+      '/api/v1/yuheng/admin/operations/op-1/metadata',
+      '/api/v1/yuheng/admin/operations/op-1/manual-definition',
+      '/api/v1/yuheng/admin/operations/op-1/deprecate',
     ])
     expect(JSON.parse(String((fetchMock.mock.calls[0][1] as RequestInit).body))).toEqual({
       summary: 'Orders',
       tags: ['orders'],
-      owner: 'platform',
+      owner: 'xingyuan',
     })
     expect(JSON.parse(String((fetchMock.mock.calls[1][1] as RequestInit).body))).not.toHaveProperty('secret')
     expect((fetchMock.mock.calls[2][1] as RequestInit).body).toBeUndefined()
@@ -470,8 +470,8 @@ describe('gateway API response adapters', () => {
 
     await expect(gatewayApi.releaseDiff('release-1')).resolves.toEqual({routes: {changed: 1}})
     await expect(gatewayApi.validateMcpCapability('prompts', 'prompt-1', 'group-1')).resolves.toEqual({valid: true, findings: []})
-    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/gateway/admin/releases/release-1/diff')
-    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/gateway/admin/mcp/prompts/prompt-1/validate?gatewayGroupId=group-1')
+    expect(fetchMock.mock.calls[0][0]).toBe('/api/v1/yuheng/admin/releases/release-1/diff')
+    expect(fetchMock.mock.calls[1][0]).toBe('/api/v1/yuheng/admin/mcp/prompts/prompt-1/validate?gatewayGroupId=group-1')
     expect((fetchMock.mock.calls[1][1] as RequestInit).method).toBe('POST')
   })
 })

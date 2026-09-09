@@ -16,7 +16,7 @@ export const RoleResourceGrantPage = ({roleId}: RoleResourceGrantPageProps) => {
   const {effectiveTenantId} = useFeatureTenantContext()
   const api = roleApi(useFeatureApi())
   const queryClient = useQueryClient()
-  const queryKey = ['rbac3', 'role-resources', effectiveTenantId ?? 'none', roleId]
+  const queryKey = ['tianquan-jianshen', 'role-resources', effectiveTenantId ?? 'none', roleId]
   const resources = useQuery({
     queryKey,
     queryFn: () => api.resources(roleId),
@@ -35,8 +35,8 @@ export const RoleResourceGrantPage = ({roleId}: RoleResourceGrantPageProps) => {
     onSuccess: async () => {
       setDirty(false)
       await queryClient.invalidateQueries({queryKey})
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'role-impact', effectiveTenantId ?? 'none', roleId]})
-      await queryClient.invalidateQueries({queryKey: ['rbac3', 'about']})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'role-impact', effectiveTenantId ?? 'none', roleId]})
+      await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'about']})
     },
   })
 

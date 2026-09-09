@@ -20,7 +20,7 @@ const filterOption: SelectProps['filterOption'] = (input, option) =>
 
 export default function AppSelect({ value, onChange, bizCode = '', namespaceCode = '', env = '', disabled, placeholder = '请选择或输入应用' }: Props) {
   const query = useScopeOption(withParams(
-    '/api/v1/ddc/apps',
+    '/api/v1/tianshu/apps',
     { bizCode, namespaceCode, env },
   ))
   const apps = query.data ?? []

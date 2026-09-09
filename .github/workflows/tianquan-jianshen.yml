@@ -1,4 +1,4 @@
-name: RBAC3 CI
+name: Tianquan-Jianshen CI
 
 on:
   push:
@@ -35,11 +35,11 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  RBAC3_ROOT: egon-cola-xingyuan/egon-cola-tianquan-jianshen
+  TIANQUAN_JIANSHEN_ROOT: egon-cola-xingyuan/egon-cola-tianquan-jianshen
 
 jobs:
   java:
-    name: RBAC3 Java 21 verification
+    name: Tianquan-Jianshen Java 21 verification
     runs-on: ubuntu-24.04
     timeout-minutes: 30
 
@@ -56,14 +56,14 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Verify RBAC3, gateway-engine, and dependency reactor
+      - name: Verify Tianquan-Jianshen, yuheng-biz-gateway, and dependency reactor
         run: |
           ./mvnw -B -ntp \
             -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
             -am clean verify
 
   frontend:
-    name: RBAC3 Node 24 frontend verification
+    name: Tianquan-Jianshen Node 24 frontend verification
     runs-on: ubuntu-24.04
     timeout-minutes: 20
 
@@ -74,12 +74,12 @@ jobs:
       - name: Setup Node 24
         uses: actions/setup-node@v4
         with:
-          node-version-file: "${{ env.RBAC3_ROOT }}/.node-version"
+          node-version-file: "${{ env.TIANQUAN_JIANSHEN_ROOT }}/.node-version"
           cache: npm
-          cache-dependency-path: "${{ env.RBAC3_ROOT }}/package-lock.json"
+          cache-dependency-path: "${{ env.TIANQUAN_JIANSHEN_ROOT }}/package-lock.json"
 
-      - name: Verify SDK and rbac3-admin Web
-        working-directory: ${{ env.RBAC3_ROOT }}
+      - name: Verify SDK and tianquan-jianshen-admin Web
+        working-directory: ${{ env.TIANQUAN_JIANSHEN_ROOT }}
         run: |
           npm ci
           npm run typecheck
@@ -89,7 +89,7 @@ jobs:
           npm run e2e --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
 
   static-boundaries:
-    name: RBAC3 scripts and static boundaries
+    name: Tianquan-Jianshen scripts and static boundaries
     runs-on: ubuntu-24.04
     timeout-minutes: 10
 
@@ -98,16 +98,16 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify script syntax and repository boundaries
-        working-directory: ${{ env.RBAC3_ROOT }}
+        working-directory: ${{ env.TIANQUAN_JIANSHEN_ROOT }}
         run: |
           bash -n scripts/verification/*.sh
           scripts/verification/verify-static.sh --help
           scripts/verification/verify-local-dependencies.sh --help
-          scripts/verification/verify-gateway-ddc-topology.sh --help
+          scripts/verification/verify-yuheng-tianshu-topology.sh --help
           scripts/verification/verify-static.sh --verify
 
       - name: Validate fixture JSON
-        working-directory: ${{ env.RBAC3_ROOT }}
+        working-directory: ${{ env.TIANQUAN_JIANSHEN_ROOT }}
         run: |
-          jq empty scripts/verification/fixtures/gateway-release.json
+          jq empty scripts/verification/fixtures/yuheng-release.json
           jq empty scripts/verification/fixtures/manifest.json

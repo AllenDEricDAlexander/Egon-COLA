@@ -10,7 +10,7 @@ describe('RBAC admin error envelopes', () => {
   ])('preserves the error code and message for HTTP %s', async (status, body, code, message, type) => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify(body), {status: status as number}))
     const {featureClient} = createAdminApiClients('', fetcher)
-    const error = await featureClient.request('/api/rbac3/v1/users/42/role-assignments').catch(value => value)
+    const error = await featureClient.request('/api/tianquan-jianshen/v1/users/42/role-assignments').catch(value => value)
     expect(error).toBeInstanceOf(ApiError)
     expect(error).toMatchObject({status, code, message, requestId: 'trace-1'})
     expect(classifyApiError(error).type).toBe(type)

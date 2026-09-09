@@ -14,7 +14,7 @@ export interface Rbac3ApiClientOptions {
   readonly fetch?: typeof globalThis.fetch
 }
 
-/** Typed authorization HTTP adapter. Identity cookies are owned by Gateway/IdP. */
+/** Typed authorization HTTP adapter. Identity cookies are owned by Yuheng/Tianquan-Shoubing. */
 export class Rbac3ApiClient implements Rbac3Client {
   private readonly basePath: string
   private readonly fetcher: typeof globalThis.fetch
@@ -25,17 +25,17 @@ export class Rbac3ApiClient implements Rbac3Client {
   }
 
   getActivationCandidates(): Promise<RoleActivationCandidateView> {
-    return this.request('/api/rbac3/v1/auth/role-activation-candidates')
+    return this.request('/api/tianquan-jianshen/v1/auth/role-activation-candidates')
   }
 
   getActiveRoles(): Promise<ActiveRoleSetView> {
-    return this.request('/api/rbac3/v1/auth/role-activations')
+    return this.request('/api/tianquan-jianshen/v1/auth/role-activations')
   }
 
   replaceActiveRoles(
     request: ReplaceActiveRolesRequest,
   ): Promise<ReplaceActiveRolesResult> {
-    return this.request('/api/rbac3/v1/auth/role-activations', {
+    return this.request('/api/tianquan-jianshen/v1/auth/role-activations', {
       method: 'PUT',
       body: JSON.stringify(request),
     })
@@ -63,7 +63,7 @@ export class Rbac3ApiClient implements Rbac3Client {
       throw new Rbac3RequestError({
         status: 0,
         code: 'NETWORK_ERROR',
-        message: cause instanceof Error ? cause.message : 'RBAC3 network request failed',
+        message: cause instanceof Error ? cause.message : 'Tianquan-Jianshen network request failed',
         retryable: true,
       })
     }
@@ -76,7 +76,7 @@ export class Rbac3ApiClient implements Rbac3Client {
       throw new Rbac3RequestError({
         status: response.status,
         code: 'INVALID_RESPONSE',
-        message: 'RBAC3 response envelope is invalid',
+        message: 'Tianquan-Jianshen response envelope is invalid',
         retryable: false,
       })
     }
@@ -84,7 +84,7 @@ export class Rbac3ApiClient implements Rbac3Client {
       throw new Rbac3RequestError({
         status: response.status,
         code: 'INVALID_RESPONSE',
-        message: 'RBAC3 response data is null',
+        message: 'Tianquan-Jianshen response data is null',
         retryable: false,
       })
     }
@@ -116,7 +116,7 @@ const toRequestError = async (response: Response): Promise<Rbac3RequestError> =>
   return new Rbac3RequestError({
     status: response.status,
     code: code ?? 'INVALID_RESPONSE',
-    message: body?.message ?? 'RBAC3 request was rejected',
+    message: body?.message ?? 'Tianquan-Jianshen request was rejected',
     retryable: response.status >= 500,
     traceId: body?.traceId,
   })

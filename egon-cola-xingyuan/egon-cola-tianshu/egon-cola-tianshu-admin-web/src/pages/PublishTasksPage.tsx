@@ -64,9 +64,9 @@ export default function PublishTasksPage() {
   const [detailTask, setDetailTask] = useState<DdcPublishTask | null>(null)
 
   const tasksQuery = useQuery({
-    queryKey: ['ddc', 'publish-tasks', submitted, pageState.page],
+    queryKey: ['tianshu', 'publish-tasks', submitted, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcPublishTask>(
-      `/api/v1/ddc/publish-tasks/page?${buildQuery({
+      `/api/v1/tianshu/publish-tasks/page?${buildQuery({
         ...submitted,
         pageNo: pageState.page.pageNo,
         pageSize: pageState.page.pageSize,
@@ -81,9 +81,9 @@ export default function PublishTasksPage() {
 
   const detailQuery = useQuery({
     enabled: detailTask !== null,
-    queryKey: ['ddc', 'publish-task-detail', detailTask?.changeId],
+    queryKey: ['tianshu', 'publish-task-detail', detailTask?.changeId],
     queryFn: ({ signal }) => ddcApi<DdcPublishTask>(
-      `/api/v1/ddc/publish-tasks/${encodeURIComponent(detailTask!.changeId)}`,
+      `/api/v1/tianshu/publish-tasks/${encodeURIComponent(detailTask!.changeId)}`,
       { signal },
     ),
     staleTime: 0,
@@ -91,13 +91,13 @@ export default function PublishTasksPage() {
 
   const retryMutation = useMutation({
     mutationFn: (task: DdcPublishTask) => ddcApi<DdcPublishResult>(
-      `/api/v1/ddc/publish-tasks/${encodeURIComponent(task.changeId)}/retry`,
+      `/api/v1/tianshu/publish-tasks/${encodeURIComponent(task.changeId)}/retry`,
       { method: 'POST' },
     ),
     onSuccess: async (result) => {
       message.success(`重试任务 ${result.changeId}：${result.status}`)
       await queryClient.invalidateQueries({
-        queryKey: ['ddc', 'publish-tasks'],
+        queryKey: ['tianshu', 'publish-tasks'],
       })
     },
     onError: (error) => message.error(

@@ -51,7 +51,7 @@ export const useMcpCapabilityCollection = (
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
         queryClient.invalidateQueries({ queryKey: ['mcp-capability-preview', serverId] }),
       ])
       void message.success('MCP Capability 已保存')
@@ -71,7 +71,7 @@ export const useMcpCapabilityCollection = (
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey }),
-        queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+        queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
         queryClient.invalidateQueries({ queryKey: ['mcp-capability-preview', serverId] }),
       ])
       void message.success('MCP Capability 已删除')

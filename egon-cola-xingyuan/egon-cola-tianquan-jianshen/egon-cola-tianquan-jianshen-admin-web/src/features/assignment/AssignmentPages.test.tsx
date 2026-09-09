@@ -55,12 +55,12 @@ describe('assignment pages', () => {
       expectedUserAuthVersion: 4,
     }, 'idempotency-2')
 
-    expect(request).toHaveBeenNthCalledWith(1, '/api/rbac3/v1/users/9007199254740999/role-assignments')
-    expect(request).toHaveBeenNthCalledWith(2, '/api/rbac3/v1/users/9007199254740999/role-assignments', expect.objectContaining({
+    expect(request).toHaveBeenNthCalledWith(1, '/api/tianquan-jianshen/v1/users/9007199254740999/role-assignments')
+    expect(request).toHaveBeenNthCalledWith(2, '/api/tianquan-jianshen/v1/users/9007199254740999/role-assignments', expect.objectContaining({
       method: 'POST',
       headers: {'Idempotency-Key': 'idempotency-1'},
     }))
-    expect(request).toHaveBeenNthCalledWith(3, '/api/rbac3/v1/users/9007199254740999/role-assignments/9001/revoke', expect.objectContaining({
+    expect(request).toHaveBeenNthCalledWith(3, '/api/tianquan-jianshen/v1/users/9007199254740999/role-assignments/9001/revoke', expect.objectContaining({
       method: 'POST',
       headers: {'Idempotency-Key': 'idempotency-2'},
     }))
@@ -69,7 +69,7 @@ describe('assignment pages', () => {
   it('uses the target user version for creation and refreshes it before the next mutation', async () => {
     let targetAuthVersion = 7
     const request = vi.fn(async (path: string, options?: {method?: string; body?: unknown}) => {
-      if (path === '/api/rbac3/v1/iam/users/42') {
+      if (path === '/api/tianquan-jianshen/v1/iam/users/42') {
         return {userId: '42', identitySub: 'target-user', status: 'ACTIVE', authVersion: targetAuthVersion}
       }
       if (options?.method === 'POST') {
@@ -89,21 +89,21 @@ describe('assignment pages', () => {
     fireEvent.change(screen.getByLabelText('生效时间'), {target: {value: '2026-09-06T13:00'}})
     fireEvent.click(screen.getByRole('button', {name: '保存资格'}))
     await waitFor(() => expect(request).toHaveBeenCalledWith(
-      '/api/rbac3/v1/users/42/role-assignments',
+      '/api/tianquan-jianshen/v1/users/42/role-assignments',
       expect.objectContaining({method: 'POST', body: expect.objectContaining({expectedUserAuthVersion: 7})}),
     ))
     await waitFor(() => expect(screen.getByRole('button', {name: /暂\s*停/})).toBeEnabled())
     fireEvent.click(screen.getByRole('button', {name: /暂\s*停/}))
     fireEvent.click(await screen.findByRole('button', {name: 'OK'}))
     await waitFor(() => expect(request).toHaveBeenCalledWith(
-      '/api/rbac3/v1/users/42/role-assignments/assignment-1/suspend',
+      '/api/tianquan-jianshen/v1/users/42/role-assignments/assignment-1/suspend',
       expect.objectContaining({method: 'POST', body: expect.objectContaining({expectedAssignmentVersion: 3, expectedUserAuthVersion: 8})}),
     ))
   })
 
   it('keeps assignment mutations disabled when the target user version cannot be read', async () => {
     const request: FeatureApiClient['request'] = async <T,>(path: string) => {
-      if (path === '/api/rbac3/v1/iam/users/42') throw new Error('target lookup failed')
+      if (path === '/api/tianquan-jianshen/v1/iam/users/42') throw new Error('target lookup failed')
       return [] as T
     }
     render(<AssignmentListPage userId="42" />, {wrapper: wrapper(request, ['system:role-assignment:manage'])})

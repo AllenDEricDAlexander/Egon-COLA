@@ -36,7 +36,7 @@ const client = (overrides: Partial<Rbac3Client> = {}): Rbac3Client => ({
 describe('Rbac3Provider', () => {
     it('opens role selection when about returns the restricted initial RBAC context', async () => {
         const sdk = client({getAbout: vi.fn(async () => ({
-            ...about, currentApplicationCode: 'rbac3-admin', activeRoles: [], resourceCodes: [],
+            ...about, currentApplicationCode: 'tianquan-jianshen-admin', activeRoles: [], resourceCodes: [],
             permissions: ['system:about:read', 'system:role-activation:read', 'system:role-activation:use'],
         }))})
         const wrapper = ({children}: PropsWithChildren) => <Rbac3Provider client={sdk}>{children}</Rbac3Provider>
@@ -49,8 +49,8 @@ describe('Rbac3Provider', () => {
 
     it('keeps a user with selected roles ready even when role activation is permitted', async () => {
         const sdk = client({getAbout: vi.fn(async () => ({
-            ...about, currentApplicationCode: 'rbac3-admin',
-            activeRoles: [{applicationCode: 'rbac3-admin', roleId: '10', roleCode: 'ROOT'}],
+            ...about, currentApplicationCode: 'tianquan-jianshen-admin',
+            activeRoles: [{applicationCode: 'tianquan-jianshen-admin', roleId: '10', roleCode: 'ROOT'}],
             permissions: ['system:role-activation:use'],
         }))})
         const wrapper = ({children}: PropsWithChildren) => <Rbac3Provider client={sdk}>{children}</Rbac3Provider>
@@ -110,7 +110,7 @@ describe('Rbac3Provider', () => {
     expect(result.current.status).toBe('READY')
   })
 
-    it('keeps activation recoverable when the gateway asks for step-up', async () => {
+    it('keeps activation recoverable when the yuheng asks for step-up', async () => {
     const stepUp = new Rbac3RequestError({
         status: 401, code: 'STEP_UP_REQUIRED', message: 'strong authentication required', retryable: false,
     })

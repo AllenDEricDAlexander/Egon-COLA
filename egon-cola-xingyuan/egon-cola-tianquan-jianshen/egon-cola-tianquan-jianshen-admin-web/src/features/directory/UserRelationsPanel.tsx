@@ -38,8 +38,8 @@ export const UserRelationsPanel = ({userId, authVersion}: UserRelationsPanelProp
   const queryClient = useQueryClient()
   const normalizedUserId = userId.trim()
   const tenant = effectiveTenantId ?? 'none'
-  const organizationKey = ['rbac3', 'user-organization-assignments', tenant, normalizedUserId]
-  const positionKey = ['rbac3', 'user-position-assignments', tenant, normalizedUserId]
+  const organizationKey = ['tianquan-jianshen', 'user-organization-assignments', tenant, normalizedUserId]
+  const positionKey = ['tianquan-jianshen', 'user-position-assignments', tenant, normalizedUserId]
   const [organizationForm] = Form.useForm<OrganizationFormValues>()
   const [positionForm] = Form.useForm<PositionFormValues>()
 

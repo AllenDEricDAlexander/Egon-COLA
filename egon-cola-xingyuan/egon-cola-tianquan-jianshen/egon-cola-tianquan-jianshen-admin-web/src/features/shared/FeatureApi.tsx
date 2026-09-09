@@ -41,7 +41,7 @@ export const FeatureApiProvider = ({ client, children }: FeatureApiProviderProps
 export const useFeatureApi = (): FeatureApiClient => {
   const value = useContext(FeatureApiContext)
   if (value === null) {
-    throw new Error('RBAC3 FeatureApiProvider is required')
+    throw new Error('Tianquan-Jianshen FeatureApiProvider is required')
   }
   return value.client
 }
@@ -49,7 +49,7 @@ export const useFeatureApi = (): FeatureApiClient => {
 export const useFeatureTenantContext = () => {
   const value = useContext(FeatureApiContext)
   if (value === null) {
-    throw new Error('RBAC3 FeatureApiProvider is required')
+    throw new Error('Tianquan-Jianshen FeatureApiProvider is required')
   }
   return {
     effectiveTenantId: value.effectiveTenantId,

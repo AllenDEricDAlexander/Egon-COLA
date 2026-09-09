@@ -28,7 +28,7 @@ const server = {
   serverCode: 'commerce',
   displayName: 'Commerce MCP',
   dialects: ['STABLE_2025_11_25', 'RC_2026_07_28'],
-  resourceUri: 'https://resource.egon.top/gateway-mcp-commerce',
+  resourceUri: 'https://resource.egon.top/yuheng-mcp-commerce',
   listCacheTtlSeconds: 30,
   enabled: true,
   revision: 0,
@@ -130,13 +130,13 @@ const authorization = {
     user: {id: 'mcp-e2e-user', tenantId: 'default', identitySub: 'mcp-e2e-user', status: 'ACTIVE'},
     activeRoleContexts: [],
     permissions: [
-        'gateway:read',
-        'gateway:mcp:read',
-        'gateway:mcp:write',
-        'gateway:mcp:test',
-        'gateway:mcp:runtime:read',
-        'gateway:mcp:approve',
-        'gateway:releases:write',
+        'yuheng:read',
+        'yuheng:mcp:read',
+        'yuheng:mcp:write',
+        'yuheng:mcp:test',
+        'yuheng:mcp:runtime:read',
+        'yuheng:mcp:approve',
+        'yuheng:releases:write',
     ],
     apps: [], menus: [], routes: [], actions: [], fieldPolicies: {},
     defaultApplicationCode: null, defaultRoute: null, authVersion: 1, policyVersion: 1,
@@ -145,14 +145,14 @@ const authorization = {
 const authenticate = async (page: Page) => {
     await page.route('**/api/v1/auth/bootstrap', (route) => json(route, authorization))
     await page.route('**/oauth2/logout', (route) => json(route, {}))
-  await page.route('**/api/v1/gateway/admin/scopes', (route) => json(route, [{
+  await page.route('**/api/v1/yuheng/admin/scopes', (route) => json(route, [{
     ...scope,
     bindingId: 'scope-mcp-e2e',
     appName: 'Order',
     connected: true,
   }]))
-  await page.route('**/api/v1/gateway/admin/gateway-groups*', (route) => json(route, [group]))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/draft`, (route) => json(route, {
+  await page.route('**/api/v1/yuheng/admin/yuheng-groups*', (route) => json(route, [group]))
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/draft`, (route) => json(route, {
     gatewayGroupId: group.id,
     revision: 3,
     status: 'EDITING',
@@ -160,47 +160,47 @@ const authenticate = async (page: Page) => {
     policies: [],
     updatedAt: '2026-08-03T00:00:00Z',
   }))
-  await page.route('**/api/v1/gateway/admin/mcp/servers?**', (route) => json(route, [server]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}`, (route) => json(route, server))
+  await page.route('**/api/v1/yuheng/admin/mcp/servers?**', (route) => json(route, [server]))
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}`, (route) => json(route, server))
   await page.route(
-    `**/api/v1/gateway/admin/mcp/groups/${group.id}/managed-tools?**`,
+    `**/api/v1/yuheng/admin/mcp/groups/${group.id}/managed-tools?**`,
     (route) => json(route, [tool]),
   )
-  await page.route('**/api/v1/gateway/admin/mcp/remote-tools?**', (route) => json(route, [remoteTool]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/resources?**`, (route) => json(route, [
+  await page.route('**/api/v1/yuheng/admin/mcp/remote-tools?**', (route) => json(route, [remoteTool]))
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/resources?**`, (route) => json(route, [
     capability('RESOURCE', 'resource-e2e', 'order-schema', {
       uri: 'schema://commerce/order',
       driverType: 'STATIC_TEXT',
     }),
   ]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/resource-templates?**`, (route) => json(route, [
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/resource-templates?**`, (route) => json(route, [
     capability('RESOURCE_TEMPLATE', 'template-e2e', 'order-by-id', {
       uriTemplate: 'order://commerce/{orderId}',
       driverType: 'LOCAL_OPERATION',
     }),
   ]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/prompts?**`, (route) => json(route, [
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/prompts?**`, (route) => json(route, [
     capability('PROMPT', 'prompt-e2e', 'order-assistant', {
       sourceType: 'STRICT_TEMPLATE',
       arguments: ['orderId'],
     }),
   ]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/task-policies?**`, (route) => json(route, [
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/task-policies?**`, (route) => json(route, [
     capability('TASK_POLICY', 'task-policy-e2e', tool.name, {
       durable: true,
       maxAttempts: 3,
     }),
   ]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/app-bindings?**`, (route) => json(route, [
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/app-bindings?**`, (route) => json(route, [
     capability('APP_BINDING', 'app-binding-e2e', 'order-console', {
       appArtifactId: 'artifact-e2e',
       allowedTools: [tool.name],
     }),
   ]))
-  await page.route('**/api/v1/gateway/admin/mcp/remote/providers?**', (route) => json(route, [remoteProvider]))
-  await page.route(`**/api/v1/gateway/admin/mcp/remote/providers/${remoteProvider.id}/discover`, (route) => json(route, [remoteCapability]))
-  await page.route('**/api/v1/gateway/admin/mcp/remote/mounts?**', (route) => json(route, [remoteMount]))
-  await page.route('**/api/v1/gateway/admin/mcp/apps/artifacts?**', (route) => json(route, [{
+  await page.route('**/api/v1/yuheng/admin/mcp/remote/providers?**', (route) => json(route, [remoteProvider]))
+  await page.route(`**/api/v1/yuheng/admin/mcp/remote/providers/${remoteProvider.id}/discover`, (route) => json(route, [remoteCapability]))
+  await page.route('**/api/v1/yuheng/admin/mcp/remote/mounts?**', (route) => json(route, [remoteMount]))
+  await page.route('**/api/v1/yuheng/admin/mcp/apps/artifacts?**', (route) => json(route, [{
     id: 'artifact-e2e',
     gatewayGroupId: group.id,
     appCode: 'order-console',
@@ -217,7 +217,7 @@ const authenticate = async (page: Page) => {
     createdBy: 'mcp-e2e-user',
     createdAt: '2026-08-03T00:00:00Z',
   }]))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/capability-preview`, (route) => json(route, {
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/capability-preview`, (route) => json(route, {
     content: {
       serverCode: server.serverCode,
       tools: [tool.name],
@@ -225,26 +225,26 @@ const authenticate = async (page: Page) => {
     },
     validation: { valid: true, findings: [] },
   }))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/validate`, (route) => json(route, {
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/validate`, (route) => json(route, {
     valid: true,
     findings: [],
   }))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/runtime-consistency`, (route) => json(route, {
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/runtime-consistency`, (route) => json(route, {
     targetReleaseId: 'release-e2e',
     targetReleaseStatus: 'ACTIVE',
     engineNodeCount: 1,
     readyEngineNodeCount: 1,
     consistent: true,
     observedAt: '2026-08-03T00:00:00Z',
-    source: 'DDC',
+    source: 'Tianshu',
     stale: false,
   }))
-  await page.route(`**/api/v1/gateway/admin/gateway-groups/${group.id}/engine-nodes`, (route) => json(route, {
+  await page.route(`**/api/v1/yuheng/admin/yuheng-groups/${group.id}/engine-nodes`, (route) => json(route, {
     value: [{
       appCode: scope.appCode,
       env: scope.env,
       namespace: scope.namespace,
-      instanceId: 'gateway-engine-e2e',
+      instanceId: 'yuheng-biz-gateway-e2e',
       leaseId: 'lease-e2e',
       leaseRole: 'INTERNAL_GATEWAY',
       status: 'READY',
@@ -253,10 +253,10 @@ const authenticate = async (page: Page) => {
       expireAt: '2026-08-03T00:01:00Z',
     }],
     observedAt: '2026-08-03T00:00:00Z',
-    source: 'DDC',
+    source: 'Tianshu',
     stale: false,
   }))
-  await page.route('**/api/v1/gateway/admin/mcp/tasks?**', (route) => json(route, [{
+  await page.route('**/api/v1/yuheng/admin/mcp/tasks?**', (route) => json(route, [{
     id: 'task-e2e',
     principalFingerprint: 'principal-e2e',
     subjectId: 'mcp-e2e-user',
@@ -274,12 +274,12 @@ const authenticate = async (page: Page) => {
     createdAt: '2026-08-03T00:00:00Z',
     updatedAt: '2026-08-03T00:00:00Z',
   }]))
-  await page.route('**/api/v1/gateway/admin/mcp/approvals', (route) => json(route, {
+  await page.route('**/api/v1/yuheng/admin/mcp/approvals', (route) => json(route, {
     approvalId: 'approval-e2e',
     approvalToken: 'approval-token-shown-once',
     expiresAt: '2026-08-03T00:02:00Z',
   }))
-  await page.route('**/api/v1/gateway/admin/applications*', (route) => json(route, [{
+  await page.route('**/api/v1/yuheng/admin/applications*', (route) => json(route, [{
     ...scope,
     id: 'application-e2e',
     applicationCode: 'order',
@@ -287,7 +287,7 @@ const authenticate = async (page: Page) => {
     ddcMatched: true,
     revision: 1,
   }]))
-  await page.route('**/api/v1/gateway/admin/applications/application-e2e/catalog', (route) => json(route, {
+  await page.route('**/api/v1/yuheng/admin/applications/application-e2e/catalog', (route) => json(route, {
     applicationId: 'application-e2e',
     businessDomains: [{
       id: 'business-e2e',
@@ -316,7 +316,7 @@ const authenticate = async (page: Page) => {
       }],
     }],
   }))
-  await page.route(`**/api/v1/gateway/admin/mcp/servers/${server.id}/protocol-inspect`, (route) => json(route, {
+  await page.route(`**/api/v1/yuheng/admin/mcp/servers/${server.id}/protocol-inspect`, (route) => json(route, {
     path: '/mcp/commerce',
     headers: {
       'Content-Type': 'application/json',
@@ -378,7 +378,7 @@ test('MCP Server workbench covers the complete control-plane lifecycle', async (
 
   await page.getByRole('tab', { name: 'Runtime' }).click()
   await expect(page.getByText('release-e2e', { exact: true })).toBeVisible()
-  await expect(page.getByText('gateway-engine-e2e', { exact: true })).toBeVisible()
+  await expect(page.getByText('yuheng-biz-gateway-e2e', { exact: true })).toBeVisible()
 
   await page.getByRole('tab', { name: 'Approvals' }).click()
   await page.getByLabel('High-Risk Tool').fill(tool.name)

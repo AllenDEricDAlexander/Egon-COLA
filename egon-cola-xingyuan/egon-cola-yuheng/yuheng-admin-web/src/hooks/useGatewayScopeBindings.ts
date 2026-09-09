@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { gatewayApi } from '../api/gatewayApi'
 
-export const gatewayScopeBindingsQueryKey = ['gateway-scopes'] as const
+export const gatewayScopeBindingsQueryKey = ['yuheng-scopes'] as const
 
 export const useGatewayScopeBindings = () => {
   return useQuery({

@@ -1,6 +1,6 @@
 import {expect, test} from '@playwright/test'
 
-test('contract fixture: an unauthenticated bootstrap shows the Gateway login form', async ({page}) => {
+test('contract fixture: an unauthenticated bootstrap shows the Yuheng login form', async ({page}) => {
     let bootstrapCount = 0
     await page.route('**/api/v1/auth/about', async (route) => {
         bootstrapCount += 1

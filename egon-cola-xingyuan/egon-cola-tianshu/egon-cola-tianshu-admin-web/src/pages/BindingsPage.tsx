@@ -58,16 +58,16 @@ export default function BindingsPage() {
     pageSize: pageState.page.pageSize,
   })
   const query = useQuery({
-    queryKey: ['ddc', 'bindings', submitted, pageState.page],
+    queryKey: ['tianshu', 'bindings', submitted, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcNamespaceEnvAppBinding>(
-      `/api/v1/ddc/namespace-env-app-bindings/page?${queryString}`,
+      `/api/v1/tianshu/namespace-env-app-bindings/page?${queryString}`,
       { signal },
     ),
     placeholderData: keepPreviousData,
     staleTime: 0,
   })
 
-  const queryKey = ['ddc', 'bindings']
+  const queryKey = ['tianshu', 'bindings']
   const invalidate = async () => queryClient.invalidateQueries({ queryKey })
 
   const saveMutation = useMutation({
@@ -76,11 +76,11 @@ export default function BindingsPage() {
       values: DdcNamespaceEnvAppBindingRequest
     }) => id
       ? ddcApi<DdcNamespaceEnvAppBinding>(
-        `/api/v1/ddc/namespace-env-app-bindings/${encodeURIComponent(id)}`,
+        `/api/v1/tianshu/namespace-env-app-bindings/${encodeURIComponent(id)}`,
         { method: 'PUT', body: values },
       )
       : ddcApi<DdcNamespaceEnvAppBinding>(
-        '/api/v1/ddc/namespace-env-app-bindings',
+        '/api/v1/tianshu/namespace-env-app-bindings',
         { method: 'POST', body: values },
       ),
     onSuccess: async () => {
@@ -96,7 +96,7 @@ export default function BindingsPage() {
 
   const removeMutation = useMutation({
     mutationFn: (item: DdcNamespaceEnvAppBinding) => ddcApi<void>(
-      `/api/v1/ddc/namespace-env-app-bindings/${encodeURIComponent(item.id)}`,
+      `/api/v1/tianshu/namespace-env-app-bindings/${encodeURIComponent(item.id)}`,
       { method: 'DELETE' },
     ),
     onSuccess: async () => {

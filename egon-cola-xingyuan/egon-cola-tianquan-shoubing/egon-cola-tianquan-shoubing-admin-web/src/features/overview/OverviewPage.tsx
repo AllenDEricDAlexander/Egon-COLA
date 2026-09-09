@@ -10,8 +10,8 @@ export const OverviewPage = () => {
     const {has} = usePermission(auth.bootstrap?.permissions ?? [])
     const b = auth.bootstrap
     const profile = useQuery({
-        queryKey: ['idp', 'identity-profile'],
-        queryFn: () => httpClient.request<IdentityProfileView>('/api/v1/identity/me'),
+        queryKey: ['tianquan-shoubing', 'identity-profile'],
+        queryFn: () => httpClient.request<IdentityProfileView>('/api/v1/tianquan-shoubing/me'),
         enabled: Boolean(b),
         retry: false,
     })
@@ -19,12 +19,12 @@ export const OverviewPage = () => {
     const activeRoleIds = b.activeRoleContexts.map((context) => context.roleId)
 
     const permissionModules = [
-        {key: 'users', label: '全局用户', perm: 'idp:identity-user:read'},
-        {key: 'clients', label: 'OAuth 客户端', perm: 'idp:oauth-client:read'},
-        {key: 'tenants', label: '租户目录', perm: 'idp:tenant:read'},
-        {key: 'resource-servers', label: 'Resource Server', perm: 'idp:resource-server:read'},
-        {key: 'keys', label: '签名密钥', perm: 'idp:signing-key:read'},
-        {key: 'audits', label: '安全审计', perm: 'idp:audit:read'},
+        {key: 'users', label: '全局用户', perm: 'tianquan-shoubing:identity-user:read'},
+        {key: 'clients', label: 'OAuth 客户端', perm: 'tianquan-shoubing:oauth-client:read'},
+        {key: 'tenants', label: '租户目录', perm: 'tianquan-shoubing:tenant:read'},
+        {key: 'resource-servers', label: 'Resource Server', perm: 'tianquan-shoubing:resource-server:read'},
+        {key: 'keys', label: '签名密钥', perm: 'tianquan-shoubing:signing-key:read'},
+        {key: 'audits', label: '安全审计', perm: 'tianquan-shoubing:audit:read'},
     ]
 
   return (

@@ -47,9 +47,9 @@ export default function CachePage() {
 
   const checkQuery = useQuery({
     enabled: submitted !== null,
-    queryKey: ['ddc', 'cache-check', submitted, pageState.page],
+    queryKey: ['tianshu', 'cache-check', submitted, pageState.page],
     queryFn: ({ signal }) => ddcPageApi<DdcCacheCheckRow>(
-      `/api/v1/ddc/cache/check/page?${buildQuery({
+      `/api/v1/tianshu/cache/check/page?${buildQuery({
         bizCode: submitted!.bizCode,
         env: submitted!.env,
         appCode: submitted!.appCode,
@@ -64,7 +64,7 @@ export default function CachePage() {
 
   const rebuildMutation = useMutation({
     mutationFn: (scope: ScopeValue) => ddcApi<number>(
-      `/api/v1/ddc/cache/rebuild?${buildQuery({
+      `/api/v1/tianshu/cache/rebuild?${buildQuery({
         bizCode: scope.bizCode,
         env: scope.env,
         appCode: scope.appCode,
@@ -73,7 +73,7 @@ export default function CachePage() {
     ),
     onSuccess: async (count) => {
       message.success(`已重建 ${count ?? 0} 项缓存`)
-      await queryClient.invalidateQueries({ queryKey: ['ddc', 'cache-check'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianshu', 'cache-check'] })
     },
     onError: (error) => message.error(
       error instanceof Error ? error.message : String(error),

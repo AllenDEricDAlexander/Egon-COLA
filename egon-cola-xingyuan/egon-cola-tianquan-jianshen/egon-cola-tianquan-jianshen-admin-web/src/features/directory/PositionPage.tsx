@@ -31,7 +31,7 @@ export const PositionPage = () => {
     const [editorForm] = Form.useForm<PositionFormValues>()
     const orgUnitId = searchParams.get('orgUnitId')?.trim() || undefined
     const tenant = effectiveTenantId ?? 'none'
-    const queryKey = ['rbac3', 'positions', tenant, orgUnitId ?? 'all']
+    const queryKey = ['tianquan-jianshen', 'positions', tenant, orgUnitId ?? 'all']
     const query = useQuery({
         queryKey,
         queryFn: () => api.positions(orgUnitId),
@@ -93,14 +93,14 @@ export const PositionPage = () => {
         },
         onSuccess: async () => {
             closeEditor()
-            await queryClient.invalidateQueries({queryKey: ['rbac3', 'positions']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'positions']})
         },
     })
     const archive = useMutation({
         mutationFn: (position: PositionView) => api.deletePosition(position.positionId, position.version),
         onSuccess: async () => {
             closeEditor()
-            await queryClient.invalidateQueries({queryKey: ['rbac3', 'positions']})
+            await queryClient.invalidateQueries({queryKey: ['tianquan-jianshen', 'positions']})
         },
     })
     const mutationError = save.error ?? archive.error
@@ -118,7 +118,7 @@ export const PositionPage = () => {
             )}
         >
             <Typography.Paragraph type="secondary">
-                维护 RBAC3 手工岗位；每个岗位必须绑定有效组织，租户和授权范围由当前上下文确定。
+                维护 Tianquan-Jianshen 手工岗位；每个岗位必须绑定有效组织，租户和授权范围由当前上下文确定。
             </Typography.Paragraph>
             <Form
                 form={filterForm}

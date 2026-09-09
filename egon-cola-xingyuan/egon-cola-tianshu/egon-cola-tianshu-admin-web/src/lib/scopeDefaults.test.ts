@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { resolveInitialScope } from './scopeDefaults'
 
-describe('DDC Admin scope defaults', () => {
+describe('Tianshu Admin scope defaults', () => {
   it('uses trimmed deployment scope values', () => {
     expect(resolveInitialScope(
       ' retail ',

@@ -18,7 +18,7 @@ const paramsTemplate = (dialect: McpProtocolDialect, method: string): Record<str
     return {
       protocolVersion: dialect === 'RC_2026_07_28' ? '2026-07-28' : '2025-11-25',
       capabilities: {},
-      clientInfo: { name: 'gateway-admin-inspector', version: '1.0.0' },
+      clientInfo: { name: 'yuheng-admin-inspector', version: '1.0.0' },
     }
   }
   if (method === 'tools/call') return { name: 'tool_name', arguments: {} }
@@ -29,7 +29,7 @@ export const McpProtocolInspector = ({ serverId, dialects }: {
   serverId: string
   dialects: McpProtocolDialect[]
 }) => {
-  const canTest = useCapability('gateway:mcp:test')
+  const canTest = useCapability('yuheng:mcp:test')
   const initialDialect = dialects[0] ?? 'STABLE_2025_11_25'
   const [dialect, setDialect] = useState<McpProtocolDialect>(initialDialect)
   const [method, setMethod] = useState('initialize')

@@ -19,11 +19,11 @@ export interface ApplicationCatalogView {
 
 export const businessApi = (client: FeatureApiClient) => ({
   businesses: (keyword?: string) => client.request<readonly BusinessCatalogView[]>(
-    '/api/rbac3/v1/iam/catalog/businesses',
+    '/api/tianquan-jianshen/v1/iam/catalog/businesses',
     {query: {keyword: keyword?.trim() || undefined}},
   ),
   applications: (ddcBusinessId: string, keyword?: string) => client.request<readonly ApplicationCatalogView[]>(
-    `/api/rbac3/v1/iam/catalog/businesses/${encodeURIComponent(ddcBusinessId)}/applications`,
+    `/api/tianquan-jianshen/v1/iam/catalog/businesses/${encodeURIComponent(ddcBusinessId)}/applications`,
     {query: {keyword: keyword?.trim() || undefined}},
   ),
 })

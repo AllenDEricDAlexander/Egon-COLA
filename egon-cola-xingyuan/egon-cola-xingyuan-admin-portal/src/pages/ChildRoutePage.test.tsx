@@ -9,14 +9,14 @@ import { ChildRoutePage } from './ChildRoutePage'
 vi.mock('../auth/portalAuth', () => ({portalAuth: {userInfo: async () => null}}))
 
 const manifest = (overrides: Record<string, unknown> = {}) => ({
-  key: 'gateway',
+  key: 'yuheng',
   displayName: 'API 网关',
-  url: '/children/gateway/assets/index.js',
-  standaloneUrl: '/gateway/dashboard',
+  url: '/children/yuheng/assets/index.js',
+  standaloneUrl: '/yuheng/dashboard',
   version: '5.3.2',
-  contractVersion: 'platform-1',
+  contractVersion: 'xingyuan-1',
   compatibleHostRange: '>=5.0.0 <6.0.0',
-  requiredCapabilities: ['gateway:read'],
+  requiredCapabilities: ['yuheng:read'],
   ...overrides,
 })
 const response = (body: unknown, status = 200): Response => new Response(
@@ -24,7 +24,7 @@ const response = (body: unknown, status = 200): Response => new Response(
   { status, headers: { 'Content-Type': 'application/json' } },
 )
 
-const renderRoute = (initialPath = '/platform/gateway/dashboard') => {
+const renderRoute = (initialPath = '/xingyuan/yuheng/dashboard') => {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   return render(
     <QueryClientProvider client={queryClient}>
@@ -32,7 +32,7 @@ const renderRoute = (initialPath = '/platform/gateway/dashboard') => {
         <I18nProvider>
           <MemoryRouter initialEntries={[initialPath]}>
             <Routes>
-              <Route path="/platform/:platformKey/*" element={<ChildRoutePage />} />
+              <Route path="/xingyuan/:platformKey/*" element={<ChildRoutePage />} />
             </Routes>
           </MemoryRouter>
         </I18nProvider>
@@ -58,15 +58,15 @@ beforeEach(() => {
 describe('ChildRoutePage', () => {
   it('passes the Portal deep-link suffix to the selected child', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(manifest({
-      url: '/children/gateway/',
+      url: '/children/yuheng/',
     }))))
 
-    renderRoute('/platform/gateway/dashboard')
+    renderRoute('/xingyuan/yuheng/dashboard')
 
-    await screen.findByTestId('wujie-host-gateway')
+    await screen.findByTestId('wujie-host-yuheng')
     expect(screen.queryByText('子应用运行区；业务权限和数据仍由对应平台负责')).not.toBeInTheDocument()
     expect(screen.queryByRole('contentinfo')).not.toBeInTheDocument()
-    expect(screen.getByTestId('wujie-host-gateway').closest('.portal-child-stage')).not.toBeNull()
+    expect(screen.getByTestId('wujie-host-yuheng').closest('.portal-child-stage')).not.toBeNull()
     expect(vi.mocked(startApp)).toHaveBeenCalledWith(expect.objectContaining({
       url: expect.stringMatching(/\/dashboard$/),
     }))
@@ -78,7 +78,7 @@ describe('ChildRoutePage', () => {
     renderRoute()
 
     expect(await screen.findByText(/版本不兼容/)).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: /独立打开/ })).toHaveAttribute('href', '/gateway/dashboard')
+    expect(screen.getByRole('link', { name: /独立打开/ })).toHaveAttribute('href', '/yuheng/dashboard')
     expect(screen.queryByTestId('wujie-child')).not.toBeInTheDocument()
   })
 

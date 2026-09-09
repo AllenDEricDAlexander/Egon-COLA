@@ -84,12 +84,12 @@ class GatewayDemoScriptContractTest {
         );
         assertThat(environment(services, "http-provider-mvc"))
                 .containsEntry(
-                        "GATEWAY_TEST_ADVERTISED_HOST",
+                        "YUHENG_TEST_ADVERTISED_HOST",
                         "http-provider-mvc"
                 );
         assertThat(environment(services, "http-provider-webflux"))
                 .containsEntry(
-                        "GATEWAY_TEST_ADVERTISED_HOST",
+                        "YUHENG_TEST_ADVERTISED_HOST",
                         "http-provider-webflux"
                 );
         assertThat(environment(services, "rpc-provider"))
@@ -138,7 +138,7 @@ class GatewayDemoScriptContractTest {
             Path docker = bin.resolve("docker");
             Files.writeString(
                     docker,
-                    "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$GATEWAY_DEMO_COMMAND_LOG\"\n"
+                    "#!/usr/bin/env bash\nprintf '%s\\n' \"$*\" >>\"$YUHENG_DEMO_COMMAND_LOG\"\n"
             );
             docker.toFile().setExecutable(true);
         }
@@ -153,15 +153,15 @@ class GatewayDemoScriptContractTest {
                 bin + ":" + environment.getOrDefault("PATH", "")
         );
         environment.put(
-                "GATEWAY_DEMO_RUNTIME_DIR",
+                "YUHENG_DEMO_RUNTIME_DIR",
                 temporaryDirectory.resolve("runtime").toString()
         );
         environment.put(
-                "GATEWAY_DEMO_ENV_FILE",
+                "YUHENG_DEMO_ENV_FILE",
                 DEPLOYMENT.resolve(".env.example").toString()
         );
-        environment.put("GATEWAY_DEMO_PROJECT", "egon-cola-gateway-demo-test");
-        environment.put("GATEWAY_DEMO_COMMAND_LOG", commandLog.toString());
+        environment.put("YUHENG_DEMO_PROJECT", "egon-cola-yuheng-demo-test");
+        environment.put("YUHENG_DEMO_COMMAND_LOG", commandLog.toString());
         Process process = builder.start();
         String output = new String(process.getInputStream().readAllBytes());
         return new ProcessResult(process.waitFor(), output);

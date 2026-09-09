@@ -12,7 +12,7 @@ import org.springframework.test.context.ActiveProfiles;
                 "app.integrations.redis.enabled=false",
                 "app.integrations.external-http.enabled=false",
                 "egon.cola.component.rpc.enabled=false",
-                "egon.cola.component.ddc.enabled=false"
+                "egon.cola.component.tianshu.enabled=false"
         })
 class StudentManagementApplicationTest {
     @Test

@@ -20,7 +20,7 @@ export const useFeatureQuery = <T>(
 ): UseQueryResult<T> => {
   const tenantId = deps.effectiveTenantId ?? 'none'
   return useQuery({
-    queryKey: ['rbac3', ...keys, tenantId],
+    queryKey: ['tianquan-jianshen', ...keys, tenantId],
     queryFn: () => queryFn(deps.featureApi),
     enabled: deps.status === 'READY' && (options?.enabled ?? true),
     retry: false,

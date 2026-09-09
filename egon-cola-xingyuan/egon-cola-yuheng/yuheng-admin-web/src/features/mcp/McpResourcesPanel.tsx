@@ -69,7 +69,7 @@ export const McpResourcesPanel = ({ serverId, gatewayGroupId, draftRevision }: {
 }) => {
   const [searchParams, setSearchParams] = useSearchParams()
   const scope = readScopeSearchParams(searchParams, ['bizCode', 'namespace', 'env', 'appCode'], 'resource')
-  const canWrite = useCapability('gateway:mcp:write')
+  const canWrite = useCapability('yuheng:mcp:write')
   const resources = useMcpCapabilityCollection('resources', serverId, gatewayGroupId, draftRevision)
   const templates = useMcpCapabilityCollection(
     'resource-templates',
@@ -307,7 +307,7 @@ export const McpResourcesPanel = ({ serverId, gatewayGroupId, draftRevision }: {
               <Input.TextArea rows={5} />
             </Form.Item>
           )}
-          <Form.Item name="requiredPermissions" label="RBAC3 Permissions（逗号分隔）">
+          <Form.Item name="requiredPermissions" label="Tianquan-Jianshen Permissions（逗号分隔）">
             <Input />
           </Form.Item>
           <Form.Item name="maxBytes" label="最大响应字节" rules={[{ required: true }]}>

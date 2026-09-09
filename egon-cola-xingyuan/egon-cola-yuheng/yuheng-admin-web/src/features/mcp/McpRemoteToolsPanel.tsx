@@ -41,7 +41,7 @@ export const McpRemoteToolsPanel = ({ serverId, gatewayGroupId, draftRevision }:
   gatewayGroupId: string
   draftRevision: number
 }) => {
-  const canWrite = useCapability('gateway:mcp:write')
+  const canWrite = useCapability('yuheng:mcp:write')
   const queryClient = useQueryClient()
   const [messageApi, messageContext] = message.useMessage()
   const [form] = Form.useForm<RemoteToolForm>()
@@ -60,7 +60,7 @@ export const McpRemoteToolsPanel = ({ serverId, gatewayGroupId, draftRevision }:
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['mcp-remote-tools', gatewayGroupId] }),
       queryClient.invalidateQueries({ queryKey: ['mcp-tool-references', gatewayGroupId] }),
-      queryClient.invalidateQueries({ queryKey: ['gateway-draft', gatewayGroupId] }),
+      queryClient.invalidateQueries({ queryKey: ['yuheng-draft', gatewayGroupId] }),
       queryClient.invalidateQueries({ queryKey: ['mcp-capability-preview', serverId] }),
     ])
   }
@@ -245,7 +245,7 @@ export const McpRemoteToolsPanel = ({ serverId, gatewayGroupId, draftRevision }:
           <Form.Item name="annotations" label="Remote Annotations JSON" rules={[{ required: true }]}>
             <Input.TextArea rows={4} />
           </Form.Item>
-          <Form.Item name="requiredPermissions" label="RBAC3 Permissions（逗号分隔）">
+          <Form.Item name="requiredPermissions" label="Tianquan-Jianshen Permissions（逗号分隔）">
             <Input />
           </Form.Item>
           <Form.Item name="riskLevel" label="风险级别" rules={[{ required: true }]}>

@@ -3,7 +3,7 @@ import { test } from 'node:test'
 import { canonicalChecksum, projectReport, reportResources } from './report-rbac-resources.mjs'
 
 const definitions = [
-  { kind: 'ROUTE', code: 'iam.roles', name: '角色', suggestedPermissionCode: 'system:role:read', apiResourceCodes: ['iam.api.roles.list'], path: '/iam/roles', componentKey: 'rbac3-role-graph', order: 10 },
+  { kind: 'ROUTE', code: 'iam.roles', name: '角色', suggestedPermissionCode: 'system:role:read', apiResourceCodes: ['iam.api.roles.list'], path: '/iam/roles', componentKey: 'tianquan-jianshen-role-graph', order: 10 },
   { kind: 'FIELD', code: 'iam.roles.name', name: '角色名称', suggestedPermissionCode: 'system:role:read', resourceCode: 'iam.roles', fieldCode: 'name', jsonPath: 'name', dataType: 'STRING' },
 ]
 
@@ -28,9 +28,9 @@ test('rejects the removed permission field instead of falling back to it', () =>
 test('reports through the CI endpoint without exposing a browser client', async () => {
   let call
   const result = await reportResources({
-    baseUrl: 'https://gateway.example/',
-    businessCode: 'platform',
-    applicationCode: 'rbac3-admin',
+    baseUrl: 'https://yuheng.example/',
+    businessCode: 'xingyuan',
+    applicationCode: 'tianquan-jianshen-admin',
     serviceAccessToken: 'short-lived',
     buildId: 'build-1',
     expectedApplicationVersion: 0,
@@ -41,7 +41,7 @@ test('reports through the CI endpoint without exposing a browser client', async 
     },
   })
   assert.equal(result.added, 1)
-  assert.match(call.url, /\/registration\/businesses\/platform\/applications\/rbac3-admin\/frontend-resources$/)
+  assert.match(call.url, /\/registration\/businesses\/xingyuan\/applications\/tianquan-jianshen-admin\/frontend-resources$/)
   assert.equal(call.init.method, 'PUT')
   assert.equal(call.init.headers.Authorization, 'Bearer short-lived')
 })
@@ -49,9 +49,9 @@ test('reports through the CI endpoint without exposing a browser client', async 
 test('rejects a non-success response so CI can block release', async () => {
   await assert.rejects(
     reportResources({
-      baseUrl: 'https://gateway.example',
-      businessCode: 'platform',
-      applicationCode: 'rbac3-admin',
+      baseUrl: 'https://yuheng.example',
+      businessCode: 'xingyuan',
+      applicationCode: 'tianquan-jianshen-admin',
       serviceAccessToken: 'short-lived',
       buildId: 'build-1',
       expectedApplicationVersion: 0,

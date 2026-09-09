@@ -51,12 +51,12 @@ const renderPage = () => {
 }
 
 beforeEach(() => {
-  state.permissions = ['idp:resource-server:read', 'idp:resource-server:status']
+  state.permissions = ['tianquan-shoubing:resource-server:read', 'tianquan-shoubing:resource-server:status']
   state.request.mockReset().mockImplementation((path: string, options?: RequestInit) => {
-    if (path === '/api/v1/identity/resource-servers?page=0&size=20' && !options) {
+    if (path === '/api/v1/tianquan-shoubing/resource-servers?page=0&size=20' && !options) {
       return Promise.resolve({ content: [resourceServer], page: 0, size: 20, totalElements: 21, totalPages: 2 })
     }
-    if (path === `/api/v1/identity/resource-servers/${resourceServer.resourceServerId}/disable`) {
+    if (path === `/api/v1/tianquan-shoubing/resource-servers/${resourceServer.resourceServerId}/disable`) {
       return Promise.reject(new Error('版本冲突'))
     }
     return Promise.reject(new Error(`Unexpected request: ${path}`))

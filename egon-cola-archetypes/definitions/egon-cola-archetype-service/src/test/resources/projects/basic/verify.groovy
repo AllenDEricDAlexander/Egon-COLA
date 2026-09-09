@@ -837,7 +837,7 @@ def productionEnv = assertFile("deploy/env/.env.prod.example").text
             "Production env example must not contain development credential ${forbidden}"
 }
 assert developmentEnv.contains("IMAGE_TAG=local")
-assert developmentEnv.contains("DDC_RPC_TARGET=")
+assert developmentEnv.contains("TIANSHU_RPC_TARGET=")
 assert productionEnv.contains("REGISTRY=")
 assert productionEnv.contains("REGISTRY_NAMESPACE=")
 assert productionEnv.contains("IMAGE_TAG=")
@@ -870,8 +870,8 @@ def assertDevelopmentCompose = { fileName, engine, requiredApplicationLines ->
     assert text.contains('EVALUATION_SHARDING_USERNAME: ${POSTGRES_USER}')
     assert text.contains('EVALUATION_SHARDING_PASSWORD: ${POSTGRES_PASSWORD}')
     assert !text.contains("replica")
-    assert text.contains("DDC_RPC_TARGET:")
-    assert text.contains("DDC_REGISTRY_ACCESS_KEY:")
+    assert text.contains("TIANSHU_RPC_TARGET:")
+    assert text.contains("TIANSHU_REGISTRY_ACCESS_KEY:")
     assert text.contains('pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"')
     assert text.contains('redis-cli --no-auth-warning -a "$${REDIS_PASSWORD}" ping')
     assert text.contains('["CMD", "rabbitmq-diagnostics", "-q", "ping"]')
@@ -914,7 +914,7 @@ def assertProductionCompose = { fileName, requiredApplicationLines ->
     assert !text.contains("replica")
     assert text.contains('${REDIS_PASSWORD:?Set REDIS_PASSWORD}')
     assert text.contains('${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD}')
-    assert text.contains('DDC_REGISTRY_SECRET_KEY: ${DDC_REGISTRY_SECRET_KEY}')
+    assert text.contains('TIANSHU_REGISTRY_SECRET_KEY: ${TIANSHU_REGISTRY_SECRET_KEY}')
     assert !text.contains("build:")
     assert !text.contains("local-postgres")
     assert !text.contains("local-redis")
@@ -1171,7 +1171,7 @@ assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-
 }
 ['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
     def config = new File(projectDir, 'student-management-evaluation-starter/src/main/resources/' + profile).text
-    ['rpc:', 'ddc:', 'provider:', 'consumer:', 'registry:', 'gateway:', 'openapi:', 'idp:'].each { token ->
+    ['rpc:', 'tianshu:', 'provider:', 'consumer:', 'registry:', 'yuheng:', 'openapi:', 'tianquan-shoubing:'].each { token ->
         assert config.contains(token): "Missing native configuration ${token} in ${profile}"
     }
     assert !config.contains('DUBBO_') && !config.contains('NACOS_')
@@ -1191,7 +1191,7 @@ assert nativeOperations == ["createCourse", "scheduleCourse", "getCourse", "page
 ['docker', 'podman', 'nerdctl'].each { engine ->
     ['', '.prod'].each { profile ->
         def compose = new File(projectDir, "deploy/compose/compose.${engine}${profile}.yaml").text
-        assert compose.contains('DDC_APP_CODE: ${DDC_APP_CODE:?Set DDC_APP_CODE}')
+        assert compose.contains('TIANSHU_APP_CODE: ${TIANSHU_APP_CODE:?Set TIANSHU_APP_CODE}')
         ['${artifactId}', '${rootArtifactId}', '${parentArtifactId}'].each { marker ->
             assert !compose.contains(marker): "Unexpanded archetype variable in Compose: ${marker}"
         }
