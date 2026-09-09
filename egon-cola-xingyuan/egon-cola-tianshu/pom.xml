@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>top.egon</groupId>
+        <artifactId>egon-cola-xingyuan-parent</artifactId>
+        <version>5.4.0</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>egon-cola-tianshu</artifactId>
+    <packaging>pom</packaging>
+    <name>egon-cola-tianshu</name>
+    <description>Dynamic configuration center platform for Egon COLA.</description>
+
+    <modules>
+        <module>egon-cola-tianshu-starter</module>
+        <module>egon-cola-tianshu-http-registration-starter</module>
+        <module>egon-cola-tianshu-admin</module>
+        <module>egon-cola-tianshu-test</module>
+    </modules>
+</project>

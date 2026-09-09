@@ -1,0 +1,113 @@
+name: RBAC3 CI
+
+on:
+  push:
+    paths:
+      - ".github/workflows/tianquan-jianshen.yml"
+      - ".github/dependabot.yml"
+      - "pom.xml"
+      - "egon-cola-components/pom.xml"
+      - "egon-cola-components/egon-cola-component-common/**"
+      - "egon-cola-components/egon-cola-component-transactional-outbox-starter/**"
+      - "egon-cola-xingyuan/pom.xml"
+      - "egon-cola-xingyuan/egon-cola-tianshu/**"
+      - "egon-cola-xingyuan/egon-cola-yuheng/**"
+      - "egon-cola-xingyuan/egon-cola-tianquan-jianshen/**"
+  pull_request:
+    paths:
+      - ".github/workflows/tianquan-jianshen.yml"
+      - ".github/dependabot.yml"
+      - "pom.xml"
+      - "egon-cola-components/pom.xml"
+      - "egon-cola-components/egon-cola-component-common/**"
+      - "egon-cola-components/egon-cola-component-transactional-outbox-starter/**"
+      - "egon-cola-xingyuan/pom.xml"
+      - "egon-cola-xingyuan/egon-cola-tianshu/**"
+      - "egon-cola-xingyuan/egon-cola-yuheng/**"
+      - "egon-cola-xingyuan/egon-cola-tianquan-jianshen/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RBAC3_ROOT: egon-cola-xingyuan/egon-cola-tianquan-jianshen
+
+jobs:
+  java:
+    name: RBAC3 Java 21 verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: zulu
+          java-version: "21"
+          cache: maven
+
+      - name: Verify RBAC3, gateway-engine, and dependency reactor
+        run: |
+          ./mvnw -B -ntp \
+            -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
+            -am clean verify
+
+  frontend:
+    name: RBAC3 Node 24 frontend verification
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: "${{ env.RBAC3_ROOT }}/.node-version"
+          cache: npm
+          cache-dependency-path: "${{ env.RBAC3_ROOT }}/package-lock.json"
+
+      - name: Verify SDK and rbac3-admin Web
+        working-directory: ${{ env.RBAC3_ROOT }}
+        run: |
+          npm ci
+          npm run typecheck
+          npm test -- --run
+          npm run lint
+          npm run build
+          npm run e2e --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
+
+  static-boundaries:
+    name: RBAC3 scripts and static boundaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Verify script syntax and repository boundaries
+        working-directory: ${{ env.RBAC3_ROOT }}
+        run: |
+          bash -n scripts/verification/*.sh
+          scripts/verification/verify-static.sh --help
+          scripts/verification/verify-local-dependencies.sh --help
+          scripts/verification/verify-gateway-ddc-topology.sh --help
+          scripts/verification/verify-static.sh --verify
+
+      - name: Validate fixture JSON
+        working-directory: ${{ env.RBAC3_ROOT }}
+        run: |
+          jq empty scripts/verification/fixtures/gateway-release.json
+          jq empty scripts/verification/fixtures/manifest.json

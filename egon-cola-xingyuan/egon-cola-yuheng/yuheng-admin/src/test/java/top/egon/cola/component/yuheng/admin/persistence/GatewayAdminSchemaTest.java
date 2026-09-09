@@ -1,0 +1,130 @@
+package top.egon.cola.component.yuheng.admin.persistence;
+
+import org.junit.jupiter.api.Test;
+
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
+class GatewayAdminSchemaTest {
+
+    @Test
+    void migrationsContainControlPlaneAndObservabilityAggregates()
+            throws IOException {
+        String root = "db/migration";
+        try (java.util.stream.Stream<java.nio.file.Path> migrations =
+                     java.nio.file.Files.list(java.nio.file.Path.of(
+                             "src/main/resources",
+                             root
+                     ))) {
+            assertEquals(13, migrations.filter(
+                    path -> path.getFileName().toString().endsWith(".sql")
+            ).count());
+        }
+        String migration = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V1__create_gateway_admin_schema.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+
+        assertTrue(migration.contains("CREATE TABLE gateway_group"));
+        assertTrue(migration.contains("CREATE TABLE gateway_operation"));
+        assertTrue(migration.contains("CREATE TABLE gateway_draft"));
+        assertTrue(migration.contains("CREATE TABLE gateway_release"));
+        assertTrue(migration.contains("CREATE TABLE gateway_audit_log"));
+        assertTrue(migration.contains("JSONB"));
+
+        String observability = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root
+                                + "/V2__add_gateway_observability_projection.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(observability.contains(
+                "CREATE TABLE gateway_call_event_summary"
+        ));
+        assertTrue(observability.contains(
+                "CREATE TABLE gateway_call_metric_minute"
+        ));
+        assertTrue(observability.contains(
+                "CREATE TABLE gateway_call_event_consume_failure"
+        ));
+
+        String lifecycle = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root
+                                + "/V3__add_definition_lifecycle_membership.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(lifecycle.contains(
+                "CREATE TABLE gateway_definition_set_operation"
+        ));
+        assertTrue(lifecycle.contains("activated_at"));
+        assertTrue(lifecycle.contains("retired_at"));
+
+        String applicationScope = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V5__add_gateway_application_biz_scope.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(applicationScope.contains("biz_code"));
+
+        String mcp = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V7__add_gateway_mcp_control_plane.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(mcp.contains("CREATE TABLE gateway_mcp_server"));
+        assertTrue(mcp.contains("CREATE TABLE gateway_mcp_approval"));
+        assertTrue(mcp.contains("CREATE TABLE gateway_mcp_task_instance"));
+
+        String managedMcp = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root
+                                + "/V10__project_annotation_managed_mcp_tools.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(managedMcp.contains(
+                "CREATE TABLE gateway_mcp_managed_tool_override"
+        ));
+        assertTrue(managedMcp.contains(
+                "CREATE TABLE gateway_mcp_remote_tool_draft"
+        ));
+        assertTrue(managedMcp.contains(
+                "DROP TABLE gateway_mcp_tool_draft"
+        ));
+
+        String openApi = new String(
+                getClass().getClassLoader().getResourceAsStream(
+                        root + "/V12__add_gateway_openapi_sync.sql"
+                ).readAllBytes(),
+                StandardCharsets.UTF_8
+        );
+        assertTrue(openApi.contains(
+                "CREATE TABLE gateway_openapi_snapshot"
+        ));
+        assertTrue(openApi.contains(
+                "CREATE TABLE gateway_openapi_sync_state"
+        ));
+        assertTrue(openApi.contains(
+                "uk_gateway_openapi_snapshot_contract"
+        ));
+        assertTrue(openApi.contains(
+                "idx_gateway_openapi_snapshot_definition"
+        ));
+        assertTrue(openApi.contains(
+                "uk_gateway_openapi_sync_key"
+        ));
+        assertTrue(openApi.contains(
+                "revision BIGINT NOT NULL DEFAULT 0"
+        ));
+    }
+}

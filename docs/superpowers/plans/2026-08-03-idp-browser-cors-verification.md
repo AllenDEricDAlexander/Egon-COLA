@@ -21,8 +21,8 @@
 ### Task 1: Activate the IdP CORS configuration in Spring Security
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/security/IdpAdminSecurityConfiguration.java`
-- Test: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/interfaces/http/IdpSsoLoginControllerIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/security/IdpAdminSecurityConfiguration.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/interfaces/http/IdpSsoLoginControllerIT.java`
 
 **Interfaces:**
 - Consumes: `egon.idp.oauth.allowed-origins` and Spring Security's conventional `corsConfigurationSource` bean lookup.
@@ -37,8 +37,8 @@ Add test property `egon.idp.oauth.allowed-origins=http://127.0.0.1:18121,http://
 Run:
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-idp/egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am \
   -DskipITs=true -Dtest=IdpSsoLoginControllerIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -61,8 +61,8 @@ Do not change the allowed origins, methods, headers, credential setting, or URL 
 Run the focused command from Step 2, then:
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-idp/egon-cola-platform-idp-admin -am test
+./mvnw -B -ntp -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test
 ```
 
 Expected: all tests pass with zero failures and zero errors.
@@ -70,7 +70,7 @@ Expected: all tests pass with zero failures and zero errors.
 ### Task 2: Add browser-equivalent local acceptance checks
 
 **Files:**
-- Modify: `scripts/unified-platform/verify-local-stack.sh`
+- Modify: `scripts/unified-xingyuan/verify-local-stack.sh`
 - Modify: `scripts/unified-identity-local.sh`
 
 **Interfaces:**
@@ -86,7 +86,7 @@ Add reusable Bash assertions that check exact allow-origin and credential respon
 Run:
 
 ```bash
-scripts/unified-platform/verify-local-stack.sh
+scripts/unified-xingyuan/verify-local-stack.sh
 ```
 
 Expected: it fails at the new IdP CORS boundary before deep platform checks.
@@ -96,8 +96,8 @@ Expected: it fails at the new IdP CORS boundary before deep platform checks.
 Run:
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-idp/egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am \
   -DskipTests package
 ```
 
@@ -118,8 +118,8 @@ git commit -m "fix(idp): enable browser CORS verification"
 ### Task 3: Close frontend quality-gate gaps discovered during verification
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/package.json`
-- Add: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/eslint.config.js`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/package.json`
+- Add: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/eslint.config.js`
 - Modify: IdP, RBAC3, and DDC frontend files reported by ESLint.
 
 - [x] Add the same ESLint development toolchain and configuration already used by Gateway and DDC to IdP Admin Web.

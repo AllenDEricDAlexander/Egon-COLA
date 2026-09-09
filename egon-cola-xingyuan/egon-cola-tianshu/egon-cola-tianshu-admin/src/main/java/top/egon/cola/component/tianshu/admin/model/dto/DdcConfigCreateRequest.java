@@ -1,0 +1,29 @@
+package top.egon.cola.component.tianshu.admin.model.dto;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class DdcConfigCreateRequest {
+
+    private String bizCode;
+
+    private String env;
+
+    private String appCode;
+
+    private String namespaceCode;
+
+    private String resourceName;
+
+    private String content;
+
+    private String format;
+
+    private String description;
+}

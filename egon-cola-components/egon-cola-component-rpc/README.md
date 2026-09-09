@@ -9,7 +9,7 @@ through the Dynamic Config Center (DDC).
 
 The component is deliberately not a Gateway data plane. The production
 Gateway, routing rules, provider health policy, traffic governance, and HTTP/RPC
-forwarding are owned by the separate [Gateway platform](../../egon-cola-platforms/egon-cola-platform-gateway/README.md).
+forwarding are owned by the separate [Gateway platform](../../egon-cola-xingyuan/egon-cola-yuheng/README.md).
 
 ## Badges
 
@@ -164,7 +164,7 @@ egon:
 
 The DDC Admin, Redis, production Gateway, and Gateway rules are outside this
 component's Quick Start. Use
-the [Gateway and DDC integration runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md)
+the [Gateway and DDC integration runbook](../../egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md)
 for a complete multi-process topology.
 
 ## Maven Dependency
@@ -202,7 +202,7 @@ discovery, or DDC management RPC. It brings the Starter and DDC SDK transitively
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+    <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
 </dependency>
 ```
 
@@ -303,7 +303,7 @@ When `tls.enabled=true`, all three certificate paths must be readable. Provider
 registration publishes whether the endpoint is secure. DDC transport has a
 separate configuration namespace, `egon.cola.component.ddc.rpc`, and separate
 `runtime`, `registry`, and `management` HMAC credentials. See
-the [DDC README](../../egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md)
+the [DDC README](../../egon-cola-xingyuan/egon-cola-tianshu/README.md)
 for the full DDC configuration contract.
 
 ### DDC RPC properties
@@ -594,7 +594,7 @@ The DDC Adapter owns direct DDC RPC clients for three capability areas: ConfigDa
 runtime, service registry, and management. The DDC registry is the source for
 temporary Provider/Gateway leases and live snapshots. The Gateway platform owns
 the production data plane and consumes the RPC contract catalog/snapshot through
-its own starter. See the [Gateway README](../../egon-cola-platforms/egon-cola-platform-gateway/README.md)
+its own starter. See the [Gateway README](../../egon-cola-xingyuan/egon-cola-yuheng/README.md)
 for route, rule, health, security, and traffic-governance behavior.
 
 ## Extension Points
@@ -635,7 +635,7 @@ egon-cola-component-rpc/
 │       ├── context/            # Process identity and invocation metadata
 │       ├── exception/          # Stable RPC exception and status mapping
 │       └── provider/           # Binding, server, availability, and leases
-├── egon-cola-component-rpc-ddc-adapter/
+├── egon-cola-component-rpc-tianshu-adapter/
 │   └── src/main/java/top/egon/cola/component/rpc/ddc/
 │       ├── autoconfigure/      # DDC RPC properties and Spring wiring
 │       ├── client/             # Config, registry, and management clients

@@ -1,0 +1,262 @@
+package top.egon.cola.component.yuheng.starter.discovery;
+
+import com.google.protobuf.DescriptorProtos;
+import com.google.protobuf.Descriptors;
+import com.google.protobuf.Type;
+import org.junit.jupiter.api.Test;
+import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionSourceTypeEnum;
+import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
+import top.egon.cola.component.yuheng.starter.GatewayReportingProperties;
+import top.egon.cola.component.yuheng.starter.annotation.GatewayInterfaceGroup;
+import top.egon.cola.component.yuheng.starter.annotation.GatewayOperation;
+import top.egon.cola.component.yuheng.starter.discovery.mcp.McpExposureMapper;
+import top.egon.cola.component.yuheng.starter.discovery.rpc.RpcGatewayDefinitionContributor;
+import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
+import top.egon.cola.component.rpc.contract.catalog.RpcContractCatalog;
+import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
+import top.egon.cola.component.rpc.contract.snapshot.RpcContractSnapshot;
+import top.egon.cola.component.rpc.contract.descriptor.RpcMethodDescriptor;
+import top.egon.cola.component.rpc.contract.snapshot.RpcMethodSnapshot;
+import top.egon.cola.component.rpc.contract.descriptor.RpcType;
+import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
+
+import java.lang.reflect.Method;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
+
+class RpcGatewayDefinitionContributorTest {
+
+    @Test
+    void discoversMcpRequestAndResponseSchemasFromProtobuf()
+            throws Exception {
+        GatewayInterfaceDefinitionReport.Operation operation = operation(
+                Contract.class
+        );
+
+        assertThat(operation.requestSchema())
+                .containsEntry("x-egon-schema-model",
+                        "gateway-operation-request/v2")
+                .containsEntry("type", "object")
+                .containsEntry("messageType", "google.protobuf.Type");
+        assertThat(operation.responseSchema())
+                .containsEntry("x-egon-schema-model",
+                        "gateway-operation-response/v2")
+                .containsEntry("type", "object")
+                .containsEntry("messageType", "google.protobuf.Type");
+        assertThat(properties(operation.requestSchema()))
+                .containsKeys("name", "fields", "oneofs", "syntax");
+        assertThat(schema(properties(operation.requestSchema()).get("fields")))
+                .containsEntry("type", "array")
+                .containsKey("items");
+        assertThat(operation.attributes())
+                .containsEntry("idempotent", true)
+                .containsKey(McpExposureMapper.ATTRIBUTE_NAME);
+        assertThat(operation.descriptorSnapshot())
+                .containsKeys("descriptorId", "sha256", "base64DescriptorSet");
+    }
+
+    @Test
+    void keepsJavaSchemaMembersOutOfTheRpcGovernanceAnnotation() {
+        assertThat(java.util.Arrays.stream(
+                        GatewayOperation.class.getDeclaredMethods())
+                .map(Method::getName))
+                .doesNotContain("requestSchemaFields", "responseSchema");
+    }
+
+    @Test
+    void skipsRpcContractWithoutGatewayInterfaceGroup() throws Exception {
+        RpcContractDescriptor grouped = contract(
+                Contract.class,
+                "test.Catalog"
+        );
+        RpcContractDescriptor ungrouped = contract(
+                UngroupedContract.class,
+                "test.InternalCatalog"
+        );
+        RpcGatewayDefinitionContributor contributor =
+                new RpcGatewayDefinitionContributor(
+                        catalog(
+                                List.of(grouped, ungrouped),
+                                List.of(snapshot("test.Catalog"))
+                        ),
+                        properties()
+                );
+
+        List<GatewayDefinitionContributor.DiscoveredInterfaceGroup>
+                definitions = contributor.discover();
+
+        assertThat(definitions).singleElement().satisfies(definition -> {
+            assertThat(definition.interfaceGroup().code())
+                    .isEqualTo("rpc-orders");
+            assertThat(definition.interfaceGroup().sourceType())
+                    .isEqualTo(GatewayDefinitionSourceTypeEnum.RPC_DESCRIPTOR);
+            assertThat(definition.interfaceGroup().attributes())
+                    .containsEntry("serviceName", "test.Catalog");
+            assertThat(definition.interfaceGroup().operations())
+                    .extracting(
+                            GatewayInterfaceDefinitionReport.Operation
+                                    ::methodIdentity
+                    )
+                    .containsExactly("test.Catalog/Lookup")
+                    .doesNotContain("test.InternalCatalog/Lookup");
+        });
+    }
+
+    private GatewayInterfaceDefinitionReport.Operation operation(
+            Class<?> contractType) throws Exception {
+        String serviceName = "test.Catalog";
+        RpcContractDescriptor contract = contract(contractType, serviceName);
+        RpcContractSnapshot snapshot = snapshot(serviceName);
+        RpcGatewayDefinitionContributor contributor =
+                new RpcGatewayDefinitionContributor(
+                        catalog(List.of(contract), List.of(snapshot)),
+                        properties()
+                );
+        return contributor.discover().getFirst()
+                .interfaceGroup().operations().getFirst();
+    }
+
+    private RpcContractDescriptor contract(
+            Class<?> contractType,
+            String serviceName) throws Exception {
+        Method javaMethod = contractType.getDeclaredMethod(
+                "lookup",
+                Type.class
+        );
+        return new RpcContractDescriptor(
+                contractType,
+                serviceName,
+                "default",
+                "1.0.0",
+                List.of(new RpcMethodDescriptor(
+                        javaMethod,
+                        "Lookup",
+                        serviceName + "/Lookup",
+                        true,
+                        null,
+                        protoMethod()
+                ))
+        );
+    }
+
+    private RpcContractSnapshot snapshot(String serviceName) {
+        return new RpcContractSnapshot(
+                serviceName,
+                "default",
+                "1.0.0",
+                "test",
+                "Catalog",
+                new byte[]{1},
+                "descriptor-sha",
+                List.of(new RpcMethodSnapshot(
+                        "Lookup",
+                        serviceName + "/Lookup",
+                        "google.protobuf.Type",
+                        "google.protobuf.Type",
+                        RpcType.UNARY
+                ))
+        );
+    }
+
+    private RpcContractCatalog catalog(
+            List<RpcContractDescriptor> contracts,
+            List<RpcContractSnapshot> snapshots) {
+        return new RpcContractCatalog() {
+            @Override
+            public List<RpcContractDescriptor> contracts() {
+                return contracts;
+            }
+
+            @Override
+            public Optional<RpcContractDescriptor> find(
+                    RpcServiceIdentity serviceIdentity) {
+                return Optional.empty();
+            }
+
+            @Override
+            public List<RpcContractSnapshot> snapshots() {
+                return snapshots;
+            }
+
+            @Override
+            public Optional<RpcContractSnapshot> findSnapshot(
+                    RpcServiceIdentity serviceIdentity) {
+                return Optional.empty();
+            }
+        };
+    }
+
+    private Descriptors.MethodDescriptor protoMethod()
+            throws Descriptors.DescriptorValidationException {
+        DescriptorProtos.FileDescriptorProto file =
+                DescriptorProtos.FileDescriptorProto.newBuilder()
+                        .setName("rpc-gateway-definition-test.proto")
+                        .setPackage("test")
+                        .addDependency(Type.getDescriptor().getFile().getName())
+                        .addService(DescriptorProtos.ServiceDescriptorProto
+                                .newBuilder()
+                                .setName("Catalog")
+                                .addMethod(DescriptorProtos.MethodDescriptorProto
+                                        .newBuilder()
+                                        .setName("Lookup")
+                                        .setInputType(".google.protobuf.Type")
+                                        .setOutputType(".google.protobuf.Type")))
+                        .build();
+        return Descriptors.FileDescriptor.buildFrom(
+                file,
+                new Descriptors.FileDescriptor[]{
+                        Type.getDescriptor().getFile()
+                }
+        ).findServiceByName("Catalog").findMethodByName("Lookup");
+    }
+
+    private GatewayReportingProperties properties() {
+        GatewayReportingProperties properties =
+                new GatewayReportingProperties();
+        properties.setApplicationCode("orders");
+        properties.setBizCode("trade");
+        properties.setEnv("test");
+        properties.setNamespace("default");
+        properties.setArtifactVersion("1.0.0");
+        return properties;
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> properties(Map<String, Object> schema) {
+        return (Map<String, Object>) schema.get("properties");
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> schema(Object value) {
+        return (Map<String, Object>) value;
+    }
+
+    @GatewayInterfaceGroup(
+            businessDomainCode = "trade",
+            businessDomainName = "交易域",
+            entityDomainCode = "order",
+            entityDomainName = "订单",
+            code = "rpc-orders",
+            name = "RPC 订单",
+            mcpServerCode = "trade-mcp"
+    )
+    private interface Contract {
+
+        @EgonRpcMethod(name = "Lookup", idempotent = true)
+        @GatewayOperation(
+                idempotent = true,
+                registerMcp = true,
+                mcpName = "rpc_order_lookup"
+        )
+        Type lookup(Type request);
+    }
+
+    private interface UngroupedContract {
+
+        @EgonRpcMethod(name = "Lookup", idempotent = true)
+        Type lookup(Type request);
+    }
+}

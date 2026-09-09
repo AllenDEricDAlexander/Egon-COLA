@@ -39,7 +39,7 @@
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
-| EVD-001 | Static repository | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` MACHINE_CLIENTS/RESOURCES | 已有 Admin 与 API 两组；缺 MCP | 只补第三组 | 2026-09-05 静态，非运行时 |
+| EVD-001 | Static repository | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` MACHINE_CLIENTS/RESOURCES | 已有 Admin 与 API 两组；缺 MCP | 只补第三组 | 2026-09-05 静态，非运行时 |
 | EVD-002 | Static repository | 同文件 MCP_TASK_SERVICE_CLIENT / mcpTaskServiceGrantId | 指向 gateway-engine-service；ID 只有 tenant hash | 改 Client 时必须换 ID 前缀，防止旧记录 PK 冲突 | 未接数据库 |
 | EVD-003 | Static repository | IdP admin resource/service/impl/ResourceServerServiceImpl.ensureResourceIsUnique；db/migration/V2__add_oauth_resource_servers.sql | biz/app/env 与 management Client 唯一 | 新 app 与 Client，不放宽校验 | Schema 不变 |
 | EVD-004 | User decision | 本轮“两个server…admin…单独的 resource server” | 三个身份独立 | 已获执行授权 | 不授权重置既有数据库 |
@@ -195,13 +195,13 @@ DDC 授权仍用 PLATFORM、tenant=null、scope=ddc:registration:write；MCP sou
 ## 8. Package Structure and Code File Tree
 
 ```text
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config  CREATE
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config  CREATE
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml  MODIFY
 ```
 
-测试先锁定契约；生产修改种子、Task ID 前缀和 Rule 4 必需的本类 DI 规范化。新增 `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config` 复制 Qualifier/Value，修改 `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml` 补 Lombok provided/optional 构建依赖；无新业务类型、转换器、Bean 数量、接口或 schema。
+测试先锁定契约；生产修改种子、Task ID 前缀和 Rule 4 必需的本类 DI 规范化。新增 `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config` 复制 Qualifier/Value，修改 `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml` 补 Lombok provided/optional 构建依赖；无新业务类型、转换器、Bean 数量、接口或 schema。
 
 ## 9. Interface Definitions
 
@@ -234,7 +234,7 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 
 验证命令（repo cwd）：
 ```bash
-./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -pl :egon-cola-tianquan-shoubing-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 新增断言先 RED；生产修正后 GREEN。临时 secret 为测试生成值、Mock Repository，无真实 DB/IdP/浏览器。不能将此作为 full platforms 验收。
 

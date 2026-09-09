@@ -12,7 +12,7 @@
 >
 > 原始需求稿：`/Users/mario/Downloads/rbac3-permission-system-design-v4.md`
 >
-> 目标目录：`egon-cola-platforms/egon-cola-platform-rbac3`
+> 目标目录：`egon-cola-xingyuan/egon-cola-tianquan-jianshen`
 
 ## 1. 审核闸门
 
@@ -21,7 +21,7 @@
 
 本文已于 2026-07-30 获得用户明确确认，现仅授权编写并审核一次性交付实施 Plan。在该 Plan 再次获得用户明确确认前：
 
-1. 不创建 `egon-cola-platform-rbac3` 目录或任何子模块；
+1. 不创建 `egon-cola-tianquan-jianshen` 目录或任何子模块；
 2. 不修改根 POM、Platforms POM、BOM、版本号或发布配置；
 3. 不新增 Java、TypeScript、React、配置、测试、SQL 或 Flyway 文件；
 4. 不修改现有 Gateway、DDC、Access Guard 或 Transactional Outbox；
@@ -77,7 +77,7 @@
 
 | 编号 | 决策 |
 |---|---|
-| D-01 | RBAC3 是 `egon-cola-platforms` 下的独立完整平台，不是普通工具 Starter |
+| D-01 | RBAC3 是 `egon-cola-xingyuan` 下的独立完整平台，不是普通工具 Starter |
 | D-02 | 建设中心服务、业务 Starter、Gateway Adapter、React 管理端和 React 业务 SDK；不建设独立 Test 模块，测试归属各模块自己的测试源集 |
 | D-03 | RBAC3 自带最小租户、用户、组织、部门、岗位和授权快照，并提供外部 IdP/HR 同步 SPI；不建设完整 HR 系统 |
 | D-04 | 所有业务数据强制租户隔离；平台管理员与租户管理员是不同安全边界 |
@@ -607,20 +607,20 @@ RBAC3 Admin 不要求 Session Affinity。Refresh、Logout、Bootstrap 和管理�
 ## 8. 目标工程结构
 
 ```text
-egon-cola-platforms/
-└── egon-cola-platform-rbac3/
+egon-cola-xingyuan/
+└── egon-cola-tianquan-jianshen/
     ├── pom.xml
     ├── README.md
     ├── README.zh-CN.md
     ├── docs/
     │   └── manifest.md
-    ├── egon-cola-platform-rbac3-contract/
-    ├── egon-cola-platform-rbac3-core/
-    ├── egon-cola-platform-rbac3-starter/
-    ├── egon-cola-platform-rbac3-gateway-adapter/
-    ├── egon-cola-platform-rbac3-admin/
-    ├── egon-cola-platform-rbac3-admin-web/
-    └── egon-cola-platform-rbac3-react-sdk/
+    ├── egon-cola-tianquan-jianshen-contract/
+    ├── egon-cola-tianquan-jianshen-core/
+    ├── egon-cola-tianquan-jianshen-starter/
+    ├── egon-cola-tianquan-jianshen-gateway-adapter/
+    ├── egon-cola-tianquan-jianshen-admin/
+    ├── egon-cola-tianquan-jianshen-admin-web/
+    └── egon-cola-tianquan-jianshen-react-sdk/
 ```
 
 Java 包根使用：
@@ -733,7 +733,7 @@ DDC 或 Gateway Admin。
 
 ### 8.8 测试归属（不是独立模块）
 
-RBAC3 不创建 `egon-cola-platform-rbac3-test`，也不发布 test-jar。测试遵循“谁拥有行为，谁在自己
+RBAC3 不创建 `egon-cola-tianquan-jianshen-test`，也不发布 test-jar。测试遵循“谁拥有行为，谁在自己
 的测试源集验证”的原则：
 
 因此旧稿中“RBAC Test 模块依赖 RBAC Admin”的关系被完全删除：Admin 的 Controller、数据库、
@@ -923,7 +923,7 @@ Adapter 可依赖 Gateway Core SPI，但不能依赖 Gateway Engine 的具体路
 RBAC3 Admin 必须依赖现有：
 
 ```text
-top.egon:egon-cola-platform-gateway-starter
+top.egon:yuheng-starter
 ```
 
 Controller 同时使用当前 Gateway Scanner 实际识别的 `@GatewayInterfaceGroup` 和服务语义元数据
@@ -1034,7 +1034,7 @@ egon:
 RBAC3 Admin 必须依赖现有：
 
 ```text
-top.egon:egon-cola-platform-gateway-provider-runtime
+top.egon:yuheng-provider-runtime
 ```
 
 Provider Runtime 使用现有配置前缀：
@@ -5448,7 +5448,7 @@ Audit/Participation 量级的可缩放样本）上分别测：
 模块创建后，实施计划至少包含等价命令并以实际 POM/npm scripts 为准：
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-rbac3 -am clean verify
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen -am clean verify
 npm ci
 npm run typecheck
 npm run lint
@@ -5603,7 +5603,7 @@ flowchart LR
 - **Then** 不存在新 RBAC3 模块、POM、代码、SQL 或实施计划变更；
 - **And Given** Spec 已确认并进入实施；
 - **When** 创建平台；
-- **Then** 只创建于 `egon-cola-platforms/egon-cola-platform-rbac3`，包根、配置前缀和模块名符合第 8 节。
+- **Then** 只创建于 `egon-cola-xingyuan/egon-cola-tianquan-jianshen`，包根、配置前缀和模块名符合第 8 节。
 
 ### AC-02 模块依赖边界
 

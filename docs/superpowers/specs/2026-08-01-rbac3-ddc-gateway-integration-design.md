@@ -3,7 +3,7 @@
 > 状态：已批准（2026-08-01）
 > 日期：2026-08-01
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
-> 适用模块：`egon-cola-platforms/egon-cola-platform-rbac3`
+> 适用模块：`egon-cola-xingyuan/egon-cola-tianquan-jianshen`
 > 前置设计：`docs/superpowers/specs/2026-07-30-rbac3-permission-platform-design.md`
 
 ## 1. 文档目的
@@ -25,9 +25,9 @@
 
 | 能力 | 当前状态 | 当前实现依据 |
 |---|---|---|
-| Gateway Definition 上报 | 已实现 | RBAC3 Admin 依赖 `egon-cola-platform-gateway-starter`，Controller 使用 Gateway 注解 |
+| Gateway Definition 上报 | 已实现 | RBAC3 Admin 依赖 `yuheng-starter`，Controller 使用 Gateway 注解 |
 | Gateway 文档目录 | 已实现基础能力 | Gateway Admin 已提供 Interface Catalog；RBAC3 当前 78 个 HTTP Mapping 均有 `@GatewayOperation` |
-| DDC HTTP Provider 注册 | 已实现 | RBAC3 Admin 依赖 `egon-cola-platform-gateway-provider-runtime`，启用 `HTTP_PROVIDER` 租约 |
+| DDC HTTP Provider 注册 | 已实现 | RBAC3 Admin 依赖 `yuheng-provider-runtime`，启用 `HTTP_PROVIDER` 租约 |
 | Gateway 从 DDC 发现实例 | 已实现 | Gateway Engine 使用 DDC Provider Directory，不配置 RBAC3 静态实例地址 |
 | Gateway Release 与路由状态 | 已实现 | Definition、Provider Lease、Release/Consistency 分开观察并计算 `ROUTABLE` |
 | DDC 注册身份 v3 对齐 | 已实现 | Definition、Provider、Gateway 查询使用一致的 `bizCode + appCode` 业务身份 |

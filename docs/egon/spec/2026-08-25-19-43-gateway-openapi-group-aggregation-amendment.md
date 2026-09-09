@@ -12,7 +12,7 @@
 | Updated | 2026-08-25 19:43 CST |
 | Owner | User / Egon-COLA Gateway maintainers |
 | Repository | Egon-COLA |
-| Scope | egon-cola-platforms/egon-cola-platform-gateway；Provider 多 Group 发布、DDC 能力清单、Admin Group 聚合、来源类型、MCP 可选投影、事务与 Canonicalization 修正 |
+| Scope | egon-cola-xingyuan/egon-cola-yuheng；Provider 多 Group 发布、DDC 能力清单、Admin Group 聚合、来源类型、MCP 可选投影、事务与 Canonicalization 修正 |
 | Change Surface | 将单 default 文档改为显式多 Group；一个应用/build 的全部 HTTP Group 聚合为一个 Definition Set；规范来源枚举、注解、DDC/config、Canonicalization、响应映射和事务；保持 RPC Protobuf 事实源并定义来源扩展边界 |
 | Affected Chapters | §7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户于 2026-08-25 确认此前六项实施阻塞全部采用 A，并新增：不同业务系统配置不同 OpenAPI Group，Gateway 负责聚合；设计 HTTP/RPC 定义来源扩展和 MCP 可选扩展 |
@@ -489,18 +489,18 @@ sequenceDiagram
 ### 8.1 Amended target tree
 
 ```text
-egon-cola-platforms/egon-cola-platform-gateway/
-├── egon-cola-platform-gateway-contract/
+egon-cola-xingyuan/egon-cola-yuheng/
+├── yuheng-contract/
 │   └── .../reporting/
 │       ├── GatewayDefinitionSourceTypeEnum.java CREATE
 │       └── openapi/GatewayOpenApiGroupManifestDTO.java CREATE
-├── egon-cola-platform-gateway-starter-openapi/
+├── yuheng-starter-openapi/
 │   └── .../openapi/
 │       ├── annotation/{EgonApiCatalog,EgonGatewayPolicy,EgonMcpTool}.java CREATE
 │       ├── config/{GatewayOpenApiProperties,GatewayOpenApiAutoConfiguration}.java CREATE/MODIFY
 │       ├── customizer/{EgonOperationCustomizer,EgonOpenApiCustomizer}.java CREATE
 │       └── registration/GatewayOpenApiRegistrationContributor.java CREATE
-├── egon-cola-platform-gateway-admin/
+├── yuheng-admin/
 │   └── .../admin/
 │       ├── config/properties/GatewayAdminOpenApiProperties.java CREATE
 │       ├── openapi/domain/dto/GatewayOpenApiAggregateDTO.java CREATE
@@ -510,10 +510,10 @@ egon-cola-platforms/egon-cola-platform-gateway/
 │       ├── openapi/validation/... CREATE/MODIFY group/manifest/mcp rules
 │       ├── openapi/repository/... CREATE/MODIFY multi-group readiness and CAS
 │       └── reporting/service/GatewayDefinitionIngestionService.java CREATE
-├── egon-cola-platform-gateway-admin-web/src/
+├── yuheng-admin-web/src/
 │   ├── api/{types.ts,gatewayApi.ts,gatewayApi.test.ts} MODIFY
 │   └── features/applications/{ApplicationsPage.tsx,ApplicationsPage.test.tsx} MODIFY
-└── egon-cola-platform-gateway-test/
+└── yuheng-test/
     ├── ...-http-provider/src/main/resources/application.yml MODIFY two groups
     ├── ...-webflux-http-provider/src/main/resources/application.yml MODIFY group
     └── */src/test/resources/openapi/{orders,inventory,drift}.json CREATE

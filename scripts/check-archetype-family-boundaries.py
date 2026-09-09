@@ -42,8 +42,8 @@ def declarations(pom):
 def native(coordinate):
     group, artifact = coordinate
     return group == "top.egon" and artifact.startswith((
-        "egon-cola-component-rpc-", "egon-cola-platform-dynamic-config-center",
-        "egon-cola-platform-gateway-starter-openapi"))
+        "egon-cola-component-rpc-", "egon-cola-tianshu",
+        "yuheng-starter-openapi"))
 
 
 def violations(family, coordinates, runtime=False):

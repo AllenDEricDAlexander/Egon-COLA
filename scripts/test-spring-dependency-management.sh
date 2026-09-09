@@ -67,7 +67,7 @@ assert_count "$ROOT_POM" '<artifactId>spring-boot-dependencies</artifactId>' 1 '
 
 for child_pom in \
   "${REPO_ROOT}/egon-cola-components/pom.xml" \
-  "${REPO_ROOT}/egon-cola-platforms/pom.xml" \
+  "${REPO_ROOT}/egon-cola-xingyuan/pom.xml" \
   "${REPO_ROOT}/egon-cola-archetypes/pom.xml"; do
   assert_contains "$child_pom" '<artifactId>egon-cola-aggregation-parent</artifactId>' 'child root Parent'
   assert_not_contains "$child_pom" '<artifactId>spring-boot-dependencies</artifactId>' 'child duplicate Boot BOM'

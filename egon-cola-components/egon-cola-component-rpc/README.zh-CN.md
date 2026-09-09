@@ -7,7 +7,7 @@ Protobuf/gRPC Service 绑定到 Java 接口，提供 Spring Boot Provider 和 Co
 生命周期，并通过动态配置中心（DDC）接入服务租约与发现。
 
 本组件不是 Gateway 数据面。生产 Gateway、路由规则、Provider 健康策略、流量治理以及
-HTTP/RPC 转发由独立的 [Gateway 平台](../../egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md)
+HTTP/RPC 转发由独立的 [Gateway 平台](../../egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md)
 负责。
 
 ## Badges
@@ -150,7 +150,7 @@ egon:
 ```
 
 DDC Admin、Redis、生产 Gateway 和 Gateway 规则不属于本组件的 Quick Start。完整多进程拓扑
-请参阅 [Gateway、DDC 与 RPC 联调 Runbook](../../egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md)。
+请参阅 [Gateway、DDC 与 RPC 联调 Runbook](../../egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.zh-CN.md)。
 
 ## Maven Dependency
 
@@ -185,7 +185,7 @@ DDC Adapter；它会传递引入 Starter 和 DDC SDK：
 ```xml
 <dependency>
     <groupId>top.egon</groupId>
-    <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+    <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
 </dependency>
 ```
 
@@ -278,7 +278,7 @@ Provider 身份。
 `tls.enabled=true` 时，三个证书路径都必须是可读文件。Provider 注册信息会发布 Endpoint
 是否安全。DDC 传输使用独立的 `egon.cola.component.ddc.rpc` 配置命名空间，并按
 `runtime`、`registry`、`management` 能力使用不同 HMAC 凭据。完整 DDC 配置请参阅
-[DDC README](../../egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md)。
+[DDC README](../../egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md)。
 
 ### DDC RPC 配置
 
@@ -540,7 +540,7 @@ Provider Exception Mapper 和 Gateway 转发下游失败时，必须保留 failu
 DDC Adapter 负责三个能力域的直连 DDC RPC Client：ConfigData Runtime、Service Registry 和
 Management。DDC Registry 提供临时 Provider/Gateway 租约及实时快照。Gateway 平台通过自身
 Starter 消费 RPC Contract Catalog/Snapshot，并负责生产数据面。路由、规则、健康、安全和
-流量治理请参阅 [Gateway README](../../egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md)。
+流量治理请参阅 [Gateway README](../../egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md)。
 
 ## Extension Points
 
@@ -577,7 +577,7 @@ egon-cola-component-rpc/
 │       ├── context/            # 进程身份与调用 Metadata
 │       ├── exception/          # 稳定 RPC 异常与 Status 映射
 │       └── provider/           # Binding、Server、可用性与租约
-├── egon-cola-component-rpc-ddc-adapter/
+├── egon-cola-component-rpc-tianshu-adapter/
 │   └── src/main/java/top/egon/cola/component/rpc/ddc/
 │       ├── autoconfigure/      # DDC RPC 配置与 Spring 装配
 │       ├── client/             # Config、Registry 和 Management Client

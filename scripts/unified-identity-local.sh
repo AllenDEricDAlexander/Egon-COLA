@@ -47,13 +47,13 @@ tenant_authority_artifact="${UNIFIED_IDENTITY_TENANT_AUTHORITY_ARTIFACT:-}"
 ddc_admin_access_token=""
 pre_logout_access_token=""
 
-idp_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar"
-rbac3_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar"
-gateway_admin_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar"
-gateway_engine_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar"
-gateway_mcp_engine_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/target/egon-cola-platform-gateway-mcp-engine-exec.jar"
-ddc_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar"
-mock_jar="${repo_root}/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend/target/gateway-test-idp-backend-exec.jar"
+idp_jar="${repo_root}/egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar"
+rbac3_jar="${repo_root}/egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar"
+gateway_admin_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/target/yuheng-admin-exec.jar"
+gateway_engine_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar"
+gateway_mcp_engine_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/target/yuheng-mcp-gateway-exec.jar"
+ddc_jar="${repo_root}/egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar"
+mock_jar="${repo_root}/egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/target/gateway-test-idp-backend-exec.jar"
 
 usage() {
   cat <<'USAGE'
@@ -1024,7 +1024,7 @@ package_applications() {
     return
   fi
   "${repo_root}/mvnw" -B -ntp -f "${repo_root}/pom.xml" \
-    -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend \
+    -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend \
     -am package -DskipTests
 }
 
@@ -1204,13 +1204,13 @@ adopt_local_idp_authority() {
     [[ -s "${tenant_authority_artifact}" ]] \
       || fail "tenant authority artifact is unreadable"
     PGPASSWORD="$(postgres_password)" \
-      "${repo_root}/scripts/unified-platform/migrate-tenant-authority.sh" \
+      "${repo_root}/scripts/unified-xingyuan/migrate-tenant-authority.sh" \
       import-idp \
       --db-url "postgresql://${postgres_user}@${postgres_host}:${postgres_port}/${idp_database}" \
       --freeze-marker "$(dirname "${tenant_authority_artifact}")/write-freeze.marker" \
       --artifact "${tenant_authority_artifact}"
     PGPASSWORD="$(postgres_password)" \
-      "${repo_root}/scripts/unified-platform/migrate-tenant-authority.sh" \
+      "${repo_root}/scripts/unified-xingyuan/migrate-tenant-authority.sh" \
       verify-idp \
       --artifact "${tenant_authority_artifact}" \
       --db-url "postgresql://${postgres_user}@${postgres_host}:${postgres_port}/${idp_database}"
@@ -2282,7 +2282,7 @@ command_start() {
     stage "preparing the current local Gateway HTTP catalog draft"
     publish_gateway_routes true
     echo "Unified identity platform backends are running with a prepared Gateway OpenAPI catalog draft."
-    echo "Start the Gateway Engine, publish the draft, and start the Admin Web and Portal applications with scripts/unified-platform/start-local-stack.sh."
+    echo "Start the Gateway Engine, publish the draft, and start the Admin Web and Portal applications with scripts/unified-xingyuan/start-local-stack.sh."
     return
   fi
 
@@ -2463,7 +2463,7 @@ command_verify() {
   UNIFIED_IDENTITY_TENANT_B_TOKEN_FILE="${verify_token_dir}/tenant-b.at" \
   UNIFIED_IDENTITY_PRE_LOGOUT_TOKEN_FILE="${verify_token_dir}/pre-logout.at" \
     "${repo_root}/mvnw" -B -ntp -f "${repo_root}/pom.xml" \
-      -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite \
+      -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
       -am -Dtest=UnifiedIdentityTopologyIT,UnifiedIdentityRevocationIT,UnifiedIdentityTenantSwitchIT \
       -Dsurefire.failIfNoSpecifiedTests=false test || mvn_status=$?
   if [[ -n "${mvn_status:-}" ]]; then

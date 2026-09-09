@@ -7,8 +7,8 @@
 
 主要涉及模块：
 
-- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin`
-- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`
 
 本文固化已经确认的三项改造：
 
@@ -1069,11 +1069,11 @@ assertThat(type.getDeclaredClasses()).isEmpty();
 后端：
 
 ```bash
-./mvnw -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin -am test
+./mvnw -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin -am test
 ```
 
-前端，在 `egon-cola-platform-gateway-admin-web` 下：
+前端，在 `yuheng-admin-web` 下：
 
 ```bash
 npm test
@@ -1085,8 +1085,8 @@ npm run build
 仓库检查：
 
 ```bash
-java_root=egon-cola-platforms/egon-cola-platform-gateway/\
-egon-cola-platform-gateway-admin/src/main/java
+java_root=egon-cola-xingyuan/egon-cola-yuheng/\
+yuheng-admin/src/main/java
 
 rg -n --glob '*.java' \
   '^[[:space:]]+(public[[:space:]]+|protected[[:space:]]+|private[[:space:]]+|static[[:space:]]+|final[[:space:]]+)*(record|class|enum|interface)[[:space:]]+[A-Z]' \
@@ -1104,7 +1104,7 @@ rg -n '^package .*gateway\.admin\.application\.(catalog|credential|observability
 rg --files "$java_root" | rg '/[^/]*(Entity|Store)\.java$'
 
 rg "ScopeProvider|useScope\\(|VITE_GATEWAY_ADMIN_DEFAULT_" \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 
 git diff --check
 ```

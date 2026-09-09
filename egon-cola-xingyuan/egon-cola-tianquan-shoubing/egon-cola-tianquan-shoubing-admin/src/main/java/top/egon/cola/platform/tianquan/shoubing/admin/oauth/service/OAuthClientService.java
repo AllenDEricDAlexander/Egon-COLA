@@ -1,0 +1,48 @@
+package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service;
+
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.CreateOAuthClientDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.RotateClientSecretDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.UpdateOAuthClientDTO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.CreatedOAuthClientVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.OAuthClientVO;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.vo.RotatedClientSecretVO;
+
+import java.util.List;
+
+/**
+ * OAuth 客户端注册信息的管理用例入口。
+ *
+ * <p>Application entry point for OAuth client registration administration.</p>
+ */
+public interface OAuthClientService {
+
+    List<OAuthClientVO> list();
+
+    CreatedOAuthClientVO create(CreateOAuthClientDTO command);
+
+    CreatedOAuthClientVO create(
+            CreateOAuthClientDTO command,
+            String operatorSub
+    );
+
+    RotatedClientSecretVO rotateSecret(
+            String clientId,
+            RotateClientSecretDTO command
+    );
+
+    RotatedClientSecretVO rotateSecret(
+            String clientId,
+            RotateClientSecretDTO command,
+            String operatorSub
+    );
+
+    OAuthClientVO update(String clientId, UpdateOAuthClientDTO command);
+
+    OAuthClientVO putRedirectUri(String clientId, String redirectUri);
+
+    OAuthClientVO deleteRedirectUri(String clientId, String redirectUri);
+
+    OAuthClientVO putResourceUri(String clientId, String resourceUri);
+
+    OAuthClientVO deleteResourceUri(String clientId, String resourceUri);
+}

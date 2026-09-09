@@ -18,7 +18,7 @@
 
     <modules>
         <module>egon-cola-component-rpc-starter</module>
-        <module>egon-cola-component-rpc-ddc-adapter</module>
+        <module>egon-cola-component-rpc-tianshu-adapter</module>
         <module>egon-cola-component-rpc-test</module>
     </modules>
 
@@ -31,7 +31,7 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+                <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>

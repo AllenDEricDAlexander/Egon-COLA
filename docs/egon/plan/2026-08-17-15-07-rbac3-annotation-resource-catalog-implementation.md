@@ -132,33 +132,33 @@
 ## 5. Change File Tree
 
 ```text
-egon-cola-platforms/
-├── egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/
+egon-cola-xingyuan/
+├── egon-cola-tianshu/egon-cola-tianshu-admin/
 │   ├── src/main/java/.../repository/DdcAppRepository.java                         MODIFY [S1]
 │   ├── src/main/java/.../service/metadata/DdcAppService.java                       MODIFY [S1]
 │   ├── src/main/resources/db/{postgresql,sqlite}/V9__enforce_global_biz_app_codes.sql CREATE [S1]
 │   └── src/test/java/.../{controller/DdcAppControllerTest,repository/DdcV9MigrationTest}.java MODIFY/CREATE [S1]
-├── egon-cola-platform-gateway/
-│   ├── egon-cola-platform-gateway-core/src/main/java/.../security/{GatewayCredentialRecoveryProvider,GatewayCredentialOnlineStateResult}.java MODIFY/CREATE [S2]
-│   └── egon-cola-platform-gateway-engine/src/{main,test}/java/.../security/GatewaySecurityChain*.java MODIFY [S2]
-├── egon-cola-platform-idp/
-│   ├── egon-cola-platform-idp-core/src/{main,test}/java/.../token/{TokenFacade,RefreshTokenStatus}*.java MODIFY/CREATE [S2]
-│   ├── egon-cola-platform-idp-admin/src/main/java/.../
+├── egon-cola-yuheng/
+│   ├── yuheng-core/src/main/java/.../security/{GatewayCredentialRecoveryProvider,GatewayCredentialOnlineStateResult}.java MODIFY/CREATE [S2]
+│   └── yuheng-biz-gateway/src/{main,test}/java/.../security/GatewaySecurityChain*.java MODIFY [S2]
+├── egon-cola-tianquan-shoubing/
+│   ├── egon-cola-tianquan-shoubing-core/src/{main,test}/java/.../token/{TokenFacade,RefreshTokenStatus}*.java MODIFY/CREATE [S2]
+│   ├── egon-cola-tianquan-shoubing-admin/src/main/java/.../
 │   │   ├── oauth/controller/InternalRefreshTokenController.java                    CREATE [S2]
 │   │   ├── identity/support/rpc/IdentityDirectoryRpcProvider.java                  CREATE [S3]
 │   │   └── USER controllers/services                                               MODIFY [S3,S8]
-│   ├── egon-cola-platform-idp-rpc-contract/src/main/{proto,java}/.../identity_directory.* CREATE [S3]
-│   ├── egon-cola-platform-idp-starter/src/main/java/.../security/{CurrentIdentity,IdpEndpointAuthenticationPolicy}.java CREATE/MODIFY [S2,S3]
-│   └── egon-cola-platform-idp-gateway-adapter/src/main/java/.../security/
+│   ├── egon-cola-tianquan-shoubing-rpc-contract/src/main/{proto,java}/.../identity_directory.* CREATE [S3]
+│   ├── egon-cola-tianquan-shoubing-starter/src/main/java/.../security/{CurrentIdentity,IdpEndpointAuthenticationPolicy}.java CREATE/MODIFY [S2,S3]
+│   └── egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/.../security/
 │       ├── {IdpRefreshTokenStatusClient,ReactorNettyIdpRefreshTokenStatusClient,IdpUserOnlineStateProvider}.java CREATE [S2]
 │       └── IdpUserCredentialRecoveryProvider.java                                  MODIFY [S2]
-└── egon-cola-platform-rbac3/
-    ├── egon-cola-platform-rbac3-contract/src/main/java/.../
+└── egon-cola-tianquan-jianshen/
+    ├── egon-cola-tianquan-jianshen-contract/src/main/java/.../
     │   ├── authorization/{ActiveRoleDescriptor,SystemAuthorizationSnapshot,AppAuthorizationContext}.java CREATE/MODIFY [S4]
     │   ├── auth/{BootstrapView,Rbac3AboutView}.java                                 DELETE/CREATE [S4,S8]
     │   ├── error/Rbac3ErrorResponse.java                                             DELETE [S8]
     │   └── manifest/                                                                 DELETE DIRECTORY [S7]
-    ├── egon-cola-platform-rbac3-starter/src/main/java/.../starter/
+    ├── egon-cola-tianquan-jianshen-starter/src/main/java/.../starter/
     │   ├── security/{Rbac3UserDetails,Rbac3UserDetailsLoader,CurrentRbac3User,RBACAPIResource,Rbac3MethodAuthorizationManager}.java CREATE [S4]
     │   ├── security/{Rbac3AuthenticationToken,Rbac3BearerAuthenticationFilter,RequiresPermission}.java MODIFY [S4]
     │   ├── security/Rbac3MethodAuthorizationAspect.java                              DELETE [S4]
@@ -166,7 +166,7 @@ egon-cola-platforms/
     │   ├── authorization/{AuthorizationBootstrapService,Rbac3AboutService}.java      DELETE/CREATE [S8]
     │   ├── manifest/                                                                 DELETE DIRECTORY [S7]
     │   └── autoconfigure/{Rbac3StarterAutoConfiguration,Rbac3StarterProperties}.java MODIFY [S4,S5,S8]
-    ├── egon-cola-platform-rbac3-admin/
+    ├── egon-cola-tianquan-jianshen-admin/
     │   ├── src/main/resources/db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql CREATE [S6]
     │   ├── src/main/java/.../admin/config/security/                                  DELETE DUPLICATE TYPES / MODIFY CONFIG [S4]
     │   ├── src/main/java/.../admin/iam/application/                                  MODIFY GLOBAL APP + CREATE tenant entitlement [S6]
@@ -175,39 +175,39 @@ egon-cola-platforms/
     │   ├── src/main/java/.../admin/bootstrap/                                        MODIFY/DELETE BOOTSTRAP QUERY PATH [S8]
     │   ├── src/main/java/.../admin/shared/domain/vo/ApiEnvelopeVO.java               DELETE [S8]
     │   └── src/test/java/...                                                         MODIFY/CREATE [S3–S8,S12]
-    ├── egon-cola-platform-rbac3-react-sdk/src/                                       MODIFY/CREATE [S9]
-    └── egon-cola-platform-rbac3-admin-web/
+    ├── egon-cola-tianquan-jianshen-react-sdk/src/                                       MODIFY/CREATE [S9]
+    └── egon-cola-tianquan-jianshen-admin-web/
         ├── src/app/{resourceDefinitions.json,resourceRegistry.ts,navigation.ts,router.tsx} CREATE/MODIFY [S11]
         ├── src/features/{application,iam}/                                           MODIFY/CREATE [S11]
         ├── src/features/application/ManifestDetailPage.tsx                           DELETE [S11]
         └── scripts/{report-rbac-resources,verify-browser-bundle}.mjs                 CREATE [S11]
-egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/{types,EnterpriseHeader,EnterpriseLayout.test}.tsx MODIFY [S10]
+egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/{types,EnterpriseHeader,EnterpriseLayout.test}.tsx MODIFY [S10]
 ```
 
 | Operation | Path | Symbols | Responsibility | Step | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java` | `existsByAppCode/findByAppCode` | 全局APP code查询 | Step 1 | `REQ-025` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java` | `save` | create全局冲突；update不改code | Step 1 | `REQ-025` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/db/postgresql/V9__enforce_global_biz_app_codes.sql` | DDC V9 PostgreSQL | appCode单列UK、bizCode断言 | Step 1 | `REQ-025` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/db/sqlite/V9__enforce_global_biz_app_codes.sql` | DDC V9 SQLite | 同版本双方言schema | Step 1 | `REQ-025` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java` | duplicate appCode cases | Service/HTTP 409契约 | Step 1 | `REQ-025` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV9MigrationTest.java` | migration assertions | PostgreSQL/SQLite结构语义 | Step 1 | `REQ-025` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialRecoveryProvider.java` | `validateAuthenticated` | 认证成功后online hook | Step 2 | `REQ-001`–`REQ-003` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialOnlineStateResult.java` | result record | allow/inactive/unavailable | Step 2 | `REQ-001`–`REQ-003` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java` | authenticated online phase | USER auth后、authorization前校验 | Step 2 | `REQ-001`–`REQ-003`,`REQ-018` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChainTest.java` | online-state matrix | 401/503/public/SERVICE/refresh | Step 2 | `REQ-001`–`REQ-003`,`REQ-018` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java` | `validateRefresh` | signer/store权威校验 | Step 2 | `REQ-001`,`REQ-018` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshTokenStatus.java` | status record | 最小sub/tenant/expiry | Step 2 | `REQ-001` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/token/TokenFacadeTest.java` | validate cases | revoke/expiry/mismatch | Step 2 | `REQ-001`,`REQ-018` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/InternalRefreshTokenController.java` | internal validate API | SERVICE-scope/no-store/generic401 | Step 2 | `REQ-001`,`REQ-003`,`REQ-023` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicy.java` | exact public/internal policy | 防止刷新递归 | Step 2 | `REQ-003` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicyTest.java` | route policy cases | public/SERVICE/USER精确分类 | Step 2 | `REQ-003` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpRefreshTokenStatusClient.java` | reactive client port | internal status调用 | Step 2 | `REQ-001`–`REQ-003` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/ReactorNettyIdpRefreshTokenStatusClient.java` | HTTP adapter | no raw-token logs | Step 2 | `REQ-001` |
-| CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserOnlineStateProvider.java` | online evaluator | compare RT/AT subject+tenant | Step 2 | `REQ-001`,`REQ-018` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserCredentialRecoveryProvider.java` | `validateAuthenticated` | delegate online state | Step 2 | `REQ-001`–`REQ-003` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfiguration.java` | beans | status client/provider wiring | Step 2 | `REQ-001`–`REQ-003` |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewaySecurityProviderTest.java` | online/recovery matrix | cookie/status/refresh outcomes | Step 2 | `REQ-001`–`REQ-003`,`REQ-018` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java` | `existsByAppCode/findByAppCode` | 全局APP code查询 | Step 1 | `REQ-025` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java` | `save` | create全局冲突；update不改code | Step 1 | `REQ-025` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/postgresql/V9__enforce_global_biz_app_codes.sql` | DDC V9 PostgreSQL | appCode单列UK、bizCode断言 | Step 1 | `REQ-025` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/sqlite/V9__enforce_global_biz_app_codes.sql` | DDC V9 SQLite | 同版本双方言schema | Step 1 | `REQ-025` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java` | duplicate appCode cases | Service/HTTP 409契约 | Step 1 | `REQ-025` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV9MigrationTest.java` | migration assertions | PostgreSQL/SQLite结构语义 | Step 1 | `REQ-025` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialRecoveryProvider.java` | `validateAuthenticated` | 认证成功后online hook | Step 2 | `REQ-001`–`REQ-003` |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialOnlineStateResult.java` | result record | allow/inactive/unavailable | Step 2 | `REQ-001`–`REQ-003` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java` | authenticated online phase | USER auth后、authorization前校验 | Step 2 | `REQ-001`–`REQ-003`,`REQ-018` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChainTest.java` | online-state matrix | 401/503/public/SERVICE/refresh | Step 2 | `REQ-001`–`REQ-003`,`REQ-018` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java` | `validateRefresh` | signer/store权威校验 | Step 2 | `REQ-001`,`REQ-018` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshTokenStatus.java` | status record | 最小sub/tenant/expiry | Step 2 | `REQ-001` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/token/TokenFacadeTest.java` | validate cases | revoke/expiry/mismatch | Step 2 | `REQ-001`,`REQ-018` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/InternalRefreshTokenController.java` | internal validate API | SERVICE-scope/no-store/generic401 | Step 2 | `REQ-001`,`REQ-003`,`REQ-023` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicy.java` | exact public/internal policy | 防止刷新递归 | Step 2 | `REQ-003` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicyTest.java` | route policy cases | public/SERVICE/USER精确分类 | Step 2 | `REQ-003` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpRefreshTokenStatusClient.java` | reactive client port | internal status调用 | Step 2 | `REQ-001`–`REQ-003` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/ReactorNettyIdpRefreshTokenStatusClient.java` | HTTP adapter | no raw-token logs | Step 2 | `REQ-001` |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserOnlineStateProvider.java` | online evaluator | compare RT/AT subject+tenant | Step 2 | `REQ-001`,`REQ-018` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserCredentialRecoveryProvider.java` | `validateAuthenticated` | delegate online state | Step 2 | `REQ-001`–`REQ-003` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfiguration.java` | beans | status client/provider wiring | Step 2 | `REQ-001`–`REQ-003` |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewaySecurityProviderTest.java` | online/recovery matrix | cookie/status/refresh outcomes | Step 2 | `REQ-001`–`REQ-003`,`REQ-018` |
 
 其余Step的完整文件inventory在对应Step的“Ordered files”中以一条operation对应一个精确路径列出；实施前若实际符号已因并发提交移动，必须先更新Plan和Spec关系，不能临时写到相似包。
 
@@ -227,11 +227,11 @@ egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/{types,Enterp
 | Concern | Exact command/source | Required state | Validation boundary |
 | --- | --- | --- | --- |
 | Java/Maven | `java -version && mvn -version`；platform parent要求Java 21 | JDK21/Maven可用 | 工具链 |
-| DDC | `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am test` | exit 0 | 双方言测试，不证明live DB |
-| Gateway/IdP | `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-gateway/egon-cola-platform-gateway-core,egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platform-idp/egon-cola-platform-idp-core,egon-cola-platform-idp/egon-cola-platform-idp-starter,egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter,egon-cola-platform-idp/egon-cola-platform-idp-admin -am test` | exit 0 | 模块链，不证明真实JWK/Redis |
-| RBAC | `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am test` | exit 0 | Testcontainers/模块，不证明live拓扑 |
-| React SDK | `npm test && npm run build` in `egon-cola-platform-rbac3-react-sdk` | exit 0 | SDK产物 |
-| Shared | `npm test && npm run build` in `egon-cola-platform-admin-web-shared` | exit 0 | Shared产物；postbuild删除node_modules需在隔离步骤执行 |
+| DDC | `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianshu/egon-cola-tianshu-admin -am test` | exit 0 | 双方言测试，不证明live DB |
+| Gateway/IdP | `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-yuheng/yuheng-core,egon-cola-yuheng/yuheng-biz-gateway,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test` | exit 0 | 模块链，不证明真实JWK/Redis |
+| RBAC | `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am test` | exit 0 | Testcontainers/模块，不证明live拓扑 |
+| React SDK | `npm test && npm run build` in `egon-cola-tianquan-jianshen-react-sdk` | exit 0 | SDK产物 |
+| Shared | `npm test && npm run build` in `egon-cola-xingyuan-admin-web-shared` | exit 0 | Shared产物；postbuild删除node_modules需在隔离步骤执行 |
 | Admin Web | `npm run test && npm run typecheck && npm run lint && npm run build` with non-secret `VITE_IDP_ISSUER/VITE_IDP_CLIENT_ID/VITE_IDP_AUDIENCE` | exit 0 | Browser bundle静态，不证明UI运行 |
 | Static | `git diff --check`、Plan source guards、Spec/Plan strict validators | no findings | repository consistency |
 
@@ -266,7 +266,7 @@ egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/{types,Enterp
 - Observable outcome: `biz_code`保留单列UK，`app_code`在PostgreSQL/SQLite均为单列UK；不同BIZ创建相同appCode稳定409，update仍不改code。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV9MigrationTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV9MigrationTest.java`
 
 - Purpose: RED锁定双方言迁移最终约束。
 - Symbols: `postgresqlHasIndependentBizAndAppCodeUniqueConstraints`、`sqliteHasIndependentBizAndAppCodeUniqueConstraints`。
@@ -284,7 +284,7 @@ assertUniqueViolation(() -> insertApps("biz-b", "same"));
 
 - After this file: 因V9不存在而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
 
 - Purpose: RED/GREEN定义全局exists查询和409映射。
 - Symbols: `existsByAppCode`、`rejectsDuplicateAppCodeAcrossBusinesses`。
@@ -299,7 +299,7 @@ assertCommonConflict(post(app("biz-b", "shared-code")));
 
 - After this file: Controller测试因Service尚未切查询RED；Repository接口可编译。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java`
 
 - Purpose: 最小GREEN实现create全局冲突。
 - Symbols: `save`。
@@ -316,7 +316,7 @@ return appRepository.save(app);
 
 - After this file: Service/Controller聚焦测试GREEN。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/db/postgresql/V9__enforce_global_biz_app_codes.sql`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/postgresql/V9__enforce_global_biz_app_codes.sql`
 
 - Purpose: 在两方言落同一Flyway版本。
 - Symbols: drop composite UK、create single app UK、assert/retain biz UK。
@@ -333,7 +333,7 @@ CREATE UNIQUE INDEX uk_ddc_app_code ON ddc_app(app_code);
 
 - After this file: V9迁移测试GREEN，两方言结果一致。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=DdcV9MigrationTest,DdcAppControllerTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianshu/egon-cola-tianshu-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=DdcV9MigrationTest,DdcAppControllerTest test`
 - Expected result: 聚焦测试exit 0；重复appCode跨BIZ为409/UK冲突。
 - Completion criteria: `REQ-025`全部可观察项满足，V1–V8 diff为空。
 - Rollback: 在V9尚未部署时path-limited revert；部署后只允许新V10 forward-fix或备份恢复，不改V9。
@@ -346,7 +346,7 @@ CREATE UNIQUE INDEX uk_ddc_app_code ON ddc_app(app_code);
 - Observable outcome: protected USER请求在AT认证成功后、授权前校验RT；inactive=401清Cookie，IdP unavailable=503保Cookie；public/SERVICE跳过，AT过期仍走一次refresh。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChainTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChainTest.java`
 
 - Purpose: RED覆盖四层契约。
 - Symbols: Spec `TEST-001`–`TEST-003`全部场景。
@@ -363,7 +363,7 @@ assertRefreshThenStatus(expiredAt(), activeRt());
 
 - After this file: 因SPI/status API/provider不存在RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialRecoveryProvider.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialRecoveryProvider.java`
 
 - Purpose: 建立默认兼容的online phase。
 - Symbols: `validateAuthenticated(authContext,exchange)` default、结果分支。
@@ -383,7 +383,7 @@ return authorize(authenticated);
 
 - After this file: Engine测试可用fake provider达到GREEN，IdP adapter测试仍RED。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java`
 
 - Purpose: 复用TokenSigner/RefreshTokenStore提供权威只读状态。
 - Symbols: `validateRefresh(String)`、`POST /internal/v1/oauth2/refresh-token/validate`。
@@ -400,7 +400,7 @@ return new RefreshTokenStatus(subject, tenantId, expiresAt);
 
 - After this file: TokenFacade/controller测试GREEN。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicy.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicy.java`
 
 - Purpose: 连接Gateway online hook与IdP endpoint。
 - Symbols: status client、provider delegate、auto-config beans。
@@ -418,7 +418,7 @@ return statusClient.validate(rt)
 
 - After this file: Adapter/Engine完整矩阵GREEN。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-gateway/egon-cola-platform-gateway-core,egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platform-idp/egon-cola-platform-idp-core,egon-cola-platform-idp/egon-cola-platform-idp-starter,egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter,egon-cola-platform-idp/egon-cola-platform-idp-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=GatewaySecurityChainTest,TokenFacadeTest,IdpEndpointAuthenticationPolicyTest,IdpGatewaySecurityProviderTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-yuheng/yuheng-core,egon-cola-yuheng/yuheng-biz-gateway,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=GatewaySecurityChainTest,TokenFacadeTest,IdpEndpointAuthenticationPolicyTest,IdpGatewaySecurityProviderTest test`
 - Expected result: exit 0；401/503/cookie/status/refresh调用次数断言通过。
 - Completion criteria: REQ-001/002/003/018完整，日志/source scan无raw RT。
 - Rollback: path-limited revert before rollout；启用后回退会恢复最长5分钟撤销窗口，必须按Spec告警。
@@ -431,7 +431,7 @@ return statusClient.validate(rt)
 - Observable outcome: IdP Service可从SecurityContext读取当前USER；IdentityDirectory RPC按1–100 subjects返回最小profile/missing集合；RBAC用户列表只读补全且不持久化profile。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/CurrentIdentityTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/CurrentIdentityTest.java`
 
 - Purpose: RED定义USER/anonymous/SERVICE三类访问。
 - Symbols: `requiresCurrentUserIdentity`、`rejectsAnonymousAndServiceAsUser`。
@@ -448,7 +448,7 @@ assertThatThrownBy(currentIdentity::require).isUnauthorized();
 
 - After this file: 因CurrentIdentity不存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/CurrentIdentity.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/CurrentIdentity.java`
 
 - Purpose: 最小GREEN访问当前USER。
 - Symbols: `current`、`require`。
@@ -464,7 +464,7 @@ return authentication != null && authentication.getPrincipal() instanceof Identi
 
 - After this file: accessor测试GREEN。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-rpc-contract/src/main/proto/identity_directory.proto`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-rpc-contract/src/main/proto/identity_directory.proto`
 
 - Purpose: 先以proto contract RED锁定字段号和敏感字段排除。
 - Symbols: `BatchGetIdentityProfiles`；request `subjects=1`；response `profiles=1/missing_subjects=2`；profile `subject=1,username=2,display_name=3,status=4,version=5`。
@@ -480,7 +480,7 @@ message BatchGetIdentityProfilesResponse { repeated IdentityProfile profiles = 1
 
 - After this file: contract test在生成前RED，Maven generate-sources后可编译。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/support/rpc/IdentityDirectoryRpcProvider.java`
 
 - Purpose: 批量读取IdP核心用户信息。
 - Symbols: provider method、1–100/duplicate validation、missing映射。
@@ -498,7 +498,7 @@ return response(profiles, missing);
 
 - After this file: provider契约测试GREEN。
 
-#### File 5 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/user/repository/IdentityProfileDirectory.java`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/user/repository/IdentityProfileDirectory.java`
 
 - Purpose: RBAC分页后一次批量补display fields，UNAVAILABLE时返回partial marker。
 - Symbols: `batchGet`、User directory assembler。
@@ -515,10 +515,10 @@ return page.map(user -> mergeMinimalUserWithOptionalProfile(user, profiles));
 
 - After this file: RBAC user测试覆盖enriched/missing/unavailable且DB无profile字段。
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml`
 
 - Purpose: 声明RBAC Admin对IdP RPC contract的直接编译依赖。
-- Symbols: `egon-cola-platform-idp-rpc-contract` dependency。
+- Symbols: `egon-cola-tianquan-shoubing-rpc-contract` dependency。
 - Why now: RPC client代码已确定，不能依赖transitive偶然可见性。
 - Contract/signature changes: 使用父POM dependencyManagement版本，不新增第三方库。
 - Implementation pseudocode:
@@ -526,13 +526,13 @@ return page.map(user -> mergeMinimalUserWithOptionalProfile(user, profiles));
 ```xml
 <dependency>
   <groupId>top.egon</groupId>
-  <artifactId>egon-cola-platform-idp-rpc-contract</artifactId>
+  <artifactId>egon-cola-tianquan-shoubing-rpc-contract</artifactId>
 </dependency>
 ```
 
 - After this file: RBAC Admin在clean reactor中可生成/引用IdentityDirectory types。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-idp/egon-cola-platform-idp-rpc-contract,egon-cola-platform-idp/egon-cola-platform-idp-starter,egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=CurrentIdentityTest,IdentityDirectoryRpcContractTest,IdentityDirectoryRpcProviderTest,UserControllerTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-rpc-contract,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=CurrentIdentityTest,IdentityDirectoryRpcContractTest,IdentityDirectoryRpcProviderTest,UserControllerTest test`
 - Expected result: exit 0；proto字段号、边界、partial display和无敏感字段断言通过。
 - Completion criteria: `REQ-017`全满足；`CurrentIdentity`可供Step 8迁移Controller。
 - Rollback: revert RPC provider/client和accessor；不涉及schema/data。
@@ -545,7 +545,7 @@ return page.map(user -> mergeMinimalUserWithOptionalProfile(user, profiles));
 - Observable outcome: RBAC Filter把Identity+有效Snapshot组装为`Rbac3UserDetails`；两注解共用Spring Method Security/AuthorizationService；Admin重复principal/filter/aspect删除。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
 
 - Purpose: RED固定active role descriptor、principal内容、注解AND和403。
 - Symbols: `ActiveRoleDescriptor`、loader/manager tests。
@@ -562,7 +562,7 @@ assertDenied(methodWith(api("p:a"), requires("p:b")), whenOnly("p:a"));
 
 - After this file: 因records/loader/manager不存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/ActiveRoleDescriptor.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/ActiveRoleDescriptor.java`
 
 - Purpose: 发布UserDetails/About需要的稳定Contract。
 - Symbols: activeRoles、landingRouteCode、permissions/fieldPolicies保留。
@@ -577,7 +577,7 @@ snapshot = snapshot.withActiveRoles(sortedDescriptors).withoutRuntimeResourceTre
 
 - After this file: contract测试GREEN，Starter仍RED。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3UserDetails.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3UserDetails.java`
 
 - Purpose: 用现有Snapshot cache组装最终principal。
 - Symbols: immutable UserDetails、loader、accessor、token principal。
@@ -594,7 +594,7 @@ SecurityContextHolder.setAuthentication(new Rbac3AuthenticationToken(details));
 
 - After this file: loader/filter测试GREEN。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/RBACAPIResource.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/RBACAPIResource.java`
 
 - Purpose: 将两注解接入一个AuthorizationManager。
 - Symbols: resolver、manager/interceptor bean。
@@ -610,7 +610,7 @@ return granted();
 
 - After this file: method manager测试GREEN。
 
-#### File 5 — `DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/security/CurrentRbac3Principal.java`
+#### File 5 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/security/CurrentRbac3Principal.java`
 
 - Purpose: 删除并行principal/PEP，只保留Starter。
 - Symbols: Admin security wiring和absence assertions。
@@ -626,7 +626,7 @@ assert exactly one USER method authorization interceptor and no duplicate princi
 
 - After this file: Admin context启动测试GREEN。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ContractSerializationTest,Rbac3UserDetailsLoaderTest,Rbac3MethodAuthorizationManagerTest,Rbac3AdminApplicationContextTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ContractSerializationTest,Rbac3UserDetailsLoaderTest,Rbac3MethodAuthorizationManagerTest,Rbac3AdminApplicationContextTest test`
 - Expected result: exit 0；principal/注解AND/单一interceptor assertions通过。
 - Completion criteria: REQ-004–008的安全主体/方法部分完成；role TenantApplication资格由Step 6补齐。
 - Rollback: path-limited revert Contract+Starter+Admin security为同一commit；不得只恢复Admin filter。
@@ -639,7 +639,7 @@ assert exactly one USER method authorization interceptor and no duplicate princi
 - Observable outcome: 注解字段按UserDetails field policy输出null/masked/raw；异常不泄漏原值；与既有`@Sensitive`最严格者优先。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/field/Rbac3FieldPropertyWriterTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/field/Rbac3FieldPropertyWriterTest.java`
 
 - Purpose: RED覆盖NONE/missing/error/MASKED/READ/WRITE和双注解顺序。
 - Symbols: serializer fixtures、strategy failure。
@@ -656,7 +656,7 @@ assertJson(strategyThrows(), dto(secret)).contains("secret", null);
 
 - After this file: 因annotation/module/writer不存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/field/RBACFieldResource.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/field/RBACFieldResource.java`
 
 - Purpose: 最小GREEN Jackson扩展。
 - Symbols: annotation、module、modifier、writer。
@@ -675,7 +675,7 @@ switch (decision.level()) {
 
 - After this file: serializer测试GREEN。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`, `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfigurationTest.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`, `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfigurationTest.java`
 
 - Purpose: 注册唯一Jackson module且支持条件装配。
 - Symbols: field module bean。
@@ -691,7 +691,7 @@ assert no duplicate module and request deserialization unchanged
 
 - After this file: auto-config测试GREEN。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=Rbac3FieldPropertyWriterTest,Rbac3StarterAutoConfigurationTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=Rbac3FieldPropertyWriterTest,Rbac3StarterAutoConfigurationTest test`
 - Expected result: exit 0；所有禁止/异常场景JSON不含原值。
 - Completion criteria: 后端FIELD PEP完成；CRUD/前端展示分别在Step 7/9/11。
 - Rollback: revert field package与auto-config；无持久数据。
@@ -704,7 +704,7 @@ assert no duplicate module and request deserialization unchanged
 - Observable outcome: catalog五表无tenant，TenantApplication唯一tenant+app；所有tenant role/rule/service治理FK引用global ids并在Service校验资格；Manifest表/FK/trigger删除。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/repository/Rbac3MigrationContractTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/repository/Rbac3MigrationContractTest.java`
 
 - Purpose: RED锁定schema、资格、跨APP/PENDING拒绝和报告隔离前提。
 - Symbols: Spec TEST-021/022。
@@ -722,7 +722,7 @@ assertRoleIneligible(tenantWithoutActiveApplication());
 
 - After this file: 因V7/TenantApplication不存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql`
 
 - Purpose: 唯一RBAC schema迁移。
 - Symbols: dependency cleanup、global FK/UK/index、TenantApplication、Manifest drop。
@@ -743,7 +743,7 @@ DROP TABLE rbac3_resource_manifest;
 
 - After this file: schema测试可检查目标，Java JPA启动仍因PO不匹配RED。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/application/domain/po/ApplicationPO.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/application/domain/po/ApplicationPO.java`
 
 - Purpose: 使全部JPA映射与V7一致。
 - Symbols: 去TenantScopedPO继承的global POs、global FK字段、TenantApplication。
@@ -759,7 +759,7 @@ RolePermissionPO keeps tenantId/applicationId/roleId and references global permi
 
 - After this file: JPA映射可启动，repositories/service仍需改查询。
 
-#### File 4 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/application/service/ApplicationScopeFacade.java`
+#### File 4 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/application/service/ApplicationScopeFacade.java`
 
 - Purpose: 把旧tenant Application admission显式迁为TenantApplication并接入资格/快照。
 - Symbols: create/page/updateStatus、`isActiveAt`、role eligibility。
@@ -777,7 +777,7 @@ invalidateAuthVersionAfterCommit(tenant);
 
 - After this file: TenantApplication/role/snapshot测试GREEN。
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/repository/jpa/JpaRoleRepository.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/repository/jpa/JpaRoleRepository.java`
 
 - Purpose: 更新所有global FK消费者查询和同APP/TenantApplication校验。
 - Symbols: role grant、field/data rules、SoD/participation/service permission snapshot。
@@ -794,7 +794,7 @@ exclude facts when TenantApplication is not ACTIVE at now
 
 - After this file: Admin module/migration/role/snapshot聚焦测试GREEN。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=Rbac3MigrationContractTest,Rbac3GlobalCatalogV7IT,TenantApplicationServiceTest,RoleEligibilityServiceTest,UserAuthorizationSnapshotProjectorTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=Rbac3MigrationContractTest,Rbac3GlobalCatalogV7IT,TenantApplicationServiceTest,RoleEligibilityServiceTest,UserAuthorizationSnapshotProjectorTest test`
 - Expected result: exit 0；schema、JPA、资格、快照和Manifest absence断言通过。
 - Completion criteria: V7唯一、历史迁移无diff、global/tenant边界完整；DataRule仍无执行器。
 - Rollback: V7部署前revert；部署后备份恢复或新V8 forward-fix，绝不编辑V7。
@@ -807,7 +807,7 @@ exclude facts when TenantApplication is not ACTIVE at now
 - Observable outcome: Permission/Resource/FieldDefinition/FieldRule具备IAM CRUD；CI SERVICE endpoint事务更新全局CI_REPORT事实；浏览器/USER/错误source请求零写；Manifest生产源码和表映射全部消失。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam/resource/report/CiResourceReportControllerTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam/resource/report/CiResourceReportControllerTest.java`
 
 - Purpose: RED定义API-003/API-011、CRUD、source ownership和零赋权。
 - Symbols: Spec TEST-008/011/013。
@@ -827,7 +827,7 @@ assertIdempotentReplay(sameBuildAndChecksum());
 
 - After this file: 因controllers/services/repositories不存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/permission/controller/PermissionController.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/permission/controller/PermissionController.java`
 
 - Purpose: 全局Permission list/page/detail/create/update/status和ACTIVE选择。
 - Symbols: `/api/rbac3/v1/iam/permissions` CRUD。
@@ -843,7 +843,7 @@ findAssignable(appId) { return activeOnly(appId); }
 
 - After this file: Permission CRUD测试GREEN。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/resource/controller/ApplicationResourceController.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/resource/controller/ApplicationResourceController.java`
 
 - Purpose: 把Resource/Field CRUD改为global application并提供管理树。
 - Symbols: API-011、FieldDefinition CRUD/status。
@@ -860,7 +860,7 @@ updateCiOwnedField(id, command) { rejectSecurityFieldMutationFromReportPath(); }
 
 - After this file: resource/field CRUD和tree测试GREEN。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/policy/controller/ConstraintController.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/policy/controller/ConstraintController.java`
 
 - Purpose: FieldRule/DataRule URL和global permission/field引用适配。
 - Symbols: field/data CRUD、decision读取。
@@ -878,7 +878,7 @@ saveRuleAndInvalidatePolicyVersion();
 
 - After this file: FieldRule/DataRule测试GREEN，source scan仍无DataScope。
 
-#### File 5 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/resource/report/controller/CiResourceReportController.java`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/resource/report/controller/CiResourceReportController.java`
 
 - Purpose: 实现CI-only完整replace事务。
 - Symbols: API-003、canonicalizer、source code/DDC validator、diff result。
@@ -900,7 +900,7 @@ updateCatalogHeadAndAudit(service, counts);
 
 - After this file: CI报告controller/IT测试GREEN。
 
-#### File 6 — `DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/manifest`
+#### File 6 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/manifest`
 
 - Purpose: 完整删除旧Manifest生产/测试生命周期。
 - Symbols: all files under exact packages。
@@ -916,7 +916,7 @@ rg must return zero ResourceManifest/ManifestController/Rbac3ManifestReporter pr
 
 - After this file: source absence guard通过，模块仍GREEN。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=CiResourceReportControllerTest,CiResourceReportServiceIT,ResourceCrudControllerTest,FieldCrudControllerTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=CiResourceReportControllerTest,CiResourceReportServiceIT,ResourceCrudControllerTest,FieldCrudControllerTest test`
 - Expected result: exit 0；报告安全/幂等/rollback/zero-grant和CRUD/tree断言通过；Manifest source scan为0。
 - Completion criteria: REQ-010/013–016/019/024/026后端部分完成；无size/rate实现。
 - Rollback: 作为单commit revert仅适用于V7未部署；部署后只能forward-fix，不能恢复Manifest表。
@@ -929,7 +929,7 @@ rg must return zero ResourceManifest/ManifestController/Rbac3ManifestReporter pr
 - Observable outcome: `/api/v1/auth/about`返回最小授权上下文；旧bootstrap 404；RBAC JSON统一common records；所有IdP/RBAC USER Controller不再声明`@AuthenticationPrincipal`，SERVICE endpoint例外保留。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/Rbac3AboutServiceTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/Rbac3AboutServiceTest.java`
 
 - Purpose: RED固定About禁止字段、USER principal参数为0和old wrapper为0。
 - Symbols: Spec TEST-005/019/020。
@@ -946,7 +946,7 @@ scanJsonControllers().assertOnlyCommonResultTypes();
 
 - After this file: 因Bootstrap/old wrapper/principal参数仍存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3AboutView.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3AboutView.java`
 
 - Purpose: 建立API-010并删除flat resource bootstrap。
 - Symbols: `Rbac3AboutView`、`Rbac3AboutService.current()`。
@@ -963,7 +963,7 @@ return new Rbac3AboutView(minimalUser(details), details.currentApplicationCode()
 
 - After this file: About service测试GREEN。
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/controller/Rbac3AuthBootstrapController.java`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/controller/Rbac3AuthBootstrapController.java`
 
 - Purpose: 暴露About且删除平行query path。
 - Symbols: `GET /api/v1/auth/about`。
@@ -978,7 +978,7 @@ ResultRecord<Rbac3AboutView> about() { return success(aboutService.current()); }
 
 - After this file: About MockMvc GREEN，old URL 404。
 
-#### File 4 — `DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/shared/domain/vo/ApiEnvelopeVO.java`
+#### File 4 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/shared/domain/vo/ApiEnvelopeVO.java`
 
 - Purpose: 删除并行HTTP外层并统一错误。
 - Symbols: ResultRecord/PageResultRecord/PageQuery。
@@ -994,7 +994,7 @@ non-2xx -> ResultRecord<Void> with HTTP status, code/status/traceId
 
 - After this file: common architecture test接近GREEN。
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/controller/IdentityUserController.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/controller/IdentityUserController.java`
 
 - Purpose: 移除USER principal transport参数并保持审计/tenant来源可信。
 - Symbols: 所有`@AuthenticationPrincipal IdentityPrincipal/CurrentRbac3Principal`。
@@ -1013,7 +1013,7 @@ service.method(dto) {
 
 - After this file: metadata/architecture测试GREEN，业务controller测试同步更新。
 
-- Verification command: `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=Rbac3AboutServiceTest,ControllerRequestParameterMetadataTest,CommonHttpContractArchitectureTest test`
+- Verification command: `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=Rbac3AboutServiceTest,ControllerRequestParameterMetadataTest,CommonHttpContractArchitectureTest test`
 - Expected result: exit 0；old bootstrap/wrapper/principal source guards为0，SERVICE allowlist保留。
 - Completion criteria: REQ-008/020/023及HTTP迁移完成；所有现有controller tests编译通过。
 - Rollback: 后端/Contract必须整commit回退；不能只恢复旧前端wrapper或Bootstrap。
@@ -1026,7 +1026,7 @@ service.method(dto) {
 - Observable outcome: React SDK只消费About授权事实和本地registry，支持递归MENU/ROUTE、ACTION、FIELD；unknown/denied fail closed；SDK无report export。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/types.test.ts`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/types.test.ts`
 
 - Purpose: RED锁定About、registry校验和guards。
 - Symbols: recursive tree、hidden/deep link、getField、common result parser。
@@ -1044,7 +1044,7 @@ expect(Object.keys(publicExports)).not.toContain('reportFrontendResources')
 
 - After this file: 因新types/registry/hooks缺失RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/types.ts`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/types.ts`
 
 - Purpose: 切About和common Result/PageResult解析。
 - Symbols: `Rbac3AboutView`、`request/requestPage`、READY/error states。
@@ -1060,7 +1060,7 @@ dispatch({ type: 'ABOUT_SUCCEEDED', about: result.data })
 
 - After this file: provider/common parser testsGREEN。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/registry/FrontendResourceRegistry.ts`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/registry/FrontendResourceRegistry.ts`
 
 - Purpose: 实现本地Composite和fail-closed guards。
 - Symbols: registry types/validator/hooks/components。
@@ -1077,7 +1077,7 @@ fieldAccess = policyMap[fieldCode] ?? NONE
 
 - After this file: registry/guard testsGREEN。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/package.json`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/package.json`
 
 - Purpose: 构建/导出新SDK，不暴露Node报告子路径。
 - Symbols: exports/build config。
@@ -1093,7 +1093,7 @@ assert no report endpoint/scope/token acquisition code in dist
 
 - After this file: SDK test/build GREEN。
 
-- Verification command: `npm test && npm run build` in `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk`
+- Verification command: `npm test && npm run build` in `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk`
 - Expected result: exit 0；recursive/route/action/field/About tests通过，dist无report export。
 - Completion criteria: SDK覆盖REQ-009/011/013/020–023；无browser report。
 - Rollback: revert SDK commit；需与Step 11 Admin Web consumer保持版本一致。
@@ -1106,7 +1106,7 @@ assert no report endpoint/scope/token acquisition code in dist
 - Observable outcome: Shared Desktop Menu和Drawer用同一children树递归渲染；叶子navigate、最长path高亮、父节点只展开；现有扁平消费者兼容。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
 
 - Purpose: RED覆盖三级树、Drawer、keyboard、flat compatibility。
 - Symbols: nested fixtures、longest path selection。
@@ -1123,7 +1123,7 @@ expect(flatLegacyItem).toRemainNavigable()
 
 - After this file: 现有Header扁平实现导致RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts`, `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseHeader.tsx`, `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx`, `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/index.ts`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts`, `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseHeader.tsx`, `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx`, `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`
 
 - Purpose: 最小递归Composite渲染和选择索引。
 - Symbols: `EnterpriseNavigationItem.children`、recursive menu builder/key index。
@@ -1139,7 +1139,7 @@ selected = longestPathPrefix(location.pathname, leafIndex)
 
 - After this file: Shared tests/typecheck GREEN。
 
-- Verification command: `npm test && npm run typecheck` in `egon-cola-platforms/egon-cola-platform-admin-web-shared`；build在独立node_modules副本或重新install后执行，避免postbuild影响后续Step。
+- Verification command: `npm test && npm run typecheck` in `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared`；build在独立node_modules副本或重新install后执行，避免postbuild影响后续Step。
 - Expected result: exit 0；三级菜单/Drawer/flat regression通过。
 - Completion criteria: Shared API兼容且满足REQ-021。
 - Rollback: revert Shared commit；Admin Web Step 11前不得发布不匹配版本。
@@ -1152,7 +1152,7 @@ selected = longestPathPrefix(location.pathname, leafIndex)
 - Observable outcome: Admin Web使用`/iam/**`、本地递归定义、About/common client；具备global Permission/Resource/Field和TenantApplication CRUD；无Manifest/sync按钮；CI脚本在build后报告且失败阻断；dist不含脚本/scope/secret。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`
 
 - Purpose: RED锁定完整导航/CRUD/无sync/CI脚本。
 - Symbols: old URL 404、tree/guards、common parser、script HTTP status。
@@ -1169,7 +1169,7 @@ runReportScript({ response: 409 }).rejects.toBlockRelease()
 
 - After this file: 新routes/pages/script不存在RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json`
 
 - Purpose: 同一纯数据定义驱动本地runtime和CI投影。
 - Symbols: MENU/ROUTE/ACTION/FIELD definitions、component binding map。
@@ -1186,7 +1186,7 @@ router = createRoutes(registry.routes.map(route => guardedLocalComponent(route))
 
 - After this file: navigation/router tests部分GREEN。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/api/adminApiClient.ts`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/api/adminApiClient.ts`
 
 - Purpose: 切common Result/PageResult和IAM URL。
 - Symbols: request/requestPage/error parsing/query keys。
@@ -1203,7 +1203,7 @@ tenantAppKey = ['tenant-applications', currentTenant, pageQuery]
 
 - After this file: API mocks/common testsGREEN。
 
-#### File 4 — `DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ManifestDetailPage.tsx`
+#### File 4 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ManifestDetailPage.tsx`
 
 - Purpose: 落global catalog/TenantApplication/field CRUD并移除Manifest UI。
 - Symbols: list/detail/forms/status/query states。
@@ -1219,7 +1219,7 @@ tenantAppKey = ['tenant-applications', currentTenant, pageQuery]
 
 - After this file: IAM page testsGREEN。
 
-#### File 5 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/report-rbac-resources.mjs`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/report-rbac-resources.mjs`
 
 - Purpose: 提供流水线显式命令并守卫browser bundle。
 - Symbols: `test:report`、`report:resources`、`verify:bundle` scripts。
@@ -1237,7 +1237,7 @@ scanDistForForbidden(['report-rbac-resources', 'rbac3:resource-catalog:report', 
 
 - After this file: Node script testsGREEN；失败exit非0阻断发布。
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/package.json`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/package.json`
 
 - Purpose: 对齐SDK/Shared consumer和About provider。
 - Symbols: dependency version、provider props、build guard。
@@ -1267,7 +1267,7 @@ do not execute report script during dev/start/build
 - Observable outcome: 全部聚焦/模块/跨模块/static/migration/frontend gates通过；源码和产物无被禁止能力；生成发布清单但不启动服务。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/Rbac3AuthorizationArchitectureTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/Rbac3AuthorizationArchitectureTest.java`
 
 - Purpose: 汇总source/package/controller/schema边界守卫。
 - Symbols: no Manifest、no old principal/envelope/bootstrap、no DataScope、SERVICE endpoint allowlist、global PO no TenantScopedPO。
@@ -1284,7 +1284,7 @@ assertNoClassesNamed("DataScope", "*QueryRewriter");
 
 - After this file: 若任一旧符号残留则RED并返回所属Step修复。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/verify-rbac3-conformance.mjs`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/verify-rbac3-conformance.mjs`
 
 - Purpose: 汇总前端source/dist/route/report边界。
 - Symbols: forbidden symbol/path/import scans。

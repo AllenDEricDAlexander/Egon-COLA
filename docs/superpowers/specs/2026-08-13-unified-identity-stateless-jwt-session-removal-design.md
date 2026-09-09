@@ -10,12 +10,12 @@
 
 主要涉及模块：
 
-- `egon-cola-platforms/egon-cola-platform-idp`
-- `egon-cola-platforms/egon-cola-platform-rbac3`
-- `egon-cola-platforms/egon-cola-platform-gateway`
-- `egon-cola-platforms/egon-cola-platform-admin-web-shared`
+- `egon-cola-xingyuan/egon-cola-tianquan-shoubing`
+- `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- `egon-cola-xingyuan/egon-cola-yuheng`
+- `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared`
 - IdP、RBAC3、Gateway、DDC 等现有 Admin Web
-- `scripts/unified-platform` 与统一身份本地启动、验证脚本
+- `scripts/unified-xingyuan` 与统一身份本地启动、验证脚本
 
 本文固化 2026-08-13 已确认的统一身份改造方向：人员登录链只使用一个平台级
 Access Token 和一个 Refresh Token；彻底移除 IdP、RBAC3、Gateway 和业务服务中的
@@ -165,7 +165,7 @@ Session。IdP 必须保存 Refresh Token 的服务端有效状态，才能执行
 | SJ-47 | IdP 是人员身份、登录标识、密码凭据、账号状态和登录安全状态的唯一权威；本期只收口现有能力和本方案必需字段，不开发完整用户中台、人员档案或组织人事能力 |
 | SJ-48 | `rbac3_user` 固定以 `(tenant_id, identity_sub)` 唯一绑定 IdP 用户，保留 RBAC内部 `id`、本地授权状态、`auth_version`、行版本和审计字段；组织、岗位、角色、权限继续作为 RBAC授权关系或独立事实存在，不塞回用户核心资料 |
 | SJ-49 | IdP Admin 持有平台 JWT 私钥并负责 AT/RT 签发与 JWKS；`idp-starter` 负责共享公钥验签和严格 Claim验证；`idp-gateway-adapter` 只把 Starter能力适配到 Gateway，不复制密码学和 Claim规则 |
-| SJ-50 | `egon-cola-platform-idp-rpc-contract` 只保存稳定 RPC/Proto 契约，不直接声明 Spring Security/Nimbus、不保存密钥、不实现 JWT签发或验签；Bearer JWT只是调用 RPC时的传输凭据，不进入业务消息模型 |
+| SJ-50 | `egon-cola-tianquan-shoubing-rpc-contract` 只保存稳定 RPC/Proto 契约，不直接声明 Spring Security/Nimbus、不保存密钥、不实现 JWT签发或验签；Bearer JWT只是调用 RPC时的传输凭据，不进入业务消息模型 |
 | SJ-51 | 本期不新增 `component-jwt`，也不把 IdP Claim/Issuer/Audience/主体规则下沉到 Common Crypto；只有未来出现多个非 IdP协议的真实复用者时，才可另行评审只含无状态 JOSE/JWK原语的组件 |
 | SJ-52 | 当前 RS256 Token 是签名 JWT（JWS），不是加密 JWT（JWE）；本期不增加 Payload加密、JWE密钥或解密链 |
 
@@ -181,7 +181,7 @@ Session。IdP 必须保存 Refresh Token 的服务端有效状态，才能执行
 |---|---|
 | Spring Security 已配置 `SessionCreationPolicy.STATELESS` | `idp-admin/.../support/security/IdpSecurityConfig.java` |
 | IdP 保护接口按 IdP Bearer Filter、RBAC3 Filter 顺序执行 | `IdpSecurityConfig.java` |
-| IdP Admin 已依赖 `egon-cola-platform-rbac3-starter` | `egon-cola-platform-idp-admin/pom.xml` |
+| IdP Admin 已依赖 `egon-cola-tianquan-jianshen-starter` | `egon-cola-tianquan-shoubing-admin/pom.xml` |
 | IdP RBAC3 `system-code` 已是 `idp-admin` | `idp-admin/src/main/resources/application.yml` |
 | IdP 管理 Controller 已使用 `@AuthenticationPrincipal IdentityPrincipal` | `identity/controller/IdentityUserController.java` 等 |
 | IdP 管理业务已显式检查 `idp:*` 权限 | `IdpAdminAuthorizationPort` 及各 Controller |
@@ -244,8 +244,8 @@ admin/identity/repository/jpa/JpaPasswordCredentialRepository.java
 admin/identity/repository/jpa/CredentialRow.java
 admin/config/security/CurrentRbac3Principal.java
 admin/bootstrap/repository/jpa/JpaPlatformAdminBootstrapRepository.java
-egon-cola-platform-rbac3-react-sdk/src/**
-egon-cola-platform-rbac3-admin-web/src/features/session/**
+egon-cola-tianquan-jianshen-react-sdk/src/**
+egon-cola-tianquan-jianshen-admin-web/src/features/session/**
 ```
 
 后续 implementation plan 必须以这些现有路径为起点：保留并改造 `activation`，删除
@@ -538,11 +538,11 @@ idp-admin -> idp-core + idp-rpc-contract + rbac3-starter
 
 | 模块 | 本期职责 | 明确禁止 |
 |---|---|---|
-| `egon-cola-platform-idp-core` | 保存不依赖 Spring/Nimbus 的 USER/SERVICE/Refresh Claim语义、Token Policy和签发/验证端口 | 私钥文件读取、JWK HTTP客户端、Spring Security Filter、Gateway SPI |
-| `egon-cola-platform-idp-admin` | 唯一 Token Issuer；持有 IdP平台私钥，签发 USER AT、RT和 SERVICE AT，提供 JWKS并校验 RT；改造现有 `Rs256TokenService`而不是建立第二套签发器 | 把 IdP签名私钥下发给 Gateway、RBAC3或业务服务 |
-| `egon-cola-platform-idp-starter` | 共享 Resource Server能力；维护 `RetryingJwtDecoder`、JWK公钥缓存、USER/SERVICE入口的严格验签和 Claim验证，并输出无 Session的可信 Principal | 签发平台 AT/RT、保存 IdP平台私钥、读取 USER RT、查询 RBAC Session |
-| `egon-cola-platform-idp-gateway-adapter` | 通过 Adapter复用 Starter验证器，把 `VALID/EXPIRED/INVALID` 和可信 Principal映射为 Gateway安全链结果；承接 Cookie提取与自动 Refresh编排所需的 Gateway接口 | 复制 JWT解析/签名验证/Claim规则，或直接持有私钥、签发 Token |
-| `egon-cola-platform-idp-rpc-contract` | 只保存稳定 Proto/RPC消息与服务声明；继续承载现有 Admission Contract | 引入 JOSE/Nimbus/Spring Security，保存密钥，签发/解析/验证 JWT，或把原始 Token定义为业务字段 |
+| `egon-cola-tianquan-shoubing-core` | 保存不依赖 Spring/Nimbus 的 USER/SERVICE/Refresh Claim语义、Token Policy和签发/验证端口 | 私钥文件读取、JWK HTTP客户端、Spring Security Filter、Gateway SPI |
+| `egon-cola-tianquan-shoubing-admin` | 唯一 Token Issuer；持有 IdP平台私钥，签发 USER AT、RT和 SERVICE AT，提供 JWKS并校验 RT；改造现有 `Rs256TokenService`而不是建立第二套签发器 | 把 IdP签名私钥下发给 Gateway、RBAC3或业务服务 |
+| `egon-cola-tianquan-shoubing-starter` | 共享 Resource Server能力；维护 `RetryingJwtDecoder`、JWK公钥缓存、USER/SERVICE入口的严格验签和 Claim验证，并输出无 Session的可信 Principal | 签发平台 AT/RT、保存 IdP平台私钥、读取 USER RT、查询 RBAC Session |
+| `egon-cola-tianquan-shoubing-gateway-adapter` | 通过 Adapter复用 Starter验证器，把 `VALID/EXPIRED/INVALID` 和可信 Principal映射为 Gateway安全链结果；承接 Cookie提取与自动 Refresh编排所需的 Gateway接口 | 复制 JWT解析/签名验证/Claim规则，或直接持有私钥、签发 Token |
+| `egon-cola-tianquan-shoubing-rpc-contract` | 只保存稳定 Proto/RPC消息与服务声明；继续承载现有 Admission Contract | 引入 JOSE/Nimbus/Spring Security，保存密钥，签发/解析/验证 JWT，或把原始 Token定义为业务字段 |
 
 `idp-starter` 中现有 `PrivateKeyJwtAssertionFactory` 是调用方用自身 Client私钥签名
 `private_key_jwt` Client Assertion 的窄用途工具，不是 IdP平台 AT/RT签发器。它可以留在

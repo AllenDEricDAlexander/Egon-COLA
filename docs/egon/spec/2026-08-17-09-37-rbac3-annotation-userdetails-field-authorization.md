@@ -15,9 +15,9 @@
 | Scope | `Gateway USER认证链、IdP RT在线校验、RBAC3 Contract/Starter/Gateway Adapter/Admin/React SDK/Admin Web、Admin Web Shared递归导航、前端本地资源注册与CI上报、全局资源目录与租户授权拆分、components/common HTTP返回契约、DDC BIZ/APP全局唯一性` |
 | Source Requirement | `2026-08-17 用户确认的JWT/Spring Security/RBAC注解/UserDetails/字段权限/IAM/DDC决策，以及“前端本地知道全部资源、CI上线前只上报一次；资源目录不属于租户；bizCode/appCode各自全局唯一；不限制1MiB、不限流；不采用Manifest”的最新修订` |
 | Baseline Revision | `main@a2cde2749a9b；仅本Spec为未跟踪文件（2026-08-17 15:07 CST静态扫描）` |
-| Amends | [统一身份无 Session JWT 与 Gateway 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §3 `SJ-19`、`SJ-32`、`SJ-33`，§10.1–§10.3，§12.2–§12.4，§13.1–§13.2，§17，§19.3–§19.6；[RBAC3 企业级权限平台设计](../../superpowers/specs/2026-07-30-rbac3-permission-platform-design.md) §8.3，§10.1，§15–§17，§22.1.2–§22.1.3，§26.3–§26.4，§28.3–§28.5，§30.1、§30.5–§30.6，§32 `AC-22`–`AC-25`、`AC-31`–`AC-32`；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-platforms/egon-cola-platform-rbac3/docs/iam-package-aggregation-migration-spec.md) §4.3–§4.4、§5.5–§5.6、§6.1–§6.3、§7 |
+| Amends | [统一身份无 Session JWT 与 Gateway 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §3 `SJ-19`、`SJ-32`、`SJ-33`，§10.1–§10.3，§12.2–§12.4，§13.1–§13.2，§17，§19.3–§19.6；[RBAC3 企业级权限平台设计](../../superpowers/specs/2026-07-30-rbac3-permission-platform-design.md) §8.3，§10.1，§15–§17，§22.1.2–§22.1.3，§26.3–§26.4，§28.3–§28.5，§30.1、§30.5–§30.6，§32 `AC-22`–`AC-25`、`AC-31`–`AC-32`；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §4.3–§4.4、§5.5–§5.6、§6.1–§6.3、§7 |
 | Supersedes | `None` |
-| Depends On | [统一身份无 Session JWT 与 Gateway 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §7–§9、§11、§12.1、§12.5、§15；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-platforms/egon-cola-platform-rbac3/docs/iam-package-aggregation-migration-spec.md) §2.4、§3–§5.4 |
+| Depends On | [统一身份无 Session JWT 与 Gateway 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §7–§9、§11、§12.1、§12.5、§15；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §2.4、§3–§5.4 |
 | Related Specs | [Gateway BIZ/APP Scope Direct RPC Design](2026-08-15-16-57-gateway-biz-app-scope-direct-rpc-design.md) |
 | Related Plans | [RBAC3 注解权限、全局资源目录与无状态认证实施计划](../plan/2026-08-17-15-07-rbac3-annotation-resource-catalog-implementation.md) |
 
@@ -274,7 +274,7 @@ N/A。用户已经批量确认本规格所需的认证、注解、UserDetails、
 
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
-| Language/runtime | Java 21 | `egon-cola-platforms/pom.xml` `java.version=21` | 可使用 record/sealed等现有语法，不改变版本 |
+| Language/runtime | Java 21 | `egon-cola-xingyuan/pom.xml` `java.version=21` | 可使用 record/sealed等现有语法，不改变版本 |
 | Framework | Spring Boot 3.5.16 / Spring Security 6 | platform BOM与各 starter Security配置 | 使用 `AuthorizationManagerBeforeMethodInterceptor`/`@EnableMethodSecurity`，保持 stateless chain |
 | Build | Maven多模块；Web使用Vite | `rbac3/pom.xml`、Admin Web `package.json` | 不新增资源注册模块或构建插件；流水线调用Web包内独立Node脚本，脚本和secret不进入Vite入口图 |
 | Persistence | Spring Data JPA/Hibernate + PostgreSQL | `rbac3-admin/pom.xml`、PO/Repository | 复用现有 PO与事务服务，不新增第二 ORM模型 |
@@ -553,71 +553,71 @@ Trace贯穿Gateway -> IdP status/refresh -> RBAC snapshot -> target service/repo
 ### 8.1 Current relevant tree
 
 ```text
-egon-cola-platforms/
-├── egon-cola-platform-dynamic-config-center/
-│   └── egon-cola-platform-dynamic-config-center-admin/
+egon-cola-xingyuan/
+├── egon-cola-tianshu/
+│   └── egon-cola-tianshu-admin/
 │       ├── .../service/metadata/DdcAppService.java
 │       ├── .../repository/DdcAppRepository.java
 │       └── src/main/resources/db/{postgresql,sqlite}/V7__add_namespace_env_app_visibility.sql
-├── egon-cola-platform-gateway/
-│   ├── egon-cola-platform-gateway-core/.../security/GatewayCredentialRecoveryProvider.java
-│   └── egon-cola-platform-gateway-engine/.../security/GatewaySecurityChain.java
-├── egon-cola-platform-idp/
-│   ├── egon-cola-platform-idp-core/.../TokenFacade.java, RefreshTokenStore.java
-│   ├── egon-cola-platform-idp-admin/.../OAuthTokenController.java
-│   ├── egon-cola-platform-idp-starter/.../IdpBearerAuthenticationFilter.java
-│   └── egon-cola-platform-idp-gateway-adapter/.../IdpUserCredentialRecoveryProvider.java
-└── egon-cola-platform-rbac3/
-    ├── egon-cola-platform-rbac3-contract/.../authorization/SystemAuthorizationSnapshot.java
-    ├── egon-cola-platform-rbac3-starter/
+├── egon-cola-yuheng/
+│   ├── yuheng-core/.../security/GatewayCredentialRecoveryProvider.java
+│   └── yuheng-biz-gateway/.../security/GatewaySecurityChain.java
+├── egon-cola-tianquan-shoubing/
+│   ├── egon-cola-tianquan-shoubing-core/.../TokenFacade.java, RefreshTokenStore.java
+│   ├── egon-cola-tianquan-shoubing-admin/.../OAuthTokenController.java
+│   ├── egon-cola-tianquan-shoubing-starter/.../IdpBearerAuthenticationFilter.java
+│   └── egon-cola-tianquan-shoubing-gateway-adapter/.../IdpUserCredentialRecoveryProvider.java
+└── egon-cola-tianquan-jianshen/
+    ├── egon-cola-tianquan-jianshen-contract/.../authorization/SystemAuthorizationSnapshot.java
+    ├── egon-cola-tianquan-jianshen-starter/
     │   └── .../{security,authorization,cache,manifest,autoconfigure}
-    ├── egon-cola-platform-rbac3-admin/
+    ├── egon-cola-tianquan-jianshen-admin/
     │   └── .../admin/{config/security,iam/*}
-    ├── egon-cola-platform-rbac3-react-sdk/src/{guards,hooks,provider,types.ts}
-    └── egon-cola-platform-rbac3-admin-web/src/features/*
+    ├── egon-cola-tianquan-jianshen-react-sdk/src/{guards,hooks,provider,types.ts}
+    └── egon-cola-tianquan-jianshen-admin-web/src/features/*
 ```
 
 ### 8.2 Target tree
 
 ```text
-egon-cola-platforms/
-├── egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/
+egon-cola-xingyuan/
+├── egon-cola-tianshu/egon-cola-tianshu-admin/
 │   ├── src/main/java/.../ddc/admin/repository/DdcAppRepository.java                MODIFY GLOBAL APP CODE LOOKUP
 │   ├── src/main/java/.../ddc/admin/service/metadata/DdcAppService.java             MODIFY GLOBAL UNIQUE VALIDATION
 │   ├── src/main/resources/db/postgresql/V9__enforce_global_biz_app_codes.sql       CREATE
 │   ├── src/main/resources/db/sqlite/V9__enforce_global_biz_app_codes.sql           CREATE DIALECT VARIANT
 │   └── src/test/.../{DdcAppService,PostgresqlMigration,SqliteMigration}*Test.java   MODIFY
-├── egon-cola-platform-gateway/
-│   ├── egon-cola-platform-gateway-core/.../security/
+├── egon-cola-yuheng/
+│   ├── yuheng-core/.../security/
 │   │   ├── GatewayCredentialRecoveryProvider.java                                  MODIFY ONLINE VALIDATION HOOK
 │   │   └── GatewayCredentialOnlineStateResult.java                                 CREATE
-│   └── egon-cola-platform-gateway-engine/.../security/
+│   └── yuheng-biz-gateway/.../security/
 │       ├── GatewaySecurityChain.java                                                MODIFY AFTER USER AUTH
 │       └── GatewaySecurityChainTest.java                                            MODIFY
-├── egon-cola-platform-idp/
-│   ├── egon-cola-platform-idp-admin/pom.xml                                         MODIFY COMMON CORE DEPENDENCY
-│   ├── egon-cola-platform-idp-core/.../token/{TokenFacade,RefreshTokenStatus}.java    MODIFY/CREATE
-│   ├── egon-cola-platform-idp-admin/.../oauth/controller/InternalRefreshTokenController.java CREATE
-│   ├── egon-cola-platform-idp-admin/.../support/security/
+├── egon-cola-tianquan-shoubing/
+│   ├── egon-cola-tianquan-shoubing-admin/pom.xml                                         MODIFY COMMON CORE DEPENDENCY
+│   ├── egon-cola-tianquan-shoubing-core/.../token/{TokenFacade,RefreshTokenStatus}.java    MODIFY/CREATE
+│   ├── egon-cola-tianquan-shoubing-admin/.../oauth/controller/InternalRefreshTokenController.java CREATE
+│   ├── egon-cola-tianquan-shoubing-admin/.../support/security/
 │   │   ├── IdpAuthBootstrapController.java                                          DELETE
 │   │   └── IdpAuthAboutController.java                                              CREATE
-│   ├── egon-cola-platform-idp-admin/.../{oauth,identity,resource,token,audit}/controller/*.java MODIFY USER methods
-│   ├── egon-cola-platform-idp-rpc-contract/src/main/proto/identity_directory.proto   CREATE
-│   ├── egon-cola-platform-idp-starter/.../security/CurrentIdentity.java              CREATE
-│   └── egon-cola-platform-idp-gateway-adapter/.../security/
+│   ├── egon-cola-tianquan-shoubing-admin/.../{oauth,identity,resource,token,audit}/controller/*.java MODIFY USER methods
+│   ├── egon-cola-tianquan-shoubing-rpc-contract/src/main/proto/identity_directory.proto   CREATE
+│   ├── egon-cola-tianquan-shoubing-starter/.../security/CurrentIdentity.java              CREATE
+│   └── egon-cola-tianquan-shoubing-gateway-adapter/.../security/
 │       ├── IdpRefreshTokenStatusClient.java                                         CREATE
 │       ├── ReactorNettyIdpRefreshTokenStatusClient.java                             CREATE
 │       └── IdpUserOnlineStateProvider.java                                          CREATE
-├── egon-cola-platform-rbac3/
-    ├── pom.xml, egon-cola-platform-rbac3-{admin,starter}/pom.xml                    MODIFY COMMON CORE DEPENDENCY
-    ├── egon-cola-platform-rbac3-contract/.../
+├── egon-cola-tianquan-jianshen/
+    ├── pom.xml, egon-cola-tianquan-jianshen-{admin,starter}/pom.xml                    MODIFY COMMON CORE DEPENDENCY
+    ├── egon-cola-tianquan-jianshen-contract/.../
     │   ├── authorization/ActiveRoleDescriptor.java                                  CREATE
     │   ├── authorization/{SystemAuthorizationSnapshot,AppAuthorizationContext}.java MODIFY
     │   ├── auth/BootstrapView.java                                                   DELETE
     │   ├── auth/Rbac3AboutView.java                                                  CREATE
     │   ├── error/Rbac3ErrorResponse.java                                             DELETE
     │   └── manifest/{ResourceManifest,ManifestResource}.java                         DELETE
-    ├── egon-cola-platform-rbac3-starter/.../starter/
+    ├── egon-cola-tianquan-jianshen-starter/.../starter/
     │   ├── authorization/AuthorizationBootstrapService.java                          DELETE
     │   ├── authorization/Rbac3AboutService.java                                      CREATE
     │   ├── security/{RBACAPIResource,RequiresPermission,Rbac3UserDetails,
@@ -628,10 +628,10 @@ egon-cola-platforms/
     │   ├── web/Rbac3AuthorizationExceptionHandler.java                              MODIFY COMMON ERROR
     │   ├── autoconfigure/{Rbac3StarterAutoConfiguration,Rbac3StarterProperties}.java MODIFY
     │   └── manifest/{Rbac3ManifestContributor,Rbac3ManifestReporter,package-info}.java DELETE
-    ├── egon-cola-platform-rbac3-core/.../core/
+    ├── egon-cola-tianquan-jianshen-core/.../core/
     │   ├── activation/{AuthorizationRuleFacts,ActivationAuthorizationSnapshot}.java MODIFY REMOVE RESOURCE FACTS
     │   └── decision/UserAuthorizationSnapshotBuilder.java                           MODIFY REMOVE RESOURCE CODES
-    ├── egon-cola-platform-rbac3-admin/.../admin/
+    ├── egon-cola-tianquan-jianshen-admin/.../admin/
     │   ├── config/security/{Rbac3AdminPrincipalFilter,Rbac3AdminAuthenticationToken,
     │   │   CurrentRbac3Principal,RequiresRbac3Permission,Rbac3MethodAuthorization}.java DELETE
     │   ├── bootstrap/controller/Rbac3AuthBootstrapController.java                   DELETE
@@ -658,16 +658,16 @@ egon-cola-platforms/
     │       ├── resource/{controller,domain,repository,service}/...                   MODIFY CRUD/TREE/STATUS
     │       ├── organization/domain/vo/DirectoryPageVO.java                          DELETE
     │       └── policy/{controller,domain,repository,service}/...                     MODIFY
-    ├── egon-cola-platform-rbac3-admin/src/main/resources/db/migration/
+    ├── egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/
     │   └── V7__globalize_resource_catalog_and_remove_manifest.sql                   CREATE
-    ├── egon-cola-platform-rbac3-react-sdk/src/
+    ├── egon-cola-tianquan-jianshen-react-sdk/src/
     │   ├── types.ts                                                                 MODIFY ABOUT/REGISTRY/RESULT TYPES
     │   ├── client/Rbac3ApiClient.ts                                                 MODIFY RESULT/PAGE PARSING
     │   ├── registry/{FrontendResourceRegistry,createFrontendResourceRegistry,
     │   │   validateFrontendResourceRegistry}.ts                                   CREATE
     │   ├── hooks/{useFieldAccess,getField,useNavigationTree,useAction}.ts           CREATE/MODIFY LOCAL REGISTRY
     │   └── guards/{RouteAccessGuard,ActionGuard,FieldGuard,FieldColumnGuard}.tsx     MODIFY/CREATE
-    ├── egon-cola-platform-rbac3-admin-web/src/
+    ├── egon-cola-tianquan-jianshen-admin-web/src/
     │   ├── api/adminApiClient.ts                                                    MODIFY COMMON RESULT/PAGE
     │   ├── app/{navigation.ts,router.tsx,resourceDefinitions.json,resourceRegistry.ts} MODIFY/CREATE
     │   ├── scripts/report-rbac-resources.mjs                                       CREATE CI-ONLY
@@ -679,7 +679,7 @@ egon-cola-platforms/
     │       ├── permission/*                                                         CREATE/MOVE
     │       ├── resource/*                                                           CREATE/MOVE
     │       └── policy/field-rule/*                                                   CREATE/MOVE
-└── egon-cola-platform-admin-web-shared/src/layout/
+└── egon-cola-xingyuan-admin-web-shared/src/layout/
     ├── types.ts                                                                     MODIFY OPTIONAL CHILDREN
     └── EnterpriseHeader.tsx                                                         MODIFY RECURSIVE MENU
 ```
@@ -710,9 +710,9 @@ egon-cola-platforms/
 | Delete/Create | Starter/Admin/IdP `*Bootstrap*` -> `*About*` | about service/controllers | 从UserDetails返回最小授权上下文；删除平行Bootstrap repository链 | SecurityContext/common Result | `REQ-020`,`REQ-023`,`REQ-024` |
 | Modify/Delete | RBAC所有 Controllers、exception handlers、`ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse` | common result migration | 单体/分页/异常统一公共契约，删除重复类型 | `egon-cola-component-common-core` | `REQ-023` |
 | Modify/Create | React SDK registry/guards与Admin Web resource definitions/CI script | local runtime + CI report | 同一纯数据定义生成本地递归导航/routes/guards和CI可序列化报告；报告脚本不进入browser graph | React Router/Node fetch | `REQ-013`–`REQ-015`,`REQ-020`–`REQ-022`,`REQ-026` |
-| Modify | `egon-cola-platform-admin-web-shared/src/layout/*` | recursive navigation | 给所有平台提供兼容的 children渲染/选择 | Ant Design Menu/React Router | `REQ-021` |
+| Modify | `egon-cola-xingyuan-admin-web-shared/src/layout/*` | recursive navigation | 给所有平台提供兼容的 children渲染/选择 | Ant Design Menu/React Router | `REQ-021` |
 
-不会创建`egon-cola-platform-rbac3-resource-manifest-processor`、`egon-cola-platform-rbac3-resource-registration-starter`或`egon-cola-platform-rbac3-resource-manifest-plugin`。已有`ResourceManifest/ManifestResource`、Starter Reporter、Admin manifest包和前端Manifest页面按`REQ-024`删除。Java方法/字段注解继续保留在生产Starter，因为它们是权限执行元数据，不负责资源报告。浏览器bundle只包含应用本来就公开的route/field机械事实；CI报告脚本、SERVICE scope和token acquisition配置不得被任何`src`模块import，并由dist守卫验证。
+不会创建`egon-cola-tianquan-jianshen-resource-manifest-processor`、`egon-cola-tianquan-jianshen-resource-registration-starter`或`egon-cola-tianquan-jianshen-resource-manifest-plugin`。已有`ResourceManifest/ManifestResource`、Starter Reporter、Admin manifest包和前端Manifest页面按`REQ-024`删除。Java方法/字段注解继续保留在生产Starter，因为它们是权限执行元数据，不负责资源报告。浏览器bundle只包含应用本来就公开的route/field机械事实；CI报告脚本、SERVICE scope和token acquisition配置不得被任何`src`模块import，并由dist守卫验证。
 
 ## 9. Interface Definitions
 
@@ -1785,7 +1785,7 @@ PENDING Permission不能被RolePermission引用或进入Snapshot。报告成功�
 
 ## 11. Database Design
 
-RBAC PostgreSQL/Flyway只新增`egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql`，绝不修改V1–V6。DDC分别新增PostgreSQL与SQLite同版本`V9__enforce_global_biz_app_codes.sql`方言脚本，绝不修改V1–V8。以下为源码DDL设计；本次未连接live数据库，行数、锁时长和执行计划需实施阶段以空库/代表数据验证。用户允许不兼容旧数据，且V6已要求空legacy authorization graph，因此V7选择先删除所有RBAC授权/目录事实，再按新约束重建，不设计Manifest或tenant资源副本回填。
+RBAC PostgreSQL/Flyway只新增`egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V7__globalize_resource_catalog_and_remove_manifest.sql`，绝不修改V1–V6。DDC分别新增PostgreSQL与SQLite同版本`V9__enforce_global_biz_app_codes.sql`方言脚本，绝不修改V1–V8。以下为源码DDL设计；本次未连接live数据库，行数、锁时长和执行计划需实施阶段以空库/代表数据验证。用户允许不兼容旧数据，且V6已要求空legacy authorization graph，因此V7选择先删除所有RBAC授权/目录事实，再按新约束重建，不设计Manifest或tenant资源副本回填。
 
 ### 11.1 Table Inventory
 

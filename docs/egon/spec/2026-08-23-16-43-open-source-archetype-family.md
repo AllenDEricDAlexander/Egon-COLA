@@ -144,7 +144,7 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 | Deployment/config/Nacos | Affected | bootstrap/application、18 compose、`.env*` | Nacos Server 2.5.1 -> 3.0.3；增加 DTP/RPC/Snowflake machine-id 配置；无 DB auto-init/Gateway 配置 | 完整配置/秘密/失败合同 | `§7, §8, §14, §15, §16, §17, §18` |
 | Generated-project verification/CI/docs | Affected | 三套 verifier、CI archetype array、README 双语、deploy docs | 新开源产品线必须独立生成、构建、扫描、发布说明 | 完整测试与文档矩阵 | `§8, §14, §16, §18` |
 | Original three archetypes | Unchanged | 当前 tracked paths、用户“基于我的这份先不做” | 不修改任何原模板/POM/verifier/SQL | 路径隔离与 diff proof | `§16` |
-| Components/platforms production code | Unchanged | `egon-cola-components/**`、`egon-cola-platforms/**` | 只消费已发布的用户批准 concrete artifacts；不改其实现 | 依赖边界与版本可用性验证 | `§15, §16` |
+| Components/platforms production code | Unchanged | `egon-cola-components/**`、`egon-cola-xingyuan/**` | 只消费已发布的用户批准 concrete artifacts；不改其实现 | 依赖边界与版本可用性验证 | `§15, §16` |
 | Business HTTP/GraphQL/MQ behavior | Context-only | 当前 adapter/application/domain tests | 默认保持现有 route、payload、error/use-case 语义 | 最小回归，不重写完整现有契约 | `§9, §14, §16` |
 | Frontend application | Not applicable | 三个 archetype 不含 JS/TS/UI source；DTP Admin 也不生成 UI | N/A，无页面、route component 或浏览器状态 | §12 证据化 N/A | `§12` |
 

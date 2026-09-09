@@ -1,0 +1,20 @@
+{
+  "name": "@egon-cola/tianquan-jianshen-frontend-workspace",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "egon-cola-tianquan-jianshen-react-sdk",
+    "egon-cola-tianquan-jianshen-admin-web"
+  ],
+  "scripts": {
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "pretest": "npm run build --workspace @egon-cola/tianquan-jianshen-react-sdk",
+    "test": "npm run test --workspaces --if-present --",
+    "lint": "npm run lint --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  },
+  "engines": {
+    "node": "24.x",
+    "npm": ">=11 <12"
+  }
+}

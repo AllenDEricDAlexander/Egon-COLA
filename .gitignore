@@ -22,7 +22,7 @@ nbbuild/
 dist/
 nbdist/
 # shared 构建时从仓库根 favicon.png 复制的产物
-egon-cola-platforms/egon-cola-platform-admin-web-shared/favicon.png
+egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/favicon.png
 bin/
 doc/
 target/

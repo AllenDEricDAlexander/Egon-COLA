@@ -158,23 +158,23 @@ Each Step gets one path-limited commit. Generated shared `dist`/Vite output is r
 ## 5. Change File Tree
 
 ```text
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx
-MODIFY scripts/unified-platform/start-local-stack.sh
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx
+MODIFY scripts/unified-xingyuan/start-local-stack.sh
 MODIFY scripts/unified-identity-local.sh
-CREATE scripts/unified-platform/test-local-address-policy.sh
-MODIFY egon-cola-platform-admin-portal/package.json
-MODIFY egon-cola-platform-admin-portal/package-lock.json
-MODIFY egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx
-MODIFY egon-cola-platform-admin-portal/src/test/setup.ts
-CREATE egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcAdminSecurityConfiguration.java
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcBizRepository.java
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcEnvRepository.java
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcAppRepository.java
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcNamespaceRepository.java
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcPublishTaskRepository.java
-MODIFY egon-cola-platform-dynamic-config-center/.../DdcNamespaceEnvAppBindingRepository.java
+CREATE scripts/unified-xingyuan/test-local-address-policy.sh
+MODIFY egon-cola-xingyuan-admin-portal/package.json
+MODIFY egon-cola-xingyuan-admin-portal/package-lock.json
+MODIFY egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx
+MODIFY egon-cola-xingyuan-admin-portal/src/test/setup.ts
+CREATE egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx
+MODIFY egon-cola-tianshu/.../DdcAdminSecurityConfiguration.java
+MODIFY egon-cola-tianshu/.../DdcBizRepository.java
+MODIFY egon-cola-tianshu/.../DdcEnvRepository.java
+MODIFY egon-cola-tianshu/.../DdcAppRepository.java
+MODIFY egon-cola-tianshu/.../DdcNamespaceRepository.java
+MODIFY egon-cola-tianshu/.../DdcPublishTaskRepository.java
+MODIFY egon-cola-tianshu/.../DdcNamespaceEnvAppBindingRepository.java
 MODIFY DDC admin web App.tsx/AdminLayout.tsx/api/types.ts
 CREATE DDC admin web src/pages/BindingsPage.tsx
 CREATE DDC admin web src/pages/BindingsPage.test.tsx
@@ -182,20 +182,20 @@ MODIFY RBAC3 role/directory/application/navigation/resource definition files
 CREATE RBAC3 PermissionCatalogPage.tsx and test
 MODIFY Gateway gatewayApi/ApplicationsPage/TracesPage/AdminLayout/App.tsx
 CREATE Gateway OpenApiSyncPage.tsx and test
-CREATE scripts/unified-platform/check-admin-web-controller-coverage.sh
+CREATE scripts/unified-xingyuan/check-admin-web-controller-coverage.sh
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | `matchesPath` calls string methods | unknown-safe path match | navigation safety | Step 1 | REQ-003 | shared test |
-| MODIFY | `scripts/unified-platform/start-local-stack.sh` | auto-detected LAN candidate | loopback default and explicit override | address policy | Step 2 | REQ-002 | shell test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx` | wrapper-only mount | Core Promise/destroy Facade | Wujie lifecycle | Step 3 | REQ-001 | Portal test/build |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java` | page paths fall through denyAll | explicit GET page matchers | DDC read authorization | Step 4 | REQ-005 | Maven security test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java` | nullable keyword JPQL | string-safe empty predicate | DDC query typing | Step 4 | REQ-005 | Maven repository test |
-| CREATE | `egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BindingsPage.tsx` | no standalone binding route | paged CRUD page | DDC binding UI | Step 5 | REQ-004, REQ-007 | DDC Web test |
-| CREATE | `egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx` | hidden permission definition lacks component | list/create/status page | IAM permission UI | Step 6 | REQ-004, REQ-006 | RBAC3 test |
-| CREATE | `egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/openapi/OpenApiSyncPage.tsx` | OpenAPI API exists without dedicated route | sync state/document view | Gateway UI | Step 7 | REQ-004, REQ-007 | Gateway test |
-| CREATE | `scripts/unified-platform/check-admin-web-controller-coverage.sh` | no repeatable separated audit | external route coverage report | final audit | Step 8 | REQ-008, REQ-010 | shell/static search |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | `matchesPath` calls string methods | unknown-safe path match | navigation safety | Step 1 | REQ-003 | shared test |
+| MODIFY | `scripts/unified-xingyuan/start-local-stack.sh` | auto-detected LAN candidate | loopback default and explicit override | address policy | Step 2 | REQ-002 | shell test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx` | wrapper-only mount | Core Promise/destroy Facade | Wujie lifecycle | Step 3 | REQ-001 | Portal test/build |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java` | page paths fall through denyAll | explicit GET page matchers | DDC read authorization | Step 4 | REQ-005 | Maven security test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java` | nullable keyword JPQL | string-safe empty predicate | DDC query typing | Step 4 | REQ-005 | Maven repository test |
+| CREATE | `egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BindingsPage.tsx` | no standalone binding route | paged CRUD page | DDC binding UI | Step 5 | REQ-004, REQ-007 | DDC Web test |
+| CREATE | `egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx` | hidden permission definition lacks component | list/create/status page | IAM permission UI | Step 6 | REQ-004, REQ-006 | RBAC3 test |
+| CREATE | `egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.tsx` | OpenAPI API exists without dedicated route | sync state/document view | Gateway UI | Step 7 | REQ-004, REQ-007 | Gateway test |
+| CREATE | `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` | no repeatable separated audit | external route coverage report | final audit | Step 8 | REQ-008, REQ-010 | shell/static search |
 
 ## 6. Prerequisites, Constraints, and Plan Clarifications
 
@@ -216,8 +216,8 @@ CREATE scripts/unified-platform/check-admin-web-controller-coverage.sh
 | RBAC3 | `npm run typecheck && npm run test -- --runInBand` | SDK and local shared package available | static Web |
 | Gateway | `npm run typecheck && npm run test -- --runInBand` | local shared package available | static Web |
 | DDC Web | `npm run typecheck && npm run test -- --runInBand` | DDC dependencies available | static Web |
-| DDC Java | `./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am -DskipTests compile` plus focused tests | Maven/PostgreSQL test prerequisites | Java static/focused |
-| Shell | `bash -n scripts/unified-platform/start-local-stack.sh scripts/unified-identity-local.sh scripts/unified-platform/test-local-address-policy.sh scripts/unified-platform/check-admin-web-controller-coverage.sh` | Bash and rg available | script/static |
+| DDC Java | `./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -DskipTests compile` plus focused tests | Maven/PostgreSQL test prerequisites | Java static/focused |
+| Shell | `bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-identity-local.sh scripts/unified-xingyuan/test-local-address-policy.sh scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` | Bash and rg available | script/static |
 
 ### 6.3 Immutable constraints and approved decisions
 
@@ -240,13 +240,13 @@ Wujie Core version remains 2.1.0; existing public API paths, permission checks, 
 - Baseline state: `EnterpriseNavigationItem.path` is optional; Gateway parent nodes omit path; runtime `endsWith` failure is recorded in EVD-001.
 - Observable outcome: parent navigation and invalid runtime candidates are ignored safely, while valid deep-link child selection still uses the longest matching path.
 - End state: shared guard and regression test are committed; no platform API or menu hierarchy is changed.
-- Validation working directory: repository root for path review, then `egon-cola-platforms/egon-cola-platform-admin-web-shared` for tests/build.
+- Validation working directory: repository root for path review, then `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared` for tests/build.
 - Test-first gate: `Required — the regression supplies undefined and non-string candidates and fails before the runtime type guard exists.`
 - Manual Checks: `MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-UTIL-001, MC-SCOPE-001, MC-TEST-001`
 - Literal Rules: `Rule 1, Rule 5, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx`
 
 - Purpose: Guard path matching at the runtime boundary for parent and malformed navigation entries.
 - Symbols: `matchesPath`, `resolveNavigationSelection`.
@@ -273,7 +273,7 @@ const matchesPath = (candidate: unknown, pathname: string): boolean => {
 - Verification contribution: shared test calls selection with malformed parent values and valid nested paths.
 - After this file: path resolution is total over runtime navigation data; no unrelated layout behavior changes.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
 
 - Purpose: Lock the regression and preserve longest-prefix deep-link behavior.
 - Symbols: new `ignores malformed parent paths` test and existing deep-link test.
@@ -299,12 +299,12 @@ it('ignores malformed parent paths without breaking valid child selection', () =
 - Verification contribution: RED proves the previous `endsWith` failure; GREEN proves the Gateway navigation contract.
 - After this file: targeted shared test is ready for Step commit.
 
-- Verification command: `cd egon-cola-platforms/egon-cola-platform-admin-web-shared && npm run test -- --runInBand && npm run build`
+- Verification command: `cd egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared && npm run test -- --runInBand && npm run build`
 - Expected result: all shared tests pass and library build exits 0; malformed candidate does not throw.
 - Completion criteria: both files changed only for this guard/regression; command output is captured; runtime Gateway restart is not claimed.
 - Failure returns to: the failing test or the exact TypeScript type error; do not change Gateway APIs.
 - Rollback: `git revert <Step-1-commit>`.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
+- Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
 - Commit: `fix(admin-web): guard optional navigation paths`
 
 ### Step 2 — Make local address resolution loopback-first with explicit override
@@ -320,7 +320,7 @@ it('ignores malformed parent paths without breaking valid child selection', () =
 - Literal Rules: `Rule 5, Rule 7, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY scripts/unified-platform/start-local-stack.sh`
+#### File 1 — `MODIFY scripts/unified-xingyuan/start-local-stack.sh`
 
 - Purpose: Set explicit environment override precedence and stable loopback default.
 - Symbols: `resolve_local_advertised_host`, `local_advertised_host`.
@@ -371,7 +371,7 @@ fi
 - Verification contribution: test checks generated host list semantics for default and explicit modes.
 - After this file: downstream registration accepts the selected explicit host without sacrificing loopback.
 
-#### File 3 — `CREATE scripts/unified-platform/test-local-address-policy.sh`
+#### File 3 — `CREATE scripts/unified-xingyuan/test-local-address-policy.sh`
 
 - Purpose: Provide repeatable non-destructive assertions for the address policy.
 - Symbols: script-level `assert_contains` and policy assertions.
@@ -382,26 +382,26 @@ fi
 - Input/output and state mapping: source text -> assertions -> exit 0/1.
 - Error and edge behavior: missing required pattern exits non-zero with file context; no destructive operation.
 - Standards impact: `MC-TEST-001, MC-SCOPE-001`; no Java impact.
-- Literal rule enforcement: `Rule 5, Rule 11` — use existing shell tooling and keep the script in `scripts/unified-platform`.
+- Literal rule enforcement: `Rule 5, Rule 11` — use existing shell tooling and keep the script in `scripts/unified-xingyuan`.
 - Implementation pseudocode:
 
 ```bash
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-rg -q 'UNIFIED_PLATFORM_ADVERTISED_HOST:-127\.0\.0\.1' "${root}/scripts/unified-platform/start-local-stack.sh"
+rg -q 'UNIFIED_PLATFORM_ADVERTISED_HOST:-127\.0\.0\.1' "${root}/scripts/unified-xingyuan/start-local-stack.sh"
 rg -q 'declared_hosts="127\.0\.0\.1"' "${root}/scripts/unified-identity-local.sh"
-! rg -q 'a non-loopback provider host is required' "${root}/scripts/unified-platform/start-local-stack.sh"
+! rg -q 'a non-loopback provider host is required' "${root}/scripts/unified-xingyuan/start-local-stack.sh"
 ```
 
 - Verification contribution: directly proves default source policy and absence of the old rejection contract.
 - After this file: the address policy has a cheap shell regression gate.
 
-- Verification command: `bash -n scripts/unified-platform/start-local-stack.sh scripts/unified-identity-local.sh scripts/unified-platform/test-local-address-policy.sh && scripts/unified-platform/test-local-address-policy.sh`
+- Verification command: `bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-identity-local.sh scripts/unified-xingyuan/test-local-address-policy.sh && scripts/unified-xingyuan/test-local-address-policy.sh`
 - Expected result: syntax and policy assertions exit 0; no process starts.
 - Completion criteria: both default and explicit host source paths are covered; unrelated runtime env files are untouched.
 - Failure returns to: exact assertion and source line; do not alter URL generator without evidence.
 - Rollback: `git revert <Step-2-commit>`.
-- Commit paths: `scripts/unified-platform/start-local-stack.sh`, `scripts/unified-identity-local.sh`, `scripts/unified-platform/test-local-address-policy.sh`
+- Commit paths: `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-identity-local.sh`, `scripts/unified-xingyuan/test-local-address-policy.sh`
 - Commit: `fix(platforms): default local stack to loopback host`
 
 ### Step 3 — Replace hidden Wujie mount failures with a Core lifecycle Facade
@@ -411,13 +411,13 @@ rg -q 'declared_hosts="127\.0\.0\.1"' "${root}/scripts/unified-identity-local.sh
 - Baseline state: Portal renders `wujie-react` JSX; wrapper catches `startApp` rejection internally, and the Portal host remains empty in the recorded DOM check.
 - Observable outcome: each child creates a Wujie Core instance in a concrete host; resolve/reject/cleanup map to reducer events and the failure UI.
 - End state: Portal uses locked Wujie 2.1.0 Core with a testable cleanup handle; child code/lifecycle protocol is unchanged.
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-admin-portal`.
+- Validation working directory: `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal`.
 - Test-first gate: `Required — Core mock rejects or resolves while the old wrapper-based component cannot expose either result to the reducer.`
 - Manual Checks: `MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-PATTERN-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001`
 - Literal Rules: `Rule 5, Rule 6, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/package.json`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/package.json`
 
 - Purpose: Declare the already-resolved Wujie Core as the direct dependency required by the Facade.
 - Symbols: `dependencies.wujie`.
@@ -444,7 +444,7 @@ rg -q 'declared_hosts="127\.0\.0\.1"' "${root}/scripts/unified-identity-local.sh
 - Verification contribution: package lock and `npm ls wujie` prove one compatible Core version.
 - After this file: source may import the exact Core contract without an accidental transitive dependency.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/package-lock.json`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/package-lock.json`
 
 - Purpose: Record the direct same-version dependency without unrelated lock churn.
 - Symbols: root dependency entry and `node_modules/wujie` resolution.
@@ -468,7 +468,7 @@ assert diff contains no unrelated package version change
 - Verification contribution: lockfile diff review plus `npm ls` proves deterministic Core resolution.
 - After this file: package graph is ready for production source import.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`
 
 - Purpose: Adapt Wujie Core lifecycle to the existing Portal reducer and host error boundary.
 - Symbols: `WujieChild`, Core `startApp`, cleanup reference/effect.
@@ -503,7 +503,7 @@ return <ChildErrorBoundary onCrash={...}><div ref={hostRef} data-wujie-host={man
 - Verification contribution: test observes host, options, event ordering, rejected promise and cleanup.
 - After this file: Wujie is still the runtime authority; Portal no longer depends on wrapper-only error logging.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/test/setup.ts`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/test/setup.ts`
 
 - Purpose: Mock the direct Core module for deterministic lifecycle tests.
 - Symbols: `vi.mock('wujie')` start/destroy test doubles.
@@ -529,7 +529,7 @@ vi.mock('wujie', () => ({
 - Verification contribution: isolates mount contract from Wujie internals while retaining exact option names.
 - After this file: direct Core import is mockable in Portal tests.
 
-#### File 5 — `CREATE egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx`
 
 - Purpose: Prove resolved, rejected and disposed Wujie lifecycle paths.
 - Symbols: `WujieChild` tests for mount success, mount rejection, unmount cleanup.
@@ -556,12 +556,12 @@ it('reports Core rejection and mounts inside the concrete host', async () => {
 - Verification contribution: rejects swallowed-wrapper behavior and verifies host existence and error state.
 - After this file: Portal Step has a reproducible lifecycle test independent of live child assets.
 
-- Verification command: `cd egon-cola-platforms/egon-cola-platform-admin-portal && npm install --package-lock-only --ignore-scripts && npm run typecheck && npm run test -- --runInBand && npm run build`
+- Verification command: `cd egon-cola-xingyuan/egon-cola-xingyuan-admin-portal && npm install --package-lock-only --ignore-scripts && npm run typecheck && npm run test -- --runInBand && npm run build`
 - Expected result: Wujie tests and Portal build pass; lockfile contains only the direct same-version dependency change.
 - Completion criteria: start/reject/cleanup states covered, child props unchanged, no raw iframe fallback introduced.
 - Failure returns to: Wujie Core option type, mock event sequence, or Vite bundle error; record exact evidence and keep Step open.
 - Rollback: `git revert <Step-3-commit>`.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-admin-portal/package.json`, `egon-cola-platforms/egon-cola-platform-admin-portal/package-lock.json`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/test/setup.ts`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx`
+- Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/package.json`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/package-lock.json`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/test/setup.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx`
 - Commit: `fix(portal): expose wujie mount lifecycle failures`
 
 ### Step 4 — Repair DDC page authorization and nullable JPQL filters
@@ -577,7 +577,7 @@ it('reports Core rejection and mounts inside the concrete host', async () => {
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java`
 
 - Purpose: Add explicit read matchers for every existing DDC paged Controller endpoint.
 - Symbols: `ddcAdminSecurityFilterChain` GET request matcher list.
@@ -608,7 +608,7 @@ it('reports Core rejection and mounts inside the concrete host', async () => {
 - Verification contribution: Spring security test observes authorization for each exact route and rejects write access without WRITE/PUBLISH.
 - After this file: all existing page routes have explicit read policy.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`
 
 - Purpose: Give nullable keyword a text type while preserving blank-as-unfiltered semantics.
 - Symbols: `search` JPQL.
@@ -633,7 +633,7 @@ where (coalesce(:keyword, '') = ''
 - Verification contribution: repository page test executes null and non-empty keyword cases.
 - After this file: business page query has deterministic text typing.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`
 
 - Purpose: Apply string-safe predicates to keyword and scope filters in environment search.
 - Symbols: `search` JPQL.
@@ -657,7 +657,7 @@ where (coalesce(:keyword, '') = '' or lower(env.envCode) like lower(concat('%', 
 - Verification contribution: focused repository test covers no filters and both scope filters.
 - After this file: environment page no longer binds null as bytea.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
 
 - Purpose: Type-safe app keyword, business, namespace and environment optional predicates.
 - Symbols: `search` JPQL.
@@ -680,7 +680,7 @@ where (coalesce(:bizCode, '') = '' or app.bizCode = :bizCode)
 - Verification contribution: app page test covers empty and scoped query shapes.
 - After this file: app page query has text-typed optional parameters.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
 
 - Purpose: Type-safe namespace business and keyword filters.
 - Symbols: `search` JPQL.
@@ -704,7 +704,7 @@ where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
 - Verification contribution: null keyword and explicit bizCode test cases.
 - After this file: namespace page returns an empty/all page instead of SQL type failure.
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`
 
 - Purpose: Make publish task optional scope/status/changeId parameters text-safe.
 - Symbols: `search` JPQL.
@@ -729,7 +729,7 @@ where (coalesce(:bizCode, '') = '' or task.bizCode = :bizCode)
 - Verification contribution: empty publish task search test and non-empty changeId test.
 - After this file: task page query is safe while retry/update queries remain untouched.
 
-#### File 7 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
 
 - Purpose: Apply the same null-safe predicate discipline to independent binding page reads.
 - Symbols: JPQL `search` and `countQuery`.
@@ -753,7 +753,7 @@ where (coalesce(:bizCode, '') = '' or namespace.bizCode = :bizCode)
 - Verification contribution: data/count query test verifies total count equals filtered records.
 - After this file: new binding page has the same safe null behavior as other DDC pages.
 
-#### File 8 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityIntegrationTest.java`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityIntegrationTest.java`
 
 - Purpose: Prove each new page read matcher allows DDC_READ and still denies a write-only authority.
 - Symbols: `protectsPagedManagementReadsWithReadCapability` and paged test controller fixtures.
@@ -780,12 +780,12 @@ void protectsPagedManagementReadsWithReadCapability() throws Exception {
 - Verification contribution: locks the exact matcher boundary for config/task/metadata pages.
 - After this file: the backend Step has a repeatable positive/negative security gate.
 
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am -DskipTests compile && ./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -Dtest='DdcAdminSecurityIntegrationTest,DdcRepositoryTest,Ddc*ControllerTest' test`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -DskipTests compile && ./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -Dtest='DdcAdminSecurityIntegrationTest,DdcRepositoryTest,Ddc*ControllerTest' test`
 - Expected result: module compiles; page security and repository tests pass; no migration file changes.
 - Completion criteria: every listed page path is explicitly readable; all data/count optional predicates use same string-safe semantics; write matchers unchanged.
 - Failure returns to: exact Hibernate/SQL or security assertion; do not add a migration or alter service architecture.
 - Rollback: `git revert <Step-4-commit>`.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityIntegrationTest.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityIntegrationTest.java`
 - Commit: `fix(ddc-admin): repair paged read authorization and text filters`
 
 ### Step 5 — Expose DDC namespace/environment/application bindings as a first-class page
@@ -795,13 +795,13 @@ void protectsPagedManagementReadsWithReadCapability() throws Exception {
 - Baseline state: Namespace drawer can edit bindings but no independent `/bindings` route/menu consumes the binding Controller page contract.
 - Observable outcome: DDC menu has a metadata child for bindings; page supports filters, pagination, create/edit/delete and explicit error/permission states.
 - End state: DDC Web binding page is independently usable and drawer remains compatible.
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web`.
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`.
 - Test-first gate: `Required — test asserts the page path/query and mutation buttons before component/API implementation.`
 - Manual Checks: `MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001`
 - Literal Rules: `Rule 5, Rule 6, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`
 
 - Purpose: Add binding leaf beneath the existing DDC metadata parent without creating a new top-level menu.
 - Symbols: `navigation` metadata children.
@@ -824,7 +824,7 @@ void protectsPagedManagementReadsWithReadCapability() throws Exception {
 - Verification contribution: layout test finds binding under 元数据管理.
 - After this file: menu organization matches the Controller domain.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/App.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx`
 
 - Purpose: Register the `/bindings` route behind existing `RequireAuth`.
 - Symbols: lazy/static `BindingsPage` import and route.
@@ -848,7 +848,7 @@ import BindingsPage from './pages/BindingsPage'
 - Verification contribution: App route test renders binding page under authenticated wrapper.
 - After this file: direct and Portal child route resolution exists.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/types.ts`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`
 
 - Purpose: Complete the binding view/request types used by the page.
 - Symbols: `DdcNamespaceEnvAppBinding`, `DdcNamespaceEnvAppBindingRequest`.
@@ -871,7 +871,7 @@ export type DdcNamespaceEnvAppBindingRequest = {
 - Verification contribution: typecheck catches wrong body/row fields.
 - After this file: binding API consumers have an explicit contract.
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BindingsPage.tsx`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BindingsPage.tsx`
 
 - Purpose: Implement independent paged binding management with existing DDC client primitives.
 - Symbols: `BindingsPage`, filter/form/query/mutations.
@@ -896,7 +896,7 @@ const save = useMutation({ mutationFn: ({ id, values }) => id
 - Verification contribution: page test observes GET page, POST/PUT/DELETE and visible loading/error states.
 - After this file: DDC binding Controller has a standalone management surface.
 
-#### File 5 — `CREATE egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BindingsPage.test.tsx`
+#### File 5 — `CREATE egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BindingsPage.test.tsx`
 
 - Purpose: Lock route paths, filtering, CRUD and error presentation.
 - Symbols: `renders binding rows`, `creates`, `deletes` tests.
@@ -923,12 +923,12 @@ it('loads paged bindings and sends the Controller CRUD paths', async () => {
 - Verification contribution: route/method/body assertions and negative state coverage.
 - After this file: DDC Web binding Step is independently testable.
 
-- Verification command: `cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web && npm run typecheck && npm run test -- --runInBand`
+- Verification command: `cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web && npm run typecheck && npm run test -- --runInBand`
 - Expected result: binding page tests and existing DDC Web tests pass.
 - Completion criteria: menu/route/API/page/test are present; Namespace drawer behavior remains unchanged; PageState distinguishes forbidden/error.
 - Failure returns to: exact mock path or type mismatch; do not modify Controller contract.
 - Rollback: `git revert <Step-5-commit>`.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/App.tsx`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/types.ts`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BindingsPage.tsx`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BindingsPage.test.tsx`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BindingsPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BindingsPage.test.tsx`
 - Commit: `feat(ddc-admin-web): add binding management page`
 
 ### Step 6 — Complete RBAC3 IAM route/API/action coverage
@@ -938,13 +938,13 @@ it('loads paged bindings and sends the Controller CRUD paths', async () => {
 - Baseline state: IAM has nested menu infrastructure, but role create/update/inheritance, user membership mutations, and PermissionController have no complete Web surface.
 - Observable outcome: all additions remain below the single IAM top-level; role and user actions call exact Controller paths; permissions get a visible route/component.
 - End state: RBAC3 Web tests/typecheck pass and no internal directory snapshot route is added to browser actions.
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web`.
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web`.
 - Test-first gate: `Required — API/path and route component tests assert the exact missing Controller methods before implementation.`
 - Manual Checks: `MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-JSON-001, MC-PATTERN-001, MC-SCOPE-001, MC-TEST-001`
 - Literal Rules: `Rule 1, Rule 5, Rule 6, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/role.api.ts`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/role.api.ts`
 
 - Purpose: Add role create/update/inheritance methods to the existing role API facade.
 - Symbols: `create`, `update`, `addInheritance`, `removeInheritance`.
@@ -968,7 +968,7 @@ removeInheritance: (roleId: string, juniorRoleId: string, query: object) => clie
 - Verification contribution: API unit test asserts exact path, method and expected version fields.
 - After this file: RoleGraphPage can consume every external RoleController mutation.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx`
 
 - Purpose: Add guarded role create/edit and inheritance controls to the existing role graph page.
 - Symbols: role form, mutations, modal/drawer actions.
@@ -993,7 +993,7 @@ const saveRole = useMutation({ mutationFn: values => editing
 - Verification contribution: page tests show guards and assert mutation request payload.
 - After this file: role graph is a usable management page, not just an impact report.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts`
 
 - Purpose: Expose the existing IAM user list/create/update/delete/status and organization/position assignment paths.
 - Symbols: `users`, `createUser`, `updateUser`, `deleteUser`, `changeUserStatus`, organization/position CRUD and assignments.
@@ -1016,7 +1016,7 @@ changeUserStatus: (userId, command) => client.request<UserDirectoryView>(`/api/r
 - Verification contribution: API test verifies `/iam/users` instead of accidentally using `/api/rbac3/v1/users` for IAM mutations.
 - After this file: user/organization/position Controller coverage is represented in the client facade.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx`
 
 - Purpose: Turn the current single-user lookup into a directory list with guarded member mutations while retaining lookup details.
 - Symbols: list query, create/edit/status/delete actions, existing detail query.
@@ -1039,7 +1039,7 @@ return <Card title="用户目录"><FilterBar /><Table dataSource={users.data?.it
 - Verification contribution: existing single-user test continues to pass; new list/mutation tests assert exact paths.
 - After this file: IAM user Controller is represented by visible list/detail/change operations.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json`
 
 - Purpose: Make permissions a visible child of the existing IAM resource catalog and retain all IAM parent codes.
 - Symbols: `iam.permissions` definition.
@@ -1062,7 +1062,7 @@ return <Card title="用户目录"><FilterBar /><Table dataSource={users.data?.it
 - Verification contribution: navigation test sees 权限 below IAM/资源目录 only when permission exists.
 - After this file: registry can bind the new component route without a second top-level menu.
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx`
 
 - Purpose: Bind `rbac3-permissions` to the PermissionCatalogPage descriptor.
 - Symbols: new permission route descriptor.
@@ -1085,7 +1085,7 @@ import { PermissionCatalogPage } from './permission/PermissionCatalogPage'
 - Verification contribution: route registry test resolves component key and route guard.
 - After this file: `/iam/permissions` is a real IAM child route.
 
-#### File 7 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx`
+#### File 7 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx`
 
 - Purpose: Consume PermissionController list/detail/create/status endpoints in a guarded IAM page.
 - Symbols: `PermissionCatalogPage`.
@@ -1109,7 +1109,7 @@ return <Card title="权限"><ApplicationSelect /><PermissionTable /><PermissionE
 - Verification contribution: page test asserts list/create/status calls and resource text.
 - After this file: PermissionController is reachable through visible IAM UI.
 
-#### File 8 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
 
 - Purpose: Lock permission route and existing API path consumption.
 - Symbols: list/create/status tests.
@@ -1134,12 +1134,12 @@ it('renders permissions and calls the IAM permission controller paths', async ()
 - Verification contribution: component binding and API path proof.
 - After this file: RBAC3 Step has a focused regression suite.
 
-- Verification command: `cd egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web && npm run typecheck && npm run test -- --runInBand`
+- Verification command: `cd egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web && npm run typecheck && npm run test -- --runInBand`
 - Expected result: RBAC3 existing and added tests pass; IAM navigation remains one top-level.
 - Completion criteria: role/user/permission additions compile; no browser call uses internal snapshot path; mutation controls are permission guarded.
 - Failure returns to: exact response shape, route registry or test path; do not modify RBAC3 Java Controller for a frontend mismatch.
 - Rollback: `git revert <Step-6-commit>`.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/role.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePages.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/DirectoryPages.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/role.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/DirectoryPages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
 - Commit: `feat(rbac3-admin-web): complete IAM controller coverage`
 
 ### Step 7 — Add dedicated Gateway OpenAPI sync and application/trace details
@@ -1149,13 +1149,13 @@ it('renders permissions and calls the IAM permission controller paths', async ()
 - Baseline state: Gateway API facade already has application detail/OpenAPI/document/trace detail methods or adjacent data, but not every method has a dedicated navigable page/action.
 - Observable outcome: Gateway governance menu exposes OpenAPI synchronization; application and trace pages show detail without introducing new server calls outside existing Admin Controller paths.
 - End state: Gateway Web tests/typecheck pass and parent menu remains path-safe.
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`.
+- Validation working directory: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`.
 - Test-first gate: `Required — API/page tests assert existing Controller paths and fail before the dedicated page/action is wired.`
 - Manual Checks: `MC-ARCH-001, MC-REUSE-001, MC-NAME-001, MC-JSON-001, MC-SCOPE-001, MC-TEST-001`
 - Literal Rules: `Rule 1, Rule 5, Rule 6, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts`
 
 - Purpose: Add an explicit application detail method if the current facade only lists applications, and keep existing OpenAPI/trace methods as the source of truth.
 - Symbols: `application` detail method and existing `openapiSyncStates`, `operationOpenApi`, `openapiSnapshotDocument`, `traceDetail`.
@@ -1179,7 +1179,7 @@ application: (applicationId: string, signal?: AbortSignal) => apiRequest<Applica
 - Verification contribution: gateway API test asserts exact detail path.
 - After this file: application detail Controller has a named client method.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx`
 
 - Purpose: Add an application detail drawer using the new method and preserve credential/OpenAPI panels.
 - Symbols: selected application detail query/drawer.
@@ -1203,7 +1203,7 @@ const detail = useQuery({ queryKey: ['application-detail', selectedId], queryFn:
 - Verification contribution: page test asserts detail button and request path.
 - After this file: Application page consumes list/detail/credential/OpenAPI actions.
 
-#### File 3 — `CREATE egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/openapi/OpenApiSyncPage.tsx`
+#### File 3 — `CREATE egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.tsx`
 
 - Purpose: Provide a dedicated OpenAPI synchronization status/document page.
 - Symbols: `OpenApiSyncPage`.
@@ -1226,7 +1226,7 @@ return <section><Typography.Title level={2}>OpenAPI 同步</Typography.Title><Ga
 - Verification contribution: status/document requests and error state tests.
 - After this file: OpenAPI Controller has an explicit operational entry.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`
 
 - Purpose: Add OpenAPI sync beneath existing Gateway governance menu.
 - Symbols: navigation child item.
@@ -1249,7 +1249,7 @@ return <section><Typography.Title level={2}>OpenAPI 同步</Typography.Title><Ga
 - Verification contribution: AdminLayout test confirms the child is in Gateway governance.
 - After this file: page is reachable both standalone and embedded.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/app/App.tsx`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/app/App.tsx`
 
 - Purpose: Register the OpenAPI sync page in the existing authenticated router.
 - Symbols: lazy import/route.
@@ -1273,7 +1273,7 @@ const OpenApiSyncPage = lazy(() => import('../features/openapi/OpenApiSyncPage')
 - Verification contribution: route integration test renders page under Gateway read capability.
 - After this file: Gateway page route is wired.
 
-#### File 6 — `CREATE egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/openapi/OpenApiSyncPage.test.tsx`
+#### File 6 — `CREATE egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.test.tsx`
 
 - Purpose: Verify sync state/document UI and exact existing client calls.
 - Symbols: page test fixtures for valid/stale/error state.
@@ -1299,12 +1299,12 @@ it('shows sync state and requests the snapshot document through existing APIs', 
 - Verification contribution: dedicated page API and failure state proof.
 - After this file: Gateway Step has focused route/page regression.
 
-- Verification command: `cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web && npm run typecheck && npm run test -- --runInBand`
+- Verification command: `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run typecheck && npm run test -- --runInBand`
 - Expected result: Gateway existing and added tests pass.
 - Completion criteria: application detail, OpenAPI sync and existing trace detail are visibly reachable; no new direct DDC/Engine/Kafka request.
 - Failure returns to: exact API fixture/path or route guard; do not alter Gateway Java contracts.
 - Rollback: `git revert <Step-7-commit>`.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/openapi/OpenApiSyncPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/openapi/OpenApiSyncPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/app/App.tsx`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/openapi/OpenApiSyncPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/app/App.tsx`
 - Commit: `feat(gateway-admin-web): expose openapi synchronization details`
 
 ### Step 8 — Audit Controller coverage, build all Webs, and close the delivery boundary
@@ -1320,11 +1320,11 @@ it('shows sync state and requests the snapshot document through existing APIs', 
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE scripts/unified-platform/check-admin-web-controller-coverage.sh`
+#### File 1 — `CREATE scripts/unified-xingyuan/check-admin-web-controller-coverage.sh`
 
 - Purpose: Provide a read-only, repeatable audit for external Controller route families and frontend consumers.
 - Symbols: route extraction, frontend path extraction, classified report.
-- Repository evidence: four Controller trees and four Web trees are fixed under `egon-cola-platforms`.
+- Repository evidence: four Controller trees and four Web trees are fixed under `egon-cola-xingyuan`.
 - Dependencies and consumers: Bash, `rg`, Java annotation strings, TypeScript source.
 - Why now: distinguishes code absent, UI unconsumed and active release not published.
 - Contract/signature changes: developer audit output only; no runtime API.
@@ -1338,7 +1338,7 @@ it('shows sync state and requests the snapshot document through existing APIs', 
 set -euo pipefail
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 for prefix in '/api/v1/identity' '/api/rbac3/v1' '/api/v1/gateway/admin' '/api/v1/ddc'; do
-  rg -n "@(Get|Post|Put|Patch|Delete)Mapping|@RequestMapping" "${root}/egon-cola-platforms" | rg "${prefix}|internal" || true
+  rg -n "@(Get|Post|Put|Patch|Delete)Mapping|@RequestMapping" "${root}/egon-cola-xingyuan" | rg "${prefix}|internal" || true
 done
 printf '%s\n' 'Classification: external admin paths are compared to Web API strings; internal/protocol paths are excluded; release drift is runtime-only.'
 ```
@@ -1369,12 +1369,12 @@ write only evidence-backed completion or residual boundary statements
 - Verification contribution: final Spec/Plan audit and user handoff.
 - After this file: documentation reflects actual implementation boundary, not intended behavior.
 
-- Verification command: `bash -n scripts/unified-platform/check-admin-web-controller-coverage.sh && scripts/unified-platform/check-admin-web-controller-coverage.sh && python3 .agents/skills/egon-coding-writing-spec/scripts/validate_spec.py docs/egon/spec/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md && python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py docs/egon/plan/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md`
+- Verification command: `bash -n scripts/unified-xingyuan/check-admin-web-controller-coverage.sh && scripts/unified-xingyuan/check-admin-web-controller-coverage.sh && python3 .agents/skills/egon-coding-writing-spec/scripts/validate_spec.py docs/egon/spec/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md && python3 .agents/skills/egon-coding-writing-plan/scripts/validate_plan.py docs/egon/plan/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md`
 - Expected result: audit scripts and document validators exit 0; four Web typecheck/build/test and DDC focused tests are recorded separately.
 - Completion criteria: all requirements have step/test traceability; all applicable Literal Rules and Manual Checks are re-run; no unrelated file staged; runtime claims match evidence.
 - Failure returns to: exact audit/validator/build failure; keep final Step open and report blocker.
 - Rollback: `git revert <Step-8-commit>` for audit/docs only; previous feature commits remain independently reversible.
-- Commit paths: `scripts/unified-platform/check-admin-web-controller-coverage.sh`, `docs/egon/spec/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md`, `docs/egon/plan/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md`
+- Commit paths: `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh`, `docs/egon/spec/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md`, `docs/egon/plan/2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md`
 - Commit: `test(platforms): add controller coverage audit`
 
 ## 8. Test, Validation, and Quality Gates

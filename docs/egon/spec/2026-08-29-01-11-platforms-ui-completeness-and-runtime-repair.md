@@ -12,7 +12,7 @@
 | Updated | `2026-08-29 01:11 CST` |
 | Owner | `User / Egon-COLA platform owner` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-platforms` Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web、本地统一平台启动与覆盖审计脚本 |
+| Scope | `egon-cola-xingyuan` Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web、本地统一平台启动与覆盖审计脚本 |
 | Change Surface | Portal Wujie 挂载参数/视口/子应用路由、shared 嵌入式布局、登录运行时地址与发布前检查、RBAC3 IAM CRUD 与关系页面、四平台 Controller 覆盖映射和 Ant Design UI 状态 |
 | Affected Chapters | §7, §8, §12, §13, §14, §15, §16, §18 |
 | Source Requirement | 用户要求修复 Portal 下游页面展示、登录失败、动态回环地址，并校验四个平台每个 Controller 在前端有体现，重点补齐 IAM 用户/角色/权限 CRUD 与关系绑定 CRUD；用户要求直接开始修复 |
@@ -46,10 +46,10 @@
 | `EVD-001` | Runtime evidence | `target/local-unified-platform/logs/portal-web.log`，2026-08-28 | Wujie 反复记录 `srcdoc + document.open() trick failed`，随后回退到 Portal `18125`，并出现 `Cannot read properties of null (reading 'document')` 与 `__WUJIE_UNMOUNT` | fallback 不能回到 Portal 自身；host 必须有稳定视口和 cleanup | 旧 Vite 进程日志；修改后需用户重启验证 |
 | `EVD-002` | Runtime evidence | supervisor command 与 `target/local-unified-platform/env/*.env` | supervisor 使用 `UNIFIED_PLATFORM_ADVERTISED_HOST=192.168.6.186`；生成 env 的 advertised host 仍为该 LAN 地址 | 说明当前现场未采用源码的新 loopback 默认，不能把旧运行结果归因于新代码 | 只证明当前现场历史进程，不能证明重启后的结果 |
 | `EVD-003` | Runtime evidence | `curl http://127.0.0.1:18180/oauth2/login/csrf`，2026-08-29 | Gateway Engine 连接建立但 GET 5 秒无响应；`18140/oauth2/login/csrf` 为 Gateway Admin 401 | 登录页面使用 Engine 公网路由，不能把控制面 401 当作登录接口可用 | 未使用浏览器执行；需要重启/发布后的接口验证 |
-| `EVD-004` | Static repository | `egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx`、`node_modules/wujie/esm/iframe.js` | `startApp` 没有传 `attrs.src`；Wujie fallback 默认使用 `mainHostPath`，也就是 Portal origin | 传入安全的 `about:blank` fallback，避免 Portal 自递归；保留 Wujie Core | node_modules 不纳入提交，行为依赖锁定版本 |
+| `EVD-004` | Static repository | `egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`、`node_modules/wujie/esm/iframe.js` | `startApp` 没有传 `attrs.src`；Wujie fallback 默认使用 `mainHostPath`，也就是 Portal origin | 传入安全的 `about:blank` fallback，避免 Portal 自递归；保留 Wujie Core | node_modules 不纳入提交，行为依赖锁定版本 |
 | `EVD-005` | Static repository | Portal `ChildRoutePage.tsx`、四平台 `AdminLayout` | Portal 只提供四个平台级入口；IDP/RBAC3/Gateway/DDC embedded 分支直接去掉完整 Layout，子菜单不可见 | 嵌入模式要隐藏重复头尾但保留领域侧栏；child URL 要带当前领域路由 | 当前代码事实，浏览器布局仍需现场验证 |
 | `EVD-006` | Static repository | Portal `WujieChild.tsx` host style | host 只有 `width: 100%; minHeight: 420`；Wujie degrade iframe 默认 `height:100%` | 需要明确 `height/minHeight/overflow`，防止页面裁剪和滚动穿透 | CSS 百分比行为仍需多尺寸浏览器验证 |
-| `EVD-007` | Static repository | `scripts/unified-platform/start-local-stack.sh`、`lib/common.sh` | 默认 URL 常量已是 `127.0.0.1`，但 skip release 会复用旧 Gateway active release，且脚本无登录路由健康闸门 | 启动流程需输出实际 origin 并检查 OAuth 路由；复用旧发布失败要明确提示 | 脚本修改不自动改变已经运行的进程 |
+| `EVD-007` | Static repository | `scripts/unified-xingyuan/start-local-stack.sh`、`lib/common.sh` | 默认 URL 常量已是 `127.0.0.1`，但 skip release 会复用旧 Gateway active release，且脚本无登录路由健康闸门 | 启动流程需输出实际 origin 并检查 OAuth 路由；复用旧发布失败要明确提示 | 脚本修改不自动改变已经运行的进程 |
 | `EVD-008` | Static repository | RBAC3 `directory.api.ts`、`OrganizationPage.tsx`、`PositionPage.tsx`、`UserDirectoryPage.tsx` | organization/position CRUD 与用户组织/岗位 assignment API 已有，但页面没有消费；角色任职页存在但用户页没有入口 | 这是“代码写了但未组织到路由/UI”的直接缺口 | API 合同以 Controller/service record 为准 |
 | `EVD-009` | Static repository | RBAC3 `constraint.api.ts`、`ConstraintController.java` | 约束页只有四个只读查询，Controller 另有 SSD/DSD、Prerequisite、Cardinality、Data/Field/Operation SOD 写操作 | 约束页需提供表格、编辑/新建和角色关联动作 | 约束业务规则仍由服务端校验 |
 | `EVD-010` | Static repository | RBAC3 `BusinessCatalogController`、`ManagementPolicyController`、`ApplicationController` 与 Web routes | Business Catalog、management capabilities/manageable users/roles、部分 application detail/status 的 UI 覆盖不完整 | 增加真实页面/详情入口或在覆盖报告中明确协议/内部排除 | 不新增后端 BFF |
@@ -101,7 +101,7 @@
 | Login origin and local startup | Affected | `gatewayAuthClient.ts`、`start-local-stack.sh`、`common.sh` | 统一 origin、loopback 默认、OAuth route preflight；Cookie/CSRF 合同不变 | 设计配置优先级、启动诊断和运行边界 | §7, §8, §12, §15, §16, §18 |
 | RBAC3 IAM UI/API consumption | Affected | RBAC3 `features/{directory,role,permission,application,constraint}` | 只消费已有 external Controller，补页面操作和关系入口 | 设计每个 IAM 页面、动作、权限、版本和错误状态 | §7, §8, §12, §13, §14, §15 |
 | IDP/Gateway/DDC UI coverage | Affected | 四 Web `src` 与 Controller inventory | 补缺失 action/route/详情或清晰的 protocol/internal classification | 设计覆盖报告和受影响页面 | §7, §8, §12, §14, §15 |
-| Controller/UI audit script/report | Affected | `scripts/unified-platform/check-admin-web-controller-coverage.sh` | 从计数升级为逐 Controller method 的可重复分类输出 | 设计扫描规则、误报边界和验证 | §7, §8, §12, §14, §15 |
+| Controller/UI audit script/report | Affected | `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` | 从计数升级为逐 Controller method 的可重复分类输出 | 设计扫描规则、误报边界和验证 | §7, §8, §12, §14, §15 |
 | Java Admin Controller/service/persistence | Context-only | 四平台 `*admin/src/main/java` Controller 与 service | 不改变后端业务合同、租户/权限/版本语义；只作为真实映射源 | 给出覆盖证据，不重写后端 | §7, §12, §15 |
 | Database/Flyway | Unchanged | `classpath:db` migration history | schema、索引、事务归属和历史 migration 不变 | 记录不变边界 | §11, §16 |
 
@@ -198,7 +198,7 @@
 | Auth | Gateway Engine OAuth login + HttpOnly USER cookies + CSRF | shared `gatewayAuthClient.ts`、IdP `OAuthLoginController`、启动脚本 | 浏览器不读取 token/secret；origin/CORS 必须一致 |
 | Backend contract source | Spring MVC external Admin Controller | 四个 `*admin/src/main/java/**/*Controller.java` | 本轮只消费 existing paths/methods/permissions |
 | RBAC3 client | `FeatureApiClient` + SDK authorization | RBAC3 `FeatureApi.tsx`, `Rbac3Provider` | 所有 IAM action 使用 PermissionGuard 和 tenant/version fields |
-| Validation | Vitest/Testing Library、npm typecheck/build、Bash static checks | 各 Web package scripts、`scripts/unified-platform` | 先 focused，再 module，runtime 手工单独标记 |
+| Validation | Vitest/Testing Library、npm typecheck/build、Bash static checks | 各 Web package scripts、`scripts/unified-xingyuan` | 先 focused，再 module，runtime 手工单独标记 |
 | Persistence/migration | Spring Data/JPA/现有 Flyway history | DDC/RBAC3 admin source、`classpath:db` | 本轮 schema/迁移 Unchanged |
 
 ### 6.1 Java architecture profile and capability baseline
@@ -435,21 +435,21 @@ The audit uses these statuses: `UI_ACTION` means a page action invokes the metho
 ## 8. Package Structure and Code File Tree
 
 ```text
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/AdminLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/router.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.ts
-MODIFY scripts/unified-platform/start-local-stack.sh
-MODIFY scripts/unified-platform/status-local-stack.sh
-MODIFY scripts/unified-platform/check-admin-web-controller-coverage.sh
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts
+MODIFY scripts/unified-xingyuan/start-local-stack.sh
+MODIFY scripts/unified-xingyuan/status-local-stack.sh
+MODIFY scripts/unified-xingyuan/check-admin-web-controller-coverage.sh
 MODIFY RBAC3 directory.api.ts/UserDirectoryPage.tsx/OrganizationPage.tsx/PositionPage.tsx/RoleGraphPage.tsx/PermissionCatalogPage.tsx/constraint.api.ts/ConstraintPage.tsx/application.api.ts/ApplicationListPage.tsx
 CREATE RBAC3 UserRelationsPanel.tsx, BusinessCatalogPage.tsx and focused tests
 MODIFY Gateway ReleaseDetailPage.tsx/MCP capability panel/observability page and focused tests

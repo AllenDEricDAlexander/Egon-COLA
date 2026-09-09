@@ -70,15 +70,15 @@ does not claim a live Gateway deployment.
 ```bash
 if rg -n --glob '!target/**' --glob '!node_modules/**' --glob '!**/*.test.*' \
     'private_key_jwt|client[_-]?jwks?|IDP_[A-Z0-9_]*ADMISSION|[A-Z0-9_]*RESOURCE_ADMISSION|/iam/tenants|targetTenantId|rbac3UserId' \
-    scripts/unified-platform/prepare-local-stack.sh \
-    scripts/unified-platform/fixtures/unified-platform-release.json \
-    egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src; then
+    scripts/unified-xingyuan/prepare-local-stack.sh \
+    scripts/unified-xingyuan/fixtures/unified-platform-release.json \
+    egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src; then
   echo 'legacy in-scope identity/tenant consumer found' >&2
   exit 1
 fi
 
-bash scripts/unified-platform/verify-local-stack.sh --static-only
+bash scripts/unified-xingyuan/verify-local-stack.sh --static-only
 ```
 
 Expected result is zero legacy consumer hits in the listed runtime/config/Web
@@ -112,11 +112,11 @@ passwords, client Secrets, signing material, or database URLs.
 
 ```bash
 UNIFIED_PLATFORM_PSQL_BIN="psql" \
-  scripts/unified-platform/migrate-tenant-authority.sh export-rbac3 \
+  scripts/unified-xingyuan/migrate-tenant-authority.sh export-rbac3 \
   --db-url "${RBAC3_DSN}" --freeze-marker "${FREEZE_MARKER}" \
   --output "${ARTIFACT}"
 
-scripts/unified-platform/migrate-tenant-authority.sh verify-rbac \
+scripts/unified-xingyuan/migrate-tenant-authority.sh verify-rbac \
   --artifact "${ARTIFACT}"
 ```
 
@@ -134,14 +134,14 @@ context, and removes obsolete client-key/admission storage.
 After Flyway succeeds, import the artifact transactionally and idempotently:
 
 ```bash
-scripts/unified-platform/migrate-tenant-authority.sh import-idp \
+scripts/unified-xingyuan/migrate-tenant-authority.sh import-idp \
   --db-url "${IDP_DSN}" --freeze-marker "${FREEZE_MARKER}" \
   --artifact "${ARTIFACT}"
 
-scripts/unified-platform/migrate-tenant-authority.sh verify-idp \
+scripts/unified-xingyuan/migrate-tenant-authority.sh verify-idp \
   --artifact "${ARTIFACT}" --db-url "${IDP_DSN}"
 
-scripts/unified-platform/migrate-tenant-authority.sh report \
+scripts/unified-xingyuan/migrate-tenant-authority.sh report \
   --artifact "${ARTIFACT}" --output "${REPORT}"
 ```
 
@@ -225,10 +225,10 @@ inbound tenant foreign key without changing child values, verifies the gate
 facts, and drops the local tenant catalog table in one transaction.
 
 ```bash
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am -Dflyway.url="${RBAC3_DSN}" migrate
 
-scripts/unified-platform/migrate-tenant-authority.sh verify-rbac \
+scripts/unified-xingyuan/migrate-tenant-authority.sh verify-rbac \
   --artifact "${ARTIFACT}" --db-url "${RBAC3_DSN}"
 ```
 

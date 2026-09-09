@@ -4,7 +4,7 @@
 
 **Status:** 待用户审核；尚未创建 RBAC3 模块、代码、数据库对象、分支或运行进程。
 
-**Goal:** 在 `egon-cola-platforms` 下完整实现已批准的 RBAC3 权限平台，包括 Contract、Core、业务 Starter、Gateway Adapter、中心 Admin、React SDK、Admin Web、PostgreSQL/Redis 运行闭环以及 Gateway/DDC/Outbox 接入，并只形成一个最终可审核交付结果。
+**Goal:** 在 `egon-cola-xingyuan` 下完整实现已批准的 RBAC3 权限平台，包括 Contract、Core、业务 Starter、Gateway Adapter、中心 Admin、React SDK、Admin Web、PostgreSQL/Redis 运行闭环以及 Gateway/DDC/Outbox 接入，并只形成一个最终可审核交付结果。
 
 **Architecture:** 中心 Admin 是唯一授权事实写入端，PostgreSQL 保存权威事实，Redis 保存 Session 和版本化授权投影；Gateway Adapter 做入口认证及粗粒度 API 权限，业务 Starter 做最终功能、数据、字段和同对象职责校验。有效任职只产生激活资格；当前 Session 通过专用 API 原子激活一个或多个 Root，服务端执行唯一顶级根归一、APP 内 DSD 互斥、完整 Role Family 展开和权限合并。
 
@@ -14,7 +14,7 @@
 
 - 唯一功能基线是 `docs/superpowers/specs/2026-07-30-rbac3-permission-platform-design.md` R3；本 Plan 只把 Spec 第 31 节的“分阶段交付”改为“并行波次、一次性完整交付”，其他产品、领域、安全、API、数据和验收要求全部保持不变。
 - 所有 Wave/Gate 都是集成分支内部的依赖同步点，不是 MVP、灰度版本、部分上线或用户交付物；Task 0～21、三类只读审查及最终全量验证全部完成前，禁止宣称 RBAC3 已交付。
-- 不创建 `egon-cola-platform-rbac3-test`、test-jar 或任何独立 RBAC3 Test Maven 模块；每个 Java/React 模块在自己的测试源集验证自身行为。
+- 不创建 `egon-cola-tianquan-jianshen-test`、test-jar 或任何独立 RBAC3 Test Maven 模块；每个 Java/React 模块在自己的测试源集验证自身行为。
 - Admin 在 production 和 test scope 都不依赖 Starter；Starter、Gateway Adapter 及其测试不依赖 Admin 生产类或测试类。
 - 业务轮岗、排班、换岗、代岗、交接、定时执行和恢复完全属于业务系统；RBAC3 代码、表、API、Permission、Worker 和页面中不得出现轮岗状态机或同义实现。
 - RBAC3 不实现审批；不得出现待审批、通过、驳回、审批人、审批策略或用 Confirmation Dialog 模拟审批。
@@ -205,19 +205,19 @@ flowchart TD
 ### 3.1 目录
 
 ```text
-egon-cola-platforms/egon-cola-platform-rbac3/
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/
 ├── pom.xml
 ├── README.md
 ├── README.zh-CN.md
 ├── docs/manifest.md
 ├── scripts/verification/
-├── egon-cola-platform-rbac3-contract/
-├── egon-cola-platform-rbac3-core/
-├── egon-cola-platform-rbac3-starter/
-├── egon-cola-platform-rbac3-gateway-adapter/
-├── egon-cola-platform-rbac3-admin/
-├── egon-cola-platform-rbac3-admin-web/
-└── egon-cola-platform-rbac3-react-sdk/
+├── egon-cola-tianquan-jianshen-contract/
+├── egon-cola-tianquan-jianshen-core/
+├── egon-cola-tianquan-jianshen-starter/
+├── egon-cola-tianquan-jianshen-gateway-adapter/
+├── egon-cola-tianquan-jianshen-admin/
+├── egon-cola-tianquan-jianshen-admin-web/
+└── egon-cola-tianquan-jianshen-react-sdk/
 ```
 
 Maven 聚合只包含五个 Java 子模块；两个前端目录是独立 npm 工程，不建 Maven Frontend Plugin。Platforms Parent 只在 `dependencyManagement` 管理消费者允许使用的 `contract`、`starter`、`gateway-adapter`，不导出 Admin、Core、前端或 Test Artifact。
@@ -336,17 +336,17 @@ MutationStatus = PREPARED | COMMITTED | PROJECTING | APPLIED | RETRY_WAIT | FAIL
 
 **Files:**
 
-- Modify: `egon-cola-platforms/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml`
+- Modify: `egon-cola-xingyuan/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml`
 
 **Interfaces:**
 
-- Produces: Maven coordinates `top.egon:egon-cola-platform-rbac3-{contract,core,starter,gateway-adapter,admin}:${project.version}`.
+- Produces: Maven coordinates `top.egon:egon-cola-tianquan-jianshen-{contract,core,starter,gateway-adapter,admin}:${project.version}`.
 - Produces: Reactor and dependencyManagement boundaries consumed by every later Task.
 - Does not produce: Test module, test-jar, independent RBAC3 BOM or Maven-managed frontend.
 
@@ -363,9 +363,9 @@ git diff --check
 - [ ] **Step 2: 写失败的工程边界断言并确认 RED**
 
 ```bash
-test -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml
-test -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/pom.xml
-test ! -e egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-test
+test -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml
+test -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/pom.xml
+test ! -e egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-test
 ```
 
 Expected: 前两个断言失败，证明模块尚未存在；第三个断言成功。
@@ -376,11 +376,11 @@ Expected: 前两个断言失败，证明模块尚未存在；第三个断言成�
 
 ```xml
 <modules>
-    <module>egon-cola-platform-rbac3-contract</module>
-    <module>egon-cola-platform-rbac3-core</module>
-    <module>egon-cola-platform-rbac3-starter</module>
-    <module>egon-cola-platform-rbac3-gateway-adapter</module>
-    <module>egon-cola-platform-rbac3-admin</module>
+    <module>egon-cola-tianquan-jianshen-contract</module>
+    <module>egon-cola-tianquan-jianshen-core</module>
+    <module>egon-cola-tianquan-jianshen-starter</module>
+    <module>egon-cola-tianquan-jianshen-gateway-adapter</module>
+    <module>egon-cola-tianquan-jianshen-admin</module>
 </modules>
 ```
 
@@ -389,14 +389,14 @@ Admin 的 Spring Boot `repackage` 必须使用 `exec` classifier，保留 thin �
 - [ ] **Step 4: 验证 Reactor 与依赖边界**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml clean test
 
-! rg -n 'egon-cola-platform-rbac3-test|<classifier>tests</classifier>' \
-  egon-cola-platforms/egon-cola-platform-rbac3 egon-cola-platforms/pom.xml
+! rg -n 'egon-cola-tianquan-jianshen-test|<classifier>tests</classifier>' \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen egon-cola-xingyuan/pom.xml
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml \
-  dependency:tree -Dincludes=top.egon:egon-cola-platform-rbac3-starter
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml \
+  dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-starter
 ```
 
 Expected: 聚合构建实际列出 Parent + 5 个 Java 子模块；负向搜索无输出；Admin 依赖树不含 Starter。
@@ -404,8 +404,8 @@ Expected: 聚合构建实际列出 Parent + 5 个 Java 子模块；负向搜索�
 - [ ] **Step 5: 提交唯一骨架 Commit 并形成 G0**
 
 ```bash
-git add egon-cola-platforms/pom.xml \
-        egon-cola-platforms/egon-cola-platform-rbac3
+git add egon-cola-xingyuan/pom.xml \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen
 git diff --cached --check
 git commit -m "build(rbac3): add permission platform modules"
 ```
@@ -422,37 +422,37 @@ git commit -m "build(rbac3): add permission platform modules"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorResponse.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3TokenClaims.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/SessionStatus.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginRequest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginResult.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/RefreshResult.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/BootstrapView.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ActivationRoot.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/RoleActivationCandidate.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/RoleActivationCandidateView.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ReplaceActiveRolesRequest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ActiveRoleSetView.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/Decision.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/AuthorizationDecision.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/PermissionRequest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/DataScopeDecision.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/FieldAccessLevel.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/FieldPolicyDecision.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/OperationSodDecision.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/AuthorizationFenceDecision.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/AppAuthorizationContext.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SessionAuthorizationSnapshot.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/manifest/ResourceManifest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/manifest/ManifestResource.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/management/AssignmentCommand.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/management/ManagementPolicyView.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/participation/BusinessParticipationCommand.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractDependencyBoundaryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorResponse.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3TokenClaims.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/SessionStatus.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginResult.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/RefreshResult.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/BootstrapView.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ActivationRoot.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/RoleActivationCandidate.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/RoleActivationCandidateView.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ReplaceActiveRolesRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ActiveRoleSetView.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/Decision.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/AuthorizationDecision.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/PermissionRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/DataScopeDecision.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/FieldAccessLevel.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/FieldPolicyDecision.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/OperationSodDecision.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/AuthorizationFenceDecision.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/AppAuthorizationContext.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SessionAuthorizationSnapshot.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/manifest/ResourceManifest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/manifest/ManifestResource.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/management/AssignmentCommand.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/management/ManagementPolicyView.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/participation/BusinessParticipationCommand.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractDependencyBoundaryTest.java`
 
 **Interfaces:**
 
@@ -494,8 +494,8 @@ void replaceActiveRolesRequiresWholeSetAndExpectedVersion() {
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-contract -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-contract -am test
 ```
 
 Expected: 测试编译失败，因为 Contract 类型尚不存在。
@@ -508,14 +508,14 @@ Expected: 测试编译失败，因为 Contract 类型尚不存在。
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-contract -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-contract -am test
 
 ! rg -n 'org\.springframework|jakarta\.persistence|Redis|GatewayEngine' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main
 
 ! rg -n 'Approval(Workflow|Request|Status)|approval_(policy|request|status)|required_approvals|approver_(user|role)_id|roleRotation|rotationId|scheduledRoleActivation' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main
 ```
 
 Expected: Contract 测试通过；依赖/禁止语义扫描无输出。
@@ -523,7 +523,7 @@ Expected: Contract 测试通过；依赖/禁止语义扫描无输出。
 - [ ] **Step 5: 提交 Task 1**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract
 git diff --cached --check
 git commit -m "feat(rbac3): add stable permission contracts"
 ```
@@ -534,10 +534,10 @@ git commit -m "feat(rbac3): add stable permission contracts"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/Rbac3MigrationContractTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/Rbac3FlywayPostgresqlIT.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/resources/application-local-it.yml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/Rbac3MigrationContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/Rbac3FlywayPostgresqlIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/resources/application-local-it.yml`
 
 **Interfaces:**
 
@@ -572,8 +572,8 @@ Contract 测试还必须解析每个 `CREATE TABLE` 并核对 Tenant 复合唯�
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Dtest=Rbac3MigrationContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -617,14 +617,14 @@ HTTP bigint 使用数据库 `bigint`；所有时间使用 `timestamptz`；可查
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Dtest=Rbac3MigrationContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=Rbac3FlywayPostgresqlIT verify
 ```
 
@@ -633,8 +633,8 @@ HTTP bigint 使用数据库 `bigint`；所有时间使用 `timestamptz`；可查
 - [ ] **Step 5: 提交 Task 2**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): add PostgreSQL authorization schema"
 ```
@@ -645,32 +645,32 @@ git commit -m "feat(rbac3): add PostgreSQL authorization schema"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/package.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/package-lock.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/.node-version`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/.gitignore`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/package.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/tsconfig.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/vite.config.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/index.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/types.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/errors.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/types.test.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/package.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/tsconfig.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/vite.config.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/eslint.config.js`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/index.html`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/main.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/test/setup.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/package.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/package-lock.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/.node-version`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/.gitignore`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/package.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/tsconfig.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/vite.config.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/index.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/types.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/errors.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/types.test.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/package.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/tsconfig.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/eslint.config.js`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/index.html`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/main.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/test/setup.ts`
 
 **Interfaces:**
 
 - Introduces one new minimal private npm workspace because Admin Web has a direct one-way dependency on the local React SDK and the repository has no existing SDK publication flow.
 - Root workspace owns the only `package-lock.json`; neither child package creates a lockfile.
 - Node version is fixed to 24 for this new workspace; CI and documentation must read `.node-version` instead of copying the existing Gateway Web Dockerfile's Node 22 drift.
-- SDK package name is `@egon-cola/rbac3-react-sdk`，两个 private package 初始版本固定 `0.1.0`；Admin Web 使用 npm 原生标准版本依赖 `"@egon-cola/rbac3-react-sdk": "0.1.0"`，根 workspace 会自动链接本地包。不得使用 npm 11 不生成的 `workspace:` 依赖协议；SDK 永不导入 Admin Web。
+- SDK package name is `@egon-cola/tianquan-jianshen-react-sdk`，两个 private package 初始版本固定 `0.1.0`；Admin Web 使用 npm 原生标准版本依赖 `"@egon-cola/tianquan-jianshen-react-sdk": "0.1.0"`，根 workspace 会自动链接本地包。不得使用 npm 11 不生成的 `workspace:` 依赖协议；SDK 永不导入 Admin Web。
 
 - [ ] **Step 1: 写失败的 TypeScript Contract 测试**
 
@@ -696,7 +696,7 @@ Error union 必须覆盖 401/403/409/422/429/503、`retryable`、`traceId` 和�
 - [ ] **Step 2: 运行 npm 测试并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm install --package-lock-only
 npm test -- --run
 ```
@@ -710,17 +710,17 @@ Expected: 依赖安装和测试发现成功，但 TypeScript/Vitest 因业务类
 - [ ] **Step 4: 验证 workspace GREEN 与依赖方向**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm ci
 npm run typecheck
 npm test -- --run
 npm run lint
 npm run build
 
-! rg -n 'admin-web' egon-cola-platform-rbac3-react-sdk/src
+! rg -n 'admin-web' egon-cola-tianquan-jianshen-react-sdk/src
 ! rg -n 'localStorage|sessionStorage' \
-  egon-cola-platform-rbac3-react-sdk/src \
-  egon-cola-platform-rbac3-admin-web/src
+  egon-cola-tianquan-jianshen-react-sdk/src \
+  egon-cola-tianquan-jianshen-admin-web/src
 ```
 
 Expected: 两个 Workspace Package 均 typecheck/test/lint/build；SDK 不反向引用页面；Token Storage 扫描无输出。
@@ -728,12 +728,12 @@ Expected: 两个 Workspace Package 均 typecheck/test/lint/build；SDK 不反向
 - [ ] **Step 5: 提交 Task 3**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/package.json \
-        egon-cola-platforms/egon-cola-platform-rbac3/package-lock.json \
-        egon-cola-platforms/egon-cola-platform-rbac3/.node-version \
-        egon-cola-platforms/egon-cola-platform-rbac3/.gitignore \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/package.json \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/package-lock.json \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/.node-version \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/.gitignore \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk
 git diff --cached --check
 git commit -m "build(rbac3): add frontend workspace contracts"
 ```
@@ -745,9 +745,9 @@ git commit -m "build(rbac3): add frontend workspace contracts"
 - [ ] 运行：
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml test
 
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm ci
 npm run typecheck
 npm test -- --run
@@ -765,28 +765,28 @@ npm test -- --run
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleNode.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleEdge.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleHierarchy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleHierarchyValidator.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/ActiveRoleSet.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationInput.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationResolution.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationResolver.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/DefaultRoleActivationResolver.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationCandidateResolver.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/UniqueActivationRootSpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/ApplicationRoleMutexSpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/PermissionSetMerger.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/DataScopeMerger.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/FieldPolicyMerger.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/LandingRouteSelector.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/SessionAuthorizationSnapshotBuilder.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/Rbac3RuntimeKeyFactory.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleHierarchyValidatorTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/activation/DefaultRoleActivationResolverTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/decision/AuthorizationMergeAlgebraTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/runtime/Rbac3RuntimeKeyFactoryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleNode.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleEdge.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleHierarchy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleHierarchyValidator.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/ActiveRoleSet.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationInput.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationResolution.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationResolver.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/DefaultRoleActivationResolver.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationCandidateResolver.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/UniqueActivationRootSpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation/ApplicationRoleMutexSpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/PermissionSetMerger.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/DataScopeMerger.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/FieldPolicyMerger.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/LandingRouteSelector.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/SessionAuthorizationSnapshotBuilder.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/Rbac3RuntimeKeyFactory.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/hierarchy/RoleHierarchyValidatorTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/activation/DefaultRoleActivationResolverTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/decision/AuthorizationMergeAlgebraTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/runtime/Rbac3RuntimeKeyFactoryTest.java`
 
 **Interfaces:**
 
@@ -842,8 +842,8 @@ void rejectsMutuallyExclusiveRootsWithoutChangingOldSet() {
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-core -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-core -am test
 ```
 
 Expected: 测试编译失败，因为算法类型尚不存在。
@@ -856,11 +856,11 @@ Expected: 测试编译失败，因为算法类型尚不存在。
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-core -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-core -am test
 
 ! rg -n 'jakarta\.persistence|org\.springframework\.web|RedisTemplate|Redisson|WebClient' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src
 ```
 
 Expected: Core 全部规则测试通过；基础设施扫描无输出。
@@ -868,11 +868,11 @@ Expected: Core 全部规则测试通过；基础设施扫描无输出。
 - [ ] **Step 5: 提交 Task 4**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/activation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/hierarchy \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/activation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): implement role activation algorithms"
 ```
@@ -883,23 +883,23 @@ git commit -m "feat(rbac3): implement role activation algorithms"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/rule/RuleResult.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/assignment/AssignmentEligibilitySpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/SsdSpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/PrerequisiteRoleSpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/RoleCardinalitySpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/SelfAssignmentSpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/delegation/ManagementPolicyDecisionService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/delegation/ManagementPolicySpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/scope/ManagementScopeResolverStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/scope/DataScopeNormalizerStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/field/FieldMaskingStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/participation/OperationSodSpecification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/impact/RoleChangeImpactAnalyzer.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/assignment/AssignmentEligibilitySpecificationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/constraint/Rbac3ConstraintSpecificationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/delegation/ManagementPolicyDecisionServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/participation/OperationSodSpecificationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/rule/RuleResult.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/assignment/AssignmentEligibilitySpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/SsdSpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/PrerequisiteRoleSpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/RoleCardinalitySpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint/SelfAssignmentSpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/delegation/ManagementPolicyDecisionService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/delegation/ManagementPolicySpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/scope/ManagementScopeResolverStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/scope/DataScopeNormalizerStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/field/FieldMaskingStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/participation/OperationSodSpecification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/impact/RoleChangeImpactAnalyzer.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/assignment/AssignmentEligibilitySpecificationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/constraint/Rbac3ConstraintSpecificationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/delegation/ManagementPolicyDecisionServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/participation/OperationSodSpecificationTest.java`
 
 **Interfaces:**
 
@@ -926,8 +926,8 @@ public interface ManagementPolicyDecisionService {
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-core -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-core -am \
   -Dtest=AssignmentEligibilitySpecificationTest,Rbac3ConstraintSpecificationTest,ManagementPolicyDecisionServiceTest,OperationSodSpecificationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -940,25 +940,25 @@ Specification 只计算已加载事实；影响分析收集全部 RuleResult，�
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-core -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-core -am test
 
 ! rg -n 'ScriptEngine|SpelExpression|EventSourcing|Approval(Workflow|Request|Status)|RoleRotation' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src
 ```
 
 - [ ] **Step 5: 提交 Task 5**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/rule \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/assignment \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/delegation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/scope \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/field \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/participation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/impact \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/rule \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/assignment \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/constraint \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/delegation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/scope \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/field \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/participation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/impact \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): implement authorization constraint rules"
 ```
@@ -969,26 +969,26 @@ git commit -m "feat(rbac3): implement authorization constraint rules"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/Rbac3AdminApplication.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/Rbac3AdminProperties.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContext.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextResolver.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextFilter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/CurrentRbac3Principal.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3AdminSecurityConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/RequiresRbac3Permission.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ApiEnvelope.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/Rbac3ApiExceptionHandler.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/CommandContext.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/DatabaseClock.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/AuditPort.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/AuthorizationEventPort.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/RuntimeProjectionPort.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/TenantScopedEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/JpaDatabaseClock.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextFilterTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/Rbac3ApiExceptionHandlerTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/AdminLayerBoundaryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/Rbac3AdminApplication.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/Rbac3AdminProperties.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContext.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextResolver.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/CurrentRbac3Principal.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3AdminSecurityConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/RequiresRbac3Permission.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ApiEnvelope.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/Rbac3ApiExceptionHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/CommandContext.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/DatabaseClock.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/AuditPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/AuthorizationEventPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/RuntimeProjectionPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/TenantScopedEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/infrastructure/persistence/JpaDatabaseClock.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextFilterTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/Rbac3ApiExceptionHandlerTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/AdminLayerBoundaryTest.java`
 
 **Interfaces:**
 
@@ -1017,8 +1017,8 @@ public interface AuthorizationEventPort {
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Dtest=TenantContextFilterTest,Rbac3ApiExceptionHandlerTest,AdminLayerBoundaryTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1031,12 +1031,12 @@ Security Filter 只建立 Principal/Tenant/Trace Context，不做业务 Manageme
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am test
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml \
-  dependency:tree -Dincludes=top.egon:egon-cola-platform-rbac3-starter
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml \
+  dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-starter
 ```
 
 Expected: Admin Kernel 测试通过；依赖树无 Starter。
@@ -1044,10 +1044,10 @@ Expected: Admin Kernel 测试通过；依赖树无 Starter。
 - [ ] **Step 5: 提交 Task 6**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/tenant \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/tenant \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture
 git diff --cached --check
 git commit -m "feat(rbac3): add tenant-safe admin kernel"
 ```
@@ -1058,7 +1058,7 @@ git commit -m "feat(rbac3): add tenant-safe admin kernel"
 - [ ] 运行：
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml test
 ```
 
 - [ ] 执行 Core/Admin 依赖负向扫描、所有算法上限测试和 `git diff G1..HEAD --check`；记录 G2 后清理三个代理/Worktree。
@@ -1073,39 +1073,39 @@ git commit -m "feat(rbac3): add tenant-safe admin kernel"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/TenantEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/UserEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/UserCredentialEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/ExternalIdentityEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/DirectorySnapshotEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/OrgUnitEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/PositionEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/UserPositionSnapshotEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/domain/ServicePrincipalEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/domain/ServiceCredentialEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/domain/ServicePermissionEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/domain/SessionEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/domain/RefreshTokenEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/infrastructure/IdentityRepositories.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/infrastructure/DirectorySnapshotStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/infrastructure/SessionRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/infrastructure/RefreshTokenRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/IdentityAuthenticatorStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/PasswordIdentityAuthenticator.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtKeyRingService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/AuthenticationFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/RefreshTokenService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/application/BootstrapQueryService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/cli/Rbac3PlatformAdminBootstrapCli.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuthController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/TenantUserDirectoryController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/SessionController.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/AuthenticationFacadeTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/RefreshTokenConcurrencyIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/bootstrap/BootstrapQueryServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/bootstrap/Rbac3PlatformAdminBootstrapCliIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/TenantEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/UserEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/UserCredentialEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/ExternalIdentityEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/DirectorySnapshotEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/OrgUnitEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/PositionEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/UserPositionSnapshotEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/domain/ServicePrincipalEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/domain/ServiceCredentialEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/domain/ServicePermissionEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/domain/SessionEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/domain/RefreshTokenEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/infrastructure/IdentityRepositories.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/infrastructure/DirectorySnapshotStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/infrastructure/SessionRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/infrastructure/RefreshTokenRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/IdentityAuthenticatorStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/PasswordIdentityAuthenticator.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtKeyRingService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/AuthenticationFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/RefreshTokenService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/application/BootstrapQueryService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/cli/Rbac3PlatformAdminBootstrapCli.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuthController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/TenantUserDirectoryController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/SessionController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/AuthenticationFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/RefreshTokenConcurrencyIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/bootstrap/BootstrapQueryServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/bootstrap/Rbac3PlatformAdminBootstrapCliIT.java`
 
 **Interfaces:**
 
@@ -1122,8 +1122,8 @@ git commit -m "feat(rbac3): add tenant-safe admin kernel"
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Dtest=AuthenticationFacadeTest,RefreshTokenConcurrencyIT,BootstrapQueryServiceTest,Rbac3PlatformAdminBootstrapCliIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1136,12 +1136,12 @@ git commit -m "feat(rbac3): add tenant-safe admin kernel"
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am test
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=RefreshTokenConcurrencyIT,Rbac3PlatformAdminBootstrapCliIT verify
 ```
 
@@ -1150,15 +1150,15 @@ Expected: 普通测试通过；本机 IT 在显式配置时证明锁和回滚，
 - [ ] **Step 5: 提交 Task 7**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuthController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/TenantUserDirectoryController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/SessionController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuthController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/TenantUserDirectoryController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/SessionController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): add authentication and session lifecycle"
 ```
@@ -1169,32 +1169,32 @@ git commit -m "feat(rbac3): add authentication and session lifecycle"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/ApplicationEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/ResourceManifestEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/ResourceEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/PermissionEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/PermissionResourceEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RoleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RoleInheritanceEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RoleClosureEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RolePermissionEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/RolePrerequisiteEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/RoleCardinalityEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/SodSetEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/SodMemberEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/infrastructure/ResourceManifestRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/infrastructure/RoleRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/infrastructure/PostgresqlRoleClosureStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/application/ManifestFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/application/RoleFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/application/ConstraintFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ApplicationResourceController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManifestController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RolePermissionController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ConstraintController.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/resource/ManifestFacadeIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/role/RoleHierarchyConcurrencyIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/constraint/ConstraintFacadeTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/ApplicationEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/ResourceManifestEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/ResourceEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/PermissionEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/PermissionResourceEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RoleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RoleInheritanceEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RoleClosureEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/domain/RolePermissionEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/RolePrerequisiteEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/RoleCardinalityEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/SodSetEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/domain/SodMemberEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/infrastructure/ResourceManifestRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/infrastructure/RoleRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/infrastructure/PostgresqlRoleClosureStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/application/ManifestFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role/application/RoleFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint/application/ConstraintFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ApplicationResourceController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManifestController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RolePermissionController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ConstraintController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/resource/ManifestFacadeIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/role/RoleHierarchyConcurrencyIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/constraint/ConstraintFacadeTest.java`
 
 **Interfaces:**
 
@@ -1211,8 +1211,8 @@ git commit -m "feat(rbac3): add authentication and session lifecycle"
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Dtest=ManifestFacadeIT,RoleHierarchyConcurrencyIT,ConstraintFacadeTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1225,26 +1225,26 @@ Role/Manifest 命令使用 Aggregate JPA + `@Version`；Closure、影响批量�
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am test
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-admin -am \
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=ManifestFacadeIT,RoleHierarchyConcurrencyIT verify
 ```
 
 - [ ] **Step 5: 提交 Task 8**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ApplicationResourceController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManifestController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RolePermissionController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ConstraintController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/role \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/constraint \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ApplicationResourceController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManifestController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RolePermissionController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ConstraintController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): add role and resource control plane"
 ```
@@ -1255,25 +1255,25 @@ git commit -m "feat(rbac3): add role and resource control plane"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterProperties.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3BearerAuthenticationFilter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3JwtVerifier.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/RequiresPermission.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3MethodAuthorizationAspect.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/runtime/Rbac3RuntimeSnapshotReader.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/runtime/Rbac3RuntimeRedissonConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/manifest/Rbac3ManifestContributor.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/manifest/Rbac3ManifestReporter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/web/Rbac3AuthorizationExceptionHandler.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfigurationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/fixture/provider/Rbac3FixtureProviderApplication.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/fixture/provider/PaymentFixtureController.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/fixture/provider/StarterProviderFlowIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterProperties.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3BearerAuthenticationFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3JwtVerifier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/RequiresPermission.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3MethodAuthorizationAspect.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/runtime/Rbac3RuntimeSnapshotReader.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/runtime/Rbac3RuntimeRedissonConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/manifest/Rbac3ManifestContributor.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/manifest/Rbac3ManifestReporter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/web/Rbac3AuthorizationExceptionHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfigurationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/fixture/provider/Rbac3FixtureProviderApplication.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/fixture/provider/PaymentFixtureController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/fixture/provider/StarterProviderFlowIT.java`
 
 **Interfaces:**
 
@@ -1297,8 +1297,8 @@ Starter 使用命名 Bean `rbac3RuntimeRedissonClient` 和 `@Qualifier`，避免
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-starter -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-starter -am test
 ```
 
 - [ ] **Step 3: 实现薄 AutoConfiguration 与类型化最终 PEP**
@@ -1309,12 +1309,12 @@ Starter 使用命名 Bean `rbac3RuntimeRedissonClient` 和 `@Qualifier`，避免
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/pom.xml \
-  -pl egon-cola-platform-rbac3-starter -am test
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml \
+  -pl egon-cola-tianquan-jianshen-starter -am test
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/pom.xml \
-  dependency:tree -Dincludes=top.egon:egon-cola-platform-rbac3-admin
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/pom.xml \
+  dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-admin
 ```
 
 Expected: Starter tests/fixture flow pass；依赖树无 Admin。
@@ -1322,7 +1322,7 @@ Expected: Starter tests/fixture flow pass；依赖树无 Admin。
 - [ ] **Step 5: 提交 Task 9**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter
 git diff --cached --check
 git commit -m "feat(rbac3): add business authorization starter"
 ```
@@ -1334,7 +1334,7 @@ git commit -m "feat(rbac3): add business authorization starter"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-admin \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-admin \
   -am test
 ```
 
@@ -1350,31 +1350,31 @@ git commit -m "feat(rbac3): add business authorization starter"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/domain/UserRoleAssignmentEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/domain/AutoAssignmentRuleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementPolicyEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementSubjectEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementScopeEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementRoleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementOperationEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/domain/IdempotencyRecordEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/domain/AuthorizationMutationEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/infrastructure/AssignmentRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/infrastructure/PostgresqlAssignmentLockStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/infrastructure/ManagementPolicyRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/infrastructure/IdempotencyRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/infrastructure/AuthorizationMutationRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/application/AssignmentFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/application/ManagementPolicyFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/IdempotencyService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/AuthorizationMutationCoordinator.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/AuthorizationFenceService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AssignmentController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManagementPolicyController.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/assignment/AssignmentFacadeIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/assignment/RoleCardinalityConcurrencyIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/management/ManagementPolicyFacadeTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/MutationFenceRollbackIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/domain/UserRoleAssignmentEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/domain/AutoAssignmentRuleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementPolicyEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementSubjectEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementScopeEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementRoleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/domain/ManagementOperationEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/domain/IdempotencyRecordEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/domain/AuthorizationMutationEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/infrastructure/AssignmentRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/infrastructure/PostgresqlAssignmentLockStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/infrastructure/ManagementPolicyRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/infrastructure/IdempotencyRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/infrastructure/AuthorizationMutationRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment/application/AssignmentFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management/application/ManagementPolicyFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/IdempotencyService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/AuthorizationMutationCoordinator.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/AuthorizationFenceService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AssignmentController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManagementPolicyController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/assignment/AssignmentFacadeIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/assignment/RoleCardinalityConcurrencyIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/management/ManagementPolicyFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/MutationFenceRollbackIT.java`
 
 **Interfaces:**
 
@@ -1398,7 +1398,7 @@ Assignment 命令按 `feature permission -> one complete management policy -> pr
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-admin -am \
+  -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest=AssignmentFacadeIT,RoleCardinalityConcurrencyIT,ManagementPolicyFacadeTest,MutationFenceRollbackIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1410,20 +1410,20 @@ Assignment 命令按 `feature permission -> one complete management policy -> pr
 - [ ] **Step 4: 运行 GREEN 和本机并发/回滚验证**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am test
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=AssignmentFacadeIT,RoleCardinalityConcurrencyIT,MutationFenceRollbackIT verify
 ```
 
 - [ ] **Step 5: 提交 Task 10**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AssignmentController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManagementPolicyController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/assignment \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/management \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AssignmentController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ManagementPolicyController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): add delegated assignment mutations"
 ```
@@ -1434,23 +1434,23 @@ git commit -m "feat(rbac3): add delegated assignment mutations"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/domain/SessionActiveRoleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/infrastructure/RoleActivationFactStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/infrastructure/SessionActiveRoleRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationCandidateService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/ActiveRoleSetRevalidator.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/application/SessionSnapshotProjector.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/infrastructure/RedisAuthorizationRuntimeStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/infrastructure/Rbac3RuntimeRedissonConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/redis/publish-session-snapshot.lua`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/redis/verify-authorization-fence.lua`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RoleActivationController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/RefreshTokenService.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationCandidateServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/snapshot/RedisAuthorizationRuntimeStoreIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/domain/SessionActiveRoleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/infrastructure/RoleActivationFactStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/infrastructure/SessionActiveRoleRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationCandidateService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/ActiveRoleSetRevalidator.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/application/SessionSnapshotProjector.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/infrastructure/RedisAuthorizationRuntimeStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/infrastructure/Rbac3RuntimeRedissonConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/redis/publish-session-snapshot.lua`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/redis/verify-authorization-fence.lua`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RoleActivationController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/RefreshTokenService.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationCandidateServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/snapshot/RedisAuthorizationRuntimeStoreIT.java`
 
 **Interfaces:**
 
@@ -1475,7 +1475,7 @@ GET Candidate uses `system:role-activation:read`; PUT uses `system:role-activati
 - [ ] **Step 2: 运行聚焦测试并确认 RED**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest=RoleActivationCandidateServiceTest,RoleActivationFacadeIT,RoleActivationConcurrencyIT,RedisAuthorizationRuntimeStoreIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1487,8 +1487,8 @@ GET Candidate uses `system:role-activation:read`; PUT uses `system:role-activati
 - [ ] **Step 4: 运行 GREEN、本机 PostgreSQL/Redis 故障注入**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am test
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=RoleActivationFacadeIT,RoleActivationConcurrencyIT,RedisAuthorizationRuntimeStoreIT verify
 ```
 
@@ -1497,12 +1497,12 @@ GET Candidate uses `system:role-activation:read`; PUT uses `system:role-activati
 - [ ] **Step 5: 提交 Task 11**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/redis \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RoleActivationController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/RefreshTokenService.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/redis \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RoleActivationController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/RefreshTokenService.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): add atomic session role activation"
 ```
@@ -1513,32 +1513,32 @@ git commit -m "feat(rbac3): add atomic session role activation"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/CredentialForwardingMode.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicy.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityResult.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpSecurityProcessor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterProperties.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3BearerCredentialExtractor.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3JwtSessionAuthenticationProvider.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3PermissionAuthorizationProvider.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3TrustedIdentityMapper.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3ReservedHeaderSanitizer.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReader.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRedissonConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewaySecurityProviderTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/fixture/Rbac3GatewayFixtureApplication.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicyTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/Rbac3AdapterRuntimeClasspathTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/CredentialForwardingMode.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicy.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityResult.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpSecurityProcessor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterProperties.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3BearerCredentialExtractor.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3JwtSessionAuthenticationProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3PermissionAuthorizationProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3TrustedIdentityMapper.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3ReservedHeaderSanitizer.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReader.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRedissonConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewaySecurityProviderTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/fixture/Rbac3GatewayFixtureApplication.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicyTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/Rbac3AdapterRuntimeClasspathTest.java`
 
 **Interfaces:**
 
@@ -1567,7 +1567,7 @@ Gateway Core 新增兼容默认值为 `NONE` 的 `CredentialForwardingMode = NON
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-gateway-adapter,:yuheng-biz-gateway \
   -am -Dtest=GatewaySecurityPolicyTest,GatewayOriginalBearerForwardingTest,DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest,Rbac3GatewaySecurityProviderTest,Rbac3GatewayAdapterAutoConfigurationTest,Rbac3AdapterRuntimeClasspathTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1582,15 +1582,15 @@ Gateway Engine POM 增加 RBAC3 Adapter 运行依赖，使 AutoConfiguration 实
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-gateway-adapter,:yuheng-biz-gateway \
   -am test
 
 ! rg -n 'WebClient|RestClient|HttpClient|rbac3-admin' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main
 
 ! rg -n 'tokenReference\(\).*log|Authorization.*tag|TrustedIdentity.*Authorization' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main
 ```
 
 Expected: Adapter/Engine tests通过；Admin HTTP Client 扫描无输出。
@@ -1598,20 +1598,20 @@ Expected: Adapter/Engine tests通过；Admin HTTP Client 扫描无输出。
 - [ ] **Step 5: 提交 Task 12**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/CredentialForwardingMode.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicy.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicyTest.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityResult.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpSecurityProcessor.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/Rbac3AdapterRuntimeClasspathTest.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/CredentialForwardingMode.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicy.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicyTest.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityResult.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpSecurityProcessor.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/Rbac3AdapterRuntimeClasspathTest.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter
 git diff --cached --check
 git commit -m "feat(rbac3): add gateway authorization adapter"
 ```
@@ -1623,7 +1623,7 @@ git commit -m "feat(rbac3): add gateway authorization adapter"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
   -am test
 ```
 
@@ -1639,30 +1639,30 @@ git commit -m "feat(rbac3): add gateway authorization adapter"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/DataRuleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/DataRuleRefEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/FieldDefinitionEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/FieldRuleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/domain/OperationSodRuleEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/domain/BusinessParticipationEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit/domain/AuditLogEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/infrastructure/AuthorizationRuleRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/infrastructure/PostgresqlParticipationStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit/infrastructure/PostgresqlAuditStore.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/application/AuthorizationDecisionService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/application/ParticipationFacade.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit/application/AuditQueryService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/simulation/application/AuthorizationSimulationService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/RuntimeQueryService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ParticipationController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuditSimulationController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RuntimeController.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/AuthorizationDecisionServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/participation/ParticipationConcurrencyIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/audit/AuditRedactionIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/simulation/AuthorizationSimulationServiceTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/DataRuleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/DataRuleRefEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/FieldDefinitionEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/domain/FieldRuleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/domain/OperationSodRuleEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/domain/BusinessParticipationEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit/domain/AuditLogEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/infrastructure/AuthorizationRuleRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/infrastructure/PostgresqlParticipationStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit/infrastructure/PostgresqlAuditStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/application/AuthorizationDecisionService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation/application/ParticipationFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit/application/AuditQueryService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/simulation/application/AuthorizationSimulationService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/RuntimeQueryService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ParticipationController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuditSimulationController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RuntimeController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/AuthorizationDecisionServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/participation/ParticipationConcurrencyIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/audit/AuditRedactionIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/simulation/AuthorizationSimulationServiceTest.java`
 
 **Interfaces:**
 
@@ -1678,7 +1678,7 @@ git commit -m "feat(rbac3): add gateway authorization adapter"
 - [ ] **Step 2: 运行聚焦测试并确认 RED**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest=AuthorizationDecisionServiceTest,ParticipationConcurrencyIT,AuditRedactionIT,AuthorizationSimulationServiceTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1690,24 +1690,24 @@ Data/Field 决策只返回类型化结果，不返回任意 SQL/SpEL。Participa
 - [ ] **Step 4: 运行 GREEN 和本机 PostgreSQL 并发验证**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am test
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=ParticipationConcurrencyIT,AuditRedactionIT verify
 ```
 
 - [ ] **Step 5: 提交 Task 13**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/simulation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/RuntimeQueryService.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ParticipationController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuditSimulationController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RuntimeController.java \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/participation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/audit \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/simulation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/RuntimeQueryService.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ParticipationController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuditSimulationController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RuntimeController.java \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): add scoped authorization decisions"
 ```
@@ -1718,25 +1718,25 @@ git commit -m "feat(rbac3): add scoped authorization decisions"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/flyway/Rbac3FlywayConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/outbox/TransactionalOutboxAuthorizationEventAdapter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/outbox/Rbac3RuntimeProjectionDeliveryHandler.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/gateway/GatewayAdminControlPlaneStatusClient.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/gateway/GatewayAdminStatusCredentialProvider.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/gateway/GatewayDefinitionStatusService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcProviderLeaseStatusService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/GatewayDdcRuntimeStatusService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ReadinessIndicator.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker/AssignmentLifecycleWorker.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker/AuthorizationMutationRecoveryWorker.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker/RuntimeSnapshotRebuildWorker.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/OutboxTransactionRollbackIT.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayAdminControlPlaneStatusClientTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/worker/AuthorizationWorkerRecoveryIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/flyway/Rbac3FlywayConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/outbox/TransactionalOutboxAuthorizationEventAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/outbox/Rbac3RuntimeProjectionDeliveryHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/gateway/GatewayAdminControlPlaneStatusClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/gateway/GatewayAdminStatusCredentialProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/gateway/GatewayDefinitionStatusService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcProviderLeaseStatusService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/GatewayDdcRuntimeStatusService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ReadinessIndicator.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker/AssignmentLifecycleWorker.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker/AuthorizationMutationRecoveryWorker.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker/RuntimeSnapshotRebuildWorker.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/OutboxTransactionRollbackIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayAdminControlPlaneStatusClientTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/worker/AuthorizationWorkerRecoveryIT.java`
 
 **Interfaces:**
 
@@ -1758,7 +1758,7 @@ git commit -m "feat(rbac3): add scoped authorization decisions"
 - [ ] **Step 2: 运行聚焦测试并确认 RED**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest=Rbac3AdminApplicationContextTest,OutboxTransactionRollbackIT,GatewayDdcConfigurationTest,GatewayAdminControlPlaneStatusClientTest,AuthorizationWorkerRecoveryIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1778,8 +1778,8 @@ Gateway 上报只由 `@GatewayInterfaceGroup` + `@EgonHttpService` + `@GatewayOp
 - [ ] **Step 4: 运行 GREEN、双 Flyway和同事务验证**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am test
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Prbac3-local-it -Dit.test=OutboxTransactionRollbackIT,AuthorizationWorkerRecoveryIT verify
 ```
 
@@ -1789,10 +1789,10 @@ Expected: 双 History 实际存在、业务回滚不留 Outbox、提交必留 Ou
 
 ```bash
 ! rg -n 'OutboxStore|JdbcOutbox|claimBatch|egon_cola_outbox_message' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main
 
 ! rg -n 'localhost|127\.0\.0\.1' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml
 ```
 
 Expected: RBAC3 生产代码不越过 Outbox Public API，production 配置无静默本机回退。
@@ -1800,11 +1800,11 @@ Expected: RBAC3 生产代码不越过 Outbox Public API，production 配置无�
 - [ ] **Step 5: 提交 Task 14**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/worker \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "feat(rbac3): integrate gateway ddc and outbox runtime"
 ```
@@ -1815,25 +1815,25 @@ git commit -m "feat(rbac3): integrate gateway ddc and outbox runtime"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/index.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/types.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/client/Rbac3ApiClient.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/auth/InMemoryAccessTokenStore.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/provider/Rbac3Provider.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/provider/rbac3StateMachine.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/hooks/useRbac3Session.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/hooks/useRoleActivationCandidates.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/hooks/useActiveRoles.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/hooks/usePermission.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/guards/PermissionGuard.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/guards/ActionGuard.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/guards/FieldGuard.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/registry/Rbac3ComponentRegistry.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/routing/resolveDefaultRoute.ts`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/provider/Rbac3Provider.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/provider/rbac3StateMachine.test.ts`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/registry/Rbac3ComponentRegistry.test.ts`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/guards/Rbac3Guards.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/index.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/types.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/client/Rbac3ApiClient.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/auth/InMemoryAccessTokenStore.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/provider/Rbac3Provider.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/provider/rbac3StateMachine.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/hooks/useRbac3Session.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/hooks/useRoleActivationCandidates.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/hooks/useActiveRoles.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/hooks/usePermission.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/guards/PermissionGuard.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/guards/ActionGuard.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/guards/FieldGuard.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/registry/Rbac3ComponentRegistry.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/routing/resolveDefaultRoute.ts`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/provider/Rbac3Provider.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/provider/rbac3StateMachine.test.ts`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/registry/Rbac3ComponentRegistry.test.ts`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/guards/Rbac3Guards.test.tsx`
 
 **Interfaces:**
 
@@ -1863,8 +1863,8 @@ Access Token 只在内存；浏览器 Refresh 使用 Secure/HttpOnly/SameSite Co
 - [ ] **Step 2: 运行 SDK 测试并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm test --workspace @egon-cola/rbac3-react-sdk -- --run
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm test --workspace @egon-cola/tianquan-jianshen-react-sdk -- --run
 ```
 
 - [ ] **Step 3: 实现不可变 Store 和显式状态转换**
@@ -1874,19 +1874,19 @@ npm test --workspace @egon-cola/rbac3-react-sdk -- --run
 - [ ] **Step 4: 验证 SDK GREEN、类型和边界**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm run typecheck --workspace @egon-cola/rbac3-react-sdk
-npm test --workspace @egon-cola/rbac3-react-sdk -- --run
-npm run lint --workspace @egon-cola/rbac3-react-sdk
-npm run build --workspace @egon-cola/rbac3-react-sdk
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm run typecheck --workspace @egon-cola/tianquan-jianshen-react-sdk
+npm test --workspace @egon-cola/tianquan-jianshen-react-sdk -- --run
+npm run lint --workspace @egon-cola/tianquan-jianshen-react-sdk
+npm run build --workspace @egon-cola/tianquan-jianshen-react-sdk
 
-! rg -n 'localStorage|sessionStorage|http://|https://' egon-cola-platform-rbac3-react-sdk/src
+! rg -n 'localStorage|sessionStorage|http://|https://' egon-cola-tianquan-jianshen-react-sdk/src
 ```
 
 - [ ] **Step 5: 提交 Task 15**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk
 git diff --cached --check
 git commit -m "feat(rbac3): add react authorization sdk"
 ```
@@ -1898,10 +1898,10 @@ git commit -m "feat(rbac3): add react authorization sdk"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
   -am test
 
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm ci
 npm run typecheck
 npm test -- --run
@@ -1919,29 +1919,29 @@ npm test -- --run
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/overview/OverviewPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/overview/overview.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/tenant/TenantListPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/tenant/TenantDetailPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/tenant/tenant.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrgPositionSnapshotPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationListPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ManifestDetailPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ResourceCatalogPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/application.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePermissionPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/role.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/constraint.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/tenant/TenantPages.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/DirectoryPages.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationPages.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePages.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.test.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/overview/OverviewPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/overview/overview.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/tenant/TenantListPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/tenant/TenantDetailPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/tenant/tenant.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrgPositionSnapshotPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationListPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ManifestDetailPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ResourceCatalogPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePermissionPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/role.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/tenant/TenantPages.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/DirectoryPages.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationPages.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePages.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.test.tsx`
 
 **Interfaces:**
 
@@ -1957,8 +1957,8 @@ npm test -- --run
 - [ ] **Step 2: 运行 Feature 测试并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm test --workspace @egon-cola/rbac3-admin-web -- --run \
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run \
   src/features/tenant \
   src/features/directory \
   src/features/application \
@@ -1975,19 +1975,19 @@ Expected: Feature 组件尚不存在，测试失败。
 - [ ] **Step 4: 验证 GREEN、类型与禁止语义**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm run typecheck --workspace @egon-cola/rbac3-admin-web
-npm test --workspace @egon-cola/rbac3-admin-web -- --run src/features
-npm run lint --workspace @egon-cola/rbac3-admin-web
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm run typecheck --workspace @egon-cola/tianquan-jianshen-admin-web
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run src/features
+npm run lint --workspace @egon-cola/tianquan-jianshen-admin-web
 
 ! rg -ni 'approval(Status|Request|Policy)|requiredApprovals|approver(User|Role)Id|roleRotation|rotationId|轮岗流程|审批流程' \
   --glob '!*.test.*' \
-  egon-cola-platform-rbac3-admin-web/src/features/overview \
-  egon-cola-platform-rbac3-admin-web/src/features/tenant \
-  egon-cola-platform-rbac3-admin-web/src/features/directory \
-  egon-cola-platform-rbac3-admin-web/src/features/application \
-  egon-cola-platform-rbac3-admin-web/src/features/role \
-  egon-cola-platform-rbac3-admin-web/src/features/constraint
+  egon-cola-tianquan-jianshen-admin-web/src/features/overview \
+  egon-cola-tianquan-jianshen-admin-web/src/features/tenant \
+  egon-cola-tianquan-jianshen-admin-web/src/features/directory \
+  egon-cola-tianquan-jianshen-admin-web/src/features/application \
+  egon-cola-tianquan-jianshen-admin-web/src/features/role \
+  egon-cola-tianquan-jianshen-admin-web/src/features/constraint
 ```
 
 Expected: 测试、类型、Lint 通过；禁止语义无输出。
@@ -1995,13 +1995,13 @@ Expected: 测试、类型、Lint 通过；禁止语义无输出。
 - [ ] **Step 5: 提交 Task 16**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/overview \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/tenant \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/overview \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/tenant \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx
 git diff --cached --check
 git commit -m "feat(rbac3): add governance administration pages"
 ```
@@ -2012,22 +2012,22 @@ git commit -m "feat(rbac3): add governance administration pages"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/AssignmentListPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/AssignmentEditor.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/assignment.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyEditor.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/managementPolicy.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role-activation/RoleActivationPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role-activation/RoleActivationSelector.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role-activation/roleActivation.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/session/SessionListPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/session/session.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/authorization.routes.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/AssignmentPages.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/session/SessionListPage.test.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentListPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentEditor.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/assignment.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyEditor.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/managementPolicy.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationSelector.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/roleActivation.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/session/SessionListPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/session/session.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/authorization.routes.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentPages.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/RoleActivationPage.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/session/SessionListPage.test.tsx`
 
 **Interfaces:**
 
@@ -2043,8 +2043,8 @@ git commit -m "feat(rbac3): add governance administration pages"
 - [ ] **Step 2: 运行 Feature 测试并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm test --workspace @egon-cola/rbac3-admin-web -- --run \
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run \
   src/features/assignment \
   src/features/management-policy \
   src/features/role-activation \
@@ -2058,31 +2058,31 @@ npm test --workspace @egon-cola/rbac3-admin-web -- --run \
 - [ ] **Step 4: 验证 GREEN 与边界**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm run typecheck --workspace @egon-cola/rbac3-admin-web
-npm test --workspace @egon-cola/rbac3-admin-web -- --run \
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm run typecheck --workspace @egon-cola/tianquan-jianshen-admin-web
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run \
   src/features/assignment \
   src/features/management-policy \
   src/features/role-activation \
   src/features/session
-npm run lint --workspace @egon-cola/rbac3-admin-web
+npm run lint --workspace @egon-cola/tianquan-jianshen-admin-web
 
 ! rg -ni 'approval(Status|Request|Policy)|requiredApprovals|approver(User|Role)Id|roleRotation|rotationId|shiftSchedule|轮岗流程|排班流程|审批流程' \
   --glob '!*.test.*' \
-  egon-cola-platform-rbac3-admin-web/src/features/assignment \
-  egon-cola-platform-rbac3-admin-web/src/features/management-policy \
-  egon-cola-platform-rbac3-admin-web/src/features/role-activation \
-  egon-cola-platform-rbac3-admin-web/src/features/session
+  egon-cola-tianquan-jianshen-admin-web/src/features/assignment \
+  egon-cola-tianquan-jianshen-admin-web/src/features/management-policy \
+  egon-cola-tianquan-jianshen-admin-web/src/features/role-activation \
+  egon-cola-tianquan-jianshen-admin-web/src/features/session
 ```
 
 - [ ] **Step 5: 提交 Task 17**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role-activation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/session \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/authorization.routes.tsx
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role-activation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/session \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/authorization.routes.tsx
 git diff --cached --check
 git commit -m "feat(rbac3): add assignment and role activation pages"
 ```
@@ -2093,19 +2093,19 @@ git commit -m "feat(rbac3): add assignment and role activation pages"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/simulation/AuthorizationSimulationPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/simulation/simulation.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/audit/AuditLogPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/audit/AuditDetailDrawer.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/audit/audit.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/RuntimeStatusPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/MutationRecoveryPanel.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/runtime.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime.routes.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/simulation/AuthorizationSimulationPage.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/audit/AuditLogPage.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/simulation/AuthorizationSimulationPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/simulation/simulation.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/audit/AuditLogPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/audit/AuditDetailDrawer.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/audit/audit.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/MutationRecoveryPanel.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/runtime.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime.routes.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/simulation/AuthorizationSimulationPage.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/audit/AuditLogPage.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx`
 
 **Interfaces:**
 
@@ -2122,8 +2122,8 @@ git commit -m "feat(rbac3): add assignment and role activation pages"
 - [ ] **Step 2: 运行 Feature 测试并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm test --workspace @egon-cola/rbac3-admin-web -- --run \
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run \
   src/features/simulation \
   src/features/audit \
   src/features/runtime
@@ -2136,27 +2136,27 @@ npm test --workspace @egon-cola/rbac3-admin-web -- --run \
 - [ ] **Step 4: 验证 GREEN、类型和敏感边界**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm run typecheck --workspace @egon-cola/rbac3-admin-web
-npm test --workspace @egon-cola/rbac3-admin-web -- --run \
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm run typecheck --workspace @egon-cola/tianquan-jianshen-admin-web
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run \
   src/features/simulation \
   src/features/audit \
   src/features/runtime
-npm run lint --workspace @egon-cola/rbac3-admin-web
+npm run lint --workspace @egon-cola/tianquan-jianshen-admin-web
 
 ! rg -n 'localStorage|sessionStorage|console\.log|redisKey|rawSql' \
-  egon-cola-platform-rbac3-admin-web/src/features/simulation \
-  egon-cola-platform-rbac3-admin-web/src/features/audit \
-  egon-cola-platform-rbac3-admin-web/src/features/runtime
+  egon-cola-tianquan-jianshen-admin-web/src/features/simulation \
+  egon-cola-tianquan-jianshen-admin-web/src/features/audit \
+  egon-cola-tianquan-jianshen-admin-web/src/features/runtime
 ```
 
 - [ ] **Step 5: 提交 Task 18**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/simulation \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/audit \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime.routes.tsx
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/simulation \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/audit \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime.routes.tsx
 git diff --cached --check
 git commit -m "feat(rbac3): add audit simulation and runtime pages"
 ```
@@ -2168,7 +2168,7 @@ git commit -m "feat(rbac3): add audit simulation and runtime pages"
 - [ ] 运行：
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm ci
 npm run typecheck
 npm test -- --run
@@ -2188,23 +2188,23 @@ npm run build
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/main.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/router.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/navigation.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/queryClient.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/AppErrorBoundary.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/api/adminApiClient.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/LoginPage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/AuthenticationShell.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/auth.api.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/styles/global.css`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/playwright.config.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/e2e/auth-role-activation.spec.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/e2e/authorization-version-recovery.spec.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/e2e/runtime-status.spec.ts`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx`
-- Test: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/AuthenticationShell.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/main.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/navigation.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/queryClient.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/AppErrorBoundary.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/api/adminApiClient.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/LoginPage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/auth.api.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/styles/global.css`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/playwright.config.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/auth-role-activation.spec.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/authorization-version-recovery.spec.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e/runtime-status.spec.ts`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/AuthenticationShell.test.tsx`
 
 **Interfaces:**
 
@@ -2220,8 +2220,8 @@ npm run build
 - [ ] **Step 2: 运行集成测试并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm test --workspace @egon-cola/rbac3-admin-web -- --run \
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run \
   src/app/App.integration.test.tsx \
   src/features/auth/AuthenticationShell.test.tsx
 ```
@@ -2233,15 +2233,15 @@ API Client 对 401/403/409/422/429/503 使用稳定错误类型；Mutation 的 Q
 - [ ] **Step 4: 验证 GREEN、构建与 E2E 可发现性**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
-npm run typecheck --workspace @egon-cola/rbac3-admin-web
-npm test --workspace @egon-cola/rbac3-admin-web -- --run
-npm run lint --workspace @egon-cola/rbac3-admin-web
-npm run build --workspace @egon-cola/rbac3-admin-web
-npm run e2e --workspace @egon-cola/rbac3-admin-web -- --list
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
+npm run typecheck --workspace @egon-cola/tianquan-jianshen-admin-web
+npm test --workspace @egon-cola/tianquan-jianshen-admin-web -- --run
+npm run lint --workspace @egon-cola/tianquan-jianshen-admin-web
+npm run build --workspace @egon-cola/tianquan-jianshen-admin-web
+npm run e2e --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
 
 ! rg -n 'localStorage|sessionStorage|document\.cookie|console\.log' \
-  egon-cola-platform-rbac3-admin-web/src
+  egon-cola-tianquan-jianshen-admin-web/src
 ```
 
 Expected: 单测/类型/Lint/构建通过，Playwright 只列出场景而不启动浏览器；敏感存储扫描无输出。
@@ -2249,13 +2249,13 @@ Expected: 单测/类型/Lint/构建通过，Playwright 只列出场景而不启�
 - [ ] **Step 5: 提交 Task 19**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/main.tsx \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/api \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/styles \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/playwright.config.ts \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/e2e
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/main.tsx \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/api \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/styles \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/playwright.config.ts \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/e2e
 git diff --cached --check
 git commit -m "feat(rbac3): integrate administration web application"
 ```
@@ -2266,20 +2266,20 @@ git commit -m "feat(rbac3): integrate administration web application"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractCompatibilityMatrixTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationMetamorphicTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/decision/AuthorizationAlgebraPropertyTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test/java/top/egon/cola/platform/rbac3/core/performance/CoreAlgorithmBudgetTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/StarterFailClosedSecurityMatrixTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/architecture/StarterBoundaryTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/GatewayFailClosedSecurityMatrixTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/performance/GatewayHotPathBudgetTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3EndToEndUseCaseIT.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3TenantIsolationIT.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3ConcurrencyMatrixIT.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/Rbac3ModuleBoundaryTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/performance/AdminQueryBudgetIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractCompatibilityMatrixTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/activation/RoleActivationMetamorphicTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/decision/AuthorizationAlgebraPropertyTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test/java/top/egon/cola/platform/rbac3/core/performance/CoreAlgorithmBudgetTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/StarterFailClosedSecurityMatrixTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/architecture/StarterBoundaryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/GatewayFailClosedSecurityMatrixTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/performance/GatewayHotPathBudgetTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3EndToEndUseCaseIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3TenantIsolationIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3ConcurrencyMatrixIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/Rbac3ModuleBoundaryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/performance/AdminQueryBudgetIT.java`
 
 **Interfaces:**
 
@@ -2295,7 +2295,7 @@ git commit -m "feat(rbac3): integrate administration web application"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
   -am test
 ```
 
@@ -2309,11 +2309,11 @@ Expected: 新测试若发现生产缺口必须保持失败并报告主代理；�
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
   -am test
 
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-admin \
+  -pl :egon-cola-tianquan-jianshen-admin \
   -am -Prbac3-local-it verify
 ```
 
@@ -2322,11 +2322,11 @@ Expected: 新测试若发现生产缺口必须保持失败并报告主代理；�
 - [ ] **Step 5: 提交 Task 20**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/test \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test \
-        egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/test \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git diff --cached --check
 git commit -m "test(rbac3): add cross-module authorization verification"
 ```
@@ -2337,22 +2337,22 @@ git commit -m "test(rbac3): add cross-module authorization verification"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/common.sh`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-local-dependencies.sh`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/prepare-rbac3-fixture.sh`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-gateway-ddc-topology.sh`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/cleanup-rbac3-fixture.sh`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/fixtures/gateway-release.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/fixtures/manifest.json`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/README.md`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/docs/architecture.md`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/docs/api-and-manifest.md`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/docs/operations-runbook.md`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/docs/security-boundaries.md`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/docs/verification-evidence-template.md`
-- Create: `.github/workflows/rbac3.yml`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/common.sh`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-local-dependencies.sh`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/prepare-rbac3-fixture.sh`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-gateway-ddc-topology.sh`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/cleanup-rbac3-fixture.sh`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/fixtures/gateway-release.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/fixtures/manifest.json`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/architecture.md`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/api-and-manifest.md`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/operations-runbook.md`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/security-boundaries.md`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/verification-evidence-template.md`
+- Create: `.github/workflows/tianquan-jianshen.yml`
 - Modify: `.github/dependabot.yml`
 
 **Interfaces:**
@@ -2365,9 +2365,9 @@ git commit -m "test(rbac3): add cross-module authorization verification"
 - [ ] **Step 1: 写失败的脚本/文档契约检查**
 
 ```bash
-test -x egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh
-test -f egon-cola-platforms/egon-cola-platform-rbac3/docs/operations-runbook.md
-test -f .github/workflows/rbac3.yml
+test -x egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh
+test -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/operations-runbook.md
+test -f .github/workflows/tianquan-jianshen.yml
 ```
 
 Expected: 文件尚不存在，断言失败。
@@ -2383,17 +2383,17 @@ Runbook 展开所有必填配置、三个 Redisson Bean、双 Flyway、Snowflake
 - [ ] **Step 3: 验证脚本语法、静态命令和 Workflow 结构**
 
 ```bash
-bash -n egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/*.sh
+bash -n egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/*.sh
 
-egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh --help
-egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-local-dependencies.sh --help
-egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-gateway-ddc-topology.sh --help
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh --help
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-local-dependencies.sh --help
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-gateway-ddc-topology.sh --help
 
-rg -n 'Java 21|Node 24|gateway-engine|rbac3-admin|npm ci' .github/workflows/rbac3.yml
+rg -n 'Java 21|Node 24|gateway-engine|rbac3-admin|npm ci' .github/workflows/tianquan-jianshen.yml
 rg -n 'package-ecosystem: npm' .github/dependabot.yml
 
 ! rg -ni 'docker (run|compose)|testcontainers|FLUSHALL|FLUSHDB|DROP DATABASE|kill -9|pkill' \
-  egon-cola-platforms/egon-cola-platform-rbac3/scripts
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts
 ```
 
 这里只验证语法、帮助和静态边界，不启动服务、不访问用户依赖、不执行清理。
@@ -2401,11 +2401,11 @@ rg -n 'package-ecosystem: npm' .github/dependabot.yml
 - [ ] **Step 4: 提交 Task 21**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-rbac3/scripts \
-        egon-cola-platforms/egon-cola-platform-rbac3/README.md \
-        egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md \
-        egon-cola-platforms/egon-cola-platform-rbac3/docs \
-        .github/workflows/rbac3.yml \
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md \
+        egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs \
+        .github/workflows/tianquan-jianshen.yml \
         .github/dependabot.yml
 git diff --cached --check
 git commit -m "docs(rbac3): add operations and verification workflow"
@@ -2419,16 +2419,16 @@ git commit -m "docs(rbac3): add operations and verification workflow"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
   -am clean verify
 
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm ci
 npm run typecheck
 npm test -- --run
 npm run lint
 npm run build
-npm run e2e --workspace @egon-cola/rbac3-admin-web -- --list
+npm run e2e --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
 bash -n scripts/verification/*.sh
 ```
 
@@ -2498,20 +2498,20 @@ git diff --name-status main...HEAD
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-core,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-core,:yuheng-biz-gateway \
   -am clean verify
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml \
-  dependency:tree -Dincludes=top.egon:egon-cola-platform-rbac3-starter
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml \
+  dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-starter
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/pom.xml \
-  dependency:tree -Dincludes=top.egon:egon-cola-platform-rbac3-admin
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/pom.xml \
+  dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-admin
 
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/pom.xml \
-  dependency:tree -Dincludes=top.egon:egon-cola-platform-rbac3-admin
+  -f egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/pom.xml \
+  dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-admin
 ```
 
 Expected: Reactor Summary 中目标模块真实出现且全部 SUCCESS；三条反向依赖树均为空。不能只对 RBAC3 聚合 Artifact 使用 `-pl` 后误认为子模块已执行。
@@ -2520,7 +2520,7 @@ Expected: Reactor Summary 中目标模块真实出现且全部 SUCCESS；三条�
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-rbac3-admin \
+  -pl :egon-cola-tianquan-jianshen-admin \
   -am -Prbac3-local-it verify
 ```
 
@@ -2529,13 +2529,13 @@ Expected: Reactor Summary 中目标模块真实出现且全部 SUCCESS；三条�
 ### 13.3 前端全量验证
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen
 npm ci
 npm run typecheck
 npm test -- --run
 npm run lint
 npm run build
-npm run e2e --workspace @egon-cola/rbac3-admin-web -- --list
+npm run e2e --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
 ```
 
 Expected: SDK/Admin Web 全部通过；E2E 场景可发现但不打开浏览器。真实浏览器交互由用户后续主动运行，当前交付不自动启动 Web/API。
@@ -2543,39 +2543,39 @@ Expected: SDK/Admin Web 全部通过；E2E 场景可发现但不打开浏览器�
 ### 13.4 数据、集成与安全静态断言
 
 ```bash
-test "$(find egon-cola-platforms/egon-cola-platform-rbac3 \
+test "$(find egon-cola-xingyuan/egon-cola-tianquan-jianshen \
   -path '*/src/main/resources/db/migration/V*__*.sql' -type f | wc -l | tr -d ' ')" = "1"
 
-test ! -e egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-test
+test ! -e egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-test
 
 rg -n 'flyway_schema_history_rbac3|flyway_schema_history_outbox|db/transactional-outbox/postgresql' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main
 
 rg -n 'GatewayInterfaceGroup|EgonHttpService|GatewayOperation' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java
 
 rg -n 'ddcRegistryRedissonClient|gatewayRateLimitRedissonClient|rbac3RuntimeRedissonClient' \
-  egon-cola-platforms/egon-cola-platform-rbac3
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen
 
 ! rg -ni 'approval(Status|Request|Policy)|requiredApprovals|approver(User|Role)Id|roleRotation|rotationId|shiftSchedule|轮岗流程|排班流程|审批流程' \
   --glob 'src/main/**' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin
 
 ! rg -ni 'approval(Status|Request|Policy)|requiredApprovals|approver(User|Role)Id|roleRotation|rotationId|shiftSchedule|轮岗流程|排班流程|审批流程' \
   --glob 'src/**' --glob '!*.test.*' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web
 
 ! rg -n 'localStorage|sessionStorage|document\.cookie|console\.log' \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src
 
 ! rg -n 'OutboxStore|FLUSHALL|FLUSHDB|DROP DATABASE|spring\.jpa\.hibernate\.ddl-auto=(create|update)' \
-  egon-cola-platforms/egon-cola-platform-rbac3
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen
 ```
 
 源码扫描只是边界证据，不能代替运行测试。所有正向 `rg` 必须由主代理人工确认出现位置正确，不能只看退出码。
@@ -2585,8 +2585,8 @@ rg -n 'ddcRegistryRedissonClient|gatewayRateLimitRedissonClient|rbac3RuntimeRedi
 交付时提供、语法验证但不主动执行：
 
 ```bash
-egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-gateway-ddc-topology.sh --check-config
-egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-gateway-ddc-topology.sh
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-gateway-ddc-topology.sh --check-config
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-gateway-ddc-topology.sh
 ```
 
 第二条需要用户已经启动 PostgreSQL、Redis、DDC Admin、Gateway Admin、Gateway Engine 和两个不同端口/machine-id 的 RBAC3 Admin。只有用户主动运行且证据显示 Definition Accepted、两个 DDC Lease、正确 Release、Gateway 路由/单实例故障切换/全实例 Fail Closed，才可把 AC-40 标为“真实多进程已验证”。
@@ -2597,7 +2597,7 @@ egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-gateway
 
 | AC | 主实现 Task | 必须看到的最小证据 |
 |---|---|---|
-| AC-01 审核闸门与平台目录 | 本 Plan、T0 | Spec 已批准；用户再次批准 Plan 后才执行；目录只在 `egon-cola-platforms` |
+| AC-01 审核闸门与平台目录 | 本 Plan、T0 | Spec 已批准；用户再次批准 Plan 后才执行；目录只在 `egon-cola-xingyuan` |
 | AC-02 模块依赖边界 | T0、T20 | 五个 Java 模块、两个前端包、无 Test Module；三条反向 dependency tree 为空 |
 | AC-03 PostgreSQL 与 Flyway | T2、T14、T20 | 单一 RBAC3 V1、双 History、空 Schema migrate/restart checksum、JPA validate |
 | AC-04 Tenant 隔离 | T2、T6、T20 | DB 复合约束、服务层 Context、跨 Tenant API/Repository 负向 IT |

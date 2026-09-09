@@ -70,17 +70,17 @@ OAuth issuer、Client ID、Audience 和 Redirect URI 继续使用各前端已有
 一次准备：
 
 ```bash
-scripts/unified-platform/prepare-local-stack.sh
+scripts/unified-xingyuan/prepare-local-stack.sh
 ```
 
 后端直接启动顺序固定为 DDC、IdP、RBAC3、Gateway Admin、Gateway Engine。Gateway 是一个平台但包含控制面与数据面两个 JVM：
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/target/yuheng-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar
 ```
 
 准备流程只创建配置、依赖、数据库与构建物，不负责持久运行应用。首次空数据库仍由现有统一启动流程完成管理员和跨平台拓扑初始化；已初始化的本机数据可直接使用上述 Jar 命令重复启动。

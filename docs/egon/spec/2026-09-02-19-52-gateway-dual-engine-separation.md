@@ -12,11 +12,11 @@
 | Updated | `2026-09-05 07:01 CST` |
 | Owner | `User / Egon-COLA Gateway maintainers` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-platforms/egon-cola-platform-gateway`；Gateway Admin、共享 Runtime、现有 API/RPC Engine、新 MCP Engine、Admin Web、Gateway 测试与部署/本地运行契约 |
+| Scope | `egon-cola-xingyuan/egon-cola-yuheng`；Gateway Admin、共享 Runtime、现有 API/RPC Engine、新 MCP Engine、Admin Web、Gateway 测试与部署/本地运行契约 |
 | Change Surface | 新增 `gateway-runtime-core` 与可执行 `gateway-mcp-engine`；现有 `gateway-engine` 移除 MCP 入口/Bean/依赖并保留 API+RPC；统一 Rule Artifact 由两个 Plane Compiler 分别编译和局部原子激活；DDC 元数据增加固定 Engine Role；Admin Runtime Consistency 要求 `API_RPC` 与 `MCP` 两个角色；更新 Admin Web、测试、Compose、脚本、CI 和运行文档；不改数据库 Schema、HTTP/gRPC/MCP Wire Contract、Provider 上报或 Admin 管理写 API |
 | Affected Chapters | `§7, §8, §9, §10, §12, §13, §14, §15, §16, §17, §18` |
 | Source Requirement | 用户请求“把 mcp gateway 和 api 和 rpc gateway 拆分开，现在混在一起的”；用户于 2026-09-02 决定“一个 admin server 两个 gateway engine” |
-| Baseline Revision | `main@085c20048e35`；dirty-worktree snapshot：`egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo`、`scripts/unified-identity-local.sh`、`scripts/unified-platform/start-local-stack.sh` 已有用户修改，另有两个未跟踪 Archetype Spec/Plan；本 Spec 不覆盖这些内容 |
+| Baseline Revision | `main@085c20048e35`；dirty-worktree snapshot：`egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo`、`scripts/unified-identity-local.sh`、`scripts/unified-xingyuan/start-local-stack.sh` 已有用户修改，另有两个未跟踪 Archetype Spec/Plan；本 Spec 不覆盖这些内容 |
 | Amends | [Gateway Engine 与 MCP Core 功能域分包设计](2026-08-19-13-51-gateway-engine-mcp-package-refactor.md) 的 §3.2、§5.1、§5.3 DEC-004、§7–§9、§12、§14–§18、§20；[Egon Gateway 全能力 MCP 网关需求与技术设计](../../superpowers/specs/2026-08-02-gateway-complete-mcp-design.md) 的 §5.1–§5.2、§6–§7、§13.1–§13.2、§21.3 中“同一进程”部署结论 |
 | Supersedes | `None` |
 | Depends On | [Egon Gateway 全能力 MCP 网关需求与技术设计](../../superpowers/specs/2026-08-02-gateway-complete-mcp-design.md) 的 §3–§4、§8–§12、§14–§20、§21.1–§21.2；[GWS-09 Gateway Admin 后端 Spec](../../superpowers/specs/2026-07-25-gateway-admin-backend-design.md) 的 §3.5–§3.6、§6.4、§8、§14–§16 |
@@ -31,9 +31,9 @@ Listener、RPC Slot，并把 MCP Handler 通过 `GatewayCompositeHttpDataPlaneHa
 Redis、PostgreSQL、远端联邦和任务 Bean 也与 API/RPC Bean 位于同一 Spring Context。结果是任一 MCP 存储、远端连接、配置或 Bean
 装配问题都可能影响 API/RPC Engine 的启动、依赖体积和变更节奏。
 
-选定方向是保留一个逻辑 Gateway Admin 控制面和两个数据面 Engine 角色：现有 `egon-cola-platform-gateway-engine` 保留
-Artifact/Jar 名称并收敛为 `API_RPC` Engine；新增 `egon-cola-platform-gateway-mcp-engine` 作为 `MCP` Engine。两者依赖新增的非可执行
-`egon-cola-platform-gateway-runtime-core`，共享 Provider Directory、Traffic、Rule Activation 基础设施、Operation
+选定方向是保留一个逻辑 Gateway Admin 控制面和两个数据面 Engine 角色：现有 `yuheng-biz-gateway` 保留
+Artifact/Jar 名称并收敛为 `API_RPC` Engine；新增 `yuheng-mcp-gateway` 作为 `MCP` Engine。两者依赖新增的非可执行
+`yuheng-runtime-core`，共享 Provider Directory、Traffic、Rule Activation 基础设施、Operation
 Invoker、HTTP/RPC 出站 Adapter 和 Observability，但互不依赖对方的可执行模块。MCP 调用仍直接选择 HTTP/RPC Provider，不调用
 API/RPC Gateway，从而保持当前调用跳数、鉴权和重试语义。
 
@@ -65,7 +65,7 @@ Admin、Catalog、Release、DDC、Provider Directory、安全、流量治理和�
 | `EVD-008` | Static repository | `GatewayProjectionService.runtimeConsistency/nodeConsistency`、`GatewayRuntimeConsistencyVO` | Admin 已按 Engine Config Client 的 Release/Version/Checksum/ACK 计算一致性，但不区分 Engine Role | 只需增加角色完整性策略，不需要新表或新管理查询端点 | 当前算法只证明节点一致性 |
 | `EVD-009` | Static repository | `DdcManagementConfigClientInstance.metadata`、`DdcInstanceMetadataContributor.metadata()` | DDC Config Client 已携带开放的 `Map<String,String>` 元数据；当前 Engine 已贡献 Release/ACK 字段 | 可用一个受限字符串键新增固定角色，不修改 DDC 协议/表 | 元数据上线效果未验证 |
 | `EVD-010` | Static repository | `gateway-admin-web/src/api/types.ts`、`GatewayGroupDetailPage`、`McpRuntimeStatus` | Admin Web 已查询 `engine-nodes` 和 `runtime-consistency`，但 `EngineNode` TS 类型遗漏后端已返回的 `metadata`，页面只显示租约角色 | 前端可用现有 API 展示双 Engine Role，无需新页面/接口 | 浏览器未运行 |
-| `EVD-011` | Static repository | `deployment/compose*.yml`、`gateway-engine/Dockerfile`、`scripts/unified-platform/*` | Compose、Docker、启动/状态/验证脚本、Runbook 和 CI 都只认识一个 Engine Jar；当前第二 Engine 是同角色副本 | 拆分必须覆盖制品、端口、健康、证书、进程名和验证脚本 | 未执行 Compose/脚本 |
+| `EVD-011` | Static repository | `deployment/compose*.yml`、`gateway-engine/Dockerfile`、`scripts/unified-xingyuan/*` | Compose、Docker、启动/状态/验证脚本、Runbook 和 CI 都只认识一个 Engine Jar；当前第二 Engine 是同角色副本 | 拆分必须覆盖制品、端口、健康、证书、进程名和验证脚本 | 未执行 Compose/脚本 |
 | `EVD-012` | Static repository | Engine `src/test`、`mcp-core/src/test`、`gateway-test-suite` | MCP 单元/集成测试目前位于 Engine，Live Suite 只依赖 `gateway-engine`，并把跨节点 MCP 场景解释为两个同构 Engine | 测试所有权必须随可执行角色迁移并增加依赖边界验证 | 仅测试清单 |
 | `EVD-013` | Accepted predecessor | `2026-08-19-13-51...` §5.3 DEC-004、§17 Option D | 旧 Spec 明确不拆 Configuration/Maven Module；其 RISK-004 把配置拆分延期 | 当前用户决定直接改变该已接受边界，必须显式 Amendment | 只适用于命名的旧范围 |
 | `EVD-014` | Authoritative predecessor | `2026-08-02-gateway-complete-mcp-design.md` §5、§12–§13 | 旧设计拒绝“单独 MCP Gateway”的原因是 MCP 再 HTTP 调 Gateway；同时要求单 Snapshot、无自调用、直接 Operation Invoker | 新方案只替换部署拓扑，保留无自调用和单 Snapshot 约束 | 旧文档部分内容已被后续 Spec 更新 |
@@ -103,9 +103,9 @@ Gateway。目标是让两个可执行数据面共享同一控制事实和同一�
 ### 3.1 Goals
 
 1. 保留一个逻辑 Gateway Admin Server，继续拥有 Catalog、Draft、Release、DDC 发布、运行投影和 Admin Web。
-2. 保留现有 `egon-cola-platform-gateway-engine` 制品名，将其收敛为 API+RPC Engine，完全移除 MCP Handler、MCP Bean、MCP Core
+2. 保留现有 `yuheng-biz-gateway` 制品名，将其收敛为 API+RPC Engine，完全移除 MCP Handler、MCP Bean、MCP Core
    和 MCP JDBC/PostgreSQL 依赖。
-3. 新增独立可执行 `egon-cola-platform-gateway-mcp-engine`，独占 MCP HTTP/Legacy SSE、Session、Task、App、Remote
+3. 新增独立可执行 `yuheng-mcp-gateway`，独占 MCP HTTP/Legacy SSE、Session、Task、App、Remote
    Federation、MCP RBAC3/Approval 与 MCP 存储。
 4. 新增非可执行 `gateway-runtime-core`，供两个 Engine 复用 Rule Activation 基础设施、Provider Directory、Traffic、Operation
    Invoker、HTTP/RPC 出站和 Observability；两个可执行 Engine 不互相依赖。
@@ -151,8 +151,8 @@ Gateway。目标是让两个可执行数据面共享同一控制事实和同一�
 | ID | Atomic requirement | Priority | Observable acceptance criteria | Source |
 | --- | --- | --- | --- | --- |
 | `REQ-001` | 系统必须保持一个逻辑 Gateway Admin 和两个可独立部署的 Engine Role：`API_RPC`、`MCP` | Must | Reactor 中恰有两个可执行 Engine Jar；Admin 仍为唯一 Gateway 控制面 | 用户“一个 admin server 两个 gateway engine” |
-| `REQ-002` | 现有 `egon-cola-platform-gateway-engine` 必须保留制品名并只装配 API/HTTP/WebSocket 与 RPC/gRPC 数据面 | Must | 其 POM/源码/Bean/Classpath 不含 `gateway-mcp-core`、`engine.mcp`、MCP JDBC Store 或 MCP Handler；现有 API/RPC 回归通过 | 兼容优先与当前制品消费者 |
-| `REQ-003` | 新 `egon-cola-platform-gateway-mcp-engine` 必须独占 MCP Ingress 与 Runtime 状态 | Must | MCP Stable/RC/Legacy、Session、Task、App、Remote、Approval、Redis/PostgreSQL 测试从新模块执行；其 Context 无 HTTP Route/RPC Listener/RPC Slot Bean | 用户拆分目标 |
+| `REQ-002` | 现有 `yuheng-biz-gateway` 必须保留制品名并只装配 API/HTTP/WebSocket 与 RPC/gRPC 数据面 | Must | 其 POM/源码/Bean/Classpath 不含 `gateway-mcp-core`、`engine.mcp`、MCP JDBC Store 或 MCP Handler；现有 API/RPC 回归通过 | 兼容优先与当前制品消费者 |
+| `REQ-003` | 新 `yuheng-mcp-gateway` 必须独占 MCP Ingress 与 Runtime 状态 | Must | MCP Stable/RC/Legacy、Session、Task、App、Remote、Approval、Redis/PostgreSQL 测试从新模块执行；其 Context 无 HTTP Route/RPC Listener/RPC Slot Bean | 用户拆分目标 |
 | `REQ-004` | 两个 Engine 必须复用共享 Runtime Core，且可执行模块不得相互依赖 | Must | Maven/包边界测试证明 `gateway-engine -/-> mcp-engine/mcp-core`，`mcp-engine -/-> gateway-engine`，两者均依赖 runtime-core | 避免代码复制和伪拆分 |
 | `REQ-005` | MCP 本地 Operation 必须继续直接调用 Provider，不得经 API/RPC Engine 二次转发 | Must | MCP 调用链只有 MCP Engine -> selected HTTP/RPC Provider；无新增内部 Gateway API、Service Discovery 或第二次鉴权/限流 | 旧 MCP 设计“无自调用”约束 |
 | `REQ-006` | Admin 必须继续发布一个 Snapshot/Artifact/Active Key，两个 Engine 分别局部原子激活并 ACK | Must | 相同 Release ID、DDC Version、Artifact SHA 到达两个角色；每个进程只有旧/新完整 Snapshot；不出现单进程半编译状态 | 单 Snapshot 与 LKG 约束 |
@@ -275,7 +275,7 @@ appCode、跨进程强原子发布或 API/RPC 再拆分，必须新建 Amendment
 
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
-| Language/runtime | Java 21 | `egon-cola-platforms/pom.xml:63` | Record、`java.time`、Spring Lifecycle；不改 JDK |
+| Language/runtime | Java 21 | `egon-cola-xingyuan/pom.xml:63` | Record、`java.time`、Spring Lifecycle；不改 JDK |
 | Framework | Spring Boot 3.5.16、MVC/Actuator、Reactor Netty | Platform POM、Engine/Admin POM | 两个 Engine 各自 Spring Context/Management 端口 |
 | RPC | gRPC 1.75.0、Protobuf 4.32.0、Unary Gateway | Platform POM、RPC Server/Forwarder | API_RPC 拥有 Listener/Slot；Runtime Core 拥有共享出站 Channel Adapter |
 | MCP | `gateway-mcp-core` + Engine adapters；Stable/RC/Legacy | MCP Core/Handler/legacy Spec | MCP Core 仍为类库；新 MCP Engine 负责装配和 HTTP Ingress |
@@ -587,11 +587,11 @@ false if role incomplete or node mismatch | block rollout; retry/fix/rollback | 
 ### 8.1 Current relevant tree
 
 ```text
-egon-cola-platform-gateway
-├── egon-cola-platform-gateway-contract
-├── egon-cola-platform-gateway-core
-├── egon-cola-platform-gateway-mcp-core
-├── egon-cola-platform-gateway-engine                 one executable
+egon-cola-yuheng
+├── yuheng-contract
+├── yuheng-core
+├── yuheng-mcp-core
+├── yuheng-biz-gateway                 one executable
 │   └── top.egon.cola.component.gateway.engine
 │       ├── GatewayEngineApplication
 │       ├── bootstrap/{config,lifecycle}
@@ -601,21 +601,21 @@ egon-cola-platform-gateway
 │       ├── operation
 │       ├── rule
 │       └── mcp/{domain,service,adapter}
-├── egon-cola-platform-gateway-admin
-├── egon-cola-platform-gateway-admin-web
-└── egon-cola-platform-gateway-test
+├── yuheng-admin
+├── yuheng-admin-web
+└── yuheng-test
 ```
 
 ### 8.2 Target tree
 
 ```text
-egon-cola-platform-gateway
+egon-cola-yuheng
 ├── pom.xml                                                   MODIFY modules/dependencyManagement
 ├── lombok.config                                             KEEP Qualifier propagation
-├── egon-cola-platform-gateway-contract
+├── yuheng-contract
 │   └── .../contract/runtime/GatewayEngineRoleEnum.java       CREATE
-├── egon-cola-platform-gateway-core                           UNCHANGED public SPIs/contracts
-├── egon-cola-platform-gateway-runtime-core                   CREATE non-executable
+├── yuheng-core                           UNCHANGED public SPIs/contracts
+├── yuheng-runtime-core                   CREATE non-executable
 │   ├── pom.xml                                               CREATE
 │   └── .../gateway/runtime
 │       ├── config/GatewayRuntimeConfiguration.java           CREATE
@@ -635,8 +635,8 @@ egon-cola-platform-gateway
 │           ├── service/{GatewayRuleCompilerStrategy,GatewayRuleActivationApplier,GatewayRuleApplierRegistrar,GatewayTrafficGovernance,GatewayTrafficPolicyCompiler,GatewayPolicyKeyCompiler}.java CREATE/MOVE/MODIFY
 │           ├── repository/{GatewayRuleChunkStore,GatewayRuleLkgRepository}.java MOVE
 │           └── adapter/json/GatewayRuleJsonCodec.java        MOVE
-├── egon-cola-platform-gateway-mcp-core                       KEEP library/capability contracts
-├── egon-cola-platform-gateway-engine                         MODIFY executable API_RPC only
+├── yuheng-mcp-core                       KEEP library/capability contracts
+├── yuheng-biz-gateway                         MODIFY executable API_RPC only
 │   ├── pom.xml/Dockerfile/application*.yml                   MODIFY remove MCP/JDBC; add runtime-core/role
 │   └── .../gateway/engine
 │       ├── GatewayEngineApplication.java                     KEEP MainClass
@@ -650,7 +650,7 @@ egon-cola-platform-gateway
 │           └── service/ApiRpcGatewayRuleCompilerStrategy.java RENAME/MODIFY from EngineGatewayRuleCompiler
 │       X   http/service/GatewayCompositeHttpDataPlaneHandler.java DELETE
 │       X   mcp/**                                            MOVE to MCP Engine
-├── egon-cola-platform-gateway-mcp-engine                     CREATE executable MCP only
+├── yuheng-mcp-gateway                     CREATE executable MCP only
 │   ├── pom.xml/Dockerfile/application.yml/application-operations.yml CREATE
 │   └── .../gateway/mcp/engine
 │       ├── McpGatewayEngineApplication.java                  CREATE MainClass
@@ -661,27 +661,27 @@ egon-cola-platform-gateway
 │       ├── rule/domain/McpGatewayCompiledRulesDTO.java       CREATE record
 │       ├── rule/service/McpGatewayRuleCompilerStrategy.java  CREATE
 │       └── mcp/{domain,service,adapter}/**                   MOVE all current 20 Engine MCP files with responsibility/FQCN update
-├── egon-cola-platform-gateway-admin
+├── yuheng-admin
 │   └── .../admin/runtime
 │       ├── service/GatewayProjectionService.java             MODIFY role-complete consistency + literal Bean rules
 │       └── service/GatewayEngineRoleConsistencyStrategy.java CREATE
-├── egon-cola-platform-gateway-admin-web
+├── yuheng-admin-web
 │   └── src
 │       ├── api/types.ts                                      MODIFY include existing metadata
 │       ├── features/gateway-groups/GatewayGroupDetailPage.tsx MODIFY role display/missing state
 │       └── features/mcp/McpRuntimeStatus.tsx                 MODIFY MCP role filter/status
-├── egon-cola-platform-gateway-test
+├── yuheng-test
 │   ├── ...-test-suite/pom.xml                                MODIFY depend on both executables
 │   └── existing unit/live/deployment tests                   MOVE/MODIFY/ADD by ownership
 ├── deployment/{compose.yml,compose.ha.yml,compose.mtls.yml,compose.ha-mtls.yml,compose.demo.yml,scripts/**} MODIFY
 └── docs/developer-integration.zh-CN.md                       MODIFY runtime topology only
 
 repository root
-├── scripts/unified-platform/{prepare,start,stop,status,verify,test-direct-run-contract,lib/common}.sh MODIFY
+├── scripts/unified-xingyuan/{prepare,start,stop,status,verify,test-direct-run-contract,lib/common}.sh MODIFY
 ├── scripts/unified-identity-local.sh                         MODIFY only after preserving current user diff
 ├── docs/operations/unified-identity-mcp-local-runbook.md     MODIFY
 ├── docs/runbooks/unified-identity-local.md                   MODIFY
-└── .github/workflows/rbac3.yml and Gateway-relevant workflows MODIFY focused module selectors
+└── .github/workflows/tianquan-jianshen.yml and Gateway-relevant workflows MODIFY focused module selectors
 ```
 
 ### 8.3 Package and file responsibilities
@@ -1071,7 +1071,7 @@ public interface GatewayRuleCompilerStrategy<T extends GatewayCompiledRulesDTO> 
 
 | Concern | Definition |
 | --- | --- |
-| Owner | Interface and marker DTO in `egon-cola-platform-gateway-runtime-core`; implementations in their owning executable modules. |
+| Owner | Interface and marker DTO in `yuheng-runtime-core`; implementations in their owning executable modules. |
 | Input | Non-null, already integrity-verified `GatewayRuleSnapshot`; compiler still performs semantic validation owned by its plane. |
 | Output | Non-null immutable `ApiRpcGatewayCompiledRulesDTO` or `McpGatewayCompiledRulesDTO`; releaseId and artifact checksum must equal the input snapshot identity; numeric DDC version belongs to activation status, not the compiled DTO. |
 | Side effects | None. No Provider reference mutation, listener mutation, persistence, DDC ACK, or network call occurs inside `compile`. |
@@ -1572,15 +1572,15 @@ selector:
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-gateway-runtime-core,:egon-cola-platform-gateway-engine,:egon-cola-platform-gateway-mcp-engine,:egon-cola-platform-gateway-admin,:egon-cola-platform-gateway-test-suite \
+  -pl :yuheng-runtime-core,:yuheng-biz-gateway,:yuheng-mcp-gateway,:yuheng-admin,:yuheng-test-suite \
   -am test
 
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
 
-bash scripts/unified-platform/test-direct-run-contract.sh
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
 git diff --check
 ```
 
@@ -1629,8 +1629,8 @@ Host/Path.
 
 Migration is process/deployment-only; no data backfill, schema step, API version, or dual-write exists.
 
-1. Package and publish the current-compatible API/RPC artifact (`egon-cola-platform-gateway-engine`) and new
-   `egon-cola-platform-gateway-mcp-engine` from one source/version. Preserve the previous combined Engine image/artifact
+1. Package and publish the current-compatible API/RPC artifact (`yuheng-biz-gateway`) and new
+   `yuheng-mcp-gateway` from one source/version. Preserve the previous combined Engine image/artifact
    for rollback.
 2. Provision distinct MCP management/data ports, unique `instanceId`, fixed `MCP` role metadata, MCP credentials,
    Redis/PostgreSQL/artifact mounts, TLS material, health check, and independent LKG volume. Do not reuse the API/RPC
@@ -1798,7 +1798,7 @@ infrastructure mapped through `REQ-003`–`REQ-007`; no orphan abstraction or sp
   Compose, scripts, tests, and predecessor Specs.
 - The design uses the repository's Java/Spring Boot/Maven/Reactor Netty/gRPC/DDC/Jackson/Micrometer/Lombok/Jakarta
   validation/React Query/Ant Design/Vitest conventions. It adds no framework or third-party dependency.
-- Existing `egon-cola-platform-gateway-engine` artifact/Main compatibility is preferred; new dependencies are
+- Existing `yuheng-biz-gateway` artifact/Main compatibility is preferred; new dependencies are
   repository-local modules only. The MCP executable is new because no existing executable owns that lifecycle.
 - Java carriers use semantic DTO/Enum/Properties suffixes and records/compact constructors; services use named Beans,
   final constructor injection, qualifiers and Lombok rules; JSON uses Jackson and time uses `java.time`.

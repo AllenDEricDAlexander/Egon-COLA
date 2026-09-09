@@ -1,0 +1,389 @@
+package top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service;
+
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.vo.ApplicationFactVO;
+import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.EffectiveApplicationScope;
+import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.RoleEligibilityService;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.dto.ProjectionCommandDTO;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.RuntimeUserAuthorizationVO;
+import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.domain.vo.UserSnapshotProjectionVO;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.AppAuthorizationContext;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.ApplicationAccessScope;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.BusinessAccessScope;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.DataScopeDecision;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.Decision;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.FieldPolicyDecision;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.GatewayBizAppScopeSnapshot;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.UserAuthorizationSnapshot;
+import top.egon.cola.platform.tianquan.jianshen.core.activation.AuthorizationRuleFacts;
+import top.egon.cola.platform.tianquan.jianshen.core.activation.RoleActivationResolution;
+import top.egon.cola.platform.tianquan.jianshen.core.decision.DataScopeMerger;
+
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+import java.util.TreeMap;
+import java.util.TreeSet;
+
+/**
+ * 类型 `UserAuthorizationSnapshotProjector` 位于当前包内，是类型，用于承载 `User Authorization Snapshot Projector` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
+ * Type `UserAuthorizationSnapshotProjector` is a type in its package and carries the responsibility, state, or contract for `User Authorization Snapshot Projector`; callers normally use it through its public API, Spring assembly, or implementation relationship.
+ * Maps the canonical Core activation result to the public user runtime snapshot contract.
+ */
+public final class UserAuthorizationSnapshotProjector {
+
+    private final RoleEligibilityService roleEligibility;
+
+    public UserAuthorizationSnapshotProjector() {
+        this(null);
+    }
+
+    /** Creates a projector that drops contexts without an effective Business grant. */
+    public UserAuthorizationSnapshotProjector(RoleEligibilityService roleEligibility) {
+        this.roleEligibility = roleEligibility;
+    }
+
+    /**
+     * 方法 `project` 按照 `UserAuthorizationSnapshotProjector` 的职责处理输入，完成 `project` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `project` processes its inputs according to `UserAuthorizationSnapshotProjector`'s responsibility, performs the `project` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * <p>
+     * 用法：调用 `project` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `project`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param command 输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
+    public UserSnapshotProjectionVO project(ProjectionCommandDTO command) {
+        RoleActivationResolution resolution = command.resolution();
+        var contexts = new ArrayList<AppAuthorizationContext>();
+        var businessIdsByCode = new TreeMap<String, String>();
+        var applicationsByBusinessCode =
+                new TreeMap<String, Map<String, ApplicationAccessScope>>();
+        resolution.activeRoleSet().rootsByApplication().forEach(
+                (applicationId, roots) -> {
+                    Optional<EffectiveApplicationScope> effectiveScope =
+                            roleEligibility == null
+                                    ? Optional.empty()
+                                    : roleEligibility.resolveEffectiveScope(
+                                    command.tenantId(), command.userId(), applicationId,
+                                    command.generatedAt());
+                    if (roleEligibility != null && effectiveScope.isEmpty()) {
+                        return;
+                    }
+                    AppAuthorizationContext context = appContext(
+                            applicationId, roots, command);
+                    contexts.add(context);
+                    effectiveScope.ifPresent(scope -> addEffectiveScope(
+                            businessIdsByCode, applicationsByBusinessCode, scope));
+                });
+        contexts.sort(java.util.Comparator.comparing(
+                AppAuthorizationContext::applicationCode));
+        List<BusinessAccessScope> businesses = businessIdsByCode.entrySet().stream()
+                .map(entry -> new BusinessAccessScope(
+                        entry.getValue(),
+                        entry.getKey(),
+                        new ArrayList<>(applicationsByBusinessCode
+                                .get(entry.getKey()).values())))
+                .toList();
+        UserAuthorizationSnapshot snapshot = new UserAuthorizationSnapshot(
+                "rbac3-admin",
+                command.tenantId(),
+                command.identitySub(),
+                command.userId(),
+                command.authVersion(),
+                command.policyVersion(),
+                contexts,
+                resolution.snapshot().checksum(),
+                command.generatedAt(),
+                command.expiresAt());
+        RuntimeUserAuthorizationVO user = new RuntimeUserAuthorizationVO(
+                command.tenantId(),
+                command.identitySub(),
+                command.userId(),
+                "ACTIVE",
+                command.authVersion(),
+                command.policyVersion(),
+                command.expiresAt());
+        GatewayBizAppScopeSnapshot gatewayScope = new GatewayBizAppScopeSnapshot(
+                command.tenantId(),
+                command.identitySub(),
+                command.userId(),
+                command.authVersion(),
+                command.policyVersion(),
+                businesses,
+                gatewayScopeChecksum(command, businesses),
+                command.generatedAt(),
+                command.expiresAt());
+        return new UserSnapshotProjectionVO(user, snapshot, gatewayScope);
+    }
+
+    /**
+     * 方法 `appContext` 按照 `UserAuthorizationSnapshotProjector` 的职责处理输入，完成 `app Context` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `appContext` processes its inputs according to `UserAuthorizationSnapshotProjector`'s responsibility, performs the `app Context` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * <p>
+     * 用法：调用 `appContext` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `appContext`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param roots         输入参数 `roots`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param command       输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
+    private AppAuthorizationContext appContext(
+            String applicationId,
+            Set<String> roots,
+            ProjectionCommandDTO command
+    ) {
+        var facts = command.facts();
+        var snapshot = command.resolution().snapshot();
+        var effectiveRoles = new TreeSet<String>();
+        for (String roleId : snapshot.effectiveRoleIds()) {
+            if (applicationId.equals(facts.hierarchy().requireNode(roleId).applicationId())) {
+                effectiveRoles.add(roleId);
+            }
+        }
+        var permissions = new TreeSet<String>();
+        for (AuthorizationRuleFacts.ResourceGrantBinding binding
+                : facts.authorizationFacts().resourceGrantBindings()) {
+            if (effectiveRoles.contains(binding.roleId())
+                    && binding.permissionCode() != null) {
+                permissions.add(binding.permissionCode());
+            }
+        }
+        var assignmentIds = new TreeSet<String>();
+        for (var assignment : facts.assignments()) {
+            if (effectiveRoles.contains(assignment.roleId())) {
+                assignmentIds.add(assignment.id());
+            }
+        }
+        Map<String, DataScopeDecision> scopes = new TreeMap<>();
+        snapshot.dataScopes().forEach((permission, scope) -> {
+            if (permissions.contains(permission)) {
+                scopes.put(permission, dataScope(permission, scope, command));
+            }
+        });
+        Map<String, FieldPolicyDecision> fieldPolicies = fieldPolicies(
+                applicationId, permissions, command);
+        var resourceCodesSet = new TreeSet<String>();
+        facts.authorizationFacts().resourceGrantBindings().stream()
+                .filter(binding -> effectiveRoles.contains(binding.roleId()))
+                .filter(binding -> binding.permissionCode() != null)
+                .map(AuthorizationRuleFacts.ResourceGrantBinding::resourceCode)
+                .forEach(resourceCodesSet::add);
+        var resourcesByCode = new TreeMap<String, AuthorizationRuleFacts.ResourceFact>();
+        facts.authorizationFacts().resources().forEach(resource ->
+                resourcesByCode.put(resource.code(), resource));
+        var pendingAncestors = new TreeSet<>(resourceCodesSet);
+        while (!pendingAncestors.isEmpty()) {
+            String code = pendingAncestors.pollFirst();
+            AuthorizationRuleFacts.ResourceFact resource = resourcesByCode.get(code);
+            if (resource != null && resource.parentCode() != null
+                    && resourceCodesSet.add(resource.parentCode())) {
+                pendingAncestors.add(resource.parentCode());
+            }
+        }
+        List<String> resourceCodes = resourceCodesSet.stream()
+                .filter(snapshot.resourceCodes()::contains)
+                .toList();
+        ApplicationFactVO application =
+                facts.applications().get(applicationId);
+        if (application == null) {
+            throw new IllegalArgumentException("missing application fact: " + applicationId);
+        }
+        String landingRouteCode = effectiveRoles.stream()
+                .map(roleId -> facts.hierarchy().requireNode(roleId).landingRouteCode())
+                .filter(routeCode -> routeCode != null
+                        && routeCode.equals(snapshot.landingRouteCode()))
+                .findFirst()
+                .orElse(null);
+        return new AppAuthorizationContext(
+                applicationId,
+                application.code(),
+                new ArrayList<>(new TreeSet<>(roots)),
+                new ArrayList<>(assignmentIds),
+                new ArrayList<>(effectiveRoles),
+                permissions,
+                scopes,
+                fieldPolicies,
+                resourceCodes,
+                landingRouteCode);
+    }
+
+    /**
+     * 方法 `dataScope` 按照 `UserAuthorizationSnapshotProjector` 的职责处理输入，完成 `data Scope` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `dataScope` processes its inputs according to `UserAuthorizationSnapshotProjector`'s responsibility, performs the `data Scope` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * <p>
+     * 用法：调用 `dataScope` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `dataScope`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param permission 输入参数 `permission`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param scope      输入参数 `scope`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param command    输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
+    private DataScopeDecision dataScope(
+            String permission,
+            DataScopeMerger.NormalizedDataScope scope,
+            ProjectionCommandDTO command
+    ) {
+        Map<String, Set<String>> references = scope.referencesByDimension();
+        Set<String> orgs = values(references, "ORG", "ORG_TREE");
+        Set<String> departments = values(references, "DEPT", "DEPT_TREE");
+        Set<String> users = values(references, "USER");
+        boolean includeSelf = users.contains(command.userId());
+        boolean concrete = scope.allInTenant() || !orgs.isEmpty()
+                || !departments.isEmpty() || !users.isEmpty() || includeSelf;
+        String scopeType = !concrete ? "NONE" : scope.allInTenant() ? "ALL"
+                                                : includeSelf && references.size() == 1 ? "SELF" : "CUSTOM";
+        return new DataScopeDecision(
+                concrete ? Decision.ALLOW : Decision.DENY,
+                concrete ? "ALLOW" : "DATA_SCOPE_MISSING",
+                command.tenantId(),
+                command.userId(),
+                permission,
+                scopeType,
+                scope.allInTenant(),
+                orgs,
+                references.containsKey("ORG_TREE"),
+                departments,
+                references.containsKey("DEPT_TREE"),
+                users,
+                includeSelf,
+                includeSelf ? command.userId() : null,
+                Long.toString(scope.directorySnapshotVersion()),
+                command.policyVersion(),
+                command.authVersion(),
+                command.policyVersion(),
+                List.of(),
+                command.generatedAt());
+    }
+
+    /**
+     * 方法 `fieldPolicies` 按照 `UserAuthorizationSnapshotProjector` 的职责处理输入，完成 `field Policies` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `fieldPolicies` processes its inputs according to `UserAuthorizationSnapshotProjector`'s responsibility, performs the `field Policies` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * <p>
+     * 用法：调用 `fieldPolicies` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `fieldPolicies`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param applicationId 输入参数 `applicationId`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param permissions   输入参数 `permissions`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param command       输入参数 `command`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
+    private Map<String, FieldPolicyDecision> fieldPolicies(
+            String applicationId,
+            Set<String> permissions,
+            ProjectionCommandDTO command
+    ) {
+        var fieldsByResource = new TreeMap<String, Map<String, FieldPolicyDecision.FieldAccess>>();
+        command.resolution().snapshot().fieldPolicies().forEach((key, level) -> {
+            int separator = key.indexOf('#');
+            if (separator > 0) {
+                fieldsByResource.computeIfAbsent(
+                        key.substring(0, separator), ignored -> new TreeMap<>()).put(
+                        key.substring(separator + 1),
+                        new FieldPolicyDecision.FieldAccess(level, null));
+            }
+        });
+        var result = new TreeMap<String, FieldPolicyDecision>();
+        String applicationCode = command.facts().applications().get(applicationId).code();
+        fieldsByResource.forEach((resource, fields) -> permissions.forEach(permission -> {
+            String key = permission + ':' + applicationCode + ':' + resource;
+            result.put(key, new FieldPolicyDecision(
+                    Decision.ALLOW,
+                    "ALLOW",
+                    command.tenantId(),
+                    command.userId(),
+                    permission,
+                    applicationCode,
+                    resource,
+                    fields,
+                    command.authVersion(),
+                    command.policyVersion(),
+                    List.of(),
+                    command.generatedAt()));
+        }));
+        return result;
+    }
+
+    /**
+     * 方法 `values` 按照 `UserAuthorizationSnapshotProjector` 的职责处理输入，完成 `values` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
+     * Method `values` processes its inputs according to `UserAuthorizationSnapshotProjector`'s responsibility, performs the `values` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
+     * <p>
+     * 用法：调用 `values` 前准备符合契约的参数，并根据返回值、异常或副作用继续业务流程。
+     * Usage: provide contract-compliant arguments before calling `values`, then continue the business flow using its result, exception, or side effect.
+     *
+     * @param source 输入参数 `source`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @param keys   输入参数 `keys`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
+     * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
+     */
+    private Set<String> values(Map<String, Set<String>> source, String... keys) {
+        var result = new TreeSet<String>();
+        for (String key : keys) {
+            result.addAll(source.getOrDefault(key, Set.of()));
+        }
+        return result;
+    }
+
+    private String gatewayScopeChecksum(
+            ProjectionCommandDTO command,
+            List<BusinessAccessScope> businesses) {
+        var canonical = new StringBuilder();
+        appendCanonical(canonical, command.tenantId());
+        appendCanonical(canonical, command.identitySub());
+        appendCanonical(canonical, command.userId());
+        appendCanonical(canonical, Long.toString(command.authVersion()));
+        appendCanonical(canonical, Long.toString(command.policyVersion()));
+        appendCanonical(canonical, command.generatedAt().toString());
+        appendCanonical(canonical, command.expiresAt().toString());
+        for (BusinessAccessScope business : businesses) {
+            appendCanonical(canonical, business.businessId());
+            appendCanonical(canonical, business.businessCode());
+            for (ApplicationAccessScope application : business.applications()) {
+                appendCanonical(canonical, application.applicationId());
+                appendCanonical(canonical, application.applicationCode());
+            }
+        }
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonical.toString().getBytes(StandardCharsets.UTF_8));
+            return "sha256:" + HexFormat.of().formatHex(digest);
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256 is unavailable", exception);
+        }
+    }
+
+    private void appendCanonical(StringBuilder target, String value) {
+        target.append(value.length()).append(':').append(value).append('|');
+    }
+
+    private void addEffectiveScope(
+            Map<String, String> businessIdsByCode,
+            Map<String, Map<String, ApplicationAccessScope>> applicationsByBusinessCode,
+            EffectiveApplicationScope scope) {
+        String previousBusinessId = businessIdsByCode.putIfAbsent(
+                scope.businessCode(), scope.businessId());
+        if (previousBusinessId != null
+                && !previousBusinessId.equals(scope.businessId())) {
+            throw new IllegalArgumentException(
+                    "businessCode maps to multiple DDC Business identifiers");
+        }
+        Map<String, ApplicationAccessScope> applications =
+                applicationsByBusinessCode.computeIfAbsent(
+                        scope.businessCode(), ignored -> new TreeMap<>());
+        ApplicationAccessScope previousApplication = applications.putIfAbsent(
+                scope.applicationCode(),
+                new ApplicationAccessScope(
+                        scope.applicationId(), scope.applicationCode()));
+        if (previousApplication != null
+                && !previousApplication.applicationId().equals(scope.applicationId())) {
+            throw new IllegalArgumentException(
+                    "applicationCode maps to multiple DDC Application identifiers");
+        }
+    }
+}

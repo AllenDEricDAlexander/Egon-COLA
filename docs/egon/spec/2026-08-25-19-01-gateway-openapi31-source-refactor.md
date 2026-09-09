@@ -12,7 +12,7 @@
 | Updated | 2026-08-25 19:43 CST |
 | Owner | User / Egon-COLA Gateway maintainers |
 | Repository | Egon-COLA |
-| Scope | egon-cola-platforms/egon-cola-platform-gateway；Gateway HTTP Provider 契约生成、DDC 能力声明、Admin OpenAPI 同步/持久化/投影、Admin Web 展示 |
+| Scope | egon-cola-xingyuan/egon-cola-yuheng；Gateway HTTP Provider 契约生成、DDC 能力声明、Admin OpenAPI 同步/持久化/投影、Admin Web 展示 |
 | Change Surface | 删除 Gateway Starter 自研 HTTP Handler/Java-Type Schema Compiler；新增 Springdoc OpenAPI 3.1 三个适配器模块；Admin 从健康 DDC Provider 安全拉取并永久保存 Raw OpenAPI，映射到既有 Catalog/MCP/Route Definition；新增两个表、三个管理查询接口和同步状态前端 |
 | Affected Chapters | §7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户请求“把我的网关的 openapi 相关的，改造一下”；用户于 2026-08-25 确认完整闭环、立即破坏性切换、OAuth2 安全拉取、Springdoc 2.8.17、保持当前分层、Raw OpenAPI 永久留存，并明确允许删库重建且不考虑历史数据 |
@@ -41,7 +41,7 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
-| EVD-001 | Static repository | egon-cola-platforms/pom.xml:63-67 | Java 21、Spring Boot 3.5.16，compiler parameters=true | Springdoc 选择 2.8.17；稳定 Java 参数名已具备 | 静态 POM，不证明消费应用有效 POM |
+| EVD-001 | Static repository | egon-cola-xingyuan/pom.xml:63-67 | Java 21、Spring Boot 3.5.16，compiler parameters=true | Springdoc 选择 2.8.17；稳定 Java 参数名已具备 | 静态 POM，不证明消费应用有效 POM |
 | EVD-002 | Static repository | gateway-starter/pom.xml:19-58 | Starter 同时声明 optional WebMVC/WebFlux，并无 Springdoc | 需要协议适配器避免 RPC-only 消费者引入 OpenAPI 依赖 | 未解析外部消费者依赖树 |
 | EVD-003 | Static repository | GatewayReportingAutoConfiguration:80-90, 193-313 | 当前同一 BuiltReport 聚合 MVC、WebFlux、RPC Contributor | HTTP/RPC 当前共享主动 Report 生命周期 | 不证明实际生产 Bean 组合 |
 | EVD-004 | Static repository | GatewayHttpOperationMapper:73-236 | HTTP 从 HandlerMapping、自定义注解、Java Schema Mapper 生成 Operation；streaming 还读取 Java Flux 类型 | HTTP Schema Compiler 的删除边界和协议事实改造点明确 | 静态代码，不证明所有 Spring 签名 |
@@ -101,7 +101,7 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 
 | Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
 | --- | --- | --- | --- | --- | --- |
-| Platform/Gateway Maven | Affected | egon-cola-platforms/pom.xml；gateway/pom.xml | Springdoc BOM；新增 openapi-common/webmvc/webflux 三模块 | 完整依赖/模块设计 | §7, §8, §13, §15, §16, §17 |
+| Platform/Gateway Maven | Affected | egon-cola-xingyuan/pom.xml；gateway/pom.xml | Springdoc BOM；新增 openapi-common/webmvc/webflux 三模块 | 完整依赖/模块设计 | §7, §8, §13, §15, §16, §17 |
 | Provider HTTP annotations/compiler | Affected | starter/annotation；discovery/http；GatewayJavaSchemaMapper | HTTP 自研 Schema 删除，标准 OpenAPI + x-egon | 完整文件/契约/删除设计 | §7, §8, §9, §10, §13, §14, §15, §16, §17, §18 |
 | DDC HTTP registration metadata | Affected | GatewayReportingAutoConfiguration:114-139；DdcHttpRegistrationContributor | 增加经校验的 OpenAPI 定位/认证/构建元数据，不存文档 | 完整元数据与安全设计 | §7, §8, §9, §10, §14, §15, §16 |
 | Admin OpenAPI sync/ingestion/lifecycle | Affected | reporting、runtime/GatewayProjectionService | 拉取、校验、快照、适配、共享 ingest、按 build 激活 | 完整复杂流/失败/并发 | §7, §8, §9, §10, §13, §14, §15, §16, §18 |
@@ -240,7 +240,7 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
-| Runtime | Java 21 | egon-cola-platforms/pom.xml | java.time、records、HttpClient 可用 |
+| Runtime | Java 21 | egon-cola-xingyuan/pom.xml | java.time、records、HttpClient 可用 |
 | Spring | Boot 3.5.16；MVC/WebFlux | platform POM、provider test POM | Springdoc 2.8.17；分别适配 |
 | JSON/OpenAPI | Jackson；无 Springdoc | starter/admin POM | Spring Boot Jackson；Json31 解析 |
 | Persistence | PostgreSQL、JDBC/JPA、Flyway | admin POM/application/V1–V11 | V12、JSONB/TIMESTAMPTZ/VARCHAR(64) |
@@ -512,38 +512,38 @@ sequenceDiagram
 ### 8.1 Current relevant tree
 
 ```text
-egon-cola-platforms/
+egon-cola-xingyuan/
 ├── pom.xml
-└── egon-cola-platform-gateway/
+└── egon-cola-yuheng/
     ├── pom.xml
-    ├── egon-cola-platform-gateway-contract/
-    ├── egon-cola-platform-gateway-starter/
+    ├── yuheng-contract/
+    ├── yuheng-starter/
     │   └── .../starter/
     │       ├── annotation/
     │       ├── discovery/http/
     │       ├── discovery/schema/GatewayJavaSchemaMapper.java
     │       ├── discovery/rpc/RpcGatewayDefinitionContributor.java
     │       └── reporting/
-    ├── egon-cola-platform-gateway-admin/
+    ├── yuheng-admin/
     │   ├── .../admin/{application,catalog,reporting,runtime,...}
     │   └── src/main/resources/{application.yml,application-local.yml,db/migration/V1..V11}
-    ├── egon-cola-platform-gateway-admin-web/src/
+    ├── yuheng-admin-web/src/
     │   ├── api/{gatewayApi.ts,types.ts}
     │   └── features/{applications,interface-catalog}
-    └── egon-cola-platform-gateway-test/
+    └── yuheng-test/
 ```
 
 ### 8.2 Target tree
 
 ```text
-egon-cola-platforms/
+egon-cola-xingyuan/
 ├── pom.xml                                           MODIFY springdoc.version/BOM
-└── egon-cola-platform-gateway/
+└── egon-cola-yuheng/
     ├── lombok.config                                 CREATE Qualifier propagation
     ├── pom.xml                                       MODIFY modules/dependencyManagement
-    ├── egon-cola-platform-gateway-contract/
+    ├── yuheng-contract/
     │   └── .../reporting/GatewayDefinitionSourceTypeEnum.java CREATE
-    ├── egon-cola-platform-gateway-starter/
+    ├── yuheng-starter/
     │   ├── pom.xml                                   MODIFY remove Web MVC/WebFlux
     │   └── .../starter/
     │       ├── annotation/
@@ -561,7 +561,7 @@ egon-cola-platforms/
     │       ├── discovery/schema/GatewayJavaSchemaMapper.java DELETE
     │       ├── discovery/rpc/RpcGatewayDefinitionContributor.java MODIFY sourceType=RPC_DESCRIPTOR
     │       └── GatewayReportingAutoConfiguration.java MODIFY RPC-only contributor/report
-    ├── egon-cola-platform-gateway-starter-openapi/
+    ├── yuheng-starter-openapi/
     │   ├── pom.xml                                   CREATE springdoc common
     │   ├── .../openapi/annotation/
     │   │   ├── EgonApiCatalog.java                   CREATE
@@ -574,13 +574,13 @@ egon-cola-platforms/
     │   │   ├── EgonOperationCustomizer.java          CREATE
     │   │   └── EgonOpenApiCustomizer.java            CREATE
     │   └── .../openapi/registration/GatewayOpenApiRegistrationContributor.java CREATE
-    ├── egon-cola-platform-gateway-starter-openapi-webmvc/
+    ├── yuheng-starter-openapi-webmvc/
     │   ├── pom.xml                                   CREATE
     │   └── .../webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java CREATE
-    ├── egon-cola-platform-gateway-starter-openapi-webflux/
+    ├── yuheng-starter-openapi-webflux/
     │   ├── pom.xml                                   CREATE
     │   └── .../webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java CREATE
-    ├── egon-cola-platform-gateway-admin/
+    ├── yuheng-admin/
     │   ├── pom.xml                                   MODIFY MVC adapter/swagger/common-core/lombok
     │   ├── .../admin/openapi/
     │   │   ├── controller/GatewayOpenApiController.java CREATE
@@ -598,11 +598,11 @@ egon-cola-platforms/
     │   ├── src/main/resources/application.yml        MODIFY
     │   ├── src/main/resources/application-local.yml  MODIFY
     │   └── src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql CREATE
-    ├── egon-cola-platform-gateway-admin-web/src/
+    ├── yuheng-admin-web/src/
     │   ├── api/{gatewayApi.ts,types.ts,gatewayApi.test.ts} MODIFY
     │   ├── features/applications/{ApplicationsPage.tsx,ApplicationsPage.test.tsx} MODIFY
     │   └── features/interface-catalog/{CatalogPage,OperationPage,SchemaPanel}*.tsx MODIFY
-    └── egon-cola-platform-gateway-test/
+    └── yuheng-test/
         ├── ...-test-http-provider/pom.xml             MODIFY use MVC adapter
         ├── ...-test-webflux-http-provider/pom.xml     MODIFY use WebFlux adapter
         ├── ...-test-mcp-provider/pom.xml              MODIFY use MVC adapter
@@ -1276,7 +1276,7 @@ Live EXPLAIN and size remain deployment verification；no speculative GIN index 
 
 ##### Migration and historical-data handling
 
-Exact path: egon-cola-platform-gateway-admin/src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql。
+Exact path: yuheng-admin/src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql。
 
 V12 creates table、constraints、indexes in one migration。No backfill because DEC-007 requires an empty DB。V1–V11 remain byte-identical。Precondition is an empty database or a deliberately disposable development database migrated through V11。Verification queries assert table/column/constraint/index existence and zero rows before Provider discovery。Rollback is drop/recreate database plus application rollback；no row-preserving down migration or Flyway repair。
 
@@ -1566,12 +1566,12 @@ Dependency direction remains feature Controller -> Service -> Repository/domain�
 Focused validation commands for later implementation:
 
 ```text
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am test
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test -am test
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run test
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test -am test
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run test
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
 ```
 
 These commands are design targets，not executed by this Spec。

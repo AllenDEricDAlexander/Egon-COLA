@@ -56,7 +56,7 @@
 
     <modules>
         <module>egon-cola-components</module>
-        <module>egon-cola-platforms</module>
+        <module>egon-cola-xingyuan</module>
         <module>egon-cola-archetypes</module>
     </modules>
 

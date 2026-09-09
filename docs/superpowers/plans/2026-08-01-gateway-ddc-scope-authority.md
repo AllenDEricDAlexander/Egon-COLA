@@ -31,19 +31,19 @@
 
 ### DDC signed management boundary
 
-- Create `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeQuery.java`: optional four-field scope query.
-- Create `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeBinding.java`: transport-neutral binding projection.
-- Modify `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`: add default read-only method.
-- Modify `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`: signed HTTP Adapter implementation.
-- Modify `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`: HMAC-protected scope endpoint using the existing binding service.
+- Create `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeQuery.java`: optional four-field scope query.
+- Create `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeBinding.java`: transport-neutral binding projection.
+- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`: add default read-only method.
+- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`: signed HTTP Adapter implementation.
+- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`: HMAC-protected scope endpoint using the existing binding service.
 
 ### Gateway backend
 
-- Create `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeService.java`: DDC/Gateway join Facade and exact binding validation.
-- Create `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayScopeController.java`: authenticated read-only `/scopes` API.
-- Create `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationAlreadyExistsException.java`: physical duplicate evidence.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeService.java`: DDC/Gateway join Facade and exact binding validation.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayScopeController.java`: authenticated read-only `/scopes` API.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationAlreadyExistsException.java`: physical duplicate evidence.
 - Modify `GatewayApplicationRepository.java`, `GatewayApplicationService.java`, `GatewayApplicationController.java`, and `GatewayAdminExceptionHandler.java`: physical identity, optional filtering and conflict response.
-- Create `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/db/migration/V6__enforce_gateway_application_physical_identity.sql`: replace the legacy namespace-based unique index.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V6__enforce_gateway_application_physical_identity.sql`: replace the legacy namespace-based unique index.
 
 ### Gateway Web
 
@@ -58,13 +58,13 @@
 ### Task 1: Add the signed DDC scope binding management contract
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeQuery.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeBinding.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeQuery.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeBinding.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiControllerTest.java`
 
 **Interfaces:**
 - Produces `DdcManagementClient#getScopeBindings(DdcManagementScopeQuery)`.
@@ -98,8 +98,8 @@ void scopeBindingsOmitBlankFiltersAndKeepSignedPartialQuery() {
 - [ ] **Step 2: Run the Starter test and verify RED**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter -am \
   -Dtest=HttpDdcManagementClientTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -209,8 +209,8 @@ public ResultRecord<List<DdcManagementScopeBinding>> scopeBindings(
 - [ ] **Step 7: Run DDC targeted and module tests**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter,egon-cola-platform-dynamic-config-center-admin \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter,egon-cola-tianshu-admin \
   -am -Dsurefire.failIfNoSpecifiedTests=false \
   -Dtest=HttpDdcManagementClientTest,DdcManagementOpenApiControllerTest,DdcNamespaceEnvAppBindingServiceTest test
 ```
@@ -221,19 +221,19 @@ Expected: all named tests pass and the reactor summary shows Starter and Admin w
 
 ```bash
 git add \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin
 git commit -m "feat(ddc): expose signed scope bindings"
 ```
 
 ### Task 2: Add the Gateway Scope Facade and authenticated catalog API
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayScopeController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayApplicationRepository.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminSecurityIntegrationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayScopeController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayApplicationRepository.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminSecurityIntegrationTest.java`
 
 **Interfaces:**
 - Consumes `DdcManagementClient#getScopeBindings` from Task 1.
@@ -276,8 +276,8 @@ void reportsDdcFailureInsteadOfReturningStaticScopes() {
 - [ ] **Step 2: Run Gateway scope test and verify RED**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin -am \
   -Dtest=GatewayScopeServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -404,8 +404,8 @@ mockMvc.perform(get("/api/v1/gateway/admin/scopes")
 - [ ] **Step 7: Run Gateway scope and security tests**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin -am \
   -Dtest=GatewayScopeServiceTest,GatewayAdminSecurityIntegrationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -413,21 +413,21 @@ mockMvc.perform(get("/api/v1/gateway/admin/scopes")
 - [ ] **Step 8: Commit the Gateway scope catalog**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git commit -m "feat(gateway-admin): expose DDC scope catalog"
 ```
 
 ### Task 3: Enforce one physical Gateway Application and scope-aware listing
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/db/migration/V6__enforce_gateway_application_physical_identity.sql`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationAlreadyExistsException.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayApplicationRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayApplicationController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminExceptionHandler.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationServiceTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/migration/GatewayV6MigrationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V6__enforce_gateway_application_physical_identity.sql`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationAlreadyExistsException.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayApplicationRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayApplicationController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminExceptionHandler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationServiceTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/migration/GatewayV6MigrationTest.java`
 
 **Interfaces:**
 - Consumes `GatewayScopeService#requireEnabled` and `#bindings` from Task 2.
@@ -473,8 +473,8 @@ void listsOnePhysicalApplicationThroughEitherNamespace() {
 - [ ] **Step 2: Run the application service tests and verify RED**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin -am \
   -Dtest=GatewayApplicationServiceTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -581,8 +581,8 @@ and `WHERE deleted = FALSE`. The later host-local migration is the execution pro
 - [ ] **Step 6: Run Gateway application and migration tests**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin -am \
   -Dtest=GatewayApplicationServiceTest,GatewayV6MigrationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -590,18 +590,18 @@ and `WHERE deleted = FALSE`. The later host-local migration is the execution pro
 - [ ] **Step 7: Commit physical application identity**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git commit -m "fix(gateway-admin): reuse applications across namespaces"
 ```
 
 ### Task 4: Replace Gateway Web hardcoded scopes with DDC catalog resolution
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`
-- Rewrite: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/hooks/scopeDefaults.ts`
-- Rewrite test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/hooks/scopeDefaults.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`
+- Rewrite: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.ts`
+- Rewrite test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.test.ts`
 
 **Interfaces:**
 - Consumes `GET /api/v1/gateway/admin/scopes` from Task 2.
@@ -633,7 +633,7 @@ it('returns undefined when no DDC binding exists', () => {
 - [ ] **Step 2: Run scope tests and verify RED**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web \
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web \
   test -- --run src/hooks/scopeDefaults.test.ts
 ```
 
@@ -718,7 +718,7 @@ export const optionsFor = (
 - [ ] **Step 5: Run Web API and resolver tests**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web \
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web \
   test -- --run src/hooks/scopeDefaults.test.ts src/api/gatewayApi.test.ts
 ```
 
@@ -726,21 +726,21 @@ npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-g
 
 ```bash
 git add \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/hooks/scopeDefaults.ts \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/hooks/scopeDefaults.test.ts
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.ts \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.test.ts
 git commit -m "feat(gateway-web): resolve DDC scopes"
 ```
 
 ### Task 5: Wire async scope state, selectors and DDC-owned application creation
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/hooks/useScope.tsx`
-- Create test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/hooks/useScope.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx`
-- Create test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.tsx`
-- Create test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/useScope.tsx`
+- Create test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/useScope.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`
+- Create test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx`
+- Create test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.test.tsx`
 
 **Interfaces:**
 - Consumes the pure functions and `gatewayApi.scopes` from Task 4.
@@ -769,7 +769,7 @@ it('does not render scoped children when DDC scope loading fails', async () => {
 - [ ] **Step 2: Run component tests and verify RED**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web \
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web \
   test -- --run src/hooks/useScope.test.tsx src/layouts/AdminLayout.test.tsx \
   src/features/applications/ApplicationsPage.test.tsx
 ```
@@ -835,16 +835,16 @@ After a physical-duplicate 409, invalidate the current applications query so the
 - [ ] **Step 6: Run the complete Gateway Web validation**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
 ```
 
 - [ ] **Step 7: Commit the Gateway Web integration**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 git commit -m "fix(gateway-web): use DDC scope authority"
 ```
 
@@ -865,8 +865,8 @@ git commit -m "fix(gateway-web): use DDC scope authority"
 - [ ] **Step 1: Run backend full affected-reactor tests**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml clean test
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean test
 ```
 
 Inspect reactor summaries and actual test counts; an aggregator-only `BUILD SUCCESS` is insufficient.
@@ -874,14 +874,14 @@ Inspect reactor summaries and actual test counts; an aggregator-only `BUILD SUCC
 - [ ] **Step 2: Re-run all affected Web checks**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run build
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run build
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
 ```
 
 - [ ] **Step 3: Preflight V6 physical identity against the host PostgreSQL**
@@ -901,10 +901,10 @@ version `6` and `uk_gateway_application_physical_active` exists.
 - [ ] **Step 4: Build executable artifacts**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-admin -am package -DskipTests
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin,egon-cola-platform-gateway-engine,egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-admin -am package -DskipTests
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin,yuheng-biz-gateway,yuheng-test/yuheng-test-http-provider \
   -am package -DskipTests
 ```
 

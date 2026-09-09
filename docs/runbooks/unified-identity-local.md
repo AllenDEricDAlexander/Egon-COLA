@@ -36,7 +36,7 @@ export UNIFIED_IDENTITY_REDIS_PASSWORD_FILE=/absolute/path/redis.password
 需要像最终交付一样逐个运行 JAR 和前端时，先在仓库根目录执行一次安全准备：
 
 ```bash
-./scripts/unified-platform/prepare-local-stack.sh
+./scripts/unified-xingyuan/prepare-local-stack.sh
 ```
 
 该命令会使用真实 PostgreSQL/Redis 构建 JAR、安装缺失的锁定版前端依赖，临时拉起并初始化 IdP USER JWT、RBAC3 双租户、DDC 和
@@ -48,23 +48,23 @@ Gateway/MCP 拓扑，然后停止受管进程，为直接命令释放端口。�
 准备完成后，分别在五个终端的仓库根目录运行；不需要 `source .env`，也不需要额外 JVM 参数：
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar
 ```
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar
 ```
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar
 ```
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/target/yuheng-admin-exec.jar
 ```
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar
 ```
 
 必须从仓库根目录执行这些命令，或者显式设置 `UNIFIED_PLATFORM_RUNTIME_DIR` 为运行配置目录的绝对路径。首次创建数据库时不要跳过准备命令，因为 RBAC3 的本机身份绑定和四个平台的初始数据由准备流程建立。
@@ -92,7 +92,7 @@ java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gate
 执行包含四个 Admin Web、Gateway 和 MCP 的完整平台验收：
 
 ```bash
-./scripts/unified-platform/verify-local-stack.sh
+./scripts/unified-xingyuan/verify-local-stack.sh
 ```
 
 完整平台验收覆盖：
@@ -139,22 +139,22 @@ java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gate
 分别在四个终端运行：
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web
+cd egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web
 npm run dev
 ```
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web
+cd egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web
 npm run dev
 ```
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm run dev
 ```
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 npm run dev
 ```
 

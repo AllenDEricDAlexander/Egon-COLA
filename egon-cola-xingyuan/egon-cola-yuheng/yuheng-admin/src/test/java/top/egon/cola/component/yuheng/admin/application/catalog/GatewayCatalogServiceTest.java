@@ -1,0 +1,271 @@
+package top.egon.cola.component.yuheng.admin.catalog.service;
+
+import com.fasterxml.jackson.databind.json.JsonMapper;
+import org.junit.jupiter.api.Test;
+import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
+import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
+import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
+import top.egon.cola.component.yuheng.admin.catalog.repository.*;
+import top.egon.cola.component.yuheng.admin.catalog.domain.dto.*;
+import top.egon.cola.component.yuheng.admin.catalog.domain.po.*;
+import top.egon.cola.component.yuheng.admin.catalog.domain.vo.*;
+
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
+
+class GatewayCatalogServiceTest {
+
+    private static final Instant NOW = Instant.parse(
+            "2026-07-25T00:00:00Z"
+    );
+
+    @Test
+    void createsManualHttpOperationWithStableIdentityAndVersion() {
+        FakeStore store = new FakeStore();
+        GatewayCatalogService service = service(store);
+
+        top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO created =
+                service.createManualOperation(
+                        "group-1",
+                        operation(false),
+                        actor(),
+                        audit()
+                );
+
+        assertThat(created.operation().operationKey())
+                .isEqualTo("orders:http:GET:/orders/{id}");
+        assertThat(created.operation().id()).isEqualTo("42");
+        assertThat(created.operation().externalAccessible()).isFalse();
+        assertThat(created.operation().sourceType()).isEqualTo("MANUAL");
+        assertThat(created.definitions()).singleElement()
+                .satisfies(definition -> {
+                    assertThat(definition.definitionVersion()).isOne();
+                    assertThat(definition.externalAccessible()).isFalse();
+                });
+    }
+
+    @Test
+    void appendsDefinitionAndDoesNotRewriteOperationIdentity() {
+        FakeStore store = new FakeStore();
+        GatewayCatalogService service = service(store);
+        String operationId = service.createManualOperation(
+                "group-1",
+                operation(false),
+                actor(),
+                audit()
+        ).operation().id();
+
+        top.egon.cola.component.yuheng.admin.catalog.domain.vo.GatewayOperationDetailVO updated =
+                service.updateManualDefinition(
+                        operationId,
+                        definition(true, "updated"),
+                        actor(),
+                        audit()
+                );
+
+        assertThat(updated.operation().operationKey())
+                .isEqualTo("orders:http:GET:/orders/{id}");
+        assertThat(updated.operation().externalAccessible()).isTrue();
+        assertThat(updated.definitions())
+                .extracting(top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO
+                        ::definitionVersion)
+                .containsExactly(2L, 1L);
+    }
+
+    @Test
+    void refusesManualOverwriteOfStarterOperation() {
+        FakeStore store = new FakeStore();
+        store.operation = new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
+                "starter-operation",
+                "application-1",
+                "group-1",
+                "orders:http:GET:/orders/{id}",
+                "HTTP",
+                "GET /orders/{id}",
+                false,
+                Map.of(),
+                "RPC_DESCRIPTOR",
+                "ACTIVE",
+                "definition-1",
+                1,
+                NOW,
+                NOW
+        );
+        GatewayCatalogService service = service(store);
+
+        assertThatThrownBy(() -> service.createManualOperation(
+                "group-1",
+                operation(false),
+                actor(),
+                audit()
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("RPC_DESCRIPTOR");
+    }
+
+    private GatewayCatalogService service(FakeStore store) {
+        return new GatewayCatalogService(
+                store,
+                mock(GatewayAuditLogRepository.class),
+                JsonMapper.builder().build(),
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                () -> 42L
+        );
+    }
+
+    private top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualOperationDTO operation(
+            boolean externalAccessible) {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualOperationDTO(
+                top.egon.cola.component.yuheng.admin.catalog.domain.enums.GatewayCatalogProtocolEnum.HTTP,
+                "GET",
+                "/orders/{id}",
+                null,
+                null,
+                "order-provider",
+                "default",
+                "1.0.0",
+                "HTTP",
+                externalAccessible,
+                definition(externalAccessible, "initial")
+        );
+    }
+
+    private top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualDefinitionDTO definition(
+            boolean externalAccessible,
+            String summary) {
+        return new top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualDefinitionDTO(
+                summary,
+                List.of("order"),
+                Map.of("type", "object"),
+                Map.of("type", "object"),
+                List.of(),
+                null,
+                Map.of(),
+                externalAccessible
+        );
+    }
+
+    private AdminActor actor() {
+        return new AdminActor(
+                "admin",
+                top.egon.cola.component.yuheng.admin.shared.domain.enums.AdminActorTypeEnum.USER,
+                Set.of("*"),
+                Set.of("GATEWAY_ADMIN")
+        );
+    }
+
+    private RequestAuditContext audit() {
+        return new RequestAuditContext("request", "trace");
+    }
+
+    private static final class FakeStore implements GatewayCatalogRepository {
+
+        private final List<GatewayOperationDefinitionPO> definitions =
+                new ArrayList<>();
+
+        private GatewayOperationPO operation;
+
+        @Override
+        public GatewayCatalogTreeVO loadCatalog(String applicationId) {
+            return new GatewayCatalogTreeVO(applicationId, List.of());
+        }
+
+        @Override
+        public String createManualHierarchy(
+                String applicationId,
+                GatewayManualHierarchyDTO hierarchy,
+                Instant now) {
+            return "group-1";
+        }
+
+        @Override
+        public Optional<GatewayInterfaceGroupScopeVO> findInterfaceGroup(String id) {
+            return Optional.of(new GatewayInterfaceGroupScopeVO(
+                    id,
+                    "application-1",
+                    "test-biz",
+                    "orders",
+                    "test",
+                    "default"
+            ));
+        }
+
+        @Override
+        public Optional<GatewayOperationPO> findOperation(String operationId) {
+            return operation == null || !operation.id().equals(operationId)
+                    ? Optional.empty()
+                    : Optional.of(operation);
+        }
+
+        @Override
+        public Optional<GatewayOperationPO> findOperation(
+                String applicationId,
+                String operationKey) {
+            return operation == null
+                    || !operation.operationKey().equals(operationKey)
+                    ? Optional.empty()
+                    : Optional.of(operation);
+        }
+
+        @Override
+        public List<GatewayOperationDefinitionPO> loadDefinitions(String operationId) {
+            return definitions.reversed();
+        }
+
+        @Override
+        public List<GatewayCurrentOperationDefinitionVO> loadCurrentOperationDefinitions(
+                String gatewayGroupId) {
+            return List.of();
+        }
+
+        @Override
+        public void insertOperation(GatewayOperationPO value) {
+            operation = value;
+        }
+
+        @Override
+        public void appendDefinition(GatewayOperationDefinitionPO definition) {
+            definitions.add(definition);
+        }
+
+        @Override
+        public void pointToDefinition(
+                String operationId,
+                String definitionId,
+                boolean externalAccessible,
+                Instant now) {
+            operation = new GatewayOperationPO(
+                    operation.id(),
+                    operation.applicationId(),
+                    operation.interfaceGroupId(),
+                    operation.operationKey(),
+                    operation.protocol(),
+                    operation.methodIdentity(),
+                    externalAccessible,
+                    new LinkedHashMap<>(
+                            operation.providerServiceIdentity()
+                    ),
+                    operation.sourceType(),
+                    "ACTIVE",
+                    definitionId,
+                    operation.revision() + 1,
+                    operation.createdAt(),
+                    now
+            );
+        }
+
+        @Override
+        public void deprecate(String operationId, Instant now) {
+        }
+    }
+}

@@ -36,10 +36,10 @@
 
 ### Backend new files
 
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java`：`PageQuery`、Spring `Pageable/Page` 与 `PageResultRecord` 的 Admin 边界适配。
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java`：发布任务分页筛选。
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java`：发布任务只读分页编排。
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java`：完整 Registry Catalog/Snapshot 到 Admin Page 的适配。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java`：`PageQuery`、Spring `Pageable/Page` 与 `PageResultRecord` 的 Admin 边界适配。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java`：发布任务分页筛选。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java`：发布任务只读分页编排。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java`：完整 Registry Catalog/Snapshot 到 Admin Page 的适配。
 - 对应的 support、service、repository 和 controller 测试文件。
 
 ### Backend modified areas
@@ -101,16 +101,16 @@ export async function ddcPageApi<T>(
 ### Task 1: 分页 Support 与 Biz/Namespace 基础分页
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupportTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcBizController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupportTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcBizController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java`
 
 **Interfaces:**
 - Consumes: Common Core `PageQuery` and `PageResultRecord<T>`; existing Biz/Namespace List APIs.
@@ -153,7 +153,7 @@ void slicesOnlyAggregateRecords() {
 Run:
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcAdminPageSupportTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -244,7 +244,7 @@ mockMvc.perform(get("/api/v1/ddc/namespaces/page")
 - [ ] **Step 5: 运行 Controller 测试并确认 `/page` 失败**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcBizControllerTest,DdcNamespaceControllerTest,DdcAdminPageSupportTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -336,7 +336,7 @@ public PageResultRecord<DdcNamespaceEntity> page(
 - [ ] **Step 8: 运行 Task 1 测试并确认通过**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcAdminPageSupportTest,DdcBizControllerTest,DdcNamespaceControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -347,16 +347,16 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcBizController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupportTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcBizController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupportTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java
 git commit -m "feat(ddc): add core metadata page queries"
 ```
 
@@ -365,15 +365,15 @@ git commit -m "feat(ddc): add core metadata page queries"
 ### Task 2: Env/App 可见性数据库分页
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcEnvService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcEnvController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcAppController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcEnvControllerTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcEnvService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcEnvController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcAppController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcEnvControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
 
 **Interfaces:**
 - Consumes: `DdcAdminPageSupport` from Task 1 and current namespace/env/app visibility semantics.
@@ -406,7 +406,7 @@ assertThat(appPage.getTotalElements()).isEqualTo(1);
 - [ ] **Step 2: 运行 Repository 测试并确认失败**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcMetadataPagingRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -476,7 +476,7 @@ Page<DdcAppEntity> search(
 Env 断言 `/envs/page?bizCode=infra&namespaceCode=default&pageNo=1&pageSize=10` 返回 `$.records`；App 断言所有 scope + keyword 被传给 Service，并验证 `$.page.total`。
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcEnvControllerTest,DdcAppControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -554,7 +554,7 @@ public PageResultRecord<DdcAppEntity> page(
 - [ ] **Step 7: 运行 Task 2 测试**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcMetadataPagingRepositoryTest,DdcEnvControllerTest,DdcAppControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -565,15 +565,15 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcEnvService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcEnvController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcAppController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcEnvControllerTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcEnvService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcEnvController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcAppController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcEnvControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java
 git commit -m "feat(ddc): paginate scope-aware metadata"
 ```
 
@@ -582,12 +582,12 @@ git commit -m "feat(ddc): paginate scope-aware metadata"
 ### Task 3: Namespace Binding Join 投影分页
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java`
 
 **Interfaces:**
 - Consumes: `DdcNamespaceEnvAppBindingVO` 构造器、`DdcAdminPageSupport`。
@@ -615,7 +615,7 @@ assertThat(page.getContent()).singleElement().satisfies(row -> {
 - [ ] **Step 2: 运行测试并确认失败**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcMetadataPagingRepositoryTest,DdcNamespaceEnvAppBindingServiceTest,DdcNamespaceEnvAppBindingControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -711,7 +711,7 @@ Controller 测试断言 `$.records[0].appCode`、`$.page.total`，原 List 测�
 - [ ] **Step 6: 运行 Task 3 测试**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcMetadataPagingRepositoryTest,DdcNamespaceEnvAppBindingServiceTest,DdcNamespaceEnvAppBindingControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -722,12 +722,12 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java
 git commit -m "perf(ddc): paginate namespace bindings"
 ```
 
@@ -736,13 +736,13 @@ git commit -m "perf(ddc): paginate namespace bindings"
 ### Task 4: Config 与 Version 真实分页
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcConfigController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcConfigPagingRepositoryTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcConfigController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcConfigPagingRepositoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java`
 
 **Interfaces:**
 - Consumes: 原 Config native search、`DdcConfigQueryRequest`、`DdcAdminPageSupport`。
@@ -779,7 +779,7 @@ assertThat(versions.getTotalElements()).isEqualTo(3);
 - [ ] **Step 2: 运行 Repository 测试并确认失败**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcConfigPagingRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -914,7 +914,7 @@ public PageResultRecord<DdcConfigVersionVO> pageVersions(
 - [ ] **Step 7: 运行 Task 4 测试**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcConfigPagingRepositoryTest,DdcConfigServiceTest,DdcConfigControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -925,13 +925,13 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcConfigController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcConfigPagingRepositoryTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigServiceTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcConfigController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcConfigPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java
 git commit -m "feat(ddc): paginate config history"
 ```
 
@@ -940,23 +940,23 @@ git commit -m "feat(ddc): paginate config history"
 ### Task 5: Publish Task、持久化 Instance 与 Cache Check 分页
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcPublishTaskController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcInstanceRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcInstanceController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcCacheController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcOperationalPagingRepositoryTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskControllerTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcInstanceControllerTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcCacheControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcPublishTaskController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcInstanceRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcInstanceController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcCacheController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcOperationalPagingRepositoryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcInstanceControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcCacheControllerTest.java`
 
 **Interfaces:**
 - Consumes: `DdcAdminPageSupport`、现有 Publish Detail/Retry、Instance List、Cache Check。
@@ -1002,7 +1002,7 @@ assertThat(versions.getContent()).hasSize(1);
 - [ ] **Step 2: 运行失败测试**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcOperationalPagingRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -1202,7 +1202,7 @@ Cache Service 测试额外 verify 只为当前页的 version 调用 Redis Reposi
 - [ ] **Step 7: 运行 Task 5 测试**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcOperationalPagingRepositoryTest,DdcPublishTaskQueryServiceTest,DdcCacheServiceTest,DdcInstanceAdminServiceTest,DdcPublishTaskControllerTest,DdcInstanceControllerTest,DdcCacheControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1213,23 +1213,23 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcPublishTaskController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcInstanceRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcInstanceController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcCacheController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcOperationalPagingRepositoryTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryServiceTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheServiceTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminServiceTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskControllerTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcInstanceControllerTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcCacheControllerTest.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcPublishTaskController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcInstanceRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcInstanceController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcCacheController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcOperationalPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcInstanceControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcCacheControllerTest.java
 git commit -m "feat(ddc): paginate admin operational queries"
 ```
 
@@ -1238,12 +1238,12 @@ git commit -m "feat(ddc): paginate admin operational queries"
 ### Task 6: Registry Admin Page Adapter
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcRegistryAdminController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryAdminControllerTest.java`
-- Verify unchanged: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/api/client/DdcManagementClient.java`
-- Verify unchanged: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/rpc/provider/DdcManagementRpcProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcRegistryAdminController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryAdminControllerTest.java`
+- Verify unchanged: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/api/client/DdcManagementClient.java`
+- Verify unchanged: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/rpc/provider/DdcManagementRpcProvider.java`
 
 **Interfaces:**
 - Consumes: `DdcManagementFacade.getServiceKeys(query)` 和 `getInstances(query)` 完整快照。
@@ -1275,7 +1275,7 @@ void pagesSortedServiceKeysWithoutChangingCatalog() {
 - [ ] **Step 2: 运行 Adapter 测试并确认失败**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcRegistryAdminPageServiceTest,DdcRegistryAdminControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1400,14 +1400,14 @@ mockMvc.perform(get("/api/v1/ddc/registry/services"))
 
 ```bash
 ! rg -n "Page(Query|ResultRecord)" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main \
-  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main \
+  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main
 ```
 
 - [ ] **Step 6: 运行 Task 6 测试**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest=DdcRegistryAdminPageServiceTest,DdcRegistryAdminControllerTest,DdcManagementRpcProviderTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1418,10 +1418,10 @@ Expected: PASS，0 failures；源码扫描无匹配。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcRegistryAdminController.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageServiceTest.java \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryAdminControllerTest.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcRegistryAdminController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryAdminControllerTest.java
 git commit -m "feat(ddc): add paged registry admin views"
 ```
 
@@ -1430,21 +1430,21 @@ git commit -m "feat(ddc): add paged registry admin views"
 ### Task 7: Frontend Page API、QueryClient 与 Scope Option Cache
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/types.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/client.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/client.test.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/query/queryClient.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/hooks/usePageState.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/hooks/usePageState.test.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/test/renderWithQueryClient.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/main.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/useScopeOptions.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/BizSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/NamespaceSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/EnvSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/AppSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/useScopeOptions.test.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/ScopeSelects.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.test.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/query/queryClient.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/hooks/usePageState.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/hooks/usePageState.test.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/test/renderWithQueryClient.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/main.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/useScopeOptions.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/BizSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/NamespaceSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/EnvSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/AppSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/useScopeOptions.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/ScopeSelects.test.tsx`
 
 **Interfaces:**
 - Consumes: Backend `PageResultRecord<T>` from Tasks 1–6；现有 OAuth refresh 和 `DdcApiError`。
@@ -1506,7 +1506,7 @@ it('accepts ResultRecord failures from the global exception handler', async () =
 - [ ] **Step 2: 运行 Client 测试并确认失败**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -1744,7 +1744,7 @@ return useQuery({
 - [ ] **Step 7: 运行 Task 7 tests、typecheck 和 lint**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -1762,15 +1762,15 @@ Expected: tests PASS，typecheck exit 0，lint exit 0。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/types.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/client.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/client.test.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/query/queryClient.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/hooks/usePageState.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/hooks/usePageState.test.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/test/renderWithQueryClient.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/main.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/client.test.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/query/queryClient.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/hooks/usePageState.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/hooks/usePageState.test.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/test/renderWithQueryClient.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/main.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope
 git commit -m "feat(ddc-web): add paged query infrastructure"
 ```
 
@@ -1779,15 +1779,15 @@ git commit -m "feat(ddc-web): add paged query infrastructure"
 ### Task 8: Metadata Pages 与 Namespace Binding Drawer
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/page/AdminPageHeader.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BizsPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/EnvPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/AppsPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/NamespacesPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BizsPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/EnvPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/AppsPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/NamespacesPage.test.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/page/AdminPageHeader.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BizsPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/EnvPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AppsPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BizsPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/EnvPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AppsPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.test.tsx`
 
 **Interfaces:**
 - Consumes: `ddcPageApi`、QueryClient、`usePageState`、scope option query keys。
@@ -1856,7 +1856,7 @@ expect(document.querySelector('.ant-drawer-content-wrapper'))
 - [ ] **Step 3: 运行四个页面测试并确认失败**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -1986,7 +1986,7 @@ export default function AdminPageHeader({ title, description, extra }: Props) {
 - [ ] **Step 8: 运行 Task 8 tests、typecheck 和 lint**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2004,15 +2004,15 @@ Expected: all PASS/exit 0。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/page/AdminPageHeader.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BizsPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/EnvPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/AppsPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/NamespacesPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/BizsPage.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/EnvPage.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/AppsPage.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/NamespacesPage.test.tsx
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/page/AdminPageHeader.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BizsPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/EnvPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AppsPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BizsPage.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/EnvPage.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AppsPage.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.test.tsx
 git commit -m "feat(ddc-web): modernize metadata pages"
 ```
 
@@ -2021,10 +2021,10 @@ git commit -m "feat(ddc-web): modernize metadata pages"
 ### Task 9: Config Page 与 Version Drawer 分页
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigsPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigsPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigEditorDialog.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigEditorDialog.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigsPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigsPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.test.tsx`
 
 **Interfaces:**
 - Consumes: `/configs/page`、`/configs/{id}/versions/page`、Task 7 query infrastructure。
@@ -2054,7 +2054,7 @@ await waitFor(() => expect(fetch).toHaveBeenCalledWith(
 - [ ] **Step 2: 运行测试并确认失败**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2116,7 +2116,7 @@ modal.confirm({
 - [ ] **Step 6: 运行 Task 9 tests、typecheck 和 lint**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2134,10 +2134,10 @@ Expected: all PASS/exit 0。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigsPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigsPage.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigEditorDialog.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigEditorDialog.test.tsx
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigsPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigsPage.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.test.tsx
 git commit -m "feat(ddc-web): paginate config management"
 ```
 
@@ -2146,10 +2146,10 @@ git commit -m "feat(ddc-web): paginate config management"
 ### Task 10: Publish Task 与 Cache 页面现代化
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/PublishTasksPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/PublishTasksPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/CachePage.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/CachePage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/PublishTasksPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/PublishTasksPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/CachePage.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/CachePage.test.tsx`
 
 **Interfaces:**
 - Consumes: `/publish-tasks/page`、`/cache/check/page`、Task 7 query infrastructure。
@@ -2209,7 +2209,7 @@ expect(screen.getByText('确认重建该作用域下的缓存？')).toBeInTheDoc
 - [ ] **Step 3: 运行 tests 并确认失败**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2264,7 +2264,7 @@ const mismatched = page.records.length - matched
 - [ ] **Step 6: 运行 Task 10 tests、typecheck 和 lint**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2282,10 +2282,10 @@ Expected: all PASS/exit 0。
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/PublishTasksPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/PublishTasksPage.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/CachePage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/CachePage.test.tsx
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/PublishTasksPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/PublishTasksPage.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/CachePage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/CachePage.test.tsx
 git commit -m "feat(ddc-web): modernize publish and cache pages"
 ```
 
@@ -2294,14 +2294,14 @@ git commit -m "feat(ddc-web): modernize publish and cache pages"
 ### Task 11: Registry 懒加载与响应式 Admin Shell
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/RegistryPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/RegistryPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.test.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/main.tsx`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/styles/admin.css`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/RegistryPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/RegistryPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/main.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css`
 
 **Interfaces:**
 - Consumes: `/registry/services/page`、`/registry/instances/page`、`AdminPageHeader`。
@@ -2371,7 +2371,7 @@ Desktop 测试执行 `setViewport(1280)`，断言 `桌面主导航`、`折叠导
 - [ ] **Step 3: 运行 tests 并确认失败**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2521,7 +2521,7 @@ const identity = useMemo(() => identityFromToken(token), [token])
 - [ ] **Step 8: 运行 Task 11 tests、typecheck、lint、build**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2543,14 +2543,14 @@ Expected: tests PASS，typecheck/lint/build exit 0。允许报告现有 Vite chu
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/RegistryPage.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/RegistryPage.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.test.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/main.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/styles/admin.css
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/RegistryPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/RegistryPage.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/main.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css
 git commit -m "feat(ddc-web): modernize registry and admin shell"
 ```
 
@@ -2559,10 +2559,10 @@ git commit -m "feat(ddc-web): modernize registry and admin shell"
 ### Task 12: Active Documentation、全量验证与残留清理
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.zh-CN.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md`
 
 **Interfaces:**
 - Consumes: Tasks 1–11 的 12 个 Page API 和完成后的 Admin Web。
@@ -2621,7 +2621,7 @@ legacy list/catalog/snapshot endpoints remain available
 - [ ] **Step 3: 运行完整 Backend 定向 suite**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -Dtest='DdcAdminPageSupportTest,Ddc*ControllerTest,Ddc*PagingRepositoryTest,DdcPublishTaskQueryServiceTest,DdcRegistryAdminPageServiceTest,DdcConfigServiceTest,DdcCacheServiceTest,DdcInstanceAdminServiceTest,DdcNamespaceEnvAppBindingServiceTest,DdcManagementRpcProviderTest,DdcConfigRpcProviderTest,DdcRegistryRpcProviderTest,DdcAdminSecurityIntegrationTest,DdcAdminSecurityPropertiesTest,DdcAdminTransportSecurityValidatorTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -2631,7 +2631,7 @@ Expected: Maven exit 0，0 failures，0 errors。
 - [ ] **Step 4: 编译受影响 Backend reactor**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am -DskipTests compile
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am -DskipTests compile
 ```
 
 Expected: `BUILD SUCCESS`。
@@ -2639,7 +2639,7 @@ Expected: `BUILD SUCCESS`。
 - [ ] **Step 5: 运行完整 Frontend verification**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
   VITE_IDP_CLIENT_ID=ddc-admin-web \
   VITE_IDP_AUDIENCE=ddc-admin \
@@ -2661,20 +2661,20 @@ Expected: Vitest 0 failures；typecheck、lint、build exit 0。
 
 ```bash
 page_route_count=$(rg -n '@GetMapping\("[^\"]*/page"\)' \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller \
   | wc -l | tr -d ' ')
 test "$page_route_count" = "12"
 
 ! rg -n 'Page(Query|ResultRecord)' \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main \
-  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main \
+  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main
 
 ! rg -n 'window\.confirm|pagination=\{\{ pageSize: 10|ddcApi<[^>]+\[\]>.*/page|import.*\bmessage\b.*from .antd.' \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src
 
 ! rg -n 'findAll\(\)\.stream\(\).*toVO|subList\(' \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller
 ```
 
 Expected: 12 routes；三个否定扫描均无匹配。Registry Admin Page Service 中允许且只允许 `DdcAdminPageSupport.slice(...)`。
@@ -2685,20 +2685,20 @@ Expected: 12 routes；三个否定扫描均无匹配。Registry Admin Page Servi
 git diff --check
 git status --short
 git diff -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.zh-CN.md
+  egon-cola-xingyuan/egon-cola-tianshu/README.md \
+  egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md
 ```
 
 确认 diff 只描述已经实现的契约，然后：
 
 ```bash
 git add -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.zh-CN.md
+  egon-cola-xingyuan/egon-cola-tianshu/README.md \
+  egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md
 git commit -m "docs(ddc): document admin page queries"
 ```
 

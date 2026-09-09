@@ -9,13 +9,13 @@
 主要涉及模块：
 
 - `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter`
-- `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter`（新增）
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test`
-- `egon-cola-platforms/egon-cola-platform-gateway` 下的 Admin、Engine、Provider Runtime、Starter 与测试模块
+- `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter`（新增）
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test`
+- `egon-cola-xingyuan/egon-cola-yuheng` 下的 Admin、Engine、Provider Runtime、Starter 与测试模块
 - 启用 DDC 的 IdP、RBAC3、样例、部署和 Archetype
-- `egon-cola-components-bom` 与 `egon-cola-platforms` dependency management
+- `egon-cola-components-bom` 与 `egon-cola-xingyuan` dependency management
 
 本文固化用户于 2026-08-09 确认的破坏式迁移设计。本文只定义目标架构、契约、边界和验收条件，不是实施 Plan。书面规格经用户审核通过后，才允许编写逐任务实施 Plan；在此之前不得开始代码改造。
 
@@ -33,7 +33,7 @@
 本次迁移采用以下不可分割的架构结论：
 
 1. `egon-cola-component-rpc-starter` 必须完全移除对 DDC Starter 的 Maven 和源码依赖；
-2. 在 `egon-cola-components/egon-cola-component-rpc` 下新增 `egon-cola-component-rpc-ddc-adapter`；
+2. 在 `egon-cola-components/egon-cola-component-rpc` 下新增 `egon-cola-component-rpc-tianshu-adapter`；
 3. adapter 是唯一同时理解 RPC 模型和 DDC 模型的集成叶子模块；
 4. DDC Starter 继续拥有 `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 公共端口和领域模型；
 5. adapter 用 egon-rpc 实现这三个端口，并承载 DDC ConfigData 的早期 RPC 引导；
@@ -77,7 +77,7 @@ DDC 是控制面依赖，不是普通业务请求的数据面中转节点。
 
 ### 2.1 RPC Starter 被 DDC 平台语义污染
 
-当前 `egon-cola-component-rpc-starter` 直接依赖 `egon-cola-platform-dynamic-config-center-starter`，并在通用 RPC 自动装配中直接引用：
+当前 `egon-cola-component-rpc-starter` 直接依赖 `egon-cola-tianshu-starter`，并在通用 RPC 自动装配中直接引用：
 
 - `DdcProperties`；
 - `DdcInstanceIdentity`；
@@ -161,13 +161,13 @@ Gateway 故障时，Gateway Admin 也无法通过 DDC 发布恢复规则。DDC �
 ```text
 egon-cola-components/egon-cola-component-rpc
 ├── egon-cola-component-rpc-starter
-├── egon-cola-component-rpc-ddc-adapter
+├── egon-cola-component-rpc-tianshu-adapter
 └── egon-cola-component-rpc-test
 
-egon-cola-platforms/egon-cola-platform-dynamic-config-center
-├── egon-cola-platform-dynamic-config-center-starter
-├── egon-cola-platform-dynamic-config-center-admin
-└── egon-cola-platform-dynamic-config-center-test
+egon-cola-xingyuan/egon-cola-tianshu
+├── egon-cola-tianshu-starter
+├── egon-cola-tianshu-admin
+└── egon-cola-tianshu-test
 ```
 
 ### 4.2 依赖图
@@ -194,7 +194,7 @@ rpc-starter                 ddc-starter
 6. 需要默认 RPC 实现或自动装配的可运行组合模块增加 adapter；
 7. adapter 进入 `egon-cola-component-rpc/pom.xml` 的 modules 和 dependency management；
 8. adapter 进入 `egon-cola-components-bom` 只做版本管理，不由 RPC Starter 传递暴露；
-9. `egon-cola-platforms` 已导入 Components BOM，平台模块不得重复写 adapter 版本；
+9. `egon-cola-xingyuan` 已导入 Components BOM，平台模块不得重复写 adapter 版本；
 10. 任何生产模块不得依赖 DDC Admin 作为库。
 
 ### 4.3 adapter 位于 Components 的边界说明
@@ -372,7 +372,7 @@ RPC Starter 只提供通用 trace、source、invocation metadata 扩展，不包
 新模块 artifact：
 
 ```text
-top.egon:egon-cola-component-rpc-ddc-adapter
+top.egon:egon-cola-component-rpc-tianshu-adapter
 ```
 
 目标包树：

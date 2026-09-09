@@ -9,7 +9,7 @@
 | Updated | `2026-09-05 15:20 CST` |
 | Owner | `Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-platform-gateway runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
+| Scope | `egon-cola-yuheng runtime, Admin projection/Admin Web, gateway test suite, deployment and local operations` |
 | Source Requirement | `Confirmed decision: one Admin Server and two Gateway Engine roles; continue with an implementation-ready Plan` |
 | Baseline Revision | `main@ce10db63a24eecf6b5a3280cd4e9afa7c1849c81; concurrent dirty-worktree snapshot recorded in §6.1` |
 | Implements Spec | [Gateway Dual-Engine Separation Specification](../spec/2026-09-02-19-52-gateway-dual-engine-separation.md) |
@@ -24,10 +24,10 @@
 ## 1. Summary
 
 This Plan implements the confirmed topology of one logical Admin Server plus two independently deployable Gateway Engine
-roles: the existing `egon-cola-platform-gateway-engine` becomes the API/RPC Engine, while a new
-`egon-cola-platform-gateway-mcp-engine` owns MCP ingress and runtime state. Shared provider selection, traffic,
+roles: the existing `yuheng-biz-gateway` becomes the API/RPC Engine, while a new
+`yuheng-mcp-gateway` owns MCP ingress and runtime state. Shared provider selection, traffic,
 transport, observability, operation invocation, and rule-activation capabilities move to a non-executable
-`egon-cola-platform-gateway-runtime-core`; executable modules depend on that library but never on each other.
+`yuheng-runtime-core`; executable modules depend on that library but never on each other.
 
 Implementation is split into eleven sequential, path-limited Steps. Each Step starts with a focused RED contract,
 reaches GREEN, runs its module gate, and produces one semantic commit. Completion requires Maven reactor proof, Admin
@@ -57,7 +57,7 @@ execution.
 
 ### 2.3 Superseded or excluded content
 
-- The predecessor's conclusion that all MCP runtime code remains inside `egon-cola-platform-gateway-engine` is superseded by the primary Spec §7–§10.
+- The predecessor's conclusion that all MCP runtime code remains inside `yuheng-biz-gateway` is superseded by the primary Spec §7–§10.
 - The complete MCP design's same-JVM local state assumption is superseded by one role-local atomic/LKG/ACK state per Engine role; the Admin active key and release artifact remain single and unified.
 - OpenAPI and direct-RPC Specs remain contextual consumer contracts. They are not effective design sources because this change preserves those contracts verbatim.
 - Generated Archetype work, portal-login changes after the Spec baseline, and unrelated Admin Web build state are outside this Plan.
@@ -211,36 +211,36 @@ The inventory uses exact directory roots for mechanical package moves; each base
 single operation and must not appear in another operation.
 
 ```text
-egon-cola-platforms/egon-cola-platform-gateway/
+egon-cola-xingyuan/egon-cola-yuheng/
 ├── pom.xml                                                     MODIFY
-├── egon-cola-platform-gateway-contract/                       CREATE role enum/test
-├── egon-cola-platform-gateway-runtime-core/                   CREATE library, common/shared transport/rule tests
-├── egon-cola-platform-gateway-engine/                         MODIFY API_RPC-only POM/bootstrap/resources/tests
-├── egon-cola-platform-gateway-mcp-engine/                     CREATE executable; RENAME MCP runtime/tests into it
-├── egon-cola-platform-gateway-admin/                          MODIFY role consistency/projection/config/tests
-├── egon-cola-platform-gateway-test/...-test-suite/            MODIFY dual-role harness/live/release/deployment tests
+├── yuheng-contract/                       CREATE role enum/test
+├── yuheng-runtime-core/                   CREATE library, common/shared transport/rule tests
+├── yuheng-biz-gateway/                         MODIFY API_RPC-only POM/bootstrap/resources/tests
+├── yuheng-mcp-gateway/                     CREATE executable; RENAME MCP runtime/tests into it
+├── yuheng-admin/                          MODIFY role consistency/projection/config/tests
+├── yuheng-test/...-test-suite/            MODIFY dual-role harness/live/release/deployment tests
 └── deployment/                                                 MODIFY Compose/docs/scripts; CREATE data-plane HAProxy config
-egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/
+egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/
 └── src/                                                        MODIFY gateway type/features; CREATE component tests
 scripts/                                                         MODIFY unified identity lifecycle and contract tests
-.github/workflows/rbac3.yml                                      MODIFY MCP module selector
+.github/workflows/tianquan-jianshen.yml                                      MODIFY MCP module selector
 docs/operations/unified-identity-mcp-local-runbook.md             MODIFY
 docs/runbooks/unified-identity-local.md                           MODIFY
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-gateway/pom.xml` | Modules stop at one Engine | Adds runtime-core and MCP Engine in dependency order | Reactor/module management | Steps 2, 5 | `REQ-003`, `REQ-004` | Maven reactor |
-| CREATE | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract` | No role enum; existing JUnit/JDK dependencies suffice | `GatewayEngineRoleEnum` and test | Shared role vocabulary | Step 1 | `REQ-001`, `REQ-007`, `REQ-009` | Contract test |
-| CREATE/RENAME | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core` | Directory absent; common capabilities live in Engine | POM plus common observability/provider/security/traffic/transport, shared HTTP/RPC outbound/operation/rule contracts and their pure tests | Non-executable shared runtime | Steps 2–4 | `REQ-002`, `REQ-004`, `REQ-005`, `REQ-006` | Boundary and focused tests |
-| MODIFY/DELETE/RENAME | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine` | Mixed API/RPC/MCP executable | API_RPC-only POM/config/runtime/resources/compiler; no MCP/JDBC; updated API tests | API/RPC executable | Steps 2–6 | `REQ-002`, `REQ-004`, `REQ-005`, `REQ-010`, `REQ-011` | Engine context/boundary tests |
-| CREATE/RENAME | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine` | Absent; MCP slice lives in Engine | POM, Dockerfile, main/config/runtime/properties/server/adapter/compiler/resources and moved MCP adapters/services/domain/tests | MCP executable | Steps 5–6 | `REQ-003`, `REQ-005`, `REQ-006`, `REQ-010`, `REQ-011` | MCP context/boundary/integration tests |
-| MODIFY/CREATE | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin` | Projection lacks role completeness | Named role Strategy, qualified Clock/wiring, role-complete projection and tests | One Admin consistency authority | Step 7 | `REQ-001`, `REQ-007`, `REQ-008` | Admin tests |
-| MODIFY/CREATE | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src` | Metadata not typed/rendered as role state | Typed metadata and API_RPC/MCP cards/states with tests | Operator visibility | Step 8 | `REQ-007`, `REQ-008` | Vitest/typecheck/build |
-| MODIFY/CREATE | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite` | Harness/live tests assume one Engine kind | Both artifact resolvers, role-aware live topology, release/LKG/ACK/wire/deployment tests | Cross-module proof | Step 9 | `REQ-006`, `REQ-008`, `REQ-012` | Test-suite Maven gate |
-| MODIFY/CREATE | `egon-cola-platforms/egon-cola-platform-gateway/deployment` | Compose starts only mixed Engine replicas | Independent API/MCP replicas, credentials/ports/volumes/probes/overlays, stable path proxy, updated scripts/docs | Deployment topology | Step 10 | `REQ-009`, `REQ-010`, `REQ-011`, `REQ-012` | Compose/static tests; live user gate |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/pom.xml` | Modules stop at one Engine | Adds runtime-core and MCP Engine in dependency order | Reactor/module management | Steps 2, 5 | `REQ-003`, `REQ-004` | Maven reactor |
+| CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract` | No role enum; existing JUnit/JDK dependencies suffice | `GatewayEngineRoleEnum` and test | Shared role vocabulary | Step 1 | `REQ-001`, `REQ-007`, `REQ-009` | Contract test |
+| CREATE/RENAME | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core` | Directory absent; common capabilities live in Engine | POM plus common observability/provider/security/traffic/transport, shared HTTP/RPC outbound/operation/rule contracts and their pure tests | Non-executable shared runtime | Steps 2–4 | `REQ-002`, `REQ-004`, `REQ-005`, `REQ-006` | Boundary and focused tests |
+| MODIFY/DELETE/RENAME | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway` | Mixed API/RPC/MCP executable | API_RPC-only POM/config/runtime/resources/compiler; no MCP/JDBC; updated API tests | API/RPC executable | Steps 2–6 | `REQ-002`, `REQ-004`, `REQ-005`, `REQ-010`, `REQ-011` | Engine context/boundary tests |
+| CREATE/RENAME | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway` | Absent; MCP slice lives in Engine | POM, Dockerfile, main/config/runtime/properties/server/adapter/compiler/resources and moved MCP adapters/services/domain/tests | MCP executable | Steps 5–6 | `REQ-003`, `REQ-005`, `REQ-006`, `REQ-010`, `REQ-011` | MCP context/boundary/integration tests |
+| MODIFY/CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin` | Projection lacks role completeness | Named role Strategy, qualified Clock/wiring, role-complete projection and tests | One Admin consistency authority | Step 7 | `REQ-001`, `REQ-007`, `REQ-008` | Admin tests |
+| MODIFY/CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src` | Metadata not typed/rendered as role state | Typed metadata and API_RPC/MCP cards/states with tests | Operator visibility | Step 8 | `REQ-007`, `REQ-008` | Vitest/typecheck/build |
+| MODIFY/CREATE | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite` | Harness/live tests assume one Engine kind | Both artifact resolvers, role-aware live topology, release/LKG/ACK/wire/deployment tests | Cross-module proof | Step 9 | `REQ-006`, `REQ-008`, `REQ-012` | Test-suite Maven gate |
+| MODIFY/CREATE | `egon-cola-xingyuan/egon-cola-yuheng/deployment` | Compose starts only mixed Engine replicas | Independent API/MCP replicas, credentials/ports/volumes/probes/overlays, stable path proxy, updated scripts/docs | Deployment topology | Step 10 | `REQ-009`, `REQ-010`, `REQ-011`, `REQ-012` | Compose/static tests; live user gate |
 | MODIFY | `scripts` | Unified identity scripts manage one Engine jar | Prepare/start/status/verify/stop both role jars and preserve current portal/release reconciliation | Local lifecycle | Step 11 | `REQ-009`, `REQ-011`, `REQ-012` | Shell contract tests |
-| MODIFY | `.github/workflows/rbac3.yml` | Explicit selector covers old Engine only | Includes MCP Engine without changing unrelated jobs | CI module coverage | Step 11 | `REQ-012` | Workflow/static audit |
+| MODIFY | `.github/workflows/tianquan-jianshen.yml` | Explicit selector covers old Engine only | Includes MCP Engine without changing unrelated jobs | CI module coverage | Step 11 | `REQ-012` | Workflow/static audit |
 | MODIFY | `docs/operations/unified-identity-mcp-local-runbook.md`, `docs/runbooks/unified-identity-local.md` | Mixed Engine commands/ports | Two-role startup, health, LKG, skew, rollback and user-controlled live commands | Operations contract | Step 11 | `REQ-009`, `REQ-012` | Link/command audit |
 
 ## 6. Prerequisites, Constraints, and Plan Clarifications
@@ -249,7 +249,7 @@ docs/runbooks/unified-identity-local.md                           MODIFY
 
 - Applicable instructions: user-supplied root `AGENTS.md` rules and the `egon-coding-writing-plan` skill. Execution must later use the approved Plan gate, one Step and one path-limited commit at a time.
 - Baseline: branch `main`, commit `ce10db63a24eecf6b5a3280cd4e9afa7c1849c81` at Plan finalization. Drift since the Spec baseline consists of gateway local-stack/portal-origin/IdP CORS fixes and Archetype source-generation work; no dual-engine topology exists yet.
-- Existing concurrent user-owned state to preserve and never stage: all modified/staged/deleted/untracked paths under `egon-cola-archetypes/**`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo`, `docs/egon/plan/2026-09-01-11-23-archetype-two-stage-source-generation-implementation.md`, and `docs/egon/spec/2026-08-27-20-31-archetype-two-stage-source-generation.md`.
+- Existing concurrent user-owned state to preserve and never stage: all modified/staged/deleted/untracked paths under `egon-cola-archetypes/**`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo`, `docs/egon/plan/2026-09-01-11-23-archetype-two-stage-source-generation-implementation.md`, and `docs/egon/spec/2026-08-27-20-31-archetype-two-stage-source-generation.md`.
 - The primary dual-engine Spec and this Plan are documentation deliverables for the current task. Generated Archetype paths and any later concurrent changes remain outside implementation commits unless an exact Step owns them.
 
 ### 6.2 Build, test, and environment prerequisites
@@ -259,7 +259,7 @@ docs/runbooks/unified-identity-local.md                           MODIFY
 | Java/Maven | `./mvnw -version`; root POM uses Java 21 and Spring Boot 3.5.16 | JDK 21 and wrapper available | Static/module/reactor only unless a live profile is explicitly authorized |
 | Gateway focused tests | `./mvnw -pl exact-gateway-module-path -am -Dtest=ExactFocusedTest -Dsurefire.failIfNoSpecifiedTests=false test` | Step-owned tests compile and pass | Focused module proof |
 | Dependency proof | `./mvnw -pl ...gateway-engine,...gateway-mcp-engine -am dependency:tree` | No executable-to-executable edge; API has no MCP/JDBC | Static dependency graph |
-| Admin Web | Existing package scripts in `egon-cola-platform-admin-web-shared/package.json` | Installed lockfile-consistent dependencies | Vitest/typecheck/build; no browser |
+| Admin Web | Existing package scripts in `egon-cola-xingyuan-admin-web-shared/package.json` | Installed lockfile-consistent dependencies | Vitest/typecheck/build; no browser |
 | Compose | `docker compose ... config` and repository configuration tests | Docker CLI parser only if available; no containers started | Static rendered configuration |
 | Live topology | Commands in §8/§9 run only with explicit user authorization | External services, ports, credentials, Docker/runtime available | Separate live evidence, never inferred from compile/tests |
 
@@ -313,9 +313,9 @@ Step 5 contract clarification: Admin's `McpReleaseContentFactory.managedTool` em
 
 MCP bootstrap records cover explicit group/env/namespace/node/instance/data-directory identity, one data listener, management port, outbound pool/request/channel limits, role-local TLS and active-health settings. Only actual MCP runtime knobs are included; API-only Kafka/body-logging settings are not copied. Positive duration validation uses the existing Boot-managed Hibernate Validator annotation. Base/operations resources and their parity are implemented in Step 6; no legacy `engine.mcp` setting is renamed.
 
-Step 7 regression-closure clarification: the broader Admin test run revealed two pre-existing failures in `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`. Its isolated DDC registration fixture omits the now-required registration resource URI, and its YAML assertions still require removed IdP admission identity keys. Step 7 may repair this exact test file by supplying a test-only DDC registration URI and asserting the actual resource-server-id/resource-uri contract plus absence of obsolete admission keys. Production IdP/DDC configuration and protocols are unchanged; include the file in the Step 7 commit and rerun the complete Admin unit-test package.
+Step 7 regression-closure clarification: the broader Admin test run revealed two pre-existing failures in `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`. Its isolated DDC registration fixture omits the now-required registration resource URI, and its YAML assertions still require removed IdP admission identity keys. Step 7 may repair this exact test file by supplying a test-only DDC registration URI and asserting the actual resource-server-id/resource-uri contract plus absence of obsolete admission keys. Production IdP/DDC configuration and protocols are unchanged; include the file in the Step 7 commit and rerun the complete Admin unit-test package.
 
-Step 8 mapper-closure clarification: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts` currently drops the backend consistency `nodes` array, while its Engine-node spread does not normalize nullable metadata. Include this exact mapper file in Step 8: retain the existing per-node consistency fields and normalize metadata to a string map. Use the backend's online node/lease projection for role presence and ACK reasons instead of inventing a second clock/lease-status rule in the browser. Endpoint paths and query keys remain unchanged.
+Step 8 mapper-closure clarification: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts` currently drops the backend consistency `nodes` array, while its Engine-node spread does not normalize nullable metadata. Include this exact mapper file in Step 8: retain the existing per-node consistency fields and normalize metadata to a string map. Use the backend's online node/lease projection for role presence and ACK reasons instead of inventing a second clock/lease-status rule in the browser. Endpoint paths and query keys remain unchanged.
 
 Step 9 source-closure clarification: the suite still imports the relocated MCP classes and old compiled DTO/compiler, so its MCP import/type-only updates and the already-planned MCP test dependency may precede the behavioral RED gate. `GatewayLiveEnvironment` currently owns infrastructure/scope/directories, while process URLs/specs live in `GatewayLiveTopologyIT`; extend these actual owners rather than inventing an existing URL registry. `McpCompleteReleaseIT` and conformance clients currently use in-process remote fixtures, not a mixed Engine URL; preserve those protocol fixtures and add role-aware Engine projection proof. Retained API defaults are data 18081, internal 18082, management 18083 and gRPC 19090. Role processes must resolve their matching executable JAR without the mixed test-classpath fallback; ordinary probe/Admin/provider handling stays compatible.
 
@@ -333,7 +333,7 @@ Step 9 source-closure clarification: the suite still imports the relocated MCP c
 - Literal Rules: Rule 1, Rule 3, Rule 6, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/test/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnumTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnumTest.java`
 
 - Purpose: Define the complete, stable role vocabulary and strict metadata parsing contract before production code.
 - Symbols: `GatewayEngineRoleEnumTest`, `containsExactlyApiRpcAndMcp`, `parsesCanonicalMetadata`, `rejectsUnknownRole`.
@@ -357,7 +357,7 @@ assertThat(GatewayEngineRoleEnum.fromWire("api_rpc")).isEmpty();
 - Verification contribution: RED/GREEN selector proves vocabulary, order, and safe parsing.
 - After this file: the test fails only because the enum is absent.
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnum.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnum.java`
 
 - Purpose: Supply the canonical cross-module Engine role contract.
 - Symbols: `GatewayEngineRoleEnum`, constants `API_RPC`, `MCP`, method `fromWire(String)`.
@@ -385,12 +385,12 @@ public enum GatewayEngineRoleEnum {
 - After this file: the role contract compiles with no runtime dependency.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract -am -Dtest=GatewayEngineRoleEnumTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract -am -Dtest=GatewayEngineRoleEnumTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; the three focused role tests pass.
 - Failure returns to: File 1 if an assertion over-specifies wire behavior; File 2 if enum parsing/naming fails.
 - Completion criteria: exact two-role vocabulary exists in the contract module and no other production file changes.
 - Rollback: revert the Step commit; no consumer exists yet.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/test/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnumTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnum.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnumTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/runtime/GatewayEngineRoleEnum.java`
 - Commit: `feat(gateway-contract): define engine roles`
 
 ### Step 2 — Extract the common runtime foundation
@@ -405,7 +405,7 @@ public enum GatewayEngineRoleEnum {
 - Literal Rules: Rule 1, Rule 4, Rule 5, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/GatewayRuntimePackageBoundaryTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/GatewayRuntimePackageBoundaryTest.java`
 
 - Purpose: Define the reusable library's allowed packages and forbidden executable/Spring Boot entry points.
 - Symbols: `GatewayRuntimePackageBoundaryTest`, `containsOnlySharedCapabilities`, `doesNotDependOnExecutableModules`.
@@ -428,10 +428,10 @@ assertThat(resolveModuleDependencies()).doesNotContain("gateway-engine", "gatewa
 - Verification contribution: expected RED proves the extraction is not already present; GREEN becomes the reusable boundary gate.
 - After this file: the test cannot pass until the module and moved packages exist.
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/pom.xml`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/pom.xml`
 
 - Purpose: Declare the non-executable shared runtime and only the dependencies needed by moved common capabilities.
-- Symbols: Maven artifact `egon-cola-platform-gateway-runtime-core`; no repackage execution or main class.
+- Symbols: Maven artifact `yuheng-runtime-core`; no repackage execution or main class.
 - Repository evidence: gateway child modules inherit the same parent/dependency management; current Engine POM identifies the exact shared dependency closure.
 - Dependencies and consumers: contract, core, DDC/RPC/security/runtime libraries already managed by the reactor; API and MCP executable POMs consume it.
 - Why now: The target module must exist before Java packages can move and compile.
@@ -443,7 +443,7 @@ assertThat(resolveModuleDependencies()).doesNotContain("gateway-engine", "gatewa
 - Implementation pseudocode:
 
 ```xml
-<artifactId>egon-cola-platform-gateway-runtime-core</artifactId>
+<artifactId>yuheng-runtime-core</artifactId>
 <dependencies><!-- contract/core plus exact existing provider, Reactor, Micrometer, Jackson dependencies --></dependencies>
 <!-- intentionally omit spring-boot-maven-plugin repackage and every executable artifact -->
 ```
@@ -451,7 +451,7 @@ assertThat(resolveModuleDependencies()).doesNotContain("gateway-engine", "gatewa
 - Verification contribution: enables the focused boundary/common tests and later dependency-tree inspection.
 - After this file: Maven recognizes the library but common sources still need moving.
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/common`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/common`
 
 - Purpose: Move common observability, provider, security, traffic, and transport capabilities plus pure tests to runtime-core; update all direct Engine production imports and McpHaRecoveryIT imports in this same commit. Consumer behavior changes remain in their later owning Steps.
 - Symbols: all current `common/observability`, `common/provider`, `common/security`, `common/traffic`, `common/transport` production types; matching pure tests; `GatewayEngineRuntimeProperties` explicitly remains in API Engine.
@@ -474,7 +474,7 @@ leave GatewayEngineRuntimeProperties and API-cross-feature component tests in ga
 - Verification contribution: common unit tests plus API Engine compile prove behavioral reuse and complete imports.
 - After this file: common capabilities have one owner and the mixed Engine still runs through runtime-core.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/pom.xml`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/pom.xml`
 
 - Purpose: Register runtime-core in reactor/dependency management and make API Engine consume it.
 - Symbols: Maven modules list, dependency management, API Engine dependency edge and package-boundary expectations.
@@ -489,7 +489,7 @@ leave GatewayEngineRuntimeProperties and API-cross-feature component tests in ga
 - Implementation pseudocode:
 
 ```xml
-&lt;module&gt;egon-cola-platform-gateway-runtime-core&lt;/module&gt;
+&lt;module&gt;yuheng-runtime-core&lt;/module&gt;
 <dependencyManagement><!-- add runtime-core at the same project version --></dependencyManagement>
 <!-- gateway-engine depends on runtime-core; runtime-core has no edge back to an executable -->
 ```
@@ -498,12 +498,12 @@ leave GatewayEngineRuntimeProperties and API-cross-feature component tests in ga
 - After this file: Step 2 has a compilable shared base and no Engine behavior change.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -q -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=%regex[top/egon/cola/component/gateway/.*(Provider|Traffic|Security).*Test.class],GatewayRuntimePackageBoundaryTest,GatewayEnginePackageBoundaryTest' -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -q -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am '-Dtest=%regex[top/egon/cola/component/gateway/.*(Provider|Traffic|Security).*Test.class],GatewayRuntimePackageBoundaryTest,GatewayEnginePackageBoundaryTest' -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; runtime boundary and moved common tests pass; API Engine compiles with no duplicate class.
 - Failure returns to: File 3 for incomplete compile closure/imports; File 2/4 for dependency resolution or cycles.
 - Completion criteria: runtime-core is non-executable, owns only shared common capabilities, and API Engine depends on it.
 - Rollback: revert the Step commit as one rename/module unit.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/GatewayRuntimePackageBoundaryTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/common`, `egon-cola-platforms/egon-cola-platform-gateway/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpHaRecoveryIT.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/GatewayRuntimePackageBoundaryTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/common`, `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpHaRecoveryIT.java`
 - Commit: `refactor(gateway): extract common runtime core`
 
 ### Step 3 — Generalize role-specific rule compilation and atomic activation
@@ -518,7 +518,7 @@ leave GatewayEngineRuntimeProperties and API-cross-feature component tests in ga
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategyTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategyTest.java`
 
 - Purpose: Lock generic release identity, minimum accessors, validation, safe activation order, LKG restore, and ACK behavior.
 - Symbols: `GatewayRuleCompilerStrategyTest`, test fixture `TestCompiledRulesDTO`, success/failure/LKG identity cases.
@@ -542,7 +542,7 @@ assertThat(active.get().releaseId()).isEqualTo("release-1");
 - Verification contribution: focused RED/GREEN proves generic atomic activation and role-independent identity.
 - After this file: test fails for missing contracts/generic activation.
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/domain/GatewayCompiledRulesDTO.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/domain/GatewayCompiledRulesDTO.java`
 
 - Purpose: Define the minimal immutable view consumed by shared activation and operation/provider capabilities.
 - Symbols: `GatewayCompiledRulesDTO`, accessors `releaseId`, `ruleChecksum`, `snapshot`, `providerServices`, `providerPolicies`, `trafficPolicies`.
@@ -568,7 +568,7 @@ public interface GatewayCompiledRulesDTO {
 - Verification contribution: lets activation/operation tests compile against only the fields they require.
 - After this file: shared consumers can be generically typed without protocol leakage.
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategy.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategy.java`
 
 - Purpose: Provide the required role variation point for compiling one unified snapshot into role-local compiled state.
 - Symbols: `GatewayRuleCompilerStrategy<T extends GatewayCompiledRulesDTO>`, `compile(GatewayRuleSnapshot)`.
@@ -593,7 +593,7 @@ public interface GatewayRuleCompilerStrategy<T extends GatewayCompiledRulesDTO> 
 - Verification contribution: pattern behavior and context tests can assert the exact named/qualified implementation without factory branches.
 - After this file: role compilers have a stable shared contract.
 
-#### File 4 — `RENAME egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rule/adapter/json/GatewayRuleJsonCodec.java`
+#### File 4 — `RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/adapter/json/GatewayRuleJsonCodec.java`
 
 - Purpose: Move generic rule JSON codec, apply-stage/status, chunk/LKG repositories, activation/policy services to runtime-core; bridge the still-mixed compiled record/compiler to the new generic contracts.
 - Symbols: shared `GatewayRuleJsonCodec`, `GatewayRuleActivationApplier`, `GatewayRuleApplierRegistrar`, `GatewayPolicyKeyCompiler`, repositories/status; transitional `CompiledGatewayRules implements GatewayCompiledRulesDTO` and `EngineGatewayRuleCompiler implements GatewayRuleCompilerStrategy<CompiledGatewayRules>`.
@@ -617,12 +617,12 @@ enforce snapshot identity in the record constructor and update current mixed wir
 - After this file: one executable still works, but compilation and activation are role-pluggable.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=GatewayRuleCompilerStrategyTest,*GatewayRule*Test,*Lkg*Test' -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am '-Dtest=GatewayRuleCompilerStrategyTest,*GatewayRule*Test,*Lkg*Test' -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; generic and API compiler/activation/LKG tests pass; the existing mixed compiled type remains as the generic compatibility bridge until Step 6.
 - Failure returns to: File 1 for missing behavior coverage; File 2/3 for interface breadth/identity; File 4 for migration/import/wiring failures.
 - Completion criteria: runtime-core activation is role-neutral and the still-mixed executable remains GREEN through a temporary generic Strategy bridge.
 - Rollback: revert the Step commit; no MCP compiler consumer exists before Step 5.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategyTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/domain/GatewayCompiledRulesDTO.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategy.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rule/adapter/json/GatewayRuleJsonCodec.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategyTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/domain/GatewayCompiledRulesDTO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule/service/GatewayRuleCompilerStrategy.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/adapter/json/GatewayRuleJsonCodec.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java/top/egon/cola/component/gateway/runtime/rule`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java`
 - Commit: `refactor(gateway): generalize role rule activation`
 
 ### Step 4 — Extract reusable outbound transport and operation invocation
@@ -637,7 +637,7 @@ enforce snapshot identity in the record constructor and update current mixed wir
 - Literal Rules: Rule 1, Rule 4, Rule 5, Rule 9, Rule 11
 - Ordered files:
 
-#### File 1 — `RENAME egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/domain/GatewayInboundHttpRequest.java`
+#### File 1 — `RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/domain/GatewayInboundHttpRequest.java`
 
 - Purpose: Move the Spec-listed HTTP listener/handler/outbound contract, operation-required upstream adapter, and minimum WebSocket peer/value compile closure to runtime-core with focused tests.
 - Symbols: `GatewayInboundHttpRequest`, `GatewayHttpEngineProperties`, `HttpUpstreamRequest`, `HttpUpstreamAdapter`, `GatewayHttpDataPlaneHandler`, `GatewayHttpListener`, `GatewayOutboundHttpResponse`, `ReactorNettyHttpUpstreamAdapter`, and only listener-required WebSocket SPI/model types.
@@ -660,7 +660,7 @@ run listener, streaming, timeout, response, operation-upstream, and shared WebSo
 - Verification contribution: focused transport tests prove byte ownership and server safety survived extraction.
 - After this file: API Engine still owns `GatewayHttpServer` and API behavior while constructing the moved shared listener.
 
-#### File 2 — `RENAME egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/adapter`
+#### File 2 — `RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/adapter`
 
 - Purpose: Move only RPC descriptor/channel/provider-health outbound infrastructure required by direct operation invocation.
 - Symbols: Spec-listed `RpcProviderActiveHealthProbe`, `RpcProviderChannelCache` plus operation compile-closure `ProtobufDescriptorRegistry` and `RawByteMarshaller`; `RpcProviderChannelKey` moves only if required by the cache's public signature.
@@ -683,7 +683,7 @@ assert dependency and package scans contain no API listener type in runtime-core
 - Verification contribution: RPC channel/descriptor tests and Engine compile prove the outbound-only boundary.
 - After this file: runtime-core can perform RPC outbound preparation without exposing RPC ingress.
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/operation`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/operation`
 
 - Purpose: Move the existing operation transport, HTTP/RPC dynamic bridge, upstream adapter, and invoker service into runtime-core.
 - Symbols: `DefaultGatewayOperationTransport`, `HttpRpcDynamicMessageBridge`, `HttpRpcUpstreamAdapter`, `EngineGatewayOperationInvoker`, package metadata and pure tests.
@@ -707,12 +707,12 @@ assert tests call fake provider adapters directly and never configure an API Eng
 - After this file: both roles can later inject one shared direct-operation invoker.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -q -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am '-Dtest=GatewayDataBuffer*Test,GatewayHttp*Test,GatewayOutboundHttpResponseTest,GatewayWebSocketFrameTest,%regex[top/egon/cola/component/gateway/.*RpcProvider.*Test.class],HttpRpcDynamicMessageBridgeTest,HttpRpcUpstreamAdapterTest,EngineGatewayOperationInvokerTest,GatewayRuntimePackageBoundaryTest,GatewayEnginePackageBoundaryTest' -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -q -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am '-Dtest=GatewayDataBuffer*Test,GatewayHttp*Test,GatewayOutboundHttpResponseTest,GatewayWebSocketFrameTest,%regex[top/egon/cola/component/gateway/.*RpcProvider.*Test.class],HttpRpcDynamicMessageBridgeTest,HttpRpcUpstreamAdapterTest,EngineGatewayOperationInvokerTest,GatewayRuntimePackageBoundaryTest,GatewayEnginePackageBoundaryTest' -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; shared transport/operation tests and API Engine compile pass; runtime-core scan has no ingress package.
 - Failure returns to: File 1/2 for incomplete compile closure; File 3 for direct-invocation or snapshot coupling.
 - Completion criteria: runtime-core owns reusable transport/outbound operation only; API Engine remains the sole API/RPC ingress owner.
 - Rollback: revert the Step commit as one rename/import unit.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/domain/GatewayInboundHttpRequest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/adapter`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/operation`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/main/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/src/test/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/domain/GatewayInboundHttpRequest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/adapter`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/operation`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/main/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/src/test/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
 - Commit: `refactor(gateway): share outbound runtime transport`
 
 ### Step 5 — Establish the MCP role compiler and bootstrap contracts
@@ -727,7 +727,7 @@ assert tests call fake provider adapters directly and never configure an API Eng
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 7, Rule 9, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/test/java/top/egon/cola/component/gateway/mcp/engine/rule/service/McpGatewayRuleCompilerStrategyTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/gateway/mcp/engine/rule/service/McpGatewayRuleCompilerStrategyTest.java`
 
 - Purpose: Define MCP-only snapshot projection, identity invariants, role selection, and exclusion of API HTTP/RPC ingress structures.
 - Symbols: `McpGatewayRuleCompilerStrategyTest`, compile/identity/invalid-rule/exclusion cases.
@@ -751,7 +751,7 @@ assertThat(context.getBean("mcpGatewayRuleCompilerStrategy")).isSameAs(compiler)
 - Verification contribution: focused RED/GREEN proves one unified snapshot and MCP-only compiled ownership.
 - After this file: test fails for missing MCP module types.
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/test/java/top/egon/cola/component/gateway/mcp/engine/config/McpGatewayEnginePropertiesTest.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/gateway/mcp/engine/config/McpGatewayEnginePropertiesTest.java`
 
 - Purpose: Lock immutable bootstrap binding/defaults, new prefix, validation, and separation from retained legacy MCP settings.
 - Symbols: `McpGatewayEnginePropertiesTest`, valid binding, default ports, missing identity, invalid port/data-directory, unknown legacy-remap cases.
@@ -775,10 +775,10 @@ assertThatThrownBy(() -> bind(prefix, valuesWithoutNodeId())).isInstanceOf(BindE
 - Verification contribution: binding tests distinguish compatibility keys from new bootstrap keys.
 - After this file: properties contract is fixed before resources and Beans are moved.
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/pom.xml`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/pom.xml`
 
 - Purpose: Introduce the MCP artifact with compiler-test dependencies first, without Boot repackage until Step 6 supplies a main class.
-- Symbols: artifact `egon-cola-platform-gateway-mcp-engine`; dependencies on contract/core/mcp-core/runtime-core.
+- Symbols: artifact `yuheng-mcp-gateway`; dependencies on contract/core/mcp-core/runtime-core.
 - Repository evidence: gateway parent manages sibling artifact versions and test plugins; no executable-to-executable edge is needed.
 - Dependencies and consumers: shared runtime and MCP core; later Spring Boot/JDBC/Redis/RBAC3/IdP dependencies move from API Engine.
 - Why now: Compiler/property tests need an isolated ownership module.
@@ -790,7 +790,7 @@ assertThatThrownBy(() -> bind(prefix, valuesWithoutNodeId())).isInstanceOf(BindE
 - Implementation pseudocode:
 
 ```xml
-<artifactId>egon-cola-platform-gateway-mcp-engine</artifactId>
+<artifactId>yuheng-mcp-gateway</artifactId>
 <dependencies><!-- contract, core, mcp-core, runtime-core and focused test dependencies --></dependencies>
 <!-- Step 5 deliberately has no repackage execution; Step 6 adds the main class atomically -->
 ```
@@ -798,7 +798,7 @@ assertThatThrownBy(() -> bind(prefix, valuesWithoutNodeId())).isInstanceOf(BindE
 - Verification contribution: module-level tests and dependency tree establish correct DAG before runtime move.
 - After this file: MCP module compiles as a library slice only.
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/java/top/egon/cola/component/gateway/mcp/engine/rule/domain/McpGatewayCompiledRulesDTO.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/gateway/mcp/engine/rule/domain/McpGatewayCompiledRulesDTO.java`
 
 - Purpose: Implement the immutable MCP role projection and compiler Strategy.
 - Symbols: record `McpGatewayCompiledRulesDTO`; named Bean `mcpGatewayRuleCompilerStrategy`; class `McpGatewayRuleCompilerStrategy`.
@@ -823,7 +823,7 @@ final class McpGatewayRuleCompilerStrategy implements GatewayRuleCompilerStrateg
 - Verification contribution: makes Files 1–2 GREEN and supplies Step 6's role-local activation type.
 - After this file: compiler/config contracts exist with no duplicate runtime Bean.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/pom.xml`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/pom.xml`
 
 - Purpose: Register the MCP module after runtime-core and before Admin/test modules.
 - Symbols: gateway parent modules/dependency management.
@@ -838,21 +838,21 @@ final class McpGatewayRuleCompilerStrategy implements GatewayRuleCompilerStrateg
 - Implementation pseudocode:
 
 ```xml
-&lt;module&gt;egon-cola-platform-gateway-runtime-core&lt;/module&gt;
-&lt;module&gt;egon-cola-platform-gateway-engine&lt;/module&gt;
-&lt;module&gt;egon-cola-platform-gateway-mcp-engine&lt;/module&gt;
+&lt;module&gt;yuheng-runtime-core&lt;/module&gt;
+&lt;module&gt;yuheng-biz-gateway&lt;/module&gt;
+&lt;module&gt;yuheng-mcp-gateway&lt;/module&gt;
 ```
 
 - Verification contribution: reactor build proves correct module order and no cycle.
 - After this file: Step 5 is compile/test complete and intentionally not deployable.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine -am -Dtest=McpGatewayRuleCompilerStrategyTest,McpGatewayEnginePropertiesTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway -am -Dtest=McpGatewayRuleCompilerStrategyTest,McpGatewayEnginePropertiesTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; compiler and binding tests pass; dependency tree contains runtime-core but not API Engine.
 - Failure returns to: File 1/4 for compiler semantics; File 2/4 for config binding; File 3/5 for reactor/dependency issues.
 - Completion criteria: MCP role has isolated compiled/config contracts and one Strategy; no production MCP runtime moved or duplicated yet.
 - Rollback: revert the Step commit; API Engine remains fully functional.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/test/java/top/egon/cola/component/gateway/mcp/engine/rule/service/McpGatewayRuleCompilerStrategyTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/test/java/top/egon/cola/component/gateway/mcp/engine/config/McpGatewayEnginePropertiesTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/java/top/egon/cola/component/gateway/mcp/engine/rule/domain/McpGatewayCompiledRulesDTO.java`, `egon-cola-platforms/egon-cola-platform-gateway/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/java/top/egon/cola/component/gateway/mcp/engine/rule/service/McpGatewayRuleCompilerStrategy.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/java/top/egon/cola/component/gateway/mcp/engine/config/McpGatewayEngineProperties.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/gateway/mcp/engine/rule/service/McpGatewayRuleCompilerStrategyTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/gateway/mcp/engine/config/McpGatewayEnginePropertiesTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/gateway/mcp/engine/rule/domain/McpGatewayCompiledRulesDTO.java`, `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/gateway/mcp/engine/rule/service/McpGatewayRuleCompilerStrategy.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/gateway/mcp/engine/config/McpGatewayEngineProperties.java`
 - Commit: `feat(gateway): establish mcp engine compiler`
 
 ### Step 6 — Split the mixed executable into API_RPC and MCP runtimes
@@ -867,7 +867,7 @@ final class McpGatewayRuleCompilerStrategy implements GatewayRuleCompilerStrateg
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/test/java/top/egon/cola/component/gateway/mcp/engine/bootstrap/McpGatewayEngineContextTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/gateway/mcp/engine/bootstrap/McpGatewayEngineContextTest.java`
 
 - Purpose: Define positive MCP Bean ownership, negative API/RPC ingress ownership, stable Bean names/qualifiers, and role metadata.
 - Symbols: `McpGatewayEngineContextTest`, `startsMcpOnlyContext`, `exposesDirectOperationInvoker`, `rejectsApiRpcIngressBeans`, `publishesMcpRoleMetadata`.
@@ -892,7 +892,7 @@ contextRunner.withPropertyValues(validMcpProperties()).run(context -> {
 - Verification contribution: positive/negative context proof for the new executable.
 - After this file: test fails because the MCP runtime does not exist.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
 
 - Purpose: Convert the existing context test into an API_RPC-only ownership and dependency contract.
 - Symbols: API context tests for HTTP/RPC/WS presence, MCP/JDBC absence, explicit role metadata and named compiler/runtime Beans.
@@ -917,7 +917,7 @@ contextRunner.withPropertyValues(validApiRpcProperties()).run(context -> {
 - Verification contribution: expected RED exposes every mixed Bean/config dependency that must be removed.
 - After this file: API test fails until Files 3–6 complete the split.
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/mcp`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp`
 
 - Purpose: Move the complete MCP adapter/domain/service slice and its MCP-focused tests to the MCP executable with package ownership changes only.
 - Symbols: file/artifact, task-token/task-store, telemetry, Redis session, remote client/auth, approval/RBAC3 adapters, `McpRuntimeProperties`, audit/HTTP handler/identity/health/task worker/services and all current MCP tests.
@@ -940,7 +940,7 @@ rename only role-specific configuration test names where needed; never retain a 
 - Verification contribution: moved unit/integration tests prove behavior while boundary tests prove singular ownership.
 - After this file: MCP code has one source owner but still needs executable wiring/resources.
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/java/top/egon/cola/component/gateway/mcp/engine/McpGatewayEngineApplication.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/gateway/mcp/engine/McpGatewayEngineApplication.java`
 
 - Purpose: Add the MCP Boot entry point, named configuration/runtime, public server/handler adapter, role-local activation, health, and DDC role metadata.
 - Symbols: `McpGatewayEngineApplication`, `McpGatewayEngineConfiguration`, `GatewayRuntimeConfiguration`, `McpGatewayEngineRuntime`, `McpGatewayHttpServer`, `McpGatewayHttpDataPlaneHandlerAdapter`.
@@ -964,7 +964,7 @@ rename only role-specific configuration test names where needed; never retain a 
 - Verification contribution: makes MCP context/runtime/LKG/direct-invocation tests GREEN.
 - After this file: MCP has a complete executable call path independent from API Engine.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/config/GatewayEngineConfiguration.java`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/config/GatewayEngineConfiguration.java`
 
 - Purpose: Remove MCP Beans/config/store dependencies and composite handler; finalize the API-only DTO/compiler names and retain API/RPC runtime, listener, RPC slot and DDC metadata.
 - Symbols: `GatewayEngineConfiguration`, `GatewayEngineApplication`, `ApiRpcGatewayCompiledRulesDTO`, named `ApiRpcGatewayRuleCompilerStrategy`, API handler wiring.
@@ -988,7 +988,7 @@ start/stop/health/ACK only HTTP, WebSocket, RPC, slot, API LKG, and DDC role met
 - Verification contribution: API context/package/dependency tests prove absence; API protocol tests prove preserved behavior.
 - After this file: API Bean assembly and compiler projection are role-specific; lifecycle and obsolete Composite deletion follow next.
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/lifecycle/GatewayEngineRuntime.java`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/lifecycle/GatewayEngineRuntime.java`
 
 - Purpose: Restrict the retained Engine lifecycle, readiness, drain, LKG and ACK flow to API HTTP/WebSocket, RPC server/slot, providers and the API compiler.
 - Symbols: named `apiRpcGatewayEngineRuntime`, lifecycle `start`, `stop`, readiness/health and qualified final collaborators.
@@ -1013,7 +1013,7 @@ public void start() {
 - Verification contribution: runtime/context tests prove API readiness and shutdown no longer reference MCP state.
 - After this file: the retained process lifecycle is fully API_RPC-only.
 
-#### File 7 — `DELETE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/service/GatewayCompositeHttpDataPlaneHandler.java`
+#### File 7 — `DELETE egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/service/GatewayCompositeHttpDataPlaneHandler.java`
 
 - Purpose: Remove the obsolete same-listener MCP-first dispatch after MCP obtains its own server.
 - Symbols: `GatewayCompositeHttpDataPlaneHandler` and every construction/import/reference.
@@ -1036,7 +1036,7 @@ assert API context wires DefaultGatewayHttpDataPlaneHandler directly and MCP con
 - Verification contribution: negative context/package/search tests prove there is no same-process MCP fallback.
 - After this file: the old mixed ingress seam no longer exists.
 
-#### File 8 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/resources/application.yml`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`
 
 - Purpose: Add MCP base/operations resources and Dockerfile while removing MCP/JDBC resources/dependencies from API Engine.
 - Symbols: `application.yml`, `application-operations.yml`, MCP `Dockerfile`; modified API POM/YAML/Dockerfile.
@@ -1062,12 +1062,12 @@ management.server.port: 18085
 - After this file: both role jars can be built independently; no service is started by this Step.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine -am '-Dtest=GatewayEngineConfigurationTest,GatewayEngineApplicationConfigurationTest,McpGatewayEngineContextTest,GatewayEnginePackageBoundaryTest,McpGatewayEnginePackageBoundaryTest,*Mcp*Test,*Lkg*Test' -Dsurefire.failIfNoSpecifiedTests=false test && ./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine -am package -DskipTests`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway -am '-Dtest=GatewayEngineConfigurationTest,GatewayEngineApplicationConfigurationTest,McpGatewayEngineContextTest,GatewayEnginePackageBoundaryTest,McpGatewayEnginePackageBoundaryTest,*Mcp*Test,*Lkg*Test' -Dsurefire.failIfNoSpecifiedTests=false test && ./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway -am package -DskipTests`
 - Expected result: exit 0; both contexts and focused MCP/API tests pass; two repackaged jars exist; API dependency tree has no mcp-core/JDBC/PostgreSQL and neither executable depends on the other.
 - Failure returns to: Files 1–2 for ownership expectations, File 3 for move/import behavior, Files 4–5 for lifecycle/wiring, File 6 for dependencies/resources/packaging.
 - Completion criteria: the codebase contains one API_RPC executable and one MCP executable sharing runtime-core and one unified release identity, with disjoint Beans/state/config.
 - Rollback: revert the entire Step commit; never deploy a mixed revision between Files 3–6.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/test/java/top/egon/cola/component/gateway/mcp/engine/bootstrap/McpGatewayEngineContextTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/mcp`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/java/top/egon/cola/component/gateway/mcp/engine/McpGatewayEngineApplication.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/config/GatewayEngineConfiguration.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/lifecycle/GatewayEngineRuntime.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/service/GatewayCompositeHttpDataPlaneHandler.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine/src/main/resources/application.yml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-runtime-core`, `egon-cola-platforms/egon-cola-platform-gateway/pom.xml`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/test/java/top/egon/cola/component/gateway/mcp/engine/bootstrap/McpGatewayEngineContextTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/java/top/egon/cola/component/gateway/mcp/engine/McpGatewayEngineApplication.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/config/GatewayEngineConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/bootstrap/lifecycle/GatewayEngineRuntime.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/service/GatewayCompositeHttpDataPlaneHandler.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-runtime-core`, `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`
 - Commit: `refactor(gateway): split api rpc and mcp engines`
 
 ### Step 7 — Enforce role-complete consistency in the single Admin
@@ -1082,7 +1082,7 @@ management.server.port: 18085
 - Literal Rules: Rule 1, Rule 2, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayProjectionServiceTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayProjectionServiceTest.java`
 
 - Purpose: Add missing-role, unknown-role, skew, not-ready, multi-replica, and fully consistent cases before service changes.
 - Symbols: projection test methods and node fixtures with metadata `gateway.engine.role`.
@@ -1106,7 +1106,7 @@ assertThat(service.runtimeConsistency(groupWith(nodeWithRole("UNKNOWN"))).nodes(
 - Verification contribution: RED/GREEN proves role completeness is part of, not separate from, release consistency.
 - After this file: tests fail under current release-only projection.
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayEngineRoleConsistencyStrategy.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayEngineRoleConsistencyStrategy.java`
 
 - Purpose: Isolate known-role parsing, required-role completeness, and unknown-role detection as the selected complex business Strategy.
 - Symbols: named service `gatewayEngineRoleConsistencyStrategy`, methods `roleOf`, `missingRoles`, `hasUnknownRole`.
@@ -1131,7 +1131,7 @@ public class GatewayEngineRoleConsistencyStrategy {
 - Verification contribution: focused Strategy tests cover parsing/set logic independently from projection orchestration.
 - After this file: role decision participant exists for service integration.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayProjectionService.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayProjectionService.java`
 
 - Purpose: Integrate role completeness with existing release consistency and make Bean/Clock dependencies explicit.
 - Symbols: named `gatewayProjectionService`, `@Slf4j`, `@RequiredArgsConstructor`, qualified final fields including role Strategy and `gatewayProjectionClock`.
@@ -1155,7 +1155,7 @@ return existingWireShape(nodes, rolesComplete && everyOnlineNodeReady(nodes), cl
 - Verification contribution: projection tests observe integrated predicate and preserved release rules.
 - After this file: Admin service behavior is role-complete but configuration/controller contract still needs proof.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/bootstrap/GatewayAdminConfiguration.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/bootstrap/GatewayAdminConfiguration.java`
 
 - Purpose: Provide named projection Clock/wiring and add a golden controller contract test without production controller changes.
 - Symbols: Bean `gatewayProjectionClock`; updated `GatewayAdminConfigurationTest`; new `GatewayProjectionControllerContractTest`.
@@ -1179,12 +1179,12 @@ mockMvc.perform(get(existingProjectionPath)).andExpect(status().isOk())
 - After this file: one Admin consistently projects both roles through the existing endpoint.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayProjectionServiceTest,GatewayEngineRoleConsistencyStrategyTest,GatewayProjectionControllerContractTest,GatewayAdminConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayProjectionServiceTest,GatewayEngineRoleConsistencyStrategyTest,GatewayProjectionControllerContractTest,GatewayAdminConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; all consistency, context, and controller golden tests pass.
 - Failure returns to: File 1 for rule precedence/fixtures, File 2 for role parsing, File 3 for integration, File 4 for DI/wire compatibility.
 - Completion criteria: Admin requires both known roles and preserves all existing release/wire behavior.
 - Rollback: revert the Step commit; Engine artifacts remain independent but Admin reverts to release-only visibility.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayProjectionServiceTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayEngineRoleConsistencyStrategy.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayProjectionService.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/bootstrap/GatewayAdminConfiguration.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayEngineRoleConsistencyStrategyTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayProjectionControllerContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminConfigurationTest.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayProjectionServiceTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayEngineRoleConsistencyStrategy.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayProjectionService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/bootstrap/GatewayAdminConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayEngineRoleConsistencyStrategyTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayProjectionControllerContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminConfigurationTest.java`
 - Commit: `feat(gateway-admin): enforce dual role consistency`
 
 ### Step 8 — Render API_RPC and MCP role state in Admin Web
@@ -1199,7 +1199,7 @@ mockMvc.perform(get(existingProjectionPath)).andExpect(status().isOk())
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 6, Rule 11
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.test.tsx`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.test.tsx`
 
 - Purpose: Define two-role rendering and all operator-visible projection states before page changes.
 - Symbols: tests for API_RPC/MCP cards, replicas, release/checksum/ACK, missing/unknown/skew, loading/error/denied/empty.
@@ -1223,7 +1223,7 @@ expect(renderMissingRole("MCP")).toShowWarning("Missing MCP Engine role");
 - Verification contribution: RED/GREEN proves operator-visible role separation without browser automation.
 - After this file: tests fail under the current single-status page.
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpRuntimeStatus.test.tsx`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpRuntimeStatus.test.tsx`
 
 - Purpose: Define MCP-specific status selection without creating a second backend request or deriving health from API role.
 - Symbols: MCP healthy/missing/skew/not-ready/unknown/loading/error tests.
@@ -1247,7 +1247,7 @@ expect(screen.queryByText("Healthy")).not.toBeInTheDocument();
 - Verification contribution: focused tests prove exact MCP filtering and negative states.
 - After this file: component behavior is fixed before implementation.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`
 
 - Purpose: Type the existing node metadata role discriminator and preserve it through gateway API mapping.
 - Symbols: `GatewayEngineRole`, required normalized `metadata: Record<string,string>`, role type guard/helper; existing query keys unchanged.
@@ -1272,7 +1272,7 @@ export const gatewayEngineRoleOf = (metadata: Record<string, string>): GatewayEn
 - Verification contribution: typecheck and gateway API test prove mapping compatibility.
 - After this file: components can branch without unsafe casts or defaults.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.tsx`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.tsx`
 
 - Purpose: Implement role grouping/rendering in group detail and MCP status using existing components/query state.
 - Symbols: `GatewayGroupDetailPage`, `McpRuntimeStatus`, local pure role grouping/view helpers if consistent with nearby style.
@@ -1296,13 +1296,13 @@ return <>{renderRoleCard('API_RPC', grouped.API_RPC, consistency.data)}{renderRo
 - Verification contribution: component tests, typecheck, and build prove the complete UI path.
 - After this file: Admin Web displays independent two-role state using one existing projection endpoint.
 
-- Validation working directory: `/Users/mario/SelfProject/Egon-COLA/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`
+- Validation working directory: `/Users/mario/SelfProject/Egon-COLA/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`
 - Verification command: `npm test -- src/features/gateway-groups/GatewayGroupDetailPage.test.tsx src/features/mcp/McpRuntimeStatus.test.tsx src/api/gatewayApi.test.ts && npm run typecheck && npm run lint && npm run build`
 - Expected result: exit 0; focused tests, typecheck, and production build pass without staging unrelated shared-library build state.
 - Failure returns to: Files 1–2 for acceptance fixtures, File 3 for contract typing/mapping, File 4 for rendering/state behavior.
 - Completion criteria: both role states and all required error/partial conditions are visible; no new endpoint/query key exists.
 - Rollback: revert the Step commit; backend role consistency remains available through the unchanged API.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpRuntimeStatus.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpRuntimeStatus.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpRuntimeStatus.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/gateway-groups/GatewayGroupDetailPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpRuntimeStatus.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`
 - Commit: `feat(gateway-admin-web): show dual engine roles`
 
 Step 9 focused execution additionally exposed a stale synthetic MCP fixture: `src/test/resources/mcp/complete-release.json` still supplies `McpRuntimeTool.inputLocations`, removed from the pre-existing current contract. Under DEC-EXEC-002, extend Step 9 scope to remove only those four obsolete fixture fields and retain strict Jackson deserialization. This is not a production rule-wire change; the canonical Admin artifact golden checksum remains unchanged. Failed apply keeps the previous ready/degraded flags and reports FAILED; only LKG restoration starts at version 0 with degraded=true.
@@ -1319,7 +1319,7 @@ Step 9 focused execution additionally exposed a stale synthetic MCP fixture: `sr
 - Literal Rules: Rule 1, Rule 2, Rule 5, Rule 6, Rule 7, Rule 11
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarnessTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarnessTest.java`
 
 - Purpose: Define role-aware executable resolution, process specifications, ports, environment, health, and teardown without starting processes in the focused unit test.
 - Symbols: `GatewayProcessHarnessTest`, `GatewayProcessSpec` role/main-class/artifact fields, artifact resolver cases for both engines.
@@ -1342,7 +1342,7 @@ assertThat(harness.resolveJar(api)).isNotEqualTo(harness.resolveJar(mcp));
 - Verification contribution: focused tests prove deterministic artifact/port/role ownership without live startup.
 - After this file: tests fail until harness/spec support both executable kinds.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarness.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarness.java`
 
 - Purpose: Implement role-aware process specs/resolution and add the MCP test dependency to the suite POM.
 - Symbols: `GatewayProcessHarness`, `GatewayProcessSpec`, `GatewayProcessProbe`, test-suite POM dependency on MCP Engine.
@@ -1367,7 +1367,7 @@ Path resolveJar(GatewayProcessSpec spec) {
 - Verification contribution: makes process harness tests GREEN and unblocks role-aware live fixtures.
 - After this file: suite can describe both processes without conflation.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveEnvironment.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveEnvironment.java`
 
 - Purpose: Split API and MCP live URLs/management/credentials/LKG inputs and update environment/contract/lease/topology fixtures.
 - Symbols: `GatewayLiveEnvironment`, its unit test, `GatewayLiveTopologyContractTest`, `GatewayLiveTopologyEngineLeaseTest`, `GatewayLiveTopologyIT`.
@@ -1391,7 +1391,7 @@ assertRoleSkewIsInconsistentWhenOneMcpReplicaUsesPreviousChecksum(topology);
 - Verification contribution: static contract tests run now; live topology behavior is prepared for the later user-controlled gate.
 - After this file: live fixture ownership matches the two-executable architecture.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`
 
 - Purpose: Point MCP release/HA/conformance/security tests to MCP Engine while retaining unified rule-wire and API/RPC compatibility tests.
 - Symbols: `McpCompleteReleaseIT`, `McpHaRecoveryIT`, `GatewayRuleWireCompatibilityTest`, related MCP clients/base URL helpers.
@@ -1416,12 +1416,12 @@ restartOnlyMcpReplicaAndAssertLkgRecoveryWithoutApiRestart();
 - After this file: suite covers both role ownership and single release semantics.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite -am -Dtest=GatewayProcessHarnessTest,GatewayLiveEnvironmentTest,GatewayLiveTopologyContractTest,GatewayLiveTopologyEngineLeaseTest,GatewayRuleWireCompatibilityTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite -am -Dtest=GatewayProcessHarnessTest,GatewayLiveEnvironmentTest,GatewayLiveTopologyContractTest,GatewayLiveTopologyEngineLeaseTest,GatewayRuleWireCompatibilityTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; all non-live harness/environment/topology/wire tests pass; live IT classes compile but do not start processes under the normal gate.
 - Failure returns to: Files 1–2 for artifact/process modeling, File 3 for topology/identity, File 4 for protocol target/compatibility.
 - Completion criteria: test suite represents two executable roles, one Admin/release, role-local ACK/LKG, and unchanged protocols.
 - Rollback: revert the Step commit; production modules remain split but old suite is temporarily incompatible.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarnessTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarness.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveEnvironment.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarnessTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayProcessHarness.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveEnvironment.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/process`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp`
 - Commit: `test(gateway): cover dual engine topology`
 
 Step 10 source clarification under DEC-EXEC-002: demo Provider host ports 18084/18085 conflict with MCP defaults and move to18094/18095 (container ports and business wire unchanged). Add `deployment/ddc-rpc-credentials.yml` and `.env.example` updates to provision a complete existing-three plus MCP-two DDC credential list for both DDC replicas, preserving list replacement semantics. Add `deployment/haproxy.data-plane.mtls.cfg` for TLS termination/path routing plus verified TLS upstreams; the control-plane TCP proxy remains untouched. The data-plane proxy retains stable public host18081; the direct API replica diagnostic host port moves to18091. Management health is reachable only on the deployment network/loopback host; mTLS Engine configuration disables the TLS reload endpoint when exposing health to the proxy.
@@ -1440,7 +1440,7 @@ Step 10 regression closure: the existing Provider artifact-version assertion in 
 - Literal Rules: Rule 2, Rule 5, Rule 7, Rule 11
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
 
 - Purpose: Define static deployment invariants for two API replicas, two MCP replicas, one Admin, independent identity/secrets/ports/volumes/probes, and stable routes.
 - Symbols: Compose model assertions for base and every overlay; forbidden API MCP/database settings.
@@ -1464,7 +1464,7 @@ assertStableRoutes(model.dataPlaneProxy(), API_PATHS, MCP_PATHS);
 - Verification contribution: RED/GREEN statically proves ownership and overlay parity without Docker startup.
 - After this file: test fails against the current mixed topology.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.yml`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml`
 
 - Purpose: Define base API_RPC/MCP services, distinct identities/credentials/ports/probes/LKG/state mounts, and dedicated data-plane proxy.
 - Symbols: API services, MCP services, `gateway-data-plane-proxy`, networks/volumes/secrets/environment.
@@ -1488,7 +1488,7 @@ services:
 - Verification contribution: parsed base Compose proves separate ownership and wiring.
 - After this file: base topology is correct; overlays and routes still need parity.
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/deployment/haproxy.data-plane.cfg`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/deployment/haproxy.data-plane.cfg`
 
 - Purpose: Route stable external API/RPC-compatible HTTP paths to API backends and MCP paths to MCP backends without changing the control-plane proxy.
 - Symbols: frontend, API backend, MCP backend, health checks and ACLs for `/mcp/`, `/legacy/mcp/`, `/.well-known/oauth-protected-resource/mcp/`.
@@ -1512,7 +1512,7 @@ default_backend gateway_api_rpc_engines
 - Verification contribution: static parser/assertions prove stable route ownership and control-plane isolation.
 - After this file: base data-plane selection is explicit and loopback-free.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.ha.yml`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml`
 
 - Purpose: Apply the same two-role structure to HA, mTLS, HA-mTLS, demo overlays and deployment scripts/docs.
 - Symbols: `compose.ha.yml`, `compose.mtls.yml`, `compose.ha-mtls.yml`, `compose.demo.yml`, `scripts/demo.sh`, `wait-ready.sh`, `run-mcp-conformance.sh`, `run-mcp-security.sh`, `README.md`, `README.zh-CN.md`.
@@ -1536,12 +1536,12 @@ update both deployment READMEs with one Admin, role replicas, ports, health, LKG
 - After this file: deployment artifacts consistently encode the target topology.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite -am -Dtest=GatewayComposeConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test && docker compose -f egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.yml config >/dev/null`
+- Verification command: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite -am -Dtest=GatewayComposeConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test && docker compose -f egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml config >/dev/null`
 - Expected result: Maven test passes; if Docker CLI is installed, Compose config exits 0 without starting containers; otherwise the Maven parser remains the recorded static proof and CLI absence is reported.
 - Failure returns to: File 1 for invariant mismatch, File 2 for base ownership, File 3 for routing, File 4 for overlay/script/doc parity.
 - Completion criteria: all deployment profiles describe one Admin and independent API_RPC/MCP role services with stable routing and no API MCP database ownership.
 - Rollback: revert the Step commit; no container/deployment state is mutated.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.yml`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/haproxy.data-plane.cfg`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.ha.yml`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.mtls.yml`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.ha-mtls.yml`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/compose.demo.yml`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/scripts`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/README.md`, `egon-cola-platforms/egon-cola-platform-gateway/deployment/README.zh-CN.md`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/haproxy.data-plane.cfg`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.mtls.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha-mtls.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.demo.yml`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/scripts`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/README.md`, `egon-cola-xingyuan/egon-cola-yuheng/deployment/README.zh-CN.md`
 - Commit: `ops(gateway): define dual engine deployment`
 
 ### Step 11 — Align local lifecycle, CI, and operator runbooks
@@ -1556,7 +1556,7 @@ update both deployment READMEs with one Admin, role replicas, ports, health, LKG
 - Literal Rules: Rule 2, Rule 5, Rule 7, Rule 11
 - Ordered files:
 
-#### File 1 — `MODIFY scripts/unified-platform/test-direct-run-contract.sh`
+#### File 1 — `MODIFY scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 - Purpose: Define static local-run lifecycle requirements for both jars/processes, distinct ports/logs/PIDs/LKG/config, and preserved portal/release logic.
 - Symbols: shell assertions over prepare/start/status/verify/stop/unified wrapper scripts.
@@ -1571,7 +1571,7 @@ update both deployment READMEs with one Admin, role replicas, ports, health, LKG
 - Implementation pseudocode:
 
 ```bash
-assert_contains start-local-stack.sh 'egon-cola-platform-gateway-mcp-engine'
+assert_contains start-local-stack.sh 'yuheng-mcp-gateway'
 assert_distinct_runtime_paths API_RPC MCP PID_FILE LOG_FILE LKG_DIRECTORY
 assert_contains start-local-stack.sh 'reconcile_gateway_release'
 assert_contains verify-local-stack.sh 'MCP_MANAGEMENT_PORT'
@@ -1604,7 +1604,7 @@ verify_admin_reports_both_roles_same_release; preserve_portal_origin_and_release
 - Verification contribution: shell contract and syntax tests prove lifecycle shape; no process is started automatically.
 - After this file: local scripts are role-aware and preserve current baseline behavior.
 
-#### File 3 — `MODIFY .github/workflows/rbac3.yml`
+#### File 3 — `MODIFY .github/workflows/tianquan-jianshen.yml`
 
 - Purpose: Include MCP Engine in the existing RBAC3/gateway selector and document the unchanged gateway workflow coverage.
 - Symbols: Maven `-pl` selector/path filters for MCP security integration.
@@ -1619,7 +1619,7 @@ verify_admin_reports_both_roles_same_release; preserve_portal_origin_and_release
 - Implementation pseudocode:
 
 ```yaml
-run: ./mvnw -pl existing-rbac3-modules,egon-cola-platform-gateway-engine,egon-cola-platform-gateway-mcp-engine -am test
+run: ./mvnw -pl existing-rbac3-modules,yuheng-biz-gateway,yuheng-mcp-gateway -am test
 # retain existing triggers, permissions, Java setup, caches, and unrelated job boundaries
 # verify both role context/security tests are selected while all pre-existing RBAC3 modules stay in the same job
 # keep workflow path filters aligned with both executable module directories and do not add a second workflow
@@ -1652,12 +1652,12 @@ document scale, one-role drain/rollback, skew diagnosis, credential/TLS isolatio
 - After this file: code, CI, scripts, and documentation use the same topology vocabulary.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `bash -n scripts/unified-identity-local.sh scripts/unified-platform/prepare-local-stack.sh scripts/unified-platform/start-local-stack.sh scripts/unified-platform/status-local-stack.sh scripts/unified-platform/verify-local-stack.sh scripts/unified-platform/stop-local-stack.sh scripts/unified-platform/test-direct-run-contract.sh && bash scripts/unified-platform/test-direct-run-contract.sh && rg -n 'gateway-mcp-engine|API_RPC|MCP|18084|18085' .github/workflows/rbac3.yml docs/operations/unified-identity-mcp-local-runbook.md docs/runbooks/unified-identity-local.md egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/docs/developer-integration.zh-CN.md`
+- Verification command: `bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/prepare-local-stack.sh scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/status-local-stack.sh scripts/unified-xingyuan/verify-local-stack.sh scripts/unified-xingyuan/stop-local-stack.sh scripts/unified-xingyuan/test-direct-run-contract.sh && bash scripts/unified-xingyuan/test-direct-run-contract.sh && rg -n 'gateway-mcp-engine|API_RPC|MCP|18084|18085' .github/workflows/tianquan-jianshen.yml docs/operations/unified-identity-mcp-local-runbook.md docs/runbooks/unified-identity-local.md egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/docs/developer-integration.zh-CN.md`
 - Expected result: exit 0; shell syntax/contract tests pass and every audited CI/doc path names both roles and MCP default ports; no services start.
 - Failure returns to: File 1 for missing contract coverage, File 2 for lifecycle regression, File 3 for CI selection, File 4 for stale/unsafe operator instructions.
 - Completion criteria: all repository-owned lifecycle/CI/docs consistently manage two roles; full static/reactor/frontend audit in §8 passes and live evidence remains pending explicit authorization.
 - Rollback: revert the Step commit; deployment files remain usable directly while local wrapper/docs revert.
-- Commit paths: `scripts/unified-platform/test-direct-run-contract.sh`, `scripts/unified-identity-local.sh`, `.github/workflows/rbac3.yml`, `docs/operations/unified-identity-mcp-local-runbook.md`, `scripts/unified-platform/prepare-local-stack.sh`, `scripts/unified-platform/start-local-stack.sh`, `scripts/unified-platform/status-local-stack.sh`, `scripts/unified-platform/verify-local-stack.sh`, `scripts/unified-platform/stop-local-stack.sh`, `docs/runbooks/unified-identity-local.md`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/docs/developer-integration.zh-CN.md`
+- Commit paths: `scripts/unified-xingyuan/test-direct-run-contract.sh`, `scripts/unified-identity-local.sh`, `.github/workflows/tianquan-jianshen.yml`, `docs/operations/unified-identity-mcp-local-runbook.md`, `scripts/unified-xingyuan/prepare-local-stack.sh`, `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-xingyuan/status-local-stack.sh`, `scripts/unified-xingyuan/verify-local-stack.sh`, `scripts/unified-xingyuan/stop-local-stack.sh`, `docs/runbooks/unified-identity-local.md`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/docs/developer-integration.zh-CN.md`
 - Commit: `docs(gateway): align dual engine operations`
 
 ## 8. Test, Validation, and Quality Gates
@@ -1672,8 +1672,8 @@ document scale, one-role drain/rollback, skew diagnosis, credential/TLS isolatio
 | RED/GREEN Step 8 | Gateway Admin Web module | Frontend command in Step 8 | Types, API mapping, role UI states | Expected missing UI behavior, then tests/typecheck/build exit 0 | Step 8 | `REQ-007`, `REQ-008`; frontend static/component |
 | RED/GREEN Step 9 | Repository root | Test-suite focused command in Step 9 | Process/live fixtures and wire compatibility | Expected one-artifact assumptions, then exit 0 | Step 9 | `REQ-006`, `REQ-008`, `REQ-012`; non-live suite |
 | RED/GREEN Steps 10–11 | Repository root | Compose and shell commands in each Step | Deployment profiles, scripts, CI, docs | Expected missing role config, then exit 0 | Owning Step | `REQ-009`–`REQ-012`; static |
-| Java reactor regression | Repository root | `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway -am clean verify` | All Gateway modules and non-live tests | Exit 0; no test failure/dependency cycle/duplicate class | Steps 1–11 by owner | All requirements; reactor/static |
-| Dependency/package audit | Repository root | `./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine -am dependency:tree` plus `rg` ownership searches | Executable DAG and forbidden ownership | API has no mcp-core/JDBC/PostgreSQL/MCP production packages; no executable cross-dependency | Steps 2, 3, 6 | `REQ-002`–`REQ-005`, `REQ-010`; static |
+| Java reactor regression | Repository root | `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng -am clean verify` | All Gateway modules and non-live tests | Exit 0; no test failure/dependency cycle/duplicate class | Steps 1–11 by owner | All requirements; reactor/static |
+| Dependency/package audit | Repository root | `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway -am dependency:tree` plus `rg` ownership searches | Executable DAG and forbidden ownership | API has no mcp-core/JDBC/PostgreSQL/MCP production packages; no executable cross-dependency | Steps 2, 3, 6 | `REQ-002`–`REQ-005`, `REQ-010`; static |
 | Configuration parity audit | Repository root | Compare property classes with base/operations YAML, Compose overlays, scripts and docs using focused tests plus `rg` | All role profiles | New MCP keys are parity-complete; old MCP prefix/env preserved; API has no MCP/database keys | Steps 5, 6, 10, 11 | `REQ-009`–`REQ-011`; static |
 | Frontend regression | Gateway Admin Web module | `npm test && npm run typecheck && npm run lint && npm run build` | Entire Gateway Admin Web | Exit 0 | Step 8 | `REQ-007`, `REQ-008`; frontend |
 | Compose render | Gateway deployment directory | `docker compose -f compose.yml config` and each applicable overlay combination | Static Compose rendering | Exit 0 when Docker CLI is available; starts no containers | Step 10 | `REQ-009`–`REQ-012`; static |
@@ -1684,11 +1684,11 @@ Final source audits must search for stale mixed ownership rather than rely only 
 
 ```bash
 rg -n 'engine\.mcp|McpEngine|McpRuntime|GATEWAY_MCP_|spring\.datasource|postgresql|jdbc' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway
 rg -n 'RpcGatewayServer|RpcGatewaySlotRuntime|GatewayCompositeHttpDataPlaneHandler|DefaultGatewayHttpDataPlaneHandler' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-engine
-rg -n 'egon-cola-platform-gateway-(engine|mcp-engine)' \
-  egon-cola-platforms/egon-cola-platform-gateway/deployment scripts .github/workflows docs
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway
+rg -n 'yuheng-(engine|mcp-engine)' \
+  egon-cola-xingyuan/egon-cola-yuheng/deployment scripts .github/workflows docs
 ```
 
 Expected first and second searches return no forbidden production ownership; permitted compatibility strings must be

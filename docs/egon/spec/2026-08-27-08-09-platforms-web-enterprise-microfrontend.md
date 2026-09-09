@@ -12,7 +12,7 @@
 | Updated | 2026-08-27 11:44 CST |
 | Owner | User / Egon-COLA platform owner |
 | Repository | Egon-COLA |
-| Scope | egon-cola-platforms 下的 IDP、RBAC3、Gateway、DDC Admin Web、admin-web-shared 与 Wujie Portal；后端接口缺口继续登记为后续契约输入，未来 Java 实现采用传统三层，本轮不进入 Java 实现 |
+| Scope | egon-cola-xingyuan 下的 IDP、RBAC3、Gateway、DDC Admin Web、admin-web-shared 与 Wujie Portal；后端接口缺口继续登记为后续契约输入，未来 Java 实现采用传统三层，本轮不进入 Java 实现 |
 | Change Surface | 共享企业级 Layout、Wujie 混合宿主、静态权限菜单、同源 Cookie/CSRF 边界、统一首页只读摘要、各平台页面信息架构与文字 UI 设计、接口缺口登记；不修改数据库或既有后端契约 |
 | Affected Chapters | §7, §8, §12, §13, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户确认继续梳理 platforms Web 企业级方案，要求左侧若依风格菜单、逐页文字布局/UI 设计、后端缺失接口清单，并提出考虑 wijie 微前端框架 |
@@ -20,7 +20,7 @@
 | Amends | None |
 | Supersedes | None |
 | Depends On | [DDC Admin 全量分页查询与前端现代化设计](../../superpowers/specs/2026-08-10-ddc-admin-pagination-ui-modernization-design.md) §1-§10；本 Spec 不改变其已确认的分页、兼容和不改数据库边界 |
-| Related Specs | [IDP & RBAC3 前端企业级优化设计](../../../egon-cola-platforms/docs/superpowers/specs/2026-08-04-idp-rbac3-frontend-optimization-design.md)、[Gateway Admin Web 设计](../../superpowers/specs/2026-07-25-gateway-admin-web-design.md)、[Gateway Admin Web 企业级前端重构设计](../../../egon-cola-platforms/egon-cola-platform-gateway/docs/superpowers/specs/2026-07-31-admin-web-enterprise-redesign.md)、[DDC Admin Web 设计](../../superpowers/specs/2026-07-28-ddc-admin-web-design.md) |
+| Related Specs | [IDP & RBAC3 前端企业级优化设计](../../../egon-cola-xingyuan/docs/superpowers/specs/2026-08-04-idp-rbac3-frontend-optimization-design.md)、[Gateway Admin Web 设计](../../superpowers/specs/2026-07-25-gateway-admin-web-design.md)、[Gateway Admin Web 企业级前端重构设计](../../../egon-cola-xingyuan/egon-cola-yuheng/docs/superpowers/specs/2026-07-31-admin-web-enterprise-redesign.md)、[DDC Admin Web 设计](../../superpowers/specs/2026-07-28-ddc-admin-web-design.md) |
 | Related Plans | [platforms Web/Wujie 混合宿主实施计划](../plan/2026-08-27-11-13-platforms-web-enterprise-implementation.md) |
 
 ## 1. Summary
@@ -49,28 +49,28 @@
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
-| EVD-001 | Static repository | egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx:65 | Shared Layout 将 Header、Sidebar、Content 和 Footer 组合，并在有导航时渲染侧栏 | 左侧菜单基础已存在，应优先复用 | 仅证明源码结构，不证明浏览器视觉结果 |
-| EVD-002 | Static repository | egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx:80 | Sidebar 默认 width 为 240，collapsedWidth 为 72，支持桌面折叠 | 固化统一壳的尺寸和交互基线 | 未执行真实窄屏视觉验收 |
-| EVD-003 | Static repository | egon-cola-platform-admin-web-shared/package.json:31 | shared 包将 React、Ant Design、React Router、React Query、i18n 等列为 peer dependency | 不新增第二套 UI 框架或状态库 | 未验证发布制品与所有消费项目版本完全一致 |
+| EVD-001 | Static repository | egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx:65 | Shared Layout 将 Header、Sidebar、Content 和 Footer 组合，并在有导航时渲染侧栏 | 左侧菜单基础已存在，应优先复用 | 仅证明源码结构，不证明浏览器视觉结果 |
+| EVD-002 | Static repository | egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx:80 | Sidebar 默认 width 为 240，collapsedWidth 为 72，支持桌面折叠 | 固化统一壳的尺寸和交互基线 | 未执行真实窄屏视觉验收 |
+| EVD-003 | Static repository | egon-cola-xingyuan-admin-web-shared/package.json:31 | shared 包将 React、Ant Design、React Router、React Query、i18n 等列为 peer dependency | 不新增第二套 UI 框架或状态库 | 未验证发布制品与所有消费项目版本完全一致 |
 | EVD-004 | Static repository | command: rg -n -i wujie/wijie/qiankun/microfrontend | 当前仓库未发现 Wujie、wijie、qiankun 或 single-spa 依赖/实现 | Wujie 方向已确认，但 Portal、Manifest、子应用 lifecycle 和依赖仍需作为新增实现面规划 | 搜索不能证明外部部署仓库没有其他宿主 |
-| EVD-005 | Static repository | egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/AdminLayout.tsx:24 | IDP 通过权限过滤后将身份目录、OAuth 与资源、安全治理导航交给 shared | IDP 的业务导航应保留自治，宿主只编排入口 | 当前页面权限多为读权限，写操作细化仍需补强 |
-| EVD-006 | Static repository | egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/router.tsx:43 | IDP 已有 overview、users、clients、tenants、resource-grants、resource-servers、keys、audits 路由 | 页面设计可以从真实路由开始 | 未启动运行时验证深链部署 |
-| EVD-007 | Static repository | egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json:2 | RBAC3 资源定义包含 MENU、ROUTE、ACTION、FIELD，并有隐藏权限、角色资源和角色任职路由 | RBAC3 当前是资源注册表驱动，不宜直接复制若依数据库菜单模型 | 当前资源注册表消费和后端运行时闭环需联调确认 |
-| EVD-008 | Static repository | egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx:17 | users、organizations、positions 路由中组织和岗位也绑定 UserDirectoryPage | 这是必须先修复的页面职责错误 | 代码层已明确，运行时 404/错误内容需联调确认 |
-| EVD-009 | Static repository | egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/role.api.ts:70 | 角色列表和影响分析前端调用路径缺少 /iam | 与后端 RoleController 的 /api/rbac3/v1/iam/roles 不一致 | 静态路径不一致，实际代理重写仍需运行时确认 |
-| EVD-010 | Static repository | egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/constraint.api.ts:45 | 约束前端调用 /sod-sets、/data-rules 等路径 | 与后端 ConstraintController 的 /api/rbac3/v1/iam/policies 不一致 | 同上 |
-| EVD-011 | Static repository | egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx:36 | Gateway 已有总览、网关治理、MCP、观测与审计左侧导航 | Gateway 信息架构已有基础，应补齐页面状态和操作闭环 | 不代表所有操作按钮已连接后端 |
-| EVD-012 | Static repository | egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.tsx:28 | Trace 页面按作用域查询并每 5 秒刷新，当前筛选主要是 Trace ID、Protocol、状态 | 运行态页面需要明确刷新、详情和高基数限制 | 当前没有 Trace 详情链路证据 |
-| EVD-013 | Static repository | egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/App.tsx:14 | DDC 已有 registry、configs、bizs、envs、apps、namespaces、publish-tasks、cache 路由 | DDC 页面范围真实存在，但缺少总览和审计入口 | 不代表后端所有集合已经分页或有真实总数 |
-| EVD-014 | Static repository | egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.tsx:23 | DDC 前端只用 DDC_READ 判断 authorized，未发现 DDC_WRITE、DDC_PUBLISH、DDC_CACHE 的按钮级判断 | 后端权限边界已有，前端体验需要细化 | 不等同于后端权限绕过 |
-| EVD-015 | Static repository | egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcOperationLogEntity.java:15 | DDC 已持久化 ddc_operation_log，包含作用域、资源、操作类型、操作者、IP、内容和时间 | 可优先复用现有日志数据补审计查询，不先新增表 | 未检查现场数据量、索引和执行计划 |
-| EVD-016 | Static repository | egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcOperationLogRepository.java:8 | 当前 Repository 只有按 bizCode、env、appCode 的 List 查询 | DDC 审计缺少面向管理端的分页/过滤读取边界 | 源码未证明无其他隐藏查询实现，已搜索当前 admin 模块 |
-| EVD-017 | Static repository | egon-cola-platforms/pom.xml:19 | platforms Maven 父工程包含 DDC、Gateway、RBAC3、IDP 四个后端平台模块 | 四个平台是同一仓库下的协同控制面 | 不证明部署时一定是同一进程 |
-| EVD-018 | Static repository | egon-cola-platforms/*/*-admin-web/package.json | 四个 Web 使用 React 19、TypeScript 6、Vite、Ant Design 6、React Query；无微前端包 | 宿主设计必须处理独立 Vite 构建、版本和基座路径 | 只证明 package manifest，不证明最终 CDN/网关配置 |
+| EVD-005 | Static repository | egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx:24 | IDP 通过权限过滤后将身份目录、OAuth 与资源、安全治理导航交给 shared | IDP 的业务导航应保留自治，宿主只编排入口 | 当前页面权限多为读权限，写操作细化仍需补强 |
+| EVD-006 | Static repository | egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/router.tsx:43 | IDP 已有 overview、users、clients、tenants、resource-grants、resource-servers、keys、audits 路由 | 页面设计可以从真实路由开始 | 未启动运行时验证深链部署 |
+| EVD-007 | Static repository | egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json:2 | RBAC3 资源定义包含 MENU、ROUTE、ACTION、FIELD，并有隐藏权限、角色资源和角色任职路由 | RBAC3 当前是资源注册表驱动，不宜直接复制若依数据库菜单模型 | 当前资源注册表消费和后端运行时闭环需联调确认 |
+| EVD-008 | Static repository | egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx:17 | users、organizations、positions 路由中组织和岗位也绑定 UserDirectoryPage | 这是必须先修复的页面职责错误 | 代码层已明确，运行时 404/错误内容需联调确认 |
+| EVD-009 | Static repository | egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/role.api.ts:70 | 角色列表和影响分析前端调用路径缺少 /iam | 与后端 RoleController 的 /api/rbac3/v1/iam/roles 不一致 | 静态路径不一致，实际代理重写仍需运行时确认 |
+| EVD-010 | Static repository | egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts:45 | 约束前端调用 /sod-sets、/data-rules 等路径 | 与后端 ConstraintController 的 /api/rbac3/v1/iam/policies 不一致 | 同上 |
+| EVD-011 | Static repository | egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx:36 | Gateway 已有总览、网关治理、MCP、观测与审计左侧导航 | Gateway 信息架构已有基础，应补齐页面状态和操作闭环 | 不代表所有操作按钮已连接后端 |
+| EVD-012 | Static repository | egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx:28 | Trace 页面按作用域查询并每 5 秒刷新，当前筛选主要是 Trace ID、Protocol、状态 | 运行态页面需要明确刷新、详情和高基数限制 | 当前没有 Trace 详情链路证据 |
+| EVD-013 | Static repository | egon-cola-tianshu/egon-cola-tianshu-admin-web/src/App.tsx:14 | DDC 已有 registry、configs、bizs、envs、apps、namespaces、publish-tasks、cache 路由 | DDC 页面范围真实存在，但缺少总览和审计入口 | 不代表后端所有集合已经分页或有真实总数 |
+| EVD-014 | Static repository | egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx:23 | DDC 前端只用 DDC_READ 判断 authorized，未发现 DDC_WRITE、DDC_PUBLISH、DDC_CACHE 的按钮级判断 | 后端权限边界已有，前端体验需要细化 | 不等同于后端权限绕过 |
+| EVD-015 | Static repository | egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcOperationLogEntity.java:15 | DDC 已持久化 ddc_operation_log，包含作用域、资源、操作类型、操作者、IP、内容和时间 | 可优先复用现有日志数据补审计查询，不先新增表 | 未检查现场数据量、索引和执行计划 |
+| EVD-016 | Static repository | egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcOperationLogRepository.java:8 | 当前 Repository 只有按 bizCode、env、appCode 的 List 查询 | DDC 审计缺少面向管理端的分页/过滤读取边界 | 源码未证明无其他隐藏查询实现，已搜索当前 admin 模块 |
+| EVD-017 | Static repository | egon-cola-xingyuan/pom.xml:19 | platforms Maven 父工程包含 DDC、Gateway、RBAC3、IDP 四个后端平台模块 | 四个平台是同一仓库下的协同控制面 | 不证明部署时一定是同一进程 |
+| EVD-018 | Static repository | egon-cola-xingyuan/*/*-admin-web/package.json | 四个 Web 使用 React 19、TypeScript 6、Vite、Ant Design 6、React Query；无微前端包 | 宿主设计必须处理独立 Vite 构建、版本和基座路径 | 只证明 package manifest，不证明最终 CDN/网关配置 |
 | EVD-019 | User decision | 本次用户消息及后续六项确认 | 用户确认 Wujie、混合宿主、静态菜单、同源 Cookie/CSRF、统一首页只读摘要 Facade 和后续 Java 传统三层结构 | 六项跨平台决策已关闭，可进入 Review/Plan；后端逐接口合同仍需单独实现审查 | Wujie 与 React 19/Vite 8 的实际兼容和部署仍需实施验证 |
 | EVD-020 | Static predecessor | docs/superpowers/specs/2026-08-10-ddc-admin-pagination-ui-modernization-design.md:20 | DDC 既有设计确认新增 /page、保留 List/RPC、复用 PageResultRecord、不改数据库和不自动启动服务 | 本 Spec 不得重新改写 DDC 分页基础设计 | 该文档状态为等待书面规格复核，需以用户最终批准为准 |
 | EVD-021 | Static predecessor | docs/superpowers/specs/2026-07-25-gateway-admin-web-design.md:14 | Gateway 既有设计规定前端不直接访问 DDC、Redis、Kafka、Engine，并要求发布、ACK、重试、回滚可审计 | 宿主和页面不能绕过 Gateway Admin API | 设计证据不等于生产运行闭环 |
-| EVD-022 | Static architecture | egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/AdminLayerBoundaryTest.java | RBAC3 Admin 当前按功能域组织 controller/domain/service/repository，并显式禁止旧技术根目录 | 当前 Web Plan 不改 Java；后续新增 Java API 统一采用已确认的传统 biz.controller/service/service.impl/dao/config/utils/domain 结构，不在既有 feature-first 模块内混入新层 | 现有 Java 历史结构不因本 Spec 自动迁移，后续若要迁移必须另立 Spec |
+| EVD-022 | Static architecture | egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/AdminLayerBoundaryTest.java | RBAC3 Admin 当前按功能域组织 controller/domain/service/repository，并显式禁止旧技术根目录 | 当前 Web Plan 不改 Java；后续新增 Java API 统一采用已确认的传统 biz.controller/service/service.impl/dao/config/utils/domain 结构，不在既有 feature-first 模块内混入新层 | 现有 Java 历史结构不因本 Spec 自动迁移，后续若要迁移必须另立 Spec |
 | EVD-023 | Static validation | four Admin Web npm typecheck commands on 2026-08-26 | IDP、RBAC3、Gateway、DDC typecheck 通过；shared 因本地缺少 tsc 未执行 | 当前 TypeScript 类型基线部分可用 | 未运行本次 Spec 相关的前端实现测试或浏览器验收 |
 | EVD-024 | Worktree evidence | git status --short on 2026-08-26 | 工作区存在用户既有 docs 修改、未跟踪 Spec/Plan 和 archetype 目录 | 本 Spec/Plan 只新增自身文档，不能覆盖或整理既有变更 | 工作区状态会随用户操作变化 |
 | EVD-025 | External package verification | Wujie official React wrapper documentation; npm view wujie-react version --json on 2026-08-27 | Wujie React wrapper is documented as wujie-react and the observed package version is 2.1.0; lifecycle props and bus/setup/destroy APIs are available in the documented wrapper | Portal can pin wujie-react@2.1.0 for a compatibility spike; child lifecycle and React 19/Vite 8 behavior remain implementation gates | External documentation/package metadata may change; lockfile and browser/runtime proof are still required |
@@ -289,9 +289,9 @@ flowchart LR
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
 | Frontend | React 19、TypeScript 6、Vite 8、React Router 7、Ant Design 6、TanStack Query 5 | 四个 Admin Web package.json | 继续复用现有栈；Wujie 若采用必须先验证版本兼容 |
-| Shared frontend | @egon-cola/admin-web-shared 0.2.0 | shared package.json、EnterpriseLayout、PageState、PageTemplate | Layout、主题、错误和鉴权公共能力集中复用 |
+| Shared frontend | @egon-cola/xingyuan-admin-web-shared 0.2.0 | shared package.json、EnterpriseLayout、PageState、PageTemplate | Layout、主题、错误和鉴权公共能力集中复用 |
 | Frontend state | React Query + Context | 各页面 useQuery/useMutation，DDC QueryClientProvider | 不新增 Redux/Zustand；客户端状态仅保存 UI 临时状态 |
-| Backend | Java 21、Spring Boot 3.5.16、Maven | egon-cola-platforms/pom.xml | 后端候选接口保持各 Admin 模块所有权 |
+| Backend | Java 21、Spring Boot 3.5.16、Maven | egon-cola-xingyuan/pom.xml | 后端候选接口保持各 Admin 模块所有权 |
 | Persistence | PostgreSQL/JPA/Flyway，DDC 另有 Redis 和 RPC 聚合 | 各 Admin POM、DDC OperationLog、既有 Specs | 本 Spec 不改表；查询缺口先复用现有数据 |
 | Security | Gateway Auth、HttpOnly Cookie/CSRF/bootstrap、平台 capability | shared gatewayAuthClient、各 AuthContext、DDC security | 宿主不读取 Token/Secret；后端继续最终鉴权 |
 | API error | 各平台现有错误包装和权限边界 | Gateway/IDP/RBAC3/DDC Controller 与既有 Specs | UI 需区分 401/403/409/422/5xx；不重写全局错误体系 |
@@ -313,7 +313,7 @@ flowchart LR
 | Architecture profile | Archetype/template or base package | Exact evidence and verifier | Existing deviations | Design action |
 | --- | --- | --- | --- | --- |
 | Traditional Three-Layer | 后续 Java API 的唯一目标 profile：`biz.controller`、`biz.service`、`biz.service.impl`、`biz.dao`、`biz.config`、`biz.utils`、`biz.domain` | 用户确认 DEC-106；Rule 11 允许的传统层方向为 Controller -> Service -> service.impl -> DAO | 当前四个 Admin 模块仍为 feature-first；本轮不迁移、不在旧模块混入新 biz.* | 后续 Java API 单独写 Spec/Plan；本轮仅记录约束，Java 文件为 Context-only |
-| Egon-COLA Light/Service/Web/Open | 未选定 | egon-cola-platforms POM 与独立平台模块；未发现 exact archetype parent/verifier 作为平台基线 | 现有平台功能域和模块边界不是 exact archetype generated tree | 不在本 Draft 迁移；需用户选定具体 variant 才能写 Java Plan |
+| Egon-COLA Light/Service/Web/Open | 未选定 | egon-cola-xingyuan POM 与独立平台模块；未发现 exact archetype parent/verifier 作为平台基线 | 现有平台功能域和模块边界不是 exact archetype generated tree | 不在本 Draft 迁移；需用户选定具体 variant 才能写 Java Plan |
 
 Reuse/capability ledger:
 
@@ -617,8 +617,8 @@ No new database transaction is selected in this Spec. New Admin API implementati
 
 ### 8.1 Current relevant tree
 
-    egon-cola-platforms/
-    ├── egon-cola-platform-admin-web-shared/
+    egon-cola-xingyuan/
+    ├── egon-cola-xingyuan-admin-web-shared/
     │   ├── package.json
     │   └── src/
     │       ├── layout/
@@ -627,14 +627,14 @@ No new database transaction is selected in this Spec. New Admin API implementati
     │       ├── components/
     │       ├── hooks/
     │       └── i18n/
-    ├── egon-cola-platform-idp/
-    │   └── egon-cola-platform-idp-admin-web/
-    ├── egon-cola-platform-rbac3/
-    │   └── egon-cola-platform-rbac3-admin-web/
-    ├── egon-cola-platform-gateway/
-    │   └── egon-cola-platform-gateway-admin-web/
-    └── egon-cola-platform-dynamic-config-center/
-        └── egon-cola-platform-dynamic-config-center-admin-web/
+    ├── egon-cola-tianquan-shoubing/
+    │   └── egon-cola-tianquan-shoubing-admin-web/
+    ├── egon-cola-tianquan-jianshen/
+    │   └── egon-cola-tianquan-jianshen-admin-web/
+    ├── egon-cola-yuheng/
+    │   └── yuheng-admin-web/
+    └── egon-cola-tianshu/
+        └── egon-cola-tianshu-admin-web/
 
 后端上下文仍由各自的 contract/core/admin/starter 或 feature-first Admin 包拥有；本 Spec 不改变其树。
 
@@ -642,8 +642,8 @@ No new database transaction is selected in this Spec. New Admin API implementati
 
 以下是用户确认后的目标 Web 树，具体创建/修改仍须按后续 Plan 逐 Step 审查和提交：
 
-    egon-cola-platforms/
-    ├── egon-cola-platform-admin-web-shared/                 MODIFY in shared-shell Step
+    egon-cola-xingyuan/
+    ├── egon-cola-xingyuan-admin-web-shared/                 MODIFY in shared-shell Step
     │   └── src/
     │       ├── layout/EnterpriseLayout.tsx
     │       ├── layout/EnterpriseHeader.tsx
@@ -653,16 +653,16 @@ No new database transaction is selected in this Spec. New Admin API implementati
     │       ├── components/PageHeader.tsx                    CREATE if repeated shell contract is proven
     │       ├── components/PageHeader.test.tsx               CREATE with shell contract
     │       └── theme/tokens.ts
-    ├── egon-cola-platform-idp/egon-cola-platform-idp-admin-web/
+    ├── egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/
     │   └── src/features/                                   MODIFY per page design
-    ├── egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/
+    ├── egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/
     │   └── src/features/                                   MODIFY per route/page ownership
-    ├── egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/
+    ├── egon-cola-yuheng/yuheng-admin-web/
     │   └── src/features/                                   MODIFY per page design
-    ├── egon-cola-platform-dynamic-config-center/
-    │   └── egon-cola-platform-dynamic-config-center-admin-web/
+    ├── egon-cola-tianshu/
+    │   └── egon-cola-tianshu-admin-web/
     │       └── src/pages/                                  MODIFY/add audit/dashboard only after API approval
-    └── egon-cola-platform-admin-portal/                    CREATE; Wujie hybrid host
+    └── egon-cola-xingyuan-admin-portal/                    CREATE; Wujie hybrid host
         ├── package.json
         ├── package-lock.json
         ├── index.html

@@ -26,7 +26,7 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+            <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>

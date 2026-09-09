@@ -15,7 +15,7 @@
 | Implements Spec | [RBAC3 资源授权、权限字符内隐化与控制面重新分层规格](../spec/2026-08-24-17-30-rbac3-resource-grants-layering.md) |
 | Spec Status | `Accepted` |
 | Spec Revision | `Updated 2026-08-25 10:42 CST；baseline main@df425ed9484d20e6235666d91e947742998ab475` |
-| Effective Specs | [本次资源授权分层规格](../spec/2026-08-24-17-30-rbac3-resource-grants-layering.md)；[前置注解/UserDetails/字段授权规格](../spec/2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md)；[统一身份无 Session JWT 规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md)；[IAM 聚合迁移旧规格](../../../egon-cola-platforms/egon-cola-platform-rbac3/docs/iam-package-aggregation-migration-spec.md) |
+| Effective Specs | [本次资源授权分层规格](../spec/2026-08-24-17-30-rbac3-resource-grants-layering.md)；[前置注解/UserDetails/字段授权规格](../spec/2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md)；[统一身份无 Session JWT 规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md)；[IAM 聚合迁移旧规格](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) |
 | Depends On Plans | [RBAC3 注解权限、全局资源目录与无状态认证实施计划](2026-08-17-15-07-rbac3-annotation-resource-catalog-implementation.md) |
 | Supersedes | `None` |
 | Superseded By | `None` |
@@ -43,7 +43,7 @@
 | Primary | [资源授权分层规格](../spec/2026-08-24-17-30-rbac3-resource-grants-layering.md) | Accepted / 2026-08-25 10:42 CST | 全文 | 本计划唯一主目标；定义 REQ-001–REQ-025、接口、V13、页面、包和发布边界 |
 | Normative dependency | [注解/UserDetails/字段授权规格](../spec/2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md) | Accepted / 2026-08-17 15:07 CST | §3.2、§5.1、§7.1–§7.3.2、§7.3.4、§15–§16 未被主规格修订部分 | 保留 SecurityContext、UserDetails、active role、字段/DataScope/SOD/Fence、无 Session 与 common Result 规则 |
 | Transitive dependency | [统一身份无 Session JWT 规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) | 已确认 / 2026-08-14 | §7–§9、§11、§12.1、§12.5、§15，经前置 Accepted Spec 引入 | 固定双 Token、Cookie、IdP 验签、业务服务只接 AT、角色激活无 Session；本计划只做回归，不重写 |
-| Amended legacy baseline | [IAM 聚合迁移旧规格](../../../egon-cola-platforms/egon-cola-platform-rbac3/docs/iam-package-aggregation-migration-spec.md) | Draft legacy；仅由两个 Accepted Spec 明确引用的未冲突内容有效 | §2.2–§2.4、§4.1、§5.1–§5.4；其 §3、§4.2–§4.4、§5.5–§9 被主规格修订 | 保留最小 User、DDC BIZ/APP、组织岗位来源、tenant/application 隔离等既有事实；不把旧目标包/Manifest/RolePermission 带回 |
+| Amended legacy baseline | [IAM 聚合迁移旧规格](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) | Draft legacy；仅由两个 Accepted Spec 明确引用的未冲突内容有效 | §2.2–§2.4、§4.1、§5.1–§5.4；其 §3、§4.2–§4.4、§5.5–§9 被主规格修订 | 保留最小 User、DDC BIZ/APP、组织岗位来源、tenant/application 隔离等既有事实；不把旧目标包/Manifest/RolePermission 带回 |
 
 ### 2.3 Superseded or excluded content
 
@@ -164,34 +164,34 @@
 ## 5. Change File Tree
 
 ```text
-egon-cola-platforms/
-├── egon-cola-platform-rbac3/
-│   ├── egon-cola-platform-rbac3-contract/                         MODIFY PermissionRequest, Rbac3AboutView, tests
-│   ├── egon-cola-platform-rbac3-core/                             MODIFY ResourceGrantBinding union facts/tests
-│   ├── egon-cola-platform-rbac3-starter/                          MODIFY API double-check/About/tests
-│   ├── egon-cola-platform-rbac3-admin/
+egon-cola-xingyuan/
+├── egon-cola-tianquan-jianshen/
+│   ├── egon-cola-tianquan-jianshen-contract/                         MODIFY PermissionRequest, Rbac3AboutView, tests
+│   ├── egon-cola-tianquan-jianshen-core/                             MODIFY ResourceGrantBinding union facts/tests
+│   ├── egon-cola-tianquan-jianshen-starter/                          MODIFY API double-check/About/tests
+│   ├── egon-cola-tianquan-jianshen-admin/
 │   │   ├── src/main/java/.../admin/
 │   │   │   ├── iam/{user,role,business,application,organization,position}/   KEEP/SPLIT
 │   │   │   ├── authorization/{resource,permission,grant,policy,runtime,simulation}/ RENAME/CREATE
 │   │   │   ├── registration/ci/                                  RENAME/MODIFY
 │   │   │   └── shared/tenant/                                    RENAME
 │   │   └── src/main/resources/db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql CREATE
-│   ├── egon-cola-platform-rbac3-react-sdk/src/                    MODIFY resourceCodes guards
-│   ├── egon-cola-platform-rbac3-admin-web/src/                    MODIFY role/resource/routes/navigation
+│   ├── egon-cola-tianquan-jianshen-react-sdk/src/                    MODIFY resourceCodes guards
+│   ├── egon-cola-tianquan-jianshen-admin-web/src/                    MODIFY role/resource/routes/navigation
 │   └── package-lock.json                                          MODIFY shared 0.2.0
-├── egon-cola-platform-admin-web-shared/                           MODIFY/PUBLISH 0.2.0
-├── egon-cola-platform-dynamic-config-center/...-admin-web/        MODIFY DDC tree/package lock
-├── egon-cola-platform-idp/...-admin-web/                          MODIFY IdP tree/package lock
-└── egon-cola-platform-gateway/...-admin-web/                      MODIFY Gateway tree/package lock
+├── egon-cola-xingyuan-admin-web-shared/                           MODIFY/PUBLISH 0.2.0
+├── egon-cola-tianshu/...-admin-web/        MODIFY DDC tree/package lock
+├── egon-cola-tianquan-shoubing/...-admin-web/                          MODIFY IdP tree/package lock
+└── egon-cola-yuheng/...-admin-web/                      MODIFY Gateway tree/package lock
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/PermissionRequest.java` | one-field record + `of` | optional `resourceCode` + `api` factory | internal decision request | 1 | `REQ-006` | Contract/Starter tests |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3AboutView.java` | no resourceCodes | sorted immutable resourceCodes | About wire contract | 1 | `REQ-007` | serialization test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SystemAuthorizationSnapshot.java` | Starter runtime snapshot has permissions but no resourceCodes | same-snapshot sorted resourceCodes | PEP/About runtime carrier | 1、7 | `REQ-005`–`007` | Contract/Starter/runtime tests |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/{authorization,security}/**` | permission-only/API code ignored | API double-check + About projection | Method Security/PEP | 1 | `REQ-006`–`008` | Starter tests |
-| RENAME | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam,authorization,management,participation,runtime,simulation}/**` | mixed ownership in 16 roots | exact target roots from Spec §8.2 | mechanical package ownership | 2 | `REQ-011`–`013` | ArchUnit/compile |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/PermissionRequest.java` | one-field record + `of` | optional `resourceCode` + `api` factory | internal decision request | 1 | `REQ-006` | Contract/Starter tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3AboutView.java` | no resourceCodes | sorted immutable resourceCodes | About wire contract | 1 | `REQ-007` | serialization test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SystemAuthorizationSnapshot.java` | Starter runtime snapshot has permissions but no resourceCodes | same-snapshot sorted resourceCodes | PEP/About runtime carrier | 1、7 | `REQ-005`–`007` | Contract/Starter/runtime tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/{authorization,security}/**` | permission-only/API code ignored | API double-check + About projection | Method Security/PEP | 1 | `REQ-006`–`008` | Starter tests |
+| RENAME | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam,authorization,management,participation,runtime,simulation}/**` | mixed ownership in 16 roots | exact target roots from Spec §8.2 | mechanical package ownership | 2 | `REQ-011`–`013` | ArchUnit/compile |
 | RENAME | `.../admin/iam/tenant/{controller/filter,domain,service}/**` | tenant top-level IAM shell | `.../admin/shared/tenant/**`; empty package-info deleted | trusted tenant context | 2 | `REQ-011`,`013` | ArchUnit/rg |
 | CREATE | `.../admin/authorization/grant/roleresource/{domain,repository,service,controller}/**` | absent | RoleResourceGrant complete vertical slice | role-resource control plane | 3–4 | `REQ-001`,`002`,`014` | Admin tests |
 | CREATE | `.../admin/authorization/resource/apibinding/{domain,repository}/**` | absent | ResourceApiBinding PO/port/JPA support | page/button API relation | 3、6 | `REQ-019`–`021` | persistence/registration tests |
@@ -199,21 +199,21 @@ egon-cola-platforms/
 | CREATE | `.../admin/authorization/permission/{controller,domain,repository,service}/ResourcePermissionMapping*` | absent | API-003/004 mapping vertical slice | actual mapping administration | 5 | `REQ-003`,`015`,`016` | MockMvc/JPA tests |
 | RENAME | `.../admin/iam/resource/report/**` | `CiResourceReport*` old package/URL | `.../admin/registration/ci/**` + `CiResourceRegistration*` | SERVICE registration | 2、6 | `REQ-009`,`010` | Node/MockMvc/IT |
 | CREATE | `.../admin/src/main/resources/db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql` | V12 latest | new tables/suggestion, old tables dropped | destructive schema cutover | 7 | `REQ-004`,`017`,`020` | PostgreSQL/Flyway IT |
-| MODIFY | `.../egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/{activation,decision}/**` | PermissionBinding from role_permission | ResourceGrantBinding + union permissions/resources | pure authorization projection | 7 | `REQ-005`,`019` | Core/Admin tests |
+| MODIFY | `.../egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/{activation,decision}/**` | PermissionBinding from role_permission | ResourceGrantBinding + union permissions/resources | pure authorization projection | 7 | `REQ-005`,`019` | Core/Admin tests |
 | MODIFY | `.../admin/authorization/runtime/**` and `.../admin/bootstrap/**` | old RolePermission reads/bootstrap | grant/binding reads and built-in resource grants | runtime/bootstrap | 7 | `REQ-005`,`017`,`018` | IT/CLI smoke |
 | DELETE | `.../admin/**/{RolePermissionPO,RolePermissionStatusEnum,AssignPermissionCommandDTO,AssignPermissionsCommandDTO,RemovePermissionCommandDTO,BindPermissionsRequestDTO,PermissionResourcePO}.java` | old/duplicate model | absent | destructive cleanup | 7 | `REQ-004`,`013`,`017` | rg/compile/migration |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/{types.ts,registry/FrontendResourceRegistry.ts,guards/ActionGuard.tsx,index.ts}` | UI resource definitions require permission | MENU/ROUTE/ACTION checks use resourceCodes; generic PermissionGuard retained | browser authorization API | 8 | `REQ-007`,`008` | Vitest/typecheck |
-| MODIFY/RENAME | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/{role,application}/**` | comma IDs + standalone permission page | RoleResourceGrantPage + mapping Drawer/selector | RBAC control UI | 9 | `REQ-001`–`003` | Vitest/build |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/{app,features}/**` | role-permissions route + permission-based registry | role-resources route + resourceCodes | RBAC routes/navigation | 9、14 | `REQ-007`,`013` | App integration |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/{report-rbac-resources.mjs,report-rbac-resources.test.mjs,verify-browser-bundle.mjs,verify-rbac3-conformance.mjs}` | permission field/old URL | suggestion/apiResourceCodes/new URL/guards | CI-only producer/static gate | 6、7 | `REQ-009`,`010`,`013` | Node scripts |
-| CREATE | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | absent | internal desktop Sider/mobile Drawer | shared navigation renderer | 10 | `REQ-022`–`025` | shared component tests |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/{types.ts,EnterpriseHeader.tsx,EnterpriseLayout.tsx,EnterpriseLayout.test.tsx}` | group + Header navigation | activePathPrefixes + Banner + Layout state | shared public shell | 10 | `REQ-022`–`025` | Vitest/build |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/{package.json,package-lock.json}` | 0.1.4 | 0.2.0 | package release | 10 | `REQ-024` | npm pack/publish |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/{src/layouts/AdminLayout.tsx,src/layouts/AdminLayout.test.tsx,package.json,package-lock.json}` | flat group + shared 0.1.4 | three parent trees + 0.2.0 | DDC consumer | 11 | `REQ-024`,`025` | DDC npm gates |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/{src/app/AdminLayout.tsx,src/app/App.test.tsx,package.json,package-lock.json}` | flat filtered nav + 0.1.4 | four roots/groups + recursive filter + 0.2.0 | IdP consumer | 12 | `REQ-024`,`025` | IdP npm gates |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/{src/layouts/AdminLayout.tsx,src/layouts/AdminLayout.test.tsx,package.json,package-lock.json}` | flat capability nav + 0.1.4 | parent trees + operation active prefix + 0.2.0 | Gateway consumer | 13 | `REQ-024`,`025` | Gateway npm gates |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/{src/app/App.integration.test.tsx,package.json}` | shared 0.1.4 | resourceCodes tree shell + 0.2.0 | RBAC consumer | 14 | `REQ-007`,`024`,`025` | RBAC npm gates |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/package-lock.json` | platform lock resolves 0.1.4 | resolves exact 0.2.0 graph | RBAC shared dependency lock | 14 | `REQ-024` | npm ls/clean install |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/{types.ts,registry/FrontendResourceRegistry.ts,guards/ActionGuard.tsx,index.ts}` | UI resource definitions require permission | MENU/ROUTE/ACTION checks use resourceCodes; generic PermissionGuard retained | browser authorization API | 8 | `REQ-007`,`008` | Vitest/typecheck |
+| MODIFY/RENAME | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/{role,application}/**` | comma IDs + standalone permission page | RoleResourceGrantPage + mapping Drawer/selector | RBAC control UI | 9 | `REQ-001`–`003` | Vitest/build |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/{app,features}/**` | role-permissions route + permission-based registry | role-resources route + resourceCodes | RBAC routes/navigation | 9、14 | `REQ-007`,`013` | App integration |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/{report-rbac-resources.mjs,report-rbac-resources.test.mjs,verify-browser-bundle.mjs,verify-rbac3-conformance.mjs}` | permission field/old URL | suggestion/apiResourceCodes/new URL/guards | CI-only producer/static gate | 6、7 | `REQ-009`,`010`,`013` | Node scripts |
+| CREATE | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | absent | internal desktop Sider/mobile Drawer | shared navigation renderer | 10 | `REQ-022`–`025` | shared component tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/{types.ts,EnterpriseHeader.tsx,EnterpriseLayout.tsx,EnterpriseLayout.test.tsx}` | group + Header navigation | activePathPrefixes + Banner + Layout state | shared public shell | 10 | `REQ-022`–`025` | Vitest/build |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/{package.json,package-lock.json}` | 0.1.4 | 0.2.0 | package release | 10 | `REQ-024` | npm pack/publish |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/{src/layouts/AdminLayout.tsx,src/layouts/AdminLayout.test.tsx,package.json,package-lock.json}` | flat group + shared 0.1.4 | three parent trees + 0.2.0 | DDC consumer | 11 | `REQ-024`,`025` | DDC npm gates |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/{src/app/AdminLayout.tsx,src/app/App.test.tsx,package.json,package-lock.json}` | flat filtered nav + 0.1.4 | four roots/groups + recursive filter + 0.2.0 | IdP consumer | 12 | `REQ-024`,`025` | IdP npm gates |
+| MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/{src/layouts/AdminLayout.tsx,src/layouts/AdminLayout.test.tsx,package.json,package-lock.json}` | flat capability nav + 0.1.4 | parent trees + operation active prefix + 0.2.0 | Gateway consumer | 13 | `REQ-024`,`025` | Gateway npm gates |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/{src/app/App.integration.test.tsx,package.json}` | shared 0.1.4 | resourceCodes tree shell + 0.2.0 | RBAC consumer | 14 | `REQ-007`,`024`,`025` | RBAC npm gates |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/package-lock.json` | platform lock resolves 0.1.4 | resolves exact 0.2.0 graph | RBAC shared dependency lock | 14 | `REQ-024` | npm ls/clean install |
 
 ## 6. Prerequisites, Constraints, and Plan Clarifications
 
@@ -231,12 +231,12 @@ egon-cola-platforms/
 | Concern | Exact command/source | Required state | Validation boundary |
 | --- | --- | --- | --- |
 | Java toolchain | `java -version && mvn -version` | Java 21；Maven 使用同一 JDK | toolchain only |
-| RBAC Maven root | `egon-cola-platforms/egon-cola-platform-rbac3/pom.xml` | reactor 可选择 contract/core/starter/admin | module/static；不等于 live topology |
-| Focused Maven | `mvn -pl egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3-core,egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=... test` | selector 命中的测试全部通过 | JUnit/MockMvc/local integration |
+| RBAC Maven root | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/pom.xml` | reactor 可选择 contract/core/starter/admin | module/static；不等于 live topology |
+| Focused Maven | `mvn -pl egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen-core,egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=... test` | selector 命中的测试全部通过 | JUnit/MockMvc/local integration |
 | PostgreSQL migration | Admin `maven-failsafe-plugin` + existing `Rbac3FlywayPostgresqlIT` pattern | Docker/Testcontainers 可用；V1→V13 clean migration | real PostgreSQL container, not production |
 | Frontend package manager | each `package.json` scripts and checked-in `package-lock.json` | Node/npm version compatible with lockfile；clean `npm ci --legacy-peer-deps --no-audit --no-fund` | package-local |
 | Shared package | `npm run typecheck && npm test && npm run build && npm pack --dry-run` | version 0.2.0 package contents correct | built npm artifact |
-| Consumer package resolution | `npm ls @egon-cola/admin-web-shared --depth=0` | every consumer resolves 0.2.0 | installed graph |
+| Consumer package resolution | `npm ls @egon-cola/xingyuan-admin-web-shared --depth=0` | every consumer resolves 0.2.0 | installed graph |
 | E2E | DDC/Gateway/RBAC3 existing `npm run e2e`; IdP has no e2e script | user starts services and supplies topology | browser/live boundary；执行代理不得自动启动 |
 
 ### 6.3 Immutable constraints and approved decisions
@@ -271,7 +271,7 @@ egon-cola-platforms/
 - Test-first gate: Required — 新 factory/字段/deny reason 尚不存在，focused tests 应先因构造签名或断言不满足而 RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/{AuthorizationContractTest.java,ContractSerializationTest.java}`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/{AuthorizationContractTest.java,ContractSerializationTest.java}`
 
 - Purpose: 先固定 `PermissionRequest` 两种模式及 About wire shape。
 - Symbols: `permission_request_supports_generic_and_api_modes`, `about_serializes_resource_codes_without_catalog_fields`。
@@ -295,7 +295,7 @@ assertThatThrownBy(() -> PermissionRequest.api("system:user:read", " ")).isInsta
 - Verification contribution: RED/GREEN selector `AuthorizationContractTest,ContractSerializationTest`；证明内部 record 与外部 JSON 契约。
 - After this file: 测试只因生产契约缺少 resourceCode/resourceCodes 而失败，不因 fixture 或 ObjectMapper 配置失败。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/{authorization/PermissionRequest.java,authorization/SystemAuthorizationSnapshot.java,auth/Rbac3AboutView.java}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/{authorization/PermissionRequest.java,authorization/SystemAuthorizationSnapshot.java,auth/Rbac3AboutView.java}`
 
 - Purpose: 提供最小、不可变、向后兼容的 Java 契约。
 - Symbols: `PermissionRequest(String permissionCode,String resourceCode)`, `of`, `api`, `SystemAuthorizationSnapshot.resourceCodes`, `Rbac3AboutView.resourceCodes`。
@@ -324,7 +324,7 @@ SystemAuthorizationSnapshot constructors:
 - Verification contribution: 使 File 1 Contract tests GREEN，并给 Starter 编译提供稳定 accessor。
 - After this file: Contract module有一条System snapshot→About/PEP的resourceCodes载体；尚未改变实际授权决定或Admin投影。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationServiceTest.java,authorization/Rbac3AboutServiceTest.java,security/Rbac3MethodAuthorizationManagerTest.java,security/StarterFailClosedSecurityMatrixTest.java}`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationServiceTest.java,authorization/Rbac3AboutServiceTest.java,security/Rbac3MethodAuthorizationManagerTest.java,security/StarterFailClosedSecurityMatrixTest.java}`
 
 - Purpose: 固定双 set membership、reason code、注解请求顺序和同 snapshot About 投影。
 - Symbols: API allow/deny/fenced/unavailable tests、`current_about_contains_resource_codes`、annotation invocation spy。
@@ -347,7 +347,7 @@ assertThat(about.resourceCodes()).containsExactlyInAnyOrderElementsOf(details.sn
 - Verification contribution: 对应 `TEST-017`,`TEST-019`–`TEST-022`,`TEST-024` 的 Starter 部分。
 - After this file: 测试因服务仍只检查 permission、manager 仍传 `of`、About 未复制 codes 而 RED。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationService.java,authorization/Rbac3AboutService.java,security/Rbac3MethodAuthorizationManager.java}`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationService.java,authorization/Rbac3AboutService.java,security/Rbac3MethodAuthorizationManager.java}`
 
 - Purpose: 在现有 AuthorizationService/Method Security/About 边界内实现最小 GREEN。
 - Symbols: `requirePermission`, annotation request resolver、`Rbac3AboutService.current`。
@@ -373,13 +373,13 @@ about: copy permissions, snapshot.resourceCodes, fieldPolicies and versions from
 - Verification contribution: File 3 tests GREEN；Starter method security integration继续通过。
 - After this file: Java PEP/About 契约完成；Admin runtime 仍按旧 role_permission 生成 resourceCodes，留给 Step 7。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3-starter -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=AuthorizationContractTest,ContractSerializationTest,DefaultAuthorizationServiceTest,Rbac3AboutServiceTest,Rbac3MethodAuthorizationManagerTest,StarterFailClosedSecurityMatrixTest test`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen-starter -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=AuthorizationContractTest,ContractSerializationTest,DefaultAuthorizationServiceTest,Rbac3AboutServiceTest,Rbac3MethodAuthorizationManagerTest,StarterFailClosedSecurityMatrixTest test`
 - Expected result: exit 0；命名 tests 全部通过；`rg "PermissionRequest\.api"` 命中 manager/tests，JWT Filter 文件无 diff。
 - Failure returns to: File 1/3 若契约断言不准确；File 2/4 若 constructor、reason 或请求顺序不一致；涉及公开字段重排之外的新行为则返回 Spec。
 - Completion criteria: `TEST-017`,`019`–`022`,`024` 的本 Step 范围可观察；通用 `PermissionRequest.of` 原调用全部编译。
 - Rollback: revert 本 Step Contract/Starter 路径；尚无 schema 或数据变化。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/{AuthorizationContractTest.java,ContractSerializationTest.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/{authorization/PermissionRequest.java,authorization/SystemAuthorizationSnapshot.java,auth/Rbac3AboutView.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationServiceTest.java,authorization/Rbac3AboutServiceTest.java,security/Rbac3MethodAuthorizationManagerTest.java,security/StarterFailClosedSecurityMatrixTest.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationService.java,authorization/Rbac3AboutService.java,security/Rbac3MethodAuthorizationManager.java}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/{AuthorizationContractTest.java,ContractSerializationTest.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/{authorization/PermissionRequest.java,authorization/SystemAuthorizationSnapshot.java,auth/Rbac3AboutView.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationServiceTest.java,authorization/Rbac3AboutServiceTest.java,security/Rbac3MethodAuthorizationManagerTest.java,security/StarterFailClosedSecurityMatrixTest.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/{authorization/DefaultAuthorizationService.java,authorization/Rbac3AboutService.java,security/Rbac3MethodAuthorizationManager.java}`
 - Commit: `feat(rbac3-starter): enforce API resource and permission decisions`
 
 ### Step 2 — 把 RBAC3 Admin 机械迁入最终 IAM、authorization、registration 和 shared 边界
@@ -392,7 +392,7 @@ about: copy permissions, snapshot.resourceCodes, fieldPolicies and versions from
 - Test-first gate: Required — 先收紧 ArchUnit/模块边界，测试应因旧根与第七个 IAM 顶层包存在而 RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/{AdminLayerBoundaryTest.java,Rbac3AuthorizationArchitectureTest.java,Rbac3ModuleBoundaryTest.java}`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/{AdminLayerBoundaryTest.java,Rbac3AuthorizationArchitectureTest.java,Rbac3ModuleBoundaryTest.java}`
 
 - Purpose: 把精确包集合、依赖方向和禁止旧根写成可执行边界。
 - Symbols: `iam_contains_exactly_six_business_roots`, `authorization_layers_do_not_depend_on_registration`, `legacy_roots_are_absent`。
@@ -415,7 +415,7 @@ assertLayer("authorization.runtime").mayDependOn("authorization.grant", "authori
 - Verification contribution: `TEST-027`,`TEST-029` package portion。
 - After this file: architecture tests RED only because current packages have not moved。
 
-#### File 2 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/role/assignment->authorization/grant/userrole,iam/role/inheritance->authorization/grant/roleinheritance,iam/role/activation->authorization/runtime/activation,iam/resource/{controller,domain,field,service}->authorization/resource/{controller,domain,field,service},iam/permission->authorization/permission,iam/policy->authorization/policy,iam/authorizationstate->authorization/runtime/state,authorization/{controller,domain,repository,service}->authorization/runtime/decision/{controller,domain,repository,service},management->authorization/policy/management,participation->authorization/policy/participation,simulation->authorization/simulation,runtime->authorization/runtime}`
+#### File 2 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/role/assignment->authorization/grant/userrole,iam/role/inheritance->authorization/grant/roleinheritance,iam/role/activation->authorization/runtime/activation,iam/resource/{controller,domain,field,service}->authorization/resource/{controller,domain,field,service},iam/permission->authorization/permission,iam/policy->authorization/policy,iam/authorizationstate->authorization/runtime/state,authorization/{controller,domain,repository,service}->authorization/runtime/decision/{controller,domain,repository,service},management->authorization/policy/management,participation->authorization/policy/participation,simulation->authorization/simulation,runtime->authorization/runtime}`
 
 - Purpose: 机械移动主要授权目录、关系、策略、现有decision与runtime源/测试树；保留`iam/resource/report`给File 3单独迁registration。
 - Symbols: 所有现有类名暂保持；只改 package/import/FQCN 与 package-info 文案。
@@ -438,7 +438,7 @@ for each approved root mapping in Spec section 8.3:
 - Verification contribution: Admin compile + architecture tests；证明行为保持的机械迁移。
 - After this file: 大部分授权类位于目标根；business/application 授权关系和 tenant context 仍待 File 3 拆分。
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/business/UserBusinessAccess*->authorization/grant/business,iam/application/TenantApplication*->authorization/grant/application,iam/tenant/**->shared/tenant,iam/resource/report/**->registration/ci}`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/business/UserBusinessAccess*->authorization/grant/business,iam/application/TenantApplication*->authorization/grant/application,iam/tenant/**->shared/tenant,iam/resource/report/**->registration/ci}`
 
 - Purpose: 把混在基础实体包内的授权事实、可信 tenant context 与 CI 入站移出 IAM。
 - Symbols: `UserBusinessAccess*`, `TenantApplication*`, `TenantContext*`, `CiResourceReport*`；CI 类名在本 Step 只移动，Step 6 再统一 rename/行为。
@@ -461,7 +461,7 @@ rewrite every caller import and keep tenant/application derivation exactly uncha
 - Verification contribution: `TEST-027` exact IAM root；tenant/filter and DDC boundary regressions。
 - After this file: IAM 顶层精确六类；尚未按新授权语义改类名或表。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{audit,bootstrap,config,shared,iam}/**`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{audit,bootstrap,config,shared,iam}/**`
 
 - Purpose: 修复所有非移动 owner 的 imports、Spring wiring、reflection 字符串和 tests。
 - Symbols: config bean parameters、bootstrap repositories、audit assemblers、IAM controllers/services 的新 imports。
@@ -484,13 +484,13 @@ rerun compile and architecture tests until zero unresolved imports and zero forb
 - Verification contribution: Admin whole-module compilation，`TEST-027`,`029` 的静态部分。
 - After this file: package-only migration完成且行为不变；Step 3 可在最终路径创建新模型。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-admin -am -DskipTests compile && mvn -pl egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=AdminLayerBoundaryTest,Rbac3AuthorizationArchitectureTest,Rbac3ModuleBoundaryTest,TenantContextFilterTest,RpcDdcCatalogGatewayTest test && ! rg -n "top\.egon\.cola\.platform\.rbac3\.admin\.(iam\.(resource|permission|policy|tenant|authorizationstate)|runtime|management|participation|simulation)" egon-cola-platform-rbac3-admin/src/main/java egon-cola-platform-rbac3-admin/src/test/java`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-admin -am -DskipTests compile && mvn -pl egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=AdminLayerBoundaryTest,Rbac3AuthorizationArchitectureTest,Rbac3ModuleBoundaryTest,TenantContextFilterTest,RpcDdcCatalogGatewayTest test && ! rg -n "top\.egon\.cola\.platform\.rbac3\.admin\.(iam\.(resource|permission|policy|tenant|authorizationstate)|runtime|management|participation|simulation)" egon-cola-tianquan-jianshen-admin/src/main/java egon-cola-tianquan-jianshen-admin/src/test/java`
 - Expected result: 两条 Maven 命令 exit 0；最终 `rg` exit 1（零命中）；`git diff --name-status` 只含批准根映射及其消费者。
 - Failure returns to: File 2/3 若映射漏类；File 4 若仅 import/JPQL/wiring 未同步；若需要改变业务方法或 URL，移到相应后续 Step。
 - Completion criteria: IAM 六根、authorization/registration/shared 边界和全部 package tests GREEN；无 compatibility wrapper。
 - Rollback: 以本 Step 提交整体 revert；纯源码移动，无 schema/data 变化。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/{AdminLayerBoundaryTest.java,Rbac3AuthorizationArchitectureTest.java,Rbac3ModuleBoundaryTest.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/role/assignment->authorization/grant/userrole,iam/role/inheritance->authorization/grant/roleinheritance,iam/role/activation->authorization/runtime/activation,iam/resource/{controller,domain,field,service}->authorization/resource/{controller,domain,field,service},iam/permission->authorization/permission,iam/policy->authorization/policy,iam/authorizationstate->authorization/runtime/state,authorization/{controller,domain,repository,service}->authorization/runtime/decision/{controller,domain,repository,service},management->authorization/policy/management,participation->authorization/policy/participation,simulation->authorization/simulation,runtime->authorization/runtime}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/business/UserBusinessAccess*->authorization/grant/business,iam/application/TenantApplication*->authorization/grant/application,iam/tenant/**->shared/tenant,iam/resource/report/**->registration/ci}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{audit,bootstrap,config,shared,iam}/**`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/architecture/{AdminLayerBoundaryTest.java,Rbac3AuthorizationArchitectureTest.java,Rbac3ModuleBoundaryTest.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/role/assignment->authorization/grant/userrole,iam/role/inheritance->authorization/grant/roleinheritance,iam/role/activation->authorization/runtime/activation,iam/resource/{controller,domain,field,service}->authorization/resource/{controller,domain,field,service},iam/permission->authorization/permission,iam/policy->authorization/policy,iam/authorizationstate->authorization/runtime/state,authorization/{controller,domain,repository,service}->authorization/runtime/decision/{controller,domain,repository,service},management->authorization/policy/management,participation->authorization/policy/participation,simulation->authorization/simulation,runtime->authorization/runtime}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{iam/business/UserBusinessAccess*->authorization/grant/business,iam/application/TenantApplication*->authorization/grant/application,iam/tenant/**->shared/tenant,iam/resource/report/**->registration/ci}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/{main,test}/java/top/egon/cola/platform/rbac3/admin/{audit,bootstrap,config,shared,iam}/**`
 - Commit: `refactor(rbac3-admin): separate IAM authorization and registration packages`
 
 ### Step 3 — 建立 RoleResourceGrant、ResourceApiBinding 与 suggestion 持久模型
@@ -503,7 +503,7 @@ rerun compile and architecture tests until zero unresolved imports and zero forb
 - Test-first gate: Required — entity/constructor/port tests 应先因目标类不存在而 RED；本 Step 不运行 application context 或 migration。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/{grant/roleresource/RoleResourceGrantPersistenceTest.java,resource/apibinding/ResourceApiBindingPersistenceTest.java}`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/{grant/roleresource/RoleResourceGrantPersistenceTest.java,resource/apibinding/ResourceApiBindingPersistenceTest.java}`
 
 - Purpose: 固定 PO table/column/tenant/window/status 与 binding source-target 约束映射。
 - Symbols: constructor validation、JPA annotation reflection、equality/ID/version expectations。
@@ -526,7 +526,7 @@ assertThatThrownBy(() -> grant(validFrom, validFrom)).isInstanceOf(IllegalArgume
 - Verification contribution: 为 `TEST-025`,`030` 提供对象层 RED/GREEN。
 - After this file: tests因新类型缺失而 RED，且不要求未创建的 DB table。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/po/RoleResourceGrantPO.java,domain/enums/RoleResourceGrantStatusEnum.java,repository/RoleResourceGrantRepository.java}`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/po/RoleResourceGrantPO.java,domain/enums/RoleResourceGrantStatusEnum.java,repository/RoleResourceGrantRepository.java}`
 
 - Purpose: 定义 tenant role-resource direct grant 的持久对象和业务 repository port。
 - Symbols: `RoleResourceGrantPO`, `RoleResourceGrantStatusEnum`, `RoleResourceGrantRepository` read/replace/query records。
@@ -552,7 +552,7 @@ disable(actor, now): status = DISABLED; validTo = min(existingValidTo, now); bum
 - Verification contribution: File 1 grant test、Step 4 service contract、Step 7 runtime query。
 - After this file: grant model/port 编译；尚无 Controller/JPA implementation/schema。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/{domain/po/ResourceApiBindingPO.java,domain/enums/ResourceApiBindingStatusEnum.java,repository/ResourceApiBindingRepository.java}`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/{domain/po/ResourceApiBindingPO.java,domain/enums/ResourceApiBindingStatusEnum.java,repository/ResourceApiBindingRepository.java}`
 
 - Purpose: 定义 CI-owned ROUTE/ACTION→API 机械关系与反向查询 port。
 - Symbols: `ResourceApiBindingPO`, status enum, `replaceForApplication`, `apiIdsForSources`, `activeSourceGrantCountForApi`。
@@ -577,7 +577,7 @@ PO.fromResolvedResources: copy applicationId/source/api/build/checksum; status =
 - Verification contribution: File 1 binding test，后续 `TEST-009`,`030`–`032`。
 - After this file: binding model/port存在；实际 type/same-app 验证由 registration/JPA 实现补齐。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/domain/po/ResourcePO.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/domain/po/ResourcePO.java`
 
 - Purpose: 增加非权威 `suggestedPermissionCode`，保留 `requiredPermissionId` 为唯一 actual mapping。
 - Symbols: field/constructor/getter/update mechanical facts whitelist。
@@ -602,13 +602,13 @@ getter exposes suggestion only to admin mapping/registration assemblers;
 - Verification contribution: entity tests、Step 5 mapping view、Step 6 zero-write assertions。
 - After this file: ResourcePO 可以同时保存 suggestion 与 actual；schema仍由 Step 7 V13 创建。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=RoleResourceGrantPersistenceTest,ResourceApiBindingPersistenceTest,ConstraintPersistenceEntityTest test`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=RoleResourceGrantPersistenceTest,ResourceApiBindingPersistenceTest,ConstraintPersistenceEntityTest test`
 - Expected result: exit 0；两个新 PO/port 与 ResourcePO 编译；未运行 application context/Flyway。
 - Failure returns to: File 1 若测试要求超出 Spec 字段；Files 2–4 若 PO/port 与 V13 设计不一致；任何新表/字段需求返回 Spec。
 - Completion criteria: 对象层完整且不新增第三张映射表、不写 derived grant、不引入 tenant 到 binding/catalog。
 - Rollback: revert 新目录与 ResourcePO 单字段；无 DB 迁移。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/{grant/roleresource/RoleResourceGrantPersistenceTest.java,resource/apibinding/ResourceApiBindingPersistenceTest.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/po/RoleResourceGrantPO.java,domain/enums/RoleResourceGrantStatusEnum.java,repository/RoleResourceGrantRepository.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/{domain/po/ResourceApiBindingPO.java,domain/enums/ResourceApiBindingStatusEnum.java,repository/ResourceApiBindingRepository.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/domain/po/ResourcePO.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/{grant/roleresource/RoleResourceGrantPersistenceTest.java,resource/apibinding/ResourceApiBindingPersistenceTest.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/po/RoleResourceGrantPO.java,domain/enums/RoleResourceGrantStatusEnum.java,repository/RoleResourceGrantRepository.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/{domain/po/ResourceApiBindingPO.java,domain/enums/ResourceApiBindingStatusEnum.java,repository/ResourceApiBindingRepository.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/domain/po/ResourcePO.java`
 - Commit: `feat(rbac3-admin): define resource grant and API binding models`
 
 ### Step 4 — 以资源树和原子 replace 替换角色权限字符接口
@@ -621,7 +621,7 @@ getter exposes suggestion only to admin mapping/registration assemblers;
 - Test-first gate: Required — Controller/service/persistence tests 先因 API/DTO/implementation 缺失而 RED。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{RoleResourceGrantControllerTest.java,RoleResourceGrantServiceTest.java,JpaRoleResourceGrantRepositoryIT.java}`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{RoleResourceGrantControllerTest.java,RoleResourceGrantServiceTest.java,JpaRoleResourceGrantRepositoryIT.java}`
 
 - Purpose: 固定 API-001/002 wire shape、无 permission 字段、原子 replace、并发与并集摘要。
 - Symbols: read tree、empty replace、duplicate/window、cross-app、unmapped、version conflict、rollback、shared API union tests。
@@ -645,7 +645,7 @@ assertDerivedApisUnion(routeBindings, actionBindings, directApiRoot);
 - Verification contribution: `TEST-003`–`006`,`023`,`030`–`032` 的管理端部分，且契约覆盖 `TEST-001`,`002` server fixture。
 - After this file: tests因目标 Controller/Service/JPA 未实现而 RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/dto/ReplaceRoleResourcesRequestDTO.java,domain/dto/ReplaceRoleResourcesCommandDTO.java,domain/vo/RoleResourceGrantTreeVO.java,domain/vo/RoleResourceGrantMutationVO.java}`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/dto/ReplaceRoleResourcesRequestDTO.java,domain/dto/ReplaceRoleResourcesCommandDTO.java,domain/vo/RoleResourceGrantTreeVO.java,domain/vo/RoleResourceGrantMutationVO.java}`
 
 - Purpose: 分离不可信 HTTP 请求、server-derived command 和人类可读响应。
 - Symbols: DTO records及 nested summary/node/linked API records。
@@ -669,7 +669,7 @@ MutationVO returns sorted direct/derived/effective IDs and counts, never permiss
 - Verification contribution: File 1 MockMvc JSON/validation assertions。
 - After this file: HTTP/domain types编译；无写行为。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{repository/jpa/JpaRoleResourceGrantRepository.java,service/RoleResourceGrantService.java,controller/RoleResourceGrantController.java}`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{repository/jpa/JpaRoleResourceGrantRepository.java,service/RoleResourceGrantService.java,controller/RoleResourceGrantController.java}`
 
 - Purpose: 实现 tree query、authoritative revalidation、role lock 与 direct grant 差集事务。
 - Symbols: `tree`, `replace`, `loadTree`, `replace`；Spring transaction/method annotations。
@@ -695,7 +695,7 @@ tree(role): batch load catalog, direct/inherited grants and bindings; assemble d
 - Verification contribution: File 1 GREEN；`TEST-003`–`006`,`023`,`026`,`030`–`032` relevant paths。
 - After this file: 新角色资源 API 可编译/测试；runtime 快照仍在 Step 7 才读取新表。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/{controller/RoleController.java,service/RoleFacade.java,repository/jpa/JpaRoleRepository.java}`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/{controller/RoleController.java,service/RoleFacade.java,repository/jpa/JpaRoleRepository.java}`
 
 - Purpose: 让基础 Role CRUD/impact 留在 IAM，删除旧 permission bind/unbind 行为和旧 `/api/rbac3/v1/roles` 根。
 - Symbols: `RoleController`（由包迁移后的旧 RolePermissionController rename/split）、RoleFacade methods、JpaRoleRepository old mapping methods。
@@ -718,13 +718,13 @@ assert no RequestMapping contains "/permissions" and no service accepts permissi
 - Verification contribution: `TEST-015`,`029` old/new URL，编译时消除旧调用链。
 - After this file: Role 管理与资源授权职责分开；旧 RolePermission DTO/PO到 Step 7 删除。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=RoleResourceGrantControllerTest,RoleResourceGrantServiceTest,JpaRoleResourceGrantRepositoryIT,RoleControlFacadeTest,Rbac3ControlPlaneGatewayDiscoveryTest test`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=RoleResourceGrantControllerTest,RoleResourceGrantServiceTest,JpaRoleResourceGrantRepositoryIT,RoleControlFacadeTest,Rbac3ControlPlaneGatewayDiscoveryTest test`
 - Expected result: exit 0；API-001/002 tests GREEN；source scan无 role permission POST/DELETE mapping；旧 URL contract断言404。
 - Failure returns to: File 1/2 contract、File 3 transaction/query、File 4 legacy split；若需要新的授权来源或 AND 规则返回 Spec。
 - Completion criteria: direct roots原子替换、derived API只读并集、错误/版本/失效语义可观察；无 permission 字符角色入口。
 - Rollback: revert Step 4；V13尚未加入，旧 PO/table仍存在，可源码级回退。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{RoleResourceGrantControllerTest.java,RoleResourceGrantServiceTest.java,JpaRoleResourceGrantRepositoryIT.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/dto/ReplaceRoleResourcesRequestDTO.java,domain/dto/ReplaceRoleResourcesCommandDTO.java,domain/vo/RoleResourceGrantTreeVO.java,domain/vo/RoleResourceGrantMutationVO.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{repository/jpa/JpaRoleResourceGrantRepository.java,service/RoleResourceGrantService.java,controller/RoleResourceGrantController.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/{controller/RoleController.java,service/RoleFacade.java,repository/jpa/JpaRoleRepository.java}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{RoleResourceGrantControllerTest.java,RoleResourceGrantServiceTest.java,JpaRoleResourceGrantRepositoryIT.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{domain/dto/ReplaceRoleResourcesRequestDTO.java,domain/dto/ReplaceRoleResourcesCommandDTO.java,domain/vo/RoleResourceGrantTreeVO.java,domain/vo/RoleResourceGrantMutationVO.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/grant/roleresource/{repository/jpa/JpaRoleResourceGrantRepository.java,service/RoleResourceGrantService.java,controller/RoleResourceGrantController.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/{controller/RoleController.java,service/RoleFacade.java,repository/jpa/JpaRoleRepository.java}`
 - Commit: `feat(rbac3-admin): replace role permissions with resource grants`
 
 ### Step 5 — 增加管理员专用的资源实际权限映射接口
@@ -737,7 +737,7 @@ assert no RequestMapping contains "/permissions" and no service accepts permissi
 - Test-first gate: Required — mapping Controller/Service/VO 不存在，focused tests 先 RED。
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{ResourcePermissionMappingControllerTest.java,ResourcePermissionMappingServiceTest.java,JpaResourcePermissionMappingRepositoryIT.java}`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{ResourcePermissionMappingControllerTest.java,ResourcePermissionMappingServiceTest.java,JpaResourcePermissionMappingRepositoryIT.java}`
 
 - Purpose: 固定管理员权限、完整 ResultRecord、in-use 反向判断、幂等和回滚。
 - Symbols: configured/unconfigured GET、initial/same/different PUT、API suggestion mismatch、direct/reverse grant conflict tests。
@@ -760,7 +760,7 @@ assertRequiredPermissionAndVersionUnchangedAfterConflictOrInjectedFailure();
 - Verification contribution: `TEST-007`–`010`,`026` mapping 部分。
 - After this file: tests因目标 vertical slice 不存在而 RED。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{domain/dto/UpdateResourcePermissionMappingRequestDTO.java,domain/vo/ResourcePermissionMappingVO.java,repository/ResourcePermissionMappingRepository.java}`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{domain/dto/UpdateResourcePermissionMappingRequestDTO.java,domain/vo/ResourcePermissionMappingVO.java,repository/ResourcePermissionMappingRepository.java}`
 
 - Purpose: 固定专用 request/view 和 resource lock/in-use repository contract。
 - Symbols: request record、mapping/read result records、repository `loadForUpdate/countActiveUsage/updateActualMapping`。
@@ -784,7 +784,7 @@ repository.updateActualMapping(resource, permission, actor, reason) persists one
 - Verification contribution: File 1 validation/JSON/transaction fixture。
 - After this file: mapping types/port可编译；无 Controller/写实现。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{repository/jpa/JpaResourcePermissionMappingRepository.java,service/ResourcePermissionMappingService.java,controller/ResourcePermissionMappingController.java}`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{repository/jpa/JpaResourcePermissionMappingRepository.java,service/ResourcePermissionMappingService.java,controller/ResourcePermissionMappingController.java}`
 
 - Purpose: 实现管理员读取、资源锁、权限校验、in-use guard、audit/version/invalidation。
 - Symbols: `get`, `update`, JPA batch/count queries。
@@ -810,7 +810,7 @@ repository.updateActualMapping(resource, permission, actor, reason) persists one
 - Verification contribution: File 1 GREEN，`TEST-007`–`010`,`026`。
 - After this file: API-003/004 完整；CI旧逻辑仍需 Step 6 禁止写 actual。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/{domain/vo/ResourceVO.java,service/GlobalResourceCatalogService.java,controller/ApplicationResourceController.java}`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/{domain/vo/ResourceVO.java,service/GlobalResourceCatalogService.java,controller/ApplicationResourceController.java}`
 
 - Purpose: 从 generic Resource CRUD 去掉低层 actual mapping 写入，把管理员映射强制收敛到 API-003/004。
 - Symbols: ResourceVO fields、create/update assembler、Controller request mapping。
@@ -833,13 +833,13 @@ contract test posts old field and asserts validation rejection plus unchanged Re
 - Verification contribution: `REQ-004` 单写口静态/contract证明。
 - After this file: generic Resource 路径不能绕过 mapping service；Admin Drawer为唯一控制面。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ResourcePermissionMappingControllerTest,ResourcePermissionMappingServiceTest,JpaResourcePermissionMappingRepositoryIT,ResourceCrudControllerTest test`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=ResourcePermissionMappingControllerTest,ResourcePermissionMappingServiceTest,JpaResourcePermissionMappingRepositoryIT,ResourceCrudControllerTest test`
 - Expected result: exit 0；mapping所有 focused tests GREEN；generic update 无 requiredPermissionId 写分支。
 - Failure returns to: File 1契约、File 2边界、File 3查询/事务、File 4旧入口；若产品要求绕过在用保护，返回 Spec。
 - Completion criteria: actual mapping admin-only、同值幂等、在用不同映射409、版本/失效可见、common wrapper完整。
 - Rollback: revert本 Step；V13未加入，schema未改变。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{ResourcePermissionMappingControllerTest.java,ResourcePermissionMappingServiceTest.java,JpaResourcePermissionMappingRepositoryIT.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{domain/dto/UpdateResourcePermissionMappingRequestDTO.java,domain/vo/ResourcePermissionMappingVO.java,repository/ResourcePermissionMappingRepository.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{repository/jpa/JpaResourcePermissionMappingRepository.java,service/ResourcePermissionMappingService.java,controller/ResourcePermissionMappingController.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/{domain/vo/ResourceVO.java,service/GlobalResourceCatalogService.java,controller/ApplicationResourceController.java}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{ResourcePermissionMappingControllerTest.java,ResourcePermissionMappingServiceTest.java,JpaResourcePermissionMappingRepositoryIT.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{domain/dto/UpdateResourcePermissionMappingRequestDTO.java,domain/vo/ResourcePermissionMappingVO.java,repository/ResourcePermissionMappingRepository.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/permission/{repository/jpa/JpaResourcePermissionMappingRepository.java,service/ResourcePermissionMappingService.java,controller/ResourcePermissionMappingController.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/{domain/vo/ResourceVO.java,service/GlobalResourceCatalogService.java,controller/ApplicationResourceController.java}`
 - Commit: `feat(rbac3-admin): add guarded resource permission mappings`
 
 ### Step 6 — 将 CI report 改为 registration 并原子维护 suggestion 与 API bindings
@@ -852,7 +852,7 @@ contract test posts old field and asserts validation rejection plus unchanged Re
 - Test-first gate: Required — 先修改 Node/Controller/store tests，使旧字段/URL/actual mapping写入导致 RED。
 - Ordered files:
 
-#### File 1 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/registration/ci/{CiResourceReportControllerTest.java->CiResourceRegistrationControllerTest.java,CiResourceReportServiceIT.java->CiResourceRegistrationServiceIT.java}`
+#### File 1 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/registration/ci/{CiResourceReportControllerTest.java->CiResourceRegistrationControllerTest.java,CiResourceReportServiceIT.java->CiResourceRegistrationServiceIT.java}`
 
 - Purpose: 固定新命名/URL、suggestion/binding canonicalization、零写边界和幂等。
 - Symbols: SERVICE auth/source checks、same-app/type graph、shared API、binding replace/remove、actual/grant before-after checks。
@@ -876,7 +876,7 @@ assertNoResourceFieldBindingOrHeadWritesAfterRejectedRequest();
 - Verification contribution: `TEST-012`–`014`,`030`,`031` backend registration。
 - After this file: tests因旧 URL/DTO/store行为而 RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/{report-rbac-resources.test.mjs,report-rbac-resources.mjs}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/{report-rbac-resources.test.mjs,report-rbac-resources.mjs}`
 
 - Purpose: 先固定并实现 Node canonical projection 与唯一 registration URL。
 - Symbols: `projectReport`, `canonicalChecksum`, `reportResources`。
@@ -902,7 +902,7 @@ PUT `/api/rbac3/v1/registration/businesses/${biz}/applications/${app}/frontend-r
 - Verification contribution: `TEST-011`,`013`,`029` CI producer/bundle boundary。
 - After this file: Node tests GREEN；script仍能读取当前 definitions，最终移除 legacy source field由 Step 8完成。
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/registration/ci/{controller/CiResourceReportController.java->controller/CiResourceRegistrationController.java,domain/dto/CiResourceReportRequestDTO.java->domain/dto/CiResourceRegistrationRequestDTO.java,domain/vo/CiResourceReportResultVO.java->domain/vo/CiResourceRegistrationResultVO.java,service/CiResourceReportCanonicalizer.java->service/CiResourceRegistrationCanonicalizer.java,service/CiResourceReportService.java->service/CiResourceRegistrationService.java,service/CiResourceReportStore.java->service/CiResourceRegistrationStore.java,service/JpaCiResourceReportStore.java->service/JpaCiResourceRegistrationStore.java}`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/registration/ci/{controller/CiResourceReportController.java->controller/CiResourceRegistrationController.java,domain/dto/CiResourceReportRequestDTO.java->domain/dto/CiResourceRegistrationRequestDTO.java,domain/vo/CiResourceReportResultVO.java->domain/vo/CiResourceRegistrationResultVO.java,service/CiResourceReportCanonicalizer.java->service/CiResourceRegistrationCanonicalizer.java,service/CiResourceReportService.java->service/CiResourceRegistrationService.java,service/CiResourceReportStore.java->service/CiResourceRegistrationStore.java,service/JpaCiResourceReportStore.java->service/JpaCiResourceRegistrationStore.java}`
 
 - Purpose: 统一 registration 命名并实现新 request/result/canonicalization/transaction。
 - Symbols: renamed classes、Resource record fields、result pendingMapping/apiBindings counts。
@@ -928,7 +928,7 @@ return committed diff counts in ResultRecord;
 - Verification contribution: File 1 GREEN、`TEST-012`–`014`,`030`,`031`。
 - After this file: server CI registration contract完成；binding repository JPA细节在 File 4。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/repository/jpa/JpaResourceApiBindingRepository.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/repository/jpa/JpaResourceApiBindingRepository.java`
 
 - Purpose: 在 registration transaction内批量解析、校验、replace bindings并支持 mapping/runtime反向查询。
 - Symbols: Step 3 port所有方法、batch JPQL/SQL queries。
@@ -953,13 +953,13 @@ countDistinctActiveRolesDerivingApi joins ACTIVE binding sources to ACTIVE curre
 - Verification contribution: registration IT、mapping reverse guard、runtime union tests。
 - After this file: ResourceApiBinding完整 persistence实现可被 Steps 5/7消费。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=CiResourceRegistrationControllerTest,CiResourceRegistrationServiceIT,ResourcePermissionMappingServiceTest test && cd egon-cola-platform-rbac3-admin-web && npm ci --legacy-peer-deps --no-audit --no-fund && npm run test:report && npm run build && npm run verify:bundle`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-admin -am -Dsurefire.failIfNoSpecifiedTests=false -Dtest=CiResourceRegistrationControllerTest,CiResourceRegistrationServiceIT,ResourcePermissionMappingServiceTest test && cd egon-cola-tianquan-jianshen-admin-web && npm ci --legacy-peer-deps --no-audit --no-fund && npm run test:report && npm run build && npm run verify:bundle`
 - Expected result: Maven与Node命令exit 0；request/body无 `permissionCode` actual字段；旧 CI URL/source package零命中；bundle guard确认脚本/Scope/token配置不在dist graph。
 - Failure returns to: File 1/2 canonical contract、File 3 transaction/source校验、File 4 batch/type/app约束；新增交互或startup上报需求返回 Spec。
 - Completion criteria: CI registration幂等且只写批准机械事实/suggestion/bindings；所有授权/tenant表before-after相同。
 - Rollback: revert Step 6；旧 URL会恢复但尚未执行V13，数据未迁移。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/registration/ci/{CiResourceReportControllerTest.java->CiResourceRegistrationControllerTest.java,CiResourceReportServiceIT.java->CiResourceRegistrationServiceIT.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/{report-rbac-resources.test.mjs,report-rbac-resources.mjs}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/registration/ci/{controller/CiResourceReportController.java->controller/CiResourceRegistrationController.java,domain/dto/CiResourceReportRequestDTO.java->domain/dto/CiResourceRegistrationRequestDTO.java,domain/vo/CiResourceReportResultVO.java->domain/vo/CiResourceRegistrationResultVO.java,service/CiResourceReportCanonicalizer.java->service/CiResourceRegistrationCanonicalizer.java,service/CiResourceReportService.java->service/CiResourceRegistrationService.java,service/CiResourceReportStore.java->service/CiResourceRegistrationStore.java,service/JpaCiResourceReportStore.java->service/JpaCiResourceRegistrationStore.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/repository/jpa/JpaResourceApiBindingRepository.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/registration/ci/{CiResourceReportControllerTest.java->CiResourceRegistrationControllerTest.java,CiResourceReportServiceIT.java->CiResourceRegistrationServiceIT.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/{report-rbac-resources.test.mjs,report-rbac-resources.mjs}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/registration/ci/{controller/CiResourceReportController.java->controller/CiResourceRegistrationController.java,domain/dto/CiResourceReportRequestDTO.java->domain/dto/CiResourceRegistrationRequestDTO.java,domain/vo/CiResourceReportResultVO.java->domain/vo/CiResourceRegistrationResultVO.java,service/CiResourceReportCanonicalizer.java->service/CiResourceRegistrationCanonicalizer.java,service/CiResourceReportService.java->service/CiResourceRegistrationService.java,service/CiResourceReportStore.java->service/CiResourceRegistrationStore.java,service/JpaCiResourceReportStore.java->service/JpaCiResourceRegistrationStore.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/resource/apibinding/repository/jpa/JpaResourceApiBindingRepository.java`
 - Commit: `feat(rbac3-registration): register suggestions and page API bindings`
 
 ### Step 7 — 切换运行时资源并集、V13、Bootstrap 与历史残留
@@ -972,7 +972,7 @@ countDistinctActiveRolesDerivingApi joins ACTIVE binding sources to ACTIVE curre
 - Test-first gate: Required — 先改 Core/runtime/migration/bootstrap/architecture tests，分别因旧 fact、缺表、旧类和bootstrap无grant而 RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-{core,admin}/src/test/java/top/egon/cola/platform/rbac3/{core/activation/DefaultRoleActivationResolverTest.java,core/decision/AuthorizationMergeAlgebraTest.java,admin/authorization/runtime/UserAuthorizationSnapshotProjectorTest.java,admin/repository/Rbac3FlywayPostgresqlIT.java,admin/repository/Rbac3MigrationContractTest.java,admin/bootstrap/Rbac3PlatformAdminBootstrapCliIT.java,admin/architecture/Rbac3AuthorizationArchitectureTest.java}`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-{core,admin}/src/test/java/top/egon/cola/platform/rbac3/{core/activation/DefaultRoleActivationResolverTest.java,core/decision/AuthorizationMergeAlgebraTest.java,admin/authorization/runtime/UserAuthorizationSnapshotProjectorTest.java,admin/repository/Rbac3FlywayPostgresqlIT.java,admin/repository/Rbac3MigrationContractTest.java,admin/bootstrap/Rbac3PlatformAdminBootstrapCliIT.java,admin/architecture/Rbac3AuthorizationArchitectureTest.java}`
 
 - Purpose: 固定 effective roots/API union、父MENU展示但不派生permission、V13 schema、bootstrap readiness与零旧残留。
 - Symbols: ResourceGrantBinding fixtures、shared API撤销、ROUTE/ACTION边界、V13 metadata assertions、bootstrap grant smoke。
@@ -996,7 +996,7 @@ runPlatformAdminBootstrap(); assertRequiredActiveResourceGrantsAndReadiness();
 - Verification contribution: `TEST-023`–`032`、`TEST-027`–`029`。
 - After this file: tests因生产fact/schema/bootstrap尚未切换而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-{core,admin}/src/main/java/top/egon/cola/platform/rbac3/{core/{activation/AuthorizationRuleFacts.java,activation/ActivationAuthorizationSnapshot.java,decision/PermissionSetMerger.java,decision/UserAuthorizationSnapshotBuilder.java},admin/authorization/runtime/{activation/repository/jpa/JpaRoleActivationFactRepository.java,snapshot/service/UserAuthorizationSnapshotProjector.java}}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-{core,admin}/src/main/java/top/egon/cola/platform/rbac3/{core/{activation/AuthorizationRuleFacts.java,activation/ActivationAuthorizationSnapshot.java,decision/PermissionSetMerger.java,decision/UserAuthorizationSnapshotBuilder.java},admin/authorization/runtime/{activation/repository/jpa/JpaRoleActivationFactRepository.java,snapshot/service/UserAuthorizationSnapshotProjector.java}}`
 
 - Purpose: 把运行事实从 role-permission 改为有效资源root + API union，并生成同一 snapshot 的 permission/resource集合。
 - Symbols: `AuthorizationRuleFacts.ResourceGrantBinding`、Core builder/merger、JPA fact query、projector。
@@ -1022,7 +1022,7 @@ merge existing dataScopes/fieldRules/SOD/Fence using the derived permissions and
 - Verification contribution: Core/runtime `TEST-020`–`024`,`031`,`032` GREEN。
 - After this file: runtime source code不再读 role_permission；database migration尚在 File 4。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/repository/jpa/{JpaDevelopmentTopologyBootstrapRepository.java,JpaPlatformAdminBootstrapRepository.java}`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/repository/jpa/{JpaDevelopmentTopologyBootstrapRepository.java,JpaPlatformAdminBootstrapRepository.java}`
 
 - Purpose: Bootstrap built-in管理员映射到actual resources并写新RoleResourceGrant，而非 permission rows。
 - Symbols: `ensurePlatformAdminResourceGrants`, required resource code inventory、readiness checks。
@@ -1047,7 +1047,7 @@ do not persist RolePermissionPO or infer mapping from permission equality;
 - Verification contribution: `TEST-028` CLI/bootstrap/readiness。
 - After this file: 新bootstrap可在V13空grant表恢复平台管理员；旧RolePermission bootstrap引用消失。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql`
 
 - Purpose: 一次性创建新表/约束/索引、增加suggestion、修正unmapped ACTIVE状态并删除两个旧表。
 - Symbols: `rbac3_role_resource_grant`, `rbac3_resource_api_binding`, `suggested_permission_code` and named constraints/indexes。
@@ -1074,7 +1074,7 @@ DROP TABLE rbac3_role_permission; DROP TABLE rbac3_permission_resource;
 - Verification contribution: `TEST-025` clean PostgreSQL migration；immutability gate。
 - After this file: schema与新JPA模型一致；数据库层无旧关系。
 
-#### File 5 — `DELETE egon-cola-platforms/egon-cola-platform-rbac3/{egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/**/{RolePermissionPO.java,RolePermissionStatusEnum.java,AssignPermissionCommandDTO.java,AssignPermissionsCommandDTO.java,RemovePermissionCommandDTO.java,BindPermissionsRequestDTO.java,PermissionResourcePO.java,CurrentRbac3Principal.java,RequiresRbac3Permission.java,Rbac3AdminAuthenticationToken.java,Rbac3AdminPrincipalFilter.java,ApiEnvelopeVO.java},egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorResponse.java}`
+#### File 5 — `DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/{egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/**/{RolePermissionPO.java,RolePermissionStatusEnum.java,AssignPermissionCommandDTO.java,AssignPermissionsCommandDTO.java,RemovePermissionCommandDTO.java,BindPermissionsRequestDTO.java,PermissionResourcePO.java,CurrentRbac3Principal.java,RequiresRbac3Permission.java,Rbac3AdminAuthenticationToken.java,Rbac3AdminPrincipalFilter.java,ApiEnvelopeVO.java},egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorResponse.java}`
 
 - Purpose: 删除已替代的关系、安全principal/annotation和重复响应类型，并同步所有调用方用现有标准边界。
 - Symbols: 列举旧类及其 imports/constructor/exception response consumers。
@@ -1098,13 +1098,13 @@ rg production/test/generated artifacts for every deleted simple/FQCN and require
 - Verification contribution: `TEST-027`,`029` cleanup与`REQ-008`,`016` regression。
 - After this file: source/JAR不含旧关系/principal/envelope；所有Controller编译到标准边界。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `mvn -pl egon-cola-platform-rbac3-core,egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3-admin -am verify && ! rg -n "RolePermission|PermissionResource|CurrentRbac3Principal|RequiresRbac3Permission|ApiEnvelopeVO|Rbac3ErrorResponse|rbac3_role_permission|rbac3_permission_resource" egon-cola-platform-rbac3-{contract,core,starter,admin}/src/main/java`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `mvn -pl egon-cola-tianquan-jianshen-core,egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen-admin -am verify && ! rg -n "RolePermission|PermissionResource|CurrentRbac3Principal|RequiresRbac3Permission|ApiEnvelopeVO|Rbac3ErrorResponse|rbac3_role_permission|rbac3_permission_resource" egon-cola-tianquan-jianshen-{contract,core,starter,admin}/src/main/java`
 - Expected result: Maven verify exit 0，PostgreSQL/Flyway IT与bootstrap/architecture tests通过；最终rg exit 1（零源码命中）；V13是唯一新增migration。
 - Failure returns to: File 1期望、File 2 query/algebra、File 3 bootstrap、File 4 DDL、File 5 consumer cleanup；live数据/备份问题属于部署门禁，不修改历史migration。
 - Completion criteria: `TEST-023`–`032` 后端范围全部GREEN；新schema/runtime/bootstrap一致，旧能力无残留；Data/Field/SOD/Fence回归通过。
 - Rollback: 源码提交可revert仅限V13未应用环境；V13一旦应用，只能维护窗口恢复备份或forward-fix，不能启动旧二进制。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-{core,admin}/src/test/java/top/egon/cola/platform/rbac3/{core/activation/DefaultRoleActivationResolverTest.java,core/decision/AuthorizationMergeAlgebraTest.java,admin/authorization/runtime/UserAuthorizationSnapshotProjectorTest.java,admin/repository/Rbac3FlywayPostgresqlIT.java,admin/repository/Rbac3MigrationContractTest.java,admin/bootstrap/Rbac3PlatformAdminBootstrapCliIT.java,admin/architecture/Rbac3AuthorizationArchitectureTest.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-{core,admin}/src/main/java/top/egon/cola/platform/rbac3/{core/{activation/AuthorizationRuleFacts.java,activation/ActivationAuthorizationSnapshot.java,decision/PermissionSetMerger.java,decision/UserAuthorizationSnapshotBuilder.java},admin/authorization/runtime/{activation/repository/jpa/JpaRoleActivationFactRepository.java,snapshot/service/UserAuthorizationSnapshotProjector.java}}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/repository/jpa/{JpaDevelopmentTopologyBootstrapRepository.java,JpaPlatformAdminBootstrapRepository.java}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql` ; `egon-cola-platforms/egon-cola-platform-rbac3/{egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/**/{RolePermissionPO.java,RolePermissionStatusEnum.java,AssignPermissionCommandDTO.java,AssignPermissionsCommandDTO.java,RemovePermissionCommandDTO.java,BindPermissionsRequestDTO.java,PermissionResourcePO.java,CurrentRbac3Principal.java,RequiresRbac3Permission.java,Rbac3AdminAuthenticationToken.java,Rbac3AdminPrincipalFilter.java,ApiEnvelopeVO.java},egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorResponse.java}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-{core,admin}/src/test/java/top/egon/cola/platform/rbac3/{core/activation/DefaultRoleActivationResolverTest.java,core/decision/AuthorizationMergeAlgebraTest.java,admin/authorization/runtime/UserAuthorizationSnapshotProjectorTest.java,admin/repository/Rbac3FlywayPostgresqlIT.java,admin/repository/Rbac3MigrationContractTest.java,admin/bootstrap/Rbac3PlatformAdminBootstrapCliIT.java,admin/architecture/Rbac3AuthorizationArchitectureTest.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-{core,admin}/src/main/java/top/egon/cola/platform/rbac3/{core/{activation/AuthorizationRuleFacts.java,activation/ActivationAuthorizationSnapshot.java,decision/PermissionSetMerger.java,decision/UserAuthorizationSnapshotBuilder.java},admin/authorization/runtime/{activation/repository/jpa/JpaRoleActivationFactRepository.java,snapshot/service/UserAuthorizationSnapshotProjector.java}}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/bootstrap/repository/jpa/{JpaDevelopmentTopologyBootstrapRepository.java,JpaPlatformAdminBootstrapRepository.java}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/{egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/**/{RolePermissionPO.java,RolePermissionStatusEnum.java,AssignPermissionCommandDTO.java,AssignPermissionsCommandDTO.java,RemovePermissionCommandDTO.java,BindPermissionsRequestDTO.java,PermissionResourcePO.java,CurrentRbac3Principal.java,RequiresRbac3Permission.java,Rbac3AdminAuthenticationToken.java,Rbac3AdminPrincipalFilter.java,ApiEnvelopeVO.java},egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorResponse.java}`
 - Commit: `feat(rbac3-runtime): cut over resource grants with V13`
 
 ### Step 8 — 让 React SDK 用 resourceCodes 控制导航、路由和按钮
@@ -1117,7 +1117,7 @@ rg production/test/generated artifacts for every deleted simple/FQCN and require
 - Test-first gate: Required — 修改现有 registry/guard/provider tests，先因缺resourceCodes与仍读permissions而RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/{registry/FrontendResourceRegistry.test.ts,guards/Rbac3Guards.test.tsx,provider/Rbac3Provider.test.tsx,types.test.ts}`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/{registry/FrontendResourceRegistry.test.ts,guards/Rbac3Guards.test.tsx,provider/Rbac3Provider.test.tsx,types.test.ts}`
 
 - Purpose: 固定resourceCodes导航/route/action、notREADY隐藏和Field不变。
 - Symbols: registry navigation/canAccessRoute、ActionGuard resource prop、About fixtures、type shape tests。
@@ -1141,7 +1141,7 @@ expect(getField('user.email', about.fieldPolicies).level).toBe('MASKED_READ')
 - Verification contribution: `TEST-015`,`016`,`018`,`031`,`032` browser authorization部分。
 - After this file: tests因production仍按permissions而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/{types.ts,registry/FrontendResourceRegistry.ts,guards/ActionGuard.tsx,index.ts}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/{types.ts,registry/FrontendResourceRegistry.ts,guards/ActionGuard.tsx,index.ts}`
 
 - Purpose: 实现About resourceCodes类型和本地资源guard，不创建第二store/provider。
 - Symbols: `Rbac3AboutView.resourceCodes`, `FrontendResourceDefinition.suggestedPermissionCode/apiResourceCodes`, `canAccessResource`, ActionGuard props/export。
@@ -1166,7 +1166,7 @@ serializable: expose mechanical facts, suggestion and apiResourceCodes; never us
 - Verification contribution: File 1 GREEN；SDK public type/build。
 - After this file: SDK runtime展示完全resource-based；generic PermissionGuard仍可显式使用。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/{src/app/resourceDefinitions.json,scripts/report-rbac-resources.mjs,scripts/report-rbac-resources.test.mjs}`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/{src/app/resourceDefinitions.json,scripts/report-rbac-resources.mjs,scripts/report-rbac-resources.test.mjs}`
 
 - Purpose: 把checked-in定义切到最终 suggestedPermissionCode/apiResourceCodes schema并移除脚本旧permission fallback。
 - Symbols: all MENU/ROUTE/ACTION/FIELD entries、project/canonical fixtures。
@@ -1193,13 +1193,13 @@ assert no object/property named permission remains in resourceDefinitions or rep
 - Verification contribution: `TEST-011`,`016`,`030`–`032` source declaration与Node checksum。
 - After this file: local source无旧permission key；runtime/CI共享同一最终定义。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `cd egon-cola-platform-rbac3-react-sdk && npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm run test -- --run && npm run build && cd ../egon-cola-platform-rbac3-admin-web && npm ci --legacy-peer-deps --no-audit --no-fund && npm run test:report && npm run build && npm run verify:bundle`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `cd egon-cola-tianquan-jianshen-react-sdk && npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm run test -- --run && npm run build && cd ../egon-cola-tianquan-jianshen-admin-web && npm ci --legacy-peer-deps --no-audit --no-fund && npm run test:report && npm run build && npm run verify:bundle`
 - Expected result: 所有命令exit 0；registry/action tests证明permissions不影响资源展示；Node report无旧permission字段/fallback。
 - Failure returns to: File 1期望、File 2 SDK行为、File 3定义真实调用关系；API source关系不清必须修Spec/资源声明owner，不在runtime猜测。
 - Completion criteria: About resourceCodes贯通SDK；FIELD/generic permission能力保持；CI source schema最终化。
 - Rollback: revert SDK/definitions/scripts；后端仍可运行但新About字段不会被旧SDK使用，发布必须成组回退。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/{registry/FrontendResourceRegistry.test.ts,guards/Rbac3Guards.test.tsx,provider/Rbac3Provider.test.tsx,types.test.ts}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/{types.ts,registry/FrontendResourceRegistry.ts,guards/ActionGuard.tsx,index.ts}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/{src/app/resourceDefinitions.json,scripts/report-rbac-resources.mjs,scripts/report-rbac-resources.test.mjs}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/{registry/FrontendResourceRegistry.test.ts,guards/Rbac3Guards.test.tsx,provider/Rbac3Provider.test.tsx,types.test.ts}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/{types.ts,registry/FrontendResourceRegistry.ts,guards/ActionGuard.tsx,index.ts}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/{src/app/resourceDefinitions.json,scripts/report-rbac-resources.mjs,scripts/report-rbac-resources.test.mjs}`
 - Commit: `feat(rbac3-react): guard UI resources with resource codes`
 
 ### Step 9 — 将 RBAC3 角色和资源目录页面切到可读资源配置
@@ -1212,7 +1212,7 @@ assert no object/property named permission remains in resourceDefinitions or rep
 - Test-first gate: Required — 修改RolePages/ApplicationPages/App integration tests，先因旧文本表单、API和route而RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/{role/RolePages.test.tsx,application/ApplicationPages.test.tsx,../app/App.integration.test.tsx}`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/{role/RolePages.test.tsx,application/ApplicationPages.test.tsx,../app/App.integration.test.tsx}`
 
 - Purpose: 固定可读资源树、mapping Drawer、旧导航缺失和common错误状态。
 - Symbols: RoleResourceGrantPage component tests、ResourceCatalog mapping tests、route/deep-link integration。
@@ -1236,7 +1236,7 @@ navigate('/iam/permissions'); expectNotFoundOrNoRoute();
 - Verification contribution: `TEST-001`,`002`,`018`,`040` feature部分。
 - After this file: tests因旧页面/API/routes而RED。
 
-#### File 2 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/{RolePermissionPage.tsx->RoleResourceGrantPage.tsx,role.api.ts}`
+#### File 2 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/{RolePermissionPage.tsx->RoleResourceGrantPage.tsx,role.api.ts}`
 
 - Purpose: 实现角色资源GET/PUT、tree/tabs/check states和query invalidation。
 - Symbols: `RoleResourceGrantPage`, API types/methods `resources/replaceResources`。
@@ -1260,7 +1260,7 @@ never render mapping permissionCode/permissionId fields even if unexpected paylo
 - Verification contribution: Role component/API tests GREEN；`REQ-001`,`002`,`014`,`019`,`021`。
 - After this file: 角色配置完整切换到资源；旧RolePermissionPage删除。
 
-#### File 3 — `RENAME egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/{ResourceCatalogPage.tsx,PermissionPage.tsx->PermissionSelector.tsx,application.api.ts}`
+#### File 3 — `RENAME egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/{ResourceCatalogPage.tsx,PermissionPage.tsx->PermissionSelector.tsx,application.api.ts}`
 
 - Purpose: 在资源目录提供actual mapping Drawer，把权限字符选择限制在高级管理员流程。
 - Symbols: mapping query/mutation types、`PermissionSelector`、Drawer states/actions。
@@ -1284,7 +1284,7 @@ remove standalone PermissionPage route/navigation while retaining permission CRU
 - Verification contribution: `TEST-007`–`010` frontend、`TEST-018` denied state。
 - After this file: 资源目录是唯一普通UI mapping入口；无 standalone permission字符导航。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/{features/governance.routes.tsx,app/router.tsx,app/resourceDefinitions.json,app/navigation.ts}`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/{features/governance.routes.tsx,app/router.tsx,app/resourceDefinitions.json,app/navigation.ts}`
 
 - Purpose: 同步新role-resources route、移除permissions route，并确保RBAC navigation按SDK resourceCodes输出递归树。
 - Symbols: route descriptors/component registry、resource definitions、`visibleNavigation`。
@@ -1307,13 +1307,13 @@ router leaves unknown old permission path to existing not-found element; no comp
 - Verification contribution: `TEST-015`,`018`,`040` 路由/导航部分。
 - After this file: RBAC3 Web功能和路由契约完成，等待shared 0.2.0视觉壳与依赖升级。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web`
 - Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm test && npm run test:report && npm run build && npm run verify:bundle && npm run verify:conformance`
 - Expected result: exit 0；角色请求无permissionIds；旧页面/route/navigation字符串零命中；mapping和resource guard测试通过。
 - Failure returns to: File 1 fixtures/contract、File 2 role state、File 3 mapping state、File 4 routes；新的产品页或权限行为返回 Spec。
 - Completion criteria: 管理员按可读资源配置角色；字符只在高级mapping流程；resourceCodes控制RBAC Web；common错误/恢复闭环。
 - Rollback: revert本Step前端；不得与已发布V13后端单独上线，部署必须成组。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/{role/RolePages.test.tsx,application/ApplicationPages.test.tsx,../app/App.integration.test.tsx}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/{RolePermissionPage.tsx->RoleResourceGrantPage.tsx,role.api.ts}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/{ResourceCatalogPage.tsx,PermissionPage.tsx->PermissionSelector.tsx,application.api.ts}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/{features/governance.routes.tsx,app/router.tsx,app/resourceDefinitions.json,app/navigation.ts}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/{role/RolePages.test.tsx,application/ApplicationPages.test.tsx,../app/App.integration.test.tsx}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/{RolePermissionPage.tsx->RoleResourceGrantPage.tsx,role.api.ts}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/{ResourceCatalogPage.tsx,PermissionPage.tsx->PermissionSelector.tsx,application.api.ts}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/{features/governance.routes.tsx,app/router.tsx,app/resourceDefinitions.json,app/navigation.ts}`
 - Commit: `feat(rbac3-web): configure roles through readable resources`
 
 ### Step 10 — 发布 Banner + 左侧树的 Admin Web Shared 0.2.0
@@ -1326,7 +1326,7 @@ router leaves unknown old permission path to existing not-found element; no comp
 - Test-first gate: Required — 先重写EnterpriseLayout tests，旧Header应因仍有horizontal菜单、无Sider/activePathPrefixes而RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
 
 - Purpose: 固定desktop/mobile/empty/deep-link/collapse/a11y以及children不remount。
 - Symbols: `TEST-033`–`TEST-036` component scenarios、matchMedia fixtures、stateful child mount counter。
@@ -1350,7 +1350,7 @@ setViewport(false); expectNoSider(); openDrawer(); clickParentKeepsDrawer(); cli
 - Verification contribution: `TEST-033`–`036`,`042` shared contract。
 - After this file: tests因旧shared实现而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts`
 
 - Purpose: 把navigation/onNavigate从Header职责归还Layout，删除group并加入activePathPrefixes。
 - Symbols: `EnterpriseNavigationItem`, `EnterpriseHeaderConfig`, `EnterpriseLayoutConfig`, Header internal props配套类型。
@@ -1376,7 +1376,7 @@ interface EnterpriseLayoutConfig extends EnterpriseHeaderConfig {
 - Verification contribution: shared/consumer TS compile，禁止flat group。
 - After this file: public type为0.2.0目标；旧实现暂编译失败，等待Files 3/4。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx`
 
 - Purpose: 包内统一递归Menu、route selection/open ancestor、desktop Sider和mobile Drawer。
 - Symbols: `EnterpriseSidebar`, internal flatten/index/match helpers、props。
@@ -1400,7 +1400,7 @@ onMenuClick(key): if parent without path toggle only; else call onNavigate/defau
 - Verification contribution: Files 1 `TEST-033`–`036` generic tree行为。
 - After this file: 核心tree renderer存在但尚未由Layout使用。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/{EnterpriseHeader.tsx,EnterpriseLayout.tsx}`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/{EnterpriseHeader.tsx,EnterpriseLayout.tsx}`
 
 - Purpose: Header收敛Banner；Layout组合Header、responsive Sidebar/Drawer、Content/Footer并拥有本地state。
 - Symbols: `EnterpriseHeaderProps.mobileNavigationVisible/onOpenNavigation`, `EnterpriseLayout` states/effects/render。
@@ -1424,7 +1424,7 @@ on breakpoint lg true: drawerOpen=false; never change child element identity on 
 - Verification contribution: File 1全部GREEN；Header Banner/empty layout断言。
 - After this file: shared行为完整；package仍为0.1.4直到File 5。
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/{package.json,package-lock.json}`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/{package.json,package-lock.json}`
 
 - Purpose: 标记breaking public prop为0.2.0并生成可发布锁/包内容。
 - Symbols: package version/root lock version；不改依赖列表。
@@ -1440,19 +1440,19 @@ on breakpoint lg true: drawerOpen=false; never change child element identity on 
 set package.json version to 0.2.0 and regenerate root package-lock metadata with npm install --package-lock-only;
 run typecheck, vitest, build and npm pack --dry-run; inspect tarball file list and package version;
 publish exact 0.2.0 using existing registry configuration only after source commit is accepted for execution;
-verify npm view @egon-cola/admin-web-shared@0.2.0 version returns 0.2.0 before any consumer lock update;
+verify npm view @egon-cola/xingyuan-admin-web-shared@0.2.0 version returns 0.2.0 before any consumer lock update;
 ```
 
 - Verification contribution: `TEST-041` shared artifact half。
 - After this file: repository和registry都可提供0.2.0；consumer升级被解锁。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-admin-web-shared`
-- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm test && npm run build && npm pack --dry-run && npm view @egon-cola/admin-web-shared@0.2.0 version`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared`
+- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm test && npm run build && npm pack --dry-run && npm view @egon-cola/xingyuan-admin-web-shared@0.2.0 version`
 - Expected result: 所有命令exit 0；test无horizontal Header menu；pack/version均为0.2.0；publish动作在源码commit后执行并有registry回执。
 - Failure returns to: File 1契约、File 2类型、File 3算法/a11y、File 4composition、File 5包元数据/registry；registry权限失败为发布阻塞，不改设计。
 - Completion criteria: `TEST-033`–`036`,`041` shared范围通过；无EnterpriseSidebar public export、无新增API/store/依赖。
 - Rollback: publish前可revert Step 10；publish后不得删除版本，消费者未升级时保留0.2.0未使用；整体回滚须四端统一锁回0.1.4。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx` ; `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts` ; `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx` ; `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/{EnterpriseHeader.tsx,EnterpriseLayout.tsx}` ; `egon-cola-platforms/egon-cola-platform-admin-web-shared/{package.json,package-lock.json}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/{EnterpriseHeader.tsx,EnterpriseLayout.tsx}` ; `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/{package.json,package-lock.json}`
 - Commit: `feat(admin-web-shared): move navigation into a left tree shell`
 
 ### Step 11 — 把 DDC Admin Web 的三组业务导航迁到左树
@@ -1465,7 +1465,7 @@ verify npm view @egon-cola/admin-web-shared@0.2.0 version returns 0.2.0 before a
 - Test-first gate: Required — AdminLayout test先断言三父树/左Sider，旧flat/group结构RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx`
 
 - Purpose: 固定三父组、子顺序、route click、无Header主菜单与empty行为。
 - Symbols: DDC `TEST-037` desktop/mobile/deep link assertions。
@@ -1489,7 +1489,7 @@ setMobile(); openBannerTrigger(); expectSameTreeInLeftDrawer()
 - Verification contribution: `TEST-037`,`042` DDC部分。
 - After this file: test因旧flat items/shared旧lock而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
 
 - Purpose: 生成children树并升级shared依赖图，不改变DDC routes/AuthContext。
 - Symbols: navigation constant/config、dependency version/lock resolved entry。
@@ -1508,20 +1508,20 @@ navigation = [
  {key:'metadata',label:'元数据管理',children:[bizs,environments,apps,namespaces]},
 ]
 pass navigation unchanged to EnterpriseLayout; preserve status/actions/user/auth flow;
-set @egon-cola/admin-web-shared dependency to ^0.2.0 and regenerate package-lock from registry;
+set @egon-cola/xingyuan-admin-web-shared dependency to ^0.2.0 and regenerate package-lock from registry;
 assert npm ls resolves exactly 0.2.0 and no lock entry resolves 0.1.4;
 ```
 
 - Verification contribution: File 1 GREEN、`TEST-041` DDC graph。
 - After this file: DDC采用统一左树且其他页面/route/API不变。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web`
-- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/admin-web-shared --depth=0 && npm run typecheck && npm test && npm run build`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`
+- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/xingyuan-admin-web-shared --depth=0 && npm run typecheck && npm test && npm run build`
 - Expected result: exit 0；npm ls显示0.2.0；AdminLayout/App tests与build通过。
 - Failure returns to: File 1信息架构断言或File 2 tree/lock；DDC认证/路由行为不得为适配shared而改写。
 - Completion criteria: `TEST-037`,`041`及可自动执行的DDC shell tests通过；E2E留给质量门禁。
 - Rollback: 同时revert DDC tree/package/lock；不得只回lock或只回代码。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx` ; `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx` ; `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
 - Commit: `feat(ddc-web): group navigation in the shared left tree`
 
 ### Step 12 — 把 IdP Admin Web 的授权导航递归过滤后交给左树
@@ -1534,7 +1534,7 @@ assert npm ls resolves exactly 0.2.0 and no lock entry resolves 0.1.4;
 - Test-first gate: Required — App.test先加入tree/pruning/client resource-grant detail断言，旧flat items RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/App.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`
 
 - Purpose: 固定四根/组、permission subset递归剪枝和OAuth client detail selection。
 - Symbols: IdP `TEST-038` scenarios、mock bootstrap permission sets。
@@ -1558,7 +1558,7 @@ expect(header()).not.toContainHorizontalBusinessMenu()
 - Verification contribution: `TEST-038`,`042` IdP部分。
 - After this file: tests因flat filter/old shared而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/{src/app/AdminLayout.tsx,package.json,package-lock.json}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/{src/app/AdminLayout.tsx,package.json,package-lock.json}`
 
 - Purpose: 建立IdP本地tree/recursive filter并升级shared，保留所有认证与route事实。
 - Symbols: `ALL_NAV_ITEMS`, recursive filter helper, EnterpriseLayout config、lock。
@@ -1584,13 +1584,13 @@ upgrade dependency and regenerate local package-lock to resolved 0.2.0
 - Verification contribution: File 1 GREEN、`TEST-041` IdP graph。
 - After this file: IdP左树完成，认证/bootstrap契约无diff。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web`
-- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/admin-web-shared --depth=0 && npm run typecheck && npm test && npm run build`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web`
+- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/xingyuan-admin-web-shared --depth=0 && npm run typecheck && npm test && npm run build`
 - Expected result: exit 0；0.2.0 resolved；App tests覆盖pruning/detail且build成功。
 - Failure returns to: File 1 fixture或File 2recursive filter/prefix/lock；不得改IdP权限字符或服务API。
 - Completion criteria: `TEST-038`,`041`自动门禁通过；IdP四根/组与deep link行为符合Spec。
 - Rollback: 同一提交revert AdminLayout/package/lock；四端整体版本回滚规则见§9。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/App.test.tsx` ; `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/{src/app/AdminLayout.tsx,package.json,package-lock.json}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx` ; `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/{src/app/AdminLayout.tsx,package.json,package-lock.json}`
 - Commit: `feat(idp-web): render authorized navigation in the left tree`
 
 ### Step 13 — 把 Gateway Admin Web 的 capability 导航迁到左树并定位 operation detail
@@ -1603,7 +1603,7 @@ upgrade dependency and regenerate local package-lock to resolved 0.2.0
 - Test-first gate: Required — AdminLayout test先覆盖MCP absent/present、group/operation detail selection和左树，旧flat实现RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx`
 
 - Purpose: 固定本地tree/capability pruning与两个非平凡deep link。
 - Symbols: Gateway `TEST-039` scenarios。
@@ -1626,7 +1626,7 @@ expect(location.pathname).toBe('/operations/op-1'); expect(header()).not.toConta
 - Verification contribution: `TEST-039`,`042` Gateway部分。
 - After this file: tests因flat navigation/无prefix/shared旧版而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
 
 - Purpose: 建立Gateway local tree、capability递归过滤、operation active prefix并升级shared。
 - Symbols: navigation tree/filters、`activePathPrefixes:['/operations']`、package graph。
@@ -1651,13 +1651,13 @@ set shared dependency ^0.2.0 and regenerate lock; assert resolved version 0.2.0
 - Verification contribution: File 1 GREEN、`TEST-041` Gateway graph。
 - After this file: Gateway左树/deep-link完成，capability和URL不变。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`
-- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/admin-web-shared --depth=0 && npm run typecheck && npm test && npm run build`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`
+- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/xingyuan-admin-web-shared --depth=0 && npm run typecheck && npm test && npm run build`
 - Expected result: exit 0；0.2.0 resolved；MCP/prefix tests与build通过。
 - Failure returns to: File 1断言或File 2tree/filter/prefix/lock；不得把operation URL改成catalog子路径。
 - Completion criteria: `TEST-039`,`041`自动门禁通过；operation detail定位接口目录且无URL rewrite。
 - Rollback: 同步revert Gateway代码/package/lock；不单独降级shared。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.test.tsx` ; `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx` ; `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/{src/layouts/AdminLayout.tsx,package.json,package-lock.json}`
 - Commit: `feat(gateway-web): organize capability navigation in the left tree`
 
 ### Step 14 — 升级 RBAC3 Admin Web 消费 shared 0.2.0 并完成四端发布门禁
@@ -1670,7 +1670,7 @@ set shared dependency ^0.2.0 and regenerate lock; assert resolved version 0.2.0
 - Test-first gate: Required — App integration先断言左Sider/hidden role resources/empty no-rail，旧shared 0.1.4 RED。
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`
 
 - Purpose: 固定RBAC3 resourceCodes递归tree、hidden detail parent selection、无route时不出现空rail。
 - Symbols: RBAC3 `TEST-040` scenarios、Rbac3Provider fixtures。
@@ -1694,11 +1694,11 @@ expectNoLeftNavigationOrMobileTrigger(); expectExistingForbiddenOutcome()
 - Verification contribution: `TEST-040`,`042` RBAC3部分。
 - After this file: test因old shared shell/dependency而RED。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/{egon-cola-platform-rbac3-admin-web/package.json,package-lock.json}`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/{egon-cola-tianquan-jianshen-admin-web/package.json,package-lock.json}`
 
 - Purpose: 升级RBAC3 shared依赖并更新平台级lock，随后运行四端统一解析检查。
 - Symbols: package dependency、root/workspace lock entries。
-- Repository evidence: RBAC3 Admin Web无local lock，使用`egon-cola-platform-rbac3/package-lock.json`；当前解析0.1.4。
+- Repository evidence: RBAC3 Admin Web无local lock，使用`egon-cola-tianquan-jianshen/package-lock.json`；当前解析0.1.4。
 - Dependencies and consumers: published shared 0.2.0、Step 9/14 tests、RBAC3 build。
 - Why now: RBAC功能和integration test均稳定，最后切依赖图。
 - Contract/signature changes: dependency `^0.2.0`；无其他npm依赖版本变化。
@@ -1708,8 +1708,8 @@ expectNoLeftNavigationOrMobileTrigger(); expectExistingForbiddenOutcome()
 
 ```text
 change admin-web dependency to ^0.2.0;
-from egon-cola-platform-rbac3 npm root regenerate package-lock using npm install --package-lock-only;
-run npm ci --legacy-peer-deps --no-audit --no-fund for the correct package root and assert npm ls resolves exactly @egon-cola/admin-web-shared@0.2.0;
+from egon-cola-tianquan-jianshen npm root regenerate package-lock using npm install --package-lock-only;
+run npm ci --legacy-peer-deps --no-audit --no-fund for the correct package root and assert npm ls resolves exactly @egon-cola/xingyuan-admin-web-shared@0.2.0;
 scan all four consumer lockfiles for stale 0.1.4 resolution, local tarball or file link and require zero matches;
 run each consumer typecheck/test/build command recorded in Steps 11-14;
 ```
@@ -1717,7 +1717,7 @@ run each consumer typecheck/test/build command recorded in Steps 11-14;
 - Verification contribution: File 1 GREEN、`TEST-041`完整四图检查。
 - After this file: RBAC3与其余三端统一消费0.2.0；source release单元完成。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/{verify-browser-bundle.mjs,verify-rbac3-conformance.mjs}`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/{verify-browser-bundle.mjs,verify-rbac3-conformance.mjs}`
 
 - Purpose: 最终静态门禁覆盖旧角色/权限/CI URL、浏览器CI泄漏与shared版本。
 - Symbols: forbidden symbol/path/version lists、dist inspection。
@@ -1740,13 +1740,13 @@ exclude only docs and immutable historical migrations from semantic-source scan
 - Verification contribution: `TEST-029`,`041` final static/release gate。
 - After this file: release pipeline可判定新旧模型/包/前端版本是否混用。
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3`
-- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm --prefix egon-cola-platform-rbac3-admin-web run typecheck && npm --prefix egon-cola-platform-rbac3-admin-web test && npm --prefix egon-cola-platform-rbac3-admin-web run build && npm --prefix egon-cola-platform-rbac3-admin-web run verify:bundle && npm --prefix egon-cola-platform-rbac3-admin-web run verify:conformance && npm --prefix egon-cola-platform-rbac3-admin-web ls @egon-cola/admin-web-shared --depth=0`
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen`
+- Verification command: `npm ci --legacy-peer-deps --no-audit --no-fund && npm --prefix egon-cola-tianquan-jianshen-admin-web run typecheck && npm --prefix egon-cola-tianquan-jianshen-admin-web test && npm --prefix egon-cola-tianquan-jianshen-admin-web run build && npm --prefix egon-cola-tianquan-jianshen-admin-web run verify:bundle && npm --prefix egon-cola-tianquan-jianshen-admin-web run verify:conformance && npm --prefix egon-cola-tianquan-jianshen-admin-web ls @egon-cola/xingyuan-admin-web-shared --depth=0`
 - Expected result: exit 0；integration/静态/build通过；npm ls为0.2.0；四lock无旧解析。
 - Failure returns to: File 1 RBAC fixture/navigation、File 2 lock/registry、File 3残留清单；E2E失败返回对应consumer Step，不在shared中猜平台逻辑。
 - Completion criteria: `TEST-040`,`041`自动门禁完成；`TEST-042`测试代码/命令就绪但需用户启动四端服务后运行。
 - Rollback: 代码未部署时revert本Step；部署回滚必须shared与四consumer整体回0.1.4且RBAC后端/V13按§9限制处理。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx` ; `egon-cola-platforms/egon-cola-platform-rbac3/{egon-cola-platform-rbac3-admin-web/package.json,package-lock.json}` ; `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/scripts/{verify-browser-bundle.mjs,verify-rbac3-conformance.mjs}`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/{egon-cola-tianquan-jianshen-admin-web/package.json,package-lock.json}` ; `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/scripts/{verify-browser-bundle.mjs,verify-rbac3-conformance.mjs}`
 - Commit: `feat(rbac3-web): adopt the shared left navigation shell`
 
 ## 8. Test, Validation, and Quality Gates
@@ -1761,18 +1761,18 @@ exclude only docs and immutable historical migrations from semantic-source scan
 | Role resource API | RBAC Maven root | Step 4 focused MockMvc/service/IT | API-001/002 | JSON/atomic/concurrency/rollback pass | Step 4 | `REQ-001`,`002`,`014`,`019` |
 | Mapping API | RBAC Maven root | Step 5 focused MockMvc/service/IT | API-003/004 | idempotent/in-use/version/audit pass | Step 5 | `REQ-003`,`015` |
 | Registration | RBAC Maven root + RBAC Web | Step 6 Maven selector + `npm run test:report && npm run verify:bundle` | API-006/CI | zero actual/grant writes；Node exit0 | Step 6 | CI artifact, not browser/runtime |
-| Runtime/Core | RBAC Maven root | `mvn -pl egon-cola-platform-rbac3-core,egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3-admin -am verify` | Core/Starter/Admin | all unit/IT/Flyway/bootstrap pass | Step 7 Files 1–4 | container/module |
+| Runtime/Core | RBAC Maven root | `mvn -pl egon-cola-tianquan-jianshen-core,egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen-admin -am verify` | Core/Starter/Admin | all unit/IT/Flyway/bootstrap pass | Step 7 Files 1–4 | container/module |
 | V13 migration | RBAC Admin tests | `Rbac3FlywayPostgresqlIT,Rbac3MigrationContractTest` via Step 7 | V1→V13 PostgreSQL | new tables/constraints/indexes，old absent | Step 7 File 4 | Testcontainers, not live DB |
 | Legacy static | RBAC Maven root | Step 7/14 `rg` and conformance scripts | source/JAR/dist | zero old class/table/URL/package/bundle token matches | Steps 7/14 | static artifact |
 | SDK | RBAC React SDK | `npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm test -- --run && npm run build` | types/registry/guards | exit0；resourceCodes controls UI | Step 8 | browser unit/build |
 | RBAC feature | RBAC Admin Web | `npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm test && npm run test:report && npm run build && npm run verify:bundle && npm run verify:conformance` | role/mapping/routes | exit0 | Step 9/14 | browser unit/build |
 | Shared component | Admin Web Shared | `npm ci --legacy-peer-deps --no-audit --no-fund && npm run typecheck && npm test && npm run build && npm pack --dry-run` | shell/types/artifact | exit0；0.2.0 pack | Step 10 | component/package |
-| Shared registry | Admin Web Shared | `npm publish` followed by `npm view @egon-cola/admin-web-shared@0.2.0 version` | external package registry | publish succeeds and prints0.2.0 | Step 10 File 5 | external release action |
+| Shared registry | Admin Web Shared | `npm publish` followed by `npm view @egon-cola/xingyuan-admin-web-shared@0.2.0 version` | external package registry | publish succeeds and prints0.2.0 | Step 10 File 5 | external release action |
 | DDC consumer | DDC Admin Web | Step 11 npm command | tree/lock/build | exit0；resolved0.2.0 | Step 11 | frontend module |
 | IdP consumer | IdP Admin Web | Step 12 npm command | tree/filter/lock/build | exit0；resolved0.2.0 | Step 12 | frontend module |
 | Gateway consumer | Gateway Admin Web | Step 13 npm command | tree/capability/prefix/lock/build | exit0；resolved0.2.0 | Step 13 | frontend module |
 | RBAC consumer | RBAC npm root/Admin Web | Step 14 npm command | resourceCodes tree/lock/build | exit0；resolved0.2.0 | Step 14 | frontend module |
-| Four-lock clean graph | each four consumer root | `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/admin-web-shared --depth=0` | installed graphs | four times0.2.0；nofile/link/0.1.4 | owning consumer Step | `REQ-024` |
+| Four-lock clean graph | each four consumer root | `npm ci --legacy-peer-deps --no-audit --no-fund && npm ls @egon-cola/xingyuan-admin-web-shared --depth=0` | installed graphs | four times0.2.0；nofile/link/0.1.4 | owning consumer Step | `REQ-024` |
 | Full RBAC reactor | RBAC Maven root | `mvn verify` | complete RBAC reactor | exit0 | Steps 1–7 | module/containers only |
 | E2E shell | user-started four live apps | DDC/Gateway/RBAC3 existing `npm run e2e`; IdP uses existing App integration plus manual viewport smoke unless an approved Playwright config exists | desktop/mobile live UI | Banner top、left tree desktop、left Drawer mobile、selected route visible | owning consumer/shared Step | `TEST-042`; live proof |
 | Post-deploy auth smoke | user-controlled unified stack | login→about→role resource GET/PUT→mapped API call→field response→logout/RT revoke | Gateway/IdP/RBAC/Redis/PostgreSQL | resourceCodes/PEP/active role/cache behavior observable | Step 7/9 or operations | not claimed by Plan/static tests |

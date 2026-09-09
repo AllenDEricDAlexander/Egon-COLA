@@ -26,7 +26,7 @@
 
 ### DEP-001：Step 3 使用 Step 4 才创建的契约
 
-当前源码证据（均位于 `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/`）：
+当前源码证据（均位于 `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/`）：
 
 | 源文件与符号 | 当前依赖 | 原 Plan 安排 | 问题 |
 | --- | --- | --- | --- |
@@ -104,14 +104,14 @@ Step 2 File 3 要求更新所有 API Engine imports，但 Commit paths 只列 co
 
 ```bash
 rg -l '^import top\.egon\.cola\.component\.gateway\.engine\.common\.(provider|security|traffic|transport|observability)\.' \
-  egon-cola-platforms/egon-cola-platform-gateway --glob '*.java'
+  egon-cola-xingyuan/egon-cola-yuheng --glob '*.java'
 ```
 
 ## 确认后的实施与运行验收
 
 按上述修正更新主 Spec 和 Plan，严格校验后逐 Step 编码、验证、提交。拆分完成后继续执行用户已授权的第二阶段：
 
-1. 通过现有 `scripts/unified-platform/` 编排启动本地完整 platforms；保留数据库、已有凭据和业务数据，验证各 Admin、Engine、Portal/Web 的健康与依赖。
+1. 通过现有 `scripts/unified-xingyuan/` 编排启动本地完整 platforms；保留数据库、已有凭据和业务数据，验证各 Admin、Engine、Portal/Web 的健康与依赖。
 2. 浏览器登录并覆盖已注册的平台入口及主要只读页面，记录失败请求的 URL、状态码、响应与服务端 trace/log。
 3. RBAC3：使用专用测试角色完成分配权限、保存、重新读取、页面刷新和撤销测试权限，验证前后端契约与授权、版本冲突分支；不修改现有管理角色的权限。
 4. Gateway：验证 OpenAPI 3 来源、分组、接口清单、接口详情与错误状态，核对页面请求到 Controller/Service/Repository 的真实契约。

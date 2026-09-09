@@ -15,11 +15,11 @@ offline/module evidence only. Runtime verification remains a user-run step again
 The following sequential Maven commands exited `0`:
 
 ```text
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter -am test -q
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin -am test -q
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am test -q
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am test -q
-./mvnw -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am test -q
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter -am test -q
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test -q
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am test -q
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test -q
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am test -q
 ```
 
 The RBAC3, IdP, Gateway Admin, and DDC Admin commands were rerun sequentially after an earlier parallel run exposed only
@@ -30,21 +30,21 @@ After the final configuration and runbook audit, the affected modules were rerun
 again exited `0`:
 
 ```text
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am -Dtest=GatewayEngineRbac3ConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin -am test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dtest=GatewayEngineRbac3ConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am test -q
 ```
 
 The final MCP/IdP boundary changes were then verified with these focused commands, all exiting
 `0`:
 
 ```text
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpUserCookieCredentialExtractorTest,IdpUserCredentialRecoveryProviderTest,IdpGatewayAdapterAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-mcp-core -am -Dtest=McpSecurityGateTest,McpFederationTest,McpLocalToolFlowTest -Dsurefire.failIfNoSpecifiedTests=false test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am -Dtest=McpRbac3IntegrationTest,McpTransportIntegrationTest,McpGatewayIdentityAuthenticatorTest -Dsurefire.failIfNoSpecifiedTests=false test -q
-./mvnw -B -ntp -f pom.xml -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite -am -DskipTests compile -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -Dtest=IdpGatewaySecurityProviderTest,IdpUserCookieCredentialExtractorTest,IdpUserCredentialRecoveryProviderTest,IdpGatewayAdapterAutoConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core -am -Dtest=McpSecurityGateTest,McpFederationTest,McpLocalToolFlowTest -Dsurefire.failIfNoSpecifiedTests=false test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dtest=McpRbac3IntegrationTest,McpTransportIntegrationTest,McpGatewayIdentityAuthenticatorTest -Dsurefire.failIfNoSpecifiedTests=false test -q
+./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite -am -DskipTests compile -q
 ```
 
 These focused tests assert that USER MCP identity can derive its protocol isolation value from the
@@ -60,7 +60,7 @@ forbidden scan, required-presence scan, and `git diff --check`.
 
 Sequential Vitest suites and TypeScript typechecks passed for all six frontend packages:
 
-- `egon-cola-platform-admin-web-shared`: 1 file, 4 tests; typecheck passed.
+- `egon-cola-xingyuan-admin-web-shared`: 1 file, 4 tests; typecheck passed.
 - DDC Admin Web: 19 files, 45 tests; typecheck passed.
 - Gateway Admin Web: 20 files, 52 tests; typecheck passed.
 - IdP Admin Web: 2 files, 5 tests; typecheck passed.
@@ -99,10 +99,10 @@ login sessions.
 The local harness scripts were also checked after the stateless cutover:
 
 ```text
-bash -n scripts/unified-identity-local.sh scripts/unified-platform/*.sh scripts/unified-platform/lib/*.sh egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/*.sh  # exit 0
-bash scripts/unified-platform/test-direct-run-contract.sh                                                                                                      # exit 0
-bash egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh --verify                                                                  # exit 0
-bash scripts/unified-platform/cleanup-legacy-identity-keys.sh --help                                                                                               # exit 0
+bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/*.sh scripts/unified-xingyuan/lib/*.sh egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/*.sh  # exit 0
+bash scripts/unified-xingyuan/test-direct-run-contract.sh                                                                                                      # exit 0
+bash egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh --verify                                                                  # exit 0
+bash scripts/unified-xingyuan/cleanup-legacy-identity-keys.sh --help                                                                                               # exit 0
 git diff --check                                                                                                                                                   # exit 0
 ```
 

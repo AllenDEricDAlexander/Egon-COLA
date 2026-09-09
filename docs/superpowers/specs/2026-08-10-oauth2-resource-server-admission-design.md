@@ -3,8 +3,8 @@
 > 状态：已实现并通过本次范围源码级验收；运行态联调待用户启动（2026-08-11）
 > 设计日期：2026-08-10
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
-> 主模块：`egon-cola-platform-idp`
-> 关联模块：`egon-cola-platform-rbac3`、`egon-cola-platform-gateway`、`egon-cola-platform-dynamic-config-center`
+> 主模块：`egon-cola-tianquan-shoubing`
+> 关联模块：`egon-cola-tianquan-jianshen`、`egon-cola-yuheng`、`egon-cola-tianshu`
 
 ## 1. 文档目的
 

@@ -111,8 +111,8 @@
 ## Validation Record
 
 - DDC Admin Web: `npm test` with the required non-secret `VITE_IDP_*` test values passed 15 files and 25 tests; `npm run typecheck`, `npm run lint`, and the environment-qualified `npm run build` passed. A first bare `npm test` stopped during import because those required values were absent. The build retained the existing large-chunk warning.
-- DDC reactor: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test -am test` passed all 20 reactor modules; Admin ran 162 tests and the consumer module ran 6 tests.
-- Gateway Admin: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am test` passed all 24 reactor modules and all 167 Admin tests.
+- DDC reactor: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test -am test` passed all 20 reactor modules; Admin ran 162 tests and the consumer module ran 6 tests.
+- Gateway Admin: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test` passed all 24 reactor modules and all 167 Admin tests.
 - Gateway Engine: the focused `GatewayEngineConfigurationTest,GatewayRuleActivationApplierTest` reactor command passed 15 tests.
 - IdP Admin: the focused `IdpDdcPolicyApplierTest,IdpDdcPolicyConfigurationTest` reactor command passed 5 tests.
 - RBAC3 Admin: the standard focused reactor command is blocked during test compilation by the unrelated `Rbac3GatewayDocumentCatalogContractTest` calls to the removed `Operation.parameters()` method at lines 223-224. Direct Surefire execution of the generated DDC test classes passed 8 tests; isolated compilation and Surefire execution of `Rbac3DdcPolicyConfigurationTest` passed another 4 tests. No RBAC3 source was changed.

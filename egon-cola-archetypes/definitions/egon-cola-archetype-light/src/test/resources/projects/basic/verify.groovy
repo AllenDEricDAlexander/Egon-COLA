@@ -469,7 +469,7 @@ assertEgonColaBom(pomXml)
     "spring-boot-starter-amqp",
     "spring-boot-starter-data-redis",
     "spring-boot-starter-aop",
-    "egon-cola-platform-gateway-starter-openapi-webmvc",
+    "yuheng-starter-openapi-webmvc",
     "flyway-database-postgresql",
     "spring-boot-starter-test",
     "spring-graphql-test"
@@ -1333,10 +1333,10 @@ assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-')
 assert releasedLibraries.contains('shardingsphere-jdbc-5.5.3.jar')
 assert releasedLibraries.contains('grpc-core-1.75.0.jar')
 assert releasedLibraries.contains('protobuf-java-4.32.0.jar')
-['egon-cola-component-rpc-starter-', 'egon-cola-component-rpc-ddc-adapter-',
- 'egon-cola-platform-dynamic-config-center-starter-',
- 'egon-cola-platform-dynamic-config-center-http-registration-starter-',
- 'egon-cola-platform-gateway-starter-openapi-webmvc-'].each { required ->
+['egon-cola-component-rpc-starter-', 'egon-cola-component-rpc-tianshu-adapter-',
+ 'egon-cola-tianshu-starter-',
+ 'egon-cola-tianshu-http-registration-starter-',
+ 'yuheng-starter-openapi-webmvc-'].each { required ->
     assert releasedLibraries.any { it.startsWith(required) }: "Missing native runtime ${required}"
 }
 assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-') || it.startsWith('spring-cloud-starter-alibaba-nacos-') }

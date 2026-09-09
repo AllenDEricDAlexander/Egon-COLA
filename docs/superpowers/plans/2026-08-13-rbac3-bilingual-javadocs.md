@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- 只修改 `egon-cola-platform-rbac3-admin`、`egon-cola-platform-rbac3-gateway-adapter`、`egon-cola-platform-rbac3-starter` 的 `src/main/java` 文档内容。
+- 只修改 `egon-cola-tianquan-jianshen-admin`、`egon-cola-tianquan-jianshen-gateway-adapter`、`egon-cola-tianquan-jianshen-starter` 的 `src/main/java` 文档内容。
 - 覆盖 private/protected/public/static 成员、构造器、嵌套类、接口方法、枚举常量、record 组件和 compact constructor。
 - 每个 JavaDoc 同时包含中文和英文；内容说明职责、用法或语义，不只重复名称。
 - 每个实际 Java package 创建一个 `package-info.java`，package 声明与目录保持一致。
@@ -21,8 +21,8 @@
 ### Task 1: 建立覆盖范围和文档生成边界
 
 **Files:**
-- Inspect: `egon-cola-platforms/egon-cola-platform-rbac3/*/src/main/java/**/*.java`
-- Inspect: `egon-cola-platforms/egon-cola-platform-rbac3/{pom.xml,egon-cola-platform-rbac3-admin/pom.xml,egon-cola-platform-rbac3-gateway-adapter/pom.xml,egon-cola-platform-rbac3-starter/pom.xml}`
+- Inspect: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/*/src/main/java/**/*.java`
+- Inspect: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/{pom.xml,egon-cola-tianquan-jianshen-admin/pom.xml,egon-cola-tianquan-jianshen-gateway-adapter/pom.xml,egon-cola-tianquan-jianshen-starter/pom.xml}`
 
 - [ ] **Step 1: Enumerate packages and source declarations**
 
@@ -30,7 +30,7 @@ Run:
 
 ```bash
 for module in admin gateway-adapter starter; do
-  root="egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-${module}/src/main/java"
+  root="egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-${module}/src/main/java"
   rg --files "$root" --glob '*.java' | sort
   rg '^package ' "$root" --glob '*.java' | sort -u
 done
@@ -74,7 +74,7 @@ Verify that every package declaration has exactly one matching `package-info.jav
 ### Task 3: Complete Admin declaration documentation
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/**/*.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/**/*.java`
 
 - [ ] **Step 1: Document every class-like declaration**
 
@@ -91,8 +91,8 @@ Describe the operation and side effects in Chinese and English; add `@param`, `@
 ### Task 4: Complete Gateway Adapter and Starter declaration documentation
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/**/*.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/**/*.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/**/*.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/**/*.java`
 
 - [ ] **Step 1: Document Gateway Adapter declarations**
 
@@ -117,16 +117,16 @@ Parse the Java sources using the JDK compiler tree API or an equivalent source-a
 
 - [ ] **Step 2: Run focused Maven verification**
 
-From `egon-cola-platforms/egon-cola-platform-rbac3`, run:
+From `egon-cola-xingyuan/egon-cola-tianquan-jianshen`, run:
 
 ```bash
-mvn -pl egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3-gateway-adapter,egon-cola-platform-rbac3-admin -am -DskipTests compile
+mvn -pl egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-tianquan-jianshen-admin -am -DskipTests compile
 ```
 
 Then run the module tests if compilation succeeds:
 
 ```bash
-mvn -pl egon-cola-platform-rbac3-starter,egon-cola-platform-rbac3-gateway-adapter,egon-cola-platform-rbac3-admin -am test
+mvn -pl egon-cola-tianquan-jianshen-starter,egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-tianquan-jianshen-admin -am test
 ```
 
 - [ ] **Step 3: Run strict Javadoc validation where the reactor classpath is available**

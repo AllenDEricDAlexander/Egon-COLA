@@ -1,0 +1,80 @@
+package top.egon.cola.platform.tianquan.jianshen.starter.security;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
+import top.egon.cola.platform.tianquan.shoubing.contract.AuthenticationContext;
+import top.egon.cola.platform.tianquan.shoubing.contract.IdentityPrincipal;
+import top.egon.cola.platform.tianquan.jianshen.contract.authorization.SystemAuthorizationSnapshot;
+import top.egon.cola.platform.tianquan.jianshen.starter.authorization.AuthorizationService;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+class CurrentRbac3UserTest {
+
+    @AfterEach
+    void clearContext() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void readsUserDetailsFromSecurityContextWithoutParameterInjection() {
+        IdentityPrincipal identity = new IdentityPrincipal(
+                "subject", "tenant", "jti", Set.of("rbac3"),
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(300),
+                AuthenticationContext.password());
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                "tenant", "subject", "user", "rbac3", 1L, 1L,
+                List.of("role"), Set.of("permission"), Map.of(), Map.of(),
+                "checksum", Instant.EPOCH, Instant.EPOCH.plusSeconds(300));
+        Rbac3UserDetails details = new Rbac3UserDetails(identity, snapshot);
+        SecurityContextHolder.getContext().setAuthentication(
+                new Rbac3AuthenticationToken(details));
+
+        CurrentRbac3User current = new CurrentRbac3User();
+
+        assertThat(current.current()).contains(details);
+        assertThat(current.require()).isSameAs(details);
+    }
+
+    @Test
+    void readsUserDetailsFromProjectedRuntimeContext() {
+        IdentityPrincipal identity = new IdentityPrincipal(
+                "subject", "tenant", "jti", Set.of("rbac3"),
+                Instant.EPOCH, Instant.EPOCH.plusSeconds(300),
+                AuthenticationContext.password());
+        SystemAuthorizationSnapshot snapshot = new SystemAuthorizationSnapshot(
+                "tenant", "subject", "user", "rbac3", 1L, 1L,
+                List.of("role"), Set.of("permission"), Map.of(), Map.of(),
+                "checksum", Instant.EPOCH, Instant.EPOCH.plusSeconds(300));
+        var context = new AuthorizationService.RuntimeAuthorizationContext(
+                identity, snapshot, false);
+        SecurityContextHolder.getContext().setAuthentication(
+                new Rbac3AuthenticationToken(context));
+
+        CurrentRbac3User current = new CurrentRbac3User();
+
+        assertThat(current.current())
+                .get()
+                .satisfies(details -> {
+                    assertThat(details.identity()).isEqualTo(identity);
+                    assertThat(details.snapshot()).isEqualTo(snapshot);
+                });
+    }
+
+    @Test
+    void rejectsAnonymousContext() {
+        CurrentRbac3User current = new CurrentRbac3User();
+
+        assertThat(current.current()).isEmpty();
+        assertThatThrownBy(current::require)
+                .isInstanceOf(AuthenticationCredentialsNotFoundException.class);
+    }
+}

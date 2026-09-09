@@ -12,7 +12,7 @@
 | Updated | 2026-08-28 13:00 CST |
 | Owner | User / Egon-COLA platform owner |
 | Repository | Egon-COLA |
-| Scope | `egon-cola-platforms` 下的 Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web、DDC Admin 查询与安全配置、本地统一平台启动脚本 |
+| Scope | `egon-cola-xingyuan` 下的 Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web、DDC Admin 查询与安全配置、本地统一平台启动脚本 |
 | Change Surface | Wujie 挂载生命周期、共享侧栏路径保护、四个平台前端路由/API/页面覆盖、DDC 分页安全与查询、Portal 运行时地址清单、本地默认地址策略 |
 | Affected Chapters | §7, §8, §12, §13, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户要求直接修复 Portal 未通过 Wujie 聚合、四个平台前端缺少后端 Controller 已有功能、地址动态发现且默认使用 127.0.0.1，并保持 IAM 二级菜单组织 |
@@ -43,12 +43,12 @@
 | --- | --- | --- | --- | --- | --- |
 | EVD-001 | Runtime evidence | `target/local-unified-platform/logs/gateway-admin-web.log`，2026-08-28 | Gateway 首屏报 `Cannot read properties of undefined (reading 'endsWith')` | shared 路径匹配必须拒绝非字符串候选值 | 当前现场日志，重启后需复核 |
 | EVD-002 | Runtime evidence | Portal `http://127.0.0.1:18125/platform/idp/overview` DOM 检查，2026-08-28 | Portal Shell 存在，但没有 iframe、Wujie 元素或 `data-wujie-id` | 挂载必须有真实 host、Promise 错误回调和清理逻辑 | DOM 检查不等于所有沙箱内部脚本执行证据 |
-| EVD-003 | Static repository | `egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx` | 当前只包裹 `wujie-react`，wrapper 对 `startApp` 异常只记录日志，组件没有直接拿到挂载 Promise | 需要小型 Wujie 生命周期 Facade，保留 Wujie Core 而不是裸 iframe | 包版本为本地 lockfile 事实 |
+| EVD-003 | Static repository | `egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx` | 当前只包裹 `wujie-react`，wrapper 对 `startApp` 异常只记录日志，组件没有直接拿到挂载 Promise | 需要小型 Wujie 生命周期 Facade，保留 Wujie Core 而不是裸 iframe | 包版本为本地 lockfile 事实 |
 | EVD-004 | Static repository | Portal `package.json`、`node_modules/wujie` | Portal 已固定 `wujie-react@2.1.0`，Core `wujie` 同版本可用 | 直接使用同版本 Core 不引入第二个微前端框架 | 最终构建必须重新验证依赖树 |
-| EVD-005 | Static repository | `egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx`、Gateway `src/layouts/AdminLayout.tsx` | `EnterpriseNavigationItem.path` 可选，Gateway 父项确实无 path；`matchesPath` 却按 string 调用 `endsWith` | 共享路径判断要以运行时类型为边界 | 仅静态证明根因，修复后需重建 shared |
-| EVD-006 | Static repository | `scripts/unified-platform/start-local-stack.sh:25` | 启动脚本自动探测默认网卡并拒绝 loopback | 违反本地开发的回环地址要求；改为显式覆盖优先、默认 127.0.0.1 | 不改变跨设备显式地址能力 |
+| EVD-005 | Static repository | `egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx`、Gateway `src/layouts/AdminLayout.tsx` | `EnterpriseNavigationItem.path` 可选，Gateway 父项确实无 path；`matchesPath` 却按 string 调用 `endsWith` | 共享路径判断要以运行时类型为边界 | 仅静态证明根因，修复后需重建 shared |
+| EVD-006 | Static repository | `scripts/unified-xingyuan/start-local-stack.sh:25` | 启动脚本自动探测默认网卡并拒绝 loopback | 违反本地开发的回环地址要求；改为显式覆盖优先、默认 127.0.0.1 | 不改变跨设备显式地址能力 |
 | EVD-007 | Static repository | `scripts/unified-identity-local.sh:20` | 后端默认地址已经是 127.0.0.1，但显式广告地址时 `declared_hosts` 仍只含 loopback | 声明主机集合要同时保留 loopback 和显式 host | 需要 shell 验证 |
-| EVD-008 | Static repository | `egon-cola-platform-rbac3/.../features/role/role.api.ts` | 后端 RoleController 有创建、更新、继承增删，前端只有列表、影响分析和资源树 | RBAC3 角色管理存在真实未消费能力 | 当前 active Gateway release 可能仍旧，需区分发布漂移 |
+| EVD-008 | Static repository | `egon-cola-tianquan-jianshen/.../features/role/role.api.ts` | 后端 RoleController 有创建、更新、继承增删，前端只有列表、影响分析和资源树 | RBAC3 角色管理存在真实未消费能力 | 当前 active Gateway release 可能仍旧，需区分发布漂移 |
 | EVD-009 | Static repository | RBAC3 `directory.api.ts`、`constraint.api.ts`、`managementPolicy.api.ts`、`simulation.api.ts` | 用户变更、约束写操作、可管理对象查询、角色变更影响模拟未完整接入 | IAM 二级菜单需要补 API 与操作状态 | Internal Controller 不纳入 Admin Web |
 | EVD-010 | Static repository | Gateway Admin Controller 与 `gatewayApi.ts` | Gateway 多数 API 已有，但应用详情、OpenAPI 同步可视化、Trace 详情或 Controller 报告存在页面覆盖不足 | 采用已有 API 补齐页面消费，不新增 BFF | 需按真实方法映射验证 |
 | EVD-011 | Static repository | DDC `DdcAdminSecurityConfiguration.java` | GET matcher 未包含 `/page`，`/configs/page` 会被拒绝 | 安全配置必须覆盖实际公开 Controller 路径 | 不放宽写权限 |
@@ -95,11 +95,11 @@
 
 | Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
 | --- | --- | --- | --- | --- | --- |
-| Portal Wujie runtime | Affected | `egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx` | 从 wrapper-only 改为可获取挂载 Promise、错误和 cleanup 的 Wujie Core Facade | 设计生命周期、隔离、重试和回滚 | §7, §8, §12, §13, §14, §15, §16 |
+| Portal Wujie runtime | Affected | `egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx` | 从 wrapper-only 改为可获取挂载 Promise、错误和 cleanup 的 Wujie Core Facade | 设计生命周期、隔离、重试和回滚 | §7, §8, §12, §13, §14, §15, §16 |
 | Shared navigation | Affected | `admin-web-shared/src/layout/EnterpriseSidebar.tsx` | 无 path/非字符串候选返回 false，保留父级展开 | 设计运行时类型边界和回归测试 | §7, §8, §14, §15 |
 | Four Admin Web coverage | Affected | 四个平台 `src/api`、`src/features`、`src/pages`、`src/app` | 已有 external Controller 能力可通过 UI 使用；IAM 保持单组多级菜单 | 完整页面/路由/API 对照与 UI 说明 | §7, §8, §12, §14, §15 |
 | DDC Admin security/query | Affected | `DdcAdminSecurityConfiguration.java`、`Ddc*Repository.java` | 放行真实 GET page 路径，字符串空筛选不触发 bytea | 设计安全边界、查询和 Java 规则 | §7, §8, §14, §15, §16 |
-| Local address and manifest | Affected | `scripts/unified-platform/start-local-stack.sh`、`scripts/unified-identity-local.sh` | 默认 loopback，显式 LAN host 仍可用，Portal 清单作为运行时地址源 | 设计配置优先级、校验和兼容 | §7, §8, §12, §15, §16, §18 |
+| Local address and manifest | Affected | `scripts/unified-xingyuan/start-local-stack.sh`、`scripts/unified-identity-local.sh` | 默认 loopback，显式 LAN host 仍可用，Portal 清单作为运行时地址源 | 设计配置优先级、校验和兼容 | §7, §8, §12, §15, §16, §18 |
 | Alternatives and rollback decision | Affected | §17 alternatives、§16 rollout/rollback | 记录 Core Facade、loopback 和 existing API 选择及回退边界 | 形成可审查的选择与回滚依据 | §17, §18 |
 | Existing public Controller contracts | Context-only | IDP/RBAC3/Gateway/DDC Controller annotations | 保留路径、HTTP 方法、权限和 envelope；前端只消费已有合同 | 给出覆盖清单和未接入边界，不新增合同 | §9, §12, §16 |
 | Database/Flyway | Unchanged | `classpath:db` migration history | schema、索引和历史 migration 不变 | 记录不变边界和验证 | §11, §16 |
@@ -215,7 +215,7 @@ flowchart LR
 | Wujie lifecycle | Browser Promise/DOM | None | Existing `wujie` 2.1.0 | wrapper error visibility不足 | 使用现有 locked Core，不增版本 |
 | String query typing | JPQL `coalesce` | Spring Data JPA | Existing DDC repositories | nullable bind 的 PostgreSQL 类型推断 | 修改查询，不改 schema |
 | Page auth | Spring Security matcher | Existing Security starter | DDC capability enum | page path 未列出 | 补 GET matcher，不放宽写权限 |
-| UI state | React Query/PageState | Existing shared package | `@egon-cola/admin-web-shared` | no proven gap | reuse |
+| UI state | React Query/PageState | Existing shared package | `@egon-cola/xingyuan-admin-web-shared` | no proven gap | reuse |
 
 ### 6.2 User-mandated Java rule compliance
 
@@ -418,18 +418,18 @@ Vite dev server 仍只绑定 127.0.0.1；显式 host 只影响被其他设备访
 本次目标树保持现有模块，不移动包、不改名：
 
 ```text
-egon-cola-platforms/
-├── egon-cola-platform-admin-portal/
+egon-cola-xingyuan/
+├── egon-cola-xingyuan-admin-portal/
 │   └── src/{lifecycle,manifest,pages,summary}/
-├── egon-cola-platform-admin-web-shared/
+├── egon-cola-xingyuan-admin-web-shared/
 │   └── src/layout/
-├── egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/
+├── egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/
 │   └── {app,api,features}/
-├── egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/
+├── egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/
 │   └── {app,features/{role,directory,constraint,management-policy,simulation,runtime}}/
-├── egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/
+├── egon-cola-yuheng/yuheng-admin-web/src/
 │   └── {app,api,features/{applications,interface-catalog,observability,mcp}}
-└── egon-cola-platform-dynamic-config-center/
+└── egon-cola-tianshu/
     ├── ...-admin/src/{main, test}/
     └── ...-admin-web/src/{api,layouts,pages}
 scripts/{unified-platform,start-local-stack.sh,unified-identity-local.sh}
@@ -701,7 +701,7 @@ PASS — Ready for user review
 | 6 | `e2fe5f9cb` | RBAC3 IAM 角色/用户/权限覆盖；全量测试 15 files/32 tests、typecheck/build 通过 |
 | 7 | `00842c0da` | Gateway Application 详情/OpenAPI 同步；全量测试 24 files/77 tests、typecheck/build 通过 |
 
-最终静态审计命令 `scripts/unified-platform/check-admin-web-controller-coverage.sh` 通过，输出 IDP/RBAC3/Gateway/DDC 的 external Controller 与浏览器 Admin API 静态计数，并明确排除协议、internal/RPC、直接数据访问和 active release 发布。IDP 的主要管理 Controller 已有现有页面消费，因此没有复制 CRUD；RBAC3 新增权限入口已挂到 `IAM -> 资源目录`。
+最终静态审计命令 `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` 通过，输出 IDP/RBAC3/Gateway/DDC 的 external Controller 与浏览器 Admin API 静态计数，并明确排除协议、internal/RPC、直接数据访问和 active release 发布。IDP 的主要管理 Controller 已有现有页面消费，因此没有复制 CRUD；RBAC3 新增权限入口已挂到 `IAM -> 资源目录`。
 
 四个独立 Web 和 shared 的最终验证均通过：IDP 9 files/30 tests、DDC 21 files/53 tests、Portal 7 files/21 tests、shared 2 files/9 tests；所有受影响 Web 的 typecheck/build 通过。shared 构建脚本会清理本地 `node_modules`，验证前按现有 lockfile 重新安装，未产生源码或锁文件变更。
 

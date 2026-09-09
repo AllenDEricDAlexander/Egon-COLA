@@ -18,8 +18,8 @@ Egon-COLA
 │   ├── egon-cola-components-parent   # Components Parent POM
 │   ├── egon-cola-components-bom      # Components BOM
 │   └── egon-cola-component-*         # 具体组件模块
-├── egon-cola-platforms
-│   ├── egon-cola-platforms-parent    # Platforms Parent POM
+├── egon-cola-xingyuan
+│   ├── egon-cola-xingyuan-parent    # Platforms Parent POM
 │   └── egon-cola-platform-*          # 企业级基础设施平台
 └── egon-cola-archetypes
     ├── egon-cola-archetypes-parent   # Archetypes Parent POM
@@ -256,7 +256,7 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 
 ```bash
 ./mvnw -B -ntp dependency:get -Dartifact=top.egon:egon-cola-components-bom:5.x.y:pom
-./mvnw -B -ntp dependency:get -Dartifact=top.egon:egon-cola-platform-dynamic-config-center-starter:5.x.y
+./mvnw -B -ntp dependency:get -Dartifact=top.egon:egon-cola-tianshu-starter:5.x.y
 ```
 
 发布后验证 archetype 是否可用：

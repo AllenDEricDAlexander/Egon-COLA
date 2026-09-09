@@ -12,7 +12,7 @@
 | Updated | `2026-08-21 10:19 CST` |
 | Owner | `Egon-COLA platform owner / User` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-component-rpc-starter、egon-cola-component-rpc-ddc-adapter、egon-cola-component-access-guard-starter 的限流算法扩展、RPC/Guard README 与聚焦测试；DDC Registry/Redis 和 Gateway RPC 数据面仅作边界上下文` |
+| Scope | `egon-cola-component-rpc-starter、egon-cola-component-rpc-tianshu-adapter、egon-cola-component-access-guard-starter 的限流算法扩展、RPC/Guard README 与聚焦测试；DDC Registry/Redis 和 Gateway RPC 数据面仅作边界上下文` |
 | Change Surface | `两种 Reference 注解的公共字段归一与模式策略/工厂、Consumer 调用执行器/发现快照/负载均衡/模式内换节点/异步/泛化/CGLIB/共享 Channel、Provider 生命周期与 Access Guard 限流接线/算法工厂/UNAVAILABLE 映射、配置/异常/文档/测试；不改业务 Protobuf wire、DDC Admin 存储模型、Gateway 路由实现、关系库或前端` |
 | Affected Chapters | `§7, §8, §9, §10, §11, §13, §14, §15, §16, §17, §18` |
 | Source Requirement | `2026-08-19 用户提出的 11 项 RPC 模块改造需求；2026-08-21 用户对 DEC-008–DEC-014 的 7 项确认` |
@@ -46,10 +46,10 @@ RPC 组件已经有 Provider 租约、Gateway/Direct 两条引用、DDC Redis �
 | Path alias | Exact repository-relative prefix |
 | --- | --- |
 | `RPC_JAVA` | `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc` |
-| `RPC_DDC_JAVA` | `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc` |
+| `RPC_DDC_JAVA` | `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc` |
 | `GUARD_JAVA` | `egon-cola-components/egon-cola-component-access-guard-starter/src/main/java/top/egon/cola/component/accessguard` |
-| `DDC_STARTER_JAVA` | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc` |
-| `DDC_ADMIN_JAVA` | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin` |
+| `DDC_STARTER_JAVA` | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc` |
+| `DDC_ADMIN_JAVA` | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin` |
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
@@ -676,7 +676,7 @@ egon-cola-components/egon-cola-component-rpc/
 │   ├── contract/{descriptor,validation,catalog,snapshot}/ (existing exact contract packages)
 │   ├── exception/{EgonRpcErrorCode,EgonRpcException,RpcStatusExceptionMapper}.java
 │   └── provider/{binding,lifecycle,registration,server}/ (existing exact provider packages)
-└── egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/
+└── egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/
     ├── autoconfigure/DdcRpcAutoConfiguration.java
     └── registry/{DdcRpcProviderDirectory,RpcDdcRegistrySnapshotLoader}.java
 ```
@@ -769,7 +769,7 @@ egon-cola-components/egon-cola-component-rpc/
 │               └── RpcAccessGuardExceptionMapper.java               CREATE conditional rate-limit Adapter
 │   └── src/main/resources/META-INF/spring/
 │       └── org.springframework.boot.autoconfigure.AutoConfiguration.imports MODIFY add conditional Guard integration
-└── egon-cola-component-rpc-ddc-adapter/
+└── egon-cola-component-rpc-tianshu-adapter/
     └── src/main/java/top/egon/cola/component/rpc/ddc/
         └── registry/{DdcRpcProviderDirectory,DdcRpcGatewayDirectory}.java MODIFY weight projection
 
@@ -1621,7 +1621,7 @@ Targeted validation commands for later implementation:
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-ddc-adapter \
+  -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-tianshu-adapter \
   -am test
 
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \

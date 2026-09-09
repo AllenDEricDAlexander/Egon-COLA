@@ -152,7 +152,7 @@ egon-cola-components/egon-cola-component-rpc/
 │       ├── consumer/gateway/RpcConsumerGatewayManagerTest.java                         MODIFY [S5]
 │       ├── consumer/provider/RpcConsumerProviderManagerTest.java                       CREATE [S4]
 │       └── consumer/proxy/EgonRpcReferenceBeanPostProcessorTest.java                   CREATE [S5]
-└── egon-cola-component-rpc-ddc-adapter/
+└── egon-cola-component-rpc-tianshu-adapter/
     ├── src/main/java/top/egon/cola/component/rpc/ddc/
     │   ├── autoconfigure/DdcRpcAutoConfiguration.java                                  MODIFY [S6]
     │   └── registry/DdcRpcProviderDirectory.java                                       CREATE [S6]
@@ -162,16 +162,16 @@ egon-cola-components/egon-cola-component-rpc/
             ├── DdcRpcProviderDirectoryTest.java                                        CREATE [S6]
             └── DdcRpcProviderRegistryTest.java                                         MODIFY [S9]
 
-egon-cola-platforms/egon-cola-platform-rbac3/
-├── egon-cola-platform-rbac3-contract/
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/
+├── egon-cola-tianquan-jianshen-contract/
 │   ├── src/main/java/top/egon/cola/platform/rbac3/contract/authorization/
 │   │   ├── ApplicationAccessScope.java                                                 CREATE [S1]
 │   │   ├── BusinessAccessScope.java                                                    CREATE [S1]
 │   │   └── GatewayBizAppScopeSnapshot.java                                             CREATE [S1]
 │   └── src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java MODIFY [S1]
-├── egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/
+├── egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/
 │   └── Rbac3RuntimeKeyFactory.java                                                     MODIFY [S1]
-├── egon-cola-platform-rbac3-admin/
+├── egon-cola-tianquan-jianshen-admin/
 │   ├── src/main/java/top/egon/cola/platform/rbac3/admin/
 │   │   ├── iam/role/service/EffectiveApplicationScope.java                             CREATE [S1]
 │   │   ├── iam/role/service/RoleEligibilityService.java                               MODIFY [S1]
@@ -184,7 +184,7 @@ egon-cola-platforms/egon-cola-platform-rbac3/
 │       └── runtime/
 │           ├── RedisAuthorizationRuntimeRepositoryTest.java                            CREATE [S1]
 │           └── UserAuthorizationSnapshotProjectorTest.java                             MODIFY [S1]
-└── egon-cola-platform-rbac3-gateway-adapter/
+└── egon-cola-tianquan-jianshen-gateway-adapter/
     ├── src/main/java/top/egon/cola/platform/rbac3/gateway/
     │   ├── autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java                     MODIFY [S2]
     │   ├── runtime/Rbac3GatewayRuntimeSnapshotReader.java                              DELETE [S2]
@@ -198,8 +198,8 @@ egon-cola-platforms/egon-cola-platform-rbac3/
         ├── runtime/Rbac3GatewayScopeSnapshotReaderTest.java                            CREATE [S2]
         └── security/GatewayFailClosedSecurityMatrixTest.java                           MODIFY [S2]
 
-egon-cola-platforms/egon-cola-platform-gateway/
-├── egon-cola-platform-gateway-engine/
+egon-cola-xingyuan/egon-cola-yuheng/
+├── yuheng-biz-gateway/
 │   ├── pom.xml                                                                         MODIFY [S3]
 │   ├── src/main/resources/application.yml                                              MODIFY [S3]
 │   ├── src/main/java/top/egon/cola/component/gateway/engine/
@@ -218,10 +218,10 @@ egon-cola-platforms/egon-cola-platform-gateway/
 │           ├── HttpRpcUpstreamAdapterTest.java                                         MODIFY [S8]
 │           ├── RpcGatewayCredentialForwardingTest.java                                 CREATE [S8]
 │           └── RuleBackedRpcGatewaySecurityProcessorTest.java                          MODIFY [S8]
-└── egon-cola-platform-gateway-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/
+└── yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/
     └── RpcGatewayDefinitionContributorTest.java                                        MODIFY [S9]
 
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/
 ├── src/main/java/top/egon/cola/platform/idp/starter/
 │   ├── autoconfigure/IdpStarterAutoConfiguration.java                                  MODIFY [S7]
 │   └── security/
@@ -249,16 +249,16 @@ scripts/unified-identity-local.sh                                               
 - 仓库内 `rg --files -g AGENTS.md` 无结果；适用的是用户消息中的 Main Agent Rules。
 - Plan 创建时 `git status --short` 只有 `?? docs/egon/`；实施时必须先重新检查状态，保留所有无关并发修改。
 - 每步使用 path-limited add/commit；不得批量暂存整个仓库，不得修改既有 Flyway 文件或生成的 Protobuf Java。
-- 本计划不新增依赖版本；Engine 只引入平台 BOM 已管理的 `egon-cola-platform-rbac3-gateway-adapter`。
+- 本计划不新增依赖版本；Engine 只引入平台 BOM 已管理的 `egon-cola-tianquan-jianshen-gateway-adapter`。
 
 ### 6.2 Build, test, and environment prerequisites
 
 | Concern            | Exact command/source                                                                                                                                                                                                                                                                                                                                                                                                    | Required state            | Validation boundary            |
 |--------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|--------------------------------|
 | Java/Maven         | `java -version`; `mvn -version`；父 POM要求 Java 21                                                                                                                                                                                                                                                                                                                                                                         | JDK 21、Maven可用            | 构建工具                           |
-| Components reactor | `mvn -f egon-cola-components/pom.xml -pl egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter -am test`                                                                                                                                                                                                                                                  | exit 0                    | Components模块，不证明真实DDC          |
-| Platforms reactor  | `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter,egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platform-idp/egon-cola-platform-idp-starter -am test` | exit 0                    | 平台模块，不证明Redis/JWK/DDC运行态       |
-| Static scope       | `git diff --check`；`git diff --name-only -- egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin`                                                                                                                                                                                                                                                                                            | 无 whitespace错误；Admin路径无变化 | 静态边界                           |
+| Components reactor | `mvn -f egon-cola-components/pom.xml -pl egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter -am test`                                                                                                                                                                                                                                                  | exit 0                    | Components模块，不证明真实DDC          |
+| Platforms reactor  | `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-yuheng/yuheng-biz-gateway,egon-cola-yuheng/yuheng-starter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am test` | exit 0                    | 平台模块，不证明Redis/JWK/DDC运行态       |
+| Static scope       | `git diff --check`；`git diff --name-only -- egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin`                                                                                                                                                                                                                                                                                            | 无 whitespace错误；Admin路径无变化 | 静态边界                           |
 | Runtime            | 用户自行执行 `scripts/unified-identity-local.sh` 的既有工作流                                                                                                                                                                                                                                                                                                                                                                       | 双路径观察满足§9                 | 外部Redis/PostgreSQL/DDC/JWK真实闭环 |
 
 ### 6.3 Immutable constraints and approved decisions
@@ -293,7 +293,7 @@ scripts/unified-identity-local.sh                                               
 - Ordered files:
 
 #### File 1 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
 
 - Purpose:先定义三个新 record 的 JSON round-trip与“不含 permission字段”契约。
 - Symbols:新增 `roundTripsGatewayBizAppScopeSnapshot()`、`gatewayScopeContainsNoPermissionPayload()`。
@@ -312,7 +312,7 @@ assertThat(json).doesNotContain("permissions", "dataScopes", "fieldPolicies", "r
 - After this file:测试因三个 record 尚不存在而 RED，不因 fixture/Jackson 配置失败。
 
 #### File 2 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam/role/service/RoleEligibilityServiceTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam/role/service/RoleEligibilityServiceTest.java`
 
 - Purpose:固定有效 APP scope 必须同时满足本地 ACTIVE、User Business grant、DDC APP/Business enabled和父子一致。
 - Symbols:新增 `resolvesEffectiveApplicationScopeWithDdcBizAndAppIdentity()`、扩展各 fail-closed 参数化场景。
@@ -331,7 +331,7 @@ for each missing/disabled/mismatched fact assert Optional.empty and isEffective 
 - After this file:因新 VO/方法缺失 RED。
 
 #### File 3 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/UserAuthorizationSnapshotProjectorTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/UserAuthorizationSnapshotProjectorTest.java`
 
 - Purpose:定义一次 projection输出 full + scope，APP仅来自有效/已激活角色上下文并按 BIZ/APP稳定排序。
 - Symbols:扩展现有 `project*` tests；新增 `projectsGatewayScopeFromEffectiveActiveApplicationContexts()`、
@@ -352,7 +352,7 @@ assert gatewayScope.checksum != blank and is deterministic under input ordering;
 - After this file:因 `gatewayScope()` 和结构化 eligibility 缺失 RED。
 
 #### File 4 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RedisAuthorizationRuntimeRepositoryTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RedisAuthorizationRuntimeRepositoryTest.java`
 
 - Purpose:固定双快照发布顺序、TTL、Fence和失败原子可见性边界。
 - Symbols:`publishesBothSnapshotsBeforePointerAndRemovesFenceLast()`、
@@ -372,7 +372,7 @@ given scope version differs -> assert IllegalArgumentException before writes;
 - After this file:因 scope key/字段/写入不存在 RED。
 
 #### File 5 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/ApplicationAccessScope.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/ApplicationAccessScope.java`
 
 - Purpose:表达一个 DDC APP 最小访问事实。
 - Symbols:`record ApplicationAccessScope(String applicationId, String applicationCode)`。
@@ -389,7 +389,7 @@ compact constructor:
 - After this file:APP scope 是可序列化不可变叶节点。
 
 #### File 6 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/BusinessAccessScope.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/BusinessAccessScope.java`
 
 - Purpose:表达 BIZ及其 APP children。
 - Symbols:
@@ -407,7 +407,7 @@ require list already sorted by applicationCode or normalize to sorted immutable 
 - After this file:BIZ→APP父子不变量在 contract边界固定。
 
 #### File 7 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/GatewayBizAppScopeSnapshot.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/GatewayBizAppScopeSnapshot.java`
 
 - Purpose:定义 Gateway 唯一可读取的最小授权投影。
 - Symbols:Spec §10.2 所列十个 record components。
@@ -425,7 +425,7 @@ require expiresAt.isAfter(generatedAt);
 - After this file:Contract serialization tests可进入 GREEN。
 
 #### File 8 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/Rbac3RuntimeKeyFactory.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/Rbac3RuntimeKeyFactory.java`
 
 - Purpose:提供 versioned Gateway scope Redis key。
 - Symbols:`gatewayScope(String tenantId, String identitySub, long authVersion)`。
@@ -442,7 +442,7 @@ return prefix(tenantId) + "gateway-scope:" + segment(identitySub) + ':' + authVe
 - After this file:读写端可引用同一 key契约。
 
 #### File 9 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/service/EffectiveApplicationScope.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/service/EffectiveApplicationScope.java`
 
 - Purpose:在 Admin内部传递已同时验证的 DDC BIZ/APP身份。
 - Symbols:
@@ -458,7 +458,7 @@ compact constructor validates all four nonblank identifiers/codes;
 - After this file:Role eligibility可返回结构化结果。
 
 #### File 10 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/service/RoleEligibilityService.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/service/RoleEligibilityService.java`
 
 - Purpose:一次性解析有效 APP及其父 BIZ，现有 boolean API委托该结果。
 - Symbols:新增 `Optional<EffectiveApplicationScope> resolveEffectiveScope(...)`；修改 `isEffective`、
@@ -481,7 +481,7 @@ isEffective(...) = resolveEffectiveScope(...).isPresent();
 - After this file:eligibility tests GREEN，旧调用者语义保持。
 
 #### File 11 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/domain/vo/UserSnapshotProjectionVO.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/domain/vo/UserSnapshotProjectionVO.java`
 
 - Purpose:让一次 projection携带 full和gateway scope。
 - Symbols:record新增 `GatewayBizAppScopeSnapshot gatewayScope`。
@@ -498,7 +498,7 @@ record UserSnapshotProjectionVO(user, snapshot, gatewayScope) {
 - After this file:写侧可在单命令中接收两个快照。
 
 #### File 12 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/service/UserAuthorizationSnapshotProjector.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/service/UserAuthorizationSnapshotProjector.java`
 
 - Purpose:从被保留的有效 active contexts构造 BIZ→APP层级与独立 checksum。
 - Symbols:`project`、`appContext`；新增内部 scope聚合/checksum helper。
@@ -521,7 +521,7 @@ return new UserSnapshotProjectionVO(user, fullSnapshot, scope);
 - After this file:Projector tests GREEN；Gateway scope无 permission数据。
 
 #### File 13 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/repository/redis/RedisAuthorizationRuntimeRepository.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/repository/redis/RedisAuthorizationRuntimeRepository.java`
 
 - Purpose:在一个 publication Fence内双写 scope/full并最后推进 Pointer。
 - Symbols:`publish(PublishCommandDTO)` identity/version校验和写序。
@@ -546,8 +546,8 @@ return existing PublishResultVO(created, full.checksum);
 - Verification command:
 
 ```bash
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am -Dtest=ContractSerializationTest,RoleEligibilityServiceTest,UserAuthorizationSnapshotProjectorTest,RedisAuthorizationRuntimeRepositoryTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -566,7 +566,7 @@ mvn -f egon-cola-platforms/pom.xml \
 - Ordered files:
 
 #### File 1 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayScopeSnapshotReaderTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayScopeSnapshotReaderTest.java`
 
 - Purpose:建立 scope reader 的完整 RED矩阵。
 - Symbols:`deniesBusinessWithoutLookingUpApplication()`、`deniesApplicationWithinMatchedBusiness()`、`allowsNestedScope()`
@@ -588,7 +588,7 @@ verify no key starts with operation-mapping and no permissions are deserialized;
 - After this file:因新 reader不存在 RED。
 
 #### File 2 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
 
 - Purpose:要求 AutoConfiguration暴露新 reader/provider ID且不暴露旧类型。
 - Symbols:更新 context assertions。
@@ -607,7 +607,7 @@ assert no bean assignable to old permission types;
 - After this file:因旧 AutoConfig仍装 Permission provider RED。
 
 #### File 3 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/GatewayFailClosedSecurityMatrixTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/GatewayFailClosedSecurityMatrixTest.java`
 
 - Purpose:固定新 Provider将 reader异常映射为 `ERROR`，DENY原因保持区分。
 - Symbols:替换旧 provider fixture；增加 BIZ/APP deny与runtime error assertions。
@@ -624,7 +624,7 @@ never return ALLOW on exception;
 - After this file:因新 provider不存在 RED。
 
 #### File 4 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/performance/GatewayHotPathBudgetTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/performance/GatewayHotPathBudgetTest.java`
 
 - Purpose:保持一次 scope decision/request和热路径无 Admin/DB/HTTP client。
 - Symbols:provider类型替换；增加源码扫描禁止 `operationMapping`、`permissions()`。
@@ -640,7 +640,7 @@ scan adapter main sources; reject EntityManager/Jdbc/WebClient/rbac3-admin/opera
 - After this file:旧类型/源码引用导致 RED。
 
 #### File 5 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayScopeSnapshotReader.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayScopeSnapshotReader.java`
 
 - Purpose:读取一致 scope并按 BIZ→APP顺序作决定。
 - Symbols:constructor、`authorize`、`runtime`、`RuntimeUserAuthorization`、`RuntimeUnavailableException`。
@@ -668,7 +668,7 @@ runtime:
 - After this file:reader tests可 GREEN，完全没有 Operation Mapping类型。
 
 #### File 6 —
-`CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3BizAppScopeAuthorizationProvider.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3BizAppScopeAuthorizationProvider.java`
 
 - Purpose:把阻塞 Redis scope source适配为 Gateway reactive SPI。
 - Symbols:`PROVIDER_ID="rbac3-biz-app-scope"`、`DecisionSource`、`authorize`。
@@ -685,7 +685,7 @@ authorize(context) = Mono.fromCallable(() -> source.authorize(context))
 - After this file:Fail Closed/provider budget tests可进入 GREEN。
 
 #### File 7 —
-`MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
 
 - Purpose:只装配新 scope reader/provider。
 - Symbols:Bean methods改为 `rbac3GatewayScopeSnapshotReader`、`rbac3BizAppScopeAuthorizationProvider`。
@@ -702,7 +702,7 @@ remove old bean imports/methods;
 - After this file:AutoConfig test GREEN；旧 Bean不再可见。
 
 #### File 8 —
-`DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReader.java`
+`DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReader.java`
 
 - Purpose:物理移除 Operation Mapping/full Permission Snapshot热路径。
 - Symbols:删除全部类型。
@@ -718,7 +718,7 @@ OperationPermissionMapping, keyFactory.operationMapping in gateway adapter.
 - After this file:Adapter生产代码不再具备接口权限读取能力。
 
 #### File 9 —
-`DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3PermissionAuthorizationProvider.java`
+`DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3PermissionAuthorizationProvider.java`
 
 - Purpose:移除旧 `rbac3-permission` Capability实现。
 - Symbols:删除类型和旧 `PROVIDER_ID`。
@@ -733,7 +733,7 @@ delete file; no compatibility bean under "rbac3-permission".
 - After this file:模块 capability只有 `rbac3-biz-app-scope`。
 
 #### File 10 —
-`DELETE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReaderTest.java`
+`DELETE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReaderTest.java`
 
 - Purpose:删除只验证旧接口 Permission模型的测试。
 - Symbols:删除旧 test class。
@@ -750,8 +750,8 @@ delete obsolete mapping/permission fixtures and test class.
 - Verification command:
 
 ```bash
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter \
   -am -Dtest=Rbac3GatewayScopeSnapshotReaderTest,Rbac3GatewayAdapterAutoConfigurationTest,GatewayFailClosedSecurityMatrixTest,GatewayHotPathBudgetTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -772,7 +772,7 @@ mvn -f egon-cola-platforms/pom.xml \
 - Ordered files:
 
 #### File 1 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/IdpAdapterRuntimeClasspathTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/IdpAdapterRuntimeClasspathTest.java`
 
 - Purpose:把 Engine runtime capability预期从“只有 IdP Adapter”改为“IdP + scope Adapter”。
 - Symbols:重命名测试为 `executableEngineCarriesIdentityAndBizAppScopeAdapters()`。
@@ -788,7 +788,7 @@ assertDoesNotThrow(load Rbac3GatewayAdapterAutoConfiguration);
 - After this file:因 Engine POM未依赖 Adapter而 RED。
 
 #### File 2 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessorTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessorTest.java`
 
 - Purpose:固定 HTTP security attributes只含 target BIZ/APP/env。
 - Symbols:更新/新增 `usesOnlyServerRouteBizAppIdentityForAuthorization()`。
@@ -806,7 +806,7 @@ assertThat(attrs).containsExactlyEntriesOf(Map.of(
 - After this file:当前实现仍复制三个 `rbac3.*`字段而 RED。
 
 #### File 3 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java`
 
 - Purpose:从 HTTP数据面删除接口映射授权输入。
 - Symbols:`securityAttributes(HttpRouteMatch)`；删除仅服务旧 RBAC metadata的 `copy`调用/辅助逻辑。
@@ -823,10 +823,10 @@ return Map.of("idp.biz-code", upstream.bizCode(),
 
 - After this file:HTTP attrs测试 GREEN；HTTP/RPC scope输入一致。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
 
 - Purpose:把 RBAC3 Gateway Adapter加入 executable Engine runtime。
-- Symbols:新增 managed dependency `top.egon:egon-cola-platform-rbac3-gateway-adapter`，scope=`runtime`。
+- Symbols:新增 managed dependency `top.egon:egon-cola-tianquan-jianshen-gateway-adapter`，scope=`runtime`。
 - Why now:代码/测试已确认需要 capability，BOM已有版本管理。
 - Contract/signature changes:不删除现有 `rbac3-starter`（下游/MCP能力仍需）；不添加新版本。
 - Implementation pseudocode:
@@ -834,7 +834,7 @@ return Map.of("idp.biz-code", upstream.bizCode(),
 ```xml
 <dependency>
   <groupId>top.egon</groupId>
-  <artifactId>egon-cola-platform-rbac3-gateway-adapter</artifactId>
+  <artifactId>egon-cola-tianquan-jianshen-gateway-adapter</artifactId>
   <scope>runtime</scope>
 </dependency>
 ```
@@ -842,7 +842,7 @@ return Map.of("idp.biz-code", upstream.bizCode(),
 - After this file:classpath test GREEN。
 
 #### File 5 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
 
 - Purpose:显式启用 Scope Adapter并指向 RBAC3 runtime Redis。
 - Symbols:`egon.cola.platform.rbac3.gateway.enabled/runtime.*`。
@@ -889,12 +889,12 @@ before deleting old adapter in deployed environment:
 - Verification command:
 
 ```bash
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=IdpAdapterRuntimeClasspathTest,RuleBackedHttpGatewaySecurityProcessorTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 bash -n scripts/unified-identity-local.sh
-git diff --name-only -- egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin
+git diff --name-only -- egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 ```
 
 - Expected result:Maven与`bash -n` exit 0；最后一条命令无输出；Engine主源码不再出现 `rbac3.definition-set-id`/
@@ -1339,7 +1339,7 @@ mvn -f egon-cola-components/pom.xml \
 - Ordered files:
 
 #### File 1 —
-`CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectoryTest.java`
+`CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectoryTest.java`
 
 - Purpose:锁定完整 DDC key、revision/lease映射和订阅关闭。
 - Symbols:`queriesExactRpcProviderServiceKey()`、`mapsLeaseSnapshotAndPreservesRevision()`。
@@ -1357,7 +1357,7 @@ subscription.close -> verify DDC subscription close;
 - After this file:因实现不存在 RED。
 
 #### File 2 —
-`MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/autoconfigure/DdcRpcAutoConfigurationTest.java`
+`MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/autoconfigure/DdcRpcAutoConfigurationTest.java`
 
 - Purpose:要求 registry-enabled context同时暴露 Provider Registry、Gateway Directory和Provider Directory。
 - Symbols:扩展 `registrySwitchCreatesRegistryPortsWithOnlyRegistryCredential()`。
@@ -1374,7 +1374,7 @@ assert beans: DdcServiceRegistryClient, RpcProviderRegistry,
 - After this file:因新 Bean缺失 RED。
 
 #### File 3 —
-`CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectory.java`
+`CREATE egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectory.java`
 
 - Purpose:把 DDC registry snapshots适配为中立 Provider snapshots。
 - Symbols:implements `RpcProviderDirectory`；constructor/client；`subscribe`。
@@ -1395,7 +1395,7 @@ return ddcSub::close;
 - After this file:Directory tests GREEN；没有 Gateway slot访问。
 
 #### File 4 —
-`MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/autoconfigure/DdcRpcAutoConfiguration.java`
+`MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/autoconfigure/DdcRpcAutoConfiguration.java`
 
 - Purpose:在已有 `DdcServiceRegistryClient`上暴露中立 Provider Directory Bean。
 - Symbols:`ddcRpcProviderDirectory(...)`。
@@ -1416,7 +1416,7 @@ return ddcSub::close;
 
 ```bash
 mvn -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am -Dtest=DdcRpcProviderDirectoryTest,DdcRpcAutoConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1436,7 +1436,7 @@ mvn -f egon-cola-components/pom.xml \
 - Ordered files:
 
 #### File 1 —
-`CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcClientCredentialInterceptorFactoryTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcClientCredentialInterceptorFactoryTest.java`
 
 - Purpose:定义可信 token存在/不存在、Servlet→RPC和RPC→RPC relay行为。
 - Symbols:`relaysVerifiedServletUserToken()`、`relaysVerifiedRpcContextToken()`、`addsNothingWithoutVerifiedToken()`、
@@ -1455,7 +1455,7 @@ with preexisting authorization -> reject/replace per single-value invariant, nev
 - After this file:因 metadata key/context/factory缺失 RED。
 
 #### File 2 —
-`CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcBearerServerInterceptorTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcBearerServerInterceptorTest.java`
 
 - Purpose:定义 Provider侧 USER token验证、匿名、非法/重复值、callback context和清理。
 - Symbols:`establishesAuthenticationForValidUserBearer()`、`allowsAnonymousWhenMissing()`、
@@ -1476,7 +1476,7 @@ after callback assert SecurityContextHolder empty and rpc context token absent o
 - After this file:因 server interceptor/context不存在 RED。
 
 #### File 3 —
-`MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`
 
 - Purpose:要求启用 IdP时把 client factory和server interceptor暴露给 RPC Starter。
 - Symbols:新增/扩展 context assertion；校验 user verifier缺失时不创建。
@@ -1509,7 +1509,7 @@ public static final Metadata.Key<String> AUTHORIZATION = ascii("authorization");
 - After this file:两侧 interceptor可共享 key。
 
 #### File 5 —
-`CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcSecurityContext.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcSecurityContext.java`
 
 - Purpose:保存当前已验证 USER principal/token并提供 callback作用域桥接。
 - Symbols:gRPC `Context.Key<IdentityPrincipal>`/token key；`with(...)`、`currentTokenOrNull()`、
@@ -1530,7 +1530,7 @@ runWithSpringSecurity(principal, callback):
 - After this file:RPC Context与Spring Security的责任边界明确。
 
 #### File 6 —
-`MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/VerifiedUserTokenCarrier.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/VerifiedUserTokenCarrier.java`
 
 - Purpose:在保持 Servlet API兼容下增加 non-throwing/gRPC fallback读取。
 - Symbols:新增 `currentOrNull()`；`current()`委托并在 null时抛现有错误。
@@ -1549,7 +1549,7 @@ current(): token=currentOrNull; if null throw existing IllegalStateException;
 - After this file:Servlet→RPC和RPC→RPC均可读取可信 token，无任意 ThreadLocal。
 
 #### File 7 —
-`CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcClientCredentialInterceptorFactory.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcClientCredentialInterceptorFactory.java`
 
 - Purpose:按 invocation创建只负责 credential relay的 gRPC interceptor。
 - Symbols:implements `RpcClientInterceptorFactory`；`create`。
@@ -1570,7 +1570,7 @@ create(invocation):
 - After this file:Client tests GREEN；没有 RBAC3依赖或权限判断。
 
 #### File 8 —
-`CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcBearerServerInterceptor.java`
+`CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/rpc/IdpRpcBearerServerInterceptor.java`
 
 - Purpose:Provider重新验证一个 USER Bearer并建立安全上下文。
 - Symbols:implements `ServerInterceptor`；Bearer parse/reason/noop listener/callback wrapper。
@@ -1593,7 +1593,7 @@ return wrapper: each onMessage/onHalfClose/onCancel/onComplete/onReady executes
 - After this file:Provider本地 `@RequiresPermission`可读取已验证 principal。
 
 #### File 9 —
-`MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfiguration.java`
+`MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfiguration.java`
 
 - Purpose:条件注册 IdP RPC client/server安全 adapters。
 - Symbols:两个 `@Bean @ConditionalOnBean(UserAccessTokenVerifier.class) @ConditionalOnMissingBean` methods。
@@ -1611,8 +1611,8 @@ return wrapper: each onMessage/onHalfClose/onCancel/onComplete/onReady executes
 - Verification command:
 
 ```bash
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-idp/egon-cola-platform-idp-starter \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter \
   -am -Dtest=IdpRpcClientCredentialInterceptorFactoryTest,IdpRpcBearerServerInterceptorTest,IdpStarterAutoConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1631,7 +1631,7 @@ mvn -f egon-cola-platforms/pom.xml \
 - Ordered files:
 
 #### File 1 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rpc/RuleBackedRpcGatewaySecurityProcessorTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rpc/RuleBackedRpcGatewaySecurityProcessorTest.java`
 
 - Purpose:要求 RPC security outcome保留 forwarding credential且 attributes仍只有 BIZ/APP/env。
 - Symbols:新增/扩展 `returnsOnlyVerifiedForwardingCredential()`、`usesOnlyTargetBizAppAttributes()`。
@@ -1650,7 +1650,7 @@ assert raw inbound metadata alone cannot populate outcome credential;
 - After this file:当前 Outcome无 credential而 RED。
 
 #### File 2 —
-`CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewayCredentialForwardingTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewayCredentialForwardingTest.java`
 
 - Purpose:固定 RPC Gateway outbound metadata的 credential规则。
 - Symbols:`forwardsVerifiedBearerWhenPresent()`、`doesNotForwardRawInboundBearer()`、`doesNotLogBearerOnFailure()`。
@@ -1667,7 +1667,7 @@ capture error/telemetry/log arguments -> never contains token;
 - After this file:当前 forwarder从不附加 credential，首个允许场景 RED。
 
 #### File 3 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest.java`
 
 - Purpose:把已有 HTTP→HTTP credential测试扩展到 RPC Provider上游。
 - Symbols:新增 `restoresVerifiedBearerForRpcUpstreamWhenPolicyAllows()`、`neverRestoresUnverifiedInboundBearerForRpc()`。
@@ -1685,7 +1685,7 @@ authorizationForwardingAllowed false -> absent;
 - After this file:当前 handler对 RPC传 false而 RED。
 
 #### File 4 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rpc/HttpRpcUpstreamAdapterTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rpc/HttpRpcUpstreamAdapterTest.java`
 
 - Purpose:回归 Bridge只把已清洗 headers中的单一 Authorization映射为共享 RPC metadata key。
 - Symbols:扩展现有 `authorization`断言，增加 absent/duplicate-sanitized case。
@@ -1701,7 +1701,7 @@ invoke without authorization -> metadata absent;
 - After this file:当前 Bridge行为应立即 GREEN，作为非回归基线。
 
 #### File 5 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/GatewayRpcSecurityProcessor.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/GatewayRpcSecurityProcessor.java`
 
 - Purpose:让 RPC安全边界显式携带已验证 forwarding credential。
 - Symbols:`Outcome`新增 `GatewayCredential forwardingCredential`。
@@ -1719,7 +1719,7 @@ anonymous() = new Outcome(empty, Set.of(), null);
 - After this file:Forwarder可从可信安全结果取 credential。
 
 #### File 6 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RuleBackedRpcGatewaySecurityProcessor.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/RuleBackedRpcGatewaySecurityProcessor.java`
 
 - Purpose:把 `GatewaySecurityChain.Result.forwardingCredential()`映射到 RPC Outcome。
 - Symbols:`authorize(...).map(result -> new Outcome(...))`。
@@ -1735,7 +1735,7 @@ return chain.execute(...).map(result -> new Outcome(
 - After this file:RPC processor tests GREEN。
 
 #### File 7 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewayForwarder.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewayForwarder.java`
 
 - Purpose:在 RPC outbound metadata中恢复已验证 Bearer。
 - Symbols:`outboundHeaders(...)`。
@@ -1755,7 +1755,7 @@ return result;
 - After this file:RPC Gateway credential tests GREEN；伪造 inbound不会透传。
 
 #### File 8 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
 
 - Purpose:允许 HTTP→RPC Bridge复用同一 verified credential恢复逻辑。
 - Symbols:Provider attempt调用 `forwardedHeaders`时的最后两个 flags；`restoreOriginalBearer`保持唯一写点。
@@ -1777,8 +1777,8 @@ restoreOriginalBearer only if transportAllowed && forwardingCredential != null;
 - Verification command:
 
 ```bash
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=RuleBackedRpcGatewaySecurityProcessorTest,RpcGatewayCredentialForwardingTest,DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest,HttpRpcUpstreamAdapterTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1799,7 +1799,7 @@ mvn -f egon-cola-platforms/pom.xml \
 - Ordered files:
 
 #### File 1 —
-`MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributorTest.java`
+`MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributorTest.java`
 
 - Purpose:显式固定 Contract无 `@GatewayInterfaceGroup`就完全跳过报告。
 - Symbols:新增无 Group fixture contract/provider和 `skipsRpcContractWithoutGatewayInterfaceGroup()`。
@@ -1818,7 +1818,7 @@ assert contributor source has no EgonRpcDirectReference dependency;
 - After this file:若当前 skip边界正确应直接 GREEN；否则只修正测试fixture/现有 contributor最小判断，不新增 Consumer反向写入。
 
 #### File 2 —
-`MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderRegistryTest.java`
+`MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderRegistryTest.java`
 
 - Purpose:证明注册请求只取 Provider registration/service identity，不依赖任何 Gateway annotation/report bean。
 - Symbols:新增 `registersRpcProviderWithoutGatewayDefinitionMetadata()`。
@@ -1840,15 +1840,15 @@ assert metadata need not contain gateway group/operation/definition;
 - Verification command:
 
 ```bash
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-gateway/egon-cola-platform-gateway-starter \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-yuheng/yuheng-starter \
   -am -Dtest=RpcGatewayDefinitionContributorTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 mvn -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am -Dtest=DdcRpcProviderRegistryTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
-git diff --name-only -- egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin
+git diff --name-only -- egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 ```
 
 - Expected result:两个 Maven命令 exit 0；Admin路径 diff无输出；无 Group Definition为空但 DDC captured registration存在。
@@ -1870,10 +1870,10 @@ git diff --name-only -- egon-cola-platforms/egon-cola-platform-gateway/egon-cola
 | RED/GREEN S7                 | Step 7聚焦命令                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | IdP/RPC security                     | token有效/匿名/非法/清理通过                                                                                                                                                                                                                                                                           | S7                       | `REQ-011`,`REQ-012`                                                                                                                                                                                                                                 |
 | RED/GREEN S8                 | Step 8聚焦命令                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Gateway→RPC                          | 只转发verified credential                                                                                                                                                                                                                                                                       | S8                       | `REQ-002`,`REQ-003`,`REQ-012`                                                                                                                                                                                                                       |
 | GREEN S9                     | Step 9两个命令                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Reporting/registration               | 无 Group无报告，仍有lease                                                                                                                                                                                                                                                                           | S9                       | `REQ-009`,`REQ-010`,`REQ-014`                                                                                                                                                                                                                       |
-| Components regression        | `mvn -f egon-cola-components/pom.xml -pl egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter -am test`                                                                                                                                                                                                                                                                                                              | RPC reactor                          | exit 0，既有 static direct client tests也通过                                                                                                                                                                                                                                                      | S4–S6/S9                 | `REQ-005`–`REQ-011`                                                                                                                                                                                                                                 |
-| Platforms regression         | `mvn -f egon-cola-platforms/pom.xml -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter,egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platform-idp/egon-cola-platform-idp-starter -am test` | 受影响平台+Admin回归                        | exit 0                                                                                                                                                                                                                                                                                       | S1–S3/S7–S9              | `REQ-001`–`REQ-004`,`REQ-010`,`REQ-012`,`REQ-013`                                                                                                                                                                                                   |
-| Static removal               | `rg -n "rbac3-permission                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Rbac3PermissionAuthorizationProvider | Rbac3GatewayRuntimeSnapshotReader                                                                                                                                                                                                                                                            | rbac3\.definition-set-id | rbac3\.mapping-version" egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main scripts/unified-identity-local.sh` | 数据面/脚本 | 无输出 | S2/S3 | `REQ-002` |
-| Consumer permission boundary | `rg -n "rbac3                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | permission                           | RequiresPermission" egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry` | Consumer/Directory       | 无新增 permission读取；仅可能命中文档否定语句                                                                                                                                                                                                                        | S4–S7 | `REQ-011` |
+| Components regression        | `mvn -f egon-cola-components/pom.xml -pl egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter -am test`                                                                                                                                                                                                                                                                                                              | RPC reactor                          | exit 0，既有 static direct client tests也通过                                                                                                                                                                                                                                                      | S4–S6/S9                 | `REQ-005`–`REQ-011`                                                                                                                                                                                                                                 |
+| Platforms regression         | `mvn -f egon-cola-xingyuan/pom.xml -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-yuheng/yuheng-admin,egon-cola-yuheng/yuheng-biz-gateway,egon-cola-yuheng/yuheng-starter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am test` | 受影响平台+Admin回归                        | exit 0                                                                                                                                                                                                                                                                                       | S1–S3/S7–S9              | `REQ-001`–`REQ-004`,`REQ-010`,`REQ-012`,`REQ-013`                                                                                                                                                                                                   |
+| Static removal               | `rg -n "rbac3-permission                                                                                                                                                                                                                                                                                                                                                                                                                                                            | Rbac3PermissionAuthorizationProvider | Rbac3GatewayRuntimeSnapshotReader                                                                                                                                                                                                                                                            | rbac3\.definition-set-id | rbac3\.mapping-version" egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main scripts/unified-identity-local.sh` | 数据面/脚本 | 无输出 | S2/S3 | `REQ-002` |
+| Consumer permission boundary | `rg -n "rbac3                                                                                                                                                                                                                                                                                                                                                                                                                                                                       | permission                           | RequiresPermission" egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry` | Consumer/Directory       | 无新增 permission读取；仅可能命中文档否定语句                                                                                                                                                                                                                        | S4–S7 | `REQ-011` |
 | Secret/log scan              | `rg -n "logger.*token                                                                                                                                                                                                                                                                                                                                                                                                                                                               | log.*authorization                   | metadata.*token" <changed-main-paths>` 并人工审查 diff                                                                                                                                                                                                                                            | 安全                       | 无原始 token日志/指标/DDC metadata                                                                                                                                                                                                                         | S7/S8 | `REQ-012` |
 | Formatting/scope             | `git diff --check`; `git status --short`; `git diff --name-only -- .../gateway-admin`                                                                                                                                                                                                                                                                                                                                                                                               | 全仓                                   | 无 whitespace错误；仅计划文件树；Admin生产路径无变化                                                                                                                                                                                                                                                           | owning Step              | All                                                                                                                                                                                                                                                 |
 | Runtime E2E                  | 用户启动本地栈后按 §9.3执行                                                                                                                                                                                                                                                                                                                                                                                                                                                                    | Redis/DDC/JWK/Provider/Engine        | 两条路径地址、身份、授权、无fallback均符合                                                                                                                                                                                                                                                                    | 相应 Step                  | All                                                                                                                                                                                                                                                 |

@@ -48,19 +48,19 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+            <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+            <artifactId>egon-cola-tianshu-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-dynamic-config-center-http-registration-starter</artifactId>
+            <artifactId>egon-cola-tianshu-http-registration-starter</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-gateway-starter-openapi-webmvc</artifactId>
+            <artifactId>yuheng-starter-openapi-webmvc</artifactId>
         </dependency>
     </dependencies>
 

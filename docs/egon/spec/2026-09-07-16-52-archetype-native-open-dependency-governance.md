@@ -12,7 +12,7 @@
 | Updated | `2026-09-08 15:08 CST` |
 | Owner | `用户 / Egon-COLA 维护者` |
 | Repository | `Egon-COLA` |
-| Scope | `pom.xml`、`egon-cola-components`、`egon-cola-platforms`、`egon-cola-archetypes` 七个 source project、definitions、生成脚本与 archetype verifier |
+| Scope | `pom.xml`、`egon-cola-components`、`egon-cola-xingyuan`、`egon-cola-archetypes` 七个 source project、definitions、生成脚本与 archetype verifier |
 | Change Surface | 依赖管理、parent/BOM 继承、原生 DDC/RPC/API Doc 能力边界、`-open` 外部 Spring 体系边界、源码配置/测试/Compose/verifier 一致性、generated POM parent 规范化 |
 | Affected Chapters | `§7, §8, §9, §10, §13, §14, §15, §16` |
 | Source Requirement | 用户关于 Spring Boot parent、Spring Cloud/Alibaba、ShardingSphere、commons-lang3、Components BOM、DDC/RPC/API Doc、`-open` 外部体系及原生 archetype 依赖解耦的确认请求 |
@@ -45,8 +45,8 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | `EVD-002` | Static repository | `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}/pom.xml` | 原生 source root 重复声明 `spring-cloud-dependencies`、`spring-cloud-alibaba-dependencies`、ShardingSphere、Springdoc、commons-lang3，且 light/service/web 依赖 Dubbo/Nacos。 | 原生 archetype 的外部技术栈耦合和版本漂移已被直接证明。 | 仅覆盖当前 source POM。 |
 | `EVD-003` | Static repository | `egon-cola-archetypes/source-projects/egon-cola-source-{light-open,service-open,web-open}/pom.xml` | `-open` 使用 Spring Cloud/Alibaba、Nacos；service-open/web-open 还使用 Dubbo、gRPC、Protobuf、ShardingSphere；各自维护版本。 | `-open` 外部体系可以保留，但版本归属应从 source root 下沉到 archetype/open 依赖治理层。 | 不证明所有生成项目都已实际启动。 |
 | `EVD-004` | Static repository | `egon-cola-components/egon-cola-components-bom/pom.xml:64-159` | Components BOM 管理 Common、ID、MyBatis-Plus、Dynamic Thread Pool、RPC starter、RPC DDC adapter 等组件。 | 组件版本应通过 BOM 继承，source POM 不再逐个管理版本。 | 静态 BOM 内容。 |
-| `EVD-005` | Static repository | `egon-cola-platforms/pom.xml:91-116` | Platforms parent 管理 Springdoc BOM、DDC starter、DDC HTTP registration starter。 | 原生 API Doc/DDC 应依赖平台 starter，而不是直接绑定外部 Springdoc/Nacos。 | 平台 parent 不是生成项目的直接 parent。 |
-| `EVD-006` | Static repository | `egon-cola-components/egon-cola-component-rpc/`、`egon-cola-platforms/egon-cola-platform-dynamic-config-center/` | 存在 `egon-cola-component-rpc-starter`、`egon-cola-component-rpc-ddc-adapter`、`egon-cola-platform-dynamic-config-center-starter`、`egon-cola-platform-dynamic-config-center-http-registration-starter`。 | 具备替换原生 Dubbo/Nacos DDC/RPC wiring 的仓库能力候选。 | 仅证明模块和符号存在，不证明目标接线已完成。 |
+| `EVD-005` | Static repository | `egon-cola-xingyuan/pom.xml:91-116` | Platforms parent 管理 Springdoc BOM、DDC starter、DDC HTTP registration starter。 | 原生 API Doc/DDC 应依赖平台 starter，而不是直接绑定外部 Springdoc/Nacos。 | 平台 parent 不是生成项目的直接 parent。 |
+| `EVD-006` | Static repository | `egon-cola-components/egon-cola-component-rpc/`、`egon-cola-xingyuan/egon-cola-tianshu/` | 存在 `egon-cola-component-rpc-starter`、`egon-cola-component-rpc-tianshu-adapter`、`egon-cola-tianshu-starter`、`egon-cola-tianshu-http-registration-starter`。 | 具备替换原生 Dubbo/Nacos DDC/RPC wiring 的仓库能力候选。 | 仅证明模块和符号存在，不证明目标接线已完成。 |
 | `EVD-007` | Static repository | `scripts/generate_archetypes.sh:430-580` | 生成器复制 source POM、替换 group/artifact/version/package，并生成 `.generated` reactor；当前主要处理源码 sentinel 与路径清理。 | parent 规范化必须成为生成器的显式步骤，不能依赖 source 相对路径。 | 生成行为需改造后再验证。 |
 | `EVD-008` | Static repository | `egon-cola-archetypes/definitions/*/archetype.properties` | 七个定义映射到七个 source root，分别声明 root 或多模块 topology。 | 每个 archetype 必须共享同一 parent/BOM 规则且保持现有 topology。 | 不证明 generated 资源当前与 source 完全一致。 |
 | `EVD-009` | Static repository | 原生源码 `@EnableDubbo`、`@DubboService`、`@DubboReference`、Nacos 配置、Triple 测试与 Compose；`-open` 同类符号及 `GrpcEvaluationQueryClient` | 原生项目仍有外部 RPC/注册中心痕迹；`-open` 有明确外部 Triple/gRPC 使用。 | 原生迁移不是简单删依赖，必须同步源码、配置、测试、Compose、verifier；`-open` 不应被误改。 | 静态调用链证据，未运行应用。 |
@@ -69,7 +69,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | --- | --- | --- | --- | --- | --- |
 | Source parent resolution | source root POM -> child module POM -> dependency/plugin management | Maven model | 当前无 parent；各 root 自持版本 | source reactor、生成器 | `source-projects/egon-cola-source-*/pom.xml` |
 | 原生 RPC/注册 | starter `@EnableDubbo` -> `@DubboService`/`@DubboReference` -> Nacos/Dubbo runtime | provider/consumer metadata、配置 | Dubbo、Nacos | light/service/web、测试、Compose | `rg '@(EnableDubbo|DubboService|DubboReference)'` |
-| 原生 DDC/API Doc 目标 | source POM -> Egon component/platform starter -> auto-configuration | DDC registration/config、OpenAPI metadata | Egon COLA components/platforms | 原生生成项目 | `egon-cola-components-bom/pom.xml`、`egon-cola-platforms/pom.xml` |
+| 原生 DDC/API Doc 目标 | source POM -> Egon component/platform starter -> auto-configuration | DDC registration/config、OpenAPI metadata | Egon COLA components/platforms | 原生生成项目 | `egon-cola-components-bom/pom.xml`、`egon-cola-xingyuan/pom.xml` |
 | `-open` 外部 RPC | Triple provider/client -> Dubbo annotation/generated Triple -> external registry/config | RPC request/response、group/version | Dubbo Triple、gRPC/Protobuf | service-open/web-open | `*open*/adapter`、`GrpcEvaluationQueryClient` |
 | Archetype generation | definition manifest -> `create-from-project` -> `normalize_generated_product` -> `.generated` reactor | generated POM/resources/manifests | Maven Archetype plugin | seven definition modules、IT verifier | `scripts/generate_archetypes.sh` |
 
@@ -167,7 +167,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 
 - 用户在当前会话确认“补齐spec后，逐步实现、验证、提交”。本次先修订本 Spec 和关联 Plan，再按七个 Step 顺序执行；修订和各 Step 均采用路径限定提交。运行时启动与发布仍不授权。
 - `-open` 可以保留外部 Spring 体系；非 `-open` 的原生 archetype 不引入用不上的 Nacos、Dubbo、Spring Cloud/Alibaba。
-- 原生 DDC、RPC、API Doc 必须优先复用 `egon-cola-components` 与 `egon-cola-platforms` 的现有能力。
+- 原生 DDC、RPC、API Doc 必须优先复用 `egon-cola-components` 与 `egon-cola-xingyuan` 的现有能力。
 - 所有 source root 保持当前 package/topology/业务接口/数据库语义，迁移只扩大到使依赖边界一致所需的源码、配置、测试、Compose 与 verifier。
 - 不修改已有 Flyway migration；本任务无 schema 变更。
 
@@ -177,7 +177,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | --- | --- | --- | --- | --- |
 | `ASM-001` | source root 与 generated root 继承已发布 `top.egon:egon-cola-archetypes-parent:${egon-cola.version}`；该 parent 再继承 aggregation parent，generated 项目设置空 `<relativePath/>`。 | 用户对分层管理的确认；当前 archetypes parent 已继承 aggregation parent。 | 只影响 Maven parent 文本，可在 Plan 中调整坐标。 | 若发布坐标不同，source/generated 无法独立解析。 |
 | `ASM-002` | ShardingSphere 由 `egon-cola-archetypes/pom.xml` 的 dependencyManagement 统一管理，具体模块仍按现有实际使用声明。 | 四个以上 source POM 重复 `${shardingsphere.version}`。 | 仅移动版本 owner，不改变 artifact 集合。 | 若希望拆成 native/open 两个版本，需要更新依赖矩阵。 |
-| `ASM-003` | 原生 API Doc 采用平台 `egon-cola-platform-gateway-starter-openapi-webmvc` 或 WebFlux 对应 starter，版本由平台/archetype 管理。 | 平台 OpenAPI starter 模块与 MVC/WebFlux artifact 存在。 | starter 可替换且不改变业务路由。 | 若某 archetype 需要不同 web stack，Plan 需按实际 starter 选择。 |
+| `ASM-003` | 原生 API Doc 采用平台 `yuheng-starter-openapi-webmvc` 或 WebFlux 对应 starter，版本由平台/archetype 管理。 | 平台 OpenAPI starter 模块与 MVC/WebFlux artifact 存在。 | starter 可替换且不改变业务路由。 | 若某 archetype 需要不同 web stack，Plan 需按实际 starter 选择。 |
 | `ASM-004` | 原生 RPC 迁移保持现有 facade 业务语义和 group/version 兼容信息；新增 `.proto` 仅作为 transport contract，DTO 映射在 adapter 内完成。 | 原生 facade interfaces、Egon RPC annotation/validator 与用户确认 A。 | 不改变业务目标，但会增加 Protobuf/生成代码文件。 | 若某 facade 无法一一映射为 unary method，需单独升级决策。 |
 
 ### 5.3 Resolved decisions
@@ -202,7 +202,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | Framework | Spring Boot 3.5.16 | root parent/property | Boot parent 只保留在 aggregation root 的发布继承链。 |
 | Dependency build | Maven multi-module + Maven Archetype | root modules、archetype packaging、`scripts/generate_archetypes.sh` | parent/BOM 必须可被 source 与 generated 独立解析。 |
 | Component versioning | `egon-cola-components-bom` | `egon-cola-components/egon-cola-components-bom/pom.xml` | Common/ID/MyBatis/DTP/RPC 版本不得在各 archetype 漂移。 |
-| Platform capability | DDC/OpenAPI starters | `egon-cola-platforms/pom.xml` 与 platform module tree | native 依赖平台 starter，不直接复制外部基础设施。 |
+| Platform capability | DDC/OpenAPI starters | `egon-cola-xingyuan/pom.xml` 与 platform module tree | native 依赖平台 starter，不直接复制外部基础设施。 |
 | Persistence | MyBatis-Plus、ShardingSphere、Flyway（部分 native） | source POM 与 migration trees | 本 Spec 不改表和 migration；只移动版本管理。 |
 | RPC/config | native Egon RPC/DDC；open external Dubbo/Nacos/Triple | components/platforms 与 source usages | profile 边界必须通过依赖、配置和 verifier 同时表达。 |
 | Tests | JUnit/Spring tests、Groovy archetype verifier、Shell generation tests | definitions `verify.groovy`、`scripts/test-*` | 先静态/构建/生成验证，运行时验证留实施后。 |
@@ -222,9 +222,9 @@ Reuse/capability ledger:
 | Need | Spring/JDK candidate | Spring Boot Starter candidate | Egon-COLA/module candidate | Proven gap | Decision/dependency impact |
 | --- | --- | --- | --- | --- | --- |
 | Common/MyBatis-Plus/ID/DTP | Spring/JDK + Boot | existing starters | `egon-cola-components-bom` managed components | None | Reuse BOM-managed components |
-| Native RPC | Spring context only | None sufficient | `egon-cola-component-rpc-starter`, `egon-cola-component-rpc-ddc-adapter` | Adapter/provider mapping to be implemented | Add/keep native components |
-| Native DDC registration | Spring lifecycle/Actuator | None sufficient | `egon-cola-platform-dynamic-config-center-http-registration-starter` | None proven | Add for native services that register HTTP |
-| Native API Doc | Spring MVC/WebFlux | external Springdoc is not native boundary | `egon-cola-platform-gateway-starter-openapi[-webmvc|-webflux]` | Exact per profile web stack checked in implementation | Reuse platform starter |
+| Native RPC | Spring context only | None sufficient | `egon-cola-component-rpc-starter`, `egon-cola-component-rpc-tianshu-adapter` | Adapter/provider mapping to be implemented | Add/keep native components |
+| Native DDC registration | Spring lifecycle/Actuator | None sufficient | `egon-cola-tianshu-http-registration-starter` | None proven | Add for native services that register HTTP |
+| Native API Doc | Spring MVC/WebFlux | external Springdoc is not native boundary | `yuheng-starter-openapi[-webmvc|-webflux]` | Exact per profile web stack checked in implementation | Reuse platform starter |
 | Open Cloud/Nacos/Dubbo | External ecosystem | Spring Cloud/Alibaba/Dubbo starters | Not replaceable in open profile | User explicitly preserves | Keep only in `-open` |
 | Agent workflow | Spring AI/Google ADK | Spring AI starters | Agent Flow component | None proven | Keep; no DDC/RPC |
 | ShardingSphere | external library | none | archetype-level dependencyManagement | None | Centralize version, retain actual modules |
@@ -275,7 +275,7 @@ flowchart LR
     Source --> Parent[Aggregation parent]
     Parent --> ArchBOM[Archetype dependency management]
     ArchBOM --> Components[egon-cola-components-bom]
-    ArchBOM --> Platforms[egon-cola-platforms starters]
+    ArchBOM --> Platforms[egon-cola-xingyuan starters]
     ArchBOM --> Sharding[ShardingSphere version owner]
     Source --> Native[light/service/web]
     Native --> NativeRPC[COLA RPC + DDC]
@@ -496,7 +496,7 @@ native bootstrap 文件中的 application name 必须迁移到 application.yml�
 ```text
 pom.xml
 egon-cola-components/egon-cola-components-bom/pom.xml
-egon-cola-platforms/pom.xml
+egon-cola-xingyuan/pom.xml
 egon-cola-archetypes/pom.xml
 egon-cola-archetypes/source-projects/pom.xml
 egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web,agent,light-open,service-open,web-open}/pom.xml

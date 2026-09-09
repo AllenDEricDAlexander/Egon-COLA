@@ -7,8 +7,8 @@ updates:
       - "/"
       - "/egon-cola-components"
       - "/egon-cola-components/*"
-      - "/egon-cola-platforms"
-      - "/egon-cola-platforms/*"
+      - "/egon-cola-xingyuan"
+      - "/egon-cola-xingyuan/*"
       - "/egon-cola-archetypes"
       - "/egon-cola-archetypes/*"
 
@@ -106,7 +106,7 @@ updates:
 
   # RBAC3 React SDK and Admin Web workspace
   - package-ecosystem: "npm"
-    directory: "/egon-cola-platforms/egon-cola-platform-rbac3"
+    directory: "/egon-cola-xingyuan/egon-cola-tianquan-jianshen"
 
     schedule:
       interval: "weekly"

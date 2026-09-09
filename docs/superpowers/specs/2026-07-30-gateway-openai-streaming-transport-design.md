@@ -18,11 +18,11 @@
 
 主模块：
 
-- `egon-cola-platform-gateway-contract`
-- `egon-cola-platform-gateway-core`
-- `egon-cola-platform-gateway-engine`
-- `egon-cola-platform-gateway-admin`
-- `egon-cola-platform-gateway-admin-web`
+- `yuheng-contract`
+- `yuheng-core`
+- `yuheng-biz-gateway`
+- `yuheng-admin`
+- `yuheng-admin-web`
 
 ## 1. 结论
 
@@ -1171,15 +1171,15 @@ OpenAI Body。
 实现阶段至少执行：
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am test
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test
 npm test -- --run
 npm run typecheck
 npm run build
 ```
 
 后三条命令在
-`egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`
+`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`
 执行。最终还需运行 Gateway 父 Reactor 测试，确保 contract、core、engine、admin、
 starter、provider-runtime 和 test modules 的回归闭合。
 

@@ -26,19 +26,19 @@
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+            <artifactId>egon-cola-tianshu-starter</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-rpc-ddc-adapter</artifactId>
+            <artifactId>egon-cola-component-rpc-tianshu-adapter</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>
-            <artifactId>egon-cola-platform-dynamic-config-center-admin</artifactId>
+            <artifactId>egon-cola-tianshu-admin</artifactId>
             <version>${project.version}</version>
             <scope>test</scope>
         </dependency>

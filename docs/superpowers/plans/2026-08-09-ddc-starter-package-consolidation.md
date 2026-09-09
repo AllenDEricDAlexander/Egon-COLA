@@ -10,16 +10,16 @@
 
 **Exact path roots used below:**
 
-- `DDC_MAIN` = `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc`
-- `DDC_TEST` = `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc`
-- `DDC_RESOURCES` = `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/resources`
+- `DDC_MAIN` = `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc`
+- `DDC_TEST` = `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc`
+- `DDC_RESOURCES` = `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/resources`
 
 Every path using one of these labels is relative to the exact repository path declared here; the labels are documentation abbreviations, not shell variables or unresolved implementation placeholders.
 
 ## Global Constraints
 
 - 规格来源：`docs/superpowers/specs/2026-08-09-ddc-starter-package-consolidation-design.md`；实现不得偏离其中的目标树、迁移映射和行为边界。
-- 只保留 `egon-cola-platform-dynamic-config-center-starter` 这一个业务消费入口；不新增 `core`、`client`、`autoconfigure` 或其他 Maven module。
+- 只保留 `egon-cola-tianshu-starter` 这一个业务消费入口；不新增 `core`、`client`、`autoconfigure` 或其他 Maven module。
 - 用户允许破坏式更新：旧包直接删除，禁止 deprecated 转发类型、继承壳、双包并存兼容层和旧自动配置别名。
 - 每个任务完成后只暂存该任务拥有的路径并独立提交；不得把工作树中已有的 Gateway 修改带入 DDC 提交。
 - `DdcLeaseSession.java` 已有用户修改，迁移该文件时必须保留其内容变化；不得 reset、checkout 或覆盖用户修改。
@@ -38,8 +38,8 @@ Every path using one of these labels is relative to the exact repository path de
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/DdcPackageDocumentationTest.java`
-- Create under `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/`: every `package-info.java` in this exact tree:
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/DdcPackageDocumentationTest.java`
+- Create under `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/`: every `package-info.java` in this exact tree:
 
 ```text
 package-info.java
@@ -115,7 +115,7 @@ assertThat(source).doesNotContainPattern("(?m)^\\s*(public\\s+)?(class|interface
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcPackageDocumentationTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -152,12 +152,12 @@ For implementation packages, document known package-private collaborators explic
 
 ```bash
 rg -L "@NonNullApi" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/**/package-info.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/**/package-info.java
 rg -n "(package|Package) for|XX package|通用工具|common utilities" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc \
   --glob 'package-info.java'
 git diff --check -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter
 ```
 
 Expected: the first and second scans print nothing; `git diff --check` succeeds.
@@ -235,7 +235,7 @@ assertThat(DdcChecksum.class.getPackageName())
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -DskipTests \
   test-compile
@@ -251,7 +251,7 @@ Expected: test compilation fails because the new API/model/format packages do no
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcPlatformBoundaryTest,DdcRuntimeDtoScopeTest,DdcManagementContractBoundaryTest,DdcManagementDtoSerializationTest,DdcInstanceStatusTest,DdcHttpProviderRegistrationTest,DdcServiceRegistrationTest,DdcChecksumTest,ServiceInstanceMetaCodecTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -262,7 +262,7 @@ Expected: test compilation fails because the new API/model/format packages do no
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime,egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am \
   -DskipTests \
   test-compile
@@ -321,7 +321,7 @@ assertThat(DdcOpenApiRequestFactory.class.getPackageName())
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -DskipTests \
   test-compile
@@ -344,7 +344,7 @@ Update every active result; require the repeated scan to print nothing.
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=HttpDdcConfigClientTest,HttpDdcManagementClientTest,HttpDdcServiceRegistryClientTest,DdcOpenApiRequestFactoryTest,DdcRequestSignerTest,DdcPlatformBoundaryTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -355,7 +355,7 @@ Update every active result; require the repeated scan to print nothing.
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am \
   -DskipTests \
   test-compile
@@ -420,7 +420,7 @@ org.springframework.boot.context.config.ConfigDataLoader=top.egon.cola.component
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcConfigDataFetcherTest,DdcConfigDataLoaderTest,DdcConfigDataLocationResolverTest,DdcConfigDataSpringApplicationTest,DdcFieldBindingServiceTest,DdcConfigurationPropertiesRebinderTest,DdcRefreshServiceTest,DefaultDdcConfigApplierRegistryTest,DdcAckDeliveryTest,DdcInstanceIdentityFactoryTest,DdcLeaseSessionHolderTest,DdcRuntimeCoordinatorTest,DdcActiveRegistrationIndexTest,DdcServiceKeyFactoryTest,DdcPlatformBoundaryTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -431,7 +431,7 @@ org.springframework.boot.context.config.ConfigDataLoader=top.egon.cola.component
 
 ```bash
 unzip -p \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/target/egon-cola-platform-dynamic-config-center-starter-*.jar \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/target/egon-cola-tianshu-starter-*.jar \
   META-INF/spring.factories
 ```
 
@@ -491,7 +491,7 @@ assertThat(DdcRegistrySubscriptionCoordinator.class.getPackageName())
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcRedisClientFactoryTest,DdcRedisKeysTest,DdcRedisTopicSubscriptionTest,DdcRegistrySubscriptionCoordinatorTest,DdcActiveRegistrationIndexTest,HttpDdcServiceRegistryClientTest,DdcPlatformBoundaryTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -502,7 +502,7 @@ assertThat(DdcRegistrySubscriptionCoordinator.class.getPackageName())
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime \
   -am \
   -DskipTests \
   test-compile
@@ -562,7 +562,7 @@ contextRunner.run(context -> assertThat(context)
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcAutoConfigurationTest,DdcRedisAutoConfigurationTest,DdcRegistryAutoConfigurationTest,DdcPropertiesTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -597,7 +597,7 @@ top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest='top.egon.cola.component.ddc.autoconfigure.**,top.egon.cola.component.ddc.autoconfigure.properties.**' \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -608,10 +608,10 @@ top.egon.cola.component.ddc.autoconfigure.DdcRegistryAutoConfiguration
 
 ```bash
 unzip -p \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/target/egon-cola-platform-dynamic-config-center-starter-*.jar \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/target/egon-cola-tianshu-starter-*.jar \
   META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
 rg -n "@(ComponentScan|Repository)" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc
 rg -n "(DdcAutoConfig|DdcRedisAutoConfig|DdcRegistryAutoConfig)([^u]|$)" \
   . \
   --glob '*.java' --glob '*.properties' --glob '*.xml' --glob '*.md' \
@@ -691,7 +691,7 @@ assertThat(DdcLocalConfigState.class
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcPlatformBoundaryTest,DdcPackageDocumentationTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -704,7 +704,7 @@ Expected: the nullable reflection assertions fail until explicit `@Nullable` ann
 
 ```bash
 rg -n "return null;|== null|!= null|@Nullable|orElse\(null\)|getOrDefault\([^,]+, null\)" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc \
   --glob '*.java'
 ```
 
@@ -727,7 +727,7 @@ Update every active example/import/resource result. Do not rewrite historical de
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   test
 ```
@@ -736,7 +736,7 @@ Update every active example/import/resource result. Do not rewrite historical de
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-rpc-contract,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-rpc-provider,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-rpc-consumer,egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-provider,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-consumer,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am \
   test
 ```
@@ -747,11 +747,11 @@ If a module fails for a pre-existing unrelated reason, record the exact command,
 
 ```bash
 find \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc \
   -type d -empty -print
 
 rg -n "^package top\\.egon\\.cola\\.component\\.ddc\\.(configuration|lease|management|registry|transport|runtime)(\\.|;)" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java \
   --glob '*.java'
 
 rg -n "top\\.egon\\.cola\\.component\\.ddc\\.(configuration|lease|management|registry|transport|runtime)(\\.|;)|Ddc(AutoConfig|RedisAutoConfig|RegistryAutoConfig)([^u]|$)" \
@@ -760,7 +760,7 @@ rg -n "top\\.egon\\.cola\\.component\\.ddc\\.(configuration|lease|management|reg
   --glob '!docs/superpowers/**' --glob '!**/docs/superpowers/**'
 
 rg -n "@(ComponentScan|Repository)" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc
 
 git diff --check
 git status --short

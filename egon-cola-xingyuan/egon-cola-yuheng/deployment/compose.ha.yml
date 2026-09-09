@@ -1,0 +1,152 @@
+name: egon-cola-gateway
+
+services:
+  ddc-admin:
+    profiles: ["ha"]
+
+  ddc-admin-2:
+    profiles: ["ha"]
+    build:
+      context: ../../egon-cola-tianshu/egon-cola-tianshu-admin
+    environment:
+      SERVER_PORT: 18080
+      SPRING_CONFIG_ADDITIONAL_LOCATION: file:/run/egon-config/ddc-rpc-credentials.yml
+      GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY: ${GATEWAY_MCP_DDC_RUNTIME_ACCESS_KEY}
+      GATEWAY_MCP_DDC_RUNTIME_SECRET_KEY: ${GATEWAY_MCP_DDC_RUNTIME_SECRET_KEY}
+      GATEWAY_MCP_DDC_REGISTRY_ACCESS_KEY: ${GATEWAY_MCP_DDC_REGISTRY_ACCESS_KEY}
+      GATEWAY_MCP_DDC_REGISTRY_SECRET_KEY: ${GATEWAY_MCP_DDC_REGISTRY_SECRET_KEY}
+      GATEWAY_BIZ_CODE: ${GATEWAY_BIZ_CODE}
+      GATEWAY_ENV: ${GATEWAY_ENV:-local}
+      GATEWAY_NAMESPACE: ${GATEWAY_NAMESPACE:-default}
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "3"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_ddc
+      SPRING_DATASOURCE_USERNAME: gateway
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_HOST: ddc-redis
+      EGON_COLA_COMPONENT_DDC_ADMIN_REDIS_PORT: 6379
+      DDC_RPC_PORT: 19080
+      DDC_RPC_DEVELOPMENT_PLAINTEXT: "true"
+      DDC_RPC_RUNTIME_ACCESS_KEY: ${DDC_RUNTIME_ACCESS_KEY}
+      DDC_RPC_RUNTIME_SECRET_KEY: ${DDC_RUNTIME_SECRET_KEY}
+      DDC_RPC_REGISTRY_ACCESS_KEY: ${DDC_REGISTRY_ACCESS_KEY}
+      DDC_RPC_REGISTRY_SECRET_KEY: ${DDC_REGISTRY_SECRET_KEY}
+      DDC_RPC_MANAGEMENT_ACCESS_KEY: ${DDC_MANAGEMENT_ACCESS_KEY}
+      DDC_RPC_MANAGEMENT_SECRET_KEY: ${DDC_MANAGEMENT_SECRET_KEY}
+    volumes:
+      - ./ddc-rpc-credentials.yml:/run/egon-config/ddc-rpc-credentials.yml:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ddc-redis:
+        condition: service_healthy
+    ports:
+      - "18170:18080"
+      - "19180:19080"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          bash -ec 'exec 3<>/dev/tcp/127.0.0.1/18080;
+          printf "GET /actuator/health/readiness HTTP/1.0\r\n\r\n" >&3;
+          grep -q " 200 " <&3'
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  gateway-admin:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-admin-2:
+    profiles: ["ha"]
+    build:
+      context: ../yuheng-admin
+    environment:
+      SERVER_PORT: 18080
+      EGON_COLA_COMPONENT_ID_MACHINE_ID: "4"
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/gateway_admin
+      SPRING_DATASOURCE_USERNAME: gateway
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
+      GATEWAY_ADMIN_DDC_ENABLED: "true"
+      GATEWAY_ADMIN_DDC_API_RPC_BIZ_CODE: ${GATEWAY_BIZ_CODE}
+      GATEWAY_ADMIN_DDC_API_RPC_APP_CODE: ge
+      GATEWAY_ADMIN_DDC_MCP_BIZ_CODE: ${GATEWAY_BIZ_CODE}
+      GATEWAY_ADMIN_DDC_MCP_APP_CODE: gme
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+      EGON_COLA_COMPONENT_DDC_RPC_LOAD_BALANCING_POLICY: round_robin
+      EGON_COLA_COMPONENT_DDC_RPC_TLS_DEVELOPMENT_PLAINTEXT: "true"
+      EGON_COLA_COMPONENT_DDC_RPC_AUTH_MANAGEMENT_ACCESS_KEY: ${DDC_MANAGEMENT_ACCESS_KEY}
+      EGON_COLA_COMPONENT_DDC_RPC_AUTH_MANAGEMENT_SECRET_KEY: ${DDC_MANAGEMENT_SECRET_KEY}
+      GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64: ${GATEWAY_MASTER_KEY_BASE64}
+      GATEWAY_ADMIN_SECURITY_HMAC_SECRET_BASE64: ${GATEWAY_ADMIN_JWT_HMAC_SECRET_BASE64}
+      GATEWAY_ADMIN_OBSERVABILITY_KAFKA_ENABLED: "true"
+      GATEWAY_ADMIN_OBSERVABILITY_KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ddc-admin:
+        condition: service_started
+      ddc-admin-2:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+    ports:
+      - "18180:18080"
+    stop_grace_period: 30s
+    restart: unless-stopped
+
+  gateway-engine:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-engine-2:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-mcp-engine:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-mcp-engine-2:
+    profiles: ["ha"]
+    environment:
+      EGON_COLA_COMPONENT_DDC_RPC_TARGET: dns:///control-plane-proxy:19080
+
+  gateway-data-plane-proxy:
+    profiles: ["ha"]
+
+  gateway-admin-web:
+    profiles: ["ha"]
+    environment:
+      GATEWAY_ADMIN_API_BASE_URL: http://control-plane-proxy:18080
+
+  control-plane-proxy:
+    profiles: ["ha"]
+    image: haproxy:3.1-alpine
+    volumes:
+      - ./haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - ddc-admin
+      - ddc-admin-2
+      - gateway-admin
+      - gateway-admin-2
+    ports:
+      - "18270:18070"
+      - "18280:18080"
+      - "19280:19080"
+    healthcheck:
+      test:
+        - CMD
+        - haproxy
+        - -c
+        - -f
+        - /usr/local/etc/haproxy/haproxy.cfg
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped

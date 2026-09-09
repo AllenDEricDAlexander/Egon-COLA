@@ -24,16 +24,16 @@
 ### Task 1: Restore DDC-scoped runtime registrations
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcRegistryAutoConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcServiceKeyFactory.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/HttpProviderLeaseRuntime.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/GatewayHttpProviderAutoConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/config/DdcRegistryAutoConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcServiceKeyFactory.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/HttpProviderLeaseRuntime.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/GatewayHttpProviderAutoConfiguration.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/provider/RpcProviderLeaseManager.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/RpcConsumerGatewayManager.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcProperties.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcAutoConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntime.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntime.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
 - Modify: focused tests beside each runtime.
 
 **Interfaces:**
@@ -50,8 +50,8 @@
 - [ ] **Step 2: Run RED tests**
 
   ```bash
-  ./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-    -pl egon-cola-platform-gateway-provider-runtime -am \
+  ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+    -pl yuheng-provider-runtime -am \
     -Dtest=HttpProviderLeaseRuntimeTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-rpc/pom.xml \
@@ -79,21 +79,21 @@
 ### Task 2: Carry provider biz/app through Gateway releases and discovery
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/GatewayReportingProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayProviderServiceRef.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/provider/ProviderQuery.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/provider/ProviderServiceKey.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayHttpOperationMapper.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/GatewayReportingProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayProviderServiceRef.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/provider/ProviderQuery.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/provider/ProviderServiceKey.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayHttpOperationMapper.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
 - Modify: Gateway Admin application entity/service/controller and add `V5__add_gateway_application_biz_scope.sql`.
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/catalog/GatewayCatalogStore.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayCatalogStore.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/catalog/GatewayCatalogService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompiler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRuleCompiler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/discovery/DdcProviderServiceRegistryAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/catalog/GatewayCatalogStore.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayCatalogStore.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/catalog/GatewayCatalogService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/discovery/DdcProviderServiceRegistryAdapter.java`
 - Modify: focused contract, starter, admin, core, and engine tests.
 
 **Interfaces:**
@@ -110,8 +110,8 @@
 - [ ] **Step 2: Run RED tests**
 
   ```bash
-  ./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-    -pl egon-cola-platform-gateway-starter,egon-cola-platform-gateway-admin,egon-cola-platform-gateway-engine \
+  ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+    -pl yuheng-starter,yuheng-admin,yuheng-biz-gateway \
     -am -Dtest=ProviderModelTest,GatewayDefinitionReportFactoryTest,GatewayCatalogServiceTest,ProviderDirectoryTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -127,7 +127,7 @@
   Run Step 2, then:
 
   ```bash
-  ./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean test
+  ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean test
   ```
 
 - [ ] **Step 5: Commit the atomic Tasks 1-2 compatibility change**
@@ -140,7 +140,7 @@
 
 **Files:**
 - Modify: Gateway Engine and test application YAML files that enable DDC registration/reporting.
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java` only where live child JVM properties require biz/app scope.
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java` only where live child JVM properties require biz/app scope.
 - Modify: RPC README examples only if the new explicit Gateway target properties are otherwise undocumented.
 
 **Interfaces:**
@@ -155,11 +155,11 @@
 - [ ] **Step 2: Run component and Web UI baselines**
 
   ```bash
-  ./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml clean test
+  ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml clean test
   ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-rpc/pom.xml clean test
-  ./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean test
-  npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run build
-  npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
+  ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean test
+  npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run build
+  npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
   ```
 
 - [ ] **Step 3: Commit Task 3 if tracked configuration changed**

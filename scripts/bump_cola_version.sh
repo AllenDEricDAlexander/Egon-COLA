@@ -223,7 +223,7 @@ find_readme_files() {
 }
 
 find_ddc_readme_files() {
-    local ddc_dir="$PROJECT_ROOT/egon-cola-platforms/egon-cola-platform-dynamic-config-center"
+    local ddc_dir="$PROJECT_ROOT/egon-cola-xingyuan/egon-cola-tianshu"
     local readme
 
     for readme in "$ddc_dir/README.md" "$ddc_dir/README.zh-CN.md"; do
@@ -299,7 +299,7 @@ verify_ddc_readme_versions() {
     local readme_file
 
     while IFS= read -r -d '' readme_file; do
-        grep -Fq -- 'egon-cola-platform-dynamic-config-center-starter' "$readme_file" || \
+        grep -Fq -- 'egon-cola-tianshu-starter' "$readme_file" || \
             die "$readme_file does not document the DDC platform Starter"
         grep -Fq -- "$expected_tag" "$readme_file" || \
             die "$readme_file does not document DDC version $expected_version"

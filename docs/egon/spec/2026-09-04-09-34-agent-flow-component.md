@@ -123,7 +123,7 @@ AI [项目兼容说明](https://github.com/spring-projects/spring-ai)、Maven Ce
 | Components 与 Starter 文档    | Affected       | `egon-cola-components-architecture.md`、BOM README 和新 Starter README   | 增加能力、依赖与限制说明                                 | 文件责任和兼容说明               | `§8, §16`                   |
 | 参考工程 DDD Agent 代码          | Context-only   | `/Users/mario/Downloads/ai-agent-scaffold-lite-main/.../domain/agent` | 仅作为能力与缺陷证据，不复制、不修改                           | 迁移映射和停止边界               | `§7`                        |
 | 宿主应用 `ChatModel` 与模型供应商配置  | Context-only   | Spring AI `ChatModel` SPI；用户确认由宿主提供                                   | 组件按 Bean 名读取；不拥有 URL、密钥和 provider starter    | 依赖/安全边界与替身测试            | `§7, §15`                   |
-| Egon 平台与 Archetype         | Unchanged      | 根 `pom.xml` 模块边界；`egon-cola-platforms`、`egon-cola-archetypes`         | 不增加模板依赖或平台调用                                 | 静态 Reactor 回归           | `§16`                       |
+| Egon 平台与 Archetype         | Unchanged      | 根 `pom.xml` 模块边界；`egon-cola-xingyuan`、`egon-cola-archetypes`         | 不增加模板依赖或平台调用                                 | 静态 Reactor 回归           | `§16`                       |
 | 数据库与 Flyway                | Not applicable | V1 明确使用 ADK `InMemoryRunner`，没有 DAO/表/迁移                              | 无持久化变更                                       | §11 证据化 N/A             | `§11`                       |
 | 前端与外部 API                  | Not applicable | 用户批准核心组件范围；目标模块无 web 层                                                | 无页面、路由或 HTTP/GraphQL 契约                      | §12 证据化 N/A             | `§12`                       |
 

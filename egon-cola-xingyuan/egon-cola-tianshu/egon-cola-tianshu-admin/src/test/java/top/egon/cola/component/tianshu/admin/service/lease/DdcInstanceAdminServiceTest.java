@@ -1,0 +1,134 @@
+package top.egon.cola.component.tianshu.admin.service.lease;
+
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.parallel.ResourceLock;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
+import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
+import top.egon.cola.component.tianshu.model.config.DdcInstanceRegisterRequest;
+import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
+import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+import java.util.Optional;
+import java.util.TimeZone;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationTestFixture.identity;
+
+@ResourceLock("java.util.TimeZone.default")
+class DdcInstanceAdminServiceTest {
+
+    @Test
+    void pagesPersistentInstancesNewestFirst() {
+        DdcInstanceRepository repository = mock(DdcInstanceRepository.class);
+        DdcConfigLeaseService leaseService = mock(DdcConfigLeaseService.class);
+        DdcInstanceEntity instance = new DdcInstanceEntity();
+        instance.setId("instance-1");
+        when(repository.findByBizCodeAndEnvAndAppCode(
+                eq("infra"), eq("prod"), eq("gateway"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(
+                        List.of(instance), PageRequest.of(0, 10), 1));
+        DdcInstanceAdminService service = new DdcInstanceAdminService(
+                repository, leaseService);
+
+        var page = service.page(
+                "infra", "prod", "gateway", new PageQuery(1, 10));
+
+        assertThat(page.getContent()).containsExactly(instance);
+        var pageable = org.mockito.ArgumentCaptor.forClass(Pageable.class);
+        verify(repository).findByBizCodeAndEnvAndAppCode(
+                eq("infra"), eq("prod"), eq("gateway"), pageable.capture());
+        assertThat(pageable.getValue().getSort().toString())
+                .isEqualTo("updatedAt: DESC,id: DESC");
+    }
+
+    @Test
+    void storesLeaseExpiryInTheDatabaseLocalTimeConvention() {
+        TimeZone previous = TimeZone.getDefault();
+        TimeZone.setDefault(TimeZone.getTimeZone("Asia/Shanghai"));
+        try {
+            DdcInstanceRepository repository = mock(
+                    DdcInstanceRepository.class
+            );
+            DdcConfigLeaseService leaseService = mock(
+                    DdcConfigLeaseService.class
+            );
+            DdcInstanceRegisterRequest request = request();
+            Instant expiry = Instant.parse("2026-07-27T08:30:00Z");
+            DdcLeaseSession session = new DdcLeaseSession(
+                            request.getInstanceId(),
+                            "lease-1",
+                            DdcLeaseRole.CONFIG_CLIENT,
+                            30,
+                            10,
+                            expiry.minusSeconds(30),
+                            expiry
+                    );
+            when(leaseService.registerAdmitted(request)).thenReturn(
+                    new DdcConfigLeaseService.AdmittedRegistration(
+                            session,
+                            identity(expiry.plusSeconds(10))
+                    )
+            );
+            when(repository.findByInstanceId(request.getInstanceId()))
+                    .thenReturn(Optional.empty());
+            when(repository.save(any())).thenAnswer(invocation ->
+                    invocation.getArgument(0));
+            DdcInstanceAdminService service = new DdcInstanceAdminService(
+                    repository,
+                    leaseService
+            );
+
+            service.register(request);
+
+            var entity = org.mockito.ArgumentCaptor.forClass(
+                    DdcInstanceEntity.class
+            );
+            verify(repository).save(entity.capture());
+            assertThat(entity.getValue().getLeaseExpireAt()).isEqualTo(
+                    LocalDateTime.ofInstant(expiry, ZoneId.systemDefault())
+            );
+            assertThat(entity.getValue().getResourceServerId())
+                    .isEqualTo("resource-1");
+            assertThat(entity.getValue().getResourceVersion()).isEqualTo(7L);
+            assertThat(entity.getValue().getCredentialId())
+                    .isEqualTo("credential-1");
+            assertThat(entity.getValue().getAdmissionExpiresAt()).isEqualTo(
+                    LocalDateTime.ofInstant(
+                            expiry.plusSeconds(10),
+                            ZoneId.systemDefault()
+                    )
+            );
+        } finally {
+            TimeZone.setDefault(previous);
+        }
+    }
+
+    private DdcInstanceRegisterRequest request() {
+        DdcInstanceRegisterRequest request = new DdcInstanceRegisterRequest();
+        request.setInstanceId("engine-1");
+        request.setBizCode("default");
+        request.setAppCode("gateway-engine-default");
+        request.setEnv("test");
+        request.setNamespace("gateway-live");
+        request.setHost("127.0.0.1");
+        request.setPid("123");
+        request.setSdkVersion("5.2.3");
+        request.setLeaseSeconds(30);
+        request.setHeartbeatIntervalSeconds(10);
+        request.setRegistrationToken("test-registration-token");
+        return request;
+    }
+}

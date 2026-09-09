@@ -12,10 +12,10 @@ NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 FORBIDDEN = re.compile(r"org\.apache\.dubbo|org\.springframework\.cloud|com\.alibaba\.cloud|"
                        r"org\.springdoc|@EnableDubbo|@Dubbo(Service|Reference)|"
                        r"\b(?:NACOS_|DUBBO_|nacos://)|^\s*(?:dubbo|nacos):", re.MULTILINE)
-REQUIRED = {"egon-cola-component-rpc-starter", "egon-cola-component-rpc-ddc-adapter",
-            "egon-cola-platform-dynamic-config-center-starter",
-            "egon-cola-platform-dynamic-config-center-http-registration-starter",
-            "egon-cola-platform-gateway-starter-openapi-webmvc"}
+REQUIRED = {"egon-cola-component-rpc-starter", "egon-cola-component-rpc-tianshu-adapter",
+            "egon-cola-tianshu-starter",
+            "egon-cola-tianshu-http-registration-starter",
+            "yuheng-starter-openapi-webmvc"}
 
 
 def check(family):

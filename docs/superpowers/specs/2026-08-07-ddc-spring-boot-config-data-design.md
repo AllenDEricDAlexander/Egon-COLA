@@ -8,12 +8,12 @@
 
 主要涉及模块：
 
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test`
-- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin`
-- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway`
 
 本文已按 2026-08-07 的确认结论关闭决策项，后续实现必须以本设计和对应实施计划为准。
 
@@ -688,8 +688,8 @@ top.egon.cola.component.ddc
 
 ```bash
 ./mvnw -B -ntp -pl \
-egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter,\
-egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test \
+egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter,\
+egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test \
 -am test
 ```
 

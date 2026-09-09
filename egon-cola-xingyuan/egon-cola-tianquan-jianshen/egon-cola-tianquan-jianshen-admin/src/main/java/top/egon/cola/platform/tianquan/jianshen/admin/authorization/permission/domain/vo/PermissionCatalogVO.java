@@ -1,0 +1,15 @@
+package top.egon.cola.platform.tianquan.jianshen.admin.authorization.permission.domain.vo;
+
+/** Global permission catalog view. */
+public record PermissionCatalogVO(
+        String id,
+        String applicationId,
+        String permissionCode,
+        String permissionName,
+        String riskLevel,
+        String status,
+        String sourceType,
+        String sourceBuildId,
+        String sourceChecksum,
+        long version) {
+}

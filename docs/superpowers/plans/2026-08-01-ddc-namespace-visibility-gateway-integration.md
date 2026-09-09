@@ -31,19 +31,19 @@
 ### Task 1: 建立 V3 服务身份和统一实例 ID Strategy
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceIdProvider.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceKey.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceQuery.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcServiceKeyFactory.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceIdentityFactory.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/model/registry/DdcServiceRegistrationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/registry/DdcServiceKeyFactoryTest.java`
-- Create test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcInstanceIdentityFactoryTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/common/DdcKeysTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/config/DdcAutoConfigTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceIdProvider.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceKey.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceQuery.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcServiceKeyFactory.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/config/DdcProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceIdentityFactory.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/model/registry/DdcServiceRegistrationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/registry/DdcServiceKeyFactoryTest.java`
+- Create test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/service/DdcInstanceIdentityFactoryTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/common/DdcKeysTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/config/DdcAutoConfigTest.java`
 
 **Interfaces:**
 - Produces `DdcServiceKey(String bizCode, String env, String appCode, DdcServiceKind serviceKind, String serviceName, String group, String version, String protocol)`.
@@ -90,8 +90,8 @@ void resolvesConfiguredThenCustomThenUuidV7InstanceId() {
 - [ ] **Step 2: 运行 RED 测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter -am \
   -Dtest=DdcServiceRegistrationTest,DdcServiceKeyFactoryTest,DdcInstanceIdentityFactoryTest,DdcKeysTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -168,43 +168,43 @@ private static String v3RegistryTag(DdcServiceKey key) {
 - [ ] **Step 5: 运行 GREEN Starter 测试并提交**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter -am clean test
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter -am clean test
+git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter
 git commit -m "feat(ddc): introduce v3 service and instance identity"
 ```
 
 ### Task 2: 将服务注册、目录和所有运行时迁移到 V3
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcServiceLeaseRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcOpenApiServiceRegistryClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManager.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcServiceRegistryService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryOpenApiController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/redis/ddc_service_register.lua`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/redis/ddc_service_heartbeat.lua`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/redis/ddc_service_deregister.lua`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/redis/ddc_service_expire.lua`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcServiceLeaseRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcOpenApiServiceRegistryClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManager.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcServiceRegistryService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryOpenApiController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/redis/ddc_service_register.lua`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/redis/ddc_service_heartbeat.lua`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/redis/ddc_service_deregister.lua`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/redis/ddc_service_expire.lua`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/context/RpcProcessIdentity.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/context/RpcProcessIdentityFactory.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcAutoConfig.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/provider/RpcProviderLeaseManager.java`
 - Modify: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/RpcConsumerGatewayManager.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/GatewayHttpProviderProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/HttpProviderRuntimeProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/GatewayHttpProviderAutoConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/HttpProviderLeaseRuntime.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntime.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcServiceRegistryServiceTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryOpenApiControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/GatewayHttpProviderProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/HttpProviderRuntimeProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/GatewayHttpProviderAutoConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/main/java/top/egon/cola/component/gateway/provider/HttpProviderLeaseRuntime.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntime.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepositoryTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcServiceRegistryServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryOpenApiControllerTest.java`
 - Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/consumer/RpcConsumerGatewayManagerTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime/src/test/java/top/egon/cola/component/gateway/provider/HttpProviderLeaseRuntimeTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntimeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime/src/test/java/top/egon/cola/component/gateway/provider/HttpProviderLeaseRuntimeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntimeTest.java`
 
 **Interfaces:**
 - `DdcServiceLeaseRequest` contains only `serviceKey`, `instanceId`, and `leaseId`.
@@ -242,8 +242,8 @@ void registryClientKeepsMultipleLeasesForOneRuntimeInstance() {
 - [ ] **Step 2: 运行 RED 注册测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter,egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter,egon-cola-tianshu-admin -am \
   -Dtest=DdcServiceRegistryRedisRepositoryTest,DdcServiceRegistryServiceTest,DdcRegistryOpenApiControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -293,43 +293,43 @@ new RpcGatewaySlotProperties(
 - [ ] **Step 5: 运行 DDC/RPC/Gateway GREEN 测试并提交**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml clean test
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-rpc/pom.xml clean test
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-provider-runtime,egon-cola-platform-gateway-engine -am clean test
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-provider-runtime,yuheng-biz-gateway -am clean test
+git add egon-cola-xingyuan/egon-cola-tianshu \
   egon-cola-components/egon-cola-component-rpc \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-provider-runtime \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-provider-runtime \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway
 git commit -m "feat(ddc): migrate service registry runtimes to v3"
 ```
 
 ### Task 3: 新增 V7 namespace-env-app Association Object
 
 **Files:**
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/db/postgresql/V7__add_namespace_env_app_visibility.sql`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/db/sqlite/V7__add_namespace_env_app_visibility.sql`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV7MigrationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcAppEntity.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcNamespaceEntity.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcNamespaceEnvAppBindingEntity.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcNamespaceEnvAppBindingRequest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcNamespaceEnvAppBindingVO.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcAppService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcNamespaceService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcNamespaceEnvAppBindingService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcEnvService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcAppController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcEnvController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcErrorStatus.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java`
-- Create test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/postgresql/V7__add_namespace_env_app_visibility.sql`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db/sqlite/V7__add_namespace_env_app_visibility.sql`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV7MigrationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcAppEntity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcNamespaceEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcNamespaceEnvAppBindingEntity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcNamespaceEnvAppBindingRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcNamespaceEnvAppBindingVO.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcAppService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcNamespaceService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcNamespaceEnvAppBindingService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcEnvService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcAppController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcEnvController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/common/DdcErrorStatus.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java`
+- Create test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java`
 
 **Interfaces:**
 - `DdcNamespaceEntity` contains `bizCode`, `namespaceCode`, `namespace`; it no longer contains `appCode`.
@@ -367,8 +367,8 @@ void v7RejectsDuplicatePhysicalConfigAcrossLegacyNamespaces() {
 - [ ] **Step 2: 运行 RED V7 和 controller 测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-admin -am \
   -Dtest=DdcV7MigrationTest,DdcAppControllerTest,DdcNamespaceControllerTest,DdcNamespaceEnvAppBindingControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -423,42 +423,42 @@ public DdcNamespaceEnvAppBindingVO create(DdcNamespaceEnvAppBindingRequest reque
 - [ ] **Step 5: 运行 GREEN V7/binding 测试并提交**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-admin -am \
   -Dtest=DdcV7MigrationTest,DdcAppControllerTest,DdcNamespaceControllerTest,DdcNamespaceEnvAppBindingControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center
+git add egon-cola-xingyuan/egon-cola-tianshu
 git commit -m "feat(ddc-admin): add namespace environment app bindings"
 ```
 
 ### Task 4: 将 Starter 配置协议迁移到 biz-env-app V3
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcInstanceIdentity.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcDefaultReportRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcInstanceRegisterRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcHeartbeatRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcAckRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcPublishMessage.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeListener.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinator.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcAckDelivery.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigQuery.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigUpsertRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigDeleteRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementPublishRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementInstanceQuery.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigClientInstance.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/client/HttpDdcAdminClientTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepositoryTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinatorTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcInstanceIdentity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcDefaultReportRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcInstanceRegisterRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcHeartbeatRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcAckRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcPublishMessage.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeListener.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/service/DdcAckDelivery.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigQuery.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigUpsertRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigDeleteRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementPublishRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementInstanceQuery.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigClientInstance.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/client/HttpDdcAdminClientTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepositoryTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinatorTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
 
 **Interfaces:**
 - Runtime DTO scope is `bizCode + env + appCode`; deprecated namespace getters/setters remain no-op compatibility shims for one release.
@@ -487,8 +487,8 @@ void readsOnePhysicalConfigRegardlessOfDeprecatedNamespace() {
 - [ ] **Step 2: 运行 RED Starter 配置测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter -am \
   -Dtest=HttpDdcAdminClientTest,DdcRedisConfigRepositoryTest,DdcRuntimeCoordinatorTest,HttpDdcManagementClientTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -512,26 +512,26 @@ return redissonClient.<String>getBucket(DdcKeys.v3Config(
 - [ ] **Step 4: 运行 GREEN Starter 测试并提交**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-starter -am clean test
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-starter -am clean test
+git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter
 git commit -m "refactor(ddc): use physical biz env app config scope"
 ```
 
 ### Task 5: 迁移 DDC Admin 配置、发布、租约和可选筛选
 
 **Files:**
-- Modify entities: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcConfigItemEntity.java`, `DdcConfigVersionEntity.java`, `DdcPublishTaskEntity.java`, `DdcPublishAckEntity.java`, `DdcInstanceEntity.java`, `DdcOperationLogEntity.java`
-- Modify DTO/VO: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcConfigCreateRequest.java`, `DdcConfigQueryRequest.java`, `DdcPublishRequest.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcConfigResourceKey.java`, `DdcAtomicPublishCommand.java`, `DdcConfigVO.java`
-- Modify repositories: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`, `DdcConfigVersionRepository.java`, `DdcInstanceRepository.java`, `DdcConfigLeaseRedisRepository.java`, `DdcRedisRepository.java`, `DdcPublishTaskRepository.java`
-- Modify services: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`, `DdcConfigLeaseService.java`, `DdcInstanceAdminService.java`, `DdcScopeGate.java`, `DdcCacheService.java`, `DdcPublishService.java`, `DdcPendingPublishDispatcher.java`, `DdcPublishStateTransitionService.java`, `PublishFailureRecorder.java`
-- Modify controllers/facade: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcConfigController.java`, `DdcOpenApiController.java`, `DdcManagementOpenApiController.java`, `DdcRegistryAdminController.java`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacade.java`
-- Modify error handling: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcGlobalExceptionHandler.java`
-- Modify management service models: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementServiceKey.java`, `DdcManagementServiceQuery.java`
-- Tests: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcConfigServiceTest.java`, `DdcScopeGateTest.java`, `DdcPublishPreparationTest.java`, `DdcPublishRetryTest.java`, `DdcAckServiceTest.java`
-- Tests: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java`, `DdcRegistryAdminControllerTest.java`, `DdcManagementOpenApiControllerTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/config/DdcGlobalExceptionHandlerTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/integration/DdcSyncPublishFlowTest.java`
+- Modify entities: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcConfigItemEntity.java`, `DdcConfigVersionEntity.java`, `DdcPublishTaskEntity.java`, `DdcPublishAckEntity.java`, `DdcInstanceEntity.java`, `DdcOperationLogEntity.java`
+- Modify DTO/VO: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcConfigCreateRequest.java`, `DdcConfigQueryRequest.java`, `DdcPublishRequest.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcConfigResourceKey.java`, `DdcAtomicPublishCommand.java`, `DdcConfigVO.java`
+- Modify repositories: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`, `DdcConfigVersionRepository.java`, `DdcInstanceRepository.java`, `DdcConfigLeaseRedisRepository.java`, `DdcRedisRepository.java`, `DdcPublishTaskRepository.java`
+- Modify services: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`, `DdcConfigLeaseService.java`, `DdcInstanceAdminService.java`, `DdcScopeGate.java`, `DdcCacheService.java`, `DdcPublishService.java`, `DdcPendingPublishDispatcher.java`, `DdcPublishStateTransitionService.java`, `PublishFailureRecorder.java`
+- Modify controllers/facade: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcConfigController.java`, `DdcOpenApiController.java`, `DdcManagementOpenApiController.java`, `DdcRegistryAdminController.java`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacade.java`
+- Modify error handling: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcGlobalExceptionHandler.java`
+- Modify management service models: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementServiceKey.java`, `DdcManagementServiceQuery.java`
+- Tests: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcConfigServiceTest.java`, `DdcScopeGateTest.java`, `DdcPublishPreparationTest.java`, `DdcPublishRetryTest.java`, `DdcAckServiceTest.java`
+- Tests: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java`, `DdcRegistryAdminControllerTest.java`, `DdcManagementOpenApiControllerTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/config/DdcGlobalExceptionHandlerTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/integration/DdcSyncPublishFlowTest.java`
 
 **Interfaces:**
 - Config current state and config-client instance entities contain `bizCode, env, appCode` and no active namespace field.
@@ -578,8 +578,8 @@ void missingExactInstanceIdentityReturnsInvalidRequest() throws Exception {
 - [ ] **Step 2: 运行 RED Admin 测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-admin -am \
   -Dtest=DdcConfigServiceTest,DdcConfigControllerTest,DdcRegistryAdminControllerTest,DdcGlobalExceptionHandlerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -656,7 +656,7 @@ namespaceCode 过滤先从 binding repository 得到允许的物理 `(biz,env,ap
 - [ ] **Step 5: 运行 Admin 全量 GREEN 和 V7 SQLite 测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml clean test
 ```
 
 检查 reactor summary 确认 Starter、Admin 和 Test 子模块实际执行测试，不把只构建父 POM 的 `BUILD SUCCESS` 当成证据。
@@ -664,27 +664,27 @@ namespaceCode 过滤先从 binding repository 得到允许的物理 `(biz,env,ap
 - [ ] **Step 6: 提交物理配置与筛选修复**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center
+git add egon-cola-xingyuan/egon-cola-tianshu
 git commit -m "fix(ddc-admin): use physical scopes and optional filters"
 ```
 
 ### Task 6: 重构 DDC Web 为 biz-namespace-env-app 浏览
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/api/types.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/ScopeSelects.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/useScopeOptions.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/NamespaceSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/EnvSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/AppSelect.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/lib/scopeDefaults.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/NamespacesPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/AppsPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/RegistryPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigsPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/ConfigEditorDialog.tsx`
-- Tests: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/components/scope/ScopeSelects.test.tsx`, `useScopeOptions.test.ts`
-- Tests: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/pages/NamespacesPage.test.tsx`, `AppsPage.test.tsx`, `RegistryPage.test.tsx`, `ConfigsPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/api/types.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/ScopeSelects.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/useScopeOptions.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/NamespaceSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/EnvSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/AppSelect.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/lib/scopeDefaults.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AppsPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/RegistryPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigsPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.tsx`
+- Tests: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope/ScopeSelects.test.tsx`, `useScopeOptions.test.ts`
+- Tests: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.test.tsx`, `AppsPage.test.tsx`, `RegistryPage.test.tsx`, `ConfigsPage.test.tsx`
 
 **Interfaces:**
 - `ScopeValue` field order is `bizCode, namespaceCode, env, appCode`.
@@ -713,7 +713,7 @@ it('opens the same physical instances from either namespace', async () => {
 - [ ] **Step 2: 运行 RED Web 测试**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web test -- --run
 ```
 
 Expected: FAIL because current order is biz-app-namespace-env, namespace belongs to app, and list pages inject default scope.
@@ -755,21 +755,21 @@ Registry 主表按 appId/`bizCode|appCode` 去重统计；serviceId 显示前 12
 - [ ] **Step 5: 运行 Web 全量验证并提交**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run build
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run build
+git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 git commit -m "feat(ddc-web): browse namespace visibility bindings"
 ```
 
 ### Task 7: 简化 Gateway Web 本地 Access Token 登录
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/auth/LoginPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/auth/tokenStore.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/auth/LoginPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/auth/tokenStore.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/tokenStore.ts`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/LoginPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/tokenStore.test.ts`
 
 **Interfaces:**
 - Produces `oauthRefreshEnabled = Boolean(VITE_GATEWAY_ADMIN_TOKEN_URL && VITE_GATEWAY_ADMIN_CLIENT_ID)`.
@@ -790,7 +790,7 @@ it('asks only for access token in local mode', () => {
 - [ ] **Step 2: 运行 RED 测试**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test -- --run
 ```
 
 Expected: FAIL because the Refresh Token form item is always rendered.
@@ -809,32 +809,32 @@ export const oauthRefreshEnabled = Boolean(
 - [ ] **Step 4: 运行 Gateway Web 全量验证并提交**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 git commit -m "fix(gateway-web): simplify local token login"
 ```
 
 ### Task 8: 注册 Gateway Admin=infra/ga 与 Engine=infra/ge
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/pom.xml`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/GatewayAdminConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayDdcPublicationCommand.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayDdcRulePublisher.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleasePublicationCoordinator.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/main/resources/application.yml`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayDdcRulePublisherTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyEngineLeaseTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/GatewayAdminConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayDdcPublicationCommand.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayDdcRulePublisher.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleasePublicationCoordinator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayDdcRulePublisherTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyEngineLeaseTest.java`
 
 **Interfaces:**
-- Gateway Admin adds the existing `egon-cola-platform-gateway-provider-runtime` module dependency; no new external dependency.
+- Gateway Admin adds the existing `yuheng-provider-runtime` module dependency; no new external dependency.
 - Gateway Admin local DDC identity is `infra/local/ga`; HTTP service is `egon-cola-gateway-admin`, kind `HTTP_PROVIDER`, metadata `gateway.component=admin`.
 - Gateway Engine local DDC identity is `infra/local/ge`; RPC service is `egon-gateway-rpc`, kind `INTERNAL_GATEWAY`, metadata includes `gateway.component=engine`.
 - Gateway Admin release publication target is configured separately as `gateway.admin.ddc.target-biz-code=infra`, `target-app-code=ge`; namespace from Gateway rule content is not used as DDC config identity.
@@ -865,8 +865,8 @@ void engineRegistrationUsesInfraLocalGeWithoutNamespace() {
 - [ ] **Step 2: 运行 RED Gateway 测试**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin,egon-cola-platform-gateway-engine -am \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin,yuheng-biz-gateway -am \
   -Dtest=GatewayAdminApplicationConfigurationTest,GatewayDdcRulePublisherTest,GatewayEngineConfigurationTest,GatewayLiveTopologyEngineLeaseTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -899,8 +899,8 @@ Engine application.yml 使用 `DDC_APP_CODE:ge`；本机运行命令显式启用
 - [ ] **Step 4: 运行 Gateway 全 reactor GREEN 并提交**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean test
-git add egon-cola-platforms/egon-cola-platform-gateway
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean test
+git add egon-cola-xingyuan/egon-cola-yuheng
 git commit -m "feat(gateway): register admin and engine with ddc"
 ```
 
@@ -930,17 +930,17 @@ lsof -nP -iTCP:18080 -iTCP:8080 -iTCP:18081 -iTCP:18082 -iTCP:18083 \
 - [ ] **Step 2: 执行全量静态回归**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml clean test
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml clean test
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-rpc/pom.xml clean test
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean test
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run build
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run lint
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run build
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean test
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run build
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
 ```
 
 每个 Maven 命令检查 reactor summary 和实际测试数；任何失败先定位根因、增加最小失败测试、修复、重新执行受影响命令。
@@ -960,10 +960,10 @@ having count(*) > 1;
 - [ ] **Step 4: 构建并按依赖顺序启动服务**
 
 ```bash
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-dynamic-config-center/pom.xml \
-  -pl egon-cola-platform-dynamic-config-center-admin -am package -DskipTests
-./mvnw -B -ntp -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml \
-  -pl egon-cola-platform-gateway-admin,egon-cola-platform-gateway-engine,egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider \
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
+  -pl egon-cola-tianshu-admin -am package -DskipTests
+./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
+  -pl yuheng-admin,yuheng-biz-gateway,yuheng-test/yuheng-test-http-provider \
   -am package -DskipTests
 ```
 

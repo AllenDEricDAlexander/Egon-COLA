@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 `egon-cola-platform-idp-admin` 迁移为 `identity/oauth/token/audit` 业务域优先、域内 `controller/config/service/service.impl/repo/domain.dto/domain.vo/domain.pojo` 扁平分层，并将跨域能力统一收敛到 `support`。
+**Goal:** 将 `egon-cola-tianquan-shoubing-admin` 迁移为 `identity/oauth/token/audit` 业务域优先、域内 `controller/config/service/service.impl/repo/domain.dto/domain.vo/domain.pojo` 扁平分层，并将跨域能力统一收敛到 `support`。
 
 **Architecture:** 保留 `idp-core` 的领域模型、Facade 和 Port，不复制核心认证逻辑。Admin 只重组 Web、管理用例、持久化适配器和平台集成；Controller 依赖域 Service 接口，现有嵌套请求/响应 Record 提取为独立 DTO/VO，JPA Entity 进入 `domain.pojo`。DDC、RBAC3、Outbox、安全、启动与运行时注册进入 `support`。
 
@@ -122,7 +122,7 @@
 - Produces one source tree containing only the approved business-domain packages and `support` boundaries.
 
 - [x] Scan for forbidden production packages: `.interfaces.http`, `.application`, `.configuration`, `.infrastructure`, `.integration`, root `.security`, root `.bootstrap`, and root `.outbox`.
-- [x] Run `./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am test` and capture exit code 0.
-- [x] Run `./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am package -DskipTests` and capture exit code 0.
+- [x] Run `./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am test` and capture exit code 0.
+- [x] Run `./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am package -DskipTests` and capture exit code 0.
 - [x] Run `git diff --check`, inspect the final tree, and confirm no application was started.
 - [x] Commit any final test/document-only cleanup as `test(idp): verify flat admin package structure`; omit this commit when no cleanup is required.

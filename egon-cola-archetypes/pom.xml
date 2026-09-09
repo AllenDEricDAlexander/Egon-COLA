@@ -174,22 +174,22 @@
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-platform-dynamic-config-center-starter</artifactId>
+                <artifactId>egon-cola-tianshu-starter</artifactId>
                 <version>${egon-cola.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-platform-dynamic-config-center-http-registration-starter</artifactId>
+                <artifactId>egon-cola-tianshu-http-registration-starter</artifactId>
                 <version>${egon-cola.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-platform-gateway-starter-openapi</artifactId>
+                <artifactId>yuheng-starter-openapi</artifactId>
                 <version>${egon-cola.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
-                <artifactId>egon-cola-platform-gateway-starter-openapi-webmvc</artifactId>
+                <artifactId>yuheng-starter-openapi-webmvc</artifactId>
                 <version>${egon-cola.version}</version>
             </dependency>
             <dependency>

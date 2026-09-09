@@ -27,7 +27,7 @@ The repository is organized into three Maven reactors:
 |---|---|---|
 | `egon-cola-archetypes` | Project templates and generated-project fixtures. | New business projects. |
 | `egon-cola-components` | Reusable libraries, Spring Boot starters, BOM, and component tests. | Business applications and platform services. |
-| `egon-cola-platforms` | Independently deployable infrastructure systems and control planes. | Platform operators and enterprise services. |
+| `egon-cola-xingyuan` | Independently deployable infrastructure systems and control planes. | Platform operators and enterprise services. |
 
 The intended dependency direction is:
 
@@ -176,7 +176,7 @@ egon:
         max-clock-backward: 5ms
 ```
 
-Read the component documentation before copying configuration between environments. In particular, credentials, TLS settings, DDC registry settings, Redis topology, and outbox schema ownership are deployment-specific. The [Gateway and DDC integration guide](egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md) documents the multi-process configuration boundary.
+Read the component documentation before copying configuration between environments. In particular, credentials, TLS settings, DDC registry settings, Redis topology, and outbox schema ownership are deployment-specific. The [Gateway and DDC integration guide](egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md) documents the multi-process configuration boundary.
 
 ## Usage
 
@@ -222,10 +222,10 @@ Import the BOM, select the component's `starter` or pure-JAR entry point, and co
 
 Platforms are deployed as independent applications rather than started by the root project. Start the required platform modules and backing services according to their runbooks:
 
-- [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md)
-- [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.md)
-- [Unified Identity Provider](egon-cola-platforms/egon-cola-platform-idp/README.md)
-- [RBAC3 Permission Platform](egon-cola-platforms/egon-cola-platform-rbac3/README.md)
+- [Dynamic Config Center](egon-cola-xingyuan/egon-cola-tianshu/README.md)
+- [Gateway](egon-cola-xingyuan/egon-cola-yuheng/README.md)
+- [Unified Identity Provider](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md)
+- [RBAC3 Permission Platform](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md)
 
 ## Core Concepts
 
@@ -278,11 +278,11 @@ Egon-COLA/
 │   ├── egon-cola-component-method-extension/
 │   ├── egon-cola-component-transactional-outbox-starter/
 │   └── egon-cola-component-bytecode/
-├── egon-cola-platforms/              # Deployable infrastructure platforms
-│   ├── egon-cola-platform-dynamic-config-center/
-│   ├── egon-cola-platform-gateway/
-│   ├── egon-cola-platform-idp/
-│   └── egon-cola-platform-rbac3/
+├── egon-cola-xingyuan/              # Deployable infrastructure platforms
+│   ├── egon-cola-tianshu/
+│   ├── egon-cola-yuheng/
+│   ├── egon-cola-tianquan-shoubing/
+│   └── egon-cola-tianquan-jianshen/
 ├── scripts/                          # Release and repository helper scripts
 ├── mvnw
 ├── mvnw.cmd

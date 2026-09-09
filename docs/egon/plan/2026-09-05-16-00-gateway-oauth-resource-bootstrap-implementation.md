@@ -121,18 +121,18 @@ Primary Spec 明确修改父 Spec 的 local IdP 范围限制。主计划原同 a
 ## 5. Change File Tree
 
 ```text
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config  CREATE
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config  CREATE
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml  MODIFY
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java` | bootstrap 三个既有测试与 fixtures | 增补三身份/授权/幂等/冲突测试 | 锁定可观察行为 | Step 1 | REQ-001/002/003/004 | Codex focused test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml` | 缺 Lombok 编译依赖；父 POM 已有处理器 | provided/optional Lombok，${lombok.version} | Rule 4 编译支撑 | Step 1 | REQ-004 | focused compile |
-| CREATE | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config` | 模块尚无 lombok.config；Gateway 已有同形配置 | 复制 Qualifier/Value | DI 元数据传播 | Step 1 | REQ-004 | constructor metadata test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` | MACHINE_CLIENTS/RESOURCES/两个授权列表/Task 常量/ID 前缀 | §7 Spec 精确值 | 数据声明修复 | Step 1 | REQ-001/002/003/004 | Codex diff+test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java` | bootstrap 三个既有测试与 fixtures | 增补三身份/授权/幂等/冲突测试 | 锁定可观察行为 | Step 1 | REQ-001/002/003/004 | Codex focused test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml` | 缺 Lombok 编译依赖；父 POM 已有处理器 | provided/optional Lombok，${lombok.version} | Rule 4 编译支撑 | Step 1 | REQ-004 | focused compile |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config` | 模块尚无 lombok.config；Gateway 已有同形配置 | 复制 Qualifier/Value | DI 元数据传播 | Step 1 | REQ-004 | constructor metadata test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` | MACHINE_CLIENTS/RESOURCES/两个授权列表/Task 常量/ID 前缀 | §7 Spec 精确值 | 数据声明修复 | Step 1 | REQ-001/002/003/004 | Codex diff+test |
 
 ## 6. Prerequisites, Constraints, and Plan Clarifications
 
@@ -147,7 +147,7 @@ cwd=/Users/mario/SelfProject/Egon-COLA；main@4237b6bdb。保持用户 AGENTS �
 | Concern | Exact command/source | Required state | Validation boundary |
 | --- | --- | --- | --- |
 | Maven/JDK | ./mvnw，root pom.xml | 当前 Java21，已有依赖 | 编译/模块 |
-| Focused | ./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test | @TempDir/Mockito | 不启动服务/DB |
+| Focused | ./mvnw -pl :egon-cola-tianquan-shoubing-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test | @TempDir/Mockito | 不启动服务/DB |
 | Scope | git diff --check -- 四个 §5 路径；git diff --name-only | 无外部并发覆盖 | 静态 |
 
 ### 6.3 Immutable constraints and approved decisions
@@ -174,7 +174,7 @@ None。名称与新 ID 前缀已由 Primary Spec 明确定义，非实施时重�
 - Literal Rules: Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 10, Rule 11
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`
 
 - Purpose: 先锁定三身份与数据保护行为。
 - Symbols: createsOnlyMissingPublicClients、reconcilesOneExactRbac3ServiceGrantForEachConfiguredTenant；新增 preservesExistingGatewayIdentitiesAndSecrets、rejectsMismatchedMcpResource、doesNotReuseLegacyMcpTaskGrantId、reusesExistingMcpGrants
@@ -202,10 +202,10 @@ verify(resources).save(argThat(r -> preservesSpecAdminIdentity(r)));
 // New Task grant id starts with dev-mcp-engine-task-grant-, never legacy id.
 ```
 
-- Verification contribution: ./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test；RED 必须是 Mockito/assertion 缺行为，不是编译/环境错误
+- Verification contribution: ./mvnw -pl :egon-cola-tianquan-shoubing-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test；RED 必须是 Mockito/assertion 缺行为，不是编译/环境错误
 - After this file: 测试可编译并对原代码出现预期失败
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config`
 
 - Purpose: 在当前模块保证 Lombok 复制注入注解。
 - Symbols: config.stopBubbling、lombok.copyableAnnotations
@@ -228,7 +228,7 @@ lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value
 - Verification contribution: 编译 + IdpDevelopmentClientBootstrapTest 构造参数注解断言
 - After this file: 生成构造器可保留五个 Qualifier 和两个 Value
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`
 
 - Purpose: 修正首次 GREEN 暴露的缺失构建依赖，不省略 Rule 4。
 - Symbols: dependencies/org.projectlombok:lombok
@@ -255,7 +255,7 @@ lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Value
 - Verification contribution: 同 focused 命令重新编译成功；构造器注解测试通过
 - After this file: 所有既有处理器与当前注解所需类型均可解析
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
 
 - Purpose: 用现有协调机制执行准确种子映射。
 - Symbols: MACHINE_CLIENTS、RESOURCES、RBAC3_SERVICE_CLIENTS、DDC_REGISTRATION_CLIENTS、MCP_TASK_SERVICE_CLIENT、mcpTaskServiceGrantId
@@ -296,19 +296,19 @@ return "dev-mcp-engine-task-grant-" + suffix;
 - After this file: 三身份先决行为 GREEN，其他全平台工作明确继续
 
 - Validation working directory: /Users/mario/SelfProject/Egon-COLA
-- Verification command: `./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -pl :egon-cola-tianquan-shoubing-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: Exit 0；原测试与新增三身份/授权/幂等/冲突用例全通过，无被跳过测试当通过
 - Failure returns to: File 1（fixture/断言问题）或 File 3（种子字段错误）；触及鉴权/DDL则返回 Spec 修正
 - Completion criteria: 四项要求、十条 literal rule、17项 Manual Check 分别有证据；diff无噪声
 - Rollback: 记录本 Step hash，必要时人工做 path-limited forward correction；不删数据库资源/secret
-- Commit paths: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/lombok.config`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java`
 - Commit: `fix(idp): seed separate gateway resource identities`
 
 ## 8. Test, Validation, and Quality Gates
 
 | Gate/order | Working directory | Command or method | Scope | Expected result | Failure returns to | Requirements/runtime boundary |
 | --- | --- | --- | --- | --- | --- | --- |
-| RED | /Users/mario/SelfProject/Egon-COLA | ./mvnw -pl :egon-cola-platform-idp-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test | bootstrap test | 缺 MCP 行/owner/ID 失败 | File 1 | REQ-001/002/003；模块 |
+| RED | /Users/mario/SelfProject/Egon-COLA | ./mvnw -pl :egon-cola-tianquan-shoubing-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test | bootstrap test | 缺 MCP 行/owner/ID 失败 | File 1 | REQ-001/002/003；模块 |
 | GREEN | 同上 | 同一命令 | bootstrap test | Exit 0，无失败/跳过 | File 3 | REQ-001/002/003/004；模块 |
 | Diff | 同上 | git diff --check -- §5 四个精确路径；逐行 diff | 范围 | 不改其他生产符号 | Step 1 | REQ-004；静态 |
 | 父任务 runtime | 本地 platforms | 后续父任务修订的启动与测试脚本 | 三真实身份、DDC发布、Web | 此计划不宣称已经执行 | 主计划 Step 11 | 非本前置提交完成门槛；总体目标仍须验证 |

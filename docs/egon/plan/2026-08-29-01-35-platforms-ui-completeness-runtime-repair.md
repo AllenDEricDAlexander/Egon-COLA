@@ -9,7 +9,7 @@
 | Updated | `2026-08-29 01:35 CST` |
 | Owner | `User / Egon-COLA platform owner` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-platforms` Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web 与本地统一平台脚本 |
+| Scope | `egon-cola-xingyuan` Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web 与本地统一平台脚本 |
 | Source Requirement | 用户要求修复 Portal 内嵌四个平台的 UI 展示、Wujie 挂载、登录失败和 loopback 地址，并逐 Controller 校验前端体现，重点补齐 RBAC3 IAM 用户/角色/权限 CRUD 与关系绑定 CRUD；用户要求直接开始修复 |
 | Baseline Revision | `main@86a47ed74`；工作区另有用户未跟踪文档 `docs/egon/spec/2026-08-27-20-31-archetype-two-stage-source-generation.md`，必须保留 |
 | Implements Spec | [platforms Web UI 完整性、Wujie 聚合与登录运行时修复规格](../spec/2026-08-29-01-11-platforms-ui-completeness-and-runtime-repair.md) |
@@ -87,7 +87,7 @@
 | IAM directory relations | `UserRelationsPanel.test.tsx`, Directory/Assignment tests | org/position actions 未消费或 user 页无关系入口 | existing directoryApi + assignmentApi + Query invalidation | subject drawer/tab composition |
 | IAM role/permission/constraint/catalog | Role/Application/Constraint tests | role resource/permission detail/constraint writes/business route absent | existing API methods + minimal page actions/route registry | avoid new state store/BFF |
 | Gateway/IDP/DDC coverage/UI | existing platform focused tests | release diff/MCP capability validate unused, Trace calls nonexistent, old props warn | actual API actions and current AntD props | preserve existing page design and redacted data |
-| Controller audit | `scripts/unified-platform/controller_ui_coverage_test.py` | parser/classification registry absent | stdlib parser + explicit exclusion/management registry | shell wrapper output formatting only |
+| Controller audit | `scripts/unified-xingyuan/controller_ui_coverage_test.py` | parser/classification registry absent | stdlib parser + explicit exclusion/management registry | shell wrapper output formatting only |
 
 ### 4.3 Sequential and parallel boundaries
 
@@ -141,7 +141,7 @@ No fetch-then-forward API is added: child route is derived from current Portal p
 
 | Concern | Current repository evidence | Effective Spec decision | Planned implementation consequence | Owning Steps/checks |
 | --- | --- | --- | --- | --- |
-| Architecture profile | 四个平台 Java 的 `admin/controller`→`service`→`repository` 与 Web `src/features`；主 Spec §6.1 | preserve existing Traditional Three-Layer backend context + feature-first React; no hybrid Java tree | only modify existing Web feature/layout and `scripts/unified-platform`; no Java package | Steps 1-5; `MC-ARCH-001` |
+| Architecture profile | 四个平台 Java 的 `admin/controller`→`service`→`repository` 与 Web `src/features`；主 Spec §6.1 | preserve existing Traditional Three-Layer backend context + feature-first React; no hybrid Java tree | only modify existing Web feature/layout and `scripts/unified-xingyuan`; no Java package | Steps 1-5; `MC-ARCH-001` |
 | Reuse/capability | shared `EnterpriseLayout/PageState/httpClient`、Wujie Core、RBAC3 `FeatureApiClient`/TanStack Query、Gateway/DDC/IDP API clients | existing capability sufficient; no BFF/new framework | extend existing types/hooks/page components; use stdlib Python only for audit | Steps 1-5; `MC-REUSE-001`, `MC-DEP-001` |
 | Naming/model/validation/conversion | existing Controller DTO/VO names and frontend `*View/*Command`, Form rules | no Java models or converters added; preserve server validation/version/idempotency contract | TypeScript form mapping trims user fields, keeps expected version and ISO values; no new backend object | Steps 2-4; `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001` |
 | Bean/logging/util/JSON/time/config | no changed Java Bean; existing JSON envelopes and `java.time` contracts; `common.sh` URL constants | no Java Bean/logging/config/time change; no secret/raw JSON in UI/audit | use existing clients, shell/curl/Python stdlib; never read token/secret/cookie; preserve ISO strings | Steps 1-5; `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001` |
@@ -151,12 +151,12 @@ No fetch-then-forward API is added: child route is derived from current Portal p
 
 | Need | Candidates inspected | Exact evidence | Fit/gap | Decision | Added dependency/custom code | Owning Step/check |
 | --- | --- | --- | --- | --- | --- | --- |
-| Embedded shell | shared `EnterpriseLayout`, `EnterpriseSidebar`, `EnterpriseHeader/Footer` | `egon-cola-platform-admin-web-shared/src/layout/*` | missing only header/footer flags; sidebar already recursive/responsive | reuse/extend | no dependency; two config booleans | Step 1; `MC-REUSE-001` |
+| Embedded shell | shared `EnterpriseLayout`, `EnterpriseSidebar`, `EnterpriseHeader/Footer` | `egon-cola-xingyuan-admin-web-shared/src/layout/*` | missing only header/footer flags; sidebar already recursive/responsive | reuse/extend | no dependency; two config booleans | Step 1; `MC-REUSE-001` |
 | Wujie mount | `wujie.startApp` and lifecycle reducer | Portal `WujieChild.tsx`, `lifecycleState.ts`, lockfile 2.1.0 | Core exists; missing safe attrs/route/viewport | reuse adapter | no new microfrontend | Step 1; `MC-REUSE-001`, `MC-DEP-001` |
 | Auth transport | shared `createGatewayAuthClient`, Gateway Engine OAuth routes | `admin-web-shared/src/auth/gatewayAuthClient.ts`, `OAuthLoginController` | contract exists; errors/preflight insufficient | reuse and improve diagnosis | no token store/BFF | Step 1; `MC-JSON-001`, `MC-CONFIG-001` |
 | IAM data/mutations | RBAC3 `FeatureApiClient`, `directoryApi`, `assignmentApi`, `roleApi`, `applicationApi`, Query | RBAC3 `src/features/*` | APIs mostly exist; page consumers missing | reuse existing clients | no SDK replacement/store | Steps 2-3; `MC-REUSE-001` |
 | Gateway actions | `gatewayApi`, `useMcpCapabilityCollection`, QueryState | Gateway `src/api`, `src/features/mcp`, `src/components/QueryState` | actual methods exist; two action surfaces unused | reuse and wire | no backend/BFF | Step 4; `MC-REUSE-001` |
-| Coverage parsing | Bash `rg` shell audit, Python stdlib available | `scripts/unified-platform/check-admin-web-controller-coverage.sh` and local Python | count-only; needs per-method registry | extend existing script with stdlib helper | no pip/npm dependency | Step 5; `MC-UTIL-001`, `MC-DEP-001` |
+| Coverage parsing | Bash `rg` shell audit, Python stdlib available | `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` and local Python | count-only; needs per-method registry | extend existing script with stdlib helper | no pip/npm dependency | Step 5; `MC-UTIL-001`, `MC-DEP-001` |
 
 ### 4.8 User-mandated Java Rule Implementation Matrix
 
@@ -178,107 +178,107 @@ No fetch-then-forward API is added: child route is derived from current Portal p
 ## 5. Change File Tree
 
 ```text
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/AdminLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/App.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/router.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.ts
-MODIFY scripts/unified-platform/start-local-stack.sh
-MODIFY scripts/unified-platform/status-local-stack.sh
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts
-CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.tsx
-CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/AssignmentPages.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePages.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/application.api.ts
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationListPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationPages.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/constraint.api.ts
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.test.tsx
-CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/business.api.ts
-CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.tsx
-CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/managementPolicy.api.ts
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.test.tsx
-CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx
-CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpPromptsPanel.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpResourcesPanel.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpAppsPanel.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpTasksPanel.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/users/UserListPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/clients/ClientListPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/tenants/TenantListPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/resource-servers/ResourceServerListPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/keys/SigningKeyPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/overview/OverviewPage.tsx
-MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/RouteGuards.tsx
-CREATE scripts/unified-platform/controller_ui_coverage.py
-CREATE scripts/unified-platform/controller_ui_coverage_test.py
-MODIFY scripts/unified-platform/check-admin-web-controller-coverage.sh
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts
+MODIFY scripts/unified-xingyuan/start-local-stack.sh
+MODIFY scripts/unified-xingyuan/status-local-stack.sh
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts
+CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.tsx
+CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentPages.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePages.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationListPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationPages.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.test.tsx
+CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/business.api.ts
+CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx
+CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/managementPolicy.api.ts
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.test.tsx
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx
+CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpPromptsPanel.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpResourcesPanel.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpAppsPanel.tsx
+MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpTasksPanel.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/tenants/TenantListPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/overview/OverviewPage.tsx
+MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx
+CREATE scripts/unified-xingyuan/controller_ui_coverage.py
+CREATE scripts/unified-xingyuan/controller_ui_coverage_test.py
+MODIFY scripts/unified-xingyuan/check-admin-web-controller-coverage.sh
 ```
 
 | Operation | Path | Current evidence/symbol | Final state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts` | `EnterpriseLayoutConfig` | optional embedded flags | shared contract | 1 | REQ-003/009 | shared typecheck |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx` | unconditional Header/Footer | conditional shell, intact sidebar/content | layout geometry | 1 | REQ-001/003/009 | shared test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx` | `startApp` adapter | safe fallback, child route, viewport | lifecycle boundary | 1 | REQ-001/002 | Portal tests |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.tsx` | manifest page | route/viewport/state composition | Portal page | 1 | REQ-001/002/009 | Portal build |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.ts` | generic auth errors | safe typed diagnosis | login transport | 1 | REQ-004/005 | shared tests |
-| MODIFY | `scripts/unified-platform/start-local-stack.sh` | release reuse/publish | public login preflight | startup gate | 1 | REQ-004/005 | bash/static |
-| MODIFY | `scripts/unified-platform/status-local-stack.sh` | process/health output | origin/login status | operator diagnosis | 1 | REQ-004/005 | shell/static |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts` | relation API methods | stable view/form mappings | directory client | 2 | REQ-007/008 | RBAC3 tests |
-| CREATE | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.tsx` | absent | org/position tabs and assignment link | relation composition | 2 | REQ-008 | panel test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx` | user detail only | relation panel entry | user subject UI | 2 | REQ-007/008 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.tsx` | read-only | CRUD forms/actions | organization UI | 2 | REQ-008 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.tsx` | read-only | CRUD forms/actions | position UI | 2 | REQ-008 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx` | role actions | role resource entry | role relation UI | 3 | REQ-007/008 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/application.api.ts` | list/resource methods | detail methods | catalog client | 3 | REQ-006/007 | RBAC3 tests |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx` | list row drawer | controller detail query | permission UI | 3 | REQ-006/007 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/constraint.api.ts` | GET only | POST/PUT mappings | constraint client | 3 | REQ-006/008 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.tsx` | read-only tabs | CRUD editor workbench | policy UI | 3 | REQ-008/009 | RBAC3 test |
-| CREATE | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.tsx` | absent | business/application catalog | catalog UI | 3 | REQ-006 | RBAC3 test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx` | route descriptors | catalog route | route reachability | 3 | REQ-006/009 | RBAC3 route test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json` | IAM resource tree | business child node | menu ownership | 3 | REQ-003/009 | resource report |
-| MODIFY | `egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.tsx` | structured diff only | actual diff action | release UI | 4 | REQ-006/009 | Gateway test |
-| MODIFY | `egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.tsx` | fake detail call | summary-only view | honest observability | 4 | REQ-006/010 | Gateway test |
-| CREATE | `egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx` | absent | per-capability validate | MCP UI composition | 4 | REQ-006/009 | Gateway test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/users/UserListPage.tsx` | old modal prop | current AntD prop/state | IDP UI bug | 4 | REQ-009/010 | IDP test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx` | embedded Outlet only | domain sidebar retained | DDC shell | 4 | REQ-003/009 | DDC test |
-| MODIFY | `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/RouteGuards.tsx` | `Spin.tip` | `Spin.description` | DDC UI bug | 4 | REQ-010 | DDC typecheck |
-| CREATE | `scripts/unified-platform/controller_ui_coverage.py` | absent | per-method inventory/classifier | static audit | 5 | REQ-006/011 | Python test |
-| CREATE | `scripts/unified-platform/controller_ui_coverage_test.py` | absent | parser/classifier tests | audit RED/GREEN | 5 | REQ-006/011 | Python unittest |
-| MODIFY | `scripts/unified-platform/check-admin-web-controller-coverage.sh` | count-only | authoritative per-method gate | audit command | 5 | REQ-006/011 | shell audit |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts` | `EnterpriseLayoutConfig` | optional embedded flags | shared contract | 1 | REQ-003/009 | shared typecheck |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx` | unconditional Header/Footer | conditional shell, intact sidebar/content | layout geometry | 1 | REQ-001/003/009 | shared test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx` | `startApp` adapter | safe fallback, child route, viewport | lifecycle boundary | 1 | REQ-001/002 | Portal tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.tsx` | manifest page | route/viewport/state composition | Portal page | 1 | REQ-001/002/009 | Portal build |
+| MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | generic auth errors | safe typed diagnosis | login transport | 1 | REQ-004/005 | shared tests |
+| MODIFY | `scripts/unified-xingyuan/start-local-stack.sh` | release reuse/publish | public login preflight | startup gate | 1 | REQ-004/005 | bash/static |
+| MODIFY | `scripts/unified-xingyuan/status-local-stack.sh` | process/health output | origin/login status | operator diagnosis | 1 | REQ-004/005 | shell/static |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts` | relation API methods | stable view/form mappings | directory client | 2 | REQ-007/008 | RBAC3 tests |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.tsx` | absent | org/position tabs and assignment link | relation composition | 2 | REQ-008 | panel test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx` | user detail only | relation panel entry | user subject UI | 2 | REQ-007/008 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx` | read-only | CRUD forms/actions | organization UI | 2 | REQ-008 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx` | read-only | CRUD forms/actions | position UI | 2 | REQ-008 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx` | role actions | role resource entry | role relation UI | 3 | REQ-007/008 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts` | list/resource methods | detail methods | catalog client | 3 | REQ-006/007 | RBAC3 tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx` | list row drawer | controller detail query | permission UI | 3 | REQ-006/007 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts` | GET only | POST/PUT mappings | constraint client | 3 | REQ-006/008 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx` | read-only tabs | CRUD editor workbench | policy UI | 3 | REQ-008/009 | RBAC3 test |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx` | absent | business/application catalog | catalog UI | 3 | REQ-006 | RBAC3 test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx` | route descriptors | catalog route | route reachability | 3 | REQ-006/009 | RBAC3 route test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json` | IAM resource tree | business child node | menu ownership | 3 | REQ-003/009 | resource report |
+| MODIFY | `egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx` | structured diff only | actual diff action | release UI | 4 | REQ-006/009 | Gateway test |
+| MODIFY | `egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx` | fake detail call | summary-only view | honest observability | 4 | REQ-006/010 | Gateway test |
+| CREATE | `egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx` | absent | per-capability validate | MCP UI composition | 4 | REQ-006/009 | Gateway test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx` | old modal prop | current AntD prop/state | IDP UI bug | 4 | REQ-009/010 | IDP test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx` | embedded Outlet only | domain sidebar retained | DDC shell | 4 | REQ-003/009 | DDC test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx` | `Spin.tip` | `Spin.description` | DDC UI bug | 4 | REQ-010 | DDC typecheck |
+| CREATE | `scripts/unified-xingyuan/controller_ui_coverage.py` | absent | per-method inventory/classifier | static audit | 5 | REQ-006/011 | Python test |
+| CREATE | `scripts/unified-xingyuan/controller_ui_coverage_test.py` | absent | parser/classifier tests | audit RED/GREEN | 5 | REQ-006/011 | Python unittest |
+| MODIFY | `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` | count-only | authoritative per-method gate | audit command | 5 | REQ-006/011 | shell audit |
 
 Tests not listed individually in this summary table are present in the code tree and owned by the same Step as their production symbol. No Java, Flyway, database, generated artifact, package manifest, lockfile or runtime secret file is in the change tree.
 
@@ -297,13 +297,13 @@ Tests not listed individually in this summary table are present in the code tree
 | Concern | Exact command/source | Required state | Validation boundary |
 | --- | --- | --- | --- |
 | Skill resources | `python3 .agents/skills/egon-coding-writing-plan/scripts/validate_skill_resources.py` | exit 0 | skill integrity |
-| shared Web | `cd egon-cola-platforms/egon-cola-platform-admin-web-shared && npm run test -- --run && npm run typecheck && npm run build` | installed dependencies | static/module |
-| Portal Web | `cd egon-cola-platforms/egon-cola-platform-admin-portal && npm run test -- --run && npm run typecheck && npm run build` | installed Wujie/Vite dependencies | static/module |
-| IDP Web | `cd egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web && npm run test -- --run && npm run typecheck && npm run build` | existing shared resolution | static/module |
-| RBAC3 Web | `cd egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web && npm run test -- --run && npm run typecheck && npm run build && npm run report:resources` | existing SDK/API mocks | static/module |
-| Gateway Web | `cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web && npm run test -- --run && npm run typecheck && npm run build` | Gateway API mocks | static/module |
-| DDC Web | `cd egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web && npm run test -- --run && npm run typecheck && npm run build` | DDC mocks | static/module |
-| Shell/static | `bash -n scripts/unified-platform/start-local-stack.sh scripts/unified-platform/status-local-stack.sh scripts/unified-platform/check-admin-web-controller-coverage.sh && python3 scripts/unified-platform/controller_ui_coverage_test.py` | shell/Python available | static |
+| shared Web | `cd egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared && npm run test -- --run && npm run typecheck && npm run build` | installed dependencies | static/module |
+| Portal Web | `cd egon-cola-xingyuan/egon-cola-xingyuan-admin-portal && npm run test -- --run && npm run typecheck && npm run build` | installed Wujie/Vite dependencies | static/module |
+| IDP Web | `cd egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web && npm run test -- --run && npm run typecheck && npm run build` | existing shared resolution | static/module |
+| RBAC3 Web | `cd egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web && npm run test -- --run && npm run typecheck && npm run build && npm run report:resources` | existing SDK/API mocks | static/module |
+| Gateway Web | `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run test -- --run && npm run typecheck && npm run build` | Gateway API mocks | static/module |
+| DDC Web | `cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web && npm run test -- --run && npm run typecheck && npm run build` | DDC mocks | static/module |
+| Shell/static | `bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/status-local-stack.sh scripts/unified-xingyuan/check-admin-web-controller-coverage.sh && python3 scripts/unified-xingyuan/controller_ui_coverage_test.py` | shell/Python available | static |
 | Runtime proof | user-controlled restart/re-publish then loopback curl/browser | current process and Gateway release refreshed | runtime, not automatic |
 
 ### 6.3 Immutable constraints and approved decisions
@@ -336,7 +336,7 @@ Tests not listed individually in this summary table are present in the code tree
 - Literal Rules: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts`
 
 - Purpose: Extend the shared shell contract with optional embedded visibility switches.
 - Symbols: `EnterpriseLayoutConfig`, `hideHeader?: boolean`, `hideFooter?: boolean`.
@@ -364,7 +364,7 @@ interface EnterpriseLayoutConfig extends EnterpriseHeaderConfig {
 - Verification contribution: shared typecheck proves old configs remain valid; File 2 consumes the new flags.
 - After this file: compile prerequisite exists; rendering is unchanged and the new shell test is expected RED.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`
 
 - Purpose: Define embedded shell behavior before changing rendering.
 - Symbols: add `keepsNavigationWhenEmbeddedShellIsHidden`; retain desktop/mobile/nested selection tests.
@@ -390,7 +390,7 @@ it('keeps the domain menu while hiding duplicate embedded shell regions', () => 
 - Verification contribution: focused test fails against unconditional Header/Footer rendering and guards standalone regressions.
 - After this file: shell behavior is intentionally RED; production still renders the old shell.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx`
 
 - Purpose: Implement conditional shell regions without duplicating layout code in children.
 - Symbols: `EnterpriseLayout`, `mainColumn`, conditional `EnterpriseHeader` and `EnterpriseFooter`.
@@ -415,7 +415,7 @@ return <Layout style={{minHeight: '100vh'}}>{config.hideHeader !== true && <Ente
 - Verification contribution: File 2 turns GREEN; existing desktop/mobile/nested tests prove selection and footer defaults.
 - After this file: shared embedded behavior is GREEN and standalone behavior remains green.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx`
 
 - Purpose: Lock the safe Wujie fallback, child URL and viewport contract before adapter changes.
 - Symbols: extend existing mount test with `attrs.src`, route URL and host style assertions; retain reject/destroy tests.
@@ -441,7 +441,7 @@ expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({height: 'calc(100vh - 
 - Verification contribution: fails until safe fallback/route/viewport are implemented; existing reject/cleanup assertions remain.
 - After this file: Wujie option contract is locked and intentionally RED.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.test.tsx`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.test.tsx`
 
 - Purpose: Define Portal pathname-to-child-route behavior and visible mount host.
 - Symbols: add compatible deep-link test for `/platform/gateway/dashboard`; retain incompatible-manifest/cleanup tests.
@@ -467,7 +467,7 @@ it('passes the Portal deep-link suffix to the selected child', async () => {
 - Verification contribution: RED exposes current root-only URL; existing manifest safety tests stay green.
 - After this file: deep-link behavior is specified; production remains unchanged.
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/App.test.tsx`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`
 
 - Purpose: Assert IDP embedded mode keeps its permission-filtered domain navigation.
 - Symbols: add embedded layout render assertion to existing app/navigation tests.
@@ -492,7 +492,7 @@ it('renders the IDP domain navigation when embedded', async () => {
 - Verification contribution: fails against the current `return <>{children}</>` branch.
 - After this file: IDP embedded contract is RED and standalone guards remain.
 
-#### File 7 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`
 
 - Purpose: Assert RBAC3 embedded mode exposes the IAM tree.
 - Symbols: add route rendering case for `embedded: true`, visible `IAM` and child route labels.
@@ -518,7 +518,7 @@ it('keeps IAM navigation inside the embedded RBAC3 child', () => {
 - Verification contribution: fails while embedded returns bare children; existing route access tests remain.
 - After this file: RBAC3 shell contract is RED.
 
-#### File 8 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.test.tsx`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx`
 
 - Purpose: Assert Gateway capability-filtered navigation remains visible in embedded mode.
 - Symbols: add `$wujie.props.embedded` test; retain standalone capability pruning and operation deep-link tests.
@@ -543,7 +543,7 @@ it('keeps Gateway navigation in embedded mode', () => {
 - Verification contribution: RED against current early Outlet return.
 - After this file: Gateway embedded shell behavior is fixed by test contract only.
 
-#### File 9 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx`
 
 - Purpose: Assert DDC runtime/metadata second-level menu stays visible when embedded.
 - Symbols: add embedded `$wujie` case; retain current responsive/standalone assertions.
@@ -569,7 +569,7 @@ it('keeps DDC runtime and metadata navigation when embedded', () => {
 - Verification contribution: RED against bare Outlet; responsive standalone tests remain.
 - After this file: DDC embedded shell contract is RED.
 
-#### File 10 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`
 
 - Purpose: Implement safe Wujie lifecycle options and explicit host viewport.
 - Symbols: `WujieChild`, local child URL resolver usage, `startApp` options, existing cleanup callbacks.
@@ -598,7 +598,7 @@ return <div ref={hostRef} data-testid={`wujie-host-${manifest.key}`} style={{wid
 - Verification contribution: File 4 turns GREEN; reject/destroy tests prove failure and cleanup order.
 - After this file: Wujie no longer targets Portal as fallback and host geometry is explicit.
 
-#### File 11 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.tsx`
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.tsx`
 
 - Purpose: Resolve the Portal deep-link suffix and use current AntD layout/loading properties.
 - Symbols: local `resolveChildUrl`/route-intent handoff, `ChildRoutePage`, `Space.orientation`, `Spin.description`, embedded viewport wrapper.
@@ -623,7 +623,7 @@ const content = <Space orientation="vertical" size="middle" style={{width: '100%
 - Verification contribution: ChildRoute test turns GREEN and Portal build catches route/style type errors.
 - After this file: Portal deep links and viewport composition are complete.
 
-#### File 12 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/AdminLayout.tsx`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx`
 
 - Purpose: Keep IDP’s permission-filtered second-level menu in embedded mode.
 - Symbols: existing `config`, `navigation`, `breadcrumbItems`, embedded return branch.
@@ -647,7 +647,7 @@ return embedded
 - Verification contribution: IDP App test turns GREEN and standalone shell remains visible.
 - After this file: IDP embedded sidebar and page content are reachable.
 
-#### File 13 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/router.tsx`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx`
 
 - Purpose: Keep RBAC3 `visibleNavigation(about)` and IAM tree in embedded mode.
 - Symbols: local `AdminLayout`, `ApplicationRouter`, `EnterpriseLayout` return branch.
@@ -671,7 +671,7 @@ return shell
 - Verification contribution: RBAC3 integration test turns GREEN; direct route guard tests remain.
 - After this file: IAM menu is visible inside Portal.
 
-#### File 14 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx`
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`
 
 - Purpose: Preserve Gateway capability-filtered navigation in embedded mode.
 - Symbols: `AdminLayout`, existing `navigation`, `filterNavigation`, `$wujie` embedded detection.
@@ -695,7 +695,7 @@ return content
 - Verification contribution: Gateway embedded test turns GREEN; standalone tests preserve Header/Footer.
 - After this file: Gateway child menu is visible in Portal.
 
-#### File 15 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx`
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`
 
 - Purpose: Preserve DDC runtime/metadata navigation in embedded mode.
 - Symbols: `AdminLayout`, `navigation`, `$wujie` detection, shared config.
@@ -719,7 +719,7 @@ return body
 - Verification contribution: DDC embedded test turns GREEN; standalone responsive behavior remains.
 - After this file: all four child Layouts expose their domain menus.
 
-#### File 16 — `MODIFY egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.ts`
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`
 
 - Purpose: Make login errors distinguish normalized origin, CSRF challenge and HTTP/network failure without exposing credentials.
 - Symbols: local/exported `GatewayAuthError` if package convention requires; `request`, `csrf`, `createGatewayAuthClient`.
@@ -743,7 +743,7 @@ const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
 - Verification contribution: shared auth tests assert include credentials, exact CSRF header/body and sanitized errors.
 - After this file: child login screens can show actionable categories; actual route availability still needs restart.
 
-#### File 17 — `MODIFY scripts/unified-platform/start-local-stack.sh`
+#### File 17 — `MODIFY scripts/unified-xingyuan/start-local-stack.sh`
 
 - Purpose: Preflight the public Gateway Engine login route after active release reuse/publication and report loopback origin.
 - Symbols: `resolve_local_advertised_host`, new `preflight_gateway_login_route`.
@@ -770,7 +770,7 @@ printf 'Gateway public origin: %s; advertised host: %s\n' "${GATEWAY_BASE_URL}" 
 - Verification contribution: `bash -n` and static text checks prove the gate; runtime HTTP is user-controlled.
 - After this file: future starts fail clearly on stale public login route; current processes remain unchanged.
 
-#### File 18 — `MODIFY scripts/unified-platform/status-local-stack.sh`
+#### File 18 — `MODIFY scripts/unified-xingyuan/status-local-stack.sh`
 
 - Purpose: Show loopback/public origin and OAuth route status alongside process health.
 - Symbols: `print_status`, startup summary and public login check.
@@ -795,12 +795,12 @@ printf 'Gateway login route status: %s\n' "${login_status:-unreachable}"
 - After this file: operators can distinguish 127 loopback source defaults from a stale LAN runtime.
 
 - Validation working directory: repository root for shell checks; shared/Portal/IDP/RBAC3/Gateway/DDC package roots for focused tests.
-- Verification command: `bash -n scripts/unified-platform/start-local-stack.sh scripts/unified-platform/status-local-stack.sh && cd egon-cola-platforms/egon-cola-platform-admin-web-shared && npm run test -- --run src/layout/EnterpriseLayout.test.tsx && npm run typecheck && cd ../egon-cola-platform-admin-portal && npm run test -- --run src/lifecycle/WujieChild.test.tsx src/pages/ChildRoutePage.test.tsx && npm run typecheck`
+- Verification command: `bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/status-local-stack.sh && cd egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared && npm run test -- --run src/layout/EnterpriseLayout.test.tsx && npm run typecheck && cd ../egon-cola-xingyuan-admin-portal && npm run test -- --run src/lifecycle/WujieChild.test.tsx src/pages/ChildRoutePage.test.tsx && npm run typecheck`
 - Expected result: shell syntax, shared/Portal focused tests and typechecks pass; four child layout tests prove domain navigation; no process/release is mutated by validation.
 - Completion criteria: REQ-001..REQ-005 source behavior is implemented/tested; all four embedded child menus remain; `git diff --check` is clean and no unrelated path is staged.
 - Failure returns to: Files 2/4/5/6/7/8/9 for RED fixture issues; Files 3/10-15 for shell/Wujie wiring; Files 16-18 for auth/preflight diagnostics.
 - Rollback: revert only Step 1 paths; leave runtime DB/env/cookies/secrets and user untracked document unchanged.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/types.ts`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/layout/EnterpriseLayout.tsx`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.test.tsx`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.test.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/App.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/App.integration.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.test.tsx`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.test.tsx`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/lifecycle/WujieChild.tsx`, `egon-cola-platforms/egon-cola-platform-admin-portal/src/pages/ChildRoutePage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/AdminLayout.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/router.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.ts`, `scripts/unified-platform/start-local-stack.sh`, `scripts/unified-platform/status-local-stack.sh`.
+- Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`, `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-xingyuan/status-local-stack.sh`.
 - Commit: `fix(platforms): restore embedded child shell and loopback login diagnostics`
 
 ### Step 2 — Complete RBAC3 IAM directory and user relation CRUD
@@ -815,7 +815,7 @@ printf 'Gateway login route status: %s\n' "${login_status:-unreachable}"
 - Literal Rules: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 9`, `Rule 10`, `Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.test.tsx`
 
 - Purpose: Define organization create/edit/archive and version/error behavior before page changes.
 - Symbols: add tests for `新增组织`, edit drawer, archive `DELETE`, `expectedVersion`, forbidden/manage guard and conflict state.
@@ -842,7 +842,7 @@ it('creates an organization and sends its row version when archiving', async () 
 - Verification contribution: test fails because current page has no `新增组织` or mutation call.
 - After this file: organization RED contract exists; production remains read-only.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.test.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.test.tsx`
 
 - Purpose: Define position create/edit/archive behavior and required organization scope.
 - Symbols: tests for `新增岗位`, create body, update/delete version, empty org validation and 409 rendering.
@@ -869,7 +869,7 @@ it('requires an organization and archives a position with expectedVersion', asyn
 - Verification contribution: RED exposes absent form/action and guards required organization.
 - After this file: position RED contract exists.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/AssignmentPages.test.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentPages.test.tsx`
 
 - Purpose: Prove role assignment workbench remains the target for user relation navigation and mutation lifecycle.
 - Symbols: add link/deep-route assertion and existing create/suspend/resume/revoke expected-version assertions.
@@ -896,7 +896,7 @@ it('opens role assignments from the user subject route', async () => {
 - Verification contribution: keeps existing workbench green and fixes discoverability proof.
 - After this file: assignment target contract is protected.
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.test.tsx`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.test.tsx`
 
 - Purpose: Define composed organization/position tabs and the role assignment link before the component exists.
 - Symbols: `loadsThreeRelationTabs`, `assignsAndRevokesOrganization`, `assignsAndRevokesPosition`, `opensRoleAssignmentWorkbench`, forbidden/conflict tests.
@@ -924,7 +924,7 @@ it('loads organization relations and maps revoke with row version', async () => 
 - Verification contribution: fails because the component/action/link do not exist.
 - After this file: relation behavior is locked and intentionally RED.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts`
 
 - Purpose: Stabilize relation view/command mappings needed by the new panel without changing endpoint contracts.
 - Symbols: existing relation interfaces and `organizationAssignments`, `assignOrganization`, `revokeOrganization`, `positionAssignments`, `assignPosition`, `revokePosition` methods.
@@ -952,7 +952,7 @@ revokePosition: (userId, assignmentId, expectedVersion) => client.request<null>(
 - Verification contribution: API calls remain exact and enable panel tests without a duplicate client.
 - After this file: typed client is ready; page behavior remains RED.
 
-#### File 6 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.tsx`
+#### File 6 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.tsx`
 
 - Purpose: Compose the three user relationship surfaces with existing Query, mutation and permission primitives.
 - Symbols: `UserRelationsPanel`, organization/position query keys, assign/revoke mutations, tab renderers and `Link`.
@@ -976,7 +976,7 @@ return <Tabs items={[organizationTab, positionTab, {key: 'roles', label: '角色
 - Verification contribution: File 4 turns GREEN for relation reads/mutations/link and error branches.
 - After this file: relation panel is independently usable; user page still needs mounting.
 
-#### File 7 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.tsx`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx`
 
 - Purpose: Turn the organization list/detail drawer into a version-safe CRUD workbench.
 - Symbols: editor state/form, `createOrganization`, `updateOrganization`, `deleteOrganization` mutations, `PermissionGuard` actions.
@@ -1000,7 +1000,7 @@ const save = useMutation({mutationFn: (values: OrganizationForm) => selected
 - Verification contribution: organization tests become GREEN for actions, payload and refresh.
 - After this file: organization CRUD is visible and version-aware.
 
-#### File 8 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.tsx`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx`
 
 - Purpose: Turn position list/detail into a CRUD workbench requiring an organization.
 - Symbols: editor form, `createPosition`, `updatePosition`, `deletePosition` mutations and PermissionGuard action column.
@@ -1024,7 +1024,7 @@ const save = useMutation({mutationFn: (values: PositionForm) => selected
 - Verification contribution: position tests become GREEN and retain org scope query.
 - After this file: position CRUD is visible and version-aware.
 
-#### File 9 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx`
 
 - Purpose: Mount the relation panel below user detail while preserving existing user CRUD/status/archive.
 - Symbols: render `UserRelationsPanel` with `displayUser.userId` and `displayUser.authVersion`; invalidate relation queries on archive.
@@ -1048,13 +1048,13 @@ const save = useMutation({mutationFn: (values: PositionForm) => selected
 - Verification contribution: user-page test observes tabs/link only after detail resolves and removes them after archive.
 - After this file: Step 2 directory and user relationship UI is complete.
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web`.
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web`.
 - Verification command: `npm run test -- --run src/features/directory/OrganizationPage.test.tsx src/features/directory/PositionPage.test.tsx src/features/directory/UserRelationsPanel.test.tsx src/features/assignment/AssignmentPages.test.tsx && npm run typecheck && npm run build`
 - Expected result: focused tests pass; exact existing paths/methods/version queries are observed; RBAC3 typecheck/build pass.
 - Completion criteria: users can discover and mutate org/position/role relationships from IAM, organization/position pages are CRUD-capable, and no new endpoint/dependency/migration exists.
 - Failure returns to: Files 1-4 for fixtures; File 5 for API mapping; File 6 for relation state/cache; Files 7-9 for page wiring.
 - Rollback: revert only Step 2 paths; tests/build do not mutate runtime or persistent application data.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/assignment/AssignmentPages.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/directory.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserRelationsPanel.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/OrganizationPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/PositionPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/directory/UserDirectoryPage.tsx`.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentPages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx`.
 - Commit: `feat(rbac3-admin-web): complete IAM directory relations`
 
 ### Step 3 — Complete RBAC3 IAM role, permission, resource, catalog and policy workbenches
@@ -1069,7 +1069,7 @@ const save = useMutation({mutationFn: (values: PositionForm) => selected
 - Literal Rules: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 9`, `Rule 10`, `Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePages.test.tsx`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePages.test.tsx`
 
 - Purpose: Define role-resource discoverability and version-safe role relationship actions before page changes.
 - Symbols: resource authorization link/action assertion; existing create/edit/inheritance/impact tests remain.
@@ -1094,7 +1094,7 @@ it('exposes resource authorization from each role', async () => {
 - Verification contribution: fails because current role cards have no resource link.
 - After this file: role relation RED contract exists.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationPages.test.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationPages.test.tsx`
 
 - Purpose: Define tenant application detail and existing resource/field/mapping regression behavior.
 - Symbols: detail Drawer GET assertion for `/tenant-applications/{applicationId}`; retain admission/status/remove/resource tests.
@@ -1119,7 +1119,7 @@ it('loads tenant application detail through the existing controller', async () =
 - Verification contribution: RED until detail action/query is added.
 - After this file: application detail contract is fixed.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
 
 - Purpose: Define direct permission detail endpoint consumption and status/create regression behavior.
 - Symbols: selected permission -> `GET /api/rbac3/v1/iam/permissions/{id}` assertion; 403/409 and list refresh cases.
@@ -1144,7 +1144,7 @@ it('requests permission detail instead of using only the selected list row', asy
 - Verification contribution: RED against current row-only Drawer.
 - After this file: permission detail contract is fixed.
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.test.tsx`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.test.tsx`
 
 - Purpose: Define ConstraintController write mappings, DSD validation and version conflict behavior.
 - Symbols: `createSod/updateSod`, prerequisite/cardinality, data/field/operation create/update test assertions.
@@ -1171,7 +1171,7 @@ it('posts an SSD set with the selected roles and expected dates', async () => {
 - Verification contribution: RED against absent buttons/POST/PUT methods.
 - After this file: policy mutation contract is fixed.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`
 
 - Purpose: Define management policy detail/capability/manageable-target read coverage while preserving CRUD tests.
 - Symbols: tests for detail Drawer, `/management-capabilities/me`, `/manageable-users`, `/manageable-roles` and existing If-Match/idempotency calls.
@@ -1198,7 +1198,7 @@ it('loads policy capability and selected policy detail', async () => {
 - Verification contribution: RED until detail/capability queries are wired.
 - After this file: management policy read contract is fixed.
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx`
 
 - Purpose: Expose existing `RoleResourceGrantPage` from each role.
 - Symbols: row `Link`/navigate action guarded by `system:role-resource:read`; retain role CRUD/inheritance/impact.
@@ -1221,7 +1221,7 @@ it('loads policy capability and selected policy detail', async () => {
 - Verification contribution: RolePages test turns GREEN and target page tests preserve direct/derived/inherited behavior.
 - After this file: role resource relation is discoverable.
 
-#### File 7 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/application.api.ts`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts`
 
 - Purpose: Add client methods for existing tenant application and permission detail GET mappings.
 - Symbols: `application(applicationId)`, `permission(id)` (or repository-equivalent names), existing list/create/status methods.
@@ -1247,7 +1247,7 @@ permission: (id: string) => client.request<PermissionView>(
 - Verification contribution: API/page tests observe exact Controller paths.
 - After this file: detail client contract is available.
 
-#### File 8 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx`
+#### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx`
 
 - Purpose: Load actual permission detail in the existing Drawer while retaining create/status CRUD.
 - Symbols: selected permission ID, `useQuery` detail, Drawer `PageState`.
@@ -1271,7 +1271,7 @@ const detail = useQuery({queryKey: ['rbac3','permission',tenant,selectedId], que
 - Verification contribution: Permission test turns GREEN and proves list/detail distinction.
 - After this file: PermissionController detail is represented.
 
-#### File 9 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationListPage.tsx`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationListPage.tsx`
 
 - Purpose: Add tenant application detail Drawer and keep admission/status/remove CRUD intact.
 - Symbols: selected application ID, detail query, `查看详情` action, expected-version mutation guards.
@@ -1295,7 +1295,7 @@ renderDetailState(detailState, detail.data)
 - Verification contribution: ApplicationPages test turns GREEN and existing write actions remain covered.
 - After this file: tenant application detail method is consumed.
 
-#### File 10 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/business.api.ts`
+#### File 10 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/business.api.ts`
 
 - Purpose: Provide the existing BusinessCatalogController read methods through FeatureApiClient.
 - Symbols: `BusinessCatalogView`, `ApplicationCatalogView`, `businesses(keyword)`, `applications(ddcBusinessId, keyword)`.
@@ -1319,7 +1319,7 @@ export const businessApi = (client: FeatureApiClient) => ({
 - Verification contribution: Business page test can assert both exact methods.
 - After this file: business catalog client exists with no mutation.
 
-#### File 11 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.test.tsx`
+#### File 11 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.test.tsx`
 
 - Purpose: Define business/application catalog query and selection states before page implementation.
 - Symbols: list query, selected-business application query, empty/error behavior.
@@ -1345,7 +1345,7 @@ it('loads applications only after selecting a DDC business', async () => {
 - Verification contribution: RED until page/API exist.
 - After this file: catalog behavior is specified.
 
-#### File 12 — `CREATE egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.tsx`
+#### File 12 — `CREATE egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx`
 
 - Purpose: Render the business catalog and selected business applications as a read-only IAM resource-directory page.
 - Symbols: `BusinessCatalogPage`, keyword state, business/application queries, Table/Drawer/PageState.
@@ -1368,7 +1368,7 @@ return <Card title="业务目录"><Input.Search onSearch={(value) => setKeyword(
 - Verification contribution: business catalog test turns GREEN and route build proves component import.
 - After this file: both BusinessCatalogController reads have visible UI.
 
-#### File 13 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx`
 
 - Purpose: Register the business catalog route under the existing IAM resource-directory navigation group.
 - Symbols: `governanceRouteDescriptors` new `business-catalog` descriptor and component import.
@@ -1391,7 +1391,7 @@ assert route?.permission === 'system:business:read'
 - Verification contribution: route test/resource report observes the page.
 - After this file: business catalog route is reachable.
 
-#### File 14 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json`
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json`
 
 - Purpose: Place business catalog under IAM’s second-level `资源目录` tree.
 - Symbols: existing IAM/resource catalog node and new business child resource definition.
@@ -1414,7 +1414,7 @@ assert route?.permission === 'system:business:read'
 - Verification contribution: `npm run report:resources` proves JSON shape and IAM nesting.
 - After this file: business catalog is organized under IAM resource directory.
 
-#### File 15 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/constraint.api.ts`
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts`
 
 - Purpose: Map all approved ConstraintController POST/PUT methods to typed client calls.
 - Symbols: request interfaces and `create/updateSod`, `savePrerequisites`, `saveCardinality`, `create/updateDataRule`, `create/updateFieldRule`, `create/updateOperationSodRule`.
@@ -1437,7 +1437,7 @@ savePrerequisites: (roleId: string, request: PrerequisiteGroupRequest) => client
 - Verification contribution: ConstraintPage tests assert the complete method/path/body matrix.
 - After this file: all target constraint write methods have client mappings.
 
-#### File 16 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.tsx`
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx`
 
 - Purpose: Turn the four read tabs into a CRUD policy workbench with safe DSD/prerequisite/cardinality actions.
 - Symbols: editor state, `PermissionGuard system:authorization-constraint:manage`, mutation hooks and tab tables/forms.
@@ -1460,7 +1460,7 @@ return <Card title="授权约束"><Tabs items={sodTab(dataTab, fieldTab, operati
 - Verification contribution: ConstraintPage tests turn GREEN for editors, DSD validation, mutation payloads and conflicts.
 - After this file: constraint management methods are visible in IAM.
 
-#### File 17 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/managementPolicy.api.ts`
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/managementPolicy.api.ts`
 
 - Purpose: Add existing ManagementPolicyController detail/capability/target GET methods to the client.
 - Symbols: `get`, `capabilities`, `manageableUsers`, `manageableRoles`; preserve list/create/update/disable idempotency and If-Match headers.
@@ -1484,7 +1484,7 @@ manageableRoles: () => client.request<readonly ManagedRoleView[]>('/api/rbac3/v1
 - Verification contribution: policy tests assert all new GET paths.
 - After this file: policy client covers read/detail surface.
 
-#### File 18 — `MODIFY egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`
 
 - Purpose: Expose policy detail and management capability/target summaries while keeping existing CRUD.
 - Symbols: capability query, selected-policy detail query, Drawer, existing editor/disable mutations.
@@ -1507,13 +1507,13 @@ return <><CapabilitySummary value={capability.data}/><Table onRow={(row) => setS
 - Verification contribution: policy tests turn GREEN and existing CRUD/disable tests remain.
 - After this file: Step 3 IAM authorization/catalog workbench is complete.
 
-- Validation working directory: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web`.
+- Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web`.
 - Verification command: `npm run test -- --run src/features/role/RolePages.test.tsx src/features/application/ApplicationPages.test.tsx src/features/permission/PermissionCatalogPage.test.tsx src/features/constraint/ConstraintPage.test.tsx src/features/management-policy/ManagementPolicyPage.test.tsx src/features/business/BusinessCatalogPage.test.tsx && npm run typecheck && npm run build && npm run report:resources`
 - Expected result: focused tests pass; route/resource report contains business catalog under IAM resource directory; typecheck/build/report exit 0.
 - Completion criteria: IAM role/resource/permission/application/business/policy/constraint Controller methods have visible action/detail/API consumers; no new backend contract, DB or dependency.
 - Failure returns to: Files 1-5 for RED fixtures; Files 6-9 for role/detail wiring; Files 10-15 for business route; Files 16-19 for constraint/policy mapping/UI.
 - Rollback: revert only Step 3 paths; no runtime or persistent mutation is part of tests/build.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePages.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationPages.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RoleGraphPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/application.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/permission/PermissionCatalogPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/application/ApplicationListPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/business.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/business/BusinessCatalogPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/governance.routes.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/resourceDefinitions.json`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/constraint.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/constraint/ConstraintPage.tsx`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/managementPolicy.api.ts`, `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`.
+- Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationPages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/business.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/managementPolicy.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`.
 - Commit: `feat(rbac3-admin-web): complete IAM authorization workbenches`
 
 ### Step 4 — Close remaining IDP/Gateway/DDC Controller actions and UI bugs
@@ -1528,7 +1528,7 @@ return <><CapabilitySummary value={capability.data}/><Table onRow={(row) => setS
 - Literal Rules: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`
 
 - Purpose: Define actual release-diff/capability validation calls and remove false Trace detail expectation.
 - Symbols: `releaseDiff`, `validateMcpCapability`, and no production `traceDetail` call assertion.
@@ -1556,7 +1556,7 @@ it('calls the capability validation endpoint with plural and group', async () =>
 - Verification contribution: RED until test fixtures match the actual page/action contract; protects no-fake-detail boundary.
 - After this file: Gateway endpoint tests are ready for GREEN implementation.
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.test.tsx`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.test.tsx`
 
 - Purpose: Define a user-visible Release Diff action and loading/error panel.
 - Symbols: `查看 Release Diff`, diff query and JsonPanel assertions; preserve retry/rollback tests.
@@ -1582,7 +1582,7 @@ it('opens structured release diff through the existing API', async () => {
 - Verification contribution: RED because no button/query currently exists.
 - After this file: Release Diff behavior is fixed.
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.test.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.test.tsx`
 
 - Purpose: Prove observability page never advertises the absent Trace detail Controller.
 - Symbols: remove old `traceDetail` mock expectations; assert summary table, redacted notice and no `查看详情` action.
@@ -1608,7 +1608,7 @@ it('keeps traces summary-only when the backend has no detail mapping', async () 
 - Verification contribution: test initially fails against the current detail button/query.
 - After this file: unsupported Trace detail is explicitly out of UI scope.
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx`
 
 - Purpose: Define shared per-capability validation button behavior before component creation.
 - Symbols: `validatesOneCapability`, disabled permission state, success findings and 403/409 error states.
@@ -1635,7 +1635,7 @@ it('posts the exact capability validation request and displays findings', async 
 - Verification contribution: RED because component is absent.
 - After this file: reusable validation behavior is specified.
 
-#### File 5 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts`
+#### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts`
 
 - Purpose: Keep actual `releaseDiff`/`validateMcpCapability` mappings and remove unsupported `traceDetail` after consumer proof.
 - Symbols: `releaseDiff`, `validateMcpCapability`, `traceDetail` search/removal decision.
@@ -1658,7 +1658,7 @@ assertNoTraceDetailConsumerBeforeDelete()
 - Verification contribution: API tests turn GREEN and `rg traceDetail` proves deletion is safe.
 - After this file: API methods match real backend coverage.
 
-#### File 6 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.tsx`
+#### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx`
 
 - Purpose: Add on-demand Release Diff Drawer using the existing API and structured redacted data.
 - Symbols: `diffOpen`, `releaseDiff` query, `JsonPanel`, `QueryFailure`, current retry/rollback actions.
@@ -1681,7 +1681,7 @@ const diff = useQuery({queryKey: ['release-diff', releaseId], queryFn: ({signal}
 - Verification contribution: ReleaseDetail test turns GREEN.
 - After this file: release diff is a real visible Controller read.
 
-#### File 7 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.tsx`
+#### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx`
 
 - Purpose: Remove unsupported Trace detail query/drawer/action and retain summary observability.
 - Symbols: remove `selectedTraceId`, `detailQuery`, `TraceDetailContent` and row detail button; preserve scope/filter/table/redaction text.
@@ -1705,7 +1705,7 @@ assert(hasDetailAction === false)
 - Verification contribution: TracesPage tests turn GREEN and no unsupported method remains.
 - After this file: observability UI is complete for actual Controller surface.
 
-#### File 8 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx`
+#### File 8 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx`
 
 - Purpose: Implement one reusable per-capability validation action.
 - Symbols: `McpCapabilityValidationButton`, props `plural/capabilityId/gatewayGroupId`, `useMutation`, result Alert.
@@ -1729,7 +1729,7 @@ renderStatus(message)
 - Verification contribution: File 4 test turns GREEN.
 - After this file: shared action can be composed into capability rows.
 
-#### File 9 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpPromptsPanel.tsx`
+#### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpPromptsPanel.tsx`
 
 - Purpose: Expose per-row prompt validation.
 - Symbols: import/render `McpCapabilityValidationButton` with `plural="prompts"`, row ID and group ID.
@@ -1752,7 +1752,7 @@ renderPromptValidationState(canValidatePrompt)
 - Verification contribution: MCP panel test observes prompt validate action.
 - After this file: Prompt controller validate method is represented.
 
-#### File 10 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpResourcesPanel.tsx`
+#### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpResourcesPanel.tsx`
 
 - Purpose: Expose validation for resources and resource templates using the exact plural route.
 - Symbols: render button for `resources` and `resource-templates` rows where IDs are present.
@@ -1776,7 +1776,7 @@ assert validationTarget.capabilityId.length > 0
 - Verification contribution: resource panel tests observe each supported capability kind.
 - After this file: resource validation methods are represented.
 
-#### File 11 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpAppsPanel.tsx`
+#### File 11 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpAppsPanel.tsx`
 
 - Purpose: Expose validation for managed MCP App capability rows.
 - Symbols: render button with `plural="apps"` in binding table.
@@ -1799,7 +1799,7 @@ renderAppValidationStatus(appValidationTarget)
 - Verification contribution: App panel action test calls exact API method.
 - After this file: App validation is represented.
 
-#### File 12 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpTasksPanel.tsx`
+#### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpTasksPanel.tsx`
 
 - Purpose: Expose validation for task policy capability rows.
 - Symbols: render button with `plural="tasks"` beside task save/delete actions.
@@ -1822,7 +1822,7 @@ renderTaskValidationStatus(taskValidationTarget)
 - Verification contribution: Task panel test proves exact capability validation action.
 - After this file: target MCP capability rows have validation actions.
 
-#### File 13 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/users/UserListPage.tsx`
+#### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx`
 
 - Purpose: Replace deprecated modal lifecycle props in identity user CRUD without changing one-time password semantics.
 - Symbols: both `Modal` instances using `destroyOnClose` -> `destroyOnHidden`; existing create/edit/reset/revoke handlers.
@@ -1845,7 +1845,7 @@ assert createOpen === false || resetResult === undefined || isOneTimeDisplay(res
 - Verification contribution: existing user tests, typecheck and deprecation search.
 - After this file: user CRUD modals no longer emit the warning.
 
-#### File 14 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/clients/ClientListPage.tsx`
+#### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`
 
 - Purpose: Correct client CRUD/secret/URI modal lifecycle props while preserving OAuth client actions.
 - Symbols: every `destroyOnClose` -> `destroyOnHidden`; existing client/credential/redirect/resource URI handlers.
@@ -1868,7 +1868,7 @@ assert secretResult === undefined || isOneTimeSecretView(secretResult)
 - Verification contribution: existing client tests/typecheck and deprecation search.
 - After this file: client modals use the supported lifecycle prop.
 
-#### File 15 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/tenants/TenantListPage.tsx`
+#### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/tenants/TenantListPage.tsx`
 
 - Purpose: Correct tenant/member modal lifecycle while preserving expected-version mutations.
 - Symbols: tenant create/edit/member modals `destroyOnClose` -> `destroyOnHidden`.
@@ -1891,7 +1891,7 @@ assert tenantEditorOpen === false || memberEditorOpen === false || preserveExpec
 - Verification contribution: tenant tests/typecheck and source search.
 - After this file: tenant/member modals use current AntD API.
 
-#### File 16 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`
+#### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`
 
 - Purpose: Correct resource-server detail/editor modal lifecycle and retain batch/version actions.
 - Symbols: resource modals `destroyOnClose` -> `destroyOnHidden`; existing create/update/enable/disable/batch handlers.
@@ -1914,7 +1914,7 @@ assert selectedResource === undefined || hideCredentialFields(selectedResource)
 - Verification contribution: resource-server tests/typecheck and search.
 - After this file: resource-server modal warning is removed.
 
-#### File 17 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`
+#### File 17 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`
 
 - Purpose: Correct grant editor/detail modal lifecycle and preserve client-resource relationship CRUD.
 - Symbols: grant modals `destroyOnClose` -> `destroyOnHidden`; existing grant mutations and table actions.
@@ -1937,7 +1937,7 @@ assert selectedGrant === undefined || preserveGrantVersion(selectedGrant.version
 - Verification contribution: grant tests/typecheck and deprecation search.
 - After this file: grant modal warning is removed.
 
-#### File 18 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/keys/SigningKeyPage.tsx`
+#### File 18 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`
 
 - Purpose: Correct key lifecycle modal and preserve publish/activate/retire controls.
 - Symbols: key modal `destroyOnClose` -> `destroyOnHidden`; existing key API mutations.
@@ -1960,7 +1960,7 @@ assert publishResult === null || isPublicKeyMetadata(publishResult)
 - Verification contribution: key typecheck/build and source search.
 - After this file: key modal warning is removed.
 
-#### File 19 — `MODIFY egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/overview/OverviewPage.tsx`
+#### File 19 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/overview/OverviewPage.tsx`
 
 - Purpose: Consume `IdentityProfileController.me` safely in the visible overview.
 - Symbols: `IdentityProfileView`, `httpClient` query, profile PageState/Descriptions card; existing bootstrap authorization cards remain.
@@ -1984,7 +1984,7 @@ assert safeProfile === null || !('tokenId' in safeProfile) && !('audience' in sa
 - Verification contribution: overview test/API source check observes `/identity/me` and asserts tokenId/audience absent from DOM.
 - After this file: IdentityProfileController is represented safely.
 
-#### File 20 — `MODIFY egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/RouteGuards.tsx`
+#### File 20 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx`
 
 - Purpose: Replace deprecated `Spin.tip` with Ant Design’s current `description` while preserving auth loading state.
 - Symbols: `RouteGuards` loading branch.
@@ -2008,12 +2008,12 @@ return <Outlet />
 - After this file: DDC auth loading warning is removed.
 
 - Validation working directory: run Gateway, IDP and DDC package commands separately; repository root for unsupported endpoint/deprecation searches.
-- Verification command: `cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web && npm run test -- --run src/api/gatewayApi.test.ts src/features/releases/ReleaseDetailPage.test.tsx src/features/observability/TracesPage.test.tsx src/features/mcp/McpCapabilityValidationButton.test.tsx && npm run typecheck && npm run build`; then run `npm run test -- --run && npm run typecheck && npm run build` in the IDP and DDC Web roots.
+- Verification command: `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run test -- --run src/api/gatewayApi.test.ts src/features/releases/ReleaseDetailPage.test.tsx src/features/observability/TracesPage.test.tsx src/features/mcp/McpCapabilityValidationButton.test.tsx && npm run typecheck && npm run build`; then run `npm run test -- --run && npm run typecheck && npm run build` in the IDP and DDC Web roots.
 - Expected result: Gateway/IDP/DDC tests and builds pass; Release Diff/MCP validation use real paths; production has no fake Trace detail or touched deprecated props.
 - Completion criteria: remaining in-scope IDP/Gateway/DDC UI methods are consumed, redacted data boundaries remain, and Step paths are clean.
 - Failure returns to: Files 1-4 for RED fixtures; Files 5-7 for Gateway API/pages; Files 8-12 for MCP; Files 13-19 for IDP; File 20 for DDC.
 - Rollback: revert only Step 4 paths; no Java/backend/runtime state changes.
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/releases/ReleaseDetailPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/observability/TracesPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpPromptsPanel.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpResourcesPanel.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpAppsPanel.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/mcp/McpTasksPanel.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/users/UserListPage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/clients/ClientListPage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/tenants/TenantListPage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/keys/SigningKeyPage.tsx`, `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/overview/OverviewPage.tsx`, `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/RouteGuards.tsx`.
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpPromptsPanel.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpResourcesPanel.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpAppsPanel.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpTasksPanel.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/tenants/TenantListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/overview/OverviewPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx`.
 - Commit: `fix(platforms-admin-web): close controller actions and UI gaps`
 
 ### Step 5 — Produce per-method Controller/UI coverage audit and final static closure
@@ -2028,7 +2028,7 @@ return <Outlet />
 - Literal Rules: `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE scripts/unified-platform/controller_ui_coverage_test.py`
+#### File 1 — `CREATE scripts/unified-xingyuan/controller_ui_coverage_test.py`
 
 - Purpose: Fix parser/classifier behavior with Python standard-library tests before implementation.
 - Symbols: class/method mapping composition, external annotation, protocol/internal exclusion, UI/API evidence and management-unconsumed test cases.
@@ -2054,7 +2054,7 @@ def test_management_without_evidence_fails():
 - Verification contribution: tests are RED until module functions exist, then prove parser/classifier edge cases.
 - After this file: audit test contract exists and is intentionally RED.
 
-#### File 2 — `CREATE scripts/unified-platform/controller_ui_coverage.py`
+#### File 2 — `CREATE scripts/unified-xingyuan/controller_ui_coverage.py`
 
 - Purpose: Inventory external Java Controller methods and classify frontend representation against explicit evidence.
 - Symbols: `inventory_java`, `inventory_web`, `classify`, `render_report`, `main`; statuses `UI_ACTION`, `API_CONSUMED`, `PROTOCOL_OR_INTERNAL`, `UNCONSUMED`.
@@ -2086,7 +2086,7 @@ def classify(row, web):
 - Verification contribution: Python tests turn GREEN; current source run reveals true gaps for the owning UI Step.
 - After this file: deterministic per-method engine exists; shell gate is not yet integrated.
 
-#### File 3 — `MODIFY scripts/unified-platform/check-admin-web-controller-coverage.sh`
+#### File 3 — `MODIFY scripts/unified-xingyuan/check-admin-web-controller-coverage.sh`
 
 - Purpose: Preserve quick assertions and invoke the per-method audit as the authoritative gate.
 - Symbols: existing source-root/assertion logic plus Python CLI invocation and intentional exclusion output.
@@ -2110,12 +2110,12 @@ audit_status=$?
 - After this file: one command gives per-method coverage and an honest nonzero gate.
 
 - Validation working directory: repository root.
-- Verification command: `python3 scripts/unified-platform/controller_ui_coverage_test.py && bash -n scripts/unified-platform/check-admin-web-controller-coverage.sh && bash scripts/unified-platform/check-admin-web-controller-coverage.sh && git diff --check`
+- Verification command: `python3 scripts/unified-xingyuan/controller_ui_coverage_test.py && bash -n scripts/unified-xingyuan/check-admin-web-controller-coverage.sh && bash scripts/unified-xingyuan/check-admin-web-controller-coverage.sh && git diff --check`
 - Expected result: Python tests pass; shell exits 0; every external mapping has status/evidence; management rows are not unexplained; no runtime/secret/user-doc path is staged.
 - Completion criteria: REQ-006/011 closed by reproducible audit and five semantic commits; all module static gates reported; TEST-011 remains explicitly runtime-unverified.
 - Failure returns to: File 1/2 for parser errors; File 3 for shell integration; owning Step 2-4 for a true missing UI action. Do not suppress a management gap with a blanket exclusion.
 - Rollback: revert only Step 5 paths; prior UI commits remain independently revertible and runtime/database state is untouched.
-- Commit paths: `scripts/unified-platform/controller_ui_coverage.py`, `scripts/unified-platform/controller_ui_coverage_test.py`, `scripts/unified-platform/check-admin-web-controller-coverage.sh`.
+- Commit paths: `scripts/unified-xingyuan/controller_ui_coverage.py`, `scripts/unified-xingyuan/controller_ui_coverage_test.py`, `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh`.
 - Commit: `test(platforms): audit every external controller against admin web`
 
 ## 8. Test, Validation, and Quality Gates
@@ -2135,18 +2135,18 @@ audit_status=$?
 Run from `/Users/mario/SelfProject/Egon-COLA` unless a package root is shown:
 
 ```bash
-python3 scripts/unified-platform/controller_ui_coverage_test.py
-bash -n scripts/unified-platform/start-local-stack.sh scripts/unified-platform/status-local-stack.sh scripts/unified-platform/check-admin-web-controller-coverage.sh
-bash scripts/unified-platform/check-admin-web-controller-coverage.sh
+python3 scripts/unified-xingyuan/controller_ui_coverage_test.py
+bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/status-local-stack.sh scripts/unified-xingyuan/check-admin-web-controller-coverage.sh
+bash scripts/unified-xingyuan/check-admin-web-controller-coverage.sh
 ```
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-admin-web-shared && npm run test -- --run && npm run typecheck && npm run build
-cd ../egon-cola-platform-admin-portal && npm run test -- --run && npm run typecheck && npm run build
-cd ../egon-cola-platform-idp/egon-cola-platform-idp-admin-web && npm run test -- --run && npm run typecheck && npm run build
-cd ../../egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web && npm run test -- --run && npm run typecheck && npm run build && npm run report:resources
-cd ../../egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web && npm run test -- --run && npm run typecheck && npm run build
-cd ../../egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web && npm run test -- --run && npm run typecheck && npm run build
+cd egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared && npm run test -- --run && npm run typecheck && npm run build
+cd ../egon-cola-xingyuan-admin-portal && npm run test -- --run && npm run typecheck && npm run build
+cd ../egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web && npm run test -- --run && npm run typecheck && npm run build
+cd ../../egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web && npm run test -- --run && npm run typecheck && npm run build && npm run report:resources
+cd ../../egon-cola-yuheng/yuheng-admin-web && npm run test -- --run && npm run typecheck && npm run build
+cd ../../egon-cola-tianshu/egon-cola-tianshu-admin-web && npm run test -- --run && npm run typecheck && npm run build
 ```
 
 Each command must run from its actual package root; reset to repository root if a relative `cd` is invalid after a failure. Expected result is exit 0 with no TypeScript/test/build failure. Maven is not a required gate because no Java/backend files are planned; an accidental Java or migration diff must be removed before commit.
@@ -2154,9 +2154,9 @@ Each command must run from its actual package root; reset to repository root if 
 ### 8.3 Static quality assertions
 
 ```bash
-rg -n "traceDetail\(" egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src
-rg -n "destroyOnClose|<Space[^>]*direction=|<Spin[^>]*tip=" egon-cola-platforms/egon-cola-platform-admin-portal egon-cola-platforms/egon-cola-platform-idp egon-cola-platforms/egon-cola-platform-gateway egon-cola-platforms/egon-cola-platform-dynamic-config-center egon-cola-platforms/egon-cola-platform-admin-web-shared/src
-rg -n "VITE_GATEWAY_ORIGIN|127\.0\.0\.1|UNIFIED_PLATFORM_ADVERTISED_HOST" scripts/unified-platform egon-cola-platforms/egon-cola-platform-admin-portal
+rg -n "traceDetail\(" egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
+rg -n "destroyOnClose|<Space[^>]*direction=|<Spin[^>]*tip=" egon-cola-xingyuan/egon-cola-xingyuan-admin-portal egon-cola-xingyuan/egon-cola-tianquan-shoubing egon-cola-xingyuan/egon-cola-yuheng egon-cola-xingyuan/egon-cola-tianshu egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src
+rg -n "VITE_GATEWAY_ORIGIN|127\.0\.0\.1|UNIFIED_PLATFORM_ADVERTISED_HOST" scripts/unified-xingyuan egon-cola-xingyuan/egon-cola-xingyuan-admin-portal
 ```
 
 The first search must have no production consumer after Step 4. The deprecation search must have no touched production usage; unrelated remaining usage is recorded rather than broad-refactored. The origin search must show loopback defaults and explicit LAN override only.

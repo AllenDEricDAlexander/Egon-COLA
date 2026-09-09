@@ -31,10 +31,10 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 | Component | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.zh-CN.md) | 在注解方法执行前插入 AOP 或 Agent 业务决策 Handler。 |
 | Component | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md) | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
 | Component | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.zh-CN.md) | 构建期架构检查，以及可选的 Executor、观测、Method Extension 和 Access Guard 增强。 |
-| Platform | [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md) | 动态配置、Redis 租约、服务注册、同步发布和独立控制面。 |
-| Platform | [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md) | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
-| Platform | [Unified Identity Provider](egon-cola-platforms/egon-cola-platform-idp/README.md) | OAuth/OIDC 身份认证和统一身份相关的服务端能力。 |
-| Platform | [RBAC3](egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md) | 资源授权、角色权限、策略快照、Gateway 适配和管理控制面。 |
+| Platform | [Dynamic Config Center](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md) | 动态配置、Redis 租约、服务注册、同步发布和独立控制面。 |
+| Platform | [Gateway](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md) | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
+| Platform | [Unified Identity Provider](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | OAuth/OIDC 身份认证和统一身份相关的服务端能力。 |
+| Platform | [RBAC3](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md) | 资源授权、角色权限、策略快照、Gateway 适配和管理控制面。 |
 
 ## Architecture
 
@@ -44,7 +44,7 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 |---|---|---|
 | `egon-cola-archetypes` | 业务工程模板和生成工程测试夹具。 | 新建业务工程。 |
 | `egon-cola-components` | 可复用库、Spring Boot Starter、Components BOM 和组件测试。 | 业务应用及平台服务。 |
-| `egon-cola-platforms` | 可以独立部署的基础设施系统和控制面。 | 平台运维和企业级服务。 |
+| `egon-cola-xingyuan` | 可以独立部署的基础设施系统和控制面。 | 平台运维和企业级服务。 |
 
 推荐的依赖关系如下：
 
@@ -213,7 +213,7 @@ egon:
 3. Redis、PostgreSQL、TLS 密钥、OIDC 凭据和 DDC 注册凭据必须由部署环境提供，不应写入 README 示例之外的源码默认值。
 4. Outbox 的数据库表结构、迁移执行者和 Schema 所有权需要在业务应用与平台之间提前约定。
 
-具体属性表和完整示例请查看对应模块 README。Gateway 与 DDC 的多进程配置边界见 [Gateway 与 DDC 开发集成指南](egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md)。
+具体属性表和完整示例请查看对应模块 README。Gateway 与 DDC 的多进程配置边界见 [Gateway 与 DDC 开发集成指南](egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.zh-CN.md)。
 
 ## Usage
 
@@ -264,10 +264,10 @@ mvn -B archetype:generate \
 
 平台模块是独立应用，不会因为执行根工程 Maven 构建而自动启动。请根据拓扑启动所需平台和外部服务：
 
-- [Dynamic Config Center](egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.zh-CN.md)
-- [Gateway](egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md)
-- [统一身份 Provider](egon-cola-platforms/egon-cola-platform-idp/README.md)
-- [RBAC3 权限平台](egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md)
+- [Dynamic Config Center](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md)
+- [Gateway](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md)
+- [统一身份 Provider](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md)
+- [RBAC3 权限平台](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md)
 
 ## Core Concepts
 
@@ -321,11 +321,11 @@ Egon-COLA/
 │   ├── egon-cola-component-method-extension/
 │   ├── egon-cola-component-transactional-outbox-starter/
 │   └── egon-cola-component-bytecode/
-├── egon-cola-platforms/              # 可部署的企业级基础设施平台
-│   ├── egon-cola-platform-dynamic-config-center/
-│   ├── egon-cola-platform-gateway/
-│   ├── egon-cola-platform-idp/
-│   └── egon-cola-platform-rbac3/
+├── egon-cola-xingyuan/              # 可部署的企业级基础设施平台
+│   ├── egon-cola-tianshu/
+│   ├── egon-cola-yuheng/
+│   ├── egon-cola-tianquan-shoubing/
+│   └── egon-cola-tianquan-jianshen/
 ├── scripts/                          # 发布和仓库辅助脚本
 ├── mvnw
 ├── mvnw.cmd

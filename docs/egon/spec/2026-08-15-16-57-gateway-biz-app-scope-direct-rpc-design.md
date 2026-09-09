@@ -15,7 +15,7 @@
 | Amends             | [GWS-08 §4.2, §9, §15](../../superpowers/specs/2026-07-25-gateway-security-extension-design.md#42-执行顺序); [GWS-04 §2.1, §7.2, §16](../../superpowers/specs/2026-07-25-gateway-engine-rpc-design.md#21-rpc-consumer--rpc-provider); [GWS-10 §2.2, §6, §16](../../superpowers/specs/2026-07-25-gateway-starter-interface-reporting-design.md#22-rpc); [RBAC3/DDC/Gateway §17.6](../../superpowers/specs/2026-08-01-rbac3-ddc-gateway-integration-design.md#17-安全边界); [统一身份 §10.3, §11.3, §15.2, §19.3, §20.5/§20.9](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md#103-gateway-安全链扩展方式) |
 | Supersedes         | `None`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
 | Depends On         | `None`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            |
-| Related Specs      | [RBAC3 IAM §2.4 Business -> Application 边界（Draft，非本 Spec 的批准依赖）](../../../egon-cola-platforms/egon-cola-platform-rbac3/docs/iam-package-aggregation-migration-spec.md#24-business---application-的主数据与授权边界); [Gateway 总体设计](../../superpowers/specs/2026-07-24-gateway-component-design.md)                                                                                                                                                                                                                                                                                                                                        |
+| Related Specs      | [RBAC3 IAM §2.4 Business -> Application 边界（Draft，非本 Spec 的批准依赖）](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md#24-business---application-的主数据与授权边界); [Gateway 总体设计](../../superpowers/specs/2026-07-24-gateway-component-design.md)                                                                                                                                                                                                                                                                                                                                        |
 | Related Plans      | [Gateway BIZ/APP 范围鉴权与 DDC 直连 RPC 实施计划](../plan/2026-08-15-17-23-gateway-biz-app-direct-rpc-implementation.md)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 
 ## 1. Summary
@@ -171,9 +171,9 @@ N/A。当前 Review 版本没有阻塞实施计划的重大产品决策；`ASM-*
 
 | Concern                 | Current choice                                       | Repository evidence                                                       | Constraint on design                                                            |
 |-------------------------|------------------------------------------------------|---------------------------------------------------------------------------|---------------------------------------------------------------------------------|
-| Language/runtime        | Java 21                                              | `egon-cola-platforms/pom.xml:62-67`; `egon-cola-components/pom.xml:68-70` | 使用 Java record、Spring Lifecycle；不引入其他运行时                                        |
-| Framework               | Spring Boot 3.5.16, Spring Security                  | `egon-cola-platforms/pom.xml:67`; IdP/RBAC3/Gateway POM                   | 新能力通过现有 AutoConfiguration、Bean SPI 装配                                           |
-| RPC                     | gRPC 1.75.0, Protobuf 4.32.0, Unary                  | `egon-cola-platforms/pom.xml:76-79`; `@EgonRpcMethod`; GWS-04             | 不改 Wire Descriptor，不引入 Dubbo/Streaming                                          |
+| Language/runtime        | Java 21                                              | `egon-cola-xingyuan/pom.xml:62-67`; `egon-cola-components/pom.xml:68-70` | 使用 Java record、Spring Lifecycle；不引入其他运行时                                        |
+| Framework               | Spring Boot 3.5.16, Spring Security                  | `egon-cola-xingyuan/pom.xml:67`; IdP/RBAC3/Gateway POM                   | 新能力通过现有 AutoConfiguration、Bean SPI 装配                                           |
+| RPC                     | gRPC 1.75.0, Protobuf 4.32.0, Unary                  | `egon-cola-xingyuan/pom.xml:76-79`; `@EgonRpcMethod`; GWS-04             | 不改 Wire Descriptor，不引入 Dubbo/Streaming                                          |
 | Registry/config         | DDC Service Registry + Redis subscription            | `DdcRpcAutoConfiguration`, `DdcServiceRegistryClient`                     | Direct Directory 必须适配中立 RPC SPI，不让 rpc-starter 依赖 DDC                           |
 | RBAC runtime            | Redis immutable projection + version/fence           | `Rbac3RuntimeKeyFactory`; `RedisAuthorizationRuntimeRepository`           | 新范围快照与现有 pointer/version/fence 同步发布                                             |
 | Architecture            | Core SPI + Adapter + Spring Boot Starter             | Gateway security provider、RPC Directory、DDC Adapter                       | 依赖方向保持 `rpc-starter <- rpc-ddc-adapter`、`gateway-core <- rbac3-gateway-adapter` |
@@ -305,19 +305,19 @@ egon-cola-components/egon-cola-component-rpc/
 │   ├── consumer/gateway/{RpcConsumerGatewayManager,RpcGatewayDirectory,...}.java
 │   ├── consumer/proxy/{EgonRpcReferenceBeanPostProcessor,RpcConsumerProxyFactory}.java
 │   └── provider/{lifecycle,registration,server}/...
-└── egon-cola-component-rpc-ddc-adapter/.../rpc/ddc/
+└── egon-cola-component-rpc-tianshu-adapter/.../rpc/ddc/
     ├── autoconfigure/DdcRpcAutoConfiguration.java
     └── registry/{DdcRpcGatewayDirectory,DdcRpcProviderRegistry}.java
 
-egon-cola-platforms/
-├── egon-cola-platform-gateway/
-│   ├── egon-cola-platform-gateway-engine/.../{http,rpc,security}/...
-│   └── egon-cola-platform-gateway-starter/.../RpcGatewayDefinitionContributor.java
-├── egon-cola-platform-rbac3/
-│   ├── egon-cola-platform-rbac3-contract/.../authorization/...
-│   ├── egon-cola-platform-rbac3-admin/.../runtime/...
-│   └── egon-cola-platform-rbac3-gateway-adapter/.../{runtime,security}/...
-└── egon-cola-platform-idp/egon-cola-platform-idp-starter/.../security/...
+egon-cola-xingyuan/
+├── egon-cola-yuheng/
+│   ├── yuheng-biz-gateway/.../{http,rpc,security}/...
+│   └── yuheng-starter/.../RpcGatewayDefinitionContributor.java
+├── egon-cola-tianquan-jianshen/
+│   ├── egon-cola-tianquan-jianshen-contract/.../authorization/...
+│   ├── egon-cola-tianquan-jianshen-admin/.../runtime/...
+│   └── egon-cola-tianquan-jianshen-gateway-adapter/.../{runtime,security}/...
+└── egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/.../security/...
 ```
 
 ### 8.2 Target tree
@@ -361,7 +361,7 @@ egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/
     └── consumer/proxy/
         └── CREATE EgonRpcReferenceBeanPostProcessorTest.java
 
-egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/
+egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/
 ├── src/main/java/top/egon/cola/component/rpc/ddc/
 │   ├── autoconfigure/
 │   │   └── MODIFY DdcRpcAutoConfiguration.java
@@ -374,17 +374,17 @@ egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter
         ├── CREATE DdcRpcProviderDirectoryTest.java
         └── MODIFY DdcRpcProviderRegistryTest.java
 
-egon-cola-platforms/egon-cola-platform-rbac3/
-├── egon-cola-platform-rbac3-contract/
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/
+├── egon-cola-tianquan-jianshen-contract/
 │   ├── src/main/java/top/egon/cola/platform/rbac3/contract/authorization/
 │   │   ├── CREATE ApplicationAccessScope.java
 │   │   ├── CREATE BusinessAccessScope.java
 │   │   └── CREATE GatewayBizAppScopeSnapshot.java
 │   └── src/test/java/top/egon/cola/platform/rbac3/contract/
 │       └── MODIFY ContractSerializationTest.java
-├── egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/
+├── egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/runtime/
 │   └── MODIFY Rbac3RuntimeKeyFactory.java
-├── egon-cola-platform-rbac3-admin/
+├── egon-cola-tianquan-jianshen-admin/
 │   ├── src/main/java/top/egon/cola/platform/rbac3/admin/
 │   │   ├── iam/role/service/
 │   │   │   ├── CREATE EffectiveApplicationScope.java
@@ -402,7 +402,7 @@ egon-cola-platforms/egon-cola-platform-rbac3/
 │       └── runtime/
 │           ├── CREATE RedisAuthorizationRuntimeRepositoryTest.java
 │           └── MODIFY UserAuthorizationSnapshotProjectorTest.java
-└── egon-cola-platform-rbac3-gateway-adapter/
+└── egon-cola-tianquan-jianshen-gateway-adapter/
     ├── src/main/java/top/egon/cola/platform/rbac3/gateway/
     │   ├── autoconfigure/
     │   │   └── MODIFY Rbac3GatewayAdapterAutoConfiguration.java
@@ -423,8 +423,8 @@ egon-cola-platforms/egon-cola-platform-rbac3/
         └── security/
             └── MODIFY GatewayFailClosedSecurityMatrixTest.java
 
-egon-cola-platforms/egon-cola-platform-gateway/
-├── egon-cola-platform-gateway-engine/
+egon-cola-xingyuan/egon-cola-yuheng/
+├── yuheng-biz-gateway/
 │   ├── MODIFY pom.xml
 │   ├── src/main/resources/
 │   │   └── MODIFY application.yml
@@ -445,10 +445,10 @@ egon-cola-platforms/egon-cola-platform-gateway/
 │           ├── MODIFY HttpRpcUpstreamAdapterTest.java
 │           ├── CREATE RpcGatewayCredentialForwardingTest.java
 │           └── MODIFY RuleBackedRpcGatewaySecurityProcessorTest.java
-└── egon-cola-platform-gateway-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/
+└── yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/
     └── MODIFY RpcGatewayDefinitionContributorTest.java
 
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/
 ├── src/main/java/top/egon/cola/platform/idp/starter/
 │   ├── autoconfigure/
 │   │   └── MODIFY IdpStarterAutoConfiguration.java
@@ -709,11 +709,11 @@ Gateway Route 下线使用现有 Admin API/UI 完成，不新增页面或前端�
 
 ```bash
 mvn -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am test
 
-mvn -f egon-cola-platforms/pom.xml \
-  -pl egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter,egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platform-idp/egon-cola-platform-idp-starter \
+mvn -f egon-cola-xingyuan/pom.xml \
+  -pl egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter,egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-yuheng/yuheng-biz-gateway,egon-cola-yuheng/yuheng-starter,egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter \
   -am test
 ```
 

@@ -11,7 +11,7 @@
 | Repository         | Egon-COLA                                                                                                                                            |
 | Scope              | 根及一级 Maven Parent、六个正常 source projects、Light/Service/Web Flyway Baseline、Archetype definitions 与完整 generated reactor、CI 和 Maven Central 发布入口         |
 | Source Requirement | 确认实施新的两阶段 Archetype 结构，删除旧 Maven 包装模块，统一 Spring Boot Parent/BOM，并按 schema 角色收敛 Flyway Baseline                                                       |
-| Baseline Revision  | main at 9566c96796df73aa28e4a20de63c12379dcfdfeb; preserve modified egon-cola-platforms/egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo |
+| Baseline Revision  | main at 9566c96796df73aa28e4a20de63c12379dcfdfeb; preserve modified egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo |
 | Implements Spec    | [Archetype 两阶段生成、Spring 依赖治理与 Flyway 收敛设计](../spec/2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md)                             |
 | Spec Status        | Accepted                                                                                                                                             |
 | Spec Revision      | Updated 2026-09-03 13:38 CST at the current uncommitted decision-sync revision over main 9566c96796df73aa28e4a20de63c12379dcfdfeb                    |
@@ -200,7 +200,7 @@ scripts
 ├── maven-deploy.sh                                            MODIFY
 └── maven-deploy.md                                            MODIFY
 egon-cola-components/pom.xml                                   MODIFY
-egon-cola-platforms/pom.xml                                    MODIFY
+egon-cola-xingyuan/pom.xml                                    MODIFY
 egon-cola-archetypes
 ├── pom.xml                                                    MODIFY in Steps 1 and 6 by distinct sections
 ├── source-projects
@@ -253,7 +253,7 @@ README.zh-CN.md                                                MODIFY
 ### 6.1 Repository and worktree baseline
 
 - Branch/commit: main at 9566c96796df73aa28e4a20de63c12379dcfdfeb。
-- 现有非本任务改动：egon-cola-platforms/egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo；所有Step禁止stage、修改或回退它。
+- 现有非本任务改动：egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo；所有Step禁止stage、修改或回退它。
 - 当前 source-projects、generator、tests、release wrapper是已提交基础，不将其错误标记为待创建。
 - .generated已被.gitignore覆盖，任何Step都不得git add -f。
 - 每Step提交前执行git diff --check并使用精确Commit paths；发现新的并发改动则暂停重核重叠文件。
@@ -342,7 +342,7 @@ allow only the two bytecode src/it fixture POMs to remain self-contained; print 
 - Verification contribution: RED/GREEN entry for TEST-003和TEST-004，覆盖全POM inventory而非抽样模块。
 - After this file: 脚本可执行但在当前POM布局上按预期RED，未改变构建行为。
 
-#### File 2 — `MODIFY pom.xml,egon-cola-components/pom.xml,egon-cola-platforms/pom.xml,egon-cola-archetypes/pom.xml`
+#### File 2 — `MODIFY pom.xml,egon-cola-components/pom.xml,egon-cola-xingyuan/pom.xml,egon-cola-archetypes/pom.xml`
 
 - Purpose: 建立非应用模块的根级Boot BOM、plugin版本和Flyway/PostgreSQL例外来源。
 - Symbols: root properties spring.boot.version、springdoc.version、flyway.version、postgresql.version、lombok.version；root
@@ -423,7 +423,7 @@ preserve all other BOM order, internal source coordinates, modules, plugin confi
 - Completion criteria: REQ-012至REQ-015全部有静态/effective POM证据，REQ-001 source reactor仍可解析。
 - Rollback: 仅回退本Step POM和新测试脚本；不触碰SQL、generated目录或tsbuildinfo。
 - Commit paths: scripts/test-spring-dependency-management.sh;
-  pom.xml,egon-cola-components/pom.xml,egon-cola-platforms/pom.xml,egon-cola-archetypes/pom.xml;
+  pom.xml,egon-cola-components/pom.xml,egon-cola-xingyuan/pom.xml,egon-cola-archetypes/pom.xml;
   egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open,service,service-open,web,web-open}/pom.xml
 - Commit: build(dependencies): centralize Spring Boot version management
 

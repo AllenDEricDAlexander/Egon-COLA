@@ -9,9 +9,9 @@
 主要涉及模块：
 
 - `egon-cola-components/egon-cola-component-common/egon-cola-component-common-core`（只复用现有分页契约，不修改）
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web`
-- `egon-cola-platforms/egon-cola-platform-admin-web-shared`（只复用现有主题和页面状态组件，原则上不修改）
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`
+- `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared`（只复用现有主题和页面状态组件，原则上不修改）
 
 本文固化用户于 2026-08-10 确认的设计：DDC Admin 所有集合型管理查询都增加 `PageResultRecord` 分页接口，原接口保持兼容；DDC Admin Web 全面迁移到服务端分页，并使用现有 Ant Design、React Query 和 Admin Web Shared 能力完成响应式现代化。本文只定义目标、契约、数据边界、交互和验收条件，不是实施 Plan。书面规格经用户审核通过后，才编写逐任务实施 Plan；在此之前不修改生产代码。
 
@@ -27,7 +27,7 @@
 6. 数据库型集合必须在 Repository 层执行真实分页和总数查询，不允许先查全量再 `subList`；
 7. Registry 等 Redis/聚合型集合保持原完整领域快照，在专用 Admin 查询适配层稳定排序并切页；
 8. DDC Admin Web 的所有管理表格改为受控服务端分页；
-9. 前端复用现有 `antd`、`@ant-design/icons`、`@tanstack/react-query` 和 `@egon-cola/admin-web-shared`，不引入新的 UI 框架或状态库；
+9. 前端复用现有 `antd`、`@ant-design/icons`、`@tanstack/react-query` 和 `@egon-cola/xingyuan-admin-web-shared`，不引入新的 UI 框架或状态库；
 10. 本次不新增或修改数据库表结构，不修改任何已有 Flyway 文件，也不新增 Flyway 迁移；
 11. 本次不改变写接口、权限能力、JWT、RPC、配置发布、Redis Topic、租约或缓存一致性语义；
 12. 实施验证不自动启动 DDC、Redis、PostgreSQL、Gateway 或浏览器进程。

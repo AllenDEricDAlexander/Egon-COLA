@@ -3,8 +3,8 @@
 > 状态：已批准，进入实施（2026-08-02）
 > 设计日期：2026-08-01
 > 适用仓库：`/Users/mario/SelfProject/Egon-COLA`
-> 新平台模块：`egon-cola-platforms/egon-cola-platform-idp`
-> 关联平台：`egon-cola-platform-rbac3`、`egon-cola-platform-gateway`、`egon-cola-platform-dynamic-config-center`
+> 新平台模块：`egon-cola-xingyuan/egon-cola-tianquan-shoubing`
+> 关联平台：`egon-cola-tianquan-jianshen`、`egon-cola-yuheng`、`egon-cola-tianshu`
 > 原始需求参考：`/Users/mario/SelfProject/blog/internal-unified-identity-platform-spec.md`
 
 ## 1. 文档目的
@@ -94,7 +94,7 @@
 
 | 编号 | 决策 |
 |---|---|
-| IDP-01 | 新平台聚合模块名称固定为 `egon-cola-platform-idp` |
+| IDP-01 | 新平台聚合模块名称固定为 `egon-cola-tianquan-shoubing` |
 | IDP-02 | IdP 是人员身份、密码验证、SSO、OAuth Client、授权码和 Token 的唯一权威 |
 | IDP-03 | 全局用户主键为不可变 `identitySub`，即 JWT `sub`；用户名变更不得改变 `sub` |
 | IDP-04 | RBAC3 是租户、`identitySub -> tenant user` 映射和租户授权的唯一权威 |
@@ -136,7 +136,7 @@
 ```mermaid
 flowchart LR
     Browser["Admin Web / Browser"]
-    IdP["egon-cola-platform-idp"]
+    IdP["egon-cola-tianquan-shoubing"]
     Gateway["Gateway Engine"]
     DDC["DDC Admin + Redis"]
     RBAC3["RBAC3 Authorization Center"]
@@ -178,13 +178,13 @@ flowchart LR
 目录固定为：
 
 ```text
-egon-cola-platforms/egon-cola-platform-idp/
-├── egon-cola-platform-idp-contract
-├── egon-cola-platform-idp-core
-├── egon-cola-platform-idp-starter
-├── egon-cola-platform-idp-gateway-adapter
-├── egon-cola-platform-idp-admin
-└── egon-cola-platform-idp-admin-web
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/
+├── egon-cola-tianquan-shoubing-contract
+├── egon-cola-tianquan-shoubing-core
+├── egon-cola-tianquan-shoubing-starter
+├── egon-cola-tianquan-shoubing-gateway-adapter
+├── egon-cola-tianquan-shoubing-admin
+└── egon-cola-tianquan-shoubing-admin-web
 ```
 
 | 子模块 | 职责 |
@@ -411,7 +411,7 @@ IdP 用户状态 Redis 不可用时，受保护路由 Fail Closed。允许 DDC �
 
 ### 13.1 RBAC3 Starter 处理链
 
-每个下游引入 `egon-cola-platform-idp-starter` 和改造后的 `egon-cola-platform-rbac3-starter`：
+每个下游引入 `egon-cola-tianquan-shoubing-starter` 和改造后的 `egon-cola-tianquan-jianshen-starter`：
 
 1. IdP Starter 验证原始 Access Token 签名、标准声明和用户状态。
 2. RBAC3 Starter 以 `systemCode + tid + sid` 查询本系统授权缓存。
@@ -864,7 +864,7 @@ Redirect URI 必须按开发 Host 精确登记，不允许通配符。
 
 ## 24. 验收标准
 
-1. Reactor 中存在并构建 `egon-cola-platform-idp` 及六个约定子模块。
+1. Reactor 中存在并构建 `egon-cola-tianquan-shoubing` 及六个约定子模块。
 2. IdP 有独立 V1 Flyway，RBAC3 只有一个新的下一版本迁移；既有迁移 checksum 不变。
 3. IdP 能管理用户、密码、OAuth Client、Redirect URI、Audience、签名 Key 和审计。
 4. Authorization Code + PKCE S256、Refresh Rotation、重放检测、当前/全局登出均有自动化测试。

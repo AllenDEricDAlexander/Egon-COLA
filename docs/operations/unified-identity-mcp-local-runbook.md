@@ -37,7 +37,7 @@ Starter 本地校验同一个 USER AT，再从 RBAC3 拉取与缓存当前用户
 在仓库根目录执行：
 
 ```bash
-scripts/unified-platform/start-local-stack.sh
+scripts/unified-xingyuan/start-local-stack.sh
 ```
 
 首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、IdP 用户引导、RBAC3 多租户角色初始化、DDC 应用与注册初始化，以及 Gateway HTTP/MCP 统一发布。本地 MCP Tool 由 Provider 的 `@GatewayInterfaceGroup` 和 `@GatewayOperation` 注解投影，脚本只协调 Server、Remote MCP 和其他控制面能力，不创建本地 Tool 或 disabled Route 锚点。
@@ -45,17 +45,17 @@ scripts/unified-platform/start-local-stack.sh
 需要验证交付给开发者的原生命令时，先执行一次：
 
 ```bash
-scripts/unified-platform/prepare-local-stack.sh
+scripts/unified-xingyuan/prepare-local-stack.sh
 ```
 
 准备流程会初始化同一完整拓扑并停止所有受管进程。随后从仓库根目录分别运行五个后端；JAR 会自动读取 `target/local-unified-platform/env/*.properties`：
 
 ```bash
-java -jar egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/target/egon-cola-platform-dynamic-config-center-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/target/egon-cola-platform-idp-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/target/egon-cola-platform-rbac3-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/target/egon-cola-platform-gateway-admin-exec.jar
-java -jar egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/target/egon-cola-platform-gateway-engine-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/target/egon-cola-tianquan-shoubing-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/target/egon-cola-tianquan-jianshen-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/target/yuheng-admin-exec.jar
+java -jar egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/target/yuheng-biz-gateway-exec.jar
 ```
 
 四个 Admin Web 则分别进入各自目录执行同一条无参数命令，默认代理已固定为对应的 `18120`、`18130`、`18140`、`18150` 后端端口：
@@ -71,13 +71,13 @@ npm run dev
 只在已确认可执行 JAR 和 Web 构建均为最新时，才可跳过构建：
 
 ```bash
-UNIFIED_PLATFORM_SKIP_BUILD=true scripts/unified-platform/start-local-stack.sh
+UNIFIED_PLATFORM_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
 ```
 
 ## 状态与日志
 
 ```bash
-scripts/unified-platform/status-local-stack.sh
+scripts/unified-xingyuan/status-local-stack.sh
 ```
 
 状态必须显示 13 个受管进程均为 `running`，健康码均为 `200`。运行时目录为 `target/local-unified-platform/`：
@@ -107,7 +107,7 @@ sed -n '1p' target/local-unified-platform/secrets/idp-admin.password
 ## 深度验收
 
 ```bash
-scripts/unified-platform/verify-local-stack.sh
+scripts/unified-xingyuan/verify-local-stack.sh
 ```
 
 验收覆盖：
@@ -127,7 +127,7 @@ scripts/unified-platform/verify-local-stack.sh
 运行 MCP 官方 conformance：
 
 ```bash
-egon-cola-platforms/egon-cola-platform-gateway/deployment/scripts/run-mcp-conformance.sh \
+egon-cola-xingyuan/egon-cola-yuheng/deployment/scripts/run-mcp-conformance.sh \
   http://127.0.0.1:18151/conformance/stable \
   http://127.0.0.1:18151/conformance/rc \
   target/local-unified-platform/evidence/mcp-conformance
@@ -143,7 +143,7 @@ Gateway 实际远端联邦仍使用 `/remote/stable` 与 `/remote/rc`，两类�
 ## 停止
 
 ```bash
-scripts/unified-platform/stop-local-stack.sh
+scripts/unified-xingyuan/stop-local-stack.sh
 ```
 
 停止脚本只处理 PID 文件记录且仍存活的受管进程，不停止本机 PostgreSQL/Redis，也不删除数据库、密钥、日志或证据。需要重新验证时再次执行启动脚本。

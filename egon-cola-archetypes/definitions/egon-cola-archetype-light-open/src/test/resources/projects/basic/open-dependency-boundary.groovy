@@ -16,7 +16,7 @@ def verifyOpenDependencyBoundary = { File projectDir ->
      'springdoc-openapi-starter-webmvc-ui'].each { required ->
         assert ids.contains(required): "Missing Light Open dependency ${required}"
     }
-    def forbidden = ['egon-cola-component-rpc-', 'egon-cola-platform-dynamic-config-center', 'dubbo-']
+    def forbidden = ['egon-cola-component-rpc-', 'egon-cola-tianshu', 'dubbo-']
     assert !ids.any { id -> forbidden.any { id.startsWith(it) } }
     def packaged = new File(projectDir, 'target').listFiles()?.find {
         it.name.endsWith('.jar') && !it.name.endsWith('-sources.jar') && !it.name.endsWith('-javadoc.jar')

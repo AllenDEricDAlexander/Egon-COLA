@@ -230,7 +230,7 @@ assert releasedLibraries.contains('spring-boot-3.5.16.jar')
 assert releasedLibraries.contains('commons-lang3-3.20.0.jar')
 assert releasedLibraries.any { it.startsWith('egon-cola-component-common-core-') }
 assert releasedLibraries.contains('shardingsphere-jdbc-5.5.3.jar')
-assert !releasedLibraries.any { it.startsWith('egon-cola-component-rpc-') || it.startsWith('egon-cola-platform-dynamic-config-center') }
+assert !releasedLibraries.any { it.startsWith('egon-cola-component-rpc-') || it.startsWith('egon-cola-tianshu') }
 assert releasedLibraries.contains('springdoc-openapi-starter-webmvc-ui-2.8.17.jar')
 def openBoundaryFile = [new File(basedir, 'open-dependency-boundary.groovy'),
         new File(basedir, '../../open-dependency-boundary.groovy')].find { it.isFile() }

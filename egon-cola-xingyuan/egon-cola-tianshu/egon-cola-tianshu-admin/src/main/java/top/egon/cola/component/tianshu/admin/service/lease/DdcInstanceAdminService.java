@@ -1,0 +1,145 @@
+package top.egon.cola.component.tianshu.admin.service.lease;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
+import top.egon.cola.component.tianshu.admin.model.enums.InstanceStatus;
+import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
+import top.egon.cola.component.tianshu.admin.support.DdcAdminPageSupport;
+import top.egon.cola.component.tianshu.model.config.DdcHeartbeatRequest;
+import top.egon.cola.component.tianshu.model.config.DdcInstanceRegisterRequest;
+import top.egon.cola.component.tianshu.model.lease.DdcLeaseOperationResult;
+import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
+
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+@Service
+public class DdcInstanceAdminService {
+
+    private final DdcInstanceRepository instanceRepository;
+
+    private final DdcConfigLeaseService configLeaseService;
+
+    public DdcInstanceAdminService(DdcInstanceRepository instanceRepository,
+                                   DdcConfigLeaseService configLeaseService) {
+        this.instanceRepository = instanceRepository;
+        this.configLeaseService = configLeaseService;
+    }
+
+    @Transactional
+    public DdcLeaseSession register(DdcInstanceRegisterRequest request) {
+        DdcConfigLeaseService.AdmittedRegistration admitted =
+                configLeaseService.registerAdmitted(request);
+        DdcLeaseSession session = admitted.session();
+        DdcInstanceEntity instance = instanceRepository.findByInstanceId(request.getInstanceId())
+                .orElseGet(() -> newInstance(request));
+        fillInstance(instance, request);
+        instance.setLeaseId(session.leaseId());
+        instance.setLeaseExpireAt(localTime(session.leaseExpireAt()));
+        fillRegistration(instance, admitted.registration());
+        instance.setStatus(InstanceStatus.ONLINE.name());
+        instance.setLastHeartbeatAt(LocalDateTime.now());
+        instance.setUpdatedAt(LocalDateTime.now());
+        instanceRepository.save(instance);
+        return session;
+    }
+
+    @Transactional
+    public DdcLeaseOperationResult heartbeat(DdcHeartbeatRequest request) {
+        DdcConfigLeaseService.AdmittedHeartbeat admitted =
+                configLeaseService.heartbeatAdmitted(request);
+        DdcLeaseOperationResult result = admitted.result();
+        if (result.renewed()) {
+            instanceRepository.findByInstanceId(request.getInstanceId()).ifPresent(instance -> {
+                if (!request.getLeaseId().equals(instance.getLeaseId())) {
+                    return;
+                }
+                instance.setStatus(InstanceStatus.ONLINE.name());
+                instance.setLastHeartbeatAt(LocalDateTime.now());
+                instance.setLeaseExpireAt(localTime(result.leaseExpireAt()));
+                fillRegistration(instance, admitted.registration());
+                instance.setRuntimeMetadata(request.getMetadata());
+                instance.setUpdatedAt(LocalDateTime.now());
+                instanceRepository.save(instance);
+            });
+        }
+        return result;
+    }
+
+    @Transactional
+    public DdcLeaseOperationResult offline(DdcHeartbeatRequest request) {
+        DdcLeaseOperationResult result = configLeaseService.deregister(request);
+        if (result.deleted()) {
+            instanceRepository.markOfflineIfLeaseMatches(
+                    request.getInstanceId(),
+                    request.getLeaseId(),
+                    InstanceStatus.OFFLINE.name(),
+                    LocalDateTime.now()
+            );
+        }
+        return result;
+    }
+
+    public List<DdcInstanceEntity> list(
+            String bizCode, String env, String appCode) {
+        return instanceRepository.findByBizCodeAndEnvAndAppCode(
+                bizCode, env, appCode);
+    }
+
+    public Page<DdcInstanceEntity> page(
+            String bizCode,
+            String env,
+            String appCode,
+            PageQuery pageQuery
+    ) {
+        return instanceRepository.findByBizCodeAndEnvAndAppCode(
+                bizCode,
+                env,
+                appCode,
+                DdcAdminPageSupport.pageable(
+                        pageQuery,
+                        Sort.by(Sort.Direction.DESC, "updatedAt", "id")
+                )
+        );
+    }
+
+    private LocalDateTime localTime(Instant value) {
+        return LocalDateTime.ofInstant(value, ZoneId.systemDefault());
+    }
+
+    private DdcInstanceEntity newInstance(DdcInstanceRegisterRequest request) {
+        DdcInstanceEntity instance = new DdcInstanceEntity();
+        instance.setId(UuidV7.simpleString());
+        instance.setInstanceId(request.getInstanceId());
+        instance.setCreatedAt(LocalDateTime.now());
+        return instance;
+    }
+
+    private void fillInstance(DdcInstanceEntity instance, DdcInstanceRegisterRequest request) {
+        instance.setBizCode(request.getBizCode());
+        instance.setAppCode(request.getAppCode());
+        instance.setEnv(request.getEnv());
+        instance.setHost(request.getHost());
+        instance.setPort(request.getPort());
+        instance.setPid(request.getPid());
+        instance.setSdkVersion(request.getSdkVersion());
+        instance.setRuntimeMetadata(request.getMetadata());
+    }
+
+    private void fillRegistration(
+            DdcInstanceEntity instance,
+            top.egon.cola.component.tianshu.admin.security.registration.VerifiedDdcRegistrationIdentity registration
+    ) {
+        instance.setResourceServerId(registration.resourceServerId());
+        instance.setResourceVersion(registration.resourceVersion());
+        instance.setCredentialId(registration.credentialId());
+        instance.setAdmissionExpiresAt(localTime(registration.expiresAt()));
+    }
+}

@@ -1,0 +1,52 @@
+package top.egon.cola.component.tianshu.admin.service.publish;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
+import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
+import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
+import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
+
+import java.time.LocalDateTime;
+
+@Service
+public class PublishFailureRecorder {
+
+    private final DdcPublishTaskRepository publishTaskRepository;
+
+    public PublishFailureRecorder(DdcPublishTaskRepository publishTaskRepository) {
+        this.publishTaskRepository = publishTaskRepository;
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void recordFailure(String changeId, String bizCode, String env, String appCode, String resourceName, String errorMessage) {
+        DdcPublishTaskEntity task = publishTaskRepository.findByChangeId(changeId)
+                .orElseGet(() -> newFailedTask(changeId, bizCode, env, appCode, resourceName));
+        task.setStatus(PublishStatus.FAILED.name());
+        task.setErrorMessage(errorMessage);
+        task.setUpdatedAt(LocalDateTime.now());
+        publishTaskRepository.save(task);
+    }
+
+    private DdcPublishTaskEntity newFailedTask(String changeId, String bizCode, String env, String appCode, String resourceName) {
+        LocalDateTime now = LocalDateTime.now();
+        DdcPublishTaskEntity task = new DdcPublishTaskEntity();
+        task.setId(UuidV7.simpleString());
+        task.setChangeId(changeId);
+        task.setBizCode(bizCode);
+        task.setAppCode(appCode);
+        task.setEnv(env);
+        task.setNamespace(null);
+        task.setResourceName(resourceName);
+        task.setStatus(PublishStatus.FAILED.name());
+        task.setTargetCount(0);
+        task.setAckCount(0);
+        task.setFailedCount(0);
+        task.setIgnoredCount(0);
+        task.setTimeoutCount(0);
+        task.setCreatedAt(now);
+        task.setUpdatedAt(now);
+        return task;
+    }
+}

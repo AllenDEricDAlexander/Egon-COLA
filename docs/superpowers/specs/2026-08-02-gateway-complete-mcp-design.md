@@ -134,7 +134,7 @@ MCP 必须复用这些能力，不另建平行的服务目录、发布系统或�
 
 ### 5.1 方案 A：Gateway 内部独立 MCP Runtime，推荐
 
-新增 `egon-cola-platform-gateway-mcp-runtime`，依赖 `gateway-core` 和 `gateway-contract`；Engine 依赖该 Runtime。MCP 配置成为现有 Gateway Rule 的可选嵌套部分，与 HTTP/RPC Route 共用一个 Release、一个哈希、一个 DDC Active Pointer、一个 LKG 和一次原子激活。
+新增 `yuheng-mcp-runtime`，依赖 `gateway-core` 和 `gateway-contract`；Engine 依赖该 Runtime。MCP 配置成为现有 Gateway Rule 的可选嵌套部分，与 HTTP/RPC Route 共用一个 Release、一个哈希、一个 DDC Active Pointer、一个 LKG 和一次原子激活。
 
 优点：
 
@@ -186,16 +186,16 @@ flowchart TB
 ### 7.1 Reactor
 
 ```text
-egon-cola-platform-gateway
-├── egon-cola-platform-gateway-contract
-├── egon-cola-platform-gateway-core
-├── egon-cola-platform-gateway-mcp-runtime   # 新增
-├── egon-cola-platform-gateway-engine
-├── egon-cola-platform-gateway-admin
-├── egon-cola-platform-gateway-admin-web
-├── egon-cola-platform-gateway-starter
-├── egon-cola-platform-gateway-provider-runtime
-└── egon-cola-platform-gateway-test
+egon-cola-yuheng
+├── yuheng-contract
+├── yuheng-core
+├── yuheng-mcp-runtime   # 新增
+├── yuheng-biz-gateway
+├── yuheng-admin
+├── yuheng-admin-web
+├── yuheng-starter
+├── yuheng-provider-runtime
+└── yuheng-test
 ```
 
 ### 7.2 依赖方向

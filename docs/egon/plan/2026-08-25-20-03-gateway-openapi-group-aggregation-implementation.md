@@ -9,7 +9,7 @@
 | Updated | `2026-08-25 20:03 CST` |
 | Owner | User / Egon-COLA Gateway maintainers |
 | Repository | Egon-COLA |
-| Scope | `egon-cola-platforms/egon-cola-platform-gateway`：Provider Springdoc 多 Group、DDC Manifest、Admin 安全同步与聚合、Report v2/Ingestion、Catalog/MCP 投影、Admin Web |
+| Scope | `egon-cola-xingyuan/egon-cola-yuheng`：Provider Springdoc 多 Group、DDC Manifest、Admin 安全同步与聚合、Report v2/Ingestion、Catalog/MCP 投影、Admin Web |
 | Source Requirement | 用户确认全部推荐方案，并要求不同业务系统配置不同 OpenAPI Group、Gateway 聚合、HTTP/RPC 来源可扩展及 MCP 可选扩展；允许破坏性更新和 fresh DB 重建 |
 | Baseline Revision | `main@3be897e5cb4781890bfbac3104512e6e73bb943a`；dirty worktree，现有 `docs/egon` 用户改动不属于实施提交 |
 | Implements Spec | [Gateway HTTP OpenAPI 3.1 单一事实源破坏性改造规格](../spec/2026-08-25-19-01-gateway-openapi31-source-refactor.md) |
@@ -198,16 +198,16 @@
 ## 5. Change File Tree
 
 ```text
-egon-cola-platforms/pom.xml                                                   MODIFY Springdoc 2.8.17 BOM
-egon-cola-platforms/egon-cola-platform-gateway/
+egon-cola-xingyuan/pom.xml                                                   MODIFY Springdoc 2.8.17 BOM
+egon-cola-xingyuan/egon-cola-yuheng/
 ├── pom.xml                                                                   MODIFY add 3 modules/dependency management
 ├── lombok.config                                                             CREATE qualifier propagation
-├── egon-cola-platform-gateway-contract/                                      MODIFY enum + openapi manifest + tests
-├── egon-cola-platform-gateway-starter-openapi/                               CREATE common annotations/config/customizers/registration/tests/imports
-├── egon-cola-platform-gateway-starter-openapi-webmvc/                        CREATE MVC API/security/classpath tests/imports
-├── egon-cola-platform-gateway-starter-openapi-webflux/                       CREATE WebFlux API/security/classpath tests/imports
-├── egon-cola-platform-gateway-starter/                                       MODIFY RPC-only; DELETE HTTP annotations/compiler/tests
-├── egon-cola-platform-gateway-admin/
+├── yuheng-contract/                                      MODIFY enum + openapi manifest + tests
+├── yuheng-starter-openapi/                               CREATE common annotations/config/customizers/registration/tests/imports
+├── yuheng-starter-openapi-webmvc/                        CREATE MVC API/security/classpath tests/imports
+├── yuheng-starter-openapi-webflux/                       CREATE WebFlux API/security/classpath tests/imports
+├── yuheng-starter/                                       MODIFY RPC-only; DELETE HTTP annotations/compiler/tests
+├── yuheng-admin/
 │   ├── pom.xml                                                               MODIFY adapter/common-core/MapStruct/Lombok/Testcontainers
 │   ├── src/main/java/.../admin/openapi/                                      CREATE feature-first controller/client/service/scheduled/validation/converter/repository/domain
 │   ├── src/main/java/.../admin/reporting/                                    MODIFY shared ingestion/source scope/lifecycle
@@ -215,34 +215,34 @@ egon-cola-platforms/egon-cola-platform-gateway/
 │   ├── src/main/java/.../admin/{catalog,mcp,observability,release,routing,shared}/domain/**/*.java MODIFY remove GatewaySchemaField/use @Schema only at wire DTO/VO
 │   ├── src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql      CREATE only migration
 │   └── src/main/resources/application{,-local}.yml                           MODIFY parity
-├── egon-cola-platform-gateway-admin-web/
+├── yuheng-admin-web/
 │   ├── src/api/{types.ts,gatewayApi.ts,gatewayApi.test.ts}                   MODIFY
 │   ├── src/features/applications/{ApplicationsPage.tsx,ApplicationsPage.test.tsx} MODIFY
 │   ├── src/features/interface-catalog/{CatalogPage.tsx,OperationPage.tsx}     MODIFY
 │   ├── src/features/interface-catalog/OperationPage.test.tsx                 CREATE
 │   └── e2e/gateway-admin.spec.ts                                             MODIFY
-└── egon-cola-platform-gateway-test/
+└── yuheng-test/
     ├── *-http-provider, *-webflux-http-provider, *-idp-backend, *-mcp-provider POM/config/controllers/tests MODIFY
     └── */src/test/resources/openapi/{orders,inventory,webflux,mcp,drift}.json CREATE Golden
 ```
 
 | Operation | Path | Current evidence/symbol | Final symbols/state | Responsibility | Step | Requirements | Validation owner |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MODIFY | `egon-cola-platforms/pom.xml` | Boot BOM，无 springdoc version | Springdoc BOM 2.8.17 after Boot BOM | dependency lock | 1 | `REQ-001,REQ-003` | dependency tree |
-| CREATE/MODIFY | `egon-cola-platforms/egon-cola-platform-gateway/{lombok.config,pom.xml,egon-cola-platform-gateway-contract/**,egon-cola-platform-gateway-starter-openapi*/pom.xml,egon-cola-platform-gateway-admin/pom.xml` | modules/types absent | build graph、enum、Manifest、processor/classpath | compilation foundation | 1 | `REQ-003,REQ-017,REQ-020` | contract tests |
-| CREATE | `.../egon-cola-platform-gateway-starter-openapi/src/{main,test}/**` | absent | three annotations、properties、customizers、registration、autoconfig | common Provider contract | 2 | `REQ-001,REQ-002,REQ-004,REQ-016,REQ-017,REQ-022` | common module tests |
-| CREATE | `.../egon-cola-platform-gateway-starter-openapi-{webmvc,webflux}/src/{main,test}/**` | absent | stack API/security/autoconfig | stack isolation | 3 | `REQ-001,REQ-003,REQ-005` | adapter tests |
-| MODIFY/CREATE | `.../egon-cola-platform-gateway-test/{egon-cola-platform-gateway-test-http-provider,egon-cola-platform-gateway-test-webflux-http-provider,egon-cola-platform-gateway-test-idp-backend,egon-cola-platform-gateway-test-mcp-provider}/**` | old Gateway annotations | standard Swagger/Egon extensions、explicit groups、Golden | provider consumers | 4 | `REQ-001,REQ-002,REQ-016,REQ-021,REQ-022` | provider contracts |
-| MODIFY/CREATE | `.../egon-cola-platform-gateway-admin/src/{main,test}/java/**` HTTP annotation inventory | 20 controllers + fully-qualified schema annotations | standard `@Tag/@Operation/@Schema` and x-egon customizers；业务逻辑不变 | Admin as Provider | 5 | `REQ-001,REQ-002,REQ-009,REQ-022` | Admin Golden/residual |
-| MODIFY/DELETE | `.../egon-cola-platform-gateway-starter/{pom.xml,src/main/java/**,src/test/java/**}` | mixed HTTP/RPC compiler | RPC Descriptor-only Starter；HTTP classes/tests removed | breaking cleanup | 6 | `REQ-003,REQ-009,REQ-010,REQ-020` | RPC Golden/static |
-| CREATE/MODIFY | `.../egon-cola-platform-gateway-admin/{src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql,src/main/java/.../openapi/domain/**,src/main/java/.../openapi/repository/**,src/test/java/**}` | V1–V11 only | snapshots/sync CAS persistence | durable state | 7 | `REQ-006,REQ-007,REQ-011,REQ-013,REQ-018,REQ-024` | schema/PostgreSQL IT |
-| CREATE | `.../egon-cola-platform-gateway-admin/src/{main,test}/java/.../openapi/{client,validation,domain/dto}/**` | absent | trusted candidate, bounded fetch, validation chain | secure acquisition | 8 | `REQ-004,REQ-005,REQ-021,REQ-025` | security tests |
-| CREATE | `.../egon-cola-platform-gateway-admin/src/{main,test}/java/.../openapi/{converter,domain/dto}/**` | absent | canonical OpenAPI→DefinitionDTO→Report | semantic adaptation | 9 | `REQ-006,REQ-008,REQ-021,REQ-023` | adapter Golden |
-| CREATE/MODIFY | `.../egon-cola-platform-gateway-admin/src/{main,test}/java/.../{openapi/service,reporting,mcp}/**` | transport/write coupled | aggregate coordinator + shared ingestion atomicity | one set/all groups | 10 | `REQ-007,REQ-010,REQ-018,REQ-019,REQ-020,REQ-024` | transaction/recovery |
-| CREATE/MODIFY | `.../egon-cola-platform-gateway-admin/{src/main/java/.../{openapi/service,openapi/scheduled,config,bootstrap,reporting},src/main/resources/application*.yml,src/test/java/**}` | no OpenAPI scheduler | bounded CAS/retry/stale/metrics/config | lifecycle | 11 | `REQ-011,REQ-025` | scheduler/config tests |
-| CREATE/MODIFY | `.../egon-cola-platform-gateway-admin/src/{main,test}/java/.../{openapi/controller,openapi/service,openapi/domain/vo,shared/controller}/**` | APIs absent | APIs 002–004 | read-only management | 12 | `REQ-006,REQ-012,REQ-026` | MVC/API tests |
-| MODIFY/CREATE | `.../egon-cola-platform-gateway-admin-web/{src/api/**,src/features/applications/**,src/features/interface-catalog/**}` | no group/snapshot UI | aggregate/group/OpenAPI operator UI | frontend | 13 | `REQ-012,REQ-020,REQ-026` | Vitest/typecheck |
-| MODIFY | `.../egon-cola-platform-gateway-admin-web/e2e/gateway-admin.spec.ts` | current catalog/admin E2E | multi-group/source/MCP optional/boundary assertions | closure | 14 | `REQ-010,REQ-014,REQ-015` | E2E/static/full reactor |
+| MODIFY | `egon-cola-xingyuan/pom.xml` | Boot BOM，无 springdoc version | Springdoc BOM 2.8.17 after Boot BOM | dependency lock | 1 | `REQ-001,REQ-003` | dependency tree |
+| CREATE/MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/{lombok.config,pom.xml,yuheng-contract/**,yuheng-starter-openapi*/pom.xml,yuheng-admin/pom.xml` | modules/types absent | build graph、enum、Manifest、processor/classpath | compilation foundation | 1 | `REQ-003,REQ-017,REQ-020` | contract tests |
+| CREATE | `.../yuheng-starter-openapi/src/{main,test}/**` | absent | three annotations、properties、customizers、registration、autoconfig | common Provider contract | 2 | `REQ-001,REQ-002,REQ-004,REQ-016,REQ-017,REQ-022` | common module tests |
+| CREATE | `.../yuheng-starter-openapi-{webmvc,webflux}/src/{main,test}/**` | absent | stack API/security/autoconfig | stack isolation | 3 | `REQ-001,REQ-003,REQ-005` | adapter tests |
+| MODIFY/CREATE | `.../yuheng-test/{yuheng-test-http-provider,yuheng-test-webflux-http-provider,yuheng-test-tianquan-shoubing-backend,yuheng-test-mcp-provider}/**` | old Gateway annotations | standard Swagger/Egon extensions、explicit groups、Golden | provider consumers | 4 | `REQ-001,REQ-002,REQ-016,REQ-021,REQ-022` | provider contracts |
+| MODIFY/CREATE | `.../yuheng-admin/src/{main,test}/java/**` HTTP annotation inventory | 20 controllers + fully-qualified schema annotations | standard `@Tag/@Operation/@Schema` and x-egon customizers；业务逻辑不变 | Admin as Provider | 5 | `REQ-001,REQ-002,REQ-009,REQ-022` | Admin Golden/residual |
+| MODIFY/DELETE | `.../yuheng-starter/{pom.xml,src/main/java/**,src/test/java/**}` | mixed HTTP/RPC compiler | RPC Descriptor-only Starter；HTTP classes/tests removed | breaking cleanup | 6 | `REQ-003,REQ-009,REQ-010,REQ-020` | RPC Golden/static |
+| CREATE/MODIFY | `.../yuheng-admin/{src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql,src/main/java/.../openapi/domain/**,src/main/java/.../openapi/repository/**,src/test/java/**}` | V1–V11 only | snapshots/sync CAS persistence | durable state | 7 | `REQ-006,REQ-007,REQ-011,REQ-013,REQ-018,REQ-024` | schema/PostgreSQL IT |
+| CREATE | `.../yuheng-admin/src/{main,test}/java/.../openapi/{client,validation,domain/dto}/**` | absent | trusted candidate, bounded fetch, validation chain | secure acquisition | 8 | `REQ-004,REQ-005,REQ-021,REQ-025` | security tests |
+| CREATE | `.../yuheng-admin/src/{main,test}/java/.../openapi/{converter,domain/dto}/**` | absent | canonical OpenAPI→DefinitionDTO→Report | semantic adaptation | 9 | `REQ-006,REQ-008,REQ-021,REQ-023` | adapter Golden |
+| CREATE/MODIFY | `.../yuheng-admin/src/{main,test}/java/.../{openapi/service,reporting,mcp}/**` | transport/write coupled | aggregate coordinator + shared ingestion atomicity | one set/all groups | 10 | `REQ-007,REQ-010,REQ-018,REQ-019,REQ-020,REQ-024` | transaction/recovery |
+| CREATE/MODIFY | `.../yuheng-admin/{src/main/java/.../{openapi/service,openapi/scheduled,config,bootstrap,reporting},src/main/resources/application*.yml,src/test/java/**}` | no OpenAPI scheduler | bounded CAS/retry/stale/metrics/config | lifecycle | 11 | `REQ-011,REQ-025` | scheduler/config tests |
+| CREATE/MODIFY | `.../yuheng-admin/src/{main,test}/java/.../{openapi/controller,openapi/service,openapi/domain/vo,shared/controller}/**` | APIs absent | APIs 002–004 | read-only management | 12 | `REQ-006,REQ-012,REQ-026` | MVC/API tests |
+| MODIFY/CREATE | `.../yuheng-admin-web/{src/api/**,src/features/applications/**,src/features/interface-catalog/**}` | no group/snapshot UI | aggregate/group/OpenAPI operator UI | frontend | 13 | `REQ-012,REQ-020,REQ-026` | Vitest/typecheck |
+| MODIFY | `.../yuheng-admin-web/e2e/gateway-admin.spec.ts` | current catalog/admin E2E | multi-group/source/MCP optional/boundary assertions | closure | 14 | `REQ-010,REQ-014,REQ-015` | E2E/static/full reactor |
 
 精确机械迁移清单由 Step 4/5/6 的 `rg` 命令锁定并在各 Step 文件块列出；`SchemaPanel.tsx` 明确不修改，继续渲染内部 v2 schema。任何实施时新增的匹配文件必须先回到本 Plan/Spec，不能扩大通配范围后直接提交。
 
@@ -260,7 +260,7 @@ egon-cola-platforms/egon-cola-platform-gateway/
 | Concern | Exact command/source | Required state | Validation boundary |
 | --- | --- | --- | --- |
 | Java/Maven | `./mvnw -version`；root `pom.xml` Java 21/Boot 3.5.16 | JDK 21，wrapper 可用 | compile/module，非运行拓扑 |
-| Node | `egon-cola-platform-gateway-admin-web/package.json` | repository-defined npm scripts | frontend static/component |
+| Node | `yuheng-admin-web/package.json` | repository-defined npm scripts | frontend static/component |
 | PostgreSQL | Testcontainers test scope；V12 schema test | Docker available only when running IT | persistence integration，不代表部署 |
 | Runtime | user-controlled DDC/IdP/Provider/Gateway | 本 Plan 与实施 Steps 不自动启动 | live/E2E 仅由用户明确执行 |
 | Git | `git status --short` | 无 Step 外 staged path | path-limited commit |
@@ -299,7 +299,7 @@ egon-cola-platforms/egon-cola-platform-gateway/
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/pom.xml`
+#### File 1 — `MODIFY egon-cola-xingyuan/pom.xml`
 
 - Purpose: 先锁定经过批准的 Springdoc 版本和编译依赖基线。
 - Symbols: `springdoc.version=2.8.17`、`springdoc-openapi-bom` import；同批随后修改 gateway aggregator/POM、新建三个 module POM、Admin POM 和 gateway `lombok.config`。
@@ -323,7 +323,7 @@ configure admin MapStruct processor 1.6.3 and test-only Testcontainers; reject s
 - Verification contribution: `dependency:tree` 和三个 module 的 compile classpath 证明版本/栈隔离。
 - After this file: Maven 图可解析新模块但模块仍无业务 Bean；原 starter 行为不变。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/test/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTOTest.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTOTest.java`
 
 - Purpose: 用 RED 锁定 source enum、Manifest 归一和 Jackson/Validation wire shape。
 - Symbols: `GatewayDefinitionSourceTypeEnumTest`、`GatewayOpenApiGroupManifestDTOTest`；断言 exact enum values、1–16 group、sorted unique、CSV≤512、fixed path template、defensive copy、artifact/build/resource URI。
@@ -347,7 +347,7 @@ for each invalid cardinality, duplicate, length and template fixture assert cons
 - Verification contribution: 首次运行因类型不存在 RED；GREEN 后证明共享契约而非 producer 私有约定。
 - After this file: 测试精确描述缺失契约，尚无生产实现。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTO.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTO.java`
 
 - Purpose: 创建最小共享 record；同批创建 `reporting/GatewayDefinitionSourceTypeEnum.java` 和对应 enum test。
 - Symbols: `GatewayOpenApiGroupManifestDTO` record、compact constructor、Validation annotations；`GatewayDefinitionSourceTypeEnum`。
@@ -373,12 +373,12 @@ record GatewayOpenApiGroupManifestDTO(groups, pathTemplate, resourceUri, artifac
 - After this file: build graph与共享 contract 完成；无 endpoint/DB/runtime side effect。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux -am -Dtest=GatewayDefinitionSourceTypeEnumTest,GatewayOpenApiGroupManifestDTOTest -Dsurefire.failIfNoSpecifiedTests=false test && ./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux dependency:tree -Dincludes=org.springdoc:*,io.swagger.core.v3:*`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux -am -Dtest=GatewayDefinitionSourceTypeEnumTest,GatewayOpenApiGroupManifestDTOTest -Dsurefire.failIfNoSpecifiedTests=false test && ./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux dependency:tree -Dincludes=org.springdoc:*,io.swagger.core.v3:*`
 - Expected result: named contract tests pass；base starter dependency tree 无 Springdoc；MVC/WebFlux adapter 只出现对应栈 API；无 swagger-ui/parser。
 - Failure returns to: File 1 for version/module/classpath；File 2 for contract assertion；File 3 for validation/serialization。
 - Completion criteria: 新 modules 均可解析；enum/Manifest exact contract通过；用户 dirty docs 未 staged。
 - Rollback: path-limited revert Step 1 files；无数据库或运行态影响。
-- Commit paths: `egon-cola-platforms/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/lombok.config`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/test/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTOTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTO.java`, three new adapter `pom.xml`, Admin `pom.xml`, enum production/test paths
+- Commit paths: `egon-cola-xingyuan/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/lombok.config`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTOTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/openapi/GatewayOpenApiGroupManifestDTO.java`, three new adapter `pom.xml`, Admin `pom.xml`, enum production/test paths
 - Commit: `build(gateway): establish openapi adapter modules and source contracts`
 
 ### Step 2 — 实现 Provider OpenAPI common 扩展与有界 Group Manifest 发布
@@ -393,7 +393,7 @@ record GatewayOpenApiGroupManifestDTO(groups, pathTemplate, resourceUri, artifac
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 7, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/test/java/top/egon/cola/component/gateway/openapi/customizer/EgonOpenApiCustomizerTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/test/java/top/egon/cola/component/gateway/openapi/customizer/EgonOpenApiCustomizerTest.java`
 
 - Purpose: 汇总 common RED；同批创建 annotation contract、properties、operation customizer、registration contributor、auto-configuration tests。
 - Symbols: `GatewayOpenApiAnnotationContractTest`、`GatewayOpenApiPropertiesTest`、`EgonOperationCustomizerTest`、`EgonOpenApiCustomizerTest`、`GatewayOpenApiRegistrationContributorTest`、`GatewayOpenApiAutoConfigurationTest`。
@@ -417,7 +417,7 @@ invoke registration contributor and assert exact eight sorted metadata entries, 
 - Verification contribution: tests RED only for missing common production symbols/behavior；GREEN proves API/DDC wire contracts。
 - After this file: common behavior contract frozen, production仍 absent。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/config/GatewayOpenApiProperties.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/config/GatewayOpenApiProperties.java`
 
 - Purpose: 创建 typed Provider configuration；同批创建 `EgonApiCatalog`、`EgonGatewayPolicy`、`EgonMcpTool` annotations。
 - Symbols: `GatewayOpenApiProperties` named config Bean；`enabled,publishedGroups,pathTemplate,spec,resourceUri,artifactVersion,buildId`；三 annotations exact fields。
@@ -441,7 +441,7 @@ expose normalized manifest input without WebMvc, WebFlux or Admin dependencies
 - Verification contribution: properties/annotation tests GREEN；negative binding证明 fail-fast。
 - After this file: config与声明 contract可用，尚未改变 OpenAPI model/DDC。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/customizer/EgonOperationCustomizer.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/customizer/EgonOperationCustomizer.java`
 
 - Purpose: 实现 operation/root extensions；同批创建 `EgonOpenApiCustomizer`。
 - Symbols: named `egonOperationCustomizer`、`egonOpenApiCustomizer`，`@Slf4j`、`@RequiredArgsConstructor`、final qualified dependencies。
@@ -465,7 +465,7 @@ reject group/build mismatch before returning model; log only applicationId, buil
 - Verification contribution: customizer tests证明 optional MCP与 exact extension mapping；不修改 standard schemas。
 - After this file: Springdoc model可被治理增强，但未注册 auto-configuration。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/registration/GatewayOpenApiRegistrationContributor.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/registration/GatewayOpenApiRegistrationContributor.java`
 
 - Purpose: 生成 DDC Manifest并装配 common auto-configuration/imports。
 - Symbols: named contributor、`GatewayOpenApiAutoConfiguration`、Boot `AutoConfiguration.imports`。
@@ -490,12 +490,12 @@ reject collisions or DDC size violations; never include document bytes, bearer t
 - After this file: common module完整可用且仍 Web-stack-neutral。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi -am test`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi -am test`
 - Expected result: common module全部 annotation/property/customizer/registration/autoconfig tests pass；dependency tree无 MVC/WebFlux/UI/parser。
 - Failure returns to: File 1 contract assertions；File 2 binding；File 3 extension mapping；File 4 DDC whitelist/wiring。
 - Completion criteria: enabled/disabled、多 Group、MCP optional、DDC exact 8 keys与负面边界全部有 focused proof。
 - Rollback: revert common module source/resources/tests；Step 1 scaffold可保留但无运行 Bean。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/test/java/top/egon/cola/component/gateway/openapi/customizer/EgonOpenApiCustomizerTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/config/GatewayOpenApiProperties.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/customizer/EgonOperationCustomizer.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/registration/GatewayOpenApiRegistrationContributor.java`, all same-module annotations/config/customizer tests and `AutoConfiguration.imports`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/test/java/top/egon/cola/component/gateway/openapi/customizer/EgonOpenApiCustomizerTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/config/GatewayOpenApiProperties.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/customizer/EgonOperationCustomizer.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi/src/main/java/top/egon/cola/component/gateway/openapi/registration/GatewayOpenApiRegistrationContributor.java`, all same-module annotations/config/customizer tests and `AutoConfiguration.imports`
 - Commit: `feat(gateway-openapi): publish governed multi-group manifests`
 
 ### Step 3 — 提供隔离的 MVC 与 WebFlux OpenAPI 3.1 安全适配器
@@ -510,7 +510,7 @@ reject collisions or DDC size violations; never include document bytes, bearer t
 - Literal Rules: `Rule 2, Rule 4, Rule 5, Rule 7, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc/src/test/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java`
 
 - Purpose: 定义 MVC grouped endpoint、OAuth scope和 classpath isolation；同批创建 security/autoconfig tests。
 - Symbols: `GatewayOpenApiWebMvcContractTest`、`GatewayOpenApiWebMvcSecurityAutoConfigurationTest`、`GatewayOpenApiWebMvcDependencyContractTest`。
@@ -534,7 +534,7 @@ assert WebFlux and swagger-ui classes/routes are absent from the MVC adapter cla
 - Verification contribution: MVC RED/GREEN与 dependency isolation proof。
 - After this file: MVC行为测试固定，production config尚缺。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc/src/main/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/main/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`
 
 - Purpose: 装配 MVC Springdoc API、GroupedOpenApi/customizers及 endpoint security；同批创建 imports。
 - Symbols: named security/autoconfig Beans，conditional MVC classes/properties。
@@ -558,7 +558,7 @@ guard configuration with servlet and property conditions; never register swagger
 - Verification contribution: MVC contract/security/context tests GREEN。
 - After this file: MVC adapter可独立消费，WebFlux仍未实现。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux/src/test/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxContractTest.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxContractTest.java`
 
 - Purpose: 对称定义 reactive endpoint/security/classpath，不复制 common governance逻辑。
 - Symbols: WebFlux contract/security/dependency tests。
@@ -582,7 +582,7 @@ assert servlet MVC and swagger-ui artifacts are absent and no blocking WebClient
 - Verification contribution: reactive RED/GREEN/classpath proof。
 - After this file: WebFlux期望已冻结。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux/src/main/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/main/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`
 
 - Purpose: 以 reactive SecurityWebFilterChain/GroupedOpenApi装配 WebFlux adapter并创建 imports。
 - Symbols: named WebFlux security/autoconfig Beans、conditional reactive wiring。
@@ -607,12 +607,12 @@ leave existing application security decisions intact outside /v3/api-docs/{group
 - After this file: 两个 adapter ready for consumer migration。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux -am test && ./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux dependency:tree -Dincludes=org.springframework:spring-webmvc,org.springframework:spring-webflux,org.springdoc:*,io.swagger.core.v3:*`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux -am test && ./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux dependency:tree -Dincludes=org.springframework:spring-webmvc,org.springframework:spring-webflux,org.springdoc:*,io.swagger.core.v3:*`
 - Expected result: 两个 module test exit 0；authorized grouped docs为3.1；unauthorized denied；MVC/WebFlux互不泄漏且无 UI/parser。
 - Failure returns to: File 1/3 contract/security expectations；File 2/4 stack-specific autoconfiguration。
 - Completion criteria: API-001在两栈有 focused proof，common extension结果一致，base starter仍无 Springdoc。
 - Rollback: revert两个 stack module sources/resources/tests；common module仍可保留无endpoint。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc/src/test/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webmvc/src/main/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux/src/test/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter-openapi-webflux/src/main/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`, same-module security/dependency tests and both `AutoConfiguration.imports`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/test/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webmvc/src/main/java/top/egon/cola/component/gateway/openapi/webmvc/GatewayOpenApiWebMvcSecurityAutoConfiguration.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/test/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter-openapi-webflux/src/main/java/top/egon/cola/component/gateway/openapi/webflux/GatewayOpenApiWebFluxSecurityAutoConfiguration.java`, same-module security/dependency tests and both `AutoConfiguration.imports`
 - Commit: `feat(gateway-openapi): add isolated mvc and webflux adapters`
 
 ### Step 4 — 迁移仓内 Provider fixtures 到标准多 Group OpenAPI
@@ -627,7 +627,7 @@ leave existing application security decisions intact outside /v3/api-docs/{group
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 6, Rule 7, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/test/java/top/egon/cola/component/gateway/test/http/HttpProviderContractTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/test/java/top/egon/cola/component/gateway/test/http/HttpProviderContractTest.java`
 
 - Purpose: 建立所有 Provider grouped Golden RED；同批修改 `WebFluxHttpProviderContractTest`、`MockBackendControllerContractTest`、`McpOperationSchemaContractTest`并创建 per-module Golden JSON。
 - Symbols: group endpoint tests、extension assertions、orders/inventory/webflux/idp/mcp/drift fixtures。
@@ -651,7 +651,7 @@ assert ordinary operation has no mcp projection while explicit enabled tool has 
 - Verification contribution: 迁移前RED；完成后四个 provider contract suites与Golden GREEN。
 - After this file: final provider behavior已定义但现有 controllers/config不满足。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/pom.xml`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/pom.xml`
 
 - Purpose: 切换四个 Provider模块到正确 adapter并保持依赖隔离。
 - Symbols: HTTP/IdP/MCP→webmvc adapter；WebFlux→webflux adapter；移除用于HTTP schema的base starter依赖，RPC依赖不动。
@@ -675,7 +675,7 @@ verify each provider dependency tree contains exactly its selected Web stack
 - Verification contribution: tests可编译新 annotations；dependency tree隔离。
 - After this file: POM完成，旧 controller imports仍使契约RED。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/main/resources/application.yml`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`
 
 - Purpose: 配置不同业务系统的显式 groups/Manifest；同批修改 WebFlux、IdP、MCP Provider application.yml。
 - Symbols: `gateway.openapi.*`、standard `springdoc.group-configs`；HTTP two groups，其他one group。
@@ -699,7 +699,7 @@ never place bearer tokens, document bodies or arbitrary fetch URLs in configurat
 - Verification contribution: config binding/group endpoint tests GREEN prerequisite。
 - After this file: groups注册，但 controllers仍需标准注解映射。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`
 
 - Purpose: 机械迁移所有仓内 Provider controllers到标准 Swagger + Egon annotations。
 - Symbols: 同批精确文件：HTTP `BehaviorController,InventoryController,OrderController,ProviderIdentityController`；WebFlux `ProviderIdentityController,ReactiveInventoryController,StreamingTransportController`；IdP `MockBackendController`；MCP `McpJobController`。
@@ -724,12 +724,12 @@ assign globally unique stable operationId values and verify each operation appea
 - After this file: test Providers完全使用新 adapters；base starter旧HTTP代码仅剩Admin/Starter自身待清理。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-mcp-provider -am test && ! rg 'gateway\.starter\.annotation\.(EgonHttpService|GatewayRequest|GatewayResponse|GatewaySchema)' egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/{egon-cola-platform-gateway-test-http-provider,egon-cola-platform-gateway-test-webflux-http-provider,egon-cola-platform-gateway-test-idp-backend,egon-cola-platform-gateway-test-mcp-provider}`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider -am test && ! rg 'gateway\.starter\.annotation\.(EgonHttpService|GatewayRequest|GatewayResponse|GatewaySchema)' egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/{yuheng-test-http-provider,yuheng-test-webflux-http-provider,yuheng-test-tianquan-shoubing-backend,yuheng-test-mcp-provider}`
 - Expected result: 四个 Provider modules tests pass；per-group Golden稳定；旧 HTTP/schema annotation在这些 modules为零；RPC tests未改。
 - Failure returns to: File 1 Golden contract；File 2 classpath；File 3 group/config；File 4 controller mapping。
 - Completion criteria: 不同业务系统显式groups、HTTP双group、optional MCP、DDC Manifest与3.1文档都有仓内 consumer proof。
 - Rollback: revert四个Provider module paths与fixtures；不影响Step 1–3 adapter实现。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/test/java/top/egon/cola/component/gateway/test/http/HttpProviderContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/pom.xml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/main/resources/application.yml`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`, all exact provider POM/config/controller/test/Golden paths listed in File 1–4
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/test/java/top/egon/cola/component/gateway/test/http/HttpProviderContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/pom.xml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/resources/application.yml`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`, all exact provider POM/config/controller/test/Golden paths listed in File 1–4
 - Commit: `test(gateway-openapi): migrate provider fixtures to explicit groups`
 
 ### Step 5 — 迁移 Gateway Admin 自身 HTTP 文档契约到标准 OpenAPI
@@ -744,7 +744,7 @@ assign globally unique stable operationId values and verify each operation appea
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/GatewayAdminOpenApiContractTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/GatewayAdminOpenApiContractTest.java`
 
 - Purpose: 以一个 focused Golden/structural test覆盖 Admin全部 controller operations与旧 annotation residual。
 - Symbols: `GatewayAdminOpenApiContractTest`，断言 `/v3/api-docs/gateway-admin`、operationId唯一、x-egon-service、standard schemas、现有安全 scope。
@@ -768,7 +768,7 @@ scan Admin main sources and fail on any legacy Gateway HTTP/schema annotation im
 - Verification contribution: 迁移前因旧annotation/residual或缺standard docs RED；完成后作为Step 6删除前置。
 - After this file: Admin最终文档契约被冻结。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/controller/GatewayApplicationController.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/controller/GatewayApplicationController.java`
 
 - Purpose: 机械迁移全部 Admin controllers；此 heading代表下列精确同类文件，均只改文档annotations/imports，除 `GatewayAdminExceptionHandler` 在Step 12再改错误映射外不改逻辑。
 - Symbols: exact controller set=`GatewayApplicationController,GatewayAuthBootstrapController,GatewayCatalogController,GatewayCredentialController,GatewayGroupController,McpAppAdminController,McpApprovalController,McpCapabilityController,McpProtocolInspectorController,McpRemoteProviderController,McpServerController,McpTaskAdminController,McpToolAdminController,GatewayObservabilityController,GatewayReleaseController,GatewayDefinitionReportController,GatewayDraftController,GatewayProjectionController,GatewayScopeController,GatewayAdminExceptionHandler`。
@@ -792,7 +792,7 @@ add MCP annotation only where the existing managed-tool contract requires it; do
 - Verification contribution: File 1覆盖所有operation IDs与root extensions；现有controller tests证明业务未变。
 - After this file: controller旧 HTTP annotations为零；wire carriers仍待迁移。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/catalog/domain/dto/GatewayManualDefinitionDTO.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/catalog/domain/dto/GatewayManualDefinitionDTO.java`
 
 - Purpose: 迁移所有fully-qualified旧 schema annotations；external DTO/VO用Swagger `@Schema`，PO/internal类型直接删除文档metadata。
 - Symbols: exact catalog files=`GatewayManualDefinitionDTO,GatewayManualDefinitionRequestDTO,GatewayOperationDefinitionPO,GatewayOperationPO,GatewayCurrentOperationDefinitionVO,GatewayEntityNodeVO,GatewayInterfaceGroupNodeVO,GatewayInterfaceGroupScopeVO,GatewayOperationDetailVO,GatewayOperationNodeVO`；mcp files=`McpApprovalRequestDTO,McpCapabilityMutationDTO,McpCapabilityRequestDTO,McpProtocolInspectRequestDTO,McpRemoteMountMutationDTO,McpRemoteMountRequestDTO,McpRemoteProviderMutationDTO,McpRemoteProviderRequestDTO,McpRemoteToolMutationDTO,McpRemoteToolRequestDTO,McpCapabilityRecordPO,McpRemoteCapabilityPO,McpRemoteMountDraftPO,McpRemoteProviderDraftPO,McpRemoteToolDraftPO,McpTaskPO,McpManagedToolVO,McpProtocolInspectionVO,McpRemoteToolVO`；observability=`GatewayKafkaConsumerSettingsDTO,GatewayAuditVO`；release=`GatewayReleasePO,GatewayReleaseVO`；routing=`GatewayDraftPolicyRequestDTO,GatewayDraftRouteRequestDTO,GatewayPolicyMutationDTO,GatewayRouteMutationDTO,GatewayPolicyDraftPO,GatewayRouteDraftPO`；shared=`IdempotencyPO`。
@@ -817,12 +817,12 @@ on PO/internal carriers add no OpenAPI annotation; retain Jakarta Validation and
 - After this file: Admin main source旧 HTTP/schema annotation引用为零。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayAdminOpenApiContractTest,GatewayAdminConfigurationTest,GatewayCatalogServiceTest,GatewayReleaseServiceTest,GatewayDraftServiceTest,McpReleaseContentFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test && ! rg 'top\.egon\.cola\.component\.gateway\.starter\.annotation\.(EgonHttpService|GatewayRequestLocation|GatewayRequestSchemaField|GatewayResponseSchema|GatewaySchemaField|GatewaySchemaRequired|GatewaySchemaShape|GatewaySchemaType)' egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayAdminOpenApiContractTest,GatewayAdminConfigurationTest,GatewayCatalogServiceTest,GatewayReleaseServiceTest,GatewayDraftServiceTest,McpReleaseContentFactoryTest -Dsurefire.failIfNoSpecifiedTests=false test && ! rg 'top\.egon\.cola\.component\.gateway\.starter\.annotation\.(EgonHttpService|GatewayRequestLocation|GatewayRequestSchemaField|GatewayResponseSchema|GatewaySchemaField|GatewaySchemaRequired|GatewaySchemaShape|GatewaySchemaType)' egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main`
 - Expected result: named tests exit 0；Admin grouped doc完整；旧 HTTP/schema annotation residual为零；business tests不回归。
 - Failure returns to: File 1 contract coverage；File 2 controller metadata；File 3 model boundary classification。
 - Completion criteria: 20 controllers与全部列明carriers迁移；routes/JSON/validation/DI无行为变化；可进入旧Starter删除。
 - Rollback: path-limited revert Admin controller/carrier/test files；不回滚adapter modules。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/GatewayAdminOpenApiContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/controller/GatewayApplicationController.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/catalog/domain/dto/GatewayManualDefinitionDTO.java`, every exact controller/carrier path listed in File 2/3
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/GatewayAdminOpenApiContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/controller/GatewayApplicationController.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/catalog/domain/dto/GatewayManualDefinitionDTO.java`, every exact controller/carrier path listed in File 2/3
 - Commit: `refactor(gateway-admin): migrate http documentation to openapi`
 
 ### Step 6 — 将 Base Starter 收缩为 RPC Descriptor-only 并删除旧 HTTP Compiler
@@ -837,7 +837,7 @@ on PO/internal carriers add no OpenAPI annotation; retain Jakarta Validation and
 - Literal Rules: `Rule 1, Rule 2, Rule 5, Rule 6, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/test/java/top/egon/cola/component/gateway/starter/GatewayStarterRpcOnlyContractTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/GatewayStarterRpcOnlyContractTest.java`
 
 - Purpose: 用structural test锁定base starter零Springdoc/零HTTP compiler、RPC source/protobuf schema不变；同批修改 `RpcGatewayDefinitionContributorTest,ProtobufSchemaMapperTest,GatewayOperationSemanticsTest,McpExposureMapperTest,GatewayReportingAutoConfigurationTest` 和 contract report tests。
 - Symbols: `GatewayStarterRpcOnlyContractTest`、enum serialization assertions、RPC Descriptor Golden。
@@ -861,7 +861,7 @@ assert MCP exposure for RPC retains stable tool identity and no HTTP schema anno
 - Verification contribution: 旧classes存在/source string时RED；清理后RPC回归与structural GREEN。
 - After this file: 保留/删除边界被冻结。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`
 
 - Purpose: 将shared Report sourceType从String升级为三值enum并同步全部编译consumer。
 - Symbols: `InterfaceGroup.sourceType` typed enum；同批修改 report canonicalizer/serialization tests、Starter report factory和Admin现有report service/repository/test的类型边界。
@@ -885,7 +885,7 @@ reject STARTER and unknown values without compatibility translation because fres
 - Verification contribution: contract/starter/Admin focused compile与serialization tests。
 - After this file: typed source vocabulary贯穿Java consumer；旧HTTP classes尚待删除。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/rpc/RpcGatewayDefinitionContributor.java`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/rpc/RpcGatewayDefinitionContributor.java`
 
 - Purpose: 保留RPC-only annotation/governance/protobuf path并删除HTTP schema declarations依赖。
 - Symbols: `RpcGatewayDefinitionContributor` source enum；`GatewayInterfaceGroup,GatewayOperation,GatewayOperationSemantics,McpExposureMapper` RPC-only contracts；`GatewayRequestParameter`按真实RPC使用决定删除或去HTTP成员。
@@ -909,7 +909,7 @@ remove every reference to Java HTTP request/response annotations and never fall 
 - Verification contribution: RPC contributor/MCP exposure/protobuf Golden tests GREEN。
 - After this file: 所有保留starter代码不再依赖待删HTTP types。
 
-#### File 4 — `DELETE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/http/GatewayHttpOperationMapper.java`
+#### File 4 — `DELETE egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/http/GatewayHttpOperationMapper.java`
 
 - Purpose: 物理删除完整HTTP compiler surface、annotations、tests与web dependencies。
 - Symbols: 同批 DELETE main=`discovery/http/GatewayHttpOperationMapper,GatewayRequestSchemaValidator,GatewayResponseSchemaMapper,MvcGatewayDefinitionContributor,WebFluxGatewayDefinitionContributor,package-info`；`discovery/schema/GatewayJavaSchemaMapper`；annotations=`EgonHttpService,GatewayRequestLocation,GatewayRequestSchemaField,GatewayResponseSchema,GatewaySchemaField,GatewaySchemaRequired,GatewaySchemaShape,GatewaySchemaType`；无consumer时`GatewayRequestParameter`；tests=`GatewaySchemaAnnotationContractTest,GatewayHttpOperationMapperTest,GatewayHttpServiceNameTest,GatewayJavaSchemaMapperTest,GatewayResponseSchemaMapperTest`。MODIFY starter `pom.xml,GatewayReportingAutoConfiguration,AutoConfiguration.imports`。
@@ -934,12 +934,12 @@ run a repository-wide residual scan and fail if deleted symbols remain outside h
 - After this file: 第二HTTP类型系统彻底消失；base starter是RPC-only。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-rpc-contract -am test && ! rg 'EgonHttpService|GatewayRequestLocation|GatewayRequestSchemaField|GatewayResponseSchema|GatewaySchemaField|GatewaySchemaRequired|GatewaySchemaShape|GatewaySchemaType|MvcGatewayDefinitionContributor|WebFluxGatewayDefinitionContributor|GatewayJavaSchemaMapper' egon-cola-platforms/egon-cola-platform-gateway --glob '!docs/**' && ./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter dependency:tree -Dincludes=org.springdoc:*,org.springframework:spring-webmvc,org.springframework:spring-webflux`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract -am test && ! rg 'EgonHttpService|GatewayRequestLocation|GatewayRequestSchemaField|GatewayResponseSchema|GatewaySchemaField|GatewaySchemaRequired|GatewaySchemaShape|GatewaySchemaType|MvcGatewayDefinitionContributor|WebFluxGatewayDefinitionContributor|GatewayJavaSchemaMapper' egon-cola-xingyuan/egon-cola-yuheng --glob '!docs/**' && ./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter dependency:tree -Dincludes=org.springdoc:*,org.springframework:spring-webmvc,org.springframework:spring-webflux`
 - Expected result: contract/starter/RPC tests pass；residual零；base dependency tree无Springdoc/MVC/WebFlux；RPC Golden/Tool ID不变。
 - Failure returns to: File 1保留契约；File 2 source consumer；File 3 RPC mapping；File 4遗漏删除/依赖。
 - Completion criteria: REQ-009完全满足且REQ-010有focused proof；无compatibility shim。
 - Rollback: revert整个Step 6 path set；不能只恢复单个旧annotation造成半兼容状态。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/test/java/top/egon/cola/component/gateway/starter/GatewayStarterRpcOnlyContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/rpc/RpcGatewayDefinitionContributor.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/http/GatewayHttpOperationMapper.java`, all exact source/test/POM/resource consumers/deletions in File 1–4
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/GatewayStarterRpcOnlyContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/rpc/RpcGatewayDefinitionContributor.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/http/GatewayHttpOperationMapper.java`, all exact source/test/POM/resource consumers/deletions in File 1–4
 - Commit: `refactor(gateway-starter): remove legacy http schema compiler`
 
 ### Step 7 — 新增唯一 V12 与多 Group Snapshot/Sync CAS 持久边界
@@ -954,7 +954,7 @@ run a repository-wide residual scan and fail if deleted symbols remain outside h
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 6, Rule 9, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/persistence/GatewayAdminSchemaTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/persistence/GatewayAdminSchemaTest.java`
 
 - Purpose: 将Flyway期望从11锁到12并新增真实PostgreSQL DDL/CAS/多对一测试。
 - Symbols: `GatewayAdminSchemaTest`、`GatewayOpenApiFlywayPostgresqlIT`、`JdbcGatewayOpenApiSnapshotRepositoryTest`、`JdbcGatewayOpenApiSyncRepositoryTest`。
@@ -978,7 +978,7 @@ perform CAS with expected revision, assert one affected row; repeat stale revisi
 - Verification contribution: RED由缺V12/tables/repos；GREEN证明fresh DB与真实PostgreSQL语义。
 - After this file: persistence acceptance被测试冻结。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql`
 
 - Purpose: 唯一新增migration创建`gateway_openapi_snapshot`与`gateway_openapi_sync_state`。
 - Symbols: 两表、constraints、FK、unique/indexes；不修改V1–V11。
@@ -1002,7 +1002,7 @@ add checks for enum states, nonnegative revision/attempt, lowercase sha length a
 - Verification contribution: schema/IT检查exact DDL、多对一和checksum。
 - After this file: fresh DB具备持久结构；Java mapping尚缺。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/po/GatewayOpenApiSnapshotPO.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/po/GatewayOpenApiSnapshotPO.java`
 
 - Purpose: 创建simple immutable persistence records与state enum/key。
 - Symbols: `GatewayOpenApiSnapshotPO`、`GatewayOpenApiSyncPO`、`GatewayOpenApiSyncStateEnum`、`GatewayOpenApiSyncKeyDTO`。
@@ -1026,7 +1026,7 @@ reject invalid state/reference combinations before invoking JdbcTemplate
 - Verification contribution: constructor/state tests + repository row mapping。
 - After this file: typed persistence model可用，尚无DAO。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/repository/jdbc/JdbcGatewayOpenApiSnapshotRepository.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/repository/jdbc/JdbcGatewayOpenApiSnapshotRepository.java`
 
 - Purpose: 创建repository interfaces与Jdbc implementations，支持immutable upsert/find/link和sync CAS/readiness。
 - Symbols: `GatewayOpenApiSnapshotRepository`,`GatewayOpenApiSyncRepository`,`JdbcGatewayOpenApiSnapshotRepository`,`JdbcGatewayOpenApiSyncRepository`；显式Bean names。
@@ -1051,12 +1051,12 @@ claim and transition sync rows with where revision = expectedRevision, increment
 - After this file: V12 persistence boundary完整，尚无network/business pipeline。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayAdminSchemaTest,GatewayOpenApiFlywayPostgresqlIT,JdbcGatewayOpenApiSnapshotRepositoryTest,JdbcGatewayOpenApiSyncRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayAdminSchemaTest,GatewayOpenApiFlywayPostgresqlIT,JdbcGatewayOpenApiSnapshotRepositoryTest,JdbcGatewayOpenApiSyncRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: unit/schema tests pass；Docker可用时PostgreSQL IT pass；V1–V11未修改且snapshot多对一/CAS语义正确。
 - Failure returns to: File 1 acceptance；File 2 DDL；File 3 mapping；File 4 SQL/CAS。
 - Completion criteria: exactly one V12、two tables、all constraints/indexes、多Group→one set link与revision CAS有proof。
 - Rollback: pre-release可删库重建并revert Step 7；migration一旦发布只能forward-fix新version，绝不编辑V12。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/persistence/GatewayAdminSchemaTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/po/GatewayOpenApiSnapshotPO.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/repository/jdbc/JdbcGatewayOpenApiSnapshotRepository.java`, same feature PO/DTO/Enum/repository/tests
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/persistence/GatewayAdminSchemaTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V12__add_gateway_openapi_sync.sql`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/po/GatewayOpenApiSnapshotPO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/repository/jdbc/JdbcGatewayOpenApiSnapshotRepository.java`, same feature PO/DTO/Enum/repository/tests
 - Commit: `feat(gateway-admin): add openapi snapshot and sync persistence`
 
 ### Step 8 — 实现受信 DDC Candidate、OAuth2/SSRF 安全拉取与 Validation Chain
@@ -1071,7 +1071,7 @@ claim and transition sync rows with where revision = expectedRevision, increment
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 9, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClientTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClientTest.java`
 
 - Purpose: 固定OAuth2/SSRF/timeout/size/no-redirect安全RED；同批创建Validation Chain与六rule tests。
 - Symbols: client tests；`GatewayOpenApiValidationChainTest`；DocumentEnvelope/OpenApi31/Reference/Limit/EgonExtension/McpProjection validator tests。
@@ -1095,7 +1095,7 @@ run the ordered six-rule chain and assert first failure classification, no docum
 - Verification contribution: hostile fixtures RED/GREEN证明security failure无side effect。
 - After this file: secure acceptance contract冻结。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiSyncCandidateDTO.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiSyncCandidateDTO.java`
 
 - Purpose: 创建candidate/document simple records，明确trusted-context与raw ownership。
 - Symbols: `GatewayOpenApiSyncCandidateDTO`,`GatewayOpenApiDocumentDTO` compact constructors/validation groups。
@@ -1119,7 +1119,7 @@ define Default and Ingestion validation groups so incomplete fetch-stage data ca
 - Verification contribution: DTO constructor/group tests GREEN；client API不能接受arbitrary URL。
 - After this file: secure typed handoff可用。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClient.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClient.java`
 
 - Purpose: 用JDK HttpClient安全派生/fetch每个group文档。
 - Symbols: named `gatewayProviderOpenApiClient`、`fetch(GatewayOpenApiSyncCandidateDTO)`；`@Slf4j`、`@RequiredArgsConstructor`、qualified token supplier/Clock/DNS policy。
@@ -1143,7 +1143,7 @@ resolve and verify addresses again before accepting response; stream at most fiv
 - Verification contribution: client security tests GREEN；dependency scan无Apache HTTP。
 - After this file: safe raw document acquisition可用。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/validation/GatewayOpenApiValidationChain.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/validation/GatewayOpenApiValidationChain.java`
 
 - Purpose: 实现ordered Chain与六个rule classes。
 - Symbols: `GatewayOpenApiValidationRule`；named chain；`GatewayOpenApiDocumentEnvelopeValidator,GatewayOpenApi31Validator,GatewayOpenApiReferenceValidator,GatewayOpenApiLimitValidator,GatewayOpenApiEgonExtensionValidator,GatewayOpenApiMcpProjectionValidator`。
@@ -1168,12 +1168,12 @@ mcp rule returns success when extension is absent or disabled and validates comp
 - After this file: validated document边界完成；Adapter/Ingestion仍不存在。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayProviderOpenApiClientTest,GatewayOpenApiValidationChainTest,GatewayOpenApiDocumentEnvelopeValidatorTest,GatewayOpenApi31ValidatorTest,GatewayOpenApiReferenceValidatorTest,GatewayOpenApiLimitValidatorTest,GatewayOpenApiEgonExtensionValidatorTest,GatewayOpenApiMcpProjectionValidatorTest -Dsurefire.failIfNoSpecifiedTests=false test && ! rg 'org\.apache\.http|okhttp|swagger-parser' egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/{pom.xml,src/main/java}`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayProviderOpenApiClientTest,GatewayOpenApiValidationChainTest,GatewayOpenApiDocumentEnvelopeValidatorTest,GatewayOpenApi31ValidatorTest,GatewayOpenApiReferenceValidatorTest,GatewayOpenApiLimitValidatorTest,GatewayOpenApiEgonExtensionValidatorTest,GatewayOpenApiMcpProjectionValidatorTest -Dsurefire.failIfNoSpecifiedTests=false test && ! rg 'org\.apache\.http|okhttp|swagger-parser' egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/{pom.xml,src/main/java}`
 - Expected result: hostile/security/validation tests pass；无未批准client/parser依赖；失败branch无snapshot ingest/secret log。
 - Failure returns to: File 1 threat contract；File 2 trusted DTO；File 3 network；File 4 rule classification/order。
 - Completion criteria: DDC-derived only、OAuth2、双DNS/CIDR、HTTPS/no redirect/size/ref/MCP optional全覆盖。
 - Rollback: revertclient/validation/DTO/tests；V12 persistence不受影响。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClientTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiSyncCandidateDTO.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClient.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/validation/GatewayOpenApiValidationChain.java`, all six rule/test and companion DTO paths
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClientTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiSyncCandidateDTO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/client/GatewayProviderOpenApiClient.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/validation/GatewayOpenApiValidationChain.java`, all six rule/test and companion DTO paths
 - Commit: `feat(gateway-admin): secure and validate provider openapi documents`
 
 ### Step 9 — 将每 Group OpenAPI 3.1 确定性适配到 Report v2
@@ -1188,7 +1188,7 @@ mcp rule returns success when extension is absent or disabled and validates comp
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApi31ContractAdapterTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApi31ContractAdapterTest.java`
 
 - Purpose: 固定canonicalization、operation/schema/response/error与optional MCP mapping RED；同批创建Invocation adapter与MapStruct converter tests。
 - Symbols: `GatewayOpenApi31ContractAdapterTest`,`GatewayOpenApiInvocationSchemaAdapterTest`,`GatewayOpenApiDefinitionConverterTest`。
@@ -1212,7 +1212,7 @@ assert optional mcp creates no tool metadata unless enabled, and converter outpu
 - Verification contribution: mapping RED/GREEN与determinism proof。
 - After this file: final pure mapping contract被冻结。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiDefinitionDTO.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiDefinitionDTO.java`
 
 - Purpose: 创建normalized simple record graph，隔离Swagger依赖与gateway-contract。
 - Symbols: `GatewayOpenApiDefinitionDTO`及nested records for service/group/operation/parameter/request/response/schema/extensions。
@@ -1236,7 +1236,7 @@ reject duplicate semantic keys and incomplete schema nodes before MapStruct conv
 - Verification contribution: construction/serialization/mapper tests compile且GREEN。
 - After this file: typed normalized graph存在。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiInvocationSchemaAdapter.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiInvocationSchemaAdapter.java`
 
 - Purpose: 实现OpenAPI schema/ref/parameter/body/response到Invocation Schema v2算法；同批创建`GatewayOpenApi31ContractAdapter`。
 - Symbols: named adapters、canonicalize/adapt methods、`@Slf4j`/qualified dependencies。
@@ -1260,7 +1260,7 @@ map x-egon service/catalog/policy and optional mcp fields into normalized DTO; r
 - Verification contribution: adapter/canonical/response Golden tests GREEN。
 - After this file: validated document可确定性转normalized DTO。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiDefinitionConverter.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiDefinitionConverter.java`
 
 - Purpose: 用MapStruct完成normalized DTO与Report v2层级转换并继承Egon BaseConverter。
 - Symbols: `@Mapper(componentModel="spring")` named `gatewayOpenApiDefinitionConverter` implements `BaseConverter<GatewayOpenApiDefinitionDTO,GatewayInterfaceDefinitionReport>`。
@@ -1285,12 +1285,12 @@ enable unmapped target errors and prove round-trip only for fields represented l
 - After this file: 每group可得到valid Report fragment；未聚合/写DB。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayOpenApi31ContractAdapterTest,GatewayOpenApiInvocationSchemaAdapterTest,GatewayOpenApiDefinitionConverterTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayOpenApi31ContractAdapterTest,GatewayOpenApiInvocationSchemaAdapterTest,GatewayOpenApiDefinitionConverterTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: Golden/canonical/mapping tests pass；MapStruct generated source编译；servers变动不改canonical；媒体冲突fail closed。
 - Failure returns to: File 1 expected mapping；File 2 DTO graph；File 3算法；File 4structural mapping。
 - Completion criteria: OpenAPI 3.1→Report v2确定性mapping完整且无Route side effect/MCP强制。
 - Rollback: revertconverter/DTO/tests；secure acquisition仍可独立运行但不ingest。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApi31ContractAdapterTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiDefinitionDTO.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiInvocationSchemaAdapter.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiDefinitionConverter.java`, companion adapter/converter tests
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApi31ContractAdapterTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiDefinitionDTO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiInvocationSchemaAdapter.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/converter/GatewayOpenApiDefinitionConverter.java`, companion adapter/converter tests
 - Commit: `feat(gateway-admin): adapt openapi groups to report v2`
 
 ### Step 10 — 抽取共享 Ingestion 并原子聚合完整 Group Set
@@ -1305,7 +1305,7 @@ enable unmapped target errors and prove round-trip only for fields represented l
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 6, Rule 9, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinatorTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinatorTest.java`
 
 - Purpose: 固定完整集、duplicate、drift、atomic link与recovery RED；同批新增`GatewayDefinitionIngestionServiceTest`并修改ReportService/McpRelease tests。
 - Symbols: coordinator tests、ingestion transaction tests、RPC/HTTP source pairing、linked-set repair、MCP optional tests。
@@ -1329,7 +1329,7 @@ inject repository failure and assert rollback; retry with prelinked set and asse
 - Verification contribution: core atomicity/recovery RED/GREEN。
 - After this file: aggregate/ingestion behavior被冻结。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiAggregateDTO.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiAggregateDTO.java`
 
 - Purpose: 创建完整集与共享ingestion command records。
 - Symbols: `GatewayOpenApiAggregateDTO`、`reporting/domain/dto/GatewayDefinitionIngestionCommandDTO`。
@@ -1353,7 +1353,7 @@ reject missing or extra groups and never carry sync revisions into the transport
 - Verification contribution: constructor/group validation tests与service compile。
 - After this file: service contracts可用。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/reporting/service/GatewayDefinitionIngestionService.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/reporting/service/GatewayDefinitionIngestionService.java`
 
 - Purpose: 抽取transport-neutral Definition write Facade并建立一个事务。
 - Symbols: named `gatewayDefinitionIngestionService`、`ingest(@Valid GatewayDefinitionIngestionCommandDTO)`、transaction boundary/result。
@@ -1377,7 +1377,7 @@ link every command snapshot id to the resulting set and assert full affected cou
 - Verification contribution: transaction/idempotency/fault tests GREEN；ReportService old tests GREEN。
 - After this file: RPC/HTTP共享一个Definition writer。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinator.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinator.java`
 
 - Purpose: 校验完整Manifest并合并各group DefinitionDTO/Report fragment，调用Ingestion；同批修改ReportRepository/JDBC protocol+sourceScope查询、ReportService和McpReleaseContentFactory。
 - Symbols: named coordinator；`aggregateAndIngest`；repository `findBuildFingerprint(applicationId,buildId,protocol,sourceScope)`；MCP source enum branch。
@@ -1402,12 +1402,12 @@ build OPENAPI31 ingestion command with all snapshot ids; call qualified ingestio
 - After this file: 完整Group Set可原子创建一个Definition Set；sync状态仍由后续own。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayOpenApiAggregateCoordinatorTest,GatewayDefinitionIngestionServiceTest,GatewayDefinitionReportServiceTest,McpReleaseContentFactoryTest,JdbcGatewayDefinitionReportRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayOpenApiAggregateCoordinatorTest,GatewayDefinitionIngestionServiceTest,GatewayDefinitionReportServiceTest,McpReleaseContentFactoryTest,JdbcGatewayDefinitionReportRepositoryTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: complete aggregate produces one set/all links；all failure/rollback/recovery/RPC/MCP optional tests pass；sync table untouched by ingestion。
 - Failure returns to: File 1 invariants；File 2 command modeling；File 3transaction；File 4aggregate/source integration。
 - Completion criteria: HTTP/RPC共用Ingestion但不混事实源；多group atomicity/drift/duplicates/recovery全部证明。
 - Rollback: revertStep 10 services/repository changes；V12/adapter保留无activation。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinatorTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiAggregateDTO.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/reporting/service/GatewayDefinitionIngestionService.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinator.java`, reporting repository/JDBC/ReportService/McpReleaseContentFactory and tests
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinatorTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/dto/GatewayOpenApiAggregateDTO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/reporting/service/GatewayDefinitionIngestionService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiAggregateCoordinator.java`, reporting repository/JDBC/ReportService/McpReleaseContentFactory and tests
 - Commit: `feat(gateway-admin): atomically ingest complete openapi group sets`
 
 ### Step 11 — 编排有界 Sync、逐 Group CAS 恢复与 Definition 生命周期
@@ -1422,7 +1422,7 @@ build OPENAPI31 ingestion command with all snapshot ids; call qualified ingestio
 - Literal Rules: `Rule 1, Rule 2, Rule 4, Rule 5, Rule 7, Rule 9, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncServiceTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncServiceTest.java`
 
 - Purpose: 固定candidate discovery、claim/fetch/validate/snapshot/aggregate/CAS、retry/stale/recovery RED；同批修改 lifecycle/config tests。
 - Symbols: `GatewayOpenApiSyncServiceTest`,`GatewayOpenApiSyncReconcilerTest`,`GatewayAdminOpenApiPropertiesTest`,`GatewayDefinitionLifecycleReconcilerTest`,`GatewayAdminConfigurationTest`。
@@ -1446,7 +1446,7 @@ simulate crash after ingestion and CAS loss; next reconcile finds linked snapsho
 - Verification contribution: scheduler/state/recovery/lifecycle RED/GREEN。
 - After this file: orchestration行为固定。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/config/properties/GatewayAdminOpenApiProperties.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/config/properties/GatewayAdminOpenApiProperties.java`
 
 - Purpose: 集中同步/安全/limit defaults并同时更新base/local YAML key parity。
 - Symbols: prefix `gateway.admin.openapi`；interval/batch/maxInstances/lease/connectTimeout/requestTimeout/backoff/jitter/driftSample/maxBytes/CIDRs。
@@ -1470,7 +1470,7 @@ reject enabled configuration that omits trusted DNS/CIDR/resource requirements o
 - Verification contribution: property/default/YAML parity tests GREEN。
 - After this file: runtime constants typed且一致。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncService.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncService.java`
 
 - Purpose: 编排单candidate/manifest同步和失败状态；不复制client/rule/adapter/transaction逻辑。
 - Symbols: named `gatewayOpenApiSyncService`、`synchronize(candidate/revision)`、metrics/audit。
@@ -1494,7 +1494,7 @@ after returned set id update each group to VALID by revision CAS; on later run r
 - Verification contribution: sync state/metrics/audit/recovery tests GREEN。
 - After this file: single-run orchestration完整。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/scheduled/GatewayOpenApiSyncReconciler.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/scheduled/GatewayOpenApiSyncReconciler.java`
 
 - Purpose: 创建有界scheduled trigger并修改Admin wiring/lifecycle active-set union。
 - Symbols: named reconciler；`GatewayAdminConfiguration` enable properties/Clock/beans；`GatewayDefinitionLifecycleReconciler` union DDC RPC set IDs + DB VALID OpenAPI set IDs；repository queries。
@@ -1519,12 +1519,12 @@ when DDC observation is stale preserve prior active decisions and defer deactiva
 - After this file: durable OpenAPI sync/lifecycle闭环完成；尚未开放管理API。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayOpenApiSyncServiceTest,GatewayOpenApiSyncReconcilerTest,GatewayAdminOpenApiPropertiesTest,GatewayDefinitionLifecycleReconcilerTest,GatewayAdminConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayOpenApiSyncServiceTest,GatewayOpenApiSyncReconcilerTest,GatewayAdminOpenApiPropertiesTest,GatewayDefinitionLifecycleReconcilerTest,GatewayAdminConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: named tests pass；config key parity/defaults、batch/retry/CAS repair、stale lifecycle与metrics均符合Spec。
 - Failure returns to: File 1 state contract；File 2 defaults；File 3 service ownership；File 4 scheduler/lifecycle wiring。
 - Completion criteria: 有界可恢复可观测sync闭环，不自动启动项目；所有group最终共享同set。
 - Rollback: disable `gateway.admin.openapi.enabled` then revertStep 11；已保存snapshot/definitions保持immutable。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncServiceTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/config/properties/GatewayAdminOpenApiProperties.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncService.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/scheduled/GatewayOpenApiSyncReconciler.java`, application YAMLs, Admin configuration, lifecycle repository/JDBC/reconciler and tests
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncServiceTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/config/properties/GatewayAdminOpenApiProperties.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiSyncService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/scheduled/GatewayOpenApiSyncReconciler.java`, application YAMLs, Admin configuration, lifecycle repository/JDBC/reconciler and tests
 - Commit: `feat(gateway-admin): reconcile openapi groups with recoverable cas`
 
 ### Step 12 — 暴露只读 OpenAPI 同步/Fragment/Raw 管理 API
@@ -1539,7 +1539,7 @@ when DDC observation is stale preserve prior active decisions and defer deactiva
 - Literal Rules: `Rule 1, Rule 2, Rule 3, Rule 4, Rule 5, Rule 6, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiControllerTest.java`
+#### File 1 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiControllerTest.java`
 
 - Purpose: 固定API-002/003/004 path/query/auth/JSON/error与no-side-effect RED；同批创建QueryService tests。
 - Symbols: controller MVC tests、`GatewayOpenApiQueryServiceTest`、Jackson/permission assertions。
@@ -1563,7 +1563,7 @@ read immutable snapshot raw document, assert safe headers/body and verify no rep
 - Verification contribution: API contract/security RED/GREEN。
 - After this file: frontend contract被冻结。
 
-#### File 2 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/vo/GatewayOpenApiSyncStateVO.java`
+#### File 2 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/vo/GatewayOpenApiSyncStateVO.java`
 
 - Purpose: 创建三个external response records。
 - Symbols: `GatewayOpenApiSyncStateVO`,`GatewayOperationOpenApiVO`,`GatewayOpenApiDocumentVO`。
@@ -1587,7 +1587,7 @@ keep raw document available only in the snapshot document VO and exclude it from
 - Verification contribution: Jackson contract tests/type compilation。
 - After this file: response model稳定。
 
-#### File 3 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiQueryService.java`
+#### File 3 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiQueryService.java`
 
 - Purpose: 聚合read-only repository/catalog queries并生成VO，不复用sync mutation service。
 - Symbols: named `gatewayOpenApiQueryService`；`listSyncStates`,`getOperationOpenApi`,`getSnapshotDocument`。
@@ -1611,7 +1611,7 @@ load immutable snapshot raw document by id and map safe metadata plus raw JSON; 
 - Verification contribution: QueryService tests GREEN并证明RPC不伪造OpenAPI。
 - After this file: read model可用。
 
-#### File 4 — `CREATE egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiController.java`
+#### File 4 — `CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiController.java`
 
 - Purpose: 暴露三个只读endpoints并扩展existing exception advice。
 - Symbols: named controller endpoints API-002–004；modify `GatewayAdminExceptionHandler` for validation/not-found/source-not-available/snapshot conflict safe mapping。
@@ -1636,12 +1636,12 @@ map validation, not found and source-not-available failures through existing Gat
 - After this file: backend management API完整可消费。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin -am -Dtest=GatewayOpenApiControllerTest,GatewayOpenApiQueryServiceTest,GatewayAdminOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -Dtest=GatewayOpenApiControllerTest,GatewayOpenApiQueryServiceTest,GatewayAdminOpenApiContractTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: API-002–004 success/auth/error/serialization tests pass；read paths无mutation/network；RPC source返回not-available。
 - Failure returns to: File 1 contract；File 2 VO；File 3 query mapping；File 4 HTTP/security/advice。
 - Completion criteria: frontend所需aggregate/group/source/hash/error/raw/fragment数据全部可用且只读安全。
 - Rollback: revertAPI/controller/service/VO/advice；sync pipeline继续运行但无UI query。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiControllerTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/vo/GatewayOpenApiSyncStateVO.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiQueryService.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiController.java`, companion VOs/tests and `GatewayAdminExceptionHandler`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiControllerTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/domain/vo/GatewayOpenApiSyncStateVO.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/service/GatewayOpenApiQueryService.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/openapi/controller/GatewayOpenApiController.java`, companion VOs/tests and `GatewayAdminExceptionHandler`
 - Commit: `feat(gateway-admin): expose openapi sync and document queries`
 
 ### Step 13 — 在 Admin Web 展示聚合状态、逐 Group 明细与 OpenAPI 文档
@@ -1656,7 +1656,7 @@ map validation, not found and source-not-available failures through existing Gat
 - Literal Rules: `Rule 1, Rule 2, Rule 5, Rule 6, Rule 10, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`
 
 - Purpose: 先固定三个API调用、query encoding、source enum和错误契约；同批修改Applications test并创建OperationPage test。
 - Symbols: `gatewayApi.test.ts`,`ApplicationsPage.test.tsx`,`OperationPage.test.tsx`。
@@ -1680,7 +1680,7 @@ assert MANUAL and RPC_DESCRIPTOR show source-appropriate empty state and the bro
 - Verification contribution: frontend RED/GREEN covering requested operator flows。
 - After this file: final UI behavior被冻结。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`
 
 - Purpose: 建立与backend VO完全一致的TypeScript contracts并修改gatewayApi methods。
 - Symbols: `GatewayDefinitionSourceType='MANUAL'|'RPC_DESCRIPTOR'|'OPENAPI31'`、sync/group/operation/document types；API functions。
@@ -1704,7 +1704,7 @@ reuse the existing request and error wrapper; do not accept or construct provide
 - Verification contribution: API tests/typecheck GREEN。
 - After this file: frontend contract/client可供pages消费。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.tsx`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx`
 
 - Purpose: 在现有Applications表添加worst/aggregate状态和可展开group明细，不新增页面/route。
 - Symbols: query hook/state mapping、status badge、expanded row group table、refresh。
@@ -1728,7 +1728,7 @@ preserve loading, empty, partial error and retry states with accessible labels a
 - Verification contribution: ApplicationsPage tests GREEN。
 - After this file: 应用级/Group级可见性完成。
 
-#### File 4 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/interface-catalog/OperationPage.tsx`
+#### File 4 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/interface-catalog/OperationPage.tsx`
 
 - Purpose: 新增OpenAPI Tab并修改Catalog source filter；明确复用未修改的SchemaPanel。
 - Symbols: Operation OpenAPI query/tab/copy/download/refresh；`CatalogPage.tsx` source options=`MANUAL/RPC_DESCRIPTOR/OPENAPI31`。
@@ -1752,13 +1752,13 @@ update Catalog source filter to the exact three values and preserve existing ope
 - Verification contribution: Operation/Catalog tests、typecheck、lint GREEN。
 - After this file: Admin Web requestedexperience完成，无Provider直连。
 
-- Validation working directory: `/Users/mario/SelfProject/Egon-COLA/egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web`
+- Validation working directory: `/Users/mario/SelfProject/Egon-COLA/egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`
 - Verification command: `npm test -- --run src/api/gatewayApi.test.ts src/features/applications/ApplicationsPage.test.tsx src/features/interface-catalog/OperationPage.test.tsx && npm run typecheck && npm run lint && npm run build`
 - Expected result: focused tests/typecheck/lint/build exit 0；all states与三值source可见；SchemaPanel无diff。
 - Failure returns to: File 1 expected UX；File 2 contract/client；File 3 Applications；File 4 Operation/Catalog。
 - Completion criteria: 应用聚合/Group明细、Operation source/group/OpenAPI、copy/download/refresh完整且无新route/provider call。
 - Rollback: revertfrontend Step 13 paths；backend APIs保持可用。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/applications/ApplicationsPage.tsx`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/interface-catalog/OperationPage.tsx`, `gatewayApi.ts`, `ApplicationsPage.test.tsx`, `OperationPage.test.tsx`, `CatalogPage.tsx`
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/interface-catalog/OperationPage.tsx`, `gatewayApi.ts`, `ApplicationsPage.test.tsx`, `OperationPage.test.tsx`, `CatalogPage.tsx`
 - Commit: `feat(gateway-admin-web): show openapi group aggregation status`
 
 ### Step 14 — 闭合架构、RPC/MCP/Route/Release 与 E2E 回归证据
@@ -1773,7 +1773,7 @@ update Catalog source filter to the exact three values and preserve existing ope
 - Literal Rules: `Rule 2, Rule 3, Rule 5, Rule 6, Rule 7, Rule 9, Rule 11`
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/architecture/GatewayAdminPackageArchitectureTest.java`
+#### File 1 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/architecture/GatewayAdminPackageArchitectureTest.java`
 
 - Purpose: 允许并约束exact `openapi` feature packages，禁止biz/archetype混合、Swagger model泄漏Contract、controller→JDBC直连与client→repository反向依赖。
 - Symbols: package rules/module dependency assertions/legacy residual assertions。
@@ -1797,7 +1797,7 @@ retain all preexisting package rules for reporting, catalog, mcp, route, release
 - Verification contribution: architecture/static boundary GREEN。
 - After this file: package/dependency structure有可执行守卫。
 
-#### File 2 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpFixtureContractTest.java`
+#### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpFixtureContractTest.java`
 
 - Purpose: 更新跨module fixture到三值source并证明MCP optional/Tool ID与RPC Descriptor Golden；同批确保RPC contract tests仍覆盖source pairing。
 - Symbols: `McpFixtureContractTest`,`GatewayRpcContractTest` final source assertions。
@@ -1821,7 +1821,7 @@ assert neither RPC runtime nor Engine imports or executes OpenAPI acquisition co
 - Verification contribution: RPC/MCP/Engine cross-module regression。
 - After this file: source/MCP compatibility boundary闭合。
 
-#### File 3 — `MODIFY egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/e2e/gateway-admin.spec.ts`
+#### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/gateway-admin.spec.ts`
 
 - Purpose: 扩展用户控制的E2E contract，验证应用worst/aggregate、group detail、Operation OpenAPI tab与no-auto-route。
 - Symbols: Playwright scenarios/mocks or live test selectors；不修改MCP control plane E2E除必要source fixture。
@@ -1846,12 +1846,12 @@ after sync fixture change assert Catalog updates while Draft and Release routes 
 - After this file: E2E acceptance定义完成。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway -am verify && cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web && npm test -- --run && npm run typecheck && npm run lint && npm run build`
+- Verification command: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng -am verify && cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm test -- --run && npm run typecheck && npm run lint && npm run build`
 - Expected result: Gateway reactor verify与Admin Web static/component gates exit 0；architecture/residual/source/RPC/MCP/Route boundary无回归。Playwright live E2E只在用户启动所需拓扑后按§8单独执行。
 - Failure returns to: File 1 architecture owningStep；File 2 RPC/MCP owningSteps 6/10；File 3 backend/frontend owningSteps 11–13；不得在Step14新增compat shim。
 - Completion criteria: 所有REQ trace有focused/full gate；旧HTTP residual为零；RPC/Engine/Route/Release保持；无未闭合blocker。
 - Rollback: revert测试文件只撤销验收守卫，不应作为production fix；任何production失败回原Step forward-fix。
-- Commit paths: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/architecture/GatewayAdminPackageArchitectureTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpFixtureContractTest.java`, `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/e2e/gateway-admin.spec.ts`, companion RPC/E2E fixture assertions if source literals change
+- Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/architecture/GatewayAdminPackageArchitectureTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpFixtureContractTest.java`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/gateway-admin.spec.ts`, companion RPC/E2E fixture assertions if source literals change
 - Commit: `test(gateway): close openapi aggregation regression gates`
 
 ## 8. Test, Validation, and Quality Gates
@@ -1867,7 +1867,7 @@ after sync fixture change assert Catalog updates while Draft and Release routes 
 | Transaction | repository root | Step 10 aggregate/ingestion tests | one set/all groups | rollback/recovery/source/MCP pass | Step 10 | `REQ-007,010,018–021,024`; service/integration |
 | Lifecycle/API | repository root | Steps 11–12 tests | CAS/retry/stale/read API | defaults/states/recovery/security pass | Steps 11–12 | `REQ-004–007,011,012,017,019,024–026`; service/MVC |
 | Frontend | Admin Web directory | Step 13 npm command | client/components/static build | tests/typecheck/lint/build exit 0 | Step 13 | `REQ-012,020,026`; browser-independent |
-| Full reactor | repository root | `./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-gateway -am verify` | all Gateway Java modules | exit 0；RPC/MCP/Engine/Route/Release regressions pass | owning Step | all backend；full module，不是live topology |
+| Full reactor | repository root | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng -am verify` | all Gateway Java modules | exit 0；RPC/MCP/Engine/Route/Release regressions pass | owning Step | all backend；full module，不是live topology |
 | Full frontend | Admin Web directory | `npm test -- --run && npm run typecheck && npm run lint && npm run build` | Admin Web | exit 0 | Step 13/14 | UI static/component |
 | User-controlled E2E | Admin Web directory after user starts DDC/IdP/Providers/Admin | `npm run test:e2e -- e2e/gateway-admin.spec.ts` | live/mocked configured E2E | grouped docs/sync/UI/no-auto-route observed | owning backend/frontend Step | `REQ-001,005,012,014,018,026`; runtime only |
 | Final static | repository root | `rg` residual + `git diff --check` + `git status --short` | source/dependencies/worktree | no old HTTP/STARTER source literals；no whitespace errors；only intended paths | owning Step | `REQ-003,009,015,020`; static |

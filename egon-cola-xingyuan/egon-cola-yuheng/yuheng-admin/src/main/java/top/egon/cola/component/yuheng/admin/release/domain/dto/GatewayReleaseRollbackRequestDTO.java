@@ -1,0 +1,40 @@
+package top.egon.cola.component.yuheng.admin.release.domain.dto;
+
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.PositiveOrZero;
+
+
+/**
+ * 中文说明：{@code GatewayReleaseRollbackRequestDTO} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责Rollback请求相关的职责与边界。
+ * English summary: {@code GatewayReleaseRollbackRequestDTO} is an immutable data carrier in the current Gateway module; it owns the rollback request-related responsibility and boundary.
+ *
+ * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
+ * @param sourceReleaseId 参数 source发布Id；parameter source release id。
+ * @param expectedDraftRevision 参数 expected草稿Revision；parameter expected draft revision。
+ * @param changeReason 参数 changeReason；parameter change reason。
+ */
+public record GatewayReleaseRollbackRequestDTO(
+        /**
+         * 中文说明：保存 source发布Id 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by source release id; its type is {@code String}, and {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
+         */
+        @NotBlank String sourceReleaseId,
+        /**
+         * 中文说明：保存 expected草稿Revision 对应的状态、依赖或配置值；字段类型为 {@code long}，由 {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by expected draft revision; its type is {@code long}, and {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
+         */
+        @PositiveOrZero long expectedDraftRevision,
+        /**
+         * 中文说明：保存 changeReason 对应的状态、依赖或配置值；字段类型为 {@code String}，由 {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} 在其生命周期内读取或更新。
+         * English summary: Holds the state, dependency, or configuration represented by change reason; its type is {@code String}, and {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} reads or updates it during its lifecycle.
+         *
+         * 用法 / Usage: 该字段通过 {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code top.egon.cola.component.yuheng.admin.release.domain.dto.GatewayReleaseRollbackRequestDTO}; do not couple callers to its representation when the owning type exposes an API.
+         */
+        @NotBlank String changeReason
+) {
+}

@@ -1,0 +1,1045 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+repo_root="$(cd "${script_dir}/../.." && pwd)"
+identity_script="${repo_root}/scripts/unified-identity-local.sh"
+platform_start_script="${repo_root}/scripts/unified-xingyuan/start-local-stack.sh"
+platform_common_script="${repo_root}/scripts/unified-xingyuan/lib/common.sh"
+platform_verify_script="${repo_root}/scripts/unified-xingyuan/verify-local-stack.sh"
+cleanup_script="${repo_root}/scripts/unified-xingyuan/cleanup-legacy-identity-keys.sh"
+release_fixture="${repo_root}/scripts/unified-xingyuan/fixtures/unified-platform-release.json"
+
+fail() {
+  printf 'direct-run-contract: %s\n' "$*" >&2
+  exit 1
+}
+
+assert_contains() {
+  local file="$1" expected="$2" context="$3"
+  grep -Fq -- "${expected}" "${file}" \
+    || fail "${context}: missing ${expected}"
+}
+
+assert_not_contains() {
+  local file="$1" unexpected="$2" context="$3"
+  if grep -Fq -- "${unexpected}" "${file}"; then
+    fail "${context}: found ${unexpected}"
+  fi
+}
+
+extract_function() {
+  local name="$1" output="$2"
+  awk -v signature="${name}()" '
+    $0 == signature " {" {copying = 1}
+    copying {print}
+    copying && $0 == "}" {exit}
+  ' "${identity_script}" >"${output}"
+  [[ -s "${output}" ]] || fail "${name} function is missing"
+}
+
+temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/egon-direct-run-contract.XXXXXX")"
+trap 'rm -rf "${temporary_dir}"' EXIT
+
+function_file="${temporary_dir}/command-start.sh"
+extract_function command_start "${function_file}"
+awk '
+  /stage "issuing IdP-owned service credentials"/ { issuing = 1 }
+  issuing && /refresh_service_tokens/ { refreshed = 1 }
+  refreshed && /stop_process ddc/ { stopped = 1 }
+  stopped && /start_process ddc/ { restarted = 1 }
+  /initialize_ddc_topology/ { exit !restarted }
+  END { if (!restarted) exit 1 }
+' "${function_file}" \
+  || fail 'DDC must reload initialized OAuth credentials before Admin topology requests'
+
+function_file="${temporary_dir}/local-build-id.sh"
+extract_function local_build_id "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+printf '%s' 'deterministic-local-build' >"${temporary_dir}/local-build.jar"
+expected_build_id="local-$(openssl dgst -sha256 -r \
+  "${temporary_dir}/local-build.jar" | awk '{print substr($1, 1, 16)}')"
+[[ "$(local_build_id "${temporary_dir}/local-build.jar")" \
+    == "${expected_build_id}" ]] \
+  || fail 'local build IDs must be derived from executable JAR content'
+
+function_file="${temporary_dir}/properties-escape.sh"
+extract_function properties_escape "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+
+escaped="$(properties_escape $'a\\b\tc\rd\ne')"
+[[ "${escaped}" == 'a\\b\tc\rd\ne' ]] \
+  || fail "properties_escape did not encode Java properties control characters"
+
+function_file="${temporary_dir}/java-property-key.sh"
+extract_function java_property_key "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+[[ "$(java_property_key SERVER_PORT)" == 'server.port' ]] \
+  || fail 'SERVER_PORT must become a Spring property key'
+[[ "$(java_property_key SPRING_DATASOURCE_URL)" == 'spring.datasource.url' ]] \
+  || fail 'SPRING_DATASOURCE_URL must become a Spring property key'
+[[ "$(java_property_key EGON_COLA_PLATFORM_RBAC3_RUNTIME_PASSWORD_FILE)" \
+    == 'egon.cola.platform.rbac3.runtime.password-file' ]] \
+  || fail 'RBAC3 runtime password file must use its canonical property key'
+[[ "$(java_property_key GATEWAY_ADMIN_DDC_ENABLED)" \
+    == 'gateway.admin.ddc.enabled' ]] \
+  || fail 'Gateway DDC enablement must use its canonical property key'
+[[ "$(java_property_key GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED)" \
+    == 'gateway.admin.release-reconcile-enabled' ]] \
+  || fail 'Gateway release recovery enablement must use its canonical property key'
+[[ "$(java_property_key GATEWAY_ADMIN_SECRETS_MASTER_KEY_BASE64)" \
+    == 'gateway.admin.secrets.master-key-base64' ]] \
+  || fail 'Gateway secret protection must use its canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST)" \
+    == 'egon.cola.component.ddc.registry.http.fail-fast' ]] \
+  || fail 'Gateway Provider fail-fast must use its canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST)" \
+    == 'egon.cola.component.ddc.consistency.fail-fast' ]] \
+  || fail 'DDC consistency fail-fast must use its canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_PUBLIC_PORT)" \
+    == 'egon.cola.component.gateway.engine.http.public-port' ]] \
+  || fail 'Gateway public listener must use its nested canonical property key'
+[[ "$(java_property_key EGON_COLA_COMPONENT_GATEWAY_ENGINE_HTTP_INTERNAL_PORT)" \
+    == 'egon.cola.component.gateway.engine.http.internal-port' ]] \
+  || fail 'Gateway internal listener must use its nested canonical property key'
+
+function_file="${temporary_dir}/postgres-password.sh"
+extract_function postgres_password "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+secret_dir="${temporary_dir}/secrets"
+mkdir -p "${secret_dir}"
+postgres_password_file=
+unset UNIFIED_IDENTITY_POSTGRES_PASSWORD
+if (postgres_password) >/dev/null 2>&1; then
+  fail 'PostgreSQL password resolution must not guess a default password'
+fi
+printf '%s' 'local-runtime-password' >"${secret_dir}/postgres.password"
+[[ "$(postgres_password)" == 'local-runtime-password' ]] \
+  || fail 'PostgreSQL password resolution must reuse the protected runtime secret'
+
+function_file="${temporary_dir}/resolve-postgres-password.sh"
+extract_function resolve_postgres_password "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+printf '%s' 'explicit-runtime-password' \
+  >"${temporary_dir}/explicit-postgres.password"
+postgres_password_file="${temporary_dir}/explicit-postgres.password"
+postgres_host=127.0.0.1
+postgres_port=5432
+postgres_user=postgres
+postgres_database=postgres
+psql() {
+  [[ "${PGPASSWORD:-}" == 'explicit-runtime-password' ]]
+}
+resolve_postgres_password
+[[ "$(<"${secret_dir}/postgres.password")" \
+    == 'explicit-runtime-password' ]] \
+  || fail 'explicit PostgreSQL credential must be persisted in the protected runtime'
+[[ "$(stat -f '%Lp' "${secret_dir}/postgres.password")" == '600' ]] \
+  || fail 'persisted PostgreSQL credential must have mode 600'
+printf '%s' 'rejected-runtime-password' \
+  >"${temporary_dir}/rejected-postgres.password"
+postgres_password_file="${temporary_dir}/rejected-postgres.password"
+if (resolve_postgres_password) >/dev/null 2>&1; then
+  fail 'invalid PostgreSQL credential must be rejected before persistence'
+fi
+[[ "$(<"${secret_dir}/postgres.password")" \
+    == 'explicit-runtime-password' ]] \
+  || fail 'invalid PostgreSQL credential replaced the last known-good runtime secret'
+[[ "$(stat -f '%Lp' "${secret_dir}/postgres.password")" == '600' ]] \
+  || fail 'rejected PostgreSQL credential changed runtime secret permissions'
+unset -f psql
+
+function_file="${temporary_dir}/resolve-existing-service-tenant-id.sh"
+extract_function resolve_existing_service_tenant_id "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+idp_database=idp-test
+rbac3_database=rbac3-test
+service_tenant_id=default
+database_table_exists() {
+  [[ "$1" == 'rbac3-test' && "$2" == 'public.rbac3_tenant' ]]
+}
+rbac3_tenant_id() {
+  [[ "$1" == 'default' ]] || return 1
+  printf '%s' '42001'
+}
+resolve_existing_service_tenant_id
+[[ "${service_tenant_id}" == '42001' ]] \
+  || fail 'prepare must restore the numeric ID of an existing service tenant'
+service_tenant_id=73001
+rbac3_tenant_id() {
+  return 1
+}
+resolve_existing_service_tenant_id
+[[ "${service_tenant_id}" == '73001' ]] \
+  || fail 'an explicit numeric service tenant ID must be preserved'
+service_tenant_id=default
+database_table_exists() { [[ "$1" == 'idp-test' ]]; }
+database_row_exists() { return 1; }
+resolve_existing_service_tenant_id
+[[ "${service_tenant_id}" == 'default' ]] \
+  || fail 'an empty IdP catalog must wait for local tenant bootstrap'
+function_file="${temporary_dir}/rbac3-jdbc-url.sh"
+extract_function rbac3_jdbc_url "${function_file}"
+(
+  source "${function_file}"
+  postgres_host=127.0.0.1
+  postgres_port=5432
+  tenant_authority_artifact=
+  database_table_exists() { return 1; }
+  [[ "$(rbac3_jdbc_url)" == 'jdbc:postgresql://127.0.0.1:5432/rbac3-test' ]] \
+    || fail 'fresh prepare must not emit a fake numeric tenant or authority gate'
+)
+unset -f database_table_exists database_row_exists rbac3_tenant_id
+unset idp_database
+
+jq -e '
+  .server.resourceUri == "https://api.egon.internal/local/identity/gateway-test-mcp-provider"
+  and (.server | has("oauthAudience") | not)
+' "${release_fixture}" >/dev/null \
+  || fail 'MCP Server fixture must use the exact OAuth Resource URI contract'
+assert_contains "${platform_start_script}" 'ensure_mcp_user_delegation' \
+  'local MCP startup must explicitly grant its exact Resource to the OAuth client'
+assert_contains "${platform_start_script}" \
+  'wait_gateway_engine_provider_catalog' \
+  'local MCP release must wait for both Gateway Engine DDC registrations'
+assert_contains "${platform_start_script}" \
+  'publish-gateway-routes' \
+  'platform startup must publish the prepared Gateway routes after Engine startup'
+assert_contains "${platform_start_script}" \
+  'gateway-admin-control-plane.service.jwt' \
+  'Gateway control-plane automation must use the dedicated IdP SERVICE token'
+assert_contains "${identity_script}" \
+  'ensure_gateway_application permission idp' \
+  'Gateway initialization must register the real IdP catalog application'
+assert_contains "${identity_script}" \
+  'wait_gateway_catalog_for_app' \
+  'Gateway startup must wait for every real provider catalog'
+assert_contains "${identity_script}" \
+  'wait_gateway_openapi_sync_for_app platform gateway-admin' \
+  'Admin catalog refresh must wait for the current executable build to become valid'
+assert_contains "${identity_script}" \
+  'publish_gateway_routes' \
+  'Gateway startup must publish operation-scoped routes from real catalogs'
+assert_contains "${identity_script}" \
+  'GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false' \
+  'Gateway Admin must be available before other providers report catalogs'
+assert_contains "${cleanup_script}" '--execute' \
+  'legacy-key cleanup must require an explicit execute switch'
+assert_contains "${cleanup_script}" '--endpoint host:port/database' \
+  'legacy-key cleanup must require an explicit Redis endpoint'
+assert_contains "${cleanup_script}" 'identity:v1:sso-session:*' \
+  'legacy-key cleanup must name the old IdP SSO prefix explicitly'
+assert_contains "${cleanup_script}" 'rbac3:*:fence:session:*' \
+  'legacy-key cleanup must name the old RBAC3 fence prefix explicitly'
+assert_not_contains "${cleanup_script}" 'FLUSHDB' \
+  'legacy-key cleanup must not flush a Redis database'
+assert_not_contains "${cleanup_script}" 'FLUSHALL' \
+  'legacy-key cleanup must not flush all Redis databases'
+assert_contains "${platform_start_script}" 'mcp-user.at' \
+  'local MCP startup must issue a token for the exact provider Resource'
+assert_contains "${platform_verify_script}" \
+  'mcp_token_file="${verification_token_dir}/mcp-user.at"' \
+  'MCP verification must not reuse the mock backend Resource token'
+assert_contains "${platform_verify_script}" 'run_identity issue-user-token' \
+  'MCP verification must refresh its Resource token after identity revocation checks'
+assert_contains "${platform_verify_script}" \
+  'UNIFIED_IDENTITY_IDP_DATABASE="${identity_idp_database}"' \
+  'platform verification must use the IdP database recorded by the running stack'
+assert_contains "${platform_verify_script}" \
+  'UNIFIED_IDENTITY_RBAC3_DATABASE="${identity_rbac3_database}"' \
+  'platform verification must use the RBAC3 database recorded by the running stack'
+assert_contains "${platform_verify_script}" \
+  'UNIFIED_IDENTITY_GATEWAY_DATABASE="${identity_gateway_database}"' \
+  'platform verification must use the Gateway database recorded by the running stack'
+assert_contains "${platform_verify_script}" \
+  'UNIFIED_IDENTITY_DDC_DATABASE="${identity_ddc_database}"' \
+  'platform verification must use the DDC database recorded by the running stack'
+assert_not_contains "${platform_verify_script}" \
+  'Authorization: Bearer $(<"${tenant_token_file}")' \
+  'MCP verification must use the exact provider Resource token for every transport'
+assert_contains "${platform_verify_script}" \
+  '"local_echo_task","arguments":{"body":{"value":"task"}}' \
+  'MCP task verification must preserve the Gateway Operation body location'
+
+assert_env_equals() {
+  local file="$1" key="$2" expected="$3" context="$4" actual
+  actual="$(bash -c '
+    set -a
+    # shellcheck disable=SC1090
+    source "$1"
+    printf "%s" "${!2-}"
+  ' _ "${file}" "${key}")"
+  [[ "${actual}" == "${expected}" ]] \
+    || fail "${context}: expected ${key}=${expected}, got ${actual:-<unset>}"
+}
+
+generated_runtime="${temporary_dir}/generated-runtime"
+(
+  export UNIFIED_IDENTITY_RUNTIME_DIR="${generated_runtime}"
+  # shellcheck disable=SC1090
+  source "${identity_script}" help >/dev/null
+  initialize_directories
+  printf '%s' 'test-redis-password' >"${secret_dir}/redis.password"
+  printf '%s' 'test-ddc-runtime-access-key' >"${secret_dir}/ddc-runtime.access-key"
+  printf '%s' 'test-ddc-runtime-secret' >"${secret_dir}/ddc-runtime.secret"
+  printf '%s' 'test-ddc-registry-access-key' >"${secret_dir}/ddc-registry.access-key"
+  printf '%s' 'test-ddc-registry-secret' >"${secret_dir}/ddc-registry.secret"
+  printf '%s' 'test-ddc-management-access-key' >"${secret_dir}/ddc-management.access-key"
+  printf '%s' 'test-ddc-management-secret' >"${secret_dir}/ddc-management.secret"
+  printf '%s' 'test-gateway-master-key' >"${secret_dir}/gateway-master-key.base64"
+  postgres_password() {
+    printf '%s' 'test-postgres-password'
+  }
+  service_tenant_id=default
+  database_table_exists() {
+    return 1
+  }
+  rbac3_jdbc_url() {
+    printf '%s' 'jdbc:postgresql://127.0.0.1:5432/rbac3-test'
+  }
+  write_service_env_files
+)
+
+mcp_engine_env="${generated_runtime}/env/gateway-mcp-engine.env"
+assert_env_equals "${mcp_engine_env}" DDC_APP_CODE gateway-mcp-engine-default \
+  'MCP Engine must use its own source-bound DDC application'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_RESOURCE_SERVER_ID \
+  identity-gateway-mcp-engine-default-local \
+  'MCP Engine must use its own OAuth Resource Server'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_RESOURCE_URI \
+  https://api.egon.internal/local/identity/gateway-mcp-engine-default \
+  'MCP Engine must not borrow the API Resource URI'
+assert_env_equals "${mcp_engine_env}" SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+  gateway-mcp-engine-service \
+  'MCP Engine must use its own confidential management Client'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_PORT 18185 \
+  'MCP data-plane listener must not reuse an API Engine listener'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_MANAGEMENT_PORT 18186 \
+  'MCP management listener must be independent'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_DDC_INSTANCE_ID gateway-mcp-engine-local-1 \
+  'MCP Engine must publish an independent lease'
+assert_env_equals "${mcp_engine_env}" GATEWAY_MCP_ENGINE_GROUP_CODE default \
+  'both roles must consume the same Gateway group'
+assert_env_equals "${generated_runtime}/env/gateway-admin.env" GATEWAY_ADMIN_DDC_API_RPC_APP_CODE \
+  gateway-engine-default 'Admin must target the API role scope explicitly'
+assert_env_equals "${generated_runtime}/env/gateway-admin.env" GATEWAY_ADMIN_DDC_MCP_APP_CODE \
+  gateway-mcp-engine-default 'Admin must target the MCP role scope explicitly'
+assert_contains "${platform_start_script}" 'unified_platform_start_jar gateway-mcp-engine' \
+  'core startup must start the independent MCP process before publication'
+assert_not_contains "${mcp_engine_env}" 'GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE=' \
+  'MCP must use the standard confidential service Client'
+
+idp_env="${generated_runtime}/env/idp.env"
+assert_env_equals "${idp_env}" IDP_DDC_ENABLED true \
+  'local IdP must start its DDC config client'
+assert_env_equals "${idp_env}" IDP_HTTP_PROVIDER_ENABLED true \
+  'local IdP must publish its HTTP Provider lease'
+assert_env_equals "${idp_env}" IDP_GATEWAY_REPORTING_ENABLED false \
+  'local IdP must defer Gateway catalog reporting until its control plane is ready'
+assert_env_equals "${idp_env}" IDP_RESOURCE_BIZ_CODE permission \
+  'local IdP must report under the permission business scope'
+assert_env_equals "${idp_env}" IDP_RESOURCE_APP_CODE idp \
+  'local IdP must report under the idp application scope'
+assert_env_equals "${idp_env}" IDP_DECLARED_HOSTS 127.0.0.1 \
+  'local IdP must report its declared host explicitly'
+assert_env_equals "${idp_env}" IDP_HTTP_OPENAPI_ENABLED true \
+  'fresh IdP must publish its HTTP OpenAPI catalog without historical reports'
+assert_env_equals "${idp_env}" \
+  EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
+  'local IdP must recover until its DDC scope binding is initialized'
+assert_env_equals "${idp_env}" DDC_BIZ_CODE permission \
+  'local IdP must use its Resource business scope'
+assert_env_equals "${idp_env}" DDC_APP_CODE idp \
+  'local IdP must use its Resource application scope'
+assert_env_equals "${idp_env}" \
+  EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false \
+  'local IdP must recover until its DDC topology exists'
+assert_env_equals "${idp_env}" DEPLOYMENT_ENV local \
+  'local IdP must register in the local environment'
+assert_env_equals "${idp_env}" DEPLOYMENT_NAMESPACE default \
+  'local IdP must use the default visibility namespace'
+assert_env_equals "${idp_env}" IDP_INSTANCE_ID idp-local-1 \
+  'local IdP must use a stable lease identity'
+assert_env_equals "${idp_env}" IDP_RESOURCE_SERVER_ID \
+  permission-idp-local \
+  'local IdP must validate tokens for its exact Resource Server'
+assert_env_equals "${idp_env}" IDP_RESOURCE_URI \
+  https://api.egon.internal/local/permission/idp \
+  'local IdP must validate one exact Resource URI'
+assert_env_equals "${idp_env}" IDP_RESOURCE_MANAGEMENT_CLIENT_ID \
+  idp-service \
+  'local IdP must request admission with its service client'
+assert_env_equals "${idp_env}" IDP_RESOURCE_MANAGEMENT_KEY_ID \
+  idp-local \
+  'local IdP must identify its admission signing key'
+assert_env_equals "${idp_env}" IDP_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+  "${generated_runtime}/secrets/idp-private.pem" \
+  'local IdP must sign admission assertions with its protected private key'
+assert_env_equals "${idp_env}" IDP_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'local IdP must use the static IdP admission RPC target'
+assert_env_equals "${idp_env}" IDP_RPC_PORT 18122 \
+  'local IdP must expose the internal admission RPC provider'
+assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_CLIENT_ID idp-service \
+  'local IdP must call RBAC3 with its confidential service client'
+assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_KEY_ID idp-local \
+  'local IdP must identify its service assertion key'
+assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_PRIVATE_KEY_FILE \
+  "${generated_runtime}/secrets/idp-private.pem" \
+  'local IdP must sign service assertions with its protected private key'
+assert_env_equals "${idp_env}" IDP_RBAC3_RESOURCE_URI \
+  https://api.egon.internal/local/permission/rbac3 \
+  'local IdP must request a token for the exact RBAC3 Resource'
+assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_TENANT_ID default \
+  'local IdP service calls must bind one exact tenant'
+assert_env_equals "${idp_env}" IDP_RBAC3_SERVICE_SCOPES \
+  'service:authorization:decide service:authorization:snapshot service:identity:resolve' \
+  'local IdP service calls must request only reviewed RBAC3 scopes'
+assert_env_equals "${idp_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
+  'local IdP must use the DDC Registry Redis database'
+assert_env_equals "${idp_env}" DDC_RPC_TARGET dns:///127.0.0.1:19080 \
+  'local IdP must bootstrap DDC through direct RPC'
+assert_env_equals "${idp_env}" DDC_RPC_RUNTIME_ACCESS_KEY \
+  test-ddc-runtime-access-key \
+  'local IdP must use the runtime DDC credential'
+assert_env_equals "${idp_env}" DDC_RPC_REGISTRY_ACCESS_KEY \
+  test-ddc-registry-access-key \
+  'local IdP must use the registry DDC credential'
+
+rbac3_env="${generated_runtime}/env/rbac3.env"
+assert_env_equals "${rbac3_env}" RBAC3_DDC_ENABLED true \
+  'local RBAC3 must start its DDC config client'
+assert_env_equals "${rbac3_env}" RBAC3_HTTP_PROVIDER_ENABLED true \
+  'local RBAC3 must publish its HTTP Provider lease'
+assert_env_equals "${rbac3_env}" RBAC3_GATEWAY_REPORTING_ENABLED false \
+  'local RBAC3 must defer Gateway catalog reporting until its control plane is ready'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_BIZ_CODE permission \
+  'local RBAC3 must report under the permission business scope'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_APP_CODE rbac3 \
+  'local RBAC3 must report under the rbac3 application scope'
+assert_env_equals "${rbac3_env}" RBAC3_DECLARED_HOSTS 127.0.0.1 \
+  'local RBAC3 must report its declared host explicitly'
+assert_env_equals "${rbac3_env}" \
+  EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false \
+  'local RBAC3 must recover until its DDC scope binding is initialized'
+assert_env_equals "${rbac3_env}" DDC_BIZ_CODE permission \
+  'local RBAC3 must use its Resource business scope'
+assert_env_equals "${rbac3_env}" DDC_APP_CODE rbac3 \
+  'local RBAC3 must use its Resource application scope'
+assert_env_equals "${rbac3_env}" \
+  EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false \
+  'local RBAC3 must recover until its DDC topology exists'
+assert_env_equals "${rbac3_env}" DEPLOYMENT_ENV local \
+  'local RBAC3 must register in the local environment'
+assert_env_equals "${rbac3_env}" DEPLOYMENT_NAMESPACE default \
+  'local RBAC3 must use the default visibility namespace'
+assert_env_equals "${rbac3_env}" RBAC3_INSTANCE_ID rbac3-local-1 \
+  'local RBAC3 must use a stable lease identity'
+assert_env_equals "${rbac3_env}" RBAC3_ARTIFACT_VERSION local \
+  'local RBAC3 service identity must use the local artifact version'
+assert_env_equals "${rbac3_env}" \
+  EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
+  'RBAC3 must acquire internal authorization credentials per target tenant'
+assert_env_equals "${rbac3_env}" \
+  SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+  rbac3-service \
+  'RBAC3 tenant-aware credentials must use the approved service Client'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_SERVER_ID \
+  permission-rbac3-local \
+  'local RBAC3 must validate tokens for its exact Resource Server'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_URI \
+  https://api.egon.internal/local/permission/rbac3 \
+  'local RBAC3 must validate one exact Resource URI'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_MANAGEMENT_CLIENT_ID \
+  rbac3-service \
+  'local RBAC3 must request admission with its service client'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_MANAGEMENT_KEY_ID \
+  rbac3-local \
+  'local RBAC3 must identify its admission signing key'
+assert_env_equals "${rbac3_env}" \
+  RBAC3_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+  "${generated_runtime}/secrets/rbac3-private.pem" \
+  'local RBAC3 must sign admission with its protected private key'
+assert_env_equals "${rbac3_env}" RBAC3_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'local RBAC3 must use the static IdP admission RPC target'
+
+gateway_admin_env="${generated_runtime}/env/gateway-admin.env"
+assert_env_equals "${gateway_admin_env}" DDC_RPC_TARGET \
+  dns:///127.0.0.1:19080 \
+  'local Gateway Admin must bootstrap DDC through direct RPC'
+assert_env_equals "${gateway_admin_env}" DDC_RPC_MANAGEMENT_ACCESS_KEY \
+  test-ddc-management-access-key \
+  'local Gateway Admin must use the management DDC credential'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_SERVER_ID \
+  platform-gateway-admin-local \
+  'local Gateway Admin must validate its exact Resource Server'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_URI \
+  https://api.egon.internal/local/platform/gateway-admin \
+  'local Gateway Admin must validate one exact Resource URI'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_RESOURCE_MANAGEMENT_CLIENT_ID gateway-admin-service \
+  'local Gateway Admin must request admission with its service client'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_RESOURCE_MANAGEMENT_KEY_ID gateway-admin-local \
+  'local Gateway Admin must identify its admission signing key'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_RESOURCE_MANAGEMENT_PRIVATE_KEY_FILE \
+  "${generated_runtime}/secrets/gateway-admin-private.pem" \
+  'local Gateway Admin must sign admission with its protected private key'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'local Gateway Admin must use the static IdP admission RPC target'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_GATEWAY_REPORTING_ENABLED false \
+  'Gateway Admin must defer self-reporting until other catalogs are published'
+assert_env_equals "${gateway_admin_env}" \
+  GATEWAY_ADMIN_RELEASE_RECONCILE_ENABLED false \
+  'platform startup must defer historical Gateway release recovery until the current route release completes'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_BIZ_CODE platform \
+  'Gateway Admin must report under the platform business scope'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_RESOURCE_APP_CODE gateway-admin \
+  'Gateway Admin must report under the gateway-admin application scope'
+assert_env_equals "${gateway_admin_env}" GATEWAY_ADMIN_DECLARED_HOSTS 127.0.0.1 \
+  'Gateway Admin must report its declared host explicitly'
+assert_contains \
+  'egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml' \
+  '          id: ${GATEWAY_ENGINE_DDC_INSTANCE_ID:}' \
+  'Gateway Engine DDC client and admission ticket must share one instance id'
+assert_contains \
+  'egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml' \
+  '          id: ${MOCK_BACKEND_INSTANCE_ID:mock-backend-local-1}' \
+  'mock backend DDC client and admission ticket must share one instance id'
+[[ "$(grep -Fc 'service_tenant_id="$(rbac3_tenant_id default)"' \
+  "${identity_script}")" == "2" ]] || fail \
+  'start and credential synchronization must both resolve the exact RBAC3 tenant id'
+assert_contains "${identity_script}" \
+  'resolve_existing_service_tenant_id' \
+  'prepare must restore an existing exact RBAC3 tenant id before rewriting env files'
+assert_contains "${identity_script}" \
+  'tenant_b_id="$(rbac3_tenant_id tenant-b)"' \
+  'start must resolve the exact secondary RBAC3 tenant id'
+assert_contains "${identity_script}" \
+  'IDP_DEVELOPMENT_RBAC3_SERVICE_TENANT_IDS' \
+  'IdP bootstrap must receive every exact local RBAC3 service tenant'
+assert_contains "${identity_script}" 'MOCK_LOCAL_ENTRY' \
+  'the no-admin verification state must preserve mock Resource entry permission'
+assert_contains "${identity_script}" \
+  'user_access_token_for_tenant "${tenant}"' \
+  'USER token issuance must reuse the Gateway cookie and never create a server session'
+assert_not_contains "${identity_script}" '.access.jwt' \
+  'identity bootstrap must not persist per-client USER Access Token files'
+legacy_service_file_key='RBAC3_SERVICE_CREDENTIAL_'
+assert_not_contains "${identity_script}" "${legacy_service_file_key}FILE" \
+  'identity services must use IdP Client Assertion instead of static RBAC3 bearer files'
+assert_not_contains "${platform_start_script}" '.access.jwt' \
+  'platform startup must not persist per-client USER Access Token files'
+assert_not_contains "${platform_verify_script}" '.access.jwt' \
+  'platform verification must not persist per-client USER Access Token files'
+
+gateway_engine_env="${generated_runtime}/env/gateway-engine.env"
+assert_env_equals "${gateway_engine_env}" \
+  GATEWAY_ENGINE_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'Gateway Engine must use the static IdP admission RPC target'
+assert_env_equals "${gateway_engine_env}" \
+  EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE 67108864 \
+  'Gateway Engine must accept the complete DDC Gateway rule document'
+assert_env_equals "${gateway_engine_env}" \
+  GATEWAY_MCP_TASK_SERVICE_TOKEN_ENABLED true \
+  'Gateway Engine must use a SERVICE identity for durable MCP execution'
+assert_env_equals "${gateway_engine_env}" \
+  GATEWAY_MCP_TASK_SERVICE_TOKEN_CLIENT_ID gateway-engine-service \
+  'durable MCP execution must use the approved Gateway Engine Client'
+assert_env_equals "${gateway_engine_env}" \
+  GATEWAY_MCP_TASK_SERVICE_TOKEN_PRIVATE_KEY_FILE \
+  "${generated_runtime}/secrets/gateway-engine-private.pem" \
+  'durable MCP execution must use the protected Gateway Engine key'
+assert_env_equals "${gateway_engine_env}" \
+  GATEWAY_MCP_TASK_SERVICE_TOKEN_SCOPES mcp:operation:invoke \
+  'durable MCP execution must request only the IdP-approved Provider scope'
+
+mock_backend_env="${generated_runtime}/env/mock-backend.env"
+assert_env_equals "${mock_backend_env}" \
+  MOCK_BACKEND_RESOURCE_ADMISSION_RPC_TARGET \
+  dns:///127.0.0.1:18122 \
+  'mock backend must use the static IdP admission RPC target'
+assert_not_contains "${identity_script}" RESOURCE_ADMISSION_ENDPOINT \
+  'local environment generation must not retain HTTP admission endpoints'
+
+ddc_env="${generated_runtime}/env/ddc.env"
+assert_env_equals "${ddc_env}" DDC_RPC_PORT 19080 \
+  'local DDC Admin must expose the direct RPC provider'
+assert_env_equals "${ddc_env}" DDC_RPC_REGISTRY_ACCESS_KEY \
+  test-ddc-registry-access-key \
+  'local DDC Admin must configure the registry credential profile'
+assert_env_equals "${ddc_env}" DDC_RESOURCE_SERVER_ID \
+  platform-ddc-local \
+  'local DDC Admin must validate tokens for its exact Resource Server'
+assert_env_equals "${ddc_env}" DDC_RESOURCE_URI \
+  https://api.egon.internal/local/platform/ddc \
+  'local DDC Admin must validate one exact Resource URI'
+assert_env_equals "${ddc_env}" DDC_ADMIN_JWT_AUDIENCE \
+  https://api.egon.internal/local/platform/ddc \
+  'local DDC Admin security chain must use the Resource URI as audience'
+assert_env_equals "${ddc_env}" DDC_GATEWAY_REPORTING_ENABLED false \
+  'DDC HTTP catalog must use OpenAPI instead of legacy Gateway reporting'
+assert_env_equals "${ddc_env}" DDC_HTTP_OPENAPI_ENABLED true \
+  'fresh DDC must publish its HTTP OpenAPI catalog without historical reports'
+assert_env_equals "${ddc_env}" DDC_RESOURCE_BIZ_CODE platform \
+  'DDC must report under the platform business scope'
+assert_env_equals "${ddc_env}" DDC_RESOURCE_APP_CODE ddc \
+  'DDC must report under the ddc application scope'
+assert_env_equals "${ddc_env}" DDC_DECLARED_HOSTS 127.0.0.1 \
+  'DDC must report its declared host explicitly'
+assert_env_equals "${rbac3_env}" DDC_REGISTRY_REDIS_DATABASE 10 \
+  'local RBAC3 must use the DDC Registry Redis database'
+
+while IFS='|' read -r service_env client_id _ _; do
+  assert_env_equals "${generated_runtime}/env/${service_env}.env" \
+    EGON_COLA_PLATFORM_RBAC3_AUTHORIZATION_SERVICE_TOKEN_ENABLED true \
+    "${service_env} must acquire RBAC3 credentials for the exact USER tenant"
+  assert_env_equals "${generated_runtime}/env/${service_env}.env" \
+    SPRING_SECURITY_OAUTH2_CLIENT_REGISTRATION_EGON_IDP_CLIENT_ID \
+    "${client_id}" \
+    "${service_env} must use its own approved OAuth service Client"
+done <<'SERVICE_TOKENS'
+idp|idp-service|idp-local|idp
+gateway-admin|gateway-admin-service|gateway-admin-local|gateway-admin
+ddc|ddc-service|ddc-local|ddc
+mock-backend|mock-backend-service|mock-backend-local|mock-backend
+gateway-engine|gateway-engine-service|gateway-engine-local|gateway-engine
+gateway-mcp-engine|gateway-mcp-engine-service|gateway-mcp-engine-local|gateway-mcp-engine
+SERVICE_TOKENS
+
+function_file="${temporary_dir}/initialize-ddc-topology.sh"
+extract_function initialize_ddc_topology "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+ddc_topology_calls="${temporary_dir}/ddc-topology-calls.jsonl"
+ddc_api() {
+  local method="$1" path="$2" body="${3:-null}"
+  if [[ "${method}" == "GET" ]]; then
+    printf '%s' '{"success":true,"data":[]}'
+    return
+  fi
+  jq -cn --arg method "${method}" --arg path "${path}" \
+    --argjson body "${body}" \
+    '{method:$method,path:$path,body:$body}' >>"${ddc_topology_calls}"
+  printf '%s' '{"success":true,"data":{}}'
+}
+initialize_ddc_topology test-user-token
+while read -r provider_biz provider_app; do
+  jq -e --arg app "${provider_app}" --arg biz "${provider_biz}" '
+    select(
+      .method == "POST"
+      and .path == "/api/v1/ddc/apps"
+      and .body.bizCode == $biz
+      and .body.appCode == $app
+      and .body.enabled == true
+    )
+  ' "${ddc_topology_calls}" >/dev/null \
+    || fail "DDC topology must create the ${provider_app} application"
+  jq -e --arg app "${provider_app}" --arg biz "${provider_biz}" '
+    select(
+      .method == "POST"
+      and .path == "/api/v1/ddc/namespace-env-app-bindings"
+      and .body.bizCode == $biz
+      and .body.namespaceCode == "default"
+      and .body.env == "local"
+      and .body.appCode == $app
+      and .body.enabled == true
+    )
+  ' "${ddc_topology_calls}" >/dev/null \
+    || fail "DDC topology must enable the ${provider_app} scope binding"
+done <<'PROVIDERS'
+permission idp
+permission rbac3
+PROVIDERS
+unset -f ddc_api initialize_ddc_topology
+
+function_file="${temporary_dir}/wait-ddc-provider-registration.sh"
+extract_function wait_ddc_provider_registration "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+ddc_registry_queries="${temporary_dir}/ddc-registry-queries.txt"
+ddc_api() {
+  local method="$1" path="$2" attempt
+  [[ "${method}" == "GET" ]] \
+    || fail 'provider registration wait must only read DDC state'
+  printf '%s\n' "${path}" >>"${ddc_registry_queries}"
+  attempt="$(wc -l <"${ddc_registry_queries}" | tr -d ' ')"
+  if [[ "${attempt}" -eq 1 ]]; then
+    printf '%s' '{"success":true,"data":{"services":[]}}'
+  else
+    printf '%s' \
+      '{"success":true,"data":{"services":[{"appCode":"idp","serviceKind":"HTTP_PROVIDER","protocol":"http","serviceName":"idp-admin","group":"default","version":"5.3.2"}]}}'
+  fi
+}
+sleep() {
+  :
+}
+wait_ddc_provider_registration permission idp idp-admin
+[[ "$(wc -l <"${ddc_registry_queries}" | tr -d ' ')" -eq 2 ]] \
+  || fail 'provider registration wait must poll until the lease is online'
+grep -Fq \
+  'registry/services?bizCode=permission&namespaceCode=default&env=local&appCode=idp&serviceKind=HTTP_PROVIDER&protocol=http&serviceName=idp-admin&group=default' \
+  "${ddc_registry_queries}" \
+  || fail 'provider registration wait must query the exact IdP service key'
+unset -f ddc_api sleep wait_ddc_provider_registration
+
+function_file="${temporary_dir}/wait-ddc-rpc-provider-registration.sh"
+extract_function wait_ddc_rpc_provider_registration "${function_file}"
+# shellcheck disable=SC1090
+source "${function_file}"
+ddc_rpc_registry_queries="${temporary_dir}/ddc-rpc-registry-queries.txt"
+ddc_api() {
+  local method="$1" path="$2" attempt
+  [[ "${method}" == "GET" ]] \
+    || fail 'RPC provider registration wait must only read DDC state'
+  printf '%s\n' "${path}" >>"${ddc_rpc_registry_queries}"
+  attempt="$(wc -l <"${ddc_rpc_registry_queries}" | tr -d ' ')"
+  if [[ "${attempt}" -eq 1 ]]; then
+    printf '%s' '{"success":true,"data":{"services":[]}}'
+  else
+    printf '%s' \
+      '{"success":true,"data":{"services":[{"appCode":"idp","serviceKind":"RPC_PROVIDER","protocol":"grpc","serviceName":"egon.idp.v1.IdentityDirectoryService","group":"idp","version":"1.0.0"}]}}'
+  fi
+}
+sleep() {
+  :
+}
+wait_ddc_rpc_provider_registration permission idp egon.idp.v1.IdentityDirectoryService idp 1.0.0
+[[ "$(wc -l <"${ddc_rpc_registry_queries}" | tr -d ' ')" -eq 2 ]] \
+  || fail 'RPC provider registration wait must poll until the lease is online'
+grep -Fq \
+  'registry/services?bizCode=permission&namespaceCode=default&env=local&appCode=idp&serviceKind=RPC_PROVIDER&protocol=grpc&serviceName=egon.idp.v1.IdentityDirectoryService&group=idp&version=1.0.0' \
+  "${ddc_rpc_registry_queries}" \
+  || fail 'RPC provider registration wait must query the exact IdP RPC service key'
+unset -f ddc_api sleep wait_ddc_rpc_provider_registration
+
+# shellcheck source=lib/common.sh
+source "${repo_root}/scripts/unified-xingyuan/lib/common.sh"
+declare -F unified_platform_write_frontend_login_env >/dev/null \
+  || fail 'frontend login environment writer is missing'
+frontend_dir="${temporary_dir}/admin-web"
+mkdir -p "${frontend_dir}"
+unified_platform_write_frontend_login_env \
+  "${frontend_dir}" '77351065313480704'
+frontend_env="${frontend_dir}/.env.local"
+[[ "$(stat -f '%Lp' "${frontend_env}")" == '600' ]] \
+  || fail 'generated frontend login environment must have mode 600'
+# shellcheck disable=SC1090
+source "${frontend_env}"
+[[ "${VITE_DEFAULT_TENANT_ID}" == '77351065313480704' ]] \
+  || fail 'plain npm run dev must receive the resolvable default tenant ID'
+[[ "${VITE_GATEWAY_ORIGIN}" == "${GATEWAY_BASE_URL}" ]] \
+  || fail 'plain npm run dev must use Gateway rather than the Vite HTML fallback for login'
+assert_contains "${platform_start_script}" '"${script_dir}/test-live-frontend-login.sh"' \
+  'startup must verify a fresh login and authorization before reporting success'
+printf '%s\n' 'VITE_CUSTOM_SETTING=preserve-me' >"${frontend_env}"
+if (unified_platform_write_frontend_login_env \
+    "${frontend_dir}" '77351065313480704') >/dev/null 2>&1; then
+  fail 'frontend login environment writer must not overwrite an unmanaged file'
+fi
+[[ "$(<"${frontend_env}")" == 'VITE_CUSTOM_SETTING=preserve-me' ]] \
+  || fail 'unmanaged frontend login environment was modified'
+
+assert_contains "${identity_script}" '${file%.env}.properties' \
+  'write_env must target the sibling Java properties file'
+assert_contains "${identity_script}" 'properties_escape "${value}"' \
+  'write_env must encode the Java properties value'
+assert_contains "${identity_script}" 'java_property_key "${key}"' \
+  'write_env must translate environment names for Java property sources'
+assert_contains "${identity_script}" 'chmod 600 "${file}" "${properties_file}"' \
+  'new_env_file must protect both runtime configuration files'
+assert_contains "${identity_script}" \
+  'write_env "${file}" EGON_COLA_COMPONENT_GATEWAY_PROVIDER_HTTP_FAIL_FAST false' \
+  'direct Gateway Engine startup must recover when DDC is still starting'
+assert_contains "${identity_script}" \
+  'write_env "${file}" DDC_MAX_CONFIG_BYTES 67108864' \
+  'local Gateway rule documents must fit the complete chunked catalog'
+assert_contains "${identity_script}" \
+  'EGON_COLA_COMPONENT_DDC_RPC_MAX_INBOUND_MESSAGE_SIZE' \
+  'local DDC RPC clients must accept the complete Gateway rule document'
+assert_contains "${identity_script}" \
+  'EGON_COLA_COMPONENT_RPC_PROVIDER_MAX_INBOUND_MESSAGE_SIZE' \
+  'local DDC RPC providers must accept the complete Gateway rule document'
+assert_contains "${identity_script}" \
+  'write_env "${file}" EGON_COLA_COMPONENT_DDC_CONSISTENCY_FAIL_FAST false' \
+  'direct DDC client startup must reconcile when DDC is still starting'
+assert_contains "${identity_script}" 'wait_ddc_rpc' \
+  'local startup must wait for the DDC RPC listener before starting clients'
+assert_contains "${identity_script}" 'GATEWAY_ADMIN_RULE_CHUNK_RETENTION 24h' \
+  'local startup must retain release chunks through the normal recovery window'
+assert_contains "${identity_script}" 'GATEWAY_ADMIN_RULE_CHUNK_CLEANUP_DELAY 1h' \
+  'local chunk cleanup must not continuously contend with release publication'
+assert_contains "${identity_script}" '"X-Gateway-Contract-Version","traceparent","x-egon-request-id"' \
+  'Gateway frontend contract and trace headers must be allowed by the local CORS policy'
+assert_contains "${identity_script}" \
+  'starting Gateway Engine after DDC control plane is ready' \
+  'Gateway Engine must start after the final DDC provider restart'
+assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED false' \
+  'the first RBAC3 startup must defer topology bootstrap until DDC publication'
+assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_RPC_ENABLED false' \
+  'the first RBAC3 startup must defer direct RPC runtime creation until IdP publication'
+assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_RPC_CONSUMER_ENABLED false' \
+  'the first RBAC3 startup must keep direct RPC consumers disabled until IdP publication'
+assert_contains "${identity_script}" \
+  '--egon.rbac3.development-bootstrap.enabled=false' \
+  'the first RBAC3 bootstrap phase must defer topology activation until DDC publication'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/rbac3.env" RBAC3_DEVELOPMENT_BOOTSTRAP_ENABLED true' \
+  'the final RBAC3 startup must enable topology bootstrap after DDC publication'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/rbac3.env" RBAC3_RPC_ENABLED true' \
+  'the final RBAC3 startup must enable direct RPC runtime after IdP publication'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/rbac3.env" RBAC3_RPC_CONSUMER_ENABLED true' \
+  'the final RBAC3 startup must enable direct RPC consumers after IdP publication'
+assert_contains "${identity_script}" \
+  'wait_ddc_rpc_provider_registration permission idp egon.idp.v1.IdentityDirectoryService idp 1.0.0' \
+  'RBAC3 topology bootstrap must wait for the IdP RPC provider publication'
+assert_contains "${identity_script}" \
+  'stage "starting RBAC3 topology bootstrap after IdP RPC publication"' \
+  'RBAC3 topology bootstrap must have an explicit post-publication stage'
+assert_contains "${identity_script}" \
+  'ddc_admin_access_token="$(user_access_token_for_tenant default)"' \
+  'DDC registry polling must use a fresh USER Access Token after the IdP restart'
+assert_contains "${identity_script}" 'clear_local_rbac3_snapshots' \
+  'local startup must discard stale derived RBAC3 snapshots before rebuilding them'
+assert_contains "${identity_script}" \
+  'write_env "${file}" RBAC3_DEVELOPMENT_AUTO_ACTIVATE_LOCAL_ADMIN_ROLES true' \
+  'local RBAC3 startup must activate the generated local administrator roles'
+assert_contains "${identity_script}" \
+  'write_env "${file}" IDP_RPC_PROVIDER_REGISTRATION_MODE DISABLED' \
+  'IdP bootstrap startup must keep RPC registration disabled until DDC is ready'
+assert_contains "${identity_script}" \
+  'write_env "${env_dir}/idp.env" IDP_RPC_PROVIDER_REGISTRATION_MODE REQUIRED' \
+  'final IdP startup must require RPC provider registration in DDC'
+assert_contains "${identity_script}" '[[ -s "${file}" ]] || return 0' \
+  'identity shutdown must tolerate an already stopped process'
+assert_contains "${repo_root}/scripts/unified-xingyuan/lib/common.sh" \
+  '[[ -s "${pid_file}" ]] || return 0' \
+  'platform shutdown must tolerate an already stopped process'
+
+assert_service_config() {
+  local relative_file="$1" service="$2" file="${repo_root}/$1"
+  assert_contains "${file}" 'default: local' \
+    "${service} must use the local profile when no profile is supplied"
+  assert_contains "${file}" \
+    "optional:file:\${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/${service}.properties" \
+    "${service} must import its generated runtime properties"
+}
+
+assert_service_config \
+  'egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml' \
+  idp
+assert_service_config \
+  'egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml' \
+  rbac3
+assert_service_config \
+  'egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml' \
+  gateway-admin
+assert_service_config \
+  'egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml' \
+  gateway-engine
+ddc_config='egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml'
+assert_service_config "${ddc_config}" ddc
+assert_contains "${repo_root}/${ddc_config}" \
+  'classpath:META-INF/egon-cola-ddc.properties' \
+  'DDC must preserve its starter defaults import'
+
+assert_vite_proxy() {
+  local relative_file="$1" platform="$2"
+  assert_contains "${repo_root}/${relative_file}" "'/oauth2':" \
+    "${platform} auth requests must not fall through to Vite HTML"
+  assert_contains "${repo_root}/${relative_file}" "ADMIN_PROXY ?? 'http://127.0.0.1:18180'" \
+    "${platform} USER cookies must reach the authenticated Gateway proxy"
+}
+
+assert_vite_proxy \
+  'egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/vite.config.ts' \
+  IdP
+assert_vite_proxy \
+  'egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts' \
+  RBAC3
+assert_vite_proxy \
+  'egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts' \
+  Gateway
+assert_vite_proxy \
+  'egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts' \
+  DDC
+
+prepare_script="${repo_root}/scripts/unified-xingyuan/prepare-local-stack.sh"
+start_script="${repo_root}/scripts/unified-xingyuan/start-local-stack.sh"
+live_login_test="${repo_root}/scripts/unified-xingyuan/test-live-frontend-login.sh"
+[[ -x "${prepare_script}" ]] \
+  || fail 'prepare-local-stack.sh must exist and be executable'
+[[ -x "${live_login_test}" ]] \
+  || fail 'live frontend login contract must exist and be executable'
+assert_contains "${prepare_script}" 'start-local-stack.sh' \
+  'preparation must initialize the full local topology'
+assert_contains "${prepare_script}" 'stop-local-stack.sh' \
+  'preparation must leave ports free for direct commands'
+assert_contains "${prepare_script}" 'npm ci' \
+  'preparation must install missing locked frontend dependencies'
+assert_contains "${prepare_script}" '.properties' \
+  'preparation must verify generated Java runtime configuration'
+assert_contains "${start_script}" 'test-live-frontend-login.sh' \
+  'stack startup must prove fresh password login and authorization before success'
+assert_contains "${identity_script}" 'publish_gateway_routes true' \
+  'deferred startup must prepare HTTP routes before the unified MCP release'
+assert_contains "${identity_script}" 'publish-gateway-routes' \
+  'platform startup must expose a post-Engine Gateway route release command'
+assert_contains "${identity_script}" 'wait_gateway_engine_provider_registration' \
+  'platform Gateway route release must wait for an online Engine provider lease'
+assert_contains "${identity_script}" \
+  'MOCK_BACKEND_BUILD_ID "$(local_build_id "${mock_jar}")"' \
+  'mock backend reports must use a content-derived local build ID'
+assert_contains "${platform_common_script}" 'unified_platform_local_build_id()' \
+  'unified platform fixtures must share content-derived local build IDs'
+assert_contains "${platform_start_script}" \
+  'MCP_TEST_PROVIDER_BUILD_ID' \
+  'MCP provider reports must declare a local build ID'
+assert_contains "${platform_start_script}" \
+  '"$(unified_platform_local_build_id "${mcp_provider_jar}")"' \
+  'MCP provider reports must use a content-derived local build ID'
+function_file="${temporary_dir}/publish-gateway-routes.sh"
+extract_function publish_gateway_routes "${function_file}"
+deferred_return_line="$(grep -nF 'if [[ "${defer_release}" == "true" ]]' \
+  "${function_file}" | cut -d: -f1)"
+draft_validation_line="$(grep -nF 'validation="$(gateway_api POST' \
+  "${function_file}" | cut -d: -f1)"
+[[ -n "${deferred_return_line}" && -n "${draft_validation_line}" \
+    && "${deferred_return_line}" -lt "${draft_validation_line}" ]] \
+  || fail 'deferred startup must postpone full draft validation until MCP providers are online'
+assert_contains "${live_login_test}" 'fresh Admin endpoint returned HTTP' \
+  'frontend login contract must exercise fresh Gateway JWT Admin endpoints'
+assert_contains "${live_login_test}" 'fresh_cookie="${fresh_dir}/gateway.cookies"' \
+  'frontend login contract must use one Gateway USER cookie jar'
+assert_not_contains "${live_login_test}" 'Authorization: Bearer $(<"${default_token}")' \
+  'frontend login contract must not forward the pre-generated USER Access Token'
+assert_not_contains "${live_login_test}" 'fresh_dir}/idp.access.jwt' \
+  'frontend login contract must not create per-client USER token files'
+assert_not_contains "${live_login_test}" '.access.jwt' \
+  'frontend login contract must not persist per-client USER Access Token files'
+assert_not_contains "${live_login_test}" '/oauth2/authorize' \
+  'frontend login contract must not use Authorization Code flow'
+assert_not_contains "${live_login_test}" 'grant_type=authorization_code' \
+  'frontend login contract must not exchange Authorization Codes'
+for application_code in idp-admin rbac3-admin gateway-admin ddc-admin mock-backend; do
+  assert_contains "${live_login_test}" "\"${application_code}\"" \
+    "frontend login contract must verify the ${application_code} role"
+done
+for role_code in \
+  IDP_LOCAL_ADMIN RBAC3_LOCAL_ADMIN GATEWAY_LOCAL_ADMIN DDC_LOCAL_ADMIN \
+  MOCK_LOCAL_ADMIN MOCK_LOCAL_ENTRY; do
+  assert_contains "${live_login_test}" "\"${role_code}\"" \
+    "frontend login contract must verify the ${role_code} role code"
+done
+last_web_line="$(grep -nF 'start_admin_web ddc-admin-web' \
+  "${start_script}" | tail -1 | cut -d: -f1)"
+success_line="$(grep -nF "printf 'Unified platform local stack is running" \
+  "${start_script}" | tail -1 | cut -d: -f1)"
+[[ "${last_web_line}" -lt "${success_line}" ]] \
+  || fail 'startup success must be reported after all Web apps are running'
+
+identity_runbook="${repo_root}/docs/runbooks/unified-identity-local.md"
+operations_runbook="${repo_root}/docs/operations/unified-identity-mcp-local-runbook.md"
+for runbook in "${identity_runbook}" "${operations_runbook}"; do
+  assert_contains "${runbook}" 'prepare-local-stack.sh' \
+    'runbook must document the one-time preparation command'
+  assert_contains "${runbook}" 'egon-cola-tianquan-shoubing-admin-exec.jar' \
+    'runbook must document direct IdP JAR startup'
+  assert_contains "${runbook}" 'egon-cola-tianquan-jianshen-admin-exec.jar' \
+    'runbook must document direct RBAC3 JAR startup'
+  assert_contains "${runbook}" 'yuheng-admin-exec.jar' \
+    'runbook must document direct Gateway Admin JAR startup'
+  assert_contains "${runbook}" 'yuheng-biz-gateway-exec.jar' \
+    'runbook must document direct Gateway Engine JAR startup'
+  assert_contains "${runbook}" 'egon-cola-tianshu-admin-exec.jar' \
+    'runbook must document direct DDC JAR startup'
+  assert_contains "${runbook}" 'npm run dev' \
+    'runbook must document plain frontend startup'
+done
+
+verifier="${repo_root}/scripts/unified-xingyuan/verify-local-stack.sh"
+assert_contains "${verifier}" 'verify_authenticated_json()' \
+  'deep verification must provide a reusable authenticated JSON check'
+for label in idp-users rbac3-roles gateway-dashboard ddc-configs; do
+  assert_contains "${verifier}" "${label}" \
+    "deep verification must cover ${label}"
+done
+assert_contains "${verifier}" 'admin-feature-matrix' \
+  'sanitized evidence must include the Admin feature matrix'
+
+function_file="${temporary_dir}/wait-admin-catalog.sh"
+selector_file="${temporary_dir}/select-catalog.sh"
+extract_function select_gateway_catalog_operations "${selector_file}"
+source "${selector_file}"
+selected_self_operations="$(jq -cn '[
+  "GET /api/v1/auth/about",
+  "GET /api/rbac3/v1/auth/role-activation-candidates",
+  "GET /api/rbac3/v1/auth/role-activations",
+  "PUT /api/rbac3/v1/auth/role-activations",
+  "POST /api/v1/auth/about",
+  "GET /api/rbac3/v1/iam/users",
+  "GET /api/rbac3/v1/auth/role-activations/admin"
+] | [ .[] as $method | ["rbac3", "gateway-admin"][] as $app
+  | {id:($app + ":" + $method),methodIdentity:$method,reportedApplication:$app,
+     protocol:"HTTP",sourceType:"OPENAPI31",externalAccessible:true,lifecycleStatus:"ACTIVE"}]' \
+  | select_gateway_catalog_operations)"
+jq -e '[.[] | select(.securityType == "IDENTITY_PROTECTED") | .id] | sort == ([
+  "rbac3:GET /api/v1/auth/about",
+  "rbac3:GET /api/rbac3/v1/auth/role-activation-candidates",
+  "rbac3:GET /api/rbac3/v1/auth/role-activations",
+  "rbac3:PUT /api/rbac3/v1/auth/role-activations"
+] | sort)' <<<"${selected_self_operations}" >/dev/null \
+  || fail 'only the four RBAC current-user bootstrap operations may use identity-only Gateway policy'
+jq -e 'all(.[] | select(.securityType != "IDENTITY_PROTECTED"); .securityType == "BUSINESS_PROTECTED")' \
+  <<<"${selected_self_operations}" >/dev/null \
+  || fail 'management endpoints, other applications, methods and path suffixes must retain business authorization'
+selected_operations="$(jq -cn '[
+  {id:"old",sourceType:"STARTER",methodIdentity:"GET /mcp/{plural:tools|resources}/{id}"},
+  {id:"new",sourceType:"OPENAPI31",methodIdentity:"GET /mcp/{plural}/{id}"},
+  {id:"manual",sourceType:"MANUAL",methodIdentity:"GET /custom"},
+  {id:"legacy-only",sourceType:"STARTER",methodIdentity:"GET /existing"}
+] | map(. + {reportedApplication:"gateway-admin",protocol:"HTTP",externalAccessible:true,lifecycleStatus:"ACTIVE"})' \
+  | select_gateway_catalog_operations)"
+jq -e '[.[].id] | sort == ["legacy-only","manual","new"]' \
+  <<<"${selected_operations}" >/dev/null \
+  || fail 'OpenAPI routes must supersede duplicate legacy starter patterns without dropping manual or unmatched routes'
+
+extract_function wait_gateway_catalog_for_app "${function_file}"
+source "${function_file}"
+printf '%s' 'admin-application' >"${temporary_dir}/admin-application.id"
+gateway_application_id_file() { printf '%s/admin-application.id' "${temporary_dir}"; }
+gateway_api() {
+  printf 'query\n' >>"${temporary_dir}/admin-catalog-queries"
+  if [[ "$(wc -l <"${temporary_dir}/admin-catalog-queries" | tr -d ' ')" == 1 ]]; then
+    printf '%s' '{"operations":[{"protocol":"HTTP","lifecycleStatus":"ACTIVE","methodIdentity":"GET /old"}]}'
+  else
+    jq -cn '["GET /api/v1/gateway/admin/openapi/sync-states",
+      "GET /api/v1/gateway/admin/operations/{operationId}/openapi",
+      "GET /api/v1/gateway/admin/openapi/snapshots/{snapshotId}/document"]
+      | {operations:map({protocol:"HTTP",lifecycleStatus:"ACTIVE",methodIdentity:.})}'
+  fi
+}
+sleep() { :; }
+wait_gateway_catalog_for_app gateway-admin
+[[ "$(wc -l <"${temporary_dir}/admin-catalog-queries" | tr -d ' ')" == 2 ]] \
+  || fail 'Admin catalog wait must reject a stale catalog without the OpenAPI query endpoints'
+unset -f gateway_api gateway_application_id_file sleep wait_gateway_catalog_for_app
+
+printf 'direct-run-contract: runtime properties adapter PASS\n'

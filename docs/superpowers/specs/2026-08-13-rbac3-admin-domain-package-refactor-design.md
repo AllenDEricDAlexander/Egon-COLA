@@ -7,11 +7,11 @@
 
 主要涉及模块：
 
-- `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin`
+- `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin`
 
 相关契约验证涉及但不主动重构的模块：
 
-- `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter`
+- `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter`
 
 本文固化已确认的“方案 C”：RBAC3 Admin 改为领域优先的垂直分包，每个领域内部按 `controller / domain / repository / service` 展开；`domain` 再按实际内容细分为 `dto / vo / po / enums / exception`；生产源码中现存的全部 386 个嵌套 `record`、`class`、`enum` 和 `interface` 必须清零，不只处理 Controller 和 Service 中的公开类型。
 
@@ -607,7 +607,7 @@ DTO/VO 的 Java 简单类名和 FQCN 允许改变，但其对外 JSON 契约不�
 至少执行：
 
 ```bash
-mvn -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -DskipTests compile
+mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -DskipTests compile
 ```
 
 并运行该波次受影响测试及：
@@ -619,7 +619,7 @@ git diff --check
 ### 13.2 最终验证
 
 ```bash
-mvn -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am test
+mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am test
 ```
 
 最终还必须提供以下证据：

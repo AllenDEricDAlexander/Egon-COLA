@@ -318,7 +318,7 @@ egon-cola-components/
 │   │                   ├── RpcServerServiceDefinitionFactoryTest.java CREATE [S8]
 │   │                   ├── RpcAccessGuardExceptionMapperTest.java      CREATE [S11]
 │   │                   └── RpcProviderAccessGuardComponentTest.java    CREATE [S11]
-│   ├── egon-cola-component-rpc-ddc-adapter/src/
+│   ├── egon-cola-component-rpc-tianshu-adapter/src/
 │   │   ├── main/java/top/egon/cola/component/rpc/ddc/registry/
 │   │   │   ├── DdcRpcProviderDirectory.java                           MODIFY [S4]
 │   │   │   └── DdcRpcGatewayDirectory.java                            MODIFY [S4]
@@ -360,7 +360,7 @@ Inventory ownership is exactly the `[S1]`–`[S12]` marker shown above. The only
 
 - Baseline is `main@0aa6673d7af572c0a13618716e9a2c76f8d33863`; branch is three commits ahead of `origin/main`.
 - Applicable instructions are the user-provided Main Agent/AGENTS rules plus the named Plan skill; repository search found no additional `AGENTS.md`.
-- Existing staged deletion `egon-cola-platforms/.../GatewayContractVersions.java`, untracked `0`, and unrelated Spec/Plan files are user-owned and must remain untouched.
+- Existing staged deletion `egon-cola-xingyuan/.../GatewayContractVersions.java`, untracked `0`, and unrelated Spec/Plan files are user-owned and must remain untouched.
 - Every implementation Step begins with `git status --short --branch` and commits only its exact `Commit paths`; never use broad `git add .`, reset, checkout, or modify old Flyway/generated Protobuf Java.
 - Generated `target/` output from Maven is ignored build state, not a commit artifact. No application/service is started automatically.
 
@@ -369,10 +369,10 @@ Inventory ownership is exactly the `[S1]`–`[S12]` marker shown above. The only
 | Concern | Exact command/source | Required state | Validation boundary |
 | --- | --- | --- | --- |
 | Toolchain | `./mvnw -version` from repository root | Maven 3.9.14, Java 21.0.10 (observed 2026-08-21) | build tool only |
-| Focused reactor selector | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-ddc-adapter -am -Dtest=LocalRateLimitBackendTest,RpcConsumerInvocationHandlerTest,DdcRpcProviderDirectoryTest -Dsurefire.failIfNoSpecifiedTests=false test` | observed exit 0; 3 named tests, 9 reactor modules | baseline module proof, not live Redis/DDC/gRPC topology |
+| Focused reactor selector | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-tianshu-adapter -am -Dtest=LocalRateLimitBackendTest,RpcConsumerInvocationHandlerTest,DdcRpcProviderDirectoryTest -Dsurefire.failIfNoSpecifiedTests=false test` | observed exit 0; 3 named tests, 9 reactor modules | baseline module proof, not live Redis/DDC/gRPC topology |
 | Guard module | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter -am test` | exit 0 | Local/mock Guard regression |
 | Optional Redis IT | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter -am -Degon.access.guard.redis.it=true -Dtest=RedissonStoreIntegrationTest -Dsurefire.failIfNoSpecifiedTests=false test` | Docker available and exit 0; otherwise explicitly deferred, not skipped as pass | real disposable Redis only |
-| RPC core/adapters | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-starter,:egon-cola-component-rpc-ddc-adapter -am test` | exit 0 | module tests; no external DDC |
+| RPC core/adapters | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-starter,:egon-cola-component-rpc-tianshu-adapter -am test` | exit 0 | module tests; no external DDC |
 | RPC test contract | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-test-contract -am test` | exit 0 | generated Proto + real loopback TCP tests |
 | Process IT | `DDC_TEST_REDIS_HOST=127.0.0.1 DDC_TEST_REDIS_PORT=6379 ./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-test-contract -am -Pddc-live-test -Dit.test=RpcProcessIT verify` | user supplies single Redis and explicitly runs; exit 0 | separate JVM/live DDC boundary |
 | Static/docs | `git diff --check` plus scoped `rg` commands in Step 12 | no whitespace errors/contradictory legacy text | repository static proof |
@@ -1018,7 +1018,7 @@ return strategy(type).select(eligible, queryState(context.queryIdentity()), cont
 - Test-first gate: Required — DDC directory tests fail because endpoint accessors/default contract do not expose decoded weight.
 - Ordered files:
 
-#### File 1 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectoryTest.java`
+#### File 1 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectoryTest.java`
 
 - Purpose: Assert exact Provider query plus 80/missing/invalid weight mapping.
 - Symbols: existing subscription tests expanded with endpoint weight assertions.
@@ -1039,7 +1039,7 @@ publish(instance(metadata("gateway.weight", "invalid"))); assertThat(endpoint.we
 - Verification contribution: Primary `TEST-023` Provider half and exact `RPC_PROVIDER` boundary.
 - After this file: RED fails on missing endpoint weight/accessor.
 
-#### File 2 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectoryTest.java`
+#### File 2 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectoryTest.java`
 
 - Purpose: Assert identical weight projection for Gateway snapshots.
 - Symbols: weight/default cases added to existing exact-key subscription tests.
@@ -1125,7 +1125,7 @@ record RpcGatewayEndpoint(..., Instant leaseExpireAt, int weight) implements Rpc
 - Verification contribution: Gateway directory and all LB mode parity tests.
 - After this file: both endpoint kinds expose identical selection metadata.
 
-#### File 6 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectory.java`
+#### File 6 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectory.java`
 
 - Purpose: Map decoded `ServiceInstanceMeta.weight` into Provider endpoints.
 - Symbols: snapshot mapping lambda.
@@ -1146,7 +1146,7 @@ return new RpcProviderEndpoint(instance.instanceId(), instance.leaseId(), instan
 - Verification contribution: File 1 GREEN and no DDC query change.
 - After this file: Provider snapshots carry canonical weights.
 
-#### File 7 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectory.java`
+#### File 7 — `MODIFY egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectory.java`
 
 - Purpose: Map the same decoded weight into Gateway endpoints.
 - Symbols: snapshot mapping lambda.
@@ -1168,12 +1168,12 @@ return new RpcGatewayEndpoint(instance.instanceId(), instance.leaseId(), instanc
 - After this file: all consumer candidates use one weight authority.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-ddc-adapter -am -Dtest=DdcRpcProviderDirectoryTest,DdcRpcGatewayDirectoryTest,RpcLoadBalancersTest -Dsurefire.failIfNoSpecifiedTests=false test`
+- Verification command: `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-tianshu-adapter -am -Dtest=DdcRpcProviderDirectoryTest,DdcRpcGatewayDirectoryTest,RpcLoadBalancersTest -Dsurefire.failIfNoSpecifiedTests=false test`
 - Expected result: exit 0; 80/missing/invalid cases map identically; exact DDC query/revision/lease assertions remain green.
 - Failure returns to: Files 3–5 for endpoint compatibility; Files 6–7 for codec projection; DDC wire change returns to Spec.
 - Completion criteria: both modes deliver 1–10000/default100 weights to neutral LB without new DDC files/jobs/proto.
 - Rollback: revert endpoint/adapter paths together; old consumers resume effective weight 100; no data migration.
-- Commit paths: egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectoryTest.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectoryTest.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/channel/RpcEndpoint.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/provider/RpcProviderEndpoint.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/gateway/RpcGatewayEndpoint.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectory.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectory.java
+- Commit paths: egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectoryTest.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectoryTest.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/channel/RpcEndpoint.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/provider/RpcProviderEndpoint.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/gateway/RpcGatewayEndpoint.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderDirectory.java egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcGatewayDirectory.java
 - Commit: `feat(rpc): project registry endpoint weights`
 
 ### Step 5 — Centralize ManagedChannel ownership in a shared multiplexing pool
@@ -3180,7 +3180,7 @@ sendBusinessError(); assertAttemptCount(1); gracefullyStopSelectedNode(); assert
 - After this file: process harness covers final topology when profile is explicitly invoked.
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: default: `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-ddc-adapter,:egon-cola-component-rpc-test-contract -am test`; static: `git diff --check && ! rg -n "Consumer only supports blocking|generic invocation is not supported|JDK Dynamic Proxy|retry only.*idempotent|fallbackToGateway|fallback-to-gateway|自动.*降级.*直连|自动.*改走.*Gateway" egon-cola-components/egon-cola-component-rpc/README.md egon-cola-components/egon-cola-component-rpc/README.zh-CN.md`; live only by user: `DDC_TEST_REDIS_HOST=127.0.0.1 DDC_TEST_REDIS_PORT=6379 ./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-test-contract -am -Pddc-live-test -Dit.test=RpcProcessIT verify`.
+- Verification command: default: `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-tianshu-adapter,:egon-cola-component-rpc-test-contract -am test`; static: `git diff --check && ! rg -n "Consumer only supports blocking|generic invocation is not supported|JDK Dynamic Proxy|retry only.*idempotent|fallbackToGateway|fallback-to-gateway|自动.*降级.*直连|自动.*改走.*Gateway" egon-cola-components/egon-cola-component-rpc/README.md egon-cola-components/egon-cola-component-rpc/README.zh-CN.md`; live only by user: `DDC_TEST_REDIS_HOST=127.0.0.1 DDC_TEST_REDIS_PORT=6379 ./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-test-contract -am -Pddc-live-test -Dit.test=RpcProcessIT verify`.
 - Expected result: default/static exit 0; generated Echo descriptor still one unary method; optional live command exit 0 when user supplies Redis, otherwise explicitly unvalidated.
 - Failure returns to: Files 1–4 for docs; Files 5–9 for contract/TCP; File 10 or owning earlier Step for process failure root cause.
 - Completion criteria: affected module suite/TCP/static gates pass, all 23 requirements/75 tests are traced, no forbidden production scope changed, and live boundary is honestly reported.
@@ -3206,9 +3206,9 @@ sendBusinessError(); assertAttemptCount(1); gracefullyStopSelectedNode(); assert
 | RED/GREEN Step 10 | repository root | Step 10 focused selector plus forbidden JDK/duplicate-factory `rg` | CGLIB/Spring graph | exit 0; one CGLIB runtime and legacy direct clients pass; forbidden search empty | Step 10 proxy/AutoConfig | `REQ-001`–`REQ-005`,`REQ-011`,`REQ-014`–`REQ-018`,`REQ-023`; module/context |
 | RED/GREEN Step 11 | repository root | Step 11 Guard/lifecycle selector | Provider integration | exit 0; Guard-less/Guard AOP/mapping/state/heartbeat/weight pass | Step 11 optional config/mapper/lifecycle | `REQ-007`,`REQ-010`–`REQ-013`,`REQ-020`,`REQ-021`; component |
 | Guard full regression | repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter -am test` | Access Guard module | exit 0, no admission/time-limit/storage regression | Steps 1–2 | Guard module, not production Redis |
-| RPC core/adapters regression | repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-starter,:egon-cola-component-rpc-ddc-adapter -am test` | RPC/adapter modules | exit 0; all tests pass | Steps 3–11 | RPC module/mock DDC |
+| RPC core/adapters regression | repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-starter,:egon-cola-component-rpc-tianshu-adapter -am test` | RPC/adapter modules | exit 0; all tests pass | Steps 3–11 | RPC module/mock DDC |
 | Real loopback TCP | repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-test-contract -am -Dtest=EchoGeneratedContractTest,RpcTcpCallTest,RpcRuntimeGovernanceTcpTest -Dsurefire.failIfNoSpecifiedTests=false test` | generated Proto/TCP | exit 0; real Netty loopback, CGLIB, async/generic/shared Channel/no leaks | Step 12 or owning runtime Step | `REQ-014`–`REQ-018`,`REQ-021`; local TCP, not DDC |
-| Combined affected reactor | repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-ddc-adapter,:egon-cola-component-rpc-test-contract -am test` | all affected modules | exit 0 and captured final reactor summary | owning Step from first failing test | all; static/module/TCP |
+| Combined affected reactor | repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-access-guard-starter,:egon-cola-component-rpc-starter,:egon-cola-component-rpc-tianshu-adapter,:egon-cola-component-rpc-test-contract -am test` | all affected modules | exit 0 and captured final reactor summary | owning Step from first failing test | all; static/module/TCP |
 | Static scope/format/docs | repository root | `git diff --check`; Step 12 contradiction `rg`; `git diff --name-only <baseline>...HEAD` review | source/docs/scope | exit 0; no forbidden old wording; only inventory paths changed | owning Step or Plan correction | `REQ-021`,`REQ-022`; static |
 | Live process IT | repository root/user environment | `DDC_TEST_REDIS_HOST=127.0.0.1 DDC_TEST_REDIS_PORT=6379 ./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-rpc-test-contract -am -Pddc-live-test -Dit.test=RpcProcessIT verify` | separate JVM/DDC/Redis/topology | user-run exit 0; no skipped profile; per-mode counters/reselection/drain pass | Step 12 harness or owning runtime Step | `REQ-003`–`REQ-007`,`REQ-010`,`REQ-011`,`REQ-019`,`REQ-020`; live boundary |
 | Final Spec conformance | repository root | compare Primary §4/§14/§19 against commits/tests; run Plan strict validator | docs/trace | every requirement/TEST ID has implementation evidence or explicit live boundary | affected Step/Spec | all |

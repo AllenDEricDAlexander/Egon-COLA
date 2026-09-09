@@ -41,23 +41,23 @@
 ## File Structure and Ownership
 
 ```text
-egon-cola-platform-idp/
-├── egon-cola-platform-idp-core/             # USER/SERVICE/RT 领域契约、TokenFacade、IdentityFacade
-├── egon-cola-platform-idp-admin/            # 私钥签发、Redis RT、协议端点、IdP V4
-├── egon-cola-platform-idp-starter/          # USER/SERVICE 公钥验签、Servlet 身份与请求级凭据载体
-├── egon-cola-platform-idp-gateway-adapter/  # Cookie 提取、验证结果映射、内部 Refresh Client
-└── egon-cola-platform-idp-rpc-contract/     # 保持纯 RPC/Proto，不放 JWT 实现
+egon-cola-tianquan-shoubing/
+├── egon-cola-tianquan-shoubing-core/             # USER/SERVICE/RT 领域契约、TokenFacade、IdentityFacade
+├── egon-cola-tianquan-shoubing-admin/            # 私钥签发、Redis RT、协议端点、IdP V4
+├── egon-cola-tianquan-shoubing-starter/          # USER/SERVICE 公钥验签、Servlet 身份与请求级凭据载体
+├── egon-cola-tianquan-shoubing-gateway-adapter/  # Cookie 提取、验证结果映射、内部 Refresh Client
+└── egon-cola-tianquan-shoubing-rpc-contract/     # 保持纯 RPC/Proto，不放 JWT 实现
 
-egon-cola-platform-gateway/
-├── egon-cola-platform-gateway-core/         # Route 类型、认证失败分类、Credential Recovery SPI
-└── egon-cola-platform-gateway-engine/       # 安全链恢复、同请求续跑、Set-Cookie 合并、规则编译
+egon-cola-yuheng/
+├── yuheng-core/         # Route 类型、认证失败分类、Credential Recovery SPI
+└── yuheng-biz-gateway/       # 安全链恢复、同请求续跑、Set-Cookie 合并、规则编译
 
-egon-cola-platform-rbac3/
-├── egon-cola-platform-rbac3-contract/       # 无 Session 激活/快照契约
-├── egon-cola-platform-rbac3-starter/        # USER 快照 Client/Cache/AuthorizationContext
-├── egon-cola-platform-rbac3-gateway-adapter/# 仅 Gateway 权限授权，不再认证 USER Token
-├── egon-cola-platform-rbac3-admin/          # 最小用户、用户激活角色、发布保护、V5、删除 auth/session
-└── egon-cola-platform-rbac3-react-sdk/      # 无 Token/Session 的授权 SDK
+egon-cola-tianquan-jianshen/
+├── egon-cola-tianquan-jianshen-contract/       # 无 Session 激活/快照契约
+├── egon-cola-tianquan-jianshen-starter/        # USER 快照 Client/Cache/AuthorizationContext
+├── egon-cola-tianquan-jianshen-gateway-adapter/# 仅 Gateway 权限授权，不再认证 USER Token
+├── egon-cola-tianquan-jianshen-admin/          # 最小用户、用户激活角色、发布保护、V5、删除 auth/session
+└── egon-cola-tianquan-jianshen-react-sdk/      # 无 Token/Session 的授权 SDK
 ```
 
 ## Task Dependency Order
@@ -88,15 +88,15 @@ flowchart TD
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdpClaimNames.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdpPrincipal.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityPrincipal.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/AuthenticationContext.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/AccessTokenClaims.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshTokenClaims.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/TokenSigner.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/contract/IdentityPrincipalTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/token/StatelessUserTokenContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpClaimNames.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpPrincipal.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityPrincipal.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/AuthenticationContext.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/AccessTokenClaims.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshTokenClaims.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/TokenSigner.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/contract/IdentityPrincipalTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/token/StatelessUserTokenContractTest.java`
 
 **Target interfaces:**
 
@@ -144,7 +144,7 @@ Assert exact record component sets, `principal_type=USER`, fixed platform Audien
 Run:
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core -am \
   -Dtest=IdentityPrincipalTest,StatelessUserTokenContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -164,7 +164,7 @@ Keep `signAccess(AccessTokenClaims)`, `signServiceAccess(ServiceAccessTokenClaim
 Run the focused command from Step 2, then:
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core -am test
 ```
 
 Expected: both commands succeed; SERVICE token tests remain green.
@@ -172,7 +172,7 @@ Expected: both commands succeed; SERVICE token tests remain green.
 - [ ] **Step 6: Commit**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
 git commit -m "refactor(idp): freeze stateless user token contracts"
 ```
 
@@ -182,25 +182,25 @@ git commit -m "refactor(idp): freeze stateless user token contracts"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/RefreshTokenStore.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshFamily.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshReplayException.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationCode.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacade.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationRequest.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/AuthorizationCodeStore.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/identity/AuthenticatedIdentity.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityFacade.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityUser.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityUserState.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/IdentityUserStatePort.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/audit/IdentitySecurityEvent.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/TenantMembershipPort.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/token/TokenFacadeTest.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacadeTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/token/StableRefreshTokenTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/identity/CurrentIdentityStepUpTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/RefreshTokenStore.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshFamily.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshReplayException.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationCode.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacade.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationRequest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/AuthorizationCodeStore.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/AuthenticatedIdentity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityUser.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityUserState.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/IdentityUserStatePort.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/audit/IdentitySecurityEvent.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/TenantMembershipPort.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/token/TokenFacadeTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacadeTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/token/StableRefreshTokenTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/identity/CurrentIdentityStepUpTest.java`
 
 **Target interfaces:**
 
@@ -229,7 +229,7 @@ Cover direct issue from `AuthenticatedIdentity + tenantId`, stable refresh retur
 - [ ] **Step 2: Run tests and verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core -am \
   -Dtest=TokenFacadeTest,StableRefreshTokenTest,CurrentIdentityStepUpTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -251,15 +251,15 @@ Change USER methods to `resolve(identitySub, tenantId)` and `list(identitySub)`.
 - [ ] **Step 6: Run GREEN verification and scan**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core -am test
 ! rg -n "RefreshFamily|RotationCommand|generation\(|sessionId\(|tokenVersion\(|AuthorizationCode" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core
+git add -A egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
 git commit -m "refactor(idp): replace session token lifecycle with stable refresh"
 ```
 
@@ -269,24 +269,24 @@ git commit -m "refactor(idp): replace session token lifecycle with stable refres
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/token/service/impl/Rs256TokenService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/token/repo/RedisRefreshTokenStore.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/redis/rotate-refresh-token.lua`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/redis/manage-refresh-token.lua`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/token/config/TokenConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/pojo/IdentityUserEntity.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/vo/IdentityUserVO.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/vo/ResetPasswordVO.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/service/impl/IdentityUserServiceImpl.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/service/impl/IdentityUserStateServiceImpl.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/outbox/service/IdentityOutboxPublisher.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpJwtAuthenticationConverter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/db/migration/V4__remove_user_token_version.sql`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/token/service/impl/AccessTokenClaimsIT.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/token/repo/RefreshRotationIT.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/token/repo/RedisRefreshRotationLiveIT.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/token/repo/RedisStableRefreshTokenStoreTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/migration/IdpMigrationIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/token/service/impl/Rs256TokenService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/token/repo/RedisRefreshTokenStore.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/redis/rotate-refresh-token.lua`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/redis/manage-refresh-token.lua`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/token/config/TokenConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/pojo/IdentityUserEntity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/vo/IdentityUserVO.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/vo/ResetPasswordVO.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/service/impl/IdentityUserServiceImpl.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/service/impl/IdentityUserStateServiceImpl.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/outbox/service/IdentityOutboxPublisher.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpJwtAuthenticationConverter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/migration/V4__remove_user_token_version.sql`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/token/service/impl/AccessTokenClaimsIT.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/token/repo/RefreshRotationIT.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/token/repo/RedisRefreshRotationLiveIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/token/repo/RedisStableRefreshTokenStoreTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/migration/IdpMigrationIT.java`
 
 - [ ] **Step 1: Write failing signer and Redis tests**
 
@@ -295,7 +295,7 @@ Decode signed USER AT and assert exact Header/Claims, fixed platform Audience an
 - [ ] **Step 2: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am \
   -Dtest=AccessTokenClaimsIT,RedisStableRefreshTokenStoreTest,IdpMigrationIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -315,17 +315,17 @@ Use exact keys `identity:<version>:refresh:<digest>` and `identity:<version>:ref
 - [ ] **Step 6: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin -am test
-test "$(find egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/db/migration -name 'V4__*.sql' | wc -l | tr -d ' ')" = "1"
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test
+test "$(find egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/migration -name 'V4__*.sql' | wc -l | tr -d ' ')" = "1"
 ! rg -n "rotate-refresh-token|RefreshFamily|generation|token_version" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main \
   --glob '!db/migration/V1__create_idp_schema.sql'
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin
+git add -A egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
 git commit -m "refactor(idp): persist stable refresh token state"
 ```
 
@@ -335,34 +335,34 @@ git commit -m "refactor(idp): persist stable refresh token state"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthLoginController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthTokenController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthUserInfoController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthMetadataController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthStepUpController.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthAuthorizationController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/dto/OAuthLoginDTO.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/dto/OAuthStepUpDTO.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/vo/OAuthLoginVO.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/vo/OAuthUserInfoVO.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/vo/OAuthUserTokenResultVO.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/pojo/OAuthSsoSession.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/IdpSsoSessionStore.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/RedisAuthorizationCodeStore.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/config/OAuthConfig.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSsoAuthenticationFilter.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSsoPrincipal.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpAuthorizationAuthenticationEntryPoint.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application-local.yml`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthAuthorizationFlowIT.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/repo/IdpSsoSessionStoreTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthLoginControllerIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthTokenTransportIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/security/IdpAdminSecurityIT.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthStepUpControllerIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthLoginController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthTokenController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthUserInfoController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthMetadataController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthStepUpController.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthAuthorizationController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/dto/OAuthLoginDTO.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/dto/OAuthStepUpDTO.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/vo/OAuthLoginVO.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/vo/OAuthUserInfoVO.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/vo/OAuthUserTokenResultVO.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/pojo/OAuthSsoSession.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/IdpSsoSessionStore.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/RedisAuthorizationCodeStore.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/config/OAuthConfig.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSsoAuthenticationFilter.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSsoPrincipal.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpAuthorizationAuthenticationEntryPoint.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthAuthorizationFlowIT.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/repo/IdpSsoSessionStoreTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthLoginControllerIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthTokenTransportIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/security/IdpAdminSecurityIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthStepUpControllerIT.java`
 
 **Protocol contract:**
 
@@ -384,7 +384,7 @@ Cover wrong password 401/no cookies, missing membership 403, unavailable members
 - [ ] **Step 2: Run RED verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am \
   -Dtest=OAuthLoginControllerIT,OAuthTokenTransportIT,OAuthResourceSecurityMatrixIT,OAuthStepUpControllerIT,IdpAdminSecurityIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -412,15 +412,15 @@ Remove the Controller, Store, Principal, Filter, EntryPoint, OAuthConfig beans a
 - [ ] **Step 8: Run GREEN and structural verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am test
 ! rg -n "IdpSso|OAuthAuthorizationController|AuthorizationCode|authorization_code|code_verifier|REFRESH_COOKIE_PREFIX|EGON_IDP_REFRESH_" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main
 ```
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin
+git add -A egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
 git commit -m "refactor(idp): replace sso session with direct jwt cookies"
 ```
 
@@ -430,24 +430,24 @@ git commit -m "refactor(idp): replace sso session with direct jwt cookies"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpJwtVerifier.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/UserAccessTokenVerifier.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/ServiceAccessTokenVerifier.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/AccessTokenVerification.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicy.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpBearerAuthenticationFilter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/VerifiedUserTokenCarrier.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpAuthenticationToken.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfiguration.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/state/IdentityUserStateReader.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java/top/egon/cola/platform/idp/starter/state/RedisIdentityUserStateReader.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpJwtVerifierTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpBearerAuthenticationFilterTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/state/RedisIdentityUserStateReaderTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/UserAccessTokenVerifierTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/test/java/top/egon/cola/platform/idp/starter/security/VerifiedUserTokenCarrierTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpJwtVerifier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/UserAccessTokenVerifier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/ServiceAccessTokenVerifier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/AccessTokenVerification.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpEndpointAuthenticationPolicy.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpBearerAuthenticationFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/VerifiedUserTokenCarrier.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpAuthenticationToken.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfiguration.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/state/IdentityUserStateReader.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/state/RedisIdentityUserStateReader.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpJwtVerifierTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpBearerAuthenticationFilterTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/state/RedisIdentityUserStateReaderTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/UserAccessTokenVerifierTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/VerifiedUserTokenCarrierTest.java`
 
 **Target verification API:**
 
@@ -471,7 +471,7 @@ USER tests must pass when all Redis state readers are unavailable and must rejec
 - [ ] **Step 2: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am \
   -Dtest=IdpJwtVerifierTest,UserAccessTokenVerifierTest,IdpBearerAuthenticationFilterTest,VerifiedUserTokenCarrierTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -495,18 +495,18 @@ Delete user-state reader beans/properties and calls. Preserve Resource/Client st
 - [ ] **Step 7: Run GREEN and dependency boundary checks**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter -am test
 ! rg -n "IdentityUserStateReader|tokenVersion|sessionId" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter/src/main/java
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java
 ! rg -n "nimbus|spring-security|oauth2-jose|JwtDecoder|TokenSigner" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-rpc-contract/pom.xml \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-rpc-contract/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-rpc-contract/pom.xml \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-rpc-contract/src/main
 ```
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter
+git add -A egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter
 git commit -m "refactor(idp): split user and service token verification"
 ```
 
@@ -516,30 +516,30 @@ git commit -m "refactor(idp): split user and service token verification"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayRouteSecurityType.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/AuthenticationFailure.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/AuthenticationDecision.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialExtractor.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialRecoveryProvider.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/CredentialRecoveryResult.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicy.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityContractsTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicyTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityCapabilityRegistry.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityResult.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpGatewayIdentityAuthenticator.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpSecurityProcessor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChainTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityCapabilityRegistryTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompilerTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayIdentityOnlySecurityTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessorTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayCredentialRecoveryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayRouteSecurityType.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/AuthenticationFailure.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/AuthenticationDecision.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialExtractor.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewayCredentialRecoveryProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/CredentialRecoveryResult.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicy.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityContractsTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/security/GatewaySecurityPolicyTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityCapabilityRegistry.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChain.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityResult.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpGatewayIdentityAuthenticator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpSecurityProcessor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityChainTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityCapabilityRegistryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompilerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayIdentityOnlySecurityTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/RuleBackedHttpGatewaySecurityProcessorTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayCredentialRecoveryTest.java`
 
 **Target chain contract:**
 
@@ -580,7 +580,7 @@ Cover valid credential no recovery, missing/expired recovery exactly once, inval
 - [ ] **Step 3: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am \
   -Dtest=GatewaySecurityContractsTest,GatewaySecurityPolicyTest,GatewaySecurityChainTest,GatewayCredentialRecoveryTest,GatewaySecurityPolicyCompilerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -600,14 +600,14 @@ Extend `GatewaySecurityResult` and `GatewayHttpSecurityProcessor.Outcome` with i
 - [ ] **Step 7: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am test
 ```
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-core \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway
 git commit -m "feat(gateway): add classified credential recovery chain"
 ```
 
@@ -617,23 +617,23 @@ git commit -m "feat(gateway): add classified credential recovery chain"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/pom.xml`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpBearerCredentialExtractor.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserCookieCredentialExtractor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayJwtVerifier.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpIdentityAuthenticationProvider.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserCredentialRecoveryProvider.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpRefreshClient.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/ReactorNettyIdpRefreshClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpReservedHeaderSanitizer.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpTrustedIdentityMapper.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewaySecurityProviderTest.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayResourceBindingTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpUserCookieCredentialExtractorTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpUserCredentialRecoveryProviderTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/pom.xml`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpBearerCredentialExtractor.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserCookieCredentialExtractor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayJwtVerifier.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpIdentityAuthenticationProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpUserCredentialRecoveryProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpRefreshClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/ReactorNettyIdpRefreshClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpReservedHeaderSanitizer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpTrustedIdentityMapper.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewaySecurityProviderTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayResourceBindingTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfigurationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpUserCookieCredentialExtractorTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpUserCredentialRecoveryProviderTest.java`
 
 Add the existing `io.projectreactor.netty:reactor-netty-http` dependency directly to the Gateway Adapter POM for the bounded internal Refresh client; do not introduce another HTTP stack.
 
@@ -648,7 +648,7 @@ Cover missing/expired AT + RT success, no RT 401, invalid/revoked RT 401 + both 
 - [ ] **Step 3: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am \
   -Dtest=IdpGatewaySecurityProviderTest,IdpUserCookieCredentialExtractorTest,IdpUserCredentialRecoveryProviderTest,IdpGatewayAdapterAutoConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -676,15 +676,15 @@ Use Reactor Netty HTTP client against a configured internal IdP upstream URI, no
 - [ ] **Step 8: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am test
 ! rg -n "session-id|token-version|resource-version|IdentityUserStateReader" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/main/java
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java
 ```
 
 - [ ] **Step 9: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter
+git add -A egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter
 git commit -m "feat(idp): adapt gateway jwt cookie recovery"
 ```
 
@@ -694,45 +694,45 @@ git commit -m "feat(idp): adapt gateway jwt cookie recovery"
 
 **Files:**
 
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginRequest.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginResult.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3TokenClaims.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/RefreshResult.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/SessionStatus.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/BootstrapView.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ActiveRoleSetView.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ReplaceActiveRolesRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ReplaceActiveRolesResult.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SessionAuthorizationSnapshot.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/UserAuthorizationSnapshot.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SystemAuthorizationSnapshot.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ActivationContractTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/AuthenticationContractSecurityTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/AuthorizationContractTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
-- Rename: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/SessionAuthorizationSnapshotBuilder.java` to `UserAuthorizationSnapshotBuilder.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/Rbac3AuthorizationClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/HttpRbac3AuthorizationClient.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/HttpTenantServiceTokenSupplier.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/AuthorizationSnapshotCache.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/RedisAuthorizationSnapshotCache.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/SingleFlightSnapshotLoader.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationBootstrapService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3ContextAuthentication.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationBootstrapServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/AuthorizationSnapshotCacheTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/RedisAuthorizationSnapshotCacheTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/SingleFlightSnapshotLoaderTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/client/HttpRbac3AuthorizationClientTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/client/HttpTenantServiceTokenSupplierTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/event/Rbac3AuthorizationInvalidationConsumerTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/Rbac3BearerAuthenticationFilterTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/StarterFailClosedSecurityMatrixTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginRequest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/LoginResult.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/Rbac3TokenClaims.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/RefreshResult.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/SessionStatus.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/auth/BootstrapView.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ActiveRoleSetView.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ReplaceActiveRolesRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/activation/ReplaceActiveRolesResult.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SessionAuthorizationSnapshot.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/UserAuthorizationSnapshot.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SystemAuthorizationSnapshot.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ActivationContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/AuthenticationContractSecurityTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/AuthorizationContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/ContractSerializationTest.java`
+- Rename: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main/java/top/egon/cola/platform/rbac3/core/decision/SessionAuthorizationSnapshotBuilder.java` to `UserAuthorizationSnapshotBuilder.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/Rbac3AuthorizationClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/HttpRbac3AuthorizationClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/HttpTenantServiceTokenSupplier.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/AuthorizationSnapshotCache.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/RedisAuthorizationSnapshotCache.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/SingleFlightSnapshotLoader.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationBootstrapService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3ContextAuthentication.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/AuthorizationBootstrapServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/authorization/DefaultAuthorizationServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/AuthorizationSnapshotCacheTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/RedisAuthorizationSnapshotCacheTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/SingleFlightSnapshotLoaderTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/client/HttpRbac3AuthorizationClientTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/client/HttpTenantServiceTokenSupplierTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/event/Rbac3AuthorizationInvalidationConsumerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/Rbac3BearerAuthenticationFilterTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/StarterFailClosedSecurityMatrixTest.java`
 
 **Target snapshot contract:**
 
@@ -757,7 +757,7 @@ Assert login/token/session contracts no longer exist, `BootstrapView.User` conta
 - [ ] **Step 2: Verify contract RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract -am \
   -Dtest=ActivationContractTest,AuthenticationContractSecurityTest,AuthorizationContractTest,ContractSerializationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -777,19 +777,19 @@ Use `VerifiedUserTokenCarrier` from IdP Starter for the current raw USER AT; use
 - [ ] **Step 6: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter -am test
 ! rg -n "sessionId|sessionVersion|contextVersion|serviceCredentialFile|static.*Bearer" \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core/src/main \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core/src/main \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-core \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-starter
+git add -A egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-core \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter
 git commit -m "refactor(rbac3): adopt user authorization snapshot contract"
 ```
 
@@ -799,7 +799,7 @@ git commit -m "refactor(rbac3): adopt user authorization snapshot contract"
 
 **Files:**
 
-- Rename activation types under `egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/`:
+- Rename activation types under `egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/`:
   - `domain/SessionActiveRoleKey.java` -> `domain/UserActiveRoleKey.java`
   - `domain/po/SessionActiveRolePO.java` -> `domain/po/UserActiveRolePO.java`
   - `domain/vo/SessionStateVO.java` -> `domain/vo/UserAuthorizationStateVO.java`
@@ -828,8 +828,8 @@ git commit -m "refactor(rbac3): adopt user authorization snapshot contract"
 - Modify: `runtime/service/SystemAuthorizationSnapshotService.java`
 - Modify: `runtime/service/Rbac3RuntimeProjectionRecovery.java`
 - Modify: `runtime/controller/scheduled/RuntimeSnapshotRebuildWorker.java`
-- Rename resource: `egon-cola-platform-rbac3-admin/src/main/resources/redis/publish-session-snapshot.lua` -> `publish-user-authorization-snapshot.lua`
-- Rename resource: `egon-cola-platform-rbac3-admin/src/main/resources/redis/verify-authorization-fence.lua` -> `verify-authorization-publication-guard.lua`
+- Rename resource: `egon-cola-tianquan-jianshen-admin/src/main/resources/redis/publish-session-snapshot.lua` -> `publish-user-authorization-snapshot.lua`
+- Rename resource: `egon-cola-tianquan-jianshen-admin/src/main/resources/redis/verify-authorization-fence.lua` -> `verify-authorization-publication-guard.lua`
 - Modify: focused activation/runtime tests, including `RoleActivationFacadeIT`, `RoleActivationConcurrencyIT`, `ActiveRoleSetRevalidatorTest`, `SessionActiveRoleRepositoryTest` (rename), `MutationFenceRollbackIT` (rename), `RedisAuthorizationRuntimeStoreIT` and `SystemAuthorizationSnapshotServiceTest`.
 
 - [ ] **Step 1: Write failing activation-state tests**
@@ -843,7 +843,7 @@ PASSWORD cannot activate STRONG-required role; fresh IdP-signed STRONG context c
 - [ ] **Step 3: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=RoleActivationFacadeIT,RoleActivationConcurrencyIT,ActiveRoleSetRevalidatorTest,UserActiveRoleRepositoryTest,SystemAuthorizationSnapshotServiceTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -863,22 +863,22 @@ Gateway direct-read and HTTP snapshot service must serialize the same `UserAutho
 - [ ] **Step 7: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=RoleActivationFacadeIT,RoleActivationConcurrencyIT,ActiveRoleSetRevalidatorTest,UserActiveRoleRepositoryTest,SystemAuthorizationSnapshotServiceTest,RedisAuthorizationRuntimeStoreIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ! rg -n "SessionActiveRole|SessionSnapshot|RuntimeSession|AuthorizationFence|sessionVersion|expectedSessionVersion" \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/redis
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/redis
 ```
 
 - [ ] **Step 8: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/redis \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test
+git add -A egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/redis \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
 git commit -m "refactor(rbac3): persist user active role authorization state"
 ```
 
@@ -888,8 +888,8 @@ git commit -m "refactor(rbac3): persist user active role authorization state"
 
 **Files:**
 
-- Delete the complete personnel Session subtree (all Java sources and now-empty `package-info.java` files): `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/`
-- Delete the complete `egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/` subtree after moving the three authorization facts listed below; no `admin.auth` package may remain.
+- Delete the complete personnel Session subtree (all Java sources and now-empty `package-info.java` files): `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/`
+- Delete the complete `egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/` subtree after moving the three authorization facts listed below; no `admin.auth` package may remain.
 - Move: `admin/auth/domain/po/ServicePrincipalPO.java` -> `admin/authorization/domain/po/ServicePrincipalPO.java`
 - Move: `admin/auth/domain/po/ServicePermissionPO.java` -> `admin/authorization/domain/po/ServicePermissionPO.java`
 - Move: `admin/auth/domain/enums/ServicePrincipalStatusEnum.java` -> `admin/authorization/domain/enums/ServicePrincipalStatusEnum.java`
@@ -928,10 +928,10 @@ git commit -m "refactor(rbac3): persist user active role authorization state"
 - Modify: `admin/bootstrap/repository/PlatformAdminBootstrapRepository.java`
 - Modify: `admin/bootstrap/repository/jpa/JpaPlatformAdminBootstrapRepository.java`
 - Modify: `admin/bootstrap/service/Rbac3DevelopmentBootstrap.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration/V5__remove_sessions_and_minimize_authorization_user.sql`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml`
-- Delete all tests under `egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/{auth,session}`.
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V5__remove_sessions_and_minimize_authorization_user.sql`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+- Delete all tests under `egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/{auth,session}`.
 - Modify: identity/bootstrap/security/application-context tests and `Rbac3IdpMigrationIT` under the RBAC3 Admin test tree.
 
 **Target `rbac3_user` columns:**
@@ -952,7 +952,7 @@ Assert exact `UserPO` fields/status values, unique `(tenantId, identitySub)`, no
 - [ ] **Step 3: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=Rbac3IdpMigrationIT,InternalIdentityControllerTest,Rbac3AdminPrincipalFilterTest,Rbac3AdminApplicationContextTest,Rbac3LegacyAuthenticationRemovedIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -980,16 +980,16 @@ The first credential remains an IdP bootstrap concern. RBAC bootstrap creates th
 - [ ] **Step 9: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am test
-test "$(find egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/db/migration -name 'V5__*.sql' | wc -l | tr -d ' ')" = "1"
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am test
+test "$(find egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration -name 'V5__*.sql' | wc -l | tr -d ' ')" = "1"
 ! rg -n "PasswordEncoder|passwordHash|UserCredentialPO|ExternalIdentityPO|ServiceCredentialPO|JwtTokenService|JwtKeyRingService|SessionFacade|RefreshFacade|StepUpFacade" \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java
 ```
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin
+git add -A egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin
 git commit -m "refactor(rbac3): remove authentication sessions and minimize users"
 ```
 
@@ -999,21 +999,21 @@ git commit -m "refactor(rbac3): remove authentication sessions and minimize user
 
 **Files:**
 
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3BearerCredentialExtractor.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewayJwtVerifier.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3JwtSessionAuthenticationProvider.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3TrustedIdentityMapper.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3PermissionAuthorizationProvider.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3ReservedHeaderSanitizer.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReader.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewayJwtVerifierTest.java`
-- Delete: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewaySecurityProviderTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/GatewayFailClosedSecurityMatrixTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReaderTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/performance/GatewayHotPathBudgetTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3BearerCredentialExtractor.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewayJwtVerifier.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3JwtSessionAuthenticationProvider.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3TrustedIdentityMapper.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3PermissionAuthorizationProvider.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3ReservedHeaderSanitizer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReader.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfiguration.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewayJwtVerifierTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/Rbac3GatewaySecurityProviderTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/security/GatewayFailClosedSecurityMatrixTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/runtime/Rbac3GatewayRuntimeSnapshotReaderTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/autoconfigure/Rbac3GatewayAdapterAutoConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/test/java/top/egon/cola/platform/rbac3/gateway/performance/GatewayHotPathBudgetTest.java`
 
 - [ ] **Step 1: Write failing authorization-only auto-configuration tests**
 
@@ -1026,7 +1026,7 @@ Read `tenantId/subject` only from an already authenticated IdP `GatewayPrincipal
 - [ ] **Step 3: Verify RED**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter -am \
   -Dtest=Rbac3GatewayAdapterAutoConfigurationTest,Rbac3GatewayRuntimeSnapshotReaderTest,GatewayFailClosedSecurityMatrixTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1042,15 +1042,15 @@ Permission denial returns Gateway 403; unavailable/stale/guarded authorization s
 - [ ] **Step 6: Run GREEN verification**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter -am test
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter -am test
 ! rg -n "Rbac3JwtSessionAuthenticationProvider|Rbac3GatewayJwtVerifier|Rbac3TokenClaims|SessionVerifier|session-id|session-version" \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-gateway-adapter
+git add -A egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter
 git commit -m "refactor(rbac3): make gateway adapter authorization only"
 ```
 
@@ -1060,32 +1060,32 @@ git commit -m "refactor(rbac3): make gateway adapter authorization only"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpAuthBootstrapController.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/security/Rbac3AdminSecurityConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/security/Rbac3AdminPrincipalFilter.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/config/GatewayAdminSecurityConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml` (add direct IdP Starter; RBAC3 Starter already exists)
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml` (add direct IdP Starter; RBAC3 Starter already exists)
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/pom.xml` (add direct IdP Starter; RBAC3 Starter already exists)
-- Verify only, no dependency edit expected: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/pom.xml` (both direct Starters already exist)
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpAuthBootstrapController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/security/Rbac3AdminSecurityConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/security/Rbac3AdminPrincipalFilter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/config/GatewayAdminSecurityConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml` (add direct IdP Starter; RBAC3 Starter already exists)
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml` (add direct IdP Starter; RBAC3 Starter already exists)
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml` (add direct IdP Starter; RBAC3 Starter already exists)
+- Verify only, no dependency edit expected: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml` (both direct Starters already exist)
 - Modify the four backend resource pairs:
-  - `egon-cola-platform-idp-admin/src/main/resources/application.yml`
-  - `egon-cola-platform-idp-admin/src/main/resources/application-local.yml`
-  - `egon-cola-platform-rbac3-admin/src/main/resources/application.yml`
-  - `egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml`
-  - `egon-cola-platform-gateway-admin/src/main/resources/application.yml`
-  - `egon-cola-platform-gateway-admin/src/main/resources/application-local.yml`
-  - `egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml`
-  - `egon-cola-platform-dynamic-config-center-admin/src/main/resources/application-local.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/security/IdpAdminSecurityIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/config/security/Rbac3AdminPrincipalFilterTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/Rbac3AdminApplicationContextTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/Rbac3EndToEndUseCaseIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminSecurityIntegrationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityIntegrationTest.java`
+  - `egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+  - `egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+  - `egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
+  - `egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+  - `yuheng-admin/src/main/resources/application.yml`
+  - `yuheng-admin/src/main/resources/application-local.yml`
+  - `egon-cola-tianshu-admin/src/main/resources/application.yml`
+  - `egon-cola-tianshu-admin/src/main/resources/application-local.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/security/IdpAdminSecurityIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/config/security/Rbac3AdminPrincipalFilterTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/Rbac3AdminApplicationContextTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/Rbac3EndToEndUseCaseIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminSecurityIntegrationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/security/management/DdcAdminSecurityIntegrationTest.java`
 
 - [ ] **Step 1: Add failing 401/403/200 matrices to all four Admin backends**
 
@@ -1095,10 +1095,10 @@ For each application: missing/expired/invalid USER AT -> 401; valid USER AT with
 
 ```bash
 ./mvnw -pl \
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,\
-egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,\
-egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,\
-egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,\
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,\
+egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,\
+egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am -DskipITs test
 ```
 
@@ -1122,19 +1122,19 @@ Run the command from Step 2, then:
 
 ```bash
 ! rg -n "Rbac3JwtConfiguration|RBAC3_JWT_PRIVATE_KEY_FILE|RBAC3_JWT_PUBLIC_KEY_FILE|service-credential-file|session-id|session-version" \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main
 ```
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin
 git commit -m "refactor(platform): enforce stateless idp and rbac resource security"
 ```
 
@@ -1145,39 +1145,39 @@ git commit -m "refactor(platform): enforce stateless idp and rbac resource secur
 **Files:**
 
 - Delete from Admin Web Shared:
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/api/jwt.ts`
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/api/jwt.test.ts`
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/tokenStore.ts`
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/tokenStore.test.ts`
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/oauthClient.ts`
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/oauthClient.test.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/api/httpClient.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/auth/gatewayAuthClient.test.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-admin-web-shared/src/index.ts`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/api/jwt.ts`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/api/jwt.test.ts`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/tokenStore.ts`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/tokenStore.test.ts`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/oauthClient.ts`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/oauthClient.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/api/httpClient.ts`
+- Create: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`
+- Create: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/index.ts`
 - Delete from RBAC3 React SDK:
   - `src/auth/InMemoryAccessTokenStore.ts`
   - `src/hooks/useRbac3Session.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src/hooks/useRbac3Authorization.ts`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src/hooks/useRbac3Authorization.ts`
 - Modify: RBAC3 SDK `src/client/Rbac3ApiClient.ts`, `src/provider/Rbac3Provider.tsx`, `src/provider/rbac3StateMachine.ts`, `src/types.ts`, `src/index.ts` and corresponding tests.
 - Delete callback/OAuth helper files from the four Admin Webs:
   - IdP: `src/auth/CallbackPage.tsx`, `src/auth/CallbackPage.test.tsx`
   - RBAC3: `src/features/auth/UnifiedOAuthGate.tsx`, `oauthClient.ts`, `oauthClient.test.ts`
   - Gateway: `src/auth/CallbackPage.tsx`, `CallbackPage.test.tsx`, `oauthOrigin.ts`, `oauthOrigin.test.ts`
 - Modify auth contexts, login pages, route guards, API clients, app/router files and `vite-env.d.ts` under all four Admin Webs:
-  - `egon-cola-platform-idp-admin-web/src/{auth,app,api}`
-  - `egon-cola-platform-rbac3-admin-web/src/{features/auth,app,api}`
-  - `egon-cola-platform-gateway-admin-web/src/{auth,app,api}`
-  - `egon-cola-platform-dynamic-config-center-admin-web/src/{auth,api}` plus `src/App.tsx`
+  - `egon-cola-tianquan-shoubing-admin-web/src/{auth,app,api}`
+  - `egon-cola-tianquan-jianshen-admin-web/src/{features/auth,app,api}`
+  - `yuheng-admin-web/src/{auth,app,api}`
+  - `egon-cola-tianshu-admin-web/src/{auth,api}` plus `src/App.tsx`
 - Delete RBAC3 Admin Web session feature: `src/features/session/` and remove its routes/navigation.
-- Modify role activation UI/API/tests under `egon-cola-platform-rbac3-admin-web/src/features/role-activation/`.
+- Modify role activation UI/API/tests under `egon-cola-tianquan-jianshen-admin-web/src/features/role-activation/`.
 - Modify these six workspace-owned package lockfiles only through the repository's package manager if dependency references change:
-  - `egon-cola-platforms/package-lock.json`
-  - `egon-cola-platforms/egon-cola-platform-admin-web-shared/package-lock.json`
-  - `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/package-lock.json`
-  - `egon-cola-platforms/egon-cola-platform-rbac3/package-lock.json`
-  - `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/package-lock.json`
-  - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/package-lock.json`
+  - `egon-cola-xingyuan/package-lock.json`
+  - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/package-lock.json`
+  - `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/package-lock.json`
+  - `egon-cola-xingyuan/egon-cola-tianquan-jianshen/package-lock.json`
+  - `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/package-lock.json`
+  - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/package-lock.json`
 
 - [ ] **Step 1: Write failing Shared HTTP/Auth tests**
 
@@ -1190,8 +1190,8 @@ Provider initializes by calling Bootstrap directly, exposes `useRbac3Authorizati
 - [ ] **Step 3: Verify RED for Shared and SDK**
 
 ```bash
-npm --prefix egon-cola-platforms/egon-cola-platform-admin-web-shared test -- --run
-npm --prefix egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared test -- --run
+npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk test -- --run
 ```
 
 - [ ] **Step 4: Implement cookie-only Shared Auth**
@@ -1215,12 +1215,12 @@ Delete RBAC Session page/navigation/API. Role Activation calls Gateway `/oauth2/
 For each package below, run `test -- --run`, `typecheck`, `lint`, and `build`:
 
 ```text
-egon-cola-platforms/egon-cola-platform-admin-web-shared
-egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web
-egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk
-egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web
-egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
-egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web
+egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
+egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 ```
 
 Use a shell loop only for these exact directories; set non-secret build placeholders for any still-required public Gateway origin variable.
@@ -1229,23 +1229,23 @@ Use a shell loop only for these exact directories; set non-secret build placehol
 
 ```bash
 ! rg -n "accessToken|refreshToken|TokenStore|localStorage|sessionStorage|oauth/callback|code_verifier|Rbac3ApiClient\.refresh|useRbac3Session" \
-  egon-cola-platforms/egon-cola-platform-admin-web-shared/src \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk/src \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src
+  egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk/src \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src
 ```
 
 - [ ] **Step 10: Commit**
 
 ```bash
-git add -A egon-cola-platforms/egon-cola-platform-admin-web-shared \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-react-sdk \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web
+git add -A egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-react-sdk \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
 git commit -m "refactor(admin-web): use gateway jwt cookies without sessions"
 ```
 
@@ -1255,23 +1255,23 @@ git commit -m "refactor(admin-web): use gateway jwt cookies without sessions"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
 - Modify Gateway Engine rule/security wiring files that register IdP and RBAC3 adapters:
   - `src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
   - `src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityCapabilityRegistry.java`
   - `src/main/java/top/egon/cola/component/gateway/engine/security/GatewaySecurityPolicyCompiler.java`
-- Modify: `scripts/unified-identity-local.sh`, specifically `publish_gateway_routes`, to publish each exact IdP PUBLIC/IDENTITY operation and one BUSINESS route per reported Admin Method + Path operation for IdP/RBAC3/Gateway/DDC. `scripts/unified-platform/fixtures/unified-platform-release.json` remains the MCP fixture and must not be treated as the HTTP Route source.
+- Modify: `scripts/unified-identity-local.sh`, specifically `publish_gateway_routes`, to publish each exact IdP PUBLIC/IDENTITY operation and one BUSINESS route per reported Admin Method + Path operation for IdP/RBAC3/Gateway/DDC. `scripts/unified-xingyuan/fixtures/unified-platform-release.json` remains the MCP fixture and must not be treated as the HTTP Route source.
 - Modify the Admin provider reporting POM/configuration needed for real Gateway catalog operations:
-  - `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml`
-  - `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application-local.yml`
-  - `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml`
-  - `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml`
-  - `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/pom.xml`
-  - `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application.yml`
-  - `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application-local.yml`
-  - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/pom.xml`
-  - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml`
-  - `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application-local.yml`
+  - `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+  - `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
+  - `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
+  - `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+  - `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml`
+  - `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`
+  - `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application-local.yml`
+  - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`
+  - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml`
+  - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application-local.yml`
 - Modify these exact unified-platform files:
   - `lib/common.sh`
   - `start-local-stack.sh`
@@ -1280,7 +1280,7 @@ git commit -m "refactor(admin-web): use gateway jwt cookies without sessions"
   - `test-live-frontend-login.sh`
   - `fixtures/rbac3-bootstrap.json`
 - Verify only; no identity change is expected in `prepare-local-stack.sh`, `status-local-stack.sh`, `stop-local-stack.sh` or the MCP-only `fixtures/unified-platform-release.json`.
-- Create: `scripts/unified-platform/cleanup-legacy-identity-keys.sh`
+- Create: `scripts/unified-xingyuan/cleanup-legacy-identity-keys.sh`
 
 - [ ] **Step 1: Extend failing route compiler/release tests**
 
@@ -1298,7 +1298,7 @@ used to publish HTTP routes.
 - [ ] **Step 3: Verify RED without starting the stack**
 
 ```bash
-bash scripts/unified-platform/test-direct-run-contract.sh
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
 ```
 
 - [ ] **Step 4: Route all USER browser/API traffic through Gateway**
@@ -1322,15 +1322,15 @@ SERVICE `client_credentials`, Admission and MCP token files remain only where th
 - [ ] **Step 8: Run static script and route verification**
 
 ```bash
-bash -n scripts/unified-identity-local.sh scripts/unified-platform/*.sh scripts/unified-platform/lib/*.sh
-bash scripts/unified-platform/test-direct-run-contract.sh
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine -am \
+bash -n scripts/unified-identity-local.sh scripts/unified-xingyuan/*.sh scripts/unified-xingyuan/lib/*.sh
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am \
   -Dtest=GatewaySecurityPolicyCompilerTest,EngineGatewayRulePolicyPartitionTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
-./mvnw -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
   -DskipTests compile
 ! rg -n "oauth/callback|refresh-tokens|RBAC3_SERVICE_CREDENTIAL_FILE|sessionVersion|idp-admin\.access\.jwt|rbac3-default\.access\.jwt" \
-  scripts/unified-platform scripts/unified-identity-local.sh
+  scripts/unified-xingyuan scripts/unified-identity-local.sh
 ```
 
 Do not run `start-local-stack.sh`, `verify-local-stack.sh`, `test-live-frontend-login.sh` or the cleanup script with `--execute`.
@@ -1338,10 +1338,10 @@ Do not run `start-local-stack.sh`, `verify-local-stack.sh`, `test-live-frontend-
 - [ ] **Step 9: Commit**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
-  scripts/unified-identity-local.sh scripts/unified-platform
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
+  scripts/unified-identity-local.sh scripts/unified-xingyuan
 git commit -m "refactor(platform): route stateless identity through gateway"
 ```
 
@@ -1351,16 +1351,16 @@ git commit -m "refactor(platform): route stateless identity through gateway"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-admin-web-shared/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/README.zh-CN.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md`
 - Modify: `docs/superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md` only to mark implementation status and link final evidence; do not rewrite approved decisions.
 - Create: `docs/superpowers/verification/2026-08-14-unified-identity-stateless-jwt-session-removal.md`
 
@@ -1368,10 +1368,10 @@ git commit -m "refactor(platform): route stateless identity through gateway"
 
 ```bash
 ./mvnw -pl \
-egon-cola-platforms/egon-cola-platform-idp,\
-egon-cola-platforms/egon-cola-platform-rbac3,\
-egon-cola-platforms/egon-cola-platform-gateway,\
-egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+egon-cola-xingyuan/egon-cola-tianquan-shoubing,\
+egon-cola-xingyuan/egon-cola-tianquan-jianshen,\
+egon-cola-xingyuan/egon-cola-yuheng,\
+egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am test
 ```
 
@@ -1384,12 +1384,12 @@ For each exact package listed in Task 13, run `npm test -- --run`, `npm run type
 - [ ] **Step 3: Run migration and dependency-boundary checks**
 
 ```bash
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,\
-egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am \
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,\
+egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=IdpMigrationIT,Rbac3IdpMigrationIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
-./mvnw -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter dependency:tree \
-  -Dincludes=top.egon:egon-cola-platform-idp-starter
+./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter dependency:tree \
+  -Dincludes=top.egon:egon-cola-tianquan-shoubing-starter
 ```
 
 Verify exactly one new IdP migration and one new RBAC3 migration; verify RPC Contract has no direct JOSE/Spring Security dependency and no `component-jwt` module was introduced.
@@ -1400,7 +1400,7 @@ Run the specification section 19.6 forbidden list against `src/main`, POMs and e
 
 ```bash
 rg -n "IdpSsoSessionStore|IdpSsoAuthenticationFilter|OAuthAuthorizationController|AuthorizationCodeStore|Rbac3JwtSessionAuthenticationProvider|Rbac3GatewayJwtVerifier|Rbac3TokenClaims|Rbac3BearerCredentialExtractor|Rbac3TrustedIdentityMapper|SessionController|SessionFacade|RefreshFacade|StepUpFacade|JwtKeyRingService|Rbac3JwtConfiguration|InMemoryAccessTokenStore|useRbac3Session|principal\.sessionId|x-egon-gateway-session|identity_user\.token_version|Rbac3ApiClient\.refresh" \
-  egon-cola-platforms scripts \
+  egon-cola-xingyuan scripts \
   --glob '*/src/main/**' --glob '*.xml' --glob '*.json' --glob '*.sh'
 ```
 
@@ -1429,16 +1429,16 @@ Confirm only intended files changed. Do not stage unrelated pre-existing worktre
 ```bash
 git add docs/superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md \
   docs/superpowers/verification/2026-08-14-unified-identity-stateless-jwt-session-removal.md \
-  egon-cola-platforms/egon-cola-platform-idp/README.md \
-  egon-cola-platforms/egon-cola-platform-rbac3/README.md \
-  egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md \
-  egon-cola-platforms/egon-cola-platform-gateway/README.md \
-  egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md \
-  egon-cola-platforms/egon-cola-platform-admin-web-shared/README.md \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/README.md \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/README.zh-CN.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/README.zh-CN.md
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md \
+  egon-cola-xingyuan/egon-cola-yuheng/README.md \
+  egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md \
+  egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/README.md \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md
 git commit -m "docs(platform): record stateless identity jwt cutover"
 ```
 

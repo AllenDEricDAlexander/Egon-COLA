@@ -1,0 +1,73 @@
+syntax = "proto3";
+
+package egon.tianquan.shoubing.v1;
+
+option java_multiple_files = true;
+option java_package = "top.egon.cola.platform.tianquan.shoubing.rpc.contract.proto.v1";
+
+// Read-only identity display directory used by RBAC administration.
+service IdentityDirectoryService {
+  // Resolves a bounded batch of identity subjects without returning credentials or permissions.
+  rpc BatchGetIdentityProfiles(BatchGetIdentityProfilesRequest)
+      returns (BatchGetIdentityProfilesResponse);
+
+  // Resolves one authoritative tenant membership fact for an external RBAC consumer.
+  rpc GetTenantMembership(GetTenantMembershipRequest)
+      returns (GetTenantMembershipResponse);
+}
+
+message BatchGetIdentityProfilesRequest {
+  repeated string subjects = 1;
+}
+
+message BatchGetIdentityProfilesResponse {
+  repeated IdentityProfile profiles = 1;
+  repeated string missing_subjects = 2;
+}
+
+message IdentityProfile {
+  string subject = 1;
+  string username = 2;
+  string display_name = 3;
+  string status = 4;
+  int64 version = 5;
+}
+
+message GetTenantMembershipRequest {
+  string tenant_id = 1;
+  string identity_sub = 2;
+}
+
+message GetTenantMembershipResponse {
+  TenantMembershipProfile profile = 1;
+}
+
+message TenantMembershipProfile {
+  string tenant_id = 1;
+  string identity_sub = 2;
+  TenantStatus tenant_status = 3;
+  MembershipStatus membership_status = 4;
+  int64 membership_version = 5;
+  IdentityStatus identity_status = 6;
+}
+
+enum TenantStatus {
+  TENANT_STATUS_UNSPECIFIED = 0;
+  TENANT_STATUS_INITIALIZING = 1;
+  TENANT_STATUS_ACTIVE = 2;
+  TENANT_STATUS_SUSPENDED = 3;
+  TENANT_STATUS_CLOSED = 4;
+}
+
+enum IdentityStatus {
+  IDENTITY_STATUS_UNSPECIFIED = 0;
+  IDENTITY_STATUS_ACTIVE = 1;
+  IDENTITY_STATUS_DISABLED = 2;
+  IDENTITY_STATUS_LOCKED = 3;
+}
+
+enum MembershipStatus {
+  MEMBERSHIP_STATUS_UNSPECIFIED = 0;
+  MEMBERSHIP_STATUS_ACTIVE = 1;
+  MEMBERSHIP_STATUS_DISABLED = 2;
+}

@@ -12,7 +12,7 @@
 | Updated            | `2026-08-21 22:04 CST`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Owner              | `Mario / Egon-COLA platform maintainers`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
 | Repository         | `Egon-COLA`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
-| Scope              | `egon-cola-platform-idp 的 admin/core/starter/RPC/Admin Web；egon-cola-platform-rbac3 的 tenant/membership/authorization-state/Admin Web；egon-cola-platform-dynamic-config-center 的注册准入；消费 SERVICE Token 的平台 starter`                                                                                                                                                                                                                                                                                                            |
+| Scope              | `egon-cola-tianquan-shoubing 的 admin/core/starter/RPC/Admin Web；egon-cola-tianquan-jianshen 的 tenant/membership/authorization-state/Admin Web；egon-cola-tianshu 的注册准入；消费 SERVICE Token 的平台 starter`                                                                                                                                                                                                                                                                                                            |
 | Change Surface     | `AppID/App Key/Secret Web 生命周期与数据库模型；OAuth Token Endpoint client_credentials；Spring OAuth2 Client facade；SERVICE Token PLATFORM/TENANT claim；DDC 注册/心跳凭证；IdP tenant/membership 主数据及 RPC；RBAC3 tenant master/member API 删除与 policy-version 拆分；Admin Web 页面、配置、迁移、测试和文档`                                                                                                                                                                                                                                                        |
 | Affected Chapters  | `§7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18`                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Source Requirement | `2026-08-20/21 用户要求 OAuth2 迁移到 Spring Security OAuth2 Client；biz service 预申请 AppID/Key/Secret 并通过 idp-starter 接入；Web 配置并入库、不允许应用自注册；tenant 迁入 IdP；用户确认 1A、2A、以 DDC 定向 PLATFORM SERVICE Token 取代 Admission Ticket 的 3A；2026-08-21 再确认保留既有 OAuth Client 权限码、IdP membership 去除 RBAC 内部用户 ID、RBAC bootstrap 只接受外部 tenantId/identitySub 的 1A/2A/3A`                                                                                                                                                                                |
@@ -54,11 +54,11 @@ RBAC3 消费 IdP 身份/租户事实，RBAC3 只保留授权事实。
 
 | Evidence ID | Classification            | Exact path/symbol/decision/command                                                                                                                                                                 | Observed fact                                                                                                         | Design significance                                                                                 | Verification limit/freshness    |
 |-------------|---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------|---------------------------------|
-| `EVD-001`   | Static repository         | `egon-cola-platform-idp-admin/.../oauth/controller/OAuthTokenController.java`；`PrivateKeyJwtAuthenticator.java`                                                                                    | `client_credentials` 当前读取 `client_assertion_type/client_assertion` 并验证客户端 JWK                                         | Token Endpoint 必须替换认证方式和错误/元数据契约                                                                    | 只证明 2026-08-21 源码，不证明已部署环境      |
+| `EVD-001`   | Static repository         | `egon-cola-tianquan-shoubing-admin/.../oauth/controller/OAuthTokenController.java`；`PrivateKeyJwtAuthenticator.java`                                                                                    | `client_credentials` 当前读取 `client_assertion_type/client_assertion` 并验证客户端 JWK                                         | Token Endpoint 必须替换认证方式和错误/元数据契约                                                                    | 只证明 2026-08-21 源码，不证明已部署环境      |
 | `EVD-002`   | Static repository         | `.../oauth/domain/pojo/IdentityClientEntity.java`；IdP `V1`–`V4` migration                                                                                                                          | `identity_client` 无 `app_id`/secret；Confidential Client 注释要求 `private_key_jwt`                                        | 需要 Client 主表增 AppID、独立 Secret 哈希表和新 V5                                                              | 未读取生产数据分布                       |
 | `EVD-003`   | Static repository         | `OAuthClientController`、`CreateOAuthClientDTO`、`OAuthClientServiceImpl`、Admin Web `ClientListPage.tsx`                                                                                             | Web 能 CRUD Client，但不创建/轮换 Secret，也没有一次性 Secret 响应                                                                     | 复用现有 Client 管理入口，不新增第二套应用注册中心                                                                       | 静态页面检查不证明浏览器交互                  |
 | `EVD-004`   | Static repository         | `ResourceServerController`；Admin Web `ResourceServerListPage.tsx`；`IdentityClientJwkEntity`                                                                                                        | Resource Server 页面/API 当前管理客户端 JWK                                                                                    | 目标删除客户端 JWK UI/API/存储；IdP 自身 Signing Key 页面不受影响                                                     | 不证明外部脚本是否调用旧 API                |
-| `EVD-005`   | Static repository         | `egon-cola-platform-idp-starter/pom.xml`；repository-wide `OAuth2AuthorizedClient` search                                                                                                           | starter 有 Resource Server/Jose，尚无 Spring OAuth2 Client manager 使用                                                     | idp-starter 增标准 client 依赖和窄 facade                                                                  | 依赖版本以当前 POM 为准                  |
+| `EVD-005`   | Static repository         | `egon-cola-tianquan-shoubing-starter/pom.xml`；repository-wide `OAuth2AuthorizedClient` search                                                                                                           | starter 有 Resource Server/Jose，尚无 Spring OAuth2 Client manager 使用                                                     | idp-starter 增标准 client 依赖和窄 facade                                                                  | 依赖版本以当前 POM 为准                  |
 | `EVD-006`   | Static repository         | `ServiceAccessTokenClaims.java`、`ServiceIdentityPrincipal.java`、`IdpPrincipal#tenantId`                                                                                                            | SERVICE 身份当前假设 `tenantId` 非空，credential 指向 JWK `kid`                                                                  | 需显式 `TENANT/PLATFORM` context，避免以特殊 tenant 模拟控制面                                                    | 影响消费者需在实现计划继续逐个枚举               |
 | `EVD-007`   | Static repository         | `DdcAdmissionRequest.java`、`DdcAdmissionTicket.java`、`DdcAdmissionTicketSupplier.java`                                                                                                             | DDC starter 先取 Ticket，再把 Ticket 放入注册请求                                                                                | OAuth Token 可直接成为注册凭证，删除一次交换与缓存                                                                     | Ticket 删除的二方兼容需发布门禁             |
 | `EVD-008`   | Static repository         | `IdpJwtDdcAdmissionVerifier.java`、`DdcAdmissionClaims.java`、`DdcConfigLeaseService.java`                                                                                                           | DDC 校验 issuer/audience/scope/source Resource/version/credential，并把 admission expiry 限制租约                              | 这些防伪语义必须迁入 Token 验证而不是随 Ticket 删除                                                                   | 未做在线攻击/渗透验证                     |
@@ -69,7 +69,7 @@ RBAC3 消费 IdP 身份/租户事实，RBAC3 只保留授权事实。
 | `EVD-013`   | Static repository         | IdP migrations `V1`–`V4`；RBAC3 migrations `V1`–`V7`；各自 DataSource                                                                                                                                  | tenant 跨两个数据库，Flyway 不具备跨库事务/搬运能力                                                                                     | schema migration 与数据转移必须拆开并有校验门禁                                                                    | 未连接目标 PostgreSQL                |
 | `EVD-014`   | User decision             | 用户确认 `1A`、`2A`、随后确认修改 Spec                                                                                                                                                                         | `appId=业务应用身份`、`key=client_id`、`secret=client_secret`；IdP 拥有 tenant/membership                                        | 锁定关键公开合同与权威边界                                                                                       | 2026-08-21 当前决定                 |
 | `EVD-015`   | User decision             | 用户确认以 SERVICE Token 取代 Admission Ticket                                                                                                                                                            | DDC 直接验证定向 Token，保留准入防伪语义                                                                                             | 锁定 3A，不设计双 Token                                                                                    | 2026-08-21 当前决定                 |
-| `EVD-016`   | Static repository         | `egon-cola-platforms/pom.xml`、Admin module POM                                                                                                                                                     | Java 21、Spring Boot 3.5.16、Flyway 11.15.0、PostgreSQL、React/Vite/Ant Design                                            | 设计应复用 Spring Security/JPA/Flyway/现有 Web 栈                                                           | 版本可能在实施前变化，Plan 必须复核            |
+| `EVD-016`   | Static repository         | `egon-cola-xingyuan/pom.xml`、Admin module POM                                                                                                                                                     | Java 21、Spring Boot 3.5.16、Flyway 11.15.0、PostgreSQL、React/Vite/Ant Design                                            | 设计应复用 Spring Security/JPA/Flyway/现有 Web 栈                                                           | 版本可能在实施前变化，Plan 必须复核            |
 | `EVD-017`   | Static repository         | `SpringPasswordHashAdapter.java`；IdP Admin POM `bcprov-jdk18on`                                                                                                                                    | IdP 已使用 `DelegatingPasswordEncoder` + Argon2、BCrypt legacy verify 与 dummy hash                                        | Client Secret 可复用同一受测 Argon2 参数/constant-work pattern，无需新增密码学依赖                                     | 仍需目标硬件 Token Endpoint benchmark |
 | `EVD-018`   | Static repository         | `OAuthClientController.java`；Admin Web `ClientListPage.tsx`/`AdminLayout.tsx`；`Rbac3DevelopmentTopology.java`                                                                                      | 现有公开权限合同是 `idp:oauth-client:read/create/update`，且 backend、frontend、bootstrap seed 一致                                  | Client/Secret 新能力必须复用既有权限码，避免无业务价值的 RBAC 权限迁移                                                       | 静态搜索不证明外部自定义角色清单完整              |
 | `EVD-019`   | Static repository         | `TenantMembershipPort.java`；repository-wide `UserResourceAccessPolicy`/`UserResourceAccessAuthorizationPort` references                                                                            | 现有 port 暴露 `rbac3UserId`；旧 USER Resource 授权 policy/port 只有测试构造，没有生产装配，而 `TokenFacade` 只需要 tenant/member 状态            | IdP membership contract 可移除 RBAC 内部 ID，并删除已被无状态 USER Token 设计取代的未接线旧路径                              | 搜索证明当前仓库引用，不证明仓库外二进制消费者         |
@@ -269,7 +269,7 @@ flowchart LR
 
 | Concern          | Current choice                                                                                 | Repository evidence                  | Constraint on design                                                   |
 |------------------|------------------------------------------------------------------------------------------------|--------------------------------------|------------------------------------------------------------------------|
-| Language/runtime | Java 21, Spring Boot 3.5.16                                                                    | `egon-cola-platforms/pom.xml`        | 复用 Spring Security 6 / Boot auto-config，不自建 OAuth client runtime       |
+| Language/runtime | Java 21, Spring Boot 3.5.16                                                                    | `egon-cola-xingyuan/pom.xml`        | 复用 Spring Security 6 / Boot auto-config，不自建 OAuth client runtime       |
 | OAuth/security   | Spring Security Resource Server/Jose；自定义 Token Endpoint                                        | IdP starter/admin POM、oauth package  | Client 侧增 `spring-security-oauth2-client`；签发端保持现有 issuer/signing stack |
 | Persistence      | Spring Data JPA + PostgreSQL                                                                   | IdP/RBAC admin repositories and POMs | Secret hash 不能依赖可逆数据库函数；事务边界在各自 DB 内                                   |
 | Migration        | Flyway 11.15.0；IdP V1–V4、RBAC V1–V7                                                            | `src/main/resources/db/migration`    | 新版本分别为 V5/V8，历史文件不可编辑                                                  |
@@ -560,16 +560,16 @@ credential expiry；Plan 应在 Java 模型中改名并留下后续数据库重�
 ### 8.1 Current relevant tree
 
 ```text
-egon-cola-platform-idp/
-├── egon-cola-platform-idp-admin/.../oauth/{controller,service,repo,domain}
-├── egon-cola-platform-idp-admin/.../support/rbac3/HttpTenantMembershipAdapter.java
-├── egon-cola-platform-idp-core/.../{token/ServiceAccessTokenClaims.java,port/TenantMembershipPort.java,port/UserResourceAccessAuthorizationPort.java,resource/UserResourceAccessPolicy.java}
-├── egon-cola-platform-idp-starter/...
-├── egon-cola-platform-idp-rpc-contract/.../IdentityDirectoryRpc.java
-└── egon-cola-platform-idp-admin-web/src/...
-egon-cola-platform-rbac3/.../iam/tenant/...
-egon-cola-platform-rbac3/.../bootstrap/{controller,service,repository}/...
-egon-cola-platform-dynamic-config-center/
+egon-cola-tianquan-shoubing/
+├── egon-cola-tianquan-shoubing-admin/.../oauth/{controller,service,repo,domain}
+├── egon-cola-tianquan-shoubing-admin/.../support/rbac3/HttpTenantMembershipAdapter.java
+├── egon-cola-tianquan-shoubing-core/.../{token/ServiceAccessTokenClaims.java,port/TenantMembershipPort.java,port/UserResourceAccessAuthorizationPort.java,resource/UserResourceAccessPolicy.java}
+├── egon-cola-tianquan-shoubing-starter/...
+├── egon-cola-tianquan-shoubing-rpc-contract/.../IdentityDirectoryRpc.java
+└── egon-cola-tianquan-shoubing-admin-web/src/...
+egon-cola-tianquan-jianshen/.../iam/tenant/...
+egon-cola-tianquan-jianshen/.../bootstrap/{controller,service,repository}/...
+egon-cola-tianshu/
 ├── ...-starter/.../model/admission and api/extension
 └── ...-admin/.../security/admission and DdcConfigLeaseService.java
 ```
@@ -577,22 +577,22 @@ egon-cola-platform-dynamic-config-center/
 ### 8.2 Target tree
 
 ```text
-egon-cola-platform-idp/
-├── egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/
+egon-cola-tianquan-shoubing/
+├── egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/
 │   ├── oauth/{controller,service,service/impl,repo,domain}/        # appId/secret/basic/context
 │   └── tenant/{controller,service,service/impl,repo,domain}/       # new authority
-├── egon-cola-platform-idp-admin/src/main/resources/db/migration/
+├── egon-cola-tianquan-shoubing-admin/src/main/resources/db/migration/
 │   └── V5__adopt_client_secrets_and_tenant_authority.sql
-├── egon-cola-platform-idp-core/.../token/                          # context and claims
-├── egon-cola-platform-idp-starter/.../client/                      # Spring OAuth2 facade
-├── egon-cola-platform-idp-rpc-contract/.../IdentityDirectoryRpc.java
-└── egon-cola-platform-idp-admin-web/src/.../{clients,tenants,resource-servers}
-egon-cola-platform-rbac3/
+├── egon-cola-tianquan-shoubing-core/.../token/                          # context and claims
+├── egon-cola-tianquan-shoubing-starter/.../client/                      # Spring OAuth2 facade
+├── egon-cola-tianquan-shoubing-rpc-contract/.../IdentityDirectoryRpc.java
+└── egon-cola-tianquan-shoubing-admin-web/src/.../{clients,tenants,resource-servers}
+egon-cola-tianquan-jianshen/
 ├── ...-admin/.../iam/{user,role,constraint,authorizationstate}/
 ├── ...-admin/.../bootstrap/                                      # external tenantId + identitySub only
 ├── ...-admin/src/main/resources/db/migration/V8__externalize_tenant_authority.sql
 └── ...-admin-web/src/...                                           # remove /iam/tenants
-egon-cola-platform-dynamic-config-center/
+egon-cola-tianshu/
 ├── ...-starter/.../registration/                                  # OAuth registrationToken
 └── ...-admin/.../security/registration/                            # Token verifier
 ```

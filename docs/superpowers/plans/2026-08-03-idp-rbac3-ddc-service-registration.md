@@ -20,12 +20,12 @@
 ### Task 1: Local IdP/RBAC3 service-registration configuration
 
 **Files:**
-- Modify: `scripts/unified-platform/test-direct-run-contract.sh`
+- Modify: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 - Modify: `scripts/unified-identity-local.sh`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
 
 **Interfaces:**
 - Consumes: `DdcRegistryAutoConfig`, `GatewayHttpProviderAutoConfiguration`, and `HttpProviderLeaseRuntime`.
@@ -40,8 +40,8 @@ Add a direct-run test that invokes `write_service_env_files` in an isolated temp
 Run:
 
 ```bash
-bash scripts/unified-platform/test-direct-run-contract.sh
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dtest=GatewayDdcConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dtest=GatewayDdcConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 Expected: direct-run assertions fail because IdP/RBAC3 Registry variables are absent, and the RBAC3 test fails because the local profile contains literal `false` values.
@@ -55,9 +55,9 @@ Add DDC config-client and HTTP Provider enable flags, `identity/local/default` s
 Run:
 
 ```bash
-bash scripts/unified-platform/test-direct-run-contract.sh
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am -Dtest=GatewayDdcConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
-./mvnw -B -ntp -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin -am package -DskipTests
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am -Dtest=GatewayDdcConfigurationTest -Dsurefire.failIfNoSpecifiedTests=false test
+./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am package -DskipTests
 ```
 
 Expected: all commands exit 0.
@@ -65,6 +65,6 @@ Expected: all commands exit 0.
 - [x] **Step 5: Commit**
 
 ```bash
-git add docs/superpowers/specs/2026-08-03-idp-rbac3-ddc-service-registration-design.md docs/superpowers/plans/2026-08-03-idp-rbac3-ddc-service-registration.md scripts/unified-platform/test-direct-run-contract.sh scripts/unified-identity-local.sh egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java
+git add docs/superpowers/specs/2026-08-03-idp-rbac3-ddc-service-registration-design.md docs/superpowers/plans/2026-08-03-idp-rbac3-ddc-service-registration.md scripts/unified-xingyuan/test-direct-run-contract.sh scripts/unified-identity-local.sh egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java
 git commit -m "fix(identity): register local idp and rbac3 services"
 ```

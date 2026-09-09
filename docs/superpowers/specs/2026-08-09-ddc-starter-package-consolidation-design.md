@@ -8,9 +8,9 @@
 
 主要涉及模块：
 
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin`
-- `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test`
 - 所有直接引用 DDC Starter 类型的 Gateway、RPC、IdP、RBAC3 和测试模块
 
 本文记录用户于 2026-08-09 确认的破坏式重组方案。实现必须一次性迁移仓库内消费者，不保留旧包兼容壳，不修改数据库和 Flyway，不启动应用。
@@ -22,7 +22,7 @@
 DDC 保持一个可执行代码模块：
 
 ```text
-egon-cola-platform-dynamic-config-center-starter
+egon-cola-tianshu-starter
 ```
 
 不新增 `autoconfigure`、`client`、`core` 或 `infrastructure` Maven 模块。业务应用、Gateway、RPC、IdP 和测试模块继续只依赖 Starter。
@@ -47,17 +47,17 @@ Starter 内部采用按代码角色划分的顶层包：
 目标 Reactor 结构保持不扩张：
 
 ```text
-egon-cola-platform-dynamic-config-center
-├── egon-cola-platform-dynamic-config-center-starter
-├── egon-cola-platform-dynamic-config-center-admin
-└── egon-cola-platform-dynamic-config-center-test
+egon-cola-tianshu
+├── egon-cola-tianshu-starter
+├── egon-cola-tianshu-admin
+└── egon-cola-tianshu-test
 ```
 
 Starter 同时承载公共 API、模型、客户端运行时和 Spring Boot 自动装配。`autoconfigure` 只是 Starter 内部包名，不是新的 Maven artifact。
 
 下游依赖规则：
 
-1. 业务侧和平台侧继续依赖 `egon-cola-platform-dynamic-config-center-starter`；
+1. 业务侧和平台侧继续依赖 `egon-cola-tianshu-starter`；
 2. Admin 继续通过 Starter 共享配置、租约、注册和 Management 契约；
 3. BOM 继续只暴露 Starter；
 4. 不新增只转发依赖或只保存少量 DTO 的模块。
@@ -234,7 +234,7 @@ Java 不支持直接声明“包级变量”，因此禁止在 `package-info.jav
 ## 5. 目标包树
 
 ```text
-egon-cola-platform-dynamic-config-center-starter
+egon-cola-tianshu-starter
 ├── pom.xml
 └── src/main
     ├── java/top/egon/cola/component/ddc

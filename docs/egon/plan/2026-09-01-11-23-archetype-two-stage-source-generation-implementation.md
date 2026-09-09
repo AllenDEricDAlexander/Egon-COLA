@@ -11,7 +11,7 @@
 | Repository         | `Egon-COLA`                                                                                                                                                                                                                                                                  |
 | Scope              | `egon-cola-archetypes 六套 normal source project、manifest 驱动生成器、六个稳定 maven-archetype 发布模块、版本脚本、CI 与 Maven Central 发布 Gate`                                                                                                                                                     |
 | Source Requirement | `2026-08-27 用户要求正常源码 -> 生成 Archetype -> 推送 Maven Central 两阶段改造；2026-09-01 用户确认主 Spec 并明确要求开始写 Plan`                                                                                                                                                                          |
-| Baseline Revision  | `main@28b9e596d；2026-09-01 11:23 CST dirty-worktree snapshot：保留 egon-cola-platforms/egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo 的并发修改与未提交主 Spec，不覆盖、不回退`                                                                                                    |
+| Baseline Revision  | `main@28b9e596d；2026-09-01 11:23 CST dirty-worktree snapshot：保留 egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo 的并发修改与未提交主 Spec，不覆盖、不回退`                                                                                                    |
 | Implements Spec    | [Archetype 正常源码与发布制品两阶段生成设计](../spec/2026-08-27-20-31-archetype-two-stage-source-generation.md)                                                                                                                                                                              |
 | Spec Status        | `Review`                                                                                                                                                                                                                                                                     |
 | Spec Revision      | `Updated 2026-08-27 20:31 CST；当前工作树中的未提交 Review 文档`                                                                                                                                                                                                                          |
@@ -279,7 +279,7 @@ egon-cola-archetypes/
 
 - Applicable repository instructions：本仓库 AGENTS.md；每 Step独立commit；不自动启动项目；不修改existing Flyway；不触碰无关路径。
 - Branch/commit：`main@28b9e596d`。实施前必须重新读取 branch/HEAD/status；若相关路径漂移，先停止并修订 Plan。
-- 当前无关 dirty path：`egon-cola-platforms/egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo`
+- 当前无关 dirty path：`egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo`
   ；不得stage/restore。
 - 主 Spec与本 Plan在规划时均未提交；执行必须由用户批准后按各 Step path-limited stage/commit。
 - `.generated`、所有 Maven `target`、临时 canonical consumer都不可提交；临时目录使用 `mktemp -d` 并由 trap清理明确路径。
@@ -336,7 +336,7 @@ egon-cola-archetypes/
 - Purpose: 在temp fake repo中先定义CLI、parser、path containment、atomic/deterministic/lock和后续real-family Gate。
 - Symbols: `test_usage`, `test_manifest_inventory`, `test_path_escape`, `test_atomic_failure`, `test_lock`,
   `test_determinism`, `test_generation`, `test_package_family`, `test_release_wiring`。
-- Repository evidence: `scripts/unified-platform/test-direct-run-contract.sh`等使用Bash断言；主 Spec `TEST-005`-`013`,
+- Repository evidence: `scripts/unified-xingyuan/test-direct-run-contract.sh`等使用Bash断言；主 Spec `TEST-005`-`013`,
   `021`要求shell fixture。
 - Dependencies and consumers: 被本地/CI调用；复制待测script到`mktemp` fake repo；fake `mvnw`只生成受控resource tree。
 - Why now: 先固定缺失行为和错误语义，避免生成器实现决定测试。
@@ -517,7 +517,7 @@ for product in light light-open:
 
 - Validation working directory: repository root
 - Verification command:
-  `./mvnw -B -ntp -N install && ./mvnw -B -ntp -f egon-cola-components/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-platforms/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml clean verify && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-light-open/pom.xml clean verify && ! rg -n '\$\{(package|groupId|rootArtifactId)\}|__rootArtifactId__' egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open} && git diff --check -- egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open}`
+  `./mvnw -B -ntp -N install && ./mvnw -B -ntp -f egon-cola-components/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-xingyuan/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml clean verify && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-light-open/pom.xml clean verify && ! rg -n '\$\{(package|groupId|rootArtifactId)\}|__rootArtifactId__' egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open} && git diff --check -- egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open}`
 - Expected result: two builds exit 0；placeholder scan零命中；legacy Light四SQL path/hash parity。
 - Failure returns to: canonical generation command/当前artifact若生成失败；本File机械materialization若compile/diff/hash失败；业务差异回主
   Spec而非现场修复。
@@ -581,7 +581,7 @@ for product in service service-open:
 
 - Validation working directory: repository root
 - Verification command:
-  `./mvnw -B -ntp -N install && ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install && ./mvnw -B -ntp -f egon-cola-components/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-platforms/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl egon-cola-organization-facade,egon-cola-evaluation-facade -am install && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml clean verify && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-service-open/pom.xml clean verify && ! rg -n '\$\{(package|groupId|rootArtifactId)\}|__rootArtifactId__' egon-cola-archetypes/source-projects/egon-cola-source-{service,service-open}`
+  `./mvnw -B -ntp -N install && ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install && ./mvnw -B -ntp -f egon-cola-components/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-xingyuan/pom.xml clean install && ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl egon-cola-organization-facade,egon-cola-evaluation-facade -am install && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml clean verify && ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-service-open/pom.xml clean verify && ! rg -n '\$\{(package|groupId|rootArtifactId)\}|__rootArtifactId__' egon-cola-archetypes/source-projects/egon-cola-source-{service,service-open}`
 - Expected result: 6/7-module builds exit 0；no placeholder；legacy四SQL source/original hash相同。
 - Failure returns to: current archetype/facade bootstrap、mechanical POM sentinel change或source inventory；不在本Step重设业务合同。
 - Completion criteria: 两个multi-module normal sources绿色且module count精确。
@@ -644,7 +644,7 @@ assert legacy Web migration source copies equal immutable archive hashes
 - Symbols: internal aggregator `top.egon.internal:egon-cola-archetype-source-projects:0.1.0-SNAPSHOT`; ordered Maven
   module list。
 - Repository evidence: root modules顺序components -> platforms -> archetypes；主 Spec ASM-004要求复用facades。
-- Dependencies and consumers: references `../../egon-cola-components`, `../../egon-cola-platforms`,
+- Dependencies and consumers: references `../../egon-cola-components`, `../../egon-cola-xingyuan`,
   `../egon-cola-organization-facade`, `../egon-cola-evaluation-facade`, then six sources；CI/local build only。
 - Why now: every declared directory已存在，可保持commit Maven-valid。
 - Contract/signature changes: no distributionManagement/release/Central plugin；not added to root modules。

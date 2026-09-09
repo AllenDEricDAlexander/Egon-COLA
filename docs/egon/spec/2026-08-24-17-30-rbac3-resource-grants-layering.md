@@ -12,12 +12,12 @@
 | Updated | `2026-08-25 10:42 CST` |
 | Owner | `Mario / Egon-COLA` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-platform-rbac3-contract、core、starter、admin、react-sdk、admin-web；egon-cola-platform-admin-web-shared；DDC/Gateway/IdP/RBAC3四个Admin Web；RBAC3 Admin Java包分层；RBAC3 PostgreSQL V13；CI前端资源上报脚本` |
+| Scope | `egon-cola-tianquan-jianshen-contract、core、starter、admin、react-sdk、admin-web；egon-cola-xingyuan-admin-web-shared；DDC/Gateway/IdP/RBAC3四个Admin Web；RBAC3 Admin Java包分层；RBAC3 PostgreSQL V13；CI前端资源上报脚本` |
 | Change Surface | `角色-权限字符关系替换为角色-资源授权；资源-权限字符映射成为唯一运行时翻译关系；About/React按resourceCodes控制MENU/ROUTE/ACTION；API注解同时校验资源和权限；IAM/authorization/registration/runtime及历史残留重新分层命名；共享Admin Header只保留Banner职责，四个Admin Web的树状菜单/路由移到桌面左侧Sider并在窄屏使用左侧Drawer` |
 | Affected Chapters | `§7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18` |
 | Source Requirement | `2026-08-24 用户决定：角色绑定接口、菜单和菜单按钮而不是权限字符；权限字符对用户无感，由管理员维护资源与权限字符映射，运行时判定才使用权限字符；页面与按钮分别获得其调用API，共享API按任一来源满足的OR并集语义；保留Egon-COLA授权能力，并重新分层命名基础IAM六类实体、授权关系、运行时策略、CI上报和历史残留；MENU/ROUTE必须以树状左侧菜单呈现，顶部仅是Banner/Header，DDC、Gateway、IdP、RBAC3四个Admin Web全部纳入改造` |
 | Baseline Revision | `main@df425ed9484d20e6235666d91e947742998ab475；工作树另有用户未提交的IdP Spec/Plan与Access Guard/Open Archetype文档，本Spec不修改它们` |
-| Amends | [RBAC3 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md) §1–§5、§7.3.3、§7.3.5、§8、§9.2.3–§9.2.5、§9.3–§9.5、§10.2–§10.7、§11.2.4–§11.2.9、§12–§19；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-platforms/egon-cola-platform-rbac3/docs/iam-package-aggregation-migration-spec.md) §3、§4.2–§4.4、§5.5–§5.6、§6–§9 |
+| Amends | [RBAC3 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md) §1–§5、§7.3.3、§7.3.5、§8、§9.2.3–§9.2.5、§9.3–§9.5、§10.2–§10.7、§11.2.4–§11.2.9、§12–§19；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §3、§4.2–§4.4、§5.5–§5.6、§6–§9 |
 | Supersedes | `None` |
 | Depends On | [RBAC3 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md) §3.2、§5.1、§7.1–§7.3.2、§7.3.4、§15–§16中未被本规格明确修订的JWT、UserDetails、active role、字段策略与无Session规则 |
 | Related Specs | [IdP OAuth Client 与租户所有权迁移规格](2026-08-21-07-51-idp-oauth-client-tenant-ownership.md) |
@@ -61,13 +61,13 @@
 | `EVD-014` | User decision | 2026-08-24最新要求 | 角色绑定接口、菜单和按钮；权限字符由管理员映射，判定时才使用 | 覆盖前序Spec的Role-Permission用户模型 | 明确用户决策 |
 | `EVD-015` | Static repository | common core `ResultRecord`/`PageResultRecord` | 公共响应契约已经存在 | 新改接口不得继续扩大 `ApiEnvelopeVO` | 不证明所有旧Controller已迁移 |
 | `EVD-016` | User decision | 2026-08-24补充说明 | menu定位page并获得page调用的全部API；button获得对应API；共享API由任一page/button授权即可 | 要求资源依赖并集展开，禁止运行时按来源细分 | 明确用户决策 |
-| `EVD-017` | Static repository | `egon-cola-platform-admin-web-shared/src/layout/EnterpriseHeader.tsx` | 桌面端在`Layout.Header`内渲染`Menu mode="horizontal"`，品牌、导航、操作和用户全部挤在顶部 | 证实当前所谓菜单实际位于Banner/Header | 源码证据，未做浏览器视觉验证 |
+| `EVD-017` | Static repository | `egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseHeader.tsx` | 桌面端在`Layout.Header`内渲染`Menu mode="horizontal"`，品牌、导航、操作和用户全部挤在顶部 | 证实当前所谓菜单实际位于Banner/Header | 源码证据，未做浏览器视觉验证 |
 | `EVD-018` | Static repository | `EnterpriseLayout.tsx` | 当前骨架只有Header、Content、Footer，没有`Layout.Sider` | 左侧菜单必须由共享Layout补齐，不能只改四个平台CSS | 源码证据 |
 | `EVD-019` | Static repository | shared `layout/types.ts`、`EnterpriseLayout.test.tsx` | `EnterpriseNavigationItem.children`与递归菜单已经存在；窄屏已有左Drawer，桌面仍横向 | 可复用现有树模型和移动Drawer，无需新导航模型/store | 测试只证明组件行为，不证明四应用视觉一致 |
 | `EVD-020` | Static repository | DDC `src/layouts/AdminLayout.tsx` | 8条导航是flat数组，但已有运行状态/配置管理/元数据管理`group` | DDC可直接把现有分组提升为树父MENU | 本地静态定义 |
 | `EVD-021` | Static repository | IdP `src/app/AdminLayout.tsx`、Gateway `src/layouts/AdminLayout.tsx` | 两端先按bootstrap permission/capability过滤，再把flat items传给`EnterpriseLayout` | 树改造必须保留各自过滤来源与deep-link guard | 未验证live bootstrap内容 |
 | `EVD-022` | Static repository | RBAC3 `resourceDefinitions.json -> FrontendResourceRegistry.navigation -> visibleNavigation` | RBAC3已经产出`MENU/ROUTE children`递归树，但shared在桌面端仍放到Header横向Menu | RBAC3不需第二棵树，只需共享Layout正确放置 | 当前registry仍按permission，目标按REQ-007改为resourceCodes |
-| `EVD-023` | Static repository | 四个Admin Web `package.json`及shared `package.json` | 四端均消费`@egon-cola/admin-web-shared ^0.1.4`，shared当前版本`0.1.4` | 共享布局先发布、四消费者再升级是明确兼容边界 | npm registry可用性未在本次验证 |
+| `EVD-023` | Static repository | 四个Admin Web `package.json`及shared `package.json` | 四端均消费`@egon-cola/xingyuan-admin-web-shared ^0.1.4`，shared当前版本`0.1.4` | 共享布局先发布、四消费者再升级是明确兼容边界 | npm registry可用性未在本次验证 |
 | `EVD-024` | User decision | 2026-08-24最新补充 | MENU/ROUTE必须树状显示在左侧；顶部是Banner，不叫菜单；四个前端全部改造 | 将共享Layout和四消费者纳入本Spec | 明确用户决策 |
 | `EVD-025` | Static repository | Gateway `App.tsx`、`AdminLayout.tsx` | 接口目录入口是`/interface-catalog`，Operation详情却是`/operations/:operationId`，不满足普通path前缀 | shared选择契约需允许本地声明额外active path前缀，不能改现有deep link | 仅当前已发现的非前缀详情路由 |
 
@@ -92,7 +92,7 @@
 | API方法授权 | `Spring Method Security -> Rbac3MethodAuthorizationManager -> AuthorizationService.requirePermission` | 只读SecurityContext快照permissions | Redis/远端快照仅在装载阶段 | 所有接入Starter的业务方法 | `EVD-006`,`EVD-012` |
 | 前端展示 | `GET /api/v1/auth/about -> FrontendResourceRegistry/PermissionGuard/ActionGuard` | 读取about.permissions和fieldPolicies | Gateway/IdP/RBAC快照 | RBAC/IdP等React Admin | `EVD-008`,`EVD-009` |
 | CI上报 | `report-rbac-resources.mjs -> CiResourceReportController -> JpaCiResourceReportStore` | 写resource、permission、required_permission_id与CI head | Gateway SERVICE认证、DDC目录校验 | 发布流水线 | `EVD-005`,`EVD-013` |
-| 四端桌面导航 | `各AdminLayout -> EnterpriseLayout(config.navigation) -> EnterpriseHeader -> AntD Menu(horizontal)` | 只读本地导航定义与现有授权上下文 | `@egon-cola/admin-web-shared 0.1.4` | DDC/Gateway/IdP/RBAC3管理用户 | `EVD-017`–`EVD-023` |
+| 四端桌面导航 | `各AdminLayout -> EnterpriseLayout(config.navigation) -> EnterpriseHeader -> AntD Menu(horizontal)` | 只读本地导航定义与现有授权上下文 | `@egon-cola/xingyuan-admin-web-shared 0.1.4` | DDC/Gateway/IdP/RBAC3管理用户 | `EVD-017`–`EVD-023` |
 
 ## 3. Goals and Non-goals
 
@@ -300,12 +300,12 @@ None. 本规格不把未来API注解的独立构建期扫描器纳入本次实�
 
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
-| Java/runtime | Java 21 | `egon-cola-platforms/pom.xml` | 使用record、Spring 6 API；不引入Java 25专用语法 |
+| Java/runtime | Java 21 | `egon-cola-xingyuan/pom.xml` | 使用record、Spring 6 API；不引入Java 25专用语法 |
 | Framework | Spring Boot 3.5.16 / Spring Security 6 | platforms POM、Starter POM | Method Security与SecurityContext继续作为PEP上下文 |
 | Persistence | JPA/EntityManager + PostgreSQL + Flyway | rbac3-admin POM、V1–V12 | 只新增V13，不编辑历史迁移 |
 | Cache/runtime | Redis/Redisson + JVM near cache | Starter/Admin cache代码 | 复用snapshot/version失效，不增第二缓存 |
 | Frontend | React 19、TypeScript 6、Ant Design 6、React Router 7、TanStack Query、Vitest | shared及四Admin Web package.json | 左Sider/Drawer/Menu复用AntD；route选择复用React Router；不新增UI框架/store |
-| Shared frontend distribution | `@egon-cola/admin-web-shared 0.1.4`被四端以`^0.1.4`消费 | shared和四消费者package/lock | 布局公共契约升级为0.2.0后，四端必须协调更新并分别build/test |
+| Shared frontend distribution | `@egon-cola/xingyuan-admin-web-shared 0.1.4`被四端以`^0.1.4`消费 | shared和四消费者package/lock | 布局公共契约升级为0.2.0后，四端必须协调更新并分别build/test |
 | HTTP wrapper | common `ResultRecord` | common-core源码 | 新改接口完整返回统一字段 |
 | Tests | JUnit 5、Spring MVC Test、模块集成测试、Vitest/Playwright、Node test | 当前test源码/package scripts | 静态/module proof不等于live topology |
 
@@ -370,7 +370,7 @@ flowchart LR
         IdpWeb["IdP AdminLayout"]
         RbacWeb["RBAC3 AdminLayout"]
     end
-    Shared["@egon-cola/admin-web-shared 0.2.0\nHeader Banner + left Sider tree + mobile Drawer"]
+    Shared["@egon-cola/xingyuan-admin-web-shared 0.2.0\nHeader Banner + left Sider tree + mobile Drawer"]
     DdcWeb -->|"authorized navigation tree"| Shared
     GatewayWeb -->|"authorized navigation tree"| Shared
     IdpWeb -->|"authorized navigation tree"| Shared
@@ -611,7 +611,7 @@ admin
 ```
 
 ```text
-egon-cola-platform-admin-web-shared/src/layout
+egon-cola-xingyuan-admin-web-shared/src/layout
 ├── EnterpriseHeader.tsx             # desktop horizontal Menu currently lives in Banner
 ├── EnterpriseLayout.tsx             # Header + Content + Footer, no Sider
 ├── EnterpriseLayout.test.tsx
@@ -668,17 +668,17 @@ top/egon/cola/platform/rbac3/admin
 ```
 
 ```text
-egon-cola-platforms
-├── egon-cola-platform-admin-web-shared/src/layout
+egon-cola-xingyuan
+├── egon-cola-xingyuan-admin-web-shared/src/layout
 │   ├── EnterpriseHeader.tsx          # Banner only; mobile open-navigation trigger
 │   ├── EnterpriseSidebar.tsx         # CREATE desktop Sider + mobile Drawer recursive tree
 │   ├── EnterpriseLayout.tsx          # Header + (Sider, Content/Footer) responsive composition
 │   ├── EnterpriseLayout.test.tsx     # desktop/mobile/tree/deep-link/collapse contracts
 │   └── types.ts                      # navigation belongs to Layout; remove flat group semantics
-├── egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/layouts/AdminLayout.tsx
-├── egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/layouts/AdminLayout.tsx
-├── egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/app/AdminLayout.tsx
-└── egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/app/{router.tsx,navigation.ts}
+├── egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx
+├── egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx
+├── egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx
+└── egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/{router.tsx,navigation.ts}
 ```
 
 ### 8.3 Exact move/create/delete map
@@ -705,15 +705,15 @@ egon-cola-platforms
 | MODIFY | `contract/auth/Rbac3AboutView.java`、`starter/authorization/Rbac3AboutService.java` | same | expose resourceCodes | `REQ-007` |
 | DELETE | `RolePermissionPO/DTO/Enum`、`PermissionResourcePO` | none | 删除错误/重复模型 | `REQ-004`,`013` |
 | DELETE | `CurrentRbac3Principal`、`RequiresRbac3Permission`、`ApiEnvelopeVO`受影响调用 | none | 使用Rbac3UserDetails/标准注解/common结果 | `REQ-013`,`016` |
-| RENAME | `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/role/RolePermissionPage.tsx` | sibling `RoleResourceGrantPage.tsx` | 可读资源配置 | `REQ-001`,`002` |
+| RENAME | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePermissionPage.tsx` | sibling `RoleResourceGrantPage.tsx` | 可读资源配置 | `REQ-001`,`002` |
 | MODIFY | `ResourceCatalogPage.tsx`、`PermissionPage.tsx` | mapping drawer + advanced selector；移除独立权限字符导航 | 管理actual mapping | `REQ-003` |
-| CREATE | `egon-cola-platform-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | `EnterpriseSidebar` | desktop left Sider、mobile left Drawer、recursive Menu、route selection/open ancestors | `REQ-022`–`025` |
+| CREATE | `egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | `EnterpriseSidebar` | desktop left Sider、mobile left Drawer、recursive Menu、route selection/open ancestors | `REQ-022`–`025` |
 | MODIFY | shared `EnterpriseHeader.tsx`、`EnterpriseLayout.tsx`、`types.ts`、i18n、tests | `EnterpriseHeader`、`EnterpriseLayoutConfig` | Header收敛为Banner，Layout拥有navigation；本地响应式/折叠状态；Sidebar保持包内实现不新增export | `REQ-022`–`025` |
 | MODIFY | DDC `src/layouts/AdminLayout.tsx`及test | `navigation` | 生成`运行状态 -> 服务注册/发布任务/缓存`、`配置管理 -> 配置资源`、`元数据管理 -> 业务域/环境/应用/命名空间`树 | `REQ-024`,`025` |
 | MODIFY | IdP `src/app/AdminLayout.tsx`及App/layout tests | `ALL_NAV_ITEMS/navigation` | 根`身份概览`；`身份目录 -> 全局用户/租户目录`；`OAuth与资源 -> OAuth客户端/Resource Server`；`安全治理 -> 签名密钥/安全审计`，递归permission过滤 | `REQ-024`,`025` |
 | MODIFY | Gateway `src/layouts/AdminLayout.tsx`及test | `navigation/items` | 根`总览`；`网关治理 -> Gateway Group/Application Credential/接口目录/Provider`；`MCP -> Control Plane/Remote MCP`；`观测与审计 -> 调用观测/审计日志`，递归capability过滤 | `REQ-024`,`025` |
 | MODIFY | RBAC3 `src/app/{router.tsx,navigation.ts}`及integration tests | `visibleNavigation/AdminLayout` | 保持resourceDefinitions递归树与REQ-007过滤，验证左Sider、空树和hidden detail deep-link定位 | `REQ-007`,`024`,`025` |
-| MODIFY/PUBLISH | shared `package.json/package-lock.json`、四消费者`package.json`与三个本地/一个平台级lockfile | `@egon-cola/admin-web-shared 0.2.0` | 发布共享布局并协调DDC/Gateway/IdP/RBAC3依赖更新 | `REQ-024` |
+| MODIFY/PUBLISH | shared `package.json/package-lock.json`、四消费者`package.json`与三个本地/一个平台级lockfile | `@egon-cola/xingyuan-admin-web-shared 0.2.0` | 发布共享布局并协调DDC/Gateway/IdP/RBAC3依赖更新 | `REQ-024` |
 
 包迁移包含同路径的production/test `package`、imports、package-info和architecture assertions；不在本规格中逐个复制数百个纯import改名文件，因为它们的唯一语义由上表根路径映射完全决定。
 
@@ -1454,7 +1454,7 @@ Invalid construction throws `IllegalArgumentException` before decision. Missing 
 
 ##### Identity and purpose
 
-Public consumer entry remains `EnterpriseLayout({config, children})` from `@egon-cola/admin-web-shared`。`EnterpriseLayoutConfig.navigation` and `onNavigate` semantically belong to Layout；`EnterpriseHeaderConfig` no longer declares desktop navigation。`EnterpriseHeaderProps` adds `mobileNavigationVisible` and `onOpenNavigation` for Layout-controlled narrow-screen triggering。`EnterpriseSidebar` stays package-internal and is tested throughEnterpriseLayout；four platforms cannot instantiate a second shell。
+Public consumer entry remains `EnterpriseLayout({config, children})` from `@egon-cola/xingyuan-admin-web-shared`。`EnterpriseLayoutConfig.navigation` and `onNavigate` semantically belong to Layout；`EnterpriseHeaderConfig` no longer declares desktop navigation。`EnterpriseHeaderProps` adds `mobileNavigationVisible` and `onOpenNavigation` for Layout-controlled narrow-screen triggering。`EnterpriseSidebar` stays package-internal and is tested throughEnterpriseLayout；four platforms cannot instantiate a second shell。
 
 ##### Request parameters
 
@@ -1497,7 +1497,7 @@ This is an in-process render contract, not an HTTP response. On`lg`and wider, it
 
 ##### Compatibility and verification
 
-Publish `@egon-cola/admin-web-shared 0.2.0` before updating consumers. DDC、Gateway、IdP update their localpackage-lock；RBAC3 updates its platform-levelpackage-lock。No HTTP、backend、database or authentication contract changes。Verification covers shared typecheck/unit/build, four clean installs/typechecks/tests/builds, package resolution to0.2.0 and desktop/mobile Playwright shell smoke。
+Publish `@egon-cola/xingyuan-admin-web-shared 0.2.0` before updating consumers. DDC、Gateway、IdP update their localpackage-lock；RBAC3 updates its platform-levelpackage-lock。No HTTP、backend、database or authentication contract changes。Verification covers shared typecheck/unit/build, four clean installs/typechecks/tests/builds, package resolution to0.2.0 and desktop/mobile Playwright shell smoke。
 
 ## 10. POJO and Data Model Design
 
@@ -2167,7 +2167,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 这是整组破坏式切换：
 
 1. 合并前冻结旧role permission写入和资源mapping变更，备份RBAC数据库。
-2. 先构建、测试并发布`@egon-cola/admin-web-shared 0.2.0`；更新DDC/Gateway/IdP三个本地lockfile和RBAC3平台级lockfile，四端clean install/typecheck/test/build必须全部解析0.2.0且不存在0.1.4残留。
+2. 先构建、测试并发布`@egon-cola/xingyuan-admin-web-shared 0.2.0`；更新DDC/Gateway/IdP三个本地lockfile和RBAC3平台级lockfile，四端clean install/typecheck/test/build必须全部解析0.2.0且不存在0.1.4残留。
 3. 同版本发布Contract/Core/Starter/Admin/React SDK、四个Admin Web和CI脚本；旧二进制不得与V13共存。
 4. Flyway执行V13：创建role_resource_grant和resource_api_binding、增加suggestion、处理unmapped ACTIVE资源状态、删除role_permission/permission_resource。
 5. 先保证API资源目录已存在，再执行CI frontend registration，重新登记机械资源、suggestion和ROUTE/ACTION到API bindings。

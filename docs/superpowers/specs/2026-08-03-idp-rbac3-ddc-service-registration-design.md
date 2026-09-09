@@ -15,7 +15,7 @@ DDC 全局服务目录只有 Gateway 相关服务。
 
 ## 方案
 
-复用现有 `egon-cola-platform-gateway-provider-runtime`，不新增注册协议或生命周期。
+复用现有 `yuheng-provider-runtime`，不新增注册协议或生命周期。
 IdP 和 RBAC3 已有发布安全门要求 DDC 配置客户端先达到 `READY`，所以本地拓扑启用：
 
 - `egon.cola.component.ddc.enabled`：建立配置客户端租约并满足既有发布安全门；

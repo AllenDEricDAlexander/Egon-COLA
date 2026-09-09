@@ -11,7 +11,7 @@
 | Repository         | `Egon-COLA`                                                                                                                                                                   |
 | Scope              | `egon-cola-components` 下新增单模块、功能包扁平的 `egon-cola-component-agent-flow-starter`，并完成父 POM、Components BOM 与组件文档接线                                                                 |
 | Source Requirement | 阅读参考工程 Agent Workflow 后，将 Spring AI + Google ADK 能力转换成非 DDD、默认关闭、离线可测的 Components Starter；用户确认全部推荐项并于 2026-09-04 明确要求开始编写两个阶段的 Plan                                           |
-| Baseline Revision  | `main@cd83ae3a6a8b60ab3bbbb4b76f6fad4b87f07a0d`；保留现有未提交 Spec、Plan 与 `egon-cola-platform-admin-web-shared/tsconfig.app.tsbuildinfo`，执行时仅按 Step 路径提交                            |
+| Baseline Revision  | `main@cd83ae3a6a8b60ab3bbbb4b76f6fad4b87f07a0d`；保留现有未提交 Spec、Plan 与 `egon-cola-xingyuan-admin-web-shared/tsconfig.app.tsbuildinfo`，执行时仅按 Step 路径提交                            |
 | Implements Spec    | [Agent Flow 扁平化组件设计](../spec/2026-09-04-09-34-agent-flow-component.md)                                                                                                        |
 | Spec Status        | `Accepted`                                                                                                                                                                    |
 | Spec Revision      | `Updated 2026-09-04 19:02 CST`，基于 `main@cd83ae3a6a8b60ab3bbbb4b76f6fad4b87f07a0d` 的当前工作区决策同步版本                                                                                |

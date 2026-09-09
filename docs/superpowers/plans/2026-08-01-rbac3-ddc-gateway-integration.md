@@ -50,10 +50,10 @@ Task 1..9
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/Rbac3RuntimePolicy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/Rbac3RuntimePolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
 
 **Produces:**
 
@@ -97,7 +97,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=AtomicRbac3RuntimePolicyTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -160,7 +160,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=AtomicRbac3RuntimePolicyTest,AdminLayerBoundaryTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   git diff --check
@@ -172,10 +172,10 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/Rbac3RuntimePolicy.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicy.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/Rbac3RuntimePolicy.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicy.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java
   git commit -m "feat(rbac3): add atomic runtime policy"
   ```
 
@@ -185,11 +185,11 @@ Task 1..9
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfigurationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java`
 
 **Produces:** 五个可上报默认值的 `@DdcValue` 声明；五个 exact Applier；固定全量 Pull 优先级；在 DDC Registry freeze 前完成的确定性注册。
 
@@ -219,7 +219,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3DdcPolicyConfigurationTest,AtomicRbac3RuntimePolicyTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -264,7 +264,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin,:egon-cola-platform-dynamic-config-center-starter -am \
+    -pl :egon-cola-tianquan-jianshen-admin,:egon-cola-tianshu-starter -am \
     -Dtest=Rbac3DdcPolicyConfigurationTest,AtomicRbac3RuntimePolicyTest,DefaultDdcConfigApplierRegistryTest,DdcRefreshServiceTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   git diff --check
@@ -276,11 +276,11 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfigurationTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfigurationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java
   git commit -m "feat(rbac3): consume validated DDC configuration"
   ```
 
@@ -290,12 +290,12 @@ Task 1..9
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/JwtTokenServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/SessionFacadeTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/JwtTokenServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/SessionFacadeTest.java`
 
 **Behavior:** 一次 `issue()` 或 `create()` 只读取一次 Snapshot；更新后新对象使用新 TTL，旧 JWT claim 和已持久化 Session/Refresh 到期时间不变。
 
@@ -321,7 +321,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=JwtTokenServiceTest,SessionFacadeTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -334,7 +334,7 @@ Task 1..9
 
   ```bash
   rg -n 'new JwtTokenService\(|new SessionFacade\(' \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src
   ```
 
   `JwtTokenService.issue()` 开头读取一次：
@@ -352,7 +352,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=JwtTokenServiceTest,SessionFacadeTest,AuthenticationRuntimePublicationTest,RefreshRuntimePublicationTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   git diff --check
@@ -362,12 +362,12 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/JwtTokenServiceTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/SessionFacadeTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/JwtTokenServiceTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/SessionFacadeTest.java
   git diff --cached --name-only
   git commit -m "feat(rbac3): apply runtime policy to new credentials"
   ```
@@ -378,12 +378,12 @@ Task 1..9
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java`
 
 **Rule:** 限制 `resolution.activeRoleSet().rootIds().size()`，不是请求 Role ID 数量，也不是继承展开后的有效角色数量；同一事务内在任何持久化、Fence、投影或发 Token 之前失败。
 
@@ -412,7 +412,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3ErrorCodeTest,RoleActivationFacadeIT \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -437,7 +437,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3ErrorCodeTest,RoleActivationFacadeIT,RoleActivationConcurrencyIT,Rbac3ApiExceptionHandlerTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   git diff --check
@@ -447,12 +447,12 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java
   git commit -m "feat(rbac3): enforce active root policy"
   ```
 
@@ -462,11 +462,11 @@ Task 1..9
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml`
-- Verify unchanged or minimally align: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/resources/application-local-it.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
+- Verify unchanged or minimally align: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/resources/application-local-it.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
 
 **Production contract:** `ddc.enabled=true` 与 `ddc.registry.enabled=true` 同时存在；CONFIG_CLIENT 和 HTTP_PROVIDER 使用同一进程 Instance ID 但独立 Lease；DDC 配置 scope 不含 namespace，Provider/Definition identity 保留 namespace。
 
@@ -488,7 +488,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=GatewayDdcConfigurationTest,Rbac3AdminApplicationContextTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -527,11 +527,11 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=GatewayDdcConfigurationTest,Rbac3AdminApplicationContextTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   rg -n 'localhost|127\.0\.0\.1|secret-key: [^$]|password: [^$]' \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml
   git diff --check
   ```
 
@@ -541,10 +541,10 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java
   git commit -m "feat(rbac3): enable production DDC configuration client"
   ```
 
@@ -554,22 +554,22 @@ Task 1..9
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcConfigClientStatusService.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3HttpProviderPublicationGateTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/DdcConfigClientStatusServiceTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3IntegrationMetricsTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/runtime.api.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/RuntimeStatusPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcConfigClientStatusService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3HttpProviderPublicationGateTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/DdcConfigClientStatusServiceTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3IntegrationMetricsTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/runtime.api.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx`
 
 **Produces:** 名为 `gatewayHttpProviderServerReadyListener` 的 RBAC3 Bean；Gateway Provider Runtime 默认 Bean 因 `@ConditionalOnMissingBean(name=...)` 退让。Runtime Status 新增独立 `ddcConfigClient`，不合并 Definition、Provider、Release。Micrometer 暴露四个低基数指标：`rbac3_ddc_config_apply_total`、`rbac3_ddc_config_snapshot_version`、`rbac3_ddc_config_ready`、`rbac3_gateway_definition_operation_count`。
 
@@ -608,12 +608,12 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3HttpProviderPublicationGateTest,DdcConfigClientStatusServiceTest,Rbac3IntegrationMetricsTest,RuntimeQueryServiceTest,Rbac3AdminApplicationContextTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 ci
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 test \
-    --workspace @egon-cola/rbac3-admin-web -- \
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen ci
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen test \
+    --workspace @egon-cola/tianquan-jianshen-admin-web -- \
     --run src/features/runtime/RuntimeStatusPage.test.tsx
   ```
 
@@ -685,13 +685,13 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-provider-runtime -am \
+    -pl :egon-cola-tianquan-jianshen-admin,:yuheng-provider-runtime -am \
     -Dtest=Rbac3HttpProviderPublicationGateTest,DdcConfigClientStatusServiceTest,Rbac3IntegrationMetricsTest,RuntimeQueryServiceTest,Rbac3AdminApplicationContextTest,GatewayHttpProviderAutoConfigurationTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 run typecheck \
-    --workspace @egon-cola/rbac3-admin-web
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 test \
-    --workspace @egon-cola/rbac3-admin-web -- \
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen run typecheck \
+    --workspace @egon-cola/tianquan-jianshen-admin-web
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen test \
+    --workspace @egon-cola/tianquan-jianshen-admin-web -- \
     --run src/features/runtime/RuntimeStatusPage.test.tsx
   git diff --check
   ```
@@ -700,22 +700,22 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcConfigClientStatusService.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3HttpProviderPublicationGateTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/DdcConfigClientStatusServiceTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3IntegrationMetricsTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/runtime.api.ts \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/RuntimeStatusPage.tsx \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcConfigClientStatusService.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3HttpProviderPublicationGateTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/DdcConfigClientStatusServiceTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3IntegrationMetricsTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/runtime.api.ts \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.tsx \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx
   git commit -m "feat(rbac3): gate provider publication on DDC readiness"
   ```
 
@@ -725,9 +725,9 @@ Task 1..9
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java`
-- Modify only when a test proves a real gap: RBAC3 Controller/DTO files under `egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java`
+- Modify only when a test proves a real gap: RBAC3 Controller/DTO files under `egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java`
 
 **Contract:** Spring MVC 是 Method/Path/Consumes/Produces 机械事实来源；Gateway 注解提供业务目录和 Schema 补充；实际 Mapping 集合必须与 `MvcGatewayDefinitionContributor` 发现集合完全相等，不能长期硬编码 78。
 
@@ -754,7 +754,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3GatewayDocumentCatalogContractTest,Rbac3GatewayDefinitionDiscoveryTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -775,7 +775,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest='*GatewayDiscoveryTest,Rbac3GatewayDocumentCatalogContractTest' \
     -Dsurefire.failIfNoSpecifiedTests=false test
   git diff --check
@@ -785,10 +785,10 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java
   git diff --name-only -- \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http
   git commit -m "test(rbac3): enforce gateway document catalog coverage"
   ```
 
@@ -800,9 +800,9 @@ Task 1..9
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3DdcRefreshIntegrationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3DdcRefreshIntegrationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java`
 - Modify only if required by failing test: DDC integration classes created in Tasks 1, 2 and 6.
 
 **Boundary:** 本任务在进程内使用真实 DDC Refresh/Registry 算法和 fake Admin/Ack 边界；不把 Testcontainers 或 mock 成功描述为真实 Redis/PostgreSQL/Gateway 多进程证明。
@@ -824,7 +824,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3DdcRefreshIntegrationTest,GatewayDdcConfigurationTest,RuntimeQueryServiceTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
@@ -837,12 +837,12 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Dtest=Rbac3DdcRefreshIntegrationTest,GatewayDdcConfigurationTest,RuntimeQueryServiceTest \
     -Dsurefire.failIfNoSpecifiedTests=false test
 
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Prbac3-local-it verify
   git diff --check
   ```
@@ -853,12 +853,12 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3DdcRefreshIntegrationTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3DdcRefreshIntegrationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java
   git diff --name-only -- \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime
   git commit -m "test(rbac3): verify DDC fail-safe integration"
   ```
 
@@ -870,12 +870,12 @@ Task 1..9
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/docs/architecture.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/docs/operations-runbook.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/docs/verification-evidence-template.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/architecture.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/operations-runbook.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/verification-evidence-template.md`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh`
 
 **Documentation must state:**
 
@@ -899,14 +899,14 @@ Task 1..9
   - 四个固定低基数 Metric 名称与 `key/status` 白名单实现存在；
   - Controller 的 Gateway 文档契约测试存在；
   - RBAC3 仍只有两个既有 Flyway 文件；
-  - 不存在独立 `egon-cola-platform-rbac3-test` 模块；
+  - 不存在独立 `egon-cola-tianquan-jianshen-test` 模块；
   - 不存在 Swagger/Springdoc 依赖；
   - 生产 YAML 不含 localhost/默认 Secret。
 
   在文档和实现尚未全部满足前执行：
 
   ```bash
-  bash egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh
+  bash egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh
   ```
 
   Expected: 新增的文档/配置断言至少一项失败；失败信息要指出文件和缺少的契约。
@@ -929,12 +929,12 @@ Task 1..9
 - [ ] **Step 3：运行 GREEN、链接和禁止项检查**
 
   ```bash
-  bash egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh
+  bash egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh
   rg -n 'swagger|springdoc|localhost|127\.0\.0\.1' \
-    egon-cola-platforms/egon-cola-platform-rbac3/README.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/docs \
-    egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml
   git diff --check
   ```
 
@@ -944,12 +944,12 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-platforms/egon-cola-platform-rbac3/README.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/README.zh-CN.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/docs/architecture.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/docs/operations-runbook.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/docs/verification-evidence-template.md \
-    egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/architecture.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/operations-runbook.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/verification-evidence-template.md \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh
   git commit -m "docs(rbac3): document DDC and gateway operations"
   ```
 
@@ -980,7 +980,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-contract,:egon-cola-platform-rbac3-core,:egon-cola-platform-rbac3-starter,:egon-cola-platform-rbac3-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-gateway-engine \
+    -pl :egon-cola-tianquan-jianshen-contract,:egon-cola-tianquan-jianshen-core,:egon-cola-tianquan-jianshen-starter,:egon-cola-tianquan-jianshen-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:yuheng-biz-gateway \
     -am clean verify
   ```
 
@@ -990,7 +990,7 @@ Task 1..9
 
   ```bash
   ./mvnw -B -ntp \
-    -pl :egon-cola-platform-rbac3-admin -am \
+    -pl :egon-cola-tianquan-jianshen-admin -am \
     -Prbac3-local-it verify
   ```
 
@@ -999,13 +999,13 @@ Task 1..9
 - [ ] **Step 4：执行 RBAC3 Admin Web 离线回归**
 
   ```bash
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 ci
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 run typecheck
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 test -- --run
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 run lint
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 run build
-  npm --prefix egon-cola-platforms/egon-cola-platform-rbac3 run e2e \
-    --workspace @egon-cola/rbac3-admin-web -- --list
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen ci
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen run typecheck
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen test -- --run
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen run lint
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen run build
+  npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen run e2e \
+    --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
   ```
 
   该组验证用于证明新增 DDC Config Client 卡片、Runtime Status 类型和既有页面均未回归。不得打开浏览器或运行需要外部服务的 Playwright 场景。
@@ -1013,7 +1013,7 @@ Task 1..9
 - [ ] **Step 5：重复静态验收并审计最终工作树**
 
   ```bash
-  bash egon-cola-platforms/egon-cola-platform-rbac3/scripts/verification/verify-static.sh
+  bash egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh
   git diff --check
   git status --short --branch
   git log --oneline -10

@@ -99,7 +99,7 @@ new java.util.jar.JarFile(agentArchive).withCloseable { archive ->
 ["egon-cola-component-agent-flow-starter-", "spring-ai-openai-", "spring-ai-mcp-", "google-adk-"].each { required ->
     assert agentLibraries.any { it.startsWith(required) }: "Missing Agent runtime library ${required}"
 }
-["egon-cola-component-rpc-", "egon-cola-platform-dynamic-config-center", "nacos-", "dubbo-",
+["egon-cola-component-rpc-", "egon-cola-tianshu", "nacos-", "dubbo-",
  "shardingsphere-", "spring-cloud-starter-alibaba-nacos-"].each { forbidden ->
     assert !agentLibraries.any { it.startsWith(forbidden) }: "Forbidden Agent runtime library ${forbidden}"
 }

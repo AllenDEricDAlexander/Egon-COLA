@@ -203,9 +203,9 @@ Expected: 记录实际 HEAD；若原工作区有用户修改，留在原工作�
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml test
+  -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml test
 
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run
 npm run typecheck
 ```
@@ -242,21 +242,21 @@ GatewayHttpFlushMode: STANDARD | PER_BUFFER
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteProfile.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayTransportProtocol.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRequestBodyMode.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayTransportResponseMode.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteTransportPolicy.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRuntimeRoute.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/transport/EffectiveGatewayTransportPolicy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportDefaults.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportSafetyLimits.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportPolicyOverrides.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayRouteProfileResolver.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/main/java/top/egon/cola/component/gateway/core/route/RuntimeHttpRoute.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src/test/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteTransportPolicyTest.java`
-- Test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/test/java/top/egon/cola/component/gateway/core/transport/GatewayRouteProfileResolverTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src/test/java/top/egon/cola/component/gateway/core/route/HttpRouteCompilerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteProfile.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayTransportProtocol.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRequestBodyMode.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayTransportResponseMode.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteTransportPolicy.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRuntimeRoute.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/EffectiveGatewayTransportPolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportDefaults.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportSafetyLimits.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportPolicyOverrides.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayRouteProfileResolver.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/route/RuntimeHttpRoute.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteTransportPolicyTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/transport/GatewayRouteProfileResolverTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/route/HttpRouteCompilerTest.java`
 
 **Interfaces:**
 
@@ -304,7 +304,7 @@ assertFalse(openAi.retryAllowed());
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-core \
   -am -Dtest=GatewayRouteTransportPolicyTest,GatewayRouteProfileResolverTest,HttpRouteCompilerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -319,12 +319,12 @@ Expected: 测试编译失败，因为 transport types 与 resolver 尚不存在�
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-core \
   -am test
 
 ! rg -n 'org\.springframework\.core\.io\.buffer|reactor\.netty' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src
 ```
 
 Expected: Contract/Core 测试通过；依赖扫描无输出。
@@ -332,8 +332,8 @@ Expected: Contract/Core 测试通过；依赖扫描无输出。
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-core
 git diff --cached --check
 git commit -m "feat(gateway): add route transport policy contracts"
 ```
@@ -344,11 +344,11 @@ git commit -m "feat(gateway): add route transport policy contracts"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferPipeline.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferOwnership.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferPipelineTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferOwnershipTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferPipeline.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferOwnership.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferPipelineTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferOwnershipTest.java`
 
 **Interfaces:**
 
@@ -364,7 +364,7 @@ git commit -m "feat(gateway): add route transport policy contracts"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayDataBufferPipelineTest,GatewayDataBufferOwnershipTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -379,7 +379,7 @@ Expected: 测试编译失败，因为 buffer utilities 不存在。
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayDataBufferPipelineTest,GatewayDataBufferOwnershipTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -389,9 +389,9 @@ Expected: 所有终止路径通过，测试断言每个自己拥有的 pooled bu
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/pom.xml \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/buffer \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/buffer
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/buffer \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/buffer
 git diff --cached --check
 git commit -m "feat(gateway): add DataBuffer streaming primitives"
 ```
@@ -402,12 +402,12 @@ git commit -m "feat(gateway): add DataBuffer streaming primitives"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/types.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/draft/DraftPage.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/draft/routeValidation.ts`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/draft/routeValidation.test.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/draft/routeTransport.ts`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/draft/routeTransport.test.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/DraftPage.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/routeValidation.ts`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/routeValidation.test.ts`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/routeTransport.ts`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/routeTransport.test.ts`
 
 **Interfaces:**
 
@@ -430,7 +430,7 @@ git commit -m "feat(gateway): add DataBuffer streaming primitives"
 - [ ] **Step 2: 运行 Vitest 并确认 RED**
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run src/features/draft/routeTransport.test.ts \
   src/features/draft/routeValidation.test.ts
 ```
@@ -455,7 +455,7 @@ Expected: Vitest、类型检查、Lint 与构建成功；不运行 Playwright/br
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
 git diff --cached --check
 git commit -m "feat(gateway-admin-web): add transport route fields"
 ```
@@ -468,10 +468,10 @@ git commit -m "feat(gateway-admin-web): add transport route fields"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am test
 
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run
 npm run typecheck
 ```
@@ -488,15 +488,15 @@ npm run typecheck
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineRuntimeProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpEngineProperties.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRuleCompiler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/traffic/GatewayTrafficGovernance.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayTransportProfileCompilationTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayRuleTransportPolicyCompatibilityTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRulePolicyPartitionTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineRuntimeProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpEngineProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/traffic/GatewayTrafficGovernance.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayTransportProfileCompilationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayRuleTransportPolicyCompatibilityTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRulePolicyPartitionTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
 
 **Behavior:**
 
@@ -514,7 +514,7 @@ npm run typecheck
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayTransportProfileCompilationTest,GatewayRuleTransportPolicyCompatibilityTest,EngineGatewayRulePolicyPartitionTest,GatewayEngineConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -527,7 +527,7 @@ npm run typecheck
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayTransportProfileCompilationTest,GatewayRuleTransportPolicyCompatibilityTest,EngineGatewayRulePolicyPartitionTest,GatewayEngineConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -535,7 +535,7 @@ npm run typecheck
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
 git commit -m "feat(gateway): resolve effective transport profiles"
 ```
@@ -546,16 +546,16 @@ git commit -m "feat(gateway): resolve effective transport profiles"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteDraftMapper.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteTransportPolicyValidator.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/routing/GatewayDraftService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompiler.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteDraftMapperTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteTransportPolicyValidatorTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/routing/GatewayDraftServiceTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseServiceTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompilerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteDraftMapper.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteTransportPolicyValidator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/routing/GatewayDraftService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompiler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteDraftMapperTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteTransportPolicyValidatorTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/routing/GatewayDraftServiceTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseServiceTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompilerTest.java`
 
 **Behavior:**
 
@@ -571,7 +571,7 @@ git commit -m "feat(gateway): resolve effective transport profiles"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am -Dtest=GatewayRouteDraftMapperTest,GatewayRouteTransportPolicyValidatorTest,GatewayDraftServiceTest,GatewayReleaseServiceTest,GatewayRuleCompilerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -584,7 +584,7 @@ git commit -m "feat(gateway): resolve effective transport profiles"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am test
 
 git diff --name-only G1...HEAD | rg 'db/migration' && exit 1 || true
@@ -595,7 +595,7 @@ Expected: Admin 测试通过；Migration 扫描无输出。
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src
 git diff --cached --check
 git commit -m "feat(gateway-admin): normalize transport route drafts"
 ```
@@ -606,17 +606,17 @@ git commit -m "feat(gateway-admin): normalize transport route drafts"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayInboundHttpRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayOutboundHttpResponse.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/HttpUpstreamRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayBodySizeLimiter.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListener.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapter.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayCorsProcessor.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/HttpRpcUpstreamAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayInboundHttpRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayOutboundHttpResponse.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/HttpUpstreamRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayBodySizeLimiter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListener.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayCorsProcessor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/HttpRpcUpstreamAdapter.java`
 - Modify tests: all Engine HTTP tests constructing/consuming the three Body records, plus `HttpRpcUpstreamAdapterTest.java`
-- Create test helper: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayDataBufferTestSupport.java`
+- Create test helper: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayDataBufferTestSupport.java`
 
 **Atomicity rule:** 该任务必须在一个分支中同时迁移 record、所有生产调用点和测试调用点，使任务提交自身可编译、可测试。它仍保留旧 handler 的 Aggregated 行为；Streaming Strategy 留给 T7。
 
@@ -628,7 +628,7 @@ git commit -m "feat(gateway-admin): normalize transport route drafts"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest='*GatewayHttp*,GatewayBodySizeLimiterTest,ReactorNettyHttpUpstreamAdapterTest,HttpRpcUpstreamAdapterTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -641,11 +641,11 @@ git commit -m "feat(gateway-admin): normalize transport route drafts"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am test
 
 ! rg -n 'ByteBufUtil::getBytes|sendByteArray' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http
 ```
 
 Expected: Engine suite 通过；旧 Route 仍聚合；HTTP-to-RPC 测试仍通过；禁用 API 扫描无输出。
@@ -653,7 +653,7 @@ Expected: Engine suite 通过；旧 Route 仍聚合；HTTP-to-RPC 测试仍通�
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
 git commit -m "refactor(gateway): migrate HTTP bodies to DataBuffer"
 ```
@@ -666,7 +666,7 @@ git commit -m "refactor(gateway): migrate HTTP bodies to DataBuffer"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am test
 ```
 
@@ -682,20 +682,20 @@ git commit -m "refactor(gateway): migrate HTTP bodies to DataBuffer"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyContext.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/AggregatedHttpProxyStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/StreamingHttpProxyStrategy.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyStrategySelector.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHeaderFilter.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpFlushMode.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayOutboundHttpResponse.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/HttpUpstreamRequest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapter.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/security/TrustedIdentitySanitizer.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyContext.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/AggregatedHttpProxyStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/StreamingHttpProxyStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyStrategySelector.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHeaderFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpFlushMode.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayOutboundHttpResponse.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/HttpUpstreamRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/TrustedIdentitySanitizer.java`
 - Create tests: corresponding `proxy/*Test.java`, `GatewayHeaderFilterTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapterTest.java`
-- Modify test: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/security/TrustedIdentitySanitizerTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapterTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/TrustedIdentitySanitizerTest.java`
 
 **Interfaces:**
 
@@ -724,7 +724,7 @@ SSE/AUTO_STREAM 测试断言收到 `text/event-stream` 后：立即产生 respon
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest='*HttpProxyStrategy*,GatewayHeaderFilterTest,ReactorNettyHttpUpstreamAdapterTest,TrustedIdentitySanitizerTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -739,18 +739,18 @@ Streaming 不使用 Multipart decoder，不改 boundary，不解析 SSE，不启
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest='*HttpProxyStrategy*,GatewayHeaderFilterTest,ReactorNettyHttpUpstreamAdapterTest,TrustedIdentitySanitizerTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 
 ! rg -n 'ObjectMapper|readValue\(|JsonNode|MultipartDecoder|getMultipartData|collectList\(|cache\(|replay\(' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy
 ```
 
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
 git commit -m "feat(gateway): add streaming HTTP proxy strategies"
 ```
@@ -761,17 +761,17 @@ git commit -m "feat(gateway): add streaming HTTP proxy strategies"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCommitGuard.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCommitPoint.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayRetryGate.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportTimeouts.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCancellation.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/logging/GatewayBodyLogTap.java`
-- Create timeout exceptions under: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayCallObservation.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayTelemetry.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayCallAccessLogger.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/observability/GatewayCallEventWireCompatibilityTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCommitGuard.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCommitPoint.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayRetryGate.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportTimeouts.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCancellation.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/logging/GatewayBodyLogTap.java`
+- Create timeout exceptions under: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayCallObservation.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayTelemetry.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayCallAccessLogger.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/observability/GatewayCallEventWireCompatibilityTest.java`
 - Create/modify tests for each listed class in the same modules.
 
 **Commit model:**
@@ -796,12 +796,12 @@ Body Log false 时不采样、不增加订阅；true 时每方向默认 8 KiB、
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayCommitGuardTest,GatewayRetryGateTest,GatewayTransportTimeoutsTest,GatewayCancellationTest,GatewayBodyLogTapTest,GatewayCallObservationTest,GatewayTelemetryTest,GatewayCallEventWireCompatibilityTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am -Dtest=GatewayCallEventConsumerHandlerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -811,7 +811,7 @@ Expected RED before implementation，GREEN after implementation。
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
 git commit -m "feat(gateway): enforce streaming lifecycle safety"
 ```
@@ -822,7 +822,7 @@ git commit -m "feat(gateway): enforce streaming lifecycle safety"
 
 **Files:**
 
-- Create package: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/websocket/`
+- Create package: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/websocket/`
 - Create: `GatewayWebSocketFrameType.java`
 - Create: `GatewayWebSocketFrame.java`
 - Create: `GatewayWebSocketCloseStatus.java`
@@ -833,7 +833,7 @@ git commit -m "feat(gateway): enforce streaming lifecycle safety"
 - Create: `WebSocketUpstreamAdapter.java`
 - Create: `ReactorNettyWebSocketUpstreamAdapter.java`
 - Create: `GatewayWebSocketProxy.java`
-- Create matching tests under: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/websocket/`
+- Create matching tests under: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/websocket/`
 
 **Interfaces:**
 
@@ -862,7 +862,7 @@ Mono<Void> bridge(
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest='*WebSocket*' -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
@@ -872,15 +872,15 @@ Frame payload 使用 DataBuffer/受控 Netty bridge，不转 String/Base64。Web
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest='*WebSocket*' -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/websocket \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/websocket
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/websocket \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/websocket
 git diff --cached --check
 git commit -m "feat(gateway): add WebSocket proxy transport"
 ```
@@ -893,7 +893,7 @@ git commit -m "feat(gateway): add WebSocket proxy transport"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am test
 ```
 
@@ -909,20 +909,20 @@ git commit -m "feat(gateway): add WebSocket proxy transport"
 
 **Exclusive files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportDispatcher.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpAttemptCoordinator.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpExecutionPipeline.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/AbstractGatewayHttpStageExchange.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListener.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpServer.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportDispatcher.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpAttemptCoordinator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpExecutionPipeline.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/AbstractGatewayHttpStageExchange.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListener.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpServer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
 - Modify existing Engine HTTP pipeline/server/retry/cors/trace tests.
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportDispatcherTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpAttemptCoordinatorTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListenerStreamingTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayHttpServerWebSocketTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportDispatcherTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpAttemptCoordinatorTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListenerStreamingTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayHttpServerWebSocketTest.java`
 
 **Dispatcher contract:**
 
@@ -964,7 +964,7 @@ Mono<Void> bridgeWebSocket(
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayTransportDispatcherTest,GatewayHttpAttemptCoordinatorTest,GatewayHttpListenerStreamingTest,GatewayHttpServerWebSocketTest,GatewayHttpServerTest,GatewayHttpExecutionPipelineTest,DefaultGatewayHttpDataPlaneHandlerRetryTest,DefaultGatewayHttpDataPlaneHandlerCorsTest,DefaultGatewayHttpDataPlaneHandlerTraceTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -975,14 +975,14 @@ Expected RED before wiring，GREEN after wiring。
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am test
 ```
 
 - [ ] **Step 6: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
 git commit -m "feat(gateway): integrate transport dispatcher"
 ```
@@ -993,9 +993,9 @@ git commit -m "feat(gateway): integrate transport dispatcher"
 
 **Test-only files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayDraftTransportWorkflowTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/features/draft/DraftPage.test.tsx`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/api/gatewayApi.test.ts`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayDraftTransportWorkflowTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/DraftPage.test.tsx`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`
 
 - [ ] **Step 1: 写跨层验收测试**
 
@@ -1005,11 +1005,11 @@ git commit -m "feat(gateway): integrate transport dispatcher"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am -Dtest=GatewayDraftTransportWorkflowTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run src/features/draft/DraftPage.test.tsx src/api/gatewayApi.test.ts
 npm run typecheck
 ```
@@ -1019,8 +1019,8 @@ npm run typecheck
 - [ ] **Step 3: 留下唯一测试提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/test \
-        egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
 git diff --cached --check
 git commit -m "test(gateway-admin): cover transport route workflow"
 ```
@@ -1033,10 +1033,10 @@ git commit -m "test(gateway-admin): cover transport route workflow"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
   -am test
 
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run
 npm run typecheck
 ```
@@ -1053,7 +1053,7 @@ npm run typecheck
 
 **Test-only files:**
 
-- Create package: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/transport/fixture/`
+- Create package: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/transport/fixture/`
 - Create: `StreamingHttpTestUpstream.java`
 - Create: `WebSocketTestUpstream.java`
 - Create: `GatewayOpenAiTransportComponentTest.java`
@@ -1082,7 +1082,7 @@ npm run typecheck
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayOpenAiTransportComponentTest,GatewayCancellationPropagationTest,GatewayTransportTimeoutComponentTest,GatewayNoRetryAfterCommitTest,GatewayDataBufferLeakTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1092,7 +1092,7 @@ Expected: 所有进程内 server 在测试结束自动关闭，无常驻进程�
 - [ ] **Step 6: 留下唯一测试提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/test
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test
 git diff --cached --check
 git commit -m "test(gateway): verify streaming transports"
 ```
@@ -1103,10 +1103,10 @@ git commit -m "test(gateway): verify streaming transports"
 
 **Files:**
 
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/README.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/README.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.zh-CN.md`
 
 - [ ] **Step 1: 写准确的 Route 示例和职责边界**
 
@@ -1125,14 +1125,14 @@ git commit -m "test(gateway): verify streaming transports"
 ```bash
 git diff --check
 rg -n 'OPENAI_HTTP|transportPolicy|WEBSOCKET|Engine.*Admin|Host' \
-  egon-cola-platforms/egon-cola-platform-gateway/README.md \
-  egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md \
-  egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.md \
-  egon-cola-platforms/egon-cola-platform-gateway/docs/developer-integration.zh-CN.md
+  egon-cola-xingyuan/egon-cola-yuheng/README.md \
+  egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md \
+  egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md \
+  egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.zh-CN.md
 
-git add egon-cola-platforms/egon-cola-platform-gateway/README.md \
-        egon-cola-platforms/egon-cola-platform-gateway/README.zh-CN.md \
-        egon-cola-platforms/egon-cola-platform-gateway/docs
+git add egon-cola-xingyuan/egon-cola-yuheng/README.md \
+        egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md \
+        egon-cola-xingyuan/egon-cola-yuheng/docs
 git commit -m "docs(gateway): document OpenAI transport profile"
 ```
 
@@ -1142,16 +1142,16 @@ git commit -m "docs(gateway): document OpenAI transport profile"
 
 **Files:**
 
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/StreamingTransportController.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketConfiguration.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketHandler.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketProbe.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider/src/test/java/top/egon/cola/component/gateway/test/webflux/WebFluxHttpProviderContractTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRuleWireCompatibilityTest.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayWebSocketTestClient.java`
-- Create: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayOpenAiTransportLiveIT.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/scenario/GatewayScenarioCatalog.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/scenario/GatewayScenarioCatalogTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/StreamingTransportController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketProbe.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/test/java/top/egon/cola/component/gateway/test/webflux/WebFluxHttpProviderContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRuleWireCompatibilityTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayWebSocketTestClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayOpenAiTransportLiveIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/scenario/GatewayScenarioCatalog.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/scenario/GatewayScenarioCatalogTest.java`
 
 - [ ] **Step 1: 扩展 test provider contract**
 
@@ -1165,17 +1165,17 @@ Admin canonicalizer 生成的新 Snapshot 必须由 Engine codec 校验；旧 Sn
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-webflux-http-provider \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider \
   -am -Dtest=WebFluxHttpProviderContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway \
   -am -Dtest=GatewayHttpServerTest,ReactorNettyHttpUpstreamAdapterTest,DefaultGatewayHttpDataPlaneHandlerCorsTest,DefaultGatewayHttpDataPlaneHandlerRetryTest,DefaultGatewayHttpDataPlaneHandlerTraceTest,GatewayHttpExecutionPipelineTest,HttpRpcDynamicMessageBridgeTest,HttpRpcUpstreamAdapterTest,RpcGatewayHandlerRegistryTest,RpcGatewayServerTest,RpcGatewaySlotRuntimeTest,RpcMethodIndexCompilerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
   -am -Dtest=GatewayRuleWireCompatibilityTest,GatewayScenarioCatalogTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -1185,7 +1185,7 @@ Admin canonicalizer 生成的新 Snapshot 必须由 Engine codec 校验；旧 Sn
 - [ ] **Step 4: 留下唯一测试提交**
 
 ```bash
-git add egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-test
 git diff --cached --check
 git commit -m "test(gateway): preserve legacy HTTP and RPC behavior"
 ```
@@ -1197,13 +1197,13 @@ git commit -m "test(gateway): preserve legacy HTTP and RPC behavior"
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean verify
+  -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean verify
 ```
 
 - [ ] 运行 Admin Web：
 
 ```bash
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run
 npm run typecheck
 npm run lint
@@ -1214,15 +1214,15 @@ npm run build
 
 ```bash
 ! rg -n 'org\.springframework\.core\.io\.buffer|reactor\.netty' \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-contract/src \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-core/src
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src
 
 ! find \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main \
   -type f | rg -i '/(model|billing|quota|prompt|rag|agent|function.?call)(/|[^/]*\.)'
 
-test "$(find egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/db/migration -type f | wc -l | tr -d ' ')" = "4"
+test "$(find egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration -type f | wc -l | tr -d ' ')" = "4"
 ```
 
 - [ ] 记录 G5 与完整输出，清理 Wave 5 代理。
@@ -1261,9 +1261,9 @@ test "$(find egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-g
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-platforms/egon-cola-platform-gateway/pom.xml clean verify
+  -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml clean verify
 
-cd egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web
+cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm test -- --run
 npm run typecheck
 npm run lint

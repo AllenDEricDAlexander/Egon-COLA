@@ -45,7 +45,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 | `*-admin` | 独立服务，应按应用部署，不作为业务依赖 |
 | `*-test` | 组件样例和验证模块，不应进入业务运行时 |
 | `egon-cola-component-dynamic-thread-pool` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | 组件聚合 POM，不是业务依赖入口 |
-| `egon-cola-platform-*` | 企业级基础设施平台归属 `egon-cola-platforms`，不由 Components BOM 管理版本 |
+| `egon-cola-platform-*` | 企业级基础设施平台归属 `egon-cola-xingyuan`，不由 Components BOM 管理版本 |
 
 ## 完整的使用示例
 

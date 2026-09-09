@@ -1,0 +1,82 @@
+package top.egon.cola.component.yuheng.contract.rule;
+
+import top.egon.cola.component.yuheng.contract.protocol.AccessZone;
+
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.LinkedHashSet;
+import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
+
+/**
+ * 将外部请求匹配到 Gateway Operation 的运行时路由。
+ *
+ * <p>路由只描述入口匹配和传输覆盖项；操作本身及其 provider 信息由
+ * {@link GatewayRuntimeOperation} 统一承载。
+ */
+public record GatewayRuntimeRoute(
+        String routeId,
+        String operationId,
+        String host,
+        String httpMethod,
+        String pathPattern,
+        Set<AccessZone> accessZones,
+        int priority,
+        boolean enabled,
+        GatewayRouteTransportPolicy transportPolicy
+) {
+
+    public GatewayRuntimeRoute(
+            String routeId,
+            String operationId,
+            String host,
+            String httpMethod,
+            String pathPattern,
+            Set<AccessZone> accessZones,
+            int priority,
+            boolean enabled) {
+        this(
+                routeId,
+                operationId,
+                host,
+                httpMethod,
+                pathPattern,
+                accessZones,
+                priority,
+                enabled,
+                null
+        );
+    }
+
+    public GatewayRuntimeRoute {
+        routeId = required(routeId, "routeId");
+        operationId = required(operationId, "operationId");
+        host = required(host, "host").toLowerCase(Locale.ROOT);
+        httpMethod = required(httpMethod, "httpMethod")
+                .toUpperCase(Locale.ROOT);
+        pathPattern = required(pathPattern, "pathPattern");
+        if (!pathPattern.startsWith("/")) {
+            throw new IllegalArgumentException("pathPattern must start with /");
+        }
+        LinkedHashSet<AccessZone> sortedAccessZones = Objects.requireNonNull(
+                        accessZones,
+                        "accessZones"
+                ).stream()
+                .sorted(Comparator.comparing(Enum::name))
+                .collect(java.util.stream.Collectors.toCollection(
+                        LinkedHashSet::new
+                ));
+        accessZones = Collections.unmodifiableSet(sortedAccessZones);
+        if (accessZones.isEmpty()) {
+            throw new IllegalArgumentException("accessZones must not be empty");
+        }
+    }
+
+    private static String required(String value, String field) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(field + " is required");
+        }
+        return value.trim();
+    }
+}

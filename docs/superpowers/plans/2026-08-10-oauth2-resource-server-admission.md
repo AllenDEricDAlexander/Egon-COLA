@@ -70,29 +70,29 @@ IdP Outbox
 
 **Files:**
 
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServer.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServerStatus.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientResourceGrant.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceGrantType.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientJwkCredential.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServerAdmissionPolicy.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/UserResourceAccessPolicy.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientCredentialsAccessPolicy.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/resource/package-info.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/ResourceServerStore.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/ClientCredentialStore.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/ClientAssertionReplayStore.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/UserResourceAccessAuthorizationPort.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/core/port/ResourceServerRuntimePort.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdpPrincipal.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/PrincipalType.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/ServiceIdentityPrincipal.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityPrincipal.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdpClaimNames.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/main/java/top/egon/cola/platform/idp/contract/IdpErrorCode.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/resource/ResourceServerPolicyTest.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/core/resource/ClientCredentialsAccessPolicyTest.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core/src/test/java/top/egon/cola/platform/idp/contract/IdentityPrincipalTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServer.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServerStatus.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientResourceGrant.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceGrantType.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientJwkCredential.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServerAdmissionPolicy.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/UserResourceAccessPolicy.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientCredentialsAccessPolicy.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/package-info.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ResourceServerStore.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ClientCredentialStore.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ClientAssertionReplayStore.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/UserResourceAccessAuthorizationPort.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ResourceServerRuntimePort.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpPrincipal.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/PrincipalType.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/ServiceIdentityPrincipal.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityPrincipal.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpClaimNames.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpErrorCode.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/resource/ResourceServerPolicyTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/resource/ClientCredentialsAccessPolicyTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/contract/IdentityPrincipalTest.java
 
 - [x] **Step 1: Write failing domain and contract tests**
 
@@ -114,7 +114,7 @@ assertThatThrownBy(() -> policy.authorize(client, target, "tenant-002",
 - [x] **Step 2: Run the tests and confirm they fail because the new contracts do not exist**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-core \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-core \
   -Dtest=ResourceServerPolicyTest,ClientCredentialsAccessPolicyTest,IdentityPrincipalTest test
 ~~~
 
@@ -173,13 +173,13 @@ source_biz, source_app, source_env, credential_id, resource, and token_use.
 - [x] **Step 4: Run all IdP Core tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-core test
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-core test
 ~~~
 
 - [x] **Step 5: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
 git commit -m "feat(idp): add resource authorization domain"
 ~~~
 
@@ -189,19 +189,19 @@ git commit -m "feat(idp): add resource authorization domain"
 
 **Files:**
 
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/db/migration/V2__add_oauth_resource_servers.sql
-- Delete: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/pojo/IdentityClientAudienceEntity.java
-- Delete: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/IdentityClientAudienceRepository.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityResourceServerEntity.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityClientJwkEntity.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/migration/V2__add_oauth_resource_servers.sql
+- Delete: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/pojo/IdentityClientAudienceEntity.java
+- Delete: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/IdentityClientAudienceRepository.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityResourceServerEntity.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityClientJwkEntity.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java
 - Create: repositories under top.egon.cola.platform.idp.admin.resource.repo
 - Create: package-info.java for resource, resource.domain, resource.domain.pojo, and resource.repo
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/JpaOAuthClientStore.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/migration/IdpMigrationIT.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/persistence/IdpPersistenceEntityContractTest.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/JpaOAuthClientStore.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/migration/IdpMigrationIT.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/persistence/IdpPersistenceEntityContractTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java
 
 - [x] **Step 1: Extend migration tests before creating V2**
 
@@ -210,7 +210,7 @@ Assert all three tables, unique constraints, grant-type checks, tenant/scope che
 - [x] **Step 2: Run focused tests and confirm V2 is missing**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
   -Dtest=IdpMigrationIT,IdentityPersistenceEntityContractTest,IdpDevelopmentClientBootstrapTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -228,7 +228,7 @@ Update JpaOAuthClientStore to obtain allowed user Resource URIs through USER_DEL
 - [x] **Step 4: Run migration, entity, repository, and bootstrap tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
   -Dtest=IdpMigrationIT,IdentityPersistenceEntityContractTest,IdpDevelopmentClientBootstrapTest,OAuthClientServiceImplTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -236,7 +236,7 @@ Update JpaOAuthClientStore to obtain allowed user Resource URIs through USER_DEL
 - [x] **Step 5: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
 git commit -m "feat(idp): persist resource servers and grants"
 ~~~
 
@@ -247,19 +247,19 @@ git commit -m "feat(idp): persist resource servers and grants"
 **Files:**
 
 - Create controllers, services, service implementations, DTOs, VOs, and package-info.java files under:
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/resource
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource
 - Create: resource/config/ResourceServerConfig.java
 - Create: resource/service/ResourceServerService.java
 - Create: resource/service/impl/ResourceServerServiceImpl.java
 - Create: resource/service/ResourceServerProjectionService.java
 - Create: resource/controller/ResourceServerController.java
 - Create: resource/controller/ClientResourceGrantController.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java
-- Modify: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpBootstrapService.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/impl/ResourceServerServiceImplTest.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/ResourceServerProjectionServiceTest.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ResourceServerControllerTest.java
-- Create: egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ClientResourceGrantControllerTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpBootstrapService.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/impl/ResourceServerServiceImplTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/ResourceServerProjectionServiceTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ResourceServerControllerTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ClientResourceGrantControllerTest.java
 
 - [x] **Step 1: Write service and controller tests for all approved endpoints**
 
@@ -275,7 +275,7 @@ Cover create/list/detail, enable/disable, add/remove JWK, USER_DELEGATION grant,
 - [x] **Step 2: Confirm the focused tests fail**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
   -Dtest=ResourceServerServiceImplTest,ResourceServerControllerTest,ClientResourceGrantControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -312,7 +312,7 @@ idp:resource-server:grant
 - [x] **Step 5: Run IdP Admin resource and security tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
   -Dtest='*ResourceServer*Test,*ClientResourceGrant*Test,IdpAdminSecurityIT,IdpBootstrapServiceTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -320,7 +320,7 @@ idp:resource-server:grant
 - [x] **Step 6: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
 git commit -m "feat(idp): manage resource server admission"
 ~~~
 
@@ -330,12 +330,12 @@ git commit -m "feat(idp): manage resource server admission"
 
 **Files:**
 
-- Create: egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ResourceAccessDecisionRequest.java
-- Create: egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ResourceAccessDecisionResponse.java
-- Modify: egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java
-- Modify: egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/application/AuthorizationDecisionService.java
-- Modify: egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationControllerTest.java
-- Modify: egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/AuthorizationDecisionServiceTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ResourceAccessDecisionRequest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ResourceAccessDecisionResponse.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/application/AuthorizationDecisionService.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationControllerTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/AuthorizationDecisionServiceTest.java
 - Create or update package-info.java in any new package
 
 - [x] **Step 1: Write a failing decision test**
@@ -347,7 +347,7 @@ Test positive entry permission, missing permission, inactive membership/session,
 - [x] **Step 2: Confirm the test fails because the endpoint is absent**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest=InternalAuthorizationControllerTest,AuthorizationDecisionServiceTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -359,7 +359,7 @@ Reuse the current authorization snapshot/decision path. Do not add service princ
 - [x] **Step 4: Run RBAC3 focused tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest=InternalAuthorizationControllerTest,AuthorizationDecisionServiceTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -367,7 +367,7 @@ Reuse the current authorization snapshot/decision path. Do not add service princ
 - [x] **Step 5: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-rbac3
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen
 git commit -m "feat(rbac3): decide user resource entry"
 ~~~
 
@@ -415,7 +415,7 @@ Add tests for:
 - [x] **Step 2: Run the tests and confirm current audience behavior fails them**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-core,:egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-core,:egon-cola-tianquan-shoubing-admin -am \
   -Dtest=AuthorizationFacadeTest,TokenFacadeTest,OAuthAuthorizationFlowIT,OAuthTokenTransportIT,AccessTokenClaimsIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -442,7 +442,7 @@ Remove audience request parsing. Require resource at authorize and code exchange
 - [x] **Step 5: Run USER OAuth tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-core,:egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-core,:egon-cola-tianquan-shoubing-admin -am \
   -Dtest=AuthorizationFacadeTest,TokenFacadeTest,OAuthAuthorizationFlowIT,OAuthTokenTransportIT,AccessTokenClaimsIT \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -450,7 +450,7 @@ Remove audience request parsing. Require resource at authorize and code exchange
 - [x] **Step 6: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
 git commit -m "feat(idp): issue single resource user tokens"
 ~~~
 
@@ -493,7 +493,7 @@ assertThat(claims.getClaimAsStringList("scope"))
 - [x] **Step 2: Confirm tests fail because client_credentials is unsupported**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-core,:egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-core,:egon-cola-tianquan-shoubing-admin -am \
   -Dtest='*PrivateKeyJwt*Test,*ClientCredentials*Test,OAuthTokenTransportIT' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -519,7 +519,7 @@ LocalServiceAccessTokenSupplier obtains a short-lived SERVICE token through the 
 - [x] **Step 6: Run IdP OAuth and replay tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
   -Dtest='*PrivateKeyJwt*Test,*ClientCredentials*Test,OAuthTokenTransportIT,*Replay*Test' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -527,7 +527,7 @@ LocalServiceAccessTokenSupplier obtains a short-lived SERVICE token through the 
 - [x] **Step 7: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
 git commit -m "feat(idp): authorize service client credentials"
 ~~~
 
@@ -569,7 +569,7 @@ Test assertion binding to admission endpoint, exact triple and instance, separat
 - [x] **Step 2: Confirm tests fail**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin,:egon-cola-platform-idp-starter,:egon-cola-platform-dynamic-config-center-starter -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin,:egon-cola-tianquan-shoubing-starter,:egon-cola-tianshu-starter -am \
   -Dtest='*Admission*Test,IdpStarterAutoConfigurationTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -606,7 +606,7 @@ Require resourceServerId, resourceUri, bizCode, appCode, env, instanceId, manage
 - [x] **Step 6: Run focused tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin,:egon-cola-platform-idp-starter,:egon-cola-platform-dynamic-config-center-starter -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin,:egon-cola-tianquan-shoubing-starter,:egon-cola-tianshu-starter -am \
   -Dtest='*Admission*Test,IdpStarterAutoConfigurationTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -614,8 +614,8 @@ Require resourceServerId, resourceUri, bizCode, appCode, env, instanceId, manage
 - [x] **Step 7: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter
 git commit -m "feat(idp): issue resource admission tickets"
 ~~~
 
@@ -666,7 +666,7 @@ Admission Ticket is required on register and heartbeat, never stored in metadata
 - [x] **Step 2: Confirm contract tests fail**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-component-rpc-ddc-adapter -am \
+./mvnw -B -ntp -pl :egon-cola-tianshu-starter,:egon-cola-component-rpc-tianshu-adapter -am \
   -Dtest='DdcServiceRegistrationTest,DdcConfigProtoMapperTest,DdcRegistryProtoMapperTest,DdcRpcContractDescriptorTest,DdcRpcGeneratedContractTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -714,14 +714,14 @@ constructor between Tasks 8 and 10.
 - [x] **Step 5: Run DDC Starter and RPC adapter tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-component-rpc-ddc-adapter -am test
+./mvnw -B -ntp -pl :egon-cola-tianshu-starter,:egon-cola-component-rpc-tianshu-adapter -am test
 ~~~
 
 - [x] **Step 6: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
-  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter
+git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
+  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter
 git commit -m "feat(ddc): carry resource admission tickets"
 ~~~
 
@@ -759,7 +759,7 @@ Test missing Ticket, wrong signature, wrong typ, wrong token_use, wrong aud, exp
 - [x] **Step 2: Confirm the tests fail**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianshu-admin -am \
   -Dtest='*Admission*Test,DdcInstanceAdminServiceTest,DdcConfigLeaseServiceTest,DdcServiceRegistryServiceTest,DdcV8MigrationTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -800,7 +800,7 @@ Both files are the next version of separate Flyway histories and represent the s
 - [x] **Step 6: Run DDC Admin tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-dynamic-config-center-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianshu-admin -am \
   -Dtest='*Admission*Test,DdcInstanceAdminServiceTest,DdcConfigLeaseServiceTest,DdcServiceRegistryServiceTest,DdcV8MigrationTest,DdcRegistryRpcProviderTest,DdcConfigRpcProviderTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -808,7 +808,7 @@ Both files are the next version of separate Flyway histories and represent the s
 - [x] **Step 7: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin
+git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin
 git commit -m "feat(ddc): verify resource admission leases"
 ~~~
 
@@ -847,7 +847,7 @@ For each role, assert:
 - [x] **Step 2: Confirm tests fail**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-http-registration-starter,:egon-cola-component-rpc-ddc-adapter,:egon-cola-platform-gateway-engine -am \
+./mvnw -B -ntp -pl :egon-cola-tianshu-starter,:egon-cola-tianshu-http-registration-starter,:egon-cola-component-rpc-tianshu-adapter,:yuheng-biz-gateway -am \
   -Dtest='DdcRuntimeCoordinatorTest,DdcHttpRegistrationRuntimeTest,DdcRpcProviderRegistryTest,RpcGatewaySlotRuntimeTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -866,15 +866,15 @@ CONFIG_CLIENT, HTTP_PROVIDER, RPC_PROVIDER, and INTERNAL_GATEWAY are Ready only 
 - [x] **Step 5: Run producer tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-http-registration-starter,:egon-cola-component-rpc-ddc-adapter,:egon-cola-platform-gateway-engine -am test
+./mvnw -B -ntp -pl :egon-cola-tianshu-starter,:egon-cola-tianshu-http-registration-starter,:egon-cola-component-rpc-tianshu-adapter,:yuheng-biz-gateway -am test
 ~~~
 
 - [x] **Step 6: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-dynamic-config-center \
-  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine
+git add egon-cola-xingyuan/egon-cola-tianshu \
+  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway
 git commit -m "feat(ddc): authenticate runtime registrations"
 ~~~
 
@@ -921,7 +921,7 @@ Disable permission/idp/prod and assert:
 - [x] **Step 2: Confirm tests fail**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-component-rpc-ddc-adapter -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin,:egon-cola-tianshu-admin,:egon-cola-component-rpc-tianshu-adapter -am \
   -Dtest='*ResourceServerEvent*Test,*AdmissionRevocation*Test,DdcManagementProtoMapperTest,DdcManagementRpcProviderTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -937,7 +937,7 @@ The delivery handler calls the DDC management client. DDC verifies the event ver
 - [x] **Step 5: Run outbox and revocation tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-admin,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-component-rpc-ddc-adapter -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin,:egon-cola-tianshu-admin,:egon-cola-component-rpc-tianshu-adapter -am \
   -Dtest='*ResourceServerEvent*Test,*AdmissionRevocation*Test,DdcManagementProtoMapperTest,DdcManagementRpcProviderTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -945,9 +945,9 @@ The delivery handler calls the DDC management client. DDC verifies the event ver
 - [x] **Step 6: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
-  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
+  egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter
 git commit -m "feat(idp): revoke disabled resource leases"
 ~~~
 
@@ -991,7 +991,7 @@ Assert:
 - [x] **Step 2: Confirm tests fail against the user-only verifier**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-starter -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-starter -am \
   -Dtest=IdpJwtVerifierTest,IdpStarterAutoConfigurationTest,IdpBearerAuthenticationFilterTest,ServiceScopeAuthorizationTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -1015,14 +1015,14 @@ The guard accepts only an authenticated ServiceIdentityPrincipal and checks its 
 - [x] **Step 6: Run all Starter tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-starter -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-starter -am test
 ~~~
 
 - [x] **Step 7: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-starter \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-core
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
 git commit -m "feat(idp): verify user and service resource tokens"
 ~~~
 
@@ -1066,7 +1066,7 @@ Also assert no repository or snapshot query is made merely to authorize a SERVIC
 - [x] **Step 2: Confirm old service-principal tests fail the new expectation**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
   -Dtest='InternalIdentityControllerTest,InternalAuthorizationControllerTest,ParticipationConcurrencyIT,TenantContextFilterTest,AuthorizationDecisionServiceTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -1094,9 +1094,9 @@ Controllers and application services receive ServiceIdentityPrincipal. TenantCon
 - [x] **Step 5: Run RBAC3 tests and residual scan**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-rbac3-admin -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am test
 rg -n 'CurrentRbac3ServicePrincipal|RequiresRbac3ServicePermission|hasPermission\\(permission\\)' \
-  egon-cola-platforms/egon-cola-platform-rbac3
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen
 ~~~
 
 Expected residual scan result: no active source or test references.
@@ -1104,7 +1104,7 @@ Expected residual scan result: no active source or test references.
 - [x] **Step 6: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-rbac3
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen
 git commit -m "refactor(rbac3): delegate service access to idp"
 ~~~
 
@@ -1152,7 +1152,7 @@ Cover:
 - [x] **Step 2: Confirm tests fail with static audiences and USER-only mapping**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-gateway-adapter,:egon-cola-platform-gateway-engine,:egon-cola-platform-gateway-admin -am \
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-gateway-adapter,:yuheng-biz-gateway,:yuheng-admin -am \
   -Dtest='IdpGatewaySecurityProviderTest,IdpGatewayAdapterAutoConfigurationTest,RuleBackedHttpGatewaySecurityProcessorTest,RuleBackedRpcGatewaySecurityProcessorTest,McpGatewayIdentityAuthenticatorTest' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -1180,14 +1180,14 @@ USER headers contain subject, tenant, session, client, token, and Resource. SERV
 - [x] **Step 6: Run Gateway and adapter tests**
 
 ~~~bash
-./mvnw -B -ntp -pl :egon-cola-platform-idp-gateway-adapter,:egon-cola-platform-gateway-engine,:egon-cola-platform-gateway-admin -am test
+./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-gateway-adapter,:yuheng-biz-gateway,:yuheng-admin -am test
 ~~~
 
 - [x] **Step 7: Commit**
 
 ~~~bash
-git add egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter \
-  egon-cola-platforms/egon-cola-platform-gateway
+git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter \
+  egon-cola-xingyuan/egon-cola-yuheng
 git commit -m "feat(gateway): bind tokens to route resources"
 ~~~
 
@@ -1198,26 +1198,26 @@ git commit -m "feat(gateway): bind tokens to route resources"
 **Files:**
 
 - Modify:
-  - egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml
-  - egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml
-  - egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml
-  - egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml
-  - egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml
-  - egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application.yml
-  - egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend/src/main/resources/application.yml
+  - egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml
+  - egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml
+  - egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml
+  - egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml
+  - egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml
+  - egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml
+  - egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml
 - Modify existing admin-web OAuth request call sites so they send resource:
-  - egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/auth/AuthContext.tsx
-  - egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/api/types.ts
-  - egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/clients/ClientListPage.tsx
-  - egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/oauthClient.ts
-  - egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/oauthClient.test.ts
-  - egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.tsx
-  - egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/auth/AuthContext.tsx
+  - egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx
+  - egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts
+  - egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx
+  - egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/oauthClient.ts
+  - egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/oauthClient.test.ts
+  - egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx
+  - egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx
 - Modify:
-  - egon-cola-platforms/egon-cola-platform-idp/README.md
-  - egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md
-  - egon-cola-platforms/egon-cola-platform-gateway/README.md
-  - egon-cola-platforms/egon-cola-platform-rbac3/README.md
+  - egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md
+  - egon-cola-xingyuan/egon-cola-tianshu/README.md
+  - egon-cola-xingyuan/egon-cola-yuheng/README.md
+  - egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md
 - Modify the approved spec status and add implementation/operation notes without changing approved business decisions
 - Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java
 - Create: ddc-test/src/test/java/top/egon/cola/component/ddc/test/DdcResourceAdmissionLifecycleTest.java
@@ -1244,7 +1244,7 @@ Create focused integration tests for:
 
 ~~~bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-idp-admin,:egon-cola-platform-idp-starter,:egon-cola-platform-idp-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-platform-dynamic-config-center-http-registration-starter,:egon-cola-component-rpc-ddc-adapter,:egon-cola-platform-gateway-engine \
+  -pl :egon-cola-tianquan-shoubing-admin,:egon-cola-tianquan-shoubing-starter,:egon-cola-tianquan-shoubing-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:egon-cola-tianshu-admin,:egon-cola-tianshu-http-registration-starter,:egon-cola-component-rpc-tianshu-adapter,:yuheng-biz-gateway \
   -am -Dtest='*ResourceAdmission*Test,*ResourceAccess*Test,*ClientCredentials*Test,*SecurityMatrix*Test' \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
@@ -1271,13 +1271,13 @@ Historical migration/spec text may retain terms when describing history. Active 
 
 ~~~bash
 rg -n 'RequestParam\\(\"audience\"\\)|getAudiences\\(|setAudiences\\(|clientIds|identity_client_audience|FileServiceAuthorizationSupplier|CurrentRbac3ServicePrincipal|RequiresRbac3ServicePermission' \
-  egon-cola-platforms egon-cola-components \
+  egon-cola-xingyuan egon-cola-components \
   --glob '!**/target/**' \
   --glob '!**/db/migration/V1__*' \
   --glob '!docs/superpowers/specs/**'
 
 rg -n 'new DdcServiceRegistration\\(' \
-  egon-cola-platforms egon-cola-components \
+  egon-cola-xingyuan egon-cola-components \
   --glob '!**/target/**'
 ~~~
 
@@ -1287,7 +1287,7 @@ The first scan must have no active result. Review every constructor result from 
 
 ~~~bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-platform-idp-core,:egon-cola-platform-idp-admin,:egon-cola-platform-idp-starter,:egon-cola-platform-idp-gateway-adapter,:egon-cola-platform-rbac3-admin,:egon-cola-platform-dynamic-config-center-starter,:egon-cola-platform-dynamic-config-center-http-registration-starter,:egon-cola-platform-dynamic-config-center-admin,:egon-cola-component-rpc-ddc-adapter,:egon-cola-platform-gateway-engine,:egon-cola-platform-gateway-admin \
+  -pl :egon-cola-tianquan-shoubing-core,:egon-cola-tianquan-shoubing-admin,:egon-cola-tianquan-shoubing-starter,:egon-cola-tianquan-shoubing-gateway-adapter,:egon-cola-tianquan-jianshen-admin,:egon-cola-tianshu-starter,:egon-cola-tianshu-http-registration-starter,:egon-cola-tianshu-admin,:egon-cola-component-rpc-tianshu-adapter,:yuheng-biz-gateway,:yuheng-admin \
   -am test
 ~~~
 
@@ -1300,14 +1300,14 @@ default schema path remains fail-closed.
 - [x] **Step 6: Typecheck and test the mechanically affected admin clients**
 
 ~~~bash
-npm --prefix egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web test
-npm --prefix egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web test
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web test
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web run typecheck
-npm --prefix egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web test
+npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web test
+npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web test
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web test
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run typecheck
+npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test
 ~~~
 
 - [x] **Step 7: Verify migration immutability**
@@ -1345,28 +1345,28 @@ git status --short
 git add \
   docs/superpowers/specs/2026-08-10-oauth2-resource-server-admission-design.md \
   docs/superpowers/plans/2026-08-10-oauth2-resource-server-admission.md \
-  egon-cola-platforms/egon-cola-platform-idp/README.md \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/auth/AuthContext.tsx \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/api/types.ts \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin-web/src/features/clients/ClientListPage.tsx \
-  egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayResourceBindingTest.java \
-  egon-cola-platforms/egon-cola-platform-rbac3/README.md \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application-local.yml \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3UserResourceAuthorizationIT.java \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/oauthClient.ts \
-  egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/src/features/auth/oauthClient.test.ts \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/README.md \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/src/auth/AuthContext.tsx \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcResourceAdmissionLifecycleTest.java \
-  egon-cola-platforms/egon-cola-platform-gateway/README.md \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application.yml \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/src/auth/AuthContext.tsx \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml \
-  egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-idp-backend/src/main/resources/application.yml
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayResourceBindingTest.java \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3UserResourceAuthorizationIT.java \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/oauthClient.ts \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/oauthClient.test.ts \
+  egon-cola-xingyuan/egon-cola-tianshu/README.md \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/ddc/test/DdcResourceAdmissionLifecycleTest.java \
+  egon-cola-xingyuan/egon-cola-yuheng/README.md \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml
 git diff --cached --name-only
 git commit -m "test(idp): verify resource admission flows"
 ~~~

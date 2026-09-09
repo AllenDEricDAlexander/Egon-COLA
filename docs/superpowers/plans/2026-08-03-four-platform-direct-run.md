@@ -25,7 +25,7 @@
 
 **Files:**
 - Modify: `scripts/unified-identity-local.sh`
-- Test: `scripts/unified-platform/test-direct-run-contract.sh`
+- Test: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 **Interfaces:**
 - Consumes: existing `new_env_file <name>` and `write_env <env-file> <key> <value>` calls.
@@ -40,7 +40,7 @@ Create an executable Bash test which reads the implementation as text and fails 
 Run:
 
 ```bash
-bash scripts/unified-platform/test-direct-run-contract.sh
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
 ```
 
 Expected: non-zero with a message that `.properties` generation or `properties_escape` is missing.
@@ -67,7 +67,7 @@ properties_escape() {
 Run:
 
 ```bash
-bash scripts/unified-platform/test-direct-run-contract.sh
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
 bash scripts/unified-identity-local.sh prepare
 for name in idp rbac3 gateway-admin gateway-engine ddc; do
   test -s "target/local-unified-platform/env/${name}.properties"
@@ -80,19 +80,19 @@ Expected: every command exits `0`; no secret value appears in output.
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/unified-identity-local.sh scripts/unified-platform/test-direct-run-contract.sh
+git add scripts/unified-identity-local.sh scripts/unified-xingyuan/test-direct-run-contract.sh
 git commit -m "feat(platform): generate direct jar runtime properties"
 ```
 
 ### Task 2: Auto-import per-service runtime properties
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine/src/main/resources/application.yml`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml`
-- Test: `scripts/unified-platform/test-direct-run-contract.sh`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml`
+- Test: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 **Interfaces:**
 - Consumes: `target/local-unified-platform/env/{idp,rbac3,gateway-admin,gateway-engine,ddc}.properties` from Task 1.
@@ -114,7 +114,7 @@ For DDC, assert that `classpath:META-INF/egon-cola-ddc.properties` remains in th
 
 - [ ] **Step 2: Verify the new assertions fail**
 
-Run `bash scripts/unified-platform/test-direct-run-contract.sh`.
+Run `bash scripts/unified-xingyuan/test-direct-run-contract.sh`.
 
 Expected: non-zero identifying the first missing import.
 
@@ -127,8 +127,8 @@ Use the exact filenames `idp.properties`, `rbac3.properties`, `gateway-admin.pro
 Run:
 
 ```bash
-bash scripts/unified-platform/test-direct-run-contract.sh
-mvn -pl egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin -am clean package -DskipTests
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
+mvn -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am clean package -DskipTests
 ```
 
 Expected: contract PASS and reactor `BUILD SUCCESS` with five `*-exec.jar` files.
@@ -136,17 +136,17 @@ Expected: contract PASS and reactor `BUILD SUCCESS` with five `*-exec.jar` files
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/unified-platform/test-direct-run-contract.sh egon-cola-platforms/*/*/src/main/resources/application.yml
+git add scripts/unified-xingyuan/test-direct-run-contract.sh egon-cola-xingyuan/*/*/src/main/resources/application.yml
 git commit -m "feat(platform): auto-load direct jar configuration"
 ```
 
 ### Task 3: Make frontend development commands direct
 
 **Files:**
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin-web/vite.config.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin-web/vite.config.ts`
-- Modify: `egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin-web/vite.config.ts`
-- Test: `scripts/unified-platform/test-direct-run-contract.sh`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/vite.config.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/vite.config.ts`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/vite.config.ts`
+- Test: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 **Interfaces:**
 - Consumes: backend endpoints RBAC3 `18130`, Gateway Admin `18140`, DDC `18150`.
@@ -158,7 +158,7 @@ Assert that the four frontend configs resolve their API targets to IdP `18120`, 
 
 - [ ] **Step 2: Verify the current RBAC3/Gateway/DDC defaults fail**
 
-Run `bash scripts/unified-platform/test-direct-run-contract.sh`.
+Run `bash scripts/unified-xingyuan/test-direct-run-contract.sh`.
 
 Expected: non-zero identifying `8080` or `18080` as stale defaults.
 
@@ -179,17 +179,17 @@ Run the contract test, then each workspace's existing test, lint, and build comm
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/unified-platform/test-direct-run-contract.sh egon-cola-platforms/*/*-admin-web/vite.config.ts
+git add scripts/unified-xingyuan/test-direct-run-contract.sh egon-cola-xingyuan/*/*-admin-web/vite.config.ts
 git commit -m "fix(platform): align direct frontend proxy defaults"
 ```
 
 ### Task 4: Provide one safe preparation command and operator documentation
 
 **Files:**
-- Create: `scripts/unified-platform/prepare-local-stack.sh`
+- Create: `scripts/unified-xingyuan/prepare-local-stack.sh`
 - Modify: `docs/runbooks/unified-identity-local.md`
 - Modify: `docs/operations/unified-identity-mcp-local-runbook.md`
-- Test: `scripts/unified-platform/test-direct-run-contract.sh`
+- Test: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 **Interfaces:**
 - Consumes: `scripts/unified-identity-local.sh prepare`, Maven, npm, and the five imports from Tasks 1-2.
@@ -201,22 +201,22 @@ Assert that the wrapper invokes the existing prepare command, checks all five JA
 
 - [ ] **Step 2: Verify the assertions fail**
 
-Run `bash scripts/unified-platform/test-direct-run-contract.sh`.
+Run `bash scripts/unified-xingyuan/test-direct-run-contract.sh`.
 
 Expected: non-zero because the wrapper does not exist.
 
 - [ ] **Step 3: Implement the wrapper and exact runbook**
 
-The wrapper resolves the repository root through `scripts/unified-platform/lib/common.sh`, calls the existing prepare workflow, runs `npm ci` only when the relevant local Vite executable is absent, verifies artifacts and `0600` modes, and prints paths plus commands but no values. Documentation must distinguish first-time initialized setup from later direct launches and must use `127.0.0.1` consistently.
+The wrapper resolves the repository root through `scripts/unified-xingyuan/lib/common.sh`, calls the existing prepare workflow, runs `npm ci` only when the relevant local Vite executable is absent, verifies artifacts and `0600` modes, and prints paths plus commands but no values. Documentation must distinguish first-time initialized setup from later direct launches and must use `127.0.0.1` consistently.
 
 - [ ] **Step 4: Execute the preparation command twice**
 
 Run:
 
 ```bash
-bash scripts/unified-platform/prepare-local-stack.sh
-bash scripts/unified-platform/prepare-local-stack.sh
-bash scripts/unified-platform/test-direct-run-contract.sh
+bash scripts/unified-xingyuan/prepare-local-stack.sh
+bash scripts/unified-xingyuan/prepare-local-stack.sh
+bash scripts/unified-xingyuan/test-direct-run-contract.sh
 ```
 
 Expected: both preparations exit `0`, proving idempotency, and the contract passes.
@@ -224,14 +224,14 @@ Expected: both preparations exit `0`, proving idempotency, and the contract pass
 - [ ] **Step 5: Commit**
 
 ```bash
-git add scripts/unified-platform/prepare-local-stack.sh scripts/unified-platform/test-direct-run-contract.sh docs/runbooks/unified-identity-local.md docs/operations/unified-identity-mcp-local-runbook.md
+git add scripts/unified-xingyuan/prepare-local-stack.sh scripts/unified-xingyuan/test-direct-run-contract.sh docs/runbooks/unified-identity-local.md docs/operations/unified-identity-mcp-local-runbook.md
 git commit -m "docs(platform): document verified direct startup"
 ```
 
 ### Task 5: Expand authenticated admin feature-chain verification
 
 **Files:**
-- Modify: `scripts/unified-platform/verify-local-stack.sh`
+- Modify: `scripts/unified-xingyuan/verify-local-stack.sh`
 
 **Interfaces:**
 - Consumes: existing browser OAuth tokens, initialized local topology, and four frontend proxy ports.
@@ -250,8 +250,8 @@ Cover IdP users/clients/signing keys/audits; RBAC3 runtime/tenants/users/applica
 Run:
 
 ```bash
-bash scripts/unified-platform/start-local-stack.sh
-bash scripts/unified-platform/verify-local-stack.sh
+bash scripts/unified-xingyuan/start-local-stack.sh
+bash scripts/unified-xingyuan/verify-local-stack.sh
 ```
 
 Expected: every new matrix row and every existing scenario passes; evidence contains no token or secret values.
@@ -259,7 +259,7 @@ Expected: every new matrix row and every existing scenario passes; evidence cont
 - [ ] **Step 4: Commit**
 
 ```bash
-git add scripts/unified-platform/verify-local-stack.sh
+git add scripts/unified-xingyuan/verify-local-stack.sh
 git commit -m "test(platform): cover authenticated admin feature chains"
 ```
 

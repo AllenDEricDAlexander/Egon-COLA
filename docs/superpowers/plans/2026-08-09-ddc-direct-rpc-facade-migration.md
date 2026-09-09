@@ -13,15 +13,15 @@
 - `RPC_ROOT` = `egon-cola-components/egon-cola-component-rpc`
 - `RPC_MAIN` = `RPC_ROOT/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc`
 - `RPC_TEST` = `RPC_ROOT/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc`
-- `ADAPTER` = `RPC_ROOT/egon-cola-component-rpc-ddc-adapter`
+- `ADAPTER` = `RPC_ROOT/egon-cola-component-rpc-tianshu-adapter`
 - `ADAPTER_MAIN` = `ADAPTER/src/main/java/top/egon/cola/component/rpc/ddc`
 - `ADAPTER_TEST` = `ADAPTER/src/test/java/top/egon/cola/component/rpc/ddc`
-- `DDC_ROOT` = `egon-cola-platforms/egon-cola-platform-dynamic-config-center`
-- `DDC_MAIN` = `DDC_ROOT/egon-cola-platform-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc`
-- `DDC_TEST` = `DDC_ROOT/egon-cola-platform-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc`
-- `ADMIN_MAIN` = `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin`
-- `ADMIN_TEST` = `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin`
-- `GATEWAY_ROOT` = `egon-cola-platforms/egon-cola-platform-gateway`
+- `DDC_ROOT` = `egon-cola-xingyuan/egon-cola-tianshu`
+- `DDC_MAIN` = `DDC_ROOT/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc`
+- `DDC_TEST` = `DDC_ROOT/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc`
+- `ADMIN_MAIN` = `DDC_ROOT/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin`
+- `ADMIN_TEST` = `DDC_ROOT/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin`
+- `GATEWAY_ROOT` = `egon-cola-xingyuan/egon-cola-yuheng`
 
 Every path using one of these labels is relative to the exact repository path declared here; the labels are documentation abbreviations, not shell variables or unresolved implementation placeholders.
 
@@ -126,7 +126,7 @@ Replace in-memory DDC registry fixtures used by unit/TCP tests with neutral `Rpc
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
   dependency:tree \
-  -Dincludes=top.egon:egon-cola-platform-dynamic-config-center-starter,top.egon:egon-cola-component-rpc-ddc-adapter
+  -Dincludes=top.egon:egon-cola-tianshu-starter,top.egon:egon-cola-component-rpc-tianshu-adapter
 rg -n "top\.egon\.cola\.component\.ddc" \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/{pom.xml,src}
 ```
@@ -252,7 +252,7 @@ git commit -m "feat(rpc): support direct invocation channels"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am \
   -DskipTests test-compile
 ```
@@ -267,7 +267,7 @@ git commit -m "feat(rpc): support direct invocation channels"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am \
   -Dtest=DdcRpcGeneratedContractTest,DdcRpcContractDescriptorTest,DdcRpcModuleBoundaryTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -327,7 +327,7 @@ git commit -m "feat(rpc-ddc): add adapter wire contracts"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcConfigProtoMapperTest,DdcRegistryProtoMapperTest,DdcManagementProtoMapperTest,DdcRpcRequestSignerTest,DdcRpcClientInterceptorFactoryTest,DdcRpcStatusExceptionMapperTest,DdcAckDeliveryTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -344,7 +344,7 @@ git commit -m "feat(rpc-ddc): add adapter wire contracts"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am test
 ```
 
@@ -399,7 +399,7 @@ git commit -m "feat(rpc-ddc): map authenticated ddc calls"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am \
   -Dtest=DdcRpcPropertiesTest,DdcRpcAutoConfigurationTest,RpcDdcConfigClientTest,RpcDdcServiceRegistryClientTest,RpcDdcManagementClientTest,DdcRpcProviderRegistryTest,DdcRpcGatewayDirectoryTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -410,7 +410,7 @@ git commit -m "feat(rpc-ddc): map authenticated ddc calls"
 
 - [ ] **Step 5: Implement Registry bridges and DDC identity provider.** Preserve current gateway snapshot revision/drain semantics and DDC instance identity equivalence without leaking DDC imports back into RPC Starter.
 
-- [ ] **Step 6: Implement AutoConfiguration ordering and fail-fast diagnostics.** Missing required Port errors must name the Port and `top.egon:egon-cola-component-rpc-ddc-adapter`; no silent local-only fallback.
+- [ ] **Step 6: Implement AutoConfiguration ordering and fail-fast diagnostics.** Missing required Port errors must name the Port and `top.egon:egon-cola-component-rpc-tianshu-adapter`; no silent local-only fallback.
 
 - [ ] **Step 7: Make management methods mandatory and repair test doubles.** Use:
 
@@ -425,7 +425,7 @@ Every implementation must implement `findConfig` and `getScopeBindings` with rea
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcRpcPropertiesTest,DdcRpcAutoConfigurationTest,RpcDdcConfigClientTest,RpcDdcServiceRegistryClientTest,RpcDdcManagementClientTest,DdcRpcProviderRegistryTest,DdcRpcGatewayDirectoryTest,DdcManagementContractBoundaryTest,DdcAutoConfigurationTest,DdcRegistryAutoConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -449,7 +449,7 @@ git commit -m "feat(rpc-ddc): provide rpc backed ddc ports"
 - Move: `DDC_MAIN/configdata/DdcConfigDataLoader.java` → `ADAPTER_MAIN/configdata/DdcConfigDataLoader.java`
 - Move: `DDC_MAIN/configdata/DdcConfigDataFetcher.java` → `ADAPTER_MAIN/configdata/DdcConfigDataFetcher.java`
 - Move the four matching tests plus `DdcConfigDataSpringApplicationTest.java` from `DDC_TEST/configdata` to `ADAPTER_TEST/configdata`.
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-starter/src/main/resources/META-INF/spring.factories`
+- Modify: `DDC_ROOT/egon-cola-tianshu-starter/src/main/resources/META-INF/spring.factories`
 - Create: `ADAPTER/src/main/resources/META-INF/spring.factories`
 - Modify: `DDC_MAIN/autoconfigure/DdcAutoConfiguration.java`
 - Modify: `DDC_MAIN/autoconfigure/DdcRegistryAutoConfiguration.java`
@@ -472,7 +472,7 @@ git commit -m "feat(rpc-ddc): provide rpc backed ddc ports"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   -am \
   -Dtest=DdcConfigDataLocationResolverTest,DdcConfigDataFetcherTest,DdcConfigDataLoaderTest,DdcConfigDataSpringApplicationTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -491,7 +491,7 @@ git commit -m "feat(rpc-ddc): provide rpc backed ddc ports"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am test
 ```
 
@@ -507,7 +507,7 @@ git commit -m "refactor(ddc): move config data transport to rpc adapter"
 
 **Files:**
 
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/pom.xml`
+- Modify: `DDC_ROOT/egon-cola-tianshu-admin/pom.xml`
 - Create: `ADMIN_MAIN/service/config/DdcConfigFacade.java`
 - Create: `ADMIN_MAIN/service/registry/DdcRegistryFacade.java`
 - Modify: `ADMIN_MAIN/service/management/DdcManagementFacade.java`
@@ -538,7 +538,7 @@ git commit -m "refactor(ddc): move config data transport to rpc adapter"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am \
   -Dtest=DdcConfigFacadeTest,DdcRegistryFacadeTest,DdcManagementFacadeTest,DdcConfigRpcProviderTest,DdcRegistryRpcProviderTest,DdcManagementRpcProviderTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -555,7 +555,7 @@ git commit -m "refactor(ddc): move config data transport to rpc adapter"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am test
 ```
 
@@ -581,9 +581,9 @@ git commit -m "feat(ddc-admin): expose control plane facades via rpc"
 - Modify: `ADMIN_MAIN/config/DdcAdminProperties.java`
 - Modify: `ADMIN_MAIN/config/DdcAdminSecurityPropertiesValidator.java`
 - Modify: `ADMIN_MAIN/config/DdcAdminRedisConfig.java`
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application.yml`
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application-local.yml`
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/src/main/resources/application-test.yml`
+- Modify: `DDC_ROOT/egon-cola-tianshu-admin/src/main/resources/application.yml`
+- Modify: `DDC_ROOT/egon-cola-tianshu-admin/src/main/resources/application-local.yml`
+- Modify: `DDC_ROOT/egon-cola-tianshu-admin/src/main/resources/application-test.yml`
 - Move/update: `ADMIN_TEST/security/openapi/DdcHmacScopeTest.java` → `ADMIN_TEST/security/rpc/DdcRpcHmacScopeTest.java`
 - Move/update: `ADMIN_TEST/security/openapi/RedisDdcNonceStoreTest.java` → `ADMIN_TEST/security/rpc/RedisDdcNonceStoreTest.java`
 - Create: `ADMIN_TEST/security/rpc/DdcRpcServerInterceptorTest.java`
@@ -609,7 +609,7 @@ git commit -m "feat(ddc-admin): expose control plane facades via rpc"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am \
   -Dtest=DdcRpcHmacScopeTest,DdcRpcServerInterceptorTest,DdcRpcProviderExceptionMapperTest,RedisDdcNonceStoreTest,DdcAdminSecurityPropertiesTest,DdcAdminContextSmokeTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -626,7 +626,7 @@ git commit -m "feat(ddc-admin): expose control plane facades via rpc"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am test
 ```
 
@@ -652,7 +652,7 @@ git commit -m "feat(ddc-admin): secure direct rpc providers"
 - Modify: `ADMIN_TEST/service/publish/DdcPublishDispatchConsistencyTest.java`
 - Modify: `ADMIN_TEST/service/publish/PublishStartupRecoveryTest.java`
 - Modify: `ADMIN_TEST/service/publish/DdcPublishTimeoutScannerTest.java`
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-admin/pom.xml` only if the existing Testcontainers dependency needs the managed PostgreSQL test module.
+- Modify: `DDC_ROOT/egon-cola-tianshu-admin/pom.xml` only if the existing Testcontainers dependency needs the managed PostgreSQL test module.
 
 **Distributed correctness:**
 
@@ -670,7 +670,7 @@ git commit -m "feat(ddc-admin): secure direct rpc providers"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am \
   -Dtest=DdcPublishAckLockTest,DdcAckServiceTest,DdcPublishDispatchConsistencyTest,PublishStartupRecoveryTest,DdcPublishTimeoutScannerTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -683,10 +683,10 @@ git commit -m "feat(ddc-admin): secure direct rpc providers"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am test
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am \
   -Pddc-active-active \
   -Dit.test=DdcActiveActiveAdminIT \
@@ -697,7 +697,7 @@ git commit -m "feat(ddc-admin): secure direct rpc providers"
 
 ```bash
 git diff --name-only HEAD -- \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin/src/main/resources/db
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/db
 ```
 
 Expected: no output.
@@ -714,19 +714,19 @@ git commit -m "fix(ddc-admin): make rpc control plane active active safe"
 
 **Files:**
 
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-test/pom.xml`
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-test/src/main/resources/application.yml`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-admin/pom.xml`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-admin/src/main/java/top/egon/cola/component/gateway/admin/GatewayAdminConfiguration.java`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-admin/src/main/resources/application.yml`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-admin/src/main/resources/application-local.yml`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminConfigurationTest.java`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-engine/pom.xml` and `src/main/resources/application.yml`.
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-starter/pom.xml` and focused starter AutoConfiguration tests.
-- Modify POM/application YAML under `GATEWAY_ROOT/egon-cola-platform-gateway-test` for every test application returned by the DDC-property scan.
-- Modify: `egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin/pom.xml`, `src/main/resources/application.yml`, `application-local.yml` and DDC context tests.
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin/pom.xml`, `src/main/resources/application.yml`, `application-local.yml`, `GatewayDdcConfigurationTest.java`, `Rbac3AdminApplicationContextTest.java`.
+- Modify: `DDC_ROOT/egon-cola-tianshu-test/pom.xml`
+- Modify: `DDC_ROOT/egon-cola-tianshu-test/src/main/resources/application.yml`
+- Modify: `GATEWAY_ROOT/yuheng-admin/pom.xml`
+- Modify: `GATEWAY_ROOT/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/GatewayAdminConfiguration.java`
+- Modify: `GATEWAY_ROOT/yuheng-admin/src/main/resources/application.yml`
+- Modify: `GATEWAY_ROOT/yuheng-admin/src/main/resources/application-local.yml`
+- Modify: `GATEWAY_ROOT/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminConfigurationTest.java`
+- Modify: `GATEWAY_ROOT/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminApplicationConfigurationTest.java`
+- Modify: `GATEWAY_ROOT/yuheng-biz-gateway/pom.xml` and `src/main/resources/application.yml`.
+- Modify: `GATEWAY_ROOT/yuheng-starter/pom.xml` and focused starter AutoConfiguration tests.
+- Modify POM/application YAML under `GATEWAY_ROOT/yuheng-test` for every test application returned by the DDC-property scan.
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`, `src/main/resources/application.yml`, `application-local.yml` and DDC context tests.
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml`, `src/main/resources/application.yml`, `application-local.yml`, `GatewayDdcConfigurationTest.java`, `Rbac3AdminApplicationContextTest.java`.
 - Modify under `RPC_ROOT/egon-cola-component-rpc-test`: provider/consumer application POMs/YAML and `RpcMockGatewayApplication.java`, `RpcProcessIT.java`.
 
 **Composition behavior:**
@@ -744,7 +744,7 @@ git commit -m "fix(ddc-admin): make rpc control plane active active safe"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am \
   -Dtest=GatewayAdminConfigurationTest,GatewayAdminApplicationConfigurationTest,IdpDdcPolicyConfigurationTest,GatewayDdcConfigurationTest,Rbac3AdminApplicationContextTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -759,7 +759,7 @@ git commit -m "fix(ddc-admin): make rpc control plane active active safe"
 
 ```bash
 rg -n "ddc\.admin\.endpoint|gateway\.admin\.ddc\.endpoint|/api/v1/ddc/openapi" \
-  egon-cola-components egon-cola-platforms \
+  egon-cola-components egon-cola-xingyuan \
   --glob 'pom.xml' --glob '*.java' --glob '*.yml' --glob '*.yaml' \
   --glob '*.properties' --glob '!**/target/**'
 ```
@@ -772,7 +772,7 @@ Use `dns:///ddc-admin:19080`, `round_robin`, local TLS values and the correct ru
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-test,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-admin,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-engine,egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-starter,egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am test
 ```
 
@@ -810,7 +810,7 @@ git commit -m "refactor(platform): route ddc consumers through direct rpc"
 - Delete: `DDC_MAIN/model/client/DdcManagementClientProperties.java` and package doc if the package becomes empty.
 - Delete: `DDC_MAIN/error/http/DdcOpenApiRequestException.java` and package doc.
 - Modify: `DDC_MAIN/autoconfigure/properties/DdcProperties.java`
-- Modify: `DDC_ROOT/egon-cola-platform-dynamic-config-center-starter/pom.xml`
+- Modify: `DDC_ROOT/egon-cola-tianshu-starter/pom.xml`
 - Delete HTTP client/signer/factory/property tests under `DDC_TEST/client` and `DDC_TEST/model/client`.
 - Modify: `DDC_TEST/DdcPackageDocumentationTest.java`, `DdcPlatformBoundaryTest.java`, `autoconfigure/properties/DdcPropertiesTest.java`.
 
@@ -828,7 +828,7 @@ git commit -m "refactor(platform): route ddc consumers through direct rpc"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter \
+  -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   -am \
   -Dtest=DdcAdminSecurityIntegrationTest,DdcPlatformBoundaryTest,DdcPropertiesTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -843,7 +843,7 @@ git commit -m "refactor(platform): route ddc consumers through direct rpc"
 
 ```bash
 rg -n "org\.springframework\.web|RestClient|DdcClientTransportSecurity|DdcManagementClientProperties" \
-  egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter/src/main/java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java
 ```
 
 Expected: no output.
@@ -852,10 +852,10 @@ Expected: no output.
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-starter,egon-cola-platforms/egon-cola-platform-dynamic-config-center/egon-cola-platform-dynamic-config-center-admin \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   -am test
 rg -n "HttpDdc|/api/v1/ddc/openapi|DdcOpenApiHmacFilter|DdcCanonicalRequest|ddc\.admin\.endpoint|gateway\.admin\.ddc\.endpoint" \
-  egon-cola-components egon-cola-platforms \
+  egon-cola-components egon-cola-xingyuan \
   --glob '!**/target/**' --glob '!**/docs/superpowers/specs/**' --glob '!**/docs/superpowers/plans/**'
 ```
 
@@ -887,8 +887,8 @@ git commit -m "refactor(ddc): remove machine http transport"
 - Modify: `GATEWAY_ROOT/deployment/compose.ha-mtls.yml`
 - Modify: `GATEWAY_ROOT/deployment/compose.mtls.yml`
 - Modify: `GATEWAY_ROOT/deployment/haproxy.cfg` only if it currently routes DDC machine traffic; keep HTTP readiness and add an HTTP/2-capable gRPC backend path without conflating the ports.
-- Modify: `GATEWAY_ROOT/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
-- Modify: `egon-cola-platforms/egon-cola-platform-rbac3/docs/operations-runbook.md`
+- Modify: `GATEWAY_ROOT/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/operations-runbook.md`
 - Modify any active archetype/example POM/YAML returned by the final adapter/legacy-property scan; historical specs are read-only records and are not rewritten.
 
 **Documentation and deployment contract:**
@@ -905,7 +905,7 @@ git commit -m "refactor(ddc): remove machine http transport"
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-platforms/egon-cola-platform-gateway/egon-cola-platform-gateway-test/egon-cola-platform-gateway-test-suite \
+  -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
   -am \
   -Dtest=GatewayComposeConfigurationTest \
   -Dsurefire.failIfNoSpecifiedTests=false \
@@ -920,10 +920,10 @@ git commit -m "refactor(ddc): remove machine http transport"
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
   dependency:tree \
-  -Dincludes=top.egon:egon-cola-platform-dynamic-config-center-starter,top.egon:egon-cola-component-rpc-ddc-adapter
+  -Dincludes=top.egon:egon-cola-tianshu-starter,top.egon:egon-cola-component-rpc-tianshu-adapter
 rg -n "top\.egon\.cola\.component\.ddc" \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/{pom.xml,src}
-rg -n "egon-cola-component-rpc-ddc-adapter" \
+rg -n "egon-cola-component-rpc-tianshu-adapter" \
   --glob 'pom.xml' .
 ```
 
@@ -933,7 +933,7 @@ Expected: first two checks show RPC Starter is clean; adapter consumers are only
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-ddc-adapter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test,egon-cola-platforms/egon-cola-platform-dynamic-config-center,egon-cola-platforms/egon-cola-platform-gateway,egon-cola-platforms/egon-cola-platform-idp/egon-cola-platform-idp-admin,egon-cola-platforms/egon-cola-platform-rbac3/egon-cola-platform-rbac3-admin \
+  -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter,egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test,egon-cola-xingyuan/egon-cola-tianshu,egon-cola-xingyuan/egon-cola-yuheng,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin,egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin \
   -am test
 ```
 
@@ -949,7 +949,7 @@ Record exact module/test counts and any environment-gated skips. Do not claim ex
 
 ```bash
 rg -n "HttpDdc|/api/v1/ddc/openapi|ddc\.admin\.endpoint|gateway\.admin\.ddc\.endpoint|DdcOpenApiHmacFilter|DdcCanonicalRequest" \
-  egon-cola-components egon-cola-platforms egon-cola-archetypes \
+  egon-cola-components egon-cola-xingyuan egon-cola-archetypes \
   --glob '!**/target/**' --glob '!**/docs/superpowers/specs/**' --glob '!**/docs/superpowers/plans/**'
 rg -n "top\.egon\.cola\.component\.ddc" \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter
