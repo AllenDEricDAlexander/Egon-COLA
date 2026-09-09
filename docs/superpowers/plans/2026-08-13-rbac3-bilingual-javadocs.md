@@ -1,8 +1,8 @@
-# RBAC3 Bilingual JavaDoc Coverage Implementation Plan
+# Tianquan-Jianshen Bilingual JavaDoc Coverage Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 为 RBAC3 Admin、Gateway Adapter、Starter 的 `src/main/java` 全部包、类、字段、构造器和方法补齐中英双语 JavaDoc，并为每个 Java 包增加 `package-info.java`。
+**Goal:** 为 Tianquan-Jianshen Admin、Yuheng Adapter、Starter 的 `src/main/java` 全部包、类、字段、构造器和方法补齐中英双语 JavaDoc，并为每个 Java 包增加 `package-info.java`。
 
 **Architecture:** 仅增加源代码文档，不改变业务逻辑、API 签名、注解、导入或运行时行为。保留已有有价值的 JavaDoc，在缺失处补充职责、用法和语义说明；包级说明按模块和分层职责描述。
 
@@ -29,14 +29,14 @@
 Run:
 
 ```bash
-for module in admin gateway-adapter starter; do
+for module in admin yuheng-adapter starter; do
   root="egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-${module}/src/main/java"
   rg --files "$root" --glob '*.java' | sort
   rg '^package ' "$root" --glob '*.java' | sort -u
 done
 ```
 
-Expected baseline: 181 Admin Java files in 61 packages, 10 Gateway Adapter files in 3 packages, and 22 Starter files in 9 packages, with no existing `package-info.java` files.
+Expected baseline: 181 Admin Java files in 61 packages, 10 Yuheng Adapter files in 3 packages, and 22 Starter files in 9 packages, with no existing `package-info.java` files.
 
 - [ ] **Step 2: Record existing documentation conventions**
 
@@ -57,14 +57,14 @@ Each new file follows this shape, replacing the package name and responsibility 
 
 ```java
 /**
- * 说明本包在 RBAC3 中承担的边界、主要类型和使用方式。
- * Describes this package's RBAC3 boundary, main types, and usage.
+ * 说明本包在 Tianquan-Jianshen 中承担的边界、主要类型和使用方式。
+ * Describes this package's Tianquan-Jianshen boundary, main types, and usage.
  *
  * <p>包内类型协同完成对应的控制面、网关适配或业务应用授权职责。
  * Types in this package collaborate to provide the corresponding control-plane,
- * Gateway-adapter, or business-application authorization responsibility.</p>
+ * Yuheng-adapter, or business-application authorization responsibility.</p>
  */
-package top.egon.cola.platform.rbac3.example;
+package top.egon.cola.platform.tianquan.jianshen.example;
 ```
 
 - [ ] **Step 2: Check package coverage**
@@ -88,13 +88,13 @@ Describe what each field stores or represents, its unit/identity/version meaning
 
 Describe the operation and side effects in Chinese and English; add `@param`, `@return`, and `@throws` entries where the signature has corresponding values or declared failures. Include private helpers and compact constructors rather than limiting coverage to public APIs.
 
-### Task 4: Complete Gateway Adapter and Starter declaration documentation
+### Task 4: Complete Yuheng Adapter and Starter declaration documentation
 
 **Files:**
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-gateway-adapter/src/main/java/**/*.java`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/**/*.java`
 
-- [ ] **Step 1: Document Gateway Adapter declarations**
+- [ ] **Step 1: Document Yuheng Adapter declarations**
 
 Cover auto-configuration, runtime integration, credential extraction/sanitization, JWT verification, authentication providers, and nested result/exception types with bilingual responsibility and usage descriptions.
 

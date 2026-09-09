@@ -1,8 +1,8 @@
-# DDC Spring Boot ConfigData YAML-only Implementation Plan
+# Tianshu Spring Boot ConfigData YAML-only Implementation Plan
 
-**Goal:** Replace DDC's per-key runtime configuration with one validated `application.yml` ConfigData resource, preserve Spring Boot precedence, and apply only explicitly refreshable consumers at runtime.
+**Goal:** Replace Tianshu's per-key runtime configuration with one validated `application.yml` ConfigData resource, preserve Spring Boot precedence, and apply only explicitly refreshable consumers at runtime.
 
-**Architecture:** The Starter adapts the existing signed HTTP pull contract to Spring Boot's `ConfigDataLocationResolver` and `ConfigDataLoader`. The official `YamlPropertySourceLoader` creates one dynamic PropertySource whose immutable snapshot is atomically replaced on publication. YAML leaf diffs drive the existing Applier registry and `@DdcValue`, while setter-based `@DdcRefreshable` configuration properties are rebound explicitly. Admin owns one YAML record per scope and validates every mutation boundary; Gateway updates rule leaves inside that YAML document.
+**Architecture:** The Starter adapts the existing signed HTTP pull contract to Spring Boot's `ConfigDataLocationResolver` and `ConfigDataLoader`. The official `YamlPropertySourceLoader` creates one dynamic PropertySource whose immutable snapshot is atomically replaced on publication. YAML leaf diffs drive the existing Applier registry and `@DdcValue`, while setter-based `@DdcRefreshable` configuration properties are rebound explicitly. Admin owns one YAML record per scope and validates every mutation boundary; Yuheng updates rule leaves inside that YAML document.
 
 **Patterns:** Use Adapter for ConfigData and official YAML loading, Strategy/Registry for leaf consumers, and Observer for post-apply change events. Do not add factories, inheritance hierarchies, Spring Cloud Context, or a second configuration merge model.
 
@@ -10,13 +10,13 @@
 
 ## Global Constraints
 
-- Work on the current `main` checkout and preserve all pre-existing Admin/IdP changes.
+- Work on the current `main` checkout and preserve all pre-existing Admin/Tianquan-Shoubing changes.
 - Stage and commit only task-owned paths; each task gets one commit.
 - Support only one single-document YAML resource named `application.yml` with value type `YAML`.
 - Do not migrate data or edit existing Flyway migrations; existing storage columns may hold constants.
 - Do not start any application or open a browser.
 - Add no Spring Cloud refresh dependency and do not restart the ApplicationContext.
-- Remote DDC/client/config-import/profile keys must fail the whole document in Starter and Admin.
+- Remote Tianshu/client/config-import/profile keys must fail the whole document in Starter and Admin.
 
 ## Task 1: Native ConfigData Bootstrap
 
@@ -33,12 +33,12 @@
 
 **Steps:**
 
-- [x] Register the Resolver and Loader through the ConfigData SPI and parse only `ddc:application.yml`.
-- [x] Bind local DDC bootstrap settings through the Resolver context without remote access in `isResolvable`.
+- [x] Register the Resolver and Loader through the ConfigData SPI and parse only `tianshu:application.yml`.
+- [x] Bind local Tianshu bootstrap settings through the Resolver context without remote access in `isResolvable`.
 - [x] Pull exactly one published YAML value using the existing HTTP/HMAC/TLS contract.
 - [x] Parse through Boot's official loader, reject multiple/root-scalar/reserved-key documents, and return a dynamic PropertySource with `IGNORE_IMPORTS` and `IGNORE_PROFILES`.
 - [x] Prove startup binding, optional semantics, source ordering, local fallback, and non-ConfigData override precedence with focused tests.
-- [x] Run Starter tests and commit as `feat(ddc): load remote YAML through ConfigData`.
+- [x] Run Starter tests and commit as `feat(tianshu): load remote YAML through ConfigData`.
 
 ## Task 2: YAML Refresh and Compatibility Consumers
 
@@ -55,11 +55,11 @@
 
 - [x] Route only `application.yml` publications through one version/checksum/ACK path.
 - [x] Atomically switch the YAML snapshot, compute added/updated/removed leaves, and restore the old snapshot on synchronous apply failure.
-- [x] Dispatch changed leaf values through exact/prefix/fallback Appliers so Gateway, IdP, and `@DdcValue` keep their domain behavior.
+- [x] Dispatch changed leaf values through exact/prefix/fallback Appliers so Yuheng, Tianquan-Shoubing, and `@DdcValue` keep their domain behavior.
 - [x] Rebind only setter-based `@DdcRefreshable` configuration properties whose prefix changed; classify all other changed keys as restart-required.
 - [x] Publish a value-free change event after successful application and ACK accepted non-dynamic changes as `SUCCESS`.
 - [x] Remove default reporting from runtime coordination and prove refresh, rollback, idempotence, event classification, and compatibility with focused tests.
-- [x] Run Starter and DDC consumer tests and commit as `feat(ddc): refresh YAML configuration by property leaf`.
+- [x] Run Starter and Tianshu consumer tests and commit as `feat(tianshu): refresh YAML configuration by property leaf`.
 
 ## Task 3: Admin YAML-only Contract and Validation
 
@@ -75,54 +75,54 @@
 - [x] Enforce one config document per scope and return at most one published runtime document.
 - [x] Validate UTF-8 size, one Map-root YAML document, and reserved keys on create, upsert, update, rollback, and publish.
 - [x] Delete `/defaults/report` and related client calls while keeping registration, pull, ACK, topic, and publish state semantics intact.
-- [x] Run Admin and management-client tests and commit as `refactor(ddc): enforce YAML-only admin configuration`.
+- [x] Run Admin and management-client tests and commit as `refactor(tianshu): enforce YAML-only admin configuration`.
 
-## Task 4: Gateway YAML Publication
+## Task 4: Yuheng YAML Publication
 
 **Files:**
 
-- Modify Gateway Admin publication coordinator/publisher and their tests.
-- Keep Gateway Engine Applier API unchanged; add compatibility tests where necessary.
+- Modify Yuheng Admin publication coordinator/publisher and their tests.
+- Keep Yuheng Engine Applier API unchanged; add compatibility tests where necessary.
 
 **Steps:**
 
 - [x] Resolve the current `application.yml` document and version for every release phase.
-- [x] Parse the document, replace one `gateway.rules.chunk.*` or `gateway.rules.active` leaf, serialize valid YAML, and publish the document key.
-- [x] Preserve release journal leaf keys and change IDs while querying/retrying DDC tasks by their existing identities.
+- [x] Parse the document, replace one `yuheng.rules.chunk.*` or `yuheng.rules.active` leaf, serialize valid YAML, and publish the document key.
+- [x] Preserve release journal leaf keys and change IDs while querying/retrying Tianshu tasks by their existing identities.
 - [x] Prove chunk ordering, conflict recovery, retry, inline activation, and Engine leaf dispatch.
-- [x] Run affected Gateway Admin/Engine tests and commit as `refactor(gateway): publish rules through DDC YAML`.
+- [x] Run affected Yuheng Admin/Engine tests and commit as `refactor(yuheng): publish rules through Tianshu YAML`.
 
 ## Task 5: Admin Web YAML Editor and Final Verification
 
 **Files:**
 
-- Modify DDC Admin Web config API types, list/editor pages, format utilities, and tests.
-- Update DDC README/sample configuration only where the old scalar/default-report contract remains documented.
+- Modify Tianshu Admin Web config API types, list/editor pages, format utilities, and tests.
+- Update Tianshu README/sample configuration only where the old scalar/default-report contract remains documented.
 
 **Steps:**
 
 - [x] Replace key/type/default controls with one YAML editor for the selected biz/env/app scope.
 - [x] Keep scope selection, optimistic version update, publish, rollback, and server error feedback.
-- [x] Remove JSON/TOML/TXT/Gateway-inline editor adapters that are no longer reachable.
+- [x] Remove JSON/TOML/TXT/Yuheng-inline editor adapters that are no longer reachable.
 - [x] Run Admin Web unit tests, typecheck/lint/build without browser or E2E startup.
-- [x] Run focused DDC Starter/Admin/Test and affected Gateway/IdP Maven suites.
-- [x] Run `git diff --check`, verify only task-owned commit paths, and commit as `refactor(ddc): provide YAML-only admin editor`.
+- [x] Run focused Tianshu Starter/Admin/Test and affected Yuheng/Tianquan-Shoubing Maven suites.
+- [x] Run `git diff --check`, verify only task-owned commit paths, and commit as `refactor(tianshu): provide YAML-only admin editor`.
 
 ## Validation Record
 
-- DDC Admin Web: `npm test` with the required non-secret `VITE_IDP_*` test values passed 15 files and 25 tests; `npm run typecheck`, `npm run lint`, and the environment-qualified `npm run build` passed. A first bare `npm test` stopped during import because those required values were absent. The build retained the existing large-chunk warning.
-- DDC reactor: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test -am test` passed all 20 reactor modules; Admin ran 162 tests and the consumer module ran 6 tests.
-- Gateway Admin: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test` passed all 24 reactor modules and all 167 Admin tests.
-- Gateway Engine: the focused `GatewayEngineConfigurationTest,GatewayRuleActivationApplierTest` reactor command passed 15 tests.
-- IdP Admin: the focused `IdpDdcPolicyApplierTest,IdpDdcPolicyConfigurationTest` reactor command passed 5 tests.
-- RBAC3 Admin: the standard focused reactor command is blocked during test compilation by the unrelated `Rbac3GatewayDocumentCatalogContractTest` calls to the removed `Operation.parameters()` method at lines 223-224. Direct Surefire execution of the generated DDC test classes passed 8 tests; isolated compilation and Surefire execution of `Rbac3DdcPolicyConfigurationTest` passed another 4 tests. No RBAC3 source was changed.
+- Tianshu Admin Web: `npm test` with the required non-secret `VITE_TIANQUAN_SHOUBING_*` test values passed 15 files and 25 tests; `npm run typecheck`, `npm run lint`, and the environment-qualified `npm run build` passed. A first bare `npm test` stopped during import because those required values were absent. The build retained the existing large-chunk warning.
+- Tianshu reactor: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin,egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test -am test` passed all 20 reactor modules; Admin ran 162 tests and the consumer module ran 6 tests.
+- Yuheng Admin: `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am test` passed all 24 reactor modules and all 167 Admin tests.
+- Yuheng Engine: the focused `GatewayEngineConfigurationTest,GatewayRuleActivationApplierTest` reactor command passed 15 tests.
+- Tianquan-Shoubing Admin: the focused `IdpDdcPolicyApplierTest,IdpDdcPolicyConfigurationTest` reactor command passed 5 tests.
+- Tianquan-Jianshen Admin: the standard focused reactor command is blocked during test compilation by the unrelated `Rbac3GatewayDocumentCatalogContractTest` calls to the removed `Operation.parameters()` method at lines 223-224. Direct Surefire execution of the generated Tianshu test classes passed 8 tests; isolated compilation and Surefire execution of `Rbac3DdcPolicyConfigurationTest` passed another 4 tests. No Tianquan-Jianshen source was changed.
 - `git diff --check` passed. No application server or browser was started.
 
 ## Completion Gate
 
 - [x] Initial remote YAML binds before Bean creation.
-- [x] DDC wins over local ConfigData but not Boot's higher-order non-ConfigData sources.
-- [x] DDC cannot overwrite its own bootstrap/config/profile controls.
+- [x] Tianshu wins over local ConfigData but not Boot's higher-order non-ConfigData sources.
+- [x] Tianshu cannot overwrite its own bootstrap/config/profile controls.
 - [x] Runtime refresh is atomic and accurately separates refreshed from restart-required keys.
-- [x] Admin, Admin Web, Gateway publication, `@DdcValue`, and custom Appliers all use the YAML-only model.
+- [x] Admin, Admin Web, Yuheng publication, `@DdcValue`, and custom Appliers all use the YAML-only model.
 - [x] No application was started and all validation commands/results are recorded.

@@ -6,10 +6,10 @@
 
 `egon-cola-tianshu` 提供基于 Spring Boot ConfigData、每个作用域
 一份 YAML 业务配置文档的 SDK、类型化管理 API、可独立部署的 Admin 应用，以及面向
-RPC Provider 和内部 Gateway 的 Redis 服务注册中心。
+RPC Provider 和内部 Yuheng 的 Redis 服务注册中心。
 
-Maven 模块统一使用 `egon-cola-platform-*` 前缀。Starter Java API 已按领域重新组织，
-不为旧技术分层包保留转发类型；外部 `egon.cola.component.ddc` 配置命名空间保持不变。
+Maven 模块统一使用 `egon-cola-xingyuan-*` 前缀。Starter Java API 已按领域重新组织，
+不为旧技术分层包保留转发类型；外部 `egon.cola.component.tianshu` 配置命名空间保持不变。
 
 V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 Admin 进程可以服务
 同一个控制面：发布准备通过 PostgreSQL 行锁、版本条件更新和持久化发布任务完成，
@@ -22,15 +22,15 @@ V1 支持由共享 PostgreSQL 和 Redis 支撑的一个逻辑控制面。多个 
 
 ```text
 配置客户端 ──直连 gRPC/HMAC──┐
-RPC Provider ────直连 gRPC/HMAC──┼──> DDC 逻辑目标 ──> Admin 集合 ──> PostgreSQL
-内部 Gateway ────直连 gRPC/HMAC──┘                               │
+RPC Provider ────直连 gRPC/HMAC──┼──> Tianshu 逻辑目标 ──> Admin 集合 ──> PostgreSQL
+内部 Yuheng ────直连 gRPC/HMAC──┘                               │
                                                                        └──> 共享 Redis
 配置客户端 <──────── Redis Pub/Sub ────────┘
 注册订阅方 <──────── Redis Pub/Sub ────────┘
 ```
 
 Admin 进程是唯一的机器控制面 RPC Provider。客户端通过本地配置的
-`dns:///`、VIP 或负载均衡目标直连，不通过 DDC 服务发现引导 DDC 自身。
+`dns:///`、VIP 或负载均衡目标直连，不通过 Tianshu 服务发现引导 Tianshu 自身。
 Admin HTTP 仅保留给人工管理 API 和 Actuator 健康检查。各 Admin 共享 PostgreSQL 和 Redis；已完成
 发布的事实不依赖某个 Admin 的本地状态。Redis 保存配置缓存、发布通知、配置客户端
 当前租约和服务注册租约。PostgreSQL 保存配置、版本、发布、ACK、操作日志和配置
@@ -41,39 +41,39 @@ Admin HTTP 仅保留给人工管理 API 和 Actuator 健康检查。各 Admin �
 | 模块 | 职责 |
 |---|---|
 | `egon-cola-tianshu-starter` | 传输无关 SDK 运行时与端口：ConfigData、`@DdcValue`、选择性刷新、ACK、租约、管理和注册契约 |
-| `egon-cola-tianshu-http-registration-starter` | Spring HTTP 服务注册、DDC 租约心跳/恢复和注册元数据贡献 SPI |
+| `egon-cola-tianshu-http-registration-starter` | Spring HTTP 服务注册、Tianshu 租约心跳/恢复和注册元数据贡献 SPI |
 | `egon-cola-component-rpc-tianshu-adapter` | 位于 `components/rpc` 的组装适配器：Protobuf 契约、直连 gRPC Client/Provider、HMAC Metadata 和 Spring Boot 装配 |
 | `egon-cola-tianshu-admin` | 人工 REST Admin 与直连 gRPC Facade、PostgreSQL 持久化、Redis 缓存/租约和同步发布状态机 |
 | `egon-cola-tianshu-admin-web` | 独立管理控制台（React + antd + Vite，纯 Node 工程，不进 Maven reactor）；构建与部署说明见 `egon-cola-tianshu-admin-web/README.md` |
 | `egon-cola-tianshu-test` | 仅依赖 Starter 的样例与黑盒消费端验证，不依赖 Admin |
 
-Admin 的 webui 已从 jar 中摘出（`/ddc-admin` 不再由 Admin 提供服务）：管理控制台以
-独立容器部署，经 `DDC_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
+Admin 的 webui 已从 jar 中摘出（`/tianshu-admin` 不再由 Admin 提供服务）：管理控制台以
+独立容器部署，经 `TIANSHU_ADMIN_API_BASE_URL` 指向 Admin，`/api` 请求由 static-server
 同源反代，Admin 侧无需 CORS 配置。
 
 ## Admin 分页查询
 
-DDC Admin 为人工管理场景提供以下增量式服务端分页查询：
+Tianshu Admin 为人工管理场景提供以下增量式服务端分页查询：
 
 ```text
-GET /api/v1/ddc/bizs/page
-GET /api/v1/ddc/namespaces/page
-GET /api/v1/ddc/envs/page
-GET /api/v1/ddc/apps/page
-GET /api/v1/ddc/namespace-env-app-bindings/page
-GET /api/v1/ddc/configs/page
-GET /api/v1/ddc/configs/{id}/versions/page
-GET /api/v1/ddc/publish-tasks/page
-GET /api/v1/ddc/instances/page
-GET /api/v1/ddc/cache/check/page
-GET /api/v1/ddc/registry/services/page
-GET /api/v1/ddc/registry/instances/page
+GET /api/v1/tianshu/bizs/page
+GET /api/v1/tianshu/namespaces/page
+GET /api/v1/tianshu/envs/page
+GET /api/v1/tianshu/apps/page
+GET /api/v1/tianshu/namespace-env-app-bindings/page
+GET /api/v1/tianshu/configs/page
+GET /api/v1/tianshu/configs/{id}/versions/page
+GET /api/v1/tianshu/publish-tasks/page
+GET /api/v1/tianshu/instances/page
+GET /api/v1/tianshu/cache/check/page
+GET /api/v1/tianshu/registry/services/page
+GET /api/v1/tianshu/registry/instances/page
 ```
 
 例如：
 
 ```text
-GET /api/v1/ddc/bizs/page?pageNo=1&pageSize=10
+GET /api/v1/tianshu/bizs/page?pageNo=1&pageSize=10
 成功 -> PageResultRecord { records, page }
 失败 -> 现有 ResultRecord 错误信封
 旧有列表、目录和快照接口继续保留
@@ -114,26 +114,26 @@ top.egon.cola.component.tianshu
 ```
 
 `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 仍是三套独立
-领域门面，RPC-DDC Adapter 通过三个 unary gRPC Service 实现它们。基础 Starter 不依赖
-RPC；HTTP 注册 Starter 属于应用组装 Starter，因此会引入向 DDC 发送注册操作所需的
-RPC-DDC Adapter。HTTP 注册配置统一使用
-`egon.cola.component.ddc.registry.http` 命名空间。
+领域门面，RPC-Tianshu Adapter 通过三个 unary gRPC Service 实现它们。基础 Starter 不依赖
+RPC；HTTP 注册 Starter 属于应用组装 Starter，因此会引入向 Tianshu 发送注册操作所需的
+RPC-Tianshu Adapter。HTTP 注册配置统一使用
+`egon.cola.component.tianshu.registry.http` 命名空间。
 
 ## 运维端点
 
-DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
+Tianshu Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
 `GET /actuator/info` 在 `app.name` 和 `app.version` 中暴露应用名称与 Maven
 过滤后的组件版本。
 
-可执行业务应用引入 RPC-DDC Adapter，并通过 `spring.config.import` 导入 `ddc:application.yml`。
-`egon.cola.component.ddc.enabled=true` 会在 ConfigData 阶段加载远端 YAML，随后启动
+可执行业务应用引入 RPC-Tianshu Adapter，并通过 `spring.config.import` 导入 `tianshu:application.yml`。
+`egon.cola.component.tianshu.enabled=true` 会在 ConfigData 阶段加载远端 YAML，随后启动
 `CONFIG_CLIENT` 注册、配置拉取、Redis 订阅、心跳和停机下线闭环；
-`egon.cola.component.ddc.registry.enabled=true` 独立启用 RPC/Gateway 服务注册，
+`egon.cola.component.tianshu.registry.enabled=true` 独立启用 RPC/Yuheng 服务注册，
 其中 `RPC_PROVIDER`、`HTTP_PROVIDER` 和 `INTERNAL_GATEWAY` 租约不是配置客户端注册。启用任一远程
 路径时都必须在本地显式配置直连 RPC 目标、匹配的最小权限 HMAC 凭据和 Redis 拓扑。
 `redis.enabled=false` 时不会执行注册、拉取、订阅、心跳或 ACK。生产多 Admin
 入口由外部 DNS、VIP 或支持 HTTP/2 的负载均衡提供，客户端使用
-`round_robin`。DDC 不发现自身 Admin，也不保留机器 HTTP 兼容端点。
+`round_robin`。Tianshu 不发现自身 Admin，也不保留机器 HTTP 兼容端点。
 
 ```xml
 <dependency>
@@ -145,14 +145,14 @@ DDC Admin 使用 `GET /actuator/health/readiness` 作为启动与就绪探针。
 
 ## Trace 传播
 
-Starter 和 RPC-DDC Adapter 的 gRPC Facade 调用、心跳、拉取、ACK 重试、Redis
+Starter 和 RPC-Tianshu Adapter 的 gRPC Facade 调用、心跳、拉取、ACK 重试、Redis
 Topic 回调和租约恢复任务统一使用 `egon-cola-component-common-trace`。业务请求触发的
-DDC 调用会继承当前 `traceId` 并创建 child span；后台任务没有上游 Trace 时会为每次
+Tianshu 调用会继承当前 `traceId` 并创建 child span；后台任务没有上游 Trace 时会为每次
 逻辑操作打开新的 `TraceContext`，并在结束后恢复原线程 MDC。出站只写
 `traceparent`、`tracestate` 和 `x-egon-request-id`，不写 `x-egon-trace-id`。
 
 Spring MVC Admin 侧直接引入 `egon-cola-component-common-trace-spring-boot-starter`，不再维护
-DDC 私有 Trace Filter。
+Tianshu 私有 Trace Filter。
 
 ## 配置客户端生命周期
 
@@ -190,7 +190,7 @@ private volatile Integer permitsPerSecond;
 private volatile Boolean downgradeEnabled;
 ```
 
-运行期发布会原子替换 DDC PropertySource，并按 YAML 叶子计算差异。显式注册的
+运行期发布会原子替换 Tianshu PropertySource，并按 YAML 叶子计算差异。显式注册的
 `DdcConfigApplier` 与允许刷新的 `@DdcValue` 字段接收对应叶子；只有标注
 `@DdcRefreshable` 且采用 setter 绑定的 `@ConfigurationProperties` 会被重新绑定。
 不可变配置和其他变更会被标记为需要重启，但不会重启 ApplicationContext。
@@ -259,7 +259,7 @@ ACK 只有同时匹配以下内容才会被接受：
 | `TIMEOUT` | 截止时间前未收到全部成功 ACK |
 | `UNKNOWN` | Admin 在任务活跃期间重启 |
 
-`POST /api/v1/ddc/publish-tasks/{changeId}/retry` 对 `FAILED`、`TIMEOUT`、
+`POST /api/v1/tianshu/publish-tasks/{changeId}/retry` 对 `FAILED`、`TIMEOUT`、
 `UNKNOWN` 任务执行幂等重试。Retry 固定复用原目标，不重新快照当前在线实例。
 任一原目标租约失效时，Retry 保持失败并记录目标租约错误。
 
@@ -267,7 +267,7 @@ ACK 只有同时匹配以下内容才会被接受：
 
 ```bash
 curl -X POST \
-  'http://localhost:18080/api/v1/ddc/configs/{configId}/publish?operator=admin' \
+  'http://localhost:18080/api/v1/tianshu/configs/{configId}/publish?operator=admin' \
   -H 'Content-Type: application/json' \
   -d '{
     "changeId": "019c9f0d-7b9b-7e00-8000-000000000001",
@@ -278,21 +278,21 @@ curl -X POST \
 ```
 
 该调用有意保持同步。调用方丢失响应时，可用同一 `changeId` 请求
-`GET /api/v1/ddc/publish-tasks/{changeId}` 查询持久化结果。
+`GET /api/v1/tianshu/publish-tasks/{changeId}` 查询持久化结果。
 
 ## RPC HMAC
 
-`signature-enabled` 为 true 时，HMAC 保护所有已发布 DDC unary 方法。
+`signature-enabled` 为 true 时，HMAC 保护所有已发布 Tianshu unary 方法。
 必需 gRPC Metadata：
 
 | Header | 值 |
 |---|---|
-| `x-egon-ddc-access-key` | 配置的 access key |
-| `x-egon-ddc-timestamp` | Unix 毫秒时间戳 |
-| `x-egon-ddc-nonce` | 请求唯一随机数 |
-| `x-egon-ddc-content-sha256` | protobuf 确定性序列化字节的小写 SHA-256 |
-| `x-egon-ddc-signature` | 规范请求的 HMAC-SHA256 |
-| `x-egon-ddc-contract-version` | `v1` |
+| `x-egon-tianshu-access-key` | 配置的 access key |
+| `x-egon-tianshu-timestamp` | Unix 毫秒时间戳 |
+| `x-egon-tianshu-nonce` | 请求唯一随机数 |
+| `x-egon-tianshu-content-sha256` | protobuf 确定性序列化字节的小写 SHA-256 |
+| `x-egon-tianshu-signature` | 规范请求的 HMAC-SHA256 |
+| `x-egon-tianshu-contract-version` | `v1` |
 
 规范请求由五个换行分隔的字段组成：
 
@@ -314,11 +314,11 @@ Admin 会检查已知方法/操作映射、契约版本、时间偏移、Access 
 
 | 已删除前缀 | 已删除叶子 | 直连 RPC 替代项 |
 |---|---|---|
-| `egon.cola.component.ddc.admin` | `endpoint` | `egon.cola.component.ddc.rpc.target` |
-| `egon.cola.component.ddc.admin` | `tls.*` | `egon.cola.component.ddc.rpc.tls.*` |
-| `egon.cola.component.ddc.admin` | `access-key` / `secret-key` | 按能力使用 `egon.cola.component.ddc.rpc.auth.runtime.*` 或 `.registry.*` |
-| `gateway.admin.ddc` | `endpoint` 和 HMAC Key | `egon.cola.component.ddc.rpc.target` 与 `.auth.management.*` |
-| `egon.cola.component.ddc.admin.openapi` | `signature-enabled` / `credentials` | `egon.cola.component.ddc.admin.rpc.signature-enabled` / `.credentials` |
+| `egon.cola.component.tianshu.admin` | `endpoint` | `egon.cola.component.tianshu.rpc.target` |
+| `egon.cola.component.tianshu.admin` | `tls.*` | `egon.cola.component.tianshu.rpc.tls.*` |
+| `egon.cola.component.tianshu.admin` | `access-key` / `secret-key` | 按能力使用 `egon.cola.component.tianshu.rpc.auth.runtime.*` 或 `.registry.*` |
+| `yuheng.admin.tianshu` | `endpoint` 和 HMAC Key | `egon.cola.component.tianshu.rpc.target` 与 `.auth.management.*` |
+| `egon.cola.component.tianshu.admin.openapi` | `signature-enabled` / `credentials` | `egon.cola.component.tianshu.admin.rpc.signature-enabled` / `.credentials` |
 
 不提供兼容别名。凭据通过环境注入，Runtime、Registry 和 Management 使用
 不同的 Access Key/Secret 对。
@@ -328,33 +328,33 @@ Admin 会检查已知方法/操作映射、契约版本、时间偏移、Access 
 ```yaml
 spring:
   config:
-    import: ddc:application.yml
+    import: tianshu:application.yml
 
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: true
         biz-code: orders
         app-code: order-service
         env: dev
         namespace: default
         rpc:
-          target: dns:///ddc-admin.example.internal:19080
+          target: dns:///tianshu-admin.example.internal:19080
           load-balancing-policy: round_robin
           tls:
             enabled: true
             development-plaintext: false
-            certificate-chain-path: ${DDC_CLIENT_CERTIFICATE}
-            private-key-path: ${DDC_CLIENT_PRIVATE_KEY}
-            trust-certificate-collection-path: ${DDC_TRUST_CERTIFICATE}
+            certificate-chain-path: ${TIANSHU_CLIENT_CERTIFICATE}
+            private-key-path: ${TIANSHU_CLIENT_PRIVATE_KEY}
+            trust-certificate-collection-path: ${TIANSHU_TRUST_CERTIFICATE}
           auth:
             runtime:
-              access-key: ${DDC_RUNTIME_ACCESS_KEY}
-              secret-key: ${DDC_RUNTIME_SECRET_KEY}
+              access-key: ${TIANSHU_RUNTIME_ACCESS_KEY}
+              secret-key: ${TIANSHU_RUNTIME_SECRET_KEY}
             registry:
-              access-key: ${DDC_REGISTRY_ACCESS_KEY}
-              secret-key: ${DDC_REGISTRY_SECRET_KEY}
+              access-key: ${TIANSHU_REGISTRY_ACCESS_KEY}
+              secret-key: ${TIANSHU_REGISTRY_SECRET_KEY}
         redis:
           mode: SINGLE
           nodes: []
@@ -373,13 +373,13 @@ egon:
           fail-fast: true
 ```
 
-允许远端文档不存在时可使用 `optional:ddc:application.yml`。DDC 只贡献一个
+允许远端文档不存在时可使用 `optional:tianshu:application.yml`。Tianshu 只贡献一个
 PropertySource，其优先级高于本地 ConfigData、低于 Spring Boot 的命令行参数和系统
 属性；本地与远端文档不做自定义合并。Admin 在每个 `bizCode + env + appCode` 下只接受
 一份名为 `application.yml` 或 `application.yaml` 的单文档、Map 根节点 YAML；
 `spring.config.import` 中的资源名必须与 Admin 保存的 `resourceName` 一致。远端 YAML 一旦包含
-`egon.cola.component.ddc.*`、`spring.config.*` 或 Spring Profile 控制键，整份文档都会
-被拒绝，因此 DDC 连接和引导参数只能来自本地配置。
+`egon.cola.component.tianshu.*`、`spring.config.*` 或 Spring Profile 控制键，整份文档都会
+被拒绝，因此 Tianshu 连接和引导参数只能来自本地配置。
 
 配置格式以 `DdcConfigFormatStrategy` 和 `DdcConfigFormatStrategyRegistry` 作为扩展点。
 当前内置策略只有 YAML，并由 Spring Boot `YamlPropertySourceLoader` 负责解析；JSON、
@@ -393,16 +393,16 @@ server:
 
 spring:
   datasource:
-    url: jdbc:postgresql://127.0.0.1:5432/egon_ddc
-    username: ${DDC_DB_USERNAME}
-    password: ${DDC_DB_PASSWORD}
+    url: jdbc:postgresql://127.0.0.1:5432/egon_tianshu
+    username: ${TIANSHU_DB_USERNAME}
+    password: ${TIANSHU_DB_PASSWORD}
   flyway:
     locations: classpath:db/postgresql
 
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: false
         admin:
           transport-security:
@@ -422,30 +422,30 @@ egon:
             signature-enabled: true
             credentials:
               - credential-id: runtime
-                access-key: ${DDC_RUNTIME_ACCESS_KEY}
-                secret: ${DDC_RUNTIME_SECRET_KEY}
+                access-key: ${TIANSHU_RUNTIME_ACCESS_KEY}
+                secret: ${TIANSHU_RUNTIME_SECRET_KEY}
                 client-type: SDK
-                app-code-patterns: [gateway-engine-*]
+                app-code-patterns: [yuheng-biz-gateway-*]
                 env-patterns: [local]
                 biz-code-patterns: [infra]
                 namespace-patterns: [default]
                 allowed-operations: [SDK_REGISTER, SDK_HEARTBEAT,
                   SDK_OFFLINE, CONFIG_PULL, PUBLISH_ACK]
               - credential-id: registry
-                access-key: ${DDC_REGISTRY_ACCESS_KEY}
-                secret: ${DDC_REGISTRY_SECRET_KEY}
+                access-key: ${TIANSHU_REGISTRY_ACCESS_KEY}
+                secret: ${TIANSHU_REGISTRY_SECRET_KEY}
                 client-type: REGISTRY
-                app-code-patterns: [gateway-*]
+                app-code-patterns: [yuheng-*]
                 env-patterns: [local]
                 biz-code-patterns: [infra]
                 namespace-patterns: [default]
                 allowed-operations: [REGISTRY_REGISTER,
                   REGISTRY_HEARTBEAT, REGISTRY_DEREGISTER, REGISTRY_READ]
               - credential-id: management
-                access-key: ${DDC_MANAGEMENT_ACCESS_KEY}
-                secret: ${DDC_MANAGEMENT_SECRET_KEY}
+                access-key: ${TIANSHU_MANAGEMENT_ACCESS_KEY}
+                secret: ${TIANSHU_MANAGEMENT_SECRET_KEY}
                 client-type: MANAGEMENT
-                app-code-patterns: [gateway-engine-*]
+                app-code-patterns: [yuheng-biz-gateway-*]
                 env-patterns: [local]
                 biz-code-patterns: [infra]
                 namespace-patterns: [default]
@@ -473,9 +473,9 @@ egon:
         tls:
           enabled: true
           development-plaintext: false
-          certificate-chain-path: ${DDC_SERVER_CERTIFICATE}
-          private-key-path: ${DDC_SERVER_PRIVATE_KEY}
-          trust-certificate-collection-path: ${DDC_TRUST_CERTIFICATE}
+          certificate-chain-path: ${TIANSHU_SERVER_CERTIFICATE}
+          private-key-path: ${TIANSHU_SERVER_PRIVATE_KEY}
+          trust-certificate-collection-path: ${TIANSHU_TRUST_CERTIFICATE}
 ```
 
 `test` Profile 使用 SQLite `create-drop`，并关闭 Flyway 和 Admin Redis
@@ -495,12 +495,12 @@ egon:
 
 ## 明确边界
 
-完整的 DDC + Gateway + RPC 启动顺序、凭据、租约演练和运行证据见
+完整的 Tianshu + Yuheng + RPC 启动顺序、凭据、租约演练和运行证据见
 [开发联调 Runbook](../egon-cola-yuheng/docs/developer-integration.zh-CN.md)。
 
 - 不支持 Raft、Leader 选举、共识日志或成员协议；
 - 多 Admin 运行要求共享 PostgreSQL 和 Redis；平台不负责提供数据库或 Redis HA；
-- DDC 使用直连逻辑 RPC 目标和客户端/外部轮询；不注册或发现自身、不要求粘性会话、不通过 gRPC 流式下发配置；
+- Tianshu 使用直连逻辑 RPC 目标和客户端/外部轮询；不注册或发现自身、不要求粘性会话、不通过 gRPC 流式下发配置；
 - 不提供分布式共识或通用分布式锁服务；
 - 不内嵌 Redis，不使用数据库持久化服务注册信息；
 - 不内嵌 Admin UI 或账号系统；独立 Admin Web 接入平台统一身份与授权，且不以兼容

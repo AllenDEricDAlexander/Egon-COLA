@@ -30,8 +30,8 @@ Primary Spec 的 parent/BOM、native transport 与 Common allowlist 决策覆盖
 | --- | --- | --- | --- | --- |
 | 1 | Establish parent and dependency ownership | Committed | d6e9e17c1d3330eec3b624bb27b17a40a9dc1636 | 7 个 effective POM；owner/version-bump RED/GREEN、回滚夹具通过 |
 | 2 | Add native unary Protobuf contracts | Committed | 530ccb7e06122f6048b75b393099d6194f5b21e9 | 133 项 focused + 156 项扩展测试通过；31 unary operation |
-| 3 | Migrate native light provider and DDC/API Doc wiring | Committed | c97234bae444043ecc468a4a9c7b4d04ccfc1412 | 207 项 Light 回归；架构扫描与 native 配置/HTTP 检查通过 |
-| 4 | Migrate native service/web RPC, DDC and API Doc | Committed | a39db1d89c7d59f209eee49019a7dc1c4afe0de4 | 1,100 项相关 reactor 回归；Service/Web 246/343 类架构检查通过 |
+| 3 | Migrate native light provider and Tianshu/API Doc wiring | Committed | c97234bae444043ecc468a4a9c7b4d04ccfc1412 | 207 项 Light 回归；架构扫描与 native 配置/HTTP 检查通过 |
+| 4 | Migrate native service/web RPC, Tianshu and API Doc | Committed | a39db1d89c7d59f209eee49019a7dc1c4afe0de4 | 1,100 项相关 reactor 回归；Service/Web 246/343 类架构检查通过 |
 | 5 | Enforce open compatibility and Agent minimal dependencies | Committed | d144a464f7f6e07a19ac5307fd414cbcfd3221f5 | 697 项 Open/Agent 回归；源声明与 runtime tree 边界通过 |
 | 6 | Normalize generated parent and sentinel handling | Committed | d2db5deb6216b56270327e7df7d55e6ba39eb75a | parent/alias、sentinel、锁、确定性、失败保留和 signal cleanup 夹具通过 |
 | 7 | Update definitions, regenerate and close release gates | Committed | b9d0d6f8ba0b0bf4520bf8dac8e5bf4b97ed4ea1 | 3,081 项 source 回归；850 项 generated 测试；七产品 IT、release verify、21 附件及隔离解析通过 |
@@ -55,9 +55,9 @@ Primary Spec 的 parent/BOM、native transport 与 Common allowlist 决策覆盖
 | 1 correction | afc980095ed6eda21456910841af2074eea4032e | Boot parent disables standard Maven resource delimiters; restore library runtime-version filtering and explicitly retain archetype template protection；[] |
 | 1 correction | 0e66ccfb3ca925cacdeecd45f73d46229622f7d2 | Preserve library Shade configuration after Boot parent adoption；['PLAN-CLAR-012: Boot default transformer merged invalid resource into ManifestResourceTransformer; root-only restoration of explicit module shading'] |
 | 2 correction | 26121b707dd15f8d96b3e53463d19fdee7ff8b05 | compiler-generated mapping class is not a business Facade implementation; exact class configuration preserves all business Adapter checks；[] |
-| 3 correction | 4da6f0edf4c4f98b28f1f4a5cea979fc52368ecd | Require generated Compose DDC application identity；['PLAN-CLAR-013: explicit environment identity avoids Velocity tokens in unfiltered Compose'] |
-| 3 correction | d8df6793d83b99d67f2d978c5466f264722cd519 | DDC HTTP registration must resolve effective server.port rather than separately reading SERVER_PORT; preserves Maven/JVM runtime port overrides；[] |
-| 4 correction | 6557635695c3d726b58490dba220c02977da07cc | Require generated Compose DDC application identity；['PLAN-CLAR-013: explicit environment identity avoids Velocity tokens in unfiltered Compose'] |
+| 3 correction | 4da6f0edf4c4f98b28f1f4a5cea979fc52368ecd | Require generated Compose Tianshu application identity；['PLAN-CLAR-013: explicit environment identity avoids Velocity tokens in unfiltered Compose'] |
+| 3 correction | d8df6793d83b99d67f2d978c5466f264722cd519 | Tianshu HTTP registration must resolve effective server.port rather than separately reading SERVER_PORT; preserves Maven/JVM runtime port overrides；[] |
+| 4 correction | 6557635695c3d726b58490dba220c02977da07cc | Require generated Compose Tianshu application identity；['PLAN-CLAR-013: explicit environment identity avoids Velocity tokens in unfiltered Compose'] |
 | 4 correction | 8b0587fab5cf700e451b0eada690596c4c634bac | Complete package documentation for native adapters；['PLAN-CLAR-011: routine repair under existing authorization; no behavior/test requirement changed'] |
 | 6 correction | ec2487700ef55395debdb24ccb0e70ee965f1d16 | Normalize Maven parentArtifactId alias before Velocity escaping；['PLAN-CLAR-014: preserve source test assertions and normalize plugin alias in existing pipeline'] |
 
@@ -140,7 +140,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/eg
 </details>
 
 <details>
-<summary>3 — c97234bae — Migrate native light provider and DDC/API Doc wiring</summary>
+<summary>3 — c97234bae — Migrate native light provider and Tianshu/API Doc wiring</summary>
 
 ```text
 egon-cola-archetypes/source-projects/egon-cola-source-light/README.md
@@ -203,7 +203,7 @@ scripts/check-native-archetype-boundaries.py
 </details>
 
 <details>
-<summary>4 — a39db1d89 — Migrate native service/web RPC, DDC and API Doc</summary>
+<summary>4 — a39db1d89 — Migrate native service/web RPC, Tianshu and API Doc</summary>
 
 ```text
 egon-cola-archetypes/egon-cola-organization-facade/src/main/java/top/egon/cola/organization/facade/rpc/RpcIdQuery.java
@@ -395,7 +395,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml
 </details>
 
 <details>
-<summary>3 correction — 4da6f0edf — Require generated Compose DDC application identity</summary>
+<summary>3 correction — 4da6f0edf — Require generated Compose Tianshu application identity</summary>
 
 ```text
 docs/egon/plan/2026-09-08-03-30-archetype-native-open-dependency-migration.md
@@ -410,7 +410,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compo
 </details>
 
 <details>
-<summary>3 correction — d8df6793d — DDC HTTP registration must resolve effective server.port rather than separately reading SERVER_PORT; preserves Maven/JVM runtime port overrides</summary>
+<summary>3 correction — d8df6793d — Tianshu HTTP registration must resolve effective server.port rather than separately reading SERVER_PORT; preserves Maven/JVM runtime port overrides</summary>
 
 ```text
 egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml
@@ -423,7 +423,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/eg
 </details>
 
 <details>
-<summary>4 correction — 655763569 — Require generated Compose DDC application identity</summary>
+<summary>4 correction — 655763569 — Require generated Compose Tianshu application identity</summary>
 
 ```text
 egon-cola-archetypes/source-projects/egon-cola-source-service/deploy/compose/compose.docker.prod.yaml
@@ -517,7 +517,7 @@ Service/Web 的 `-DskipTests verify` 曾仅用于生成诊断所需 jar/架构�
 
 | ID | 要求 | 实现/验证证据 | 状态 |
 | --- | --- | --- | --- |
-| Primary REQ-001 | Native RPC/DDC/API Doc owner 与接线 | Steps1–4,7；native starter POM、配置/Provider/Client；native scanner、850 generated tests | Satisfied |
+| Primary REQ-001 | Native RPC/Tianshu/API Doc owner 与接线 | Steps1–4,7；native starter POM、配置/Provider/Client；native scanner、850 generated tests | Satisfied |
 | Primary REQ-002 | Open 外部体系与现有合同 | Steps1,5,7；Open root/local facade；697 focused 与 Open generated IT | Satisfied |
 | Primary REQ-003 | Agent 最小依赖、Spring AI/ADK/Agent Flow | Steps1,5,7；实际 runtime tree/BOOT-INF/lib；Agent31 tests | Satisfied |
 | Primary REQ-004 | Components BOM 统一版本 | Step1；Components BOM/archetypes parent；七 isolated effective POM | Satisfied |
@@ -633,8 +633,8 @@ Service/Web 的 `-DskipTests verify` 曾仅用于生成诊断所需 jar/架构�
 | NFR-REPRO | owner/effective POM、原子生成/hash/lock 夹具、最终 check | Satisfied | None |
 | NFR-FAILURE | 缺 parent/依赖/合约/invalid input 明确失败；transport/business error 单测 | Satisfied | None |
 | NFR-COMPAT | HTTP/OAS/GraphQL/MQ 回归；Open Java/proto/SQL 哈希；无数据库变更 | Satisfied | None |
-| NFR-RUNTIME（primary §15） | native discovery/跨进程连接、DDC/IdP/TLS 仅有源码及隔离测试证据 | Runtime unverified | 用户部署后验收连接、证书、HMAC、SERVICE token、目标 biz/app/env/group/version |
-| NFR-SECURITY（primary §15） | 静态未引入凭据输出；配置示例无真实凭据 | Runtime unverified | 验收实际运行日志脱敏及 IdP/文档治理权限 |
+| NFR-RUNTIME（primary §15） | native discovery/跨进程连接、Tianshu/Tianquan-Shoubing/TLS 仅有源码及隔离测试证据 | Runtime unverified | 用户部署后验收连接、证书、HMAC、SERVICE token、目标 biz/app/env/group/version |
+| NFR-SECURITY（primary §15） | 静态未引入凭据输出；配置示例无真实凭据 | Runtime unverified | 验收实际运行日志脱敏及 Tianquan-Shoubing/文档治理权限 |
 | NFR-OPERABILITY（primary §15） | 复用组件健康/注册信号；未检验真实失败/恢复及运维告警 | Runtime unverified | 验收真实注册、健康、失败恢复与状态可观测性 |
 | Database/schema | 本次无任何 SQL commit；82现存SQL及133native domain文件哈希不变 | Satisfied | 旧归档缺失另列 A-LEGACY-001 |
 | Frontend | 本任务无页面改动；并发前端/RBAC提交排除 | Satisfied | None |
@@ -718,7 +718,7 @@ API 文档治理保持默认兼容配置。启用平台文档 catalog 前，现�
 | ID | 状态 | 证据与影响 | 建议下一步 |
 | --- | --- | --- | --- |
 | A-LEGACY-001 | Baseline gap / Partial | [final-legacy-baseline.json](/var/folders/gb/vwfj36c909xgtbr0jl267d880000gp/T/egon-native-migration-p2k5o_1_/final-legacy-baseline.json)：12旧archive路径在 `dfd24ce3f` 与当前均不存在；`package reactor` exit1。本次未改SQL，不能宣称旧原路径归档已满足。 | 用户确认这些旧路径应恢复还是前驱Spec/校验应更新；随后以单独 corrective Plan处理。不要伪造SQL、修改校验来隐藏缺失。 |
-| A-RUNTIME-001 | Runtime unverified | 未连接真实DDC/IdP/TLS或做跨进程native调用；源码/内存gRPC/模型测试不替代部署证明。 | 配置DDC与peer app code、HMAC、TLS和IdP SERVICE token后由用户联调。 |
+| A-RUNTIME-001 | Runtime unverified | 未连接真实DDC/Tianquan-Shoubing/TLS或做跨进程native调用；源码/内存gRPC/模型测试不替代部署证明。 | 配置DDC与peer app code、HMAC、TLS和IdP SERVICE token后由用户联调。 |
 | A-OPS-001 | Runtime unverified | 未验证实际注册失败/恢复、生产健康信号及日志脱敏。 | 由用户运行并验收健康/注册/恢复与日志。 |
 | A-DOC-001 | Enablement prerequisite | 默认业务HTTP兼容；旧Controller未普遍补齐显式operationId。 | 若启用平台文档治理，先补齐业务operationId并验收权限；本次未扩张业务接口改造。 |
 | A-PUBLISH-001 | Not performed | 本地5.4.0产物已装配和隔离解析，未确认相同新内容已远程发布；GPG签名跳过。 | 发布前确认版本/远程坐标与archive决策，再显式执行受控发布。 |
@@ -740,14 +740,14 @@ egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resour
 egon-cola-archetypes/egon-cola-archetype-web/src/main/resources/archetype-resources/__rootArtifactId__-infrastructure/src/main/resources/db/migration/sharding/shard/V20260825_004__migrate_organization_sharded_to_tenant_model.sql
 ```
 
-测试包含隔离 H2 SQL、in-process gRPC，以及既有 Open 端口夹具；这些测试会创建并关闭自己的临时资源。本任务没有启动用户的业务项目、浏览器、Docker/Compose、DDC、IdP 或数据库服务，也没有连接用户真实数据库执行迁移。未执行 push、PR、merge、deploy 或 Central publish。
+测试包含隔离 H2 SQL、in-process gRPC，以及既有 Open 端口夹具；这些测试会创建并关闭自己的临时资源。本任务没有启动用户的业务项目、浏览器、Docker/Compose、Tianshu、Tianquan-Shoubing 或数据库服务，也没有连接用户真实数据库执行迁移。未执行 push、PR、merge、deploy 或 Central publish。
 
 ## 7. Final Manual Check matrix
 
 | Check ID | Applicability | Status | 独立最终证据 | Finding | Action |
 | --- | --- | --- | --- | --- | --- |
 | MC-ARCH-001 | Applicable | PASS | 7个源/生成拓扑、真实架构报告、850generated tests | 保留选定COLA profile；精确generated mapper分类有证据 | None；运行边界见§6 |
-| MC-REUSE-001 | Applicable | PASS | 5BaseConverter；RPC contract/strategy/proxy factories、DDC/HTTP/OpenAPI starters | 没有新通用框架或重复业务层 | None；运行边界见§6 |
+| MC-REUSE-001 | Applicable | PASS | 5BaseConverter；RPC contract/strategy/proxy factories、Tianshu/HTTP/OpenAPI starters | 没有新通用框架或重复业务层 | None；运行边界见§6 |
 | MC-DEP-001 | Applicable | PASS | 7isolated effective POM、源/runtime guards、实际BOOT-INF/lib | native/Open/Agent版本与需要分离 | None；运行边界见§6 |
 | MC-NAME-001 | Applicable | PASS | 70 authored main Java路径、12record，31RpcService方法 | POJO/角色命名与边界一致 | None；运行边界见§6 |
 | MC-VALID-001 | Applicable | PASS | generated provider/client/config suites；Default/native groups、正ID、响应DTO校验 | 受影响handoff有Jakarta/ValidationUtils与负例证据 | None；运行边界见§6 |

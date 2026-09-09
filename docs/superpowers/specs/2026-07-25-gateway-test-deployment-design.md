@@ -1,16 +1,16 @@
-# GWS-13 Gateway Test 与部署 Spec
+# GWS-13 Yuheng Test 与部署 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01～GWS-12
 
 ## 1. 目标
 
-本 Spec 定义 Gateway 的测试工程、真实进程端到端验证、故障验证、构建命令和部署
+本 Spec 定义 Yuheng 的测试工程、真实进程端到端验证、故障验证、构建命令和部署
 边界。
 
 测试方式参考现有 Dynamic Thread Pool 的真实示例应用和 RPC Component 的
@@ -19,7 +19,7 @@ Contract/Provider/Consumer/Test Suite/Process Harness：
 - 不是只用 Mock Controller 验证 Bean；
 - 真实启动 HTTP Provider；
 - 真实启动 Egon RPC Provider 与 Consumer；
-- 真实启动 DDC Admin、Gateway Admin 和 Gateway Engine；
+- 真实启动 Tianshu Admin、Yuheng Admin 和 Yuheng Engine；
 - 使用真实 PostgreSQL、Redis、Kafka；
 - Provider 真实注册，Starter 真实上报；
 - Admin API 与页面真实可见；
@@ -31,21 +31,21 @@ Contract/Provider/Consumer/Test Suite/Process Harness：
 ## 2. 测试模块
 
 ```text
-egon-cola-component-gateway-test/
+egon-cola-component-yuheng-test/
 ├── pom.xml
-├── egon-cola-component-gateway-test-http-provider/
-├── egon-cola-component-gateway-test-rpc-contract/
-├── egon-cola-component-gateway-test-rpc-provider/
-├── egon-cola-component-gateway-test-rpc-consumer/
-└── egon-cola-component-gateway-test-suite/
+├── egon-cola-component-yuheng-test-http-provider/
+├── egon-cola-component-yuheng-test-rpc-contract/
+├── egon-cola-component-yuheng-test-rpc-provider/
+├── egon-cola-component-yuheng-test-rpc-consumer/
+└── egon-cola-component-yuheng-test-suite/
 ```
 
 ### 2.1 HTTP Provider
 
 真实 Spring Boot 应用，安装：
 
-- `gateway-starter`；
-- `gateway-provider-runtime`；
+- `yuheng-starter`；
+- `yuheng-provider-runtime`；
 - Spring MVC 或 WebFlux；
 - 测试用 Controller。
 
@@ -94,12 +94,12 @@ OrderService/Fail
 
 ### 2.3 RPC Provider
 
-真实 Spring Boot 应用，安装 RPC Provider 与 Gateway Starter：
+真实 Spring Boot 应用，安装 RPC Provider 与 Yuheng Starter：
 
 - 启动真实 gRPC Server；
-- 通过 RPC Component 向 DDC 注册 `RPC_PROVIDER`；
+- 通过 RPC Component 向 Tianshu 注册 `RPC_PROVIDER`；
 - 通过 Starter 向 Admin 上报 Contract；
-- 通过 Gateway Metadata Contributor 携带 Definition Set/Zone/Weight；
+- 通过 Yuheng Metadata Contributor 携带 Definition Set/Zone/Weight；
 - 至少启动两个实例验证负载均衡和故障切换。
 
 Starter 不注册 RPC Lease；Lease 必须能证明来自 RPC Component。
@@ -123,14 +123,14 @@ Consumer 不直接发现业务 RPC Provider。
 - 子进程构建/启动/停止；
 - 随机端口与配置注入；
 - 真实 HTTP/RPC Client；
-- Gateway Admin Client；
-- DDC Management/Registry 查询；
+- Yuheng Admin Client；
+- Tianshu Management/Registry 查询；
 - Kafka Test Consumer；
 - 故障注入；
 - 日志、退出码和诊断制品归档。
 
 测试代码中可以使用 Fake 做单元边界验证，但 E2E 不允许用现有 RPC
-`MockGateway` 代替生产 Gateway Engine。
+`MockGateway` 代替生产 Yuheng Engine。
 
 ## 3. 测试分层
 
@@ -155,7 +155,7 @@ Consumer 不直接发现业务 RPC Provider。
 - Reactor Netty Listener；
 - gRPC Dynamic Handler；
 - PostgreSQL Repository；
-- DDC/Kafka/Redis Adapter；
+- Tianshu/Kafka/Redis Adapter；
 - Starter Scanner；
 - Admin Controller；
 - 前端组件。
@@ -180,11 +180,11 @@ Consumer 不直接发现业务 RPC Provider。
 
 ```mermaid
 flowchart LR
-    TestClient["Gateway Test Client"] --> Public["Engine PUBLIC HTTP"]
+    TestClient["Yuheng Test Client"] --> Public["Engine PUBLIC HTTP"]
     TestClient --> Internal["Engine INTERNAL HTTP"]
     RpcConsumer["Real RPC Consumer"] --> RpcSlot["Engine INTERNAL gRPC"]
 
-    Public --> Engine["Gateway Engine"]
+    Public --> Engine["Yuheng Engine"]
     Internal --> Engine
     RpcSlot --> Engine
 
@@ -193,12 +193,12 @@ flowchart LR
     Engine --> Rpc1["RPC Provider 1"]
     Engine --> Rpc2["RPC Provider 2"]
 
-    Http1 --> Ddc["DDC Admin / Redis"]
+    Http1 --> Ddc["Tianshu Admin / Redis"]
     Http2 --> Ddc
     Rpc1 --> Ddc
     Rpc2 --> Ddc
     Engine --> Ddc
-    Admin["Gateway Admin"] --> Ddc
+    Admin["Yuheng Admin"] --> Ddc
 
     Http1 --> Admin
     Http2 --> Admin
@@ -208,12 +208,12 @@ flowchart LR
     Engine --> Kafka["Kafka"]
     Kafka --> Consumer["Test Consumer / Admin Projection"]
 
-    Admin --> GatewayDb["Gateway PostgreSQL"]
-    Ddc --> DdcDb["DDC PostgreSQL"]
-    Engine --> LimitRedis["Gateway Limit Redis"]
+    Admin --> GatewayDb["Yuheng PostgreSQL"]
+    Ddc --> DdcDb["Tianshu PostgreSQL"]
+    Engine --> LimitRedis["Yuheng Limit Redis"]
 ```
 
-DDC Redis 与 Gateway 分布式限流 Redis 使用独立实例或至少独立、明确的 Key Space；
+Tianshu Redis 与 Yuheng 分布式限流 Redis 使用独立实例或至少独立、明确的 Key Space；
 E2E 首选独立容器，避免故障测试相互污染。
 
 ## 5. Process Harness
@@ -222,10 +222,10 @@ E2E 首选独立容器，避免故障测试相互污染。
 
 ```text
 PostgreSQL / Redis / Kafka
-→ DDC Admin
-→ Gateway Admin
+→ Tianshu Admin
+→ Yuheng Admin
 → HTTP/RPC Providers
-→ Gateway Engine
+→ Yuheng Engine
 → RPC Consumer
 → Admin Web（Web E2E 时）
 → Test Client/Assertions
@@ -250,11 +250,11 @@ Readiness 条件：
 
 | 进程 | 条件 |
 |---|---|
-| DDC Admin | DB/Redis 可用，OpenAPI 可响应 |
-| Gateway Admin | DB Migration 完成，管理 API 可响应 |
+| Tianshu Admin | DB/Redis 可用，OpenAPI 可响应 |
+| Yuheng Admin | DB Migration 完成，管理 API 可响应 |
 | Provider | 业务端口 Ready，租约已注册，上报已接受 |
 | Engine | Config Apply 能力与租约已建立；业务 Readiness 在规则/Provider 就绪后成立 |
-| RPC Consumer | 唯一 Gateway Slot 可发现 |
+| RPC Consumer | 唯一 Yuheng Slot 可发现 |
 
 ### 5.3 隔离
 
@@ -286,7 +286,7 @@ Readiness 条件：
 
 1. HTTP Provider Runtime 注册 `HTTP_PROVIDER`；
 2. RPC Component 注册 `RPC_PROVIDER`；
-3. DDC Registry 查询真实实例；
+3. Tianshu Registry 查询真实实例；
 4. Admin Provider 页面/API 可见租约和 Metadata；
 5. Engine Directory 订阅到实例；
 6. 新增/续租/注销/过期动态收敛；
@@ -305,14 +305,14 @@ Readiness 条件：
 
 ### 6.4 RPC Consumer→Engine→RPC Provider
 
-- DDC 中恰好一个 `INTERNAL_GATEWAY` 时调用成功；
+- Tianshu 中恰好一个 `INTERNAL_GATEWAY` 时调用成功；
 - Engine 动态 Handler 按 Full Method 路由；
 - Protobuf 原始字节正确转发；
 - Metadata 白名单；
 - Deadline 和 Cancellation；
 - Status/Trailer 映射；
-- 0 个 Gateway 快速失败；
-- 2 个 Gateway 同 Slot 按 RPC 现有单活契约快速失败。
+- 0 个 Yuheng 快速失败；
+- 2 个 Yuheng 同 Slot 按 RPC 现有单活契约快速失败。
 
 ### 6.5 HTTP→RPC
 
@@ -341,7 +341,7 @@ Readiness 条件：
 1. Admin 创建 Draft；
 2. 完整校验和 Diff；
 3. 创建 Release；
-4. DDC DB/Redis 和 Pub/Sub；
+4. Tianshu DB/Redis 和 Pub/Sub；
 5. Engine 编译、磁盘 Staging、原子激活；
 6. 精确 `instanceId + leaseId` ACK；
 7. Admin 显示成功 Target；
@@ -350,7 +350,7 @@ Readiness 条件：
 10. 回滚创建新 Release；
 11. Pub/Sub 丢失后周期校准；
 12. Admin 通过受保护 Management API 查询节点状态并校验 instanceId/leaseId；
-13. 状态查询失败只使管理投影 stale，不替代 DDC ACK。
+13. 状态查询失败只使管理投影 stale，不替代 Tianshu ACK。
 
 ### 6.8 流量治理
 
@@ -390,10 +390,10 @@ Readiness 条件：
 
 | 故障 | 期望 |
 |---|---|
-| DDC Admin 不可用 | 已运行 Engine 使用 LKG 和未过期内存 Directory；冷启动不 Ready；新发布失败可恢复 |
-| DDC Redis Pub/Sub 丢失 | 配置周期校准最终收敛 |
-| DDC Redis 重启 | Provider/Engine 使用新 Lease 重注册，旧 Lease 不续约 |
-| Gateway Admin 重启 | 非终态 Release 恢复查询/发布 |
+| Tianshu Admin 不可用 | 已运行 Engine 使用 LKG 和未过期内存 Directory；冷启动不 Ready；新发布失败可恢复 |
+| Tianshu Redis Pub/Sub 丢失 | 配置周期校准最终收敛 |
+| Tianshu Redis 重启 | Provider/Engine 使用新 Lease 重注册，旧 Lease 不续约 |
+| Yuheng Admin 重启 | 非终态 Release 恢复查询/发布 |
 | Engine 在 Apply 中崩溃 | 重启读取有效 LKG，不激活半成品 |
 | 一个 Engine ACK 失败 | Release 显示部分失败，其他节点事实保留 |
 | HTTP Provider 退出 | 租约/健康移出候选并切换其他实例 |
@@ -456,7 +456,7 @@ Playwright 启动真实 Admin Web/API，至少覆盖：
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-components/egon-cola-component-gateway/pom.xml \
+  -f egon-cola-components/egon-cola-component-yuheng/pom.xml \
   clean verify
 ```
 
@@ -464,12 +464,12 @@ Playwright 启动真实 Admin Web/API，至少覆盖：
 
 ```bash
 ./mvnw -B -ntp \
-  -f egon-cola-components/egon-cola-component-gateway/pom.xml \
-  -Pgateway-live-test \
+  -f egon-cola-components/egon-cola-component-yuheng/pom.xml \
+  -Pyuheng-live-test \
   clean verify
 ```
 
-RPC/DDC 前置扩展还必须分别通过其现有 Reactor 和 Live Profile。具体 Profile 名称以
+RPC/Tianshu 前置扩展还必须分别通过其现有 Reactor 和 Live Profile。具体 Profile 名称以
 实施时现有 POM 为准，不能在代码前假称已存在。
 
 Admin Web：
@@ -491,7 +491,7 @@ Admin Web 统一使用 npm 与 `package-lock.json`，不同时维护其他包管
 |---|---|---|
 | Fast | Compile、Unit、Lint、Typecheck | 每个 PR |
 | Component | Repository/Netty/gRPC/Adapter Testcontainers | 每个 PR |
-| Live | 全进程 DDC/Admin/Engine/Provider/Kafka | Gateway/RPC/DDC 相关 PR |
+| Live | 全进程 Tianshu/Admin/Engine/Provider/Kafka | Yuheng/RPC/Tianshu 相关 PR |
 | Web E2E | Admin Web 关键流程 | Web/Admin 相关 PR |
 | Performance | 固定基线与长稳 | 定时/发布前 |
 
@@ -515,7 +515,7 @@ Live 失败必须上传：
 - 只写配置的数据目录；
 - 暴露 PUBLIC HTTP、INTERNAL HTTP、INTERNAL gRPC 和 Management Port；
 - Rule LKG 挂载持久化 Volume；
-- Kafka/DDC/Redis Secret 从运行环境注入。
+- Kafka/Tianshu/Redis Secret 从运行环境注入。
 
 ### 12.2 Admin
 
@@ -523,7 +523,7 @@ Live 失败必须上传：
 - 独立 OCI Image；
 - Java 21 Runtime；
 - PostgreSQL Migration；
-- DDC Management Client；
+- Tianshu Management Client；
 - Kafka Consumer 可配置启停；
 - Management Port 与业务 API 分离。
 
@@ -536,7 +536,7 @@ Live 失败必须上传：
 
 ### 12.4 Test Apps
 
-HTTP/RPC Provider/Consumer 只用于测试，不进入业务 BOM，不作为生产 Gateway
+HTTP/RPC Provider/Consumer 只用于测试，不进入业务 BOM，不作为生产 Yuheng
 部署制品发布。
 
 ## 13. 运行配置
@@ -551,7 +551,7 @@ node identity
 public/internal/rpc ports
 management bind/advertised host and port
 engine data dir
-DDC endpoint + credentials
+Tianshu endpoint + credentials
 Kafka bootstrap + credentials
 rate-limit Redis
 listener/TLS settings
@@ -561,8 +561,8 @@ resource limits
 Admin 最少需要：
 
 ```text
-Gateway PostgreSQL
-DDC Management endpoint + credentials
+Yuheng PostgreSQL
+Tianshu Management endpoint + credentials
 Kafka consumer
 retention
 management security
@@ -579,18 +579,18 @@ Liveness 只表示进程/EventLoop 活着。Readiness 至少考虑：
 - Listener 已绑定；
 - 有可用 Active Rule 或明确的 Empty Bootstrap；
 - LKG 未损坏；
-- DDC Config Client 身份已建立；
-- INTERNAL Gateway Lease（若启用 RPC）已注册；
+- Tianshu Config Client 身份已建立；
+- INTERNAL Yuheng Lease（若启用 RPC）已注册；
 - 关键资源没有启动级错误。
 
 Kafka 故障不使业务 Listener 自动 Not Ready，但单独健康项为 Degraded。已运行节点
-DDC 暂时断开且 LKG、内存 Provider Lease 仍有效时为 Degraded，不立即停止现有调用；
+Tianshu 暂时断开且 LKG、内存 Provider Lease 仍有效时为 Degraded，不立即停止现有调用；
 冷启动节点不能只凭 Rule LKG Ready。
 
 ### 14.2 Admin
 
 - DB/Migration；
-- DDC Management 连通性；
+- Tianshu Management 连通性；
 - Kafka Consumer；
 - 后台发布恢复任务。
 
@@ -612,18 +612,18 @@ Engine：
 ```
 
 Provider 实例注销由各自 Runtime/RPC Component 完成。Admin 停止接收新发布后，等待
-有界后台任务保存可恢复状态，不假装外部 DDC 调用已经回滚。
+有界后台任务保存可恢复状态，不假装外部 Tianshu 调用已经回滚。
 
 ## 16. 部署边界
 
-- 首期支持单 DDC Admin + 单 Redis 的现有边界；
-- Gateway Engine 可以多个实例，但 RPC 单 Slot 首期只能一个活动
+- 首期支持单 Tianshu Admin + 单 Redis 的现有边界；
+- Yuheng Engine 可以多个实例，但 RPC 单 Slot 首期只能一个活动
   `INTERNAL_GATEWAY`；
 - PUBLIC/INTERNAL 前置四层/七层基础设施由部署平台管理；
-- Gateway 不负责 Nginx 节点负载或动态配置；
-- Provider 发现只通过 DDC；
+- Yuheng 不负责 Nginx 节点负载或动态配置；
+- Provider 发现只通过 Tianshu；
 - 不支持 Nacos/Dubbo；
-- 多机房、DDC HA、RPC Gateway HA 是后续独立能力；
+- 多机房、Tianshu HA、RPC Yuheng HA 是后续独立能力；
 - 测试通过不等同于上述 HA 已实现。
 
 ## 17. 验收矩阵
@@ -631,10 +631,10 @@ Provider 实例注销由各自 Runtime/RPC Component 完成。Admin 停止接收
 | 能力 | Unit | Component | Process E2E | Web E2E |
 |---|---:|---:|---:|---:|
 | HTTP Route/Proxy | 是 | 是 | 是 | 可观察 |
-| RPC Dynamic Gateway | 是 | 是 | 是 | 可观察 |
+| RPC Dynamic Yuheng | 是 | 是 | 是 | 可观察 |
 | HTTP→RPC | 是 | 是 | 是 | 是 |
 | Starter 上报 | 是 | 是 | 是 | 是 |
-| Provider DDC 注册 | 是 | 是 | 是 | 是 |
+| Provider Tianshu 注册 | 是 | 是 | 是 | 是 |
 | Rule 发布/ACK/LKG | 是 | 是 | 是 | 是 |
 | Load Balance | 是 | 是 | 是 | 可观察 |
 | Traffic Governance | 是 | 是 | 是 | 可配置 |
@@ -645,24 +645,24 @@ Provider 实例注销由各自 Runtime/RPC Component 完成。Admin 停止接收
 
 ## 18. 验收标准
 
-1. Test 项目真实启动 HTTP 和 Egon RPC 应用，不以 Mock Gateway 替代 Engine；
-2. Provider 真实注册到 DDC，接口定义真实上报到 Admin；
+1. Test 项目真实启动 HTTP 和 Egon RPC 应用，不以 Mock Yuheng 替代 Engine；
+2. Provider 真实注册到 Tianshu，接口定义真实上报到 Admin；
 3. Admin API 与 React 页面能真实看到三级目录、节点和 Provider；
 4. HTTP、RPC Consumer 和 HTTP→RPC 均能通过 Engine 完成真实调用；
-5. 规则通过 DDC DB/Redis/PubSub 下发并取得精确 ACK；
+5. 规则通过 Tianshu DB/Redis/PubSub 下发并取得精确 ACK；
 6. 限流、路由、负载均衡、安全和失败恢复有真实场景；
 7. Engine 调用事件能被真实 Kafka Consumer 接收，Starter 不发送；
 8. 前端 Trace ID 能贯穿端到端；
-9. 0/1/2 RPC Gateway Slot 行为按当前 RPC 契约验证；
+9. 0/1/2 RPC Yuheng Slot 行为按当前 RPC 契约验证；
 10. CI 分层、制品、健康和优雅关闭边界明确；
-11. 不测试或声称 Nacos、Dubbo、Nginx 管理、DDC HA 或 RPC Gateway HA；
+11. 不测试或声称 Nacos、Dubbo、Nginx 管理、Tianshu HA 或 RPC Yuheng HA；
 12. 文档阶段不自动启动项目，实施后才执行验证命令。
 
 ## 19. 本轮审核项
 
 1. 认可真实独立 JVM + Testcontainers 的主 E2E 方式；
 2. 认可 HTTP/RPC Provider、RPC Consumer 和 Test Suite 模块划分；
-3. 认可 Admin 必须真实看到 Starter 上报与 DDC 注册结果；
-4. 认可 Kafka 故障、DDC 故障、LKG 和节点分歧进入故障矩阵；
-5. 认可首期部署边界保留 DDC 单节点和 RPC Gateway 单 Slot；
+3. 认可 Admin 必须真实看到 Starter 上报与 Tianshu 注册结果；
+4. 认可 Kafka 故障、Tianshu 故障、LKG 和节点分歧进入故障矩阵；
+5. 认可首期部署边界保留 Tianshu 单节点和 RPC Yuheng 单 Slot；
 6. 认可 Nginx/Nacos/Dubbo 均不进入测试和部署能力。

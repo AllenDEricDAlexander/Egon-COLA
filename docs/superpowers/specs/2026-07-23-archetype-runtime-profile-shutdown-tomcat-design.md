@@ -21,7 +21,7 @@ The graceful-shutdown reference recommends four cooperating layers:
 1. `server.shutdown=graceful` for HTTP request draining.
 2. `spring.lifecycle.timeout-per-shutdown-phase` for bounded lifecycle phases.
 3. task-execution and task-scheduling shutdown waits for in-flight background work.
-4. health probes and an external SIGTERM/grace-period contract for deployment platforms.
+4. health probes and an external SIGTERM/grace-period contract for deployment xingyuan.
 
 The archetypes already have items 1, 2, task-execution waiting, and health probes. They do not configure task-scheduling waiting, and their Compose application services do not reserve enough time for the 30-second Spring lifecycle window.
 

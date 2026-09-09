@@ -1,20 +1,20 @@
-# Gateway Admin Domain Packaging and Page Scope Refactor Implementation Plan
+# Yuheng Admin Domain Packaging and Page Scope Refactor Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 将 Gateway Admin Java 改造成领域优先分包并清零全部生产嵌套类型，同时把 Gateway Admin Web 的全局 Biz/Namespace/Env/App Scope 改成页面独立筛选，保持认证和 HTTP 契约不变。
+**Goal:** 将 Yuheng Admin Java 改造成领域优先分包并清零全部生产嵌套类型，同时把 Yuheng Admin Web 的全局 Biz/Namespace/Env/App Scope 改成页面独立筛选，保持认证和 HTTP 契约不变。
 
-**Architecture:** 后端按 bootstrap/config/shared/auth/application/group/catalog/credential/scope/routing/release/rule/runtime/observability/reporting/mcp 纵向领域展开，每个领域内部使用 controller/domain/repository/service，数据类型进入 dto/vo/po/enums。前端只共享 DDC Binding 查询缓存，不共享选中值；每个页面通过 URL Query 拥有自己的筛选状态。实施采用后端七个提交、前端四个提交，每个提交必须可编译、可独立审查。
+**Architecture:** 后端按 bootstrap/config/shared/auth/application/group/catalog/credential/scope/routing/release/rule/runtime/observability/reporting/mcp 纵向领域展开，每个领域内部使用 controller/domain/repository/service，数据类型进入 dto/vo/po/enums。前端只共享 Tianshu Binding 查询缓存，不共享选中值；每个页面通过 URL Query 拥有自己的筛选状态。实施采用后端七个提交、前端四个提交，每个提交必须可编译、可独立审查。
 
 **Tech Stack:** Java 21、Spring Boot、Spring MVC/Security/Data JPA/JdbcTemplate、JUnit 5、AssertJ、Maven Wrapper；React 19、TypeScript 6、React Router 7、TanStack Query 5、Ant Design 6、Vitest 4、Vite 8。
 
 ## Global Constraints
 
-- 唯一设计依据是 docs/superpowers/specs/2026-08-13-gateway-admin-java-type-and-page-scope-design.md；其中第 5 节是 165 个嵌套类型的权威迁移清单，第 5.6 节是现有顶层类型的权威归属规则。
-- GET /api/v1/auth/bootstrap 与 GET /api/v1/gateway/admin/session 必须保留；路径、入参、响应、鉴权和后端 JWT/RBAC3 行为不变。
-- Gateway Admin Web 继续通过 Session API 获取身份与 capabilities，不解析 JWT，不向 admin-web-shared 增加 JWT 身份解析。
+- 唯一设计依据是 docs/superpowers/specs/2026-08-13-yuheng-admin-java-type-and-page-scope-design.md；其中第 5 节是 165 个嵌套类型的权威迁移清单，第 5.6 节是现有顶层类型的权威归属规则。
+- GET /api/v1/auth/bootstrap 与 GET /api/v1/yuheng/admin/session 必须保留；路径、入参、响应、鉴权和后端 JWT/Tianquan-Jianshen 行为不变。
+- Yuheng Admin Web 继续通过 Session API 获取身份与 capabilities，不解析 JWT，不向 admin-web-shared 增加 JWT 身份解析。
 - 不改变任何既有 HTTP 路径、JSON 字段、状态码、错误码、Validation、权限注解、数据库表/列/SQL或消息契约。
-- Gateway Admin 的 src/main/java 最终不得存在嵌套 record、class、enum 或 interface；165 个基线嵌套类型全部成为独立顶层文件。
+- Yuheng Admin 的 src/main/java 最终不得存在嵌套 record、class、enum 或 interface；165 个基线嵌套类型全部成为独立顶层文件。
 - 顶层不可变载体继续使用 record；DTO、VO、PO、Enum 使用规定后缀；包级辅助类型不得因迁移扩大为 public。
 - 原嵌套私有类型若依赖宿主对 private 成员的特权访问，只把必要构造器、字段或方法降为同包可见，或通过同包构造器显式注入依赖；不得为方便迁移改成 public。
 - 名称以 Store 结尾的仓储契约重命名为 Repository，以 Jdbc 开头并以 Store 结尾的实现重命名为 Jdbc Repository，Entity 后缀重命名为 PO；方法签名、事务边界和持久化语义保持。
@@ -22,7 +22,7 @@
 - 不新增依赖、数据库 migration、状态管理框架、GoF 模式、空 Facade/Factory/接口或无业务价值的抽象。
 - 设计模式取舍固定为受控组件组合与单一职责；不引入 Strategy、Factory、Template Method 或全局 Scope Store。
 - 不修改无关模块；提交前只暂存当前任务文件，保留用户或其他并行工作的修改。
-- 不启动 Gateway Admin、Gateway Web、DDC、IdP 或 RBAC3，不打开浏览器；Playwright 只更新夹具源码，不执行。
+- 不启动 Yuheng Admin、Yuheng Web、Tianshu、Tianquan-Shoubing 或 Tianquan-Jianshen，不打开浏览器；Playwright 只更新夹具源码，不执行。
 - 最终硬门禁包含根 Maven reactor 全量 clean install 编译；不能用只构建聚合父 POM 的命令代替。
 
 ---
@@ -32,11 +32,11 @@
 ### Authoritative roots
 
 - Backend module: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
-- Backend production root: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin
-- Backend test root: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin
-- Gateway reactor: egon-cola-xingyuan/egon-cola-yuheng/pom.xml
+- Backend production root: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin
+- Backend test root: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin
+- Yuheng reactor: egon-cola-xingyuan/egon-cola-yuheng/pom.xml
 - Frontend module: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-- Cross-module Gateway tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite
+- Cross-module Yuheng tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite
 
 ### Target production ownership
 
@@ -66,7 +66,7 @@ The production-class scan must load only top-level class files and then inspect 
 private static Stream<Class<?>> productionTopLevelTypes() throws Exception {
     Path root = Path.of(GatewayAdminApplication.class
             .getProtectionDomain().getCodeSource().getLocation().toURI())
-            .resolve("top/egon/cola/component/gateway/admin");
+            .resolve("top/egon/cola/component/yuheng/admin");
     try (Stream<Path> files = Files.walk(root)) {
         return files
                 .filter(path -> path.toString().endsWith(".class"))
@@ -98,13 +98,13 @@ private static List<String> nestedTypeHosts() throws Exception {
 - Move/modify shared/auth production: application/GatewayAdminIdempotencyConflictException.java, application/GatewayAdminNotFoundException.java, application/IdempotencyStore.java, application/RequestAuditContext.java, domain/AdminActor.java, domain/GatewayAdminRevisionConflictException.java, infrastructure/persistence/JdbcGatewayParameters.java, infrastructure/persistence/JdbcIdempotencyStore.java, interfaces/management/GatewayAdminActorArgumentResolver.java, GatewayAdminExceptionHandler.java, GatewayAdminSessionController.java, GatewayAdminWebMvcConfiguration.java, GatewayAuthBootstrapController.java
 - Create top-level types from spec §5.1/§5.5: auth.domain.vo.GatewayAdminSessionVO, shared.domain.vo.GatewayAdminErrorVO, shared.domain.vo.GatewayAdminFieldErrorVO, shared.domain.enums.AdminActorTypeEnum, shared.domain.po.IdempotencyPO, config.properties.GatewayAdminDdcProperties, config.properties.GatewayRuleChunkProperties
 - Create package metadata under bootstrap, config, config/properties, shared/controller, shared/domain, shared/domain/vo, shared/domain/po, shared/domain/enums, shared/domain/exception, shared/repository, shared/repository/jdbc, auth/controller, auth/domain/vo, auth/service
-- Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/architecture/GatewayAdminPackageArchitectureTest.java
-- Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/shared/controller/GatewayAdminJsonContractTest.java
+- Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/architecture/GatewayAdminPackageArchitectureTest.java
+- Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/shared/controller/GatewayAdminJsonContractTest.java
 - Move/modify tests: GatewayAdminApplicationConfigurationTest.java, GatewayAdminConfigurationTest.java, security/GatewayAdminTransportSecurityValidatorTest.java, infrastructure/security/GatewayAdminHmacJwtDecoderTest.java, infrastructure/security/GatewayAdminJwtAuthenticationConverterTest.java, interfaces/management/GatewayAdminSecurityIntegrationTest.java, interfaces/management/GatewayManagementActorBoundaryTest.java
 
 **Interfaces:**
 
-- Consumes: Spring Boot component/JPA/repository scanning rooted at top.egon.cola.component.gateway.admin; approved mappings for the seven extracted types.
+- Consumes: Spring Boot component/JPA/repository scanning rooted at top.egon.cola.component.yuheng.admin; approved mappings for the seven extracted types.
 - Produces: bootstrap.GatewayAdminApplication, bootstrap.GatewayAdminConfiguration, config.GatewayAdminSecurityConfiguration, auth controller/session contracts, shared controller/error contracts, and the progressive architecture test used by Tasks 2-7.
 
 - [ ] **Step 1: Add characterization tests before moving types**
@@ -118,8 +118,8 @@ assertThat(objectMapper.valueToTree(session))
                   "actorId":"admin-1",
                   "displayName":"Mario",
                   "actorType":"HUMAN",
-                  "capabilities":["gateway:read"],
-                  "roles":["gateway-admin"],
+                  "capabilities":["yuheng:read"],
+                  "roles":["yuheng-admin"],
                   "expiresAt":"2026-08-13T10:00:00Z"
                 }
                 """));
@@ -163,14 +163,14 @@ Move the application entry and configuration into bootstrap. Because moving the 
 public class GatewayAdminApplication {
 
     public static final String ADMIN_PACKAGE =
-            "top.egon.cola.component.gateway.admin";
+            "top.egon.cola.component.yuheng.admin";
 }
 ~~~
 
 Update spring-boot-maven-plugin mainClass to:
 
 ~~~xml
-<mainClass>top.egon.cola.component.gateway.admin.bootstrap.GatewayAdminApplication</mainClass>
+<mainClass>top.egon.cola.component.yuheng.admin.bootstrap.GatewayAdminApplication</mainClass>
 ~~~
 
 Move GatewayAdminConfiguration to bootstrap and update imports without changing bean names, conditions, Clock behavior or destroy methods.
@@ -209,7 +209,7 @@ Expected: PASS; the architecture test reports only the 54 explicitly allowed leg
 git status --short
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git diff --cached --check
-git commit -m "refactor(gateway): establish admin domain package guard"
+git commit -m "refactor(yuheng): establish admin domain package guard"
 ~~~
 
 ---
@@ -292,7 +292,7 @@ Expected: PASS; JPA repositories are discovered from their new sibling packages 
 git status --short
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git diff --cached --check
-git commit -m "refactor(gateway): organize application group and scope domains"
+git commit -m "refactor(yuheng): organize application group and scope domains"
 ~~~
 
 ---
@@ -311,7 +311,7 @@ git commit -m "refactor(gateway): organize application group and scope domains"
 
 **Interfaces:**
 
-- Consumes: application IDs/VOs, shared audit/idempotency contracts, DDC validation.
+- Consumes: application IDs/VOs, shared audit/idempotency contracts, Tianshu validation.
 - Produces: catalog repository/tree/detail contracts and credential repository/secret contracts used by Controllers, MCP and bootstrap configuration.
 
 - [ ] **Step 1: Characterize catalog and credential values**
@@ -455,7 +455,7 @@ Expected: PASS with unchanged catalog SQL/JSON trees and credential crypto/tempo
 git status --short
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git diff --cached --check
-git commit -m "refactor(gateway): organize catalog and credential domains"
+git commit -m "refactor(yuheng): organize catalog and credential domains"
 ~~~
 
 ---
@@ -475,8 +475,8 @@ git commit -m "refactor(gateway): organize catalog and credential domains"
 
 **Interfaces:**
 
-- Consumes: group/application repositories, shared actor/audit/idempotency, catalog data, DDC client.
-- Produces: routing drafts/validation/diff, release state/publication records, compiled rules and DDC publication contracts used by runtime/reporting/MCP.
+- Consumes: group/application repositories, shared actor/audit/idempotency, catalog data, Tianshu client.
+- Produces: routing drafts/validation/diff, release state/publication records, compiled rules and Tianshu publication contracts used by runtime/reporting/MCP.
 
 - [ ] **Step 1: Characterize draft/release JSON and domain behavior**
 
@@ -533,7 +533,7 @@ Expected: PASS; rule canonicalization/publication output and all release state t
 git status --short
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git diff --cached --check
-git commit -m "refactor(gateway): organize routing release and rule domains"
+git commit -m "refactor(yuheng): organize routing release and rule domains"
 ~~~
 
 ---
@@ -614,7 +614,7 @@ final class GatewayKafkaRebalanceListener
     public void onPartitionsAssigned(
             Collection<TopicPartition> partitions) {
         logger.info(
-                "Gateway Kafka consumer assigned {} partitions",
+                "Yuheng Kafka consumer assigned {} partitions",
                 partitions.size()
         );
     }
@@ -654,7 +654,7 @@ Expected: PASS with unchanged pagination, projection stale markers, Kafka decisi
 git status --short
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git diff --cached --check
-git commit -m "refactor(gateway): organize runtime observability and reporting"
+git commit -m "refactor(yuheng): organize runtime observability and reporting"
 ~~~
 
 ---
@@ -736,7 +736,7 @@ Expected: PASS. If the IT classes are excluded by Surefire naming, run their exi
 git status --short
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
 git diff --cached --check
-git commit -m "refactor(gateway): organize mcp admin domain"
+git commit -m "refactor(yuheng): organize mcp admin domain"
 ~~~
 
 ---
@@ -747,13 +747,13 @@ git commit -m "refactor(gateway): organize mcp admin domain"
 
 - Modify: backend architecture/GatewayAdminPackageArchitectureTest.java and shared/controller/GatewayAdminJsonContractTest.java
 - Modify any remaining backend production/test package-info.java or imports under yuheng-admin
-- Modify cross-module tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRuleWireCompatibilityTest.java
-- Modify cross-module tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpSecurityIT.java
+- Modify cross-module tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayRuleWireCompatibilityTest.java
+- Modify cross-module tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpSecurityIT.java
 
 **Interfaces:**
 
 - Consumes: all backend domain migrations from Tasks 1-6.
-- Produces: an empty legacy allowlist, enforceable package/dependency rules, no old FQCN and a fully passing Gateway Admin module.
+- Produces: an empty legacy allowlist, enforceable package/dependency rules, no old FQCN and a fully passing Yuheng Admin module.
 
 - [ ] **Step 1: Make the nested-host allowlist empty**
 
@@ -787,28 +787,28 @@ Also assert:
 - every directory containing a production .java file contains package-info.java;
 - no production filename ends in Entity.java or Store.java.
 
-- [ ] **Step 3: Update the two external Gateway test consumers**
+- [ ] **Step 3: Update the two external Yuheng test consumers**
 
 Use these exact new imports:
 
 ~~~java
-import top.egon.cola.component.gateway.admin.catalog.repository.GatewayCatalogRepository;
-import top.egon.cola.component.gateway.admin.mcp.service.McpValidationService;
-import top.egon.cola.component.gateway.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
-import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCanonicalizer;
-import top.egon.cola.component.gateway.admin.rule.service.GatewayRuleCompiler;
+import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
+import top.egon.cola.component.yuheng.admin.mcp.service.McpValidationService;
+import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpArtifactMetadataRepository;
+import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCanonicalizer;
+import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCompiler;
 ~~~
 
 Do not change the test scenarios or assertions.
 
-- [ ] **Step 4: Run the full Gateway Admin module**
+- [ ] **Step 4: Run the full Yuheng Admin module**
 
 ~~~bash
 ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
   -pl yuheng-admin -am test
 ~~~
 
-Expected: Gateway Admin and required upstream modules build; all selected module tests pass.
+Expected: Yuheng Admin and required upstream modules build; all selected module tests pass.
 
 - [ ] **Step 5: Run downstream compilation/tests and static scans**
 
@@ -823,13 +823,13 @@ rg -n --glob '*.java' \
   '^[[:space:]]+(public[[:space:]]+|protected[[:space:]]+|private[[:space:]]+|static[[:space:]]+|final[[:space:]]+)*(record|class|enum|interface)[[:space:]]+[A-Z]' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java
 
-rg -n '^package .*gateway\.admin\.(interfaces|infrastructure)(\.|;)' \
+rg -n '^package .*yuheng\.admin\.(interfaces|infrastructure)(\.|;)' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java
 
-rg -n '^package .*gateway\.admin\.mcp\.(application|interfaces|persistence|artifact)(\.|;)' \
+rg -n '^package .*yuheng\.admin\.mcp\.(application|interfaces|persistence|artifact)(\.|;)' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java
 
-rg -n '^package .*gateway\.admin\.application\.(catalog|credential|observability|projection|release|reporting|routing|scope)(\.|;)' \
+rg -n '^package .*yuheng\.admin\.application\.(catalog|credential|observability|projection|release|reporting|routing|scope)(\.|;)' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java
 
 rg --files \
@@ -845,10 +845,10 @@ Expected: Maven PASS; every rg command returns no match. The reflection guard is
 git status --short
 git add \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRuleWireCompatibilityTest.java \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpSecurityIT.java
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayRuleWireCompatibilityTest.java \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpSecurityIT.java
 git diff --cached --check
-git commit -m "test(gateway): close admin package migration"
+git commit -m "test(yuheng): close admin package migration"
 ~~~
 
 ---
@@ -941,7 +941,7 @@ Only append trimmed nonempty strings; preserve query keys outside fields. With n
 Test two consumers under the same QueryClientProvider and assert gatewayApi.scopes is called once. Test error/refetch passthrough.
 
 ~~~ts
-export const gatewayScopeBindingsQueryKey = ['gateway-scopes'] as const
+export const gatewayScopeBindingsQueryKey = ['yuheng-scopes'] as const
 
 export const useGatewayScopeBindings = () => useQuery({
   queryKey: gatewayScopeBindingsQueryKey,
@@ -983,9 +983,9 @@ The component calls useGatewayScopeBindings, derives distinct choices from Bindi
 
 ~~~bash
 cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm test -- --run \
   src/hooks/scopeSearchParams.test.ts \
   src/hooks/useGatewayScopeBindings.test.tsx \
@@ -1000,7 +1000,7 @@ git add \
   src/components/GatewayScopeFilter.tsx \
   src/components/GatewayScopeFilter.test.tsx
 git diff --cached --check
-git commit -m "feat(gateway-web): add page scope primitives"
+git commit -m "feat(yuheng-web): add page scope primitives"
 ~~~
 
 ---
@@ -1011,8 +1011,8 @@ git commit -m "feat(gateway-web): add page scope primitives"
 
 - Modify API contracts: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts
 - Modify API calls/tests: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts and egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts
-- Modify Group: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/gateway-groups/GatewayGroupsPage.tsx
-- Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/gateway-groups/GatewayGroupsPage.test.tsx
+- Modify Group: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/yuheng-groups/GatewayGroupsPage.tsx
+- Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/yuheng-groups/GatewayGroupsPage.test.tsx
 - Modify Application: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.tsx and egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/applications/ApplicationsPage.test.tsx
 - Modify Catalog: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/interface-catalog/CatalogPage.tsx
 - Create test: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/interface-catalog/CatalogPage.test.tsx
@@ -1032,17 +1032,17 @@ Add exact assertions:
 ~~~ts
 await gatewayApi.groups()
 expect(fetch).toHaveBeenCalledWith(
-  '/api/v1/gateway/admin/gateway-groups',
+  '/api/v1/yuheng/admin/yuheng-groups',
   expect.anything(),
 )
 
 await gatewayApi.applications({ bizCode: 'retail', env: 'prod' })
 expect(lastUrl()).toBe(
-  '/api/v1/gateway/admin/applications?bizCode=retail&env=prod',
+  '/api/v1/yuheng/admin/applications?bizCode=retail&env=prod',
 )
 
 await gatewayApi.applications({})
-expect(lastUrl()).toBe('/api/v1/gateway/admin/applications')
+expect(lastUrl()).toBe('/api/v1/yuheng/admin/applications')
 
 await gatewayApi.mcpOperationOptions('application-1')
 expect(catalog).toHaveBeenCalledWith('application-1', expect.anything())
@@ -1102,7 +1102,7 @@ Run the two page test files. Expected: FAIL because both pages still read useSco
 
 - [ ] **Step 4: Implement Group/Application page ownership**
 
-Use useSearchParams independently in each page. Group filtering is client-side over gatewayApi.groups(); its query key is ['gateway-groups']. Application filtering is server-side; normalize selected nonempty fields before:
+Use useSearchParams independently in each page. Group filtering is client-side over gatewayApi.groups(); its query key is ['yuheng-groups']. Application filtering is server-side; normalize selected nonempty fields before:
 
 ~~~ts
 queryKey: ['applications', normalizedFilters]
@@ -1126,7 +1126,7 @@ options={bindings.map((binding) => ({
 }))}
 ~~~
 
-Resolve the selected binding by bindingId and submit its exact bizCode/namespace/env/appCode as applicationCode. Editing and credential mutations remain resource-ID based. Invalidate only ['gateway-groups'] or ['applications'] and the selected credential resource.
+Resolve the selected binding by bindingId and submit its exact bizCode/namespace/env/appCode as applicationCode. Editing and credential mutations remain resource-ID based. Invalidate only ['yuheng-groups'] or ['applications'] and the selected credential resource.
 
 - [ ] **Step 5: Write failing Catalog/MCP tests**
 
@@ -1164,19 +1164,19 @@ Clear operationId when the selected Application changes. Do not fetch Catalogs f
 
 ~~~bash
 cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm test -- --run \
   src/api/gatewayApi.test.ts \
-  src/features/gateway-groups/GatewayGroupsPage.test.tsx \
+  src/features/yuheng-groups/GatewayGroupsPage.test.tsx \
   src/features/applications/ApplicationsPage.test.tsx \
   src/features/interface-catalog/CatalogPage.test.tsx \
   src/features/mcp/McpServersPage.test.tsx \
   src/features/mcp/McpApplicationOperationSelection.test.tsx
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm run typecheck
 
 git status --short
@@ -1184,8 +1184,8 @@ git add \
   src/api/types.ts \
   src/api/gatewayApi.ts \
   src/api/gatewayApi.test.ts \
-  src/features/gateway-groups/GatewayGroupsPage.tsx \
-  src/features/gateway-groups/GatewayGroupsPage.test.tsx \
+  src/features/yuheng-groups/GatewayGroupsPage.tsx \
+  src/features/yuheng-groups/GatewayGroupsPage.test.tsx \
   src/features/applications/ApplicationsPage.tsx \
   src/features/applications/ApplicationsPage.test.tsx \
   src/features/interface-catalog/CatalogPage.tsx \
@@ -1197,7 +1197,7 @@ git add \
   src/features/mcp/McpPromptsPanel.tsx \
   src/features/mcp/McpApplicationOperationSelection.test.tsx
 git diff --cached --check
-git commit -m "feat(gateway-web): make resource scope filters page local"
+git commit -m "feat(yuheng-web): make resource scope filters page local"
 ~~~
 
 ---
@@ -1293,7 +1293,7 @@ Remove ScopeProvider from App.tsx. Remove useScope/optionsFor/ScopeField/selecto
 Delete the four legacy Scope files/tests only after rg confirms no production/test import remains:
 
 ~~~bash
-rg -n 'ScopeProvider|useScope\(|scopeDefaults|VITE_GATEWAY_ADMIN_DEFAULT_' \
+rg -n 'ScopeProvider|useScope\(|scopeDefaults|VITE_YUHENG_ADMIN_DEFAULT_' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
 ~~~
 
@@ -1303,9 +1303,9 @@ Expected after deletion: no match.
 
 ~~~bash
 cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm test -- --run \
   src/layouts/AdminLayout.test.tsx \
   src/app/App.test.tsx \
@@ -1314,9 +1314,9 @@ npm test -- --run \
   src/features/observability/TracesPage.test.tsx \
   src/features/audit/AuditPage.test.tsx \
   src/api/gatewayApi.test.ts
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm run typecheck
 
 git status --short
@@ -1340,7 +1340,7 @@ git add -A -- \
   src/api/gatewayApi.ts \
   src/api/gatewayApi.test.ts
 git diff --cached --check
-git commit -m "refactor(gateway-web): remove global scope context"
+git commit -m "refactor(yuheng-web): remove global scope context"
 ~~~
 
 ---
@@ -1351,18 +1351,18 @@ git commit -m "refactor(gateway-web): remove global scope context"
 
 - Modify: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md
 - Modify: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md
-- Modify: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/gateway-admin.spec.ts
+- Modify: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts
 - Modify: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts
 - Modify only if validation finds a task-related defect: files already owned by Tasks 1-10; do not absorb unrelated failures.
 
 **Interfaces:**
 
 - Consumes: all completed backend and frontend behavior.
-- Produces: accurate operator docs, current E2E fixture source, full Gateway checks and root-repository Java compilation proof.
+- Produces: accurate operator docs, current E2E fixture source, full Yuheng checks and root-repository Java compilation proof.
 
 - [ ] **Step 1: Update bilingual frontend documentation**
 
-Remove VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE, VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE, VITE_GATEWAY_ADMIN_DEFAULT_ENV and VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE from both READMEs. Document:
+Remove VITE_YUHENG_ADMIN_DEFAULT_BIZ_CODE, VITE_YUHENG_ADMIN_DEFAULT_APP_CODE, VITE_YUHENG_ADMIN_DEFAULT_ENV and VITE_YUHENG_ADMIN_DEFAULT_NAMESPACE from both READMEs. Document:
 
 - Header has no global Scope selector;
 - Binding data is shared query data only;
@@ -1374,9 +1374,9 @@ Remove VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE, VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE,
 
 - [ ] **Step 2: Update E2E fixture source without running Playwright**
 
-In gateway-admin.spec.ts:
+In yuheng-admin.spec.ts:
 
-- make /gateway-groups route match the no-query URL as well as optional query forms;
+- make /yuheng-groups route match the no-query URL as well as optional query forms;
 - make /applications match both no-query and filtered URLs;
 - before expecting Dashboard/Provider/Trace/Audit data, select required page filters or navigate with the exact page query;
 - select Env/Namespace in the new Group modal;
@@ -1390,7 +1390,7 @@ In mcp-control-plane.spec.ts:
 
 Do not execute npm run e2e because it starts Vite and a browser; npm lint validates fixture syntax/style.
 
-- [ ] **Step 3: Run the complete Gateway Admin Java suite**
+- [ ] **Step 3: Run the complete Yuheng Admin Java suite**
 
 From the repository root:
 
@@ -1407,26 +1407,26 @@ From the repository root:
 
 Expected: PASS and reactor summaries include the actual admin/test-suite child modules, not only parent POMs.
 
-- [ ] **Step 4: Run the full Gateway Admin Web static suite**
+- [ ] **Step 4: Run the full Yuheng Admin Web static suite**
 
 ~~~bash
 cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 npm ci
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm run typecheck
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm test -- --run
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm run lint
-VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-VITE_IDP_CLIENT_ID=gateway-admin-web \
-VITE_IDP_RESOURCE=gateway-admin \
+VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+VITE_TIANQUAN_SHOUBING_CLIENT_ID=yuheng-admin-web \
+VITE_TIANQUAN_SHOUBING_RESOURCE=yuheng-admin \
 npm run build
 ~~~
 
@@ -1441,14 +1441,14 @@ rg -n --glob '*.java' \
   '^[[:space:]]+(public[[:space:]]+|protected[[:space:]]+|private[[:space:]]+|static[[:space:]]+|final[[:space:]]+)*(record|class|enum|interface)[[:space:]]+[A-Z]' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java
 
-rg -n 'top\.egon\.cola\.component\.gateway\.admin\.(interfaces|infrastructure|mcp\.(application|interfaces|persistence|artifact)|application\.(catalog|credential|observability|projection|release|reporting|routing|scope))' \
+rg -n 'top\.egon\.cola\.component\.yuheng\.admin\.(interfaces|infrastructure|mcp\.(application|interfaces|persistence|artifact)|application\.(catalog|credential|observability|projection|release|reporting|routing|scope))' \
   egon-cola-xingyuan/egon-cola-yuheng
 
 rg --files \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java \
   | rg '/[^/]*(Entity|Store)\.java$'
 
-rg -n 'ScopeProvider|useScope\(|VITE_GATEWAY_ADMIN_DEFAULT_|egon\.gateway\.admin\.scope\.v1' \
+rg -n 'ScopeProvider|useScope\(|VITE_YUHENG_ADMIN_DEFAULT_|egon\.yuheng\.admin\.scope\.v1' \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web \
   --glob '!README*'
 
@@ -1467,7 +1467,7 @@ From /Users/mario/SelfProject/Egon-COLA:
 
 Expected: BUILD SUCCESS and the reactor summary contains egon-cola-components, egon-cola-xingyuan and egon-cola-archetypes descendants. This is the required entire-repository compilation proof; targeted tests already ran in Steps 3-4.
 
-If this command fails in an unrelated untouched module, preserve the failure output and prove the changed Gateway modules still pass; do not edit unrelated code merely to force a green root build. The task remains blocked against the user's hard gate until the root build succeeds or the user accepts the proven external failure.
+If this command fails in an unrelated untouched module, preserve the failure output and prove the changed Yuheng modules still pass; do not edit unrelated code merely to force a green root build. The task remains blocked against the user's hard gate until the root build succeeds or the user accepts the proven external failure.
 
 - [ ] **Step 7: Commit Task 11 after all gates pass**
 
@@ -1476,10 +1476,10 @@ git status --short
 git add \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.md \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/README.zh-CN.md \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/gateway-admin.spec.ts \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/yuheng-admin.spec.ts \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/e2e/mcp-control-plane.spec.ts
 git diff --cached --check
-git commit -m "docs(gateway): document page scope behavior"
+git commit -m "docs(yuheng): document page scope behavior"
 git status --short
 ~~~
 
@@ -1492,65 +1492,65 @@ Expected: the final status is clean. If validation required task-related correct
 The Task 1 architecture test starts from this exact set. Tasks 1-6 remove the entries assigned above; Task 7 requires an empty set.
 
 ~~~text
-top.egon.cola.component.gateway.admin.application.GatewayApplicationService
-top.egon.cola.component.gateway.admin.application.GatewayGroupService
-top.egon.cola.component.gateway.admin.application.IdempotencyStore
-top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogService
-top.egon.cola.component.gateway.admin.application.catalog.GatewayCatalogStore
-top.egon.cola.component.gateway.admin.application.credential.GatewayCredentialService
-top.egon.cola.component.gateway.admin.application.credential.GatewayCredentialStore
-top.egon.cola.component.gateway.admin.application.credential.GatewaySecretProtector
-top.egon.cola.component.gateway.admin.application.observability.GatewayObservabilityStore
-top.egon.cola.component.gateway.admin.application.projection.GatewayProjectionService
-top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationCoordinator
-top.egon.cola.component.gateway.admin.application.release.GatewayReleasePublicationStore
-top.egon.cola.component.gateway.admin.application.release.GatewayReleaseService
-top.egon.cola.component.gateway.admin.application.release.GatewayReleaseStore
-top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionLifecycleStore
-top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionReportService
-top.egon.cola.component.gateway.admin.application.reporting.GatewayDefinitionReportStore
-top.egon.cola.component.gateway.admin.application.reporting.GatewayOperationSchemaValidator
-top.egon.cola.component.gateway.admin.application.routing.GatewayDraftService
-top.egon.cola.component.gateway.admin.application.routing.GatewayDraftStore
-top.egon.cola.component.gateway.admin.application.scope.GatewayScopeService
-top.egon.cola.component.gateway.admin.config.GatewayAdminProperties
-top.egon.cola.component.gateway.admin.domain.AdminActor
-top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayCallEventConsumerHandler
-top.egon.cola.component.gateway.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer
-top.egon.cola.component.gateway.admin.infrastructure.persistence.JdbcGatewayCatalogStore
-top.egon.cola.component.gateway.admin.infrastructure.persistence.JdbcGatewayDefinitionReportStore
-top.egon.cola.component.gateway.admin.infrastructure.persistence.JdbcGatewayObservabilityStore
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayAdminExceptionHandler
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayAdminSessionController
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayApplicationController
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayCatalogController
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayCredentialController
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayDraftController
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayGroupController
-top.egon.cola.component.gateway.admin.interfaces.management.GatewayReleaseController
-top.egon.cola.component.gateway.admin.interfaces.openapi.GatewayReportHmacFilter
-top.egon.cola.component.gateway.admin.interfaces.scheduled.GatewayDefinitionLifecycleReconciler
-top.egon.cola.component.gateway.admin.mcp.application.McpControlPlaneService
-top.egon.cola.component.gateway.admin.mcp.application.McpReleaseContentFactory
-top.egon.cola.component.gateway.admin.mcp.application.McpToolAdminService
-top.egon.cola.component.gateway.admin.mcp.application.McpValidationService
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpAppAdminController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpApprovalController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpCapabilityController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpProtocolInspectorController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpRemoteProviderController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpServerController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpTaskAdminController
-top.egon.cola.component.gateway.admin.mcp.interfaces.McpToolAdminController
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpApprovalStore
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpArtifactMetadataStore
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpCapabilityDraftStore
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpManagedToolOverrideStore
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteProviderStore
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpRemoteToolDraftStore
-top.egon.cola.component.gateway.admin.mcp.persistence.JdbcMcpTaskStore
-top.egon.cola.component.gateway.admin.rule.GatewayDdcYamlDocument
-top.egon.cola.component.gateway.admin.rule.GatewayRouteTransportPolicyValidator
+top.egon.cola.component.yuheng.admin.application.GatewayApplicationService
+top.egon.cola.component.yuheng.admin.application.GatewayGroupService
+top.egon.cola.component.yuheng.admin.application.IdempotencyStore
+top.egon.cola.component.yuheng.admin.application.catalog.GatewayCatalogService
+top.egon.cola.component.yuheng.admin.application.catalog.GatewayCatalogStore
+top.egon.cola.component.yuheng.admin.application.credential.GatewayCredentialService
+top.egon.cola.component.yuheng.admin.application.credential.GatewayCredentialStore
+top.egon.cola.component.yuheng.admin.application.credential.GatewaySecretProtector
+top.egon.cola.component.yuheng.admin.application.observability.GatewayObservabilityStore
+top.egon.cola.component.yuheng.admin.application.projection.GatewayProjectionService
+top.egon.cola.component.yuheng.admin.application.release.GatewayReleasePublicationCoordinator
+top.egon.cola.component.yuheng.admin.application.release.GatewayReleasePublicationStore
+top.egon.cola.component.yuheng.admin.application.release.GatewayReleaseService
+top.egon.cola.component.yuheng.admin.application.release.GatewayReleaseStore
+top.egon.cola.component.yuheng.admin.application.reporting.GatewayDefinitionLifecycleStore
+top.egon.cola.component.yuheng.admin.application.reporting.GatewayDefinitionReportService
+top.egon.cola.component.yuheng.admin.application.reporting.GatewayDefinitionReportStore
+top.egon.cola.component.yuheng.admin.application.reporting.GatewayOperationSchemaValidator
+top.egon.cola.component.yuheng.admin.application.routing.GatewayDraftService
+top.egon.cola.component.yuheng.admin.application.routing.GatewayDraftStore
+top.egon.cola.component.yuheng.admin.application.scope.GatewayScopeService
+top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties
+top.egon.cola.component.yuheng.admin.domain.AdminActor
+top.egon.cola.component.yuheng.admin.infrastructure.messaging.GatewayCallEventConsumerHandler
+top.egon.cola.component.yuheng.admin.infrastructure.messaging.GatewayKafkaCallEventConsumer
+top.egon.cola.component.yuheng.admin.infrastructure.persistence.JdbcGatewayCatalogStore
+top.egon.cola.component.yuheng.admin.infrastructure.persistence.JdbcGatewayDefinitionReportStore
+top.egon.cola.component.yuheng.admin.infrastructure.persistence.JdbcGatewayObservabilityStore
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayAdminExceptionHandler
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayAdminSessionController
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayApplicationController
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayCatalogController
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayCredentialController
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayDraftController
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayGroupController
+top.egon.cola.component.yuheng.admin.interfaces.management.GatewayReleaseController
+top.egon.cola.component.yuheng.admin.interfaces.openapi.GatewayReportHmacFilter
+top.egon.cola.component.yuheng.admin.interfaces.scheduled.GatewayDefinitionLifecycleReconciler
+top.egon.cola.component.yuheng.admin.mcp.application.McpControlPlaneService
+top.egon.cola.component.yuheng.admin.mcp.application.McpReleaseContentFactory
+top.egon.cola.component.yuheng.admin.mcp.application.McpToolAdminService
+top.egon.cola.component.yuheng.admin.mcp.application.McpValidationService
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpAppAdminController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpApprovalController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpCapabilityController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpProtocolInspectorController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpRemoteProviderController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpServerController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpTaskAdminController
+top.egon.cola.component.yuheng.admin.mcp.interfaces.McpToolAdminController
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpApprovalStore
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpArtifactMetadataStore
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpCapabilityDraftStore
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpManagedToolOverrideStore
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpRemoteProviderStore
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpRemoteToolDraftStore
+top.egon.cola.component.yuheng.admin.mcp.persistence.JdbcMcpTaskStore
+top.egon.cola.component.yuheng.admin.rule.GatewayDdcYamlDocument
+top.egon.cola.component.yuheng.admin.rule.GatewayRouteTransportPolicyValidator
 ~~~
 
 ## Coverage Matrix

@@ -1,15 +1,15 @@
-# GWS-11 Gateway Admin Web Implementation Plan
+# GWS-11 Yuheng Admin Web Implementation Plan
 
 状态：已执行
 
 **Goal:** Deliver the independent React administration console defined by
-GWS-11, connected only to Gateway Admin APIs and preserving trace,
+GWS-11, connected only to Yuheng Admin APIs and preserving trace,
 revision, idempotency, release evidence, and access-zone constraints.
 
 **Architecture:** A Vite/React/TypeScript feature-oriented application uses one
 typed `fetch` client, TanStack Query for server state, React Router for resource
 identity, Ant Design for management UI, and Ant Design Charts for bounded
-aggregates. Features never call DDC, Redis, Kafka, or Engine directly. Draft and
+aggregates. Features never call Tianshu, Redis, Kafka, or Engine directly. Draft and
 release mutations remain server-authoritative.
 
 **Patterns considered:** Facade is selected for the typed API client so trace,
@@ -36,7 +36,7 @@ npm run build
 
 ## Task 2: Typed API and trace boundary
 
-Implement API DTOs for Gateway Group, Catalog, Draft, Release, Projection,
+Implement API DTOs for Yuheng Group, Catalog, Draft, Release, Projection,
 Credential, Audit, and Observability resources. Implement:
 
 - 32-hex trace and 16-hex span generation with Web Crypto;
@@ -45,7 +45,7 @@ Credential, Audit, and Observability resources. Implement:
 - AbortSignal, JSON decoding, 204 handling, and typed errors;
 - distinct 401, 403, 404, 409, 422, 5xx and network classifications;
 - idempotency-key generation for writes;
-- no browser persistence of HMAC/DDC secrets.
+- no browser persistence of HMAC/Tianshu secrets.
 
 Add unit tests for trace headers, error mapping, retry trace reuse, and contract
 version mismatch.
@@ -57,10 +57,10 @@ navigation, backend-status indicator, capability provider, error boundary,
 query provider, and lazy feature routes. Warn before discarding dirty draft
 forms when changing scope or leaving the page.
 
-## Task 4: Dashboard and Gateway Groups
+## Task 4: Dashboard and Yuheng Groups
 
 Implement overview cards, bounded request/error/latency charts with accessible
-text summaries, Gateway Group list, group overview, Engine node table, and
+text summaries, Yuheng Group list, group overview, Engine node table, and
 runtime consistency panel. Always show instance ID, lease ID, observed time,
 stale state, capabilities, active release, and last ACK separately.
 

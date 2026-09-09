@@ -1,12 +1,12 @@
-# Gateway GWS-02C RPC Contract Extension Implementation Plan
+# Yuheng GWS-02C RPC Contract Extension Implementation Plan
 
 状态：已执行
 
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans and
 > superpowers:test-driven-development to implement this plan task-by-task.
 
-**Goal:** 让 Gateway Starter 能只读获取 RPC Provider 已校验 Contract 及标准
-FileDescriptorSet Snapshot，并允许 Provider 安全贡献 `gateway.*` Metadata。
+**Goal:** 让 Yuheng Starter 能只读获取 RPC Provider 已校验 Contract 及标准
+FileDescriptorSet Snapshot，并允许 Provider 安全贡献 `yuheng.*` Metadata。
 
 **Architecture:** `RpcProviderBeanScanner` 只扫描一次并生成不可变
 `RpcProviderMethodRegistry`；Server Definition、Provider Lifecycle 与
@@ -23,8 +23,8 @@ JUnit 5、AssertJ、Mockito。
 ## 全局约束
 
 - 工作目录：
-  `/Users/mario/SelfProject/Egon-COLA/.worktrees/gateway-wave-0-foundation`。
-- 不提供动态 Handler、Channel Cache、Provider Directory 或生产 Gateway Forwarder。
+  `/Users/mario/SelfProject/Egon-COLA/.worktrees/yuheng-wave-0-foundation`。
+- 不提供动态 Handler、Channel Cache、Provider Directory 或生产 Yuheng Forwarder。
 - 保持 Unary-only、单 `INTERNAL_GATEWAY` 和现有 RPC Wire Protocol。
 - Catalog 不暴露可变集合；Snapshot 不包含 Java 反射对象或 Provider 地址。
 - Contributor 失败必须发生在 Server 注册租约之前。
@@ -115,7 +115,7 @@ JUnit 5、AssertJ、Mockito。
 2. 相同 Key/相同 Value 幂等；相同 Key/不同 Value 启动失败。
 3. 禁止覆盖 `egon.rpc.transport`、`serialization`、`runtime-version`。
 4. 用户 properties Metadata 与 Contributor 也执行冲突校验。
-5. `gateway.weight` 为 1～10000；tags/zone/region 等执行长度与格式校验。
+5. `yuheng.weight` 为 1～10000；tags/zone/region 等执行长度与格式校验。
 6. 最终结果继续经过 `DdcServiceRegistration` 的 32/64/512/Secret Guard。
 7. Contributor 异常时不建立任何 Provider 租约。
 
@@ -136,6 +136,6 @@ git status --short
 检查：
 
 1. Snapshot 源码/序列化结果不含 `Class`、`Method`、Bean、Host/Port。
-2. RPC Test Mock Gateway 仍只存在测试模块。
-3. DDC/RPC Production 包不出现 Gateway 路由、负载均衡或治理实现。
+2. RPC Test Mock Yuheng 仍只存在测试模块。
+3. Tianshu/RPC Production 包不出现 Yuheng 路由、负载均衡或治理实现。
 4. 不创建空验收提交。

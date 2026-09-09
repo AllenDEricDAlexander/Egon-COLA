@@ -1,4 +1,4 @@
-# Egon-COLA RBAC3 企业级权限平台设计 Spec
+# Egon-COLA Tianquan-Jianshen 企业级权限平台设计 Spec
 
 > 状态：已通过用户审核，实施 Plan 待审核，尚未进入实施
 >
@@ -10,13 +10,13 @@
 >
 > 首版 Spec 提交：`b8daeb05`
 >
-> 原始需求稿：`/Users/mario/Downloads/rbac3-permission-system-design-v4.md`
+> 原始需求稿：`/Users/mario/Downloads/tianquan-jianshen-permission-system-design-v4.md`
 >
 > 目标目录：`egon-cola-xingyuan/egon-cola-tianquan-jianshen`
 
 ## 1. 审核闸门
 
-本文只固化 RBAC3 的产品范围、领域语义、模块边界、运行拓扑、接口契约、数据模型、
+本文只固化 Tianquan-Jianshen 的产品范围、领域语义、模块边界、运行拓扑、接口契约、数据模型、
 一致性要求、错误语义和验收标准，不是实施计划。
 
 本文已于 2026-07-30 获得用户明确确认，现仅授权编写并审核一次性交付实施 Plan。在该 Plan 再次获得用户明确确认前：
@@ -24,9 +24,9 @@
 1. 不创建 `egon-cola-tianquan-jianshen` 目录或任何子模块；
 2. 不修改根 POM、Platforms POM、BOM、版本号或发布配置；
 3. 不新增 Java、TypeScript、React、配置、测试、SQL 或 Flyway 文件；
-4. 不修改现有 Gateway、DDC、Access Guard 或 Transactional Outbox；
-5. 只允许生成和修订 `docs/superpowers/plans/2026-07-30-rbac3-permission-platform-one-shot-parallel.md`，不执行其中任何 Task；
-6. 不启动 RBAC3、Gateway、DDC、PostgreSQL、Redis 或其他长驻进程。
+4. 不修改现有 Yuheng、Tianshu、Access Guard 或 Transactional Outbox；
+5. 只允许生成和修订 `docs/superpowers/plans/2026-07-30-tianquan-jianshen-permission-xingyuan-one-shot-parallel.md`，不执行其中任何 Task；
+6. 不启动 Tianquan-Jianshen、Yuheng、Tianshu、PostgreSQL、Redis 或其他长驻进程。
 
 现已按本 Spec 编写一次性交付并行实施 Plan，其中列出精确文件、测试、验证命令和逐任务提交
 边界；用户确认该 Plan 后才进入实现。
@@ -42,7 +42,7 @@
 | 领域规则 | 状态如何变化，约束以什么时点和什么数据判断 |
 | 持久化 | 哪张表保存事实，关键字段、唯一约束和锁是什么 |
 | 运行契约 | Redis、Token、快照、Fence、事件如何配合 |
-| 接入契约 | HTTP API、Gateway、DDC、Starter、React 如何接入 |
+| 接入契约 | HTTP API、Yuheng、Tianshu、Starter、React 如何接入 |
 | 验收证据 | 正常、拒绝、并发、故障和恢复分别怎样证明 |
 
 本文中出现的“必须”“禁止”“仅允许”是后续实施和验收的强制约束；“默认”“推荐”表示允许通过
@@ -52,7 +52,7 @@
 ### 1.2 审核建议顺序
 
 1. 先审核第 2～6 节的范围、术语和方案选择；
-2. 再审核第 7～10 节的模块边界以及 Gateway/DDC 闭环；
+2. 再审核第 7～10 节的模块边界以及 Yuheng/Tianshu 闭环；
 3. 再审核第 11～24 节的领域语义、状态机和一致性；
 4. 再审核第 25～29 节的数据、API、页面和安全契约；
 5. 最后审核第 30～33 节的测试、阶段、验收和风险。
@@ -64,46 +64,46 @@
 
 以下三条是本次确认中最容易产生歧义、也最需要显式锁定的结论：
 
-> **业务轮岗不属于 RBAC3。** 排班、换岗、代岗、来源岗位处理、业务交接和到期恢复由业务系统
-> 自己定义；RBAC3 不保存轮岗单、不运行轮岗状态机，也不提供轮岗 API。权限平台只对外提供
+> **业务轮岗不属于 Tianquan-Jianshen。** 排班、换岗、代岗、来源岗位处理、业务交接和到期恢复由业务系统
+> 自己定义；Tianquan-Jianshen 不保存轮岗单、不运行轮岗状态机，也不提供轮岗 API。权限平台只对外提供
 > “查询可激活角色”和“原子替换当前会话激活角色集合”的语义 API。
 >
-> **RBAC3 完全不实现审批。** 普通任职管理和角色激活均没有提交、审批、通过、驳回流程；调用者
+> **Tianquan-Jianshen 完全不实现审批。** 普通任职管理和角色激活均没有提交、审批、通过、驳回流程；调用者
 > 通过同步权限、管理范围和安全约束后，命令直接生效。角色激活不是给用户新增任职或权限。
 >
-> **DDC 与 Gateway 对接是交付必选项。** RBAC3 Admin 的接口必须由 Gateway Starter 上报，
-> RBAC3 Admin 实例必须以 `HTTP_PROVIDER` 注册到 DDC；Gateway 只能从 DDC 的有效租约中选择
-> 实例，并且只有 Gateway Admin 已发布 Release 的接口才允许路由。
+> **Tianshu 与 Yuheng 对接是交付必选项。** Tianquan-Jianshen Admin 的接口必须由 Yuheng Starter 上报，
+> Tianquan-Jianshen Admin 实例必须以 `HTTP_PROVIDER` 注册到 Tianshu；Yuheng 只能从 Tianshu 的有效租约中选择
+> 实例，并且只有 Yuheng Admin 已发布 Release 的接口才允许路由。
 
 | 编号 | 决策 |
 |---|---|
-| D-01 | RBAC3 是 `egon-cola-xingyuan` 下的独立完整平台，不是普通工具 Starter |
-| D-02 | 建设中心服务、业务 Starter、Gateway Adapter、React 管理端和 React 业务 SDK；不建设独立 Test 模块，测试归属各模块自己的测试源集 |
-| D-03 | RBAC3 自带最小租户、用户、组织、部门、岗位和授权快照，并提供外部 IdP/HR 同步 SPI；不建设完整 HR 系统 |
+| D-01 | Tianquan-Jianshen 是 `egon-cola-xingyuan` 下的独立完整平台，不是普通工具 Starter |
+| D-02 | 建设中心服务、业务 Starter、Yuheng Adapter、React 管理端和 React 业务 SDK；不建设独立 Test 模块，测试归属各模块自己的测试源集 |
+| D-03 | Tianquan-Jianshen 自带最小租户、用户、组织、部门、岗位和授权快照，并提供外部 Tianquan-Shoubing/HR 同步 SPI；不建设完整 HR 系统 |
 | D-04 | 所有业务数据强制租户隔离；平台管理员与租户管理员是不同安全边界 |
 | D-05 | 首期支持本地账号、签名 JWT、Refresh Token 轮换和 Redis 在线会话；不建设完整 OAuth2/OIDC Authorization Server |
 | D-06 | 持久化使用 PostgreSQL，运行态缓存与会话使用 Redis；不支持 MySQL 或 SQLite |
 | D-07 | 管理聚合优先使用 Spring Data JPA；锁、继承闭包、批量决策和热查询允许使用显式 SQL |
 | D-08 | 权限资源通过版本化 Manifest 显式注册，不从 URL、类名或前端组件名隐式创造权限 |
-| D-09 | Gateway 执行入口认证与粗粒度 API 权限；RBAC3 Starter 和业务服务执行最终功能、数据、字段与同对象职责校验 |
+| D-09 | Yuheng 执行入口认证与粗粒度 API 权限；Tianquan-Jianshen Starter 和业务服务执行最终功能、数据、字段与同对象职责校验 |
 | D-10 | 数据权限和字段权限通过类型化决策契约交给业务侧执行；首期不自动改写任意 JPA/MyBatis SQL |
 | D-11 | 有效任职只决定用户“有资格激活哪些角色”，不能自动把全部任职权限装入 Session |
 | D-12 | 一个 Session 支持同时激活一个或多个角色；角色集合只能通过专用激活语义 API 原子替换，不能用前端本地状态或 Token Claim 自行拼接 |
 | D-13 | 激活角色先归一到该 APP 内唯一最顶级角色，再展开该根角色及其全部有效子角色，权限、数据范围和字段规则按既定代数合并 |
 | D-14 | 同一 APP 中被 DSD/激活互斥集合约束的顶级角色不能同时激活；跨 APP 或同 APP 非互斥角色可以同时激活 |
-| D-15 | 业务轮岗完全由业务系统定义；RBAC3 不提供轮岗、排班、交接、来源岗位处理、定时执行或恢复模型 |
-| D-16 | RBAC3 不实现审批；不出现待审批、通过、驳回、审批人或审批策略等模型、接口和页面 |
-| D-17 | RBAC3 Admin 必须使用 Gateway Starter 上报全部 HTTP 接口 |
-| D-18 | RBAC3 Admin 必须使用 Gateway Provider Runtime，以 `HTTP_PROVIDER` 服务类型注册到 DDC |
-| D-19 | Gateway Engine 必须从 DDC 获取 RBAC3 可用实例并完成负载均衡与请求路由 |
-| D-20 | DDC 注册成功不等于接口已暴露；接口必须经过 Gateway Admin 的目录接收、路由配置和 Release 发布后才能由 Gateway 路由 |
-| D-21 | RBAC3 Gateway Adapter 复用 Gateway 现有认证、授权和可信身份扩展契约，所有失败均 Fail Closed |
+| D-15 | 业务轮岗完全由业务系统定义；Tianquan-Jianshen 不提供轮岗、排班、交接、来源岗位处理、定时执行或恢复模型 |
+| D-16 | Tianquan-Jianshen 不实现审批；不出现待审批、通过、驳回、审批人或审批策略等模型、接口和页面 |
+| D-17 | Tianquan-Jianshen Admin 必须使用 Yuheng Starter 上报全部 HTTP 接口 |
+| D-18 | Tianquan-Jianshen Admin 必须使用 Yuheng Provider Runtime，以 `HTTP_PROVIDER` 服务类型注册到 Tianshu |
+| D-19 | Yuheng Engine 必须从 Tianshu 获取 Tianquan-Jianshen 可用实例并完成负载均衡与请求路由 |
+| D-20 | Tianshu 注册成功不等于接口已暴露；接口必须经过 Yuheng Admin 的目录接收、路由配置和 Release 发布后才能由 Yuheng 路由 |
+| D-21 | Tianquan-Jianshen Yuheng Adapter 复用 Yuheng 现有认证、授权和可信身份扩展契约，所有失败均 Fail Closed |
 | D-22 | 角色、权限、任职或会话激活集合变化通过数据库事务、版本、事务 Outbox、Redis 投影和会话控制闭环生效 |
 | D-23 | 禁止自我分配和自我提升；激活仅能从本人有效任职派生的候选根角色中选择，不等同于自我授权 |
 | D-24 | Spec 描述完整终态，实施按可独立验收的阶段拆分，每个任务单独提交 |
 | D-25 | Java 基线为 21，Spring Boot 基线为 3.5.16，Flyway 基线为 11.15.0 |
-| D-26 | 管理端沿用现有 Gateway Admin Web 技术方向：React、TypeScript、Vite、React Router、TanStack Query、Ant Design |
-| D-27 | 前端不是安全边界；绕过页面直接请求 API 仍必须被 Gateway 和业务侧授权链拒绝 |
+| D-26 | 管理端沿用现有 Yuheng Admin Web 技术方向：React、TypeScript、Vite、React Router、TanStack Query、Ant Design |
+| D-27 | 前端不是安全边界；绕过页面直接请求 API 仍必须被 Yuheng 和业务侧授权链拒绝 |
 
 ### 2.1 决策理由、影响和反向约束
 
@@ -113,11 +113,11 @@
 | D-04 多租户 | 角色、组织和权限均属于租户安全域 | 所有事实表、缓存 Key、事件、审计和查询必须携带租户 | 用请求 Header 任意切租户；以 `tenant_id=0` 表示公共事实 |
 | D-05 认证边界 | 首期需要可独立运行，但不需要建设通用身份协议服务器 | 本地密码、JWT、Refresh Family、在线会话；保留认证 SPI | 自建完整 OAuth2/OIDC Server；无状态 JWT 永不撤销 |
 | D-06～D-07 存储 | 仓库平台基线是 PostgreSQL/Redis，复杂约束需要事务和显式锁 | JPA 管理聚合，SQL 处理闭包、领取任务、容量和批量热查询 | MySQL 方言；全部用 JPA 派生查询；用 Redis 作为授权事实库 |
-| D-08 资源注册 | 隐式扫描只能发现机械接口，不能安全创造业务权限 | 业务资源用版本化 Manifest；API 与 Gateway Operation 显式映射 | 从 URL、Controller 名或 React 组件名自动生成并授权 |
-| D-09～D-10 执行面 | Gateway 适合入口粗检，业务服务才知道对象、数据和字段语义 | Gateway Adapter + Starter 双层 PEP；类型化 Scope/Field/Participation | 每请求远程回调中心 PDP；Starter 自动拼任意 SQL |
+| D-08 资源注册 | 隐式扫描只能发现机械接口，不能安全创造业务权限 | 业务资源用版本化 Manifest；API 与 Yuheng Operation 显式映射 | 从 URL、Controller 名或 React 组件名自动生成并授权 |
+| D-09～D-10 执行面 | Yuheng 适合入口粗检，业务服务才知道对象、数据和字段语义 | Yuheng Adapter + Starter 双层 PEP；类型化 Scope/Field/Participation | 每请求远程回调中心 PDP；Starter 自动拼任意 SQL |
 | D-11～D-14 激活语义 | 任职是资格，Session 中真正参与授权的是用户明确激活的角色族 | 独立候选/激活 API；唯一根归一、子树展开、APP 分桶、互斥检测、原子替换 | 登录自动合并全部任职；前端只切菜单不切授权；按请求临时拼角色 |
-| D-15～D-16 业务边界 | 轮岗的时间、来源岗位和交接是业务事实，权限平台无法替业务定义 | 删除全部轮岗表、状态、Worker、API、页面和 SPI；只保留普通任职与会话激活 | 在 RBAC3 中建立通用轮岗引擎；把轮岗换名后继续保留；预留审批字段 |
-| D-17～D-21 Gateway/DDC | 服务注册、接口目录和路由发布是三个不同事实 | 复用现有 Gateway Starter/Provider Runtime/安全 SPI；三态独立验收 | RBAC3 自写注册器；DDC 有实例就自动公开接口；静态地址兜底 |
+| D-15～D-16 业务边界 | 轮岗的时间、来源岗位和交接是业务事实，权限平台无法替业务定义 | 删除全部轮岗表、状态、Worker、API、页面和 SPI；只保留普通任职与会话激活 | 在 Tianquan-Jianshen 中建立通用轮岗引擎；把轮岗换名后继续保留；预留审批字段 |
+| D-17～D-21 Yuheng/Tianshu | 服务注册、接口目录和路由发布是三个不同事实 | 复用现有 Yuheng Starter/Provider Runtime/安全 SPI；三态独立验收 | Tianquan-Jianshen 自写注册器；Tianshu 有实例就自动公开接口；静态地址兜底 |
 | D-22 一致性 | 权限或当前激活集合变化后，旧 Token 不能继续使用旧 Snapshot | 数据库版本、Session/User/Tenant Fence、同步投影和 Outbox 形成闭环 | 只改前端状态；只删本机缓存；Redis 失败仍返回成功 |
 | D-23 高风险管理 | 无审批时必须用硬边界防止直接提权 | 禁止自我分配；激活只能选已有资格；高风险角色分配需强认证和审计 | 把激活当分配；前端隐藏按钮；普通委托策略包含平台管理员角色 |
 | D-24～D-27 交付与 UI | 完整终态需要分阶段证明，前端只能改善体验 | 每阶段独立验收；React 技术栈对齐；后端始终最终拒绝 | 以页面隐藏替代后端授权；以聚合构建成功替代行为证明 |
@@ -127,7 +127,7 @@
 以下内容允许配置：Token 时长、会话时长、租约周期、密码失败阈值、角色容量值、管理策略有效期、
 紧急角色最长时长以内的实际时长、每次最多激活角色数、限流阈值和审计保留期。
 
-以下内容不允许通过配置关闭：租户隔离、禁止自我分配/提权、激活资格边界、APP 互斥、无审批语义、Gateway/DDC 三事实分离、
+以下内容不允许通过配置关闭：租户隔离、禁止自我分配/提权、激活资格边界、APP 互斥、无审批语义、Yuheng/Tianshu 三事实分离、
 受保护请求 Fail Closed、Refresh 重放撤销 Token Family、敏感字段默认拒绝、同对象职责历史保留、
 数据库事实与 Outbox 同事务、已有 Flyway 迁移不可修改。
 
@@ -139,7 +139,7 @@
 
 ### 3.1 保留的核心模型
 
-RBAC3 在本项目中的含义为：
+Tianquan-Jianshen 在本项目中的含义为：
 
 ```text
 RBAC0 用户—角色—权限
@@ -194,7 +194,7 @@ RBAC2 SSD/DSD/前置角色/角色容量约束
 ### 3.2 对原稿的关键修正
 
 1. 原稿只描述一个中心系统，没有说明分布式业务应用如何注册资源和执行最终权限。本 Spec
-   增加 RBAC3 Starter、React SDK 和 Gateway Adapter。
+   增加 Tianquan-Jianshen Starter、React SDK 和 Yuheng Adapter。
 2. 原稿将 MySQL 写入技术头部，但当前 Platforms 基线已经治理 PostgreSQL、Flyway 和 Redis。
    本项目统一选择 PostgreSQL + Redis。
 3. 原稿同时包含登录接口和“可外接 HR/组织中心”，却没有确定账号与组织归属。本 Spec 采用
@@ -205,10 +205,10 @@ RBAC2 SSD/DSD/前置角色/角色容量约束
    Outbox 与业务变化写入同一事务，并增加授权变更栅栏。
 6. 原稿定义数据权限和字段权限，但没有定义业务侧执行接口。本 Spec 明确类型化 Scope、Field
    Policy 和 Participation SPI，禁止把任意 SQL 字符串当作权限规则。
-7. 原稿把轮岗、交接和审批定义为权限平台能力。本项目明确将轮岗整体交还业务系统；RBAC3
+7. 原稿把轮岗、交接和审批定义为权限平台能力。本项目明确将轮岗整体交还业务系统；Tianquan-Jianshen
    不保留轮岗单、调度、交接、恢复或审批的状态、字段、接口、页面和错误码。
-8. 原稿没有区分 DDC 注册事实、Gateway 接口目录事实和 Gateway Release 路由事实。本 Spec
-   将三者作为独立状态管理，禁止用“已注册 DDC”推导“已对外暴露”。
+8. 原稿没有区分 Tianshu 注册事实、Yuheng 接口目录事实和 Yuheng Release 路由事实。本 Spec
+   将三者作为独立状态管理，禁止用“已注册 Tianshu”推导“已对外暴露”。
 9. 原稿的角色激活语义不够确定。本 Spec 明确有效任职只产生候选，用户通过 Session 级语义 API
    激活一个或多个顶级角色；同 APP 互斥集合原子拒绝，不能自动把全部任职合并进授权集合。
 10. 原稿只描述单系统 React Bootstrap。本 Spec 增加可复用 React SDK 和显式
@@ -219,7 +219,7 @@ RBAC2 SSD/DSD/前置角色/角色容量约束
 | 原稿主题 | 本 Spec 落点 | 处理结果 | 评审说明 |
 |---|---|---|---|
 | 角色分类、激活策略 | 12～14、20、21 | 保留并重构 | 任职只形成资格；Session 可激活多个角色；唯一根归一、子树展开、APP 内互斥 |
-| 普通分配与业务轮岗 | 5、20、21 | 收紧边界 | RBAC3 只管理普通任职和激活；排班、换岗、交接、调度、恢复全部由业务系统负责 |
+| 普通分配与业务轮岗 | 5、20、21 | 收紧边界 | Tianquan-Jianshen 只管理普通任职和激活；排班、换岗、交接、调度、恢复全部由业务系统负责 |
 | 委托管理 | 19 | 保留并补强 | 五元组必须由同一条有效策略完整满足，禁止把多条策略碎片拼成一次授权 |
 | 轮岗与审批 | 5、19～21、25～29、32 | 删除 | 两类能力均不建表、不建状态、不建接口、不建页面、不建错误码 |
 | 登录、角色激活与 Landing Route | 12、13、21、28 | 保留并补强 | 登录建立未激活 Session；激活后按 APP 返回 Route，`componentKey` 必须存在于本地白名单 |
@@ -228,9 +228,9 @@ RBAC2 SSD/DSD/前置角色/角色容量约束
 | 同对象职责分离 | 18 | 保留并补强 | 使用不因角色切换或任职变化消失的 Participation 事实；写入与业务动作可靠绑定 |
 | 资源、数据、字段权限 | 15～17 | 保留并补强 | 显式 Manifest、类型化 Scope、后端字段执行；不使用动态脚本或 SQL 字符串 |
 | 数据库 | 25 | 重新基线化 | PostgreSQL + `timestamptz/jsonb` + Flyway；Outbox 复用组件表 |
-| API、错误、页面 | 26～28 | 扩展 | 增加 Gateway/DDC、内部服务身份、幂等、版本和统一错误信封 |
+| API、错误、页面 | 26～28 | 扩展 | 增加 Yuheng/Tianshu、内部服务身份、幂等、版本和统一错误信封 |
 | 审计 | 23、29、30 | 保留并补强 | 成功和拒绝都审计；定义脱敏、保留、事件关联和传播故障 |
-| Gateway/DDC | 7、10、30、32 | 新增强制项 | 接口上报、Provider 注册、Release 发布、实例发现和路由逐段验收 |
+| Yuheng/Tianshu | 7、10、30、32 | 新增强制项 | 接口上报、Provider 注册、Release 发布、实例发现和路由逐段验收 |
 
 ### 3.4 统一术语
 
@@ -250,15 +250,15 @@ RBAC2 SSD/DSD/前置角色/角色容量约束
 | Role Family | 一个 Activation Root 与其全部有效后代角色形成的集合 | 跨 APP 角色集合 |
 | Snapshot | 某 Session 在特定 `sessionVersion/authVersion/policyVersion` 与 Active Role Set 下的授权运行投影 | PostgreSQL 权威事实 |
 | Fence | 授权变化期间阻止旧权限继续使用的运行标记 | 分布式数据库事务 |
-| Gateway Definition | Controller/Operation 的接口目录事实 | DDC Provider 实例 |
-| Gateway Release | 已配置 Route 和安全策略的可运行发布版本 | 接口上报成功 |
-| DDC Lease | 某 Provider 实例当前可发现的有时效租约 | API 已对外开放 |
+| Yuheng Definition | Controller/Operation 的接口目录事实 | Tianshu Provider 实例 |
+| Yuheng Release | 已配置 Route 和安全策略的可运行发布版本 | 接口上报成功 |
+| Tianshu Lease | 某 Provider 实例当前可发现的有时效租约 | API 已对外开放 |
 
 ## 4. 建设目标
 
 ### 4.1 产品目标
 
-RBAC3 必须提供：
+Tianquan-Jianshen 必须提供：
 
 1. 多租户账号、会话和最小组织岗位目录；
 2. 用户与角色多对多任职、有效期、状态和来源追踪；
@@ -274,12 +274,12 @@ RBAC3 必须提供：
 12. APP 内激活互斥、原子替换和确定性 Landing Route；
 13. 登录、Refresh、Logout、激活候选、Bootstrap 和默认 Landing Route；
 14. 用户级、会话级和租户策略级授权版本；
-15. Gateway 入口认证授权、可信身份透传和业务服务二次校验；
-16. DDC HTTP Provider 注册、恢复、心跳和下线；
-17. Gateway 接口目录上报、显式发布、DDC 实例发现和路由闭环；
+15. Yuheng 入口认证授权、可信身份透传和业务服务二次校验；
+16. Tianshu HTTP Provider 注册、恢复、心跳和下线；
+17. Yuheng 接口目录上报、显式发布、Tianshu 实例发现和路由闭环；
 18. 管理端、React 业务 SDK、审计、模拟和影响分析；
 19. 可靠授权失效、Outbox 重试和可观测性；
-20. 各模块测试源集内可重复的单元/集成测试，以及真实 DDC/Gateway 闭环测试。
+20. 各模块测试源集内可重复的单元/集成测试，以及真实 Tianshu/Yuheng 闭环测试。
 
 ### 4.2 成功标准
 
@@ -287,28 +287,28 @@ RBAC3 必须提供：
 
 ```text
 业务应用声明资源
-→ RBAC3 接收版本化 Manifest
+→ Tianquan-Jianshen 接收版本化 Manifest
 → 管理员为角色授权
 → 管理者为用户创建有效任职
 → 登录生成在线会话与激活候选
 → 用户通过激活 API 选择一个或多个非冲突角色
-→ RBAC3 归一顶级角色、展开子树并生成 Session 授权快照
-→ Gateway 验证身份和 API 权限
+→ Tianquan-Jianshen 归一顶级角色、展开子树并生成 Session 授权快照
+→ Yuheng 验证身份和 API 权限
 → 业务 Starter 再次验证权限、数据、字段和对象职责
 → 角色变化后旧会话下一次请求被拒绝
 → React 重新加载 Bootstrap 并进入所激活 APP/角色页面
 → 全链路可按 traceId 查询审计
 ```
 
-RBAC3 自身还必须满足：
+Tianquan-Jianshen 自身还必须满足：
 
 ```text
-RBAC3 Controller 被 Gateway Starter 发现并上报
-→ Gateway Admin 接收接口定义
-→ RBAC3 Admin 以 HTTP_PROVIDER 注册 DDC
-→ Gateway Admin 发布 RBAC3 Route Release
-→ Gateway Engine 从 DDC 发现 RBAC3 实例
-→ 客户端通过 Gateway 成功路由到 RBAC3 Admin
+Tianquan-Jianshen Controller 被 Yuheng Starter 发现并上报
+→ Yuheng Admin 接收接口定义
+→ Tianquan-Jianshen Admin 以 HTTP_PROVIDER 注册 Tianshu
+→ Yuheng Admin 发布 Tianquan-Jianshen Route Release
+→ Yuheng Engine 从 Tianshu 发现 Tianquan-Jianshen 实例
+→ 客户端通过 Yuheng 成功路由到 Tianquan-Jianshen Admin
 ```
 
 ### 4.3 参与者与核心用例
@@ -321,7 +321,7 @@ RBAC3 Controller 被 Gateway Starter 发现并上报
 | 普通用户 | 登录、查询本人激活候选、原子激活一个或多个合规角色、刷新、退出和获取 Bootstrap | 不能激活未任职角色、不能绕过 APP 互斥、不能查看他人任职或自行新增任职 |
 | 低风险自助撤销用户 | 在策略显式允许时撤销自己的低风险辅助角色 | 不能撤销岗位来源角色、高风险角色或破坏前置依赖 |
 | 业务服务身份 | 上报自己的 Manifest、冷加载快照、提交参与记录 | 只能操作绑定的 `applicationCode`，不能执行人工管理 API |
-| Gateway Engine | 校验入口身份/API 权限并按 DDC 目录路由 | 不写授权事实，不计算数据/字段/对象职责 |
+| Yuheng Engine | 校验入口身份/API 权限并按 Tianshu 目录路由 | 不写授权事实，不计算数据/字段/对象职责 |
 | 审计人员 | 只读查询审计、执行记录和模拟结果 | 无角色变更能力；审计查询本身也被审计 |
 | 运维人员 | 查看健康、指标、租约、投影和 Outbox 状态，执行受控重试 | 无业务授权修改权；不能手工改 Redis 冒充恢复 |
 
@@ -331,24 +331,24 @@ RBAC3 Controller 被 Gateway Starter 发现并上报
 
 | 属性 | 目标 | 测量边界 |
 |---|---|---|
-| 默认安全 | 任一必要身份、映射、版本、快照或运行存储缺失即拒绝 | Gateway Adapter 与 Starter 的故障测试 |
+| 默认安全 | 任一必要身份、映射、版本、快照或运行存储缺失即拒绝 | Yuheng Adapter 与 Starter 的故障测试 |
 | 授权失效 | 变更命令成功返回后，旧 Token 的下一次受保护请求不得使用旧权限 | 从命令响应完成到下一请求；数据库已提交但投影失败时命令不得返回成功 |
-| Gateway 热路径 | 已命中内存公钥且 Redis 正常时，单次粗粒度决策 p95 设计预算不高于 10 ms | 不含公网、TLS、业务 Provider 和冷加载；最终以基准测试为准 |
+| Yuheng 热路径 | 已命中内存公钥且 Redis 正常时，单次粗粒度决策 p95 设计预算不高于 10 ms | 不含公网、TLS、业务 Provider 和冷加载；最终以基准测试为准 |
 | Starter 热路径 | 本地快照命中且无需业务查询时，功能权限决策 p95 设计预算不高于 5 ms | 不含业务 Data Scope 查询和 Participation 查询 |
-| 可恢复性 | Redis 投影可从 PostgreSQL + Outbox 重建；DDC 租约可在依赖恢复后重新注册 | 故障注入和恢复测试，不以人工改数据证明 |
-| 可追踪性 | 管理命令、角色激活、事件、投影、Gateway 请求和业务请求可通过 `traceId/requestId` 关联 | 日志、审计、Mutation Journal 和事件头联合查询 |
+| 可恢复性 | Redis 投影可从 PostgreSQL + Outbox 重建；Tianshu 租约可在依赖恢复后重新注册 | 故障注入和恢复测试，不以人工改数据证明 |
+| 可追踪性 | 管理命令、角色激活、事件、投影、Yuheng 请求和业务请求可通过 `traceId/requestId` 关联 | 日志、审计、Mutation Journal 和事件头联合查询 |
 | 幂等性 | Manifest、目录同步、管理命令、角色激活集合替换和事件消费可安全重试 | 相同集合重复激活不重复递增版本；相同 Key 同内容返回既有管理结果 |
 | 时间一致性 | 授权有效期与调度判断使用数据库 UTC 时间，应用节点时钟不参与最终授权 | 命令用 `transaction_timestamp()`，调度领取用 `clock_timestamp()`，并做边界测试 |
-| 可用性取舍 | 无法确认权限时拒绝，而不是依赖不可用时放行 | Redis、DDC、Key Ring、快照故障矩阵 |
+| 可用性取舍 | 无法确认权限时拒绝，而不是依赖不可用时放行 | Redis、Tianshu、Key Ring、快照故障矩阵 |
 
 ### 4.5 一条完整业务场景
 
 以“张三登录后在财务 APP 激活出纳角色，同时在报表 APP 激活报表查看角色”为例：
 
-1. 认证成功后，RBAC3 创建尚未激活业务角色的 Session，并从张三当前有效任职计算候选；
+1. 认证成功后，Tianquan-Jianshen 创建尚未激活业务角色的 Session，并从张三当前有效任职计算候选；
 2. `CASHIER_L2` 被归一为 finance APP 唯一顶级角色 `CASHIER_ROOT`，`PUBLIC_REPORT` 被归一为
    reporting APP 的 `REPORT_ROOT`；候选响应给出 APP、根角色、资格来源和互斥摘要；
-3. 张三调用 `PUT /auth/role-activations` 一次提交两个角色，Gateway 只允许当前 Session 操作本人；
+3. 张三调用 `PUT /auth/role-activations` 一次提交两个角色，Yuheng 只允许当前 Session 操作本人；
 4. Admin 锁 Session，复核两个根角色仍由有效任职支持，确认每个角色只有一个顶级根；
 5. 系统按 APP 分桶，检查 finance 的 `CASHIER_ROOT` 未与该请求中的其他根角色违反 DSD/激活互斥；
 6. 系统展开 `CASHIER_ROOT` 和 `REPORT_ROOT` 的全部有效子角色，对 Permission 去重，对 Data Scope
@@ -361,7 +361,7 @@ RBAC3 Controller 被 Gateway Starter 发现并上报
 10. 若张三同时请求 finance APP 中互斥的 `CASHIER_ROOT` 与 `PAYMENT_APPROVER_ROOT`，整个替换返回
     `APP_ROLE_ACTIVATION_MUTEX_VIOLATION`，旧 Active Role Set 完整保留；
 11. 张三过去对付款对象留下的 Participation 永久保留，切换激活角色也不能使其获得同对象复核权；
-12. 若业务上发生轮岗，业务系统自行完成排班和交接，只通过普通任职管理改变张三的资格，RBAC3
+12. 若业务上发生轮岗，业务系统自行完成排班和交接，只通过普通任职管理改变张三的资格，Tianquan-Jianshen
     不创建轮岗单或推断业务交接。
 
 ## 5. 非目标
@@ -382,67 +382,67 @@ RBAC3 Controller 被 Gateway Starter 发现并上报
 12. 独立 PAGE 资源；
 13. 服务端向浏览器下发任意可执行 React 代码；
 14. 业务负责人创建平台级角色、修改底层 API 资源或修改 SSD/DSD；
-15. 仅依赖前端隐藏按钮或仅依赖 Gateway 的单层授权；
-16. 用 DDC 保存 RBAC3 业务主数据，或用 Gateway Admin 保存角色与权限事实；
+15. 仅依赖前端隐藏按钮或仅依赖 Yuheng 的单层授权；
+16. 用 Tianshu 保存 Tianquan-Jianshen 业务主数据，或用 Yuheng Admin 保存角色与权限事实；
 17. MySQL、SQLite、Nacos、Dubbo 或新增注册中心；
 18. 自动启动项目或把模块测试宣称为真实多进程拓扑验证。
 
 ### 5.1 非目标的边界解释
 
-- “不做完整 HR”不表示没有 User/Org/Department/Position；RBAC3 必须保存授权判断所需的最小快照。
+- “不做完整 HR”不表示没有 User/Org/Department/Position；Tianquan-Jianshen 必须保存授权判断所需的最小快照。
 - “不做 OAuth2 Server”不表示没有签名、轮换、会话撤销和 Refresh 重放防护。
 - “不做 Deny 权限模型”不表示可以绕过 SSD/DSD、管理范围、数据范围或对象职责；这些是独立约束。
 - “不自动改写 SQL”不表示数据权限由前端承担；业务 Repository/Domain Service 必须消费类型化 Scope。
 - “不做审批”不表示安全检查减少；管理范围、自我授权、强认证、约束、Fence 和审计仍是同步硬门槛。
 - “不做业务轮岗”不表示没有角色资格变化；业务系统可经受控普通任职 API 分配或撤销 Role，但
-  RBAC3 不解释这些变化是不是轮岗，也不保存业务交接状态。
+  Tianquan-Jianshen 不解释这些变化是不是轮岗，也不保存业务交接状态。
 - “支持角色激活”不表示用户能自我授权；可激活根角色必须由当前有效任职派生，激活只改变当前
   Session 使用哪部分既有资格。
-- “Gateway 做粗粒度授权”不表示 Provider 可以只信 Gateway；业务 Starter 必须完成最终判断。
+- “Yuheng 做粗粒度授权”不表示 Provider 可以只信 Yuheng；业务 Starter 必须完成最终判断。
 - “Redis 可重建”不表示 Redis 不重要；运行投影缺失时受保护请求 Fail Closed。
 - “分阶段交付”不表示允许长期保留可绕过的半闭环；每阶段必须定义在未完成后续阶段时哪些接口不可启用。
 
 ## 6. 方案比较与选型
 
-### 6.1 方案 A：中心控制面 + 本地执行面 + Gateway 入口执行面
+### 6.1 方案 A：中心控制面 + 本地执行面 + Yuheng 入口执行面
 
-RBAC3 Admin 保存授权事实并生成版本化运行快照；Gateway Adapter 在入口执行认证和粗粒度
+Tianquan-Jianshen Admin 保存授权事实并生成版本化运行快照；Yuheng Adapter 在入口执行认证和粗粒度
 API 权限；业务 Starter 在服务内部执行最终授权、数据、字段和同对象职责校验。
 
 优点：
 
 - 角色、权限、激活上下文和审计集中治理；
 - 热路径不需要每次同步调用中心 PDP；
-- Gateway 可以在请求进入业务网络前拒绝明显越权；
+- Yuheng 可以在请求进入业务网络前拒绝明显越权；
 - 业务服务仍保留最终安全边界，不信任可伪造的前端或普通代理头；
 - 中心短暂不可用时，已加载且版本仍有效的授权快照可以继续工作；
-- 能直接复用现有 Gateway 和 DDC 契约。
+- 能直接复用现有 Yuheng 和 Tianshu 契约。
 
 代价：
 
 - 必须维护版本化 Redis 运行投影；
-- Gateway Adapter、Starter 和 Admin 对决策语义必须有契约测试；
+- Yuheng Adapter、Starter 和 Admin 对决策语义必须有契约测试；
 - 权限变更传播需要 Outbox、栅栏和恢复机制。
 
 ### 6.2 方案 B：所有请求远程调用中心 PDP
 
-Gateway 和业务服务每次请求都同步调用 RBAC3 Admin 决策。
+Yuheng 和业务服务每次请求都同步调用 Tianquan-Jianshen Admin 决策。
 
-优点是授权事实集中且实现直观。缺点是 RBAC3 Admin 成为所有请求的延迟与可用性瓶颈，
-Gateway 调用 RBAC3 自身时还会产生递归路由风险。该方案不满足平台数据面的可用性目标。
+优点是授权事实集中且实现直观。缺点是 Tianquan-Jianshen Admin 成为所有请求的延迟与可用性瓶颈，
+Yuheng 调用 Tianquan-Jianshen 自身时还会产生递归路由风险。该方案不满足平台数据面的可用性目标。
 
 ### 6.3 方案 C：每个业务应用嵌入完整 RBAC
 
 每个应用维护自己的角色、权限、数据库和会话。
 
 优点是应用自治。缺点是无法统一角色激活、审计、资源、会话撤销和跨应用工作台，不能称为统一
-RBAC3 平台。
+Tianquan-Jianshen 平台。
 
 ### 6.4 结论
 
 采用方案 A。
 
-Gateway 是第一层 PEP，业务 Starter 是最终 PEP，RBAC3 Core 是统一决策语义，RBAC3 Admin
+Yuheng 是第一层 PEP，业务 Starter 是最终 PEP，Tianquan-Jianshen Core 是统一决策语义，Tianquan-Jianshen Admin
 是授权事实和控制面。任何一层不得自行发明不同的角色合并、权限字符、版本或错误规则。
 
 ### 6.5 逐项取舍矩阵
@@ -453,9 +453,9 @@ Gateway 是第一层 PEP，业务 Starter 是最终 PEP，RBAC3 Core 是统一�
 | 热路径延迟 | Redis/本地决策，无中心 HTTP | 每请求增加中心网络调用 | 本地，但各自实现 |
 | 中心故障影响 | 登录/写入/冷加载受影响；有效热快照可工作 | 所有授权请求受影响 | 单应用隔离 |
 | 实时撤权复杂度 | 中：版本/Fence/Outbox | 较低但仍需会话撤销 | 高：跨应用无法统一 |
-| Gateway 自身递归 | 无，Adapter 不回调 Admin | 高风险，需特殊旁路 | 不适用但无统一入口策略 |
+| Yuheng 自身递归 | 无，Adapter 不回调 Admin | 高风险，需特殊旁路 | 不适用但无统一入口策略 |
 | 数据/字段权限 | 业务 Starter 显式执行 | 中心难理解业务对象 | 各应用重复建设 |
-| Gateway/DDC 复用 | 完整复用 | 需要额外中心 PDP 路由例外 | 无统一闭环 |
+| Yuheng/Tianshu 复用 | 完整复用 | 需要额外中心 PDP 路由例外 | 无统一闭环 |
 | 审计与角色激活 | 跨应用统一 | 跨应用统一 | 分散且难关联 |
 | 交付复杂度 | 较高但边界清晰 | 初始低、运行风险高 | 初始分散、长期最高 |
 
@@ -466,30 +466,30 @@ Gateway 是第一层 PEP，业务 Starter 是最终 PEP，RBAC3 Core 是统一�
 
 ```mermaid
 flowchart TB
-    Browser["React Admin Web / 业务 React 应用"] --> Gateway["Gateway Engine"]
-    Client["其他 HTTP 客户端"] --> Gateway
+    Browser["React Admin Web / 业务 React 应用"] --> Yuheng["Yuheng Engine"]
+    Client["其他 HTTP 客户端"] --> Yuheng
 
-    Gateway --> GatewayAdapter["RBAC3 Gateway Adapter\n认证 + API 粗粒度授权"]
+    Yuheng --> GatewayAdapter["Tianquan-Jianshen Yuheng Adapter\n认证 + API 粗粒度授权"]
     GatewayAdapter --> RedisRuntime["Redis 授权运行投影"]
 
-    Gateway -->|"按 Release 路由"| RbacAdmin["RBAC3 Admin"]
-    Gateway -->|"按 Release 路由"| Business["业务 Provider + RBAC3 Starter"]
+    Yuheng -->|"按 Release 路由"| RbacAdmin["Tianquan-Jianshen Admin"]
+    Yuheng -->|"按 Release 路由"| Business["业务 Provider + Tianquan-Jianshen Starter"]
 
     RbacAdmin --> PostgreSQL["PostgreSQL 授权事实"]
     RbacAdmin --> RedisRuntime
     RbacAdmin --> Outbox["Transactional Outbox"]
 
-    RbacAdmin -->|"Gateway 接口定义上报"| GatewayAdmin["Gateway Admin"]
-    RbacAdmin -->|"HTTP_PROVIDER 租约"| DDC["DDC Admin + Redis Registry"]
+    RbacAdmin -->|"Yuheng 接口定义上报"| GatewayAdmin["Yuheng Admin"]
+    RbacAdmin -->|"HTTP_PROVIDER 租约"| Tianshu["Tianshu Admin + Redis Registry"]
     Business -->|"业务资源 Manifest"| RbacAdmin
 
-    GatewayAdmin -->|"发布 Route / Security Release"| DDC
-    DDC -->|"RBAC3 和业务实例目录"| Gateway
+    GatewayAdmin -->|"发布 Route / Security Release"| Tianshu
+    Tianshu -->|"Tianquan-Jianshen 和业务实例目录"| Yuheng
 
-    ReactSdk["RBAC3 React SDK"] --> Browser
-    Starter["RBAC3 Starter"] --> Business
+    ReactSdk["Tianquan-Jianshen React SDK"] --> Browser
+    Starter["Tianquan-Jianshen Starter"] --> Business
     Starter --> RedisRuntime
-    Starter -->|"冷启动快照 / 参与记录"| Gateway
+    Starter -->|"冷启动快照 / 参与记录"| Yuheng
 ```
 
 ### 7.1 三类事实
@@ -498,70 +498,70 @@ flowchart TB
 
 | 事实 | 权威来源 | 含义 |
 |---|---|---|
-| 授权事实 | RBAC3 PostgreSQL | 租户、用户、角色、权限、任职资格、Session 激活集合、约束、管理策略和审计 |
-| 服务发现事实 | DDC | 哪些 RBAC3/业务 HTTP Provider 实例当前持有有效租约 |
-| Gateway 发布事实 | Gateway Admin + DDC 发布版本 | 哪些 Operation 已被分配 Route、安全策略和运行版本 |
+| 授权事实 | Tianquan-Jianshen PostgreSQL | 租户、用户、角色、权限、任职资格、Session 激活集合、约束、管理策略和审计 |
+| 服务发现事实 | Tianshu | 哪些 Tianquan-Jianshen/业务 HTTP Provider 实例当前持有有效租约 |
+| Yuheng 发布事实 | Yuheng Admin + Tianshu 发布版本 | 哪些 Operation 已被分配 Route、安全策略和运行版本 |
 
 三者不可相互替代：
 
-- RBAC3 数据库有权限，不代表 Gateway 已配置路由；
-- DDC 有实例，不代表 Operation 已发布；
-- Gateway 有 Route，不代表调用者拥有 RBAC3 权限；
+- Tianquan-Jianshen 数据库有权限，不代表 Yuheng 已配置路由；
+- Tianshu 有实例，不代表 Operation 已发布；
+- Yuheng 有 Route，不代表调用者拥有 Tianquan-Jianshen 权限；
 - 前端有菜单，不代表 API 一定允许访问。
 
 ### 7.2 控制面、运行面和业务面
 
 | 平面 | 组件 | 写入的事实 | 读取的事实 | 请求特征 |
 |---|---|---|---|---|
-| 授权控制面 | RBAC3 Admin + PostgreSQL | 身份快照、资源、角色、约束、任职、Session 激活集合、管理策略、审计 | 当前授权事实和激活历史 | 低频写、高一致性、完整审计 |
-| 授权运行面 | Redis + Gateway Adapter + Starter | Session、版本、快照、映射、Fence | Token、版本化授权投影 | 高频读、低延迟、缺失拒绝 |
-| 服务治理控制面 | Gateway Admin + DDC | 接口目录、Route/Security Release、Provider 租约 | Definition、Release、实例目录 | 发布和租约是独立生命周期 |
+| 授权控制面 | Tianquan-Jianshen Admin + PostgreSQL | 身份快照、资源、角色、约束、任职、Session 激活集合、管理策略、审计 | 当前授权事实和激活历史 | 低频写、高一致性、完整审计 |
+| 授权运行面 | Redis + Yuheng Adapter + Starter | Session、版本、快照、映射、Fence | Token、版本化授权投影 | 高频读、低延迟、缺失拒绝 |
+| 服务治理控制面 | Yuheng Admin + Tianshu | 接口目录、Route/Security Release、Provider 租约 | Definition、Release、实例目录 | 发布和租约是独立生命周期 |
 | 业务执行面 | 业务 Provider | 业务对象、业务事务、Participation Outbox | 功能/数据/字段/职责决策 | 最终安全边界，了解对象语义 |
 | 交互面 | Admin Web + React SDK | 仅保存非安全的 UI 状态 | Bootstrap、菜单、字段展示策略 | 不是授权事实来源 |
 
 任何“管理角色”的写操作必须经过授权控制面；任何“业务对象”的最终写入必须留在业务执行面。
-RBAC3 Admin 不替业务服务保存付款单、订单或合同，业务服务也不得直接改 RBAC3 任职表。
+Tianquan-Jianshen Admin 不替业务服务保存付款单、订单或合同，业务服务也不得直接改 Tianquan-Jianshen 任职表。
 
 ### 7.3 信任区和网络入口
 
 ```mermaid
 flowchart LR
-    Internet["PUBLIC 客户端"] --> PublicListener["Gateway PUBLIC Listener"]
-    Service["已注册服务身份"] --> InternalListener["Gateway INTERNAL Listener"]
-    PublicListener --> Adapter["RBAC3 Gateway Adapter"]
+    Internet["PUBLIC 客户端"] --> PublicListener["Yuheng PUBLIC Listener"]
+    Service["已注册服务身份"] --> InternalListener["Yuheng INTERNAL Listener"]
+    PublicListener --> Adapter["Tianquan-Jianshen Yuheng Adapter"]
     InternalListener --> Adapter
-    Adapter --> Provider["RBAC3 Admin / 业务 Provider"]
-    Provider --> Starter["RBAC3 Starter 最终校验"]
-    Provider --> Db[("业务库或 RBAC3 PostgreSQL")]
+    Adapter --> Provider["Tianquan-Jianshen Admin / 业务 Provider"]
+    Provider --> Starter["Tianquan-Jianshen Starter 最终校验"]
+    Provider --> Db[("业务库或 Tianquan-Jianshen PostgreSQL")]
     Adapter --> Runtime[("Redis 授权运行投影")]
     Provider --> Runtime
 ```
 
 - PUBLIC Listener 只允许 `externalAccessible=true` 且已发布到 PUBLIC Route 的 Operation；
 - INTERNAL Listener 仍需要服务 Credential、服务身份映射和对应内部 Permission；
-- Provider 管理端口、数据库、Redis、DDC 管理接口不能暴露在 PUBLIC Listener；
+- Provider 管理端口、数据库、Redis、Tianshu 管理接口不能暴露在 PUBLIC Listener；
 - 直连 Provider 的网络路径应由部署网络策略关闭；即使网络误配，受保护 Controller 和业务方法仍由
   Starter 拒绝，不把“网络不可达”当作唯一安全边界；
-- Gateway 注入的可信身份只在 Gateway 到 Provider 的受信网络段有效，外部同名 Header 必须先删除。
+- Yuheng 注入的可信身份只在 Yuheng 到 Provider 的受信网络段有效，外部同名 Header 必须先删除。
 
 ### 7.4 三类请求的完整路径
 
 **登录请求：**
 
 ```text
-Client -> Gateway 匿名 Login Route -> RBAC3 Admin
+Client -> Yuheng 匿名 Login Route -> Tianquan-Jianshen Admin
 -> 用户名/密码与风控校验 -> 创建 Session/Refresh Family
 -> 计算激活候选 -> 返回 Access/Refresh 与角色激活入口
 ```
 
-登录 Route 不要求已有 Bearer Token，但要求 Gateway 限流、请求大小限制和 RBAC3 认证风控。
+登录 Route 不要求已有 Bearer Token，但要求 Yuheng 限流、请求大小限制和 Tianquan-Jianshen 认证风控。
 登录后业务授权集合默认为空；该 Session 只允许调用激活候选、激活、Refresh、Logout 等认证基础
 接口，直到激活 API 成功发布 Session Snapshot。
 
 **角色激活请求：**
 
 ```text
-React/Client -> Gateway REQUIRED Session Policy -> RBAC3 Admin
+React/Client -> Yuheng REQUIRED Session Policy -> Tianquan-Jianshen Admin
 -> 复核当前 Session 和激活资格 -> 唯一根归一 -> APP 分桶互斥
 -> 展开根角色子树 -> 合并权限 -> 原子替换 Active Role Set
 -> sessionVersion +1 -> Redis Session Snapshot -> 新 Access Token
@@ -572,35 +572,35 @@ React/Client -> Gateway REQUIRED Session Policy -> RBAC3 Admin
 **管理命令：**
 
 ```text
-Admin Web -> Gateway REQUIRED Policy -> RBAC3 Admin Controller
+Admin Web -> Yuheng REQUIRED Policy -> Tianquan-Jianshen Admin Controller
 -> Admin Security/Method Permission -> Management Policy -> Domain Constraint
 -> Fence -> PostgreSQL 事务 -> Redis 投影 -> 响应
 ```
 
-Gateway 的 Allow 不能替代 Admin 中的委托范围和并发复核。
+Yuheng 的 Allow 不能替代 Admin 中的委托范围和并发复核。
 
 **业务命令：**
 
 ```text
-Business UI -> Gateway REQUIRED Policy -> 业务 Provider
+Business UI -> Yuheng REQUIRED Policy -> 业务 Provider
 -> Starter Permission -> Data Scope -> Field Policy -> Participation
 -> 业务状态规则 -> 业务事务 + Participation/Outbox
 ```
 
-业务服务不在每次请求中远程调用 RBAC3 Admin；运行决策使用版本化本地/Redis 投影，Participation
-冲突查询可以由业务本地存储或受控内部 API 实现，但不能形成 Gateway 递归调用。
+业务服务不在每次请求中远程调用 Tianquan-Jianshen Admin；运行决策使用版本化本地/Redis 投影，Participation
+冲突查询可以由业务本地存储或受控内部 API 实现，但不能形成 Yuheng 递归调用。
 
 ### 7.5 部署单元和水平扩展
 
 | 部署单元 | 是否有状态 | 水平扩展规则 |
 |---|---|---|
-| RBAC3 Admin | 进程无会话粘性，事实位于 PostgreSQL/Redis | 可多实例；每个实例有唯一 `instanceId`，相同 Service Key |
-| Gateway Adapter | 本地仅短期公钥/快照 LKG | 随 Gateway Engine 扩展；所有节点共享版本语义 |
-| RBAC3 Starter | 本地只读缓存 | 随业务 Provider 扩展；不得在本地保存唯一授权事实 |
+| Tianquan-Jianshen Admin | 进程无会话粘性，事实位于 PostgreSQL/Redis | 可多实例；每个实例有唯一 `instanceId`，相同 Service Key |
+| Yuheng Adapter | 本地仅短期公钥/快照 LKG | 随 Yuheng Engine 扩展；所有节点共享版本语义 |
+| Tianquan-Jianshen Starter | 本地只读缓存 | 随业务 Provider 扩展；不得在本地保存唯一授权事实 |
 | Assignment/Outbox Worker | 使用数据库竞争领取 | 可多实例；推进任职生效/过期和 Outbox，使用 `SKIP LOCKED` + 条件更新 + 幂等消费 |
 | Admin Web/React SDK | 静态前端 | 可由静态资源服务扩展，不持有服务端会话事实 |
 
-RBAC3 Admin 不要求 Session Affinity。Refresh、Logout、Bootstrap 和管理命令命中任意健康实例都
+Tianquan-Jianshen Admin 不要求 Session Affinity。Refresh、Logout、Bootstrap 和管理命令命中任意健康实例都
 必须得到相同结果。Assignment Worker 和 Outbox Worker 不能依赖“只有一个实例会运行”的部署约定
 保证幂等。
 
@@ -626,13 +626,13 @@ egon-cola-xingyuan/
 Java 包根使用：
 
 ```text
-top.egon.cola.platform.rbac3
+top.egon.cola.platform.tianquan.jianshen
 ```
 
 配置前缀使用：
 
 ```text
-egon.cola.platform.rbac3
+egon.cola.platform.tianquan.jianshen
 ```
 
 ### 8.1 `contract`
@@ -647,7 +647,7 @@ egon.cola.platform.rbac3
 - 业务参与记录契约；
 - 管理端与 Starter 共享的请求响应模型。
 
-该模块不得依赖 Admin、JPA、Redis、Gateway Engine 或前端工程。
+该模块不得依赖 Admin、JPA、Redis、Yuheng Engine 或前端工程。
 
 ### 8.2 `core`
 
@@ -662,7 +662,7 @@ egon.cola.platform.rbac3
 - 授权版本变化判定；
 - 决策原因和影响分析。
 
-Core 不依赖 Spring MVC、Gateway、DDC、JPA 实体或 Redis 实现。
+Core 不依赖 Spring MVC、Yuheng、Tianshu、JPA 实体或 Redis 实现。
 
 ### 8.3 `starter`
 
@@ -677,12 +677,12 @@ Core 不依赖 Spring MVC、Gateway、DDC、JPA 实体或 Redis 实现。
 - 本地只读快照缓存和 Redis/中心冷加载；
 - 401/403/409 错误映射、事件、日志和指标。
 
-Starter 不依赖 Admin、JPA、业务数据库或 Gateway Engine。业务应用是否同时安装 Gateway
+Starter 不依赖 Admin、JPA、业务数据库或 Yuheng Engine。业务应用是否同时安装 Yuheng
 Starter 由其自身网关接入需求决定。
 
-### 8.4 `gateway-adapter`
+### 8.4 `yuheng-adapter`
 
-安装在 Gateway Engine 部署中，复用现有：
+安装在 Yuheng Engine 部署中，复用现有：
 
 - `GatewayCredentialExtractor`；
 - `GatewayAuthenticationProvider`；
@@ -691,7 +691,7 @@ Starter 由其自身网关接入需求决定。
 - `GatewaySecurityPolicy`；
 - `TrustedIdentity`。
 
-Adapter 本地验证 JWT、在线会话和粗粒度 API 权限，不通过 Gateway 回调 RBAC3 HTTP API，
+Adapter 本地验证 JWT、在线会话和粗粒度 API 权限，不通过 Yuheng 回调 Tianquan-Jianshen HTTP API，
 从而避免递归路由。所有 Provider 超时、Redis 不可用、版本缺失或策略缺失均 Fail Closed。
 
 ### 8.5 `admin`
@@ -704,19 +704,19 @@ Adapter 本地验证 JWT、在线会话和粗粒度 API 权限，不通过 Gatew
 - 登录、会话、Bootstrap 和授权快照物化；
 - PostgreSQL、Redis、Outbox、审计和普通 Assignment 生效/到期调度；
 - 业务资源 Manifest 接收；
-- Gateway Starter 接口上报；
-- Gateway Provider Runtime 的 DDC HTTP Provider 注册。
+- Yuheng Starter 接口上报；
+- Yuheng Provider Runtime 的 Tianshu HTTP Provider 注册。
 
-Admin 是唯一可写授权事实的服务。Gateway、Starter、React SDK 和业务应用均不得直接写
-RBAC3 数据表。
+Admin 是唯一可写授权事实的服务。Yuheng、Starter、React SDK 和业务应用均不得直接写
+Tianquan-Jianshen 数据表。
 
 Admin 自身的 Security Filter/Method Authorization 直接复用 Contract/Core 的 Token、版本和决策语义，
 不通过 HTTP 调用自己，也不依赖消费者 Starter 的自动配置；Starter 只把相同语义包装给业务应用。
 
 ### 8.6 `admin-web`
 
-平台和租户安全管理端，只调用 Gateway 暴露的 RBAC3 Admin API，不直连 PostgreSQL、Redis、
-DDC 或 Gateway Admin。
+平台和租户安全管理端，只调用 Yuheng 暴露的 Tianquan-Jianshen Admin API，不直连 PostgreSQL、Redis、
+Tianshu 或 Yuheng Admin。
 
 ### 8.7 `react-sdk`
 
@@ -733,26 +733,26 @@ DDC 或 Gateway Admin。
 
 ### 8.8 测试归属（不是独立模块）
 
-RBAC3 不创建 `egon-cola-tianquan-jianshen-test`，也不发布 test-jar。测试遵循“谁拥有行为，谁在自己
+Tianquan-Jianshen 不创建 `egon-cola-tianquan-jianshen-test`，也不发布 test-jar。测试遵循“谁拥有行为，谁在自己
 的测试源集验证”的原则：
 
 因此旧稿中“RBAC Test 模块依赖 RBAC Admin”的关系被完全删除：Admin 的 Controller、数据库、
-Redis、事务和 Gateway/DDC 接入测试本来就是 Admin 自己的实现验证，应放在 `admin/src/test`；
-Starter 和 Gateway Adapter 只验证各自公开契约，不需要通过依赖 Admin 获得夹具。真实拓扑只是用
+Redis、事务和 Yuheng/Tianshu 接入测试本来就是 Admin 自己的实现验证，应放在 `admin/src/test`；
+Starter 和 Yuheng Adapter 只验证各自公开契约，不需要通过依赖 Admin 获得夹具。真实拓扑只是用
 脚本启动已构建的生产制品并采集证据，也不形成 Maven 依赖。
 
 | 所属模块 | 测试目录 | 负责验证 | 禁止依赖 |
 |---|---|---|---|
 | `contract` | `src/test/java` | 序列化、Schema、错误码、向后兼容 | Admin、Spring MVC、JPA、Redis |
-| `core` | `src/test/java` | 角色图算法、激活根、子树展开、APP 互斥、合并代数、Specification | Admin/JPA/Redis/Gateway |
+| `core` | `src/test/java` | 角色图算法、激活根、子树展开、APP 互斥、合并代数、Specification | Admin/JPA/Redis/Yuheng |
 | `starter` | `src/test/java` | 业务 Provider 测试夹具、方法/Data/Field/Fence 执行 | Admin 生产代码、Admin 测试代码 |
-| `gateway-adapter` | `src/test/java` | Gateway SPI、Token/Session/Snapshot 粗检、Fail Closed | Admin Client、Starter 测试代码 |
-| `admin` | `src/test/java`、`src/test/resources` | Controller/Facade、PostgreSQL/Redis、事务、锁、Outbox、DDC/Gateway 接入 | 任何独立 RBAC3 Test 模块 |
+| `yuheng-adapter` | `src/test/java` | Yuheng SPI、Token/Session/Snapshot 粗检、Fail Closed | Admin Client、Starter 测试代码 |
+| `admin` | `src/test/java`、`src/test/resources` | Controller/Facade、PostgreSQL/Redis、事务、锁、Outbox、Tianshu/Yuheng 接入 | 任何独立 Tianquan-Jianshen Test 模块 |
 | `admin-web` | 源码旁 `*.test.tsx` 或项目既有测试目录 | 页面、激活选择器、错误和 E2E | Java Test Artifact |
 | `react-sdk` | 源码旁 `*.test.tsx` 或项目既有测试目录 | Provider、Guard、激活状态机和宿主契约 | Admin Web 内部组件 |
 
-真实多进程验收所需的最小业务 Provider 放在 `starter/src/test`，Gateway 夹具放在
-`gateway-adapter/src/test`，Admin 双实例使用生产 Admin 制品。编排脚本若需要，放在 RBAC3 聚合目录
+真实多进程验收所需的最小业务 Provider 放在 `starter/src/test`，Yuheng 夹具放在
+`yuheng-adapter/src/test`，Admin 双实例使用生产 Admin 制品。编排脚本若需要，放在 Tianquan-Jianshen 聚合目录
 的 `scripts/verification/`，只负责启动用户明确要求的测试进程，不形成 Maven 模块、不发布制品，
 也不让生产代码依赖测试类。
 
@@ -762,7 +762,7 @@ Starter 和 Gateway Adapter 只验证各自公开契约，不需要通过依赖 
 和决策规则混在一起：
 
 ```text
-top.egon.cola.platform.rbac3.contract
+top.egon.cola.platform.tianquan.jianshen.contract
 ├── auth              Token、Session、Bootstrap 契约
 ├── activation        激活候选、Active Role Set 与 APP Context 契约
 ├── authorization     Permission、Decision、Scope、Field、Snapshot 契约
@@ -770,7 +770,7 @@ top.egon.cola.platform.rbac3.contract
 ├── management        任职和委托管理命令契约
 └── error             错误码与错误响应
 
-top.egon.cola.platform.rbac3.core
+top.egon.cola.platform.tianquan.jianshen.core
 ├── assignment        有效任职和时间窗口规则
 ├── hierarchy         角色继承和闭包规则
 ├── activation        唯一根归一、子树展开、APP 互斥和 ActiveRoleSet
@@ -778,11 +778,11 @@ top.egon.cola.platform.rbac3.core
 ├── delegation        Management Policy 决策
 └── decision          权限、Scope、Field 合并器
 
-top.egon.cola.platform.rbac3.admin
+top.egon.cola.platform.tianquan.jianshen.admin
 ├── interfaces        HTTP、调度和消息入口
 ├── application       Facade、Command/Query Handler、事务编排
 ├── domain            Admin 聚合与领域服务
-└── infrastructure    JPA、SQL、Redis、Outbox、Gateway/DDC Adapter
+└── infrastructure    JPA、SQL、Redis、Outbox、Yuheng/Tianshu Adapter
 ```
 
 `admin.domain` 不引用 `interfaces`；`application` 可以组合领域与端口但不写 SQL；
@@ -848,12 +848,12 @@ hatch。
 | contract | 序列化兼容测试、枚举/错误码稳定性、无实现依赖 | DTO 能编译 |
 | core | 规则表驱动单测、时间/并发边界输入、结构化拒绝原因 | 只覆盖 Allow 路径 |
 | starter | Spring Boot 切片、方法/Scope/Field/Fence 契约测试 | 只提供注解不验证运行投影 |
-| gateway-adapter | Gateway SPI 契约、超时/缺失/Redis 故障 Fail Closed | Mock 一个 boolean 返回值 |
+| yuheng-adapter | Yuheng SPI 契约、超时/缺失/Redis 故障 Fail Closed | Mock 一个 boolean 返回值 |
 | admin | PostgreSQL/Redis 集成、事务/锁/Outbox/Assignment Worker 测试 | 只有 Controller CRUD |
 | admin-web | Typecheck/Lint/组件测试/关键流程 E2E | 页面能打开 |
 | react-sdk | 类型声明、Guard、版本失效和宿主集成测试 | 仅导出 UI 组件 |
 
-每个完成证据都在所属模块产生。双 Admin + Gateway/DDC + 测试业务 Provider 的真实闭环是跨模块
+每个完成证据都在所属模块产生。双 Admin + Yuheng/Tianshu + 测试业务 Provider 的真实闭环是跨模块
 验收报告，不对应、也不需要一个 `test` 依赖模块。
 
 ## 9. 模块依赖边界
@@ -862,13 +862,13 @@ hatch。
 flowchart LR
     Contract["contract"] --> Core["core"]
     Contract --> Starter["starter"]
-    Contract --> Adapter["gateway-adapter"]
+    Contract --> Adapter["yuheng-adapter"]
     Core --> Admin["admin"]
     Contract --> Admin
 
-    GatewayCore["gateway-core"] --> Adapter
-    GatewayStarter["gateway-starter"] --> Admin
-    ProviderRuntime["gateway-provider-runtime"] --> Admin
+    GatewayCore["yuheng-core"] --> Adapter
+    GatewayStarter["yuheng-starter"] --> Admin
+    ProviderRuntime["yuheng-provider-runtime"] --> Admin
     OutboxStarter["transactional-outbox-starter"] --> Admin
 
     ReactSdk["react-sdk"] --> AdminWeb["admin-web"]
@@ -877,56 +877,56 @@ flowchart LR
 边界约束：
 
 1. `contract` 和 `core` 不依赖 Admin；
-2. `starter` 不依赖 Gateway、JPA 或业务持久化框架；
-3. `gateway-adapter` 不依赖 Admin；
-4. `admin` 可以依赖 Gateway Starter 和 Provider Runtime，但不能复制其上报或租约代码；
+2. `starter` 不依赖 Yuheng、JPA 或业务持久化框架；
+3. `yuheng-adapter` 不依赖 Admin；
+4. `admin` 可以依赖 Yuheng Starter 和 Provider Runtime，但不能复制其上报或租约代码；
 5. `admin-web` 和 `react-sdk` 是独立 npm 工程，不通过 Maven Frontend Plugin 隐式修改
    Java 构建；
 6. Platforms Parent 只聚合 Maven 模块并在 `dependencyManagement` 治理消费者版本；
-7. 不新建独立 RBAC3 BOM；Platforms Parent 只管理 `contract`、`starter` 和
-   `gateway-adapter`，不把 Admin、前端或任何 Test Artifact 当作消费者依赖；
+7. 不新建独立 Tianquan-Jianshen BOM；Platforms Parent 只管理 `contract`、`starter` 和
+   `yuheng-adapter`，不把 Admin、前端或任何 Test Artifact 当作消费者依赖；
 8. 各模块测试只能使用 Maven `test` scope/npm devDependency；测试代码不跨模块发布或形成生产依赖。
 
 ### 9.1 编译期依赖矩阵
 
 `允许`表示可以直接依赖，`仅测试`表示只允许 test scope/devDependency，空白表示禁止：
 
-| from \ to | contract | core | starter | gateway core | gateway starter | provider runtime | outbox starter | admin |
+| from \ to | contract | core | starter | yuheng core | yuheng starter | provider runtime | outbox starter | admin |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
 | contract |  |  |  |  |  |  |  |  |
 | core | 允许 |  |  |  |  |  |  |  |
 | starter | 允许 | 允许 |  |  |  |  |  |  |
-| gateway-adapter | 允许 | 允许 |  | 允许 |  |  |  |  |
+| yuheng-adapter | 允许 | 允许 |  | 允许 |  |  |  |  |
 | admin | 允许 | 允许 |  |  | 允许 | 允许 | 允许 |  |
 
 Admin 不依赖 Starter，无论 production 还是 test scope；Admin 自身的 Controller 安全测试使用
-Contract/Core 和 Admin 测试夹具。Starter 在自己的 `src/test` 验证业务 Provider 接入。Gateway
-Adapter 可依赖 Gateway Core SPI，但不能依赖 Gateway Engine 的具体路由实现。
+Contract/Core 和 Admin 测试夹具。Starter 在自己的 `src/test` 验证业务 Provider 接入。Yuheng
+Adapter 可依赖 Yuheng Core SPI，但不能依赖 Yuheng Engine 的具体路由实现。
 
 ### 9.2 架构守卫
 
 后续必须使用 Maven 依赖收敛测试和 ArchUnit/等价源码规则验证：
 
-1. `contract` 不出现 `org.springframework`、JPA、Redis、Gateway 包；
-2. `core` 不出现 `jakarta.persistence`、Spring MVC、RedisTemplate、Gateway/DDC 客户端；
+1. `contract` 不出现 `org.springframework`、JPA、Redis、Yuheng 包；
+2. `core` 不出现 `jakarta.persistence`、Spring MVC、RedisTemplate、Yuheng/Tianshu 客户端；
 3. `starter` 不出现 Admin Entity/Repository；
-4. `gateway-adapter` 不出现 Admin Client 或访问 RBAC3 HTTP 的 WebClient；
+4. `yuheng-adapter` 不出现 Admin Client 或访问 Tianquan-Jianshen HTTP 的 WebClient；
 5. Admin Controller 不直接依赖 JPA Repository；
 6. 生产源集不依赖 test artifact；
 7. npm `react-sdk` 不依赖 `admin-web`，依赖方向只能是 `admin-web -> react-sdk`；
 8. Platforms 聚合构建必须实际进入所有子模块，不能只在 aggregator 成功后误报完成。
 
-## 10. Gateway 与 DDC 强制闭环
+## 10. Yuheng 与 Tianshu 强制闭环
 
-### 10.1 RBAC3 API 上报 Gateway
+### 10.1 Tianquan-Jianshen API 上报 Yuheng
 
-RBAC3 Admin 必须依赖现有：
+Tianquan-Jianshen Admin 必须依赖现有：
 
 ```text
 top.egon:yuheng-starter
 ```
 
-Controller 同时使用当前 Gateway Scanner 实际识别的 `@GatewayInterfaceGroup` 和服务语义元数据
+Controller 同时使用当前 Yuheng Scanner 实际识别的 `@GatewayInterfaceGroup` 和服务语义元数据
 `@EgonHttpService`，方法使用现有 `@GatewayOperation`。`@GatewayInterfaceGroup` 填写业务域、实体域和
 接口组字段，`@EgonHttpService` 填写 service/group/version/basePath；两者不能互相代替。Spring MVC Mapping
 仍是 HTTP Method、Path、Content Type 和参数事实来源，不新增重复描述机械 HTTP 信息的注解。
@@ -934,24 +934,24 @@ Controller 同时使用当前 Gateway Scanner 实际识别的 `@GatewayInterface
 统一应用身份：
 
 ```text
-applicationCode = rbac3-admin
-applicationName = Egon COLA RBAC3 Admin
-serviceName     = rbac3-admin
+applicationCode = tianquan-jianshen-admin
+applicationName = Egon COLA Tianquan-Jianshen Admin
+serviceName     = tianquan-jianshen-admin
 group           = default
 protocol        = http
 ```
 
-`artifactVersion`、Provider `version` 和 Gateway Definition Identity 必须一致。Gateway Starter
-负责定义指纹、幂等上报、失败重试、状态文件和周期校准；RBAC3 不实现第二套上报器。
+`artifactVersion`、Provider `version` 和 Yuheng Definition Identity 必须一致。Yuheng Starter
+负责定义指纹、幂等上报、失败重试、状态文件和周期校准；Tianquan-Jianshen 不实现第二套上报器。
 
 接口暴露规则：
 
-| 接口 | `externalAccessible` | Gateway 安全模式 |
+| 接口 | `externalAccessible` | Yuheng 安全模式 |
 |---|---:|---|
 | Login、Refresh、JWKS/公钥读取、健康探针 | true | 匿名或可选认证，仍受限流和输入校验 |
-| Logout、Bootstrap | true | 强制 RBAC3 Bearer 认证 |
+| Logout、Bootstrap | true | 强制 Tianquan-Jianshen Bearer 认证 |
 | Admin Web 使用的管理 API | true | 强制认证 + 对应管理权限 + 委托范围 |
-| Resource Manifest、快照冷加载、参与记录等内部 API | false | 内部入口 + 服务身份 + RBAC3 权限 |
+| Resource Manifest、快照冷加载、参与记录等内部 API | false | 内部入口 + 服务身份 + Tianquan-Jianshen 权限 |
 | 调试、重放、Outbox 运维 API | false | 内部入口 + 平台安全管理员 |
 
 `externalAccessible=true` 只表示允许从 PUBLIC Listener 进入，不代表匿名，也不代表拥有业务权限。
@@ -962,9 +962,9 @@ protocol        = http
 必须显式声明稳定 `name`、业务说明、owner、标签和外部可达性；HTTP Method、Path、Consumes、
 Produces 继续只从 Spring MVC Mapping 获取。
 
-`operationId` 最终由 Gateway Starter 既有算法生成，RBAC3 不自行拼接。RBAC3 在自己的
-Manifest 中保存 Gateway 上报结果返回的 `operationId/operationKey`，再由管理员将 API Resource
-映射到 Permission；禁止在 RBAC3 中用 URL 字符串猜测 Operation。
+`operationId` 最终由 Yuheng Starter 既有算法生成，Tianquan-Jianshen 不自行拼接。Tianquan-Jianshen 在自己的
+Manifest 中保存 Yuheng 上报结果返回的 `operationId/operationKey`，再由管理员将 API Resource
+映射到 Permission；禁止在 Tianquan-Jianshen 中用 URL 字符串猜测 Operation。
 
 定义上报结果必须逐项保存和展示：
 
@@ -992,46 +992,46 @@ receivedAt
 -> RECONCILED（周期校准确认当前定义集合仍一致）
 ```
 
-该状态是 RBAC3 自身的观测状态，不新增 Gateway 的业务状态。定义内容变化后生成新的 BuildId/
-DefinitionSet，不覆盖旧集合。旧 Operation 是否从 Release 移除由 Gateway Admin 管理，不由 RBAC3
+该状态是 Tianquan-Jianshen 自身的观测状态，不新增 Yuheng 的业务状态。定义内容变化后生成新的 BuildId/
+DefinitionSet，不覆盖旧集合。旧 Operation 是否从 Release 移除由 Yuheng Admin 管理，不由 Tianquan-Jianshen
 在上报时自动下线生产路由。
 
 #### 10.1.3 上报配置基线
 
-以下键来自现有 Gateway Starter，实施不得另造 RBAC3 专用上报协议：
+以下键来自现有 Yuheng Starter，实施不得另造 Tianquan-Jianshen 专用上报协议：
 
 ```yaml
 egon:
   cola:
     component:
-      gateway:
+      yuheng:
         reporting:
           enabled: true
-          admin-base-url: ${GATEWAY_ADMIN_BASE_URL}
-          biz-code: ${DDC_BIZ_CODE:rbac3}
-          application-code: rbac3-admin
-          application-name: Egon COLA RBAC3 Admin
+          admin-base-url: ${YUHENG_ADMIN_BASE_URL}
+          biz-code: ${TIANSHU_BIZ_CODE:tianquan-jianshen}
+          application-code: tianquan-jianshen-admin
+          application-name: Egon COLA Tianquan-Jianshen Admin
           env: ${DEPLOY_ENV}
           namespace: ${DEPLOY_NAMESPACE:default}
-          artifact-version: ${RBAC3_ARTIFACT_VERSION}
+          artifact-version: ${TIANQUAN_JIANSHEN_ARTIFACT_VERSION}
           build-id: ${BUILD_ID}
           declared-hosts: []
           fail-fast: true
-          access-key: ${GATEWAY_REPORT_ACCESS_KEY}
-          secret-key: ${GATEWAY_REPORT_SECRET_KEY}
+          access-key: ${YUHENG_REPORT_ACCESS_KEY}
+          secret-key: ${YUHENG_REPORT_SECRET_KEY}
           connect-timeout: 3s
           read-timeout: 10s
           max-attempts: 5
           reconcile-interval: 5m
-          state-file: data/rbac3-gateway-definition-report.state
+          state-file: data/tianquan-jianshen-yuheng-definition-report.state
 ```
 
 生产环境 `enabled`、`admin-base-url`、身份、版本、BuildId 和签名凭证缺失时必须启动失败；Secret
 只由部署 Secret 注入。`state-file` 只保存非敏感幂等状态，不保存 Secret 或接口响应凭证。
 
-### 10.2 RBAC3 Admin 注册 DDC
+### 10.2 Tianquan-Jianshen Admin 注册 Tianshu
 
-RBAC3 Admin 必须依赖现有：
+Tianquan-Jianshen Admin 必须依赖现有：
 
 ```text
 top.egon:yuheng-provider-runtime
@@ -1040,7 +1040,7 @@ top.egon:yuheng-provider-runtime
 Provider Runtime 使用现有配置前缀：
 
 ```text
-egon.cola.component.gateway.provider.http
+egon.cola.component.yuheng.provider.http
 ```
 
 并使用现有 `DdcServiceRegistryClient` 注册：
@@ -1055,7 +1055,7 @@ DdcServiceKind.HTTP_PROVIDER
 env
 + namespace
 + HTTP_PROVIDER
-+ serviceName=rbac3-admin
++ serviceName=tianquan-jianshen-admin
 + group=default
 + version
 + protocol=http|https
@@ -1070,48 +1070,48 @@ heartbeatIntervalSeconds = 10
 failFast = true
 ```
 
-运行期必须复用 `HttpProviderLeaseRuntime` 的注册、心跳、丢租约恢复和 TTL 下线行为。RBAC3
-不得直接写 DDC Redis Key 或复制租约 Lua。
+运行期必须复用 `HttpProviderLeaseRuntime` 的注册、心跳、丢租约恢复和 TTL 下线行为。Tianquan-Jianshen
+不得直接写 Tianshu Redis Key 或复制租约 Lua。
 
-#### 10.2.1 DDC 与 Provider Runtime 配置基线
+#### 10.2.1 Tianshu 与 Provider Runtime 配置基线
 
 ```yaml
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: true
-        biz-code: ${DDC_BIZ_CODE:rbac3}
-        app-code: rbac3-admin
+        biz-code: ${TIANSHU_BIZ_CODE:tianquan-jianshen}
+        app-code: tianquan-jianshen-admin
         env: ${DEPLOY_ENV}
         namespace: ${DEPLOY_NAMESPACE:default}
         admin:
-          endpoint: ${DDC_ADMIN_ENDPOINT}
-          access-key: ${DDC_ACCESS_KEY}
-          secret-key: ${DDC_SECRET_KEY}
+          endpoint: ${TIANSHU_ADMIN_ENDPOINT}
+          access-key: ${TIANSHU_ACCESS_KEY}
+          secret-key: ${TIANSHU_SECRET_KEY}
           signature-enabled: true
         registry:
           enabled: true
           reconcile-interval-seconds: 10
-      gateway:
+      yuheng:
         provider:
           http:
             enabled: true
             env: ${DEPLOY_ENV}
             namespace: ${DEPLOY_NAMESPACE:default}
-            instance-id: ${RBAC3_INSTANCE_ID}
-            service-name: rbac3-admin
+            instance-id: ${TIANQUAN_JIANSHEN_INSTANCE_ID}
+            service-name: tianquan-jianshen-admin
             group: default
-            version: ${RBAC3_ARTIFACT_VERSION}
+            version: ${TIANQUAN_JIANSHEN_ARTIFACT_VERSION}
             protocol: http
-            advertised-host: ${RBAC3_ADVERTISED_HOST}
-            port: ${RBAC3_ADVERTISED_PORT:0}
+            advertised-host: ${TIANQUAN_JIANSHEN_ADVERTISED_HOST}
+            port: ${TIANQUAN_JIANSHEN_ADVERTISED_PORT:0}
             lease-seconds: 30
             heartbeat-interval-seconds: 10
             fail-fast: true
             metadata:
-              gateway.zone: ${DEPLOY_ZONE:default}
-              gateway.weight: ${RBAC3_PROVIDER_WEIGHT:100}
+              yuheng.zone: ${DEPLOY_ZONE:default}
+              yuheng.weight: ${TIANQUAN_JIANSHEN_PROVIDER_WEIGHT:100}
 ```
 
 约束：
@@ -1119,12 +1119,12 @@ egon:
 1. `heartbeat-interval-seconds` 必须大于 0 且小于 `lease-seconds`；
 2. 端口为 0 时只允许 Provider Runtime 在 HTTP Server Ready 后解析真实端口；注册值最终必须在
    `1..65535`；
-3. `protocol=https` 时 DDC Registration 的 `secure` 必须为 true；
-4. `version` 必须等于 Gateway Definition 的 `artifactVersion`；
+3. `protocol=https` 时 Tianshu Registration 的 `secure` 必须为 true；
+4. `version` 必须等于 Yuheng Definition 的 `artifactVersion`；
 5. `instanceId` 在同一 Service Key 下唯一，重启是否复用由部署实例身份决定，两个并行实例不能相同；
-6. `advertisedHost` 必须从 Gateway Engine 所在网络可达，不能无条件写 `localhost`；
-7. Metadata 不放 Token、Secret、证书或私钥；遵守 DDC 现有数量、Key 长度和值长度限制；
-8. RBAC3 不写 `ddc:*` Redis Key，也不读取租约实现细节。
+6. `advertisedHost` 必须从 Yuheng Engine 所在网络可达，不能无条件写 `localhost`；
+7. Metadata 不放 Token、Secret、证书或私钥；遵守 Tianshu 现有数量、Key 长度和值长度限制；
+8. Tianquan-Jianshen 不写 `tianshu:*` Redis Key，也不读取租约实现细节。
 
 #### 10.2.2 Provider 租约状态机
 
@@ -1140,62 +1140,62 @@ REGISTERED -> RECOVERING -> REGISTERED
 
 - HTTP Server 未 Ready 前不得用猜测端口注册；
 - Heartbeat 返回未续租、租约 NOT_FOUND 或抛错时丢弃旧 Lease 并重新注册；
-- 优雅停机调用 deregister；DDC 不可用时由 TTL 最终清理；
+- 优雅停机调用 deregister；Tianshu 不可用时由 TTL 最终清理；
 - `REGISTERED` 仅证明 Provider 租约有效，不证明 Definition 已接受或 Release 已发布；
 - 生产 `failFast=true` 下初始注册失败必须阻止 Ready，运行期进入 RECOVERING 时 Readiness 变为
   OUT_OF_SERVICE，恢复注册后才能恢复 Ready。
 
-### 10.3 Gateway 路由 RBAC3 请求
+### 10.3 Yuheng 路由 Tianquan-Jianshen 请求
 
 请求闭环为：
 
 ```mermaid
 sequenceDiagram
-    participant Admin as RBAC3 Admin
-    participant GStarter as Gateway Starter
-    participant GAdmin as Gateway Admin
-    participant DDC as DDC
-    participant Engine as Gateway Engine
+    participant Admin as Tianquan-Jianshen Admin
+    participant GStarter as Yuheng Starter
+    participant GAdmin as Yuheng Admin
+    participant Tianshu as Tianshu
+    participant Engine as Yuheng Engine
     participant Client as Client
 
     Admin->>GStarter: 扫描 @GatewayInterfaceGroup/@EgonHttpService/@GatewayOperation
     GStarter->>GAdmin: 上报版本化接口定义
-    Admin->>DDC: 注册 HTTP_PROVIDER 租约并持续心跳
-    GAdmin->>DDC: 发布包含 Route 与 Security Policy 的 Release
-    Engine->>DDC: 订阅 Release 和 HTTP_PROVIDER 目录
-    Client->>Engine: 请求 RBAC3 API
-    Engine->>Engine: RBAC3 Gateway Adapter 认证与授权
-    Engine->>DDC: 使用本地目录选择匹配版本实例
+    Admin->>Tianshu: 注册 HTTP_PROVIDER 租约并持续心跳
+    GAdmin->>Tianshu: 发布包含 Route 与 Security Policy 的 Release
+    Engine->>Tianshu: 订阅 Release 和 HTTP_PROVIDER 目录
+    Client->>Engine: 请求 Tianquan-Jianshen API
+    Engine->>Engine: Tianquan-Jianshen Yuheng Adapter 认证与授权
+    Engine->>Tianshu: 使用本地目录选择匹配版本实例
     Engine->>Admin: 转发请求
     Admin-->>Engine: 业务响应
     Engine-->>Client: 标准响应
 ```
 
-Gateway Engine 只能选择与 Route 的 env、namespace、serviceName、group、version 和 protocol
-全部匹配且租约有效的实例。无匹配实例返回 Gateway 的无可用 Provider 错误，不允许退回静态
+Yuheng Engine 只能选择与 Route 的 env、namespace、serviceName、group、version 和 protocol
+全部匹配且租约有效的实例。无匹配实例返回 Yuheng 的无可用 Provider 错误，不允许退回静态
 地址或跨环境实例。
 
 #### 10.3.1 三个独立就绪条件
 
 | 条件 | 判定来源 | 未满足时的行为 |
 |---|---|---|
-| Definition Ready | Gateway 上报结果为 ACCEPTED/ACCEPTED_WITH_WARNINGS 且 definitionSetId 已记录 | 无法创建/校验正确 Operation Release |
-| Provider Ready | DDC 中存在与 Service Key 完全匹配的有效 HTTP_PROVIDER Lease | Gateway 返回无可用 Provider，不静态兜底 |
-| Release Ready | Gateway Release 状态到达 SUCCESS，Engine 已观测相同发布版本 | Operation 不可路由；不能因为前两项成功自动开放 |
+| Definition Ready | Yuheng 上报结果为 ACCEPTED/ACCEPTED_WITH_WARNINGS 且 definitionSetId 已记录 | 无法创建/校验正确 Operation Release |
+| Provider Ready | Tianshu 中存在与 Service Key 完全匹配的有效 HTTP_PROVIDER Lease | Yuheng 返回无可用 Provider，不静态兜底 |
+| Release Ready | Yuheng Release 状态到达 SUCCESS，Engine 已观测相同发布版本 | Operation 不可路由；不能因为前两项成功自动开放 |
 
-部署验收页必须并列展示三项，不能合并成一个“已注册”图标。Release 状态至少区分现有 Gateway
+部署验收页必须并列展示三项，不能合并成一个“已注册”图标。Release 状态至少区分现有 Yuheng
 语义：`CREATED/VALIDATING/READY/PUBLISHING/SUCCESS/FAILED/TIMEOUT/UNKNOWN/SUPERSEDED`。
 
 #### 10.3.2 Provider 选择规则
 
-Gateway Engine 构造查询键：
+Yuheng Engine 构造查询键：
 
 ```text
 env + namespace + HTTP_PROVIDER + serviceName + group + version + protocol
 ```
 
-只保留租约有效、健康元数据可接受且与 Release 版本匹配的实例，再使用 Gateway 现有负载策略处理
-`gateway.weight/zone/tags/warmup`。RBAC3 不另写负载均衡器。没有候选实例时不得：
+只保留租约有效、健康元数据可接受且与 Release 版本匹配的实例，再使用 Yuheng 现有负载策略处理
+`yuheng.weight/zone/tags/warmup`。Tianquan-Jianshen 不另写负载均衡器。没有候选实例时不得：
 
 - 降级到不同 version；
 - 从 `https` 降到 `http`；
@@ -1207,25 +1207,25 @@ env + namespace + HTTP_PROVIDER + serviceName + group + version + protocol
 
 ```text
 Service Key:
-prod / finance / HTTP_PROVIDER / rbac3-admin / default / 5.3.2 / http
+prod / finance / HTTP_PROVIDER / tianquan-jianshen-admin / default / 5.3.2 / http
 
-Instance A: rbac3-admin-a, 10.10.1.11:8080, lease valid, weight=100
-Instance B: rbac3-admin-b, 10.10.1.12:8080, lease valid, weight=100
+Instance A: tianquan-jianshen-admin-a, 10.10.1.11:8080, lease valid, weight=100
+Instance B: tianquan-jianshen-admin-b, 10.10.1.12:8080, lease valid, weight=100
 ```
 
-Gateway 在两者之间按现有策略路由。A 停止后，在租约仍有效的短窗口内可能被选择；TTL 到期或
+Yuheng 在两者之间按现有策略路由。A 停止后，在租约仍有效的短窗口内可能被选择；TTL 到期或
 健康目录剔除后不得再选择 A。A 恢复必须取得新/有效 Lease 后重新进入候选集，不能复活旧过期
 Lease。
 
-### 10.4 Gateway RBAC3 安全适配
+### 10.4 Yuheng Tianquan-Jianshen 安全适配
 
-`gateway-adapter` 提供固定能力 ID：
+`yuheng-adapter` 提供固定能力 ID：
 
 ```text
-credential extractor : rbac3-bearer
-authentication       : rbac3-jwt-session
-authorization        : rbac3-permission
-identity mapper      : rbac3-trusted-identity
+credential extractor : tianquan-jianshen-bearer
+authentication       : tianquan-jianshen-jwt-session
+authorization        : tianquan-jianshen-permission
+identity mapper      : tianquan-jianshen-trusted-identity
 ```
 
 认证步骤：
@@ -1234,39 +1234,39 @@ identity mapper      : rbac3-trusted-identity
 2. 校验算法白名单、签名、`iss`、`aud`、`exp`、`nbf` 和 `jti`；
 3. 校验 `tenantId`、`userId`、`sid`、`authVersion`、`sessionVersion`、`policyVersion`；
 4. 在 Redis 运行投影中确认会话为 ACTIVE 且版本完全一致；
-5. 创建 Gateway Principal；
+5. 创建 Yuheng Principal；
 6. 删除调用方伪造的可信身份头；
 7. 由 Identity Mapper 生成受信任身份。
 
 授权步骤：
 
-1. 从 `GatewayAuthContext.policyId` 解析版本化 RBAC3 安全策略引用；
-2. 将 Gateway `operationId` 映射到一个显式 API Permission；
+1. 从 `GatewayAuthContext.policyId` 解析版本化 Tianquan-Jianshen 安全策略引用；
+2. 将 Yuheng `operationId` 映射到一个显式 API Permission；
 3. 在相同版本的授权快照中检查 Permission；
 4. 无映射、映射冲突、快照缺失、版本不一致或 Redis 不可用均拒绝；
-5. Gateway 只返回粗粒度 Allow/Deny，不计算业务数据或字段结果。
+5. Yuheng 只返回粗粒度 Allow/Deny，不计算业务数据或字段结果。
 
-登录和 Refresh Route 使用不需要已有登录态的 Gateway Policy；其他 Route 默认 Fail Closed。
-Gateway Adapter 不通过 Gateway 请求 RBAC3 Admin，避免“Gateway 鉴权 → RBAC3 Route → Gateway
+登录和 Refresh Route 使用不需要已有登录态的 Yuheng Policy；其他 Route 默认 Fail Closed。
+Yuheng Adapter 不通过 Yuheng 请求 Tianquan-Jianshen Admin，避免“Yuheng 鉴权 → Tianquan-Jianshen Route → Yuheng
 鉴权”的递归链。
 
-#### 10.4.1 Gateway Policy 模板
+#### 10.4.1 Yuheng Policy 模板
 
-受保护 Route 的安全策略必须引用现有 Gateway 模型，基线为：
+受保护 Route 的安全策略必须引用现有 Yuheng 模型，基线为：
 
 ```text
-policyId                 = rbac3-required-v1
+policyId                 = tianquan-jianshen-required-v1
 authenticationMode      = REQUIRED
-credentialExtractorIds  = [rbac3-bearer]
-authenticationProviderIds = [rbac3-jwt-session]
-authorizationProviderIds  = [rbac3-permission]
+credentialExtractorIds  = [tianquan-jianshen-bearer]
+authenticationProviderIds = [tianquan-jianshen-jwt-session]
+authorizationProviderIds  = [tianquan-jianshen-permission]
 decisionMode             = ALL_ALLOW
-identityMapperId         = rbac3-trusted-identity
+identityMapperId         = tianquan-jianshen-trusted-identity
 providerTimeout          <= 3s，热路径目标远低于该上限
 failureMode              = FAIL_CLOSED
 ```
 
-Login、Refresh、JWKS 和健康 Route 使用独立匿名/可选认证模板，不能把 `rbac3-required-v1` 临时
+Login、Refresh、JWKS 和健康 Route 使用独立匿名/可选认证模板，不能把 `tianquan-jianshen-required-v1` 临时
 改为可选认证。内部 Route 还需服务身份 Provider；一个用户 Token 不能因为拥有管理员 Permission
 就自动成为服务身份。
 
@@ -1287,13 +1287,13 @@ active
 
 #### 10.4.3 决策结果和超时
 
-Extractor、Authentication Provider、Authorization Provider 均返回 Gateway 既有 Publisher 决策，
+Extractor、Authentication Provider、Authorization Provider 均返回 Yuheng 既有 Publisher 决策，
 不得在 Reactor 线程上执行阻塞 PostgreSQL 查询。Redis 超时、Publisher 空完成、异常、未知 Key、
 未知 Policy、未知 Operation 或 Decision 不是明确 ALLOW 时一律拒绝，并记录低基数 reasonCode。
 
 ### 10.5 可信身份
 
-Gateway 只允许向 Provider 注入以下经过编码和签名/可信链路保护的身份字段：
+Yuheng 只允许向 Provider 注入以下经过编码和签名/可信链路保护的身份字段：
 
 ```text
 tenantId
@@ -1308,7 +1308,7 @@ traceId
 角色和权限集合不通过普通 Header 全量透传。业务 Starter 仍校验原始 Bearer Token 和 Redis
 版本，不因存在可信头而跳过最终授权。可信头用于减少重复解析和审计关联，不是独立凭证。
 
-可信身份 Header 采用固定保留前缀，具体 Header 名在实施计划中与 Gateway 现有 Sanitizer 对齐。
+可信身份 Header 采用固定保留前缀，具体 Header 名在实施计划中与 Yuheng 现有 Sanitizer 对齐。
 无论最终名称为何，处理顺序必须是：
 
 ```text
@@ -1320,45 +1320,45 @@ traceId
 ```
 
 Header 不包含角色列表、Permission 列表、Data Scope 或 Field Policy，避免超长、泄露和两份授权
-事实不一致。`traceId` 可以透传但不能由客户端值覆盖 Gateway 已生成的可信 Trace。
+事实不一致。`traceId` 可以透传但不能由客户端值覆盖 Yuheng 已生成的可信 Trace。
 
 ### 10.6 故障和恢复
 
 | 故障 | 行为 |
 |---|---|
-| DDC 启动不可用且生产 `failFast=true` | RBAC3 Admin 不进入 Ready |
-| DDC 运行期短暂不可用 | Provider Runtime 进入 RECOVERING；已有租约最终按 TTL 失效；恢复后重新注册 |
-| Gateway Admin 上报失败 | 按 Gateway Starter 既有重试和状态文件处理；新接口版本未被接收前不得宣称可发布 |
-| Gateway Release 不存在 | DDC 有实例也不能由 Gateway 路由 |
-| Redis 授权投影不可用 | Gateway Adapter 和业务 Starter 对受保护请求 Fail Closed |
+| Tianshu 启动不可用且生产 `failFast=true` | Tianquan-Jianshen Admin 不进入 Ready |
+| Tianshu 运行期短暂不可用 | Provider Runtime 进入 RECOVERING；已有租约最终按 TTL 失效；恢复后重新注册 |
+| Yuheng Admin 上报失败 | 按 Yuheng Starter 既有重试和状态文件处理；新接口版本未被接收前不得宣称可发布 |
+| Yuheng Release 不存在 | Tianshu 有实例也不能由 Yuheng 路由 |
+| Redis 授权投影不可用 | Yuheng Adapter 和业务 Starter 对受保护请求 Fail Closed |
 | PostgreSQL 不可用 | 写操作失败；已有且版本有效的只读授权快照可继续服务 |
-| RBAC3 Admin 不可用 | 登录、Refresh、管理和冷加载失败；已物化且版本有效的 Gateway/Starter 热路径继续工作 |
+| Tianquan-Jianshen Admin 不可用 | 登录、Refresh、管理和冷加载失败；已物化且版本有效的 Yuheng/Starter 热路径继续工作 |
 
 ### 10.7 启动、Readiness 与下线顺序
 
 启动顺序不是硬编码的全局编排，但单实例内部必须满足：
 
-1. 校验 RBAC3 配置、JWT Key、Gateway 上报身份和 DDC 注册身份；
+1. 校验 Tianquan-Jianshen 配置、JWT Key、Yuheng 上报身份和 Tianshu 注册身份；
 2. 两个 Flyway History 均迁移/校验成功；
 3. PostgreSQL Repository、Redis 运行存储和 Outbox 就绪；
 4. HTTP Server Ready，确定真实端口；
-5. Gateway Definition 上报成功或按明确的非生产策略进入重试；
-6. Provider Runtime 注册 DDC 并取得 Lease；
+5. Yuheng Definition 上报成功或按明确的非生产策略进入重试；
+6. Provider Runtime 注册 Tianshu 并取得 Lease；
 7. 必要签名公钥和内置资源已物化；
 8. 才对 Readiness 返回 Ready。
 
-生产环境 Definition 上报和 DDC 初始注册均 `failFast=true`。优雅下线顺序：先把 Readiness 置为
-拒绝新流量，再等待在途请求上限，注销 DDC Lease，停止调度/Outbox 领取，最后关闭 HTTP 和数据
+生产环境 Definition 上报和 Tianshu 初始注册均 `failFast=true`。优雅下线顺序：先把 Readiness 置为
+拒绝新流量，再等待在途请求上限，注销 Tianshu Lease，停止调度/Outbox 领取，最后关闭 HTTP 和数据
 连接。注销失败依赖 TTL 清理，但仍记录告警。
 
 ### 10.8 不允许的集成捷径
 
-1. 不在 RBAC3 配置里维护 `rbac3.instances[0].url` 供 Gateway 静态读取；
-2. 不由 RBAC3 调用 Gateway Admin “自动审批并发布”每次接口变更；Release 是独立治理动作；
-3. 不把 RBAC3 Resource Manifest 当作 Gateway Definition Report，二者内容和所有者不同；
-4. 不在 Gateway Adapter 内使用 Admin Web Client 做远程权限查询；
-5. 不把 DDC 配置发布事件当作授权事件总线；授权事件走 Outbox；
-6. 不将 DDC Redis 与 RBAC3 Redis Key 直接耦合，即使部署使用同一 Redis 实例也保持逻辑前缀和
+1. 不在 Tianquan-Jianshen 配置里维护 `tianquan-jianshen.instances[0].url` 供 Yuheng 静态读取；
+2. 不由 Tianquan-Jianshen 调用 Yuheng Admin “自动审批并发布”每次接口变更；Release 是独立治理动作；
+3. 不把 Tianquan-Jianshen Resource Manifest 当作 Yuheng Definition Report，二者内容和所有者不同；
+4. 不在 Yuheng Adapter 内使用 Admin Web Client 做远程权限查询；
+5. 不把 Tianshu 配置发布事件当作授权事件总线；授权事件走 Outbox；
+6. 不将 Tianshu Redis 与 Tianquan-Jianshen Redis Key 直接耦合，即使部署使用同一 Redis 实例也保持逻辑前缀和
    所有权分离；
 7. 不以一个 Mock Registry 测试替代双实例租约、TTL、Release 和真实路由验收。
 
@@ -1381,7 +1381,7 @@ Header 不包含角色列表、Permission 列表、Data Scope 或 Field Policy�
 
 ### 11.2 最小内置目录
 
-RBAC3 保存授权所需最小快照：
+Tianquan-Jianshen 保存授权所需最小快照：
 
 - Tenant；
 - User；
@@ -1512,8 +1512,8 @@ userPositions[]
 
 ### 12.1 本地认证
 
-首期支持用户名/密码，密码默认使用 BCrypt strength 12。认证 SPI 可以接入外部 IdP，但外部
-认证成功后仍必须映射到一个有效 RBAC3 User 和 Tenant。
+首期支持用户名/密码，密码默认使用 BCrypt strength 12。认证 SPI 可以接入外部 Tianquan-Shoubing，但外部
+认证成功后仍必须映射到一个有效 Tianquan-Jianshen User 和 Tenant。
 
 本地密码基线：
 
@@ -1527,7 +1527,7 @@ userPositions[]
 - Login 同时按 IP、tenant、normalized username 限流，避免只换用户名绕过。
 
 外部 `IdentityAuthenticator` 只能返回经过验证的外部主体和认证强度，不能直接返回角色或 Permission；
-RBAC3 使用 External Identity Mapping 找到本地 User，再按本地授权事实构建 Session。
+Tianquan-Jianshen 使用 External Identity Mapping 找到本地 User，再按本地授权事实构建 Session。
 
 ### 12.1.1 登录流程与响应
 
@@ -1569,7 +1569,7 @@ RBAC3 使用 External Identity Mapping 找到本地 User，再按本地授权事
   "sessionId": "40001",
   "roleActivationRequired": true,
   "activationCandidateCount": 2,
-  "activationCandidatesUrl": "/api/rbac3/v1/auth/role-activation-candidates",
+  "activationCandidatesUrl": "/api/tianquan-jianshen/v1/auth/role-activation-candidates",
   "bootstrapRequired": false
 }
 ```
@@ -1588,7 +1588,7 @@ system:session:logout
 ```
 
 这些 Capability 由 ACTIVE Session 状态产生，不来自 Assignment/Role，也不能被租户修改、继承或
-映射到业务 API；只保护本人 Candidate/Current/PUT 和 Logout。Gateway Operation Mapping 必须把它们
+映射到业务 API；只保护本人 Candidate/Current/PUT 和 Logout。Yuheng Operation Mapping 必须把它们
 限定到上述端点，禁止用通配符扩大。Refresh 使用 Refresh Credential 独立认证，JWKS/Login 仍是
 匿名受限端点。
 
@@ -1635,7 +1635,7 @@ JWT 校验固定规则：
 |---|---|
 | `alg`/`kid` | 算法在白名单且 `kid` 存在于有效 Key Ring；不接受从 Token 动态指定公钥 URL |
 | `iss` | 完全匹配配置值，不做前缀匹配 |
-| `aud` | 必须包含目标 Gateway/业务应用配置的 Audience |
+| `aud` | 必须包含目标 Yuheng/业务应用配置的 Audience |
 | `sub/tid/sid/jti` | 非空、格式合法；Long ID Claims 使用十进制字符串 |
 | `iat/nbf/exp` | `exp > nbf >= iat`，最大 Access 生命周期不超过配置；允许时钟偏差默认 120 秒 |
 | `av/sv/pv` | 非负整数且与 Redis 当前值完全一致，不接受大于当前值的“未来 Token” |
@@ -1696,17 +1696,17 @@ Access Token 不做服务器端续期；客户端必须用 Refresh 获得新 Tok
 
 ### 12.3 签名密钥
 
-JWT 私钥只从部署 Secret、受控文件或 KMS Adapter 读取，不进入 PostgreSQL、Redis、DDC、日志
-或普通配置中心。RBAC3 Admin 将仅含公钥的 Key Ring 物化到 Redis，并通过 `/auth/jwks` 提供
-标准只读视图。Gateway Adapter 和 Starter 按 `kid` 从 Redis Key Ring 刷新公钥，允许在公钥
+JWT 私钥只从部署 Secret、受控文件或 KMS Adapter 读取，不进入 PostgreSQL、Redis、Tianshu、日志
+或普通配置中心。Tianquan-Jianshen Admin 将仅含公钥的 Key Ring 物化到 Redis，并通过 `/auth/jwks` 提供
+标准只读视图。Yuheng Adapter 和 Starter 按 `kid` 从 Redis Key Ring 刷新公钥，允许在公钥
 `not_after` 之前使用内存 LKG；遇到未知 `kid`、过期 Key Ring 或签名算法变化时 Fail Closed。
 
 密钥轮换必须保留旧公钥至少“最大 Access Token 有效期 30 分钟 + 2 分钟时钟偏差”，新私钥
-生效、JWKS/Redis 公钥可见和旧私钥停签的顺序必须可审计。DDC 可以下发非敏感的 Key 版本号和
+生效、JWKS/Redis 公钥可见和旧私钥停签的顺序必须可审计。Tianshu 可以下发非敏感的 Key 版本号和
 刷新配置，但不得保存或传递私钥。
 
 Key 状态：`PREPARED -> SIGNING -> VERIFY_ONLY -> RETIRED`。轮换顺序：先发布 PREPARED 公钥并
-等待所有 Gateway/Starter 可见，再把新 Key 切到 SIGNING，旧 Key 转 VERIFY_ONLY；至少经过最大
+等待所有 Yuheng/Starter 可见，再把新 Key 切到 SIGNING，旧 Key 转 VERIFY_ONLY；至少经过最大
 Access Token 生命周期与时钟偏差后才 RETIRED。任一时刻只能有一个 SIGNING Key，但可有多个
 VERIFY_ONLY Key。回滚只能在旧私钥仍受控可用且审计记录完整时进行。
 
@@ -1751,7 +1751,7 @@ Policy 变化后，Refresh 必须重新校验当前 Active Role Set。若根角�
 
 ### 12.5 Bootstrap
 
-`GET /api/rbac3/v1/auth/bootstrap` 只在当前 Session 已有合法 Active Role Set 时返回完整业务视图：
+`GET /api/tianquan-jianshen/v1/auth/bootstrap` 只在当前 Session 已有合法 Active Role Set 时返回完整业务视图：
 
 ```json
 {
@@ -1823,8 +1823,8 @@ Flyway 只创建 Schema 和不含凭证的全局参考数据，不写默认密�
 部署使用 Admin 制品内的 one-shot Bootstrap CLI，而不是 PUBLIC/INTERNAL HTTP 端点：
 
 ```text
-rbac3-admin bootstrap-platform-admin
-  --tenant-code platform
+tianquan-jianshen-admin bootstrap-xingyuan-admin
+  --tenant-code xingyuan
   --username <value>
 ```
 
@@ -1855,12 +1855,12 @@ EMERGENCY
 ```
 
 - PUBLIC：公共低风险角色，可与同 APP 的其他非互斥角色共同激活；
-- POSITION：岗位能力和 APP Landing Route 的主要来源，但“岗位”名称不使 RBAC3 拥有业务轮岗；
+- POSITION：岗位能力和 APP Landing Route 的主要来源，但“岗位”名称不使 Tianquan-Jianshen 拥有业务轮岗；
 - MANAGEMENT：允许进入授权管理功能，最终可管理范围仍由 Management Policy 决定；
 - TEMPORARY：只能由有权管理者创建限时任职，用户仍需在有效期内激活；
 - EMERGENCY：强制短有效期、强认证和完整审计；可以被本人激活，但前提是他人已合法创建任职。
 
-每个 Role 必须且只能属于一个 `application_id`。系统管理角色属于内置 `rbac3-system` APP；Role
+每个 Role 必须且只能属于一个 `application_id`。系统管理角色属于内置 `tianquan-jianshen-system` APP；Role
 继承、Activation Root、角色族、DSD 激活互斥和 Landing Route 都不能跨 APP。一个 Session 可以
 同时激活多个 APP 的根角色，这只是一个 Session 中的多 APP 上下文，不改变 Role 的归属。
 
@@ -1959,7 +1959,7 @@ ACTIVE Assignment 一旦 `valid_to <= databaseNow`，候选算法立即排除，
 EXPIRED，避免延迟撤权。
 
 每条 Assignment 保存创建来源：`sourceType/sourceId/createdBy/reason/ticketNo`。业务系统可在自己的
-换岗事务/流程后调用普通 Assignment API，但 RBAC3 只记录上述来源，不创建 `rotationId`、交接项或
+换岗事务/流程后调用普通 Assignment API，但 Tianquan-Jianshen 只记录上述来源，不创建 `rotationId`、交接项或
 来源岗位恢复规则。修改有效时间不覆盖原历史；高风险变化用撤销旧 Assignment + 新建新 Assignment
 表达。
 
@@ -2271,7 +2271,7 @@ externalAccessible
 
 编码规则：`applicationCode/resourceCode/routeCode/actionCode/fieldCode` 使用小写 ASCII、数字和中划线，
 首字符为字母、长度 2～128；`componentKey` 使用点分命名并只含 ASCII 字母、数字、下划线和点；
-`gatewayOperationId` 完全采用 Gateway 返回值，不由 RBAC3 重新格式化。展示名称允许 Unicode，但不
+`gatewayOperationId` 完全采用 Yuheng 返回值，不由 Tianquan-Jianshen 重新格式化。展示名称允许 Unicode，但不
 参与唯一性或授权判断。
 
 资源公共字段：
@@ -2284,7 +2284,7 @@ sourceBuildId, firstSeenAt, lastSeenAt, staleSince, metadata
 
 资源状态：`PENDING_VALIDATION -> ACTIVE -> STALE -> ARCHIVED`。手工创建只允许平台内置应用的
 展示元数据；业务应用资源必须来自 Manifest。STALE 资源在新 Bootstrap 中默认不返回，但已发布
-Gateway Route 在管理员显式处理前仍由 Gateway Release 自己控制，RBAC3 不越权自动删除 Release。
+Yuheng Route 在管理员显式处理前仍由 Yuheng Release 自己控制，Tianquan-Jianshen 不越权自动删除 Release。
 
 层级约束：APP 可包含 MENU/ROUTE；MENU 可包含 MENU/ROUTE；ROUTE 可关联 ACTION；API 不参与
 前端父子树。不同 applicationCode 的资源不能建立 parent 关系。
@@ -2316,7 +2316,7 @@ fieldDefinitions
 4. 新版本缺失的资源标记为 STALE，不立即物理删除；
 5. 已被角色授权或历史审计引用的资源不能物理删除；
 6. 上报资源不自动把权限授予任何角色；
-7. API Permission 必须和 Gateway Operation 显式映射；
+7. API Permission 必须和 Yuheng Operation 显式映射；
 8. Manifest 发布递增租户 `policyVersion` 并触发影响分析；
 9. 服务账号只能上报自己被注册的 `applicationCode`；
 10. 管理端手工补充展示元数据时不能改变应用声明的 API 机械事实。
@@ -2402,11 +2402,11 @@ Checksum 基于去除 `checksum` 字段后、字段顺序和数组排序规则�
 单个 Manifest 默认限制：压缩前 10 MiB、资源总数 50,000、树深度 20、单字段字符串 2,048 字符；
 具体值可配置但必须在接收前限制，防止内存/数据库滥用。
 
-### 15.3.1 Manifest 与 Gateway Definition 的一致性
+### 15.3.1 Manifest 与 Yuheng Definition 的一致性
 
 Manifest 中 API 的 `gatewayOperationId` 必须存在于相同 applicationCode/artifactVersion/buildId
-关联的已接受 Gateway Definition 中，HTTP Method/Path/externalAccessible 必须一致。差异返回明确
-冲突列表，不允许管理员手工点“忽略后激活”。Gateway Definition 描述机械接口；Manifest 为它
+关联的已接受 Yuheng Definition 中，HTTP Method/Path/externalAccessible 必须一致。差异返回明确
+冲突列表，不允许管理员手工点“忽略后激活”。Yuheng Definition 描述机械接口；Manifest 为它
 绑定业务 Permission，两者都成功后才具备发布安全策略的前提。
 
 ### 15.4 React `componentKey`
@@ -2744,7 +2744,7 @@ traceId
 | APPROVE | EXECUTE_PAYMENT | 禁止 |
 | EXECUTE_PAYMENT | AUDIT_CONFIRM | 禁止 |
 
-参与记录必须在业务动作成功的同一业务事务或业务 Outbox 中产生。RBAC3 中央记录用于跨应用查询
+参与记录必须在业务动作成功的同一业务事务或业务 Outbox 中产生。Tianquan-Jianshen 中央记录用于跨应用查询
 和审计，但不能让业务动作先成功、参与记录随后静默丢失。
 
 高风险动作流程：
@@ -2782,7 +2782,7 @@ Participation 唯一事实键至少为：
 ```
 
 同一业务动作重试使用相同 `businessEventId` 幂等，不重复产生记录。`businessId` 是业务稳定 ID 的
-字符串表达，与 `applicationCode/businessResource` 一起解释，不要求使用 RBAC3 Long ID。
+字符串表达，与 `applicationCode/businessResource` 一起解释，不要求使用 Tianquan-Jianshen Long ID。
 
 ### 18.2 冲突判断
 
@@ -2813,7 +2813,7 @@ Participation 可见前，高风险后置动作必须读取业务侧本地 Parti
 
 ### 18.4 并发和保留
 
-两个并发冲突动作必须通过业务对象锁/业务状态条件更新保证只有合法顺序成功；RBAC3 的一次查询
+两个并发冲突动作必须通过业务对象锁/业务状态条件更新保证只有合法顺序成功；Tianquan-Jianshen 的一次查询
 不能替代业务事务隔离。Participation 为追加事实，默认在线保留不少于业务审计保留期；归档后仍可
 被冲突查询访问。物理删除必须满足租户数据销毁策略并保留不可逆审计摘要，不提供普通管理 API。
 
@@ -3085,7 +3085,7 @@ Header 必须有 `Idempotency-Key`。同 Tenant + Operator + Endpoint + Key 的�
 
 未来 `validFrom` 返回 PENDING；到时由 Assignment Worker 推进状态并递增 `authVersion`。一个创建
 命令只创建请求中明确的 Assignment，不会隐式结束或暂停其他 POSITION。业务系统如需把两个任职
-变化组织成“轮岗”，必须在自己的领域流程中定义顺序、补偿和交接；RBAC3 仍把每次写入当普通
+变化组织成“轮岗”，必须在自己的领域流程中定义顺序、补偿和交接；Tianquan-Jianshen 仍把每次写入当普通
 Assignment Mutation，不提供 Rotation API。
 
 ### 20.2 撤销、暂停和恢复
@@ -3364,7 +3364,7 @@ function buildSessionSnapshot(session, normalizedRoots, versions):
 
 #### 21.5.1 APP 内与跨 APP 的合并边界
 
-- Permission Code 仍按稳定 Code 去重，但 Snapshot 同时保留 APP Context，Gateway Operation 必须匹配
+- Permission Code 仍按稳定 Code 去重，但 Snapshot 同时保留 APP Context，Yuheng Operation 必须匹配
   自己的 Application；不能用 APP A 的同名 Permission 解锁 APP B Operation；
 - Data Scope 和 Field Policy 按 APP/Permission/Resource 分桶，绝不跨 APP 拼接引用；
 - 多 APP Bootstrap 可一次返回，但每个 APP 独立拥有 Root、Role Family、Resource 和 Landing Route；
@@ -3538,7 +3538,7 @@ K = 最终稳定排序元素数
 - 不把 Candidate、请求 `roleIds` 或前端缓存当 Evidence，最终 Evidence 来自锁内数据库事实。
 
 首期安全上限建议如下。默认值可在压测后向下/向上调整，但不得超过硬上限；需要突破硬上限必须
-重新评审 Schema、序列化、Redis 和 Gateway/Starter 内存预算：
+重新评审 Schema、序列化、Redis 和 Yuheng/Starter 内存预算：
 
 | 项目 | 默认上限 | 硬上限 | 超限行为 |
 |---|---:|---:|---|
@@ -3566,7 +3566,7 @@ Redis 保存：
 - User Authorization Version；
 - Tenant Policy Version；
 - Authorization Snapshot；
-- Gateway Operation → Permission 映射；
+- Yuheng Operation → Permission 映射；
 - 授权变更 Fence；
 - 短期幂等和撤销标记。
 
@@ -3575,22 +3575,22 @@ PostgreSQL 始终是业务事实。Redis 数据可以从 PostgreSQL 和 Outbox �
 
 #### 22.1.1 Redis Key 命名与数据结构
 
-Key 前缀固定为 `rbac3:v1`；Tenant 内需要原子处理的 Key 使用同一 Redis Cluster Hash Tag
+Key 前缀固定为 `tianquan-jianshen:v1`；Tenant 内需要原子处理的 Key 使用同一 Redis Cluster Hash Tag
 `{t:<tenantId>}`。示例：
 
 | Key | 类型 | 主要内容 | TTL |
 |---|---|---|---|
-| `rbac3:v1:{t:20001}:policy-version` | String | 当前 policyVersion | 无；缺失拒绝并触发重建 |
-| `rbac3:v1:{t:20001}:user:10001:auth-version` | String | 当前 authVersion | 无 |
-| `rbac3:v1:{t:20001}:session:40001` | Hash/序列化值 | userId、状态、sv、av、pv、activeRootChecksum、snapshotKey、idle/absolute expiry | 到 absolute expiry + 2m |
-| `rbac3:v1:{t:20001}:snapshot:s:40001:sv:3:av:43:pv:18` | 版本化值 | Active Root、Role Family、Permission、Scope、Field、Route 摘要 | 不长于 Session absolute expiry，可重建 |
-| `rbac3:v1:{t:20001}:opmap:<definitionSetId>:<operationId>` | String/Hash | Permission、Policy、mappingVersion | 随 Definition/Release 保留，STALE 后延迟清理 |
-| `rbac3:v1:{t:20001}:fence:user:10001` | Hash | mutationId、state、old/new versions、createdAt | 不自动过期 |
-| `rbac3:v1:{t:20001}:fence:session:40001` | Hash | 激活/Refresh mutationId、old/new sv、createdAt | 不自动过期 |
-| `rbac3:v1:{t:20001}:fence:tenant` | Hash | policy mutation fence | 不自动过期 |
-| `rbac3:v1:{t:20001}:refresh-family:<familyId>` | Hash | family/session 状态和当前 generation | 到 Refresh absolute expiry + 2m |
-| `rbac3:v1:{t:20001}:idempotency:<scope>:<keyHash>` | 值 | requestHash、resourceId、responseDigest/status | 普通 24h；高风险按审计策略 |
-| `rbac3:v1:keyring:<issuer>` | 版本化值 | 公钥、kid、notBefore/notAfter、keyRingVersion | 不短于旧 Access Token 窗口 |
+| `tianquan-jianshen:v1:{t:20001}:policy-version` | String | 当前 policyVersion | 无；缺失拒绝并触发重建 |
+| `tianquan-jianshen:v1:{t:20001}:user:10001:auth-version` | String | 当前 authVersion | 无 |
+| `tianquan-jianshen:v1:{t:20001}:session:40001` | Hash/序列化值 | userId、状态、sv、av、pv、activeRootChecksum、snapshotKey、idle/absolute expiry | 到 absolute expiry + 2m |
+| `tianquan-jianshen:v1:{t:20001}:snapshot:s:40001:sv:3:av:43:pv:18` | 版本化值 | Active Root、Role Family、Permission、Scope、Field、Route 摘要 | 不长于 Session absolute expiry，可重建 |
+| `tianquan-jianshen:v1:{t:20001}:opmap:<definitionSetId>:<operationId>` | String/Hash | Permission、Policy、mappingVersion | 随 Definition/Release 保留，STALE 后延迟清理 |
+| `tianquan-jianshen:v1:{t:20001}:fence:user:10001` | Hash | mutationId、state、old/new versions、createdAt | 不自动过期 |
+| `tianquan-jianshen:v1:{t:20001}:fence:session:40001` | Hash | 激活/Refresh mutationId、old/new sv、createdAt | 不自动过期 |
+| `tianquan-jianshen:v1:{t:20001}:fence:tenant` | Hash | policy mutation fence | 不自动过期 |
+| `tianquan-jianshen:v1:{t:20001}:refresh-family:<familyId>` | Hash | family/session 状态和当前 generation | 到 Refresh absolute expiry + 2m |
+| `tianquan-jianshen:v1:{t:20001}:idempotency:<scope>:<keyHash>` | 值 | requestHash、resourceId、responseDigest/status | 普通 24h；高风险按审计策略 |
+| `tianquan-jianshen:v1:keyring:<issuer>` | 版本化值 | 公钥、kid、notBefore/notAfter、keyRingVersion | 不短于旧 Access Token 窗口 |
 
 原始 Token、Refresh Token、密码、Secret 不进入 Key。业务传入的 Idempotency Key 先做 HMAC/Hash，
 不直接拼进 Redis Key。Permission 集合采用稳定排序后的紧凑序列化或 Bitmap 字典，但 Contract 层
@@ -3634,8 +3634,8 @@ User Snapshot。Snapshot 只保存当前有效结果，不替代 Assignment/Sess
 
 #### 22.1.3 命中、缺失和重建
 
-1. Gateway Adapter 只使用本地 Key Ring + Redis Session/Version/Snapshot，不在请求内远程回调
-   RBAC3 Admin；Snapshot 缺失即拒绝并触发异步重建信号；
+1. Yuheng Adapter 只使用本地 Key Ring + Redis Session/Version/Snapshot，不在请求内远程回调
+   Tianquan-Jianshen Admin；Snapshot 缺失即拒绝并触发异步重建信号；
 2. Starter 先读进程内短缓存，再校验 Redis 版本；本地 Snapshot 只有在 Redis 可确认版本相等、无
    Fence 时才可用；Redis 整体不可达不能使用 LKG 放行；
 3. Login 只物化无业务权限的最小 Session Snapshot；角色激活、Refresh、授权变更和 Policy 变更主动
@@ -3712,7 +3712,7 @@ Starter 的授权栅栏，再次核对 Token 版本、Redis 版本和 Fence；�
 
 “下一次请求不得使用旧权限”的安全承诺成立需要：
 
-1. 请求经过安装 RBAC3 Adapter 的 Gateway，或业务服务安装 RBAC3 Starter；
+1. 请求经过安装 Tianquan-Jianshen Adapter 的 Yuheng，或业务服务安装 Tianquan-Jianshen Starter；
 2. 受保护端点没有绕过两者；
 3. Redis 运行投影可访问；
 4. 高风险写操作在提交前使用授权栅栏。
@@ -3759,7 +3759,7 @@ Checksum 一致、Permission 仍在。返回的 Fence Decision 带极短 `verifi
 - 管理策略变化；
 - 会话撤销。
 
-复用 `egon-cola-component-transactional-outbox-starter` 的稳定契约，不在 RBAC3 内复制通用
+复用 `egon-cola-component-transactional-outbox-starter` 的稳定契约，不在 Tianquan-Jianshen 内复制通用
 轮询、锁、重试和失败模型。消费者必须按 Event ID 和 Aggregate Version 幂等。
 
 #### 23.1.1 事件信封
@@ -3767,7 +3767,7 @@ Checksum 一致、Permission 仍在。返回的 Fence Decision 带极短 `verifi
 ```json
 {
   "eventId": "<stable-id>",
-  "eventType": "rbac3.assignment.changed.v1",
+  "eventType": "tianquan-jianshen.assignment.changed.v1",
   "schemaVersion": 1,
   "occurredAt": "2026-07-30T08:00:00Z",
   "tenantId": "20001",
@@ -3791,16 +3791,16 @@ Event Type；添加可选字段仍需兼容测试。Partition Key 按事件语�
 
 | Event Type | 生产时点 | 关键 Payload | 主要消费者 |
 |---|---|---|---|
-| `rbac3.directory.snapshot-activated.v1` | 目录快照激活 | version、影响节点/用户摘要 | Snapshot Projector、审计 |
-| `rbac3.user.status-changed.v1` | User 状态提交 | userId、old/new、authVersion | Session Revoker、Projector |
-| `rbac3.assignment.changed.v1` | 任职变更提交 | assignmentId、userId、changeType、authVersion | Projector、前端通知 |
-| `rbac3.role.policy-changed.v1` | Role/Permission/Constraint 提交 | affectedRoleIds、policyVersion | Tenant Projector、影响分析 |
-| `rbac3.management-policy.changed.v1` | Policy 变更提交 | policyId、policyVersion、受影响主体摘要 | Capability Projector |
-| `rbac3.role-activation.changed.v1` | Session Active Role Set 原子替换 | sessionId、old/new root 摘要、sessionVersion、snapshotChecksum | Session Projector、前端通知、审计 |
-| `rbac3.manifest.activated.v1` | Manifest 激活 | app/build/manifestVersion、policyVersion | Operation Mapping、Bootstrap Projector |
-| `rbac3.session.revoked.v1` | Session/Family 撤销 | sessionId、reason、sessionVersion | Runtime Cleaner |
-| `rbac3.authorization.mutation-committed.v1` | 授权主事务提交 | mutationId、scope、target versions | Fence Recovery/Projector |
-| `rbac3.participation.recorded.v1` | 业务参与可靠落地 | resource/id/action/actor/eventId | 中央 Participation Projection |
+| `tianquan-jianshen.directory.snapshot-activated.v1` | 目录快照激活 | version、影响节点/用户摘要 | Snapshot Projector、审计 |
+| `tianquan-jianshen.user.status-changed.v1` | User 状态提交 | userId、old/new、authVersion | Session Revoker、Projector |
+| `tianquan-jianshen.assignment.changed.v1` | 任职变更提交 | assignmentId、userId、changeType、authVersion | Projector、前端通知 |
+| `tianquan-jianshen.role.policy-changed.v1` | Role/Permission/Constraint 提交 | affectedRoleIds、policyVersion | Tenant Projector、影响分析 |
+| `tianquan-jianshen.management-policy.changed.v1` | Policy 变更提交 | policyId、policyVersion、受影响主体摘要 | Capability Projector |
+| `tianquan-jianshen.role-activation.changed.v1` | Session Active Role Set 原子替换 | sessionId、old/new root 摘要、sessionVersion、snapshotChecksum | Session Projector、前端通知、审计 |
+| `tianquan-jianshen.manifest.activated.v1` | Manifest 激活 | app/build/manifestVersion、policyVersion | Operation Mapping、Bootstrap Projector |
+| `tianquan-jianshen.session.revoked.v1` | Session/Family 撤销 | sessionId、reason、sessionVersion | Runtime Cleaner |
+| `tianquan-jianshen.authorization.mutation-committed.v1` | 授权主事务提交 | mutationId、scope、target versions | Fence Recovery/Projector |
+| `tianquan-jianshen.participation.recorded.v1` | 业务参与可靠落地 | resource/id/action/actor/eventId | 中央 Participation Projection |
 
 逻辑目录不强制引入新的消息中间件；实际 Destination 绑定由 Transactional Outbox 现有 Transport
 配置决定。没有下游时 Outbox 仍用于可靠 Redis 投影恢复，不能退化为普通内存 Listener。
@@ -3818,7 +3818,7 @@ Event Type；添加可选字段仍需兼容测试。Partition Key 按事件语�
 - 超范围、自我提权、SSD/DSD、容量和对象职责拒绝；
 - Manifest 上报、激活、冲突和归档；
 - 授权版本变化、Fence、Redis 投影和会话撤销；
-- Gateway Adapter 认证和授权拒绝；
+- Yuheng Adapter 认证和授权拒绝；
 - 模拟和影响分析。
 
 审计至少包含：
@@ -3878,11 +3878,11 @@ actorType = USER | SERVICE | SYSTEM
 - Fence 数量与持续时间；
 - Outbox 积压、重试和死信；
 - 角色激活成功、幂等、资格拒绝、根歧义、APP 互斥和传播恢复；
-- DDC 租约状态和恢复次数；
-- Gateway Definition 上报状态；
+- Tianshu 租约状态和恢复次数；
+- Yuheng Definition 上报状态；
 - sessionVersion/authVersion/policyVersion 传播延迟。
 
-RBAC3 Readiness 至少检查 PostgreSQL、Redis、DDC Provider Lease 和必要的签名密钥；Gateway
+Tianquan-Jianshen Readiness 至少检查 PostgreSQL、Redis、Tianshu Provider Lease 和必要的签名密钥；Yuheng
 接口是否已经发布属于部署验收，不在普通本地 Health 中伪装为必然成功。
 
 #### 23.3.1 指标名与基数约束
@@ -3913,10 +3913,10 @@ Label 不包含 tenantId、userId、roleId、permissionCode、operationId、trac
 | Health | 依赖 | 失败影响 |
 |---|---|---|
 | Liveness | 进程与关键线程未死锁 | 失败由编排重启 |
-| Readiness | PostgreSQL、Redis、Key、DDC Lease、必要 Worker | 失败停止接收新流量 |
-| Control Plane Status | Gateway Definition、Release、Projector、Outbox Lag | 展示部署/治理是否闭环，不一定杀死进程 |
+| Readiness | PostgreSQL、Redis、Key、Tianshu Lease、必要 Worker | 失败停止接收新流量 |
+| Control Plane Status | Yuheng Definition、Release、Projector、Outbox Lag | 展示部署/治理是否闭环，不一定杀死进程 |
 
-Gateway Release 未发布时 RBAC3 Admin 可以作为进程 Ready 供内部部署检查，但不能在运维页显示
+Yuheng Release 未发布时 Tianquan-Jianshen Admin 可以作为进程 Ready 供内部部署检查，但不能在运维页显示
 “PUBLIC 可用”。三态必须分开展示。
 
 ## 24. 设计模式选择
@@ -3981,13 +3981,13 @@ RuleResult(decision, reasonCode, evidenceIds, safeArguments)
 
 - `ManagementScopeResolverStrategy`：DEPT/ORG/CUSTOM 等已知范围类型；
 - `DataScopeNormalizerStrategy`：组织树、自定义集合、SELF 等类型化 Scope；
-- `IdentityAuthenticatorStrategy`：本地密码与外部 IdP；
+- `IdentityAuthenticatorStrategy`：本地密码与外部 Tianquan-Shoubing；
 - `DirectorySnapshotProviderStrategy`：不同 HR/目录来源；
 - `FieldMaskingStrategy`：已注册且受控的脱敏方式；
 - `AuthorizationRuntimeStore` Adapter：Redis 实现与测试内存实现。
 
 Permission 并集、Activation Root、Role Family 展开、APP 互斥和 Field Access 等级合并**不是**
-Strategy；这些是平台固定安全代数。如果允许 Tenant 更换，会导致相同配置在 Gateway、Starter 和
+Strategy；这些是平台固定安全代数。如果允许 Tenant 更换，会导致相同配置在 Yuheng、Starter 和
 Admin 得到不同授权结果。
 
 Strategy 由受控枚举和 Bean 注册表选择；未知 `strategyCode` 在配置激活时失败，不反射加载类名，
@@ -4001,11 +4001,11 @@ Core 定义端口，Infrastructure 提供 Adapter：
 |---|---|---|
 | Role/Closure/Assignment Query | JPA + 显式 SQL Repository Adapter | Core 不依赖持久化和锁语法 |
 | Session Snapshot Store | Redis Adapter | Core 不知道 Key/Lua/序列化 |
-| Gateway Definition Reporter | 现有 Gateway Starter Adapter | 不复制上报协议 |
-| DDC Provider Registry | 现有 Provider Runtime Adapter | 不复制 Lease/Heartbeat |
-| Identity Provider | Local/External Auth Adapter | 外部 IdP 不直接返回 Role |
+| Yuheng Definition Reporter | 现有 Yuheng Starter Adapter | 不复制上报协议 |
+| Tianshu Provider Registry | 现有 Provider Runtime Adapter | 不复制 Lease/Heartbeat |
+| Identity Provider | Local/External Auth Adapter | 外部 Tianquan-Shoubing 不直接返回 Role |
 
-这使 DDC/Gateway 集成遵循现有实现，同时让 Core 单测使用内存事实。Adapter 只能翻译协议和错误，
+这使 Tianshu/Yuheng 集成遵循现有实现，同时让 Core 单测使用内存事实。Adapter 只能翻译协议和错误，
 不能自己决定互斥或 Permission Allow。
 
 ### 24.5 Immutable Value Object + Builder
@@ -4034,7 +4034,7 @@ scope，避免一次 Session 切换阻断整个 Tenant。
 
 - **不采用 State 表达角色激活**：Active Role Set 只有“旧不可变值 -> 新不可变值”的原子替换，
   没有值得建状态类层级的业务生命周期；
-- **不建设轮岗 State Machine**：排班、交接、来源岗位和恢复属于业务系统，RBAC3 没有相应状态；
+- **不建设轮岗 State Machine**：排班、交接、来源岗位和恢复属于业务系统，Tianquan-Jianshen 没有相应状态；
 - **不建设通用规则引擎**：约束类型已知，Specification 更可审计；
 - **不为每个 Role 创建 Strategy/Command 子类**：Role 是数据，新增 Role 不应发布 Java 类；
 - **不使用 Visitor 遍历角色图**：Closure 批量查询和集合算法更直接，Visitor 不能解决数据库 N+1；
@@ -4117,7 +4117,7 @@ rbac3_audit_log
 egon_cola_outbox_message
 ```
 
-`egon_cola_outbox_message` 由 Transactional Outbox Component 拥有。RBAC3 不创建
+`egon_cola_outbox_message` 由 Transactional Outbox Component 拥有。Tianquan-Jianshen 不创建
 `rbac3_outbox_event`，不复制 Outbox 表、Store、状态机或清理逻辑。
 
 ### 25.2 字段级数据字典
@@ -4150,7 +4150,7 @@ Tenant 是顶层安全域，因此 `rbac3_tenant` 自身没有业务 `tenant_id`
 | `rbac3_service_credential` | `tenant_id`, `principal_id`, `credential_id`, `credential_type`, `secret_hash`, `public_key`, `valid_from`, `valid_to`, `status`, `last_used_at` | UQ `(tenant_id,credential_id)`；按类型仅允许 secret_hash/public_key 之一非空；不保存明文 Secret | `(tenant_id,principal_id,status)` |
 | `rbac3_service_permission` | `tenant_id`, `principal_id`, `permission_id`, `application_code`, `valid_from`, `valid_to` | UQ `(tenant_id,principal_id,permission_id,application_code)` | `(tenant_id,principal_id,valid_from,valid_to)` |
 
-Gateway/DDC 上报凭证仍由部署 Secret 管理，不强制写入这三张表；这三张表管理的是调用 RBAC3
+Yuheng/Tianshu 上报凭证仍由部署 Secret 管理，不强制写入这三张表；这三张表管理的是调用 Tianquan-Jianshen
 内部业务 API 的服务身份。两类 Credential 不混用。
 
 #### 25.2.3 应用、资源与授权表
@@ -4228,7 +4228,7 @@ DSD Set 的所有 `rbac3_sod_member.role_id` 必须是 `application_id` 对应 A
 | `rbac3_audit_log` | `id`, `tenant_id`, `event_type`, `outcome`, `severity`, `actor_type`, `actor_id`, `target_type`, `target_id`, `management_policy_id`, `reason_code`, `request_id`, `trace_id`, `client_ip`, `user_agent`, `before_snapshot jsonb`, `after_snapshot jsonb`, `payload_checksum`, `created_at` | 追加只读；payload checksum 非空；不存 Secret | `(tenant_id,created_at desc)`；`(tenant_id,trace_id)`；`(tenant_id,target_type,target_id,created_at desc)` |
 
 `egon_cola_outbox_message` 的具体字段完全沿用 Transactional Outbox Component 当前迁移，本 Spec
-不重新定义或修改它的 Schema；RBAC3 只通过组件 Store/Publisher 写入。
+不重新定义或修改它的 Schema；Tianquan-Jianshen 只通过组件 Store/Publisher 写入。
 
 ### 25.3 全局字段与约束
 
@@ -4285,7 +4285,7 @@ updated_by
 | Login/Refresh/Logout | Session、Refresh Token/Family 状态、对应版本、Audit；Redis 投影按第 22 节收敛 |
 
 Controller 不开启跨请求长事务。影响分析/Candidate 是只读快照；执行命令取得锁后重算。外部 HTTP、
-DDC 和 Gateway Admin 调用不放在持有数据库锁的本地事务中，采用事务后 Outbox/Reconcile，避免
+Tianshu 和 Yuheng Admin 调用不放在持有数据库锁的本地事务中，采用事务后 Outbox/Reconcile，避免
 网络超时长期占锁。
 
 #### 25.3.3 JPA 与显式 SQL 分工
@@ -4313,11 +4313,11 @@ V1 启用由容量估算决定。分区键必须出现在唯一性/查询设计�
 
 ### 25.4 Flyway
 
-迁移位置遵守项目 `classpath:db` 约定。RBAC3 领域迁移和 Outbox Component 迁移使用同一
+迁移位置遵守项目 `classpath:db` 约定。Tianquan-Jianshen 领域迁移和 Outbox Component 迁移使用同一
 DataSource、两个独立 Flyway History，避免两个目录中的 `V1` 发生版本冲突：
 
 ```text
-RBAC3 领域：classpath:db/migration
+Tianquan-Jianshen 领域：classpath:db/migration
 History 表：flyway_schema_history_rbac3
 
 Outbox：classpath:db/transactional-outbox/postgresql
@@ -4328,7 +4328,7 @@ History 表：flyway_schema_history_outbox
 DataSource 和 TransactionManager，确保业务变化与消息入队处于同一本地事务。
 
 每次数据库变更只新增一个下一版本 Flyway 文件。已有迁移一旦创建，不修改、不重命名、不重排、
-不删除、不格式化，也不通过 Repair 替代新迁移。Outbox 直接使用组件现有迁移，不复制到 RBAC3
+不删除、不格式化，也不通过 Repair 替代新迁移。Outbox 直接使用组件现有迁移，不复制到 Tianquan-Jianshen
 目录。初始实施计划必须按可独立运行的阶段确定迁移边界，不能先创建一个空壳 V1 再回头修改。
 
 初次实现不是把上述所有表一次性塞进一个不可评审的巨大迁移。实施计划必须按第 31 节阶段决定
@@ -4340,7 +4340,7 @@ DataSource 和 TransactionManager，确保业务变化与消息入队处于同�
 统一前缀：
 
 ```text
-/api/rbac3/v1
+/api/tianquan-jianshen/v1
 ```
 
 ### 26.0 HTTP 通用契约
@@ -4361,11 +4361,11 @@ DataSource 和 TransactionManager，确保业务变化与消息入队处于同�
 | `Authorization: Bearer` | 除匿名 Route 外 | Access Token；禁止 Query 参数 Token |
 | `Idempotency-Key` | Assignment/Policy/Manifest 激活等管理命令 | 1～128 ASCII；服务端只存 Hash；相同 Key 不同请求冲突；Session 角色激活使用 PUT + expectedSessionVersion，不使用该 Header |
 | `If-Match` | 更新已有聚合 | 值为当前 ETag/Version；缺失或过期返回并发错误 |
-| `X-Request-Id` | 全部 | 客户端可提供合法值；缺失由 Gateway 生成；不能覆盖 Trace 安全上下文 |
+| `X-Request-Id` | 全部 | 客户端可提供合法值；缺失由 Yuheng 生成；不能覆盖 Trace 安全上下文 |
 | `Traceparent` | 全部 | 按现有可观测规范透传；非法值重新生成而不用于授权 |
-| `X-RBAC3-Target-Tenant` | 仅平台管理员专用 Route | 仍需显式权限和审计；普通接口禁止使用 |
+| `X-Tianquan-Jianshen-Target-Tenant` | 仅平台管理员专用 Route | 仍需显式权限和审计；普通接口禁止使用 |
 
-内部 Service Route 使用 Gateway 服务 Credential，不使用 `X-Internal=true` 之类可伪造 Header。
+内部 Service Route 使用 Yuheng 服务 Credential，不使用 `X-Internal=true` 之类可伪造 Header。
 
 #### 26.0.3 成功信封
 
@@ -4413,7 +4413,7 @@ Merge Patch 给安全聚合。状态命令也带 expectedVersion/If-Match。版�
 
 #### 26.0.6 API 安全层次
 
-| 类别 | Gateway | Admin/Starter | 额外检查 |
+| 类别 | Yuheng | Admin/Starter | 额外检查 |
 |---|---|---|---|
 | Login/Refresh/JWKS | 匿名或可选认证 Policy + 限流 | 凭证/Refresh/Key 校验 | 防枚举、重放、请求大小 |
 | Bootstrap/Logout | REQUIRED + API Permission/登录态 | Session/三版本 | 当前 User 只能操作自己 |
@@ -4443,7 +4443,7 @@ GET  /auth/jwks
 - Refresh 重建发现旧 Active Role Set 已非法时仍安全完成 Token 轮换并返回受限 Session Token，
   `roleActivationRequired=true`；客户端不能因需要重选而继续保存旧 Refresh Token；
 - Logout 只作用于 Token 的当前 `sid`，重复调用幂等；
-- Step-up 使用当前 Session + 密码/外部 IdP 强认证，成功只更新 `authStrength/strongAuthenticatedAt`，
+- Step-up 使用当前 Session + 密码/外部 Tianquan-Shoubing 强认证，成功只更新 `authStrength/strongAuthenticatedAt`，
   不授予 Role；
 - Role Activation Candidate/GET/PUT 的算法和原子语义见第 21 节；只能操作 Token 当前 Session；
 - Bootstrap 见 12.5，支持 ETag，但 `Cache-Control: no-store`；
@@ -4466,10 +4466,10 @@ Step-up 请求：
 ### 26.2 租户、用户和目录
 
 ```text
-GET  /platform/tenants
-POST /platform/tenants
-GET  /platform/tenants/{tenantId}
-PUT  /platform/tenants/{tenantId}/status
+GET  /xingyuan/tenants
+POST /xingyuan/tenants
+GET  /xingyuan/tenants/{tenantId}
+PUT  /xingyuan/tenants/{tenantId}/status
 GET  /users?query=&status=&orgUnitId=&positionId=&page=&size=
 GET  /users/{userId}
 PUT  /users/{userId}/status
@@ -4479,7 +4479,7 @@ POST /internal/directory-snapshots
 GET  /directory-snapshots/{snapshotId}
 ```
 
-平台 Tenant API 只在平台安全边界暴露；租户管理员没有 `/platform/*` 权限。Tenant 创建请求：
+平台 Tenant API 只在平台安全边界暴露；租户管理员没有 `/xingyuan/*` 权限。Tenant 创建请求：
 
 ```json
 {
@@ -4533,7 +4533,7 @@ Manifest 上报返回 202 和验证结果引用：
 ```json
 {
   "expectedCurrentManifestVersion": 16,
-  "expectedDefinitionSetId": "gateway-def-17",
+  "expectedDefinitionSetId": "yuheng-def-17",
   "reason": "发布 finance-web 5.3.2 资源定义"
 }
 ```
@@ -4734,7 +4734,7 @@ Refresh Token 不轮换。
 ```
 
 业务系统的轮岗/排班若要改变资格，只能使用有相应服务/管理授权的普通 Assignment API；它自己的
-业务单号可以写 Assignment `sourceId/ticketNo`，但不会让 RBAC3 创建轮岗状态。
+业务单号可以写 Assignment `sourceId/ticketNo`，但不会让 Tianquan-Jianshen 创建轮岗状态。
 
 ### 26.8 运行决策和参与记录
 
@@ -4746,7 +4746,7 @@ POST /internal/business-participations
 GET  /internal/business-participations/conflicts
 ```
 
-内部 API 只允许注册服务身份通过 INTERNAL Gateway 入口调用。
+内部 API 只允许注册服务身份通过 INTERNAL Yuheng 入口调用。
 
 通用决策请求：
 
@@ -4761,7 +4761,7 @@ GET  /internal/business-participations/conflicts
 ```
 
 响应中的每个 Decision 使用 8.10 的统一结构；FUNCTION DENY 时不返回 Data/Field 细节。该远程接口
-用于冷加载、诊断和不具备本地 Starter 的受控内部消费者，不是 Gateway Adapter 每请求调用路径。
+用于冷加载、诊断和不具备本地 Starter 的受控内部消费者，不是 Yuheng Adapter 每请求调用路径。
 
 Participation 提交：
 
@@ -4807,11 +4807,11 @@ POST /users/{userId}/sessions/revoke-all
 GET  /runtime/status
 GET  /runtime/mutations?status=&cursor=
 POST /runtime/mutations/{mutationId}/retry
-GET  /runtime/gateway-ddc-status
+GET  /runtime/yuheng-tianshu-status
 ```
 
 用户只能查看/撤销自己的 Session；安全管理员可按 Management/Session Permission 操作他人。Runtime
-重试只调用幂等 Recovery，不允许传入目标状态或直接清 Fence。`gateway-ddc-status` 分别返回：
+重试只调用幂等 Recovery，不允许传入目标状态或直接清 Fence。`yuheng-tianshu-status` 分别返回：
 
 ```text
 definitionReportStatus / definitionSetId / warnings
@@ -4823,7 +4823,7 @@ gatewayReleaseId / releaseStatus / observedByEngineVersion
 
 ### 26.11 管理 API Permission 矩阵
 
-| API 组 | Gateway API Permission | Admin 最终能力 |
+| API 组 | Yuheng API Permission | Admin 最终能力 |
 |---|---|---|
 | Tenant 平台管理 | `system:tenant:manage` | 平台安全管理员边界 |
 | User/Directory 读取 | `system:user:read` / `system:directory:read` | Tenant + Data Scope |
@@ -4846,7 +4846,7 @@ Permission Code 中的竖线仅表示表格中多个独立 Code，不是一个 O
 - Enum、错误码、Permission Code、状态机或字段必填性的不兼容变化使用 `/v2` 或新的命令路径；
 - Deprecated Endpoint 至少保留一个发布周期并返回 Sunset/Deprecation 元数据，但安全漏洞修复可
   立即收紧；
-- Gateway Definition 的 artifactVersion/buildId 与 API 版本共同决定路由兼容性，不能只改 URL
+- Yuheng Definition 的 artifactVersion/buildId 与 API 版本共同决定路由兼容性，不能只改 URL
   而不发布新 Definition/Release；
 - 没有审批 API，因此未来若产品重新要求审批，必须新开 Spec 和显式兼容设计，不能在 v1 暗加字段。
 
@@ -4983,7 +4983,7 @@ Permission Code 中的竖线仅表示表格中多个独立 Code，不是一个 O
 | 前端 Route | 页面 | 主要只读 Permission | 写动作 Permission |
 |---|---|---|---|
 | `/overview` | 授权总览 | `system:rbac-overview:read` | 无 |
-| `/platform/tenants` | Tenant 管理 | `system:tenant:read` | `system:tenant:manage` |
+| `/xingyuan/tenants` | Tenant 管理 | `system:tenant:read` | `system:tenant:manage` |
 | `/directory/users` | 用户列表/详情 | `system:user:read` | `system:user-status:manage` |
 | `/directory/org-units` | 组织树 | `system:directory:read` | 外部同步为主；人工修复专用权限 |
 | `/directory/positions` | 岗位 | `system:directory:read` | 同上 |
@@ -5000,7 +5000,7 @@ Permission Code 中的竖线仅表示表格中多个独立 Code，不是一个 O
 | `/sessions` | 在线会话 | `system:session:read` | `system:session:revoke` |
 | `/simulations` | 授权模拟 | `system:authorization-simulation:execute` | 模拟本身无事实写入 |
 | `/audit` | 审计查询/导出 | `system:audit:read` | `system:audit:export` |
-| `/runtime` | Fence/Mutation/Outbox/Gateway/DDC | `system:authorization-runtime:read` | `system:authorization-runtime:operate` |
+| `/runtime` | Fence/Mutation/Outbox/Yuheng/Tianshu | `system:authorization-runtime:read` | `system:authorization-runtime:operate` |
 
 Route Guard 只负责体验；用户直接输入 URL 时 API 仍按第 26 节校验。平台 Tenant 页面在普通租户
 导航中完全不返回，不只是按钮 disabled。
@@ -5051,7 +5051,7 @@ SSD/DSD/前置/容量
 
 **运行状态：**
 
-Definition、DDC Lease、Gateway Release 三张独立状态卡；下面分别展示 Mutation/Fence、Snapshot、
+Definition、Tianshu Lease、Yuheng Release 三张独立状态卡；下面分别展示 Mutation/Fence、Snapshot、
 Outbox、Assignment Worker 指标。Recovery 按钮只能触发指定 mutation/outbox 的幂等重试，不能输入 Redis Key
 或目标状态。
 
@@ -5148,7 +5148,7 @@ Scope 过滤。
 3. Refresh Token、密码、HMAC Secret 和私钥不进入日志；
 4. JWT 只接受显式算法白名单，禁止 `none` 和算法降级；
 5. 签名 Key 有 `kid`，支持重叠轮换窗口；
-6. Gateway 删除外部伪造的可信身份头；
+6. Yuheng 删除外部伪造的可信身份头；
 7. Provider 不只相信可信头，仍执行 Starter 版本与权限校验；
 8. 管理策略不能把高风险角色委托给普通部门负责人；
 9. 自我授权、跨租户和跨范围操作无法通过超级管理员前端绕过；
@@ -5169,12 +5169,12 @@ Scope 过滤。
 | 自我提权 | 管理者把高权 Role 给本人 | 硬编码自我拒绝、同一 Policy 完整匹配、高风险隔离 | 直接 API 绕过 UI 测试 |
 | 策略拼接 | 从多条 Policy 分别取主体/范围/Role/Operation | 单 Policy 全条件满足 | 组合矩阵单测 |
 | 陈旧权限 | 角色撤销后旧 Token/缓存继续用 | 三版本、Mutation Journal、Fence、同步投影、会话撤销 | Redis 故障/响应丢失测试 |
-| Gateway 绕过 | 直连 Provider、伪造可信 Header | 网络策略、Header Sanitizer、Starter 最终校验 | 直连与伪造 Header 测试 |
+| Yuheng 绕过 | 直连 Provider、伪造可信 Header | 网络策略、Header Sanitizer、Starter 最终校验 | 直连与伪造 Header 测试 |
 | 服务身份冒用 | 普通 User 调内部 Manifest/Participation | INTERNAL Listener、Service Credential、Application Binding | User Token 调内部 API 拒绝 |
 | 资源投毒 | Manifest 伪造 Operation/JS 组件 | 服务绑定、Checksum、Definition 对账、componentKey 白名单 | 冲突 Manifest/未知 Key 测试 |
 | 数据/字段泄露 | Count/Export/排序漏 Scope，前端只隐藏 | 后端 Scope、Field Policy、导出同规则 | 查询/Count/Export 对照测试 |
 | 同对象职责竞态 | 本人并发提交并审批 | Participation 可靠记录 + 业务对象锁/状态条件 | 并发动作集成测试 |
-| 注册与路由劫持 | 伪造 DDC Provider、跨版本路由 | DDC 签名 Credential、完整 Service Key、Release、TLS/网络 | 错 key/过期 lease/错误 version 测试 |
+| 注册与路由劫持 | 伪造 Tianshu Provider、跨版本路由 | Tianshu 签名 Credential、完整 Service Key、Release、TLS/网络 | 错 key/过期 lease/错误 version 测试 |
 | 运维误操作 | 手改 Redis、强制清 Fence | Runtime API 只触发幂等恢复、Journal 对账、完整审计 | 恢复 API 负向测试 |
 
 ### 29.2 HTTP、浏览器与请求防护
@@ -5196,11 +5196,11 @@ Scope 过滤。
 
 ### 29.3 数据库与 Redis 防护
 
-- RBAC3 Admin 使用最小权限数据库账号；Migration 账号与 Runtime 账号可分离，Runtime 不拥有 DROP/
+- Tianquan-Jianshen Admin 使用最小权限数据库账号；Migration 账号与 Runtime 账号可分离，Runtime 不拥有 DROP/
   ALTER 权限；
 - 所有 SQL 参数化，Scope Adapter 不接受列名/排序字段自由字符串；排序字段通过白名单映射；
 - PostgreSQL/Redis 连接启用认证和生产 TLS/受控网络，凭证由 Secret 注入；
-- Redis 禁止公网暴露，RBAC3 只访问自己的 Key 前缀，不执行 FLUSH/KEYS；运维扫描使用 SCAN 和范围；
+- Redis 禁止公网暴露，Tianquan-Jianshen 只访问自己的 Key 前缀，不执行 FLUSH/KEYS；运维扫描使用 SCAN 和范围；
 - 备份加密、恢复演练和权限审计属于上线门槛；Spec 不把“有备份配置”当成恢复成功证据；
 - JSONB 中的数据也执行脱敏、大小限制和 Schema 验证，不能成为绕过列约束的垃圾抽屉；
 - 审计/Participation 的应用账号不提供 UPDATE/DELETE 普通路径；必要归档由专用受控任务完成。
@@ -5209,9 +5209,9 @@ Scope 过滤。
 
 | Secret | 存储 | 轮换 | 禁止位置 |
 |---|---|---|---|
-| JWT Private Key | KMS/部署 Secret/受控文件 | PREPARED->SIGNING 流程 | DB、Redis、DDC、Git、日志 |
-| Gateway Report Secret | 部署 Secret | 双凭证重叠或 Gateway 现有机制 | state-file、Manifest |
-| DDC Access Secret | 部署 Secret | DDC 现有签名轮换机制 | Provider metadata、Redis Key |
+| JWT Private Key | KMS/部署 Secret/受控文件 | PREPARED->SIGNING 流程 | DB、Redis、Tianshu、Git、日志 |
+| Yuheng Report Secret | 部署 Secret | 双凭证重叠或 Yuheng 现有机制 | state-file、Manifest |
+| Tianshu Access Secret | 部署 Secret | Tianshu 现有签名轮换机制 | Provider metadata、Redis Key |
 | Service Credential | Hash 或公钥；原 Secret 一次显示 | credentialId 版本化重叠 | Audit before/after 明文 |
 | Refresh Token | 客户端安全存储；服务端 Hash | 每次使用轮换 | LocalStorage、日志、URL |
 
@@ -5229,10 +5229,10 @@ Token、万能 Header 或数据库开关。
 
 ### 29.6 依赖与构建供应链
 
-- 不为 RBAC3 随意新增认证、规则引擎或前端状态库；复用仓库治理版本；
+- 不为 Tianquan-Jianshen 随意新增认证、规则引擎或前端状态库；复用仓库治理版本；
 - Maven/npm Lock/版本治理、依赖漏洞扫描和 License 检查纳入 CI；
 - 前端生产构建不允许运行时从 Manifest 加载远程 JavaScript；
-- 构建生成的 buildId/artifactVersion 写入 Gateway Definition 和 Resource Manifest，便于来源追踪；
+- 构建生成的 buildId/artifactVersion 写入 Yuheng Definition 和 Resource Manifest，便于来源追踪；
 - 镜像/制品签名与部署策略若仓库已有则沿用；本 Spec 不凭空宣称已经具备供应链签名。
 
 ## 30. 测试与验证策略
@@ -5246,12 +5246,12 @@ Token、万能 Header 或数据库开关。
 | Tenant A | `finance-cn`，Org O1，下有 Dept D1/D2，D1 下有 D1-1 |
 | Tenant B | `retail-cn`，用于跨租户负向测试 |
 | Users | Alice=租户安全管理员；Bob=D1 负责人；Zhang=D1 出纳；Li=D1 付款复核；Eve=Tenant B 用户 |
-| Applications | finance-web、reporting-web、rbac3-system |
+| Applications | finance-web、reporting-web、tianquan-jianshen-system |
 | Roles | finance: CASHIER_ROOT->CASHIER_L2、PAYMENT_APPROVER_ROOT->PAYMENT_APPROVER、PAYMENT_CREATOR_ROOT->PAYMENT_CREATOR；reporting: REPORT_ROOT->PUBLIC_REPORT；system: DEPT_MANAGER/TENANT_ADMIN/EMERGENCY_ADMIN |
 | Constraints | finance 的 CASHIER_ROOT 与 PAYMENT_APPROVER_ROOT 为 DSD 激活互斥 max=1；PAYMENT_CREATOR 与 PAYMENT_APPROVER 另有 SSD max=1；CREATE->APPROVE 同对象冲突；审批岗容量 D1=2 |
 | Management Policy | Bob 可管理 D1_TREE 中 PUBLIC_REPORT/PAYMENT_APPROVER 的指定操作，不含高风险 Role |
 | Resources | finance-web Manifest，付款 Route/Action/API，bankAccountNo 高敏字段 |
-| Runtime | Zhang 的 CASHIER_L2 与 PUBLIC_REPORT Assignment 均有效；authVersion=43、policyVersion=18、SessionVersion=2；Gateway Definition/Release version=5.3.2 |
+| Runtime | Zhang 的 CASHIER_L2 与 PUBLIC_REPORT Assignment 均有效；authVersion=43、policyVersion=18、SessionVersion=2；Yuheng Definition/Release version=5.3.2 |
 | Business Object | PAYMENT `PAY-2026-001`，Zhang 已执行 SUBMIT Participation |
 
 测试不得依赖固定数据库自增顺序；业务 Code 固定，Long ID 由夹具显式记录并作为 JSON 字符串比较。
@@ -5292,22 +5292,22 @@ Token、万能 Header 或数据库开关。
 
 ### 30.2 模块边界测试
 
-- Contract 不依赖 Spring/JPA/Gateway；
+- Contract 不依赖 Spring/JPA/Yuheng；
 - Core 不依赖 Admin/Redis/JPA；
 - Starter 不依赖 Admin 和业务数据库；
-- Gateway Adapter 不依赖 Admin；
-- 不存在独立 RBAC3 Test 模块或发布的 test-jar；生产模块不依赖任何测试代码；
-- Admin 必须包含 Gateway Starter、Provider Runtime 和 Outbox；
+- Yuheng Adapter 不依赖 Admin；
+- 不存在独立 Tianquan-Jianshen Test 模块或发布的 test-jar；生产模块不依赖任何测试代码；
+- Admin 必须包含 Yuheng Starter、Provider Runtime 和 Outbox；
 - BOM 只导出允许的消费者模块。
 
 还必须验证：
 
-- `gateway-adapter` 字节码/源码中没有 RBAC3 Admin HTTP Client；
-- Admin 依赖 Gateway Starter 与 Provider Runtime 的实际生产类，而不是复制注解/租约实现；
+- `yuheng-adapter` 字节码/源码中没有 Tianquan-Jianshen Admin HTTP Client；
+- Admin 依赖 Yuheng Starter 与 Provider Runtime 的实际生产类，而不是复制注解/租约实现；
 - npm 依赖方向为 `admin-web -> react-sdk`，SDK 不反向引用页面；
-- Maven Reactor Summary 确认 `-pl ... -am` 实际进入 RBAC3 子模块；
+- Maven Reactor Summary 确认 `-pl ... -am` 实际进入 Tianquan-Jianshen 子模块；
 - Consumer Fixture 位于 Starter 自己的 `src/test`，只依赖 BOM 暴露的 `contract/starter` 即可编译；
-- Gateway Fixture 位于 Adapter 自己的 `src/test`；Admin 测试不依赖 Starter 或 Adapter 测试类；
+- Yuheng Fixture 位于 Adapter 自己的 `src/test`；Admin 测试不依赖 Starter 或 Adapter 测试类；
 - ArchUnit/等价规则验证 Controller -> Facade -> Port/Repository 边界。
 
 ### 30.3 PostgreSQL/Redis 集成测试
@@ -5335,36 +5335,36 @@ Token、万能 Header 或数据库开关。
 10. 空库运行两个 Flyway History；重复启动无 checksum 变化；已有迁移文件内容哈希保持不变。
 
 集成测试应优先连接用户本机 PostgreSQL/Redis 做真实依赖验证；Testcontainers 可用于 CI 隔离，
-但报告必须标明它不是用户本机拓扑或真实 DDC/Gateway 多进程证据。
+但报告必须标明它不是用户本机拓扑或真实 Tianshu/Yuheng 多进程证据。
 
-### 30.4 Gateway/DDC 真实闭环
+### 30.4 Yuheng/Tianshu 真实闭环
 
 至少运行：
 
 ```text
 PostgreSQL
 Redis
-DDC Admin
-Gateway Admin
-Gateway Engine
-RBAC3 Admin x 2
+Tianshu Admin
+Yuheng Admin
+Yuheng Engine
+Tianquan-Jianshen Admin x 2
 Starter `src/test` 中的最小业务 Provider 夹具进程
 ```
 
 验证：
 
-1. 两个 RBAC3 Admin 实例以相同服务身份、不同 instanceId 注册 `HTTP_PROVIDER`；
-2. Gateway Admin 接收 RBAC3 全部接口定义；
-3. 发布 Route 后 Gateway Engine 从 DDC 获取实例并负载路由；
-4. 停掉一个 Admin，租约到期后 Gateway 不再选择它；
-5. DDC 短暂中断恢复后 Provider Runtime 重新注册；
-6. 未发布 Route 时，即使 DDC 有实例也不能访问；
-7. 匿名、失效 Session、旧 authVersion 和无 Permission 请求在 Gateway 被拒绝；
-8. 绕过 Gateway 直达 Provider 时，业务 Starter 仍拒绝越权；
+1. 两个 Tianquan-Jianshen Admin 实例以相同服务身份、不同 instanceId 注册 `HTTP_PROVIDER`；
+2. Yuheng Admin 接收 Tianquan-Jianshen 全部接口定义；
+3. 发布 Route 后 Yuheng Engine 从 Tianshu 获取实例并负载路由；
+4. 停掉一个 Admin，租约到期后 Yuheng 不再选择它；
+5. Tianshu 短暂中断恢复后 Provider Runtime 重新注册；
+6. 未发布 Route 时，即使 Tianshu 有实例也不能访问；
+7. 匿名、失效 Session、旧 authVersion 和无 Permission 请求在 Yuheng 被拒绝；
+8. 绕过 Yuheng 直达 Provider 时，业务 Starter 仍拒绝越权；
 9. 角色激活后旧 Token 下一次请求失败，新 Bootstrap 只呈现所激活 Role Family；
 10. 数据、字段和同对象职责在业务 Provider 最终执行。
 
-模块测试、Mock DDC 或 Testcontainers 不能单独证明上述真实多进程闭环。最终报告必须区分静态、
+模块测试、Mock Tianshu 或 Testcontainers 不能单独证明上述真实多进程闭环。最终报告必须区分静态、
 单进程、外部依赖和多进程拓扑证据。
 
 #### 30.4.1 启动前提和证据采集
@@ -5374,14 +5374,14 @@ Starter `src/test` 中的最小业务 Provider 夹具进程
 ```text
 git commit / artifactVersion / buildId
 PostgreSQL 与 Redis 连接目标（不记录 Secret）
-DDC env/namespace
-Gateway releaseId/version
-RBAC3 instanceId/host/port/leaseId/expireAt
+Tianshu env/namespace
+Yuheng releaseId/version
+Tianquan-Jianshen instanceId/host/port/leaseId/expireAt
 每个请求的 requestId/traceId/selectedInstanceId
 ```
 
 成功路由至少连续请求 20 次并证明两个实例均被选择；这只证明在该测试窗口内的负载分配，不宣称
-统计均匀性。停掉 A 后等待 `leaseSeconds + 允许观察延迟`，再证明 A 不被选择。DDC 中断恢复时记录
+统计均匀性。停掉 A 后等待 `leaseSeconds + 允许观察延迟`，再证明 A 不被选择。Tianshu 中断恢复时记录
 Provider Runtime `RECOVERING -> REGISTERED`，不能只看最终接口 200。
 
 #### 30.4.2 Release 三态负向矩阵
@@ -5389,10 +5389,10 @@ Provider Runtime `RECOVERING -> REGISTERED`，不能只看最终接口 200。
 | Definition | Lease | Release | 期望 |
 |---:|---:|---:|---|
 | 无 | 有 | 无 | 不能按未定义 Operation 路由 |
-| 有 | 无 | 有 | Gateway 返回无可用 Provider |
+| 有 | 无 | 有 | Yuheng 返回无可用 Provider |
 | 有 | 有 | 无 | 仍不可路由 |
 | 有 | 有 | SUCCESS 但版本不匹配 | 不跨版本选择实例 |
-| 有 | 有 | SUCCESS 且全键匹配 | 路由并执行 RBAC3 安全策略 |
+| 有 | 有 | SUCCESS 且全键匹配 | 路由并执行 Tianquan-Jianshen 安全策略 |
 
 ### 30.5 前端测试
 
@@ -5433,7 +5433,7 @@ Provider Runtime `RECOVERING -> REGISTERED`，不能只看最终接口 200。
 在标准数据集（至少 10 万 User、1 万 Role、100 万 Assignment、10 万 Permission Mapping、1000 万
 Audit/Participation 量级的可缩放样本）上分别测：
 
-- Gateway Adapter 热决策、Starter 热决策；
+- Yuheng Adapter 热决策、Starter 热决策；
 - 登录/Bootstrap Snapshot 构建；
 - Tenant Policy 变更的影响分析和投影；
 - Role Closure 深度 10 更新；
@@ -5465,7 +5465,7 @@ npm run build
 |---|---|---|
 | 静态检查 | 依赖边界、无审批字符串/Schema、配置存在 | 运行行为 |
 | 单元测试 | 纯规则和状态转换 | PostgreSQL 锁/Redis 原子性 |
-| 真实依赖集成 | SQL、Flyway、Redis、事务/并发 | Gateway/DDC 多进程路由 |
+| 真实依赖集成 | SQL、Flyway、Redis、事务/并发 | Yuheng/Tianshu 多进程路由 |
 | 前端组件/E2E | UI 流程与浏览器行为 | 后端不可绕过，除非联真服务 |
 | 多进程拓扑 | Definition/Lease/Release/路由/故障恢复 | 生产容量和跨机网络，除非环境等价 |
 
@@ -5479,7 +5479,7 @@ npm run build
 
 ### 阶段 1：工程与契约基础
 
-- 聚合模块、Contract、Core、Admin、Starter、Gateway Adapter 和前端边界；明确不创建 Test 模块；
+- 聚合模块、Contract、Core、Admin、Starter、Yuheng Adapter 和前端边界；明确不创建 Test 模块；
 - PostgreSQL 初始迁移；
 - 统一错误、ID、Tenant、Trace 和序列化契约；
 - 模块边界测试。
@@ -5498,13 +5498,13 @@ npm run build
 - Role APP 归属、角色权限、继承闭包、唯一 Activation Root、SSD/DSD、前置和容量；
 - 影响分析和 Policy Version。
 
-### 阶段 4：DDC、Gateway 与运行执行面
+### 阶段 4：Tianshu、Yuheng 与运行执行面
 
-- RBAC3 API Gateway 上报；
-- RBAC3 Admin DDC HTTP Provider 注册；
-- Gateway Adapter；
+- Tianquan-Jianshen API Yuheng 上报；
+- Tianquan-Jianshen Admin Tianshu HTTP Provider 注册；
+- Yuheng Adapter；
 - Starter 最终 PEP；
-- Gateway Release、实例发现和路由闭环。
+- Yuheng Release、实例发现和路由闭环。
 
 ### 阶段 5：任职、委托管理和会话角色激活
 
@@ -5531,7 +5531,7 @@ npm run build
 
 ### 阶段 8：真实拓扑验收
 
-- PostgreSQL/Redis/DDC/Gateway/RBAC3 双实例/业务 Provider 多进程闭环；
+- PostgreSQL/Redis/Tianshu/Yuheng/Tianquan-Jianshen 双实例/业务 Provider 多进程闭环；
 - 故障恢复、版本失效、负载路由和最终验收报告。
 
 ### 31.1 阶段依赖
@@ -5540,7 +5540,7 @@ npm run build
 flowchart LR
     P1["1 工程与契约"] --> P2["2 身份会话"]
     P1 --> P3["3 资源角色约束"]
-    P2 --> P4["4 Gateway/DDC/运行面"]
+    P2 --> P4["4 Yuheng/Tianshu/运行面"]
     P3 --> P4
     P2 --> P5["5 任职/委托/角色激活"]
     P3 --> P5
@@ -5559,10 +5559,10 @@ flowchart LR
 
 | 阶段 | 准入条件 | 退出条件 | 此时仍不能宣称 |
 |---|---|---|---|
-| 1 | Spec 已确认；复核当前 main/POM | Reactor 实际进入模块；Contract/Core 基础测试；初始迁移可从空库执行；无审批模型 | 登录、授权或 Gateway 已可用 |
-| 2 | 1 完成；JWT/Secret 配置方案明确 | Login/Refresh/Logout/Bootstrap、三版本、重放撤销在 PG/Redis 通过 | Role 治理、Gateway 路由完成 |
+| 1 | Spec 已确认；复核当前 main/POM | Reactor 实际进入模块；Contract/Core 基础测试；初始迁移可从空库执行；无审批模型 | 登录、授权或 Yuheng 已可用 |
+| 2 | 1 完成；JWT/Secret 配置方案明确 | Login/Refresh/Logout/Bootstrap、三版本、重放撤销在 PG/Redis 通过 | Role 治理、Yuheng 路由完成 |
 | 3 | 1 完成且目录语义可用 | Manifest/Role/Closure/SSD/DSD/前置/容量/Scope/Field 纯规则与持久化通过 | 业务请求已最终执行数据/字段权限 |
-| 4 | 2+3；Gateway/DDC 当前契约复核 | Definition 接收、Lease、Release、Adapter/Starter 负向测试闭环 | 双实例真实外部拓扑已验收（除非实际运行） |
+| 4 | 2+3；Yuheng/Tianshu 当前契约复核 | Definition 接收、Lease、Release、Adapter/Starter 负向测试闭环 | 双实例真实外部拓扑已验收（除非实际运行） |
 | 5 | 2+3+4；Mutation/Fence 设计可用 | 普通 Assignment、同 Policy 委托、Candidate/Root/Family/APP 互斥/Session 激活测试通过；无轮岗/审批模型 | 业务对象职责/Data/Field 已全接入 |
 | 6 | 4+5；参考业务 Provider 可改 | Data/Field/Participation/Fence 在参考 Provider 查询/写/导出路径通过 | 所有业务系统自动获得数据权限 |
 | 7 | 5+6 API 稳定 | 页面矩阵、SDK 状态机、Audit/Simulation/Runtime、前后端测试通过 | 生产容量或真实多机拓扑已证明 |
@@ -5572,7 +5572,7 @@ flowchart LR
 
 1. 未完成阶段 2 时，除 Health/JWKS 外不发布业务 Route；
 2. 未完成阶段 3 时，不能为任意业务 Role 授权通配 Permission；
-3. 未完成阶段 4 时，DDC 注册可用于开发观察，但不能把 Admin 直连地址作为生产替代；
+3. 未完成阶段 4 时，Tianshu 注册可用于开发观察，但不能把 Admin 直连地址作为生产替代；
 4. 未完成阶段 5 时，Assignment 写 API 和角色激活业务入口不对用户开放；
 5. 未完成阶段 6 的业务系统不得标记“已接入数据/字段/对象职责”，Starter 功能权限成功不等于完成；
 6. Feature Flag 关闭时接口返回明确不可用，不回退到无校验旧路径；
@@ -5584,7 +5584,7 @@ flowchart LR
 - 每个计划任务先写失败测试，再做最小实现和目标验证；
 - 每个任务完成一次独立、可审查提交，提交不混入其他任务或用户已有改动；
 - 一个数据库变更任务只新增一个下一版本 Flyway 文件；不修改任何已有迁移；
-- Gateway/DDC 接入任务复用现有模块，不复制代码；
+- Yuheng/Tianshu 接入任务复用现有模块，不复制代码；
 - 阶段结束做一次跨任务审查和聚合验证，但不把所有提交 squash 成不可追踪大提交，除非用户另行要求；
 - 完成后不自动启动项目，用户决定何时做运行验收。
 
@@ -5600,24 +5600,24 @@ flowchart LR
 
 - **Given** 本 Spec 尚未获得用户明确确认；
 - **When** 检查工作区；
-- **Then** 不存在新 RBAC3 模块、POM、代码、SQL 或实施计划变更；
+- **Then** 不存在新 Tianquan-Jianshen 模块、POM、代码、SQL 或实施计划变更；
 - **And Given** Spec 已确认并进入实施；
 - **When** 创建平台；
 - **Then** 只创建于 `egon-cola-xingyuan/egon-cola-tianquan-jianshen`，包根、配置前缀和模块名符合第 8 节。
 
 ### AC-02 模块依赖边界
 
-- **Given** 全部 RBAC3 模块已创建；
+- **Given** 全部 Tianquan-Jianshen 模块已创建；
 - **When** 运行 Maven 依赖/架构测试和 npm 依赖检查；
 - **Then** Contract/Core/Starter/Adapter/Admin 和 React SDK/Admin Web 依赖方向符合第 9 节；
-- **And** 不存在独立 RBAC3 Test 模块、test-jar 或 Admin->Starter 测试依赖；每个模块测试留在自己的
-  测试源集；Gateway Adapter 中不存在调用 RBAC3 Admin 的每请求 HTTP Client。
+- **And** 不存在独立 Tianquan-Jianshen Test 模块、test-jar 或 Admin->Starter 测试依赖；每个模块测试留在自己的
+  测试源集；Yuheng Adapter 中不存在调用 Tianquan-Jianshen Admin 的每请求 HTTP Client。
 
 ### AC-03 PostgreSQL 与 Flyway
 
 - **Given** 一个空 PostgreSQL Schema；
-- **When** 启动 RBAC3 两个 Flyway 实例；
-- **Then** RBAC3 Domain 与 Outbox History 分别成功，表/约束/索引符合第 25 节；
+- **When** 启动 Tianquan-Jianshen 两个 Flyway 实例；
+- **Then** Tianquan-Jianshen Domain 与 Outbox History 分别成功，表/约束/索引符合第 25 节；
 - **And When** 重复执行；
 - **Then** 无 checksum 变化；任何后续变更只新增一个更高版本迁移，不修改已有迁移。
 
@@ -5732,7 +5732,7 @@ flowchart LR
 
 ### AC-15 完全无业务轮岗与审批
 
-- **Given** 完整源代码、数据库元数据、OpenAPI/Gateway Definition、错误码和 Admin Web 构建；
+- **Given** 完整源代码、数据库元数据、OpenAPI/Yuheng Definition、错误码和 Admin Web 构建；
 - **When** 搜索轮岗/交接/审批状态、字段、表、API、Permission、菜单、Worker 和按钮；
 - **Then** 不存在 Rotation/Handover/Schedule/Restore 或 Assignment Approval 的业务能力；
 - **And** 只有普通 Assignment 和当前 Session Role Activation，两者都不会产生待审批状态。
@@ -5774,10 +5774,10 @@ flowchart LR
 ### AC-20 业务轮岗边界
 
 - **Given** 业务系统把人员从出纳岗位调整到复核岗位；
-- **When** 检查 RBAC3 对外契约和事实；
-- **Then** 业务系统自己持有排班、来源岗位、交接、定时和恢复状态；RBAC3 只接收受控的普通
+- **When** 检查 Tianquan-Jianshen 对外契约和事实；
+- **Then** 业务系统自己持有排班、来源岗位、交接、定时和恢复状态；Tianquan-Jianshen 只接收受控的普通
   Assignment 变化，并在用户重新认证后提供新的激活候选；
-- **And** RBAC3 不创建轮岗单、交接项、执行日志、Scheduler 或自动恢复任务。
+- **And** Tianquan-Jianshen 不创建轮岗单、交接项、执行日志、Scheduler 或自动恢复任务。
 
 ### AC-21 同对象职责历史
 
@@ -5815,7 +5815,7 @@ flowchart LR
 - **When** 新版本激活且缺少旧 Resource；
 - **Then** 旧 Resource STALE 而不物理删；任何资源都不自动授予 Role。
 
-### AC-25 Manifest 与 Gateway Operation 对账
+### AC-25 Manifest 与 Yuheng Operation 对账
 
 - **Given** Manifest API 引用未知 Operation、Method/Path/externalAccessible 不一致或 Definition 版本不同；
 - **When** 验证/激活；
@@ -5824,41 +5824,41 @@ flowchart LR
 - **When** 激活；
 - **Then** 建立唯一 Operation->Permission Mapping 并递增 policyVersion。
 
-### AC-26 Gateway Definition 上报
+### AC-26 Yuheng Definition 上报
 
-- **Given** RBAC3 Admin 使用现有 Gateway Starter 和显式注解；
+- **Given** Tianquan-Jianshen Admin 使用现有 Yuheng Starter 和显式注解；
 - **When** 启动/周期校准；
-- **Then** Gateway Admin 返回 ACCEPTED/ACCEPTED_WITH_WARNINGS，RBAC3 保存 reportId、definitionSetId、
+- **Then** Yuheng Admin 返回 ACCEPTED/ACCEPTED_WITH_WARNINGS，Tianquan-Jianshen 保存 reportId、definitionSetId、
   OperationRefs 和 Warnings；
 - **When** REJECTED；
 - **Then** Definition 不 Ready，不能宣称可发布。
 
-### AC-27 DDC HTTP_PROVIDER 租约
+### AC-27 Tianshu HTTP_PROVIDER 租约
 
-- **Given** 两个 RBAC3 Admin，Service Key 相同、instanceId 不同；
+- **Given** 两个 Tianquan-Jianshen Admin，Service Key 相同、instanceId 不同；
 - **When** HTTP Server Ready；
 - **Then** 两者以 `HTTP_PROVIDER`、实际可达 host/port 注册并每 10 秒续 30 秒租约；
 - **When** Heartbeat NOT_FOUND/异常；
 - **Then** 进入 RECOVERING 并重注册；优雅停机注销，失败由 TTL 清理。
 
-### AC-28 Gateway Release 与路由
+### AC-28 Yuheng Release 与路由
 
-- **Given** Definition Ready、DDC Lease 有效但无 Release；
+- **Given** Definition Ready、Tianshu Lease 有效但无 Release；
 - **When** Client 请求；
 - **Then** 不路由；
 - **Given** Release SUCCESS 且完整 Service Key 匹配；
 - **When** 请求；
-- **Then** Engine 从 DDC 当前候选选择实例；
+- **Then** Engine 从 Tianshu 当前候选选择实例；
 - **When** 只有跨 env/version/protocol 实例；
 - **Then** 返回无可用 Provider，不静态降级。
 
-### AC-29 Gateway Adapter Fail Closed
+### AC-29 Yuheng Adapter Fail Closed
 
 - **Given** Token 分别为签名错误、未知 kid、Session 非 ACTIVE、三版本不一致、Operation Mapping 缺失、
   Redis 超时/缺 Snapshot；
 - **When** 访问受保护 Route；
-- **Then** 每种情况都在 Gateway 拒绝并记录稳定 reasonCode；
-- **And** Adapter 不调用 RBAC3 Admin HTTP。
+- **Then** 每种情况都在 Yuheng 拒绝并记录稳定 reasonCode；
+- **And** Adapter 不调用 Tianquan-Jianshen Admin HTTP。
 
 ### AC-30 服务身份
 
@@ -5866,14 +5866,14 @@ flowchart LR
 - **When** 上报 finance Manifest/Participation；
 - **Then** 允许并审计；
 - **When** 使用 User Token、伪造内部 Header 或操作另一 Application；
-- **Then** INTERNAL Gateway/Admin 都拒绝。
+- **Then** INTERNAL Yuheng/Admin 都拒绝。
 
 ### AC-31 业务 Starter 最终校验
 
 - **Given** 无权限 Token 或伪造可信身份 Header；
-- **When** 绕过 Gateway 直连 Test Business Provider；
+- **When** 绕过 Yuheng 直连 Test Business Provider；
 - **Then** Starter 在方法/业务写前拒绝；
-- **Given** Gateway 已 Allow 但具体对象超 Data Scope/Field/Participation；
+- **Given** Yuheng 已 Allow 但具体对象超 Data Scope/Field/Participation；
 - **Then** Provider 最终拒绝。
 
 ### AC-32 授权实时失效
@@ -5926,13 +5926,13 @@ flowchart LR
 
 - **Given** 一次成功高风险变更、一次角色激活成功和一次自我提权拒绝；
 - **When** 用 traceId 查询；
-- **Then** 两者均可关联 Gateway、Admin、Mutation/Outbox 和业务请求；
+- **Then** 两者均可关联 Yuheng、Admin、Mutation/Outbox 和业务请求；
 - **And** Audit/日志/指标/state-file/Redis Metadata 中没有密码、Access/Refresh Token、Secret、私钥或
   未脱敏高敏字段；Audit 查询本身产生 Audit。
 
 ### AC-38 Runtime 可观测与恢复
 
-- **Given** Definition Accepted、DDC Lease Registered、Gateway Release 尚未发布；
+- **Given** Definition Accepted、Tianshu Lease Registered、Yuheng Release 尚未发布；
 - **When** 查看 Runtime Status；
 - **Then** 三项独立展示，不能合成“已上线”；
 - **When** 运维重试 Mutation；
@@ -5942,14 +5942,14 @@ flowchart LR
 
 - **Given** 第 30.7 节记录的数据规模、硬件和并发；
 - **When** 运行基准；
-- **Then** 报告 Gateway/Starter 热路径 p50/p95/p99、吞吐和错误率，并对照第 4.4 节预算；
+- **Then** 报告 Yuheng/Starter 热路径 p50/p95/p99、吞吐和错误率，并对照第 4.4 节预算；
 - **And** 未达到时记录瓶颈与风险，不能用空数据单次请求宣称完成。
 
 ### AC-40 真实多进程拓扑
 
-- **Given** 本机/指定环境中真实 PostgreSQL、Redis、DDC Admin、Gateway Admin/Engine、RBAC3 Admin x2、
+- **Given** 本机/指定环境中真实 PostgreSQL、Redis、Tianshu Admin、Yuheng Admin/Engine、Tianquan-Jianshen Admin x2、
   Starter `src/test` 的最小业务 Provider 夹具进程；
-- **When** 按第 30.4 节运行 Definition/Lease/Release、负载、停实例、DDC 中断恢复、权限撤销和业务
+- **When** 按第 30.4 节运行 Definition/Lease/Release、负载、停实例、Tianshu 中断恢复、权限撤销和业务
   Data/Field/Participation 场景；
 - **Then** 每项有进程、版本、实例、trace 和请求结果证据；
 - **And** Mock、静态源码、普通 Maven 构建或 Testcontainers 单独不能替代该 AC。
@@ -5964,7 +5964,7 @@ flowchart LR
 
 ### AC-42 首个管理员安全初始化
 
-- **Given** 空 RBAC3 数据库且没有平台管理员；
+- **Given** 空 Tianquan-Jianshen 数据库且没有平台管理员；
 - **When** 运维通过 one-shot CLI、从 stdin 提供密码执行初始化；
 - **Then** 只创建一个平台 Tenant/User/平台管理员 Assignment，密码不出现在进程参数、日志、环境或
   Audit，CLI 完成后退出而不启动 HTTP；
@@ -5977,39 +5977,39 @@ flowchart LR
    自我授权、强认证、影响分析、幂等和完整审计补偿，不能在实现中悄悄恢复审批。
 2. **角色族扩权风险**：激活子角色会归一到顶级 Root 并获得整个子树，错误的继承边可能引入兄弟
    角色权限。必须在角色图发布前展示 Root/Family/Permission 差异，保证唯一根和 APP 边界。
-3. **运行投影风险**：Gateway Adapter 和 Starter 共享授权语义及 Redis 投影，Contract 和兼容
+3. **运行投影风险**：Yuheng Adapter 和 Starter 共享授权语义及 Redis 投影，Contract 和兼容
    测试是强制项，否则入口和服务内决策可能漂移。
-4. **Gateway 递归风险**：Gateway Adapter 不能通过 Gateway 调用 RBAC3 Admin 做每请求认证。
-5. **平台可用性风险**：DDC、Gateway 和 Redis 是生产闭环依赖，Readiness、LKG、恢复和 Fail
+4. **Yuheng 递归风险**：Yuheng Adapter 不能通过 Yuheng 调用 Tianquan-Jianshen Admin 做每请求认证。
+5. **平台可用性风险**：Tianshu、Yuheng 和 Redis 是生产闭环依赖，Readiness、LKG、恢复和 Fail
    Closed 边界必须有真实故障测试。
 6. **数据权限接入风险**：Starter 不自动改写 SQL，业务 Repository 必须显式消费 Data Scope；
    未接入不能宣称数据权限已完成。
 7. **字段权限接入风险**：React 隐藏不是证据，业务序列化、写入和导出路径都需要测试。
-8. **基线漂移风险**：DDC 已在 `6e730cba` 迁入 Platforms。后续实施前仍须复核 Gateway、DDC
-   和 Platforms Parent 的最新提交，禁止覆盖、回滚或把无关改动混入 RBAC3 任务提交。
-9. **证据边界**：Maven、Vitest、Mock、静态源码和单进程测试不能证明真实 DDC/Gateway/Redis/
+8. **基线漂移风险**：Tianshu 已在 `6e730cba` 迁入 Platforms。后续实施前仍须复核 Yuheng、Tianshu
+   和 Platforms Parent 的最新提交，禁止覆盖、回滚或把无关改动混入 Tianquan-Jianshen 任务提交。
+9. **证据边界**：Maven、Vitest、Mock、静态源码和单进程测试不能证明真实 Tianshu/Yuheng/Redis/
    PostgreSQL 多进程拓扑。
 
 ### 33.1 风险登记表
 
 | ID | 风险 | 可能性/影响 | 预防与缓解 | 发现信号 | 责任边界 |
 |---|---|---|---|---|---|
-| R-01 | 无审批导致错误命令立即生效 | 中/高 | 同 Policy、非本人、高风险隔离、Step-up、影响分析、Idempotency、Audit | 高风险变更指标、异常 Role 数、拒绝率 | 安全管理员 + RBAC3 |
-| R-02 | DB 已提交、Redis 未更新 | 中/严重 | Mutation Journal + 不自动过期 Fence + Outbox Recovery | Fence age、Mutation COMMITTED、projection lag | RBAC3 Runtime |
-| R-03 | Fence 清理错误放出旧权限 | 低/严重 | mutationId CAS、Journal 对账、无手工删 Key | Fence 无 Journal/版本不匹配告警 | RBAC3 Runtime/运维 |
-| R-04 | Gateway Adapter 递归调用 Admin | 低/严重 | 依赖/源码架构守卫，Adapter 只读本地/Redis | 调用图、HTTP Client 依赖、递归超时 | Gateway Adapter |
-| R-05 | Definition/Lease/Release 状态漂移 | 中/高 | 三态独立、版本全键匹配、Reconcile、真实拓扑测试 | Runtime 三卡不一致、无 Provider、Release mismatch | Gateway/DDC/RBAC 运维 |
-| R-06 | Gateway 与 Starter 决策语义漂移 | 中/高 | 共享 Contract/Core 语义、兼容夹具、双层负向测试 | 同 trace 入口 Allow/业务 Deny 异常比率 | RBAC3 Platform |
+| R-01 | 无审批导致错误命令立即生效 | 中/高 | 同 Policy、非本人、高风险隔离、Step-up、影响分析、Idempotency、Audit | 高风险变更指标、异常 Role 数、拒绝率 | 安全管理员 + Tianquan-Jianshen |
+| R-02 | DB 已提交、Redis 未更新 | 中/严重 | Mutation Journal + 不自动过期 Fence + Outbox Recovery | Fence age、Mutation COMMITTED、projection lag | Tianquan-Jianshen Runtime |
+| R-03 | Fence 清理错误放出旧权限 | 低/严重 | mutationId CAS、Journal 对账、无手工删 Key | Fence 无 Journal/版本不匹配告警 | Tianquan-Jianshen Runtime/运维 |
+| R-04 | Yuheng Adapter 递归调用 Admin | 低/严重 | 依赖/源码架构守卫，Adapter 只读本地/Redis | 调用图、HTTP Client 依赖、递归超时 | Yuheng Adapter |
+| R-05 | Definition/Lease/Release 状态漂移 | 中/高 | 三态独立、版本全键匹配、Reconcile、真实拓扑测试 | Runtime 三卡不一致、无 Provider、Release mismatch | Yuheng/Tianshu/RBAC 运维 |
+| R-06 | Yuheng 与 Starter 决策语义漂移 | 中/高 | 共享 Contract/Core 语义、兼容夹具、双层负向测试 | 同 trace 入口 Allow/业务 Deny 异常比率 | Tianquan-Jianshen Platform |
 | R-07 | 目录同步误停用/移动大量用户 | 中/高 | 暂存校验、影响分析、版本/Checksum、原子激活、可追踪快照 | affectedUsers 突增、Snapshot conflict | 目录 Provider + 安全管理员 |
 | R-08 | Scope Adapter 未接入或漏过滤 | 高/严重 | 显式 Adapter、查询/count/export/写契约测试、接入清单 | 不带 tenant/scope SQL、数据泄露测试 | 各业务团队 |
 | R-09 | Field Policy 只做前端隐藏 | 中/严重 | 后端读/写/导出/审计统一执行，敏感默认 NONE | 敏感字段响应扫描、E2E 越权 | 各业务团队 + Starter |
 | R-10 | Participation 跨库延迟窗口 | 中/严重 | 业务本地 Outbox/事实 + 栅栏，参考无窗口实现 | 中央 lag、冲突动作时间差 | 各业务团队 |
-| R-11 | 错误继承使 Root 子树意外扩权 | 中/严重 | 唯一 Root、同 APP、Role Family/Permission 影响预览、PolicyVersion Fence | Family size/permission diff 突增、Root 歧义告警 | 安全管理员 + RBAC3 |
-| R-12 | Candidate/Closure/激活聚合在大 Tenant 变慢 | 中/中高 | 深度/请求/Family 上限、批量索引 SQL、版本缓存、基准 | activation p95、Closure 查询、Snapshot size、锁等待 | RBAC3 Platform/DBA |
+| R-11 | 错误继承使 Root 子树意外扩权 | 中/严重 | 唯一 Root、同 APP、Role Family/Permission 影响预览、PolicyVersion Fence | Family size/permission diff 突增、Root 歧义告警 | 安全管理员 + Tianquan-Jianshen |
+| R-12 | Candidate/Closure/激活聚合在大 Tenant 变慢 | 中/中高 | 深度/请求/Family 上限、批量索引 SQL、版本缓存、基准 | activation p95、Closure 查询、Snapshot size、锁等待 | Tianquan-Jianshen Platform/DBA |
 | R-13 | Audit/Participation 增长过快 | 高/中 | 保留/归档、容量监控、必要时月分区 | 表大小、索引膨胀、查询 p95 | 平台运维/DBA |
 | R-14 | JWT/服务 Secret 泄露 | 低/严重 | Secret Store、Key 轮换、Hash、公钥验证、日志扫描 | 未知调用、credential usage、secret scan | 安全/运维 |
-| R-15 | Fail Closed 扩大依赖故障影响 | 中/高 | Readiness、主动投影、恢复演练、容量和告警；接受安全优先 | 503、Redis/DDC health、projection lag | 平台运维 |
-| R-16 | 基线代码在实施前变化 | 中/中 | 每任务复核 main、POM、Gateway/DDC 契约，保留用户改动 | Git diff/依赖版本/接口测试变化 | 实施主代理 |
+| R-15 | Fail Closed 扩大依赖故障影响 | 中/高 | Readiness、主动投影、恢复演练、容量和告警；接受安全优先 | 503、Redis/Tianshu health、projection lag | 平台运维 |
+| R-16 | 基线代码在实施前变化 | 中/中 | 每任务复核 main、POM、Yuheng/Tianshu 契约，保留用户改动 | Git diff/依赖版本/接口测试变化 | 实施主代理 |
 | R-17 | 一次交付范围过大 | 高/高 | 第 31 节阶段、逐任务测试与提交、阶段闸门 | 巨大 diff、多个未闭环模块 | 实施主代理/评审者 |
 
 ### 33.2 明接受的取舍
@@ -6020,13 +6020,13 @@ flowchart LR
    接入成本更高，但避免不安全 SQL 猜测。
 3. **无审批优先于流程控制**：系统不提供第二人确认；错误变更风险由硬隔离、强认证、影响分析、
    可追踪和快速撤销降低，但不能完全消除人为错误。
-4. **中心治理优先于应用完全自治**：Role/Permission/Assignment 由 RBAC3 管理；业务仍保留对象事实
+4. **中心治理优先于应用完全自治**：Role/Permission/Assignment 由 Tianquan-Jianshen 管理；业务仍保留对象事实
    和最终规则，双方需要契约协作。
 5. **清晰状态优先于自动暴露**：Definition、Lease、Release 分开，部署多一步发布治理，但避免注册
    实例即意外公开接口。
 6. **角色族确定性优先于细粒度临时拼接**：激活任一候选最终使用唯一 Root 的完整子树；模型简单且
    可审计，但兄弟 Role 会一起生效。需要隔离的能力必须拆 Root 并配置 APP DSD。
-7. **业务自治优先于通用轮岗引擎**：RBAC3 不理解排班与交接，避免把业务状态硬编码进权限平台；
+7. **业务自治优先于通用轮岗引擎**：Tianquan-Jianshen 不理解排班与交接，避免把业务状态硬编码进权限平台；
    代价是业务系统需要自行编排普通 Assignment 变化和补偿。
 
 ### 33.3 当前不阻塞审核的实施细节
@@ -6038,23 +6038,23 @@ flowchart LR
 - Outbox 逻辑 Event Type 到现有 Transport Destination 的绑定；
 - Audit/Participation 是否从 V1 起分区，取决于实施前容量估算；
 - 生产 KMS Adapter 的具体厂商；没有 KMS 时仍必须使用受控 Secret/文件，不得使用默认私钥；
-- Gateway 现有枚举中“全部授权 Provider 通过”的精确常量名，语义必须是 Fail Closed 全通过。
+- Yuheng 现有枚举中“全部授权 Provider 通过”的精确常量名，语义必须是 Fail Closed 全通过。
 
 这些细节不能被用来改变“无业务轮岗/审批、Session 多角色激活、唯一 Root/完整子树、APP 内互斥、
-无独立 Test 模块、DDC/Gateway 强制接入、租户隔离、双层 PEP、Fence/Outbox、类型化
+无独立 Test 模块、Tianshu/Yuheng 强制接入、租户隔离、双层 PEP、Fence/Outbox、类型化
 Scope/Field/Participation”等已确认边界。本稿没有需要再向用户零散确认的阻塞问题。
 
 ## 34. 最终结论
 
-RBAC3 的核心不是把用户全部任职自动求并集，而是以带状态和有效期的任职作为激活资格，在当前
+Tianquan-Jianshen 的核心不是把用户全部任职自动求并集，而是以带状态和有效期的任职作为激活资格，在当前
 Session 中明确激活一个或多个角色；每个角色归一为所属 APP 唯一顶级 Root，再使用 Root 及其全部
 子角色的权限，并通过 APP 内 DSD 互斥消除登录授权歧义。
 
-本平台选择中心控制面、Gateway 入口执行面和业务 Starter 最终执行面的混合架构。RBAC3 自身 API
-必须上报 Gateway，自身实例必须注册 DDC，Gateway 必须从 DDC 发现实例并按已发布 Release
-路由。授权事实仍只属于 RBAC3 PostgreSQL，DDC 和 Gateway 不替代权限数据库。
+本平台选择中心控制面、Yuheng 入口执行面和业务 Starter 最终执行面的混合架构。Tianquan-Jianshen 自身 API
+必须上报 Yuheng，自身实例必须注册 Tianshu，Yuheng 必须从 Tianshu 发现实例并按已发布 Release
+路由。授权事实仍只属于 Tianquan-Jianshen PostgreSQL，Tianshu 和 Yuheng 不替代权限数据库。
 
-本项目明确没有业务轮岗和审批。排班、换岗、交接、调度与恢复属于业务系统；RBAC3 只管理普通
+本项目明确没有业务轮岗和审批。排班、换岗、交接、调度与恢复属于业务系统；Tianquan-Jianshen 只管理普通
 Assignment 资格和本人 Session 的 Active Role Set。激活支持多个 Root，但同 APP 互斥 Root 整体
 拒绝；原子替换后以 `sessionVersion`、Session Fence、Outbox 和新 Access Token 关闭旧权限窗口。
 
@@ -6065,17 +6065,17 @@ Assignment 资格和本人 Session 的 Active Role Set。激活支持多个 Root
 
 若用户回复“Spec 通过”或明确同义确认，后续实施计划必须以以下清单为不可自行改变的基线：
 
-1. 在 Platforms 下建设完整 RBAC3 平台及第 8 节模块；
+1. 在 Platforms 下建设完整 Tianquan-Jianshen 平台及第 8 节模块；
 2. PostgreSQL 是授权事实，Redis 是可重建但运行时强依赖的投影；
-3. 最小内置租户/用户/组织/岗位 + 外部 IdP/HR SPI；
+3. 最小内置租户/用户/组织/岗位 + 外部 Tianquan-Shoubing/HR SPI；
 4. 本地认证、JWT、Refresh Token Rotation、Session 和三类版本；
 5. Role 必须归属 APP；角色继承、唯一 Activation Root、完整 Role Family、SSD/DSD/前置/容量、Data/Field/Participation；
 6. Assignment 只决定激活资格；Login 建立未激活 Session，通过语义 API 原子激活一个或多个 Root；
 7. Management Policy 同一条完整命中，禁止自我提权和普通委托高风险 Role；
-8. 同 APP 互斥 Root 不能同时激活；跨 APP/同 APP 非互斥 Root 可合并；RBAC3 完全没有轮岗和审批；
-9. RBAC3 API 通过 Gateway Starter 上报，Admin 以 HTTP_PROVIDER 注册 DDC；
-10. Gateway 只从 DDC 有效实例路由，且 Definition/Lease/Release 三态必须同时满足；
-11. Gateway Adapter 粗检、业务 Starter 最终校验，任何必要事实缺失 Fail Closed；
+8. 同 APP 互斥 Root 不能同时激活；跨 APP/同 APP 非互斥 Root 可合并；Tianquan-Jianshen 完全没有轮岗和审批；
+9. Tianquan-Jianshen API 通过 Yuheng Starter 上报，Admin 以 HTTP_PROVIDER 注册 Tianshu；
+10. Yuheng 只从 Tianshu 有效实例路由，且 Definition/Lease/Release 三态必须同时满足；
+11. Yuheng Adapter 粗检、业务 Starter 最终校验，任何必要事实缺失 Fail Closed；
 12. Mutation Journal + Fence + Outbox 关闭旧权限传播窗口；
 13. Admin Web/React SDK 仅做交互，不成为安全边界；
 14. 不创建独立 Test 模块；各模块在自己的测试源集验证，按第 31 节分阶段、逐任务测试和提交；

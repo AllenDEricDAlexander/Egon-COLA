@@ -5,11 +5,11 @@
 `egon-cola-component-rpc` is the RPC transport component for Egon COLA. It
 binds generated Protobuf/gRPC services to Java interfaces, provides Spring Boot
 Provider and Consumer lifecycles, and integrates service leases and discovery
-through the Dynamic Config Center (DDC).
+through Tianshu (Dynamic Config Center).
 
-The component is deliberately not a Gateway data plane. The production
-Gateway, routing rules, provider health policy, traffic governance, and HTTP/RPC
-forwarding are owned by the separate [Gateway platform](../../egon-cola-xingyuan/egon-cola-yuheng/README.md).
+The component is deliberately not a Yuheng data plane. The production
+Yuheng, routing rules, provider health policy, traffic governance, and HTTP/RPC
+forwarding are owned by the separate [Yuheng platform](../../egon-cola-xingyuan/egon-cola-yuheng/README.md).
 
 ## Badges
 
@@ -25,20 +25,20 @@ forwarding are owned by the separate [Gateway platform](../../egon-cola-xingyuan
 - Strict startup validation between Java methods, generated gRPC descriptors,
   and Protobuf request/response messages.
 - Provider bean scanning with `@EgonRpcProvider`, a managed unary gRPC server,
-  availability gating, DDC lease registration, heartbeat, recovery, and exact
+  availability gating, Tianshu lease registration, heartbeat, recovery, and exact
   lease deregistration.
 - Consumer CGLIB proxies with one reference annotation and two selectable runtime
   paths: `@EgonRpcReference` defaults to direct Provider discovery; set
-  `mode = RpcReferenceMode.GATEWAY` to use a discovered internal Gateway.
+  `mode = RpcReferenceMode.GATEWAY` to use a discovered internal Yuheng.
 - Programmatic direct gRPC clients for infrastructure endpoints through
   `RpcDirectClientFactory`; the caller owns the returned channel handle.
 - Blocking and `CompletionStage` invocation, restricted generic raw-Protobuf
   calls, HTTP/2 channel multiplexing, deadline/cancellation propagation, bounded trace/request metadata, and
   stable `EgonRpcErrorCode` mapping from gRPC status values.
-- Optional DDC RPC adapter for ConfigData, service registry, and management
+- Optional Tianshu RPC adapter for ConfigData, service registry, and management
   clients, with explicit mTLS or development-plaintext configuration and
   capability-specific HMAC credentials.
-- Protobuf descriptor snapshots that can be consumed by the Gateway reporting
+- Protobuf descriptor snapshots that can be consumed by the Yuheng reporting
   starter without creating a second schema or serialization model.
 
 ## Architecture
@@ -48,15 +48,15 @@ forwarding are owned by the separate [Gateway platform](../../egon-cola-xingyuan
 ```text
 Business Consumer
   ├─ @EgonRpcReference(mode=GATEWAY) ──> active INTERNAL_GATEWAY set ──> RPC_PROVIDER ──> Provider
-  └─ @EgonRpcReference(mode=DIRECT, bizCode/appCode) ──> DDC RPC registry ──> RPC_PROVIDER ──> Provider
+  └─ @EgonRpcReference(mode=DIRECT, bizCode/appCode) ──> Tianshu RPC registry ──> RPC_PROVIDER ──> Provider
 
 Provider ── register / heartbeat / deregister ─┐
-Gateway  ── register / heartbeat / deregister ─┼─> direct DDC gRPC target ─> DDC Admin ─> Redis
-Consumer ── discover / subscribe Gateway or Provider ────────────────────────┘
+Yuheng  ── register / heartbeat / deregister ─┼─> direct Tianshu gRPC target ─> Tianshu Admin ─> Redis
+Consumer ── discover / subscribe Yuheng or Provider ────────────────────────┘
 ```
 
-The DDC target is local bootstrap configuration. DDC is not discovered through
-itself. Provider and Gateway registrations are temporary Redis leases; each
+The Tianshu target is local bootstrap configuration. Tianshu is not discovered through
+itself. Provider and Yuheng registrations are temporary Redis leases; each
 registration has an `instanceId + leaseId` identity, and heartbeat/deregistration
 must match the complete lease identity.
 
@@ -65,13 +65,13 @@ must match the complete lease identity.
 | Layer               | Owned by this component                                                        | Not owned by this component                                   |
 |---------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------|
 | Contract            | Java binding, descriptor validation, unary contract snapshot                   | A second IDL or serializer                                    |
-| Provider            | gRPC server, bean dispatch, availability, lease lifecycle                      | Gateway routing or provider health probing                    |
-| Consumer            | Proxy, channel lifecycle, deadline, metadata, Gateway/Provider directory ports, Consumer-side candidate load balancing | Gateway rules, Gateway-side Provider routing, business retry policy |
-| DDC adapter         | Direct gRPC clients for config, registry, and management ports                 | DDC Admin persistence and Redis implementation                |
-| Gateway integration | Transport-neutral Gateway/Provider directory interfaces and contract catalog   | Production Gateway data plane and control plane               |
+| Provider            | gRPC server, bean dispatch, availability, lease lifecycle                      | Yuheng routing or provider health probing                    |
+| Consumer            | Proxy, channel lifecycle, deadline, metadata, Yuheng/Provider directory ports, Consumer-side candidate load balancing | Yuheng rules, Yuheng-side Provider routing, business retry policy |
+| Tianshu adapter         | Direct gRPC clients for config, registry, and management ports                 | Tianshu Admin persistence and Redis implementation                |
+| Yuheng integration | Transport-neutral Yuheng/Provider directory interfaces and contract catalog   | Production Yuheng data plane and control plane               |
 
 For the normal business path, the Consumer discovers only `INTERNAL_GATEWAY`.
-It does not query `RPC_PROVIDER` or open Provider channels. The Gateway path is
+It does not query `RPC_PROVIDER` or open Provider channels. The Yuheng path is
 selected explicitly with `@EgonRpcReference(mode = RpcReferenceMode.GATEWAY)`;
 when no mode is written, the reference defaults to direct Provider discovery.
 
@@ -83,27 +83,27 @@ when no mode is written, the reference defaults to direct Provider discovery.
 - Generated Java and gRPC classes produced by `protoc` and
   `protoc-gen-grpc-java` compatible with the versions managed by this repository:
   Protobuf 4.32.0 and gRPC Java 1.75.0.
-- A reachable DDC direct RPC endpoint and Redis when Provider leases, Gateway or
-  Provider discovery, or DDC ConfigData is enabled.
-- Matching least-privilege DDC HMAC credentials for each enabled capability;
+- A reachable Tianshu direct RPC endpoint and Redis when Provider leases, Yuheng or
+  Provider discovery, or Tianshu ConfigData is enabled.
+- Matching least-privilege Tianshu HMAC credentials for each enabled capability;
   local development may explicitly use plaintext, but production deployments
   should configure mTLS.
 
 ## Quick Start
 
-The shortest Spring Boot setup uses the DDC adapter, one Protobuf contract, one
+The shortest Spring Boot setup uses the Tianshu adapter, one Protobuf contract, one
 Provider application, and one Consumer application. Choose the direct default
-or opt into the Gateway proxy at the reference annotation.
+or opt into the Yuheng proxy at the reference annotation.
 
 1. Put the `.proto` file in `src/main/proto` and generate Java/gRPC sources.
 2. Declare a Java interface with `@EgonRpcService` and
    `@EgonRpcMethod`.
 3. Implement the interface on an `@EgonRpcProvider` Spring bean.
 4. Inject the interface with `@EgonRpcReference` in the Consumer; add
-   `mode = RpcReferenceMode.GATEWAY` for Gateway proxy calls, otherwise provide
+   `mode = RpcReferenceMode.GATEWAY` for Yuheng proxy calls, otherwise provide
    direct `bizCode` and `appCode`.
-5. Enable RPC, the relevant role, and DDC registry access. For a local
-   plaintext setup, set both DDC and business RPC plaintext switches explicitly.
+5. Enable RPC, the relevant role, and Tianshu registry access. For a local
+   plaintext setup, set both Tianshu and business RPC plaintext switches explicitly.
 
 Minimal local development shape:
 
@@ -115,7 +115,7 @@ spring:
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: false
         biz-code: demo
         app-code: echo-provider
@@ -128,8 +128,8 @@ egon:
             development-plaintext: true
           auth:
             registry:
-              access-key: ${DDC_REGISTRY_ACCESS_KEY}
-              secret-key: ${DDC_REGISTRY_SECRET_KEY}
+              access-key: ${TIANSHU_REGISTRY_ACCESS_KEY}
+              secret-key: ${TIANSHU_REGISTRY_SECRET_KEY}
         redis:
           host: 127.0.0.1
           port: 6379
@@ -145,7 +145,7 @@ egon:
           advertised-host: 127.0.0.1
 ```
 
-For a Consumer, use the same DDC registry scope and replace the role block with:
+For a Consumer, use the same Tianshu registry scope and replace the role block with:
 
 ```yaml
 egon:
@@ -157,19 +157,19 @@ egon:
           development-plaintext: true
         consumer:
           enabled: true
-          gateway-service-name: egon-gateway-rpc
-          gateway-group: default
-          gateway-version: 1.0.0
+          yuheng-service-name: egon-yuheng-rpc
+          yuheng-group: default
+          yuheng-version: 1.0.0
 ```
 
-The DDC Admin, Redis, production Gateway, and Gateway rules are outside this
+The Tianshu Admin, Redis, production Yuheng, and Yuheng rules are outside this
 component's Quick Start. Use
-the [Gateway and DDC integration runbook](../../egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md)
+the [Yuheng and Tianshu integration runbook](../../egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md)
 for a complete multi-process topology.
 
 ## Maven Dependency
 
-Import the Components BOM so the Starter and optional DDC Adapter use the
+Import the Components BOM so the Starter and optional Tianshu Adapter use the
 repository-managed versions:
 
 ```xml
@@ -196,8 +196,8 @@ strategy:
 </dependency>
 ```
 
-Use the DDC Adapter for DDC ConfigData, registry-backed Provider/Gateway
-discovery, or DDC management RPC. It brings the Starter and DDC SDK transitively:
+Use the Tianshu Adapter for Tianshu ConfigData, registry-backed Provider/Yuheng
+discovery, or Tianshu management RPC. It brings the Starter and Tianshu SDK transitively:
 
 ```xml
 <dependency>
@@ -216,8 +216,8 @@ applications are test-only modules and are not exported by the BOM.
 The Starter imports `EgonRpcAutoConfig` only when
 `egon.cola.component.rpc.enabled=true`. Provider and Consumer beans are created
 independently through their respective `provider.enabled` and `consumer.enabled`
-flags. The DDC Adapter imports `DdcRpcAutoConfiguration` and exposes DDC clients
-only when the corresponding DDC features are enabled.
+flags. The Tianshu Adapter imports `DdcRpcAutoConfiguration` and exposes Tianshu clients
+only when the corresponding Tianshu features are enabled.
 
 ### Provider properties
 
@@ -229,18 +229,18 @@ All properties in this table are under `egon.cola.component.rpc`.
 | `provider.enabled`                      |    `false` | Enables Provider scanning, server, and lifecycle.               |
 | `provider.bind-address`                 |  `0.0.0.0` | gRPC server bind address.                                       |
 | `provider.port`                         |    `19090` | gRPC server port; `0` is useful for tests.                      |
-| `provider.advertised-host`              | local host | Routable host published to DDC.                                 |
-| `provider.advertised-port`              | bound port | Routable port published to DDC.                                 |
+| `provider.advertised-host`              | local host | Routable host published to Tianshu.                                 |
+| `provider.advertised-port`              | bound port | Routable port published to Tianshu.                                 |
 | `provider.registration-fail-fast`       |     `true` | Fails startup when required initial registration fails.         |
 | `provider.registration-mode`            | `REQUIRED` | `REQUIRED` publishes leases; `DISABLED` keeps the server local. |
 | `provider.lease-seconds`                |       `30` | Provider lease TTL.                                             |
 | `provider.heartbeat-interval-seconds`   |       `10` | Heartbeat interval; it must be shorter than the lease TTL.      |
 | `provider.graceful-shutdown-timeout-ms` |    `10000` | Server drain timeout.                                           |
 | `provider.metadata`                     |      empty | User metadata; reserved framework prefixes are rejected.        |
-| `provider.metadata.gateway.weight`      | contract `weight` or `100` | Published instance capacity, valid range `1..10000`. |
+| `provider.metadata.yuheng.weight`      | contract `weight` or `100` | Published instance capacity, valid range `1..10000`. |
 
 The Provider starts its gRPC server, prepares handlers as unavailable, registers
-one DDC lease per service identity, and marks the matching handler available only
+one Tianshu lease per service identity, and marks the matching handler available only
 after registration succeeds. Failed or stale leases make the handler unavailable
 until recovery obtains a new lease. Shutdown disables handlers, stops recovery and
 heartbeats, deregisters exact leases, and drains the server.
@@ -251,14 +251,14 @@ heartbeats, deregisters exact leases, and drains the server.
 |-----------------------------------------|-------------------:|----------------------------------------------------------|
 | `consumer.enabled`                      |            `false` | Enables Consumer proxies and discovery integration.      |
 | `consumer.default-timeout-ms`           |             `3000` | Default unary deadline ceiling.                          |
-| `consumer.gateway-discovery-timeout-ms` |             `5000` | Gateway discovery and channel-ready timeout.             |
-| `consumer.gateway-service-name`         | `egon-gateway-rpc` | Exact Gateway service identity.                          |
-| `consumer.gateway-group`                |          `default` | Exact Gateway group.                                     |
-| `consumer.gateway-version`              |            `1.0.0` | Exact Gateway version.                                   |
-| `consumer.gateway-biz-code`             |              empty | Optional DDC business-scope override.                    |
-| `consumer.gateway-app-code`             |              empty | Optional DDC application-scope override.                 |
+| `consumer.yuheng-discovery-timeout-ms` |             `5000` | Yuheng discovery and channel-ready timeout.             |
+| `consumer.yuheng-service-name`         | `egon-yuheng-rpc` | Exact Yuheng service identity.                          |
+| `consumer.yuheng-group`                |          `default` | Exact Yuheng group.                                     |
+| `consumer.yuheng-version`              |            `1.0.0` | Exact Yuheng version.                                   |
+| `consumer.yuheng-biz-code`             |              empty | Optional Tianshu business-scope override.                    |
+| `consumer.yuheng-app-code`             |              empty | Optional Tianshu application-scope override.                 |
 | `consumer.channel-drain-timeout-ms`     |             `5000` | Drain timeout for replaced Provider channels.            |
-| `consumer.gateway-max-attempts`         |                `2` | Maximum Gateway channels considered by one logical call. |
+| `consumer.yuheng-max-attempts`         |                `2` | Maximum Yuheng channels considered by one logical call. |
 | `consumer.max-retries`                  |                `3` | Default same-mode availability retry budget.             |
 | `consumer.default-load-balance`         |       `ROUND_ROBIN` | Default Consumer-side selection strategy.                |
 | `consumer.consistent-hash-virtual-nodes`|              `160` | Ring density for `CONSISTENT_HASH`.                      |
@@ -267,11 +267,11 @@ heartbeats, deregisters exact leases, and drains the server.
 
 `@EgonRpcReference` carries the common timeout, retry, load-balance, fallback, and
 hash-resolver policy fields. Its `mode` is fixed when the field is injected and
-defaults to `DIRECT`; an unavailable Gateway is never replaced by a Direct
-Provider, and a Direct failure never enters Gateway. Direct mode additionally
-requires `bizCode` and `appCode` (with optional `env`). Gateway mode must leave
+defaults to `DIRECT`; an unavailable Yuheng is never replaced by a Direct
+Provider, and a Direct failure never enters Yuheng. Direct mode additionally
+requires `bizCode` and `appCode` (with optional `env`). Yuheng mode must leave
 those direct-only fields empty. Availability-only failures (acquisition errors
-and Provider/Gateway-stage `UNAVAILABLE`) may select another candidate in the
+and Provider/Yuheng-stage `UNAVAILABLE`) may select another candidate in the
 same mode until the total deadline or retry budget is exhausted. Business
 statuses such as `INVALID_ARGUMENT`, `PERMISSION_DENIED`, `NOT_FOUND`,
 `FAILED_PRECONDITION`, `ALREADY_EXISTS`, `ABORTED`, and business exceptions are
@@ -282,7 +282,7 @@ a unique document number with overwrite/upsert semantics).
 #### Reference annotation migration
 
 Replace the removed `@EgonRpcDirectReference` with `@EgonRpcReference` and keep
-its `bizCode`, `appCode`, and optional `env` values. Existing Gateway references
+its `bizCode`, `appCode`, and optional `env` values. Existing Yuheng references
 must add `mode = RpcReferenceMode.GATEWAY`; a reference without a mode is now
 Direct and must provide the direct Provider identity.
 
@@ -290,7 +290,7 @@ Direct and must provide the direct Provider identity.
 
 | Property                                | Description                                                                            |
 |-----------------------------------------|----------------------------------------------------------------------------------------|
-| `identity.env`                          | Process environment when the DDC adapter is not supplying the identity.                |
+| `identity.env`                          | Process environment when the Tianshu adapter is not supplying the identity.                |
 | `identity.host`                         | Advertised process host; otherwise the local host address is used.                     |
 | `identity.instance-id`                  | Stable process instance identifier; otherwise application, host, and PID are combined. |
 | `tls.enabled`                           | Enables mTLS for business RPC.                                                         |
@@ -300,30 +300,30 @@ Direct and must provide the direct Provider identity.
 | `tls.trust-certificate-collection-path` | Trust collection path.                                                                 |
 
 When `tls.enabled=true`, all three certificate paths must be readable. Provider
-registration publishes whether the endpoint is secure. DDC transport has a
-separate configuration namespace, `egon.cola.component.ddc.rpc`, and separate
+registration publishes whether the endpoint is secure. Tianshu transport has a
+separate configuration namespace, `egon.cola.component.tianshu.rpc`, and separate
 `runtime`, `registry`, and `management` HMAC credentials. See
-the [DDC README](../../egon-cola-xingyuan/egon-cola-tianshu/README.md)
-for the full DDC configuration contract.
+the [Tianshu README](../../egon-cola-xingyuan/egon-cola-tianshu/README.md)
+for the full Tianshu configuration contract.
 
-### DDC RPC properties
+### Tianshu RPC properties
 
-The DDC Adapter uses a locally configured direct gRPC target:
+The Tianshu Adapter uses a locally configured direct gRPC target:
 
-| Property under `egon.cola.component.ddc.rpc` |       Default | Description                                               |
+| Property under `egon.cola.component.tianshu.rpc` |       Default | Description                                               |
 |----------------------------------------------|--------------:|-----------------------------------------------------------|
 | `target`                                     |          none | Required target, for example `dns:///127.0.0.1:19080`.    |
-| `connect-timeout`                            |          `3s` | DDC channel connection timeout.                           |
-| `default-timeout`                            |         `10s` | Default DDC call timeout.                                 |
+| `connect-timeout`                            |          `3s` | Tianshu channel connection timeout.                           |
+| `default-timeout`                            |         `10s` | Default Tianshu call timeout.                                 |
 | `load-balancing-policy`                      | `round_robin` | gRPC target load-balancing policy.                        |
 | `max-inbound-message-size`                   |     `4194304` | Maximum inbound message size in bytes.                    |
-| `shutdown-timeout`                           |          `5s` | DDC channel shutdown wait.                                |
-| `tls.development-plaintext`                  |        `true` | Explicit local-development plaintext default for DDC RPC. |
-| `auth.enabled`                               |        `true` | Enables DDC RPC HMAC metadata.                            |
+| `shutdown-timeout`                           |          `5s` | Tianshu channel shutdown wait.                                |
+| `tls.development-plaintext`                  |        `true` | Explicit local-development plaintext default for Tianshu RPC. |
+| `auth.enabled`                               |        `true` | Enables Tianshu RPC HMAC metadata.                            |
 
-The DDC registry path additionally needs `egon.cola.component.ddc.registry.enabled=true`,
-a Redisson-backed DDC Redis client, and the registry credential. DDC ConfigData
-is independent: `ddc.enabled=true` enables the configuration-client lifecycle;
+The Tianshu registry path additionally needs `egon.cola.component.tianshu.registry.enabled=true`,
+a Redisson-backed Tianshu Redis client, and the registry credential. Tianshu ConfigData
+is independent: `tianshu.enabled=true` enables the configuration-client lifecycle;
 registry leases can remain enabled without enabling remote configuration.
 
 ## Usage
@@ -396,11 +396,11 @@ public class EchoRpcProvider implements EchoRpc {
 ```
 
 `@EgonRpcProvider` is a Spring component marker. The bean must implement at least
-one `@EgonRpcService` interface. When DDC registry integration is active, the
+one `@EgonRpcService` interface. When Tianshu registry integration is active, the
 Provider advertises `transport=grpc`, `serialization=protobuf`, and the filtered
 Starter runtime version together with user metadata.
 
-### 4. Call through a Gateway
+### 4. Call through a Yuheng
 
 ```java
 @Component
@@ -420,12 +420,12 @@ public class EchoClient {
 ```
 
 This path requires a `RpcGatewayDirectory` implementation, normally supplied by
-the DDC Adapter. The Consumer subscribes to the exact Gateway service/group/version,
-maintains one gRPC channel per active Gateway, and chooses among those channels.
+the Tianshu Adapter. The Consumer subscribes to the exact Yuheng service/group/version,
+maintains one gRPC channel per active Yuheng, and chooses among those channels.
 
 ### 5. Explicitly call a discovered Provider
 
-For trusted internal use cases that intentionally bypass Gateway rules:
+For trusted internal use cases that intentionally bypass Yuheng rules:
 
 ```java
 @Component
@@ -441,16 +441,16 @@ public class InternalEchoClient {
 }
 ```
 
-This path requires a `RpcProviderDirectory`, normally supplied by the DDC Adapter.
+This path requires a `RpcProviderDirectory`, normally supplied by the Tianshu Adapter.
 It discovers `RPC_PROVIDER` entries and manages channels to active Provider
-instances; it does not apply Gateway routing, authorization, or traffic governance.
+instances; it does not apply Yuheng routing, authorization, or traffic governance.
 
 ### 6. Create an infrastructure direct client
 
 `RpcDirectClientFactory` creates a typed proxy for one explicitly configured gRPC
-target, such as a DDC port. The returned `RpcDirectClientHandle` owns that channel
+target, such as a Tianshu port. The returned `RpcDirectClientHandle` owns that channel
 and must be closed by the caller. It is separate from `@EgonRpcReference`, which
-discovers business Providers or Gateways from DDC.
+discovers business Providers or Gateways from Tianshu.
 
 ## Core Concepts
 
@@ -460,7 +460,7 @@ Protobuf descriptors are the source of truth for wire service, method, request,
 response, and streaming shape. Java annotations provide the binding and logical
 `group`/`version`; they do not define another serialization protocol. The
 component can build a descriptor snapshot containing the dependency-aware
-`FileDescriptorSet` and SHA-256 digest for Gateway reporting and compatibility
+`FileDescriptorSet` and SHA-256 digest for Yuheng reporting and compatibility
 checks.
 
 ### Provider lifecycle and leases
@@ -485,20 +485,20 @@ failure removes availability before lease recovery is attempted.
 
 | Mode            | Entry point                       | Discovery          | Channel owner       | Retry boundary                                                     |
 |-----------------|-----------------------------------|--------------------|---------------------|--------------------------------------------------------------------|
-| Gateway         | `@EgonRpcReference(mode=GATEWAY)` | `INTERNAL_GATEWAY` | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only |
+| Yuheng         | `@EgonRpcReference(mode=GATEWAY)` | `INTERNAL_GATEWAY` | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only |
 | Direct Provider | `@EgonRpcReference` (default)     | `RPC_PROVIDER`     | RPC Consumer        | Same-mode candidate reselection for acquisition/`UNAVAILABLE` only |
 | Explicit target | `RpcDirectClientFactory`          | None               | Caller-owned handle | One transport attempt                                              |
 
-The normal Consumer path never discovers Providers directly. Gateway provider
+The normal Consumer path never discovers Providers directly. Yuheng provider
 selection, health probing, route rules, and Provider load balancing belong to the
-Gateway platform.
+Yuheng platform.
 
 The Consumer itself maintains one immutable snapshot per exact discovery query.
-The DDC adapter owns the event listener and periodic full reconciliation; a
-Consumer call reads the local snapshot and never performs a call-time DDC pull.
+The Tianshu adapter owns the event listener and periodic full reconciliation; a
+Consumer call reads the local snapshot and never performs a call-time Tianshu pull.
 `RpcLoadBalancers` supplies `RANDOM`, `WEIGHTED_RANDOM`, `ROUND_ROBIN`,
 `SMOOTH_WEIGHTED_ROUND_ROBIN`, `CONSISTENT_HASH`, and `LEAST_IN_FLIGHT`.
-Weights are read from the Provider's `gateway.weight` metadata. Consistent hash
+Weights are read from the Provider's `yuheng.weight` metadata. Consistent hash
 requires a named `RpcLoadBalanceKeyResolver` for typed calls or an explicit
 bounded `affinityKey` for generic calls.
 
@@ -510,7 +510,7 @@ the same unary gRPC descriptor and metadata/interceptor chain. The generic API i
 intentionally raw and bounded:
 
 ```java
-RpcGenericInvocation call = RpcGenericInvocation.gateway(
+RpcGenericInvocation call = RpcGenericInvocation.yuheng(
         "egon.rpc.test.v1.EchoService", "default", "1.0.0",
         "egon.rpc.test.v1.EchoService/Echo", requestBytes,
         3000, 1, LoadBalance.ROUND_ROBIN, FailStrategy.FAIL_CLOSED, null);
@@ -520,7 +520,7 @@ CompletionStage<byte[]> async = genericInvoker.invokeAsync(call);
 
 The only accepted method identity is the canonical gRPC
 `fully.qualified.Service/Method` form; dot aliases, arbitrary Metadata, endpoint
-addresses, DDC credentials, Map/Object serialization, streaming, and a second
+addresses, Tianshu credentials, Map/Object serialization, streaming, and a second
 generic wire service are rejected. Generic target state is bounded by the cache
 settings above. One shared `ManagedChannel` is multiplexed across concurrent unary
 streams for the same endpoint key and is drained on shutdown.
@@ -552,7 +552,7 @@ not created and no rate limit is silently assumed.
 Provider states are `NEW → STARTING → READY|DEGRADED → DRAINING → STOPPED` (or
 `FAILED`). READY is published only after the gRPC server is bound and every
 required lease is active. Provider heartbeat is an RPC-side fixed-delay scheduler;
-DDC only validates/renews/expirs leases and publishes changes. Consumer startup
+Tianshu only validates/renews/expirs leases and publishes changes. Consumer startup
 installs all declared Directory subscriptions and the shared channel pool before
 accepting calls. Shutdown closes the admission gate, stops subscriptions and
 recovery, deregisters exact leases, drains in-flight unary calls until the
@@ -578,34 +578,34 @@ Selected status mappings are:
 |---------------------------------------------------------|----------------------------|
 | `DEADLINE_EXCEEDED`                                     | `RPC_DEADLINE_EXCEEDED`    |
 | `CANCELLED`                                             | `RPC_CANCELLED`            |
-| `UNAVAILABLE` without Provider marker                   | `RPC_GATEWAY_UNAVAILABLE`  |
+| `UNAVAILABLE` without Provider marker                   | `RPC_YUHENG_UNAVAILABLE`  |
 | `UNAVAILABLE` with `x-egon-rpc-failure-stage: provider` | `RPC_PROVIDER_UNAVAILABLE` |
 | `INVALID_ARGUMENT`                                      | `RPC_INVALID_REQUEST`      |
 | `PERMISSION_DENIED`                                     | `RPC_PROVIDER_REJECTED`    |
 | `UNIMPLEMENTED` or method-not-found marker              | `RPC_METHOD_NOT_FOUND`     |
 | `NOT_FOUND` without method marker                       | `RPC_SERVICE_NOT_FOUND`    |
 
-Provider exception mappers and Gateway forwarding must preserve the failure-stage
+Provider exception mappers and Yuheng forwarding must preserve the failure-stage
 marker when translating downstream failures.
 
-### Gateway and DDC boundaries
+### Yuheng and Tianshu boundaries
 
-The DDC Adapter owns direct DDC RPC clients for three capability areas: ConfigData
-runtime, service registry, and management. The DDC registry is the source for
-temporary Provider/Gateway leases and live snapshots. The Gateway platform owns
+The Tianshu Adapter owns direct Tianshu RPC clients for three capability areas: ConfigData
+runtime, service registry, and management. The Tianshu registry is the source for
+temporary Provider/Yuheng leases and live snapshots. The Yuheng platform owns
 the production data plane and consumes the RPC contract catalog/snapshot through
-its own starter. See the [Gateway README](../../egon-cola-xingyuan/egon-cola-yuheng/README.md)
+its own starter. See the [Yuheng README](../../egon-cola-xingyuan/egon-cola-yuheng/README.md)
 for route, rule, health, security, and traffic-governance behavior.
 
 ## Extension Points
 
 The Starter keeps discovery and registration behind ports so applications do not
-need to depend on DDC implementation types:
+need to depend on Tianshu implementation types:
 
 | Extension point                  | Purpose                                                                       |
 |----------------------------------|-------------------------------------------------------------------------------|
 | `RpcProviderRegistry`            | Provide Provider lease registration, heartbeat, and deregistration.           |
-| `RpcGatewayDirectory`            | Supply live Gateway snapshots to Gateway-mode Consumers.                      |
+| `RpcGatewayDirectory`            | Supply live Yuheng snapshots to Yuheng-mode Consumers.                      |
 | `RpcProviderDirectory`           | Supply live Provider snapshots to `@EgonRpcReference(mode=DIRECT)` Consumers. |
 | `RpcClientInterceptorFactory`    | Add an ordered request-aware gRPC client interceptor.                         |
 | `RpcProviderExceptionMapper`     | Map a Provider domain exception to gRPC status and trailers.                  |
@@ -615,9 +615,9 @@ need to depend on DDC implementation types:
 | `RpcContractCatalog`             | Replace or adapt the validated contract catalog used by integrations.         |
 | Spring `ServerInterceptor` beans | Add Provider-side gRPC server interceptors.                                   |
 
-The production Gateway's routing, authorization, load-balancing, circuit-breaking,
+The production Yuheng's routing, authorization, load-balancing, circuit-breaking,
 and rate-limiting extension points are outside this module and must be implemented
-in the Gateway platform.
+in the Yuheng platform.
 
 ## Project Structure
 
@@ -636,17 +636,17 @@ egon-cola-component-rpc/
 │       ├── exception/          # Stable RPC exception and status mapping
 │       └── provider/           # Binding, server, availability, and leases
 ├── egon-cola-component-rpc-tianshu-adapter/
-│   └── src/main/java/top/egon/cola/component/rpc/ddc/
-│       ├── autoconfigure/      # DDC RPC properties and Spring wiring
+│   └── src/main/java/top/egon/cola/component/rpc/tianshu/
+│       ├── autoconfigure/      # Tianshu RPC properties and Spring wiring
 │       ├── client/             # Config, registry, and management clients
-│       ├── contract/            # DDC Protobuf-facing Java contracts
+│       ├── contract/            # Tianshu Protobuf-facing Java contracts
 │       ├── mapping/             # Protobuf/domain mappers and status mapping
-│       ├── registry/            # DDC-backed RPC directories and registry port
+│       ├── registry/            # Tianshu-backed RPC directories and registry port
 │       └── security/            # HMAC canonicalization and metadata signing
 └── egon-cola-component-rpc-test/
     ├── ...-test-contract/      # Echo Proto and generated contract
     ├── ...-test-provider/      # Provider process fixture
-    └── ...-test-consumer/      # Consumer process fixture and Mock Gateway tests
+    └── ...-test-consumer/      # Consumer process fixture and Mock Yuheng tests
 ```
 
 ## Compatibility
@@ -657,25 +657,25 @@ egon-cola-component-rpc/
   `protoc-gen-grpc-java` 1.75.0 are the repository compatibility baseline.
 - **Wire contract:** V1 accepts generated Protobuf `Message` request/response
   types and unary, non-streaming gRPC methods only.
-- **Discovery contract:** DDC-backed discovery expects the current DDC registry
+- **Discovery contract:** Tianshu-backed discovery expects the current Tianshu registry
   service identities and lease model. A custom registry must implement the
-  Starter ports rather than imitate DDC internals.
+  Starter ports rather than imitate Tianshu internals.
 - **Schema evolution:** keep generated service/method names and Protobuf field
-  compatibility stable; descriptor SHA-256 changes are meaningful to Gateway
+  compatibility stable; descriptor SHA-256 changes are meaningful to Yuheng
   interface reporting and compatibility checks.
 - **Security:** plaintext is an explicit development mode. Production endpoints
-  should use mTLS and capability-specific DDC HMAC credentials.
+  should use mTLS and capability-specific Tianshu HMAC credentials.
 
 ## Roadmap
 
 The following items are not part of the current V1 runtime contract and require
 separate contract/design decisions before implementation:
 
-- Streaming RPC support and its Gateway descriptor/reporting model.
-- Streaming RPC support and its Gateway descriptor/reporting model.
+- Streaming RPC support and its Yuheng descriptor/reporting model.
+- Streaming RPC support and its Yuheng descriptor/reporting model.
 - Production-scale observability dashboards and fault-drill automation; the
   bounded runtime hooks and status/trailer contracts are already available.
-- Live DDC/Redis topology and deployment-specific mTLS validation, which remain
+- Live Tianshu/Redis topology and deployment-specific mTLS validation, which remain
   environment-owned evidence rather than module unit-test behavior.
 
 ## Validation
@@ -688,14 +688,14 @@ Run the ordinary RPC module tests from the repository root:
   -am test
 ```
 
-The ordinary suite uses real loopback TCP with a test Mock Gateway and direct
-Provider fixtures; it does not prove a production DDC/Redis/Gateway topology.
+The ordinary suite uses real loopback TCP with a test Mock Yuheng and direct
+Provider fixtures; it does not prove a production Tianshu/Redis/Yuheng topology.
 The opt-in process test requires
 an externally managed Redis instance:
 
 ```bash
-DDC_TEST_REDIS_HOST=127.0.0.1 \
-DDC_TEST_REDIS_PORT=6379 \
+TIANSHU_TEST_REDIS_HOST=127.0.0.1 \
+TIANSHU_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-contract \
   -am -Pddc-live-test -Dit.test=RpcProcessIT verify

@@ -1,36 +1,36 @@
-# Egon COLA Gateway Platform
+# Egon COLA Yuheng Platform
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-The Gateway platform is Egon COLA's self-built HTTP and RPC infrastructure system. It
+The Yuheng platform is Egon COLA's self-built HTTP and RPC infrastructure system. It
 contains a Reactor Netty data plane, a Spring Boot management control plane, a
 provider-facing reporting starter, and an HTTP Provider lease runtime. The Admin
-publishes immutable rule releases through DDC; the Engine discovers providers,
+publishes immutable rule releases through Tianshu; the Engine discovers providers,
 selects healthy instances, and forwards HTTP and unary RPC traffic.
 
 ## Architecture
 
 ```text
-Admin Web ── authenticated API ──> Gateway Admin ── publish ──> DDC
+Admin Web ── authenticated API ──> Yuheng Admin ── publish ──> Tianshu
                                                            │
-HTTP/RPC client ──> Gateway Engine <── rule release ────────┘
+HTTP/RPC client ──> Yuheng Engine <── rule release ────────┘
                          │
                          ├── route, security, traffic, and observability pipeline
-                         ├── DDC lease-based Provider / Gateway registry
+                         ├── Tianshu lease-based Provider / Yuheng registry
                          └── HTTP or unary RPC upstream ──> Provider
 ```
 
 The data plane keeps the active release immutable and swaps it atomically. Provider
-definitions, leases, health, and interface reports are reconciled through DDC. The
+definitions, leases, health, and interface reports are reconciled through Tianshu. The
 Engine can retain valid in-memory state and its last-known-good release during a
-temporary DDC outage, but a cold-start Engine must not claim Ready without the
+temporary Tianshu outage, but a cold-start Engine must not claim Ready without the
 required rule and provider state.
 
-DDC is the bootstrap exception: Gateway Admin, Engines, Providers, and Consumers use
-a locally configured direct DDC gRPC target on port `19080` with `round_robin`; DDC
+Tianshu is the bootstrap exception: Yuheng Admin, Engines, Providers, and Consumers use
+a locally configured direct Tianshu gRPC target on port `19080` with `round_robin`; Tianshu
 does not register or discover itself. Redis Pub/Sub still carries change notifications.
-All ordinary RPC services remain DDC-supported and business calls still traverse the
-discovered Gateway set rather than connecting directly to Providers.
+All ordinary RPC services remain Tianshu-supported and business calls still traverse the
+discovered Yuheng set rather than connecting directly to Providers.
 
 ## Modules
 
@@ -41,7 +41,7 @@ discovered Gateway set rather than connecting directly to Providers.
 | `yuheng-mcp-core` | Shared MCP protocol, task, session, artifact, and subscription runtime primitives | No |
 | `yuheng-biz-gateway` | Executable HTTP/RPC data plane, listeners, upstream clients, health, and telemetry | No |
 | `yuheng-admin` | Executable management control plane, persistence, release compilation, authentication, and OpenAPI | No |
-| `yuheng-starter` | Provider interface-definition reporting plus Gateway metadata contribution to DDC HTTP registration | Yes |
+| `yuheng-starter` | Provider interface-definition reporting plus Yuheng metadata contribution to Tianshu HTTP registration | Yes |
 | `yuheng-test` | Real HTTP/RPC providers, consumers, and live topology verification | No |
 
 The Admin Web is a private React application colocated at
@@ -57,11 +57,11 @@ Maven child. See its [frontend README](yuheng-admin-web/README.md).
   bodies, plus two-phase `ws`/`wss` Realtime WebSocket proxying.
 - HTTP-to-HTTP, HTTP-to-RPC, and RPC-to-RPC forwarding through immutable route
   and provider snapshots.
-- DDC lease-based provider discovery, active health probing, bounded provider
+- Tianshu lease-based provider discovery, active health probing, bounded provider
   attempts, load balancing, and removal of expired or unhealthy instances.
-- Gateway Admin drafts, interface catalogs, release compilation, canonical hashes,
+- Yuheng Admin drafts, interface catalogs, release compilation, canonical hashes,
   authenticated management APIs, and runtime definition reconciliation.
-- TLS/mTLS for HTTP, RPC, direct DDC RPC, and management transports, plus controlled certificate
+- TLS/mTLS for HTTP, RPC, direct Tianshu RPC, and management transports, plus controlled certificate
   reload and listener drain operations.
 - Micrometer Observation / OpenTelemetry spans and bounded Kafka call-event
   projection. Telemetry failures must not change the business response.
@@ -79,56 +79,56 @@ resource or prompt smoke test is not proof of standard Tasks or Apps compatibili
 
 ## OAuth Resource binding
 
-Gateway resolves the expected Resource Server from the trusted route target,
+Yuheng resolves the expected Resource Server from the trusted route target,
 not from a caller-supplied header or request parameter. A route targets one
 exact `bizCode + appCode + environment` triple, which maps to one absolute
 Resource URI such as
-`https://api.egon.internal/prod/permission/idp`. The IdP adapter accepts only a
+`https://api.egon.internal/prod/permission/tianquan-shoubing`. The Tianquan-Shoubing adapter accepts only a
 single-audience access token whose `aud` and `resource_version` match that route
 Resource and whose principal is either `USER` or `SERVICE`.
 
-Gateway performs authentication, exact Resource binding, trusted identity-header
+Yuheng performs authentication, exact Resource binding, trusted identity-header
 replacement, and routing. It does not decide user roles or interface/data/field
-permissions and does not ask RBAC3 whether a service may call another service.
+permissions and does not ask Tianquan-Jianshen whether a service may call another service.
 The downstream service repeats exact Resource validation: USER continues into
-RBAC3 authorization, while SERVICE is checked locally against the operation's
-required IdP scope.
+Tianquan-Jianshen authorization, while SERVICE is checked locally against the operation's
+required Tianquan-Shoubing scope.
 
-Gateway Admin and Engine are Resource Servers themselves and use owner-only
-private-key files to obtain Admission Tickets for DDC registration. Resource
+Yuheng Admin and Engine are Resource Servers themselves and use owner-only
+private-key files to obtain Admission Tickets for Tianshu registration. Resource
 disable revokes only the matching route-provider leases and blocks new tokens
 and tickets. After restoring the Resource, key, grants, and route definition,
-instances obtain fresh tickets and reconcile normally. Deploy IdP V2 and DDC V8
-before Gateway V11; Gateway V11 removes the legacy audience column and is not
+instances obtain fresh tickets and reconcile normally. Deploy Tianquan-Shoubing V2 and Tianshu V8
+before Yuheng V11; Yuheng V11 removes the legacy audience column and is not
 rollback-compatible with binaries that still expect it.
 
 ## Trace Propagation
 
-The Gateway data plane uses the W3C Trace Context support from
+The Yuheng data plane uses the W3C Trace Context support from
 `egon-cola-component-common-trace`. Inbound requests build context only from
-valid `traceparent`, `tracestate`, and `x-egon-request-id`. Gateway no longer
+valid `traceparent`, `tracestate`, and `x-egon-request-id`. Yuheng no longer
 reads or writes `X-Trace-Id`, `x-trace-id`, or `x-egon-trace-id`. HTTP and RPC
 upstreams create a distinct child span for each provider attempt; retries do
 not reuse the same attempt `spanId`, while the whole request keeps one
 `traceId`.
 
-Gateway is already wired to Micrometer Observation / OpenTelemetry. When a
+Yuheng is already wired to Micrometer Observation / OpenTelemetry. When a
 valid Observation span exists, `GatewayCallEventV1.Trace`, normal logs, and
-downstream `traceparent` use that span. Without a tracer, Gateway falls back to
+downstream `traceparent` use that span. Without a tracer, Yuheng falls back to
 the lightweight `common-trace` generator.
 
 ## Consumption and Build
 
-The Components BOM does not export Gateway artifacts. Business systems that publish
-Gateway definitions depend only on `yuheng-starter`; it composes
-the DDC HTTP registration starter. Applications that need HTTP registration without
-Gateway definition reporting may depend directly on
+The Components BOM does not export Yuheng artifacts. Business systems that publish
+Yuheng definitions depend only on `yuheng-starter`; it composes
+the Tianshu HTTP registration starter. Applications that need HTTP registration without
+Yuheng definition reporting may depend directly on
 `egon-cola-tianshu-http-registration-starter` with the repository release version.
-Engine, Admin, Contract, Core, and test artifacts are internal platform modules and should
-be built or deployed through the repository's Gateway topology.
+Engine, Admin, Contract, Core, and test artifacts are internal xingyuan modules and should
+be built or deployed through the repository's Yuheng topology.
 
 HTTP registration Java types now live under
-`top.egon.cola.component.tianshu.http.registration`; Gateway types remain under
+`top.egon.cola.component.tianshu.http.registration`; Yuheng types remain under
 `top.egon.cola.component.yuheng`.
 
 Run focused JVM verification:
@@ -146,18 +146,18 @@ It uses Testcontainers by default, or isolated host-local processes when `initdb
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
-  -am -Pgateway-live verify
+  -am -Pyuheng-live verify
 
 ./mvnw -B -ntp \
   -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local verify
 ```
 
 ## Operational Documentation
 
 | Document | Purpose |
 |---|---|
-| [Gateway + DDC + RPC integration](docs/developer-integration.md) | End-to-end demo commands, success criteria, fault drills, and evidence boundaries |
+| [Yuheng + Tianshu + RPC integration](docs/developer-integration.md) | End-to-end demo commands, success criteria, fault drills, and evidence boundaries |
 | [Local deployment](deployment/README.md) | Compose build, ports, readiness, HA sample, TLS/mTLS, and startup/shutdown order |
 | [Performance and fault drills](performance/README.md) | k6 smoke/baseline, long soak, resource sampling, and fixed fault scenarios |
 | [Admin Web](yuheng-admin-web/README.md) | React build, tests, browser authentication, and API origin settings |
@@ -165,19 +165,19 @@ It uses Testcontainers by default, or isolated host-local processes when `initdb
 ## Boundaries
 
 - Nginx node management, dynamic Nginx configuration, and the external load balancer
-  are outside the Gateway platform. The deployment environment owns ingress and L4/L7
+  are outside the Yuheng platform. The deployment environment owns ingress and L4/L7
   balancing in front of multiple Engine instances.
 - The base Compose topology is a local development dependency set. The HA overlays
   validate multiple stateless Admin processes and proxy routing; they do not turn a
   single PostgreSQL, Redis, or Kafka node into a production HA service.
-- The Gateway does not include a general account system or external IAM. Admin Web
-  receives a verified IAM Bearer Token and Gateway Admin enforces the authenticated
+- The Yuheng does not include a general account system or external IAM. Admin Web
+  receives a verified IAM Bearer Token and Yuheng Admin enforces the authenticated
   actor and capability boundary.
-- The OpenAI route profile is a transport preset, not an AI platform. Gateway does
+- The OpenAI route profile is a transport preset, not an AI xingyuan. Yuheng does
   not count tokens, charge usage, manage prompts or conversations, perform RAG or
   Agent orchestration, execute Function Calling, or select a business model. It
   recognizes routes, carries protocols, and transparently forwards bytes.
-- Streaming component tests prove the in-process Gateway boundaries only. They do
+- Streaming component tests prove the in-process Yuheng boundaries only. They do
   not prove public OpenAI connectivity, external/private-CA TLS, multi-process
   infrastructure, or flush/cache behavior of an outer Nginx or Ingress.
 - The implementation and deployment contracts continue to evolve; use the focused

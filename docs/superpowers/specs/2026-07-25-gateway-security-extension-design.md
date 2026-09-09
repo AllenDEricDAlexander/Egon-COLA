@@ -1,17 +1,17 @@
-# GWS-08 Gateway 安全扩展 Spec
+# GWS-08 Yuheng 安全扩展 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01、GWS-03、GWS-04、GWS-06
 
 ## 1. 目标
 
-本 Spec 定义 Gateway 数据面的信任边界、外部暴露约束、身份处理流程以及认证、授权
-扩展点。首期不实现下游业务权限系统，但 Gateway 不能因此成为无安全边界的透明代理。
+本 Spec 定义 Yuheng 数据面的信任边界、外部暴露约束、身份处理流程以及认证、授权
+扩展点。首期不实现下游业务权限系统，但 Yuheng 不能因此成为无安全边界的透明代理。
 
 目标包括：
 
@@ -41,9 +41,9 @@
 - 不内置 JWT、OAuth2、OIDC、SAML、Shiro 或 Spring Security 业务规则；
 - 不托管登录、发 Token、刷新 Token 或用户会话；
 - 不从普通请求 Header 接受 PUBLIC/INTERNAL 来源声明；
-- 不把 Gateway Admin 登录鉴权纳入本数据面 Spec；
+- 不把 Yuheng Admin 登录鉴权纳入本数据面 Spec；
 - 不在 Starter 中执行鉴权；
-- 不在 Gateway 保存业务用户密码、私钥或长期令牌；
+- 不在 Yuheng 保存业务用户密码、私钥或长期令牌；
 - 不允许安全插件直接操作 Netty Response 或绕过统一错误模型。
 
 ## 3. 信任边界
@@ -62,10 +62,10 @@ Engine 按 GWS-03 启动两个独立 Listener：
 下列 Header/Metadata 即使存在也不能改变它：
 
 ```text
-X-Gateway-Access-Zone
+X-Yuheng-Access-Zone
 X-Internal-Request
 X-Forwarded-Internal
-gateway-access-zone
+yuheng-access-zone
 ```
 
 ### 3.2 可信代理
@@ -118,9 +118,9 @@ Listener 标记 AccessZone
 → 后续治理与 Provider 调用
 ```
 
-PUBLIC 访问内部接口返回 `404` 或统一的 `GATEWAY_ROUTE_NOT_FOUND`，默认不向外部暴露
+PUBLIC 访问内部接口返回 `404` 或统一的 `YUHENG_ROUTE_NOT_FOUND`，默认不向外部暴露
 “接口存在但仅限内网”。内部审计记录真实拒绝原因
-`GATEWAY_EXTERNAL_ACCESS_DENIED`。
+`YUHENG_EXTERNAL_ACCESS_DENIED`。
 
 ## 5. 安全领域模型
 
@@ -285,13 +285,13 @@ failureMode = FAIL_CLOSED
 在执行认证前移除或隔离所有可能伪造内部身份的字段，包括：
 
 ```text
-X-Gateway-Principal-Id
-X-Gateway-Tenant-Id
-X-Gateway-Authenticated
-X-Gateway-Auth-Provider
-X-Gateway-Access-Zone
-gateway-principal-id
-gateway-tenant-id
+X-Yuheng-Principal-Id
+X-Yuheng-Tenant-Id
+X-Yuheng-Authenticated
+X-Yuheng-Auth-Provider
+X-Yuheng-Access-Zone
+yuheng-principal-id
+yuheng-tenant-id
 ```
 
 真实列表由 Engine 固定保留命名空间与规则附加黑名单共同组成。规则不能从固定保留
@@ -301,7 +301,7 @@ gateway-tenant-id
 
 只有 Identity Mapper 可以写入可信身份字段：
 
-- HTTP 使用固定 `X-Egon-Gateway-*` 命名空间；
+- HTTP 使用固定 `X-Egon-Yuheng-*` 命名空间；
 - RPC 使用 Egon RPC 允许的 Metadata Key；
 - 写入前覆盖而不是追加同名入站值；
 - 未认证请求写显式匿名标志或不写，按 Mapper 契约固定；
@@ -321,10 +321,10 @@ gateway-tenant-id
 | 凭据来源 | Header/Cookie/TLS | Metadata/TLS |
 | 未认证 | 统一错误响应 | 映射 `UNAUTHENTICATED` |
 | 无权限 | 统一错误响应 | 映射 `PERMISSION_DENIED` |
-| 超时 | Gateway 安全超时 | 同时受 gRPC Deadline 限制 |
+| 超时 | Yuheng 安全超时 | 同时受 gRPC Deadline 限制 |
 | 身份透传 | 白名单 Header | 白名单 Metadata |
 
-HTTP→RPC 转发时只执行一次 Gateway 安全链，再由 RPC Identity Mapper 生成可信
+HTTP→RPC 转发时只执行一次 Yuheng 安全链，再由 RPC Identity Mapper 生成可信
 Metadata，不把 HTTP Cookie 或 Header 原样复制到 RPC。
 
 ## 10. 错误与失败语义
@@ -333,14 +333,14 @@ Metadata，不把 HTTP Cookie 或 Header 原样复制到 RPC。
 
 | Code | 外部行为 | 含义 |
 |---|---|---|
-| `GATEWAY_CREDENTIAL_INVALID` | 401 / `UNAUTHENTICATED` | 凭据格式非法 |
-| `GATEWAY_AUTHENTICATION_REQUIRED` | 401 / `UNAUTHENTICATED` | 缺少必需凭据 |
-| `GATEWAY_AUTHENTICATION_FAILED` | 401 / `UNAUTHENTICATED` | 身份认证失败 |
-| `GATEWAY_AUTHORIZATION_DENIED` | 403 / `PERMISSION_DENIED` | 授权拒绝 |
-| `GATEWAY_SECURITY_PROVIDER_TIMEOUT` | 503 / `UNAVAILABLE` | 安全 Provider 超时 |
-| `GATEWAY_SECURITY_PROVIDER_ERROR` | 503 / `UNAVAILABLE` | 安全 Provider 异常 |
-| `GATEWAY_EXTERNAL_ACCESS_DENIED` | 对 PUBLIC 隐藏为 404 | 外部访问内部接口 |
-| `GATEWAY_IDENTITY_MAPPING_FAILED` | 500 / `INTERNAL` | 可信身份生成失败 |
+| `YUHENG_CREDENTIAL_INVALID` | 401 / `UNAUTHENTICATED` | 凭据格式非法 |
+| `YUHENG_AUTHENTICATION_REQUIRED` | 401 / `UNAUTHENTICATED` | 缺少必需凭据 |
+| `YUHENG_AUTHENTICATION_FAILED` | 401 / `UNAUTHENTICATED` | 身份认证失败 |
+| `YUHENG_AUTHORIZATION_DENIED` | 403 / `PERMISSION_DENIED` | 授权拒绝 |
+| `YUHENG_SECURITY_PROVIDER_TIMEOUT` | 503 / `UNAVAILABLE` | 安全 Provider 超时 |
+| `YUHENG_SECURITY_PROVIDER_ERROR` | 503 / `UNAVAILABLE` | 安全 Provider 异常 |
+| `YUHENG_EXTERNAL_ACCESS_DENIED` | 对 PUBLIC 隐藏为 404 | 外部访问内部接口 |
+| `YUHENG_IDENTITY_MAPPING_FAILED` | 500 / `INTERNAL` | 可信身份生成失败 |
 
 响应不能包含 Provider 堆栈、Token 片段、租户敏感属性或内部接口存在性。
 

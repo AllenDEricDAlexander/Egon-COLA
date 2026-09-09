@@ -1,20 +1,20 @@
-# RBAC3 Operations Runbook
+# Tianquan-Jianshen Operations Runbook
 
 ## 1. Preconditions and ownership
 
-Operators own PostgreSQL, the three Redis roles, DDC Admin, Gateway Admin,
-Gateway Engine, TLS, secret distribution, OAuth/HMAC credentials, DNS and
-process supervision. RBAC3 scripts never create or start those services.
+Operators own PostgreSQL, the three Redis roles, Tianshu Admin, Yuheng Admin,
+Yuheng Engine, TLS, secret distribution, OAuth/HMAC credentials, DNS and
+process supervision. Tianquan-Jianshen scripts never create or start those services.
 
 Use Java 21. Admin is packaged as the normal library JAR plus an executable JAR
 with classifier `exec`. Node 24 is required only for building the SDK/Admin Web.
 
 Before deployment, allocate per instance:
 
-- a unique `RBAC3_INSTANCE_ID`;
-- a unique `RBAC3_SNOWFLAKE_MACHINE_ID` in `0..1023` (no host-derived default);
+- a unique `TIANQUAN_JIANSHEN_INSTANCE_ID`;
+- a unique `TIANQUAN_JIANSHEN_SNOWFLAKE_MACHINE_ID` in `0..1023` (no host-derived default);
 - a distinct advertised port and reachable advertised host;
-- a writable, instance-specific Gateway report state file;
+- a writable, instance-specific Yuheng report state file;
 - the same artifact version but a traceable build ID;
 - graceful shutdown time greater than worker drain time.
 
@@ -24,87 +24,87 @@ Before deployment, allocate per instance:
 
 | Variable | Required semantics |
 | --- | --- |
-| `RBAC3_POSTGRES_URL` | Explicit PostgreSQL JDBC URL; no localhost fallback |
-| `RBAC3_POSTGRES_USER` / `RBAC3_POSTGRES_PASSWORD` | Deployment-managed credential |
-| `RBAC3_SNOWFLAKE_MACHINE_ID` | Unique explicit integer `0..1023` per active instance |
+| `TIANQUAN_JIANSHEN_POSTGRES_URL` | Explicit PostgreSQL JDBC URL; no localhost fallback |
+| `TIANQUAN_JIANSHEN_POSTGRES_USER` / `TIANQUAN_JIANSHEN_POSTGRES_PASSWORD` | Deployment-managed credential |
+| `TIANQUAN_JIANSHEN_SNOWFLAKE_MACHINE_ID` | Unique explicit integer `0..1023` per active instance |
 
-Spring Boot Flyway is disabled. RBAC3 configuration creates two Flyway runners
+Spring Boot Flyway is disabled. Tianquan-Jianshen configuration creates two Flyway runners
 over the same DataSource:
 
-- RBAC3 schema location with history table `flyway_schema_history_rbac3`;
+- Tianquan-Jianshen schema location with history table `flyway_schema_history_rbac3`;
 - Transactional Outbox PostgreSQL location with history table
   `flyway_schema_history_outbox`.
 
 Both must succeed before the persistence adapters become ready. Never change the
-existing RBAC3 V1 migration. A schema change uses exactly the next version.
+existing Tianquan-Jianshen V1 migration. A schema change uses exactly the next version.
 Back up schema, both Flyway histories and outbox records in one database-consistent
 snapshot.
 
 ### 2.2 Three independent Redisson clients
 
-RBAC3 topology intentionally has three named clients; do not alias them to an
+Tianquan-Jianshen topology intentionally has three named clients; do not alias them to an
 unqualified primary bean:
 
 | Bean                             | Owner                                      | Data                                                                 |
 |----------------------------------|--------------------------------------------|----------------------------------------------------------------------|
-| `ddcRedissonClient`              | DDC configuration and registry integration | Configuration events, provider leases, and DDC registry state        |
-| `gatewayRateLimitRedissonClient` | Gateway Engine                             | Gateway policies, release/rate-limit runtime state                   |
-| `rbac3RuntimeRedissonClient`     | RBAC3                                      | Authorization snapshots, versions, fences and projection checkpoints |
+| `ddcRedissonClient`              | Tianshu configuration and registry integration | Configuration events, provider leases, and Tianshu registry state        |
+| `gatewayRateLimitRedissonClient` | Yuheng Engine                             | Yuheng policies, release/rate-limit runtime state                   |
+| `rbac3RuntimeRedissonClient`     | Tianquan-Jianshen                                      | Authorization snapshots, versions, fences and projection checkpoints |
 
-Admin configuration uses `RBAC3_RUNTIME_REDIS_ADDRESS`, database, timeout and a
-password **file**. DDC registry uses its explicit mode/nodes or host/port,
-password and database. Gateway owns its own corresponding rate-limit Redis
+Admin configuration uses `TIANQUAN_JIANSHEN_RUNTIME_REDIS_ADDRESS`, database, timeout and a
+password **file**. Tianshu registry uses its explicit mode/nodes or host/port,
+password and database. Yuheng owns its own corresponding rate-limit Redis
 configuration. Do not silently reuse database numbers, credentials or client
 beans across these roles.
 
-### 2.3 IdP token verification and audit key
+### 2.3 Tianquan-Shoubing token verification and audit key
 
 | Variable | Rule |
 | --- | --- |
-| `RBAC3_AUDIT_CURSOR_SECRET_FILE` | Independent secret for signed audit cursors |
+| `TIANQUAN_JIANSHEN_AUDIT_CURSOR_SECRET_FILE` | Independent secret for signed audit cursors |
 
-IdP owns the USER/SERVICE JWT private key, JWKS publication and token lifecycle.
-RBAC3 Admin and RBAC3 Starter only perform local IdP public-key verification;
+Tianquan-Shoubing owns the USER/SERVICE JWT private key, JWKS publication and token lifecycle.
+Tianquan-Jianshen Admin and Tianquan-Jianshen Starter only perform local Tianquan-Shoubing public-key verification;
 they do not load a private JWT key, publish JWKS, issue USER/Refresh tokens or
 maintain a Key Ring. Do not place access/refresh tokens, public-key material or
 audit secrets in logs or evidence.
 
-### 2.4 Gateway Definition reporting
+### 2.4 Yuheng Definition reporting
 
 | Variable | Rule |
 | --- | --- |
-| `GATEWAY_ADMIN_BASE_URL` | Explicit Gateway Admin URL |
-| `DDC_BIZ_CODE` | Exact DDC v3 business domain used by the Definition and provider identity |
-| `GATEWAY_REPORT_ACCESS_KEY` / `GATEWAY_REPORT_SECRET_KEY` | HMAC write credential scoped to `rbac3-admin` |
-| `GATEWAY_REPORT_STATE_FILE` | Durable instance-local receipt state |
-| `RBAC3_ARTIFACT_VERSION` / `RBAC3_BUILD_ID` | Traceable definition build identity |
-| `RBAC3_DECLARED_HOSTS` | Explicit host allowlist included in report metadata |
+| `YUHENG_ADMIN_BASE_URL` | Explicit Yuheng Admin URL |
+| `TIANSHU_BIZ_CODE` | Exact Tianshu v3 business domain used by the Definition and provider identity |
+| `YUHENG_REPORT_ACCESS_KEY` / `YUHENG_REPORT_SECRET_KEY` | HMAC write credential scoped to `tianquan-jianshen-admin` |
+| `YUHENG_REPORT_STATE_FILE` | Durable instance-local receipt state |
+| `TIANQUAN_JIANSHEN_ARTIFACT_VERSION` / `TIANQUAN_JIANSHEN_BUILD_ID` | Traceable definition build identity |
+| `TIANQUAN_JIANSHEN_DECLARED_HOSTS` | Explicit host allowlist included in report metadata |
 
 Definition reporting is fail-fast at startup. Do not reuse the report HMAC
 credential for status reads. Status reads use the OAuth token file configured by
-`GATEWAY_STATUS_OAUTH_TOKEN_FILE`, with read-only Gateway capabilities.
+`YUHENG_STATUS_OAUTH_TOKEN_FILE`, with read-only Yuheng capabilities.
 
-### 2.5 DDC provider registration
+### 2.5 Tianshu provider registration
 
 | Variable | Rule |
 | --- | --- |
-| `DDC_RPC_TARGET` | Locally configured direct DDC logical target, normally `dns:///host:19080` |
-| `DDC_RPC_RUNTIME_ACCESS_KEY` / `DDC_RPC_RUNTIME_SECRET_KEY` | DDC config-client credential |
-| `DDC_RPC_REGISTRY_ACCESS_KEY` / `DDC_RPC_REGISTRY_SECRET_KEY` | DDC provider-registry credential; do not reuse the runtime secret |
-| `DDC_BIZ_CODE` | DDC v3 business domain; must match Gateway Definition and provider queries |
-| `DEPLOYMENT_ENV` / `DEPLOYMENT_NAMESPACE` | Must match Gateway Definition and Release identity |
-| `RBAC3_ADVERTISED_HOST` / `RBAC3_ADVERTISED_PORT` | Address reachable by Gateway Engine |
-| `RBAC3_INSTANCE_ID` | Unique lease identity and Outbox node ID |
+| `TIANSHU_RPC_TARGET` | Locally configured direct Tianshu logical target, normally `dns:///host:19080` |
+| `TIANSHU_RPC_RUNTIME_ACCESS_KEY` / `TIANSHU_RPC_RUNTIME_SECRET_KEY` | Tianshu config-client credential |
+| `TIANSHU_RPC_REGISTRY_ACCESS_KEY` / `TIANSHU_RPC_REGISTRY_SECRET_KEY` | Tianshu provider-registry credential; do not reuse the runtime secret |
+| `TIANSHU_BIZ_CODE` | Tianshu v3 business domain; must match Yuheng Definition and provider queries |
+| `DEPLOYMENT_ENV` / `DEPLOYMENT_NAMESPACE` | Must match Yuheng Definition and Release identity |
+| `TIANQUAN_JIANSHEN_ADVERTISED_HOST` / `TIANQUAN_JIANSHEN_ADVERTISED_PORT` | Address reachable by Yuheng Engine |
+| `TIANQUAN_JIANSHEN_INSTANCE_ID` | Unique lease identity and Outbox node ID |
 
-The service registers under `DDC_BIZ_CODE + rbac3-admin` as `HTTP_PROVIDER`,
-protocol `http`, service name `rbac3-admin`, group `default`, and the deployed artifact version. Lease is 30
-seconds with a 10-second heartbeat. DDC must not advertise the instance before
+The service registers under `TIANSHU_BIZ_CODE + tianquan-jianshen-admin` as `HTTP_PROVIDER`,
+protocol `http`, service name `tianquan-jianshen-admin`, group `default`, and the deployed artifact version. Lease is 30
+seconds with a 10-second heartbeat. Tianshu must not advertise the instance before
 the provider port is actually reachable.
-The DDC target is bootstrap configuration and is never obtained from DDC service
+The Tianshu target is bootstrap configuration and is never obtained from Tianshu service
 discovery. Multi-Admin deployments expose one HTTP/2-capable logical target with
 round-robin routing; no sticky session is required.
 
-### 2.6 DDC configuration client and runtime policy
+### 2.6 Tianshu configuration client and runtime policy
 
 Configuration resource identity is `bizCode + appCode + env + resourceName`;
 namespace bindings control visibility but are not part of that identity. It is
@@ -116,10 +116,10 @@ Never infer one from the other.
 
 | Key | Default | Range | Relationship/effect |
 | --- | ---: | ---: | --- |
-| `rbac3.maximum-active-roots` | 16 | 1..32 | New role-activation replacement commands only |
+| `tianquan-jianshen.maximum-active-roots` | 16 | 1..32 | New role-activation replacement commands only |
 
-Each DDC message carries the complete YAML resource. Update all related policy
-leaves in one valid document and publish it once. DDC replaces the dynamic
+Each Tianshu message carries the complete YAML resource. Update all related policy
+leaves in one valid document and publish it once. Tianshu replaces the dynamic
 PropertySource transactionally; if any typed applier rejects the candidate, it
 rolls back the property source and all already-applied leaves before returning a
 failed ACK.
@@ -128,54 +128,54 @@ The declarations use `refreshable = false` to prevent reflective mutation;
 exact typed appliers validate the whole immutable policy snapshot instead. An
 invalid update produces a bounded FAILED ACK and records key/version/error code,
 while the previous policy and repository version/resource checksum remain
-last-known-good. Do not retry the same version with different content: DDC treats
+last-known-good. Do not retry the same version with different content: Tianshu treats
 that as a checksum conflict. Correct the YAML document and publish a higher
 version. A successful higher version clears the failure for that resource.
 
-Dynamic configuration never rewrites an IdP-issued token or already committed
+Dynamic configuration never rewrites an Tianquan-Shoubing-issued token or already committed
 active-role sets. A new role-activation replacement command is required to
-consume the new RBAC3 policy value; token issuance and Refresh Token lifecycle
-remain IdP responsibilities.
+consume the new Tianquan-Jianshen policy value; token issuance and Refresh Token lifecycle
+remain Tianquan-Shoubing responsibilities.
 
 This policy key is scalar configuration, not a secret channel. Never publish
 passwords, access/secret keys, OAuth or refresh tokens, lease credentials,
 private keys, hashes, bootstrap administrator passwords or bootstrap commands
-through DDC. Do not put them in ACK evidence, status output, metrics or document
+through Tianshu. Do not put them in ACK evidence, status output, metrics or document
 examples.
 
-### 2.7 Gateway Interface Catalog and Release
+### 2.7 Yuheng Interface Catalog and Release
 
 Spring MVC mappings provide Method, Path, Consumes, Produces and parameters;
 the existing `@EgonHttpService`, `@GatewayInterfaceGroup`, `@GatewayOperation`
-and schema-field annotations provide business documentation. Gateway Interface
-Catalog is the only API document center for RBAC3. Do not deploy a parallel
+and schema-field annotations provide business documentation. Yuheng Interface
+Catalog is the only API document center for Tianquan-Jianshen. Do not deploy a parallel
 Swagger/Springdoc catalog or add real credentials as schema examples.
 
-A Definition ACK proves only that Gateway Admin accepted the catalog. It does
+A Definition ACK proves only that Yuheng Admin accepted the catalog. It does
 not publish traffic rules. An authorized operator must explicitly create/publish
-the intended Gateway Release, then verify Engine consistency and a routed
-request. RBAC3 never auto-publishes a Release.
+the intended Yuheng Release, then verify Engine consistency and a routed
+request. Tianquan-Jianshen never auto-publishes a Release.
 
 ## 3. Startup sequence
 
 1. Verify PostgreSQL and all three Redis roles are externally healthy.
-2. Verify DDC Admin, Gateway Admin and Gateway Engine are already running.
+2. Verify Tianshu Admin, Yuheng Admin and Yuheng Engine are already running.
 3. Verify RSA/audit key files and OAuth/HMAC credentials are mounted with least
    privilege.
 4. Start the first Admin instance through deployment tooling.
 5. Confirm both Flyway history tables, liveness and persistence readiness.
-6. Confirm the DDC `CONFIG_CLIENT` lease is `READY`, the startup version
-   are present, and there is no unresolved apply failure. The RBAC3 publication
+6. Confirm the Tianshu `CONFIG_CLIENT` lease is `READY`, the startup version
+   are present, and there is no unresolved apply failure. The Tianquan-Jianshen publication
    gate will not publish the root HTTP port before this point.
 7. Confirm Definition acknowledgement independently.
-8. Confirm its separate, unexpired DDC `HTTP_PROVIDER` lease independently.
-9. Confirm the explicitly published Gateway Release and runtime consistency.
-10. Route a request through Gateway and record the result.
+8. Confirm its separate, unexpired Tianshu `HTTP_PROVIDER` lease independently.
+9. Confirm the explicitly published Yuheng Release and runtime consistency.
+10. Route a request through Yuheng and record the result.
 11. Repeat for the second Admin instance using distinct port, instance ID,
     build ID and Snowflake machine ID.
 
 Readiness describes the process's ability to serve safely; it must not report a
-Gateway route as healthy merely because the JVM is alive.
+Yuheng route as healthy merely because the JVM is alive.
 
 ## 4. Graceful shutdown
 
@@ -185,9 +185,9 @@ Gateway route as healthy merely because the JVM is alive.
    return to recoverable state.
 4. Flush committed Outbox wakeups; do not claim delivery completion solely from
    task creation.
-5. Deregister or allow the DDC provider lease to expire.
-6. Close Gateway reporting/status clients.
-7. Close `rbac3RuntimeRedissonClient`, then DDC-related clients owned by the
+5. Deregister or allow the Tianshu provider lease to expire.
+6. Close Yuheng reporting/status clients.
+7. Close `rbac3RuntimeRedissonClient`, then Tianshu-related clients owned by the
    process, then JPA/DataSource.
 8. Let Spring graceful shutdown complete within the configured 30-second phase.
 
@@ -202,8 +202,8 @@ Spring context and exits after the transaction:
 
 ```bash
 java -jar egon-cola-tianquan-jianshen-admin.jar \
-  bootstrap-platform-admin \
-  --tenant-code platform \
+  bootstrap-xingyuan-admin \
+  --tenant-code xingyuan \
   --username <username>
 ```
 
@@ -211,8 +211,8 @@ Supply a 12-64 character password through interactive standard input or redirect
 a controlled secret file descriptor to standard input. Never place it in argv,
 environment variables, configuration files, evidence, or logs. The transaction
 uses a PostgreSQL advisory lock and creates the Tenant, built-in application,
-permissions, platform administrator role, user credential, assignment, audit and
-Outbox event. A pre-existing active platform administrator or Tenant is a hard
+permissions, xingyuan administrator role, user credential, assignment, audit and
+Outbox event. A pre-existing active xingyuan administrator or Tenant is a hard
 stop. Account-loss recovery is a separate operator procedure requiring a reason,
 ticket and critical audit; do not rerun bootstrap as recovery.
 
@@ -226,7 +226,7 @@ ticket and critical audit; do not rerun bootstrap as recovery.
 - Check PostgreSQL transaction outcome before manipulating Redis. Redis state is
   a projection, not the source of truth.
 - Outbox delivery uses its public component API and storage ownership. Do not
-  query or modify internal Outbox tables from RBAC3 application code.
+  query or modify internal Outbox tables from Tianquan-Jianshen application code.
 - Investigate repeated failure codes before retry. Bounded backoff prevents a
   thundering herd; a stuck Fence must remain visible and fail closed.
 
@@ -234,10 +234,10 @@ ticket and critical audit; do not rerun bootstrap as recovery.
 
 Back up:
 
-- the PostgreSQL database containing RBAC3 facts, mutation journal, audit,
+- the PostgreSQL database containing Tianquan-Jianshen facts, mutation journal, audit,
   idempotency, both Flyway histories and Outbox records;
 - encrypted/private key files through the organization's secret backup process;
-- Gateway Release/configuration and DDC configuration through their owners;
+- Yuheng Release/configuration and Tianshu configuration through their owners;
 - deployment manifests containing instance/build/version identity, without
   plaintext secrets.
 
@@ -252,7 +252,7 @@ match PostgreSQL versions.
 
 The scripts use only explicit configuration. `--check-config` performs no
 network/database/Redis request. Preparation requires a strict run ID, schema
-`rbac3_it_<runId>`, prefix `rbac3:it:<runId>:` and dedicated tenant. It records
+`rbac3_it_<runId>`, prefix `tianquan-jianshen:it:<runId>:` and dedicated tenant. It records
 the exact schema and keys in a mode-600 state file before mutation.
 
 Cleanup revalidates the state file and deletes only the recorded schema and
@@ -262,7 +262,7 @@ database and never discovers cleanup targets by wildcard.
 Live topology verification requires two already-running Admin processes. At
 failover checkpoints it pauses and instructs the operator to change process
 state externally. After both instances are unavailable it expects the explicitly
-configured Gateway error status, then asks the operator to restore both and
+configured Yuheng error status, then asks the operator to restore both and
 verifies recovery.
 
 ## 9. Observability and incident checklist
@@ -270,20 +270,20 @@ verifies recovery.
 Record independently:
 
 - liveness/readiness and build identity for each Admin instance;
-- RBAC3 and Outbox Flyway state;
+- Tianquan-Jianshen and Outbox Flyway state;
 - runtime Redis availability, projection checkpoint, mutation backlog and Fence;
 - Outbox pending/retry/dead counts;
-- DDC Config Client state, instance ID, lease fingerprint/expiry, current config
+- Tianshu Config Client state, instance ID, lease fingerprint/expiry, current config
   version and last apply failure key/version/code;
 - Definition status/set ID and warnings;
-- DDC HTTP Provider lease instance ID, expiry and last heartbeat;
-- Gateway Release ID/status, engine-observed version and consistency;
+- Tianshu HTTP Provider lease instance ID, expiry and last heartbeat;
+- Yuheng Release ID/status, engine-observed version and consistency;
 - routed request trace ID, response code and selected provider instance when
   available.
 
 Fixed low-cardinality metrics are:
 
-- `rbac3_ddc_config_apply_total{key,status}` where key is the fixed RBAC3 policy
+- `rbac3_ddc_config_apply_total{key,status}` where key is the fixed Tianquan-Jianshen policy
   key and status is only `success|failed`;
 - `rbac3_ddc_config_snapshot_version{key}`;
 - `rbac3_ddc_config_ready`;
@@ -291,21 +291,21 @@ Fixed low-cardinality metrics are:
 
 Raw values, lease IDs and instance IDs are not metric labels.
 
-### 9.1 DDC/Gateway incident order and LKG recovery
+### 9.1 Tianshu/Yuheng incident order and LKG recovery
 
 Always inspect in this order, without skipping a fact:
 
 ```text
-DDC Config Client state/lease
+Tianshu Config Client state/lease
   -> current config version / last apply error code
-  -> Gateway Definition status
-  -> DDC HTTP_PROVIDER lease and expiry
-  -> Gateway Release / Engine consistency
+  -> Yuheng Definition status
+  -> Tianshu HTTP_PROVIDER lease and expiry
+  -> Yuheng Release / Engine consistency
   -> routed request evidence
 ```
 
 - If the Config Client is not `READY` or lacks a `CONFIG_CLIENT` lease, fix
-  DDC registration/connectivity first. Provider publication is intentionally
+  Tianshu registration/connectivity first. Provider publication is intentionally
   blocked; do not bypass the gate.
 - If a version did not advance, compare only key, target/current version,
   checksum outcome and bounded error code. Do not print the raw value. Correct
@@ -318,7 +318,7 @@ DDC Config Client state/lease
   registration/heartbeat after Config Ready. A `REGISTERED` string with an
   expired lease is still `NOT_ROUTABLE`.
 - If Release or consistency is not successful, publish/repair the explicit
-  Release through Gateway operations. Definition acceptance and provider
+  Release through Yuheng operations. Definition acceptance and provider
   presence are not release evidence.
 - Only a routed request with timestamp/trace and selected provider proves the
   complete path at that moment.

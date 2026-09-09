@@ -1,48 +1,48 @@
-# RBAC3 IAM and DDC Business/Application Migration Implementation Plan
+# Tianquan-Jianshen IAM and Tianshu Business/Application Migration Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [ ]) syntax for tracking.
 
-**Goal:** Move RBAC3 management capabilities into the IAM package and API model while making DDC the only Business/Application master-data writer and retaining all User/Role authorization in RBAC.
+**Goal:** Move Tianquan-Jianshen management capabilities into the IAM package and API model while making Tianshu the only Business/Application master-data writer and retaining all User/Role authorization in RBAC.
 
-**Architecture:** DDC keeps the Biz -> App catalog and exposes only four read operations through the existing Management RPC chain. RBAC adds one typed IAM Business adapter over that client, stores a tenant-local Application authorization scope plus User Business grants, and derives Application access from existing UserRoleAssignment records. Java packages, REST URI, Gateway/Manifest declarations, and RBAC Admin Web routes move together with no compatibility aliases.
+**Architecture:** Tianshu keeps the Biz -> App catalog and exposes only four read operations through the existing Management RPC chain. RBAC adds one typed IAM Business adapter over that client, stores a tenant-local Application authorization scope plus User Business grants, and derives Application access from existing UserRoleAssignment records. Java packages, REST URI, Yuheng/Manifest declarations, and RBAC Admin Web routes move together with no compatibility aliases.
 
 **Tech Stack:** Java, Spring Boot, Spring MVC, Spring Data JPA, Flyway/PostgreSQL, protobuf/gRPC, Maven, React, TypeScript, React Query, Vite, Vitest.
 
 ## Global Constraints
 
-- This is destructive: do not keep old Java packages, REST URIs, front-end routes, Gateway aliases, or old-data compatibility adapters.
+- This is destructive: do not keep old Java packages, REST URIs, front-end routes, Yuheng aliases, or old-data compatibility adapters.
 - Create exactly one new RBAC migration: V6__adopt_ddc_business_application_authorization_scope.sql. Do not edit V1 through V5.
-- DDC remains the sole writer of ddc_biz and ddc_app. RBAC uses DDC Management RPC only, never DDC REST writes or direct DDC database access.
+- Tianshu remains the sole writer of ddc_biz and ddc_app. RBAC uses Tianshu Management RPC only, never Tianshu REST writes or direct Tianshu database access.
 - RBAC owns UserBusinessAccess and all User/Role/Permission authorization changes. Do not create a UserApplicationAccess table; UserRoleAssignment -> Role.applicationId remains the Application authorization source of truth.
 - ApplicationPO.id remains RBAC's local key. Add ddcBusinessId and ddcApplicationId; use local applicationId, not globally unique applicationCode, for RBAC relationships.
 - FIELD remains FieldDefinitionPO; do not add FIELD to ResourceTypeEnum.
 - Directory snapshot records remain read-only. Manual Organization/Position records use an explicit source type and never fabricate snapshotId.
-- A missing, disabled, or RPC-unavailable DDC catalog record never creates a grant or an effective authorization context. Fail closed.
+- A missing, disabled, or RPC-unavailable Tianshu catalog record never creates a grant or an effective authorization context. Fail closed.
 - Active roles continue to select which otherwise-effective roles fill the permission context. Inactive roles are not backfilled.
-- Do not redesign IdP, JWT, Refresh Token, Session, SSO, Gateway authentication, or automatic data/field PEP enforcement.
-- Do not add a generic relation controller, Factory, Strategy, or rule engine. DdcCatalogGateway is the one narrow external-boundary adapter; add no DDC catalog cache in this migration.
+- Do not redesign Tianquan-Shoubing, JWT, Refresh Token, Session, SSO, Yuheng authentication, or automatic data/field PEP enforcement.
+- Do not add a generic relation controller, Factory, Strategy, or rule engine. DdcCatalogGateway is the one narrow external-boundary adapter; add no Tianshu catalog cache in this migration.
 - Preserve unrelated worktree changes, stage paths narrowly, and do not start services.
 
 ---
 
 ## Scope and file map
 
-This is one plan because the DDC read contract is required by Application scope admission, User Business authorization, effective-role calculation, and Admin Web selectors. Splitting it would create an incomplete authorization path.
+This is one plan because the Tianshu read contract is required by Application scope admission, User Business authorization, effective-role calculation, and Admin Web selectors. Splitting it would create an incomplete authorization path.
 
 | Area | Primary paths | Final responsibility |
 | --- | --- | --- |
-| DDC starter | egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc | Typed read-only catalog records and DdcManagementClient methods. |
-| DDC RPC adapter | egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter | Proto, generated contract, mapper, client, and catalog-read operation authorization. |
-| DDC provider | egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin | Serves catalog facts through existing DdcBizService and DdcAppService. |
+| Tianshu starter | egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu | Typed read-only catalog records and DdcManagementClient methods. |
+| Tianshu RPC adapter | egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter | Proto, generated contract, mapper, client, and catalog-read operation authorization. |
+| Tianshu provider | egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin | Serves catalog facts through existing DdcBizService and DdcAppService. |
 | RBAC database | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration | One V6 migration for scope IDs, Business grants, source fields, and manual memberships. |
-| RBAC IAM | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam | Moved domains: tenant, user, business, application, resource, permission, role, organization, position, policy. |
+| RBAC IAM | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam | Moved domains: tenant, user, business, application, resource, permission, role, organization, position, policy. |
 | RBAC UI | egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/iam | IAM routes, typed clients, CRUD, and authorization flows. |
-| DDC UI | egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BizsPage.tsx and AppsPage.tsx | The only Business/Application master-data CRUD UI. |
+| Tianshu UI | egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/BizsPage.tsx and AppsPage.tsx | The only Business/Application master-data CRUD UI. |
 
 ## Names and contracts locked by this plan
 
 ~~~java
-// DDC starter model package: top.egon.cola.component.tianshu.model.management
+// Tianshu starter model package: top.egon.cola.component.tianshu.model.management
 public record DdcManagementBiz(String id, String bizCode, String bizName, boolean enabled) {}
 public record DdcManagementApp(
         String id, String businessId, String bizCode,
@@ -78,25 +78,25 @@ public record ApplicationCatalogEntry(
 ~~~
 
 ~~~text
-GET  /api/rbac3/v1/iam/catalog/businesses
-GET  /api/rbac3/v1/iam/catalog/businesses/{ddcBusinessId}/applications
-POST /api/rbac3/v1/iam/applications:admit
-GET  /api/rbac3/v1/iam/applications
-GET  /api/rbac3/v1/iam/applications/{applicationId}
-PUT  /api/rbac3/v1/iam/applications/{applicationId}/status
-DELETE /api/rbac3/v1/iam/applications/{applicationId}
-GET  /api/rbac3/v1/iam/users/{userId}/business-accesses
-PUT  /api/rbac3/v1/iam/users/{userId}/business-accesses
-GET  /api/rbac3/v1/iam/users/{userId}/application-accesses
+GET  /api/tianquan-jianshen/v1/iam/catalog/businesses
+GET  /api/tianquan-jianshen/v1/iam/catalog/businesses/{ddcBusinessId}/applications
+POST /api/tianquan-jianshen/v1/iam/applications:admit
+GET  /api/tianquan-jianshen/v1/iam/applications
+GET  /api/tianquan-jianshen/v1/iam/applications/{applicationId}
+PUT  /api/tianquan-jianshen/v1/iam/applications/{applicationId}/status
+DELETE /api/tianquan-jianshen/v1/iam/applications/{applicationId}
+GET  /api/tianquan-jianshen/v1/iam/users/{userId}/business-accesses
+PUT  /api/tianquan-jianshen/v1/iam/users/{userId}/business-accesses
+GET  /api/tianquan-jianshen/v1/iam/users/{userId}/application-accesses
 ~~~
 
-### Task 1: Add the typed, read-only DDC catalog RPC contract
+### Task 1: Add the typed, read-only Tianshu catalog RPC contract
 
 **Files:**
 
-- Create: DdcManagementBiz.java, DdcManagementApp.java, DdcManagementBizLookup.java, DdcManagementBizQuery.java, and DdcManagementAppQuery.java under the DDC starter management model package.
-- Modify: DdcManagementClient.java in the DDC starter.
-- Modify: ddc_management.proto, DdcManagementRpc.java, RpcDdcManagementClient.java, DdcManagementProtoMapper.java, DdcRpcOperation.java, and DdcRpcOperationResolver.java in egon-cola-component-rpc-tianshu-adapter.
+- Create: DdcManagementBiz.java, DdcManagementApp.java, DdcManagementBizLookup.java, DdcManagementBizQuery.java, and DdcManagementAppQuery.java under the Tianshu starter management model package.
+- Modify: DdcManagementClient.java in the Tianshu starter.
+- Modify: tianshu_management.proto, DdcManagementRpc.java, RpcDdcManagementClient.java, DdcManagementProtoMapper.java, DdcRpcOperation.java, and DdcRpcOperationResolver.java in egon-cola-component-rpc-tianshu-adapter.
 - Test: DdcManagementProtoMapperTest.java, RpcDdcManagementClientTest.java, and DdcRpcContractDescriptorTest.java in the same adapter module.
 
 **Consumes:** Existing DdcManagementClient, DdcManagementRpc, mapper, and credential-scoped DdcRpcOperation infrastructure.
@@ -137,7 +137,7 @@ Expected: test compilation fails on the missing catalog records and methods.
 
 - [ ] **Step 3: Define the end-to-end read contract.**
 
-Add this service shape to ddc_management.proto:
+Add this service shape to tianshu_management.proto:
 
 ~~~proto
 rpc GetBiz(GetBizRequest) returns (GetBizResponse);
@@ -181,28 +181,28 @@ Expected: PASS.
 
 ~~~bash
 git add \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/api/client/DdcManagementClient.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/management/DdcManagementBiz.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/management/DdcManagementApp.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/management/DdcManagementBizLookup.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/management/DdcManagementBizQuery.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/model/management/DdcManagementAppQuery.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/api/client/DdcManagementClient.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/management/DdcManagementBiz.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/management/DdcManagementApp.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/management/DdcManagementBizLookup.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/management/DdcManagementBizQuery.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/model/management/DdcManagementAppQuery.java \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/main
 git add -p egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter/src/test
-git commit -m "feat(ddc-rpc): expose read-only business catalog"
+git commit -m "feat(tianshu-rpc): expose read-only business catalog"
 ~~~
 
-### Task 2: Serve the catalog from DDC without changing DDC REST CRUD ownership
+### Task 2: Serve the catalog from Tianshu without changing Tianshu REST CRUD ownership
 
 **Files:**
 
-- Modify: DdcManagementRpcProvider.java in the DDC Admin module.
-- Modify: DdcBizRepository.java, DdcAppRepository.java, DdcBizService.java, and DdcAppService.java in the DDC Admin module.
+- Modify: DdcManagementRpcProvider.java in the Tianshu Admin module.
+- Modify: DdcBizRepository.java, DdcAppRepository.java, DdcBizService.java, and DdcAppService.java in the Tianshu Admin module.
 - Test: DdcManagementRpcProviderTest.java, DdcBizControllerTest.java, and DdcAppControllerTest.java.
 
-**Consumes:** Task 1 generated proto/client types and the existing DDC master-data services.
+**Consumes:** Task 1 generated proto/client types and the existing Tianshu master-data services.
 
-**Produces:** Catalog facts from DdcBizService and DdcAppService. The REST ownership of /api/v1/ddc/bizs and /api/v1/ddc/apps does not change.
+**Produces:** Catalog facts from DdcBizService and DdcAppService. The REST ownership of /api/v1/tianshu/bizs and /api/v1/tianshu/apps does not change.
 
 - [ ] **Step 1: Add provider tests for immutable ID lookup, Business-filtered App listing, and parent status.**
 
@@ -221,7 +221,7 @@ void getAppIncludesParentBusinessIdentityAndStatus() {
 }
 ~~~
 
-- [ ] **Step 2: Run DDC provider/controller tests and confirm catalog methods are absent.**
+- [ ] **Step 2: Run Tianshu provider/controller tests and confirm catalog methods are absent.**
 
 ~~~bash
 mvn -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am \
@@ -244,14 +244,14 @@ public List<DdcBizEntity> list(String keyword, Boolean enabled);
 public List<DdcAppEntity> list(String bizCode, String keyword, Boolean enabled);
 ~~~
 
-DdcManagementRpcProvider.getApp loads the App by immutable DDC id, then its parent Business by the App's stored bizCode. It returns found=false if the App or its parent is missing. ListApps first resolves the selected Business and returns an empty list for a nonexistent selector. Every RPC method calls DdcServicePrincipal.current. No catalog method invokes save, update, delete, or setEnabled.
+DdcManagementRpcProvider.getApp loads the App by immutable Tianshu id, then its parent Business by the App's stored bizCode. It returns found=false if the App or its parent is missing. ListApps first resolves the selected Business and returns an empty list for a nonexistent selector. Every RPC method calls DdcServicePrincipal.current. No catalog method invokes save, update, delete, or setEnabled.
 
-- [ ] **Step 4: Preserve the DDC REST contract in controller tests.**
+- [ ] **Step 4: Preserve the Tianshu REST contract in controller tests.**
 
 ~~~java
-mockMvc.perform(post("/api/v1/ddc/bizs").contentType(APPLICATION_JSON).content(validBizJson))
+mockMvc.perform(post("/api/v1/tianshu/bizs").contentType(APPLICATION_JSON).content(validBizJson))
         .andExpect(status().isOk());
-mockMvc.perform(put("/api/v1/ddc/apps/{id}/enabled", "app-1")
+mockMvc.perform(put("/api/v1/tianshu/apps/{id}/enabled", "app-1")
         .contentType(APPLICATION_JSON).content(enabledJson))
         .andExpect(status().isOk());
 
@@ -261,19 +261,19 @@ verify(appService, never()).setEnabled(anyString(), anyBoolean());
 
 The never checks belong to a provider test; the controller test retains its existing write expectations.
 
-- [ ] **Step 5: Re-run the DDC suite and commit.**
+- [ ] **Step 5: Re-run the Tianshu suite and commit.**
 
 Expected: PASS.
 
 ~~~bash
 git add \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/rpc/provider/DdcManagementRpcProvider.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcManagementRpcProvider.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcBizRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAppRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcBizService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcAppService.java
 git add -p egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test
-git commit -m "feat(ddc): serve business catalog over management rpc"
+git commit -m "feat(tianshu): serve business catalog over management rpc"
 ~~~
 
 ### Task 3: Add the single RBAC V6 migration and persistence primitives
@@ -285,7 +285,7 @@ git commit -m "feat(ddc): serve business catalog over management rpc"
 - Create before the package move: UserBusinessAccessPO.java, UserOrganizationAssignmentPO.java, and UserPositionAssignmentPO.java.
 - Modify: Rbac3MigrationContractTest.java and Rbac3FlywayPostgresqlIT.java.
 
-**Consumes:** DDC's String ID type and the approved destructive-migration policy.
+**Consumes:** Tianshu's String ID type and the approved destructive-migration policy.
 
 **Produces:** Local Application scope external IDs, User Business grants, explicit directory sources, and manual Organization/Position membership persistence.
 
@@ -293,7 +293,7 @@ git commit -m "feat(ddc): serve business catalog over management rpc"
 
 ~~~java
 assertThat(listMigrationResources()).containsExactly(
-        MIGRATION, STRONG_AUTH_MIGRATION, IDP_MIGRATION,
+        MIGRATION, STRONG_AUTH_MIGRATION, TIANQUAN_SHOUBING_MIGRATION,
         TENANT_SESSION_MIGRATION, STATELESS_IDENTITY_MIGRATION,
         "db/migration/V6__adopt_ddc_business_application_authorization_scope.sql");
 
@@ -317,7 +317,7 @@ Expected: FAIL because V6 does not exist.
 
 - [ ] **Step 3: Implement V6 as the only new migration.**
 
-The migration starts with a clear clean-scope precondition: rbac3_application, rbac3_service_principal, rbac3_service_permission, rbac3_operation_sod_rule, and rbac3_business_participation must all be empty. Their existing values cannot be assigned trustworthy DDC external IDs without a legacy mapping source, so V6 refuses that state rather than inventing IDs. It does preserve existing Organization and Position rows by marking them DIRECTORY_SNAPSHOT.
+The migration starts with a clear clean-scope precondition: rbac3_application, rbac3_service_principal, rbac3_service_permission, rbac3_operation_sod_rule, and rbac3_business_participation must all be empty. Their existing values cannot be assigned trustworthy Tianshu external IDs without a legacy mapping source, so V6 refuses that state rather than inventing IDs. It does preserve existing Organization and Position rows by marking them DIRECTORY_SNAPSHOT.
 
 ~~~sql
 DO $$
@@ -327,7 +327,7 @@ BEGIN
        OR EXISTS (SELECT 1 FROM rbac3_service_permission)
        OR EXISTS (SELECT 1 FROM rbac3_operation_sod_rule)
        OR EXISTS (SELECT 1 FROM rbac3_business_participation) THEN
-        RAISE EXCEPTION 'RBAC3 V6 requires an empty legacy application authorization graph';
+        RAISE EXCEPTION 'Tianquan-Jianshen V6 requires an empty legacy application authorization graph';
     END IF;
 END $$;
 
@@ -456,7 +456,7 @@ public enum DirectorySourceTypeEnum { DIRECTORY_SNAPSHOT, MANUAL }
 public enum UserBusinessAccessStatusEnum { ACTIVE, SUSPENDED, REVOKED, EXPIRED }
 ~~~
 
-ApplicationPO exposes no request-driven setter for DDC code/name/Business ownership. OrgUnitPO and PositionPO expose source and reject manual lifecycle operations for DIRECTORY_SNAPSHOT.
+ApplicationPO exposes no request-driven setter for Tianshu code/name/Business ownership. OrgUnitPO and PositionPO expose source and reject manual lifecycle operations for DIRECTORY_SNAPSHOT.
 
 - [ ] **Step 5: Run schema tests and commit.**
 
@@ -465,21 +465,21 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
   -Dtest=Rbac3MigrationContractTest -Dsurefire.failIfNoSpecifiedTests=false test
 
 mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
-  -Drbac3-local-it -Dtest=Rbac3FlywayPostgresqlIT \
+  -Dtianquan-jianshen-local-it -Dtest=Rbac3FlywayPostgresqlIT \
   -Dsurefire.failIfNoSpecifiedTests=false verify
 ~~~
 
-Expected: first command passes. The PostgreSQL test passes when RBAC3_IT_POSTGRES variables are configured and otherwise reports skipped.
+Expected: first command passes. The PostgreSQL test passes when TIANQUAN_JIANSHEN_IT_POSTGRES variables are configured and otherwise reports skipped.
 
 ~~~bash
 git add \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V6__adopt_ddc_business_application_authorization_scope.sql \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/resource/domain/po/ApplicationPO.java \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/po/OrgUnitPO.java \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/directory/domain/po/PositionPO.java
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/repository
-git commit -m "feat(rbac3): add iam authorization scope schema"
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/resource/domain/po/ApplicationPO.java \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/directory/domain/po/OrgUnitPO.java \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/directory/domain/po/PositionPO.java
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/repository
+git commit -m "feat(tianquan-jianshen): add iam authorization scope schema"
 ~~~
 
 ### Task 4: Move the existing IAM implementation into the final Java package tree
@@ -503,8 +503,8 @@ git commit -m "feat(rbac3): add iam authorization scope schema"
 - [ ] **Step 1: Add failing architecture assertions for final roots and absent old roots.**
 
 ~~~java
-assertThat(sourceTree("top/egon/cola/platform/rbac3/admin/iam/user")).exists();
-assertThat(sourceTree("top/egon/cola/platform/rbac3/admin/identity")).doesNotExist();
+assertThat(sourceTree("top/egon/cola/platform/tianquan-jianshen/admin/iam/user")).exists();
+assertThat(sourceTree("top/egon/cola/platform/tianquan-jianshen/admin/identity")).doesNotExist();
 assertThat(allProductionImports()).noneMatch(value -> value.contains(".admin.constraint."));
 assertThat(allProductionImports()).noneMatch(value -> value.contains(".admin.directory."));
 ~~~
@@ -545,10 +545,10 @@ Expected: PASS; the existing application scan still covers admin/iam.
 ~~~bash
 git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java
-git commit -m "refactor(rbac3): move management domains under iam"
+git commit -m "refactor(tianquan-jianshen): move management domains under iam"
 ~~~
 
-### Task 5: Implement DDC-backed Business catalog reads and local Application authorization scopes
+### Task 5: Implement Tianshu-backed Business catalog reads and local Application authorization scopes
 
 **Files:**
 
@@ -561,30 +561,30 @@ git commit -m "refactor(rbac3): move management domains under iam"
 - Modify: admin/config/runtime/Rbac3ApplicationConfiguration.java.
 - Test: RpcDdcCatalogGatewayTest.java, ApplicationScopeFacadeTest.java, BusinessCatalogControllerTest.java, and ApplicationControllerTest.java in their new IAM packages.
 
-**Consumes:** Task 1 DdcManagementClient methods and Task 3 ApplicationPO DDC IDs.
+**Consumes:** Task 1 DdcManagementClient methods and Task 3 ApplicationPO Tianshu IDs.
 
-**Produces:** RBAC-owned scope admission/status/removal and DDC-backed read endpoints. No RBAC controller/repository writes to DDC.
+**Produces:** RBAC-owned scope admission/status/removal and Tianshu-backed read endpoints. No RBAC controller/repository writes to Tianshu.
 
-- [ ] **Step 1: Add failing gateway/facade tests.**
+- [ ] **Step 1: Add failing yuheng/facade tests.**
 
 ~~~java
 @Test
 void admitLoadsDirectoryFactsFromDdcRatherThanTheRequest() {
-    when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(
-            new ApplicationCatalogEntry("ddc-app-1", "ddc-biz-1", "orders",
+    when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(
+            new ApplicationCatalogEntry("tianshu-app-1", "tianshu-biz-1", "orders",
                     "console", "Console", true, true)));
 
     ApplicationAuthorizationScopeVO scope = facade.admit(tenantId, actorId,
-            new AdmitApplicationAuthorizationScopeCommand("ddc-app-1", 100));
+            new AdmitApplicationAuthorizationScopeCommand("tianshu-app-1", 100));
 
-    assertThat(scope.ddcBusinessId()).isEqualTo("ddc-biz-1");
+    assertThat(scope.ddcBusinessId()).isEqualTo("tianshu-biz-1");
     assertThat(scope.applicationCode()).isEqualTo("console");
 }
 
 @Test
 void rejectsAdmissionWhenAParentOrApplicationIsDisabled() {
-    when(catalog.findApplication("ddc-app-1")).thenReturn(Optional.of(
-            new ApplicationCatalogEntry("ddc-app-1", "ddc-biz-1", "orders",
+    when(catalog.findApplication("tianshu-app-1")).thenReturn(Optional.of(
+            new ApplicationCatalogEntry("tianshu-app-1", "tianshu-biz-1", "orders",
                     "console", "Console", true, false)));
 
     assertThatThrownBy(() -> facade.admit(tenantId, actorId, command))
@@ -600,7 +600,7 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
 
-- [ ] **Step 3: Implement one DDC boundary and scope lifecycle.**
+- [ ] **Step 3: Implement one Tianshu boundary and scope lifecycle.**
 
 ~~~java
 public final class RpcDdcCatalogGateway implements DdcCatalogGateway {
@@ -621,7 +621,7 @@ public ApplicationAuthorizationScopeVO admit(
 
 Register one closeable DdcRpcClientHandle<DdcManagementClient> in Rbac3ApplicationConfiguration, inject its client into RpcDdcCatalogGateway, and close it when the bean is destroyed. Never construct a client for each HTTP request.
 
-POST applications:admit accepts only ddcApplicationId and displayPriority. It obtains parent ID, codes, names, and status from DDC. GET catalog routes only filter/read DDC data.
+POST applications:admit accepts only ddcApplicationId and displayPriority. It obtains parent ID, codes, names, and status from Tianshu. GET catalog routes only filter/read Tianshu data.
 
 - [ ] **Step 4: Add status/removal rules and mappings.**
 
@@ -644,15 +644,15 @@ ApiEnvelopeVO<Void> remove(
         Authentication authentication)
 ~~~
 
-Removal is tenant-scoped and rejects a scope with Role, Permission, Resource, Manifest, Service Principal, or authorization dependencies. It only removes a dependency-free local scope and never invokes DDC write APIs.
+Removal is tenant-scoped and rejects a scope with Role, Permission, Resource, Manifest, Service Principal, or authorization dependencies. It only removes a dependency-free local scope and never invokes Tianshu write APIs.
 
 - [ ] **Step 5: Re-run focused tests and commit.**
 
 ~~~bash
-git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/config/runtime/Rbac3ApplicationConfiguration.java \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam
-git commit -m "feat(rbac3): add ddc-backed application authorization scopes"
+git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/config/runtime/Rbac3ApplicationConfiguration.java \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/iam
+git commit -m "feat(tianquan-jianshen): add tianshu-backed application authorization scopes"
 ~~~
 
 ### Task 6: Add User Business grants and gate effective roles through the approved chain
@@ -712,7 +712,7 @@ public List<UserBusinessAccessVO> replace(
 }
 ~~~
 
-Items contain ddcBusinessId, status, validFrom, validTo, reason, ticketNo, and expectedVersion; they do not contain editable DDC code/name. The repository replaces MANUAL source records only and preserves other source types. The response gets display fields through DdcCatalogGateway.
+Items contain ddcBusinessId, status, validFrom, validTo, reason, ticketNo, and expectedVersion; they do not contain editable Tianshu code/name. The repository replaces MANUAL source records only and preserves other source types. The response gets display fields through DdcCatalogGateway.
 
 - [ ] **Step 4: Centralize and use the role eligibility rule.**
 
@@ -725,16 +725,16 @@ boolean isEffective(RoleFact role, Long tenantId, Long userId, Instant at) {
 }
 ~~~
 
-Grant-time validation rejects a missing/disabled DDC App or Business, inactive local Application scope, or missing effective Business grant. Projection-time evaluation filters the role without deleting its assignment. Apply it to User role assign/replace, active-role candidates/revalidation, JpaRoleActivationFactRepository consumer flow, UserAuthorizationSnapshotProjector, and AuthorizationDecisionService. If RPC fails, output no eligible Application context.
+Grant-time validation rejects a missing/disabled Tianshu App or Business, inactive local Application scope, or missing effective Business grant. Projection-time evaluation filters the role without deleting its assignment. Apply it to User role assign/replace, active-role candidates/revalidation, JpaRoleActivationFactRepository consumer flow, UserAuthorizationSnapshotProjector, and AuthorizationDecisionService. If RPC fails, output no eligible Application context.
 
 Add only these views; do not create a UserApplicationAccess persistence table:
 
 ~~~text
-GET/PUT /api/rbac3/v1/iam/users/{userId}/business-accesses
-GET     /api/rbac3/v1/iam/users/{userId}/application-accesses
-GET     /api/rbac3/v1/iam/users/{userId}/roles
-GET     /api/rbac3/v1/iam/users/{userId}/effective-roles
-GET     /api/rbac3/v1/iam/users/{userId}/access-profile
+GET/PUT /api/tianquan-jianshen/v1/iam/users/{userId}/business-accesses
+GET     /api/tianquan-jianshen/v1/iam/users/{userId}/application-accesses
+GET     /api/tianquan-jianshen/v1/iam/users/{userId}/roles
+GET     /api/tianquan-jianshen/v1/iam/users/{userId}/effective-roles
+GET     /api/tianquan-jianshen/v1/iam/users/{userId}/access-profile
 ~~~
 
 - [ ] **Step 5: Add semantic User Role mappings, re-run tests, and commit.**
@@ -745,12 +745,12 @@ Expose POST/PUT users/{userId}/roles, DELETE users/{userId}/roles/{roleId}, and 
 mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=UserBusinessAccessFacadeTest,RoleEligibilityServiceTest,RoleActivationCandidateServiceTest,AssignmentFacadeTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/business \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin
-git commit -m "feat(rbac3): gate role access by business authorization"
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/business \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/role \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/authorization
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin
+git commit -m "feat(tianquan-jianshen): gate role access by business authorization"
 ~~~
 
 ### Task 7: Implement Organization/Position source ownership, manual memberships, and automatic roles
@@ -826,11 +826,11 @@ DirectorySnapshotMaterializer creates/updates only DIRECTORY_SNAPSHOT rows and n
 mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=OrganizationFacadeTest,PositionFacadeTest,PositionAutoRoleRecalculatorTest,DirectorySnapshotProcessorTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/organization \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/position \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role/assignment
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam
-git commit -m "feat(rbac3): add iam organization and position administration"
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/organization \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/position \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/role/assignment
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/iam
+git commit -m "feat(tianquan-jianshen): add iam organization and position administration"
 ~~~
 
 ### Task 8: Complete Tenant, User, Resource, Permission, Role, and Policy IAM APIs
@@ -867,9 +867,9 @@ void roleInheritanceRejectsDifferentLocalApplicationIds() {
 @Test
 void userCrudMaintainsOnlyRbacMembershipAndIdentitySub() {
     UserView created = users.create(platformTenantId,
-            new CreateUserCommand("idp-sub-1", UserStatusEnum.ACTIVE), actorId);
+            new CreateUserCommand("tianquan-shoubing-sub-1", UserStatusEnum.ACTIVE), actorId);
 
-    assertThat(created.identitySub()).isEqualTo("idp-sub-1");
+    assertThat(created.identitySub()).isEqualTo("tianquan-shoubing-sub-1");
     assertThat(created).hasNoNullFieldsOrPropertiesExcept("archivedAt");
 }
 ~~~
@@ -885,26 +885,26 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 - [ ] **Step 3: Implement target CRUD routes with tenant and local Application checks.**
 
 ~~~text
-POST/GET       /api/rbac3/v1/iam/tenants
-GET/PUT/DELETE /api/rbac3/v1/iam/tenants/{tenantId}
-PUT            /api/rbac3/v1/iam/tenants/{tenantId}/status
-POST/GET       /api/rbac3/v1/iam/users
-GET/PUT/DELETE /api/rbac3/v1/iam/users/{userId}
-PUT            /api/rbac3/v1/iam/users/{userId}/status
-POST/GET       /api/rbac3/v1/iam/resources
-GET/PUT/DELETE /api/rbac3/v1/iam/resources/{resourceId}
-PUT            /api/rbac3/v1/iam/resources/{resourceId}/status
-GET/POST       /api/rbac3/v1/iam/resources/{resourceId}/fields
-GET/PUT/DELETE /api/rbac3/v1/iam/fields/{fieldId}
-POST/GET       /api/rbac3/v1/iam/permissions
-GET/PUT/DELETE /api/rbac3/v1/iam/permissions/{permissionId}
-POST/GET       /api/rbac3/v1/iam/roles
-GET/PUT/DELETE /api/rbac3/v1/iam/roles/{roleId}
-POST/GET       /api/rbac3/v1/iam/policies/data-rules
-POST/GET       /api/rbac3/v1/iam/policies/field-rules
+POST/GET       /api/tianquan-jianshen/v1/iam/tenants
+GET/PUT/DELETE /api/tianquan-jianshen/v1/iam/tenants/{tenantId}
+PUT            /api/tianquan-jianshen/v1/iam/tenants/{tenantId}/status
+POST/GET       /api/tianquan-jianshen/v1/iam/users
+GET/PUT/DELETE /api/tianquan-jianshen/v1/iam/users/{userId}
+PUT            /api/tianquan-jianshen/v1/iam/users/{userId}/status
+POST/GET       /api/tianquan-jianshen/v1/iam/resources
+GET/PUT/DELETE /api/tianquan-jianshen/v1/iam/resources/{resourceId}
+PUT            /api/tianquan-jianshen/v1/iam/resources/{resourceId}/status
+GET/POST       /api/tianquan-jianshen/v1/iam/resources/{resourceId}/fields
+GET/PUT/DELETE /api/tianquan-jianshen/v1/iam/fields/{fieldId}
+POST/GET       /api/tianquan-jianshen/v1/iam/permissions
+GET/PUT/DELETE /api/tianquan-jianshen/v1/iam/permissions/{permissionId}
+POST/GET       /api/tianquan-jianshen/v1/iam/roles
+GET/PUT/DELETE /api/tianquan-jianshen/v1/iam/roles/{roleId}
+POST/GET       /api/tianquan-jianshen/v1/iam/policies/data-rules
+POST/GET       /api/tianquan-jianshen/v1/iam/policies/field-rules
 ~~~
 
-Tenant management retains the existing platform-administrator target-tenant semantics. User CRUD creates only the RBAC tenant membership and identitySub binding; it never calls IdP, creates a password, or renders profile fields that RBAC does not own. Controllers receive a command/query and tenant context only. Services load the target in the current tenant and validate shared local applicationId. Resource and Field source derives from sourceManifestId; MANIFEST records reject normal edit/delete.
+Tenant management retains the existing xingyuan-administrator target-tenant semantics. User CRUD creates only the RBAC tenant membership and identitySub binding; it never calls Tianquan-Shoubing, creates a password, or renders profile fields that RBAC does not own. Controllers receive a command/query and tenant context only. Services load the target in the current tenant and validate shared local applicationId. Resource and Field source derives from sourceManifestId; MANIFEST records reject normal edit/delete.
 
 - [ ] **Step 4: Implement only semantic relationship operations.**
 
@@ -933,21 +933,21 @@ Add direct/effective Role permission reads, parent/child inheritance, Role polic
 mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin -am \
   -Dtest=IamTenantControllerTest,UserControllerTest,ApplicationResourceFacadeTest,ManifestFacadeIT,RoleControlFacadeTest,ConstraintFacadeTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/resource \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/permission \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/role \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam/policy
-git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/iam
-git commit -m "feat(rbac3): expose iam resource role and policy APIs"
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/resource \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/permission \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/role \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam/policy
+git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/iam
+git commit -m "feat(tianquan-jianshen): expose iam resource role and policy APIs"
 ~~~
 
-### Task 9: Move Controller URI, Gateway/Manifest declarations, and internal consumers atomically
+### Task 9: Move Controller URI, Yuheng/Manifest declarations, and internal consumers atomically
 
 **Files:**
 
 - Modify all IAM controllers under admin/iam.
 - Modify RBAC bootstrap, security declaration sources, participation, authorization, and contract consumers.
-- Modify Gateway/Manifest fixtures under the RBAC Admin test resources contracts directory.
+- Modify Yuheng/Manifest fixtures under the RBAC Admin test resources contracts directory.
 - Test all RBAC controller mapping/discovery tests, BootstrapQueryServiceTest.java, and route-related manifest tests.
 
 **Consumes:** Tasks 4 through 8.
@@ -958,11 +958,11 @@ git commit -m "feat(rbac3): expose iam resource role and policy APIs"
 
 ~~~java
 assertThat(controllerMappings()).contains(
-        "/api/rbac3/v1/iam/users",
-        "/api/rbac3/v1/iam/roles",
-        "/api/rbac3/v1/iam/internal/resource-manifests",
+        "/api/tianquan-jianshen/v1/iam/users",
+        "/api/tianquan-jianshen/v1/iam/roles",
+        "/api/tianquan-jianshen/v1/iam/internal/resource-manifests",
         "/internal/v1/iam/users/{identitySub}/tenants");
-assertThat(controllerMappings()).noneMatch(path -> path.startsWith("/api/rbac3/v1/users"));
+assertThat(controllerMappings()).noneMatch(path -> path.startsWith("/api/tianquan-jianshen/v1/users"));
 assertThat(controllerMappings()).noneMatch(path -> path.startsWith("/internal/v1/identity"));
 ~~~
 
@@ -977,27 +977,27 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 - [ ] **Step 3: Apply this exact old-to-new URI map.**
 
 ~~~text
-/api/rbac3/v1/platform/tenants -> /api/rbac3/v1/iam/tenants
-/api/rbac3/v1/users            -> /api/rbac3/v1/iam/users
+/api/tianquan-jianshen/v1/xingyuan/tenants -> /api/tianquan-jianshen/v1/iam/tenants
+/api/tianquan-jianshen/v1/users            -> /api/tianquan-jianshen/v1/iam/users
 /internal/v1/identity           -> /internal/v1/iam/users
-/api/rbac3/v1/roles            -> /api/rbac3/v1/iam/roles
-/api/rbac3/v1/applications     -> /api/rbac3/v1/iam/applications
-/api/rbac3/v1/org-units        -> /api/rbac3/v1/iam/organizations
-/api/rbac3/v1/positions        -> /api/rbac3/v1/iam/positions
-/api/rbac3/v1/data-rules       -> /api/rbac3/v1/iam/policies/data-rules
-/api/rbac3/v1/field-rules      -> /api/rbac3/v1/iam/policies/field-rules
-/api/rbac3/v1/auth             -> /api/rbac3/v1/iam/users/me
-/api/rbac3/v1/internal         -> /api/rbac3/v1/iam/internal
+/api/tianquan-jianshen/v1/roles            -> /api/tianquan-jianshen/v1/iam/roles
+/api/tianquan-jianshen/v1/applications     -> /api/tianquan-jianshen/v1/iam/applications
+/api/tianquan-jianshen/v1/org-units        -> /api/tianquan-jianshen/v1/iam/organizations
+/api/tianquan-jianshen/v1/positions        -> /api/tianquan-jianshen/v1/iam/positions
+/api/tianquan-jianshen/v1/data-rules       -> /api/tianquan-jianshen/v1/iam/policies/data-rules
+/api/tianquan-jianshen/v1/field-rules      -> /api/tianquan-jianshen/v1/iam/policies/field-rules
+/api/tianquan-jianshen/v1/auth             -> /api/tianquan-jianshen/v1/iam/users/me
+/api/tianquan-jianshen/v1/internal         -> /api/tianquan-jianshen/v1/iam/internal
 ~~~
 
-Do not change DDC /api/v1/ddc/bizs or /api/v1/ddc/apps. Update GatewayOperation, Resource Manifest, permission declarations, controller mapping tests, and the applicationId-based Service Principal/Operation SOD/BusinessParticipation consumers in the same change.
+Do not change Tianshu /api/v1/tianshu/bizs or /api/v1/tianshu/apps. Update GatewayOperation, Resource Manifest, permission declarations, controller mapping tests, and the applicationId-based Service Principal/Operation SOD/BusinessParticipation consumers in the same change.
 
 - [ ] **Step 4: Add and run cleanup scans.**
 
 ~~~bash
-rg -n '/api/rbac3/v1/(platform/tenants|users|roles|applications|auth)' \
+rg -n '/api/tianquan-jianshen/v1/(xingyuan/tenants|users|roles|applications|auth)' \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen -g '!docs/**' -g '!db/migration/**'
-rg -n 'top\.egon\.cola\.platform\.rbac3\.admin\.(identity|directory|constraint|assignment|activation|resource)' \
+rg -n 'top\.egon\.cola\.xingyuan\.tianquan-jianshen\.admin\.(identity|directory|constraint|assignment|activation|resource)' \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen -g '!docs/**'
 ~~~
 
@@ -1007,14 +1007,14 @@ Expected: no source hit. Historical documentation and old migrations are exclude
 
 ~~~bash
 git add -p \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/iam \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/{authorization,bootstrap,config,participation,runtime} \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/iam \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/{authorization,bootstrap,config,participation,runtime} \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test
-git commit -m "refactor(rbac3): move management APIs to iam routes"
+git commit -m "refactor(tianquan-jianshen): move management APIs to iam routes"
 ~~~
 
-### Task 10: Move RBAC3 Admin Web structure, routes, and typed API clients
+### Task 10: Move Tianquan-Jianshen Admin Web structure, routes, and typed API clients
 
 **Files:**
 
@@ -1043,7 +1043,7 @@ expect(applicationRouteDescriptors.map((route) => route.path)).toEqual(expect.ar
 
 await api.businesses("order");
 expect(client.request).toHaveBeenCalledWith(
-  "/api/rbac3/v1/iam/catalog/businesses", expect.anything());
+  "/api/tianquan-jianshen/v1/iam/catalog/businesses", expect.anything());
 ~~~
 
 - [ ] **Step 2: Run target UI tests and typecheck.**
@@ -1062,30 +1062,30 @@ Keep shared/FeatureApi.tsx, adminApiClient.ts, authentication, and query infrast
 
 ~~~ts
 const tenantRequest = targetTenantId === null
-  || !path.startsWith("/api/rbac3/v1/iam/tenants")
+  || !path.startsWith("/api/tianquan-jianshen/v1/iam/tenants")
   ? request
   : Object.assign({}, request, {
       headers: Object.assign({}, request.headers, {
-        "X-RBAC3-Target-Tenant": targetTenantId,
+        "X-Tianquan-Jianshen-Target-Tenant": targetTenantId,
       }),
     })
 ~~~
 
 Remove old /directory, /applications, /roles, /constraints, /authorization/assignments, and /authorization/role-activation routes. Do not add React Router redirects.
 
-- [ ] **Step 4: Implement a read-only DDC catalog client/page.**
+- [ ] **Step 4: Implement a read-only Tianshu catalog client/page.**
 
 ~~~ts
 export const businessApi = (client: FeatureApiClient) => ({
   businesses: (keyword?: string) => client.request<readonly BusinessCatalogView[]>(
-    "/api/rbac3/v1/iam/catalog/businesses", { query: { keyword } }),
+    "/api/tianquan-jianshen/v1/iam/catalog/businesses", { query: { keyword } }),
   applications: (ddcBusinessId: string, keyword?: string) => client.request<readonly CatalogApplicationView[]>(
-    "/api/rbac3/v1/iam/catalog/businesses/" + encodeURIComponent(ddcBusinessId) + "/applications",
+    "/api/tianquan-jianshen/v1/iam/catalog/businesses/" + encodeURIComponent(ddcBusinessId) + "/applications",
     { query: { keyword } }),
 })
 ~~~
 
-BusinessCatalogPage displays Business/App facts and feeds selectors only. It has no create/edit/delete/enabled control and no DDC Admin client import.
+BusinessCatalogPage displays Business/App facts and feeds selectors only. It has no create/edit/delete/enabled control and no Tianshu Admin client import.
 
 - [ ] **Step 5: Re-run tests/typecheck and commit.**
 
@@ -1097,7 +1097,7 @@ git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jia
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/authorization.routes.tsx \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/shared/FeatureApi.tsx \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx
-git commit -m "refactor(rbac3-web): move administration features under iam"
+git commit -m "refactor(tianquan-jianshen-web): move administration features under iam"
 ~~~
 
 ### Task 11: Implement RBAC Admin Web Business/Application/User authorization flows
@@ -1118,13 +1118,13 @@ git commit -m "refactor(rbac3-web): move administration features under iam"
 
 ~~~tsx
 await user.click(screen.getByRole("button", {name: "接纳应用"}));
-expect(request).toHaveBeenCalledWith("/api/rbac3/v1/iam/applications:admit", expect.objectContaining({
+expect(request).toHaveBeenCalledWith("/api/tianquan-jianshen/v1/iam/applications:admit", expect.objectContaining({
   method: "POST", body: {ddcApplicationId: "app-1", displayPriority: 100},
 }));
 expect(screen.queryByRole("button", {name: "新建业务域"})).not.toBeInTheDocument();
 
 await user.click(screen.getByRole("button", {name: "保存业务域授权"}));
-expect(request).toHaveBeenCalledWith("/api/rbac3/v1/iam/users/u-1/business-accesses",
+expect(request).toHaveBeenCalledWith("/api/tianquan-jianshen/v1/iam/users/u-1/business-accesses",
   expect.objectContaining({method: "PUT"}));
 ~~~
 
@@ -1135,31 +1135,31 @@ cd egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-ad
 npm run test -- src/features/iam/business src/features/iam/application src/features/iam/user
 ~~~
 
-- [ ] **Step 3: Build Application scope controls around DDC selectors.**
+- [ ] **Step 3: Build Application scope controls around Tianshu selectors.**
 
 ~~~ts
 export const applicationApi = (client: FeatureApiClient) => ({
   admit: (command: AdmitApplicationScopeCommand) => client.request<ApplicationScopeView>(
-    "/api/rbac3/v1/iam/applications:admit", {method: "POST", body: command}),
+    "/api/tianquan-jianshen/v1/iam/applications:admit", {method: "POST", body: command}),
   changeStatus: (id: string, command: StatusCommand) => client.request<ApplicationScopeView>(
-    "/api/rbac3/v1/iam/applications/" + encodeURIComponent(id) + "/status",
+    "/api/tianquan-jianshen/v1/iam/applications/" + encodeURIComponent(id) + "/status",
     {method: "PUT", body: command}),
   remove: (id: string, expectedVersion: number) => client.request<void>(
-    "/api/rbac3/v1/iam/applications/" + encodeURIComponent(id),
+    "/api/tianquan-jianshen/v1/iam/applications/" + encodeURIComponent(id),
     {method: "DELETE", body: {expectedVersion}}),
 })
 ~~~
 
-The form submits only ddcApplicationId and local displayPriority. It displays Business/App IDs, codes, names, and source status read-only; it contains no DDC master-data action.
+The form submits only ddcApplicationId and local displayPriority. It displays Business/App IDs, codes, names, and source status read-only; it contains no Tianshu master-data action.
 
 - [ ] **Step 4: Build User flows on query views and atomic replace APIs.**
 
 ~~~ts
 replaceBusinessAccesses: (userId, command) => client.request(
-  "/api/rbac3/v1/iam/users/" + encodeURIComponent(userId) + "/business-accesses",
+  "/api/tianquan-jianshen/v1/iam/users/" + encodeURIComponent(userId) + "/business-accesses",
   {method: "PUT", body: command}),
 replaceRoles: (userId, command) => client.request(
-  "/api/rbac3/v1/iam/users/" + encodeURIComponent(userId) + "/roles",
+  "/api/tianquan-jianshen/v1/iam/users/" + encodeURIComponent(userId) + "/roles",
   {method: "PUT", body: command}),
 ~~~
 
@@ -1171,7 +1171,7 @@ Show only roles for granted Businesses and admitted scopes returned by the backe
 npm run test -- src/features/iam/business src/features/iam/application src/features/iam/user
 npm run typecheck
 git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/iam
-git commit -m "feat(rbac3-web): add iam business and application authorization flows"
+git commit -m "feat(tianquan-jianshen-web): add iam business and application authorization flows"
 ~~~
 
 ### Task 12: Complete remaining IAM pages and execute cross-module verification
@@ -1180,12 +1180,12 @@ git commit -m "feat(rbac3-web): add iam business and application authorization f
 
 - Modify/create: RBAC Admin Web src/features/iam/resource, permission, role, organization, position, and policy.
 - Test: ResourcePages.test.tsx, RolePages.test.tsx, OrganizationPages.test.tsx, PositionPages.test.tsx, and PolicyPages.test.tsx in those IAM directories.
-- Verify: DDC Admin Web BizsPage.tsx and AppsPage.tsx without adding RBAC controls.
+- Verify: Tianshu Admin Web BizsPage.tsx and AppsPage.tsx without adding RBAC controls.
 - Update only with actual results: egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/verification-evidence-template.md.
 
 **Consumes:** Tasks 7 through 11.
 
-**Produces:** Remaining CRUD/semantic editors and real verification evidence across RPC, DDC, RBAC, and both Admin Web applications.
+**Produces:** Remaining CRUD/semantic editors and real verification evidence across RPC, Tianshu, RBAC, and both Admin Web applications.
 
 - [ ] **Step 1: Add failing UI tests for protected sources and typed relation selectors.**
 
@@ -1202,13 +1202,13 @@ Use typed API clients for Task 8 routes. Every relationship editor sends one sem
 
 ~~~ts
 replaceRolePermissions: (roleId, command) => client.request(
-  "/api/rbac3/v1/iam/roles/" + encodeURIComponent(roleId) + "/permissions",
+  "/api/tianquan-jianshen/v1/iam/roles/" + encodeURIComponent(roleId) + "/permissions",
   {method: "PUT", body: command}),
 replacePermissionResources: (permissionId, command) => client.request(
-  "/api/rbac3/v1/iam/permissions/" + encodeURIComponent(permissionId) + "/resources",
+  "/api/tianquan-jianshen/v1/iam/permissions/" + encodeURIComponent(permissionId) + "/resources",
   {method: "PUT", body: command}),
 moveOrganization: (orgId, command) => client.request(
-  "/api/rbac3/v1/iam/organizations/" + encodeURIComponent(orgId) + "/move",
+  "/api/tianquan-jianshen/v1/iam/organizations/" + encodeURIComponent(orgId) + "/move",
   {method: "POST", body: command}),
 ~~~
 
@@ -1225,7 +1225,7 @@ npm run build
 
 Expected: PASS.
 
-- [ ] **Step 4: Run DDC RPC, DDC Admin, and RBAC Admin tests.**
+- [ ] **Step 4: Run Tianshu RPC, Tianshu Admin, and RBAC Admin tests.**
 
 ~~~bash
 mvn -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter -am \
@@ -1243,7 +1243,7 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 
 Expected: PASS.
 
-- [ ] **Step 5: Verify DDC UI boundary and run final cleanup scans.**
+- [ ] **Step 5: Verify Tianshu UI boundary and run final cleanup scans.**
 
 ~~~bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
@@ -1251,22 +1251,22 @@ npm run test
 npm run typecheck
 npm run build
 
-rg -n '/api/rbac3/v1/(platform/tenants|users|roles|applications|auth)' \
+rg -n '/api/tianquan-jianshen/v1/(xingyuan/tenants|users|roles|applications|auth)' \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen -g '!docs/**' -g '!db/migration/**'
 rg -n 'admin\.(identity|directory|constraint|assignment|activation|resource)' \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src -g '*.java'
-rg -n '/api/rbac3/v1/iam/.+(bizs|apps)' \
+rg -n '/api/tianquan-jianshen/v1/iam/.+(bizs|apps)' \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen -g '!docs/**'
 ~~~
 
-Expected: tests pass and scans produce no output. The scans deliberately allow DDC's valid /api/v1/ddc/bizs and /api/v1/ddc/apps routes.
+Expected: tests pass and scans produce no output. The scans deliberately allow Tianshu's valid /api/v1/tianshu/bizs and /api/v1/tianshu/apps routes.
 
 - [ ] **Step 6: Record actual evidence and commit the UI/verification closure.**
 
 ~~~bash
 git add -p egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/iam \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/verification-evidence-template.md
-git commit -m "feat(rbac3-web): complete iam administration pages"
+git commit -m "feat(tianquan-jianshen-web): complete iam administration pages"
 ~~~
 
 If the evidence template does not change, stage only the UI files. Do not create an empty documentation commit.
@@ -1275,27 +1275,27 @@ If the evidence template does not change, stage only the UI files. Do not create
 
 | Spec requirement | Covered by |
 | --- | --- |
-| DDC owns Biz/App master-data CRUD and RBAC receives only catalog reads | Tasks 1, 2, 5, 10, and 12 |
+| Tianshu owns Biz/App master-data CRUD and RBAC receives only catalog reads | Tasks 1, 2, 5, 10, and 12 |
 | One V6 migration, local Application IDs, Business grants, and manual directory relations | Task 3 |
 | Full IAM package rename and no old-package compatibility wrappers | Task 4 and Task 9 scans |
 | User Business grant is the only Business authorization fact; Application authorization is role-derived | Task 6 |
 | Active roles exclude inactive/ineligible roles from the authorization context | Task 6 |
 | Manual Organization/Position and auto-role behavior remain separate from snapshot records | Task 7 |
 | RBAC-owned CRUD, semantic relationships, MANIFEST restrictions, and policy scope limits | Task 8 |
-| New public/internal URI roots, Gateway/Manifest alignment, and applicationId-based consumers | Task 9 |
-| RBAC IAM routes/pages and DDC Admin CRUD boundary | Tasks 10, 11, and 12 |
+| New public/internal URI roots, Yuheng/Manifest alignment, and applicationId-based consumers | Task 9 |
+| RBAC IAM routes/pages and Tianshu Admin CRUD boundary | Tasks 10, 11, and 12 |
 | Backend, RPC, both UIs, migration, architecture, and cleanup verification | Task 12 |
 
-Review result: the plan does not add IdP/JWT/Session work, DDC write RPCs, a duplicate UserApplicationAccess model, FIELD ResourceType, automatic field/data enforcement, or a generic rule/relation abstraction.
+Review result: the plan does not add Tianquan-Shoubing/JWT/Session work, Tianshu write RPCs, a duplicate UserApplicationAccess model, FIELD ResourceType, automatic field/data enforcement, or a generic rule/relation abstraction.
 
 ## Final acceptance checklist
 
-- [ ] DDC is the sole Business/Application master-data writer; its REST APIs and BizsPage/AppsPage remain the only master-data CRUD surface.
-- [ ] RBAC reads the DDC catalog only through DdcManagementClient and DDC Management RPC. RBAC does not read DDC tables or write DDC data.
-- [ ] ApplicationPO is a tenant-local RBAC scope with DDC external IDs. Code-only RBAC Application relationships are gone.
+- [ ] Tianshu is the sole Business/Application master-data writer; its REST APIs and BizsPage/AppsPage remain the only master-data CRUD surface.
+- [ ] RBAC reads the Tianshu catalog only through DdcManagementClient and Tianshu Management RPC. RBAC does not read Tianshu tables or write Tianshu data.
+- [ ] ApplicationPO is a tenant-local RBAC scope with Tianshu external IDs. Code-only RBAC Application relationships are gone.
 - [ ] UserBusinessAccess exists and UserApplicationAccess does not. Application authorization remains role-derived.
 - [ ] Revoking Business access preserves direct role records but removes effective roles, active candidates, and permission context after authVersion/projection invalidation.
-- [ ] IAM package roots, REST routes, internal routes, Gateway/Manifest declarations, API clients, and Web routes are migrated with no compatibility aliases.
+- [ ] IAM package roots, REST routes, internal routes, Yuheng/Manifest declarations, API clients, and Web routes are migrated with no compatibility aliases.
 - [ ] Manual Organization/Position/membership flows do not mutate snapshot-owned records.
 - [ ] MANIFEST Resource/Field data cannot be overwritten by normal CRUD; policy screens make no automatic data/field enforcement claim.
-- [ ] DDC RPC, backend, RBAC Web, and DDC Web validation have actual recorded results.
+- [ ] Tianshu RPC, backend, RBAC Web, and Tianshu Web validation have actual recorded results.

@@ -1,23 +1,23 @@
-# Gateway GWS-02A DDC Runtime Extension Implementation Plan
+# Yuheng GWS-02A Tianshu Runtime Extension Implementation Plan
 
 状态：已执行
 
 > **For Codex:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
-**Goal:** 为 Gateway 补齐 DDC 运行时所需的 `HTTP_PROVIDER` 服务租约、可冻结的 Config Applier Registry、严格版本/checksum 语义和独立周期校准。
+**Goal:** 为 Yuheng 补齐 Tianshu 运行时所需的 `HTTP_PROVIDER` 服务租约、可冻结的 Config Applier Registry、严格版本/checksum 语义和独立周期校准。
 
-**Architecture:** 保持 DDC 是配置与服务注册 Component，不下沉 Gateway 路由能力。服务类型扩展复用现有 Redis Registry；配置 Apply 使用 exact/longest-prefix/fallback 责任链并在 Spring 单例初始化后冻结；发布消息与周期拉取共用 `DdcRefreshService.applySnapshot` 的原子版本逻辑；校准使用独立调度线程，避免阻塞租约心跳。
+**Architecture:** 保持 Tianshu 是配置与服务注册 Component，不下沉 Yuheng 路由能力。服务类型扩展复用现有 Redis Registry；配置 Apply 使用 exact/longest-prefix/fallback 责任链并在 Spring 单例初始化后冻结；发布消息与周期拉取共用 `DdcRefreshService.applySnapshot` 的原子版本逻辑；校准使用独立调度线程，避免阻塞租约心跳。
 
-**Tech Stack:** Java 21、Spring Boot 3.5.x、DDC Starter、JUnit 5、AssertJ、Mockito。
+**Tech Stack:** Java 21、Spring Boot 3.5.x、Tianshu Starter、JUnit 5、AssertJ、Mockito。
 
 ---
 
 ## 全局约束
 
-- 工作目录：`/Users/mario/SelfProject/Egon-COLA/.worktrees/gateway-wave-0-foundation`。
-- 分支：`codex/gateway-wave-0-foundation`。
-- 不修改 DDC Admin 数据库或现有 Flyway Migration。
-- 不实现 Gateway Provider Runtime、路由、负载均衡或管理 API。
+- 工作目录：`/Users/mario/SelfProject/Egon-COLA/.worktrees/yuheng-wave-0-foundation`。
+- 分支：`codex/yuheng-wave-0-foundation`。
+- 不修改 Tianshu Admin 数据库或现有 Flyway Migration。
+- 不实现 Yuheng Provider Runtime、路由、负载均衡或管理 API。
 - 每个任务一个提交，行为改动严格 RED → GREEN → REFACTOR。
 - 保持现有 `@DdcValue` 无自定义 Applier 时的字段绑定行为。
 
@@ -32,30 +32,30 @@
 
 **Files:**
 
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcServiceKind.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcLeaseRole.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceKey.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceRegistration.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/model/registry/DdcHttpProviderRegistrationTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcServiceKind.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcLeaseRole.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceKey.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceRegistration.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/model/registry/DdcHttpProviderRegistrationTest.java`
 
 **Steps:**
 
 1. 先写测试覆盖 HTTP/HTTPS 注册、默认 group/version、secure 一致性、非法协议拒绝、canonical key round-trip。
 2. 运行 `./mvnw -B -ntp -f egon-cola-components/pom.xml -pl :egon-cola-component-dynamic-config-center-starter -am -Dtest=DdcHttpProviderRegistrationTest -Dsurefire.failIfNoSpecifiedTests=false test`，确认因 `HTTP_PROVIDER` 不存在而失败。
 3. 增加同名 `DdcServiceKind`/`DdcLeaseRole`，仅对 HTTP Provider 强制 protocol=`http|https` 且 secure 与协议一致。
-4. 运行 DDC Starter 全量测试。
-5. 提交：`feat(ddc): add HTTP provider service leases`。
+4. 运行 Tianshu Starter 全量测试。
+5. 提交：`feat(tianshu): add HTTP provider service leases`。
 
 ## Task 2: 实现可冻结 Config Applier Registry
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcConfigApplierRegistry.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DefaultDdcConfigApplierRegistry.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRefreshService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/config/DdcAutoConfigTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DefaultDdcConfigApplierRegistryTest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcConfigApplierRegistry.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DefaultDdcConfigApplierRegistry.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcAutoConfig.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRefreshService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/config/DdcAutoConfigTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DefaultDdcConfigApplierRegistryTest.java`
 
 **Steps:**
 
@@ -65,15 +65,15 @@
 4. DdcAutoConfig 暴露 Registry Bean，以字段绑定为 fallback，并用 `SmartInitializingSingleton` 在所有单例建立后冻结。
 5. DdcRefreshService 通过 Registry resolve Applier；保留旧构造器以兼容现有调用方。
 6. 更新 AutoConfig 测试，验证 Registry 存在且 Context 启动后 frozen。
-7. 运行 DDC Starter 全量测试。
-8. 提交：`feat(ddc): add composable config applier registry`。
+7. 运行 Tianshu Starter 全量测试。
+8. 提交：`feat(tianshu): add composable config applier registry`。
 
 ## Task 3: 固化版本、checksum 和失败 ACK 语义
 
 **Files:**
 
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRefreshService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcRefreshServiceTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRefreshService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DdcRefreshServiceTest.java`
 
 **Steps:**
 
@@ -86,27 +86,27 @@
 2. 运行聚焦测试确认至少一个新断言失败。
 3. 统一 topic/snapshot 的版本比较方法；只有 Apply 成功后更新 version/checksum。
 4. 对失败 ACK 输出固定前缀和最长 256 字符的单行安全信息。
-5. 运行 DDC Starter 全量测试。
-6. 提交：`fix(ddc): enforce config version checksum invariants`。
+5. 运行 Tianshu Starter 全量测试。
+6. 提交：`fix(tianshu): enforce config version checksum invariants`。
 
 ## Task 4: 增加独立周期配置校准
 
 **Files:**
 
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcProperties.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinator.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinatorTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcProperties.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRuntimeCoordinator.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DdcRuntimeCoordinatorTest.java`
 
 **Steps:**
 
 1. 写失败测试：默认开启/30 秒、禁用时不拉取、`reconcileOnce` 应用更高版本、拉取失败保留 READY 和本地值、非法间隔启动失败。
 2. 运行聚焦测试确认 RED。
 3. 在 `DdcProperties.Consistency` 增加配置字段。
-4. Coordinator 使用独立 `egon-cola-ddc-config-reconcile` scheduler；心跳 scheduler 保持原线程。
+4. Coordinator 使用独立 `egon-cola-tianshu-config-reconcile` scheduler；心跳 scheduler 保持原线程。
 5. 校准调用 `pull()` 和现有 `applySnapshot`；异常只记录并等待下一周期，不清空本地状态、不伪造 ACK。
 6. stop 时同时有界关闭两个 scheduler。
-7. 运行 DDC Starter 与 DDC 完整 reactor 测试。
-8. 提交：`feat(ddc): reconcile runtime config periodically`。
+7. 运行 Tianshu Starter 与 Tianshu 完整 reactor 测试。
+8. 提交：`feat(tianshu): reconcile runtime config periodically`。
 
 ## Task 5: GWS-02A 验收
 
@@ -119,11 +119,11 @@ git diff --check
 git status --short
 ```
 
-2. 预期 DDC 完整 reactor 与 RPC 回归全部成功，工作树干净。
+2. 预期 Tianshu 完整 reactor 与 RPC 回归全部成功，工作树干净。
 3. 不创建空验收提交。
 
 ## 后续计划边界
 
-- GWS-02B：DDC HMAC Management OpenAPI/Client、删除、容量保护。
+- GWS-02B：Tianshu HMAC Management OpenAPI/Client、删除、容量保护。
 - GWS-02C：RPC Contract Catalog/Snapshot、Provider Metadata Contributor。
 - 三个计划全部完成后才宣称 GWS-02 完成。

@@ -2,18 +2,18 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 RPC Consumer 在多 Gateway 下只对显式幂等方法进行安全故障转移，并准确分类 Gateway/Provider 失败；Gateway Slot 在租约故障后自动恢复。
+**Goal:** 让 RPC Consumer 在多 Yuheng 下只对显式幂等方法进行安全故障转移，并准确分类 Yuheng/Provider 失败；Yuheng Slot 在租约故障后自动恢复。
 
-**Architecture:** 幂等性属于 Java Contract method descriptor；failure-stage 属于公共 RPC wire metadata；Consumer 将二者与 Deadline、Status 共同决策。Gateway Slot 使用显式恢复状态和有界退避重新注册。
+**Architecture:** 幂等性属于 Java Contract method descriptor；failure-stage 属于公共 RPC wire metadata；Consumer 将二者与 Deadline、Status 共同决策。Yuheng Slot 使用显式恢复状态和有界退避重新注册。
 
-**Tech Stack:** grpc-java、Protobuf Descriptor、JDK Dynamic Proxy、DDC Registry、ScheduledExecutorService、JUnit 5。
+**Tech Stack:** grpc-java、Protobuf Descriptor、JDK Dynamic Proxy、Tianshu Registry、ScheduledExecutorService、JUnit 5。
 
 ## Global Constraints
 
 - 依赖 Integration 01 状态合同。
 - `@EgonRpcMethod.idempotent` 默认 false，保持旧业务方法安全。
 - 只处理 unary RPC。
-- Provider 阶段失败不得跨 Gateway 重试。
+- Provider 阶段失败不得跨 Yuheng 重试。
 - wire metadata key 保持 `x-egon-rpc-failure-stage`。
 
 ---
@@ -24,8 +24,8 @@
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/annotation/EgonRpcMethod.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/contract/RpcMethodDescriptor.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/contract/RpcContractValidator.java`
-- Modify: `.../gateway-test-rpc-contract/src/main/java/top/egon/cola/component/gateway/test/rpc/contract/EchoRpc.java`
-- Modify: `.../gateway-test-rpc-contract/src/main/java/top/egon/cola/component/gateway/test/rpc/contract/OrderRpc.java`
+- Modify: `.../yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/yuheng/test/rpc/contract/EchoRpc.java`
+- Modify: `.../yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/yuheng/test/rpc/contract/OrderRpc.java`
 - Test: `.../rpc-starter/src/test/java/top/egon/cola/component/rpc/contract/RpcContractValidatorTest.java`
 
 **Interfaces:**
@@ -70,7 +70,7 @@ Expected: PASS without changing wire Proto descriptors.
 
 ```bash
 git add egon-cola-components/egon-cola-component-rpc \
-        egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-contract
+        egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-contract
 git commit -m "feat: declare rpc method idempotency"
 ```
 
@@ -80,26 +80,26 @@ git commit -m "feat: declare rpc method idempotency"
 - Create: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/context/RpcFailureStage.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/context/RpcMetadataKeys.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/exception/RpcStatusExceptionMapper.java`
-- Modify: `.../gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewayForwarder.java`
+- Modify: `.../yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rpc/RpcGatewayForwarder.java`
 - Test: `.../rpc-starter/src/test/java/top/egon/cola/component/rpc/exception/RpcStatusExceptionMapperTest.java`
-- Test: `.../gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewayForwarderTest.java`
+- Test: `.../yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rpc/RpcGatewayForwarderTest.java`
 
 **Interfaces:**
 - Produces `RpcFailureStage.GATEWAY/PROVIDER`, `put(Metadata)` and `from(Metadata)`.
-- Preserves existing wire values `gateway` and `provider`.
+- Preserves existing wire values `yuheng` and `provider`.
 
 - [ ] **Step 1: Write failure classification tests**
 
 ```java
 assertThat(mapper.map(unavailable(GATEWAY)).getCode())
-        .isEqualTo(RPC_GATEWAY_UNAVAILABLE);
+        .isEqualTo(RPC_YUHENG_UNAVAILABLE);
 assertThat(mapper.map(unavailable(PROVIDER)).getCode())
         .isEqualTo(RPC_PROVIDER_UNAVAILABLE);
 assertThat(mapper.map(Status.UNIMPLEMENTED.asRuntimeException()).getCode())
         .isEqualTo(RPC_METHOD_NOT_FOUND);
 ```
 
-Gateway test asserts `gatewayTrailers("GATEWAY_RPC_METADATA_MISMATCH", trace)` writes stage `gateway`, not the
+Yuheng test asserts `gatewayTrailers("YUHENG_RPC_METADATA_MISMATCH", trace)` writes stage `yuheng`, not the
 error code; proxied Provider trailers preserve/force stage `provider`.
 
 - [ ] **Step 2: Run mapper/forwarder tests**
@@ -107,23 +107,23 @@ error code; proxied Provider trailers preserve/force stage `provider`.
 ```bash
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter,\
-egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine \
+egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway \
   -am test -Dtest=RpcStatusExceptionMapperTest,RpcGatewayForwarderTest
 ```
 
-- [ ] **Step 3: Implement typed stage helpers and repair Gateway trailers**
+- [ ] **Step 3: Implement typed stage helpers and repair Yuheng trailers**
 
 ```java
 public enum RpcFailureStage {
-    GATEWAY("gateway"), PROVIDER("provider");
+    GATEWAY("yuheng"), PROVIDER("provider");
     // wireValue(), put(Metadata), static from(Metadata)
 }
 ```
 
 `gatewayTrailers` receives stage separately from error code. Map gRPC `UNIMPLEMENTED` to method-not-found;
-do not use absence of stage as proof of a retryable Gateway failure.
+do not use absence of stage as proof of a retryable Yuheng failure.
 
-- [ ] **Step 4: Run RPC + Gateway Engine tests**
+- [ ] **Step 4: Run RPC + Yuheng Engine tests**
 
 Expected: PASS with all production `FAILURE_STAGE` writes using the enum.
 
@@ -131,11 +131,11 @@ Expected: PASS with all production `FAILURE_STAGE` writes using the enum.
 
 ```bash
 git add egon-cola-components/egon-cola-component-rpc \
-        egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine
-git commit -m "fix: classify rpc gateway and provider failures"
+        egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway
+git commit -m "fix: classify rpc yuheng and provider failures"
 ```
 
-### Task 3: 只为幂等方法执行有界 Gateway 故障转移
+### Task 3: 只为幂等方法执行有界 Yuheng 故障转移
 
 **Files:**
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/consumer/RpcConsumerInvocationHandler.java`
@@ -148,7 +148,7 @@ git commit -m "fix: classify rpc gateway and provider failures"
 - [ ] **Step 1: Add retry matrix tests**
 
 ```text
-idempotent + GATEWAY UNAVAILABLE + second gateway -> retries and succeeds
+idempotent + GATEWAY UNAVAILABLE + second yuheng -> retries and succeeds
 non-idempotent + GATEWAY UNAVAILABLE             -> one attempt
 idempotent + PROVIDER UNAVAILABLE                -> one attempt
 idempotent + missing stage                       -> one attempt
@@ -189,24 +189,24 @@ Expected: PASS and non-idempotent methods have one transport call.
 
 ```bash
 git add egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter
-git commit -m "fix: restrict rpc gateway retries to idempotent calls"
+git commit -m "fix: restrict rpc yuheng retries to idempotent calls"
 ```
 
-### Task 4: 恢复 Gateway Slot 租约并统一默认 identity
+### Task 4: 恢复 Yuheng Slot 租约并统一默认 identity
 
 **Files:**
-- Modify: `.../gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySubsystemState.java`
-- Modify: `.../gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntime.java`
+- Modify: `.../yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rpc/RpcGatewaySubsystemState.java`
+- Modify: `.../yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rpc/RpcGatewaySlotRuntime.java`
 - Modify: `.../rpc-starter/src/main/java/top/egon/cola/component/rpc/config/EgonRpcProperties.java`
-- Modify: `.../gateway-engine/src/main/resources/application.yml`
-- Modify: `.../gateway-test-rpc-consumer/src/main/resources/application.yml`
-- Modify: `.../gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java`
-- Test: `.../gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntimeTest.java`
+- Modify: `.../yuheng-biz-gateway/src/main/resources/application.yml`
+- Modify: `.../yuheng-test-rpc-consumer/src/main/resources/application.yml`
+- Modify: `.../yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayLiveTopologyIT.java`
+- Test: `.../yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rpc/RpcGatewaySlotRuntimeTest.java`
 - Test: `.../rpc-starter/src/test/java/top/egon/cola/component/rpc/config/EgonRpcPropertiesTest.java`
 
 **Interfaces:**
 - Produces `RECOVERING` state and re-registration with a new leaseId.
-- Produces default service name `egon-gateway-rpc` across Engine/Consumer/tests/deployment.
+- Produces default service name `egon-yuheng-rpc` across Engine/Consumer/tests/deployment.
 
 - [ ] **Step 1: Write heartbeat exception/recovery tests**
 
@@ -226,7 +226,7 @@ Add close-during-recovery and repeated register failure cases; close must preven
 
 ```bash
 ./mvnw -B -ntp \
-  -pl egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine,\
+  -pl egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway,\
 egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
   -am test -Dtest=RpcGatewaySlotRuntimeTest,EgonRpcPropertiesTest
 ```
@@ -235,16 +235,16 @@ egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter \
 
 On heartbeat exception/NOT_FOUND clear the lease, enter RECOVERING, and let the existing fixed-delay task retry
 registration. Only explicit drain/close shuts down the scheduler. Keep last failure observable; do not move to a
-terminal FAILED state for transient DDC errors.
+terminal FAILED state for transient Tianshu errors.
 
-- [ ] **Step 4: Run Gateway Engine and RPC suites**
+- [ ] **Step 4: Run Yuheng Engine and RPC suites**
 
 Expected: PASS with multi-Slot Consumer discovery.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add egon-cola-components/egon-cola-component-gateway \
+git add egon-cola-components/egon-cola-component-yuheng \
         egon-cola-components/egon-cola-component-rpc
-git commit -m "fix: recover rpc gateway slot leases"
+git commit -m "fix: recover rpc yuheng slot leases"
 ```

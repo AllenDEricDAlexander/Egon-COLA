@@ -1,8 +1,8 @@
-# Gateway 三个 OAuth Resource Server 的本地身份种子修正
+# Yuheng 三个 OAuth Resource Server 的本地身份种子修正
 
 | Field | Value |
 | --- | --- |
-| Document | `2026-09-05-16-00-gateway-oauth-resource-bootstrap.md` |
+| Document | `2026-09-05-16-00-yuheng-oauth-resource-bootstrap.md` |
 | Template Version | `7` |
 | Status | `Accepted` |
 | Type | `Bugfix` |
@@ -12,22 +12,22 @@
 | Updated | `2026-09-05 16:20 CST` |
 | Owner | 用户 / Codex |
 | Repository | `Egon-COLA` |
-| Scope | IdP development bootstrap 中三个 Gateway 身份及 MCP 服务授权的先决修正 |
+| Scope | Tianquan-Shoubing development bootstrap 中三个 Yuheng 身份及 MCP 服务授权的先决修正 |
 | Change Surface | `IdpDevelopmentClientBootstrap.java` 的种子和 MCP grant ID 前缀、必要构造注入规范化；对应测试、模块 lombok.config/POM |
 | Affected Chapters | §7, §8, §14, §15, §16, §17, §18 |
-| Source Requirement | 用户：“两个gateway engine 在 oauth2 resource 中当作两个server…gateway admin server也是一个单独的 resource server”；已批准继续修复 |
+| Source Requirement | 用户：“两个gateway engine 在 oauth2 resource 中当作两个server…yuheng admin server也是一个单独的 resource server”；已批准继续修复 |
 | Baseline Revision | `main@4237b6bdbc95de37c58296e1bdf01890040f74b2`；其他脏文件受保护 |
-| Amends | [双 Engine 分离](2026-09-02-19-52-gateway-dual-engine-separation.md) §3.2、§8、§15、§16.4 的“不修改 IdP/只用原 Engine 身份”范围：允许本文件定义的 local 种子修正 |
+| Amends | [双 Engine 分离](2026-09-02-19-52-yuheng-dual-engine-separation.md) §3.2、§8、§15、§16.4 的“不修改 Tianquan-Shoubing/只用原 Engine 身份”范围：允许本文件定义的 local 种子修正 |
 | Supersedes | `None` |
-| Depends On | [双 Engine 分离](2026-09-02-19-52-gateway-dual-engine-separation.md) §7.1、§8 的固定 API_RPC/MCP 可执行边界 |
+| Depends On | [双 Engine 分离](2026-09-02-19-52-yuheng-dual-engine-separation.md) §7.1、§8 的固定 API_RPC/MCP 可执行边界 |
 | Related Specs | `None` |
-| Related Plans | [身份种子实施计划](../plan/2026-09-05-16-00-gateway-oauth-resource-bootstrap-implementation.md)；[主实施计划](../plan/2026-09-02-21-03-gateway-dual-engine-separation-implementation.md) |
+| Related Plans | [身份种子实施计划](../plan/2026-09-05-16-00-yuheng-oauth-resource-bootstrap-implementation.md)；[主实施计划](../plan/2026-09-02-21-03-yuheng-dual-engine-separation-implementation.md) |
 
 ## 1. Summary
 
-为 Gateway 的三个进程身份补齐互不冲突的 Resource Server 与 confidential Client。本修复保留已有 API/RPC Engine 和 Gateway Admin 定义，新增 MCP Engine 定义，并把新建 MCP Task 服务授权归到 MCP Client。幂等启动不能重置正确的资源、已有密钥或遗留授权。
+为 Yuheng 的三个进程身份补齐互不冲突的 Resource Server 与 confidential Client。本修复保留已有 API/RPC Engine 和 Yuheng Admin 定义，新增 MCP Engine 定义，并把新建 MCP Task 服务授权归到 MCP Client。幂等启动不能重置正确的资源、已有密钥或遗留授权。
 
-这是继续父任务的身份先决修复，不声称已完成 Gateway 发布 fan-out。DDC 的 source app 绑定不放宽；Gateway 两个目标的持久化发布、各自版本核对、脚本和真实 platforms/API/浏览器验收仍属于后续已获用户授权的工作。父 Spec 的“同 DDC app / 同数字版本”约束不能再作为最终验收依据，须在下一份分发修订中正式替换后才能进行切换。
+这是继续父任务的身份先决修复，不声称已完成 Yuheng 发布 fan-out。Tianshu 的 source app 绑定不放宽；Yuheng 两个目标的持久化发布、各自版本核对、脚本和真实 xingyuan/API/浏览器验收仍属于后续已获用户授权的工作。父 Spec 的“同 Tianshu app / 同数字版本”约束不能再作为最终验收依据，须在下一份分发修订中正式替换后才能进行切换。
 
 ## 2. Background and Current State
 
@@ -39,20 +39,20 @@
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
-| EVD-001 | Static repository | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` MACHINE_CLIENTS/RESOURCES | 已有 Admin 与 API 两组；缺 MCP | 只补第三组 | 2026-09-05 静态，非运行时 |
-| EVD-002 | Static repository | 同文件 MCP_TASK_SERVICE_CLIENT / mcpTaskServiceGrantId | 指向 gateway-engine-service；ID 只有 tenant hash | 改 Client 时必须换 ID 前缀，防止旧记录 PK 冲突 | 未接数据库 |
-| EVD-003 | Static repository | IdP admin resource/service/impl/ResourceServerServiceImpl.ensureResourceIsUnique；db/migration/V2__add_oauth_resource_servers.sql | biz/app/env 与 management Client 唯一 | 新 app 与 Client，不放宽校验 | Schema 不变 |
+| EVD-001 | Static repository | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java` MACHINE_CLIENTS/RESOURCES | 已有 Admin 与 API 两组；缺 MCP | 只补第三组 | 2026-09-05 静态，非运行时 |
+| EVD-002 | Static repository | 同文件 MCP_TASK_SERVICE_CLIENT / mcpTaskServiceGrantId | 指向 yuheng-biz-gateway-service；ID 只有 tenant hash | 改 Client 时必须换 ID 前缀，防止旧记录 PK 冲突 | 未接数据库 |
+| EVD-003 | Static repository | Tianquan-Shoubing admin resource/service/impl/ResourceServerServiceImpl.ensureResourceIsUnique；db/migration/V2__add_oauth_resource_servers.sql | biz/app/env 与 management Client 唯一 | 新 app 与 Client，不放宽校验 | Schema 不变 |
 | EVD-004 | User decision | 本轮“两个server…admin…单独的 resource server” | 三个身份独立 | 已获执行授权 | 不授权重置既有数据库 |
 
 ### 2.3 Problem statement and gap
 
-缺少 MCP 独立 Resource 会使它以 API Client 获取的 token 带 API 的 source app，无法同时满足独立管理身份与 DDC app 严格绑定。仅加显示名称不解决问题。
+缺少 MCP 独立 Resource 会使它以 API Client 获取的 token 带 API 的 source app，无法同时满足独立管理身份与 Tianshu app 严格绑定。仅加显示名称不解决问题。
 
 ### 2.4 Evidence and current-chain map
 
 | Entry/trigger | Current call chain | Data read/written | External dependency | Consumers | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| local profile + enabled | afterSingletonsInstantiated → machine reconcile → resource reconcile → grants | 既有 Client/Resource/Grant；本地 secrets | 既有 IdP Service/Repository | 三个 Gateway 服务 | EVD-001/002 |
+| local profile + enabled | afterSingletonsInstantiated → machine reconcile → resource reconcile → grants | 既有 Client/Resource/Grant；本地 secrets | 既有 Tianquan-Shoubing Service/Repository | 三个 Yuheng 服务 | EVD-001/002 |
 
 ## 3. Goals and Non-goals
 
@@ -62,7 +62,7 @@
 
 ### 3.2 Non-goals
 
-不修改 IdP token 签发算法、DDC 注册校验、Schema、历史 Flyway、用户/角色权限；不在这个先决提交中修改 Gateway 发布、进程启动或 UI。后续任务不会因本次先决完成而省略。
+不修改 Tianquan-Shoubing token 签发算法、Tianshu 注册校验、Schema、历史 Flyway、用户/角色权限；不在这个先决提交中修改 Yuheng 发布、进程启动或 UI。后续任务不会因本次先决完成而省略。
 
 ### 3.3 Change Surface and Design Depth
 
@@ -72,8 +72,8 @@
 | bootstrap 测试 | Affected | IdpDevelopmentClientBootstrapTest | 三身份、租户、幂等、冲突覆盖 | RED/GREEN | §14 |
 | REST/RPC/Service 签名 | Unchanged | 既有 OAuthClientService/ResourceServerProjectionService | 无新入口、字段或参数 | 明确不改 | §9 |
 | POJO/Converter | Context-only | 私有 record 与 IdentityResourceServerEntity | 仅新建既有 record 实例；不改类型 | 边界说明 | §10 |
-| 数据库 | Context-only | IdP V2 既有唯一约束、Grant Entity 工厂 | 使用现有 local 引导 CRUD；无 schema、迁移或批量回填 | 保留不变量 | §11 |
-| Web 页面 | Unchanged | IdP resource 管理页；Gateway Web | 页面自动读取已有 Resource API | 不设计新页面 | §12 |
+| 数据库 | Context-only | Tianquan-Shoubing V2 既有唯一约束、Grant Entity 工厂 | 使用现有 local 引导 CRUD；无 schema、迁移或批量回填 | 保留不变量 | §11 |
+| Web 页面 | Unchanged | Tianquan-Shoubing resource 管理页；Yuheng Web | 页面自动读取已有 Resource API | 不设计新页面 | §12 |
 | 模式选型 | Context-only | 既有数据驱动 reconcile | Simple 参数/常量修正，算法不变 | 拒绝仪式化模式 | §13 |
 | 兼容/安全/风险 | Affected | 三个 owner Client；旧 grant ID | 不共享源身份、不覆盖旧数据 | 明确切换与限制 | §15, §16, §17, §18 |
 
@@ -82,7 +82,7 @@
 | ID | Requirement | Acceptance |
 | --- | --- | --- |
 | REQ-001 | Admin、API/RPC、MCP 分别拥有 Resource/Client/app | 测试精确断言 §7 三行全部字段、三组唯一，且保留 Admin/API 字段 |
-| REQ-002 | MCP 拥有本地 DDC 注册、RBAC 租户服务、MCP Task 调用授权 | DDC PLATFORM 无 tenant；RBAC/Task 按每个配置 tenant，scope 不扩大；不向 MCP 授 Admin 管理 scope |
+| REQ-002 | MCP 拥有本地 Tianshu 注册、RBAC 租户服务、MCP Task 调用授权 | Tianshu PLATFORM 无 tenant；RBAC/Task 按每个配置 tenant，scope 不扩大；不向 MCP 授 Admin 管理 scope |
 | REQ-003 | 不覆盖旧数据；引导可重入且错误身份拒绝 | 正确资源与 active secret 不重建/轮换；旧 API Task grant ID 不复用；错误 Resource owner/app 抛现有异常 |
 | REQ-004 | 固定授权和兼容边界 | token/校验/schema/profile 条件不变；单元验证与 live 验收分开 |
 
@@ -91,7 +91,7 @@
 | 场景 | 结果 | Requirement |
 | --- | --- | --- |
 | 空种子 | 创建 MCP confidential Client、Resource 及准确授权 | REQ-001/002 |
-| 多 tenant | 每 tenant 独立 RBAC 与 Task grant；DDC 仍 PLATFORM | REQ-002 |
+| 多 tenant | 每 tenant 独立 RBAC 与 Task grant；Tianshu 仍 PLATFORM | REQ-002 |
 | 重启/资源已存在 | 复用正确资源与 secret；不重复写正确授权 | REQ-003 |
 | 旧 Task grant 已有 | 新 MCP ID 不冲突；不删除或重绑旧 API grant | REQ-003 |
 | 资源 owner/app 错误 | fail closed，现有 IllegalStateException，不自动覆盖 | REQ-003/004 |
@@ -105,24 +105,24 @@
 
 | ID | Use case/goal | Primary actor | Supporting actors/systems | Trigger | Preconditions | Main success outcome | Alternatives/failures | Postconditions | Requirements | Interfaces/pages | Tests |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| UC-001 | 引导三个独立身份 | ACTOR-001 | 既有 IdP CRUD | local 启动 | enabled/合法 tenant | 三组独立 Resource/Client | 正确现有值复用；错误绑定拒绝 | 不覆盖/清理已有数据 | REQ-001/003 | 既有 afterSingletonsInstantiated | TEST-001/003 |
-| UC-002 | 准备 MCP 最小授权 | ACTOR-002 | ACTOR-001/IdP | 种子协调 | MCP Resource/Client 已存在 | PLATFORM DDC 与逐 tenant RBAC/Task | 已有正确 grant 不重建；错误身份拒绝 | 无 Admin 管理 scope | REQ-002/004 | 既有 grant projection | TEST-002/004 |
+| UC-001 | 引导三个独立身份 | ACTOR-001 | 既有 Tianquan-Shoubing CRUD | local 启动 | enabled/合法 tenant | 三组独立 Resource/Client | 正确现有值复用；错误绑定拒绝 | 不覆盖/清理已有数据 | REQ-001/003 | 既有 afterSingletonsInstantiated | TEST-001/003 |
+| UC-002 | 准备 MCP 最小授权 | ACTOR-002 | ACTOR-001/Tianquan-Shoubing | 种子协调 | MCP Resource/Client 已存在 | PLATFORM Tianshu 与逐 tenant RBAC/Task | 已有正确 grant 不重建；错误身份拒绝 | 无 Admin 管理 scope | REQ-002/004 | 既有 grant projection | TEST-002/004 |
 
 ## 5. Constraints, Assumptions, and Decisions
 
 ### 5.1 Confirmed constraints
 
-严格三资源；保持 IdP/DDC 核心鉴权；只修改 §8 四个文件；保护脏工作区；每任务一次提交。
+严格三资源；保持 Tianquan-Shoubing/Tianshu 核心鉴权；只修改 §8 四个文件；保护脏工作区；每任务一次提交。
 
 ### 5.2 Small-gap assumptions
 
-名称沿用现有 local 命名：gateway-mcp-engine-default / gateway-mcp-engine-service。均为可逆本地种子名称，不推断生产资源值。
+名称沿用现有 local 命名：yuheng-mcp-gateway-default / yuheng-mcp-gateway-service。均为可逆本地种子名称，不推断生产资源值。
 
 ### 5.3 Resolved decisions
 
 DEC-IDENTITY-001：保留旧 Admin/API 行，新增 MCP 行。DEC-IDENTITY-002：Task 新 grant ID 加 mcp-engine 标识，不覆盖旧 ID。DEC-IDENTITY-003：种子变更同时落实 Rule 4 的本类 DI，不重写既有 reconcile 算法。五个依赖仍为原 Service/Repository；改用 Lombok 生成的七参数构造器，参数次序 clients/resources/grants/clientEntities/projections/secretDirectory/rbac3ServiceTenantIds。两个配置参数保留 String 与原 @Value 表达式；Path 规范化移至 writeSecret/secretFile，tenantIds 解析移至启动入口和原三个租户协调方法的局部变量。先校验 tenant 再做任何 CRUD。保留原配置键/default/local/开关，不触碰 YAML。
 
-2026-09-05 16:20 构建证据修正：首轮 GREEN 编译发现 IdP admin 未声明 Lombok，而 platforms parent 已有 annotationProcessorPaths、root 已定义 lombok.version=1.18.46。Rule 4 不能省略。仅在本模块 POM 增加 org.projectlombok:lombok:${lombok.version}、provided、optional=true，不增加新版本或下游传递依赖。原“POM 不变”判断撤回；属于用户要求自行完成修复内的必要构建修正。
+2026-09-05 16:20 构建证据修正：首轮 GREEN 编译发现 Tianquan-Shoubing admin 未声明 Lombok，而 xingyuan parent 已有 annotationProcessorPaths、root 已定义 lombok.version=1.18.46。Rule 4 不能省略。仅在本模块 POM 增加 org.projectlombok:lombok:${lombok.version}、provided、optional=true，不增加新版本或下游传递依赖。原“POM 不变”判断撤回；属于用户要求自行完成修复内的必要构建修正。
 
 ### 5.4 Open major decisions
 
@@ -163,40 +163,40 @@ Java 21、Spring Boot 3.5.16、Maven wrapper、JUnit5/Mockito 均使用当前仓
 
 | Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 | --- | --- | --- | --- | --- | --- |
-| Direct baseline | 引导不直接发网络请求，既有 Service/Repo 调用 | 缺少 MCP | 只有 Admin/API Gateway 身份 | MCP source app 错配 | 不满足三身份 |
+| Direct baseline | 引导不直接发网络请求，既有 Service/Repo 调用 | 缺少 MCP | 只有 Admin/API Yuheng 身份 | MCP source app 错配 | 不满足三身份 |
 | Selected design | 同一 Service/Repo 路径增加一组身份；不新增网络契约 | 新 MCP 及既有幂等状态 | 原实体/约束/投影 | 既有错误绑定拒绝；新 Task ID 避免旧 PK 冲突 | 三个独立 owner | 
 
 ### 7.1 System Architecture Design
 
-仅修改 existing bootstrap → existing IdP CRUD 的输入种子，不修改 token/DDC 边界。
+仅修改 existing bootstrap → existing Tianquan-Shoubing CRUD 的输入种子，不修改 token/Tianshu 边界。
 
 | Process | resourceServerId | resourceUri | bizCode/appCode/environment | managementClientId |
 | --- | --- | --- | --- | --- |
-| Admin | platform-gateway-admin-local | https://api.egon.internal/local/platform/gateway-admin | platform/gateway-admin/local | gateway-admin-service |
-| API_RPC | identity-gateway-engine-default-local | https://api.egon.internal/local/identity/gateway-engine-default | identity/gateway-engine-default/local | gateway-engine-service |
-| MCP | identity-gateway-mcp-engine-default-local | https://api.egon.internal/local/identity/gateway-mcp-engine-default | identity/gateway-mcp-engine-default/local | gateway-mcp-engine-service |
+| Admin | xingyuan-yuheng-admin-local | https://api.egon.internal/local/xingyuan/yuheng-admin | xingyuan/yuheng-admin/local | yuheng-admin-service |
+| API_RPC | identity-yuheng-biz-gateway-default-local | https://api.egon.internal/local/identity/yuheng-biz-gateway-default | identity/yuheng-biz-gateway-default/local | yuheng-biz-gateway-service |
+| MCP | identity-yuheng-mcp-gateway-default-local | https://api.egon.internal/local/identity/yuheng-mcp-gateway-default | identity/yuheng-mcp-gateway-default/local | yuheng-mcp-gateway-service |
 
-MCP displayName 为 Gateway MCP Engine Local，Client name 为 Gateway MCP Engine Local Service；沿用 rbacApplicationCode=mock-backend、entryPermissionCode=mock:read，userClientId=null。API 和 Admin 原值不变。
+MCP displayName 为 Yuheng MCP Engine Local，Client name 为 Yuheng MCP Engine Local Service；沿用 rbacApplicationCode=mock-backend、entryPermissionCode=mock:read，userClientId=null。API 和 Admin 原值不变。
 
 ### 7.2 High-Level Design
 
 Bean 使用 @Component("idpDevelopmentClientBootstrap")、@Slf4j、@RequiredArgsConstructor。五个依赖 Qualifier 依次 oauthClientServiceImpl、identityResourceServerRepository、identityClientResourceGrantRepository、identityClientRepository、resourceServerProjectionService。模块 lombok.config 设置 stopBubbling=true，复制 Spring Qualifier 和 Value；构造器元数据测试核对准确值。成功日志不含 secret。无参入口先调用既有 tenantIds 校验，保持错误配置在副作用之前拒绝。
 
-增加 MACHINE_CLIENTS 和 RESOURCES 的 MCP 行，在 RBAC3_SERVICE_CLIENTS、DDC_REGISTRATION_CLIENTS 增加 MCP Client；MCP_TASK_SERVICE_CLIENT 改为 MCP Client。MCP 不接收 Admin 的 gateway:* scope，不需要 API Cookie refresh-status scope。
+增加 MACHINE_CLIENTS 和 RESOURCES 的 MCP 行，在 TIANQUAN_JIANSHEN_SERVICE_CLIENTS、TIANSHU_REGISTRATION_CLIENTS 增加 MCP Client；MCP_TASK_SERVICE_CLIENT 改为 MCP Client。MCP 不接收 Admin 的 yuheng:* scope，不需要 API Cookie refresh-status scope。
 
 ### 7.3 Detailed Design
 
-Task 授权仍为 identity-gateway-test-mcp-provider-local，scope=mcp:operation:invoke，按 configured tenant。新 ID 为 dev-mcp-engine-task-grant- + 原 tenant UUID hash 前八位；旧 dev-mcp-task-grant- 不改、不删除、不重绑。
+Task 授权仍为 identity-yuheng-test-mcp-provider-local，scope=mcp:operation:invoke，按 configured tenant。新 ID 为 dev-mcp-engine-task-grant- + 原 tenant UUID hash 前八位；旧 dev-mcp-task-grant- 不改、不删除、不重绑。
 
-DDC 授权仍用 PLATFORM、tenant=null、scope=ddc:registration:write；MCP source app 由自身 Resource 推导，后续 DDC 配置必须同 app。RBAC 仍为 service:authorization:decide、service:authorization:snapshot、service:identity:resolve 三项，逐 tenant。
+Tianshu 授权仍用 PLATFORM、tenant=null、scope=tianshu:registration:write；MCP source app 由自身 Resource 推导，后续 Tianshu 配置必须同 app。RBAC 仍为 service:authorization:decide、service:authorization:snapshot、service:identity:resolve 三项，逐 tenant。
 
 重复启动沿用 find/exact-match，不创建新轮换策略；confidential Client 或 Resource 不匹配沿用现有失败。不会自动部署新配置，也不发起真实服务启动。
 
 ## 8. Package Structure and Code File Tree
 
 ```text
-egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
-egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java  MODIFY
+egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java  MODIFY
 egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/lombok.config  CREATE
 egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml  MODIFY
 ```
@@ -205,7 +205,7 @@ egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
 
 ## 9. Interface Definitions
 
-Unchanged：IdP 的 OAuth/Resource REST API、OAuthClientService#create、ResourceServerProjectionService#projectResource/#projectServiceGrant 和 bootstrap 的 afterSingletonsInstantiated 签名、输入校验、错误类型不变。只是 local 种子数量和值改变；不增加/扩大面向消费者的接口，不需要生成新的 OpenAPI operation 或 SDL。
+Unchanged：Tianquan-Shoubing 的 OAuth/Resource REST API、OAuthClientService#create、ResourceServerProjectionService#projectResource/#projectServiceGrant 和 bootstrap 的 afterSingletonsInstantiated 签名、输入校验、错误类型不变。只是 local 种子数量和值改变；不增加/扩大面向消费者的接口，不需要生成新的 OpenAPI operation 或 SDL。
 
 ## 10. POJO and Data Model Design
 
@@ -213,11 +213,11 @@ Context-only：MachineClientSpec、ResourceSpec 为既有私有 record，字段/
 
 ## 11. Database Design
 
-Context-only：使用 IdP 现有表和 CRUD，资源的 biz/app/env 与 management_client 唯一约束不变；Grant 主键与 exact lookup 不变。这里是已有 local-enabled 的开发种子扩充，不是生产数据迁移、schema 更改或历史数据回填，不新增 Flyway，也不改任何旧版本。特别通过新 Task ID 前缀避免错误覆盖旧授权主键。
+Context-only：使用 Tianquan-Shoubing 现有表和 CRUD，资源的 biz/app/env 与 management_client 唯一约束不变；Grant 主键与 exact lookup 不变。这里是已有 local-enabled 的开发种子扩充，不是生产数据迁移、schema 更改或历史数据回填，不新增 Flyway，也不改任何旧版本。特别通过新 Task ID 前缀避免错误覆盖旧授权主键。
 
 ## 12. Frontend Page Design
 
-Unchanged：现有 IdP Resource 页读取既有 Resource 列表即可看到第三组。Gateway OpenAPI 页和 RBAC 角色授权的 runtime 修复仍由父任务处理，本次不声称已验收。
+Unchanged：现有 Tianquan-Shoubing Resource 页读取既有 Resource 列表即可看到第三组。Yuheng OpenAPI 页和 RBAC 角色授权的 runtime 修复仍由父任务处理，本次不声称已验收。
 
 ## 13. Design Patterns and Architecture Principles
 
@@ -228,15 +228,15 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 | ID | Test/fixture | Assertions |
 | --- | --- | --- |
 | TEST-001 | createsOnlyMissingPublicClients 增补 | Admin/API 旧字段与 MCP 新字段精确相符；新 Client confidential |
-| TEST-002 | configured tenant 与 grant captors | MCP DDC PLATFORM 无租户，RBAC/Task 逐 tenant；新建 grant 不使用 API Client，也无 Admin 管理授权 |
+| TEST-002 | configured tenant 与 grant captors | MCP Tianshu PLATFORM 无租户，RBAC/Task 逐 tenant；新建 grant 不使用 API Client，也无 Admin 管理授权 |
 | TEST-003 | existing resources/clients/secrets mock + @TempDir | 正确对象不 save、不 rotate；旧 Task ID 不复用；错误 app/owner 抛错，不保存覆盖 |
-| TEST-004 | 原 bootstrap 三个测试和 IdP/DDC 鉴权测试 | 原 redirect/tenant 授权行为不回退，鉴权机制不变 |
+| TEST-004 | 原 bootstrap 三个测试和 Tianquan-Shoubing/Tianshu 鉴权测试 | 原 redirect/tenant 授权行为不回退，鉴权机制不变 |
 
 验证命令（repo cwd）：
 ```bash
 ./mvnw -pl :egon-cola-tianquan-shoubing-admin -am -Dtest=IdpDevelopmentClientBootstrapTest -Dsurefire.failIfNoSpecifiedTests=false test
 ```
-新增断言先 RED；生产修正后 GREEN。临时 secret 为测试生成值、Mock Repository，无真实 DB/IdP/浏览器。不能将此作为 full platforms 验收。
+新增断言先 RED；生产修正后 GREEN。临时 secret 为测试生成值、Mock Repository，无真实 DB/Tianquan-Shoubing/浏览器。不能将此作为 full xingyuan 验收。
 
 ## 15. Non-functional and Cross-cutting Design
 
@@ -244,13 +244,13 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 
 ## 16. Compatibility, Migration, Rollout, and Rollback
 
-先交付身份种子代码，再交付 Gateway 目标发布、配置与启动脚本；在所有先决通过前不做 runtime cutover。已有正确 Admin/API 身份保持；已有 API Task grant 留存不自动撤权，避免破坏正在使用的旧流程。首次切换后可另行审计旧 grant，不能未经授权批量删除。
+先交付身份种子代码，再交付 Yuheng 目标发布、配置与启动脚本；在所有先决通过前不做 runtime cutover。已有正确 Admin/API 身份保持；已有 API Task grant 留存不自动撤权，避免破坏正在使用的旧流程。首次切换后可另行审计旧 grant，不能未经授权批量删除。
 
 代码回退采用单个修正提交的人工逆向变更；不删除新 Resource/Client/secret，更不重写 Flyway。生产环境不运行 local bootstrap。本 Spec 的通过只表示种子修复已定义，不表示用户的整体测试目标完成。
 
 ## 17. Alternatives and Decisions
 
-共享 API Resource/Client：拒绝，违反独立 owner。放宽 IdP 唯一约束/DDC source 绑定：拒绝，扩大安全边界。新增独立 bootstrap 实现：拒绝，现有列表机制充足。直接复用旧 Task ID：拒绝，会与旧 API grant 主键冲突。
+共享 API Resource/Client：拒绝，违反独立 owner。放宽 Tianquan-Shoubing 唯一约束/Tianshu source 绑定：拒绝，扩大安全边界。新增独立 bootstrap 实现：拒绝，现有列表机制充足。直接复用旧 Task ID：拒绝，会与旧 API grant 主键冲突。
 
 ## 18. Risks and Open Questions
 
@@ -259,7 +259,7 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 | RISK-IDENTITY-001 | 只补身份不能让旧单目标发布正确分发 MCP | 父任务下一阶段必须实施 fan-out，不能宣布双 Engine 验收完成 |
 | RISK-IDENTITY-002 | 已有人为错误配置的 MCP 资源 | 既有 requireMatchingResource 拒绝；不猜测或覆盖 |
 | RISK-IDENTITY-003 | 旧 Task grant 仍在历史数据库 | 保留数据，后续显式审计；新客户端不共享旧 grant |
-| RISK-IDENTITY-004 | Mock 证明不等同 token/runtime 成功 | 后续全 platforms 验收检查真实三资源与 source app |
+| RISK-IDENTITY-004 | Mock 证明不等同 token/runtime 成功 | 后续全 xingyuan 验收检查真实三资源与 source app |
 
 ## 19. Traceability Matrix
 
@@ -274,7 +274,7 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 
 ### 20.1 Original-request fidelity
 
-三个 Resource Server 明确分开；此 Spec 只交付本地身份先决，不省略后续 Gateway fan-out、脚本与浏览器问题修复。
+三个 Resource Server 明确分开；此 Spec 只交付本地身份先决，不省略后续 Yuheng fan-out、脚本与浏览器问题修复。
 
 ### 20.2 Repository and technical fidelity
 
@@ -292,21 +292,21 @@ Context-only：本次为 Simple 声明式列表修正，沿用已有 reconcile�
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
-| MC-ARCH-001 | Applicable | PASS | 现有 IdP admin 的 support/bootstrap、oauth/service、resource/repo 分层；仅四个目标文件 | 不移动或引入架构 | None |
+| MC-ARCH-001 | Applicable | PASS | 现有 Tianquan-Shoubing admin 的 support/bootstrap、oauth/service、resource/repo 分层；仅四个目标文件 | 不移动或引入架构 | None |
 | MC-REUSE-001 | Applicable | PASS | IdpDevelopmentClientBootstrap 的 MACHINE_CLIENTS、RESOURCES、reconcileResourceAndGrant | 复用已存在的本地种子协调机制 | None |
-| MC-DEP-001 | Applicable | PASS | IdP admin POM 缺 Lombok；platforms parent 已配置其处理器，root lombok.version=1.18.46 | 只补 provided/optional 的仓库已管理构建依赖 | None |
+| MC-DEP-001 | Applicable | PASS | Tianquan-Shoubing admin POM 缺 Lombok；xingyuan parent 已配置其处理器，root lombok.version=1.18.46 | 只补 provided/optional 的仓库已管理构建依赖 | None |
 | MC-NAME-001 | Not applicable | N/A | 复用 MachineClientSpec/ResourceSpec；不新增或修改类型声明 | 无新 POJO 或行为类型 | None |
 | MC-VALID-001 | Applicable | PASS | requireMatchingResource 和 confidential Client 检查保留；新增冲突测试 | 现有身份不匹配时拒绝，不覆盖 | None |
 | MC-MODEL-001 | Not applicable | N/A | 既有私有 record 的组件、构造器和实体声明均不变 | 只新增种子实例 | None |
 | MC-CONVERT-001 | Not applicable | N/A | createResource/reconcileResourceAndGrant 的既有参数映射不变 | 无新 Converter 或跨层映射 | None |
 | MC-LOG-001 | Applicable | PASS | IdpDevelopmentClientBootstrap 使用 @Slf4j，成功日志仅记录完成，不记录 secret | Rule 4 的必要 touched-class 规范化 | None |
-| MC-BEAN-001 | Applicable | PASS | 显式 idpDevelopmentClientBootstrap、@RequiredArgsConstructor、五个 @Qualifier、两项 @Value；新增 IdP admin lombok.config | 生成构造器注解与默认值需测试验证 | None |
+| MC-BEAN-001 | Applicable | PASS | 显式 idpDevelopmentClientBootstrap、@RequiredArgsConstructor、五个 @Qualifier、两项 @Value；新增 Tianquan-Shoubing admin lombok.config | 生成构造器注解与默认值需测试验证 | None |
 | MC-UTIL-001 | Applicable | PASS | 仍为 JDK List/Set/UUID/Files；JUnit/Mockito 属于测试框架 | 不增加工具类 | None |
 | MC-JSON-001 | Not applicable | N/A | 既有 allowedScopes 字符串构建、实体字段、序列化契约不变 | 无外部 JSON 契约修改 | None |
 | MC-TIME-001 | Applicable | PASS | 既有 Instant 与测试 Instant.EPOCH | 不引入 java.util 日期 | None |
 | MC-CONFIG-001 | Not applicable | N/A | @Profile(local) 和 development-bootstrap.enabled 原样保留；无 YAML 键变更 | 本次只种子声明 | None |
 | MC-PATTERN-001 | Applicable | PASS | 现有数据驱动 reconcile 流程；只加入一个同形资源和 Client | Simple 常量修正，不引入 Strategy/Factory | None |
-| MC-SCOPE-001 | Applicable | PASS | bootstrap/测试、模块 lombok.config、IdP admin pom.xml 四文件；不改其他业务类 | 范围锁定 | None |
+| MC-SCOPE-001 | Applicable | PASS | bootstrap/测试、模块 lombok.config、Tianquan-Shoubing admin pom.xml 四文件；不改其他业务类 | 范围锁定 | None |
 | MC-TEST-001 | Applicable | PASS | IdpDevelopmentClientBootstrapTest RED/GREEN；身份/授权/重复启动/旧 ID 冲突/错误绑定 | 测试隔离使用 @TempDir 与 Mock | None |
 | MC-BLOCKER-001 | Applicable | PASS | 本 Spec 仅身份种子先决修复；发布 fan-out 与真实验收在父任务继续 | 不将前置完成等同总体完成 | None |
 

@@ -1,8 +1,8 @@
-# DDC Namespace 可见性、运行时身份与 Gateway 联调设计
+# Tianshu Namespace 可见性、运行时身份与 Yuheng 联调设计
 
 ## 1. 背景
 
-当前 DDC 数据模型实际是 `biz -> app -> namespace`，运行时服务注册和配置身份均包含
+当前 Tianshu 数据模型实际是 `biz -> app -> namespace`，运行时服务注册和配置身份均包含
 namespace。这个模型无法表达以下已确认的业务语义：
 
 - namespace 是集团管控与授权可见性分组，不是应用部署归属；
@@ -10,11 +10,11 @@ namespace。这个模型无法表达以下已确认的业务语义：
 - 同一个应用可以在不同 namespace、不同环境组合下可见；
 - 用户后续按 namespace 授权后，只看到该 namespace 在指定环境绑定的应用；
 - 管理页面按 `biz -> namespace -> env -> app` 浏览；
-- Gateway Admin 与 Gateway Engine 分别使用 `infra/ga`、`infra/ge`；
+- Yuheng Admin 与 Yuheng Engine 分别使用 `infra/ga`、`infra/ge`；
 - 服务目录和配置列表允许任意筛选条件，缺少条件不能返回内部错误；
 - 两个相同的无状态服务副本属于同一个逻辑服务，但必须具有不同实例身份。
 
-当前 Gateway Admin Web 的 Refresh Token 输入框还会误导本地联调。本地 HMAC JWT
+当前 Yuheng Admin Web 的 Refresh Token 输入框还会误导本地联调。本地 HMAC JWT
 模式没有 OAuth Token Endpoint，不能生成或刷新 Refresh Token。
 
 ## 2. 目标与非目标
@@ -25,10 +25,10 @@ namespace。这个模型无法表达以下已确认的业务语义：
 2. 使用环境级关联实体表达 `namespace + env + app` 多对多可见关系。
 3. 将物理服务注册身份和配置身份中的 namespace 移除，保证应用只注册、部署、配置一次。
 4. 明确逻辑服务、服务实例和租约会话三层身份。
-5. 修复 DDC 服务目录和配置列表的可选筛选行为。
-6. 让 DDC Web 按 `biz -> namespace -> env -> app` 浏览，并能查看应用的真实实例。
-7. 让 Gateway Admin、Gateway Engine 正确注册到 DDC，并完成本机完整联调。
-8. 简化 Gateway Admin Web 本地登录，只要求 Access Token。
+5. 修复 Tianshu 服务目录和配置列表的可选筛选行为。
+6. 让 Tianshu Web 按 `biz -> namespace -> env -> app` 浏览，并能查看应用的真实实例。
+7. 让 Yuheng Admin、Yuheng Engine 正确注册到 Tianshu，并完成本机完整联调。
+8. 简化 Yuheng Admin Web 本地登录，只要求 Access Token。
 
 ### 2.2 非目标
 
@@ -90,24 +90,24 @@ namespace 不参与配置、服务注册、心跳、路由发现和实例租约�
 | 字段 | 语义 | 生成方 | 生命周期 |
 |---|---|---|---|
 | `serviceKey` | 结构化逻辑服务身份 | Starter/Provider Runtime | 服务契约不变时稳定 |
-| `serviceId` | `serviceKey` 的 SHA-256 派生摘要 | DDC | 与 `serviceKey` 同生命周期 |
+| `serviceId` | `serviceKey` 的 SHA-256 派生摘要 | Tianshu | 与 `serviceKey` 同生命周期 |
 | `instanceId` | 一个实际运行副本的身份 | Starter | 进程或 Pod 生命周期 |
-| `leaseId` | 本次注册会话的 fencing token | DDC Admin | 单次成功注册会话 |
+| `leaseId` | 本次注册会话的 fencing token | Tianshu Admin | 单次成功注册会话 |
 | `host:port` | 实际访问地址 | 服务实例 | 可随实例变化 |
 
 两个相同订单服务副本共享同一个 `serviceKey/serviceId`，但具有不同 `instanceId` 和
-`leaseId`。DDC 先按 `serviceKey` 聚合逻辑服务，再在该服务下返回多个实例。
+`leaseId`。Tianshu 先按 `serviceKey` 聚合逻辑服务，再在该服务下返回多个实例。
 
 ### 4.2 serviceId
 
-`serviceId` 不由客户端随机生成，也不使用主机信息。DDC 根据规范化后的物理
+`serviceId` 不由客户端随机生成，也不使用主机信息。Tianshu 根据规范化后的物理
 `serviceKey.canonicalValue()` 计算完整 SHA-256：
 
 ```text
 serviceId = SHA-256(serviceKey.canonicalValue())
 
 serviceKey.canonicalValue():
-  ddc-service-key-v3\n
+  tianshu-service-key-v3\n
   bizCode\n
   env\n
   appCode\n
@@ -129,10 +129,10 @@ canonicalValue 使用固定字段顺序和换行分隔；构造时继续拒绝�
 
 ### 4.3 instanceId 生成策略
 
-新增共享 `DdcInstanceIdProvider` Strategy，DDC Config Client、HTTP Provider、RPC Provider、
-Gateway Admin 和 Gateway Engine 统一使用。优先级固定为：
+新增共享 `DdcInstanceIdProvider` Strategy，Tianshu Config Client、HTTP Provider、RPC Provider、
+Yuheng Admin 和 Yuheng Engine 统一使用。优先级固定为：
 
-1. 显式配置 `egon.cola.component.ddc.instance.id`；
+1. 显式配置 `egon.cola.component.tianshu.instance.id`；
 2. 业务提供的自定义 `DdcInstanceIdProvider` Bean；
 3. Starter 默认生成完整 UUIDv7。
 
@@ -194,7 +194,7 @@ Association Object 模式，直接对应用户后续以 namespace 为授权单�
 迁移失败必须保持事务回滚，用户先解决冲突后重新执行。当前本机数据在实际迁移前也要运行
 同一条预检查查询。
 
-## 6. DDC Starter 与运行时协议
+## 6. Tianshu Starter 与运行时协议
 
 ### 6.1 配置协议
 
@@ -207,13 +207,13 @@ bizCode + env + appCode
 Redis 使用新的 V3 Key：
 
 ```text
-ddc:v3:{scopeDigest}:config:{configKey}
-ddc:v3:{scopeDigest}:version:{configKey}
-ddc:v3:{scopeDigest}:topic
-ddc:v3:{scopeDigest}:lease:instance:{instanceId}
+tianshu:v3:{scopeDigest}:config:{configKey}
+tianshu:v3:{scopeDigest}:version:{configKey}
+tianshu:v3:{scopeDigest}:topic
+tianshu:v3:{scopeDigest}:lease:instance:{instanceId}
 ```
 
-`egon.cola.component.ddc.namespace` 保留一个版本作为 deprecated 配置，启动时记录迁移提示，
+`egon.cola.component.tianshu.namespace` 保留一个版本作为 deprecated 配置，启动时记录迁移提示，
 但不再参与配置拉取或注册。所有仓库内消费者在同一次发布中完成升级并重启。
 
 ### 6.2 服务注册协议
@@ -228,8 +228,8 @@ serviceName, group, version, protocol
 注册、心跳、下线和实例查询不再要求 namespace。`DdcServiceRegistration` 继续携带
 `instanceId + serviceKey + host + port + metadata + lease settings`。
 
-旧 V2 Redis 租约按 TTL 自然过期；V3 目录不读取 V2 Key。部署时必须先升级 DDC Admin，
-再统一重启 Starter、Gateway、RPC 和 Provider 进程。
+旧 V2 Redis 租约按 TTL 自然过期；V3 目录不读取 V2 Key。部署时必须先升级 Tianshu Admin，
+再统一重启 Starter、Yuheng、RPC 和 Provider 进程。
 
 ### 6.3 运行时门控
 
@@ -243,11 +243,11 @@ serviceName, group, version, protocol
 新增持久化 Redis V3 全局服务目录 Set 和 revision：
 
 ```text
-ddc:v3:{registry-catalog}:services
-ddc:v3:{registry-catalog}:revision
+tianshu:v3:{registry-catalog}:services
+tianshu:v3:{registry-catalog}:revision
 ```
 
-注册和成功心跳都会补写全局目录，因此 DDC Admin 重启后能由存活客户端自愈。下线和过期清理
+注册和成功心跳都会补写全局目录，因此 Tianshu Admin 重启后能由存活客户端自愈。下线和过期清理
 在最后一个实例消失后删除目录项。全局目录使用独立 Hash Tag，不把它塞入现有跨 scope Lua
 脚本，避免 Redis Cluster `CROSSSLOT`。
 
@@ -256,7 +256,7 @@ ddc:v3:{registry-catalog}:revision
 
 ### 7.2 查询接口
 
-`GET /api/v1/ddc/registry/services` 的以下参数全部可选：
+`GET /api/v1/tianshu/registry/services` 的以下参数全部可选：
 
 ```text
 bizCode, namespaceCode, env, appCode,
@@ -270,8 +270,8 @@ serviceKind, protocol, serviceName, group, version
 - serviceId 在响应中派生返回；
 - 过期且无实例的服务不会返回。
 
-`GET /api/v1/ddc/registry/instances` 是精确操作，要求完整物理 serviceKey，不要求 namespace。
-缺少精确身份返回 `DDC_INVALID_REQUEST`，不能包装成 `DDC_INTERNAL_FAILURE`。
+`GET /api/v1/tianshu/registry/instances` 是精确操作，要求完整物理 serviceKey，不要求 namespace。
+缺少精确身份返回 `TIANSHU_INVALID_REQUEST`，不能包装成 `TIANSHU_INTERNAL_FAILURE`。
 
 ## 8. 配置列表与管理 API
 
@@ -280,9 +280,9 @@ serviceKind, protocol, serviceName, group, version
 管理面统一使用：
 
 ```text
-GET /api/v1/ddc/namespaces?bizCode=infra
-GET /api/v1/ddc/envs?bizCode=infra&namespaceCode=default
-GET /api/v1/ddc/apps?bizCode=infra&namespaceCode=default&env=local
+GET /api/v1/tianshu/namespaces?bizCode=infra
+GET /api/v1/tianshu/envs?bizCode=infra&namespaceCode=default
+GET /api/v1/tianshu/apps?bizCode=infra&namespaceCode=default&env=local
 ```
 
 - namespace 按 biz 查询；
@@ -292,19 +292,19 @@ GET /api/v1/ddc/apps?bizCode=infra&namespaceCode=default&env=local
 
 ### 8.2 Binding 管理
 
-新增 `/api/v1/ddc/namespace-env-app-bindings`：
+新增 `/api/v1/tianshu/namespace-env-app-bindings`：
 
 - GET：按 bizCode、namespaceCode、env、appCode 任意过滤；
 - POST：创建一条环境级绑定；
 - DELETE：删除一条绑定；
 - PUT enabled：启用或禁用绑定。
 
-重复绑定返回稳定的 `DDC_NAMESPACE_BINDING_EXISTS`；不存在返回
-`DDC_NAMESPACE_BINDING_NOT_FOUND`。删除 binding 不删除 app、配置、实例或注册信息。
+重复绑定返回稳定的 `TIANSHU_NAMESPACE_BINDING_EXISTS`；不存在返回
+`TIANSHU_NAMESPACE_BINDING_NOT_FOUND`。删除 binding 不删除 app、配置、实例或注册信息。
 
 ### 8.3 配置列表
 
-`GET /api/v1/ddc/configs` 支持以下可选条件：
+`GET /api/v1/tianshu/configs` 支持以下可选条件：
 
 ```text
 bizCode, namespaceCode, env, appCode, configKey, includeDeleted
@@ -318,7 +318,7 @@ bizCode, namespaceCode, env, appCode, configKey, includeDeleted
 - 管理请求可携带 namespaceCode 作为访问上下文，但不写入配置唯一键；
 - 将来接入 RBAC 时，访问上下文与当前用户可访问 namespace 求交集。
 
-## 9. DDC Admin Web
+## 9. Tianshu Admin Web
 
 ### 9.1 统一作用域组件
 
@@ -335,7 +335,7 @@ BizSelect -> NamespaceSelect -> EnvSelect -> AppSelect
 - namespace 创建时选择 biz，不选择 app；
 - 增加 binding 管理区；
 - 按 env 分组，通过 app 多选维护 `namespace + env + app`；
-- 删除 namespace 前只检查 binding；有 binding 时返回 `DDC_NAMESPACE_IN_USE`；
+- 删除 namespace 前只检查 binding；有 binding 时返回 `TIANSHU_NAMESPACE_IN_USE`；
 - 删除 binding 不影响物理数据。
 
 ### 9.3 服务注册页
@@ -356,12 +356,12 @@ BizSelect -> NamespaceSelect -> EnvSelect -> AppSelect
 - visibleNamespaces 使用标签展示；
 - 从任一绑定 namespace 打开配置时读取相同 configId、版本和值。
 
-## 10. Gateway Admin Web 登录
+## 10. Yuheng Admin Web 登录
 
 本地 HMAC JWT 模式没有 Refresh Token。登录页根据以下条件决定是否展示 Refresh Token：
 
 ```text
-VITE_GATEWAY_ADMIN_TOKEN_URL 与 VITE_GATEWAY_ADMIN_CLIENT_ID 均存在
+VITE_YUHENG_ADMIN_TOKEN_URL 与 VITE_YUHENG_ADMIN_CLIENT_ID 均存在
 ```
 
 未配置时：
@@ -374,7 +374,7 @@ VITE_GATEWAY_ADMIN_TOKEN_URL 与 VITE_GATEWAY_ADMIN_CLIENT_ID 均存在
 
 配置 OAuth Token Endpoint 时保留现有可选 Refresh Token 和自动刷新逻辑。
 
-## 11. Gateway Admin 与 Engine 注册
+## 11. Yuheng Admin 与 Engine 注册
 
 本机联调初始化以下数据：
 
@@ -383,27 +383,27 @@ biz: infra
 namespace: default
 env: local
 apps:
-  - ga / Gateway Admin
-  - ge / Gateway Engine
+  - ga / Yuheng Admin
+  - ge / Yuheng Engine
 bindings:
   - infra/default/local/ga
   - infra/default/local/ge
 ```
 
-Gateway Admin：
+Yuheng Admin：
 
 - 物理部署身份为 `infra/local/ga`；
 - 复用现有 HTTP Provider lease runtime，不重复实现心跳恢复；
-- serviceName 为 `egon-cola-gateway-admin`；
+- serviceName 为 `egon-cola-yuheng-admin`；
 - serviceKind 为 `HTTP_PROVIDER`；
-- metadata 包含 `gateway.component=admin`；
+- metadata 包含 `yuheng.component=admin`；
 - HTTP 监听端口就绪后注册。
 
-Gateway Engine：
+Yuheng Engine：
 
 - 物理部署身份为 `infra/local/ge`；
 - 保持 `INTERNAL_GATEWAY`；
-- serviceName 为 `egon-gateway-rpc`；
+- serviceName 为 `egon-yuheng-rpc`；
 - Engine Ready 后注册；
 - namespace 不再进入 `RpcGatewaySlotRuntime` 的 serviceKey。
 
@@ -411,7 +411,7 @@ Gateway Engine：
 
 ## 12. 本机测试服务
 
-除 Gateway Admin 和 Engine 外，启动两个相同的无状态订单 HTTP Provider：
+除 Yuheng Admin 和 Engine 外，启动两个相同的无状态订单 HTTP Provider：
 
 ```text
 biz: retail
@@ -422,7 +422,7 @@ serviceName: order-service
 ports: 18084, 18085
 ```
 
-两个进程共享 serviceKey/serviceId，具有不同 UUIDv7 instanceId、leaseId 和端口。Gateway 路由
+两个进程共享 serviceKey/serviceId，具有不同 UUIDv7 instanceId、leaseId 和端口。Yuheng 路由
 通过同一逻辑服务发现两个实例，并可重复请求观察负载选择。再把 order 绑定到第二个 namespace，
 验证不重启 Provider 也能从新 namespace 看见相同实例集合。
 
@@ -433,28 +433,28 @@ ports: 18084, 18085
 | 服务目录缺少筛选 | 正常返回匹配服务或全部服务 |
 | 配置列表缺少筛选 | 正常返回匹配配置或全部配置 |
 | 未知筛选值 | 成功响应，data 为空 |
-| 精确实例查询缺少 serviceKey 字段 | `DDC_INVALID_REQUEST` |
-| serviceKind 非法 | `DDC_INVALID_REQUEST` |
-| binding 重复 | `DDC_NAMESPACE_BINDING_EXISTS` |
-| binding 不存在 | `DDC_NAMESPACE_BINDING_NOT_FOUND` |
+| 精确实例查询缺少 serviceKey 字段 | `TIANSHU_INVALID_REQUEST` |
+| serviceKind 非法 | `TIANSHU_INVALID_REQUEST` |
+| binding 重复 | `TIANSHU_NAMESPACE_BINDING_EXISTS` |
+| binding 不存在 | `TIANSHU_NAMESPACE_BINDING_NOT_FOUND` |
 | V7 发现旧配置物理键冲突 | Flyway 中止并保留旧数据 |
-| instanceId 与存活旧租约冲突 | `DDC_INSTANCE_ID_CONFLICT` |
-| 未预期异常 | 记录 traceId，返回 `DDC_INTERNAL_FAILURE` |
+| instanceId 与存活旧租约冲突 | `TIANSHU_INSTANCE_ID_CONFLICT` |
+| 未预期异常 | 记录 traceId，返回 `TIANSHU_INTERNAL_FAILURE` |
 
-Spring MVC 参数绑定和枚举转换错误必须映射到 `DDC_INVALID_REQUEST`，不能继续落入通用 56999。
+Spring MVC 参数绑定和枚举转换错误必须映射到 `TIANSHU_INVALID_REQUEST`，不能继续落入通用 56999。
 
 ## 14. 兼容性与发布顺序
 
 这是一次明确的运行时作用域契约升级：namespace 从物理身份改为管理可见性。发布顺序固定为：
 
-1. 停止当前本机 DDC/Gateway/Provider 业务进程，保留 PostgreSQL、Redis 数据服务；
+1. 停止当前本机 Tianshu/Yuheng/Provider 业务进程，保留 PostgreSQL、Redis 数据服务；
 2. 执行 V7 配置冲突预检查；
-3. 构建并启动新 DDC Admin，完成 V7；
+3. 构建并启动新 Tianshu Admin，完成 V7；
 4. 创建或确认 infra/default/local/ga、ge bindings；
-5. 重启 Gateway Admin、Gateway Engine、两个订单 Provider；
-6. 启动 DDC Web 和 Gateway Web；
+5. 重启 Yuheng Admin、Yuheng Engine、两个订单 Provider；
+6. 启动 Tianshu Web 和 Yuheng Web；
 7. 等待 V2 租约 TTL 收敛，只读取 V3 目录；
-8. 执行 API、Web 和 Gateway 路由验收；
+8. 执行 API、Web 和 Yuheng 路由验收；
 9. 服务保持运行，交由用户继续测试。
 
 仓库外使用旧 Starter 的应用必须同步升级。旧客户端缺少 V3 物理身份，不能与新目录混用。
@@ -463,7 +463,7 @@ Spring MVC 参数绑定和枚举转换错误必须映射到 `DDC_INVALID_REQUEST
 
 - 使用 Association Object 表达 namespace-env-app，因为关系携带 env、enabled 和审计属性；
 - 使用 Strategy 表达 `DdcInstanceIdProvider`，因为 Kubernetes、ECS、裸机和默认 UUIDv7 是真实变化点；
-- Gateway Admin 复用现有 HTTP Provider lease runtime，沿用既有 Adapter/lease recovery 边界；
+- Yuheng Admin 复用现有 HTTP Provider lease runtime，沿用既有 Adapter/lease recovery 边界；
 - 不增加 MAC Factory、重复注册 Facade 或“主 namespace”别名层；这些抽象会制造错误身份或重复状态；
 - 可选筛选使用直接、可测试的 repository 查询和 binding `EXISTS`，不为简单条件树新增处理器链。
 
@@ -480,8 +480,8 @@ Spring MVC 参数绑定和枚举转换错误必须映射到 `DDC_INVALID_REQUEST
 - leaseId fencing 和 instanceId 冲突保持严格；
 - 服务目录全空、部分条件、完整条件和 namespace binding 求交；
 - 配置列表全空、部分条件、namespace 过滤和去重；
-- Spring 参数错误映射为 `DDC_INVALID_REQUEST`；
-- Gateway Admin HTTP lease、Engine INTERNAL_GATEWAY lease 与故障恢复。
+- Spring 参数错误映射为 `TIANSHU_INVALID_REQUEST`；
+- Yuheng Admin HTTP lease、Engine INTERNAL_GATEWAY lease 与故障恢复。
 
 ### 16.2 前端
 
@@ -490,14 +490,14 @@ Spring MVC 参数绑定和枚举转换错误必须映射到 `DDC_INVALID_REQUEST
 - Registry 首次全量、部分筛选、binding path 和实例 Drawer；
 - 同一 app 多 namespace 时实例集合一致；
 - Configs 空筛选、可见 namespace 标签和配置去重；
-- Gateway 本地登录隐藏 Refresh Token；
+- Yuheng 本地登录隐藏 Refresh Token；
 - OAuth 配置存在时 Refresh Token 行为回归。
 
 ### 16.3 验证命令范围
 
-- DDC Starter/Admin/Test reactor Maven 测试；
-- RPC 和 Gateway 受影响模块 Maven 测试；
-- DDC/Gateway Web Vitest、typecheck、lint、build；
+- Tianshu Starter/Admin/Test reactor Maven 测试；
+- RPC 和 Yuheng 受影响模块 Maven 测试；
+- Tianshu/Yuheng Web Vitest、typecheck、lint、build；
 - 根 reactor 受影响模块集成验证，并检查 reactor summary 确认实际子模块和测试被执行；
 - 本机 PostgreSQL、Redis 多进程联调，不使用容器。
 
@@ -505,16 +505,16 @@ Spring MVC 参数绑定和枚举转换错误必须映射到 `DDC_INVALID_REQUEST
 
 1. `GET /registry/services` 无参数、任意部分参数均成功，不返回 56999。
 2. `GET /configs` 无参数、任意部分参数均成功，结果符合所传条件。
-3. DDC Web 能按 `biz -> namespace -> env -> app` 浏览。
+3. Tianshu Web 能按 `biz -> namespace -> env -> app` 浏览。
 4. 同一 app 可绑定多个 namespace/env，但只有一份配置和一组物理实例。
 5. 两个相同订单服务副本共享 serviceId，instanceId、leaseId、host:port 不同且均 ONLINE。
-6. `infra/default/local` 下能看到 ga、ge；ga 注册为 Gateway Admin HTTP 服务，ge 注册为
+6. `infra/default/local` 下能看到 ga、ge；ga 注册为 Yuheng Admin HTTP 服务，ge 注册为
    INTERNAL_GATEWAY。
 7. 给 ga、ge 或 order 增加第二个 namespace binding 后，不重启服务即可看到相同实例。
 8. 两个 namespace 打开同一配置时，configId、版本和值一致。
-9. Gateway Web 本地登录只要求 Access Token，Refresh Token 不显示。
+9. Yuheng Web 本地登录只要求 Access Token，Refresh Token 不显示。
 10. 新 Access Token 写入受控运行目录且不输出明文。
-11. HTTP Provider 经 Gateway 路由可用，两个订单实例均可被发现。
+11. HTTP Provider 经 Yuheng 路由可用，两个订单实例均可被发现。
 12. 所有目标 Maven、Vitest、typecheck、lint、build 验证通过；任何既有非本次错误单独说明。
-13. DDC、Gateway Admin、Gateway Engine、两个订单 Provider、DDC Web、Gateway Web 重启后保持运行，
+13. Tianshu、Yuheng Admin、Yuheng Engine、两个订单 Provider、Tianshu Web、Yuheng Web 重启后保持运行，
     供用户继续测试。

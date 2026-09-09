@@ -1,17 +1,17 @@
-# Gateway OpenAI Streaming Transport Parallel Implementation Plan
+# Yuheng OpenAI Streaming Transport Parallel Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在不改变既有 HTTP、HTTP-to-RPC 与 gRPC/RPC 默认行为的前提下，为 Gateway 增加 OpenAI HTTP 规范兼容的透明 Streaming HTTP、SSE、Multipart、Binary Stream 与 Realtime WebSocket 转发能力。
+**Goal:** 在不改变既有 HTTP、HTTP-to-RPC 与 gRPC/RPC 默认行为的前提下，为 Yuheng 增加 OpenAI HTTP 规范兼容的透明 Streaming HTTP、SSE、Multipart、Binary Stream 与 Realtime WebSocket 转发能力。
 
-**Architecture:** 保留现有 Gateway Filter Chain 作为唯一的 Route、Security、Governance 与 Provider Selection 入口；在 Invocation 阶段以窄 `GatewayTransportDispatcher` 分派 Aggregated/Streaming HTTP Strategy 或独立 WebSocket Proxy，并用 Policy Resolver、Reactor Netty Adapter、DataBuffer Decorator、单调 Commit Guard 和被动 Observer 约束流式生命周期。
+**Architecture:** 保留现有 Yuheng Filter Chain 作为唯一的 Route、Security、Governance 与 Provider Selection 入口；在 Invocation 阶段以窄 `GatewayTransportDispatcher` 分派 Aggregated/Streaming HTTP Strategy 或独立 WebSocket Proxy，并用 Policy Resolver、Reactor Netty Adapter、DataBuffer Decorator、单调 Commit Guard 和被动 Observer 约束流式生命周期。
 
 **Tech Stack:** Java 21、Spring Core `DataBuffer`、Project Reactor、Reactor Netty HTTP/WebSocket、Jackson、JUnit Jupiter、Reactor Test、Maven、React 19、TypeScript 6、Ant Design、Vitest。
 
 ## Global Constraints
 
-- 已确认设计以 `docs/superpowers/specs/2026-07-30-gateway-openai-streaming-transport-design.md` v2 为唯一功能基线；实施中如发现矛盾，先停在当前汇合门，由主代理记录证据并更新计划，不由子代理自行扩大范围。
-- Gateway 只识别请求、匹配 Route、承载协议并透明转发；禁止实现 Token 统计、计费、Prompt、会话、RAG、Agent 编排、Function Calling 执行或模型业务选择。
+- 已确认设计以 `docs/superpowers/specs/2026-07-30-yuheng-openai-streaming-transport-design.md` v2 为唯一功能基线；实施中如发现矛盾，先停在当前汇合门，由主代理记录证据并更新计划，不由子代理自行扩大范围。
+- Yuheng 只识别请求、匹配 Route、承载协议并透明转发；禁止实现 Token 统计、计费、Prompt、会话、RAG、Agent 编排、Function Calling 执行或模型业务选择。
 - 不读取、验证或重新序列化 OpenAI JSON Body；不得按 `model`、`messages`、`input`、`tools` 或媒体内容选择 Provider。
 - 旧 Route 缺少 `transportPolicy` 时必须保留 Aggregated HTTP、5 秒既有上游超时、4 MiB 既有响应限制、现有重试语义以及 HTTP-to-RPC 聚合语义。
 - `OPENAI_HTTP` 只是 Route Transport Profile；不得增加 `OPENAI` 业务协议、OpenAI SDK、模型注册表、静态上游 URL 或新的 Provider 发现路径。
@@ -22,7 +22,7 @@
 - Connect、Response Header、Stream Idle、Total 与 WebSocket Idle Timeout 必须是不同计时器；正常背压不能被误判成网络空闲。
 - `OPENAI_HTTP` 默认禁止重试；收到上游响应头、提交下游响应头、发送首个响应 DataBuffer、完成 WebSocket 101 或转发首个 Frame 后，重试门永久关闭。
 - 客户端上传、等待响应头、SSE、Binary 或 WebSocket 任一阶段取消时，必须取消上游 Send/Receive、释放未转交 DataBuffer、结束 attempt/selection/observation，且不得重试。
-- 不新增 Gateway 子模块，不引入 Spring Cloud Gateway，不修改已有 Flyway V1-V4，不创建 V5；Route 新字段继续存入现有 `route_content JSONB`。
+- 不新增 Yuheng 子模块，不引入 Spring Cloud Gateway，不修改已有 Flyway V1-V4，不创建 V5；Route 新字段继续存入现有 `route_content JSONB`。
 - 当前 Admin 模块既有依赖为 `Admin -> Contract + Core`；本次保留该依赖，不为追求理想化依赖图重构发布编译器。
 - 历史 Admin Web 草稿的 `listener/method/path` 可以双读为 `accessZones/httpMethod/pathPattern`，但旧 UI 从未保存 `host`。缺失 Host 时必须显示可操作的校验错误并要求操作者补录，禁止静默推断为 `*` 或任意域名。
 - Wire 兼容承诺是“新 Engine 读取并校验旧 v1 Snapshot”；旧 Engine 不能读取含 `transportPolicy` 的新 Snapshot。部署顺序必须先升级全部 Engine，再允许 Admin 发布新字段；混部期不得发布 Transport Policy。
@@ -57,7 +57,7 @@
 
 | 模式/构件 | 解决的问题 | 实施边界 |
 |---|---|---|
-| Remote Proxy | 明确 Gateway 只代理远端 OpenAI-compatible Contract | 不形成 OpenAI SDK/业务 Facade |
+| Remote Proxy | 明确 Yuheng 只代理远端 OpenAI-compatible Contract | 不形成 OpenAI SDK/业务 Facade |
 | 既有 Chain of Responsibility | Route、CORS、Security、Governance 只执行一次 | 不把每个 DataBuffer/Frame 做成 Filter |
 | Strategy | 隔离 Aggregated 与 Streaming HTTP 算法 | WebSocket 不实现 HTTP Strategy |
 | Dedicated WebSocket Proxy | 表达 101 后双向会话生命周期 | 返回 `Mono<Void>`，不伪造 HTTP Body |
@@ -89,21 +89,21 @@
 执行本计划前，主代理必须先使用 `superpowers:using-git-worktrees` 建立隔离 Integration Worktree，再为每个任务从当前 Gate Commit 建立独立 Worktree：
 
 ```text
-codex/gateway-openai-streaming              # 主集成分支，仅主代理写
-codex/gateway-openai-w1-contract            # Task 1
-codex/gateway-openai-w1-buffer              # Task 2
-codex/gateway-openai-w1-admin-web           # Task 3
-codex/gateway-openai-w2-engine-policy       # Task 4
-codex/gateway-openai-w2-admin-backend       # Task 5
-codex/gateway-openai-w2-body-model          # Task 6
-codex/gateway-openai-w3-http-strategy       # Task 7
-codex/gateway-openai-w3-lifecycle           # Task 8
-codex/gateway-openai-w3-websocket           # Task 9
-codex/gateway-openai-w4-data-plane          # Task 10
-codex/gateway-openai-w4-admin-acceptance    # Task 11
-codex/gateway-openai-w5-matrix              # Task 12
-codex/gateway-openai-w5-docs                # Task 13
-codex/gateway-openai-w5-compat              # Task 14
+codex/yuheng-openai-streaming              # 主集成分支，仅主代理写
+codex/yuheng-openai-w1-contract            # Task 1
+codex/yuheng-openai-w1-buffer              # Task 2
+codex/yuheng-openai-w1-admin-web           # Task 3
+codex/yuheng-openai-w2-engine-policy       # Task 4
+codex/yuheng-openai-w2-admin-backend       # Task 5
+codex/yuheng-openai-w2-body-model          # Task 6
+codex/yuheng-openai-w3-http-strategy       # Task 7
+codex/yuheng-openai-w3-lifecycle           # Task 8
+codex/yuheng-openai-w3-websocket           # Task 9
+codex/yuheng-openai-w4-data-plane          # Task 10
+codex/yuheng-openai-w4-admin-acceptance    # Task 11
+codex/yuheng-openai-w5-matrix              # Task 12
+codex/yuheng-openai-w5-docs                # Task 13
+codex/yuheng-openai-w5-compat              # Task 14
 ```
 
 规则：
@@ -144,7 +144,7 @@ flowchart TD
     G4 --> W5A["T12 Transport Component Matrix"]
     G4 --> W5B["T13 Consumer Documentation"]
     G4 --> W5C["T14 Legacy HTTP/RPC Compatibility"]
-    W5A --> G5["G5 Full Gateway Gate"]
+    W5A --> G5["G5 Full Yuheng Gate"]
     W5B --> G5
     W5C --> G5
     G5 --> R1["R1 Code Review"]
@@ -171,8 +171,8 @@ flowchart TD
 | 4 | T10 | backend-developer | `DefaultGatewayHttpDataPlaneHandler`、Execution Pipeline、Listener/Server、Dispatcher、Engine wiring 独占集成 | 1 |
 | 4 | T11 | fullstack-developer | 仅 Admin 后端/前端验收测试文件，不改 T5/T3 生产文件 | 2 |
 | 5 | T12 | backend-developer | 仅 Engine transport component fixtures/tests | 1 |
-| 5 | T13 | documentation-engineer | Gateway README 与 developer integration 文档 | 2 |
-| 5 | T14 | backend-developer | 仅 Gateway test-suite 与既有 HTTP/RPC 兼容测试 | 3 |
+| 5 | T13 | documentation-engineer | Yuheng README 与 developer integration 文档 | 2 |
+| 5 | T14 | backend-developer | 仅 Yuheng test-suite 与既有 HTTP/RPC 兼容测试 | 3 |
 | 6 | R1-R3 | code-reviewer/performance-engineer/qa-expert | 只读审查；不得直接修文件 | 不合入 |
 
 任何任务若需要修改同 Wave 另一任务的文件，必须报告阻塞；主代理把该修改移到后续 Gate 后的独占集成任务，不能通过“先改再解决冲突”绕过所有权。
@@ -197,7 +197,7 @@ Expected: 记录实际 HEAD；若原工作区有用户修改，留在原工作�
 
 - [ ] **Step 2: 建立隔离 Integration Worktree**
 
-按 `superpowers:using-git-worktrees` 选择已被 `.gitignore` 覆盖的位置，创建 `codex/gateway-openai-streaming`；不得在用户当前 `main` Worktree 直接实施。
+按 `superpowers:using-git-worktrees` 选择已被 `.gitignore` 覆盖的位置，创建 `codex/yuheng-openai-streaming`；不得在用户当前 `main` Worktree 直接实施。
 
 - [ ] **Step 3: 运行后端与前端基线**
 
@@ -242,21 +242,21 @@ GatewayHttpFlushMode: STANDARD | PER_BUFFER
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteProfile.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayTransportProtocol.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRequestBodyMode.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayTransportResponseMode.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteTransportPolicy.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRuntimeRoute.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/EffectiveGatewayTransportPolicy.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportDefaults.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportSafetyLimits.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayTransportPolicyOverrides.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/transport/GatewayRouteProfileResolver.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/route/RuntimeHttpRoute.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/rule/GatewayRouteTransportPolicyTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/transport/GatewayRouteProfileResolverTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/gateway/core/route/HttpRouteCompilerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayRouteProfile.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayTransportProtocol.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayRequestBodyMode.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayTransportResponseMode.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayRouteTransportPolicy.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayRuntimeRoute.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/transport/EffectiveGatewayTransportPolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/transport/GatewayTransportDefaults.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/transport/GatewayTransportSafetyLimits.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/transport/GatewayTransportPolicyOverrides.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/transport/GatewayRouteProfileResolver.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/route/RuntimeHttpRoute.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/yuheng/contract/rule/GatewayRouteTransportPolicyTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/yuheng/core/transport/GatewayRouteProfileResolverTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/test/java/top/egon/cola/component/yuheng/core/route/HttpRouteCompilerTest.java`
 
 **Interfaces:**
 
@@ -335,7 +335,7 @@ Expected: Contract/Core 测试通过；依赖扫描无输出。
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract \
         egon-cola-xingyuan/egon-cola-yuheng/yuheng-core
 git diff --cached --check
-git commit -m "feat(gateway): add route transport policy contracts"
+git commit -m "feat(yuheng): add route transport policy contracts"
 ```
 
 ### Task 2: 建立 DataBuffer Ownership 与 Reactive Decorator 原语
@@ -345,10 +345,10 @@ git commit -m "feat(gateway): add route transport policy contracts"
 **Files:**
 
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferPipeline.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferOwnership.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferPipelineTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/buffer/GatewayDataBufferOwnershipTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/buffer/GatewayDataBufferPipeline.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/buffer/GatewayDataBufferOwnership.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/buffer/GatewayDataBufferPipelineTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/buffer/GatewayDataBufferOwnershipTest.java`
 
 **Interfaces:**
 
@@ -390,10 +390,10 @@ Expected: 所有终止路径通过，测试断言每个自己拥有的 pooled bu
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml \
-        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/buffer \
-        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/buffer
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/buffer \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/buffer
 git diff --cached --check
-git commit -m "feat(gateway): add DataBuffer streaming primitives"
+git commit -m "feat(yuheng): add DataBuffer streaming primitives"
 ```
 
 ### Task 3: 增加 Admin Web Transport Route Fields 与旧键读取
@@ -457,7 +457,7 @@ Expected: Vitest、类型检查、Lint 与构建成功；不运行 Playwright/br
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
 git diff --cached --check
-git commit -m "feat(gateway-admin-web): add transport route fields"
+git commit -m "feat(yuheng-admin-web): add transport route fields"
 ```
 
 ### Gate 1: 汇合 Wave 1
@@ -488,15 +488,15 @@ npm run typecheck
 
 **Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineRuntimeProperties.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpEngineProperties.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRuleCompiler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/traffic/GatewayTrafficGovernance.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayTransportProfileCompilationTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayRuleTransportPolicyCompatibilityTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRulePolicyPartitionTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEngineConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/GatewayEngineRuntimeProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/GatewayEngineConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpEngineProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rule/EngineGatewayRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/traffic/GatewayTrafficGovernance.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rule/GatewayTransportProfileCompilationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rule/GatewayRuleTransportPolicyCompatibilityTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rule/EngineGatewayRulePolicyPartitionTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/GatewayEngineConfigurationTest.java`
 
 **Behavior:**
 
@@ -537,7 +537,7 @@ npm run typecheck
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
-git commit -m "feat(gateway): resolve effective transport profiles"
+git commit -m "feat(yuheng): resolve effective transport profiles"
 ```
 
 ### Task 5: 规范化 Admin Route Content、双读旧键并执行发布校验
@@ -546,16 +546,16 @@ git commit -m "feat(gateway): resolve effective transport profiles"
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteDraftMapper.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteTransportPolicyValidator.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/routing/GatewayDraftService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompiler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteDraftMapperTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRouteTransportPolicyValidatorTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/routing/GatewayDraftServiceTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseServiceTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompilerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/rule/GatewayRouteDraftMapper.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/rule/GatewayRouteTransportPolicyValidator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/routing/GatewayDraftService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/rule/GatewayRuleCompiler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/rule/GatewayRouteDraftMapperTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/rule/GatewayRouteTransportPolicyValidatorTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/routing/GatewayDraftServiceTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseServiceTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/rule/GatewayRuleCompilerTest.java`
 
 **Behavior:**
 
@@ -597,7 +597,7 @@ Expected: Admin 测试通过；Migration 扫描无输出。
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src
 git diff --cached --check
-git commit -m "feat(gateway-admin): normalize transport route drafts"
+git commit -m "feat(yuheng-admin): normalize transport route drafts"
 ```
 
 ### Task 6: 原子迁移 HTTP Body Model 与 Reactor Netty 边界到 DataBuffer
@@ -606,17 +606,17 @@ git commit -m "feat(gateway-admin): normalize transport route drafts"
 
 **Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayInboundHttpRequest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayOutboundHttpResponse.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/HttpUpstreamRequest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayBodySizeLimiter.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListener.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapter.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayCorsProcessor.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rpc/HttpRpcUpstreamAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayInboundHttpRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayOutboundHttpResponse.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/HttpUpstreamRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayBodySizeLimiter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpListener.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/ReactorNettyHttpUpstreamAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayCorsProcessor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rpc/HttpRpcUpstreamAdapter.java`
 - Modify tests: all Engine HTTP tests constructing/consuming the three Body records, plus `HttpRpcUpstreamAdapterTest.java`
-- Create test helper: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayDataBufferTestSupport.java`
+- Create test helper: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/GatewayDataBufferTestSupport.java`
 
 **Atomicity rule:** 该任务必须在一个分支中同时迁移 record、所有生产调用点和测试调用点，使任务提交自身可编译、可测试。它仍保留旧 handler 的 Aggregated 行为；Streaming Strategy 留给 T7。
 
@@ -645,7 +645,7 @@ git commit -m "feat(gateway-admin): normalize transport route drafts"
   -am test
 
 ! rg -n 'ByteBufUtil::getBytes|sendByteArray' \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http
 ```
 
 Expected: Engine suite 通过；旧 Route 仍聚合；HTTP-to-RPC 测试仍通过；禁用 API 扫描无输出。
@@ -655,7 +655,7 @@ Expected: Engine suite 通过；旧 Route 仍聚合；HTTP-to-RPC 测试仍通�
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
-git commit -m "refactor(gateway): migrate HTTP bodies to DataBuffer"
+git commit -m "refactor(yuheng): migrate HTTP bodies to DataBuffer"
 ```
 
 ### Gate 2: 汇合 Wave 2
@@ -682,20 +682,20 @@ git commit -m "refactor(gateway): migrate HTTP bodies to DataBuffer"
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyContext.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyStrategy.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/AggregatedHttpProxyStrategy.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/StreamingHttpProxyStrategy.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpProxyStrategySelector.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHeaderFilter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpFlushMode.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayOutboundHttpResponse.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/HttpUpstreamRequest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapter.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/security/TrustedIdentitySanitizer.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy/GatewayHttpProxyContext.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy/GatewayHttpProxyStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy/AggregatedHttpProxyStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy/StreamingHttpProxyStrategy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy/GatewayHttpProxyStrategySelector.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHeaderFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpFlushMode.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayOutboundHttpResponse.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/HttpUpstreamRequest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/ReactorNettyHttpUpstreamAdapter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/security/TrustedIdentitySanitizer.java`
 - Create tests: corresponding `proxy/*Test.java`, `GatewayHeaderFilterTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/ReactorNettyHttpUpstreamAdapterTest.java`
-- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/TrustedIdentitySanitizerTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/ReactorNettyHttpUpstreamAdapterTest.java`
+- Modify test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/security/TrustedIdentitySanitizerTest.java`
 
 **Interfaces:**
 
@@ -744,7 +744,7 @@ Streaming 不使用 Multipart decoder，不改 boundary，不解析 SSE，不启
   -Dsurefire.failIfNoSpecifiedTests=false test
 
 ! rg -n 'ObjectMapper|readValue\(|JsonNode|MultipartDecoder|getMultipartData|collectList\(|cache\(|replay\(' \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy
 ```
 
 - [ ] **Step 5: 留下唯一任务提交**
@@ -752,7 +752,7 @@ Streaming 不使用 Multipart decoder，不改 boundary，不解析 SSE，不启
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
-git commit -m "feat(gateway): add streaming HTTP proxy strategies"
+git commit -m "feat(yuheng): add streaming HTTP proxy strategies"
 ```
 
 ### Task 8: 实现 Commit Guard、Timeout/Retry Gate、取消与安全 Observation
@@ -761,17 +761,17 @@ git commit -m "feat(gateway): add streaming HTTP proxy strategies"
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCommitGuard.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCommitPoint.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayRetryGate.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportTimeouts.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayCancellation.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/logging/GatewayBodyLogTap.java`
-- Create timeout exceptions under: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayCallObservation.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayTelemetry.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/observability/GatewayCallAccessLogger.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/observability/GatewayCallEventWireCompatibilityTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/GatewayCommitGuard.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/GatewayCommitPoint.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/GatewayRetryGate.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/GatewayTransportTimeouts.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/GatewayCancellation.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/logging/GatewayBodyLogTap.java`
+- Create timeout exceptions under: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/observability/GatewayCallObservation.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/observability/GatewayTelemetry.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/observability/GatewayCallAccessLogger.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/observability/GatewayCallEventWireCompatibilityTest.java`
 - Create/modify tests for each listed class in the same modules.
 
 **Commit model:**
@@ -813,7 +813,7 @@ Expected RED before implementation，GREEN after implementation。
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
-git commit -m "feat(gateway): enforce streaming lifecycle safety"
+git commit -m "feat(yuheng): enforce streaming lifecycle safety"
 ```
 
 ### Task 9: 实现独立 WebSocket Proxy 与 Reactor Netty Adapter
@@ -822,7 +822,7 @@ git commit -m "feat(gateway): enforce streaming lifecycle safety"
 
 **Files:**
 
-- Create package: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/websocket/`
+- Create package: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/websocket/`
 - Create: `GatewayWebSocketFrameType.java`
 - Create: `GatewayWebSocketFrame.java`
 - Create: `GatewayWebSocketCloseStatus.java`
@@ -833,7 +833,7 @@ git commit -m "feat(gateway): enforce streaming lifecycle safety"
 - Create: `WebSocketUpstreamAdapter.java`
 - Create: `ReactorNettyWebSocketUpstreamAdapter.java`
 - Create: `GatewayWebSocketProxy.java`
-- Create matching tests under: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/websocket/`
+- Create matching tests under: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/websocket/`
 
 **Interfaces:**
 
@@ -879,10 +879,10 @@ Frame payload 使用 DataBuffer/受控 Netty bridge，不转 String/Base64。Web
 - [ ] **Step 5: 留下唯一任务提交**
 
 ```bash
-git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/websocket \
-        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/websocket
+git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/websocket \
+        egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/websocket
 git diff --cached --check
-git commit -m "feat(gateway): add WebSocket proxy transport"
+git commit -m "feat(yuheng): add WebSocket proxy transport"
 ```
 
 ### Gate 3: 汇合 Wave 3
@@ -909,20 +909,20 @@ git commit -m "feat(gateway): add WebSocket proxy transport"
 
 **Exclusive files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportDispatcher.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpAttemptCoordinator.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpExecutionPipeline.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/AbstractGatewayHttpStageExchange.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListener.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayHttpServer.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/transport/GatewayTransportDispatcher.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/proxy/GatewayHttpAttemptCoordinator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpExecutionPipeline.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/AbstractGatewayHttpStageExchange.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpListener.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpServer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/GatewayEngineConfiguration.java`
 - Modify existing Engine HTTP pipeline/server/retry/cors/trace tests.
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/transport/GatewayTransportDispatcherTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/proxy/GatewayHttpAttemptCoordinatorTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayHttpListenerStreamingTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/http/GatewayHttpServerWebSocketTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/transport/GatewayTransportDispatcherTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/proxy/GatewayHttpAttemptCoordinatorTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpListenerStreamingTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/GatewayHttpServerWebSocketTest.java`
 
 **Dispatcher contract:**
 
@@ -942,7 +942,7 @@ Mono<Void> bridgeWebSocket(
 
 - [ ] **Step 1: 写“责任链恰好一次”与两阶段握手失败测试**
 
-为 Route/CORS/Security/Governance/Provider 各加计数器，HTTP 与 WS 分别断言一次。严格识别 `GET + Connection token upgrade + Upgrade websocket`；普通 GET 不误判。WS 上游 handshake future 未完成时客户端不能收到 101；Rejected 写现有 HTTP Gateway Error；Accepted 后才调用 `sendWebsocket` 并 bridge。
+为 Route/CORS/Security/Governance/Provider 各加计数器，HTTP 与 WS 分别断言一次。严格识别 `GET + Connection token upgrade + Upgrade websocket`；普通 GET 不误判。WS 上游 handshake future 未完成时客户端不能收到 101；Rejected 写现有 HTTP Yuheng Error；Accepted 后才调用 `sendWebsocket` 并 bridge。
 
 - [ ] **Step 2: 写流式发送、提交点与取消失败测试**
 
@@ -984,7 +984,7 @@ Expected RED before wiring，GREEN after wiring。
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src
 git diff --cached --check
-git commit -m "feat(gateway): integrate transport dispatcher"
+git commit -m "feat(yuheng): integrate transport dispatcher"
 ```
 
 ### Task 11: 补齐 Admin 后端到前端的 Route Transport 验收测试
@@ -993,7 +993,7 @@ git commit -m "feat(gateway): integrate transport dispatcher"
 
 **Test-only files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayDraftTransportWorkflowTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayDraftTransportWorkflowTest.java`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/draft/DraftPage.test.tsx`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`
 
@@ -1022,7 +1022,7 @@ npm run typecheck
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test \
         egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
 git diff --cached --check
-git commit -m "test(gateway-admin): cover transport route workflow"
+git commit -m "test(yuheng-admin): cover transport route workflow"
 ```
 
 ### Gate 4: 汇合 Wave 4
@@ -1053,7 +1053,7 @@ npm run typecheck
 
 **Test-only files:**
 
-- Create package: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/transport/fixture/`
+- Create package: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/transport/fixture/`
 - Create: `StreamingHttpTestUpstream.java`
 - Create: `WebSocketTestUpstream.java`
 - Create: `GatewayOpenAiTransportComponentTest.java`
@@ -1094,7 +1094,7 @@ Expected: 所有进程内 server 在测试结束自动关闭，无常驻进程�
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test
 git diff --cached --check
-git commit -m "test(gateway): verify streaming transports"
+git commit -m "test(yuheng): verify streaming transports"
 ```
 
 ### Task 13: 更新消费者文档与安全发布顺序
@@ -1110,7 +1110,7 @@ git commit -m "test(gateway): verify streaming transports"
 
 - [ ] **Step 1: 写准确的 Route 示例和职责边界**
 
-文档给出 canonical `OPENAI_HTTP` Streaming/SSE/Multipart/Binary Route 与单独 WEBSOCKET Route 示例，解释每个 timeout/retry/body log 字段、必要 Header、HTTP-to-RPC 不支持 Streaming，以及 Gateway 不提供模型/Token/Prompt/RAG/Agent 能力。
+文档给出 canonical `OPENAI_HTTP` Streaming/SSE/Multipart/Binary Route 与单独 WEBSOCKET Route 示例，解释每个 timeout/retry/body log 字段、必要 Header、HTTP-to-RPC 不支持 Streaming，以及 Yuheng 不提供模型/Token/Prompt/RAG/Agent 能力。
 
 - [ ] **Step 2: 写兼容与 Rollout Runbook**
 
@@ -1118,7 +1118,7 @@ git commit -m "test(gateway): verify streaming transports"
 
 - [ ] **Step 3: 写验证边界**
 
-说明组件测试不等于真实 OpenAI、外网 TLS、私有 CA、多进程 DDC/Redis/PostgreSQL/Kafka 或外层 Nginx/Ingress flush 证明；不宣称网关能控制外层代理缓存。
+说明组件测试不等于真实 OpenAI、外网 TLS、私有 CA、多进程 Tianshu/Redis/PostgreSQL/Kafka 或外层 Nginx/Ingress flush 证明；不宣称网关能控制外层代理缓存。
 
 - [ ] **Step 4: 验证并提交**
 
@@ -1133,7 +1133,7 @@ rg -n 'OPENAI_HTTP|transportPolicy|WEBSOCKET|Engine.*Admin|Host' \
 git add egon-cola-xingyuan/egon-cola-yuheng/README.md \
         egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md \
         egon-cola-xingyuan/egon-cola-yuheng/docs
-git commit -m "docs(gateway): document OpenAI transport profile"
+git commit -m "docs(yuheng): document OpenAI transport profile"
 ```
 
 ### Task 14: 增加测试 Provider/Wire 契约并回归旧 HTTP 与 RPC
@@ -1142,16 +1142,16 @@ git commit -m "docs(gateway): document OpenAI transport profile"
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/StreamingTransportController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketConfiguration.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/gateway/test/webflux/RealtimeWebSocketProbe.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/test/java/top/egon/cola/component/gateway/test/webflux/WebFluxHttpProviderContractTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRuleWireCompatibilityTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayWebSocketTestClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayOpenAiTransportLiveIT.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/scenario/GatewayScenarioCatalog.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/scenario/GatewayScenarioCatalogTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/yuheng/test/webflux/StreamingTransportController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/yuheng/test/webflux/RealtimeWebSocketConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/yuheng/test/webflux/RealtimeWebSocketHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/main/java/top/egon/cola/component/yuheng/test/webflux/RealtimeWebSocketProbe.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-webflux-http-provider/src/test/java/top/egon/cola/component/yuheng/test/webflux/WebFluxHttpProviderContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayRuleWireCompatibilityTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayWebSocketTestClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayOpenAiTransportLiveIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/scenario/GatewayScenarioCatalog.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/scenario/GatewayScenarioCatalogTest.java`
 
 - [ ] **Step 1: 扩展 test provider contract**
 
@@ -1180,20 +1180,20 @@ Admin canonicalizer 生成的新 Snapshot 必须由 Engine codec 校验；旧 Sn
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-不在自动实施中运行 `gateway-live` 或启动独立 JVM。`GatewayOpenAiTransportLiveIT` 只作为用户后续已启动本机拓扑时的可选证据入口；本次完成声明不得把未运行的 Live IT 算作通过。
+不在自动实施中运行 `yuheng-live` 或启动独立 JVM。`GatewayOpenAiTransportLiveIT` 只作为用户后续已启动本机拓扑时的可选证据入口；本次完成声明不得把未运行的 Live IT 算作通过。
 
 - [ ] **Step 4: 留下唯一测试提交**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-test
 git diff --cached --check
-git commit -m "test(gateway): preserve legacy HTTP and RPC behavior"
+git commit -m "test(yuheng): preserve legacy HTTP and RPC behavior"
 ```
 
 ### Gate 5: 汇合 Wave 5
 
 - [ ] 按 T12 -> T13 -> T14 cherry-pick，确认测试、文档与 fixture 写域没有覆盖运行代码。
-- [ ] 运行 Gateway Parent Reactor：
+- [ ] 运行 Yuheng Parent Reactor：
 
 ```bash
 ./mvnw -B -ntp \
@@ -1279,11 +1279,11 @@ git log --oneline --decorate G0..HEAD
 git diff --name-status G0..HEAD
 ```
 
-Expected: 每个 T1-T14 各一个清晰提交；无已有 Migration 修改、无新 Gateway module、无用户文件丢失、无常驻进程。
+Expected: 每个 T1-T14 各一个清晰提交；无已有 Migration 修改、无新 Yuheng module、无用户文件丢失、无常驻进程。
 
 - [ ] **Step 5: 用 `superpowers:verification-before-completion` 做证据门**
 
-只有读取最终命令的 exit code、测试数量/失败数和 Git diff 后，才可以声明完成。未运行的真实 OpenAI、外网 TLS、生产代理和 `gateway-live` 必须列为未验证边界。
+只有读取最终命令的 exit code、测试数量/失败数和 Git diff 后，才可以声明完成。未运行的真实 OpenAI、外网 TLS、生产代理和 `yuheng-live` 必须列为未验证边界。
 
 ---
 

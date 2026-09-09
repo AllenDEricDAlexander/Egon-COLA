@@ -99,13 +99,13 @@ RabbitMQ command 使用总计三次尝试、有限退避和死信队列。领域
 
 ## 运行时 Profile
 
-`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、外部 DDC 和 COLA RPC 集成。
+`dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、外部 Tianshu 和 COLA RPC 集成。
 
-Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 外部 DDC 连接，以及已关闭的 COLA RPC provider/consumer 与 registry。
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2、内存缓存/幂等 adapter、本地事件发布器、确定性的 Evaluation 查询 stub、已关闭的 RabbitMQ 与 外部 Tianshu 连接，以及已关闭的 COLA RPC provider/consumer 与 registry。
 
 `prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都使用 COLA RPC Evaluation Facade client，超时 3000 ms、重试次数为 0，并在启动时检查引用。每个被消费的 Facade 都有各自的 group 变量：`EVALUATION_COURSE_FACADE_GROUP`（默认 `course`）、`EVALUATION_EXAM_FACADE_GROUP`（默认 `exam`）、`EVALUATION_SCORE_FACADE_GROUP`（默认 `score`），版本号为 `EVALUATION_FACADE_SERVICE_VERSION`（默认 `1.0.0`）。
 
-- DDC：使用 `DDC_RPC_TARGET`、`DDC_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 IdP SERVICE Token 配置；`DDC_ENABLED` 与 `DDC_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、DDC 与远程查询”。
+- Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
 
 ## 分片、读写分离与 Flyway
 
@@ -228,12 +228,12 @@ SPRING_PROFILES_ACTIVE=dev bash ./mvnw -pl egon-cola-source-web-starter spring-b
 
 敏感值应放在环境变量、挂载文件、`config/application-secrets.yml` 或 `configtree:/run/secrets/` 中。不要提交凭据或解密密钥。
 
-## 原生 RPC、DDC 与远程查询
+## 原生 RPC、Tianshu 与远程查询
 
-本工程使用共享 organization 的 10 个 Protobuf unary 操作。Provider 继续调用原有 Facade；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms；`EVALUATION_FACADE_APP_CODE` 必须填写对端在 DDC 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程使用共享 organization 的 10 个 Protobuf unary 操作。Provider 继续调用原有 Facade；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `organization.integrations.evaluation` 下的 biz-code、app-code、group/version 与 timeout-ms；`EVALUATION_FACADE_APP_CODE` 必须填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
-`dev`/`prod` 需提供已有 DDC RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `ddc:registration:write` 的 IdP SERVICE Token client。填写 `.env` 样例中的 `DDC_*`、`IDP_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `ddcregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.ddcregistration` 和 `spring.security.oauth2.client.provider.ddcregistration.token-uri`。生产启用 RPC/DDC mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。DDC/IdP 服务不随 Compose 创建。
+`dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 
-文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`gateway.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。IdP Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
+文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
 
-`test` 关闭 RPC provider/consumer、DDC config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 DDC 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 DDC/IdP、TLS 或容器互通。
+`test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 Tianshu 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 Tianshu/Tianquan-Shoubing、TLS 或容器互通。

@@ -259,7 +259,7 @@ egon-cola-components/
 
 - Apply the user-provided AGENTS rules: smallest safe change, repository JavaDoc/annotation style, design-pattern restraint, exact validation evidence, one tested commit per Step, and no automatic service startup.
 - Immediately before Step 1, re-run `git branch --show-current`, `git rev-parse HEAD`, and `git status --short`; reconcile only drift inside the target paths and stop if a public contract changed after the accepted Spec.
-- Preserve the staged deletion of `GatewayContractVersions.java`, untracked file `0`, unrelated Gateway/RPC/IdP Spec/Plan documents, and all other user changes. Never stage by workspace-wide glob.
+- Preserve the staged deletion of `GatewayContractVersions.java`, untracked file `0`, unrelated Yuheng/RPC/Tianquan-Shoubing Spec/Plan documents, and all other user changes. Never stage by workspace-wide glob.
 - The accepted Spec, this Review Plan, and the superseded Plan are approval/relationship artifacts, not implementation commit paths.
 - There is no production database change. `schema.sql` is a test resource; any adopting application needs a separate reviewed schema Spec and exactly one new migration under its own `classpath:db`.
 - Do not start the application after implementation. The user owns runtime testing.
@@ -278,7 +278,7 @@ egon-cola-components/
 
 ### 6.3 Immutable constraints and approved decisions
 
-- Direct production dependencies are `mybatis-plus-spring-boot3-starter:3.5.16`, same-version `mybatis-plus-jsqlparser`, common-core, Boot Validation, and only already-standard supporting APIs. Do not directly declare native MyBatis Starter, `mybatis`, `mybatis-spring`, raw `mybatis-plus`, a database driver, Security, ShardingSphere, or platform modules.
+- Direct production dependencies are `mybatis-plus-spring-boot3-starter:3.5.16`, same-version `mybatis-plus-jsqlparser`, common-core, Boot Validation, and only already-standard supporting APIs. Do not directly declare native MyBatis Starter, `mybatis`, `mybatis-spring`, raw `mybatis-plus`, a database driver, Security, ShardingSphere, or xingyuan modules.
 - The only tenant field is non-null persistent `Long tenantId` / `tenant_id`; every Long value is legal. Missing/malformed context fails before JDBC. There is no `businessId`, audit name, `deleted` property, static tenant holder, caller-supplied cross-tenant API, or bypass annotation exposed by this Starter.
 - `EgonModel` contains exactly `id`, `tenantId`, `createUserId`, `createTime`, `updateUserId`, `updateTime`, `isDeleted`; Java time is `Instant`, logical-delete column is `is_deleted`, and ordinary update cannot mutate `tenant_id` or `is_deleted`.
 - `EgonColaMapper` declares zero methods. The official default Injector remains untouched; no `ISqlInjector` bean or custom `AbstractMethod` is created.
@@ -1470,7 +1470,7 @@ BaseConverter<TestBusinessPO, TestBusinessModel> poModel = new BaseConverter<>()
 - Symbols: one managed dependency entry for `egon-cola-component-common-mybatis-plus-spring-boot-starter` at `${project.version}`.
 - Repository evidence: the BOM already lists concrete Common capabilities individually rather than exporting the aggregate POM.
 - Dependencies and consumers: consumer applications import this BOM and then declare the Starter without a version; no transitive dependency is added merely by BOM import.
-- Why now: Only a fully tested Artifact should become part of the platform distribution contract.
+- Why now: Only a fully tested Artifact should become part of the xingyuan distribution contract.
 - Contract/signature changes: adds one dependencyManagement entry and preserves existing order/group/version convention.
 - Input/output and state mapping: Components BOM import plus versionless Starter declaration maps to the current reactor version and parent-managed MP 3.5.16.
 - Error and edge behavior: duplicate entry, wrong Artifact ID, literal version, dependency instead of dependencyManagement, or missing reactor module fails effective-POM/BOM tests.
@@ -1491,7 +1491,7 @@ BaseConverter<TestBusinessPO, TestBusinessModel> poModel = new BaseConverter<>()
 - Purpose: Add the Starter to the English Common capability index and state its opt-in boundary.
 - Symbols: module table/link, short capability summary, validation command reference.
 - Repository evidence: the existing README documents each Common child and mirrors the Chinese file.
-- Dependencies and consumers: links File 4 and module coordinates; read by platform maintainers/consumers.
+- Dependencies and consumers: links File 4 and module coordinates; read by xingyuan maintainers/consumers.
 - Why now: Aggregate docs must expose the newly exported Artifact only after its contract is proven.
 - Contract/signature changes: adds no code; describes AR/Mapper/IService, tenant isolation, validation, and explicit consumer schema responsibility.
 - Input/output and state mapping: a reader moves from Common index to exact module dependency/guide and understands that adding the aggregate alone does not enable persistence.
@@ -1555,7 +1555,7 @@ See the module guide for required columns, MDC defaults, provider overrides, lim
 - Purpose: Publish the complete synchronized Chinese consumer/operator guide.
 - Symbols: same sections, coordinates, Java/property examples, schema/validation/migration/rollback content as File 4.
 - Repository evidence: paired module documentation is the established Common convention and the user reviews design details in Chinese.
-- Dependencies and consumers: mirrors the final implementation contract for Chinese platform/consumer teams.
+- Dependencies and consumers: mirrors the final implementation contract for Chinese xingyuan/consumer teams.
 - Why now: Both guides must be reviewed and committed atomically with BOM export.
 - Contract/signature changes: documentation-only; preserves exact class/method/property/field names and explicit no-custom-API decision.
 - Input/output and state mapping: dependency and context setup lead to the same Model/Mapper/Service and DTO/PO/Model flow as English documentation.
@@ -1577,7 +1577,7 @@ See the module guide for required columns, MDC defaults, provider overrides, lim
 - Expected result: all commands exit 0; BOM/effective POM resolves the Artifact/3.5.16; three relevant reactors pass; Jar contains production classes/import resource but no test support/schema; docs/source scans are synchronized and clean.
 - Failure returns to: File 1 for export/effective POM, Files 2-5 for documentation drift, Step 2 File 3 for scopes/package, or the owning earlier Step for any regression.
 - Completion criteria: all 30 requirements map to GREEN evidence, all eight semantic commits exist in order, unrelated worktree state is preserved, and final audit explicitly distinguishes module proof from consumer production proof.
-- Rollback: consumers can remove the Starter dependency and auto-configuration; platform rollback reverts File 1/doc commit first, then prior implementation commits in reverse. Consumer schema rollback is separately owned and must preserve/backfill data safely.
+- Rollback: consumers can remove the Starter dependency and auto-configuration; xingyuan rollback reverts File 1/doc commit first, then prior implementation commits in reverse. Consumer schema rollback is separately owned and must preserve/backfill data safely.
 - Commit paths: `egon-cola-components/egon-cola-components-bom/pom.xml`, `egon-cola-components/egon-cola-component-common/README.md`, `egon-cola-components/egon-cola-component-common/README.zh-CN.md`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-spring-boot-starter/README.md`, `egon-cola-components/egon-cola-component-common/egon-cola-component-common-mybatis-plus-spring-boot-starter/README.zh-CN.md`
 - Commit: `docs(common-mybatis-plus): export and document starter`
 
@@ -1621,7 +1621,7 @@ These gates prove source, ABI, Spring context, embedded H2/MyBatis behavior, Mav
 | Concern | Compatible state | Incompatible/change trigger | Required action |
 | --- | --- | --- | --- |
 | MyBatis-Plus | Exactly Boot3 Starter/JSqlParser 3.5.16 and 57-method IService/14-method AbstractModel ABI. | 3.5.17+ removes/changes the frozen Service contract; older `Model` differs. | New Spec and parity migration; never silent version bump. |
-| Spring/JDK | Repository Boot 3.5.16, Java 21, Jakarta Validation. | Boot 2/`javax.validation`, unsupported JDK. | Remain on platform baseline or design a compatibility release. |
+| Spring/JDK | Repository Boot 3.5.16, Java 21, Jakarta Validation. | Boot 2/`javax.validation`, unsupported JDK. | Remain on xingyuan baseline or design a compatibility release. |
 | Consumer Model | Extends `EgonModel<Self>` and maps seven common fields exactly. | Shadowed fields, alternate delete/tenant columns, partial update entity with missing persisted fields. | Adapt Model/DDL and use load+merge or wrapper patch semantics. |
 | Consumer table | BIGINT tenant/id, non-null audit/time/delete columns, logic-delete defaults/history cleaned. | Missing/null/incorrect column/type or dirty historic row. | One new consumer migration plus preflight data scan/backfill. |
 | Context | Non-null `Long tenantId`, nonblank String user ID; any Long tenant value allowed. | Missing/malformed TenantID, unavailable user ID, ambiguous String tenant mapping. | Fail closed; deploy a reviewed Provider adapter. |

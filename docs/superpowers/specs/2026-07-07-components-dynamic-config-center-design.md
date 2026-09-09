@@ -1,8 +1,8 @@
-# Components Dynamic Config Center Design
+# Components Tianshu (Dynamic Config Center) Design
 
 ## 1. Context
 
-Egon-COLA `egon-cola-components` is being expanded with a Dynamic Distributed Config Center component. The requirements document describes a full DDC platform, but this repository has an established component boundary:
+Egon-COLA `egon-cola-components` is being expanded with a Dynamic Distributed Config Center component. The requirements document describes a full Tianshu xingyuan, but this repository has an established component boundary:
 
 1. Runtime components live under `egon-cola-components`.
 2. Starter-style components use a component root with `starter`, `admin`, and `test` modules.
@@ -11,7 +11,7 @@ Egon-COLA `egon-cola-components` is being expanded with a Dynamic Distributed Co
 5. UI code is not stored in this repository.
 6. The repository targets Spring Boot 3.5 and JDK 21.
 
-This design adapts the DDC requirements into that component model.
+This design adapts the Tianshu requirements into that component model.
 
 ## 2. Confirmed Decisions
 
@@ -22,13 +22,13 @@ This design adapts the DDC requirements into that component model.
 5. Persistence uses Spring Data JPA.
 6. SDK OpenAPI provides optional static access-key and secret-key signing from component configuration, but no account system is introduced.
 7. Publish modes include `ASYNC`, `STRONG_ALL_ACK`, and `STRONG_QUORUM_ACK`.
-8. Earlier DDC code is reference only; it must not be copied blindly.
+8. Earlier Tianshu code is reference only; it must not be copied blindly.
 9. PostgreSQL and SQLite use independent Flyway script locations.
 10. MySQL, Spring Boot 2.7, and JDK 17 compatibility are out of scope.
 
 ## 3. Goals
 
-This work delivers a core closed-loop DDC component:
+This work delivers a core closed-loop Tianshu component:
 
 1. `@DdcValue` field declaration and runtime injection.
 2. SDK startup registration, default value report, config pull, field binding, local version cache, heartbeat, Redis subscription, runtime refresh, and ACK report.
@@ -46,7 +46,7 @@ This work delivers a core closed-loop DDC component:
 3. No MySQL support.
 4. No Spring Boot 2.7 or JDK 17 compatibility.
 5. No Nacos, Apollo, Consul, ZooKeeper, MQ, or external config-center adapter.
-6. No full import/export platform in the first implementation.
+6. No full import/export xingyuan in the first implementation.
 7. No old-package compatibility bridge for `top.atluofu`.
 8. No long-running service startup as part of delivery validation.
 
@@ -73,15 +73,15 @@ artifactId root: egon-cola-component-dynamic-config-center
 starter artifactId: egon-cola-component-dynamic-config-center-starter
 admin artifactId: egon-cola-component-dynamic-config-center-admin
 test artifactId: egon-cola-component-dynamic-config-center-test
-package root: top.egon.cola.component.ddc
-configuration prefix: egon.cola.component.ddc
+package root: top.egon.cola.component.tianshu
+configuration prefix: egon.cola.component.tianshu
 ```
 
 The components parent POM aggregates the component root. The component root aggregates `starter`, `admin`, and `test`. The BOM exports only the starter artifact. Admin and test modules are not exported by the BOM.
 
 ## 6. Architecture
 
-The component follows the existing component style and the DDC requirement for a flat three-layer backend:
+The component follows the existing component style and the Tianshu requirement for a flat three-layer backend:
 
 ```text
 Controller / OpenAPI / Processor / Listener
@@ -94,7 +94,7 @@ Repository / Redis / RemoteClient
 Admin package layout:
 
 ```text
-top.egon.cola.component.ddc.admin
+top.egon.cola.component.tianshu.admin
 ├── controller
 ├── service
 ├── repository
@@ -111,7 +111,7 @@ top.egon.cola.component.ddc.admin
 Starter package layout:
 
 ```text
-top.egon.cola.component.ddc
+top.egon.cola.component.tianshu
 ├── annotation
 ├── config
 ├── processor
@@ -191,7 +191,7 @@ Each create, update, delete, and rollback writes `ddc_config_version`. Rollback 
 Admin APIs use:
 
 ```text
-/api/v1/ddc
+/api/v1/tianshu
 ```
 
 API groups:
@@ -273,18 +273,18 @@ Redis is cache and communication infrastructure, not the final source of truth.
 Keys:
 
 ```text
-ddc:config:{appCode}:{env}:{namespace}:{key}
-ddc:version:{appCode}:{env}:{namespace}:{key}
-ddc:instance:{appCode}:{env}:{namespace}:{instanceId}
-ddc:instances:{appCode}:{env}:{namespace}
-ddc:publish:{changeId}
-ddc:publish:ack:{changeId}
+tianshu:config:{appCode}:{env}:{namespace}:{key}
+tianshu:version:{appCode}:{env}:{namespace}:{key}
+tianshu:instance:{appCode}:{env}:{namespace}:{instanceId}
+tianshu:instances:{appCode}:{env}:{namespace}
+tianshu:publish:{changeId}
+tianshu:publish:ack:{changeId}
 ```
 
 Topic:
 
 ```text
-ddc:topic:{appCode}:{env}:{namespace}
+tianshu:topic:{appCode}:{env}:{namespace}
 ```
 
 The first implementation uses namespace-level topics only. The message carries `configKey`, so SDK refresh remains key-specific without requiring one subscription per config key.
@@ -322,7 +322,7 @@ refreshable
 SDK startup flow:
 
 ```text
-1. Read egon.cola.component.ddc properties.
+1. Read egon.cola.component.tianshu properties.
 2. Register instance through Admin OpenAPI.
 3. Scan Bean fields annotated with @DdcValue.
 4. Report annotation defaults to Admin.
@@ -472,7 +472,7 @@ If targeted reactor tests need `-am`, use `-Dsurefire.failIfNoSpecifiedTests=fal
 
 ## 16. Acceptance Criteria
 
-1. The new DDC component is aggregated by `egon-cola-components`.
+1. The new Tianshu component is aggregated by `egon-cola-components`.
 2. The BOM exports only `egon-cola-component-dynamic-config-center-starter`.
 3. The starter auto-configures in a Spring Boot 3.5 business application.
 4. The admin module packages as an independent jar and includes a Dockerfile.

@@ -1,23 +1,23 @@
-# 2026-07-24 DDC 单机闭环与轻量 gRPC + Protobuf RPC 框架设计 Spec
+# 2026-07-24 Tianshu 单机闭环与轻量 gRPC + Protobuf RPC 框架设计 Spec
 
-状态：Gateway Mock 边界修订，待用户确认
+状态：Yuheng Mock 边界修订，待用户确认
 
 文档阶段：设计复审
 
 涉及范围：
 
 - 完善 `egon-cola-component-dynamic-config-center` 的单机运行闭环；
-- 将 DDC 扩展为配置中心与轻量服务注册中心；
+- 将 Tianshu 扩展为配置中心与轻量服务注册中心；
 - 新增独立 `egon-cola-component-rpc` Component；
 - RPC Component 顶层只包含 `starter` 与 `test` 聚合器，`test` 内允许拆分多个
   不发布的测试模块；
-- Provider 和 Consumer 接入 DDC 注册发现；本轮测试使用独立 Mock Gateway，
-  生产 Gateway 延后到 DDC 与 RPC 完成后单独开发；
-- DDC 仅支持单 Admin 和单 Redis，不实现多 Admin、Redis 集群或分布式协调代码。
+- Provider 和 Consumer 接入 Tianshu 注册发现；本轮测试使用独立 Mock Yuheng，
+  生产 Yuheng 延后到 Tianshu 与 RPC 完成后单独开发；
+- Tianshu 仅支持单 Admin 和单 Redis，不实现多 Admin、Redis 集群或分布式协调代码。
 
 ## 1. 背景
 
-现有 DDC 已具备配置 CRUD、版本、回滚、发布任务、Redis Pub/Sub、
+现有 Tianshu 已具备配置 CRUD、版本、回滚、发布任务、Redis Pub/Sub、
 SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行闭环缺口：
 
 1. Starter 没有在应用启动后自动执行实例注册、默认值上报、全量配置
@@ -29,18 +29,18 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 5. 强一致发布只具备 ACK 数量判断，没有同步等待、超时扫描和恢复逻辑。
 6. SDK 可以生成 HMAC 请求头，但 Admin 没有验签。
 7. SDK 和 Manifest 版本存在硬编码，可能与 Maven 工程版本漂移。
-8. DDC 目前只有配置实例概念，没有 Provider Service、内部 Gateway Node、
+8. Tianshu 目前只有配置实例概念，没有 Provider Service、内部 Yuheng Node、
    服务分组、版本和动态发现模型。
 
-本次在修复上述单机缺口的基础上，将 DDC 扩展为 RPC Provider 与后续内部网关
+本次在修复上述单机缺口的基础上，将 Tianshu 扩展为 RPC Provider 与后续内部网关
 共同使用的服务注册中心，并在独立 RPC Component 中实现一套以 grpc-java
 作为传输运行时、Protocol Buffers 作为 IDL 和序列化协议的轻量 RPC 框架。
-生产 Gateway 必须等待 DDC 与 RPC 完成后再单独开发；当前仅在 RPC Test 中
-提供 Mock Gateway 验证固定的 Consumer→Gateway→Provider 调用边界。
+生产 Yuheng 必须等待 Tianshu 与 RPC 完成后再单独开发；当前仅在 RPC Test 中
+提供 Mock Yuheng 验证固定的 Consumer→Yuheng→Provider 调用边界。
 
 ## 2. 已确认需求
 
-### 2.1 DDC
+### 2.1 Tianshu
 
 1. 当前只支持单 Admin 进程。
 2. 当前只支持一个 Redis 单节点连接。
@@ -48,7 +48,7 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 4. 不实现 Raft、Leader 选举、节点成员管理、复制日志或其他分布式协调代码。
 5. 不实现多 Admin 并发写协调、Redis Sentinel 或 Redis Cluster。
 6. 修复 Starter 启动、刷新、ACK、心跳、租约、下线、发布超时和验签闭环。
-7. DDC 新增服务注册与发现能力。
+7. Tianshu 新增服务注册与发现能力。
 8. 服务注册事实是临时运行态数据，存储在 Redis，不新增数据库表。
 9. 配置中心与注册中心共享 Admin 和基础设施，但使用隔离的 API、模型与
    Redis Key 空间。
@@ -64,23 +64,23 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 4. Provider 通过心跳或租约维持状态，停止时主动注销。
 5. Consumer 只发现内部网关，不发现、缓存或连接 Provider。
 6. Consumer 的所有业务 RPC 请求都发送到内部网关。
-7. Provider 实例选择、流量分发、故障摘除和请求转发最终由生产 Gateway
-   负责，但生产 Gateway 不在本轮开发。
-8. 本轮使用测试范围的 `MockRpcGateway` 模拟 Gateway：
+7. Provider 实例选择、流量分发、故障摘除和请求转发最终由生产 Yuheng
+   负责，但生产 Yuheng 不在本轮开发。
+8. 本轮使用测试范围的 `MockRpcGateway` 模拟 Yuheng：
    - 作为独立 Spring Context 或独立 JVM 启动；
    - 注册为 `INTERNAL_GATEWAY`；
-   - 从 DDC 发现 Provider；
+   - 从 Tianshu 发现 Provider；
    - 在测试代码内完成确定性实例选择和透明 unary 转发；
    - 不进入 RPC Starter、不进入 BOM、不作为生产 API。
 9. RPC 框架负责：
    - gRPC 服务暴露；
    - Protobuf Service Descriptor 装载与 Contract 校验；
    - Consumer 客户端代理创建；
-   - DDC 注册发现接入；
+   - Tianshu 注册发现接入；
    - 服务元数据传递；
    - 超时配置；
    - 异常转换；
-   - Consumer 到 Gateway 的 Channel 管理；
+   - Consumer 到 Yuheng 的 Channel 管理；
    - Provider 与 Consumer 两端的基础 Trace 和 Metadata 处理。
 10. RPC 框架不负责：
     - Consumer 侧 Provider 负载均衡；
@@ -90,17 +90,17 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
     - 重试策略；
     - Provider 权重或标签路由；
     - Provider Directory；
-    - Gateway Provider Channel Factory；
-    - 动态 Gateway Handler Registry；
-    - Gateway Unary Forwarder；
-    - 完整 Gateway Engine。
+    - Yuheng Provider Channel Factory；
+    - 动态 Yuheng Handler Registry；
+    - Yuheng Unary Forwarder；
+    - 完整 Yuheng Engine。
 11. RPC Component 顶层只包含 `starter` 和 `test` 聚合器；测试聚合器内部
     可以按 Contract、Provider、Consumer 和 E2E 职责拆分。
 
 ## 3. 实现约束
 
-1. “单机”指一个 DDC Admin 和一个 Redis 实例，不限制业务 Provider 数量。
-2. DDC 不内嵌 Redis；开发和生产均由部署环境提供 Redis 单节点。
+1. “单机”指一个 Tianshu Admin 和一个 Redis 实例，不限制业务 Provider 数量。
+2. Tianshu 不内嵌 Redis；开发和生产均由部署环境提供 Redis 单节点。
 3. RPC V1 只支持 unary RPC，不支持 client streaming、server streaming
    和 bidirectional streaming。
 4. 每个业务 RPC 必须提供 `.proto`，并同时定义 `service`、request 和
@@ -116,39 +116,39 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 9. RPC Method 全名直接取自生成的 gRPC Descriptor，稳定为
    `/{protoPackage.serviceName}/{methodName}`。
 10. Consumer 只接受唯一活跃内部网关实例；启动和运行期间发现零个或多个活跃
-    Gateway 时快速失败，不保留过期 Channel，不实现客户端负载均衡。
-11. 生产网关实现仍属于 Gateway 项目，不放入 RPC Component。
-12. `rpc-starter` 不提供任何生产 Gateway 接入或转发基础设施；
+    Yuheng 时快速失败，不保留过期 Channel，不实现客户端负载均衡。
+11. 生产网关实现仍属于 Yuheng 项目，不放入 RPC Component。
+12. `rpc-starter` 不提供任何生产 Yuheng 接入或转发基础设施；
     `rpc-test-suite` 提供仅用于验证的 `MockRpcGateway` 及其测试私有
     Directory、Handler、Provider Channel 和 Forwarder。
-13. 本 Spec 对现有 Gateway 总览 Spec 的影响仅限：
-    - gRPC 成为后续 Gateway Engine 的新 `UpstreamAdapter`；
-    - RPC Provider 与内部 Gateway Node 使用 DDC，而不是 Nacos；
-    - Gateway 的其他 HTTP/Dubbo/Nacos 决策不在本次修改。
+13. 本 Spec 对现有 Yuheng 总览 Spec 的影响仅限：
+    - gRPC 成为后续 Yuheng Engine 的新 `UpstreamAdapter`；
+    - RPC Provider 与内部 Yuheng Node 使用 Tianshu，而不是 Nacos；
+    - Yuheng 的其他 HTTP/Dubbo/Nacos 决策不在本次修改。
 
 ## 4. 范围边界
 
 ### 4.1 本次实现范围
 
-- DDC Starter 生命周期闭环；
-- DDC 配置快照首次加载；
-- DDC ACK 身份和幂等闭环；
-- DDC 实例租约、过期和下线；
-- DDC 单 Admin 同步全目标确认发布、超时、重启 UNKNOWN 和幂等重试；
-- DDC OpenAPI HMAC 验签；
-- DDC 通用服务注册、心跳、注销、查询和订阅；
+- Tianshu Starter 生命周期闭环；
+- Tianshu 配置快照首次加载；
+- Tianshu ACK 身份和幂等闭环；
+- Tianshu 实例租约、过期和下线；
+- Tianshu 单 Admin 同步全目标确认发布、超时、重启 UNKNOWN 和幂等重试；
+- Tianshu OpenAPI HMAC 验签；
+- Tianshu 通用服务注册、心跳、注销、查询和订阅；
 - 标准 Protobuf IDL、代码生成约定与 Descriptor 校验；
 - RPC Provider 服务暴露与注册；
 - RPC Consumer 代理创建与网关连接；
-- 测试范围 Mock Gateway 的节点注册、Provider 发现、实例选择和 unary 转发；
+- 测试范围 Mock Yuheng 的节点注册、Provider 发现、实例选择和 unary 转发；
 - RPC 元数据、Deadline、Trace 和异常模型；
 - 单元、组件和进程内闭环测试；
 - README、配置说明和示例。
 
 ### 4.2 明确不实现
 
-- DDC Raft、JRaft、Leader/Follower；
-- DDC 多 Admin；
+- Tianshu Raft、JRaft、Leader/Follower；
+- Tianshu 多 Admin；
 - Redis Sentinel、Redis Cluster；
 - PostgreSQL 高可用编排；
 - Kubernetes、Helm 或多节点部署编排；
@@ -159,12 +159,12 @@ SDK 字段刷新、实例接口和 ACK 模型，但当前实现仍存在运行�
 - 通用 RPC 服务 Mock 平台；
 - RPC 控制台或管理 UI；
 - TLS/mTLS 证书管理平台；
-- RPC Starter 内的 Gateway 生产包和公共 API；
+- RPC Starter 内的 Yuheng 生产包和公共 API；
 - `RpcGatewayNodeRegistrar`、`RpcProviderDirectory`、
   `RpcProviderChannelFactory`、`RpcGatewayHandlerRegistry` 和
   `RpcUnaryForwarder`；
-- 完整 Gateway Engine；
-- 修改现有 Gateway HTTP/Dubbo 主路线；
+- 完整 Yuheng Engine；
+- 修改现有 Yuheng HTTP/Dubbo 主路线；
 - 通用跨语言 RPC IDL 管理平台。
 
 ## 5. 总体架构
@@ -176,12 +176,12 @@ flowchart LR
     Provider1["RPC Provider 1"]
     Provider2["RPC Provider 2"]
     RpcStarter["RPC Starter"]
-    DdcStarter["DDC Starter"]
-    DdcAdmin["DDC Admin 单节点"]
+    DdcStarter["Tianshu Starter"]
+    DdcAdmin["Tianshu Admin 单节点"]
     Redis["Redis 单节点"]
     Database["PostgreSQL / SQLite"]
 
-    Consumer -->|"discover gateway only"| DdcStarter
+    Consumer -->|"discover yuheng only"| DdcStarter
     DdcStarter --> DdcAdmin
     DdcAdmin --> Redis
 
@@ -202,18 +202,18 @@ flowchart LR
 
 核心边界：
 
-1. DDC 是配置与注册事实的管理入口。
+1. Tianshu 是配置与注册事实的管理入口。
 2. Redis 是配置通知和服务租约的运行基础设施。
-3. Consumer 永远只持有 Gateway Channel。
-4. 本轮只有测试范围的 Mock Gateway 持有 Provider Directory 和 Provider
+3. Consumer 永远只持有 Yuheng Channel。
+4. 本轮只有测试范围的 Mock Yuheng 持有 Provider Directory 和 Provider
    Channel；RPC Starter 不持有二者。
-5. RPC Starter 提供 Provider/Consumer 协议与 DDC 适配，不包含 Gateway
+5. RPC Starter 提供 Provider/Consumer 协议与 Tianshu 适配，不包含 Yuheng
    生产代码。
-6. 生产 Gateway 在 PR1 DDC 与 PR2 RPC 完成后通过独立 Spec、Plan 和 PR 开发。
+6. 生产 Yuheng 在 PR1 Tianshu 与 PR2 RPC 完成后通过独立 Spec、Plan 和 PR 开发。
 
 ## 6. 模块结构
 
-### 6.1 DDC 保持现有结构
+### 6.1 Tianshu 保持现有结构
 
 ```text
 egon-cola-component-dynamic-config-center/
@@ -261,7 +261,7 @@ egon-cola-component-rpc/
 1. `egon-cola-components/pom.xml` 聚合 RPC 根模块。
 2. RPC 根 POM 只聚合 `starter` 和 `test` 聚合器。
 3. BOM 只导出 `egon-cola-component-rpc-starter`。
-4. `rpc-starter` 可以依赖 DDC Starter，不能依赖 DDC Admin 或 DDC Test。
+4. `rpc-starter` 可以依赖 Tianshu Starter，不能依赖 Tianshu Admin 或 Tianshu Test。
 5. `rpc-test` 及其子模块全部是测试资产，不进入 BOM，不作为生产组件发布。
 6. 不拆 `rpc-api`、`rpc-core`、`rpc-registry` 等额外 Maven 模块；在 Starter
    内通过包边界保持职责清晰。
@@ -285,7 +285,7 @@ egon-cola-component-rpc/
   - 提供 `MockRpcGateway`、测试私有 Provider Directory/Forwarder、
     确定性测试注册中心适配和 JUnit E2E；
   - 负责启动和关闭多个隔离 Spring Context；
-  - 断言 Consumer→Gateway→Provider 调用成功。
+  - 断言 Consumer→Yuheng→Provider 调用成功。
 
 测试应用放在测试子模块的 `src/main`，便于 Suite 作为普通依赖复用；它们只能
 被 `rpc-test-suite` 使用，禁止被业务模块或 BOM 引用。
@@ -306,11 +306,11 @@ top.egon.cola.component.rpc
 └── lifecycle
 ```
 
-`rpc-starter` 不创建 `top.egon.cola.component.rpc.gateway` 生产包。Mock Gateway
+`rpc-starter` 不创建 `top.egon.cola.component.rpc.yuheng` 生产包。Mock Yuheng
 及其 Directory、Channel、Handler、Forwarder 全部位于
 `rpc-test-suite` 的测试包，不形成可发布契约。
 
-## 7. DDC 单机闭环完善
+## 7. Tianshu 单机闭环完善
 
 ### 7.1 Starter 生命周期
 
@@ -325,7 +325,7 @@ top.egon.cola.component.rpc
 5. 收集所有 `@DdcValue` Binding，批量上报默认值。
 6. 从 Admin 拉取完整配置快照。
 7. 只应用版本高于本地版本的配置。
-8. 标记 DDC SDK 为 `READY`。
+8. 标记 Tianshu SDK 为 `READY`。
 9. 按配置周期发送心跳。
 
 启动并发规则：
@@ -350,7 +350,7 @@ top.egon.cola.component.rpc
 2. 停止发送新心跳。
 3. 使用当前 `instanceId + leaseId` 尽力调用 Admin 下线接口。
 4. 移除本地 Listener。
-5. 关闭 DDC 专用 Redisson Client。
+5. 关闭 Tianshu 专用 Redisson Client。
 
 ### 7.2 实例身份
 
@@ -414,7 +414,7 @@ leaseExpireAt
 
 ### 7.4 实例租约
 
-配置客户端、RPC Provider 和内部 Gateway 统一采用“注册换取租约 + 心跳续租 +
+配置客户端、RPC Provider 和内部 Yuheng 统一采用“注册换取租约 + 心跳续租 +
 主动注销 + 超时过期”协议。
 
 租约字段：
@@ -441,14 +441,14 @@ INTERNAL_GATEWAY
 三类角色的当前租约统一存储为：
 
 ```text
-ddc:lease:instance:{env}:{namespace}:{role}:{instanceId}
+tianshu:lease:instance:{env}:{namespace}:{role}:{instanceId}
 ```
 
 约束：
 
 - 配置客户端默认租约 30 秒、默认心跳 10 秒。
 - RPC Provider 默认租约 30 秒、默认心跳 10 秒。
-- 内部 Gateway 默认租约 15 秒、默认心跳 5 秒。
+- 内部 Yuheng 默认租约 15 秒、默认心跳 5 秒。
 - 三类角色使用同一协议和校验逻辑，但分别配置 TTL 和心跳参数。
 - 允许租约范围：5～300 秒。
 - 心跳间隔必须小于租约。
@@ -456,9 +456,9 @@ ddc:lease:instance:{env}:{namespace}:{role}:{instanceId}
 - Admin 每次 Register 都生成新的 `leaseId` 并原子替换该 `instanceId` 的旧租约。
 - Heartbeat 和 Deregister 必须通过 Lua 原子比较
   `stored.instanceId + stored.leaseId`；不匹配时不得延长或删除当前租约。
-- Redis 中租约不存在时 Heartbeat 返回 `DDC_LEASE_NOT_FOUND`，客户端重新
+- Redis 中租约不存在时 Heartbeat 返回 `TIANSHU_LEASE_NOT_FOUND`，客户端重新
   Register 并取得新 `leaseId`，不得在 Heartbeat 中隐式重建。
-- 旧租约的迟到 Heartbeat 返回 `DDC_LEASE_MISMATCH`。
+- 旧租约的迟到 Heartbeat 返回 `TIANSHU_LEASE_MISMATCH`。
 - 旧租约的迟到 Deregister 幂等返回“未删除”，不得删除同一 `instanceId`
   后来建立的新租约。
 - Redis 是当前租约事实；配置客户端的 `ddc_instance` 数据库记录只是管理投影。
@@ -503,7 +503,7 @@ configKey
 2. 同一资源同时只允许一个 `PENDING/PUBLISHING` 发布流程。
 3. 占位使用 `putIfAbsent` 语义，不使用由管理请求线程长期持有的
    `ReentrantLock`，避免等待 ACK 时阻塞 ACK 线程。
-4. 新请求无法取得资源占位时立即返回 `DDC_PUBLISH_IN_PROGRESS` 和当前
+4. 新请求无法取得资源占位时立即返回 `TIANSHU_PUBLISH_IN_PROGRESS` 和当前
    `changeId`，不阻塞等待另一个管理请求。
 5. 不同配置资源可以并行发布。
 6. 发布进入 `SUCCESS/FAILED/TIMEOUT/UNKNOWN` 后，只有匹配
@@ -525,7 +525,7 @@ configKey
 6. 创建状态为 `PENDING` 的发布任务。
 7. 提交配置版本、任务、目标集合和操作日志。
 
-没有有效目标时发布立即进入 `FAILED`，错误为 `DDC_NO_LIVE_INSTANCE`。
+没有有效目标时发布立即进入 `FAILED`，错误为 `TIANSHU_NO_LIVE_INSTANCE`。
 
 数据库事务提交后：
 
@@ -587,7 +587,7 @@ Admin 启动时：
 #### 7.5.5 changeId 幂等重试
 
 相同 `changeId` 的重复请求必须匹配原任务的配置资源、目标版本、内容摘要和超时
-参数；任一字段不一致返回 `DDC_CHANGE_ID_CONFLICT`。
+参数；任一字段不一致返回 `TIANSHU_CHANGE_ID_CONFLICT`。
 
 幂等行为：
 
@@ -597,7 +597,7 @@ Admin 启动时：
   `attemptCount` 并重新派发。
 - Retry 固定复用原 `instanceId + leaseId` 目标集合，不重新快照在线实例。
 - 原目标租约已经失效时 Retry 进入 `FAILED`，错误为
-  `DDC_TARGET_LEASE_EXPIRED`。
+  `TIANSHU_TARGET_LEASE_EXPIRED`。
 - 原目标仍存活且已经应用相同版本和摘要时，客户端重新返回 `SUCCESS` ACK。
 - 需要面向当前在线实例重新发布时必须使用新的 `changeId`。
 
@@ -609,7 +609,7 @@ Waiter 始终按 `changeId` 管理；资源串行锁始终按 `DdcConfigResource
 验签范围：
 
 ```text
-/api/v1/ddc/openapi/**
+/api/v1/tianshu/openapi/**
 ```
 
 签名关闭时保持当前开发体验；签名开启时，Client 和 Admin 使用同一 Canonical
@@ -627,11 +627,11 @@ SHA256(BODY)
 请求头：
 
 ```text
-X-DDC-Access-Key
-X-DDC-Timestamp
-X-DDC-Nonce
-X-DDC-Content-SHA256
-X-DDC-Signature
+X-TIANSHU-Access-Key
+X-TIANSHU-Timestamp
+X-TIANSHU-Nonce
+X-TIANSHU-Content-SHA256
+X-TIANSHU-Signature
 ```
 
 规则：
@@ -645,7 +645,7 @@ X-DDC-Signature
 7. 验签失败返回稳定错误，不进入 Controller。
 8. 管理 API 账号、RBAC 和权限仍不属于本次范围。
 
-### 7.7 DDC 运行状态
+### 7.7 Tianshu 运行状态
 
 Starter 状态：
 
@@ -664,11 +664,11 @@ STOPPED
 - 重新注册并完成快照同步后恢复 `READY`。
 - 状态中不得暴露 Secret、完整配置值或敏感元数据。
 
-## 8. DDC 服务注册中心
+## 8. Tianshu 服务注册中心
 
 ### 8.1 通用模型
 
-DDC Starter 定义通用模型，不能引用 RPC 包。
+Tianshu Starter 定义通用模型，不能引用 RPC 包。
 
 #### DdcServiceKey
 
@@ -721,7 +721,7 @@ revision
 - 最多 32 项。
 - Key 长度不超过 64。
 - Value 长度不超过 512。
-- `ddc.*`、`egon.internal.*`、`egon.rpc.*` 为框架保留前缀，业务扩展元数据
+- `tianshu.*`、`egon.internal.*`、`egon.rpc.*` 为框架保留前缀，业务扩展元数据
   不能覆盖。
 - 不允许保存密码、Token、证书私钥或完整异常堆栈。
 
@@ -756,22 +756,22 @@ version?
 
 - `env + namespace + serviceKind + protocol` 必填。
 - 其他字段为空时表示该维度不过滤。
-- Consumer 使用完整字段查询固定 Gateway Service。
+- Consumer 使用完整字段查询固定 Yuheng Service。
 - 本轮 `MockRpcGateway` 使用
   `serviceKind=RPC_PROVIDER + protocol=grpc` 查询 Provider Service Catalog，
-  再分别维护每个 Service Key 的 Instance Snapshot；生产 Gateway 后续复用
-  同一 DDC 公共查询与订阅能力。
+  再分别维护每个 Service Key 的 Instance Snapshot；生产 Yuheng 后续复用
+  同一 Tianshu 公共查询与订阅能力。
 - 查询结果是稳定排序、不可变的 `DdcServiceKey` 集合。
 
 ### 8.2 Redis Key
 
 ```text
-ddc:lease:instance:{env}:{namespace}:{kind}:{instanceId}
-ddc:registry:service:{env}:{namespace}:{kind}:{serviceKeyDigest}
-ddc:registry:revision:{env}:{namespace}:{kind}:{serviceKeyDigest}
-ddc:registry:catalog:{env}:{namespace}:{kind}:{protocol}
-ddc:registry:catalog-revision:{env}:{namespace}:{kind}:{protocol}
-ddc:registry:topic:{env}:{namespace}:{kind}:{protocol}
+tianshu:lease:instance:{env}:{namespace}:{kind}:{instanceId}
+tianshu:registry:service:{env}:{namespace}:{kind}:{serviceKeyDigest}
+tianshu:registry:revision:{env}:{namespace}:{kind}:{serviceKeyDigest}
+tianshu:registry:catalog:{env}:{namespace}:{kind}:{protocol}
+tianshu:registry:catalog-revision:{env}:{namespace}:{kind}:{protocol}
+tianshu:registry:topic:{env}:{namespace}:{kind}:{protocol}
 ```
 
 存储结构：
@@ -798,11 +798,11 @@ Revision，避免部分写入留下幽灵实例或空目录。
 SDK OpenAPI：
 
 ```text
-POST   /api/v1/ddc/openapi/registry/instances/register
-POST   /api/v1/ddc/openapi/registry/instances/heartbeat
-POST   /api/v1/ddc/openapi/registry/instances/deregister
-GET    /api/v1/ddc/openapi/registry/instances
-GET    /api/v1/ddc/openapi/registry/services
+POST   /api/v1/tianshu/openapi/registry/instances/register
+POST   /api/v1/tianshu/openapi/registry/instances/heartbeat
+POST   /api/v1/tianshu/openapi/registry/instances/deregister
+GET    /api/v1/tianshu/openapi/registry/instances
+GET    /api/v1/tianshu/openapi/registry/services
 ```
 
 行为：
@@ -816,7 +816,7 @@ GET    /api/v1/ddc/openapi/registry/services
 - Heartbeat：
   - 必须携带 `instanceId + leaseId`；
   - Lua 原子校验成功后才延长 Bucket TTL 和 Index Score；
-  - Redis 重启或租约过期导致实例丢失时返回 `DDC_LEASE_NOT_FOUND`；
+  - Redis 重启或租约过期导致实例丢失时返回 `TIANSHU_LEASE_NOT_FOUND`；
   - 不在心跳中自动重建注册；
   - Service Key 不允许在心跳中漂移。
 - Deregister：
@@ -838,7 +838,7 @@ GET    /api/v1/ddc/openapi/registry/services
 
 ### 8.4 订阅
 
-DDC Starter 通过 `DdcServiceRegistryClient` 接口暴露：
+Tianshu Starter 通过 `DdcServiceRegistryClient` 接口暴露：
 
 ```text
 register(instance) -> leaseSession
@@ -851,7 +851,7 @@ subscribeServices(serviceQuery, catalogListener)
 ```
 
 生产自动装配提供 `DdcOpenApiServiceRegistryClient`：写操作和全量查询访问 Admin
-OpenAPI，失效通知复用 DDC Redis Topic。测试 Adapter 只能由测试配置显式注入，
+OpenAPI，失效通知复用 Tianshu Redis Topic。测试 Adapter 只能由测试配置显式注入，
 不得进入 Starter 自动装配候选。
 
 Instance Snapshot 订阅流程：
@@ -873,9 +873,9 @@ Service Catalog 订阅流程：
 5. 对已删除 Service Key 关闭对应订阅并发布空快照。
 6. 周期对账同时校正 Catalog 与各 Service Snapshot。
 
-Consumer 使用固定 Gateway 的 Instance Snapshot 订阅，不订阅 Provider Catalog；
+Consumer 使用固定 Yuheng 的 Instance Snapshot 订阅，不订阅 Provider Catalog；
 本轮只有 `rpc-test-suite` 内的 Mock Provider Directory 使用 Provider Catalog
-订阅。生产 Gateway 的 Directory 后续单独设计。
+订阅。生产 Yuheng 的 Directory 后续单独设计。
 
 短时 Admin 或 Redis 异常：
 
@@ -887,10 +887,10 @@ Consumer 使用固定 Gateway 的 Instance Snapshot 订阅，不订阅 Provider 
 
 服务注册实例是临时运行状态，本次不新增 `ddc_service_instance` 数据库表：
 
-- Provider 和 Gateway 的实例、租约、Catalog 与 Snapshot 全部只存 Redis。
+- Provider 和 Yuheng 的实例、租约、Catalog 与 Snapshot 全部只存 Redis。
 - 发布目标身份所需的 `leaseId` 和内容摘要只扩展现有配置实例、发布任务和 ACK
   表，不创建服务注册表。
-- Redis 丢失后心跳收到 `DDC_LEASE_NOT_FOUND`，客户端重新注册并取得新
+- Redis 丢失后心跳收到 `TIANSHU_LEASE_NOT_FOUND`，客户端重新注册并取得新
   `leaseId` 后恢复。
 - Admin 管理查询直接读取 Redis 当前事实。
 - 历史审计、容量报表和实例事件持久化留到后续需求。
@@ -1015,7 +1015,7 @@ Consumer 代理：
 - 使用 JDK Dynamic Proxy。
 - 从生成的 `ServiceDescriptor` 取得原生 unary `MethodDescriptor`。
 - 请求序列化和响应解析完全使用该生成 Descriptor 的 Protobuf Marshaller。
-- 每次调用只通过 Gateway Channel。
+- 每次调用只通过 Yuheng Channel。
 - 将 Descriptor Service 名称、分组和版本放入框架生成的 RPC Metadata。
 - 将 gRPC Status 转换为稳定 `EgonRpcException`。
 
@@ -1041,13 +1041,13 @@ tracestate
 
 - Service 来自生成 Descriptor，Group、Version 来自已校验 Contract；业务代理
   API 不允许逐次动态修改。原始网络调用仍可能伪造 Metadata，本轮 Mock
-  Gateway 按 12.3 节校验；生产 Gateway 后续必须重新定义同等级校验。
+  Yuheng 按 12.3 节校验；生产 Yuheng 后续必须重新定义同等级校验。
 - Invocation ID 每次调用生成。
 - Trace 优先复用当前线程或框架上下文。
-- Mock Gateway 只能透传白名单 Metadata。
-- Mock Gateway 转发前移除调用方伪造的内部目标地址、Provider Instance ID
+- Mock Yuheng 只能透传白名单 Metadata。
+- Mock Yuheng 转发前移除调用方伪造的内部目标地址、Provider Instance ID
   等字段。
-- 不透传 Access Key、DDC Secret 或管理认证信息。
+- 不透传 Access Key、Tianshu Secret 或管理认证信息。
 
 ## 10. RPC Provider 运行链
 
@@ -1067,7 +1067,7 @@ tracestate
 一个进程可以暴露多个 RPC Service：
 
 - 多个 Service 共用同一个 gRPC 端口和进程 `instanceId`。
-- 每个 Service 在 DDC 中有独立 Service Key。
+- 每个 Service 在 Tianshu 中有独立 Service Key。
 - `serviceName` 必须取自生成的 Protobuf Service Descriptor 全限定名。
 - 框架写入 `egon.rpc.transport=grpc`、`egon.rpc.serialization=protobuf` 和
   `egon.rpc.runtime-version`，业务元数据不能覆盖这些保留项。
@@ -1090,22 +1090,22 @@ advertisedPort
 - Server 可以绑定 `0.0.0.0`。
 - 注册中心禁止注册 `0.0.0.0`。
 - `bindPort=0` 允许测试使用随机端口。
-- 生产未配置 `advertisedHost` 时，从 DDC Instance Identity 解析。
+- 生产未配置 `advertisedHost` 时，从 Tianshu Instance Identity 解析。
 - 无法得到可路由地址时启动失败。
 
 ### 10.3 心跳和停止
 
-Provider 心跳复用 DDC Service Registry 租约。
+Provider 心跳复用 Tianshu Service Registry 租约。
 
 - 每个 Service 使用自己的 `instanceId + leaseId`。
-- 心跳收到 `DDC_LEASE_NOT_FOUND` 或 `DDC_LEASE_MISMATCH` 时暂停该 Service
+- 心跳收到 `TIANSHU_LEASE_NOT_FOUND` 或 `TIANSHU_LEASE_MISMATCH` 时暂停该 Service
   接流，重新注册并取得新 `leaseId` 后恢复。
 - 停止时只使用当前租约注销，旧租约注销不得影响新租约。
 
 优雅停止：
 
 1. 状态改为 `DRAINING`。
-2. 从 DDC 注销全部 RPC Provider Service。
+2. 从 Tianshu 注销全部 RPC Provider Service。
 3. 停止接受新 RPC。
 4. 在配置的 Drain Timeout 内等待在途请求。
 5. 关闭 gRPC Server 和执行器。
@@ -1113,17 +1113,17 @@ Provider 心跳复用 DDC Service Registry 租约。
 Provider 默认 `registration.fail-fast=true`：
 
 - 注册中心不可用时，Provider 不应在“未注册但可接流”的状态下继续启动。
-- 可以显式关闭注册用于纯本地测试，但该模式不得用于 Consumer→Gateway 闭环测试。
+- 可以显式关闭注册用于纯本地测试，但该模式不得用于 Consumer→Yuheng 闭环测试。
 
 ## 11. RPC Consumer 运行链
 
-### 11.1 Gateway 发现
+### 11.1 Yuheng 发现
 
 Consumer 只订阅：
 
 ```text
 serviceKind=INTERNAL_GATEWAY
-serviceName=egon-internal-rpc-gateway
+serviceName=egon-internal-rpc-yuheng
 group={configuredGatewayGroup}
 version={configuredGatewayVersion}
 protocol=grpc
@@ -1134,32 +1134,32 @@ RPC Starter 的 Consumer 包不暴露查询 `RPC_PROVIDER` 的 API。
 架构测试必须证明：
 
 - Consumer 代码不引用 Provider Registry Adapter。
-- Consumer Channel Target 只能来自 Gateway Snapshot。
+- Consumer Channel Target 只能来自 Yuheng Snapshot。
 - Consumer 不接受 Provider Host/Port 配置。
 - Consumer 不创建 Provider Channel。
 
-### 11.2 单 Gateway 规则
+### 11.2 单 Yuheng 规则
 
-Consumer 启动时在 `gateway-discovery-timeout-ms` 内等待 Gateway Snapshot：
+Consumer 启动时在 `yuheng-discovery-timeout-ms` 内等待 Yuheng Snapshot：
 
 - 恰好一个有效 `instanceId + leaseId`：创建 Channel，Consumer 进入 `READY`。
-- 零个有效实例：启动失败，错误为 `RPC_GATEWAY_UNAVAILABLE`。
-- 多个有效实例：启动失败，错误为 `RPC_GATEWAY_AMBIGUOUS`。
+- 零个有效实例：启动失败，错误为 `RPC_YUHENG_UNAVAILABLE`。
+- 多个有效实例：启动失败，错误为 `RPC_YUHENG_AMBIGUOUS`。
 
 运行期间 Snapshot 变化：
 
-- 恰好一个有效实例：保持或切换到该 Gateway。
+- 恰好一个有效实例：保持或切换到该 Yuheng。
 - 零个有效实例：立即进入 `UNAVAILABLE`，新调用快速失败。
 - 多个有效实例：立即进入 `AMBIGUOUS`，新调用快速失败。
 - `UNAVAILABLE/AMBIGUOUS` 状态不选择实例、不发起业务调用，并关闭不再唯一有效
   的旧 Channel。
 
-Consumer 不保留过期 Gateway Channel，不提供 Gateway Selector，不实现轮询、
+Consumer 不保留过期 Yuheng Channel，不提供 Yuheng Selector，不实现轮询、
 随机或 Failover。
 
 ### 11.3 Channel 切换
 
-Gateway 实例变化时：
+Yuheng 实例变化时：
 
 1. 创建新 Channel。
 2. 新 Channel 达到可用条件后原子替换。
@@ -1176,18 +1176,18 @@ Gateway 实例变化时：
 - 调用方显式上下文 Deadline 更短时使用更短值。
 - Consumer Channel 显式关闭 gRPC Retry。
 - 框架不发起透明重试或业务重试。
-- 本轮 Mock Gateway 的测试私有 Provider Channel 同样显式关闭 gRPC Retry。
-- Mock Gateway 转发使用剩余 Deadline，不能重新开始完整超时时间。
-- Consumer 调用取消时，Mock Gateway 取消对应 Provider `ClientCall`。
-- Mock Gateway 收到 Provider Cancellation 或 Deadline Status 后原样结束上游
+- 本轮 Mock Yuheng 的测试私有 Provider Channel 同样显式关闭 gRPC Retry。
+- Mock Yuheng 转发使用剩余 Deadline，不能重新开始完整超时时间。
+- Consumer 调用取消时，Mock Yuheng 取消对应 Provider `ClientCall`。
+- Mock Yuheng 收到 Provider Cancellation 或 Deadline Status 后原样结束上游
   调用，用于验证 Consumer 和 Provider 两端的协议行为。
 - Consumer 将最终 gRPC Status 转换为稳定 `EgonRpcException`。
 
-## 12. Mock Gateway 与生产 Gateway 延期边界
+## 12. Mock Yuheng 与生产 Yuheng 延期边界
 
 ### 12.1 本轮不交付的生产能力
 
-生产 Gateway 必须等待 DDC PR1 和 RPC PR2 完成、公共契约稳定后再开发。本轮
+生产 Yuheng 必须等待 Tianshu PR1 和 RPC PR2 完成、公共契约稳定后再开发。本轮
 RPC Starter 明确不创建以下类型或等价生产实现：
 
 ```text
@@ -1199,11 +1199,11 @@ RpcGatewayHandlerRegistry
 RpcUnaryForwarder
 ```
 
-本轮也不确定生产 Gateway 的动态方法缓存、Provider Channel 复用、摘除、
-路由、失败评分和治理模型。后续 Gateway 使用独立 Spec、Plan 和 PR，不在
+本轮也不确定生产 Yuheng 的动态方法缓存、Provider Channel 复用、摘除、
+路由、失败评分和治理模型。后续 Yuheng 使用独立 Spec、Plan 和 PR，不在
 当前两个 PR 中预埋半成品生产 API。
 
-### 12.2 Mock Gateway 测试替身
+### 12.2 Mock Yuheng 测试替身
 
 `rpc-test-suite` 提供测试私有的 `MockRpcGateway`，以及同包内的：
 
@@ -1216,9 +1216,9 @@ MockRoundRobinSelector
 ```
 
 全部类型只能位于 RPC Test 模块，不进入 Starter，不进入 BOM，不允许业务模块
-依赖。它们只为证明 Provider/Consumer 和 DDC 公共能力能够支撑后续 Gateway：
+依赖。它们只为证明 Provider/Consumer 和 Tianshu 公共能力能够支撑后续 Yuheng：
 
-- `MockRpcGateway` 直接使用 DDC Starter 公共 `DdcServiceRegistryClient`；
+- `MockRpcGateway` 直接使用 Tianshu Starter 公共 `DdcServiceRegistryClient`；
 - 注册为 `INTERNAL_GATEWAY` 并维持独立测试租约；
 - `MockProviderDirectory` 订阅 `RPC_PROVIDER` Catalog 和完整 Instance
   Snapshot；
@@ -1230,12 +1230,12 @@ MockRoundRobinSelector
 - 透传剩余 Deadline、Cancellation、Status 和白名单 Metadata；
 - 记录 Invocation ID、选中 Provider 和转发次数供断言。
 
-Mock Gateway 不承诺生产兼容性，不作为后续 Gateway 的二进制或源码依赖，不
+Mock Yuheng 不承诺生产兼容性，不作为后续 Yuheng 的二进制或源码依赖，不
 实现限流、熔断、灰度、鉴权、业务重试或生产故障治理。
 
 ### 12.3 Mock 转发测试流
 
-Consumer 调用保留生成 Descriptor 的原始 Method 全名。Mock Gateway 的测试
+Consumer 调用保留生成 Descriptor 的原始 Method 全名。Mock Yuheng 的测试
 流程固定为：
 
 1. 从 Method 全名和 Metadata 得到测试 Service Key。
@@ -1247,19 +1247,19 @@ Consumer 调用保留生成 Descriptor 的原始 Method 全名。Mock Gateway �
 7. 将 Provider Payload 和最终 gRPC Status 返回 Consumer。
 
 该流程只验证目标架构的网络边界。RPC Starter 的生产代码不得引用
-`MockProviderDirectory`、`MockUnaryForwarder` 或任何测试 Gateway 类型。
+`MockProviderDirectory`、`MockUnaryForwarder` 或任何测试 Yuheng 类型。
 
-### 12.4 后续 Gateway 开发入口
+### 12.4 后续 Yuheng 开发入口
 
-DDC 与 RPC 完成后，生产 Gateway 专项以已经发布的公共能力为输入：
+Tianshu 与 RPC 完成后，生产 Yuheng 专项以已经发布的公共能力为输入：
 
-- DDC 的 `DdcServiceRegistryClient`、Service Catalog 和 Instance Snapshot；
+- Tianshu 的 `DdcServiceRegistryClient`、Service Catalog 和 Instance Snapshot；
 - RPC 的 Protobuf Method 全名、Wire Metadata 和异常约定；
-- Consumer 只连接唯一 Gateway 的外部契约；
+- Consumer 只连接唯一 Yuheng 的外部契约；
 - Provider 的标准 grpc-java 服务端。
 
-后续 Gateway 是否采用动态 `HandlerRegistry`、何种 Provider Directory、
-Channel 生命周期和治理模型，由 Gateway 专项重新设计；当前 Mock 不提前锁定
+后续 Yuheng 是否采用动态 `HandlerRegistry`、何种 Provider Directory、
+Channel 生命周期和治理模型，由 Yuheng 专项重新设计；当前 Mock 不提前锁定
 这些生产决策。
 
 ## 13. 异常模型
@@ -1276,8 +1276,8 @@ EgonRpcException
 RPC_INVALID_CONTRACT
 RPC_PROVIDER_START_FAILED
 RPC_REGISTRATION_FAILED
-RPC_GATEWAY_UNAVAILABLE
-RPC_GATEWAY_AMBIGUOUS
+RPC_YUHENG_UNAVAILABLE
+RPC_YUHENG_AMBIGUOUS
 RPC_SERVICE_NOT_FOUND
 RPC_METHOD_NOT_FOUND
 RPC_DEADLINE_EXCEEDED
@@ -1294,7 +1294,7 @@ RPC_INTERNAL
 - gRPC `NOT_FOUND` → `RPC_SERVICE_NOT_FOUND` 或 `RPC_METHOD_NOT_FOUND`
 - gRPC `DEADLINE_EXCEEDED` → `RPC_DEADLINE_EXCEEDED`
 - gRPC `CANCELLED` → `RPC_CANCELLED`
-- gRPC `UNAVAILABLE` → `RPC_GATEWAY_UNAVAILABLE` 或
+- gRPC `UNAVAILABLE` → `RPC_YUHENG_UNAVAILABLE` 或
   `RPC_PROVIDER_UNAVAILABLE`，由失败阶段区分
 - 未分类状态 → `RPC_INTERNAL`
 
@@ -1314,10 +1314,10 @@ Trace 规则：
 1. 优先读取当前 Egon Trace Context。
 2. 没有 Trace ID 时生成新 Trace ID。
 3. Consumer 将 Trace 写入 gRPC Metadata。
-4. 本轮由 Mock Gateway 校验后透传；后续生产 Gateway 必须遵循同一外部约定。
+4. 本轮由 Mock Yuheng 校验后透传；后续生产 Yuheng 必须遵循同一外部约定。
 5. Provider 建立调用作用域并写入日志上下文。
 6. Provider 返回后清理线程上下文。
-7. Mock Gateway 和 Provider 不修改合法的上游 Trace ID；后续生产 Gateway
+7. Mock Yuheng 和 Provider 不修改合法的上游 Trace ID；后续生产 Yuheng
    继续遵循该约定。
 8. 非法 Trace 字段被丢弃并重新生成。
 
@@ -1326,13 +1326,13 @@ Trace 规则：
 
 ## 15. 配置模型
 
-### 15.1 DDC
+### 15.1 Tianshu
 
 ```yaml
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: true
         app-code: order-service
         env: dev
@@ -1363,7 +1363,7 @@ Admin：
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         admin:
           redis:
             enabled: true
@@ -1419,21 +1419,21 @@ egon:
         consumer:
           enabled: true
           default-timeout-ms: 3000
-          gateway-discovery-timeout-ms: 5000
-          gateway-service-name: egon-internal-rpc-gateway
-          gateway-group: default
-          gateway-version: 1.0.0
+          yuheng-discovery-timeout-ms: 5000
+          yuheng-service-name: egon-internal-rpc-yuheng
+          yuheng-group: default
+          yuheng-version: 1.0.0
           channel-drain-timeout-ms: 5000
 ```
 
-### 15.4 Mock Gateway 测试配置
+### 15.4 Mock Yuheng 测试配置
 
 ```yaml
 egon:
   rpc:
     test:
-      mock-gateway:
-        service-name: egon-internal-rpc-gateway
+      mock-yuheng:
+        service-name: egon-internal-rpc-yuheng
         group: default
         version: 1.0.0
         bind-host: 127.0.0.1
@@ -1445,7 +1445,7 @@ egon:
 
 该前缀只存在于 `rpc-test-suite`，不属于 `EgonRpcProperties`，不生成 Starter
 配置元数据。同一个业务应用可以同时开启 Provider 与 Consumer；RPC Starter
-没有 Gateway 开关。
+没有 Yuheng 开关。
 
 ## 16. 依赖与版本管理
 
@@ -1477,7 +1477,7 @@ protobuf-java
 约束：
 
 - 不引入第三方 gRPC Spring Boot Starter。
-- Provider gRPC Server、Consumer Gateway Channel、Spring 生命周期和自动装配
+- Provider gRPC Server、Consumer Yuheng Channel、Spring 生命周期和自动装配
   由本项目实现。
 - 业务模块必须使用标准 `protobuf-maven-plugin` 执行 `compile` 和
   `compile-custom`，分别生成 Protobuf Message 与 grpc-java 类。
@@ -1489,7 +1489,7 @@ protobuf-java
 - `rpc-test-provider` 与 `rpc-test-consumer` 只能依赖同一个 Test Contract
   Artifact，禁止各自复制 Proto 或生成类。
 - `rpc-test-suite` 的默认测试依赖确定性内存 Registry Adapter 和真实
-  grpc-java 网络传输；Live Profile 才增加真实 DDC Admin 与 Redis 测试依赖。
+  grpc-java 网络传输；Live Profile 才增加真实 Tianshu Admin 与 Redis 测试依赖。
 - `rpc-test-suite` 复用组件父 POM 已管理的 Awaitility 等待目录收敛，测试中
   不使用固定 `Thread.sleep`。
 - 不新增自研 Protobuf Compiler Plugin，也不新增独立 `rpc-proto` Maven 模块。
@@ -1502,13 +1502,13 @@ protobuf-java
 
 | 模式 | 使用位置 | 原因 |
 |---|---|---|
-| Lifecycle Coordinator | DDC 和 RPC 启停 | 注册、同步、心跳和注销必须有确定顺序 |
-| Observer | DDC 服务快照订阅 | 注册实例变化需要推送本地只读目录 |
+| Lifecycle Coordinator | Tianshu 和 RPC 启停 | 注册、同步、心跳和注销必须有确定顺序 |
+| Observer | Tianshu 服务快照订阅 | 注册实例变化需要推送本地只读目录 |
 | Proxy | RPC Consumer JDK Proxy | 把 Java Contract 调用转换为 gRPC 调用 |
-| Adapter | DDC Registry、gRPC Transport | 隔离基础设施和业务契约 |
+| Adapter | Tianshu Registry、gRPC Transport | 隔离基础设施和业务契约 |
 | Facade | RPC Provider、Consumer 运行入口 | 为自动装配提供稳定、少量入口 |
-| Idempotent Receiver | DDC changeId、ACK、Retry | 重复请求不能创建第二个发布或重复计数 |
-| Keyed Lock | DDC 配置资源发布 | 同一配置资源只允许一个发布流程 |
+| Idempotent Receiver | Tianshu changeId、ACK、Retry | 重复请求不能创建第二个发布或重复计数 |
+| Keyed Lock | Tianshu 配置资源发布 | 同一配置资源只允许一个发布流程 |
 
 ### 17.2 明确不引入
 
@@ -1516,14 +1516,14 @@ protobuf-java
 - 不为固定 Protobuf 编解码创建 Serializer SPI。
 - 不创建 Consumer LoadBalancer Strategy。
 - 不创建 Provider Router、CircuitBreaker 或 Retry Strategy。
-- 不创建生产 Gateway Facade、Directory、Handler、Channel Factory 或 Forwarder。
+- 不创建生产 Yuheng Facade、Directory、Handler、Channel Factory 或 Forwarder。
 - 不为发布一致性创建多策略层，V1 只有 `SYNC_ALL_ACK`。
 - 不为了 Maven 模块纯度拆分额外 API/Core 模块。
 - 不建立通用 Service Mesh 抽象。
 
 ## 18. 测试设计
 
-### 18.1 DDC 单元测试
+### 18.1 Tianshu 单元测试
 
 至少覆盖：
 
@@ -1535,7 +1535,7 @@ protobuf-java
 6. ACK 失败不篡改字段刷新结果。
 7. Redis Instance Bucket 使用 TTL。
 8. 正确租约心跳延长 TTL。
-9. 旧 `leaseId` 心跳返回 `DDC_LEASE_MISMATCH`。
+9. 旧 `leaseId` 心跳返回 `TIANSHU_LEASE_MISMATCH`。
 10. 旧 `leaseId` 注销不删除新租约。
 11. 过期实例清理。
 12. 无发布目标立即失败。
@@ -1543,7 +1543,7 @@ protobuf-java
 14. 任一目标 ACK 失败使任务失败。
 15. 错误版本、摘要或目标身份的 ACK 被拒绝。
 16. Waiter 按 `changeId` 唤醒并重新读取持久化状态。
-17. 同一配置资源并发发布返回 `DDC_PUBLISH_IN_PROGRESS`。
+17. 同一配置资源并发发布返回 `TIANSHU_PUBLISH_IN_PROGRESS`。
 18. 不同配置资源可以并行发布。
 19. 派发超时和确认超时。
 20. Admin 启动把遗留任务更新为 `UNKNOWN`。
@@ -1552,15 +1552,15 @@ protobuf-java
 23. HMAC 成功、错误签名、过期 Timestamp、重复 Nonce 和 Body 被修改。
 24. SDK/Manifest 版本不再硬编码。
 
-### 18.2 DDC 注册中心测试
+### 18.2 Tianshu 注册中心测试
 
 至少覆盖：
 
 1. Provider 每次注册取得新 `leaseId`。
-2. Gateway 使用独立 TTL 和心跳参数注册。
+2. Yuheng 使用独立 TTL 和心跳参数注册。
 3. 新注册原子替换旧租约并递增 Revision。
 4. 正确 `instanceId + leaseId` 心跳续租。
-5. 租约丢失时心跳返回 `DDC_LEASE_NOT_FOUND`，重新注册后恢复。
+5. 租约丢失时心跳返回 `TIANSHU_LEASE_NOT_FOUND`，重新注册后恢复。
 6. Service Key 漂移被拒绝。
 7. 旧租约主动注销不删除当前租约。
 8. 租约过期。
@@ -1568,7 +1568,7 @@ protobuf-java
 10. Topic 消息后重新拉取完整快照。
 11. 消息丢失后周期对账收敛。
 12. Listener 异常隔离。
-13. Provider 和 Gateway Key 空间隔离。
+13. Provider 和 Yuheng Key 空间隔离。
 14. 元数据大小和保留前缀校验。
 15. Service Catalog 新增、删除和 Revision。
 16. Catalog 订阅自动建立和关闭 Instance Snapshot 订阅。
@@ -1591,28 +1591,28 @@ protobuf-java
 10. Provider 注册发生在端口绑定之后。
 11. Provider 心跳和注销。
 12. Consumer Proxy 创建。
-13. Consumer 只发现 Gateway。
-14. 启动时零 Gateway 快速失败。
-15. 启动时多 Gateway 快速失败。
-16. 运行时零或多 Gateway 停止新调用并关闭非唯一有效 Channel。
+13. Consumer 只发现 Yuheng。
+14. 启动时零 Yuheng 快速失败。
+15. 启动时多 Yuheng 快速失败。
+16. 运行时零或多 Yuheng 停止新调用并关闭非唯一有效 Channel。
 17. Consumer Channel 显式关闭 gRPC Retry。
 18. Deadline 优先级。
-19. Consumer Cancellation 取消当前 Gateway `ClientCall`。
+19. Consumer Cancellation 取消当前 Yuheng `ClientCall`。
 20. gRPC Status 到 `EgonRpcException` 的转换。
 21. Consumer 写入和 Provider 读取 Trace 与白名单 Metadata。
-22. Starter 生产代码不存在 Gateway 包、Provider Directory、动态 Handler、
+22. Starter 生产代码不存在 Yuheng 包、Provider Directory、动态 Handler、
     Provider Channel Factory 或 Unary Forwarder。
 
 ### 18.4 RPC Test 分层
 
-测试分为三层。Gateway 行为由 Mock 提供，但 TCP Smoke 和 Process E2E 必须使用
+测试分为三层。Yuheng 行为由 Mock 提供，但 TCP Smoke 和 Process E2E 必须使用
 真实 grpc-java TCP，不能把整个调用退化为 Java Mock：
 
 | 层级 | 模块 | 传输 | 注册中心 | 目的 |
 |---|---|---|---|---|
 | Unit | `rpc-starter` | Mock/直接单元 | Mock | 验证单类和边界规则 |
-| TCP Smoke | `rpc-test-suite` / `mvn test` | 同 JVM、真实 TCP + Mock Gateway | 确定性内存 Adapter | 每次构建验证 Consumer→Mock Gateway→Provider |
-| Process E2E | `rpc-test-suite` / `mvn verify` | 独立 JVM、真实 TCP + Mock Gateway | 单 DDC Admin + 单 Redis | 验证完整注册发现与进程边界 |
+| TCP Smoke | `rpc-test-suite` / `mvn test` | 同 JVM、真实 TCP + Mock Yuheng | 确定性内存 Adapter | 每次构建验证 Consumer→Mock Yuheng→Provider |
+| Process E2E | `rpc-test-suite` / `mvn verify` | 独立 JVM、真实 TCP + Mock Yuheng | 单 Tianshu Admin + 单 Redis | 验证完整注册发现与进程边界 |
 
 TCP Smoke 必须进入普通 Maven `test`，使用 Netty Server、随机 loopback TCP
 端口和真实 ManagedChannel；禁止使用 `InProcessServerBuilder` 或直接 Java 调用。
@@ -1625,15 +1625,15 @@ Process E2E 由 Maven Failsafe 在 `mvn verify -Pddc-live-test` 中执行。
   - 验证 gRPC Server 暴露、`RPC_PROVIDER` 注册、心跳和注销。
 - `RpcConsumerApplicationTest`
   - 只启动 Consumer Context；
-  - 验证代理创建、零 Gateway 错误，以及不存在 Provider 发现和直连能力。
+  - 验证代理创建、零 Yuheng 错误，以及不存在 Provider 发现和直连能力。
 - `RpcTcpCallTest`
-  - 启动 Provider、Mock Gateway 和 Consumer 三个隔离 Context；
+  - 启动 Provider、Mock Yuheng 和 Consumer 三个隔离 Context；
   - 使用真实 TCP 验证一次完整 RPC 调用成功。
 - `RpcMultiProviderDirectoryTest`
   - 启动两个 Provider；
-  - 验证 Mock Provider Directory、Mock Gateway 选择和下线摘除。
+  - 验证 Mock Provider Directory、Mock Yuheng 选择和下线摘除。
 
-确定性内存 Adapter 只能实现 DDC Starter 已定义的
+确定性内存 Adapter 只能实现 Tianshu Starter 已定义的
 `DdcServiceRegistryClient` 接口，支持注册、心跳、注销、Service Catalog 和
 Snapshot 订阅，并严格执行“每次注册新 leaseId、心跳/注销匹配
 instanceId + leaseId”的语义；RPC 生产代码不能感知或特判该 Adapter。
@@ -1648,16 +1648,16 @@ instanceId + leaseId”的语义；RPC 生产代码不能感知或特判该 Adap
 ```mermaid
 flowchart LR
     Consumer["TestRpcConsumerApplication"]
-    Gateway["MockRpcGateway"]
+    Yuheng["MockRpcGateway"]
     Provider["TestRpcProviderApplication"]
-    Registry["Deterministic DDC Registry Adapter"]
+    Registry["Deterministic Tianshu Registry Adapter"]
 
     Provider -->|"register RPC_PROVIDER"| Registry
-    Gateway -->|"subscribe Provider Catalog"| Registry
-    Gateway -->|"register INTERNAL_GATEWAY"| Registry
-    Consumer -->|"discover Gateway only"| Registry
-    Consumer -->|"Echo RPC"| Gateway
-    Gateway -->|"forward same gRPC Method"| Provider
+    Yuheng -->|"subscribe Provider Catalog"| Registry
+    Yuheng -->|"register INTERNAL_GATEWAY"| Registry
+    Consumer -->|"discover Yuheng only"| Registry
+    Consumer -->|"Echo RPC"| Yuheng
+    Yuheng -->|"forward same gRPC Method"| Provider
 ```
 
 执行顺序：
@@ -1672,13 +1672,13 @@ flowchart LR
 7. 启动 `TestRpcConsumerApplication` 的独立 Spring Context。
 8. Consumer 通过 `@EgonRpcReference` 获得 Echo Contract 代理。
 9. Consumer 发起 `echo("hello")`，返回值必须为 Provider 生成的确定性响应。
-10. 断言 Mock Gateway 转发计数为 1，Provider 调用计数为 1。
-11. 断言 Consumer 只创建 Gateway Channel，Provider Channel 数量为 0。
+10. 断言 Mock Yuheng 转发计数为 1，Provider 调用计数为 1。
+11. 断言 Consumer 只创建 Yuheng Channel，Provider Channel 数量为 0。
 12. 断言 Provider 收到的 Invocation ID、Deadline 和 Trace 与调用上下文一致。
-13. 按 Consumer、Mock Gateway、Provider、Registry 的逆序关闭所有资源。
+13. 按 Consumer、Mock Yuheng、Provider、Registry 的逆序关闭所有资源。
 14. 断言不存在存活的 RPC Scheduler、Channel、Server 或 Listener。
 
-测试成功不能只断言响应内容，还必须证明请求实际经过 Mock Gateway；Provider
+测试成功不能只断言响应内容，还必须证明请求实际经过 Mock Yuheng；Provider
 不得与 Consumer 共享 Spring Bean、Channel 或直接 Java 方法引用。测试必须
 断言 Server 与 Channel 使用 loopback TCP Socket，不能退化为 gRPC In-Process。
 
@@ -1687,7 +1687,7 @@ flowchart LR
 在最低成功用例之外，增加 `RpcMultiProviderDirectoryTest`：
 
 1. 启动两个 Provider Context，暴露同一个 Proto Service、Group 和 Version。
-2. 两个实例注册到同一个 DDC Service Group。
+2. 两个实例注册到同一个 Tianshu Service Group。
 3. 测试私有 `MockProviderDirectory` 将其识别为一个逻辑集群。
 4. Consumer 连续调用，`MockRpcGateway` 的确定性 Round Robin 分别命中两个
    实例。
@@ -1697,43 +1697,43 @@ flowchart LR
 8. Consumer 全程不订阅 Provider Catalog，也不创建 Provider Channel。
 
 Round Robin、Directory 和 Provider Channel 全部仅存在于 `rpc-test-suite`，
-用于验证未来 Gateway 所需的 DDC/RPC 基础，不进入 RPC Starter 生产 API。
+用于验证未来 Yuheng 所需的 Tianshu/RPC 基础，不进入 RPC Starter 生产 API。
 
 ### 18.7 完整进程级 E2E
 
 `RpcProcessIT` 由 Maven Failsafe 在
 `mvn verify -Pddc-live-test` 中执行。测试 Harness 使用 `ProcessBuilder` 启动
-独立 JVM，不把 Provider、Mock Gateway 和 Consumer 放在同一个 Spring
+独立 JVM，不把 Provider、Mock Yuheng 和 Consumer 放在同一个 Spring
 Context。
 
 进程拓扑：
 
 ```text
 Failsafe Harness
-├── DDC Admin JVM + temporary SQLite
+├── Tianshu Admin JVM + temporary SQLite
 ├── Test Provider JVM
-├── Mock Gateway JVM
+├── Mock Yuheng JVM
 └── Test Consumer JVM
 ```
 
 执行顺序：
 
-1. 从 `DDC_TEST_REDIS_HOST/DDC_TEST_REDIS_PORT` 连接外部提供的单 Redis。
+1. 从 `TIANSHU_TEST_REDIS_HOST/TIANSHU_TEST_REDIS_PORT` 连接外部提供的单 Redis。
 2. 为本次执行生成唯一 `env + namespace` 和临时工作目录。
-3. 启动 DDC Admin JVM，使用临时 SQLite 和随机管理端口。
-4. 启动 Test Provider JVM，等待 DDC 中出现有效
+3. 启动 Tianshu Admin JVM，使用临时 SQLite 和随机管理端口。
+4. 启动 Test Provider JVM，等待 Tianshu 中出现有效
    `RPC_PROVIDER instanceId + leaseId`。
-5. 启动 Mock Gateway JVM，等待其发现 Provider 并注册唯一
+5. 启动 Mock Yuheng JVM，等待其发现 Provider 并注册唯一
    `INTERNAL_GATEWAY` 租约。
-6. 启动一次性 Test Consumer JVM；Consumer 从 DDC 发现 Gateway，执行 Echo
+6. 启动一次性 Test Consumer JVM；Consumer 从 Tianshu 发现 Yuheng，执行 Echo
    RPC，写出结构化结果后以退出码 0 结束。
-7. Harness 校验 Consumer 响应、Mock Gateway 转发事件和 Provider 调用事件
+7. Harness 校验 Consumer 响应、Mock Yuheng 转发事件和 Provider 调用事件
    使用同一 Invocation ID。
-8. Harness 校验 Provider、Mock Gateway、Consumer 使用不同 PID 和真实 TCP
+8. Harness 校验 Provider、Mock Yuheng、Consumer 使用不同 PID 和真实 TCP
    地址。
 9. 停止 Provider，验证主动注销后 Mock Provider Directory 摘除该
    `instanceId + leaseId`。
-10. 关闭 Mock Gateway 和 DDC Admin，等待全部子进程退出。
+10. 关闭 Mock Yuheng 和 Tianshu Admin，等待全部子进程退出。
 11. 清理本次命名空间 Redis Key、临时 SQLite 和工作目录，不清空共享 Redis。
 12. 测试失败时保留各进程 stdout/stderr 到 `target/process-it`，并强制终止
     遗留子进程。
@@ -1744,8 +1744,8 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 
 ## 19. 安全与运行约束
 
-1. DDC 与 RPC 默认运行在受信任内网。
-2. DDC OpenAPI 在生产环境必须开启 HMAC；本地开发和测试环境允许关闭。
+1. Tianshu 与 RPC 默认运行在受信任内网。
+2. Tianshu OpenAPI 在生产环境必须开启 HMAC；本地开发和测试环境允许关闭。
 3. RPC V1 不管理 TLS/mTLS 证书。
 4. RPC Plaintext 只能用于受信任网络或本地测试。
 5. Metadata 不允许携带 Secret。
@@ -1753,12 +1753,12 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 7. Provider 异常不向 Consumer 暴露堆栈。
 8. 服务地址必须经过 Host、Port 和保留地址校验。
 9. Consumer 不能通过参数覆盖目标 Provider。
-10. 本轮 Mock Gateway 必须忽略客户端伪造的 Provider Instance ID；生产
-    Gateway 后续至少保持同等级约束。
+10. 本轮 Mock Yuheng 必须忽略客户端伪造的 Provider Instance ID；生产
+    Yuheng 后续至少保持同等级约束。
 
 ## 20. 与现有功能的兼容性
 
-### 20.1 DDC
+### 20.1 Tianshu
 
 - 现有 `@DdcValue` 写法保持兼容。
 - 现有配置 API 路径保持兼容。
@@ -1773,7 +1773,7 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 - 新增唯一 V2 迁移版本，在 PostgreSQL 与 SQLite 现有方言目录中同步扩展
   `ddc_instance`、`ddc_publish_task` 和 `ddc_publish_ack` 所需租约、摘要及重试
   字段。
-- Registry 不创建数据库表，Provider/Gateway 注册状态仍只存在 Redis。
+- Registry 不创建数据库表，Provider/Yuheng 注册状态仍只存在 Redis。
 
 ### 20.2 RPC
 
@@ -1781,18 +1781,18 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 - 不替换现有 Facade Contract。
 - 只有需要 RPC 能力的业务模块引入 RPC Starter。
 - RPC Starter 默认关闭，未配置时不创建 Server、Channel 或 Registry Listener。
-- RPC Starter 不包含 Gateway 生产包、Gateway 开关或转发基础设施。
-- Mock Gateway 只存在于 RPC Test，不形成发布兼容性承诺。
-- Gateway 总览 Spec 中 HTTP/Dubbo 路线保持不变；gRPC Adapter 由后续 Gateway
+- RPC Starter 不包含 Yuheng 生产包、Yuheng 开关或转发基础设施。
+- Mock Yuheng 只存在于 RPC Test，不形成发布兼容性承诺。
+- Yuheng 总览 Spec 中 HTTP/Dubbo 路线保持不变；gRPC Adapter 由后续 Yuheng
   实施 Spec 接入。
 
 ## 21. 验收标准
 
-### 21.1 DDC
+### 21.1 Tianshu
 
 - [ ] Starter 自动完成注册、默认值上报、首次拉取、心跳和下线。
 - [ ] 首次拉取与 Redis 消息并发时版本单调。
-- [ ] 配置客户端、Provider 和 Gateway 每次注册都取得新的 `leaseId`。
+- [ ] 配置客户端、Provider 和 Yuheng 每次注册都取得新的 `leaseId`。
 - [ ] 心跳和注销原子校验 `instanceId + leaseId`，旧租约不能续租或删除新租约。
 - [ ] 三类角色复用统一租约协议，并使用各自 TTL 和心跳参数。
 - [ ] 发布目标固定为 `instanceId + leaseId` 集合。
@@ -1806,8 +1806,8 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 - [ ] OpenAPI HMAC 可完整验签并拒绝重放。
 - [ ] SDK 和 Manifest 版本无硬编码漂移。
 - [ ] 服务注册、心跳、注销、查询和订阅闭环可用。
-- [ ] Provider/Gateway 服务注册状态只存 Redis，不新增服务注册数据库表。
-- [ ] DDC 仅支持单 Admin、单 Redis，不包含集群或分布式协调代码。
+- [ ] Provider/Yuheng 服务注册状态只存 Redis，不新增服务注册数据库表。
+- [ ] Tianshu 仅支持单 Admin、单 Redis，不包含集群或分布式协调代码。
 
 ### 21.2 RPC
 
@@ -1823,24 +1823,24 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 - [ ] Provider 启动后注册服务名称、分组、版本、地址、端口和元数据。
 - [ ] Provider 心跳维持租约，停止时注销。
 - [ ] Consumer 可以通过注解获得类型安全代理。
-- [ ] Consumer 只发现唯一活跃内部 Gateway。
-- [ ] 启动和运行期间发现零个或多个 Gateway 时快速失败。
-- [ ] Consumer 所有测试请求经过 Mock Gateway。
+- [ ] Consumer 只发现唯一活跃内部 Yuheng。
+- [ ] 启动和运行期间发现零个或多个 Yuheng 时快速失败。
+- [ ] Consumer 所有测试请求经过 Mock Yuheng。
 - [ ] Mock Provider Directory 可以发现同一 Service Group 的多个 Provider。
-- [ ] Mock Gateway 负责测试范围的实例选择和转发。
-- [ ] Mock Gateway 只存在于 RPC Test，只依赖 RPC Starter、DDC Starter 和
+- [ ] Mock Yuheng 负责测试范围的实例选择和转发。
+- [ ] Mock Yuheng 只存在于 RPC Test，只依赖 RPC Starter、Tianshu Starter 和
   grpc-java 公共 API。
 - [ ] Consumer 不包含 Provider LoadBalancer 或直连代码。
-- [ ] RPC Starter 不包含生产 Gateway Directory、Handler、Provider Channel
+- [ ] RPC Starter 不包含生产 Yuheng Directory、Handler、Provider Channel
   Factory 或 Unary Forwarder。
-- [ ] Consumer Channel 和 Mock Gateway 测试 Provider Channel 显式关闭
+- [ ] Consumer Channel 和 Mock Yuheng 测试 Provider Channel 显式关闭
   gRPC Retry。
 - [ ] Deadline、Cancellation、Status、Trace 和白名单 Metadata 可传播。
 - [ ] gRPC Status 转换为稳定框架异常。
 - [ ] RPC Starter 不实现限流、熔断、灰度或重试。
 - [ ] 普通 Maven `test` 中，一个独立 Provider 和一个独立 Consumer 可以通过
-  Mock Gateway 完成真实 TCP grpc-java 调用。
-- [ ] 成功用例同时证明请求经过 Mock Gateway，Consumer 没有 Provider
+  Mock Yuheng 完成真实 TCP grpc-java 调用。
+- [ ] 成功用例同时证明请求经过 Mock Yuheng，Consumer 没有 Provider
   Channel。
 - [ ] Mock Provider Directory 的多 Provider、主动注销和租约摘除用例通过。
 - [ ] 闭环测试结束后没有 Server、Channel、Scheduler 或 Listener 泄漏。
@@ -1848,7 +1848,7 @@ CI 或开发者显式提供的单 Redis，不修改为 Redis 集群。
 
 ## 22. 验证命令
 
-DDC：
+Tianshu：
 
 ```bash
 ./mvnw -B -ntp \
@@ -1875,8 +1875,8 @@ Provider、Consumer 定向测试：
 完整进程级测试：
 
 ```bash
-DDC_TEST_REDIS_HOST=127.0.0.1 \
-DDC_TEST_REDIS_PORT=6379 \
+TIANSHU_TEST_REDIS_HOST=127.0.0.1 \
+TIANSHU_TEST_REDIS_PORT=6379 \
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
   -am -Pddc-live-test -Dit.test=RpcProcessIT verify
@@ -1900,20 +1900,20 @@ DDC_TEST_REDIS_PORT=6379 \
 
 ## 23. 实施交付边界
 
-DDC 与 RPC 使用同一份总体实施计划，按顺序拆分为两个独立 PR。
+Tianshu 与 RPC 使用同一份总体实施计划，按顺序拆分为两个独立 PR。
 
-### 23.1 PR1：DDC 单机闭环与注册中心
+### 23.1 PR1：Tianshu 单机闭环与注册中心
 
 范围：
 
 - 统一 `instanceId + leaseId` 租约协议；
 - 配置客户端生命周期闭环；
-- Redis-only Provider/Gateway 服务注册与目录订阅；
+- Redis-only Provider/Yuheng 服务注册与目录订阅；
 - 配置资源串行发布、changeId Waiter、严格目标 ACK；
 - `SYNC_ALL_ACK`、超时、重启 `UNKNOWN` 和幂等重试；
-- HMAC 验签、数据库 V2 迁移和 DDC 测试。
+- HMAC 验签、数据库 V2 迁移和 Tianshu 测试。
 
-PR1 不依赖 RPC Component。PR1 合入前必须独立完成 DDC Starter、Admin、Test
+PR1 不依赖 RPC Component。PR1 合入前必须独立完成 Tianshu Starter、Admin、Test
 编译、测试和 Admin 打包验证。
 
 ### 23.2 PR2：RPC Starter 与测试体系
@@ -1921,19 +1921,19 @@ PR1 不依赖 RPC Component。PR1 合入前必须独立完成 DDC Starter、Admi
 PR2 基于已经合入的 PR1：
 
 - 新增 RPC Starter；
-- 接入 DDC 公共租约和 Registry API；
+- 接入 Tianshu 公共租约和 Registry API；
 - 实现 Protobuf Descriptor 绑定、Provider 和 Consumer 公共能力；
-- 实现唯一 Gateway 快速失败、Deadline、Cancellation、Status、Metadata 和
+- 实现唯一 Yuheng 快速失败、Deadline、Cancellation、Status、Metadata 和
   Retry Disabled；
 - 新增 Contract、Provider、Consumer、Suite 测试模块，并在 Suite 内实现
-  测试私有 Mock Gateway；
+  测试私有 Mock Yuheng；
 - 完成普通 `mvn test` 真实 TCP 链路与 `mvn verify` 进程级链路。
 
-PR2 不实现任何生产 Gateway 接入、Directory、Handler、Provider Channel
+PR2 不实现任何生产 Yuheng 接入、Directory、Handler、Provider Channel
 Factory、Forwarder 或流量治理能力。PR2 合入前必须独立完成 RPC 模块及其依赖
 的编译、测试和打包验证。
 
 两个 PR 都不得提交无法独立编译的跨 PR 半成品；PR2 只能引用 PR1 已发布的
-DDC Starter 公共 API。
+Tianshu Starter 公共 API。
 
-生产 Gateway 是两个 PR 之后的独立后续项目，不属于本实施计划。
+生产 Yuheng 是两个 PR 之后的独立后续项目，不属于本实施计划。

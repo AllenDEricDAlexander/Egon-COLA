@@ -1,4 +1,4 @@
-# IDP & RBAC3 前端企业级优化设计
+# Tianquan-Shoubing & Tianquan-Jianshen 前端企业级优化设计
 
 **日期**: 2026-08-04
 **版本**: 1.0
@@ -8,7 +8,7 @@
 
 ## 1. 目标
 
-将 IDP 和 RBAC3 管理端 Web 前端提升为企业级水平，在现有 React 19 + antd 6 + TypeScript 6 技术栈基础上，建立统一基础设施，修复所有已知 Bug，重构架构缺陷，补齐企业级体验能力。
+将 Tianquan-Shoubing 和 Tianquan-Jianshen 管理端 Web 前端提升为企业级水平，在现有 React 19 + antd 6 + TypeScript 6 技术栈基础上，建立统一基础设施，修复所有已知 Bug，重构架构缺陷，补齐企业级体验能力。
 
 ## 2. 方案
 
@@ -42,7 +42,7 @@ egon-cola-xingyuan/
     └── src/
         ├── index.ts                        # 统一导出
         ├── auth/                           # OAuth 客户端
-        │   ├── oauthClient.ts              # 以 IDP 实现为基础，修复 bug
+        │   ├── oauthClient.ts              # 以 Tianquan-Shoubing 实现为基础，修复 bug
         │   ├── oauthClient.test.ts
         │   ├── tokenStore.ts
         │   └── tokenStore.test.ts
@@ -59,7 +59,7 @@ egon-cola-xingyuan/
         │   ├── PageTemplate.tsx            # 页面模板（Card + breadcrumb + title）
         │   └── PageTemplate.test.tsx
         ├── hooks/                          # 通用 Hooks
-        │   ├── useFeatureQuery.ts          # 消除 15 处 boilerplate（RBAC3）
+        │   ├── useFeatureQuery.ts          # 消除 15 处 boilerplate（Tianquan-Jianshen）
         │   ├── usePermission.ts            # 权限判断 hook
         │   └── usePermission.test.ts
         ├── theme/                          # 设计系统
@@ -75,7 +75,7 @@ egon-cola-xingyuan/
 
 ### 5.1 来源
 
-以 IDP 项目 `oauthClient.ts` 为基础（代码质量是两个项目中最好的：DI 友好、PKCE S256 正确、已测试），修复已知 bug，增强后下沉。
+以 Tianquan-Shoubing 项目 `oauthClient.ts` 为基础（代码质量是两个项目中最好的：DI 友好、PKCE S256 正确、已测试），修复已知 bug，增强后下沉。
 
 ### 5.2 Bug 修复清单
 
@@ -117,7 +117,7 @@ export interface TokenStore {
 
 ### 6.1 来源
 
-提取 IDP `idpApi` 和 RBAC3 `adminApiClient` 中的通用能力，修复已知问题，统一为 `HttpClient`。
+提取 Tianquan-Shoubing `idpApi` 和 Tianquan-Jianshen `adminApiClient` 中的通用能力，修复已知问题，统一为 `HttpClient`。
 
 ### 6.2 接口
 
@@ -139,13 +139,13 @@ export interface HttpClient {
 
 | Bug | 修复 |
 |-----|------|
-| 缺少 `credentials: 'include'`（IDP） | 通过 config 注入，默认 `'include'` |
-| 401 重试链双重包装（RBAC3: adminApiClient + FeatureApi 各重试一次） | `httpClient` 单层 retry，promise 去重 |
+| 缺少 `credentials: 'include'`（Tianquan-Shoubing） | 通过 config 注入，默认 `'include'` |
+| 401 重试链双重包装（Tianquan-Jianshen: adminApiClient + FeatureApi 各重试一次） | `httpClient` 单层 retry，promise 去重 |
 | `204` 返回 `undefined as T` 类型说谎 | 分离 `requestOrEmpty` 方法 |
 | 无请求超时 | 支持 AbortSignal 超时，默认 30s |
 | `Content-Type` 盲设 `application/json` | 仅当 body 是 POJO 或 JSON string 时设置 |
-| `tokenClaims`/`expiresIn` 未防御性解析（RBAC3） | 使用共享 `jwt.ts`，异常时不崩溃 |
-| `tokenClaims` 不处理 `exp` 为 string（RBAC3） | `jwt.ts` 统一处理 number/string 两种 exp |
+| `tokenClaims`/`expiresIn` 未防御性解析（Tianquan-Jianshen） | 使用共享 `jwt.ts`，异常时不崩溃 |
+| `tokenClaims` 不处理 `exp` 为 string（Tianquan-Jianshen） | `jwt.ts` 统一处理 number/string 两种 exp |
 
 ### 6.4 错误分类体系
 
@@ -176,14 +176,14 @@ export function isTokenExpired(token: string): boolean
 
 ### 6.6 保留在项目内的 API 逻辑
 
-- **RBAC3 `UnifiedRbac3ApiClient`**: 与 `@egon-cola/tianquan-jianshen-react-sdk` 契约耦合，保留在 RBAC3 项目内，但底层改用共享 `HttpClient`
-- **RBAC3 `FeatureApiProvider`**: 租户 header 注入逻辑保留在 RBAC3 项目内不变
+- **Tianquan-Jianshen `UnifiedRbac3ApiClient`**: 与 `@egon-cola/tianquan-jianshen-react-sdk` 契约耦合，保留在 Tianquan-Jianshen 项目内，但底层改用共享 `HttpClient`
+- **Tianquan-Jianshen `FeatureApiProvider`**: 租户 header 注入逻辑保留在 Tianquan-Jianshen 项目内不变
 
 ## 7. 组件和 Hooks
 
 ### 7.1 PageState（增强）
 
-来源：RBAC3 `features/shared/PageState.tsx`
+来源：Tianquan-Jianshen `features/shared/PageState.tsx`
 
 ```typescript
 export interface PageStateProps {
@@ -201,7 +201,7 @@ export interface PageStateProps {
 
 ### 7.2 AppErrorBoundary（增强）
 
-来源：RBAC3 `app/AppErrorBoundary.tsx`
+来源：Tianquan-Jianshen `app/AppErrorBoundary.tsx`
 
 ```typescript
 export interface AppErrorBoundaryProps {
@@ -231,7 +231,7 @@ export interface PageTemplateProps {
 
 BRAC3 `RouteDescriptor` 增加 `breadcrumb` 字段。
 
-### 7.4 useFeatureQuery（消除 RBAC3 中 15 处 boilerplate）
+### 7.4 useFeatureQuery（消除 Tianquan-Jianshen 中 15 处 boilerplate）
 
 ```typescript
 export function useFeatureQuery<T>(
@@ -302,7 +302,7 @@ export const AdminThemeProvider = ({ children }: PropsWithChildren) => (
 ### 9.1 技术选型
 
 - **库**: `i18next` + `react-i18next`
-- **语言包**: `zh-CN.ts`（中文）、`en-US.ts`（英文），按 namespace 分 `common`、`idp`、`rbac3`
+- **语言包**: `zh-CN.ts`（中文）、`en-US.ts`（英文），按 namespace 分 `common`、`tianquan-shoubing`、`tianquan-jianshen`
 - **检测**: 默认 `navigator.language`，支持手动切换和 localStorage 持久化
 
 ### 9.2 导出接口
@@ -314,19 +314,19 @@ export { initI18n, useT, I18nProvider, changeLanguage, currentLanguage }
 ### 9.3 项目使用方式
 
 ```typescript
-// IDP: src/main.tsx
+// Tianquan-Shoubing: src/main.tsx
 initI18n({
   defaultNS: 'common',
   resources: {
-    'zh-CN': { common, idp },
+    'zh-CN': { common, tianquan-shoubing },
   },
 })
 
-// RBAC3: src/main.tsx
+// Tianquan-Jianshen: src/main.tsx
 initI18n({
   defaultNS: 'common',
   resources: {
-    'zh-CN': { common, rbac3 },
+    'zh-CN': { common, tianquan-jianshen },
   },
 })
 ```
@@ -337,7 +337,7 @@ initI18n({
 - 两个项目页面逐页迁移，优先替换表头、按钮、提示文案
 - 初期以中文为默认语言，英文后续补齐
 
-## 10. IDP 重构
+## 10. Tianquan-Shoubing 重构
 
 ### 10.1 改动清单
 
@@ -387,7 +387,7 @@ initI18n({
 - `src/styles/index.css` — 替换为共享全局样式
 - `src/api/types.ts` 中的 `decodeClaims` 引用 — 替换为共享 `jwt.ts`
 
-## 11. RBAC3 重构
+## 11. Tianquan-Jianshen 重构
 
 ### 11.1 改动清单
 
@@ -409,7 +409,7 @@ initI18n({
 
 ### 11.2 API 层改动
 
-RBAC3 的 `adminApiClient.ts` 保留 `UnifiedRbac3ApiClient`（SDK 契约适配）和 `createAdminApiClients`（DI 入口），但内部 HTTP 传输委托给共享 `HttpClient`：
+Tianquan-Jianshen 的 `adminApiClient.ts` 保留 `UnifiedRbac3ApiClient`（SDK 契约适配）和 `createAdminApiClients`（DI 入口），但内部 HTTP 传输委托给共享 `HttpClient`：
 
 ```
 createAdminApiClients(baseUrl)
@@ -457,7 +457,7 @@ createAdminApiClients(baseUrl)
 ### 12.2 消费项目引用
 
 ```jsonc
-// IDP package.json
+// Tianquan-Shoubing package.json
 "dependencies": {
   "@egon-cola/xingyuan-admin-web-shared": "file:../egon-cola-xingyuan-admin-web-shared",
   ...
@@ -474,7 +474,7 @@ Maven 构建顺序：先 `npm run build` 共享包，再 `npm install` 消费项
 
 ## 13. 文件变更汇总
 
-| 操作 | IDP | RBAC3 | 共享包 | 合计 |
+| 操作 | Tianquan-Shoubing | Tianquan-Jianshen | 共享包 | 合计 |
 |------|-----|-------|--------|------|
 | 新建 | 7 | 0 | 25 | 32 |
 | 修改 | 6 | 18 | 0 | 24 |
@@ -489,4 +489,4 @@ Maven 构建顺序：先 `npm run build` 共享包，再 `npm install` 消费项
 - **不修改后端 API** — 前端仅优化，后端合约不变
 - **不引入 SSR 框架（Next.js/Remix）** — 保持 SPA 形态
 - **不增加 monorepo 工具（Turborepo/Nx）** — 共享包通过 `file:` 引用，保持简单
-- **`FeatureApiProvider` / `useFeatureTenantContext` 不下沉** — 与 rbac3-react-sdk 耦合
+- **`FeatureApiProvider` / `useFeatureTenantContext` 不下沉** — 与 tianquan-jianshen-react-sdk 耦合

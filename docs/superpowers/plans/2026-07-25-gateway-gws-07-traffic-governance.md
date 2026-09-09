@@ -1,4 +1,4 @@
-# Gateway GWS-07 流量治理实现计划
+# Yuheng GWS-07 流量治理实现计划
 
 状态：已执行
 
@@ -23,7 +23,7 @@ Selection、Instance Circuit/Bulkhead、Attempt/Retry。状态统一以
 - Key Expression 只支持已声明字段，不执行脚本或 SpEL。
 - 原始 Key 只做 SHA-256，不进入 Redis Key、指标或普通日志。
 
-**Commit:** `feat(gateway): compile traffic governance policies`
+**Commit:** `feat(yuheng): compile traffic governance policies`
 
 ## Task 2: 本地/分布式限流
 
@@ -31,7 +31,7 @@ Selection、Instance Circuit/Bulkhead、Attempt/Retry。状态统一以
 - 定义 Redis Lua Executor，单次脚本返回 allowed/remaining/retryAfter。
 - Redis 失败只允许 DENY 或 LOCAL_FALLBACK。
 
-**Commit:** `feat(gateway): enforce gateway rate limits`
+**Commit:** `feat(yuheng): enforce yuheng rate limits`
 
 ## Task 3: Bulkhead 与 Circuit
 
@@ -39,7 +39,7 @@ Selection、Instance Circuit/Bulkhead、Attempt/Retry。状态统一以
 - Provider runtime identity 维度 Circuit，业务错误与取消不计失败。
 - OPEN 排除候选，HALF_OPEN 限制探测数。
 
-**Commit:** `feat(gateway): isolate and circuit break providers`
+**Commit:** `feat(yuheng): isolate and circuit break providers`
 
 ## Task 4: Deadline 与 Retry Attempt
 
@@ -47,7 +47,7 @@ Selection、Instance Circuit/Bulkhead、Attempt/Retry。状态统一以
 - 仅显式幂等、可重放 Body、可重试错误允许 Retry。
 - 每次 Attempt 重新选择 Provider，并正确释放 Selection/Permit。
 
-**Commit:** `feat(gateway): execute bounded retry attempts`
+**Commit:** `feat(yuheng): execute bounded retry attempts`
 
 ## Task 5: 资源保护和协议映射
 
@@ -55,13 +55,13 @@ Selection、Instance Circuit/Bulkhead、Attempt/Retry。状态统一以
 - HTTP/gRPC 统一治理错误代码和协议状态。
 - 确认 EventLoop 不阻塞、状态存储有界。
 
-**Commit:** `feat(gateway): guard gateway request resources`
+**Commit:** `feat(yuheng): guard yuheng request resources`
 
 ## Task 6: 验收
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl :egon-cola-component-gateway-engine -am clean test
+  -pl :egon-cola-component-yuheng-biz-gateway -am clean test
 ```
 
 检查 Redis 限流只有一次 Lua 调用，任何错误/取消路径都释放 Permit，Retry 默认关闭。

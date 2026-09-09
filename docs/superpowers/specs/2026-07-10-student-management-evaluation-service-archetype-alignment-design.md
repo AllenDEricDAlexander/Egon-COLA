@@ -776,7 +776,7 @@ The basic `verify.groovy` must assert:
 - Local and test profiles disable RabbitMQ and Nacos.
 - The existing V1 migration is unchanged and exactly one V2 migration is added.
 - `flyway-database-postgresql` is present.
-- The generated CI workflow, Maven Wrapper, Docker assets, and cross-platform
+- The generated CI workflow, Maven Wrapper, Docker assets, and cross-xingyuan
   wrapper behavior are present.
 - The generated project still uses parameterized package and artifact coordinates
   rather than hard-coded basic-IT values.

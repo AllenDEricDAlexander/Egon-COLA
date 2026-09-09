@@ -1,4 +1,4 @@
-# RBAC3 Admin 领域分包与 Java 类型独立化改造规格
+# Tianquan-Jianshen Admin 领域分包与 Java 类型独立化改造规格
 
 > 状态：待用户书面审查
 > 编写日期：2026-08-13
@@ -13,7 +13,7 @@
 
 - `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter`
 
-本文固化已确认的“方案 C”：RBAC3 Admin 改为领域优先的垂直分包，每个领域内部按 `controller / domain / repository / service` 展开；`domain` 再按实际内容细分为 `dto / vo / po / enums / exception`；生产源码中现存的全部 386 个嵌套 `record`、`class`、`enum` 和 `interface` 必须清零，不只处理 Controller 和 Service 中的公开类型。
+本文固化已确认的“方案 C”：Tianquan-Jianshen Admin 改为领域优先的垂直分包，每个领域内部按 `controller / domain / repository / service` 展开；`domain` 再按实际内容细分为 `dto / vo / po / enums / exception`；生产源码中现存的全部 386 个嵌套 `record`、`class`、`enum` 和 `interface` 必须清零，不只处理 Controller 和 Service 中的公开类型。
 
 本文是设计规格，不是实施计划。本规格获书面批准后，下一阶段才编写包含逐文件迁移清单、386 个嵌套类型去向清单、依赖顺序和逐提交验证命令的 implementation plan；本阶段不修改生产代码。
 
@@ -26,20 +26,20 @@
 | RA-01 | 包结构采用领域优先：`admin.<领域>.controller/domain/repository/service` |
 | RA-02 | `domain` 下按实际需要建立 `dto / vo / po / enums / exception`，不创建空包 |
 | RA-03 | 原有全局技术根包 `application / interfaces / infrastructure / integration / security / worker / snapshot` 在迁移完成后必须消失 |
-| RA-04 | `Rbac3AdminApplication` 保留在 `top.egon.cola.platform.rbac3.admin` 根包，维持 Spring Boot 默认组件扫描边界 |
+| RA-04 | `Rbac3AdminApplication` 保留在 `top.egon.cola.platform.tianquan.jianshen.admin` 根包，维持 Spring Boot 默认组件扫描边界 |
 | RA-05 | `bootstrap`、`config` 和 `shared` 是明确例外；它们只承担启动装配、配置和真正跨领域的通用契约，不成为业务类型垃圾桶 |
 | RA-06 | `resource` 领域同时容纳 Application、Resource、Permission 和 Manifest 相关模型，不新增含义含混且容易与技术层混淆的顶层 `application` 业务包 |
-| RA-07 | 原 `snapshot`、`worker` 以及运行态 DDC、Gateway、Outbox 集成统一归入 `runtime` 领域 |
+| RA-07 | 原 `snapshot`、`worker` 以及运行态 Tianshu、Yuheng、Outbox 集成统一归入 `runtime` 领域 |
 | RA-08 | 所有生产 Java 源码实行一个顶层类型一个文件，现有 386 个嵌套类型全部独立，最终不允许任何嵌套 `record / class / enum / interface` |
 | RA-09 | Request、Command、Query、Mutation 等输入类型归入 `domain/dto` 并使用 `DTO` 后缀 |
 | RA-10 | Response、View、Result、Page、Projection 等输出类型归入 `domain/vo` 并使用 `VO` 后缀 |
 | RA-11 | JPA Entity、Embeddable 和持久化记录归入 `domain/po` 并使用 `PO` 后缀；枚举归入 `domain/enums` 并使用 `Enum` 后缀 |
-| RA-12 | Repository 契约是独立顶层类型，位于所属领域 `repository`；实现按 `jpa / jdbc / redis / http / ddc / outbox / internal` 等真实技术细分 |
+| RA-12 | Repository 契约是独立顶层类型，位于所属领域 `repository`；实现按 `jpa / jdbc / redis / http / tianshu / outbox / internal` 等真实技术细分 |
 | RA-13 | Controller、Service、Facade、Processor、Coordinator、Revalidator、Factory 等功能性类不得继续充当实体或协议类型容器，调用点不得出现 `功能类.实体类` |
 | RA-14 | Controller 只依赖 DTO、VO 和 Service；Service 不依赖 Controller 或 Repository 实现；Domain 不依赖 Controller、Service、Repository |
 | RA-15 | HTTP 路由、方法、状态码、JSON 字段、校验、Jackson 行为、权限语义、数据库结构、Redis Key 和 Outbox 业务字段全部冻结 |
 | RA-16 | JPA 类改名为 `*PO` 时保留原显式 entity name，以避免本次同时改写 JPQL entity name；表、列、索引和 Flyway 不变 |
-| RA-17 | Gateway Operation 的外部名称和可见性冻结；Java Schema definition key 因 Java FQCN 变化而改变，属于受控且必须验证的预期差异 |
+| RA-17 | Yuheng Operation 的外部名称和可见性冻结；Java Schema definition key 因 Java FQCN 变化而改变，属于受控且必须验证的预期差异 |
 | RA-18 | 不引入新依赖、ArchUnit、代码生成器、新模块或为目录整齐而创建的空抽象 |
 | RA-19 | 保留有业务含义的现有 Facade 和 Ports/Adapters 边界，不为本次搬包额外引入 Strategy、Factory、Template Method 等模式 |
 | RA-20 | 改造分八个可编译、可测试、可独立提交的波次完成；任何提交都不得处于源码无法编译的中间状态 |
@@ -50,7 +50,7 @@
 
 ### 2.1 基线统计
 
-以本文代码基线扫描 `rbac3-admin/src/main/java`：
+以本文代码基线扫描 `tianquan-jianshen-admin/src/main/java`：
 
 - 生产 Java 文件共 242 个；
 - 其中 121 个文件包含嵌套类型；
@@ -82,7 +82,7 @@ audit/application|domain|infrastructure
 application/port
 interfaces/http
 infrastructure/persistence
-integration/ddc|flyway|gateway|outbox|runtime
+integration/tianshu|flyway|yuheng|outbox|runtime
 security
 snapshot/application|infrastructure
 worker
@@ -135,7 +135,7 @@ Controller、Service 和 Facade 文件中大量声明 Request、Response、Comma
 
 - 不修改 RBAC 权限计算、授权决策、角色闭包、约束计算、会话刷新或审计业务规则；
 - 不新增、删除、重命名 HTTP Route，不改变 HTTP Method、Status、JSON 字段或错误语义；
-- 不改变 Gateway Operation 名称、权限映射或外部可见性；
+- 不改变 Yuheng Operation 名称、权限映射或外部可见性；
 - 不修改数据库表、列、索引、约束和数据，不新增 Flyway migration；
 - 不修改 Redis Key、缓存 TTL 和序列化业务字段；
 - 不改变 Outbox 事件的业务字段、投递语义和幂等语义；
@@ -155,7 +155,7 @@ Controller、Service 和 Facade 文件中大量声明 Request、Response、Comma
 以下是迁移完成后允许存在的一级领域和技术职责。`dto / vo / po / enums / exception` 以及 Repository 技术子包仅在存在真实类型时创建；最终仓库不得保留空目录或只为占位创建的 `package-info.java`。
 
 ```text
-top.egon.cola.platform.rbac3.admin
+top.egon.cola.platform.tianquan.jianshen.admin
 ├── Rbac3AdminApplication.java
 ├── package-info.java
 ├── bootstrap
@@ -168,7 +168,7 @@ top.egon.cola.platform.rbac3.admin
 │   │   └── jpa
 │   └── service
 ├── config
-│   ├── ddc
+│   ├── tianshu
 │   ├── flyway
 │   ├── persistence
 │   ├── properties
@@ -265,7 +265,7 @@ top.egon.cola.platform.rbac3.admin
     │   ├── message
     │   └── scheduled
     ├── domain/{dto,vo,po,enums,exception}
-    ├── repository/{ddc,http,jpa,outbox,redis,internal}
+    ├── repository/{tianshu,http,jpa,outbox,redis,internal}
     └── service/{internal}
 ```
 
@@ -276,7 +276,7 @@ top.egon.cola.platform.rbac3.admin
 | 目标一级包 | 归属内容 |
 |---|---|
 | `bootstrap` | 初始化、默认管理员/租户引导、CLI 入站、引导状态持久化 |
-| `config` | Spring 配置、Properties、Security、Flyway、JPA、Redis、DDC 和运行时装配 |
+| `config` | Spring 配置、Properties、Security、Flyway、JPA、Redis、Tianshu 和运行时装配 |
 | `shared` | 经逐消费者证明同时服务多个领域且没有合理业务归属的基础契约；不得放置“暂时不知道放哪里”的类型 |
 | `tenant` | 租户生命周期、租户查询和租户级配置 |
 | `identity` | 身份映射、凭据主体、身份状态和身份管理 |
@@ -293,7 +293,7 @@ top.egon.cola.platform.rbac3.admin
 | `participation` | 参与关系和参与者授权上下文 |
 | `audit` | 审计记录、审计查询和审计输出 |
 | `simulation` | 授权模拟输入、计算和模拟结果 |
-| `runtime` | Runtime Snapshot、Worker、DDC/Gateway/Outbox 投递、运行态同步和状态查询 |
+| `runtime` | Runtime Snapshot、Worker、Tianshu/Yuheng/Outbox 投递、运行态同步和状态查询 |
 
 ### 4.3 旧根包到目标边界
 
@@ -304,9 +304,9 @@ top.egon.cola.platform.rbac3.admin
 | `infrastructure.persistence` | 按 PO/Repository 所属领域迁入 `<domain>.domain.po`、`<domain>.repository.jpa` |
 | `<domain>.application` | 业务编排迁入 `<domain>.service`，输入/输出类型分别迁入 DTO/VO |
 | `<domain>.infrastructure` | Repository 实现迁入 `<domain>.repository.<technology>` |
-| `integration.ddc` | 装配类迁入 `config.ddc`，领域运行态访问迁入 `runtime.repository.ddc` |
+| `integration.tianshu` | 装配类迁入 `config.tianshu`，领域运行态访问迁入 `runtime.repository.tianshu` |
 | `integration.flyway` | `config.flyway` |
-| `integration.gateway` | 运行态 HTTP 客户端归入 `runtime.repository.http`，纯装配归入 `config.runtime` |
+| `integration.yuheng` | 运行态 HTTP 客户端归入 `runtime.repository.http`，纯装配归入 `config.runtime` |
 | `integration.outbox` | `runtime.repository.outbox` 或 `runtime.service` |
 | `integration.runtime` | 按职责拆入相关领域 Repository/Service；运行态聚合归入 `runtime` |
 | `security` | 安全装配归入 `config.security`；认证业务归入 `auth`，会话业务归入 `session` |
@@ -319,7 +319,7 @@ top.egon.cola.platform.rbac3.admin
 
 ### 5.1 强制清零范围
 
-实施完成后，`rbac3-admin/src/main/java` 中每个生产类必须满足：
+实施完成后，`tianquan-jianshen-admin/src/main/java` 中每个生产类必须满足：
 
 ```text
 getDeclaredClasses().length == 0
@@ -355,7 +355,7 @@ record / class / enum / interface
 | `domain/exception` | 本领域异常 | 明确业务语义 + `Exception` |
 | `domain` | 有行为的 Aggregate、Value Object、Policy、Key、Revision | 使用真实领域名称，不强加数据载体后缀 |
 | `repository` | Repository/Store/Port 契约 | 优先使用 `Repository` 后缀；保留具备明确端口含义的既有命名 |
-| `repository.<technology>` | JPA/JDBC/Redis/HTTP/DDC/Outbox 实现 | 技术前缀 + 领域语义 + `Repository`/`Client`/`Publisher` |
+| `repository.<technology>` | JPA/JDBC/Redis/HTTP/Tianshu/Outbox 实现 | 技术前缀 + 领域语义 + `Repository`/`Client`/`Publisher` |
 | `service` | Service、Facade、业务编排 | 保留真实职责后缀，不承载 DTO/VO/PO 定义 |
 
 禁止继续使用 `CreateRequest`、`Result`、`Page` 这类只能依靠宿主类区分的模糊顶层名。类型名必须带上业务语义，例如 `RoleAssignmentCreateDTO`、`AuthorizationMutationPageVO`。
@@ -405,7 +405,7 @@ config
 ### 6.2 禁止依赖
 
 - `domain` 不得依赖 `controller / service / repository`；
-- Controller 不得直接注入或调用 `Jpa*Repository`、`Jdbc*Repository`、Redis/HTTP/DDC 实现；
+- Controller 不得直接注入或调用 `Jpa*Repository`、`Jdbc*Repository`、Redis/HTTP/Tianshu 实现；
 - Service 不得依赖 Controller 类型或具体 Repository 实现；
 - Repository 实现不得返回 `Controller.Type` 或 `Service.Type`；
 - DTO/VO/PO 不得通过功能类限定名访问；
@@ -426,7 +426,7 @@ HTTP / CLI / Message / Scheduled 入站
   -> controller 输出
 ```
 
-Message、Scheduled、Filter 和 CLI 都被视为入站适配器，按所属领域放在 `controller.message`、`controller.scheduled`、`controller.filter`、`controller.cli`。JPA、JDBC、Redis、HTTP、DDC 和 Outbox 是出站适配器，按所属领域放在 `repository.<technology>`。
+Message、Scheduled、Filter 和 CLI 都被视为入站适配器，按所属领域放在 `controller.message`、`controller.scheduled`、`controller.filter`、`controller.cli`。JPA、JDBC、Redis、HTTP、Tianshu 和 Outbox 是出站适配器，按所属领域放在 `repository.<technology>`。
 
 ---
 
@@ -500,7 +500,7 @@ public class SessionPO {
 
 ---
 
-## 9. HTTP、Gateway 与 Java API 兼容
+## 9. HTTP、Yuheng 与 Java API 兼容
 
 ### 9.1 HTTP 契约冻结
 
@@ -511,25 +511,25 @@ public class SessionPO {
 - Request/Response JSON 字段名、嵌套结构和空值行为；
 - Jakarta Validation 注解和错误行为；
 - Jackson 注解、日期/枚举序列化和 property order；
-- Spring Security、权限表达式和 Gateway Operation 元数据；
+- Spring Security、权限表达式和 Yuheng Operation 元数据；
 - 分页、排序、过滤和默认值语义。
 
 DTO/VO 的 Java 简单类名和 FQCN 允许改变，但其对外 JSON 契约不得改变。
 
 ### 9.2 Admin 模块外 Java 调用影响
 
-基线源码扫描未发现其他 RBAC3 生产模块直接 import `rbac3.admin` 的 Java 类型，现有直接编译影响主要集中在 Admin 模块自身和测试。implementation plan 仍需在当时 HEAD 上重新执行全仓 import/FQCN 扫描，防止并发新增消费者。
+基线源码扫描未发现其他 Tianquan-Jianshen 生产模块直接 import `tianquan-jianshen.admin` 的 Java 类型，现有直接编译影响主要集中在 Admin 模块自身和测试。implementation plan 仍需在当时 HEAD 上重新执行全仓 import/FQCN 扫描，防止并发新增消费者。
 
 本次不创建旧 FQCN 的永久兼容代理。若扫描发现真实外部 Java 消费者，应将该消费者的同步迁移列入对应波次；如果消费者无法同步修改，则必须回到用户审批，不得擅自扩大兼容层。
 
-### 9.3 Gateway Schema 的受控预期差异
+### 9.3 Yuheng Schema 的受控预期差异
 
 `GatewayJavaSchemaMapper.definitionKey` 使用 Java 简单类名以及 canonical FQCN 的哈希生成 schema definition key。DTO/VO 搬包或改名后：
 
 - `$ref` definition key 会改变；
 - definition SHA 可能改变；
 - JSON 字段、required、type、format、enum、数组和嵌套语义必须保持等价；
-- Gateway Operation 的名称、Route 和外部可见性必须保持不变。
+- Yuheng Operation 的名称、Route 和外部可见性必须保持不变。
 
 因此不能用 schema 文本逐字节相等作为唯一验收。需同时执行：
 
@@ -569,7 +569,7 @@ DTO/VO 的 Java 简单类名和 FQCN 允许改变，但其对外 JSON 契约不�
 6. Service 不依赖 Controller 或 Repository 实现；
 7. 不再出现 `Controller.NestedType`、`Service.NestedType`、`Facade.NestedType` 等功能类限定类型引用；
 8. `Rbac3AdminApplication` 仍位于根包并能覆盖所有新包的组件扫描；
-9. 所有 Controller 都能被 Gateway Document Catalog 发现；
+9. 所有 Controller 都能被 Yuheng Document Catalog 发现；
 10. package tree 中没有只有占位文件而无真实职责的空包。
 
 结构测试首先随第一波建立为限定范围的迁移护栏，随每个波次扩大覆盖；最终波次启用全模块“嵌套类型为零”和“旧根包为零”的强制断言。不能在迁移过程中用永久忽略列表掩盖未完成项。
@@ -586,7 +586,7 @@ DTO/VO 的 Java 简单类名和 FQCN 允许改变，但其对外 JSON 契约不�
 4. `resource / role`，迁移 Application、Resource、Permission、Manifest、Role 和 Closure；
 5. `assignment / activation / constraint / management`；
 6. `authorization / participation / audit / simulation`，拆分 `AuditSimulationController`；
-7. `runtime` 吸收原 `snapshot / worker / integration.ddc|gateway|outbox|runtime`，完成消息和定时入口归位；
+7. `runtime` 吸收原 `snapshot / worker / integration.tianshu|yuheng|outbox|runtime`，完成消息和定时入口归位；
 8. 删除全部旧技术根包，更新全量测试和文档，启用全局结构守卫并完成契约对比。
 
 每个波次必须满足：
@@ -629,7 +629,7 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 - 全仓旧 FQCN/import 扫描无遗漏；
 - 44 个持久化映射基线逐项核对，Entity/Table/Column/JPQL 语义未丢失；
 - HTTP Route、Method、Status、JSON、Validation、权限契约测试通过；
-- Gateway Operation 集合不变，归一化 Java Schema 语义对比通过；
+- Yuheng Operation 集合不变，归一化 Java Schema 语义对比通过；
 - Redis 和 Outbox 相关测试通过；
 - 中英双语 JavaDoc 和实际 package 的 `package-info.java` 覆盖检查通过；
 - `git diff --check` 通过，工作区中不包含无关文件。
@@ -643,8 +643,8 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 3. 不存在 `功能类.实体类` 形式的生产引用；
 4. Controller、Domain、Repository、Service 依赖规则全部通过；
 5. 四个指定跨领域宿主按第 7 节拆分；
-6. HTTP、数据库、Redis、Outbox、权限和 Gateway Operation 契约保持兼容；
-7. Gateway Schema 仅存在已解释的 definition key/FQCN 差异，归一化语义无变化；
+6. HTTP、数据库、Redis、Outbox、权限和 Yuheng Operation 契约保持兼容；
+7. Yuheng Schema 仅存在已解释的 definition key/FQCN 差异，归一化语义无变化；
 8. 所有实际 package 和迁移类型具备符合项目规范的中英双语 JavaDoc；
 9. 八个提交均可独立编译，不存在中间破损提交；
 10. 模块编译、测试、结构守卫和契约验证全部通过。
@@ -659,7 +659,7 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 | JPA 简单类名变化破坏 JPQL | `@Entity(name = 原简单类名)`；逐查询测试和持久化映射核对 |
 | Controller 拆分造成 Route 拼接变化 | 输出完整 Route 清单，拆分前后逐项对比 |
 | Jackson/Validation 注解在 record 拆出时丢失 | 逐 component 迁移并运行 HTTP 契约测试 |
-| Gateway Schema 快照大面积变化掩盖真实回归 | definition key 归一化后比较字段语义，单独审查预期 key 差异 |
+| Yuheng Schema 快照大面积变化掩盖真实回归 | definition key 归一化后比较字段语义，单独审查预期 key 差异 |
 | 跨领域巨型 Store 拆分改变事务或查询 | 按原接口和方法群机械迁移，保留查询、锁和事务注解 |
 | 为解决包可见性而扩大 public API | 私有辅助类型优先变为同包 package-private 顶层类型 |
 | `shared` 演变为垃圾包 | 进入 `shared` 前必须记录至少两个真实跨领域消费者和无合理领域归属的依据 |
@@ -675,7 +675,7 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 本次保留并利用现有 Facade 和 Ports/Adapters 结构：
 
 - Facade 继续承担跨多个内部服务的业务编排；
-- Repository Contract 与 JPA/JDBC/Redis/HTTP/DDC/Outbox Adapter 分离；
+- Repository Contract 与 JPA/JDBC/Redis/HTTP/Tianshu/Outbox Adapter 分离；
 - `config` 作为组合根完成实现装配。
 
 未新增 Strategy、Factory、Template Method、Command Bus 或 Domain Event 模式。当前问题是类型嵌套、包归属和少数宿主职责过宽，领域垂直分包、顶层类型独立化和按既有接口拆适配器已经足够；新增模式会增加类型数量、迁移面和验证成本。现有确有变化点的 `IdentityAuthenticatorStrategy` 保留，不因本次改造重命名或重构。
@@ -692,7 +692,7 @@ mvn -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jiansh
 4. 四个跨领域宿主的逐方法拆分表；
 5. 八个提交的精确文件范围、依赖顺序和提交消息；
 6. 每个提交对应的测试、编译、结构扫描和契约验证命令；
-7. Gateway Schema definition key 的预期变化清单和语义归一化对比方法；
+7. Yuheng Schema definition key 的预期变化清单和语义归一化对比方法；
 8. 风险点、停止条件和回滚边界。
 
 在书面规格再次获批之前，不进入生产代码迁移。

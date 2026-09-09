@@ -1,21 +1,21 @@
-# Gateway Engine 与 MCP Core 功能域分包实施计划
+# Yuheng Engine 与 MCP Core 功能域分包实施计划
 
 | Field              | Value                                                                                                |
 |--------------------|------------------------------------------------------------------------------------------------------|
-| Document           | `2026-08-19-14-28-gateway-engine-mcp-package-refactor.md`                                            |
+| Document           | `2026-08-19-14-28-yuheng-biz-yuheng-mcp-package-refactor.md`                                            |
 | Template Version   | `2`                                                                                                  |
 | Status             | `Review`                                                                                             |
 | Created            | `2026-08-19 14:28 CST`                                                                               |
 | Updated            | `2026-08-19 14:28 CST`                                                                               |
-| Owner              | `Egon-COLA platform owner / User`                                                                    |
+| Owner              | `Egon-COLA xingyuan owner / User`                                                                    |
 | Repository         | `/Users/mario/SelfProject/Egon-COLA`                                                                 |
 | Scope              | `yuheng-biz-gateway`、`yuheng-mcp-core` 及仓库内直接 FQCN 消费者            |
-| Source Requirement | 用户确认：按功能/service domain 和 common/* 深度梳理 Gateway Engine 与 MCP Core，分离实体、业务类和适配器，改善可读性                 |
+| Source Requirement | 用户确认：按功能/service domain 和 common/* 深度梳理 Yuheng Engine 与 MCP Core，分离实体、业务类和适配器，改善可读性                 |
 | Baseline Revision  | `main@26ba1413`；工作区保留用户已暂存的 GatewayContractVersions.java 删除；本 Plan/Spec 不处理该变更                       |
-| Implements Spec    | [Gateway Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md) |
+| Implements Spec    | [Yuheng Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md) |
 | Spec Status        | `Accepted`                                                                                           |
 | Spec Revision      | `Updated 2026-08-19 14:28 CST`；用户于 2026-08-19 回复“确认”；DEC-005 已关闭并选择直接迁移                              |
-| Effective Specs    | [Gateway Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md) |
+| Effective Specs    | [Yuheng Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md) |
 | Depends On Plans   | `None`                                                                                               |
 | Supersedes         | `None`                                                                                               |
 | Superseded By      | `None`                                                                                               |
@@ -28,14 +28,14 @@ common/capability/service/domain/adapter 迁移及全部直接消费者更新；
 capability、HTTP、RPC、Operation、Rule、Engine MCP、WebSocket 迁移及全部直接消费者更新。
 
 两个 Step 都是源码级 package/import/package-info 重构，不新增 Maven module、业务行为、协议字段、配置 key、数据库变更或运行时调用层。每个
-Step 先建立包边界 RED gate，再完成该模块的原子包迁移并运行模块回归；最终通过全仓库 FQCN 扫描、根包/common 依赖扫描、Gateway
-reactor 测试和 `git diff --check` 证明完成。真实 DDC、Redis、Provider、MCP 拓扑仍由用户后续启动服务验证，本 Plan 不自动启动服务。
+Step 先建立包边界 RED gate，再完成该模块的原子包迁移并运行模块回归；最终通过全仓库 FQCN 扫描、根包/common 依赖扫描、Yuheng
+reactor 测试和 `git diff --check` 证明完成。真实 Tianshu、Redis、Provider、MCP 拓扑仍由用户后续启动服务验证，本 Plan 不自动启动服务。
 
 ## 2. Target Spec and Effective Design
 
 ### 2.1 Primary target
 
-- Path: [Gateway Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md)
+- Path: [Yuheng Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md)
 - Status: `Accepted`
 - Revision: `Updated 2026-08-19 14:28 CST`; baseline `main@26ba1413`。
 - Approval evidence: 用户在 Spec Review 后明确回复“确认”；该回复批准按 Spec 进入 Plan 阶段，不代表本 Plan 已获执行批准。
@@ -44,12 +44,12 @@ reactor 测试和 `git diff --check` 证明完成。真实 DDC、Redis、Provide
 
 | Role    | Spec/link                                                                                            | Status/revision                          | Effective sections | Why included                             |
 |---------|------------------------------------------------------------------------------------------------------|------------------------------------------|--------------------|------------------------------------------|
-| Primary | [Gateway Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md) | `Accepted`; Updated 2026-08-19 14:28 CST | §1–§20 全部          | 唯一规定目标包树、角色语义、保持不变的运行时边界、测试和兼容策略的有效 Spec |
+| Primary | [Yuheng Engine 与 MCP Core 功能域分包设计](../spec/2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md) | `Accepted`; Updated 2026-08-19 14:28 CST | §1–§20 全部          | 唯一规定目标包树、角色语义、保持不变的运行时边界、测试和兼容策略的有效 Spec |
 
 ### 2.3 Superseded or excluded content
 
 - Spec 的 Related Specs 只提供现有 HTTP/RPC/MCP 语义背景；它们不是本 Plan 的额外变更来源，不覆盖或重定义本次包树。
-- `gateway-contract`、`gateway-core`、POM、数据库 migration、Admin Web、协议 payload、配置 key、Bean 名称、方法签名和运行时状态均保持不变。
+- `yuheng-contract`、`yuheng-core`、POM、数据库 migration、Admin Web、协议 payload、配置 key、Bean 名称、方法签名和运行时状态均保持不变。
 - 不把 `GatewayEngineConfiguration` 拆成多个配置类，不拆大方法，不引入 DDD/COLA、Facade、Factory、Repository Port 或旧包
   wrapper。
 
@@ -74,8 +74,8 @@ reactor 测试和 `git diff --check` 证明完成。真实 DDC、Redis、Provide
    Spec 目标树一次性迁移，避免 HTTP/RPC/Rule 之间出现半迁移 FQCN。
 3. 每个模块完成后先跑自身 Maven reactor test，再进行全仓库 FQCN 扫描；只允许保留根应用入口、测试中用于禁止依赖的前缀字符串以及不属于
    Java import 的历史文档内容。
-4. 最后运行 Gateway module focused test 和静态 diff gate。该 Plan 不启动服务，因此不把 Maven/module 证据表述成真实
-   Spring、DDC、Redis、Provider 或远程 MCP 拓扑证据。
+4. 最后运行 Yuheng module focused test 和静态 diff gate。该 Plan 不启动服务，因此不把 Maven/module 证据表述成真实
+   Spring、Tianshu、Redis、Provider 或远程 MCP 拓扑证据。
 
 ### 4.2 Test-first strategy
 
@@ -93,14 +93,14 @@ reactor 测试和 `git diff --check` 证明完成。真实 DDC、Redis、Provide
 
 | Step              | Depends on | May run in parallel with | Must not overlap with                                                      | Reason                                                            |
 |-------------------|------------|--------------------------|----------------------------------------------------------------------------|-------------------------------------------------------------------|
-| Step 1 — MCP Core | None       | None                     | `gateway-engine-mcp-core` source/test and its direct consumer files        | Engine imports MCP Core FQCN；先完成共享运行时包，避免 Engine 同时处理两套旧包名        |
-| Step 2 — Engine   | Step 1     | None                     | Engine source/test、Gateway test suite direct consumers、RPC starter JavaDoc | Engine 同时引用 MCP Core、core/contract 和全部 common/feature；必须以一个编译闭环完成 |
+| Step 1 — MCP Core | None       | None                     | `yuheng-biz-yuheng-mcp-core` source/test and its direct consumer files        | Engine imports MCP Core FQCN；先完成共享运行时包，避免 Engine 同时处理两套旧包名        |
+| Step 2 — Engine   | Step 1     | None                     | Engine source/test、Yuheng test suite direct consumers、RPC starter JavaDoc | Engine 同时引用 MCP Core、core/contract 和全部 common/feature；必须以一个编译闭环完成 |
 
 ### 4.4 Commit boundaries
 
 每个 Step 只产生一个 path-limited semantic commit。Step 1 的提交范围是 MCP Core 生产/测试树和仓库中对 MCP Core FQCN
 的直接消费者；Step 2 的提交范围是 Engine 生产/测试树和对 Engine FQCN 的直接消费者。不得使用 `git add .`，不得触碰用户已暂存的
-`gateway-contract/.../GatewayContractVersions.java` 删除。
+`yuheng-contract/.../GatewayContractVersions.java` 删除。
 
 两个 Step 不按 HTTP/RPC 子域拆成多个 commit，是因为当前 Engine 的 `GatewayEngineConfiguration`
 、Runtime、Rule、Operation、HTTP、RPC 和 common capability
@@ -127,16 +127,16 @@ adapter boundary；不新增 Strategy/Factory/Facade/DDD service，因为现有 
 | MCP common protocol/transport/security/telemetry | REQ-001–003     | `McpCorePackageBoundaryTest`                      | contract/core dependency unchanged        | `mcp.common.*` FQCN                                                                                                 | all MCP capability classes, Engine MCP integration, Admin MCP code | Step 1      |
 | MCP capability role packages                     | REQ-001–003     | existing 10 MCP Core tests                        | MCP common FQCN available                 | `app`, `completion`, `prompt`, `remote`, `resource`, `rule`, `server`, `subscription`, `task`, `tool` role packages | MCP Core tests and Admin/test-suite consumers                      | Step 1      |
 | Engine bootstrap/root                            | REQ-004         | `GatewayEnginePackageBoundaryTest` root assertion | unchanged POM mainClass                   | `bootstrap.config`, `bootstrap.lifecycle`, `common.config`                                                          | Engine component scan and Runtime tests                            | Step 2      |
-| Engine common capabilities                       | REQ-001–003     | boundary common reverse-import assertion          | MCP Core Step 1 and gateway core/contract | `engine.common.provider/security/traffic/transport/observability`                                                   | HTTP/RPC/Rule/Operation/MCP                                        | Step 2      |
-| Engine feature domains                           | REQ-001/002/004 | existing Engine tests                             | all Engine common FQCN available          | `engine.http`, `engine.rpc`, `engine.operation`, `engine.rule`, `engine.mcp` role packages                          | Engine config, Gateway test suite and runtime entry                | Step 2      |
-| Repository-wide direct consumer rewrite          | REQ-004/006     | old FQCN scan                                     | both module package moves complete        | no stale Java import/Javadoc consumer                                                                               | Admin, Gateway integration tests, RPC starter docs                 | Step 2      |
+| Engine common capabilities                       | REQ-001–003     | boundary common reverse-import assertion          | MCP Core Step 1 and yuheng core/contract | `engine.common.provider/security/traffic/transport/observability`                                                   | HTTP/RPC/Rule/Operation/MCP                                        | Step 2      |
+| Engine feature domains                           | REQ-001/002/004 | existing Engine tests                             | all Engine common FQCN available          | `engine.http`, `engine.rpc`, `engine.operation`, `engine.rule`, `engine.mcp` role packages                          | Engine config, Yuheng test suite and runtime entry                | Step 2      |
+| Repository-wide direct consumer rewrite          | REQ-004/006     | old FQCN scan                                     | both module package moves complete        | no stale Java import/Javadoc consumer                                                                               | Admin, Yuheng integration tests, RPC starter docs                 | Step 2      |
 
 ## 5. Change File Tree
 
 ### 5.1 Target tree
 
 ```text
-top.egon.cola.component.gateway.engine
+top.egon.cola.component.yuheng.engine
 ├── GatewayEngineApplication.java                         KEEP: Spring Boot/mainClass anchor
 ├── bootstrap
 │   ├── config/GatewayEngineConfiguration.java             MOVE
@@ -155,7 +155,7 @@ top.egon.cola.component.gateway.engine
 ├── rule/{domain,service,repository,adapter/json}
 └── mcp/{domain,service,adapter/{remote,security}}
 
-top.egon.cola.component.gateway.mcp
+top.egon.cola.component.yuheng.mcp
 ├── common/{protocol,transport,security,telemetry}
 ├── app/{domain,service}
 ├── completion/service
@@ -176,10 +176,10 @@ basename to the stated target package, and every unlisted package is outside thi
 
 | Alias         | Literal repository-relative root                                                                                                         | Baseline evidence         |
 |---------------|------------------------------------------------------------------------------------------------------------------------------------------|---------------------------|
-| `MCP_MAIN`    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/main/java/top/egon/cola/component/gateway/mcp/`  | 89 production Java files  |
-| `MCP_TEST`    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/`  | 10 test Java files        |
-| `ENGINE_MAIN` | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/` | 195 production Java files |
-| `ENGINE_TEST` | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/` | 98 test Java files        |
+| `MCP_MAIN`    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/main/java/top/egon/cola/component/yuheng/mcp/`  | 89 production Java files  |
+| `MCP_TEST`    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/`  | 10 test Java files        |
+| `ENGINE_MAIN` | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/` | 195 production Java files |
+| `ENGINE_TEST` | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/` | 98 test Java files        |
 
 #### MCP Core production manifest
 
@@ -282,15 +282,15 @@ All existing Engine tests move with their production responsibility. The exact n
 The following exact files must be part of the corresponding module commit when their imported FQCN moves:
 
 - MCP Core consumers:
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/bootstrap/GatewayAdminConfiguration.java`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/bootstrap/GatewayAdminConfiguration.java`,
   `.../admin/mcp/controller/McpApprovalController.java`, `.../admin/mcp/service/McpControlPlaneService.java`,
   `.../admin/mcp/service/McpValidationService.java`, `.../admin/rule/service/GatewayRuleCompiler.java`,
-  `.../admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpApprovalControllerTest.java`,
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`,
+  `.../admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpApprovalControllerTest.java`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpCompleteReleaseIT.java`,
   `McpHaRecoveryIT.java`, and `McpSecurityIT.java`.
 - Engine consumers:
   `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/annotation/LoadBalance.java`
-  for the `LoadBalancerType` JavaDoc FQCN; Gateway test-suite `deployment/GatewayComposeConfigurationTest.java`,
+  for the `LoadBalancerType` JavaDoc FQCN; Yuheng test-suite `deployment/GatewayComposeConfigurationTest.java`,
   `live/GatewayRuleWireCompatibilityTest.java`, `mcp/McpHaRecoveryIT.java`, and `mcp/McpSecurityIT.java`; plus the
   existing Engine module files identified by the exact command in §8.3.
 - Intentional non-consumers: `GatewayContractBoundaryTest.java`, `GatewayCoreBoundaryTest.java`, and
@@ -301,14 +301,14 @@ The following exact files must be part of the corresponding module commit when t
 
 | Operation       | Path/root                                                                                                                                                                     | Current evidence/symbol                                                  | Final symbols/state                                                       | Responsibility                    | Step   | Requirements        | Validation owner                 |
 |-----------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------|---------------------------------------------------------------------------|-----------------------------------|--------|---------------------|----------------------------------|
-| CREATE          | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/McpCorePackageBoundaryTest.java`        | No current file                                                          | Static root/common/capability boundary assertions                         | MCP package architecture gate     | Step 1 | REQ-003/006         | MCP Core test                    |
+| CREATE          | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/McpCorePackageBoundaryTest.java`        | No current file                                                          | Static root/common/capability boundary assertions                         | MCP package architecture gate     | Step 1 | REQ-003/006         | MCP Core test                    |
 | RENAME + MODIFY | `MCP_MAIN` manifest in §5.2                                                                                                                                                   | Current 15 top-level package groups and 89 production classes            | Target common/capability role packages; same symbols/fields/methods       | MCP Core runtime ownership        | Step 1 | REQ-001/002/003/005 | MCP Core compile/test            |
 | RENAME + MODIFY | `MCP_TEST` manifest in §5.2                                                                                                                                                   | Current 10 tests                                                         | Target production-mirror test packages; same assertions/fixtures          | MCP Core regression coverage      | Step 1 | REQ-004/006         | MCP Core test                    |
-| MODIFY          | Direct MCP consumer manifest in §5.2                                                                                                                                          | Existing Admin, Engine integration and Gateway test-suite imports        | New MCP Core FQCNs; no logic/endpoint change                              | Cross-module source compatibility | Step 1 | REQ-004/005         | Gateway reactor compile          |
-| CREATE          | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEnginePackageBoundaryTest.java` | No current file                                                          | Static Engine root/common/feature boundary assertions                     | Engine package architecture gate  | Step 2 | REQ-003/006         | Engine test                      |
+| MODIFY          | Direct MCP consumer manifest in §5.2                                                                                                                                          | Existing Admin, Engine integration and Yuheng test-suite imports        | New MCP Core FQCNs; no logic/endpoint change                              | Cross-module source compatibility | Step 1 | REQ-004/005         | Yuheng reactor compile          |
+| CREATE          | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/GatewayEnginePackageBoundaryTest.java` | No current file                                                          | Static Engine root/common/feature boundary assertions                     | Engine package architecture gate  | Step 2 | REQ-003/006         | Engine test                      |
 | RENAME + MODIFY | `ENGINE_MAIN` manifest in §5.2                                                                                                                                                | Current 195 production classes and root Configuration/Runtime/Properties | Target bootstrap/common/feature role packages; Application FQCN unchanged | Engine runtime ownership          | Step 2 | REQ-001/002/004/005 | Engine compile/test              |
 | RENAME + MODIFY | `ENGINE_TEST` manifest in §5.2                                                                                                                                                | Current 98 tests                                                         | Target production-mirror test packages; same assertions/fixtures          | Engine regression coverage        | Step 2 | REQ-004/006         | Engine test                      |
-| MODIFY          | Direct Engine consumer manifest in §5.2                                                                                                                                       | Existing RPC JavaDoc and Gateway integration tests                       | New Engine FQCNs; unchanged root Application string and behavior          | Cross-module source compatibility | Step 2 | REQ-004/005         | Full Gateway reactor/static scan |
+| MODIFY          | Direct Engine consumer manifest in §5.2                                                                                                                                       | Existing RPC JavaDoc and Yuheng integration tests                       | New Engine FQCNs; unchanged root Application string and behavior          | Cross-module source compatibility | Step 2 | REQ-004/005         | Full Yuheng reactor/static scan |
 
 No Maven POM, contract class, database migration, frontend source, generated file, runtime configuration key, or
 deployment descriptor is an affected file in this Plan.
@@ -320,10 +320,10 @@ deployment descriptor is an affected file in this Plan.
 - Read and obey repository `AGENTS.md` instructions; implementation must use path-limited edits and commits.
 - Work from `/Users/mario/SelfProject/Egon-COLA`, branch `main`, baseline `26ba1413`.
 - Preserve the pre-existing staged deletion at
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/version/GatewayContractVersions.java`.
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/version/GatewayContractVersions.java`.
 - Do not stage or modify unrelated files; use `git diff --name-only`, `git diff --check`, and `git commit --only` with
   the Step-owned paths.
-- Use the existing Maven Wrapper at repository root. Do not start the Engine, containers, databases, DDC, Redis, Kafka,
+- Use the existing Maven Wrapper at repository root. Do not start the Engine, containers, databases, Tianshu, Redis, Kafka,
   Provider, or remote MCP services.
 
 ### 6.2 Build, test, and environment prerequisites
@@ -333,13 +333,13 @@ deployment descriptor is an affected file in this Plan.
 | Maven wrapper           | `./mvnw -B -ntp` from repository root                                                                            | Java 21/Maven Wrapper available as required by root README                  | static/module only                                 |
 | MCP module              | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core -am test` | Step 1 package/import migration complete                                    | MCP Core and dependencies; no live services        |
 | Engine module           | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am test`   | Step 1 and Step 2 migration complete                                        | Engine and dependencies; Spring context tests only |
-| Gateway focused reactor | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test -am test`     | both Steps committed or working tree intentionally contains only Plan scope | Gateway test reactor; no gateway-live profile      |
+| Yuheng focused reactor | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test -am test`     | both Steps committed or working tree intentionally contains only Plan scope | Yuheng test reactor; no yuheng-live profile      |
 | Static FQCN scan        | `rg -n -F` commands in §8.3                                                                                      | no stale old Java imports/package declarations                              | source/static only                                 |
 | Diff hygiene            | `git diff --check`                                                                                               | no whitespace errors; unrelated staged deletion unchanged                   | source/diff only                                   |
 
 ### 6.3 Immutable constraints and approved decisions
 
-- `GatewayEngineApplication` remains `top.egon.cola.component.gateway.engine.GatewayEngineApplication`; the POM
+- `GatewayEngineApplication` remains `top.egon.cola.component.yuheng.engine.GatewayEngineApplication`; the POM
   `mainClass` remains unchanged.
 - `GatewayEngineConfiguration` moves to `engine.bootstrap.config`; `GatewayEngineRuntime` moves to
   `engine.bootstrap.lifecycle`; neither class is decomposed.
@@ -357,7 +357,7 @@ deployment descriptor is an affected file in this Plan.
 | ID              | Small implementation inference                                                                                                                                                                                       | Repository evidence                                                                                                    | Why semantics are unchanged                                                                        | Impact if wrong                                                 |
 |-----------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------|-----------------------------------------------------------------|
 | `PLAN-CLAR-001` | Where two old package-info files would collide after `balance + discovery` merge, retain their documentation as role/root package-info files rather than creating duplicate `package-info` declarations for one FQCN | `ENGINE_MAIN/balance/package-info.java`, `ENGINE_MAIN/discovery/package-info.java`; target has one provider capability | Documentation placement changes only; class contracts and runtime packages follow the target table | only documentation location needs correction                    |
-| `PLAN-CLAR-002` | Update all repository-visible direct consumers found by `rg`, including Admin production code, Gateway test-suite files and RPC starter JavaDoc, not only the Spec's first consumer example                          | §5.2 direct consumer scan found exact paths in Admin, Gateway test suite and `LoadBalance.java`                        | FQCN update is required for compilation/documentation and changes no behavior                      | a stale import/Javadoc would fail the final scan or compilation |
+| `PLAN-CLAR-002` | Update all repository-visible direct consumers found by `rg`, including Admin production code, Yuheng test-suite files and RPC starter JavaDoc, not only the Spec's first consumer example                          | §5.2 direct consumer scan found exact paths in Admin, Yuheng test suite and `LoadBalance.java`                        | FQCN update is required for compilation/documentation and changes no behavior                      | a stale import/Javadoc would fail the final scan or compilation |
 | `PLAN-CLAR-003` | Keep protocol `HttpMcpRequest` and transport `McpHttpRequest` as distinct target types                                                                                                                               | both records exist under different current packages and have different fields                                          | no merge, mapper or field change is introduced                                                     | an accidental merge would be a Spec violation                   |
 | `PLAN-CLAR-004` | Place `HttpRpcDynamicMessageBridge` and `HttpRpcUpstreamAdapter` under `engine.operation.adapter`, while keeping RPC channel/marshaller/descriptor classes under `engine.rpc.adapter`                                | Spec §7.3.2 names HTTP-to-RPC bridge as Operation adapter; current classes are in `engine.rpc`                         | package ownership makes the existing composition visible without changing invocation signatures    | only target path/imports would need review                      |
 
@@ -368,7 +368,7 @@ deployment descriptor is an affected file in this Plan.
 - Requirements: `REQ-001`, `REQ-002`, `REQ-003`, `REQ-004`, `REQ-005`, `REQ-006`
 - Dependencies: `None`
 - Baseline state: MCP Core has 89 production classes in flat capability/technical packages and 10 tests; Admin, Engine,
-  Gateway test-suite and RPC starter contain direct MCP FQCN consumers.
+  Yuheng test-suite and RPC starter contain direct MCP FQCN consumers.
 - Observable outcome: MCP Core exposes the target `mcp.common.*` and capability role packages, all direct consumers
   compile against the new FQCNs, and original MCP Core tests pass unchanged in behavior.
 - End state: `mcp` root has no runtime class beyond package-info; `mcp.common` has protocol/transport/security/telemetry
@@ -379,19 +379,19 @@ deployment descriptor is an affected file in this Plan.
 - Ordered files:
 
 #### File 1 —
-`CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/McpCorePackageBoundaryTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/McpCorePackageBoundaryTest.java`
 
 - Purpose: Define the MCP root/common/capability package contract before moving production classes.
 - Symbols: `McpCorePackageBoundaryTest`, `rootContainsNoRuntimeTypesAfterMigration`,
   `commonPackagesDoNotDependOnCapabilities`, `capabilitiesExposeRolePackages`.
-- Repository evidence: `mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/*` uses JUnit 5; `gateway-contract`
-  and `gateway-core` already use source-tree boundary assertions without a new architecture library.
+- Repository evidence: `mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/*` uses JUnit 5; `yuheng-contract`
+  and `yuheng-core` already use source-tree boundary assertions without a new architecture library.
 - Dependencies and consumers: Reads `mcp-core/src/main/java`; the Step 1 production move must make its path assertions
   GREEN.
 - Why now: This is the static RED contract for REQ-003/REQ-006 and does not depend on a live MCP server.
 - Contract/signature changes: No production signature; assert that root has only `package-info.java`, required
   common/role directories exist, and files below `mcp.common` contain no import prefix for capability packages.
-- Input/output and state mapping: `Path.of("src/main/java/top/egon/cola/component/gateway/mcp")` -> directory names and
+- Input/output and state mapping: `Path.of("src/main/java/top/egon/cola/component/yuheng/mcp")` -> directory names and
   Java text -> JUnit assertions; a missing target directory or forbidden import produces an assertion failure with the
   exact path.
 - Error and edge behavior: Skip no directory silently; if a target subtree is absent, fail with the expected target
@@ -399,12 +399,12 @@ deployment descriptor is an affected file in this Plan.
 - Implementation pseudocode:
 
 ```java
-Path root = Path.of("src/main/java/top/egon/cola/component/gateway/mcp");
+Path root = Path.of("src/main/java/top/egon/cola/component/yuheng/mcp");
 assertOnlyPackageInfoAtRoot(root);
 for (String required : List.of("common/protocol", "common/transport", "common/security", "common/telemetry"))
     assertTrue(Files.isDirectory(root.resolve(required)), () -> "missing MCP target package " + required);
 scanJavaFiles(root.resolve("common"));
-assertNoImportPrefix(scanResults, "import top.egon.cola.component.gateway.mcp.app.", "tool.", "resource.", "task.");
+assertNoImportPrefix(scanResults, "import top.egon.cola.component.yuheng.mcp.app.", "tool.", "resource.", "task.");
 ```
 
 - Verification contribution: `./mvnw -B -ntp -pl ...mcp-core -am -Dtest=McpCorePackageBoundaryTest test` must produce
@@ -413,14 +413,14 @@ assertNoImportPrefix(scanResults, "import top.egon.cola.component.gateway.mcp.ap
   fixture is involved.
 
 #### File 2 —
-`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/main/java/top/egon/cola/component/gateway/mcp/`
+`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/main/java/top/egon/cola/component/yuheng/mcp/`
 
 - Purpose: Move all 89 MCP Core production files in the §5.2 MCP production manifest into the target common/capability
   role packages.
 - Symbols: Existing `Mcp*` Handler/Driver/Provider/Store/Runtime/Rule/Task/Protocol symbols; no new public type.
 - Repository evidence: Current directories `app`, `completion`, `prompt`, `protocol`, `remote`, `resource`, `rule`,
   `security`, `server`, `subscription`, `task`, `telemetry`, `tool`, `transport`; target role map is defined in §5.2.
-- Dependencies and consumers: `gateway-contract` and `gateway-core` remain unchanged; all MCP Core internal imports and
+- Dependencies and consumers: `yuheng-contract` and `yuheng-core` remain unchanged; all MCP Core internal imports and
   the direct consumer files in File 4 must use the final target FQCNs.
 - Why now: Production ownership must move after the boundary RED and before tests/consumers can become GREEN.
 - Contract/signature changes: Change only filesystem path, `package` declaration, package-info prose and imports.
@@ -438,7 +438,7 @@ assertNoImportPrefix(scanResults, "import top.egon.cola.component.gateway.mcp.ap
 for each current MCP_MAIN file in the manifest:
     derive target directory from the class responsibility table;
     move the file and rewrite exactly one package declaration;
-    replace old top.egon.cola.component.gateway.mcp FQCNs with target FQCNs;
+    replace old top.egon.cola.component.yuheng.mcp FQCNs with target FQCNs;
     preserve annotations, method bodies, nested records/enums, exception mapping and package-info bilingual responsibility text;
 reject any target path that would merge the two distinct HttpMcpRequest records.
 ```
@@ -450,7 +450,7 @@ reject any target path that would merge the two distinct HttpMcpRequest records.
   direct consumers not yet processed by File 4.
 
 #### File 3 —
-`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/`
+`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/`
 
 - Purpose: Move the 10 existing MCP Core tests to mirror the final production role packages and update only
   package/import references.
@@ -459,7 +459,7 @@ reject any target path that would merge the two distinct HttpMcpRequest records.
   `McpTaskStateMachineTest`, `McpLocalToolFlowTest`.
 - Repository evidence: Exact baseline test filenames are listed in §5.2; POM supplies JUnit 5 and Reactor Core without a
   new test framework.
-- Dependencies and consumers: Tests consume the moved MCP production classes and gateway contract/core types; their
+- Dependencies and consumers: Tests consume the moved MCP production classes and yuheng contract/core types; their
   fixtures and assertions are the behavior preservation evidence.
 - Why now: The tests must compile against final FQCNs in the same module commit and keep package-local test assumptions
   aligned.
@@ -488,28 +488,28 @@ for each test in MCP_TEST manifest:
 - Purpose: Update repository-visible direct MCP Core consumers so the reactor has one FQCN source of truth.
 - Symbols: `GatewayAdminConfiguration`, `McpApprovalController`, `McpControlPlaneService`, `McpValidationService`,
   `GatewayRuleCompiler`, `McpApprovalControllerTest`, `McpCompleteReleaseIT`, `McpHaRecoveryIT`, `McpSecurityIT`.
-- Repository evidence: `rg -l -F 'top.egon.cola.component.gateway.mcp.' --glob '*.java'` identified these files outside
+- Repository evidence: `rg -l -F 'top.egon.cola.component.yuheng.mcp.' --glob '*.java'` identified these files outside
   MCP Core; exact list is recorded in §5.2.
-- Dependencies and consumers: Admin uses app/protocol/remote/rule/security MCP types; Gateway integration tests use
+- Dependencies and consumers: Admin uses app/protocol/remote/rule/security MCP types; Yuheng integration tests use
   transport/security/rule types; no controller route or service behavior changes.
 - Why now: These are compile-time and test-time consumers of the moved MCP Core types and must be updated in the same
   module migration commit.
 - Contract/signature changes: Replace only old MCP Core FQCNs with their target package names; keep Spring annotations,
   endpoints, constructor parameters, persistence keys, request/response assertions and test topology unchanged.
-- Input/output and state mapping: Existing Admin/Gateway request or rule data -> same class simple name at target
+- Input/output and state mapping: Existing Admin/Yuheng request or rule data -> same class simple name at target
   FQCN -> same result/error; no DTO or adapter is introduced.
 - Error and edge behavior: Preserve MCP approval digest, endpoint validation, rule compiler and security gate behavior;
   if an old FQCN remains, fail compilation/static scan rather than adding a compatibility facade.
 - Implementation pseudocode:
 
 ```text
-scan the exact consumer files for old gateway.mcp imports and JavaDoc references;
+scan the exact consumer files for old yuheng.mcp imports and JavaDoc references;
 replace each import/reference according to the MCP manifest, including common.security and rule.domain/service;
 re-run the scan and assert no stale Java import remains outside intentional boundary strings;
-compile Admin and Gateway test-suite consumers through the Gateway reactor without changing their call sites.
+compile Admin and Yuheng test-suite consumers through the Yuheng reactor without changing their call sites.
 ```
 
-- Verification contribution: Gateway module compile confirms the direct consumers resolve; Admin MCP tests and Gateway
+- Verification contribution: Yuheng module compile confirms the direct consumers resolve; Admin MCP tests and Yuheng
   test-suite compile prove no source compatibility gap was missed.
 - After this file: MCP Core migration is source-complete across the repository, with no wrapper, duplicate model or
   behavior change.
@@ -520,20 +520,20 @@ compile Admin and Gateway test-suite consumers through the Gateway reactor witho
 - Expected result: MCP Core compiles; all existing 10 MCP Core tests plus `McpCorePackageBoundaryTest` pass; no expected
   stale MCP import remains in the direct consumer scan.
 - Failure returns to: File 2 for target package/import errors; File 3 for test package/assertion errors; File 4 for
-  Admin/Gateway consumer errors; Spec decision DEC-005 if an external binary consumer is found.
+  Admin/Yuheng consumer errors; Spec decision DEC-005 if an external binary consumer is found.
 - Completion criteria: Target common/capability tree exists; root/common boundary test is GREEN; all MCP Core tests
   pass; direct consumer FQCN scan is clean; `git diff --check` is clean.
 - Rollback: Revert only the Step 1 commit with `git revert COMMIT` after verifying its path list; do not touch the
   unrelated staged contract deletion; if uncommitted, restore only the Step 1 path set through the same move map.
 - Commit paths:
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/McpCorePackageBoundaryTest.java`,
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/main/java/top/egon/cola/component/gateway/mcp/`,
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/gateway/mcp/`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/McpCorePackageBoundaryTest.java`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/main/java/top/egon/cola/component/yuheng/mcp/`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core/src/test/java/top/egon/cola/component/yuheng/mcp/`,
   `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/`,
   `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/`
-- Commit: `refactor(gateway-mcp-core): partition MCP runtime packages`
+- Commit: `refactor(yuheng-mcp-core): partition MCP runtime packages`
 
-### Step 2 — Migrate Gateway Engine into bootstrap, common and feature role packages
+### Step 2 — Migrate Yuheng Engine into bootstrap, common and feature role packages
 
 - Requirements: `REQ-001`, `REQ-002`, `REQ-003`, `REQ-004`, `REQ-005`, `REQ-006`
 - Dependencies: `Step 1`
@@ -550,7 +550,7 @@ compile Admin and Gateway test-suite consumers through the Gateway reactor witho
 - Ordered files:
 
 #### File 1 —
-`CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEnginePackageBoundaryTest.java`
+`CREATE egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/GatewayEnginePackageBoundaryTest.java`
 
 - Purpose: Define the Engine root/common/feature dependency direction before moving the Engine source tree.
 - Symbols: `GatewayEnginePackageBoundaryTest`, `rootContainsOnlyApplicationAndPackageInfo`,
@@ -570,11 +570,11 @@ compile Admin and Gateway test-suite consumers through the Gateway reactor witho
 - Implementation pseudocode:
 
 ```java
-Path root = Path.of("src/main/java/top/egon/cola/component/gateway/engine");
+Path root = Path.of("src/main/java/top/egon/cola/component/yuheng/engine");
 assertOnlyNamesAtRoot(root, Set.of("GatewayEngineApplication.java", "package-info.java"));
 for (String target : List.of("bootstrap/config", "bootstrap/lifecycle", "common/provider", "http/service", "rpc/service", "rule/service", "mcp/service"))
     assertTrue(Files.isDirectory(root.resolve(target)), () -> "missing Engine target package " + target);
-assertNoImportPrefix(readJava(root.resolve("common")), "import top.egon.cola.component.gateway.engine.http.", "rpc.", "mcp.", "rule.", "operation.");
+assertNoImportPrefix(readJava(root.resolve("common")), "import top.egon.cola.component.yuheng.engine.http.", "rpc.", "mcp.", "rule.", "operation.");
 ```
 
 - Verification contribution: The targeted boundary test supplies the expected RED before production movement and GREEN
@@ -582,7 +582,7 @@ assertNoImportPrefix(readJava(root.resolve("common")), "import top.egon.cola.com
 - After this file: The Engine architecture test compiles and fails only for the known current root/tree state.
 
 #### File 2 —
-`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/`
+`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/`
 
 - Purpose: Move all Engine production files in the §5.2 manifest into bootstrap/common/feature role packages in one
   compilation-safe operation.
@@ -619,7 +619,7 @@ keep GatewayEngineApplication and its POM mainClass unchanged, then assert no ro
   edits from Files 3–4 may remain before the Step is GREEN.
 
 #### File 3 —
-`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/`
+`RENAME egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/`
 
 - Purpose: Move all 98 Engine tests and fixtures to mirror the final production ownership and update their imports to
   final target FQCNs.
@@ -660,9 +660,9 @@ for each file in ENGINE_TEST manifest:
 - Symbols: `LoadBalance` JavaDoc `LoadBalancerType`; `GatewayComposeConfigurationTest`;
   `GatewayRuleWireCompatibilityTest`; `McpHaRecoveryIT`; `McpSecurityIT`; related existing Engine package imports
   discovered by the exact scan below.
-- Repository evidence: `rg -l -F 'top.egon.cola.component.gateway.engine.' --glob '*.java'` identifies module-internal
+- Repository evidence: `rg -l -F 'top.egon.cola.component.yuheng.engine.' --glob '*.java'` identifies module-internal
   and external references; current live topology code uses the root Application string, which remains unchanged.
-- Dependencies and consumers: RPC starter has a documentation-only type reference; Gateway test-suite consumes Engine
+- Dependencies and consumers: RPC starter has a documentation-only type reference; Yuheng test-suite consumes Engine
   properties, Rule codec, Provider Directory, Engine MCP runtime/remote classes; these files do not own the moved
   runtime types.
 - Why now: A source-only package migration is incomplete until all repository-visible imports and JavaDoc references
@@ -680,11 +680,11 @@ for each file in ENGINE_TEST manifest:
 ```text
 collect exact Java consumers with rg and exclude only the two intentionally broad boundary-test prefix strings;
 apply the final target FQCN map to imports, qualified references and JavaDoc code references;
-verify GatewayEngineApplication remains top.egon.cola.component.gateway.engine.GatewayEngineApplication;
+verify GatewayEngineApplication remains top.egon.cola.component.yuheng.engine.GatewayEngineApplication;
 fail the Step if any old engine subpackage FQCN remains in Java source outside the explicit allowlist.
 ```
 
-- Verification contribution: Full Gateway reactor compilation and static scan prove the moved Engine classes remain
+- Verification contribution: Full Yuheng reactor compilation and static scan prove the moved Engine classes remain
   consumable; live topology code remains a user-controlled runtime gate.
 - After this file: Repository-wide Engine FQCN consumers are updated and no compatibility facade or new dependency has
   been introduced.
@@ -693,7 +693,7 @@ fail the Step if any old engine subpackage FQCN remains in Java source outside t
 - Verification command:
   `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am test`
 - Expected result: Engine compiles; all existing 98 Engine tests plus `GatewayEnginePackageBoundaryTest` pass; POM
-  mainClass remains `top.egon.cola.component.gateway.engine.GatewayEngineApplication`; common reverse-import and root
+  mainClass remains `top.egon.cola.component.yuheng.engine.GatewayEngineApplication`; common reverse-import and root
   package assertions are GREEN.
 - Failure returns to: File 2 for production target/import/package-info errors; File 3 for test/fixture errors; File 4
   for external consumer errors; `GatewayEngineApplication`/POM boundary if scan or configuration tests show a changed
@@ -704,12 +704,12 @@ fail the Step if any old engine subpackage FQCN remains in Java source outside t
 - Rollback: Revert only the Step 2 commit with `git revert COMMIT` after checking the exact Step 2 path list; preserve
   Step 1 unless the user explicitly requests a combined rollback; never reset or checkout the worktree globally.
 - Commit paths:
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/GatewayEnginePackageBoundaryTest.java`,
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/`,
-  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/GatewayEnginePackageBoundaryTest.java`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/`,
+  `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/`,
   `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/annotation/LoadBalance.java`,
   `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/`
-- Commit: `refactor(gateway-engine): organize runtime packages by feature`
+- Commit: `refactor(yuheng-biz-gateway): organize runtime packages by feature`
 
 ## 8. Test, Validation, and Quality Gates
 
@@ -719,13 +719,13 @@ fail the Step if any old engine subpackage FQCN remains in Java source outside t
 | Step 1 GREEN               | `/Users/mario/SelfProject/Egon-COLA` | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-core -am test`                                                                      | MCP Core and dependencies                   | All existing 10 tests plus boundary test pass                                                       | Step 1 File 2/3/4            | REQ-001–006; module                                                                                 |
 | Step 2 RED                 | `/Users/mario/SelfProject/Egon-COLA` | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dtest=GatewayEnginePackageBoundaryTest test` before File 2                  | New Engine boundary test                    | Fails because root contains Configuration/Runtime/Properties and target role directories are absent | Step 2 File 1                | REQ-003/006; static/module                                                                          |
 | Step 2 GREEN               | `/Users/mario/SelfProject/Egon-COLA` | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am test`                                                                        | Engine, MCP Core and dependencies           | All existing 98 Engine tests plus boundary test pass; mainClass unchanged                           | Step 2 File 2/3/4            | REQ-001–006; module                                                                                 |
-| Static old MCP FQCN        | `/Users/mario/SelfProject/Egon-COLA` | `rg -n -F 'top.egon.cola.component.gateway.mcp.protocol.' --glob '*.java'` and equivalent old MCP capability prefixes                                                                 | Repository Java sources                     | No stale moved MCP FQCN except explicitly reviewed boundary strings                                 | Step 1 File 4                | REQ-004/006; static                                                                                 |
-| Static old Engine FQCN     | `/Users/mario/SelfProject/Egon-COLA` | `rg -n 'top\.egon\.cola\.component\.gateway\.engine\.(balance                                                                                                                         | discovery                                   | security                                                                                            | traffic                      | transport                                                                                           |observability|http|websocket|rpc|operation|rule|mcp)(\.|"|\x27)' --glob '*.java'` | Repository Java sources | No old Engine subpackage FQCN; root Application reference is retained | Step 2 File 4 | REQ-004/006; static |
-| Common reverse dependency  | `/Users/mario/SelfProject/Egon-COLA` | `rg -n 'import top\.egon\.cola\.component\.gateway\.engine\.common\.[^;]+engine\.(http                                                                                                | rpc                                         | mcp                                                                                                 | rule                         | operation)\.' egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src` | Engine common Java sources | No common-to-concrete-feature import | Step 2 File 2 | REQ-003/006; static |
+| Static old MCP FQCN        | `/Users/mario/SelfProject/Egon-COLA` | `rg -n -F 'top.egon.cola.component.yuheng.mcp.protocol.' --glob '*.java'` and equivalent old MCP capability prefixes                                                                 | Repository Java sources                     | No stale moved MCP FQCN except explicitly reviewed boundary strings                                 | Step 1 File 4                | REQ-004/006; static                                                                                 |
+| Static old Engine FQCN     | `/Users/mario/SelfProject/Egon-COLA` | `rg -n 'top\.egon\.cola\.component\.yuheng\.engine\.(balance                                                                                                                         | discovery                                   | security                                                                                            | traffic                      | transport                                                                                           |observability|http|websocket|rpc|operation|rule|mcp)(\.|"|\x27)' --glob '*.java'` | Repository Java sources | No old Engine subpackage FQCN; root Application reference is retained | Step 2 File 4 | REQ-004/006; static |
+| Common reverse dependency  | `/Users/mario/SelfProject/Egon-COLA` | `rg -n 'import top\.egon\.cola\.component\.yuheng\.engine\.common\.[^;]+engine\.(http                                                                                                | rpc                                         | mcp                                                                                                 | rule                         | operation)\.' egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src` | Engine common Java sources | No common-to-concrete-feature import | Step 2 File 2 | REQ-003/006; static |
 | Root package scan          | `/Users/mario/SelfProject/Egon-COLA` | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dtest=GatewayEnginePackageBoundaryTest test` and inspect the root assertion | Engine root                                 | Only `GatewayEngineApplication.java` and `package-info.java` at root                                | Step 2 File 1/2              | REQ-001/006; static                                                                                 |
 | Diff hygiene               | `/Users/mario/SelfProject/Egon-COLA` | `git diff --check` and `git diff --name-only` against the Step path list                                                                                                              | Working tree                                | No whitespace errors; no unrelated paths; staged contract deletion remains untouched                | Owning Step                  | REQ-005; static                                                                                     |
-| Gateway reactor regression | `/Users/mario/SelfProject/Egon-COLA` | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test -am test`                                                                          | Gateway module and test suite               | Compile and non-live tests pass; no claim about external topology                                   | Step 2 File 4 or owning test | REQ-004/006; cross-module                                                                           |
-| User-controlled runtime    | User-selected Gateway deployment CWD | User starts Engine/live profile and checks Spring Bean discovery, HTTP/RPC/MCP/Provider/Rule paths                                                                                    | Live DDC/Redis/Provider/remote MCP topology | User observes startup and protocol behavior; not executed by this Plan                              | User/runtime follow-up       | REQ-004; runtime, explicitly not proven here                                                        |
+| Yuheng reactor regression | `/Users/mario/SelfProject/Egon-COLA` | `./mvnw -B -ntp -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test -am test`                                                                          | Yuheng module and test suite               | Compile and non-live tests pass; no claim about external topology                                   | Step 2 File 4 or owning test | REQ-004/006; cross-module                                                                           |
+| User-controlled runtime    | User-selected Yuheng deployment CWD | User starts Engine/live profile and checks Spring Bean discovery, HTTP/RPC/MCP/Provider/Rule paths                                                                                    | Live Tianshu/Redis/Provider/remote MCP topology | User observes startup and protocol behavior; not executed by this Plan                              | User/runtime follow-up       | REQ-004; runtime, explicitly not proven here                                                        |
 
 The `-Dtest` RED commands are planning gates. They must be executed before the corresponding production moves during
 implementation; the final reports must record the expected RED reason and subsequent GREEN exit code rather than
@@ -745,7 +745,7 @@ unchanged. DEC-005 accepted direct migration, so no old-package wrapper is creat
 discovered during implementation blocks the affected Step and requires a new compatibility Spec.
 
 Rollout: No service rollout, data backfill, feature flag, dual-read/write or deployment ordering is required for the
-source-only change. After both commits, the user may run the existing Gateway deployment/live profile manually.
+source-only change. After both commits, the user may run the existing Yuheng deployment/live profile manually.
 
 Rollback: Revert Step 2 independently to restore Engine paths, or Step 1 independently to restore MCP Core paths. Do not
 use `git reset --hard`, `git checkout --`, broad deletion, or worktree-wide restore; preserve the unrelated staged
@@ -759,7 +759,7 @@ rather than silently restoring only selected packages.
 | `REQ-001`   | Spec §3.1, §4, §7.3.2–§7.3.3 | Steps 1–2 | MCP_MAIN/ENGINE_MAIN manifests; package-info and tests           | MCP/Engine boundary tests; target tree review         | first package layer identifies capability/feature     |
 | `REQ-002`   | Spec §3.1, §7.3.1, §8.3      | Steps 1–2 | domain/service/adapter target paths in both manifests            | module compile and package declaration scan           | role is visible without reading class body            |
 | `REQ-003`   | Spec §3.1, §7.1, §7.3.4, §13 | Steps 1–2 | `mcp.common/*`, `engine.common/*`, boundary tests                | common reverse-import scans                           | no common-to-concrete-feature dependency              |
-| `REQ-004`   | Spec §3.1, §7.3.5, §9, §16   | Steps 1–2 | bootstrap files, config/runtime tests, direct consumers          | module tests, Gateway reactor, mainClass/static check | existing Bean/config/protocol assertions remain GREEN |
+| `REQ-004`   | Spec §3.1, §7.3.5, §9, §16   | Steps 1–2 | bootstrap files, config/runtime tests, direct consumers          | module tests, Yuheng reactor, mainClass/static check | existing Bean/config/protocol assertions remain GREEN |
 | `REQ-005`   | Spec §3.2, §7.0, §13.2, §17  | Steps 1–2 | only listed package/import/package-info/test files               | `git diff --name-only`, no POM/schema scan            | no new module, API, model, facade or behavior change  |
 | `REQ-006`   | Spec §3.1, §8, §14           | Steps 1–2 | `McpCorePackageBoundaryTest`, `GatewayEnginePackageBoundaryTest` | RED/GREEN boundary gates and final static scan        | future root/common regressions fail automatically     |
 
@@ -801,7 +801,7 @@ imports are cross-linked; their internal manifest remains file/class specific.
 
 ### 12.4 Test and release completeness
 
-RED/GREEN boundary tests precede each production move; existing MCP and Engine tests remain regression gates; Gateway
+RED/GREEN boundary tests precede each production move; existing MCP and Engine tests remain regression gates; Yuheng
 reactor and static scans run after both moves; no migration/rollout is claimed; live topology is explicitly deferred to
 user-controlled runtime verification; rollback preserves unrelated worktree state.
 

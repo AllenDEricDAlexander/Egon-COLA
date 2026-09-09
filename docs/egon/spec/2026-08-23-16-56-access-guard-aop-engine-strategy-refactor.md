@@ -10,7 +10,7 @@
 | Complexity Drivers | `删除跨 access-guard/bytecode 的 Agent 公共入口与字节码增强链；收缩注解 target/枚举/Bridge 协议；拆分约 660 行 Guard Engine；把字符串策略 ID、泛型强转和 Engine switch 改为类型化固定策略管线；保持同步、CompletionStage、Reactor、编程式调用、故障策略与观测语义不变` |
 | Created | `2026-08-23 16:56 CST` |
 | Updated | `2026-08-23 16:56 CST` |
-| Owner | `Egon-COLA platform owner / User` |
+| Owner | `Egon-COLA xingyuan owner / User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-component-access-guard-starter；bytecode bridge/core/runtime/agent/starter/test 中仅 Access Guard Agent 能力；两组件中英文 README；聚焦单元、组件和依赖边界测试` |
 | Change Surface | `删除 Access Guard Agent 自动引擎、构造器 Guard、Bytecode Access Guard capability/bridge/enhancer/runtime adapter/fixture/依赖；保留 AOP 与 AccessGuardClient；GuardEngine 变为薄门面并拆出 admission/execution 协作者；GuardPolicy 改为类型化策略；不改规则配置语义、存储、限流算法、RPC、其他 Bytecode Agent 能力、数据库、前端` |
@@ -107,7 +107,7 @@ Access Guard 最初以 Spring AOP 为默认入口，后续为覆盖 private/stat
 - 不改变 deny/allow/penalty/rate-limit 的业务顺序、配置字段、bypass 语义、结果码、failure policy、事件或 metrics。
 - 不改变 `RateLimitAlgorithmStrategy`、`RateLimitAlgorithmStrategyFactory`、Local/Redisson Store SPI、Redis key/Lua 或规则动态更新。
 - 不新增 Abstract Factory、通用 policy plugin registry、可配置策略顺序或动态装载第三方策略。
-- 不改变 RPC Provider、Gateway、DDC、数据库、前端、BOM 以外的组件依赖。
+- 不改变 RPC Provider、Yuheng、Tianshu、数据库、前端、BOM 以外的组件依赖。
 - 不删除 Bytecode Agent；不改变 Executor、Observation、Method Extension 的匹配、增强、bridge、runtime 或配置语义。
 - 不编辑历史 Spec/Plan 正文；本规格通过关系元数据声明有效范围。
 
@@ -124,7 +124,7 @@ Access Guard 最初以 Spring AOP 为默认入口，后续为覆盖 private/stat
 | Guard plan/store/failure/time/observability semantics | Context-only | `GUARD/core/{plan,failure}`、`store`、`execution`、`observability` | 配置、状态、key、failure、time、event/metric 语义不变 | 只记录 owner 迁移和回归边界 | `N/A` |
 | Bytecode Executor/Observation/Method Extension | Unchanged | `BYTECODE` 的对应 api/bridge/core/runtime/agent/starter 实现与测试 | feature、匹配、增强、runtime、诊断均不变 | 一条保留合同及 retained-feature 验证 | `N/A` |
 | Rate-limit algorithm Strategy Factory | Unchanged | `GUARD/policy/ratelimit` 与相关 RPC Spec | backend 算法分派不变 | 不设计；运行既有回归 | `N/A` |
-| RPC/DDC/Gateway | Unchanged | `docs/egon/spec/2026-08-19-15-36-rpc-runtime-governance-evolution.md` | 继续只消费 Guard AOP/public outcome；生产代码无 diff | 一条上下文验证，禁止进入 target tree | `N/A` |
+| RPC/Tianshu/Yuheng | Unchanged | `docs/egon/spec/2026-08-19-15-36-rpc-runtime-governance-evolution.md` | 继续只消费 Guard AOP/public outcome；生产代码无 diff | 一条上下文验证，禁止进入 target tree | `N/A` |
 | Database | Not applicable | Guard 使用 Local/Redisson key；无 ORM/Flyway 目标 | 无关系模型或 migration 变化 | §11 记录 N/A | `N/A` |
 | Frontend | Not applicable | 两组件均为 Java starter/agent，无 UI 目录 | 无 route/page/state 变化 | §12 记录 N/A | `N/A` |
 
@@ -144,7 +144,7 @@ Access Guard 最初以 Spring AOP 为默认入口，后续为覆盖 private/stat
 | `REQ-010` | 更新双语组件文档 | Must | Guard/Bytecode 中英文 README 不再给出 Agent/constructor/`features=access-guard` 用法，并说明 AOP 边界、programmatic 替代和迁移方式 | 用户“文档更新” |
 | `REQ-011` | 对删除能力提供 fail-fast 迁移 | Must | `engine=AGENT` 与 `features=access-guard` 配置启动/解析失败而非静默降级；Bridge 协议升为 2.0；同一进程 Bytecode artifacts 必须同版本 | `DEC-009/010` |
 | `REQ-012` | 建立聚焦回归证据 | Must | Guard 全模块测试、Bytecode retained-capability 测试、依赖边界/静态零引用检查通过；验证报告不冒充真实 Redis/生产证明 | 项目验证规则 |
-| `REQ-013` | 限定变更范围 | Must | 除新 Spec 外，后续实现只触及 §8 target tree 所列文件/目录；RPC、DDC、数据库、前端和用户现有未提交文档不改 | 用户“别的不要动” |
+| `REQ-013` | 限定变更范围 | Must | 除新 Spec 外，后续实现只触及 §8 target tree 所列文件/目录；RPC、Tianshu、数据库、前端和用户现有未提交文档不改 | 用户“别的不要动” |
 
 ### 4.1 Scenario matrix
 
@@ -1369,7 +1369,7 @@ CREATED
 
 ## 11. Database Design
 
-Not applicable。Guard 的 Local/Redisson 状态 key、Lua、TTL、数据版本和 RPC/DDC 数据模型均明确 unchanged；不新增或修改 Flyway 文件。
+Not applicable。Guard 的 Local/Redisson 状态 key、Lua、TTL、数据版本和 RPC/Tianshu 数据模型均明确 unchanged；不新增或修改 Flyway 文件。
 
 ### 11.1 Table Inventory
 
@@ -1608,7 +1608,7 @@ Open questions：无阻断项。若评审中要求删除 programmatic、保留 d
 | `REQ-010` | `UC-003` | Four README files / `§8, §14, §16` | retained feature docs unchanged | DB/UI N/A | `TEST-032` + doc review | no Agent/constructor usage examples |
 | `REQ-011` | `UC-003` | Config/protocol / `§7, §9, §16` | no schema/data migration | strict parsers + protocol 2.0 | `TEST-022`,`026`,`028` | old config/mixed major fail-fast |
 | `REQ-012` | `UC-001`–`UC-004` | All affected test scopes / `§14` | live Redis/production remains external gap | all affected contracts/models | `TEST-001`–`033` | commands exit 0 + proof boundaries reported |
-| `REQ-013` | `UC-003`,`UC-004` | Change surface/target tree / `§8, §19` | RPC/DDC/DB/UI and dirty docs unchanged | DB/UI N/A | git diff/status/scope audit | only listed files changed |
+| `REQ-013` | `UC-003`,`UC-004` | Change surface/target tree / `§8, §19` | RPC/Tianshu/DB/UI and dirty docs unchanged | DB/UI N/A | git diff/status/scope audit | only listed files changed |
 
 ## 20. Review and Acceptance
 

@@ -1,8 +1,8 @@
-# RBAC3 Architecture, Algorithms, and Design Patterns
+# Tianquan-Jianshen Architecture, Algorithms, and Design Patterns
 
 ## 1. Architectural view
 
-RBAC3 separates control-plane writes from runtime enforcement:
+Tianquan-Jianshen separates control-plane writes from runtime enforcement:
 
 ```text
 Admin HTTP/API
@@ -10,28 +10,28 @@ Admin HTTP/API
   -> PostgreSQL facts + mutation journal + outbox
   -> projection workers
   -> immutable Redis authorization snapshots
-  -> Starter PEP / Gateway Adapter PEP
+  -> Starter PEP / Yuheng Adapter PEP
 ```
 
 The Contract module owns wire compatibility. Core owns deterministic policy and
-graph algorithms. Admin owns I/O and orchestration. Starter and Gateway Adapter
+graph algorithms. Admin owns I/O and orchestration. Starter and Yuheng Adapter
 are consumers of immutable runtime state, not clients of Admin implementation.
 
 The integration control plane is deliberately decomposed:
 
 ```text
-Definition report receipt  -- proves Gateway knows the interface definition
-DDC HTTP_PROVIDER lease    -- proves at least one live provider registration
-Gateway Release            -- proves a specific rule set was published
+Definition report receipt  -- proves Yuheng knows the interface definition
+Tianshu HTTP_PROVIDER lease    -- proves at least one live provider registration
+Yuheng Release            -- proves a specific rule set was published
 Runtime consistency        -- proves engines observed the explicit release
 Routed request             -- proves the complete route works at observation time
 ```
 
 No single health flag substitutes for these observations.
 
-### 1.1 DDC configuration scope and service scope
+### 1.1 Tianshu configuration scope and service scope
 
-DDC configuration and service discovery use separate identities and separate
+Tianshu configuration and service discovery use separate identities and separate
 leases. Configuration scope is:
 
 ```text
@@ -39,7 +39,7 @@ bizCode + appCode + env + resourceName
 ```
 
 Namespace bindings control configuration visibility but are not part of the
-resource identity. The DDC runtime owns one `CONFIG_CLIENT` lease for this scope.
+resource identity. The Tianshu runtime owns one `CONFIG_CLIENT` lease for this scope.
 Service scope is:
 
 ```text
@@ -47,51 +47,51 @@ bizCode + appCode + env + namespace + serviceKind + protocol
   + serviceName + group + version
 ```
 
-The Gateway provider runtime owns a different `HTTP_PROVIDER` lease for that
+The Yuheng provider runtime owns a different `HTTP_PROVIDER` lease for that
 scope. `CONFIG_CLIENT` and `HTTP_PROVIDER` may use the same process instance ID,
 but their lease IDs, roles, lifecycle, readiness and recovery state are never
-derived from one another. Gateway resolves providers only from the service scope;
+derived from one another. Yuheng resolves providers only from the service scope;
 it does not use the configuration-client lease as a provider registration.
 
 Startup uses a small state gate rather than another registry implementation:
 
 ```text
-CONFIG_CLIENT register -> pull/apply snapshots -> DDC READY
+CONFIG_CLIENT register -> pull/apply snapshots -> Tianshu READY
   + root WebServerInitializedEvent port
   + ApplicationReadyEvent
   -> publish the existing HTTP_PROVIDER runtime exactly once
 ```
 
 The gate ignores management web-server events, rejects an explicit advertised
-port that differs from the root server port, and fails closed when DDC is not
+port that differs from the root server port, and fails closed when Tianshu is not
 `READY` or no `CONFIG_CLIENT` lease exists. It delegates registration,
-heartbeat, recovery and offline behavior to the existing Gateway provider
+heartbeat, recovery and offline behavior to the existing Yuheng provider
 runtime.
 
 ### 1.2 Atomic runtime policy and document catalog
 
-The exact DDC applier adapts the RBAC3 policy leaf into one immutable policy
+The exact Tianshu applier adapts the Tianquan-Jianshen policy leaf into one immutable policy
 snapshot. Each apply is serialized, builds and validates a complete candidate,
 then atomically swaps the reference. Readers take one snapshot per command, so
 they cannot observe mixed fields. A runtime publication replaces the complete
-YAML resource; if any consumer rejects it, DDC rolls back the property source and
+YAML resource; if any consumer rejects it, Tianshu rolls back the property source and
 already-applied leaves.
 
-The current RBAC3 policy is `rbac3.maximum-active-roots` plus its fixed range.
+The current Tianquan-Jianshen policy is `tianquan-jianshen.maximum-active-roots` plus its fixed range.
 An invalid candidate records only key, target version and bounded error code.
-The active snapshot and DDC repository version/checksum remain at the
-last-known-good state. A later higher valid version recovers the key. RBAC3 does
+The active snapshot and Tianshu repository version/checksum remain at the
+last-known-good state. A later higher valid version recovers the key. Tianquan-Jianshen does
 not issue tokens or own personnel sessions; the value governs new role-activation
 commands only and never rewrites committed activation facts.
 
 Spring MVC remains the mechanical source for HTTP method, path, media types and
-parameters. Existing Gateway annotations add business grouping, stable operation
+parameters. Existing Yuheng annotations add business grouping, stable operation
 name, summary, tags, accessibility and schema descriptions. The resulting
-Gateway Interface Catalog is the sole API document center. RBAC3 reports a
-Definition but never auto-publishes a Gateway Release.
+Yuheng Interface Catalog is the sole API document center. Tianquan-Jianshen reports a
+Definition but never auto-publishes a Yuheng Release.
 
-Routeability is evaluated from five facts without collapsing them: DDC Config
-Client, accepted Gateway Definition, unexpired HTTP Provider lease, explicit
+Routeability is evaluated from five facts without collapsing them: Tianshu Config
+Client, accepted Yuheng Definition, unexpired HTTP Provider lease, explicit
 Release/engine consistency, and routed-request evidence. The first four are
 available from the runtime status API; the fifth must come from an actual routed
 request observation.
@@ -188,7 +188,7 @@ Reference JWTs contain identity claims, not an embedded permission list. The PEP
 
 1. one syntactically valid Bearer credential;
 2. trusted RS256 issuer, audience, `kid`, signature and time claims;
-3. exact Tenant, IdP subject, authentication context and policy versions;
+3. exact Tenant, Tianquan-Shoubing subject, authentication context and policy versions;
 4. an unexpired immutable authorization snapshot;
 5. no closed mutation Fence for the protected scope;
 6. typed Function/Data/Field/Participation decision.
@@ -197,14 +197,14 @@ Missing state, Redis errors, untrusted keys, version drift, unknown mappings and
 rule errors deny access. A bounded last-known-good public-key cache may cover a
 temporary key-source failure, but never version or authorization state drift.
 
-The Gateway Adapter performs no blocking Admin HTTP or PostgreSQL call on the
+The Yuheng Adapter performs no blocking Admin HTTP or PostgreSQL call on the
 request path. Original credentials are forwarded only after a complete allow,
 and never for anonymous, denied, errored, RPC or multiple-credential requests.
 
 ## 6. Persistence and delivery
 
-RBAC3 and Transactional Outbox use one PostgreSQL DataSource but separate
-Flyway locations and history tables. RBAC3 has one immutable V1 migration; new
+Tianquan-Jianshen and Transactional Outbox use one PostgreSQL DataSource but separate
+Flyway locations and history tables. Tianquan-Jianshen has one immutable V1 migration; new
 schema changes require the next migration and must never rewrite V1.
 
 Authorization mutations and outbox records are written in the business
@@ -221,9 +221,9 @@ the UI cannot issue a broad “retry everything” command.
 | Strategy           | Password authentication, Data Scope merger, Field Rule merger               | These are known variation points; direct conditional chains would couple unrelated algorithms                     |
 | Domain Service     | Graph validation, activation resolution, authorization decision             | The operation spans multiple domain facts but does not belong to one entity                                       |
 | Facade             | Assignment, Manifest, Management Policy, activation, simulation             | Keeps HTTP orchestration out of domain algorithms and provides one transaction boundary                           |
-| Ports and Adapters | Database clock, locks, query stores, Redis projection, DDC/Gateway status   | Core/application code depends on capabilities, while infrastructure details remain replaceable in tests           |
+| Ports and Adapters | Database clock, locks, query stores, Redis projection, Tianshu/Yuheng status   | Core/application code depends on capabilities, while infrastructure details remain replaceable in tests           |
 | State              | Mutation/fence status and runtime publication status                        | Transitions and illegal moves are explicit rather than scattered boolean combinations                             |
-| Adapter            | Starter PEP, Gateway Adapter and the exact DDC policy applier               | Translates host/configuration contracts into typed policy behavior without duplicating their lifecycle algorithms |
+| Adapter            | Starter PEP, Yuheng Adapter and the exact Tianshu policy applier               | Translates host/configuration contracts into typed policy behavior without duplicating their lifecycle algorithms |
 | Observer           | Optional Micrometer apply observer                                          | Adds fixed-cardinality success/failure evidence without making configuration delivery depend on metrics           |
 | Immutable Snapshot | Runtime policy and authorization snapshot publication                       | One reference swap gives command-scoped consistency and preserves a last-known-good value on validation failure   |
 
@@ -236,12 +236,12 @@ and safer than runtime-configurable indirection.
 
 - Role graph traversal: `O(V + E)` under configured role/edge/depth limits.
 - Permission merge: `O(P log P)` from canonical sorting; membership is set based.
-- Snapshot lookup: bounded Redis reads, no SQL or Admin HTTP on Gateway hot path.
+- Snapshot lookup: bounded Redis reads, no SQL or Admin HTTP on Yuheng hot path.
 - Assignment/participation capacity: serialized by stable PostgreSQL lock keys.
 - Admin list/audit APIs: bounded cursor/page sizes and query-count tests.
 - Workers: bounded batch size and concurrency, SKIP LOCKED ownership, retry state.
 - Active roles: maximum active roots and assignment/activation constraints.
 
-Wall-clock assertions are opt-in (`rbac3.performance.enforce`) because shared CI
+Wall-clock assertions are opt-in (`tianquan-jianshen.performance.enforce`) because shared CI
 latency is not a stable performance oracle. Default tests assert deterministic
 operation/query budgets; controlled environments may add calibrated time limits.

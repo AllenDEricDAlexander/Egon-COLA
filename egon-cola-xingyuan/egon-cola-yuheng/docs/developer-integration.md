@@ -1,9 +1,9 @@
-# Gateway, DDC, and RPC Developer Integration Runbook
+# Yuheng, Tianshu, and RPC Developer Integration Runbook
 
-[中文](developer-integration.zh-CN.md) | [Gateway overview](../README.md)
+[中文](developer-integration.zh-CN.md) | [Yuheng overview](../README.md)
 
-This runbook exercises the local end-to-end path: Gateway Admin publishes rules through
-DDC; two Engines subscribe to rules and Provider leases; MVC, WebFlux, and RPC Providers
+This runbook exercises the local end-to-end path: Yuheng Admin publishes rules through
+Tianshu; two Engines subscribe to rules and Provider leases; MVC, WebFlux, and RPC Providers
 register and report interfaces; and the RPC Consumer discovers internal Gateways only.
 Nginx, production HA, external IAM, and production certificates are outside this demo.
 
@@ -26,14 +26,14 @@ complete lifecycle below.
 ## Topology and ports
 
 ```text
-Admin Web :18090 -> Gateway Admin :18080 -> DDC Admin :18070
+Admin Web :18090 -> Yuheng Admin :18080 -> Tianshu Admin :18070
 Engine 1 PUBLIC/INTERNAL :18081/:18082, RPC :19090
 Engine 2 PUBLIC/INTERNAL :18181/:18182, RPC :19190
 MVC :18084, WebFlux :18085, RPC Provider :18086/:19091
-RPC Consumer :18087 -> DDC Gateway set -> RPC Provider
+RPC Consumer :18087 -> Tianshu Yuheng set -> RPC Provider
 ```
 
-DDC Redis and distributed-rate Redis are separate services and volumes. Each Engine has
+Tianshu Redis and distributed-rate Redis are separate services and volumes. Each Engine has
 its own persistent LKG volume.
 
 ## Command lifecycle
@@ -53,17 +53,17 @@ Run in this order:
 ```
 
 `init` generates a 12-hour local JWT and creates the HTTP/RPC applications, reporting
-credentials, and Gateway Group. Secrets and IDs stay in ignored, mode-0600 files under
+credentials, and Yuheng Group. Secrets and IDs stay in ignored, mode-0600 files under
 `.demo/`. `publish` resolves operation IDs from reported `methodIdentity` values, uploads
 HTTP and HTTP-to-RPC routes plus a distributed-rate policy, and checks the release.
 
 `down` preserves volumes. Use `./scripts/demo.sh purge` only to irreversibly delete this
 marked local demo's PostgreSQL, Redis, Kafka, and Engine LKG volumes. Purge requires the
-local marker and an `egon-cola-gateway-demo-*` project name.
+local marker and an `egon-cola-yuheng-demo-*` project name.
 
 ## OpenAI-compatible transport routes
 
-An OpenAI-compatible route remains a normal Gateway route bound to an HTTP Operation and
+An OpenAI-compatible route remains a normal Yuheng route bound to an HTTP Operation and
 a lease-discovered Provider. It does not contain a static upstream URL or model selection.
 The following are canonical `content` objects for the draft route API; replace each
 `operationId` in the surrounding route request with an ID returned by the interface
@@ -97,7 +97,7 @@ General JSON, SSE auto-detection, multipart upload, and multimodal payloads can 
 
 Use an explicit response mode when the route contract is narrower. Keep
 `requestBodyMode=STREAMING` for multipart and large uploads; no multipart parser runs in
-the Gateway.
+the Yuheng.
 
 | Route intent | `requestBodyMode` | `responseMode` |
 |---|---|---|
@@ -136,7 +136,7 @@ until the upstream handshake succeeds.
 header timeout, 90 s stream idle timeout, 30 min total timeout, disabled Body logging,
 and disabled retry. WebSocket defaults are 5 min idle and 16 MiB per frame. Explicit route
 fields override these defaults but remain capped by the Engine safety limits; all Engine
-nodes in one Gateway Group must use identical safety limits.
+nodes in one Yuheng Group must use identical safety limits.
 
 | Field | Meaning |
 |---|---|
@@ -170,16 +170,16 @@ New Engines continue to read old v1 releases with no `transportPolicy`; those ro
 the legacy aggregated HTTP/RPC behavior. An old Engine must not be given a release that
 contains new transport fields. Roll out in this order:
 
-1. Upgrade every Engine in the Gateway Group and wait until all nodes are Ready.
+1. Upgrade every Engine in the Yuheng Group and wait until all nodes are Ready.
 2. Verify homogeneous Engine transport safety limits and runtime consistency.
-3. Upgrade Gateway Admin and Admin Web.
+3. Upgrade Yuheng Admin and Admin Web.
 4. Only then create and publish routes containing `transportPolicy`.
 
 Keep old rules active during a mixed-version window. Failed activation continues to rely
 on the existing last-known-good release. A historical UI draft without `host` must be
 repaired manually; the Admin does not synthesize a wildcard `*`.
 
-This Gateway capability deliberately stops at transport. It does not count tokens, bill
+This Yuheng capability deliberately stops at transport. It does not count tokens, bill
 usage, manage prompts or conversations, perform RAG or Agent orchestration, execute
 Function Calling, or select a business model.
 
@@ -188,7 +188,7 @@ Function Calling, or select a business model.
 ```bash
 curl -fsS http://127.0.0.1:18070/actuator/health/readiness
 curl -fsS http://127.0.0.1:18080/actuator/health/readiness
-curl -fsS -H 'Host: providers.gateway.demo' \
+curl -fsS -H 'Host: providers.yuheng.demo' \
   http://127.0.0.1:18081/api/providers/manual-1 | jq
 curl -fsS 'http://127.0.0.1:18087/test/rpc/echo?message=manual-rpc' | jq
 ```
@@ -203,9 +203,9 @@ protocol, provider service, and Engine instance.
 
 - Gracefully stop MVC: WebFlux continues; restart produces a new lease ID.
 - Force-kill WebFlux: it disappears after TTL; MVC continues.
-- Stop one Engine: the RPC Consumer moves to the remaining Gateway Slot; a restarted
+- Stop one Engine: the RPC Consumer moves to the remaining Yuheng Slot; a restarted
   Engine obtains a new lease and returns to rotation.
-- Pause DDC: a ready Engine may use valid memory/LKG, but a cold Engine must not claim Ready.
+- Pause Tianshu: a ready Engine may use valid memory/LKG, but a cold Engine must not claim Ready.
 - Pause Kafka: business responses remain unchanged while failure/drop metrics increase.
 
 Collect `.demo/logs/compose.log` and inspect readiness, runtime consistency, Provider/Engine
@@ -226,7 +226,7 @@ Opt-in real topology (starts containers and child JVMs):
 ```bash
 ./mvnw -B -ntp -f pom.xml \
   -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
-  -am -Pgateway-live verify
+  -am -Pyuheng-live verify
 ```
 
 Host-only real topology (requires `initdb`, `postgres`, and `redis-server` on
@@ -235,11 +235,11 @@ Host-only real topology (requires `initdb`, `postgres`, and `redis-server` on
 ```bash
 ./mvnw -B -ntp -f pom.xml \
   -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local verify
 ```
 
 The base demo and in-process streaming tests do not verify Redis Sentinel/Cluster,
 PostgreSQL or Kafka HA, multi-Admin failover, production TLS/mTLS and rotation, public
-OpenAI connectivity, private CAs, external load balancing, or Kubernetes. The Gateway
+OpenAI connectivity, private CAs, external load balancing, or Kubernetes. The Yuheng
 cannot force an outer Nginx/Ingress to flush or disable its cache. A renderable overlay or
 component fixture is not runtime evidence; validate those paths in the target environment.

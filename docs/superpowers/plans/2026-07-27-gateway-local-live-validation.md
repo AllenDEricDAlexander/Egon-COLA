@@ -1,8 +1,8 @@
-# Gateway Local Live Validation Implementation Plan
+# Yuheng Local Live Validation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在不使用 Docker 的前提下，用本机进程验证 DDC、Gateway、HTTP Provider、RPC Provider 和 RPC Consumer 的服务注册发现、规则路由、HTTP/RPC 调用与 Gateway 流量 PostgreSQL 落库闭环。
+**Goal:** 在不使用 Docker 的前提下，用本机进程验证 Tianshu、Yuheng、HTTP Provider、RPC Provider 和 RPC Consumer 的服务注册发现、规则路由、HTTP/RPC 调用与 Yuheng 流量 PostgreSQL 落库闭环。
 
 **Architecture:** 保留 `GatewayTestInfrastructure` 作为 live 套件门面，用 Strategy 将既有 Testcontainers 后端和新增 host-local 后端隔离。host-local 后端只管理测试专属的临时 PostgreSQL、两套 Redis 与进程内 KRaft Kafka，业务 JVM 与现有 `GatewayLiveTopologyIT` 完全复用，确保验收的生产代码路径不变。
 
@@ -15,7 +15,7 @@
 - 不访问或清空用户现有数据库、Redis keyspace；所有状态使用临时目录、随机端口和两个独立 Redis 进程。
 - 只有真实复现的代码缺陷才修改生产代码；每个缺陷先得到失败用例，再做最小修复。
 - 用户未跟踪文件保持原样，任何提交都使用精确路径暂存。
-- 验证结束必须停止 DDC、Gateway、Provider、Consumer、Kafka、Redis 与 PostgreSQL 临时进程。
+- 验证结束必须停止 Tianshu、Yuheng、Provider、Consumer、Kafka、Redis 与 PostgreSQL 临时进程。
 
 ---
 
@@ -23,19 +23,19 @@
 
 **Files:**
 - Read: `egon-cola-components/egon-cola-component-dynamic-config-center/pom.xml`
-- Read: `egon-cola-components/egon-cola-component-gateway/pom.xml`
+- Read: `egon-cola-components/egon-cola-component-yuheng/pom.xml`
 - Read: `egon-cola-components/egon-cola-component-rpc/pom.xml`
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayInfrastructureLiveIT.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayInfrastructureLiveIT.java`
 
 **Interfaces:**
-- Consumes current `main` and the existing opt-in `gateway-live` profile.
-- Produces module-test baselines and a reproducible failure showing that `gateway.live.infrastructure=local` currently still reaches Docker.
+- Consumes current `main` and the existing opt-in `yuheng-live` profile.
+- Produces module-test baselines and a reproducible failure showing that `yuheng.live.infrastructure=local` currently still reaches Docker.
 
 - [ ] **Step 1: Run the three focused component reactors**
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-dynamic-config-center,egon-cola-component-rpc,egon-cola-component-gateway \
+  -pl egon-cola-component-dynamic-config-center,egon-cola-component-rpc,egon-cola-component-yuheng \
   -am test
 ```
 
@@ -43,8 +43,8 @@
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local \
+  -pl egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite \
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local \
   -Dit.test=GatewayInfrastructureLiveIT verify
 ```
 
@@ -60,21 +60,21 @@ git diff --check
 - [ ] **Step 4: Commit this execution plan only**
 
 ```bash
-git add docs/superpowers/plans/2026-07-27-gateway-local-live-validation.md
-git commit -m "docs: plan gateway local live validation"
+git add docs/superpowers/plans/2026-07-27-yuheng-local-live-validation.md
+git commit -m "docs: plan yuheng local live validation"
 ```
 
 ### Task 2: 增加 host-local live infrastructure Strategy
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/pom.xml`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/pom.xml`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayTestInfrastructure.java`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayInfrastructureBackend.java`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayTestcontainersInfrastructure.java`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayLocalInfrastructure.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java`
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process/GatewayTestInfrastructureTest.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/pom.xml`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/pom.xml`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/process/GatewayTestInfrastructure.java`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/process/GatewayInfrastructureBackend.java`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/process/GatewayTestcontainersInfrastructure.java`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/process/GatewayLocalInfrastructure.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayLiveTopologyIT.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/process/GatewayTestInfrastructureTest.java`
 
 **Interfaces:**
 - `GatewayInfrastructureBackend` produces `start()`, `createDatabase(String)`, `jdbcUrl(String)`, PostgreSQL credentials, two distinct Redis endpoints, Kafka bootstrap servers and idempotent `close()`.
@@ -86,13 +86,13 @@ git commit -m "docs: plan gateway local live validation"
 ```java
 @Test
 void selectsLocalInfrastructureFromSystemProperty() {
-    String previous = System.getProperty("gateway.live.infrastructure");
+    String previous = System.getProperty("yuheng.live.infrastructure");
     try {
-        System.setProperty("gateway.live.infrastructure", "local");
+        System.setProperty("yuheng.live.infrastructure", "local");
         assertThat(new GatewayTestInfrastructure().type())
                 .isEqualTo("local");
     } finally {
-        restore("gateway.live.infrastructure", previous);
+        restore("yuheng.live.infrastructure", previous);
     }
 }
 ```
@@ -101,7 +101,7 @@ void selectsLocalInfrastructureFromSystemProperty() {
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -pl egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite \
   -am test -Dtest=GatewayTestInfrastructureTest
 ```
 
@@ -119,11 +119,11 @@ Replace `infrastructure.postgres().getUsername()` and `.getPassword()` with the 
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
+  -pl egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite \
   -am test -Dtest=GatewayTestInfrastructureTest
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local \
+  -pl egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite \
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local \
   -Dit.test=GatewayInfrastructureLiveIT verify
 ```
 
@@ -131,30 +131,30 @@ Replace `infrastructure.postgres().getUsername()` and `.getPassword()` with the 
 
 ```bash
 git add \
-  egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/pom.xml \
-  egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/pom.xml \
-  egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/process \
-  egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java
-git commit -m "test: support gateway live topology without Docker"
+  egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/pom.xml \
+  egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/pom.xml \
+  egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/process \
+  egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayLiveTopologyIT.java
+git commit -m "test: support yuheng live topology without Docker"
 ```
 
-### Task 3: 完成本机 DDC/Gateway HTTP、RPC 与落库闭环
+### Task 3: 完成本机 Tianshu/Yuheng HTTP、RPC 与落库闭环
 
 **Files:**
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayHttpProvidersLiveIT.java`
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRpcDualEngineLiveIT.java`
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayInfrastructureLiveIT.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayHttpProvidersLiveIT.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayRpcDualEngineLiveIT.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayInfrastructureLiveIT.java`
 
 **Interfaces:**
 - Produces HTTP Provider registration/discovery, Rule Snapshot activation, public/internal route behavior, distributed rate limit and Kafka-to-PostgreSQL trace projection evidence.
-- Produces RPC Provider and `INTERNAL_GATEWAY` registration/discovery, RPC Consumer-to-Gateway-to-Provider and HTTP-to-RPC route evidence.
+- Produces RPC Provider and `INTERNAL_GATEWAY` registration/discovery, RPC Consumer-to-Yuheng-to-Provider and HTTP-to-RPC route evidence.
 
 - [ ] **Step 1: Run the HTTP and infrastructure scenarios**
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local \
+  -pl egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite \
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local \
   -Dit.test=GatewayInfrastructureLiveIT,GatewayHttpProvidersLiveIT verify
 ```
 
@@ -162,8 +162,8 @@ git commit -m "test: support gateway live topology without Docker"
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local \
+  -pl egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-suite \
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local \
   -Dit.test=GatewayRpcDualEngineLiveIT verify
 ```
 
@@ -175,7 +175,7 @@ Capture the failing boundary and logs, add the smallest behavior test that fails
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl egon-cola-component-dynamic-config-center,egon-cola-component-rpc,egon-cola-component-gateway \
+  -pl egon-cola-component-dynamic-config-center,egon-cola-component-rpc,egon-cola-component-yuheng \
   -am test
 git diff --check
 git status --short --branch

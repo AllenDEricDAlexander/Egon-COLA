@@ -1,4 +1,4 @@
-# DDC Spring Boot ConfigData 接入与分级刷新设计
+# Tianshu Spring Boot ConfigData 接入与分级刷新设计
 
 状态：已确认，进入实施
 
@@ -21,18 +21,18 @@
 
 ## 1. 需求结论
 
-本次改造把 DDC 的业务配置接入 Spring Boot 3.5.16 原生 ConfigData 生命周期：
+本次改造把 Tianshu 的业务配置接入 Spring Boot 3.5.16 原生 ConfigData 生命周期：
 
 1. 使用 `ConfigDataLocationResolver` 和 `ConfigDataLoader` 在 ApplicationContext 创建前拉取远端配置；
 2. 使用 Spring Boot 官方 `YamlPropertySourceLoader` 解析完整 YAML 配置资源；
 3. 不把本地配置和远端配置复制到一个 Map 中做手工 merge；
 4. 由 Spring Boot ConfigData 的 PropertySource 顺序处理覆盖、删除回退、占位符和类型绑定；
-5. DDC 远端配置在 ConfigData 范围内优先级最高；
-6. DDC 客户端自身配置只从本地 bootstrap 链路、系统属性、环境变量等本地来源读取，远端禁止覆盖；
-7. 远端只承载业务配置，不承载 DDC 连接、认证、作用域或 ConfigData 控制配置；
+5. Tianshu 远端配置在 ConfigData 范围内优先级最高；
+6. Tianshu 客户端自身配置只从本地 bootstrap 链路、系统属性、环境变量等本地来源读取，远端禁止覆盖；
+7. 远端只承载业务配置，不承载 Tianshu 连接、认证、作用域或 ConfigData 控制配置；
 8. 初始 YAML 在 Bean 创建前生效，普通 `@Value`、`Environment` 和 `@ConfigurationProperties` 首次绑定自然使用远端值；
 9. 运行期只刷新明确支持动态更新的对象；不刷新 ApplicationContext，不重建整个容器，也不假装所有 Spring Boot 基础设施都能热更新；
-10. 保留 `@DdcValue` 和现有 `DdcConfigApplier` 扩展点，避免破坏 Gateway、IdP 等既有消费者。
+10. 保留 `@DdcValue` 和现有 `DdcConfigApplier` 扩展点，避免破坏 Yuheng、Tianquan-Shoubing 等既有消费者。
 
 `bootstrap.yml` 在 Spring Boot 原生 ConfigData 中不是默认文件名。必须明确选择本文第 6 节的加载方式，不能只把文件放进 classpath 后假设 Boot 会读取。
 
@@ -73,25 +73,25 @@ PropertySource。即使把 YAML 手工展开成若干 Key 再写入，也仍然�
 
 ### 2.3 当前已有公共动态扩展点，不能直接删除
 
-以下类型已被 DDC 外部模块使用：
+以下类型已被 Tianshu 外部模块使用：
 
 - `DdcConfigApplier`；
 - `DdcConfigApplierRegistry`；
 - `@DdcValue`；
 - `DdcRefreshService` 的运行时发布链路。
 
-Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新增 YAML ConfigData 主路径时，
+Yuheng 规则和 Tianquan-Shoubing 策略已经注册精确 Key 或前缀 Applier。本次新增 YAML ConfigData 主路径时，
 这些面向非 Spring 配置对象的原子切换能力继续保留，不能强制迁移成通用 Bean 重绑。
 
 ### 2.4 当前 archetype 的 bootstrap 来自 Spring Cloud
 
 三个 archetype 当前都依赖 `spring-cloud-starter-bootstrap`，由 Spring Cloud 兼容机制加载
-`bootstrap.yml`。DDC Starter 自身没有该依赖。
+`bootstrap.yml`。Tianshu Starter 自身没有该依赖。
 
-本次目标是使用 Spring Boot 原生 ConfigData SPI，因此 DDC 不能在内部依赖
+本次目标是使用 Spring Boot 原生 ConfigData SPI，因此 Tianshu 不能在内部依赖
 `PropertySourceLocator`、`BootstrapConfiguration` 或 Spring Cloud Context 的
 `ConfigurationPropertiesRebinder`。本轮已确认使用第 6.1 节的纯 Spring Boot ConfigData 方式；
-现有 archetype 的 Spring Cloud bootstrap 不作为 DDC Starter 的运行前提。
+现有 archetype 的 Spring Cloud bootstrap 不作为 Tianshu Starter 的运行前提。
 
 ---
 
@@ -101,14 +101,14 @@ Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新
 
 1. 远端 YAML 在 ApplicationContext 创建前成为 ConfigData PropertySource；
 2. 使用 Boot 官方 YAML 解析、Origin、profile 和 PropertySource 优先级能力；
-3. DDC 业务配置高于所有本地 ConfigData，且不改变其他本地来源之间的官方顺序；
-4. 禁止远端覆盖 DDC 自身配置和 ConfigData 控制键；
+3. Tianshu 业务配置高于所有本地 ConfigData，且不改变其他本地来源之间的官方顺序；
+4. 禁止远端覆盖 Tianshu 自身配置和 ConfigData 控制键；
 5. 启动拉取与运行期 Redis 刷新使用同一份 YAML 校验规则；
 6. 动态 PropertySource 以不可变快照原子替换，不向本地配置写回；
 7. 仅重绑显式声明可刷新的、可变的 `@ConfigurationProperties` Bean；
 8. 不适合热更新的配置只在下次启动完整生效，并通过变更事件明确标记；
 9. 保持现有发布版本、checksum、目标租约、ACK 和 reconcile 语义；
-10. 删除现有 scalar/JSON/TXT 配置与默认值上报链路；`@DdcValue` 和 Gateway/IdP 自定义
+10. 删除现有 scalar/JSON/TXT 配置与默认值上报链路；`@DdcValue` 和 Yuheng/Tianquan-Shoubing 自定义
     Applier 改为消费 YAML 展平后的叶子属性。
 
 ### 3.2 非目标
@@ -119,10 +119,10 @@ Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新
 - 不承诺 `server.port`、DataSource、EntityManagerFactory、线程池、日志系统等任意基础设施自动热重建；
 - 不从远端修改 active/default/include profile；
 - 不允许远端递归导入其他 ConfigData；
-- 不把本地 YAML、远端 YAML 和系统属性合并成 DDC 自有配置对象；
+- 不把本地 YAML、远端 YAML 和系统属性合并成 Tianshu 自有配置对象；
 - 不修改现有 Flyway 文件；本轮推荐方案不需要数据库迁移；
 - 不重构服务注册、Redis 拓扑或 Admin 发布状态机；
-- 不自动启动 DDC Admin、Redis、PostgreSQL 或任何业务应用。
+- 不自动启动 Tianshu Admin、Redis、PostgreSQL 或任何业务应用。
 
 ---
 
@@ -130,13 +130,13 @@ Gateway 规则和 IdP 策略已经注册精确 Key 或前缀 Applier。本次新
 
 ### 4.1 唯一远端资源模型
 
-复用现有 DDC 配置项，不新增数据库字段：
+复用现有 Tianshu 配置项，不新增数据库字段：
 
 ```text
 configKey   = application.yml
 configValue = 完整 Spring Boot YAML 文本
 valueType   = YAML
-version     = DDC 发布版本
+version     = Tianshu 发布版本
 ```
 
 V1 每个 `bizCode + env + appCode` 只允许一个完整 YAML 资源 `application.yml`。Admin 不再接受
@@ -145,8 +145,8 @@ V1 每个 `bizCode + env + appCode` 只允许一个完整 YAML 资源 `applicati
 
 这样满足“不 merge”：
 
-- DDC 不把多条配置项组装成一棵 Map；
-- DDC 不把本地 YAML 与远端 YAML 合并；
+- Tianshu 不把多条配置项组装成一棵 Map；
+- Tianshu 不把本地 YAML 与远端 YAML 合并；
 - `YamlPropertySourceLoader` 只解析远端完整文档；
 - 同名属性最终取值完全由 Spring Environment 的 PropertySource 顺序决定。
 
@@ -157,13 +157,13 @@ V1 每个 `bizCode + env + appCode` 只允许一个完整 YAML 资源 `applicati
 ```yaml
 spring:
   config:
-    import: ddc:application.yml
+    import: tianshu:application.yml
 ```
 
 支持：
 
-- `ddc:application.yml`：资源不存在或拉取失败时启动失败；
-- `optional:ddc:application.yml`：只忽略资源不存在，不忽略认证失败、非法 YAML、重复资源、非法版本或保留键越权；
+- `tianshu:application.yml`：资源不存在或拉取失败时启动失败；
+- `optional:tianshu:application.yml`：只忽略资源不存在，不忽略认证失败、非法 YAML、重复资源、非法版本或保留键越权；
 - `.yml` 与 `.yaml` 扩展名；
 - 同一次启动同一逻辑资源只加载一次。
 
@@ -176,7 +176,7 @@ spring:
 
 ### 4.3 多文档和 profile 资源
 
-V1 只允许单 YAML 文档。DDC 已由 `env` 隔离运行环境，无需再把
+V1 只允许单 YAML 文档。Tianshu 已由 `env` 隔离运行环境，无需再把
 `application-{profile}.yml` 和 `---` 多文档激活规则叠加到远端。
 
 限制单文档的原因不是 YAML 解析能力不足，而是运行期刷新必须保持 ConfigData 初始建立的
@@ -196,9 +196,9 @@ V1 不实现 `resolveProfileSpecific(...)`，也不接受远端 profile 文件�
 
 ```properties
 org.springframework.boot.context.config.ConfigDataLocationResolver=\
-top.egon.cola.component.ddc.bootstrap.DdcConfigDataLocationResolver
+top.egon.cola.component.tianshu.bootstrap.DdcConfigDataLocationResolver
 org.springframework.boot.context.config.ConfigDataLoader=\
-top.egon.cola.component.ddc.bootstrap.DdcConfigDataLoader
+top.egon.cola.component.tianshu.bootstrap.DdcConfigDataLoader
 ```
 
 ConfigData SPI 不能放进 `AutoConfiguration.imports`。后者在 ConfigData 已完成后才参与 Bean
@@ -208,7 +208,7 @@ ConfigData SPI 不能放进 `AutoConfiguration.imports`。后者在 ConfigData �
 
 职责：
 
-1. 只识别 `ddc:` 前缀；
+1. 只识别 `tianshu:` 前缀；
 2. 解析 `optional` 与远端资源名；
 3. 使用 `ConfigDataLocationResolverContext.getBinder()` 从当前已加载的本地配置绑定
    `DdcProperties`；
@@ -217,7 +217,7 @@ ConfigData SPI 不能放进 `AutoConfiguration.imports`。后者在 ConfigData �
 6. 返回不包含凭据和远端正文的 `DdcConfigDataResource`；
 7. 不在 `isResolvable(...)` 中发起网络请求。
 
-`enabled=false` 时显式 `ddc:` import 返回空 ConfigData，不创建远端客户端；显式启用后，scope 和
+`enabled=false` 时显式 `tianshu:` import 返回空 ConfigData，不创建远端客户端；显式启用后，scope 和
 连接配置必须完整，不能继续使用 `default-app` 等占位默认值连接远端。
 
 Resource 的 `equals/hashCode` 只包含：
@@ -269,48 +269,48 @@ export SPRING_CONFIG_ADDITIONAL_LOCATION=optional:classpath:/bootstrap.yml
 `--spring.config.additional-location=...`。不能把该属性写进已经开始加载的 `application.yml` 后再
 期待它改变搜索路径。
 
-`bootstrap.yml` 作为最后的附加 ConfigData 位置，保存 DDC 客户端配置并导入远端：
+`bootstrap.yml` 作为最后的附加 ConfigData 位置，保存 Tianshu 客户端配置并导入远端：
 
 ```yaml
 spring:
   config:
-    import: ddc:application.yml
+    import: tianshu:application.yml
 
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: true
         biz-code: order
         env: dev
         app-code: order-service
         admin:
-          endpoint: ${DDC_ADMIN_ENDPOINT}
+          endpoint: ${TIANSHU_ADMIN_ENDPOINT}
           signature-enabled: true
-          access-key: ${DDC_ACCESS_KEY}
-          secret-key: ${DDC_SECRET_KEY}
+          access-key: ${TIANSHU_ACCESS_KEY}
+          secret-key: ${TIANSHU_SECRET_KEY}
           tls:
-            enabled: ${DDC_TLS_ENABLED:false}
-            development-plaintext: ${DDC_DEVELOPMENT_PLAINTEXT:false}
+            enabled: ${TIANSHU_TLS_ENABLED:false}
+            development-plaintext: ${TIANSHU_DEVELOPMENT_PLAINTEXT:false}
         redis:
           enabled: true
-          mode: ${DDC_REDIS_MODE:SINGLE}
-          host: ${DDC_REDIS_HOST:127.0.0.1}
-          port: ${DDC_REDIS_PORT:6379}
+          mode: ${TIANSHU_REDIS_MODE:SINGLE}
+          host: ${TIANSHU_REDIS_HOST:127.0.0.1}
+          port: ${TIANSHU_REDIS_PORT:6379}
 ```
 
-DDC 不自动扫描 `bootstrap.yml`，也不新增 EnvironmentPostProcessor 偷改
-`spring.config.location`。bootstrap 必须是最后的 additional location，且其中的 `ddc:` import
+Tianshu 不自动扫描 `bootstrap.yml`，也不新增 EnvironmentPostProcessor 偷改
+`spring.config.location`。bootstrap 必须是最后的 additional location，且其中的 `tianshu:` import
 必须是最后一个同级 import，才能由 Boot 的官方顺序保证远端高于其他本地 ConfigData。
 
 可以在 `application.yml` 使用 `spring.config.import: classpath:bootstrap.yml` 作为简化方式，但只适合
-没有更高优先级外部 ConfigData 的应用。它不是“DDC 始终为 ConfigData 层最高”的通用证明，不能作为
+没有更高优先级外部 ConfigData 的应用。它不是“Tianshu 始终为 ConfigData 层最高”的通用证明，不能作为
 本次优先级验收的唯一配置。
 
 ### 6.2 Spring Cloud bootstrap 边界
 
-DDC Starter 不新增 Spring Cloud 依赖，也不对 Spring Cloud bootstrap 提供第二套加载实现。应用可
-继续包含 Spring Cloud 依赖，但 DDC 的验收链路只认第 6.1 节的 Boot ConfigData additional-location。
+Tianshu Starter 不新增 Spring Cloud 依赖，也不对 Spring Cloud bootstrap 提供第二套加载实现。应用可
+继续包含 Spring Cloud 依赖，但 Tianshu 的验收链路只认第 6.1 节的 Boot ConfigData additional-location。
 
 ---
 
@@ -318,7 +318,7 @@ DDC Starter 不新增 Spring Cloud 依赖，也不对 Spring Cloud bootstrap 提
 
 ### 7.1 精确定义
 
-“DDC 远端优先级最高”定义为：DDC 是所有 Spring Boot ConfigData PropertySource 中的最高
+“Tianshu 远端优先级最高”定义为：Tianshu 是所有 Spring Boot ConfigData PropertySource 中的最高
 优先级来源。命令行参数、`SPRING_APPLICATION_JSON`、Java System Properties、OS 环境变量、
 测试属性等仍按 Spring Boot 官方外部化配置顺序生效。
 
@@ -326,14 +326,14 @@ DDC Starter 不新增 Spring Cloud 依赖，也不对 Spring Cloud bootstrap 提
 
 ```text
 Spring Boot 标准的非 ConfigData 高阶来源（保持各自官方顺序）
-  > DDC 远端 ConfigData
+  > Tianshu 远端 ConfigData
   > 本地 bootstrap ConfigData
   > 本地 application-{profile}.yml
   > 本地 application.yml
   > 默认属性
 ```
 
-如果要求 DDC 高于命令行或系统属性，就必须在 ConfigData 完成后手工重排 Environment，
+如果要求 Tianshu 高于命令行或系统属性，就必须在 ConfigData 完成后手工重排 Environment，
 这与“别的按照 Spring Boot 现有优先级”冲突，本方案不采用。
 
 ### 7.2 不手工 merge
@@ -342,25 +342,25 @@ Spring Boot 标准的非 ConfigData 高阶来源（保持各自官方顺序）
 
 - 遍历所有 PropertySource 后写出一个最终 Map；
 - 把本地 YAML 和远端 YAML 深度 merge；
-- 为集合、Map 或对象发明 DDC 自有覆盖规则；
+- 为集合、Map 或对象发明 Tianshu 自有覆盖规则；
 - 在 Bean 绑定后再用反射模拟启动时的属性优先级。
 
 当远端删除一个属性时，`DdcDynamicPropertySource` 不再返回该属性，Spring Environment 自然
-回退到下一个本地 PropertySource。这是 PropertySource 查找，不是 DDC merge。
+回退到下一个本地 PropertySource。这是 PropertySource 查找，不是 Tianshu merge。
 
 运行时只接受 `application.yml`。任何其他远端 `configKey` 都视为服务端契约错误并拒绝，Starter
 不会尝试把它拼入 YAML，也不会继续维护第二套配置优先级体系。
 
 ---
 
-## 8. DDC 保留配置与安全边界
+## 8. Tianshu 保留配置与安全边界
 
 ### 8.1 `DdcReservedConfigurationKeys`
 
 启动和刷新共用同一套 canonical key 校验。推荐禁止以下远端键及其子键：
 
 ```text
-egon.cola.component.ddc
+egon.cola.component.tianshu
 spring.config.import
 spring.config.location
 spring.config.additional-location
@@ -371,7 +371,7 @@ spring.profiles.include
 spring.profiles.group
 ```
 
-第一组保证 DDC 的 Endpoint、凭据、TLS、Redis、scope、租约、fail-fast 等配置不能被 DDC
+第一组保证 Tianshu 的 Endpoint、凭据、TLS、Redis、scope、租约、fail-fast 等配置不能被 Tianshu
 自身覆盖。后两组保证远端不能改变配置来源和 profile 选择。
 
 校验使用 Spring Boot canonical `ConfigurationPropertyName` 语义，不能只做大小写敏感的原始字符串
@@ -399,7 +399,7 @@ Starter 是最终强制边界。Admin 在创建、更新、回滚和发布阶段
 
 - 继承 `EnumerablePropertySource`；
 - 内部使用 `AtomicReference<Snapshot>`；
-- Snapshot 包含不可变属性、Origin、DDC version 和 checksum；
+- Snapshot 包含不可变属性、Origin、Tianshu version 和 checksum；
 - `getProperty` 和 `getPropertyNames` 始终读取同一个快照；
 - candidate YAML 完成解析和校验后一次 CAS/`set` 切换；
 - 失败时旧快照不变；
@@ -408,7 +408,7 @@ Starter 是最终强制边界。Admin 在创建、更新、回滚和发布阶段
 
 ### 9.2 `DdcYamlPropertySourceLoader`
 
-该类只做 DDC 边界适配：
+该类只做 Tianshu 边界适配：
 
 1. 把远端 UTF-8 文本包装为带稳定文件名的 Resource；
 2. 委托 `org.springframework.boot.env.YamlPropertySourceLoader`；
@@ -431,7 +431,7 @@ Starter 是最终强制边界。Admin 在创建、更新、回滚和发布阶段
 | `@DdcRefreshable` + 可变 `@ConfigurationProperties` | 使用远端 | 受控重绑 | 校验成功才确认刷新 |
 | `@DdcValue(refreshable = true)` | 读取 YAML 叶子 | 继续刷新 | 兼容注解，不再对应独立配置项 |
 | `@DdcValue(refreshable = false)` | 读取 YAML 叶子 | 不刷新 | 下次启动生效 |
-| 已注册 `DdcConfigApplier` | 按现状 | 继续调用 | 适合 Gateway 规则等领域原子切换 |
+| 已注册 `DdcConfigApplier` | 按现状 | 继续调用 | 适合 Yuheng 规则等领域原子切换 |
 | Web Server/DataSource/JPA/线程池等基础设施 | 启动时使用远端 | 默认不重建 | 除非组件提供专用 Applier |
 
 ### 10.2 `@DdcRefreshable`
@@ -543,9 +543,9 @@ Bean 重绑或变更事件。
 按现有精确 Key、最长前缀和 fallback 顺序逐叶调用 `DdcConfigApplierRegistry`。默认 fallback 只负责
 刷新匹配的 `@DdcValue` 字段，不再处理独立远端配置项。
 
-Gateway Admin 发布规则时，发布日志仍记录 `gateway.rules.chunk.*` 或
-`gateway.rules.active` 叶子 Key；实际 DDC 配置资源始终是 `application.yml`。每个发布阶段读取当前
-YAML、更新一个规则叶子、校验完整文档，并以当前文档版本发布。Gateway Engine 继续收到同名叶子
+Yuheng Admin 发布规则时，发布日志仍记录 `yuheng.rules.chunk.*` 或
+`yuheng.rules.active` 叶子 Key；实际 Tianshu 配置资源始终是 `application.yml`。每个发布阶段读取当前
+YAML、更新一个规则叶子、校验完整文档，并以当前文档版本发布。Yuheng Engine 继续收到同名叶子
 Key，因此现有规则原子激活 Applier 不需要改变领域契约。
 
 ### 11.3 非动态配置的 ACK
@@ -562,7 +562,7 @@ Bean Key 进入 `restartRequiredKeys`，下次启动生效。
 用户建议的分包作为本次配置链路目标结构：
 
 ```text
-top.egon.cola.component.ddc
+top.egon.cola.component.tianshu
 ├── bootstrap
 │   ├── DdcConfigDataLocationResolver
 │   ├── DdcConfigDataResource
@@ -610,13 +610,13 @@ top.egon.cola.component.ddc
 
 采用 Adapter：
 
-- `DdcConfigDataLocationResolver` / `DdcConfigDataLoader` 把现有 DDC HTTP 拉取契约适配成 Spring Boot ConfigData SPI；
+- `DdcConfigDataLocationResolver` / `DdcConfigDataLoader` 把现有 Tianshu HTTP 拉取契约适配成 Spring Boot ConfigData SPI；
 - `DdcYamlPropertySourceLoader` 把远端文本资源适配给官方 `YamlPropertySourceLoader`，不重写 YAML 解析。
 
 采用 Strategy + Registry：
 
 - 保留现有 `DdcConfigApplier` / `DdcConfigApplierRegistry`；
-- YAML PropertySource、Gateway 规则、IdP 策略和兼容字段是确实不同的动态应用策略；
+- YAML PropertySource、Yuheng 规则、Tianquan-Shoubing 策略和兼容字段是确实不同的动态应用策略；
 - 精确 Key、最长前缀和 fallback 已是当前项目的稳定扩展方式。
 
 ### 13.2 不采用的模式
@@ -624,7 +624,7 @@ top.egon.cola.component.ddc
 - 不新增通用 Factory 层：Resolver/Loader 的 SPI 和现有 AutoConfiguration 已负责对象创建；
 - 不使用 Template Method：启动加载和运行刷新共享解析/校验组件即可，不需要继承层级；
 - 不使用 Chain of Responsibility 扫描所有 Bean：刷新对象必须显式标记或注册，避免不可控副作用；
-- 不引入 Decorator 包装所有 PropertySource：只有 DDC 远端来源需要动态快照。
+- 不引入 Decorator 包装所有 PropertySource：只有 Tianshu 远端来源需要动态快照。
 
 采用 Observer：
 
@@ -637,8 +637,8 @@ top.egon.cola.component.ddc
 
 ### 14.1 ConfigData SPI
 
-1. `ddc:` Resolver 能被 `spring.factories` 发现；
-2. Resolver 只识别 DDC location，且 `isResolvable` 不发网络请求；
+1. `tianshu:` Resolver 能被 `spring.factories` 发现；
+2. Resolver 只识别 Tianshu location，且 `isResolvable` 不发网络请求；
 3. Loader 在 Bean 创建前拉取，`@ConfigurationProperties`、普通 `@Value` 和条件装配读取远端值；
 4. 远端 YAML Origin 保留资源名、文档和行列；
 5. 非 optional 缺失失败，optional 只忽略不存在；
@@ -653,10 +653,10 @@ top.egon.cola.component.ddc
 |---|---|
 | local application vs local profile | Boot 原有 profile 规则 |
 | local application/profile vs bootstrap | bootstrap 按确认的导入位置生效 |
-| 任意 local ConfigData vs DDC | DDC 胜出 |
-| DDC vs OS env/System Property/CLI | Boot 官方高阶来源胜出 |
-| DDC 删除 Key且本地有值 | Environment 回退本地值 |
-| DDC 含自身配置 Key | 整份资源拒绝 |
+| 任意 local ConfigData vs Tianshu | Tianshu 胜出 |
+| Tianshu vs OS env/System Property/CLI | Boot 官方高阶来源胜出 |
+| Tianshu 删除 Key且本地有值 | Environment 回退本地值 |
+| Tianshu 含自身配置 Key | 整份资源拒绝 |
 
 测试还必须输出 PropertySource 名称和实际顺序，不能只断言一个最终值。
 
@@ -670,16 +670,16 @@ top.egon.cola.component.ddc
 6. `@DdcRefreshable` 可变 Bean 重绑并执行 Validation；
 7. record/constructor-bound/不可变 Bean 被明确拒绝；
 8. 删除 Key 的回退与 restart-required 规则有专项测试；
-9. `@DdcValue`、Gateway/IdP 自定义 Applier 回归通过；
+9. `@DdcValue`、Yuheng/Tianquan-Shoubing 自定义 Applier 回归通过；
 10. 事件 changed/refreshed/restartRequired 分类准确且不携带值。
 
-### 14.4 Admin 与 Gateway
+### 14.4 Admin 与 Yuheng
 
 1. Admin 创建、更新、回滚、发布只接受单文档 YAML；
 2. 空文档、多文档、非法 YAML、非 Map 根节点、保留键整份拒绝；
 3. 每个 scope 只能存在 `application.yml`，返回模型固定显示 `application.yml/YAML`；
 4. 默认值上报接口和客户端调用删除；
-5. Gateway 的 chunk/activation 发布实际更新完整 YAML，且 Engine 仍收到原叶子 Key；
+5. Yuheng 的 chunk/activation 发布实际更新完整 YAML，且 Engine 仍收到原叶子 Key；
 6. Admin Web 只展示 YAML 编辑器，不再显示 Key、类型和默认值控件，并展示服务端校验错误。
 
 ### 14.5 回归范围
@@ -693,22 +693,22 @@ egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test \
 -am test
 ```
 
-由于 Gateway 和 IdP 使用公共 Applier API，还需执行其受影响的 focused tests/compile。最终运行：
+由于 Yuheng 和 Tianquan-Shoubing 使用公共 Applier API，还需执行其受影响的 focused tests/compile。最终运行：
 
 ```bash
 git diff --check
 ```
 
-本任务不自动启动项目。外部 DDC Admin、Redis 与多进程验证由用户后续发起。
+本任务不自动启动项目。外部 Tianshu Admin、Redis 与多进程验证由用户后续发起。
 
 ---
 
 ## 15. 已确认决策
 
 1. V1 每个 `bizCode + env + appCode` 只有一个 `application.yml`，只支持单 YAML 文档；
-2. 使用纯 Spring Boot ConfigData 链，由本地 `bootstrap.yml` 保存 DDC 客户端配置并导入 `ddc:`；
-3. DDC 只在 ConfigData 范围内最高，其他来源继续遵循 Boot 官方优先级；
-4. 远端禁止 `egon.cola.component.ddc.*`、`spring.config.*` 和 profile 选择键，违规时整份拒绝；
+2. 使用纯 Spring Boot ConfigData 链，由本地 `bootstrap.yml` 保存 Tianshu 客户端配置并导入 `tianshu:`；
+3. Tianshu 只在 ConfigData 范围内最高，其他来源继续遵循 Boot 官方优先级；
+4. 远端禁止 `egon.cola.component.tianshu.*`、`spring.config.*` 和 profile 选择键，违规时整份拒绝；
 5. Starter 和 Admin 都执行 YAML/保留键校验，Admin Web 同步改为 YAML-only；
 6. 未热刷新的 Key 可 ACK `SUCCESS`，通过 `restartRequiredKeys` 明确表达；
 7. `@DdcRefreshable` 只支持 setter 可变的 `@ConfigurationProperties` Bean；

@@ -6,7 +6,7 @@
 
 **Architecture:** Extract current Access Guard orchestration into one execution service that accepts a `ProceedingJoinPoint`; AOP passes the real join point and Agent mode passes an adapter backed by a direct synthetic-body MethodHandle. Initial class definition structurally wraps approved non-constructor methods so the existing timeout executor can invoke the continuation, while constructors use a separate static pre-initialization guard that supports only key/white/black/rate/fail semantics. A single policy dispatcher enforces Method Extension → Access Guard → Observation → business body.
 
-**Tech Stack:** Java 21 production, Java 21/25 verification, existing Access Guard Spring AOP/Redisson component, AspectJ interfaces, existing bytecode platform/ASM 9.9.1, Spring Boot 3.5.16, JUnit 5.
+**Tech Stack:** Java 21 production, Java 21/25 verification, existing Access Guard Spring AOP/Redisson component, AspectJ interfaces, existing bytecode xingyuan/ASM 9.9.1, Spring Boot 3.5.16, JUnit 5.
 
 ## Global Constraints
 

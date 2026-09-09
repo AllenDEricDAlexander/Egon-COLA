@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (- [x]) syntax for tracking.
 
-**Goal:** Implement approved OAuth 2.0 Resource Server admission, single-resource USER tokens, IdP-owned SERVICE authorization, authenticated DDC registration, and exact Gateway/downstream resource validation for the bizCode + appCode + env boundary.
+**Goal:** Implement approved OAuth 2.0 Resource Server admission, single-resource USER tokens, Tianquan-Shoubing-owned SERVICE authorization, authenticated Tianshu registration, and exact Yuheng/downstream resource validation for the bizCode + appCode + env boundary.
 
-**Architecture:** IdP is the source of truth for Resource Servers, public-key client credentials, OAuth grants, Admission Tickets, and service scopes. RBAC3 only decides USER entry and fine-grained user permissions. DDC accepts CONFIG_CLIENT, HTTP_PROVIDER, RPC_PROVIDER, and INTERNAL_GATEWAY registrations only when an IdP Admission Ticket exactly matches the registering triple and instance. Gateway and downstream services validate an at+jwt against one resolved Resource URI; downstream USER requests continue into RBAC3, while SERVICE requests use local IdP scope enforcement.
+**Architecture:** Tianquan-Shoubing is the source of truth for Resource Servers, public-key client credentials, OAuth grants, Admission Tickets, and service scopes. Tianquan-Jianshen only decides USER entry and fine-grained user permissions. Tianshu accepts CONFIG_CLIENT, HTTP_PROVIDER, RPC_PROVIDER, and INTERNAL_GATEWAY registrations only when an Tianquan-Shoubing Admission Ticket exactly matches the registering triple and instance. Yuheng and downstream services validate an at+jwt against one resolved Resource URI; downstream USER requests continue into Tianquan-Jianshen, while SERVICE requests use local Tianquan-Shoubing scope enforcement.
 
 **Tech Stack:** Java 21, Spring Boot, Spring Security OAuth2 Resource Server, Spring Data JPA, PostgreSQL, SQLite, Flyway, Redis/Redisson, JWT/JWK, gRPC/Protobuf, JUnit 5, Mockito, Testcontainers, Maven Wrapper.
 
@@ -15,15 +15,15 @@
 - Implement tasks in order. Every task ends in its own commit and must leave its targeted modules compiling.
 - Use test-driven development: first add the smallest failing test, run it and confirm the expected failure, then implement, rerun, and commit.
 - Never edit an existing Flyway migration. Add exactly one next-version migration per affected database history:
-  - IdP PostgreSQL: V2__add_oauth_resource_servers.sql.
-  - IdP PostgreSQL: V3__create_transactional_outbox_schema.sql. This runtime-discovered
-    prerequisite creates the IdP-owned transactional outbox schema without modifying V1 or V2.
-  - DDC PostgreSQL: V8__add_resource_admission_audit.sql.
-  - DDC SQLite: V8__add_resource_admission_audit.sql. This is the same logical V8 change applied once to each supported dialect history.
-  - Gateway PostgreSQL: V11__rename_mcp_oauth_resource.sql.
+  - Tianquan-Shoubing PostgreSQL: V2__add_oauth_resource_servers.sql.
+  - Tianquan-Shoubing PostgreSQL: V3__create_transactional_outbox_schema.sql. This runtime-discovered
+    prerequisite creates the Tianquan-Shoubing-owned transactional outbox schema without modifying V1 or V2.
+  - Tianshu PostgreSQL: V8__add_resource_admission_audit.sql.
+  - Tianshu SQLite: V8__add_resource_admission_audit.sql. This is the same logical V8 change applied once to each supported dialect history.
+  - Yuheng PostgreSQL: V11__rename_mcp_oauth_resource.sql.
 - Resource identity is always the exact bizCode + appCode + env triple. bizCode is only a grouping dimension; no wildcard or future-app inheritance is allowed.
 - One Access Token has exactly one Resource URI in aud. Do not retain the old audience request parameter, multi-audience token, or static clientIds validation path.
-- USER authorization calls RBAC3 only for application entry and downstream fine-grained permissions. SERVICE token issuance and request authorization never query RBAC3 permission data.
+- USER authorization calls Tianquan-Jianshen only for application entry and downstream fine-grained permissions. SERVICE token issuance and request authorization never query Tianquan-Jianshen permission data.
 - Admission Ticket and OAuth Access Token are different JWT types and audiences. Neither may be accepted in place of the other.
 - Production admission is fail-closed. Test code may inject an in-memory admission port; ordinary business configuration must not disable admission.
 - Private keys are read only from absolute owner-only files. Never persist or log private keys, raw assertions, raw Admission Tickets, or access tokens.
@@ -34,8 +34,8 @@
 
 - Use compact Specification-style domain services for ResourceServerAdmissionPolicy, UserResourceAccessPolicy, and ClientCredentialsAccessPolicy. Each service owns a complete business rule sequence; do not split every predicate into a separate class.
 - Use Ports and Adapters at module boundaries:
-  - UserResourceAccessAuthorizationPort isolates IdP Core from RBAC3 transport.
-  - DdcAdmissionTicketSupplier isolates DDC components from IdP.
+  - UserResourceAccessAuthorizationPort isolates Tianquan-Shoubing Core from Tianquan-Jianshen transport.
+  - DdcAdmissionTicketSupplier isolates Tianshu components from Tianquan-Shoubing.
   - ResourceServerRuntimePort isolates domain state changes from Redis projection and outbox delivery.
 - Use the existing Transactional Outbox component for Resource Server disable delivery. Do not build another polling/retry framework.
 - Do not introduce an authentication Strategy hierarchy. private_key_jwt is the only client authentication method in this phase; a direct authenticator is simpler. Introduce strategies only when a second real mechanism such as mTLS is implemented.
@@ -44,71 +44,71 @@
 ## Dependency and Delivery Map
 
 ~~~text
-IdP Core
-  -> IdP Admin persistence and OAuth endpoints
-  -> IdP Starter token/admission runtime
-  -> IdP Gateway Adapter
+Tianquan-Shoubing Core
+  -> Tianquan-Shoubing Admin persistence and OAuth endpoints
+  -> Tianquan-Shoubing Starter token/admission runtime
+  -> Tianquan-Shoubing Yuheng Adapter
 
-RBAC3 Admin
-  -> USER Resource Access Decision used by IdP
-  -> SERVICE endpoints protected by IdP scopes, not RBAC3 service permissions
+Tianquan-Jianshen Admin
+  -> USER Resource Access Decision used by Tianquan-Shoubing
+  -> SERVICE endpoints protected by Tianquan-Shoubing scopes, not Tianquan-Jianshen service permissions
 
-DDC Starter API
-  <- IdP Starter implementation of DdcAdmissionTicketSupplier
-  -> DDC config-client, HTTP, RPC, and Gateway registration producers
-  -> RPC DDC protobuf adapter
-  -> DDC Admin verification and lease persistence
+Tianshu Starter API
+  <- Tianquan-Shoubing Starter implementation of DdcAdmissionTicketSupplier
+  -> Tianshu config-client, HTTP, RPC, and Yuheng registration producers
+  -> RPC Tianshu protobuf adapter
+  -> Tianshu Admin verification and lease persistence
 
-IdP Outbox
-  -> DDC idempotent triple revocation command
-  -> existing DDC subscriptions remove revoked instances from Gateway
+Tianquan-Shoubing Outbox
+  -> Tianshu idempotent triple revocation command
+  -> existing Tianshu subscriptions remove revoked instances from Yuheng
 ~~~
 
 ---
 
-## Task 1: Add IdP Resource, Grant, Credential, and Principal Core Contracts
+## Task 1: Add Tianquan-Shoubing Resource, Grant, Credential, and Principal Core Contracts
 
 **Files:**
 
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServer.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServerStatus.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientResourceGrant.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceGrantType.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientJwkCredential.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ResourceServerAdmissionPolicy.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/UserResourceAccessPolicy.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/ClientCredentialsAccessPolicy.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/resource/package-info.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ResourceServerStore.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ClientCredentialStore.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ClientAssertionReplayStore.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/UserResourceAccessAuthorizationPort.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/ResourceServerRuntimePort.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpPrincipal.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/PrincipalType.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/ServiceIdentityPrincipal.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdentityPrincipal.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpClaimNames.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/contract/IdpErrorCode.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/resource/ResourceServerPolicyTest.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/resource/ClientCredentialsAccessPolicyTest.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/contract/IdentityPrincipalTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ResourceServer.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ResourceServerStatus.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ClientResourceGrant.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ResourceGrantType.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ClientJwkCredential.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ResourceServerAdmissionPolicy.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/UserResourceAccessPolicy.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ClientCredentialsAccessPolicy.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/resource/package-info.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/ResourceServerStore.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/ClientCredentialStore.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/ClientAssertionReplayStore.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/UserResourceAccessAuthorizationPort.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/ResourceServerRuntimePort.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdpPrincipal.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/PrincipalType.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/ServiceIdentityPrincipal.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdentityPrincipal.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdpClaimNames.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdpErrorCode.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ResourceServerPolicyTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/core/resource/ClientCredentialsAccessPolicyTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/contract/IdentityPrincipalTest.java
 
 - [x] **Step 1: Write failing domain and contract tests**
 
 Cover exact triple identity, absolute fragment-free Resource URI, active status, USER_DELEGATION invariants, CLIENT_CREDENTIALS tenant/scope invariants, and distinct USER/SERVICE principals.
 
 ~~~java
-assertThat(resource.matches("permission", "idp", "prod")).isTrue();
-assertThat(resource.matches("permission", "rbac3", "prod")).isFalse();
+assertThat(resource.matches("permission", "tianquan-shoubing", "prod")).isTrue();
+assertThat(resource.matches("permission", "tianquan-jianshen", "prod")).isFalse();
 
 assertThat(policy.authorize(client, target, "tenant-001",
-        Set.of("rbac3:policy:read")).scopes())
-        .containsExactly("rbac3:policy:read");
+        Set.of("tianquan-jianshen:policy:read")).scopes())
+        .containsExactly("tianquan-jianshen:policy:read");
 
 assertThatThrownBy(() -> policy.authorize(client, target, "tenant-002",
-        Set.of("rbac3:policy:read")))
-        .hasMessageContaining("IDP_SERVICE_RESOURCE_GRANT_NOT_FOUND");
+        Set.of("tianquan-jianshen:policy:read")))
+        .hasMessageContaining("TIANQUAN_SHOUBING_SERVICE_RESOURCE_GRANT_NOT_FOUND");
 ~~~
 
 - [x] **Step 2: Run the tests and confirm they fail because the new contracts do not exist**
@@ -170,7 +170,7 @@ changing its record components or constructor; it adds only principalType()
 returning USER. Add claim constants for principal_type, resource_version, scope,
 source_biz, source_app, source_env, credential_id, resource, and token_use.
 
-- [x] **Step 4: Run all IdP Core tests**
+- [x] **Step 4: Run all Tianquan-Shoubing Core tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-core test
@@ -180,28 +180,28 @@ source_biz, source_app, source_env, credential_id, resource, and token_use.
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
-git commit -m "feat(idp): add resource authorization domain"
+git commit -m "feat(tianquan-shoubing): add resource authorization domain"
 ~~~
 
 ---
 
-## Task 2: Add IdP V2 Persistence and Remove the Audience Table Dependency
+## Task 2: Add Tianquan-Shoubing V2 Persistence and Remove the Audience Table Dependency
 
 **Files:**
 
 - Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/migration/V2__add_oauth_resource_servers.sql
-- Delete: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/pojo/IdentityClientAudienceEntity.java
-- Delete: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/IdentityClientAudienceRepository.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityResourceServerEntity.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityClientJwkEntity.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java
-- Create: repositories under top.egon.cola.platform.idp.admin.resource.repo
+- Delete: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/domain/pojo/IdentityClientAudienceEntity.java
+- Delete: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/repo/IdentityClientAudienceRepository.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/domain/pojo/IdentityResourceServerEntity.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/domain/pojo/IdentityClientJwkEntity.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/domain/pojo/IdentityClientResourceGrantEntity.java
+- Create: repositories under top.egon.cola.platform.tianquan.shoubing.admin.resource.repo
 - Create: package-info.java for resource, resource.domain, resource.domain.pojo, and resource.repo
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/repo/JpaOAuthClientStore.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/migration/IdpMigrationIT.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/persistence/IdpPersistenceEntityContractTest.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/repo/JpaOAuthClientStore.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrap.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/support/migration/IdpMigrationIT.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/support/persistence/IdpPersistenceEntityContractTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/support/bootstrap/IdpDevelopmentClientBootstrapTest.java
 
 - [x] **Step 1: Extend migration tests before creating V2**
 
@@ -223,7 +223,7 @@ section 11.1 of the approved spec, then drops identity_client_audience.
 
 Use a nullable tenant_id only for USER_DELEGATION and a required tenant_id plus non-empty allowed_scopes for CLIENT_CREDENTIALS. Use partial unique indexes exactly as approved. Store public JWK JSON only.
 
-Update JpaOAuthClientStore to obtain allowed user Resource URIs through USER_DELEGATION joins during the transition to Task 5; it must never query the dropped audience table. Update development bootstrap to create explicit idp and rbac3 Resource rows and explicit application-level grants. Production bootstrap remains explicit and does not invent wildcard grants.
+Update JpaOAuthClientStore to obtain allowed user Resource URIs through USER_DELEGATION joins during the transition to Task 5; it must never query the dropped audience table. Update development bootstrap to create explicit tianquan-shoubing and tianquan-jianshen Resource rows and explicit application-level grants. Production bootstrap remains explicit and does not invent wildcard grants.
 
 - [x] **Step 4: Run migration, entity, repository, and bootstrap tests**
 
@@ -237,7 +237,7 @@ Update JpaOAuthClientStore to obtain allowed user Resource URIs through USER_DEL
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
-git commit -m "feat(idp): persist resource servers and grants"
+git commit -m "feat(tianquan-shoubing): persist resource servers and grants"
 ~~~
 
 ---
@@ -247,19 +247,19 @@ git commit -m "feat(idp): persist resource servers and grants"
 **Files:**
 
 - Create controllers, services, service implementations, DTOs, VOs, and package-info.java files under:
-  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/resource
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/resource
 - Create: resource/config/ResourceServerConfig.java
 - Create: resource/service/ResourceServerService.java
 - Create: resource/service/impl/ResourceServerServiceImpl.java
 - Create: resource/service/ResourceServerProjectionService.java
 - Create: resource/controller/ResourceServerController.java
 - Create: resource/controller/ClientResourceGrantController.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/security/IdpSecurityConfig.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/support/bootstrap/IdpBootstrapService.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/impl/ResourceServerServiceImplTest.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/ResourceServerProjectionServiceTest.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ResourceServerControllerTest.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ClientResourceGrantControllerTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/support/security/IdpSecurityConfig.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/support/bootstrap/IdpBootstrapService.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/service/impl/ResourceServerServiceImplTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/service/ResourceServerProjectionServiceTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/controller/ResourceServerControllerTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/controller/ClientResourceGrantControllerTest.java
 
 - [x] **Step 1: Write service and controller tests for all approved endpoints**
 
@@ -296,20 +296,20 @@ identity:service-resource-grant:{clientId}:{resourceServerId}:{tenantId}
 
 Each Resource projection includes status, URI, triple, version, managementClientId, RBAC application, and entry permission. Client projection includes type, status, bound source Resource, and version. Projection write/delete failures fail the management mutation; no stale ACTIVE result may be returned.
 
-- [x] **Step 4: Add and test RBAC3 management permission declarations**
+- [x] **Step 4: Add and test Tianquan-Jianshen management permission declarations**
 
 Add exactly:
 
 ~~~text
-idp:resource-server:read
-idp:resource-server:create
-idp:resource-server:update
-idp:resource-server:status
-idp:resource-server:key
-idp:resource-server:grant
+tianquan-shoubing:resource-server:read
+tianquan-shoubing:resource-server:create
+tianquan-shoubing:resource-server:update
+tianquan-shoubing:resource-server:status
+tianquan-shoubing:resource-server:key
+tianquan-shoubing:resource-server:grant
 ~~~
 
-- [x] **Step 5: Run IdP Admin resource and security tests**
+- [x] **Step 5: Run Tianquan-Shoubing Admin resource and security tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
@@ -321,21 +321,21 @@ idp:resource-server:grant
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
-git commit -m "feat(idp): manage resource server admission"
+git commit -m "feat(tianquan-shoubing): manage resource server admission"
 ~~~
 
 ---
 
-## Task 4: Add the RBAC3 USER Resource Entry Decision
+## Task 4: Add the Tianquan-Jianshen USER Resource Entry Decision
 
 **Files:**
 
-- Create: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ResourceAccessDecisionRequest.java
-- Create: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/ResourceAccessDecisionResponse.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/authorization/application/AuthorizationDecisionService.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationControllerTest.java
-- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/AuthorizationDecisionServiceTest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/ResourceAccessDecisionRequest.java
+- Create: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/ResourceAccessDecisionResponse.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/InternalAuthorizationController.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/authorization/application/AuthorizationDecisionService.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/InternalAuthorizationControllerTest.java
+- Modify: egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/authorization/AuthorizationDecisionServiceTest.java
 - Create or update package-info.java in any new package
 
 - [x] **Step 1: Write a failing decision test**
@@ -354,9 +354,9 @@ Test positive entry permission, missing permission, inactive membership/session,
 
 - [x] **Step 3: Implement the minimum USER-only decision**
 
-Reuse the current authorization snapshot/decision path. Do not add service principals, service grants, or service scopes to RBAC3. Preserve version/fence semantics so a revoked USER permission is visible immediately.
+Reuse the current authorization snapshot/decision path. Do not add service principals, service grants, or service scopes to Tianquan-Jianshen. Preserve version/fence semantics so a revoked USER permission is visible immediately.
 
-- [x] **Step 4: Run RBAC3 focused tests**
+- [x] **Step 4: Run Tianquan-Jianshen focused tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am \
@@ -368,7 +368,7 @@ Reuse the current authorization snapshot/decision path. Do not add service princ
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-jianshen
-git commit -m "feat(rbac3): decide user resource entry"
+git commit -m "feat(tianquan-jianshen): decide user resource entry"
 ~~~
 
 ---
@@ -377,26 +377,26 @@ git commit -m "feat(rbac3): decide user resource entry"
 
 **Files:**
 
-- Modify IdP Core:
+- Modify Tianquan-Shoubing Core:
   - core/oauth/OAuthClient.java
   - core/oauth/AuthorizationRequest.java
   - core/oauth/AuthorizationCode.java
   - core/oauth/AuthorizationFacade.java
   - core/token/AccessTokenClaims.java
   - core/token/TokenFacade.java
-  - src/test/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacadeTest.java
-  - src/test/java/top/egon/cola/platform/idp/core/token/TokenFacadeTest.java
-- Modify IdP Admin:
+  - src/test/java/top/egon/cola/platform/tianquan-shoubing/core/oauth/AuthorizationFacadeTest.java
+  - src/test/java/top/egon/cola/platform/tianquan-shoubing/core/token/TokenFacadeTest.java
+- Modify Tianquan-Shoubing Admin:
   - oauth/controller/OAuthAuthorizationController.java
   - oauth/controller/OAuthTokenController.java
   - oauth/config/OAuthConfig.java
   - token/service/impl/Rs256TokenService.java
-  - support/rbac3/HttpTenantMembershipAdapter.java
-- Create: support/rbac3/HttpUserResourceAccessAuthorizationAdapter.java
+  - support/tianquan-jianshen/HttpTenantMembershipAdapter.java
+- Create: support/tianquan-jianshen/HttpUserResourceAccessAuthorizationAdapter.java
 - Create or update bilingual package-info.java and integration tests
-- Modify: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthAuthorizationFlowIT.java
-- Modify: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthTokenTransportIT.java
-- Modify: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/token/service/impl/AccessTokenClaimsIT.java
+- Modify: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/controller/OAuthAuthorizationFlowIT.java
+- Modify: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/controller/OAuthTokenTransportIT.java
+- Modify: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/token/service/impl/AccessTokenClaimsIT.java
 
 - [x] **Step 1: Change tests to require resource and reject audience**
 
@@ -433,7 +433,7 @@ UserResourceAccess authorize(
         String sessionId);
 ~~~
 
-The ordered checks are Client ACTIVE, redirect/PKCE, Resource ACTIVE, USER_DELEGATION ACTIVE, membership ACTIVE, then RBAC3 entry ALLOW. Do not duplicate this sequence in controllers.
+The ordered checks are Client ACTIVE, redirect/PKCE, Resource ACTIVE, USER_DELEGATION ACTIVE, membership ACTIVE, then Tianquan-Jianshen entry ALLOW. Do not duplicate this sequence in controllers.
 
 - [x] **Step 4: Cut over the HTTP protocol and token claims**
 
@@ -451,31 +451,31 @@ Remove audience request parsing. Require resource at authorize and code exchange
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
-git commit -m "feat(idp): issue single resource user tokens"
+git commit -m "feat(tianquan-shoubing): issue single resource user tokens"
 ~~~
 
 ---
 
-## Task 6: Implement private_key_jwt and IdP-owned Client Credentials
+## Task 6: Implement private_key_jwt and Tianquan-Shoubing-owned Client Credentials
 
 **Files:**
 
-- Create core credential and token classes under idp-core/core/oauth and idp-core/core/token
-- Create: idp-admin/oauth/service/impl/PrivateKeyJwtAuthenticator.java
-- Create: idp-admin/oauth/repo/RedisClientAssertionReplayStore.java
-- Create: idp-admin/token/service/impl/ClientCredentialsTokenService.java
-- Create: idp-admin/support/oauth/LocalServiceAccessTokenSupplier.java
-- Modify: idp-admin/oauth/controller/OAuthTokenController.java
-- Modify: idp-admin/oauth/domain/pojo/IdentityClientEntity.java
-- Modify: idp-admin/oauth/service/impl/OAuthClientServiceImpl.java
-- Modify: idp-admin/token/service/impl/Rs256TokenService.java
-- Modify: idp-admin/oauth/config/OAuthConfig.java
-- Delete: idp-admin/support/rbac3/FileServiceAuthorizationSupplier.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/service/impl/PrivateKeyJwtAuthenticatorTest.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/repo/RedisClientAssertionReplayStoreTest.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/token/service/impl/ClientCredentialsTokenServiceTest.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/support/oauth/LocalServiceAccessTokenSupplierTest.java
-- Modify: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthTokenTransportIT.java
+- Create core credential and token classes under tianquan-shoubing-core/core/oauth and tianquan-shoubing-core/core/token
+- Create: tianquan-shoubing-admin/oauth/service/impl/PrivateKeyJwtAuthenticator.java
+- Create: tianquan-shoubing-admin/oauth/repo/RedisClientAssertionReplayStore.java
+- Create: tianquan-shoubing-admin/token/service/impl/ClientCredentialsTokenService.java
+- Create: tianquan-shoubing-admin/support/oauth/LocalServiceAccessTokenSupplier.java
+- Modify: tianquan-shoubing-admin/oauth/controller/OAuthTokenController.java
+- Modify: tianquan-shoubing-admin/oauth/domain/pojo/IdentityClientEntity.java
+- Modify: tianquan-shoubing-admin/oauth/service/impl/OAuthClientServiceImpl.java
+- Modify: tianquan-shoubing-admin/token/service/impl/Rs256TokenService.java
+- Modify: tianquan-shoubing-admin/oauth/config/OAuthConfig.java
+- Delete: tianquan-shoubing-admin/support/tianquan-jianshen/FileServiceAuthorizationSupplier.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/service/impl/PrivateKeyJwtAuthenticatorTest.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/repo/RedisClientAssertionReplayStoreTest.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/token/service/impl/ClientCredentialsTokenServiceTest.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/support/oauth/LocalServiceAccessTokenSupplierTest.java
+- Modify: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/controller/OAuthTokenTransportIT.java
 
 - [x] **Step 1: Write failing assertion and service-grant tests**
 
@@ -487,7 +487,7 @@ assertThat(response.refreshToken()).isNull();
 assertThat(claims.get("principal_type")).isEqualTo("SERVICE");
 assertThat(claims.getAudience()).containsExactly(targetResourceUri);
 assertThat(claims.getClaimAsStringList("scope"))
-        .containsExactly("rbac3:policy:read");
+        .containsExactly("tianquan-jianshen:policy:read");
 ~~~
 
 - [x] **Step 2: Confirm tests fail because client_credentials is unsupported**
@@ -510,13 +510,13 @@ Select the public key by client_id plus kid before signature verification. Rejec
 
 - [x] **Step 4: Implement ClientCredentialsAccessPolicy and SERVICE token signing**
 
-Derive source_biz, source_app, and source_env from the source Client's bound Resource Server. Never accept them from the request. The granted scope is the requested set after proving it is a subset of the IdP Service Grant.
+Derive source_biz, source_app, and source_env from the source Client's bound Resource Server. Never accept them from the request. The granted scope is the requested set after proving it is a subset of the Tianquan-Shoubing Service Grant.
 
 - [x] **Step 5: Replace the static RBAC bearer file**
 
-LocalServiceAccessTokenSupplier obtains a short-lived SERVICE token through the same ClientCredentialsAccessPolicy and signing path, caches it only until a renewal skew, and supplies it to the existing RBAC3 HTTP adapters. Production configuration points to an owner-only private key file and explicit client/kid; remove the static bearer-file property and class.
+LocalServiceAccessTokenSupplier obtains a short-lived SERVICE token through the same ClientCredentialsAccessPolicy and signing path, caches it only until a renewal skew, and supplies it to the existing Tianquan-Jianshen HTTP adapters. Production configuration points to an owner-only private key file and explicit client/kid; remove the static bearer-file property and class.
 
-- [x] **Step 6: Run IdP OAuth and replay tests**
+- [x] **Step 6: Run Tianquan-Shoubing OAuth and replay tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-admin -am \
@@ -528,43 +528,43 @@ LocalServiceAccessTokenSupplier obtains a short-lived SERVICE token through the 
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
-git commit -m "feat(idp): authorize service client credentials"
+git commit -m "feat(tianquan-shoubing): authorize service client credentials"
 ~~~
 
 ---
 
-## Task 7: Add Admission Endpoint and IdP Starter Admission Client
+## Task 7: Add Admission Endpoint and Tianquan-Shoubing Starter Admission Client
 
 **Files:**
 
-- Create: idp-core/core/resource/AdmissionRequest.java
-- Create: idp-core/core/resource/AdmissionTicketClaims.java
-- Create: idp-admin/resource/controller/ResourceServerAdmissionController.java
-- Create: idp-admin/resource/service/impl/ResourceServerAdmissionServiceImpl.java
-- Modify: idp-admin/token/service/impl/Rs256TokenService.java
-- Create in DDC Starter:
+- Create: tianquan-shoubing-core/core/resource/AdmissionRequest.java
+- Create: tianquan-shoubing-core/core/resource/AdmissionTicketClaims.java
+- Create: tianquan-shoubing-admin/resource/controller/ResourceServerAdmissionController.java
+- Create: tianquan-shoubing-admin/resource/service/impl/ResourceServerAdmissionServiceImpl.java
+- Modify: tianquan-shoubing-admin/token/service/impl/Rs256TokenService.java
+- Create in Tianshu Starter:
   - api/extension/DdcAdmissionTicketSupplier.java
   - model/admission/DdcAdmissionRequest.java
   - model/admission/DdcAdmissionTicket.java
   - package-info.java for model.admission
-- Modify: idp-starter/pom.xml to depend on DDC Starter without creating a reverse dependency
-- Create in IdP Starter:
+- Modify: tianquan-shoubing-starter/pom.xml to depend on Tianshu Starter without creating a reverse dependency
+- Create in Tianquan-Shoubing Starter:
   - admission/PrivateKeyJwtAssertionFactory.java
   - admission/HttpResourceServerAdmissionClient.java
   - admission/CachingDdcAdmissionTicketSupplier.java
   - admission/OwnerOnlyPrivateKeyLoader.java
   - admission/package-info.java
-- Modify: idp-starter/autoconfigure/IdpStarterProperties.java
-- Modify: idp-starter/autoconfigure/IdpStarterAutoConfiguration.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/service/impl/ResourceServerAdmissionServiceImplTest.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/controller/ResourceServerAdmissionControllerTest.java
-- Create: idp-starter/src/test/java/top/egon/cola/platform/idp/starter/admission/OwnerOnlyPrivateKeyLoaderTest.java
-- Create: idp-starter/src/test/java/top/egon/cola/platform/idp/starter/admission/CachingDdcAdmissionTicketSupplierTest.java
-- Modify: idp-starter/src/test/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfigurationTest.java
+- Modify: tianquan-shoubing-starter/autoconfigure/IdpStarterProperties.java
+- Modify: tianquan-shoubing-starter/autoconfigure/IdpStarterAutoConfiguration.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/service/impl/ResourceServerAdmissionServiceImplTest.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/controller/ResourceServerAdmissionControllerTest.java
+- Create: tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan-shoubing/starter/admission/OwnerOnlyPrivateKeyLoaderTest.java
+- Create: tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan-shoubing/starter/admission/CachingDdcAdmissionTicketSupplierTest.java
+- Modify: tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan-shoubing/starter/autoconfigure/IdpStarterAutoConfigurationTest.java
 
 - [x] **Step 1: Write failing endpoint and starter tests**
 
-Test assertion binding to admission endpoint, exact triple and instance, separate typ/token_use/aud, ticket TTL, replay, key rotation, owner-only absolute private-key path, caching, renewal skew, and IdP-unavailable fail-closed behavior.
+Test assertion binding to admission endpoint, exact triple and instance, separate typ/token_use/aud, ticket TTL, replay, key rotation, owner-only absolute private-key path, caching, renewal skew, and Tianquan-Shoubing-unavailable fail-closed behavior.
 
 - [x] **Step 2: Confirm tests fail**
 
@@ -581,25 +581,25 @@ Sign:
 ~~~text
 typ=rs-admission+jwt
 token_use=resource_server_admission
-aud=ddc-registry
+aud=tianshu-registry
 sub=resourceServerId
 resource, resource_version, biz, app, env, instance_id, credential_id
 ~~~
 
 The endpoint returns the JWT plus expiresAt for local renewal scheduling. It does not create an instance approval record.
 
-- [x] **Step 4: Implement the dependency-neutral DDC SPI**
+- [x] **Step 4: Implement the dependency-neutral Tianshu SPI**
 
-DDC Starter owns only the request/ticket interface. IdP Starter implements it. This preserves:
+Tianshu Starter owns only the request/ticket interface. Tianquan-Shoubing Starter implements it. This preserves:
 
 ~~~text
-idp-starter -> ddc-starter
-ddc-starter -X-> idp-starter
+tianquan-shoubing-starter -> tianshu-starter
+tianshu-starter -X-> tianquan-shoubing-starter
 ~~~
 
-Do not add any IdP type to DDC public models.
+Do not add any Tianquan-Shoubing type to Tianshu public models.
 
-- [x] **Step 5: Wire IdP Starter admission properties**
+- [x] **Step 5: Wire Tianquan-Shoubing Starter admission properties**
 
 Require resourceServerId, resourceUri, bizCode, appCode, env, instanceId, managementClientId, kid, absolute privateKeyPath, admissionEndpoint, and renewalSkew. Validate the configured URI/triple against the returned Ticket.
 
@@ -616,16 +616,16 @@ Require resourceServerId, resourceUri, bizCode, appCode, env, instanceId, manage
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter
-git commit -m "feat(idp): issue resource admission tickets"
+git commit -m "feat(tianquan-shoubing): issue resource admission tickets"
 ~~~
 
 ---
 
-## Task 8: Carry Admission Tickets Through DDC Models and Protobuf
+## Task 8: Carry Admission Tickets Through Tianshu Models and Protobuf
 
 **Files:**
 
-- Modify DDC Starter:
+- Modify Tianshu Starter:
   - model/config/DdcInstanceRegisterRequest.java
   - model/config/DdcHeartbeatRequest.java
   - model/registry/DdcServiceRegistration.java
@@ -637,27 +637,27 @@ git commit -m "feat(idp): issue resource admission tickets"
 - Modify HTTP Registration Starter:
   - DdcHttpRegistrationRuntime.java
   - DdcHttpRegistrationAutoConfiguration.java
-- Modify RPC DDC Adapter producer boundaries:
+- Modify RPC Tianshu Adapter producer boundaries:
   - registry/DdcRpcProviderRegistry.java
   - autoconfigure/DdcRpcAutoConfiguration.java
-- Modify Gateway Engine producer boundary:
+- Modify Yuheng Engine producer boundary:
   - rpc/RpcGatewaySlotRuntime.java
   - GatewayEngineConfiguration.java
-- Modify RPC DDC Adapter:
-  - src/main/proto/ddc_config_runtime.proto
-  - src/main/proto/ddc_service_registry.proto
-  - src/main/proto/ddc_common.proto
+- Modify RPC Tianshu Adapter:
+  - src/main/proto/tianshu_config_runtime.proto
+  - src/main/proto/tianshu_service_registry.proto
+  - src/main/proto/tianshu_common.proto
   - mapping/DdcConfigProtoMapper.java
   - mapping/DdcRegistryProtoMapper.java
   - mapping/DdcCommonProtoMapper.java
   - client/config/RpcDdcConfigClient.java
   - client/registry/RpcDdcServiceRegistryClient.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/mapping/DdcConfigProtoMapperTest.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/mapping/DdcRegistryProtoMapperTest.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/contract/DdcRpcContractDescriptorTest.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/contract/DdcRpcGeneratedContractTest.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/client/RpcDdcConfigClientTest.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/client/RpcDdcServiceRegistryClientTest.java
+  - src/test/java/top/egon/cola/component/rpc/tianshu/mapping/DdcConfigProtoMapperTest.java
+  - src/test/java/top/egon/cola/component/rpc/tianshu/mapping/DdcRegistryProtoMapperTest.java
+  - src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcRpcContractDescriptorTest.java
+  - src/test/java/top/egon/cola/component/rpc/tianshu/contract/DdcRpcGeneratedContractTest.java
+  - src/test/java/top/egon/cola/component/rpc/tianshu/client/RpcDdcConfigClientTest.java
+  - src/test/java/top/egon/cola/component/rpc/tianshu/client/RpcDdcServiceRegistryClientTest.java
 
 - [x] **Step 1: Write failing model and protobuf mapping tests**
 
@@ -711,7 +711,7 @@ acquire a Ticket from the exact outgoing triple/instance, and attach it to the
 registration or heartbeat. This avoids a temporary unauthenticated production
 constructor between Tasks 8 and 10.
 
-- [x] **Step 5: Run DDC Starter and RPC adapter tests**
+- [x] **Step 5: Run Tianshu Starter and RPC adapter tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianshu-starter,:egon-cola-component-rpc-tianshu-adapter -am test
@@ -722,16 +722,16 @@ constructor between Tasks 8 and 10.
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter
-git commit -m "feat(ddc): carry resource admission tickets"
+git commit -m "feat(tianshu): carry resource admission tickets"
 ~~~
 
 ---
 
-## Task 9: Verify Admission and Cap DDC Leases
+## Task 9: Verify Admission and Cap Tianshu Leases
 
 **Files:**
 
-- Create under DDC Admin security/admission:
+- Create under Tianshu Admin security/admission:
   - DdcAdmissionVerifier.java
   - IdpJwtDdcAdmissionVerifier.java
   - DdcAdmissionClaims.java
@@ -775,7 +775,7 @@ DdcAdmissionClaims verify(
         String instanceId);
 ~~~
 
-Validate IdP signature/JWK, typ, token_use, issuer, ddc-registry audience, time, exact binding, and ACTIVE/current Resource projection. Use Spring Security JWT/JWK support already present in DDC Admin; do not add another JWT library.
+Validate Tianquan-Shoubing signature/JWK, typ, token_use, issuer, tianshu-registry audience, time, exact binding, and ACTIVE/current Resource projection. Use Spring Security JWT/JWK support already present in Tianshu Admin; do not add another JWT library.
 
 - [x] **Step 4: Cap and persist leases**
 
@@ -793,11 +793,11 @@ Persist resourceServerId, resourceVersion, credentialId, and admissionExpiresAt:
 
 Never persist the raw Ticket or assertion.
 
-- [x] **Step 5: Add one V8 per supported DDC dialect**
+- [x] **Step 5: Add one V8 per supported Tianshu dialect**
 
 Both files are the next version of separate Flyway histories and represent the same logical schema change. Do not edit V1 through V7.
 
-- [x] **Step 6: Run DDC Admin tests**
+- [x] **Step 6: Run Tianshu Admin tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianshu-admin -am \
@@ -809,7 +809,7 @@ Both files are the next version of separate Flyway histories and represent the s
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin
-git commit -m "feat(ddc): verify resource admission leases"
+git commit -m "feat(tianshu): verify resource admission leases"
 ~~~
 
 ---
@@ -818,19 +818,19 @@ git commit -m "feat(ddc): verify resource admission leases"
 
 **Files:**
 
-- Modify DDC Starter:
+- Modify Tianshu Starter:
   - service/lifecycle/DdcRuntimeCoordinator.java
-  - src/test/java/top/egon/cola/component/ddc/service/lifecycle/DdcRuntimeCoordinatorTest.java
+  - src/test/java/top/egon/cola/component/tianshu/service/lifecycle/DdcRuntimeCoordinatorTest.java
 - Modify HTTP Registration Starter:
   - DdcHttpRegistrationRuntime.java
-  - src/test/java/top/egon/cola/component/ddc/http/registration/DdcHttpRegistrationRuntimeTest.java
-- Modify RPC DDC Adapter:
+  - src/test/java/top/egon/cola/component/tianshu/http/registration/DdcHttpRegistrationRuntimeTest.java
+- Modify RPC Tianshu Adapter:
   - registry/DdcRpcProviderRegistry.java
-  - src/test/java/top/egon/cola/component/rpc/ddc/registry/DdcRpcProviderRegistryTest.java
-- Modify Gateway Engine:
+  - src/test/java/top/egon/cola/component/rpc/tianshu/registry/DdcRpcProviderRegistryTest.java
+- Modify Yuheng Engine:
   - rpc/RpcGatewaySlotRuntime.java
   - GatewayEngineConfiguration.java
-  - src/test/java/top/egon/cola/component/gateway/engine/rpc/RpcGatewaySlotRuntimeTest.java
+  - src/test/java/top/egon/cola/component/yuheng/engine/rpc/RpcGatewaySlotRuntimeTest.java
 
 - [x] **Step 1: Write producer-side renewal tests**
 
@@ -839,7 +839,7 @@ For each role, assert:
 - Ticket is acquired before initial registration;
 - current ticket is attached to every heartbeat;
 - renewal occurs before expiresAt minus skew;
-- IdP failure before initial registration prevents Ready;
+- Tianquan-Shoubing failure before initial registration prevents Ready;
 - renewal failure moves the subsystem out of Ready and does not extend the lease;
 - deregistration still runs best-effort during shutdown without requiring a fresh Ticket;
 - no ordinary admission.enabled=false property exists.
@@ -855,13 +855,13 @@ For each role, assert:
 - [x] **Step 3: Enforce renewal timing at actual registration boundaries**
 
 Use the DdcAdmissionTicketSupplier injection added in Task 8. Acquire using the
-same DdcAdmissionRequest triple and instance used in the outgoing DDC request.
+same DdcAdmissionRequest triple and instance used in the outgoing Tianshu request.
 Renew before expiresAt minus skew. Do not obtain a Ticket in generic application
 bootstrap code and pass it through metadata.
 
 - [x] **Step 4: Make readiness follow authenticated lease state**
 
-CONFIG_CLIENT, HTTP_PROVIDER, RPC_PROVIDER, and INTERNAL_GATEWAY are Ready only while their DDC lease was established or renewed with a non-expired Ticket. Preserve existing recovery state machines and add the admission failure as the cause; do not create parallel schedulers where an existing heartbeat scheduler is available.
+CONFIG_CLIENT, HTTP_PROVIDER, RPC_PROVIDER, and INTERNAL_GATEWAY are Ready only while their Tianshu lease was established or renewed with a non-expired Ticket. Preserve existing recovery state machines and add the admission failure as the cause; do not create parallel schedulers where an existing heartbeat scheduler is available.
 
 - [x] **Step 5: Run producer tests**
 
@@ -875,48 +875,48 @@ CONFIG_CLIENT, HTTP_PROVIDER, RPC_PROVIDER, and INTERNAL_GATEWAY are Ready only 
 git add egon-cola-xingyuan/egon-cola-tianshu \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway
-git commit -m "feat(ddc): authenticate runtime registrations"
+git commit -m "feat(tianshu): authenticate runtime registrations"
 ~~~
 
 ---
 
-## Task 11: Revoke DDC Leases from Resource Disable Outbox Events
+## Task 11: Revoke Tianshu Leases from Resource Disable Outbox Events
 
 **Files:**
 
-- Modify: idp-admin/pom.xml to use egon-cola-component-transactional-outbox-starter
-- Create under idp-admin/resource/support/outbox:
+- Modify: tianquan-shoubing-admin/pom.xml to use egon-cola-component-transactional-outbox-starter
+- Create under tianquan-shoubing-admin/resource/support/outbox:
   - TransactionalOutboxResourceServerEventAdapter.java
   - DdcResourceServerLifecycleDeliveryHandler.java
   - package-info.java
 - Modify resource service/configuration from Task 3
-- Modify RPC DDC Adapter:
-  - src/main/proto/ddc_management.proto
+- Modify RPC Tianshu Adapter:
+  - src/main/proto/tianshu_management.proto
   - mapping/DdcManagementProtoMapper.java
   - client management contract and tests
-- Create in DDC Admin:
+- Create in Tianshu Admin:
   - service/lease/DdcResourceAdmissionRevocationService.java
   - RPC provider method for idempotent triple revocation
 - Modify:
   - DdcConfigLeaseRedisRepository.java
   - DdcServiceRegistryRedisRepository.java
   - DdcInstanceRepository.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapterTest.java
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/resource/support/outbox/DdcResourceServerLifecycleDeliveryHandlerTest.java
-- Create: ddc-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcResourceAdmissionRevocationServiceTest.java
-- Modify: ddc-admin/src/test/java/top/egon/cola/component/ddc/admin/rpc/provider/DdcManagementRpcProviderTest.java
-- Modify: rpc-ddc-adapter/src/test/java/top/egon/cola/component/rpc/ddc/mapping/DdcManagementProtoMapperTest.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/support/outbox/TransactionalOutboxResourceServerEventAdapterTest.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/resource/support/outbox/DdcResourceServerLifecycleDeliveryHandlerTest.java
+- Create: tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/lease/DdcResourceAdmissionRevocationServiceTest.java
+- Modify: tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcManagementRpcProviderTest.java
+- Modify: rpc-tianshu-adapter/src/test/java/top/egon/cola/component/rpc/tianshu/mapping/DdcManagementProtoMapperTest.java
 
 - [x] **Step 1: Write failing disable and idempotency tests**
 
-Disable permission/idp/prod and assert:
+Disable permission/tianquan-shoubing/prod and assert:
 
 - IDENTITY_RESOURCE_SERVER_DISABLED is enqueued in the same transaction as status/version change;
 - payload contains resourceServerId, bizCode, appCode, env, and resourceVersion, but no key material;
-- DDC revokes matching CONFIG_CLIENT and provider leases;
-- permission/rbac3/prod remains online;
+- Tianshu revokes matching CONFIG_CLIENT and provider leases;
+- permission/tianquan-jianshen/prod remains online;
 - replaying the same event/version is a successful no-op;
-- transient DDC failure is retryable and the outbox record remains pending.
+- transient Tianshu failure is retryable and the outbox record remains pending.
 
 - [x] **Step 2: Confirm tests fail**
 
@@ -930,9 +930,9 @@ Disable permission/idp/prod and assert:
 
 Use channel identity-resource-runtime and destination identity.resource-server.disabled.v1. Keep the existing IdentityOutboxPublisher unchanged for its current user-state/audit responsibility; it is not a delivery engine. The new resource event uses the supported component rather than adding custom polling.
 
-- [x] **Step 4: Deliver an idempotent DDC management command**
+- [x] **Step 4: Deliver an idempotent Tianshu management command**
 
-The delivery handler calls the DDC management client. DDC verifies the event version, revokes exact-triple config and provider leases, marks persisted config instances offline, and publishes the existing registry change notifications. Gateway removal then occurs through its existing DDC subscription path.
+The delivery handler calls the Tianshu management client. Tianshu verifies the event version, revokes exact-triple config and provider leases, marks persisted config instances offline, and publishes the existing registry change notifications. Yuheng removal then occurs through its existing Tianshu subscription path.
 
 - [x] **Step 5: Run outbox and revocation tests**
 
@@ -948,29 +948,29 @@ The delivery handler calls the DDC management client. DDC verifies the event ver
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin \
   egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-tianshu-adapter
-git commit -m "feat(idp): revoke disabled resource leases"
+git commit -m "feat(tianquan-shoubing): revoke disabled resource leases"
 ~~~
 
 ---
 
-## Task 12: Make IdP Starter Validate Exact USER and SERVICE Resource Tokens
+## Task 12: Make Tianquan-Shoubing Starter Validate Exact USER and SERVICE Resource Tokens
 
 **Files:**
 
 - Modify:
-  - idp-starter/autoconfigure/IdpStarterProperties.java
-  - idp-starter/autoconfigure/IdpStarterAutoConfiguration.java
-  - idp-starter/security/IdpJwtVerifier.java
-  - idp-starter/security/IdpAuthenticationToken.java
-  - idp-starter/security/IdpBearerAuthenticationFilter.java
+  - tianquan-shoubing-starter/autoconfigure/IdpStarterProperties.java
+  - tianquan-shoubing-starter/autoconfigure/IdpStarterAutoConfiguration.java
+  - tianquan-shoubing-starter/security/IdpJwtVerifier.java
+  - tianquan-shoubing-starter/security/IdpAuthenticationToken.java
+  - tianquan-shoubing-starter/security/IdpBearerAuthenticationFilter.java
 - Create:
-  - idp-starter/state/IdentityResourceServerState.java
-  - idp-starter/state/IdentityResourceServerStateReader.java
-  - idp-starter/state/RedisIdentityResourceServerStateReader.java
-  - idp-starter/state/IdentityOAuthClientStateReader.java
-  - idp-starter/state/RedisIdentityOAuthClientStateReader.java
-  - idp-starter/security/RequiresServiceScope.java
-  - idp-starter/security/ServiceScopeAuthorization.java
+  - tianquan-shoubing-starter/state/IdentityResourceServerState.java
+  - tianquan-shoubing-starter/state/IdentityResourceServerStateReader.java
+  - tianquan-shoubing-starter/state/RedisIdentityResourceServerStateReader.java
+  - tianquan-shoubing-starter/state/IdentityOAuthClientStateReader.java
+  - tianquan-shoubing-starter/state/RedisIdentityOAuthClientStateReader.java
+  - tianquan-shoubing-starter/security/RequiresServiceScope.java
+  - tianquan-shoubing-starter/security/ServiceScopeAuthorization.java
 - Modify package-info.java and all Starter tests
 
 - [x] **Step 1: Replace existing verifier tests with the complete matrix**
@@ -984,7 +984,7 @@ Assert:
 - SERVICE requires active CONFIDENTIAL source client state and produces ServiceIdentityPrincipal;
 - Admission Ticket is rejected as an access token;
 - projection missing/malformed/stale or Redis unavailable is invalid_token;
-- direct backend access gets the same result as Gateway-routed access;
+- direct backend access gets the same result as Yuheng-routed access;
 - internal paths are no longer globally skipped;
 - SERVICE scope mismatch returns 403, while token/resource failures return 401.
 
@@ -1010,7 +1010,7 @@ USER and SERVICE share signature, issuer, time, exact Resource, and Resource pro
 @RequiresServiceScope("service:authorization:snapshot")
 ~~~
 
-The guard accepts only an authenticated ServiceIdentityPrincipal and checks its signed scope set. It does not call RBAC3 or a remote service.
+The guard accepts only an authenticated ServiceIdentityPrincipal and checks its signed scope set. It does not call Tianquan-Jianshen or a remote service.
 
 - [x] **Step 6: Run all Starter tests**
 
@@ -1023,37 +1023,37 @@ The guard accepts only an authenticated ServiceIdentityPrincipal and checks its 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter \
   egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
-git commit -m "feat(idp): verify user and service resource tokens"
+git commit -m "feat(tianquan-shoubing): verify user and service resource tokens"
 ~~~
 
 ---
 
-## Task 13: Remove RBAC3 Service Permissions and Protect Internal APIs with IdP Scopes
+## Task 13: Remove Tianquan-Jianshen Service Permissions and Protect Internal APIs with Tianquan-Shoubing Scopes
 
 **Files:**
 
 - Modify:
-  - rbac3-admin/interfaces/http/InternalIdentityController.java
-  - rbac3-admin/interfaces/http/InternalAuthorizationController.java
-  - rbac3-admin/interfaces/http/ParticipationController.java
-  - rbac3-admin/authorization/application/AuthorizationDecisionService.java
-  - rbac3-admin/participation/application/ParticipationFacade.java
-  - rbac3-admin/tenant/TenantContextResolver.java
-  - rbac3-admin/security/Rbac3AdminSecurityConfiguration.java
-  - rbac3-admin/security/Rbac3JwtAuthenticationConverter.java
-  - rbac3-admin/security/Rbac3MethodAuthorization.java
+  - tianquan-jianshen-admin/interfaces/http/InternalIdentityController.java
+  - tianquan-jianshen-admin/interfaces/http/InternalAuthorizationController.java
+  - tianquan-jianshen-admin/interfaces/http/ParticipationController.java
+  - tianquan-jianshen-admin/authorization/application/AuthorizationDecisionService.java
+  - tianquan-jianshen-admin/participation/application/ParticipationFacade.java
+  - tianquan-jianshen-admin/tenant/TenantContextResolver.java
+  - tianquan-jianshen-admin/security/Rbac3AdminSecurityConfiguration.java
+  - tianquan-jianshen-admin/security/Rbac3JwtAuthenticationConverter.java
+  - tianquan-jianshen-admin/security/Rbac3MethodAuthorization.java
 - Delete:
-  - rbac3-admin/security/CurrentRbac3ServicePrincipal.java
-  - rbac3-admin/security/RequiresRbac3ServicePermission.java
-- Modify: rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalIdentityControllerTest.java
-- Modify: rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationControllerTest.java
-- Modify: rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/participation/ParticipationConcurrencyIT.java
-- Modify: rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/tenant/TenantContextFilterTest.java
-- Modify: rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/authorization/AuthorizationDecisionServiceTest.java
+  - tianquan-jianshen-admin/security/CurrentRbac3ServicePrincipal.java
+  - tianquan-jianshen-admin/security/RequiresRbac3ServicePermission.java
+- Modify: tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/InternalIdentityControllerTest.java
+- Modify: tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/InternalAuthorizationControllerTest.java
+- Modify: tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/participation/ParticipationConcurrencyIT.java
+- Modify: tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/tenant/TenantContextFilterTest.java
+- Modify: tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/authorization/AuthorizationDecisionServiceTest.java
 
-- [x] **Step 1: Write tests proving RBAC3 no longer owns machine permissions**
+- [x] **Step 1: Write tests proving Tianquan-Jianshen no longer owns machine permissions**
 
-Use IdP ServiceIdentityPrincipal fixtures. Assert internal endpoints accept a valid target Resource Token with the required scope and reject:
+Use Tianquan-Shoubing ServiceIdentityPrincipal fixtures. Assert internal endpoints accept a valid target Resource Token with the required scope and reject:
 
 - USER tokens on SERVICE-only endpoints;
 - SERVICE tokens for another Resource;
@@ -1071,7 +1071,7 @@ Also assert no repository or snapshot query is made merely to authorize a SERVIC
   -Dsurefire.failIfNoSpecifiedTests=false test
 ~~~
 
-- [x] **Step 3: Change endpoint annotations from RBAC permission to IdP scope**
+- [x] **Step 3: Change endpoint annotations from RBAC permission to Tianquan-Shoubing scope**
 
 Preserve the current strings as OAuth scope identifiers to minimize API churn:
 
@@ -1085,13 +1085,13 @@ service:participation:write
 service:participation:read
 ~~~
 
-These codes are now granted only by IdP identity_client_resource_grant.allowed_scopes. RBAC3 does not store or evaluate them as permissions.
+These codes are now granted only by Tianquan-Shoubing identity_client_resource_grant.allowed_scopes. Tianquan-Jianshen does not store or evaluate them as permissions.
 
 - [x] **Step 4: Replace CurrentRbac3ServicePrincipal**
 
 Controllers and application services receive ServiceIdentityPrincipal. TenantContextResolver derives tenant from its tid, and source-application constraints use source_app. Rbac3MethodAuthorization remains USER-only after the service branch is removed.
 
-- [x] **Step 5: Run RBAC3 tests and residual scan**
+- [x] **Step 5: Run Tianquan-Jianshen tests and residual scan**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianquan-jianshen-admin -am test
@@ -1105,23 +1105,23 @@ Expected residual scan result: no active source or test references.
 
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-jianshen
-git commit -m "refactor(rbac3): delegate service access to idp"
+git commit -m "refactor(tianquan-jianshen): delegate service access to tianquan-shoubing"
 ~~~
 
 ---
 
-## Task 14: Resolve Exact Route Resources in Gateway and Map Both Principal Types
+## Task 14: Resolve Exact Route Resources in Yuheng and Map Both Principal Types
 
 **Files:**
 
-- Modify Gateway Core/Engine:
+- Modify Yuheng Core/Engine:
   - engine/http/RuleBackedHttpGatewaySecurityProcessor.java
   - engine/rpc/RuleBackedRpcGatewaySecurityProcessor.java
   - engine/mcp/McpGatewayIdentityAuthenticator.java
   - Create engine/http/RuleBackedHttpGatewaySecurityProcessorTest.java
   - Create engine/rpc/RuleBackedRpcGatewaySecurityProcessorTest.java
   - Create engine/mcp/McpGatewayIdentityAuthenticatorTest.java
-- Modify IdP Gateway Adapter:
+- Modify Tianquan-Shoubing Yuheng Adapter:
   - autoconfigure/IdpGatewayAdapterProperties.java
   - autoconfigure/IdpGatewayAdapterAutoConfiguration.java
   - security/IdpGatewayJwtVerifier.java
@@ -1129,25 +1129,25 @@ git commit -m "refactor(rbac3): delegate service access to idp"
   - security/IdpTrustedIdentityMapper.java
   - add GatewayResourceServerResolver.java and tests
 - Rename MCP runtime/control-plane resource field where active:
-  - gateway-contract McpRuntimeServer.java
-  - gateway-admin MCP controller/service/entity
-  - gateway-mcp-core descriptions
-  - gateway-admin-web TypeScript field/label only as a contract-alignment change, without adding UI features
-- Create: gateway-admin/src/main/resources/db/migration/V11__rename_mcp_oauth_resource.sql
-- Update Gateway migration, contract, admin, engine, and adapter tests
+  - yuheng-contract McpRuntimeServer.java
+  - yuheng-admin MCP controller/service/entity
+  - yuheng-mcp-core descriptions
+  - yuheng-admin-web TypeScript field/label only as a contract-alignment change, without adding UI features
+- Create: yuheng-admin/src/main/resources/db/migration/V11__rename_mcp_oauth_resource.sql
+- Update Yuheng migration, contract, admin, engine, and adapter tests
 
 - [x] **Step 1: Write route-binding and principal mapping tests**
 
 Cover:
 
 - HTTP and RPC route triple resolves the ACTIVE Resource projection;
-- A token on B route returns IDP_RESOURCE_AUDIENCE_MISMATCH;
+- A token on B route returns TIANQUAN_SHOUBING_RESOURCE_AUDIENCE_MISMATCH;
 - same biz but different app still fails;
 - stale Resource version fails;
-- USER maps to Gateway principal type USER and user headers;
+- USER maps to Yuheng principal type USER and user headers;
 - SERVICE maps to type SERVICE and source/scopes headers;
 - client-supplied X-Egon user/service headers are removed before trusted headers are written;
-- Gateway performs no RBAC3 call.
+- Yuheng performs no Tianquan-Jianshen call.
 
 - [x] **Step 2: Confirm tests fail with static audiences and USER-only mapping**
 
@@ -1162,22 +1162,22 @@ Cover:
 HTTP and RPC security processors add only server-derived attributes:
 
 ~~~text
-idp.biz-code
-idp.app-code
-idp.env
+tianquan-shoubing.biz-code
+tianquan-shoubing.app-code
+tianquan-shoubing.env
 ~~~
 
 GatewayResourceServerResolver uses the Redis scope index to resolve the Resource URI/version. It never trusts request headers or a caller-supplied audience. IdpGatewayJwtVerifier delegates the final token checks to the shared IdpJwtVerifier with the resolved Resource expectation.
 
 - [x] **Step 4: Align MCP with a Resource URI**
 
-Rename the active MCP OAuth field from a free audience string to resourceUri and validate it as an absolute fragment-free URI. If the database column is renamed, add only Gateway V11 and leave V1 through V10 untouched. The frontend change is limited to the existing field name/type/label and is not a new management feature.
+Rename the active MCP OAuth field from a free audience string to resourceUri and validate it as an absolute fragment-free URI. If the database column is renamed, add only Yuheng V11 and leave V1 through V10 untouched. The frontend change is limited to the existing field name/type/label and is not a new management feature.
 
 - [x] **Step 5: Map and sanitize trusted identity**
 
 USER headers contain subject, tenant, session, client, token, and Resource. SERVICE headers contain subject/client, tenant, source triple, scopes, credential, token, and Resource. Clear both header families before writing the one selected by principal_type.
 
-- [x] **Step 6: Run Gateway and adapter tests**
+- [x] **Step 6: Run Yuheng and adapter tests**
 
 ~~~bash
 ./mvnw -B -ntp -pl :egon-cola-tianquan-shoubing-gateway-adapter,:yuheng-biz-gateway,:yuheng-admin -am test
@@ -1188,7 +1188,7 @@ USER headers contain subject, tenant, session, client, token, and Resource. SERV
 ~~~bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter \
   egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): bind tokens to route resources"
+git commit -m "feat(yuheng): bind tokens to route resources"
 ~~~
 
 ---
@@ -1219,26 +1219,26 @@ git commit -m "feat(gateway): bind tokens to route resources"
   - egon-cola-xingyuan/egon-cola-yuheng/README.md
   - egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md
 - Modify the approved spec status and add implementation/operation notes without changing approved business decisions
-- Create: idp-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java
-- Create: ddc-test/src/test/java/top/egon/cola/component/ddc/test/DdcResourceAdmissionLifecycleTest.java
-- Create: idp-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayResourceBindingTest.java
-- Create: rbac3-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3UserResourceAuthorizationIT.java
+- Create: tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java
+- Create: tianshu-test/src/test/java/top/egon/cola/component/tianshu/test/DdcResourceAdmissionLifecycleTest.java
+- Create: tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpGatewayResourceBindingTest.java
+- Create: tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3UserResourceAuthorizationIT.java
 - Do not add a new standalone test module
 
 - [x] **Step 1: Add the final acceptance tests before cleanup**
 
 Create focused integration tests for:
 
-1. registered permission/idp/prod instance admitted; forged permission/rbac3/prod instance rejected;
+1. registered permission/tianquan-shoubing/prod instance admitted; forged permission/tianquan-jianshen/prod instance rejected;
 2. two instances of the same triple admitted without approval records;
 3. USER with A entry permission gets A token and cannot get/use B token;
-4. USER A token plus missing interface permission returns 403 from RBAC3 downstream;
-5. SERVICE grant issues a single-resource, single-tenant token without RBAC3 calls;
-6. SERVICE missing target/tenant/scope grant is denied at IdP;
+4. USER A token plus missing interface permission returns 403 from Tianquan-Jianshen downstream;
+5. SERVICE grant issues a single-resource, single-tenant token without Tianquan-Jianshen calls;
+6. SERVICE missing target/tenant/scope grant is denied at Tianquan-Shoubing;
 7. SERVICE missing operation scope returns 403 downstream;
-8. disable idp revokes only idp DDC leases and stops new tokens/tickets;
-9. IdP unavailable permits no new admission and no lease extension beyond current Ticket expiry;
-10. direct backend access enforces the same USER/SERVICE split as Gateway.
+8. disable tianquan-shoubing revokes only tianquan-shoubing Tianshu leases and stops new tokens/tickets;
+9. Tianquan-Shoubing unavailable permits no new admission and no lease extension beyond current Ticket expiry;
+10. direct backend access enforces the same USER/SERVICE split as Yuheng.
 
 - [x] **Step 2: Run the acceptance tests and record expected initial failures**
 
@@ -1261,8 +1261,8 @@ IdpGatewayAdapterProperties.audiences
 IdpGatewayAdapterProperties.clientIds
 identity_client_audience entity/repository
 FileServiceAuthorizationSupplier
-RBAC3 service permission principal/annotation
-unauthenticated DDC register or heartbeat
+Tianquan-Jianshen service permission principal/annotation
+unauthenticated Tianshu register or heartbeat
 ~~~
 
 Historical migration/spec text may retain terms when describing history. Active Java, YAML, API examples, and generated contracts may not.
@@ -1291,9 +1291,9 @@ The first scan must have no active result. Review every constructor result from 
   -am test
 ~~~
 
-Verification result (2026-08-11): the complete affected-module reactor passed. Gateway
-Admin passed 169 tests, RBAC3 Admin passed 150 tests, and IdP Admin passed 98 tests.
-Gateway schema discovery now supports only explicitly annotated arbitrary JSON boundaries,
+Verification result (2026-08-11): the complete affected-module reactor passed. Yuheng
+Admin passed 169 tests, Tianquan-Jianshen Admin passed 150 tests, and Tianquan-Shoubing Admin passed 98 tests.
+Yuheng schema discovery now supports only explicitly annotated arbitrary JSON boundaries,
 so the former three `Map<String, Object>` discovery failures are also green while the
 default schema path remains fail-closed.
 
@@ -1317,8 +1317,8 @@ git diff --name-only HEAD~15..HEAD -- \
   '*/src/main/resources/db/**/V*.sql'
 ~~~
 
-Review the output manually. Only IdP V2, the runtime-required IdP V3 transactional-outbox
-schema, DDC V8 for PostgreSQL/SQLite, and Gateway V11 may be new. No pre-existing migration
+Review the output manually. Only Tianquan-Shoubing V2, the runtime-required Tianquan-Shoubing V3 transactional-outbox
+schema, Tianshu V8 for PostgreSQL/SQLite, and Yuheng V11 may be new. No pre-existing migration
 may be modified, renamed, or deleted.
 
 - [x] **Step 8: Update documentation and spec status**
@@ -1329,8 +1329,8 @@ Document:
 - administrator provisioning order;
 - owner-only key generation/rotation;
 - USER versus SERVICE token claim examples with secret values omitted;
-- IdP Service Grant scope ownership;
-- DDC admission readiness/failure behavior;
+- Tianquan-Shoubing Service Grant scope ownership;
+- Tianshu admission readiness/failure behavior;
 - Resource disable/recovery behavior;
 - migration order and rollback limitations.
 
@@ -1347,28 +1347,28 @@ git add \
   docs/superpowers/plans/2026-08-10-oauth2-resource-server-admission.md \
   egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md \
   egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml \
-  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/controller/OAuthResourceSecurityMatrixIT.java \
   egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx \
   egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/api/types.ts \
   egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx \
-  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayResourceBindingTest.java \
+  egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpGatewayResourceBindingTest.java \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml \
-  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3UserResourceAuthorizationIT.java \
+  egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3UserResourceAuthorizationIT.java \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/oauthClient.ts \
   egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/auth/oauthClient.test.ts \
   egon-cola-xingyuan/egon-cola-tianshu/README.md \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/resources/application.yml \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.tsx \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/ddc/test/DdcResourceAdmissionLifecycleTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test/src/test/java/top/egon/cola/component/tianshu/test/DdcResourceAdmissionLifecycleTest.java \
   egon-cola-xingyuan/egon-cola-yuheng/README.md \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/auth/AuthContext.tsx \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/src/main/resources/application.yml
 git diff --cached --name-only
-git commit -m "test(idp): verify resource admission flows"
+git commit -m "test(tianquan-shoubing): verify resource admission flows"
 ~~~
 
 Before committing, compare git diff --cached --name-only with the Task 15 file
@@ -1381,18 +1381,18 @@ component-owned file.
 
 - [x] Resource Server uniqueness and trust boundary is bizCode + appCode + env, with one Resource URI per triple.
 - [x] Batch management expands explicit appCodes and stores no wildcard.
-- [x] IdP stores public keys only and authenticates private_key_jwt with replay protection.
-- [x] USER authorization uses resource, one aud, and RBAC3 entry decision at authorize/exchange/refresh.
+- [x] Tianquan-Shoubing stores public keys only and authenticates private_key_jwt with replay protection.
+- [x] USER authorization uses resource, one aud, and Tianquan-Jianshen entry decision at authorize/exchange/refresh.
 - [x] USER JWT contains identity/resource state only, not roles or permissions.
-- [x] Client Credentials uses IdP Service Grants for exact target, tenant, and scope and returns no refresh token.
-- [x] SERVICE token issuance and request authorization make no RBAC3 permission query.
-- [x] Admission Ticket is a distinct JWT and all DDC register/heartbeat paths require it.
-- [x] DDC lease expiry never exceeds Ticket expiry and audit state contains no raw credential.
+- [x] Client Credentials uses Tianquan-Shoubing Service Grants for exact target, tenant, and scope and returns no refresh token.
+- [x] SERVICE token issuance and request authorization make no Tianquan-Jianshen permission query.
+- [x] Admission Ticket is a distinct JWT and all Tianshu register/heartbeat paths require it.
+- [x] Tianshu lease expiry never exceeds Ticket expiry and audit state contains no raw credential.
 - [x] Resource disable reliably revokes only the matching triple.
-- [x] Gateway resolves Resource from trusted route identity and validates USER/SERVICE tokens without business authorization.
-- [x] Downstream Starter validates the exact Resource; USER continues into RBAC3 and SERVICE uses local scope checks.
+- [x] Yuheng resolves Resource from trusted route identity and validates USER/SERVICE tokens without business authorization.
+- [x] Downstream Starter validates the exact Resource; USER continues into Tianquan-Jianshen and SERVICE uses local scope checks.
 - [x] Legacy audience/static-client/static-service-permission paths are absent from active code/config.
 - [x] New Java code and packages have complete Chinese/English documentation.
 - [x] Targeted acceptance and the complete affected-module reactor pass with no remaining known suite failure.
 - [x] No existing Flyway migration changed.
-- [x] User-authorized runtime integration passed, and the four platform backends/frontends plus test services remain running for manual review.
+- [x] User-authorized runtime integration passed, and the four xingyuan backends/frontends plus test services remain running for manual review.

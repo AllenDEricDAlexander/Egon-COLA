@@ -1,23 +1,23 @@
-# GWS-12 Gateway Trace、可观测性与调用事件 Spec
+# GWS-12 Yuheng Trace、可观测性与调用事件 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01、GWS-03、GWS-04
 
 主模块：
 
-- `egon-cola-component-gateway-engine`
-- `egon-cola-component-gateway-contract`
-- `egon-cola-component-gateway-admin`
-- `egon-cola-component-gateway-test`
+- `egon-cola-component-yuheng-biz-gateway`
+- `egon-cola-component-yuheng-contract`
+- `egon-cola-component-yuheng-admin`
+- `egon-cola-component-yuheng-test`
 
 ## 1. 目标
 
-本 Spec 定义一次 Gateway 调用从入口到 Provider 的 Trace、结构化日志、指标和 Kafka
+本 Spec 定义一次 Yuheng 调用从入口到 Provider 的 Trace、结构化日志、指标和 Kafka
 调用事件闭环。
 
 核心原则：
@@ -51,7 +51,7 @@ Engine 按以下顺序选择 Trace：
 若 `traceparent` 与 `X-Trace-Id` 都合法但不一致，以 `traceparent` 为准，并增加冲突
 指标，不记录两个原始值。
 
-Gateway Admin 的管理 API 和 Starter OpenAPI 复用同一 Trace ID 校验器：接受前端或
+Yuheng Admin 的管理 API 和 Starter OpenAPI 复用同一 Trace ID 校验器：接受前端或
 Starter 的合法 Trace ID，缺失或非法时由 Admin 生成。Kafka 调用事件仍只能由 Engine
 生成。
 
@@ -168,7 +168,7 @@ responseBytes
 - Token/Secret/API Key；
 - Credential；
 - 可信身份 Header；
-- DDC/Kafka 配置；
+- Tianshu/Kafka 配置；
 - Query 中配置标记的敏感字段。
 
 默认不记录：
@@ -255,7 +255,7 @@ Group 一条。
 推荐：
 
 ```text
-topic = egon.gateway.call-events.v1
+topic = egon.yuheng.call-events.v1
 partitionKey(match)   = gatewayGroupId + ":" + operationId
 partitionKey(unmatch) = gatewayGroupId + ":" + eventId
 ```
@@ -324,11 +324,11 @@ GatewayCallEventV1
 - 未脱敏 Query；
 - Principal ID/业务身份属性；
 - Java Exception Stack；
-- DDC/Kafka Secret；
+- Tianshu/Kafka Secret；
 - Protobuf Payload；
 - Provider 业务响应文本。
 
-错误只保存标准 Category、Gateway Error Code 和受控诊断码。
+错误只保存标准 Category、Yuheng Error Code 和受控诊断码。
 
 ### 6.4 序列化
 
@@ -447,7 +447,7 @@ gateway_call_event_send_duration_seconds
 Admin 可启用独立 Consumer Group 消费调用事件：
 
 ```text
-group.id = egon-gateway-admin-observability-v1
+group.id = egon-yuheng-admin-observability-v1
 ```
 
 职责：
@@ -480,7 +480,7 @@ Schema 或 Engine 投递语义。
 
 ## 10. OpenTelemetry
 
-- Engine Request、Provider Attempt、DDC Apply、Kafka Send 形成 Span；
+- Engine Request、Provider Attempt、Tianshu Apply、Kafka Send 形成 Span；
 - Metric 使用 Micrometer Observation；
 - 没有配置 Collector 时仍保留日志、指标和 Kafka 事件；
 - Exporter 故障不能阻塞请求；
@@ -494,12 +494,12 @@ Schema 或 Engine 投递语义。
 egon:
   cola:
     component:
-      gateway:
+      yuheng:
         observability:
           trace-header: X-Trace-Id
           call-event:
             enabled: true
-            topic: egon.gateway.call-events.v1
+            topic: egon.yuheng.call-events.v1
             queue-capacity: 10000
             queue-max-bytes: 67108864
             shutdown-drain-timeout: 5s

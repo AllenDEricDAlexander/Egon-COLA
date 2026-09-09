@@ -39,7 +39,7 @@ This work will not include:
 - embedding or migrating the Vue UI into Egon-COLA;
 - new dynamic-thread-pool capabilities beyond the existing migrated capability set;
 - automatic dynamic thread pool starter injection into generated archetype projects;
-- complete RBAC, gateway aggregation, or frontend implementation for manifest consumption;
+- complete RBAC, yuheng aggregation, or frontend implementation for manifest consumption;
 - Flyway/database schema work unless a later requirement explicitly introduces persistent admin storage.
 
 ## Target Components Structure
@@ -187,7 +187,7 @@ Dynamic thread pool admin exposes a manifest endpoint under the admin API surfac
 - menu definitions;
 - permission definitions.
 
-The first implementation only needs to expose a deterministic backend contract. Gateway aggregation and frontend dynamic route consumption are outside this implementation scope.
+The first implementation only needs to expose a deterministic backend contract. Yuheng aggregation and frontend dynamic route consumption are outside this implementation scope.
 
 ### Test Module
 

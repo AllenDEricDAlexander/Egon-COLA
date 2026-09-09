@@ -985,7 +985,7 @@ top.egon.cola.component.dtp.test
 ```text
 1. components 工程不存放 UI。
 2. UI 统一放到独立前端工程。
-3. UI 通过 HTTP / RPC Gateway 调用 admin。
+3. UI 通过 HTTP / RPC Yuheng 调用 admin。
 4. UI 路由按组件动态挂载。
 5. UI 不反向影响 starter 设计。
 ```

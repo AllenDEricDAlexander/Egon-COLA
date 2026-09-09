@@ -1,25 +1,25 @@
-# GWS-10 Gateway Starter 接口定义上报 Spec
+# GWS-10 Yuheng Starter 接口定义上报 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01、GWS-02、GWS-09
 
 ## 1. 目标
 
-`gateway-starter` 安装在下游 HTTP/RPC Provider 应用中，只负责发现、规范化并向
-Gateway Admin 上报接口定义。
+`yuheng-starter` 安装在下游 HTTP/RPC Provider 应用中，只负责发现、规范化并向
+Yuheng Admin 上报接口定义。
 
 必须明确区分：
 
 ```text
-接口定义上报：Starter → Gateway Admin
-HTTP 实例注册：Provider Runtime → DDC
-RPC 实例注册：RPC Component → DDC
-接口调用事件：Gateway Engine → Kafka
+接口定义上报：Starter → Yuheng Admin
+HTTP 实例注册：Provider Runtime → Tianshu
+RPC 实例注册：RPC Component → Tianshu
+接口调用事件：Yuheng Engine → Kafka
 ```
 
 Starter 不拦截业务调用、不采集调用记录、不发送 Kafka、不维护 Provider 租约，也不
@@ -56,7 +56,7 @@ Starter 从框架最终 `RequestMapping` 模型读取，而不是只扫描注解
 - 不上报每次接口调用；
 - 不探测 Provider Host/Port；
 - 不注册 `HTTP_PROVIDER` 或续租；
-- 不向 DDC 写接口定义；
+- 不向 Tianshu 写接口定义；
 - 不自动创建公开 Route；
 - 不根据接口注解配置限流、熔断或业务鉴权；
 - 不上传方法实现、Java 字节码、源代码或 Secret；
@@ -92,10 +92,10 @@ Business Domain
 egon:
   cola:
     component:
-      gateway:
+      yuheng:
         reporting:
           enabled: true
-          admin-base-url: https://gateway-admin.internal
+          admin-base-url: https://yuheng-admin.internal
           application-code: order-service
           application-name: Order Service
           env: prod
@@ -143,7 +143,7 @@ HTTP Controller 和 RPC Provider Contract 均使用该分组语义。对于无�
 第三方 Controller，可通过配置映射补充：
 
 ```yaml
-egon.cola.component.gateway.reporting.group-mappings:
+egon.cola.component.yuheng.reporting.group-mappings:
   - type: com.example.order.OrderQueryController
     business-domain-code: trade
     entity-domain-code: order
@@ -186,7 +186,7 @@ RPC 方法未单独注解时也会从 Descriptor 上报，但 `externalAccessibl
 - 返回类型；
 - Jackson Property；
 - Jakarta Validation；
-- Deprecated 与 Gateway 注解。
+- Deprecated 与 Yuheng 注解。
 
 不把 Spring 内部管理 Endpoint、错误 Handler、Actuator 或 Starter 自身 Endpoint
 上报，排除规则必须显式并可测试。
@@ -244,7 +244,7 @@ description
 - Deprecated 信息；
 - 流式响应标记。
 
-示例可以来自项目已存在的 OpenAPI 注解或 Gateway 专用示例声明，但 Starter 不要求
+示例可以来自项目已存在的 OpenAPI 注解或 Yuheng 专用示例声明，但 Starter 不要求
 安装 Springdoc。示例按 Schema 校验并限制单项/总字节数，不能包含真实 Token、Cookie、
 手机号等生产数据；非法示例按严格模式失败或产生警告。
 
@@ -357,7 +357,7 @@ REPORTED
 
 1. 合法完整上报进入 VERIFIED；
 2. 自动激活要求存活 Provider Metadata 明确携带相同
-   `gateway.definition-set-id`；
+   `yuheng.definition-set-id`；
 3. 若无法建立 Provider 与 Definition Set 的关联，则由 Admin 人工激活；
 4. 新 Set 激活后，旧 Set 只在没有对应活跃 Provider 时 RETIRED；
 5. Operation 只有在所有活动 Definition Set 都缺失且未被活动 Route 引用时，才可
@@ -373,9 +373,9 @@ artifactVersion
 buildId
 ```
 
-- 该小型值对象定义在 `gateway-contract`，不依赖 Starter 实现类；
-- HTTP Provider Runtime 若同时安装，可把该身份作为非敏感 DDC Metadata 上报；
-- Gateway 提供的 RPC Metadata Contributor 可以读取同一 Bean；
+- 该小型值对象定义在 `yuheng-contract`，不依赖 Starter 实现类；
+- HTTP Provider Runtime 若同时安装，可把该身份作为非敏感 Tianshu Metadata 上报；
+- Yuheng 提供的 RPC Metadata Contributor 可以读取同一 Bean；
 - Starter 自己不创建、不续租任何 Lease；
 - Provider Runtime 未安装 Starter 时可通过显式配置提供关联 ID。
 
@@ -422,20 +422,20 @@ Admin 可确认时可避免重复上传大 Descriptor，但应用启动至少执
 使用 GWS-09：
 
 ```text
-POST /api/v1/gateway/openapi/interface-definitions/reports
-GET  /api/v1/gateway/openapi/interface-definitions/reports/{reportId}
+POST /api/v1/yuheng/openapi/interface-definitions/reports
+GET  /api/v1/yuheng/openapi/interface-definitions/reports/{reportId}
 ```
 
 Starter 使用 Spring `RestClient` 和公共 HMAC Signer，在独立有界上报 Worker 中调用；
 即使安装在 WebFlux Provider 中也不能阻塞其 EventLoop。连接、读取和总重试时间均有
 上限。
 
-Header 遵循 DDC HMAC 的统一规则，并增加：
+Header 遵循 Tianshu HMAC 的统一规则，并增加：
 
 ```text
-X-Gateway-Contract-Version
-X-Gateway-Application-Code
-X-Gateway-Report-Id
+X-Yuheng-Contract-Version
+X-Yuheng-Application-Code
+X-Yuheng-Report-Id
 ```
 
 Admin 响应：

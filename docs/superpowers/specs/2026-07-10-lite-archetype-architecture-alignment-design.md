@@ -401,7 +401,7 @@ The basic `verify.groovy` must assert:
 - Local and test profiles disable external integrations.
 - No active Java source references the old Student sample.
 - The V1 migration remains unchanged and exactly one V2 migration is added.
-- Maven Wrapper and existing cross-platform verification behavior remain intact.
+- Maven Wrapper and existing cross-xingyuan verification behavior remain intact.
 
 ## README And Developer Guidance
 

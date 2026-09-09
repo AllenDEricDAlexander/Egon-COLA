@@ -299,7 +299,7 @@ egon:
 
 ## Boundary
 
-V1.0 is an application-internal Spring AOP starter. It is not a gateway limiter, admin platform, database audit system, or full circuit breaker state machine.
+V1.0 is an application-internal Spring AOP starter. It is not a yuheng limiter, admin xingyuan, database audit system, or full circuit breaker state machine.
 ````
 
 - [ ] **Step 8: Verify Maven recognizes the new modules**

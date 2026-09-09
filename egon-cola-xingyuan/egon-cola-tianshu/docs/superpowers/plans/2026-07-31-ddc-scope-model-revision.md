@@ -1,4 +1,4 @@
-# DDC 作用域模型修订实施计划
+# Tianshu 作用域模型修订实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
@@ -12,11 +12,11 @@
 
 - 路径缩写：`<admin>/` = `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/`；`<starter>/` = `.../egon-cola-tianshu-starter/`；`<web>/` = `.../egon-cola-tianshu-admin-web/`。
 - 注册身份恒为 biz-ns-env-app：`DdcServiceKey` 增加 `bizCode`、`appCode`（构造必填）；canonical 序列化含两字段；Redis 注册/实例/catalog key 含 biz/app。
-- SDK 消费者零改动：appCode 取 `DdcProperties.appCode`（默认 default-app）；bizCode 新增配置 `egon.cola.component.ddc.biz-code`（`DdcProperties.bizCode`），注册时缺失抛错拒绝（错误提示"DDC biz-code is required"）。
-- 禁用门控：`biz/app/ns/env` 任一 `enabled=false` → 注册 `register` 与配置拉取 `pull` 返回 `DDC_SCOPE_DISABLED`（ResultRecord failure，DdcErrorStatus 新增枚举）；心跳/续租不校验；四实体状态 5 秒本地缓存。
-- 删除保护：biz 下有 app → `DDC_BIZ_IN_USE`；app 下有 ns → `DDC_APP_IN_USE`；ns 下有配置（任意 env）→ `DDC_NAMESPACE_IN_USE`；env 有配置引用或 Redis 注册 catalog → `DDC_ENV_IN_USE`。无子数据才可删；禁用不删数据。
+- SDK 消费者零改动：appCode 取 `DdcProperties.appCode`（默认 default-app）；bizCode 新增配置 `egon.cola.component.tianshu.biz-code`（`DdcProperties.bizCode`），注册时缺失抛错拒绝（错误提示"Tianshu biz-code is required"）。
+- 禁用门控：`biz/app/ns/env` 任一 `enabled=false` → 注册 `register` 与配置拉取 `pull` 返回 `TIANSHU_SCOPE_DISABLED`（ResultRecord failure，DdcErrorStatus 新增枚举）；心跳/续租不校验；四实体状态 5 秒本地缓存。
+- 删除保护：biz 下有 app → `TIANSHU_BIZ_IN_USE`；app 下有 ns → `TIANSHU_APP_IN_USE`；ns 下有配置（任意 env）→ `TIANSHU_NAMESPACE_IN_USE`；env 有配置引用或 Redis 注册 catalog → `TIANSHU_ENV_IN_USE`。无子数据才可删；禁用不删数据。
 - ns 建模：`ddc_namespace` 去 env 列，(app_code, namespace) 唯一；新建命名空间无 env。
-- env 建模：`ddc_env` 表（env_code 唯一 + description + sort_order + enabled），前端环境下拉来自 `GET /api/v1/ddc/envs`；删除前端 `ENV_OPTIONS` 常量。
+- env 建模：`ddc_env` 表（env_code 唯一 + description + sort_order + enabled），前端环境下拉来自 `GET /api/v1/tianshu/envs`；删除前端 `ENV_OPTIONS` 常量。
 - 旧端点移除：`GET /namespaces/domains`；`GET /apps?namespace=`。
 - 前端菜单 8 项：业务域、环境、服务注册、配置管理、应用、命名空间、发布任务、缓存。
 - 服务注册页主列表 = 有实例的 APP；点击 APP 行 → Drawer 按服务分组展示实例。
@@ -31,7 +31,7 @@
 **Files:**
 - Create: `<admin>/src/main/resources/db/postgresql/V5__add_biz_env_and_detach_namespace_env.sql`
 - Create: `<admin>/src/main/resources/db/sqlite/V5__add_biz_env_and_detach_namespace_env.sql`
-- Modify: `<admin>/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV4MigrationTest.java`（或新建 `DdcV5MigrationTest`，沿用既有模式）
+- Modify: `<admin>/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcV4MigrationTest.java`（或新建 `DdcV5MigrationTest`，沿用既有模式）
 
 **Interfaces:**
 - Consumes: V1-V4 已应用的 schema。
@@ -158,7 +158,7 @@ Expected: PASS。
 
 ```bash
 git add <admin>/src/main/resources/db <admin>/src/test/java/.../DdcV5MigrationTest.java
-git commit -m "feat(ddc-admin): V5 migration for biz env entities and namespace env detach"
+git commit -m "feat(tianshu-admin): V5 migration for biz env entities and namespace env detach"
 ```
 
 ---
@@ -166,21 +166,21 @@ git commit -m "feat(ddc-admin): V5 migration for biz env entities and namespace 
 ### Task 2: biz 实体 + CRUD API
 
 **Files:**
-- Create: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcBizEntity.java`
-- Create: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`
-- Create: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/service/DdcBizService.java`
-- Create: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcBizController.java`
-- Create: `<admin>/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java`
+- Create: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/model/entity/DdcBizEntity.java`
+- Create: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcBizRepository.java`
+- Create: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcBizService.java`
+- Create: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcBizController.java`
+- Create: `<admin>/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcBizControllerTest.java`
 
 **Interfaces:**
 - Consumes: Task 1 的 ddc_biz 表。
 - Produces:
   - `DdcBizEntity`：`id, bizCode, bizName, description, enabled, createdAt, updatedAt`（字段命名与 DdcAppEntity 一致，Lombok Getter/Setter）。
   - `DdcBizRepository extends JpaRepository<DdcBizEntity, String>`：`Optional<DdcBizEntity> findByBizCode(String)`；`boolean existsByBizCode(String)`；`boolean existsByBizCodeAndIdNot(String, String)`；`List<DdcBizEntity> findByBizCodeContainingIgnoreCaseOrBizNameContainingIgnoreCase(String, String)`。
-  - `DdcBizService`：`list(keyword)`、`findByBizCode`、`save(entity)`（bizCode 唯一校验，重复抛 `CommonException` 带 `DdcErrorStatus` 冲突码，用既有错误枚举或新增 `DDC_BIZ_CODE_EXISTS`）、`delete(bizCode)`（`appRepository.existsByBizCode` → 抛 `DDC_BIZ_IN_USE`）、`setEnabled(bizCode, enabled)`。
+  - `DdcBizService`：`list(keyword)`、`findByBizCode`、`save(entity)`（bizCode 唯一校验，重复抛 `CommonException` 带 `DdcErrorStatus` 冲突码，用既有错误枚举或新增 `TIANSHU_BIZ_CODE_EXISTS`）、`delete(bizCode)`（`appRepository.existsByBizCode` → 抛 `TIANSHU_BIZ_IN_USE`）、`setEnabled(bizCode, enabled)`。
   - `DdcAppRepository` 增加 `boolean existsByBizCode(String bizCode)`。
-  - `DdcBizController`：`@RequestMapping("/api/v1/ddc/bizs")`；`GET`（可选 `keyword` 模糊）、`GET /{code}`、`POST`、`PUT /{code}`、`DELETE /{code}`、`PUT /{code}/enabled?enabled=`。
-  - `DdcErrorStatus` 增加：`DDC_BIZ_IN_USE`、`DDC_BIZ_CODE_EXISTS`、`DDC_SCOPE_DISABLED`、`DDC_APP_IN_USE`、`DDC_NAMESPACE_IN_USE`、`DDC_ENV_IN_USE`、`DDC_ENV_CODE_EXISTS`（T2 先用 biz 两个，其余随各任务加入）。
+  - `DdcBizController`：`@RequestMapping("/api/v1/tianshu/bizs")`；`GET`（可选 `keyword` 模糊）、`GET /{code}`、`POST`、`PUT /{code}`、`DELETE /{code}`、`PUT /{code}/enabled?enabled=`。
+  - `DdcErrorStatus` 增加：`TIANSHU_BIZ_IN_USE`、`TIANSHU_BIZ_CODE_EXISTS`、`TIANSHU_SCOPE_DISABLED`、`TIANSHU_APP_IN_USE`、`TIANSHU_NAMESPACE_IN_USE`、`TIANSHU_ENV_IN_USE`、`TIANSHU_ENV_CODE_EXISTS`（T2 先用 biz 两个，其余随各任务加入）。
 
 - [ ] **Step 1: 写失败的 controller 测试**（@WebMvcTest(DdcBizController.class) + @MockBean DdcBizService，用例：list 带 keyword 透传、POST 成功、DELETE 被占用抛错映射为 ResultRecord failure）
 
@@ -195,19 +195,19 @@ class DdcBizControllerTest {
     @Test
     void listWithKeywordDelegatesToService() throws Exception {
         when(bizService.list("pay")).thenReturn(List.of());
-        mockMvc.perform(get("/api/v1/ddc/bizs").param("keyword", "pay"))
+        mockMvc.perform(get("/api/v1/tianshu/bizs").param("keyword", "pay"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
     void deleteInUseReturnsFailureCode() throws Exception {
-        doThrow(new CommonException(DdcErrorStatus.DDC_BIZ_IN_USE))
+        doThrow(new CommonException(DdcErrorStatus.TIANSHU_BIZ_IN_USE))
                 .when(bizService).delete("pay");
-        mockMvc.perform(delete("/api/v1/ddc/bizs/pay"))
+        mockMvc.perform(delete("/api/v1/tianshu/bizs/pay"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(false))
-                .andExpect(jsonPath("$.code").value(DdcErrorStatus.DDC_BIZ_IN_USE.code()));
+                .andExpect(jsonPath("$.code").value(DdcErrorStatus.TIANSHU_BIZ_IN_USE.code()));
     }
 }
 ```
@@ -217,7 +217,7 @@ class DdcBizControllerTest {
 - [ ] **Step 2: 运行确认失败** → `mvn -q test -Dtest=DdcBizControllerTest`（编译失败即可）。
 - [ ] **Step 3: 实现实体/repository/service/controller**（按 Interfaces；`save` 唯一性用 `existsByBizCode` 前置检查 + 捕获 DataIntegrityViolation 兜底；`delete` 保护用 `existsByBizCode`；错误经 `CommonException` 由既有 `DdcGlobalExceptionHandler` 转 ResultRecord）。
 - [ ] **Step 4: 运行测试确认通过** → PASS。
-- [ ] **Step 5: Commit** `feat(ddc-admin): add biz entity CRUD with delete protection`
+- [ ] **Step 5: Commit** `feat(tianshu-admin): add biz entity CRUD with delete protection`
 
 ---
 
@@ -233,13 +233,13 @@ class DdcBizControllerTest {
 - Produces:
   - `DdcEnvEntity`：`id, envCode, description, sortOrder, enabled, createdAt, updatedAt`。
   - `DdcEnvRepository`：`findByEnvCode`、`existsByEnvCode`、`existsByEnvCodeAndIdNot`、`findAllByOrderBySortOrderAsc()`、`findByEnvCodeContainingIgnoreCaseOrDescriptionContainingIgnoreCase`。
-  - `DdcEnvService`：`list(keyword)`（无 keyword 时按 sortOrder 升序）、`save`（env_code 唯一）、`delete(envCode)`（保护：`configItemRepository.existsByEnv(envCode)` 或 Redis catalog key 存在 → `DDC_ENV_IN_USE`）、`setEnabled`。
+  - `DdcEnvService`：`list(keyword)`（无 keyword 时按 sortOrder 升序）、`save`（env_code 唯一）、`delete(envCode)`（保护：`configItemRepository.existsByEnv(envCode)` 或 Redis catalog key 存在 → `TIANSHU_ENV_IN_USE`）、`setEnabled`。
   - `DdcConfigItemRepository.existsByEnv(String env)`。
-  - `DdcEnvController`：`/api/v1/ddc/envs`，GET（keyword）/GET {code}/POST/PUT {code}/DELETE {code}/PUT {code}/enabled。
-- Redis catalog 存在性检查（可选实现）：`RedissonClient.getKeys().getKeysByPattern(pattern)` 非空即占用；pattern 须匹配 T6 之后的 catalog key 结构（`ddc:registry:catalog:{biz}:{app}:{env}:{ns}:{kind}:{protocol}`），故用 `"ddc:registry:catalog:*:*:" + env + ":*"`。
+  - `DdcEnvController`：`/api/v1/tianshu/envs`，GET（keyword）/GET {code}/POST/PUT {code}/DELETE {code}/PUT {code}/enabled。
+- Redis catalog 存在性检查（可选实现）：`RedissonClient.getKeys().getKeysByPattern(pattern)` 非空即占用；pattern 须匹配 T6 之后的 catalog key 结构（`tianshu:registry:catalog:{biz}:{app}:{env}:{ns}:{kind}:{protocol}`），故用 `"tianshu:registry:catalog:*:*:" + env + ":*"`。
 
-- [ ] **Step 1-5**: 与 Task 2 同构（测试：list 排序、POST 成功、DELETE 被引用 → `DDC_ENV_IN_USE`）。
-- [ ] **Step 6: Commit** `feat(ddc-admin): add env entity CRUD with delete protection`
+- [ ] **Step 1-5**: 与 Task 2 同构（测试：list 排序、POST 成功、DELETE 被引用 → `TIANSHU_ENV_IN_USE`）。
+- [ ] **Step 6: Commit** `feat(tianshu-admin): add env entity CRUD with delete protection`
 
 ---
 
@@ -255,15 +255,15 @@ class DdcBizControllerTest {
 - Produces:
   - `DdcAppEntity.bizCode`（String，必填）。
   - `DdcAppRepository`：移除 `findAllByAppCodeIn`（随 ?namespace= 移除）；增加 `List<DdcAppEntity> findByBizCode(String)`、`List<DdcAppEntity> findByBizCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase(String, String)`、`boolean existsByAppCode`、`boolean existsByBizCode(String)`（T2 已加）。
-  - `DdcAppService`：`list(bizCode, keyword)`（bizCode 可空=全部，keyword 对 appCode/appName 模糊——用 repository 派生查询组合，简单实现：bizCode 空时 `findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase`）、`save`（biz 必须存在，否则 `DDC_BIZ_NOT_FOUND`——DdcErrorStatus 新增）、`update(appCode, entity)`（biz 可改）、`delete(appCode)`（`namespaceRepository.existsByAppCode(appCode)` → `DDC_APP_IN_USE`；DdcNamespaceRepository 加 `existsByAppCode`）、`setEnabled`。
-  - `DdcAppController`：`GET /api/v1/ddc/apps?biz=&keyword=`；移除 `namespace` 参数与 `findByNamespace`；新增 `PUT /{appCode}`、`DELETE /{appCode}`、`PUT /{appCode}/enabled`。
+  - `DdcAppService`：`list(bizCode, keyword)`（bizCode 可空=全部，keyword 对 appCode/appName 模糊——用 repository 派生查询组合，简单实现：bizCode 空时 `findByAppCodeContainingIgnoreCaseOrAppNameContainingIgnoreCase`）、`save`（biz 必须存在，否则 `TIANSHU_BIZ_NOT_FOUND`——DdcErrorStatus 新增）、`update(appCode, entity)`（biz 可改）、`delete(appCode)`（`namespaceRepository.existsByAppCode(appCode)` → `TIANSHU_APP_IN_USE`；DdcNamespaceRepository 加 `existsByAppCode`）、`setEnabled`。
+  - `DdcAppController`：`GET /api/v1/tianshu/apps?biz=&keyword=`；移除 `namespace` 参数与 `findByNamespace`；新增 `PUT /{appCode}`、`DELETE /{appCode}`、`PUT /{appCode}/enabled`。
 - 同时更新既有 `DdcAppControllerTest`（?namespace= 用例改为 ?biz=）。
 
-- [ ] **Step 1: 改失败测试**（更新 DdcAppControllerTest：list 带 biz 透传；新增 DELETE 占用 → DDC_APP_IN_USE）
+- [ ] **Step 1: 改失败测试**（更新 DdcAppControllerTest：list 带 biz 透传；新增 DELETE 占用 → TIANSHU_APP_IN_USE）
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**（按 Interfaces；entity 加字段后既有构造/拷贝点同步）
 - [ ] **Step 4: 运行测试确认通过** + `mvn -q test`（admin 全量，确认无其他引用 `findByNamespace`/`findAllByAppCodeIn`）
-- [ ] **Step 5: Commit** `feat(ddc-admin): apps belong to biz with full CRUD`
+- [ ] **Step 5: Commit** `feat(tianshu-admin): apps belong to biz with full CRUD`
 
 ---
 
@@ -277,16 +277,16 @@ class DdcBizControllerTest {
 - Consumes: Task 1 迁移后的表结构。
 - Produces:
   - `DdcNamespaceEntity` 删除 env 字段；`DdcNamespaceRepository` 移除 `findByAppCodeAndEnv`、`findByAppCodeAndEnvAndNamespace`、`findDistinctAppCodesByNamespace`、`findDistinctNamespaces`（domains 逻辑）；新增 `Optional<DdcNamespaceEntity> findByAppCodeAndNamespace(String, String)`、`boolean existsByAppCode(String)`、`boolean existsByAppCodeAndNamespace(String, String)`、`List<DdcNamespaceEntity> findByAppCode(String)`、`List<DdcNamespaceEntity> findByAppCodeAndNamespaceContainingIgnoreCase(String, String)`、`boolean existsByAppCodeAndNamespaceAndIdNot(String, String, String)`。
-  - `DdcNamespaceService`：`list(appCode, keyword)`（appCode 可空=全部；keyword 对 namespace 模糊）、`save`（(app, ns) 唯一）、`update`（ns 名可改，app 不可改）、`delete(id)`（`configItemRepository.existsByAppCodeAndNamespace(appCode, ns)` → `DDC_NAMESPACE_IN_USE`；DdcConfigItemRepository 加 `existsByAppCodeAndNamespace`）、`setEnabled`。
-  - `DdcNamespaceController`：`GET /api/v1/ddc/namespaces?appCode=&keyword=`（无 env）；移除 `/domains`；`POST`（body 无 env）；新增 `PUT /{id}`、`DELETE /{id}`、`PUT /{id}/enabled`。
+  - `DdcNamespaceService`：`list(appCode, keyword)`（appCode 可空=全部；keyword 对 namespace 模糊）、`save`（(app, ns) 唯一）、`update`（ns 名可改，app 不可改）、`delete(id)`（`configItemRepository.existsByAppCodeAndNamespace(appCode, ns)` → `TIANSHU_NAMESPACE_IN_USE`；DdcConfigItemRepository 加 `existsByAppCodeAndNamespace`）、`setEnabled`。
+  - `DdcNamespaceController`：`GET /api/v1/tianshu/namespaces?appCode=&keyword=`（无 env）；移除 `/domains`；`POST`（body 无 env）；新增 `PUT /{id}`、`DELETE /{id}`、`PUT /{id}/enabled`。
   - 安全配置：`DdcAdminSecurityConfiguration` 的 GET 清单移除 `/namespaces/domains`；`/apps` 保持。
 - 受影响调用方同步：`DdcConfigController`/facade/`ConfigEditorDialog` 的 ensureAppAndNamespace 等前端在 T13/T15 处理；后端搜 `findByAppCodeAndEnv` 全量替换。
 
-- [ ] **Step 1: 改失败测试**（更新 DdcNamespaceControllerTest：list 带 appCode+keyword；domains 用例删除；DELETE 占用 → DDC_NAMESPACE_IN_USE）
+- [ ] **Step 1: 改失败测试**（更新 DdcNamespaceControllerTest：list 带 appCode+keyword；domains 用例删除；DELETE 占用 → TIANSHU_NAMESPACE_IN_USE）
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**（按 Interfaces；后端全仓 grep `findByAppCodeAndEnv|/domains|namespaces/domains` 清理）
 - [ ] **Step 4: 运行测试确认通过** + `mvn -q test` 全量（修复受影响用例）
-- [ ] **Step 5: Commit** `feat(ddc-admin): namespaces detach from env with full CRUD`
+- [ ] **Step 5: Commit** `feat(tianshu-admin): namespaces detach from env with full CRUD`
 
 ---
 
@@ -303,7 +303,7 @@ class DdcBizControllerTest {
 - Produces:
   - `DdcServiceKey`：构造参数顺序改为 `(bizCode, appCode, env, namespace, serviceKind, serviceName, group, version, protocol)`；`canonicalValue()` 与 `parse()` 同步（biz、app 置于最前两行）；ORDER 比较器前两键为 bizCode/appCode。
   - `DdcProperties`：`private String bizCode;`（getter/setter；默认 null）。
-  - `DdcServiceRegistryClient`：注册/心跳/查询请求组装处校验 `bizCode` 非空（`require(bizCode, "DDC biz-code is required")`），并透传进 serviceKey。
+  - `DdcServiceRegistryClient`：注册/心跳/查询请求组装处校验 `bizCode` 非空（`require(bizCode, "Tianshu biz-code is required")`），并透传进 serviceKey。
   - `DdcKeys`：`registryService/registryRevision` 的 key 增加 biz/app 两段：`join("registry","service", biz, app, env, ns, kind, digest)`；`registryInstance` 增加 biz/app；`registryCatalog/registryCatalogRevision` 增加 biz/app 参数（调用方同步）。
   - admin 侧：`DdcServiceRegistryRedisRepository` 的 key 组装同步（biz/app 从 serviceKey 取）；`DdcManagementFacade.serviceQuery()` 从 `DdcManagementServiceQuery` 增加 bizCode/appCode 字段并透传（query DTO 同步加字段）；`DdcRegistryAdminController` 查询参数加 `biz`/`appCode`（必填，沿用既有 env/ns 必填风格）。
   - Lua 脚本：**不改**（KEYS 数量与 ARGV 顺序不变，key 字符串内容变化由上层组装）。
@@ -330,7 +330,7 @@ void canonicalValueLeadsWithBizAndApp() {
 - [ ] **Step 3: 实现 starter 侧**（DdcServiceKey/DdcKeys/DTO/client/properties）
 - [ ] **Step 4: 实现 admin 侧**（repository key 组装、facade query、controller 参数、DTO；按编译错误清单逐一更新）
 - [ ] **Step 5: 两侧测试全量修复 + 通过**：`cd <starter> && mvn -q test`；`cd <admin> && mvn -q test`
-- [ ] **Step 6: Commit** `feat(ddc): add biz and app dimensions to registry contract`
+- [ ] **Step 6: Commit** `feat(tianshu): add biz and app dimensions to registry contract`
 
 ---
 
@@ -339,20 +339,20 @@ void canonicalValueLeadsWithBizAndApp() {
 **Files:**
 - Create: `<admin>/.../service/DdcScopeGate.java`
 - Create: `<admin>/src/test/java/.../service/DdcScopeGateTest.java`
-- Modify: `<admin>/.../service/DdcServiceRegistryService.java`（register 入口）、`.../service/DdcManagementFacade.java`（pull 入口）、`.../config/DdcErrorStatus.java`（+DDC_SCOPE_DISABLED，若 T2 未加）
+- Modify: `<admin>/.../service/DdcServiceRegistryService.java`（register 入口）、`.../service/DdcManagementFacade.java`（pull 入口）、`.../config/DdcErrorStatus.java`（+TIANSHU_SCOPE_DISABLED，若 T2 未加）
 
 **Interfaces:**
 - Consumes: Task 6 的 serviceKey（含 biz/app）；四个 repository。
 - Produces:
   - `@Component class DdcScopeGate`：
-    - `void assertEnabled(String bizCode, String appCode, String env, String namespace)` —— 任一实体缺失或 `enabled=false` → `throw new CommonException(DdcErrorStatus.DDC_SCOPE_DISABLED)`；错误消息含明细 `"biz=bizCode app=appCode env=env ns=namespace disabled"`。
+    - `void assertEnabled(String bizCode, String appCode, String env, String namespace)` —— 任一实体缺失或 `enabled=false` → `throw new CommonException(DdcErrorStatus.TIANSHU_SCOPE_DISABLED)`；错误消息含明细 `"biz=bizCode app=appCode env=env ns=namespace disabled"`。
     - 5 秒本地缓存：`ConcurrentHashMap<String, CachedState>`（key=实体类型+code，value=Enabled/Disabled/NotFound + 过期时间）；命中缓存不查库；写路径（setEnabled/delete）调用 `invalidate(code)` 清缓存。
     - 查询实现：biz 表按 bizCode、app 表按 appCode（含 biz 校验归属一致）、env 表按 envCode、ns 表按 (appCode, namespace)。
   - `DdcServiceRegistryService.register`：构造 serviceKey 后先 `scopeGate.assertEnabled(...)`（从 registration.serviceKey 取 biz/app/env/ns），再走 Redis。
   - `DdcManagementFacade` 的配置拉取路径（`findConfig`/`pull` 等入口，实施时以 grep `pull(` 定位全部入口）加 `scopeGate.assertEnabled`。
 - 心跳/续租路径不动。
 
-- [ ] **Step 1: 写失败的 DdcScopeGateTest**（mock 四个 repository：全启用通过；任一禁用抛 `DDC_SCOPE_DISABLED`；缓存命中不重复查库——第二次调用时 verify repository 只调一次；invalidate 后重查）
+- [ ] **Step 1: 写失败的 DdcScopeGateTest**（mock 四个 repository：全启用通过；任一禁用抛 `TIANSHU_SCOPE_DISABLED`；缓存命中不重复查库——第二次调用时 verify repository 只调一次；invalidate 后重查）
 
 ```java
 @Test
@@ -361,7 +361,7 @@ void rejectsWhenAppDisabled() {
             .thenReturn(Optional.of(entity("orders-app", false)));
     assertThatThrownBy(() -> gate.assertEnabled("pay-biz", "orders-app", "dev", "default"))
             .isInstanceOfSatisfying(CommonException.class,
-                    e -> assertThat(e.getErrorStatus()).isEqualTo(DdcErrorStatus.DDC_SCOPE_DISABLED));
+                    e -> assertThat(e.getErrorStatus()).isEqualTo(DdcErrorStatus.TIANSHU_SCOPE_DISABLED));
 }
 
 @Test
@@ -373,7 +373,7 @@ void cachesForFiveSeconds() {
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现 DdcScopeGate + register/pull 接入**
 - [ ] **Step 4: 运行测试确认通过** + admin 全量回归（既有 register/pull 测试需 mock gate 或补实体数据）
-- [ ] **Step 5: Commit** `feat(ddc-admin): gate registration and pull on scope enabled state`
+- [ ] **Step 5: Commit** `feat(tianshu-admin): gate registration and pull on scope enabled state`
 
 ---
 
@@ -386,13 +386,13 @@ void cachesForFiveSeconds() {
 
 **Interfaces:**
 - Consumes: Task 6 的契约（注册数据已含 biz/app）。
-- Produces: `/api/v1/ddc/registry/services` 的 service 记录含 `appCode`、`bizCode` 字段；`/registry/instances` 的 instance 记录含 `appCode`（可从 serviceKey 或实例元数据带出，实施时以实际存储形态为准——若 serviceKey 存于 Redis 记录内，直接透传）。
+- Produces: `/api/v1/tianshu/registry/services` 的 service 记录含 `appCode`、`bizCode` 字段；`/registry/instances` 的 instance 记录含 `appCode`（可从 serviceKey 或实例元数据带出，实施时以实际存储形态为准——若 serviceKey 存于 Redis 记录内，直接透传）。
 
 - [ ] **Step 1: 改失败测试**（既有 registry controller 测试断言 service 记录带 appCode）
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**（facade 映射处补充字段）
 - [ ] **Step 4: 运行测试确认通过** + admin 全量
-- [ ] **Step 5: Commit** `feat(ddc-admin): expose appCode in registry responses`
+- [ ] **Step 5: Commit** `feat(tianshu-admin): expose appCode in registry responses`
 
 ---
 
@@ -407,10 +407,10 @@ void cachesForFiveSeconds() {
 - Produces:
   - 删除 `ENV_OPTIONS` 常量与 `/namespaces/domains` 逻辑。
   - `useScopeOptions(bizCode, appCode)` 返回 `{ bizs, apps, namespaces, envs, loading, reload }`：
-    - bizs ← `GET /api/v1/ddc/bizs`（挂载一次）
-    - apps ← `GET /api/v1/ddc/apps?biz={bizCode}`（biz 空不带参数）
-    - namespaces ← `GET /api/v1/ddc/namespaces?appCode={appCode}`（app 空不带参数）
-    - envs ← `GET /api/v1/ddc/envs`（挂载一次，按 sortOrder 升序）
+    - bizs ← `GET /api/v1/tianshu/bizs`（挂载一次）
+    - apps ← `GET /api/v1/tianshu/apps?biz={bizCode}`（biz 空不带参数）
+    - namespaces ← `GET /api/v1/tianshu/namespaces?appCode={appCode}`（app 空不带参数）
+    - envs ← `GET /api/v1/tianshu/envs`（挂载一次，按 sortOrder 升序）
     - 级联失效：biz 变 → 清 apps/namespaces；app 变 → 清 namespaces。
   - 缓存 key 沿用请求签名。
 
@@ -418,7 +418,7 @@ void cachesForFiveSeconds() {
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**（按 Interfaces）
 - [ ] **Step 4: 运行测试确认通过** + typecheck
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): cascade biz/app/ns options with backend envs`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): cascade biz/app/ns options with backend envs`
 
 ---
 
@@ -444,7 +444,7 @@ void cachesForFiveSeconds() {
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**（交互测试沿用"输入 + Enter"路径；宽度包装沿用既有 span 方案）
 - [ ] **Step 4: 运行测试确认通过** + typecheck + lint
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): four-level scope selects with backend envs`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): four-level scope selects with backend envs`
 
 ---
 
@@ -464,7 +464,7 @@ void cachesForFiveSeconds() {
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现两页 + 路由（`/bizs`、`/envs`）+ 菜单**
 - [ ] **Step 4: 运行测试确认通过** + typecheck + lint
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): add biz and env management pages`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): add biz and env management pages`
 
 ---
 
@@ -478,13 +478,13 @@ void cachesForFiveSeconds() {
 - Produces:
   - 筛选：BizSelect（必选后可查询）+ appCode/名称 keyword 输入 → `GET /apps?biz=&keyword=`。
   - 新建表单：bizCode → BizSelect（必填，不可输入新值也可输入——保持可输入）；appCode/appName/owner/description/enabled 不变。
-  - 行操作：编辑（Modal 复用新建表单，biz 可改）、禁用/启用（Switch 列或按钮 → `PUT /apps/{code}/enabled`）、删除（confirm → `DELETE /apps/{code}`，后端 `DDC_APP_IN_USE` 错误 message 展示）。
+  - 行操作：编辑（Modal 复用新建表单，biz 可改）、禁用/启用（Switch 列或按钮 → `PUT /apps/{code}/enabled`）、删除（confirm → `DELETE /apps/{code}`，后端 `TIANSHU_APP_IN_USE` 错误 message 展示）。
 
 - [ ] **Step 1: 改失败测试**（筛选带 biz、新建 body 含 bizCode、删除确认）
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**
 - [ ] **Step 4: 运行测试确认通过** + typecheck + lint
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): apps page with biz, filter, edit, disable, delete`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): apps page with biz, filter, edit, disable, delete`
 
 ---
 
@@ -498,13 +498,13 @@ void cachesForFiveSeconds() {
 - Produces:
   - 筛选：AppSelect + ns keyword → `GET /namespaces?appCode=&keyword=`（无 env）。
   - 新建表单：appCode → AppSelect；namespace 输入；description；enabled；**无 env 字段**。
-  - 行操作：编辑（ns 名可改）、禁用/启用、删除（confirm；`DDC_NAMESPACE_IN_USE` message 展示）。
+  - 行操作：编辑（ns 名可改）、禁用/启用、删除（confirm；`TIANSHU_NAMESPACE_IN_USE` message 展示）。
 
 - [ ] **Step 1: 改失败测试**（筛选 app+keyword、新建 body 无 env）
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**
 - [ ] **Step 4: 运行测试确认通过** + typecheck + lint
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): namespaces page without env with full actions`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): namespaces page without env with full actions`
 
 ---
 
@@ -530,7 +530,7 @@ void cachesForFiveSeconds() {
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**（Drawer 用 antd `Drawer`；分组用 Table `groupBy` 或组内小表格）
 - [ ] **Step 4: 运行测试确认通过** + typecheck + lint + 全量
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): app-centric registry page with instance drawer, drop instances page`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): app-centric registry page with instance drawer, drop instances page`
 
 ---
 
@@ -551,14 +551,14 @@ void cachesForFiveSeconds() {
 - [ ] **Step 2: 运行确认失败**
 - [ ] **Step 3: 实现**
 - [ ] **Step 4: 运行测试确认通过** + typecheck + lint + 全量
-- [ ] **Step 5: Commit** `feat(ddc-admin-web): four-level scope filters for configs and cache`
+- [ ] **Step 5: Commit** `feat(tianshu-admin-web): four-level scope filters for configs and cache`
 
 ---
 
 ### Task 16: 全量验证 + 文档
 
 **Files:**
-- Modify: `<web>/README.md`、`README.zh-CN.md`、DDC 平台 README（模块说明段）
+- Modify: `<web>/README.md`、`README.zh-CN.md`、Tianshu 平台 README（模块说明段）
 
 **Interfaces:**
 - Consumes: Task 1-15 全部产物。
@@ -566,14 +566,14 @@ void cachesForFiveSeconds() {
 - [ ] **Step 1: 后端全量**：`cd <starter> && mvn -q clean test`；`cd <admin> && mvn -q clean test` —— BUILD SUCCESS。
 - [ ] **Step 2: 前端全量**：`cd <web> && npm run typecheck && npm run lint && npm run test -- --run && npm run build` —— 全绿。
 - [ ] **Step 3: 文档更新**：README 作用域下拉段落改为"业务域/应用/命名空间/环境四层 + 环境下拉来自后端实体"，并说明注册身份 biz-ns-env-app 与禁用门控。
-- [ ] **Step 4: Commit** `docs(ddc): document scope model revision`
+- [ ] **Step 4: Commit** `docs(tianshu): document scope model revision`
 
 ---
 
 ## 验收清单（对照 spec）
 
 - [ ] 注册身份恒为 biz-ns-env-app（DdcServiceKey canonical/Redis key/查询参数全链路）。
-- [ ] 任一实体禁用 → 新注册被拒（`DDC_SCOPE_DISABLED`）、配置拉取被拒；启用恢复；心跳不校验。
+- [ ] 任一实体禁用 → 新注册被拒（`TIANSHU_SCOPE_DISABLED`）、配置拉取被拒；启用恢复；心跳不校验。
 - [ ] biz/app/ns/env 四页可完整管理（增删改查 + 筛选 + 禁用），删除保护错误码正确。
 - [ ] 新建命名空间不选环境；`/namespaces/domains` 与 `/apps?namespace=` 已移除。
 - [ ] 配置管理按 (app, env, ns) 正常建配置；自动创建 app 归属所选 biz。

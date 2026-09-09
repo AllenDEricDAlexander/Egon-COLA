@@ -645,7 +645,7 @@ The generated top-level README provides concise commands for:
 - known environment-dependent validation limits.
 
 Documentation must not describe the single-host production template as a highly
-available production platform.
+available production xingyuan.
 
 ## Completion Criteria
 

@@ -1,79 +1,79 @@
-# RBAC3 注解化权限、UserDetails、字段权限与 RT 在线态改造规格
+# Tianquan-Jianshen 注解化权限、UserDetails、字段权限与 RT 在线态改造规格
 
 | Field | Value |
 | --- | --- |
-| Document | `docs/egon/spec/2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md` |
+| Document | `docs/egon/spec/2026-08-17-09-37-tianquan-jianshen-annotation-userdetails-field-authorization.md` |
 | Template Version | `2` |
 | Status | `Accepted` |
 | Type | `Architecture` |
 | Complexity | `Complex` |
-| Complexity Drivers | `Gateway/IdP/RBAC3多模块认证授权链、CI全局资源目录上报、租户授权与资源定义解耦、角色激活缓存一致性、字段序列化安全、破坏式HTTP与数据库契约替换` |
+| Complexity Drivers | `Yuheng/Tianquan-Shoubing/RBAC3多模块认证授权链、CI全局资源目录上报、租户授权与资源定义解耦、角色激活缓存一致性、字段序列化安全、破坏式HTTP与数据库契约替换` |
 | Created | `2026-08-17 09:37 CST` |
 | Updated | `2026-08-17 15:07 CST` |
 | Owner | `Mario / Egon-COLA` |
 | Repository | `Egon-COLA` |
-| Scope | `Gateway USER认证链、IdP RT在线校验、RBAC3 Contract/Starter/Gateway Adapter/Admin/React SDK/Admin Web、Admin Web Shared递归导航、前端本地资源注册与CI上报、全局资源目录与租户授权拆分、components/common HTTP返回契约、DDC BIZ/APP全局唯一性` |
+| Scope | `Yuheng USER认证链、Tianquan-Shoubing RT在线校验、Tianquan-Jianshen Contract/Starter/Yuheng Adapter/Admin/React SDK/Admin Web、Admin Web Shared递归导航、前端本地资源注册与CI上报、全局资源目录与租户授权拆分、components/common HTTP返回契约、Tianshu BIZ/APP全局唯一性` |
 | Source Requirement | `2026-08-17 用户确认的JWT/Spring Security/RBAC注解/UserDetails/字段权限/IAM/DDC决策，以及“前端本地知道全部资源、CI上线前只上报一次；资源目录不属于租户；bizCode/appCode各自全局唯一；不限制1MiB、不限流；不采用Manifest”的最新修订` |
 | Baseline Revision | `main@a2cde2749a9b；仅本Spec为未跟踪文件（2026-08-17 15:07 CST静态扫描）` |
-| Amends | [统一身份无 Session JWT 与 Gateway 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §3 `SJ-19`、`SJ-32`、`SJ-33`，§10.1–§10.3，§12.2–§12.4，§13.1–§13.2，§17，§19.3–§19.6；[RBAC3 企业级权限平台设计](../../superpowers/specs/2026-07-30-rbac3-permission-platform-design.md) §8.3，§10.1，§15–§17，§22.1.2–§22.1.3，§26.3–§26.4，§28.3–§28.5，§30.1、§30.5–§30.6，§32 `AC-22`–`AC-25`、`AC-31`–`AC-32`；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §4.3–§4.4、§5.5–§5.6、§6.1–§6.3、§7 |
+| Amends | [统一身份无 Session JWT 与 Yuheng 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §3 `SJ-19`、`SJ-32`、`SJ-33`，§10.1–§10.3，§12.2–§12.4，§13.1–§13.2，§17，§19.3–§19.6；[Tianquan-Jianshen 企业级权限平台设计](../../superpowers/specs/2026-07-30-tianquan-jianshen-permission-xingyuan-design.md) §8.3，§10.1，§15–§17，§22.1.2–§22.1.3，§26.3–§26.4，§28.3–§28.5，§30.1、§30.5–§30.6，§32 `AC-22`–`AC-25`、`AC-31`–`AC-32`；[Tianquan-Jianshen Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §4.3–§4.4、§5.5–§5.6、§6.1–§6.3、§7 |
 | Supersedes | `None` |
-| Depends On | [统一身份无 Session JWT 与 Gateway 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §7–§9、§11、§12.1、§12.5、§15；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §2.4、§3–§5.4 |
-| Related Specs | [Gateway BIZ/APP Scope Direct RPC Design](2026-08-15-16-57-gateway-biz-app-scope-direct-rpc-design.md) |
-| Related Plans | [RBAC3 注解权限、全局资源目录与无状态认证实施计划](../plan/2026-08-17-15-07-rbac3-annotation-resource-catalog-implementation.md) |
+| Depends On | [统一身份无 Session JWT 与 Yuheng 自动刷新改造规格](../../superpowers/specs/2026-08-13-unified-identity-stateless-jwt-session-removal-design.md) §7–§9、§11、§12.1、§12.5、§15；[Tianquan-Jianshen Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §2.4、§3–§5.4 |
+| Related Specs | [Yuheng BIZ/APP Scope Direct RPC Design](2026-08-15-16-57-yuheng-biz-app-scope-direct-rpc-design.md) |
+| Related Plans | [Tianquan-Jianshen 注解权限、全局资源目录与无状态认证实施计划](../plan/2026-08-17-15-07-tianquan-jianshen-annotation-resource-catalog-implementation.md) |
 
 ## 1. Summary
 
 当前代码已经形成“IdP验证身份JWT，RBAC3加载授权快照，`AuthorizationService`作最终权限决定”的两段式安全链，但仍存在六个断点：Gateway只在AT缺失/过期时使用RT，撤销RT不能立刻使仍有效的Gateway请求失去登录态；RBAC3认证主体仍是`IdentityPrincipal`，Admin又二次转换为`CurrentRbac3Principal`；接口权限同时存在Starter Aspect与Admin `@PreAuthorize`两套实现；字段策略尚未成为响应序列化执行点，也缺少完整字段定义/规则CRUD页面；现有Bootstrap仍携带`apps/menus/routes/actions`，但前端自己的`FeatureRouteDescriptor`本来已经掌握route、permission、componentKey和顺序，后端重复下发资源目录没有必要；RBAC Admin仍使用自有`ApiEnvelopeVO/DirectoryPageVO`，没有复用components/common统一返回契约。
 
-本规格选择用户确认的方案A：保留Spring Security 6 stateless Security Chain、`SecurityContext`与现有`AuthorizationService`；新增`@RBACAPIResource(code, permission, name)`并保留通用`@RequiresPermission`；RBAC3把已验证IdP身份与Redis授权快照组装为`Rbac3UserDetails`，只装入当前有效且已激活角色及权限；`@RBACFieldResource`与Jackson在响应序列化时执行`null/脱敏/原值`。前端以同一份本地`FrontendResourceRegistry`作为MENU/ROUTE/ACTION/FIELD运行展示和资源声明来源；CI/CD在上线前使用IdP签发的短期SERVICE AT，经Gateway把该应用的完整声明上报到RBAC全局资源目录。浏览器不具备上报入口，报告代码和凭据不进入Web bundle；不生成Manifest文件、不新增Manifest Processor/Starter/Node Plugin。运行时`GET /api/v1/auth/about`只返回当前用户、激活角色、权限字符、字段决策和版本，前端用这些决定过滤本地资源，不接收后端全量资源树。RBAC3 JSON HTTP接口统一使用components/common的`ResultRecord<T>`、`PageResultRecord<T>`与`PageQuery`。
+本规格选择用户确认的方案A：保留Spring Security 6 stateless Security Chain、`SecurityContext`与现有`AuthorizationService`；新增`@RBACAPIResource(code, permission, name)`并保留通用`@RequiresPermission`；RBAC3把已验证IdP身份与Redis授权快照组装为`Rbac3UserDetails`，只装入当前有效且已激活角色及权限；`@RBACFieldResource`与Jackson在响应序列化时执行`null/脱敏/原值`。前端以同一份本地`FrontendResourceRegistry`作为MENU/ROUTE/ACTION/FIELD运行展示和资源声明来源；CI/CD在上线前使用IdP签发的短期SERVICE AT，经Gateway把该应用的完整声明上报到RBAC全局资源目录。浏览器不具备上报入口，报告代码和凭据不进入Web bundle；不生成Manifest文件、不新增Manifest Processor/Starter/Node Plugin。运行时`GET /api/v1/auth/about`只返回当前用户、激活角色、权限字符、字段决策和版本，前端用这些决定过滤本地资源，不接收后端全量资源树。Tianquan-Jianshen JSON HTTP接口统一使用components/common的`ResultRecord<T>`、`PageResultRecord<T>`与`PageQuery`。
 
 资源目录和租户授权明确分层：DDC拥有全局BIZ/APP主数据，`bizCode`与`appCode`分别全局唯一；RBAC的APP/PERMISSION/RESOURCE/FIELD定义是全局服务能力，不含`tenantId`；租户是否购买/启用APP由新的`rbac3_tenant_application`事实表达，用户业务域访问、角色、角色权限和字段/数据规则仍属于租户。资源上报不会创建租户授权、角色或角色权限，也不会把`tenantId`纳入唯一键或幂等键。
 
-Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 校验 RT；RT 缺失、过期、无效或被撤销时按未登录返回 401。AT 缺失/过期且 RT 有效时仍由 Gateway 向 IdP 刷新，AT 非过期类非法时不刷新。RT 永不转发给业务服务。该状态是 IdP 的 RT 撤销登记，不是 HTTP Session，也不新增第三种人员 Token。
+Yuheng 对每个“保护身份/保护业务”的 USER 请求在线调用 Tianquan-Shoubing 校验 RT；RT 缺失、过期、无效或被撤销时按未登录返回 401。AT 缺失/过期且 RT 有效时仍由 Yuheng 向 Tianquan-Shoubing 刷新，AT 非过期类非法时不刷新。RT 永不转发给业务服务。该状态是 Tianquan-Shoubing 的 RT 撤销登记，不是 HTTP Session，也不新增第三种人员 Token。
 
 ## 2. Background and Current State
 
 ### 2.1 Business and user context
 
-权限目录固定为 `USER -> ROLE -> PERMISSION`，资源层级为 `BIZ -> APP -> MENU -> ROUTE -> ACTION/API -> FIELD`。DDC 拥有 BIZ/APP 主数据；RBAC3 拥有用户的 Business 访问、Application 授权范围、角色、权限字符及 APP 内资源授权。用户需要摆脱 URL 动态规则对业务代码的约束，用方法注解表达 API 和通用方法权限，用字段注解表达响应字段权限，同时继续使用 Spring Security Chain、`SecurityContext` 和 `AuthorizationService`。
+权限目录固定为 `USER -> ROLE -> PERMISSION`，资源层级为 `BIZ -> APP -> MENU -> ROUTE -> ACTION/API -> FIELD`。Tianshu 拥有 BIZ/APP 主数据；Tianquan-Jianshen 拥有用户的 Business 访问、Application 授权范围、角色、权限字符及 APP 内资源授权。用户需要摆脱 URL 动态规则对业务代码的约束，用方法注解表达 API 和通用方法权限，用字段注解表达响应字段权限，同时继续使用 Spring Security Chain、`SecurityContext` 和 `AuthorizationService`。
 
 用户提供的 [RuoYi 权限源码分析](https://allendericdalexander.github.io/2026/08/16/java/ruoyi-permission-source-analysis/) 仅用于理解经典“权限字符 + 方法注解 + DataScope”的思路，不是本仓库规范依据；本规格的 Filter、Snapshot、DDC边界与字段模型均以当前 Egon-COLA 源码为准。
 
-登录模型只有 USER AT 与 RT。AT 为 5 分钟 JWS，不包含角色、权限、数据范围或字段策略；RT 为 IdP 签发的 JWT，IdP Redis 保存摘要和有效状态。用户明确要求 Gateway 每次确认 RT 在线态，因此“撤销 RT 后 Gateway 仍放行最长 5 分钟”的旧规则在 Gateway 主链上被本规格修订；可信网络绕过 Gateway 的目标服务仍只见 AT，保留最多到 AT `exp` 的边界。
+登录模型只有 USER AT 与 RT。AT 为 5 分钟 JWS，不包含角色、权限、数据范围或字段策略；RT 为 Tianquan-Shoubing 签发的 JWT，Tianquan-Shoubing Redis 保存摘要和有效状态。用户明确要求 Yuheng 每次确认 RT 在线态，因此“撤销 RT 后 Yuheng 仍放行最长 5 分钟”的旧规则在 Yuheng 主链上被本规格修订；可信网络绕过 Yuheng 的目标服务仍只见 AT，保留最多到 AT `exp` 的边界。
 
 ### 2.2 Repository evidence
 
 | Evidence ID | Classification | Exact path/symbol/decision | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
-| `EVD-001` | Static repository | `idp-starter/.../IdpBearerAuthenticationFilter`、`idp-core/.../IdentityPrincipal` | IdP Filter验证Bearer JWT并产出仅含身份claims的principal | JWT继续只承载非权限身份；权限由RBAC快照加载 | 源码静态证据，未启动服务 |
-| `EVD-002` | Static repository | `idp-gateway-adapter/.../IdpUserCredentialRecoveryProvider` | 仅AT `MISSING/EXPIRED`时读取RT并刷新 | 有效AT请求尚未确认RT撤销状态 | 源码静态证据 |
+| `EVD-001` | Static repository | `tianquan-shoubing-starter/.../IdpBearerAuthenticationFilter`、`tianquan-shoubing-core/.../IdentityPrincipal` | Tianquan-Shoubing Filter验证Bearer JWT并产出仅含身份claims的principal | JWT继续只承载非权限身份；权限由RBAC快照加载 | 源码静态证据，未启动服务 |
+| `EVD-002` | Static repository | `tianquan-shoubing-gateway-adapter/.../IdpUserCredentialRecoveryProvider` | 仅AT `MISSING/EXPIRED`时读取RT并刷新 | 有效AT请求尚未确认RT撤销状态 | 源码静态证据 |
 | `EVD-003` | Static repository | `RefreshTokenStore.findValid`、`TokenSigner.verifyRefresh`、`OAuthTokenController` | IdP已拥有RT JWT验证、Redis有效态、刷新与撤销入口 | 在线RT状态校验复用IdP权威且不引入Session | 未连接Redis、未验证部署延迟 |
 | `EVD-004` | Static repository | `Rbac3BearerAuthenticationFilter`、`Rbac3AuthenticationToken`、`SystemAuthorizationSnapshot` | RBAC Filter加载快照，但最终principal仍是`IdentityPrincipal` | UserDetails迁移点和缓存入口已确定 | 源码静态证据 |
 | `EVD-005` | Static repository | `AuthorizationSnapshotCache`、`RedisAuthorizationSnapshotCache`、`SingleFlightSnapshotLoader` | 快照使用Redis、最长5秒JVM near-cache和single-flight | 不再创建第二套UserDetails Redis模型 | 未压测、未验证现网容量 |
 | `EVD-006` | Static repository | Starter `RequiresPermission/Rbac3MethodAuthorizationAspect`；Admin `RequiresRbac3Permission/Rbac3MethodAuthorization` | 当前存在两套方法权限实现和两种USER principal投影 | 方法授权必须收敛到一个Spring Method Security决策入口 | 源码静态证据 |
-| `EVD-007` | Static repository | `rbac3-admin-web/src/features/*.routes.tsx`、`RouteDescriptor.ts` | 前端route descriptor已经保存key/path/title/permission/componentKey/component/order | 前端本地代码已经知道ROUTE及展示所需事实，无需后端回传全量ROUTE | 目前MENU/ACTION/FIELD仍需扩展同一registry |
-| `EVD-008` | Static repository | `rbac3-admin-web/src/app/navigation.ts` | 现有导航已经用`bootstrap.permissions`过滤本地route descriptor | 目标应补强本地递归registry，而不是反转为后端资源树驱动 | 源码静态证据 |
-| `EVD-009` | Static repository | `BootstrapView`、`AuthorizationBootstrapService.current()` | Bootstrap声明apps/menus/routes/actions，但Starter当前全部填空；user/permissions/version已经存在 | 将其收敛为about最小授权上下文比补全重复资源树更直接 | 源码静态证据；IdP/RBAC消费者均需同步改名 |
+| `EVD-007` | Static repository | `tianquan-jianshen-admin-web/src/features/*.routes.tsx`、`RouteDescriptor.ts` | 前端route descriptor已经保存key/path/title/permission/componentKey/component/order | 前端本地代码已经知道ROUTE及展示所需事实，无需后端回传全量ROUTE | 目前MENU/ACTION/FIELD仍需扩展同一registry |
+| `EVD-008` | Static repository | `tianquan-jianshen-admin-web/src/app/navigation.ts` | 现有导航已经用`bootstrap.permissions`过滤本地route descriptor | 目标应补强本地递归registry，而不是反转为后端资源树驱动 | 源码静态证据 |
+| `EVD-009` | Static repository | `BootstrapView`、`AuthorizationBootstrapService.current()` | Bootstrap声明apps/menus/routes/actions，但Starter当前全部填空；user/permissions/version已经存在 | 将其收敛为about最小授权上下文比补全重复资源树更直接 | 源码静态证据；Tianquan-Shoubing/RBAC消费者均需同步改名 |
 | `EVD-010` | Static repository | `ResourceManifest`、`Rbac3ManifestContributor/Reporter`、`iam/resource/manifest/**` | 仓库已有Manifest contract、运行Reporter、Admin存储/激活流程 | 最新用户决定要求移除这套生命周期和三个拟新增模块 | 源码静态证据，不代表已有流程运行时已接通 |
 | `EVD-011` | Static repository | `V1__create_rbac3_schema.sql` `rbac3_resource_manifest`及相关FK/trigger | Schema把application/resource/field_definition与Manifest强关联 | 无Manifest设计需要一个新的V7解除FK/列/trigger并改为直接报告来源 | 未连接PostgreSQL，真实数据量/锁耗时未知；用户允许不迁旧数据 |
 | `EVD-012` | Static repository | 同一V1 `rbac3_resource`、`rbac3_permission`、`rbac3_field_definition`、`rbac3_field_rule` | 已有资源、权限、字段定义和字段规则事实表 | CI报告可在V7全局化后复用这些表，不新建报告/清单表 | 源码静态证据 |
 | `EVD-013` | Static repository | `FieldGuard.tsx`、`types.ts`、`SensitiveStrategyRegistry` | 前端已有fieldPolicies消费，common已有Jackson脱敏策略 | 字段显示继续由本地field code+about决策，后端序列化复用现有策略 | 源码静态证据 |
 | `EVD-014` | Static repository | common core `ResultRecord`、`PageResultRecord`、`PageQuery` | 公共成功/分页/trace契约已经存在 | RBAC不得保留平行ApiEnvelope/Page VO | 源码静态证据 |
 | `EVD-015` | Static repository | RBAC `ApiEnvelopeVO`、`DirectoryPageVO`、`Rbac3ErrorResponse` | RBAC仍有重复HTTP封装 | 破坏式更新一次迁移到common types | 源码静态证据 |
-| `EVD-016` | Static repository | DDC `DdcBizController/DdcAppController`与IAM迁移Spec | BIZ/APP主数据由DDC管理，RBAC只持授权范围 | CI报告只能引用已存在且启用的APP，不能创建BIZ/APP | 源码与前置Spec静态证据 |
+| `EVD-016` | Static repository | Tianshu `DdcBizController/DdcAppController`与IAM迁移Spec | BIZ/APP主数据由DDC管理，RBAC只持授权范围 | CI报告只能引用已存在且启用的APP，不能创建BIZ/APP | 源码与前置Spec静态证据 |
 | `EVD-017` | User decision | “前端不需要知道总共有哪些；前端自己代码里写的路由；前端只需要上报” | 本地前端registry是运行展示的资源权威，about不回传MENU/ROUTE/ACTION目录 | 直接替换先前后端树投影结论 | 适用于前端资源；API方法仍由后端注解声明 |
 | `EVD-018` | User decision | “manifest我不喜欢，弄一个about接口” | 不创建Manifest Processor/Registration Starter/Node Plugin；运行端点改为about | 删除Manifest生命周期和相关页面/API/表 | 破坏式更新已被用户允许 |
-| `EVD-019` | Static repository | DDC V5 `uk_ddc_biz_code`、V7 `uk_ddc_app_biz_code`、`DdcAppService.save()` | `biz_code`已经全局唯一；`app_code`当前只在`(biz_code,app_code)`内唯一，Service也按组合判断 | 新DDC V9必须恢复`app_code`单列唯一并同步Repository/Service校验 | 未连接PostgreSQL/SQLite；以迁移和源码静态证据为准 |
+| `EVD-019` | Static repository | Tianshu V5 `uk_ddc_biz_code`、V7 `uk_ddc_app_biz_code`、`DdcAppService.save()` | `biz_code`已经全局唯一；`app_code`当前只在`(biz_code,app_code)`内唯一，Service也按组合判断 | 新DDC V9必须恢复`app_code`单列唯一并同步Repository/Service校验 | 未连接PostgreSQL/SQLite；以迁移和源码静态证据为准 |
 | `EVD-020` | Static repository | RBAC V1 `rbac3_application/resource/permission/field_definition`及V6 APP scope迁移 | 当前资源目录事实全部带`tenant_id`，V6又将Application定义为`(tenant_id,ddc_application_id)` | 只改HTTP参数无法满足全局目录；V7必须拆出租户APP授权并把目录事实全局化 | 用户允许破坏式空数据迁移；未证明生产数据量 |
 | `EVD-021` | User decision | “资源上报和tenantId没什么关系；不同租户统一服务，只是租户买没买；唯一索引不加tenantId” | 资源定义是平台全局事实，租户只持购买/启用和角色授权 | 覆盖先前浏览器USER+tenant report设计 | 明确决策，无待确认项 |
 | `EVD-022` | User decision | “不考虑1mb；不需要限流；上线之前在流水线中发布维护” | 报告由CI/CD SERVICE身份显式执行；不设总体payload字节上限或应用限流 | 移除浏览器同步按钮、1MiB限制、6次/分钟限制 | 常规网关/服务器基础防护仍适用，不是本业务接口特设策略 |
-| `EVD-023` | User decision | “bizcode、appcode一般唯一；加单独唯一约束，重复就换code加前后缀” | `biz_code`和`app_code`各自建立数据库单列唯一约束 | DDC APP查询和创建校验从组合唯一改为全局唯一 | 破坏式更新，不兼容重复历史code |
+| `EVD-023` | User decision | “bizcode、appcode一般唯一；加单独唯一约束，重复就换code加前后缀” | `biz_code`和`app_code`各自建立数据库单列唯一约束 | Tianshu APP查询和创建校验从组合唯一改为全局唯一 | 破坏式更新，不兼容重复历史code |
 
 以上是源代码和配置静态证据；本次未启动服务、未连接 Redis/PostgreSQL、未证明现网拓扑。
 
 ### 2.3 Problem statement and gap
 
-1. 撤销 RT 后，有效 AT 通过 Gateway 仍会被当成已登录，和用户最新“RT 决定登录在线态”的规则不一致。
+1. 撤销 RT 后，有效 AT 通过 Yuheng 仍会被当成已登录，和用户最新“RT 决定登录在线态”的规则不一致。
 2. `SecurityContext` 的最终 principal 不是 UserDetails，Admin 又创建第三种 principal，导致角色/权限装配、当前用户读取和 Controller 签名分散。
 3. API 资源声明、通用方法权限、资源注册互相耦合；当前两个方法授权实现容易产生覆盖差异。
 4. 现有Manifest把“代码资源发现、提交历史、审核激活、运行展示”绑在一套较重生命周期中；用户现在要求CI/CD在发布前直接报告前端本地定义，不生成或保存Manifest。
@@ -82,32 +82,32 @@ Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 
 7. 前端已经知道ROUTE和permission，却被设计成等待后端回传资源树；正确缺口是把本地声明扩展为MENU/ROUTE/ACTION/FIELD统一registry，并只从about取得当前用户权限。
 8. RBAC成功、分页、错误返回仍使用自有包装，前端 client也只理解 `ApiEnvelope.data`，与 components/common的公共契约重复。
 9. 当前RBAC Application/Permission/Resource/FieldDefinition均按tenant复制，既不符合“统一服务目录”的业务语义，也让资源上报错误依赖tenant；租户购买/启用APP缺少独立事实表。
-10. DDC `biz_code`已全局唯一，但V7把`app_code`放宽为业务域内唯一，和本次全局唯一约束不一致。
+10. Tianshu `biz_code`已全局唯一，但V7把`app_code`放宽为业务域内唯一，和本次全局唯一约束不一致。
 
 ### 2.4 Evidence and current-chain map
 
 | Entry/trigger | Current call chain | Data read/written | External dependency | Consumers | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| 登录后前端初始化 | `Rbac3ApiClient.getBootstrap -> GET /api/v1/auth/bootstrap -> AuthorizationBootstrapService.current` | 读SecurityContext/授权快照；当前资源/字段返回空 | Gateway/IdP/RBAC snapshot | IdP Admin Web、RBAC Admin Web、React SDK | `EVD-004`,`EVD-009` |
+| 登录后前端初始化 | `Rbac3ApiClient.getBootstrap -> GET /api/v1/auth/bootstrap -> AuthorizationBootstrapService.current` | 读SecurityContext/授权快照；当前资源/字段返回空 | Yuheng/Tianquan-Shoubing/RBAC snapshot | Tianquan-Shoubing Admin Web、RBAC Admin Web、React SDK | `EVD-004`,`EVD-009` |
 | 当前前端导航 | `applicationRouteDescriptors -> visibleNavigation -> permissions.includes` | 读前端静态descriptor和Bootstrap permission | None | `router.tsx`、EnterpriseLayout | `EVD-007`,`EVD-008` |
-| 当前Manifest提交/激活 | `ManifestController -> ManifestFacade -> JpaResourceManifestRepository` | 写`rbac3_resource_manifest/resource/permission_resource/field_definition` | DDC/Gateway校验 | ManifestDetailPage、Admin API client | `EVD-010`–`EVD-012` |
-| 目标CI资源报告 | `FrontendResourceRegistry JSON -> CI report script -> Gateway SERVICE auth -> ResourceReportController/Service/Repository` | 直接事务写全局application/resource/permission/field_definition；不写Manifest或tenant授权 | Gateway认证、IdP SERVICE AT、DDC BIZ/APP只读校验 | 发布流水线 | `EVD-007`,`EVD-016`–`EVD-023` |
-| 目标运行展示 | `GET /api/v1/auth/about -> Rbac3AboutService -> permissions/fieldPolicies -> local registry filters` | 只读SecurityContext与授权快照；不读取/返回资源总表 | Gateway/IdP/RBAC snapshot | 每个接入RBAC React前端 | `EVD-004`,`EVD-007`–`EVD-009`,`EVD-017` |
+| 当前Manifest提交/激活 | `ManifestController -> ManifestFacade -> JpaResourceManifestRepository` | 写`rbac3_resource_manifest/resource/permission_resource/field_definition` | Tianshu/Gateway校验 | ManifestDetailPage、Admin API client | `EVD-010`–`EVD-012` |
+| 目标CI资源报告 | `FrontendResourceRegistry JSON -> CI report script -> Yuheng SERVICE auth -> ResourceReportController/Service/Repository` | 直接事务写全局application/resource/permission/field_definition；不写Manifest或tenant授权 | Gateway认证、Tianquan-Shoubing SERVICE AT、Tianshu BIZ/APP只读校验 | 发布流水线 | `EVD-007`,`EVD-016`–`EVD-023` |
+| 目标运行展示 | `GET /api/v1/auth/about -> Rbac3AboutService -> permissions/fieldPolicies -> local registry filters` | 只读SecurityContext与授权快照；不读取/返回资源总表 | Yuheng/Tianquan-Shoubing/RBAC snapshot | 每个接入RBAC React前端 | `EVD-004`,`EVD-007`–`EVD-009`,`EVD-017` |
 
 ## 3. Goals and Non-goals
 
 ### 3.1 Goals
 
-- 让 Gateway 对每个受保护 USER 请求确认 RT 的 IdP 在线状态，并保持 AT 自动刷新、RT 不下传和服务侧 AT 二次校验。
+- 让 Yuheng 对每个受保护 USER 请求确认 RT 的 Tianquan-Shoubing 在线状态，并保持 AT 自动刷新、RT 不下传和服务侧 AT 二次校验。
 - 用一个 `Rbac3UserDetails` 统一可信身份、最小 RBAC User、有效激活角色、权限与授权版本，存入 Spring `SecurityContext`。
 - 收敛为 `@RBACAPIResource` 与 `@RequiresPermission` 两种方法级声明，共用一个 Spring Method Security 决策器和现有 `AuthorizationService`。
 - 用 `@RBACFieldResource` + Jackson 实现响应字段 `null/脱敏/原值`，并给 React 提供 `getField(code)` 列控制。
 - 补齐 Permission、Resource、FieldDefinition、FieldRule 的后端 CRUD、管理前端与权限字符。
 - 以一个前端本地`FrontendResourceRegistry`统一声明MENU/ROUTE/ACTION/FIELD；运行时用about权限过滤本地树、路由、按钮和字段，未授权深链路fail closed。
-- 统一 RBAC3 HTTP接口的成功、分页与错误返回体，复用 components/common 的 `ResultRecord<T>`、`PageResultRecord<T>`、`PageQuery`和 `PageMetaRecord`。
+- 统一 Tianquan-Jianshen HTTP接口的成功、分页与错误返回体，复用 components/common 的 `ResultRecord<T>`、`PageResultRecord<T>`、`PageQuery`和 `PageMetaRecord`。
 - CI/CD在上线前向RBAC报告同一registry的资源定义；报告经过SERVICE认证、专用scope、BIZ/APP身份绑定、版本/checksum校验，且绝不自动修改租户购买、角色或角色权限。
 - 删除Manifest contract、存储、激活、页面和拟新增Processor/Registration Starter/Node Plugin，以直接报告替代。
-- 保持 DDC BIZ/APP 主数据与 RBAC 授权事实的既定所有权；`bizCode`和`appCode`分别全局唯一。
+- 保持 Tianshu BIZ/APP 主数据与 RBAC 授权事实的既定所有权；`bizCode`和`appCode`分别全局唯一。
 - 把RBAC全局资源定义和租户购买/启用、角色授权明确拆分；资源上报及目录唯一键不含`tenantId`。
 
 ### 3.2 Non-goals
@@ -117,8 +117,8 @@ Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 
 - 不开发账号冻结或完整用户中台；不把密码和核心用户资料搬回 RBAC。
 - 不实现 `@DataScope`、SQL/JPA/MyBatis 查询改写、写数据行过滤、导出范围或行级策略自动执行。
 - 字段权限不处理请求反序列化、写字段校验、查询条件、排序、导出和数据库加密。
-- 不让 RBAC 接管 DDC BIZ/APP CRUD，也不从 RBAC 直接访问 DDC 数据库。
-- 不用动态 URL 规则替代方法注解；Gateway 的外围 Route/API 策略仍保留，但服务方法注解是最终 PEP。
+- 不让 RBAC 接管 Tianshu BIZ/APP CRUD，也不从 RBAC 直接访问 Tianshu 数据库。
+- 不用动态 URL 规则替代方法注解；Yuheng 的外围 Route/API 策略仍保留，但服务方法注解是最终 PEP。
 - 不建立通用规则引擎、工作流审批或新的 DDD/COLA 包迁移。
 - 不从后端下发MENU/ROUTE/ACTION资源树、可执行JavaScript、远程组件URL或任意动态import；路由/component只来自前端本地registry。
 - 不让浏览器或普通USER报告资源，不提供前端同步按钮，不把SERVICE凭据或报告实现打入Web bundle。
@@ -128,14 +128,14 @@ Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 
 
 | ID | Atomic requirement | Priority | Observable acceptance criteria | Source |
 | --- | --- | --- | --- | --- |
-| `REQ-001` | Gateway 在线校验每个受保护 USER 请求的 RT | Must | AT 有效但 RT 缺失/过期/撤销/主体不一致时返回 401并清认证 Cookie；IdP 收到一次状态校验 | “gateway 校验rt，如果idp撤销了rt就默认未登录” |
-| `REQ-002` | 保持 AT 自动刷新状态机 | Must | AT 缺失/过期且 RT 有效时同一原请求刷新、验证新 AT、继续路由；非过期非法 AT不刷新 | 已确认 JWT/Gateway 方案 |
-| `REQ-003` | 开放协议和 SERVICE 请求不错误要求 USER RT | Must | 登录、刷新、撤销、退出、JWKS/元数据按精确策略开放；SERVICE AT链不读 USER RT | 用户确认 IdP 登录/刷新开放及机器边界 |
+| `REQ-001` | Yuheng 在线校验每个受保护 USER 请求的 RT | Must | AT 有效但 RT 缺失/过期/撤销/主体不一致时返回 401并清认证 Cookie；Tianquan-Shoubing 收到一次状态校验 | “yuheng 校验rt，如果idp撤销了rt就默认未登录” |
+| `REQ-002` | 保持 AT 自动刷新状态机 | Must | AT 缺失/过期且 RT 有效时同一原请求刷新、验证新 AT、继续路由；非过期非法 AT不刷新 | 已确认 JWT/Yuheng 方案 |
+| `REQ-003` | 开放协议和 SERVICE 请求不错误要求 USER RT | Must | 登录、刷新、撤销、退出、JWKS/元数据按精确策略开放；SERVICE AT链不读 USER RT | 用户确认 Tianquan-Shoubing 登录/刷新开放及机器边界 |
 | `REQ-004` | API 注解和通用权限注解采用方案 A | Must | `@RBACAPIResource(code,permission,name)` 只声明 API；`@RequiresPermission` 可用于 Controller/Service方法/类型；二者均返回一致 403 | “一种是给API，一种通用的。方案A” |
-| `REQ-005` | 保留 Spring Security Chain 与 AuthorizationService | Must | IdP Filter先验签，RBAC Filter后装配，Spring Method Security调用 `AuthorizationService`；不存在 Controller URL 动态权限表驱动 Filter | 原始需求确认 |
+| `REQ-005` | 保留 Spring Security Chain 与 AuthorizationService | Must | Tianquan-Shoubing Filter先验签，RBAC Filter后装配，Spring Method Security调用 `AuthorizationService`；不存在 Controller URL 动态权限表驱动 Filter | 原始需求确认 |
 | `REQ-006` | 将 USER principal 迁移到 UserDetails并复用 Redis授权缓存 | Must | `SecurityContext.getAuthentication().getPrincipal()` 是 `Rbac3UserDetails`；包含身份、RBAC user、激活角色、权限、版本；缓存键仍为 `(systemCode,tenantId,identitySub)` | “迁移到 userdetails吧，弄个redis缓存…权限组装好” |
 | `REQ-007` | 只有当前有效且已激活角色进入 UserDetails/快照 | Must | 未激活、禁用、过期、越权 BIZ/APP角色及权限均不可见；激活变更使缓存失效 | 用户对 active role 的既定说明 |
-| `REQ-008` | USER Controller 不显式注入 Principal | Must | 本次涉及的 IdP/RBAC USER Controller 方法参数中无 `@AuthenticationPrincipal IdentityPrincipal/CurrentRbac3Principal/Rbac3UserDetails`；Service通过当前用户访问器取得 actor/tenant；内部机器 Controller 的 `ServiceIdentityPrincipal` 不受影响 | “不要在controller 入参数显示注入” |
+| `REQ-008` | USER Controller 不显式注入 Principal | Must | 本次涉及的 Tianquan-Shoubing/RBAC USER Controller 方法参数中无 `@AuthenticationPrincipal IdentityPrincipal/CurrentRbac3Principal/Rbac3UserDetails`；Service通过当前用户访问器取得 actor/tenant；内部机器 Controller 的 `ServiceIdentityPrincipal` 不受影响 | “不要在controller 入参数显示注入” |
 | `REQ-009` | 字段权限只在响应序列化和前端列展示执行 | Must | `NONE/未定义` 输出 JSON `null`；`MASKED_READ` 输出脱敏值；`READ/WRITE` 输出原值；请求反序列化不受影响 | 用户第4项确认 |
 | `REQ-010` | 提供字段定义与字段规则 CRUD | Must | 后端有完整list/detail/create/update/delete/status；Admin Web可维护MANUAL/CI_REPORT来源，报告不得覆盖已配置的敏感级别和脱敏策略 | “字段权限的crud控制也要有” |
 | `REQ-011` | 前端可按 field code 控制列/字段展示 | Must | SDK `getField(code)`/hook返回访问级别；`NONE` 隐藏列，`MASKED_READ` 保留列且显示服务端脱敏值 | 用户第4项确认 |
@@ -143,14 +143,14 @@ Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 
 | `REQ-013` | 前端本地registry是MENU/ROUTE/ACTION/FIELD展示的唯一资源来源 | Must | 同一registry同时生成递归导航、React routes、ActionGuard和FieldGuard输入；运行时不读取后端资源目录 | “前端自己代码里写的路由，自己不知道有多少吗” |
 | `REQ-014` | CI/CD直接报告本地资源定义且不使用Manifest | Must | 发布流水线使用短期SERVICE AT把当前APP registry通过一个HTTP请求报告给RBAC；浏览器无报告入口；没有Manifest文件、表、版本激活页或三个新增模块 | “前端只需要上报”“上线之前在流水线中发布维护”“manifest我不喜欢” |
 | `REQ-015` | 资源报告防越权、全局幂等且不自动赋权 | Must | Gateway验证SERVICE AT/scope；principal中的sourceBizCode/sourceAppCode匹配path并经DDC确认；同app+buildId+checksum重复成功且无二次写；新permission/resource/field待校验；租户授权及`rbac3_role_permission`零变化 | “资源上报和tenantId没关系”及既定“不自动授予角色权限” |
-| `REQ-016` | DDC/RBAC BIZ/APP边界保持 | Must | DDC CRUD全局主数据；RBAC RPC只读；RBAC分别维护全局APP资源目录、UserBusinessAccess、TenantApplication购买/启用与APP内租户角色权限 | 用户第7项确认及最新全局目录决策 |
+| `REQ-016` | Tianshu/RBAC BIZ/APP边界保持 | Must | Tianshu CRUD全局主数据；RBAC RPC只读；RBAC分别维护全局APP资源目录、UserBusinessAccess、TenantApplication购买/启用与APP内租户角色权限 | 用户第7项确认及最新全局目录决策 |
 | `REQ-017` | RBAC User保持最小，IdP信息只读补全，Department为 OrgUnit(DEPT) | Must | RBAC不新增密码/profile列；列表通过 IdP只读契约补显示；部门不建第二张实体表 | 用户第8项确认及既定模型 |
-| `REQ-018` | 退出只撤销 RT且 Gateway主链立即失去登录态 | Must | `/oauth2/logout`/revoke后下一个 Gateway受保护请求 401；绕过 Gateway 的有效 AT只到原 `exp`；无 Session记录 | 最新规则与无状态目标 |
-| `REQ-019` | RBAC管理端补齐权限资源基础 CRUD并统一 IAM URL/页面 | Must | Permission、Resource、FieldDefinition、FieldRule及角色绑定权限均走 `/api/rbac3/v1/iam/**`；Admin Web走 `/iam/**`且无旧路由 fallback | 已批准 IAM迁移 + 当前大需求 |
+| `REQ-018` | 退出只撤销 RT且 Gateway主链立即失去登录态 | Must | `/oauth2/logout`/revoke后下一个 Gateway受保护请求 401；绕过 Yuheng 的有效 AT只到原 `exp`；无 Session记录 | 最新规则与无状态目标 |
+| `REQ-019` | RBAC管理端补齐权限资源基础 CRUD并统一 IAM URL/页面 | Must | Permission、Resource、FieldDefinition、FieldRule及角色绑定权限均走 `/api/tianquan-jianshen/v1/iam/**`；Admin Web走 `/iam/**`且无旧路由 fallback | 已批准 IAM迁移 + 当前大需求 |
 | `REQ-020` | About只返回当前用户授权上下文，不返回资源总表 | Must | `GET /api/v1/auth/about`返回user、currentApplication、activeRoles、permissions、fieldPolicies、landingRouteCode、authVersion/policyVersion；JSON中不存在apps/menus/routes/actions/navigationTree | “弄一个about接口”“前端不需要知道总共有哪些” |
 | `REQ-021` | 前端按本地MENU/ROUTE声明和about permission控制导航、路由和深链路 | Must | MENU递归保留至少一个可见后代；ROUTE permission存在才注册/访问；hidden route不进菜单但授权深链可访问；未授权本地route进入403 | “前端如何实现ROUTE、MENU是否展示”+最新本地资源决定 |
 | `REQ-022` | 前端按本地ACTION/FIELD声明和about决策控制展示 | Must | ACTION声明permission不在about permissions时不渲染；FIELD未知/NONE隐藏，MASKED_READ展示服务端脱敏值；后端API/字段PEP独立执行 | “前端如何实现ACTION、FIELD是否展示”+最新本地资源决定 |
-| `REQ-023` | RBAC3 HTTP接口统一复用 components/common返回与分页类型 | Must | RBAC3 JSON REST的单体/有限列表使用 `ResultRecord<T>`，分页列表使用 `PageResultRecord<T>`并接收 `PageQuery`；删除 `ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse`及前端旧解析；OAuth协议与 RPC消息保持各自标准 | “所有接口返回的Result和PageResult，使用components下的 common组件下的内容” |
+| `REQ-023` | Tianquan-Jianshen HTTP接口统一复用 components/common返回与分页类型 | Must | Tianquan-Jianshen JSON REST的单体/有限列表使用 `ResultRecord<T>`，分页列表使用 `PageResultRecord<T>`并接收 `PageQuery`；删除 `ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse`及前端旧解析；OAuth协议与 RPC消息保持各自标准 | “所有接口返回的Result和PageResult，使用components下的 common组件下的内容” |
 | `REQ-024` | 破坏式移除现有Manifest能力 | Must | `ResourceManifest` contract、Starter Contributor/Reporter、Admin manifest包/API、ManifestDetailPage/route和`rbac3_resource_manifest`表均不存在；V1–V6不修改，只新增一个V7 | “manifest我不喜欢”+允许破坏式更新 |
 | `REQ-025` | `bizCode`与`appCode`分别全局唯一 | Must | DDC数据库分别存在`biz_code`和`app_code`单列唯一约束；创建/更新/查询不再允许不同BIZ复用同一appCode；冲突返回稳定409 | “对bizcode和appcode加单独唯一约束；重复就换code” |
 | `REQ-026` | 全局资源目录与租户授权解耦 | Must | RBAC application/permission/resource/field_definition及其报告幂等键不含tenantId；新`rbac3_tenant_application`唯一键为`(tenant_id,application_id)`；角色授权前必须校验租户已启用该APP | “资源上报和tenantId没关系；租户买没买，我给租户对应权限” |
@@ -162,8 +162,8 @@ Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 
 | 普通用户初始化前端 | USER打开已接入RBAC的Web | AT/RT有效，当前APP有激活角色 | Gateway校验RT/AT -> about -> 前端以permissions/fieldPolicies过滤本地registry | 无权限时返回空权限集合；RT失效401；RBAC不可用503 | 只读快照/cache | 只显示本地且获权MENU/ROUTE/ACTION/FIELD | `REQ-001`–`REQ-007`,`REQ-013`,`REQ-020`–`REQ-023` |
 | 未授权深链访问 | USER直接输入本地ROUTE URL | 本地registry存在该route但about无permission | `RouteAccessGuard`拒绝，不调用页面业务接口 | about尚未完成先保持loading；未知本地URL走404 | 无写入 | 403 denied页面且无受保护内容闪现 | `REQ-021` |
 | 字段NONE/MASKED/READ | USER请求带`@RBACFieldResource`响应 | UserDetails有fieldPolicies | Jackson按决策输出null/脱敏/原值；前端按同field code隐藏/展示 | 决策缺失或异常按NONE；脱敏策略异常不回退原值 | 无业务数据写入 | 网络响应和UI均不泄漏禁止字段 | `REQ-009`–`REQ-011`,`REQ-022` |
-| CI/CD上线前报告资源 | 发布流水线完成前端声明校验并取得短期SERVICE AT | registry有效；DDC BIZ/APP存在启用；principal source codes与目标一致 | CI规范化registry -> checksum -> Gateway -> RBAC单事务replace全局report-owned facts | scope/source code/DDC/graph/checksum不符整体拒绝；MANUAL冲突不覆盖 | 全局application/resource/permission/field_definition及映射更新 | ResultRecord返回added/updated/stale/unchanged；无Manifest、无tenant写入 | `REQ-013`–`REQ-016`,`REQ-024`–`REQ-026` |
-| 浏览器USER或伪造SERVICE报告 | USER调用报告端点或SERVICE冒充其他APP | AT类型/scope/source APP不满足 | Gateway/Method Security先拒绝，再进入业务写入前终止 | 未认证401；错误主体/scope/source APP 403；checksum/shape无效400 | 零写入 | 稳定common错误且不泄漏其他APP目录 | `REQ-014`,`REQ-015`,`REQ-023`,`REQ-026` |
+| CI/CD上线前报告资源 | 发布流水线完成前端声明校验并取得短期SERVICE AT | registry有效；Tianshu BIZ/APP存在启用；principal source codes与目标一致 | CI规范化registry -> checksum -> Yuheng -> RBAC单事务replace全局report-owned facts | scope/source code/Tianshu/graph/checksum不符整体拒绝；MANUAL冲突不覆盖 | 全局application/resource/permission/field_definition及映射更新 | ResultRecord返回added/updated/stale/unchanged；无Manifest、无tenant写入 | `REQ-013`–`REQ-016`,`REQ-024`–`REQ-026` |
+| 浏览器USER或伪造SERVICE报告 | USER调用报告端点或SERVICE冒充其他APP | AT类型/scope/source APP不满足 | Yuheng/Method Security先拒绝，再进入业务写入前终止 | 未认证401；错误主体/scope/source APP 403；checksum/shape无效400 | 零写入 | 稳定common错误且不泄漏其他APP目录 | `REQ-014`,`REQ-015`,`REQ-023`,`REQ-026` |
 | 重复/并发报告 | 同一全局APP、同buildId/checksum重复或两个流水线并发 | SERVICE报告身份有效 | 相同checksum返回幂等成功；不同checksum按全局application行/version串行 | 同buildId不同checksum或expectedVersion竞争返回409 | 最多一个全局目录版本可见；无重复resource key | 可安全重试，不产生TenantApplication或RolePermission写入 | `REQ-015`,`REQ-023`,`REQ-026` |
 | 管理员审核报告结果 | IAM管理员打开Resource/Field CRUD | 有resource/permission/field管理权限 | 查看CI_REPORT来源PENDING项，补字段安全配置并激活/禁用 | 版本冲突409；非法父链/permission拒绝 | 单资源/字段状态和版本变化，触发授权快照失效 | 后续about权限/fieldPolicies按新版本刷新 | `REQ-010`,`REQ-019`,`REQ-024` |
 | 退出/RT撤销 | USER退出或管理员撤销RT | RT仍在IdP registry | IdP撤销RT；下次Gateway保护请求在线校验失败 | IdP不可用返回503且不伪装退出 | 仅RT有效态变化 | 下次请求401；直连服务AT最多到exp | `REQ-001`–`REQ-003`,`REQ-018` |
@@ -175,10 +175,10 @@ Gateway 对每个“保护身份/保护业务”的 USER 请求在线调用 IdP 
 | Actor ID | Actor/role | Goal and responsibility | Entry/channel | Permission/tenant context | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | `ACTOR-001` | 已认证业务用户 | 访问本人获权页面、操作和字段 | Gateway后的业务/Admin Web | USER AT+RT；当前tenant/app；激活角色 | `EVD-001`–`EVD-005`,`EVD-009` |
-| `ACTOR-002` | 应用发布流水线 | 上线前将当前前端本地registry同步到RBAC全局目录 | CI脚本经Gateway调用报告API | IdP短期SERVICE AT；scope=`rbac3:resource-catalog:report`；sourceBizCode/sourceAppCode绑定目标 | 用户最新决定`EVD-017`–`EVD-023` |
+| `ACTOR-002` | 应用发布流水线 | 上线前将当前前端本地registry同步到RBAC全局目录 | CI脚本经Gateway调用报告API | IdP短期SERVICE AT；scope=`tianquan-jianshen:resource-catalog:report`；sourceBizCode/sourceAppCode绑定目标 | 用户最新决定`EVD-017`–`EVD-023` |
 | `ACTOR-003` | RBAC IAM管理员 | 审核、补充和维护Permission/Resource/FieldRule | RBAC Admin Web `/iam/**` | 对应`system:*`管理权限与tenant | 现有IAM Controller/Web页面 |
 | `ACTOR-004` | 前端应用 | 持有本地MENU/ROUTE/ACTION/FIELD声明并执行UX过滤 | React SDK/本地registry | 不拥有授权；只消费about | `EVD-007`,`EVD-008`,`EVD-017` |
-| `ACTOR-005` | IdP | 签发/验证AT和维护RT在线态 | Gateway内部状态/刷新调用 | IdP权威identity/token store | `EVD-001`–`EVD-003` |
+| `ACTOR-005` | Tianquan-Shoubing | 签发/验证AT和维护RT在线态 | Gateway内部状态/刷新调用 | IdP权威identity/token store | `EVD-001`–`EVD-003` |
 
 #### 4.2.2 Use-case artifact
 
@@ -188,7 +188,7 @@ flowchart LR
     Reporter["ACTOR-002 应用发布流水线"]
     Admin["ACTOR-003 RBAC IAM管理员"]
     Web["ACTOR-004 前端应用"]
-    IdP["ACTOR-005 IdP"]
+    Tianquan-Shoubing["ACTOR-005 Tianquan-Shoubing"]
 
     subgraph Scope["RBAC3权限接入边界"]
         UC001(["UC-001 获取当前授权上下文"])
@@ -200,13 +200,13 @@ flowchart LR
     end
 
     User -->|"打开应用"| UC001
-    UC001 -->|"校验AT/RT"| IdP
+    UC001 -->|"校验AT/RT"| Tianquan-Shoubing
     Web -->|"permissions/fieldPolicies"| UC002
     User -->|"访问接口"| UC005
     Reporter -->|"上线前同步本地registry"| UC003
     Admin -->|"激活/配置"| UC004
     User -->|"退出"| UC006
-    UC006 -->|"撤销RT"| IdP
+    UC006 -->|"撤销RT"| Tianquan-Shoubing
 ```
 
 | ID | Use case/goal | Primary actor | Trigger/preconditions | Main success outcome | Alternatives/failures | Postconditions | Requirements | Interfaces/pages | Tests |
@@ -222,8 +222,8 @@ flowchart LR
 
 ### 5.1 Confirmed constraints
 
-- USER Token 固定只有 AT 与 RT；AT 5分钟；IdP 为唯一签发、验证和撤销权威。
-- Gateway/业务服务不保存人员 Session；RT 只在 Gateway/IdP边界流转，业务服务只接收 AT。
+- USER Token 固定只有 AT 与 RT；AT 5分钟；Tianquan-Shoubing 为唯一签发、验证和撤销权威。
+- Yuheng/业务服务不保存人员 Session；RT 只在 Yuheng/IdP边界流转，业务服务只接收 AT。
 - 权限事实不进入 JWT；RBAC3按系统、租户、主体加载授权快照。
 - 破坏式更新允许不兼容旧 URL/旧缓存/旧 DTO，但现有 Flyway V1–V6不可修改。
 - DDC拥有 BIZ/APP主数据；RBAC拥有授权。
@@ -240,18 +240,18 @@ flowchart LR
 | ID | Inference | Repository evidence | Why locally reversible | Impact if wrong |
 | --- | --- | --- | --- | --- |
 | `ASM-001` | “每次校验 RT”只适用于 Gateway分类为保护身份/保护业务的 USER请求 | 现有精确 `IdpEndpointAuthenticationPolicy` 与 predecessor `SJ-43` | 仅策略映射，不改 Token契约 | 若用户要求登录/JWKS也带 RT，会造成认证死锁 |
-| `ASM-002` | IdP RT校验超时/5xx返回 503且不清 Cookie；确定无效才返回 401并清 Cookie | 当前 Gateway 区分 credential failure 与 provider failure | 可调整错误映射，不改持久模型 | 若一律401，IdP故障会造成大规模假退出 |
+| `ASM-002` | Tianquan-Shoubing RT校验超时/5xx返回 503且不清 Cookie；确定无效才返回 401并清 Cookie | 当前 Yuheng 区分 credential failure 与 provider failure | 可调整错误映射，不改持久模型 | 若一律401，IdP故障会造成大规模假退出 |
 | `ASM-003` | Redis缓存的是不可变授权快照，`Rbac3UserDetails`每请求由已验证 IdentityPrincipal + 快照组装 | 已有 Snapshot Cache包含版本/过期；AT `jti/exp/acr`逐请求不同 | 内部组装方式，可替换 | 直接缓存 UserDetails会带入旧 AT身份上下文 |
-| `ASM-004` | “Controller不显式注入”覆盖本次 IdP/RBAC USER主体；内部 SERVICE端点可继续注入 `ServiceIdentityPrincipal` | UserDetails迁移只针对 USER；机器主体不是人员角色权限 | 仅 Controller签名范围 | 若也禁止 SERVICE注入，需另增机器访问器但不改变权限模型 |
-| `ASM-005` | CI通过既有IdP Client Credentials流程取得短期SERVICE AT，凭据只以流水线secret/environment注入报告进程 | Gateway/IdP已有SERVICE principal及`sourceBizCode/sourceAppCode`；前端bundle不能安全保存机器凭据 | CI取token步骤可适配具体平台，不改变RBAC报告契约 | 若某流水线无法取得SERVICE AT，只阻塞发布前上报，不得降级为浏览器USER上报 |
-| `ASM-006` | “所有接口使用 Result/PageResult”覆盖本规格内 RBAC3 JSON REST与 IdP内部 JSON端点；标准 OAuth token/error、RPC protobuf和未来二进制/流式响应不套业务 envelope | `/oauth2/token`已有 OAuth响应，IdentityDirectory为 protobuf；强行包装会破坏协议消费者 | 仅明确 allowlist边界，不改变业务模型 | 若用户要求连 OAuth也包装，将不再兼容标准 token endpoint |
+| `ASM-004` | “Controller不显式注入”覆盖本次 Tianquan-Shoubing/RBAC USER主体；内部 SERVICE端点可继续注入 `ServiceIdentityPrincipal` | UserDetails迁移只针对 USER；机器主体不是人员角色权限 | 仅 Controller签名范围 | 若也禁止 SERVICE注入，需另增机器访问器但不改变权限模型 |
+| `ASM-005` | CI通过既有IdP Client Credentials流程取得短期SERVICE AT，凭据只以流水线secret/environment注入报告进程 | Yuheng/IdP已有SERVICE principal及`sourceBizCode/sourceAppCode`；前端bundle不能安全保存机器凭据 | CI取token步骤可适配具体平台，不改变RBAC报告契约 | 若某流水线无法取得SERVICE AT，只阻塞发布前上报，不得降级为浏览器USER上报 |
+| `ASM-006` | “所有接口使用 Result/PageResult”覆盖本规格内 Tianquan-Jianshen JSON REST与 IdP内部 JSON端点；标准 OAuth token/error、RPC protobuf和未来二进制/流式响应不套业务 envelope | `/oauth2/token`已有 OAuth响应，IdentityDirectory为 protobuf；强行包装会破坏协议消费者 | 仅明确 allowlist边界，不改变业务模型 | 若用户要求连 OAuth也包装，将不再兼容标准 token endpoint |
 | `ASM-007` | ROUTE允许以ROUTE为父形成嵌套路由；ACTION通过`routeCode`关联ROUTE；FIELD由本地field code关联about fieldPolicies | 用户明确“路由可能是tree状”；前端descriptor可扩展parent/children | 本地schema校验可收紧，无后端公共契约变化 | 若ROUTE不得嵌套，只需调整registry validator |
 
 ### 5.3 Resolved decisions
 
 | ID | Decision | Decision owner | Evidence and rationale | Requirements |
 | --- | --- | --- | --- | --- |
-| `DEC-001` | Gateway对保护 USER请求无正向 RT状态缓存，逐请求在线校验 IdP | User | 只有这样撤销才能在下一请求生效 | `REQ-001`,`REQ-018` |
+| `DEC-001` | Gateway对保护 USER请求无正向 RT状态缓存，逐请求在线校验 Tianquan-Shoubing | User | 只有这样撤销才能在下一请求生效 | `REQ-001`,`REQ-018` |
 | `DEC-002` | 采用两注解方案 A，统一落到 Spring Method Security + AuthorizationService | User | API目录声明与通用方法授权职责不同，但决定引擎应唯一 | `REQ-004`,`REQ-005` |
 | `DEC-003` | 最终 USER principal 为 `Rbac3UserDetails`；不采用 DAO密码认证，也不把 UserDetails写入 Redis | User + 本规格 | JWT已认证身份；Redis只缓存授权事实更安全 | `REQ-006`–`REQ-008` |
 | `DEC-004` | 字段权限只做响应/前端展示；默认 fail closed为 JSON null | User | 避免未决的数据查询/写入语义扩大 | `REQ-009`–`REQ-012` |
@@ -275,20 +275,20 @@ N/A。用户已经批量确认本规格所需的认证、注解、UserDetails、
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
 | Language/runtime | Java 21 | `egon-cola-xingyuan/pom.xml` `java.version=21` | 可使用 record/sealed等现有语法，不改变版本 |
-| Framework | Spring Boot 3.5.16 / Spring Security 6 | platform BOM与各 starter Security配置 | 使用 `AuthorizationManagerBeforeMethodInterceptor`/`@EnableMethodSecurity`，保持 stateless chain |
-| Build | Maven多模块；Web使用Vite | `rbac3/pom.xml`、Admin Web `package.json` | 不新增资源注册模块或构建插件；流水线调用Web包内独立Node脚本，脚本和secret不进入Vite入口图 |
-| Persistence | Spring Data JPA/Hibernate + PostgreSQL | `rbac3-admin/pom.xml`、PO/Repository | 复用现有 PO与事务服务，不新增第二 ORM模型 |
+| Framework | Spring Boot 3.5.16 / Spring Security 6 | xingyuan BOM与各 starter Security配置 | 使用 `AuthorizationManagerBeforeMethodInterceptor`/`@EnableMethodSecurity`，保持 stateless chain |
+| Build | Maven多模块；Web使用Vite | `tianquan-jianshen/pom.xml`、Admin Web `package.json` | 不新增资源注册模块或构建插件；流水线调用Web包内独立Node脚本，脚本和secret不进入Vite入口图 |
+| Persistence | Spring Data JPA/Hibernate + PostgreSQL | `tianquan-jianshen-admin/pom.xml`、PO/Repository | 复用现有 PO与事务服务，不新增第二 ORM模型 |
 | Migration | Flyway；RBAC现有V1–V6，DDC现有V1–V8且PostgreSQL/SQLite双方言 | 两模块migration目录 | RBAC只新增V7；DDC新增同版本号V9的PostgreSQL/SQLite方言脚本；不能修改历史脚本 |
 | Cache | Redisson/Redis + JVM near-cache | Starter Cache类与 pom | UserDetails组装复用快照缓存；RT状态不在 Gateway缓存 |
 | Frontend | React 19.2.8、TypeScript 6.0.3、Vite 8.1.5 | Admin Web/React SDK package.json | 扩展现有route descriptors为本地统一registry；浏览器不实现报告client，CI脚本读同一可序列化声明 |
 | Frontend tests | Vitest 4.1.10；现有 Playwright配置 | package.json、`e2e/` | 覆盖 SDK/页面/component与外部准备登录态的 E2E |
-| HTTP result model | components/common `ResultRecord`、`PageResultRecord`、`PageQuery`；Gateway区分 deny/unavailable | `egon-cola-component-common-core/.../pojo`、现有 DDC Admin用法 | RBAC3不得再定义平行 envelope；401/403/503仍由 HTTP status与 common code/status区分 |
+| HTTP result model | components/common `ResultRecord`、`PageResultRecord`、`PageQuery`；Gateway区分 deny/unavailable | `egon-cola-component-common-core/.../pojo`、现有 Tianshu Admin用法 | RBAC3不得再定义平行 envelope；401/403/503仍由 HTTP status与 common code/status区分 |
 
 ### 6.1 Java three-layer applicability
 
 | Architecture profile | Base package | Evidence or explicit decision | Existing deviations | Design action |
 | --- | --- | --- | --- | --- |
-| Existing custom/domain-first modular structure | `top.egon.cola.platform.rbac3.admin.iam.<domain>` 与各 Starter功能包 | IAM聚合迁移已经落地；当前 Controller/Service/Repository按领域垂直组织 | 不使用本 skill默认的单一 `biz.controller/service/dao`树 | 保留现有结构，不在权限改造中再次迁包；Controller仍只依赖 Service，Service编排 Repository/Adapter |
+| Existing custom/domain-first modular structure | `top.egon.cola.platform.tianquan.jianshen.admin.iam.<domain>` 与各 Starter功能包 | IAM聚合迁移已经落地；当前 Controller/Service/Repository按领域垂直组织 | 不使用本 skill默认的单一 `biz.controller/service/dao`树 | 保留现有结构，不在权限改造中再次迁包；Controller仍只依赖 Service，Service编排 Repository/Adapter |
 
 本规格没有提出结构迁移，因此不会静默套用传统三层目录。对于新增 Admin CRUD，严格复用 `iam.<resource|permission|policy>.controller/domain/repository/service`；实现类延续当前同包服务约定，不创建 `BaseService`继承层。Starter/Contract本身是技术模块，不适用业务三层树。
 
@@ -296,15 +296,15 @@ N/A。用户已经批量确认本规格所需的认证、注解、UserDetails、
 
 ### 7.1 System Architecture Design
 
-系统保持三层 PEP：Gateway做 RT在线态、AT身份与外围 BIZ/APP/Route/API检查；目标服务的 IdP Filter本地再次验 AT；RBAC3 Filter组装 UserDetails，Method Security/字段序列化执行最终权限。中心事实仍由 IdP和 RBAC3分别拥有。
+系统保持三层 PEP：Gateway做 RT在线态、AT身份与外围 BIZ/APP/Route/API检查；目标服务的 Tianquan-Shoubing Filter本地再次验 AT；Tianquan-Jianshen Filter组装 UserDetails，Method Security/字段序列化执行最终权限。中心事实仍由 IdP和 RBAC3分别拥有。
 
 #### 7.1.1 Architecture Mermaid view
 
 ```mermaid
 flowchart LR
-    UI["Browser / Admin Web\nAT Cookie + RT Cookie"] --> GW["Gateway USER Security"]
-    GW -->|"RT status, every protected USER request"| IDP["IdP\nJWT + RT Redis authority"]
-    GW -->|"AT missing/expired + active RT"| REF["IdP /oauth2/token"]
+    UI["Browser / Admin Web\nAT Cookie + RT Cookie"] --> GW["Yuheng USER Security"]
+    GW -->|"RT status, every protected USER request"| Tianquan-Shoubing["Tianquan-Shoubing\nJWT + RT Redis authority"]
+    GW -->|"AT missing/expired + active RT"| REF["Tianquan-Shoubing /oauth2/token"]
     GW -->|"only verified AT"| IDS["Target IdPBearerAuthenticationFilter"]
     IDS --> RBF["Rbac3BearerAuthenticationFilter"]
     RBF --> CACHE["Redis authorization snapshot\nactive roles + permissions + field/data decisions"]
@@ -315,8 +315,8 @@ flowchart LR
     SC --> ABOUT["GET /api/v1/auth/about\nuser + roles + permissions + fields"]
     ABOUT --> LOCAL["FrontendResourceRegistry\nlocal MENU/ROUTE/ACTION/FIELD"]
     LOCAL --> UI
-    CI["CI/CD release job\nshort-lived SERVICE AT"] -->|"API-003 report before rollout\nno tenant, no Manifest"| RBACADMIN["RBAC3 Admin global resource report"]
-    DDC[("DDC global BIZ/APP\nunique bizCode + unique appCode")] --> RBACADMIN
+    CI["CI/CD release job\nshort-lived SERVICE AT"] -->|"API-003 report before rollout\nno tenant, no Manifest"| RBACADMIN["Tianquan-Jianshen Admin global resource report"]
+    Tianshu[("Tianshu global BIZ/APP\nunique bizCode + unique appCode")] --> RBACADMIN
     RBACADMIN --> CATALOG[("RBAC global APP/PERMISSION/RESOURCE/FIELD")]
     TENANT[("RBAC tenant APP entitlement\nroles + grants + field/data rules")] --> CACHE
     CATALOG --> CACHE
@@ -328,17 +328,17 @@ flowchart LR
 
 | Module/component | Capability and data owned | Inputs/outputs | Allowed dependencies | Forbidden responsibility | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| IdP Core/Admin | RT JWT、Redis有效态、刷新和撤销 | raw RT -> active identity/无效 | TokenSigner、RefreshTokenStore | 不存RBAC权限或前端资源 | `REQ-001`–`REQ-003`,`REQ-018` |
-| IdP Starter | AT验签与CurrentIdentity访问 | AT -> IdentityPrincipal | Spring Security | 不决定RBAC permission | `REQ-003`,`REQ-008` |
-| IdP Gateway Adapter | Gateway USER在线态和AT恢复 | Cookie AT/RT -> verified AT | IdP status/refresh client | 不把RT下传业务服务 | `REQ-001`–`REQ-003` |
-| RBAC3 Contract | Snapshot、About、ActiveRole和Field决策稳定DTO | Java records | Java标准库 | 不再定义ResourceManifest或前端资源树 | `REQ-006`,`REQ-007`,`REQ-009`,`REQ-020`,`REQ-024` |
-| RBAC3 Starter | UserDetails、Method Security、About组装、Jackson Field PEP | Identity+Snapshot -> SecurityContext/About/JSON | IdP Starter、Spring Security、Jackson、Redis cache | 不扫描/上传/保存资源定义 | `REQ-004`–`REQ-012`,`REQ-020` |
-| RBAC3 Admin | IAM CRUD、CI资源报告、全局目录、租户APP授权、快照发布、IdP/DDC adapters | common HTTP -> JPA/Redis | DDC RPC、JPA、common core | 不决定前端运行导航；不创建BIZ/APP；报告不创建租户授权 | `REQ-010`,`REQ-014`–`REQ-017`,`REQ-019`,`REQ-023`–`REQ-026` |
+| Tianquan-Shoubing Core/Admin | RT JWT、Redis有效态、刷新和撤销 | raw RT -> active identity/无效 | TokenSigner、RefreshTokenStore | 不存RBAC权限或前端资源 | `REQ-001`–`REQ-003`,`REQ-018` |
+| Tianquan-Shoubing Starter | AT验签与CurrentIdentity访问 | AT -> IdentityPrincipal | Spring Security | 不决定RBAC permission | `REQ-003`,`REQ-008` |
+| Tianquan-Shoubing Yuheng Adapter | Yuheng USER在线态和AT恢复 | Cookie AT/RT -> verified AT | Tianquan-Shoubing status/refresh client | 不把RT下传业务服务 | `REQ-001`–`REQ-003` |
+| Tianquan-Jianshen Contract | Snapshot、About、ActiveRole和Field决策稳定DTO | Java records | Java标准库 | 不再定义ResourceManifest或前端资源树 | `REQ-006`,`REQ-007`,`REQ-009`,`REQ-020`,`REQ-024` |
+| Tianquan-Jianshen Starter | UserDetails、Method Security、About组装、Jackson Field PEP | Identity+Snapshot -> SecurityContext/About/JSON | Tianquan-Shoubing Starter、Spring Security、Jackson、Redis cache | 不扫描/上传/保存资源定义 | `REQ-004`–`REQ-012`,`REQ-020` |
+| Tianquan-Jianshen Admin | IAM CRUD、CI资源报告、全局目录、租户APP授权、快照发布、Tianquan-Shoubing/Tianshu adapters | common HTTP -> JPA/Redis | Tianshu RPC、JPA、common core | 不决定前端运行导航；不创建BIZ/APP；报告不创建租户授权 | `REQ-010`,`REQ-014`–`REQ-017`,`REQ-019`,`REQ-023`–`REQ-026` |
 | FrontendResourceRegistry | 本应用MENU/ROUTE/ACTION/FIELD声明、组件绑定和排序 | local descriptors -> UI；serializable definitions -> CI | React/React Router | 不拥有用户授权决定或secret | `REQ-013`,`REQ-014`,`REQ-021`,`REQ-022` |
-| CI report script | 上线前读取serializable definitions并调用报告API | registry JSON + SERVICE AT env -> report request | Gateway HTTP、Node运行时 | 不进入Vite browser graph；不持久化secret；不在应用启动时运行 | `REQ-014`,`REQ-015`,`REQ-024`–`REQ-026` |
-| React SDK/Admin Web | About消费、local registry过滤和IAM页面 | About/registry -> guards/pages | Gateway HTTP、local registry | 不从后端下载运行资源树；不包含报告client/SERVICE credential | `REQ-010`,`REQ-011`,`REQ-013`,`REQ-019`–`REQ-023` |
+| CI report script | 上线前读取serializable definitions并调用报告API | registry JSON + SERVICE AT env -> report request | Yuheng HTTP、Node运行时 | 不进入Vite browser graph；不持久化secret；不在应用启动时运行 | `REQ-014`,`REQ-015`,`REQ-024`–`REQ-026` |
+| React SDK/Admin Web | About消费、local registry过滤和IAM页面 | About/registry -> guards/pages | Yuheng HTTP、local registry | 不从后端下载运行资源树；不包含报告client/SERVICE credential | `REQ-010`,`REQ-011`,`REQ-013`,`REQ-019`–`REQ-023` |
 | Admin Web Shared | 递归渲染本地过滤后的导航树 | `EnterpriseNavigationItem.children` | React Router、Ant Design | 不查询RBAC或决定permission | `REQ-021` |
-| DDC | 全局BIZ/APP主数据，bizCode/appCode分别唯一 | catalog CRUD/query | DDC DB/RPC | 不维护角色/permission/resource report或tenant entitlement | `REQ-016`,`REQ-025` |
+| Tianshu | 全局BIZ/APP主数据，bizCode/appCode分别唯一 | catalog CRUD/query | Tianshu DB/RPC | 不维护角色/permission/resource report或tenant entitlement | `REQ-016`,`REQ-025` |
 
 ### 7.2 High-Level Design
 
@@ -350,7 +350,7 @@ flowchart LR
 flowchart TD
     Source["Checked-in serializable resource definitions"] --> Build{"CI registry validation succeeds?"}
     Build -->|"No"| Block(["Block release; no RBAC write"])
-    Build -->|"Yes"| Token["Obtain short-lived IdP SERVICE AT"]
+    Build -->|"Yes"| Token["Obtain short-lived Tianquan-Shoubing SERVICE AT"]
     Token --> Report{"API-003 global report succeeds?"}
     Report -->|"400/401/403/409/5xx"| Block
     Report -->|"200"| Rollout(["Continue rollout"])
@@ -380,11 +380,11 @@ flowchart TD
 
 | Step | Caller -> callee | Contract/symbol | Input/output mapping | State/data effect | Failure behavior | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| `1` | Web -> Gateway/IdP | protected request | AT/RT Cookies -> verified AT | RT status只读 | 401/503 | `REQ-001`–`REQ-003` |
-| `2` | IdP Filter -> RBAC Filter | SecurityContext chain | IdentityPrincipal+snapshot -> Rbac3UserDetails | cache read | unavailable fail closed | `REQ-005`–`REQ-008` |
+| `1` | Web -> Yuheng/Tianquan-Shoubing | protected request | AT/RT Cookies -> verified AT | RT status只读 | 401/503 | `REQ-001`–`REQ-003` |
+| `2` | Tianquan-Shoubing Filter -> RBAC Filter | SecurityContext chain | IdentityPrincipal+snapshot -> Rbac3UserDetails | cache read | unavailable fail closed | `REQ-005`–`REQ-008` |
 | `3` | Web -> About Controller/Service | `API-010` | current UserDetails -> Rbac3AboutView | 无写入 | 401/403/503 common error | `REQ-020`,`REQ-023` |
 | `4` | Web registry -> guards/layout | local registry + about | permission/field code -> visible local nodes | 前端内存状态 | unknown/denied隐藏或403 | `REQ-013`,`REQ-021`,`REQ-022` |
-| `5` | CI script -> Gateway -> ResourceReportController/Service | `API-003` | registry serializable projection + SERVICE principal -> report command | 单事务replace全局report-owned rows | 400/401/403/409、零部分写 | `REQ-014`,`REQ-015`,`REQ-024`–`REQ-026` |
+| `5` | CI script -> Yuheng -> ResourceReportController/Service | `API-003` | registry serializable projection + SERVICE principal -> report command | 单事务replace全局report-owned rows | 400/401/403/409、零部分写 | `REQ-014`,`REQ-015`,`REQ-024`–`REQ-026` |
 | `6` | Method/Jackson PEP -> AuthorizationService | annotations/current UserDetails | permission/field key -> decision/output | 无权限事实写入 | 403或field null | `REQ-004`,`REQ-009`,`REQ-022` |
 
 #### 7.3.2 Critical-path Mermaid swimlane — protected USER request
@@ -392,9 +392,9 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant U as Browser
-    participant G as Gateway
-    participant I as IdP
-    participant R as Gateway RBAC PEP
+    participant G as Yuheng
+    participant I as Tianquan-Shoubing
+    participant R as Yuheng RBAC PEP
     participant S as Target Service
     participant A as Service AuthorizationService
 
@@ -407,7 +407,7 @@ sequenceDiagram
         alt RT missing/invalid/expired/revoked or sub/tid mismatch
             I-->>G: 401 generic inactive
             G-->>U: 401 + expire AT/RT cookies
-        else IdP unavailable
+        else Tianquan-Shoubing unavailable
             I--xG: timeout/5xx
             G-->>U: 503, keep cookies
         else RT active
@@ -422,7 +422,7 @@ sequenceDiagram
                 R-->>U: 403
             else allowed
                 G->>S: verified AT only; strip RT/Cookie/trusted spoof headers
-                S->>S: IdP Filter verifies AT again
+                S->>S: Tianquan-Shoubing Filter verifies AT again
                 S->>A: RBAC snapshot -> UserDetails -> method decision
                 A-->>U: response after field serialization
             end
@@ -454,12 +454,12 @@ sequenceDiagram
 sequenceDiagram
     participant W as Business/Admin Web
     participant C as CI/CD release job
-    participant G as Gateway
-    participant I as IdP
+    participant G as Yuheng
+    participant I as Tianquan-Shoubing
     participant A as Rbac3AboutController/Service
     participant L as FrontendResourceRegistry
     participant R as ResourceReportController/Service
-    participant X as DDC RPC
+    participant X as Tianshu RPC
     participant D as RBAC Database
 
     W->>G: GET /api/v1/auth/about
@@ -499,7 +499,7 @@ sequenceDiagram
 4. FIELD通过`getField/useFieldAccess/FieldGuard/FieldColumnGuard`读取about fieldPolicies；未知/缺失/NONE隐藏，MASKED_READ展示服务端脱敏值，READ/WRITE展示服务端已处理值。
 5. 所有UI隐藏只是UX；业务API继续由`@RBACAPIResource/@RequiresPermission`执行，响应字段继续由Jackson PEP执行。
 
-CI报告规则：报告只在registry完整校验后生成；请求不接收`tenantId`。Gateway验证SERVICE AT及`rbac3:resource-catalog:report` scope，RBAC从`ServiceIdentityPrincipal`取得`sourceBizCode/sourceAppCode`并与path逐项相等，再经DDC RPC确认两个code存在、启用且APP属于BIZ。`sourceType=CI_REPORT`的行由整批replace管理，MANUAL行不覆盖。幂等身份为`(globalApplicationId, buildId, checksum)`；同buildId不同checksum拒绝409；并发不同报告使用全局application乐观version，失败方409。新Permission/Resource/FieldDefinition为`PENDING_VALIDATION`；既有ACTIVE报告来源只更新name/order/path/component等机械/展示事实，不改变TenantApplication、RolePermission、FieldRule、敏感级别、maskingStrategy、writable/exportable。报告成功后推进全局目录版本并审计service subject/source codes/build/checksum/counts；前端运行展示不等待报告完成，也不读取报告结果作为导航来源。
+CI报告规则：报告只在registry完整校验后生成；请求不接收`tenantId`。Gateway验证SERVICE AT及`tianquan-jianshen:resource-catalog:report` scope，RBAC从`ServiceIdentityPrincipal`取得`sourceBizCode/sourceAppCode`并与path逐项相等，再经DDC RPC确认两个code存在、启用且APP属于BIZ。`sourceType=CI_REPORT`的行由整批replace管理，MANUAL行不覆盖。幂等身份为`(globalApplicationId, buildId, checksum)`；同buildId不同checksum拒绝409；并发不同报告使用全局application乐观version，失败方409。新Permission/Resource/FieldDefinition为`PENDING_VALIDATION`；既有ACTIVE报告来源只更新name/order/path/component等机械/展示事实，不改变TenantApplication、RolePermission、FieldRule、敏感级别、maskingStrategy、writable/exportable。报告成功后推进全局目录版本并审计service subject/source codes/build/checksum/counts；前端运行展示不等待报告完成，也不读取报告结果作为导航来源。
 
 接口不设置1MiB总体请求大小限制和每分钟业务限流，也不在应用启动时自动调用。仍保留单字段长度、数组元素数量、code唯一、父图无环、引用存在、枚举和checksum重算等确定性校验；这些是数据正确性约束，不是流量防护。流水线必须在部署前显式调用，失败即阻止该版本继续发布。
 
@@ -507,7 +507,7 @@ CI报告规则：报告只在registry完整校验后生成；请求不接收`ten
 
 | Concern/state change | Owner and boundary | Mechanism/isolation/lock | Concurrent or duplicate behavior | Commit/visibility point | Failure result | Requirements/tests |
 | --- | --- | --- | --- | --- | --- | --- |
-| RT在线态 | IdP Redis；Gateway只读 | token digest + JWT claim/record一致性；Gateway无正向缓存 | 每保护请求独立校验 | IdP status响应 | 401确定无效；503依赖失败 | `REQ-001`–`REQ-003`/`TEST-001`–`TEST-003` |
+| RT在线态 | Tianquan-Shoubing Redis；Gateway只读 | token digest + JWT claim/record一致性；Gateway无正向缓存 | 每保护请求独立校验 | Tianquan-Shoubing status响应 | 401确定无效；503依赖失败 | `REQ-001`–`REQ-003`/`TEST-001`–`TEST-003` |
 | USER授权快照 | RBAC snapshot/cache | 版本化Redis key、最长5秒near-cache、single-flight | 旧版本失效事件单调推进 | 新snapshot完成校验并写SecurityContext | 503且不无限旧态放行 | `REQ-006`,`REQ-007`/`TEST-005`,`TEST-006` |
 | CI全局资源报告 | `ResourceReportService`一个PostgreSQL事务 | 全局application乐观version；normalize+checksum；report-owned replace | 同app/build/checksum幂等；不同并发仅一个提交，另一方409 | global application/resource/permission/field/mapping一起commit | 任一validation/DAO失败整体rollback | `REQ-014`,`REQ-015`,`REQ-026`/`TEST-011`,`TEST-019` |
 | TenantApplication/RolePermission | IAM租户授权与角色服务独占 | 报告事务禁止访问/写`rbac3_tenant_application`、`rbac3_role_permission` | 报告并发不影响购买或角色赋权 | 独立租户授权/角色绑定事务 | 报告成功也不新增租户或用户权限 | `REQ-015`,`REQ-026`/`TEST-011`,`TEST-022` |
@@ -517,12 +517,12 @@ CI报告规则：报告只在registry完整校验后生成；请求不接收`ten
 
 | Failure point | Detection | Immediate control flow | Data/transaction state | Retry and idempotency | Caller/frontend result | Recovery/reconciliation owner | Verification |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| RT缺失/过期/撤销/subject不符 | IdP status 401 | Gateway清认证Cookie并终止 | RT无效；业务无写入 | 重新登录，不刷新非法AT | 401 common/OAuth边界结果 | USER/IdP | `TEST-001`,`TEST-002` |
-| IdP status超时/5xx | timeout/5xx | Gateway fail closed但不清Cookie | 未改变token状态 | 前端受控退避；无正向缓存 | 503身份依赖不可用 | IdP/Gateway operator | `TEST-003` |
+| RT缺失/过期/撤销/subject不符 | Tianquan-Shoubing status 401 | Gateway清认证Cookie并终止 | RT无效；业务无写入 | 重新登录，不刷新非法AT | 401 common/OAuth边界结果 | USER/Tianquan-Shoubing | `TEST-001`,`TEST-002` |
+| Tianquan-Shoubing status超时/5xx | timeout/5xx | Yuheng fail closed但不清Cookie | 未改变token状态 | 前端受控退避；无正向缓存 | 503身份依赖不可用 | Tianquan-Shoubing/Yuheng operator | `TEST-003` |
 | RBAC快照不可用 | loader unavailable/expiry | 不创建UserDetails | 无业务写入 | 可按现有client策略重试 | 503，不降级为空或无限旧态 | RBAC operator | `TEST-005` |
 | registry静态非法 | validator error | 开发测试和CI失败；生产异常节点隐藏 | RBAC零写入 | 修复代码后重新构建 | 发布阻断；本地安全空态/诊断日志 | 前端owner | `TEST-016`–`TEST-018` |
 | about无permission/field decision | Set/Map miss | 本地route/action/field fail closed | 无写入 | 权限版本更新后重新about | 隐藏或403；字段null | IAM管理员 | `TEST-009`,`TEST-017`,`TEST-020` |
-| 报告为USER、无scope或冒充BIZ/APP | Gateway/Method Security/principal/DDC校验 | 事务前拒绝 | 零写入 | 修正流水线SERVICE身份后新请求 | 401/403 ResultRecord | pipeline/IAM管理员 | `TEST-011`,`TEST-013` |
+| 报告为USER、无scope或冒充BIZ/APP | Yuheng/Method Security/principal/DDC校验 | 事务前拒绝 | 零写入 | 修正流水线SERVICE身份后新请求 | 401/403 ResultRecord | pipeline/IAM管理员 | `TEST-011`,`TEST-013` |
 | 报告校验/并发冲突 | DTO validator/version affected rows 0 | rollback | 零部分写；旧目录保持 | 同checksum可重试；409先刷新version | 400/409含traceId | reporter | `TEST-011`,`TEST-019` |
 | Field serializer异常 | resolver/strategy exception | 输出属性null并记录指标 | 业务事务不受影响 | 不自动重试原值 | 200中字段null，无泄漏 | 服务owner/IAM管理员 | `TEST-007` |
 | V7迁移失败 | Flyway启动失败 | RBAC Admin不启动 | 事务DDL按PostgreSQL/Flyway结果；不声称自动rollback全部DDL外效应 | 修正新V7并forward-fix；不改V1–V6 | 服务不可用而非混合schema运行 | DB/operator | migration test/verification SQL |
@@ -531,14 +531,14 @@ CI报告规则：报告只在registry完整校验后生成；请求不接收`ten
 
 | Signal/runbook | Emitting owner and point | Fields/dimensions | Sensitive-data rule | Success/failure threshold | Alert/dashboard/operator action | Verification boundary |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `idp_rt_status_requests_total/latency` | IdP/Gateway status调用结束 | result、routeClass | 不记录raw RT；仅fingerprint前8位 | p95目标20ms；错误率阈值部署压测后定 | IdP/Gateway dashboard | 指标接线需运行环境验证 |
+| `idp_rt_status_requests_total/latency` | Tianquan-Shoubing/Yuheng status调用结束 | result、routeClass | 不记录raw RT；仅fingerprint前8位 | p95目标20ms；错误率阈值部署压测后定 | Tianquan-Shoubing/Yuheng dashboard | 指标接线需运行环境验证 |
 | `rbac3_userdetails_load_total` | Starter loader完成 | source、result、systemCode低基数 | 不记录permission全集/identity profile | cache unavailable立即告警策略沿现有运维 | RBAC dashboard | 集成+运行验证 |
 | `rbac3_field_decisions_total` | Jackson property decision | accessLevel、result | 不记录字段原值/脱敏前值 | 任意fallback-to-raw禁止；resolver error可告警 | 服务owner定位field code hash | 单元可验证无泄漏，阈值运行定 |
 | `rbac3_ci_resource_reports_total` | Report Service事务结束 | sourceBizCode、sourceAppCode、result、added/updated/stale数量 | 不记录完整payload或token | 发布失败直接阻断；403/409供流水线诊断 | CI日志/IAM resource report dashboard | 集成验证；告警运行验证 |
 | `rbac3_frontend_registry_validation_total` | React SDK registry初始化 | applicationCode、reason | 不含component源码/用户数据 | production出现invalid应为0 | 前端遥测/发布阻断 | Vitest +部署遥测 |
 | Audit | RBAC Admin报告/激活/FieldRule提交后 | actorType、serviceSub/sourceBizCode/sourceAppCode或tenant user、buildId、checksum、diff counts、traceId | token和field value禁止 | 每次成功/拒绝报告均有安全审计 | IAM管理员按trace/build诊断 | JPA集成；运行留存策略另验 |
 
-Trace贯穿Gateway -> IdP status/refresh -> RBAC snapshot -> target service/report endpoint，但token不得进入baggage。readiness不因单个snapshot miss失败；V7/schema不兼容则RBAC Admin启动失败，禁止部分能力降级运行。
+Trace贯穿Gateway -> Tianquan-Shoubing status/refresh -> RBAC snapshot -> target service/report endpoint，但token不得进入baggage。readiness不因单个snapshot miss失败；V7/schema不兼容则RBAC Admin启动失败，禁止部分能力降级运行。
 
 #### 7.3.6 Conclusion evidence chain
 
@@ -582,8 +582,8 @@ egon-cola-xingyuan/
 ```text
 egon-cola-xingyuan/
 ├── egon-cola-tianshu/egon-cola-tianshu-admin/
-│   ├── src/main/java/.../ddc/admin/repository/DdcAppRepository.java                MODIFY GLOBAL APP CODE LOOKUP
-│   ├── src/main/java/.../ddc/admin/service/metadata/DdcAppService.java             MODIFY GLOBAL UNIQUE VALIDATION
+│   ├── src/main/java/.../tianshu/admin/repository/DdcAppRepository.java                MODIFY GLOBAL APP CODE LOOKUP
+│   ├── src/main/java/.../tianshu/admin/service/metadata/DdcAppService.java             MODIFY GLOBAL UNIQUE VALIDATION
 │   ├── src/main/resources/db/postgresql/V9__enforce_global_biz_app_codes.sql       CREATE
 │   ├── src/main/resources/db/sqlite/V9__enforce_global_biz_app_codes.sql           CREATE DIALECT VARIANT
 │   └── src/test/.../{DdcAppService,PostgresqlMigration,SqliteMigration}*Test.java   MODIFY
@@ -688,26 +688,26 @@ egon-cola-xingyuan/
 
 | Operation | Path/package | Symbols | Responsibility | Dependencies | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| Modify/Create | `idp-core/.../TokenFacade.java`、`RefreshTokenStatus.java` | `validateRefresh(String)` | 在现有 TokenFacade内复用 signer/store，返回最小 active身份；不新增平行 Service | TokenSigner/RefreshTokenStore | `REQ-001` |
-| Create | `idp-admin/.../InternalRefreshTokenController.java` | internal validate route | SERVICE认证、no-store、通用401 | IdP security policy | `REQ-001`–`REQ-003` |
-| Create/Modify | `idp-starter/.../CurrentIdentity.java` 与 IdP USER Controllers/Services | `current/require` | USER actor由 Service读取，不出现在 Controller签名 | SecurityContextHolder | `REQ-008` |
-| Create | `idp-rpc-contract/src/main/proto/identity_directory.proto` 与 IdP Admin provider | `BatchGetIdentityProfiles` | 为 RBAC列表提供最小只读身份展示投影 | existing identity service/repository | `REQ-017` |
-| Create | `idp-gateway-adapter/.../IdpUserOnlineStateProvider.java` | Gateway auth provider | 每保护请求在线确认 RT并映射401/503 | status client | `REQ-001`–`REQ-003` |
+| Modify/Create | `tianquan-shoubing-core/.../TokenFacade.java`、`RefreshTokenStatus.java` | `validateRefresh(String)` | 在现有 TokenFacade内复用 signer/store，返回最小 active身份；不新增平行 Service | TokenSigner/RefreshTokenStore | `REQ-001` |
+| Create | `tianquan-shoubing-admin/.../InternalRefreshTokenController.java` | internal validate route | SERVICE认证、no-store、通用401 | Tianquan-Shoubing security policy | `REQ-001`–`REQ-003` |
+| Create/Modify | `tianquan-shoubing-starter/.../CurrentIdentity.java` 与 Tianquan-Shoubing USER Controllers/Services | `current/require` | USER actor由 Service读取，不出现在 Controller签名 | SecurityContextHolder | `REQ-008` |
+| Create | `tianquan-shoubing-rpc-contract/src/main/proto/identity_directory.proto` 与 Tianquan-Shoubing Admin provider | `BatchGetIdentityProfiles` | 为 RBAC列表提供最小只读身份展示投影 | existing identity service/repository | `REQ-017` |
+| Create | `tianquan-shoubing-gateway-adapter/.../IdpUserOnlineStateProvider.java` | Yuheng auth provider | 每保护请求在线确认 RT并映射401/503 | status client | `REQ-001`–`REQ-003` |
 | Modify | `SystemAuthorizationSnapshot/AppAuthorizationContext` | `activeRoles/permissions/fieldPolicies/landingRouteCode` | 用role descriptor替代纯id并移除只为Bootstrap资源树服务的resources | contract only | `REQ-006`,`REQ-007`,`REQ-020` |
 | Delete/Create | `contract/auth/BootstrapView.java` -> `Rbac3AboutView.java` | about record | 返回当前用户授权事实，不携带资源目录 | contract only | `REQ-020`,`REQ-024` |
 | Delete | Contract/Starter/Admin/Web全部Manifest symbols | Manifest lifecycle | 完整移除contract、reporter、controller/service/repository/page/test引用 | N/A | `REQ-024` |
 | Modify | `AuthorizationRuleFacts`、`ActivationAuthorizationSnapshot`、`UserAuthorizationSnapshotBuilder`、Admin projector/fact repository | remove runtime resource facts | 运行权限快照不再为了前端导航计算resourceCodes | permissions/field decisions | `REQ-013`,`REQ-020`,`REQ-024` |
-| Create | `rbac3-starter/.../Rbac3UserDetails.java` | `UserDetails` | 不可变 USER principal，组装有效角色/权限 | Spring Security | `REQ-006`,`REQ-007` |
-| Create | `rbac3-starter/.../CurrentRbac3User.java` | `require/current` | 从 SecurityContext读当前用户，隐藏 Controller参数 | SecurityContextHolder | `REQ-008` |
-| Create/Modify | `rbac3-starter/.../RBACAPIResource.java`、`RequiresPermission.java`、`Rbac3MethodAuthorizationManager.java` | annotations/manager | 两种声明一个决策实现 | AuthorizationService | `REQ-004`,`REQ-005` |
+| Create | `tianquan-jianshen-starter/.../Rbac3UserDetails.java` | `UserDetails` | 不可变 USER principal，组装有效角色/权限 | Spring Security | `REQ-006`,`REQ-007` |
+| Create | `tianquan-jianshen-starter/.../CurrentRbac3User.java` | `require/current` | 从 SecurityContext读当前用户，隐藏 Controller参数 | SecurityContextHolder | `REQ-008` |
+| Create/Modify | `tianquan-jianshen-starter/.../RBACAPIResource.java`、`RequiresPermission.java`、`Rbac3MethodAuthorizationManager.java` | annotations/manager | 两种声明一个决策实现 | AuthorizationService | `REQ-004`,`REQ-005` |
 | Delete | Starter Aspect与 Admin五个重复 security类型 | listed symbols | 删除重复 PEP/principal | 新 manager/UserDetails替代 | `REQ-004`,`REQ-006`,`REQ-008` |
-| Create | `rbac3-starter/.../field/*` | annotation/Jackson module/writer | 响应字段 fail-closed | Jackson + desensitize registry | `REQ-009` |
-| Modify | DDC App repository/service + PostgreSQL/SQLite V9 | global code constraints | 保留既有bizCode全局唯一，恢复appCode单列全局唯一；Service提前返回稳定冲突 | JPA/Flyway | `REQ-025` |
-| Modify/Create | Gateway core/engine online-state hook | `validateAuthenticated`/result + chain integration | USER AT认证成功后仍执行IdP RT在线校验；默认provider兼容非IdP实现 | Reactor/security providers | `REQ-001`–`REQ-003` |
-| Create | Admin `iam.resource.report` | CI report controller/service/repository/DTO/VO | 验证SERVICE scope/source BIZ+APP/build/checksum并事务replace全局report-owned事实 | JPA/DDC/common Result | `REQ-014`,`REQ-015`,`REQ-024`–`REQ-026` |
-| Modify/Create | Admin `iam.application` + `iam.application.tenant` | global catalog + tenant entitlement | 全局APP只保存一次；租户购买/启用使用`(tenant,application)`事实，角色授予先验证 | JPA/DDC | `REQ-016`,`REQ-026` |
-| Modify/Create | Admin `iam.permission/resource/policy` | Controllers/Services/POs | CRUD、报告来源审核/状态、角色绑定和版本失效 | JPA/DDC/IdP adapters | `REQ-010`,`REQ-014`,`REQ-019`,`REQ-024` |
-| Delete/Create | Starter/Admin/IdP `*Bootstrap*` -> `*About*` | about service/controllers | 从UserDetails返回最小授权上下文；删除平行Bootstrap repository链 | SecurityContext/common Result | `REQ-020`,`REQ-023`,`REQ-024` |
+| Create | `tianquan-jianshen-starter/.../field/*` | annotation/Jackson module/writer | 响应字段 fail-closed | Jackson + desensitize registry | `REQ-009` |
+| Modify | Tianshu App repository/service + PostgreSQL/SQLite V9 | global code constraints | 保留既有bizCode全局唯一，恢复appCode单列全局唯一；Service提前返回稳定冲突 | JPA/Flyway | `REQ-025` |
+| Modify/Create | Yuheng core/engine online-state hook | `validateAuthenticated`/result + chain integration | USER AT认证成功后仍执行IdP RT在线校验；默认provider兼容非IdP实现 | Reactor/security providers | `REQ-001`–`REQ-003` |
+| Create | Admin `iam.resource.report` | CI report controller/service/repository/DTO/VO | 验证SERVICE scope/source BIZ+APP/build/checksum并事务replace全局report-owned事实 | JPA/Tianshu/common Result | `REQ-014`,`REQ-015`,`REQ-024`–`REQ-026` |
+| Modify/Create | Admin `iam.application` + `iam.application.tenant` | global catalog + tenant entitlement | 全局APP只保存一次；租户购买/启用使用`(tenant,application)`事实，角色授予先验证 | JPA/Tianshu | `REQ-016`,`REQ-026` |
+| Modify/Create | Admin `iam.permission/resource/policy` | Controllers/Services/POs | CRUD、报告来源审核/状态、角色绑定和版本失效 | JPA/Tianshu/Tianquan-Shoubing adapters | `REQ-010`,`REQ-014`,`REQ-019`,`REQ-024` |
+| Delete/Create | Starter/Admin/Tianquan-Shoubing `*Bootstrap*` -> `*About*` | about service/controllers | 从UserDetails返回最小授权上下文；删除平行Bootstrap repository链 | SecurityContext/common Result | `REQ-020`,`REQ-023`,`REQ-024` |
 | Modify/Delete | RBAC所有 Controllers、exception handlers、`ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse` | common result migration | 单体/分页/异常统一公共契约，删除重复类型 | `egon-cola-component-common-core` | `REQ-023` |
 | Modify/Create | React SDK registry/guards与Admin Web resource definitions/CI script | local runtime + CI report | 同一纯数据定义生成本地递归导航/routes/guards和CI可序列化报告；报告脚本不进入browser graph | React Router/Node fetch | `REQ-013`–`REQ-015`,`REQ-020`–`REQ-022`,`REQ-026` |
 | Modify | `egon-cola-xingyuan-admin-web-shared/src/layout/*` | recursive navigation | 给所有平台提供兼容的 children渲染/选择 | Ant Design Menu/React Router | `REQ-021` |
@@ -720,14 +720,14 @@ egon-cola-xingyuan/
 
 | ID | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-001` | Validate USER RT online state | HTTP | Gateway | IdP Admin | `POST /internal/v1/oauth2/refresh-token/validate` | form raw token | `ResultRecord<RefreshTokenStatusResponse>` | SERVICE scope；tenant from RT | common 401/503 | read-only/no-store | `REQ-001`–`REQ-003`,`REQ-023` |
-| `API-002` | Refresh USER AT | HTTP/OAuth | Gateway/browser | IdP Admin | `POST /oauth2/token` | form grant_type + RT Cookie | `OAuthUserTokenResultVO` + AT Cookie | public route；RT self-auth | OAuth error | stable RT/no rotation | `REQ-002` |
-| `API-003` | CI global frontend resource report | HTTP | Release pipeline | RBAC Admin | `PUT /api/rbac3/v1/iam/resource-catalog/businesses/{bizCode}/applications/{appCode}/frontend-resources` | report request | `ResultRecord<CiResourceReportResultVO>` | SERVICE scope+source BIZ/APP；no tenant | common 400/401/403/404/409 | global app/build/checksum/version | `REQ-013`–`REQ-016`,`REQ-023`–`REQ-026` |
+| `API-001` | Validate USER RT online state | HTTP | Yuheng | Tianquan-Shoubing Admin | `POST /internal/v1/oauth2/refresh-token/validate` | form raw token | `ResultRecord<RefreshTokenStatusResponse>` | SERVICE scope；tenant from RT | common 401/503 | read-only/no-store | `REQ-001`–`REQ-003`,`REQ-023` |
+| `API-002` | Refresh USER AT | HTTP/OAuth | Yuheng/browser | Tianquan-Shoubing Admin | `POST /oauth2/token` | form grant_type + RT Cookie | `OAuthUserTokenResultVO` + AT Cookie | public route；RT self-auth | OAuth error | stable RT/no rotation | `REQ-002` |
+| `API-003` | CI global frontend resource report | HTTP | Release pipeline | RBAC Admin | `PUT /api/tianquan-jianshen/v1/iam/resource-catalog/businesses/{bizCode}/applications/{appCode}/frontend-resources` | report request | `ResultRecord<CiResourceReportResultVO>` | SERVICE scope+source BIZ/APP；no tenant | common 400/401/403/404/409 | global app/build/checksum/version | `REQ-013`–`REQ-016`,`REQ-023`–`REQ-026` |
 | `API-010` | Current authorization about | HTTP | All RBAC Web apps | RBAC Starter/Admin controllers | `GET /api/v1/auth/about` | None | `ResultRecord<Rbac3AboutView>` | current USER+about permission | common 401/403/409/503 | snapshot versions/read-only | `REQ-020`–`REQ-023`,`REQ-024` |
-| `API-011` | IAM global resource management tree | HTTP | ResourceCatalogPage | RBAC Admin | `GET /api/rbac3/v1/iam/resource-catalog/applications/{applicationId}/resource-tree` | path + filters | `ResultRecord<List<ResourceManagementTreeNodeVO>>` | USER+resource read；global catalog | common 400/401/403/404 | read-only/global app version | `REQ-019`,`REQ-023`–`REQ-026` |
-| `API-012` | Create tenant application entitlement | HTTP | TenantApplicationPage | RBAC Admin | `POST /api/rbac3/v1/iam/tenant-applications` | create command | `ResultRecord<TenantApplicationVO>` | USER+tenant application create+current tenant | common 400/401/403/404/409 | unique tenant+app | `REQ-016`,`REQ-019`,`REQ-023`,`REQ-026` |
-| `API-013` | DDC APP create with global-code conflict | HTTP | DDC Admin/RBAC operators | DDC Admin | `POST /api/v1/ddc/apps` | existing DdcAppEntity | `ResultRecord<DdcAppEntity>` | existing DDC admin security | common 400/401/403/409 | appCode global UK | `REQ-016`,`REQ-023`,`REQ-025` |
-| `RPC-001` | Batch identity display profiles | RPC | RBAC user list | IdP RPC provider | `IdentityDirectoryRpc.BatchGetIdentityProfiles` | 1-100 subjects | profile list | SERVICE transport identity | RPC invalid/unavailable | read-only/input mapping | `REQ-017` |
+| `API-011` | IAM global resource management tree | HTTP | ResourceCatalogPage | RBAC Admin | `GET /api/tianquan-jianshen/v1/iam/resource-catalog/applications/{applicationId}/resource-tree` | path + filters | `ResultRecord<List<ResourceManagementTreeNodeVO>>` | USER+resource read；global catalog | common 400/401/403/404 | read-only/global app version | `REQ-019`,`REQ-023`–`REQ-026` |
+| `API-012` | Create tenant application entitlement | HTTP | TenantApplicationPage | RBAC Admin | `POST /api/tianquan-jianshen/v1/iam/tenant-applications` | create command | `ResultRecord<TenantApplicationVO>` | USER+tenant application create+current tenant | common 400/401/403/404/409 | unique tenant+app | `REQ-016`,`REQ-019`,`REQ-023`,`REQ-026` |
+| `API-013` | Tianshu APP create with global-code conflict | HTTP | Tianshu Admin/RBAC operators | Tianshu Admin | `POST /api/v1/tianshu/apps` | existing DdcAppEntity | `ResultRecord<DdcAppEntity>` | existing Tianshu admin security | common 400/401/403/409 | appCode global UK | `REQ-016`,`REQ-023`,`REQ-025` |
+| `RPC-001` | Batch identity display profiles | RPC | RBAC user list | Tianquan-Shoubing RPC provider | `IdentityDirectoryRpc.BatchGetIdentityProfiles` | 1-100 subjects | profile list | SERVICE transport identity | RPC invalid/unavailable | read-only/input mapping | `REQ-017` |
 
 RT validate的raw RT是协议敏感值：仅TLS内部连接，禁止query/header、访问日志、trace和重试体日志；最大长度4096，form只能出现`token`一个字段。无效原因不对Gateway细分，避免token oracle。Gateway必须比较返回subject/tenantId与有效/新AT。
 
@@ -750,16 +750,16 @@ Resource management tree只服务RBAC IAM管理员查看报告后的目录，不
 | Purpose/owner/consumer | IdP判断一个raw USER RT的JWT和Redis记录是否仍有效；Gateway每个保护USER请求消费 |
 | Protocol and endpoint | `HTTP POST /internal/v1/oauth2/refresh-token/validate` |
 | Content type/version | request`application/x-www-form-urlencoded`；response`application/json`；internal v1 |
-| Auth/permission/tenant | SERVICE AT且scope`idp:refresh-token:validate`；tenant只从验证后的RT提取 |
-| Timeout/retry/rate limit | Gateway connect 300ms/response 800ms初值；5xx/timeout至多受控重试一次且不记录body；IdP按service principal限流 |
+| Auth/permission/tenant | SERVICE AT且scope`tianquan-shoubing:refresh-token:validate`；tenant只从验证后的RT提取 |
+| Timeout/retry/rate limit | Yuheng connect 300ms/response 800ms初值；5xx/timeout至多受控重试一次且不记录body；IdP按service principal限流 |
 | Idempotency/concurrency | read-only；无状态修改；同token并发得到同一时点有效态，撤销commit后的后续读取为inactive |
 
 ##### Request parameters
 
 | Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `Authorization` | Header | Bearer SERVICE AT | Required | None | IdP SERVICE JWT规则和scope | 调用方机器身份 | `Bearer ***` | Gateway service credential |
-| `token` | Form body | raw JWT string | Required/nonblank | None | 1-4096 chars；form中只允许该字段 | 待验证USER RT | redacted | Gateway HttpOnly RT Cookie |
+| `Authorization` | Header | Bearer SERVICE AT | Required | None | Tianquan-Shoubing SERVICE JWT规则和scope | 调用方机器身份 | `Bearer ***` | Yuheng service credential |
+| `token` | Form body | raw JWT string | Required/nonblank | None | 1-4096 chars；form中只允许该字段 | 待验证USER RT | redacted | Yuheng HttpOnly RT Cookie |
 
 ##### Success response
 
@@ -769,9 +769,9 @@ Resource management tree只服务RBAC IAM管理员查看报告后的目录，不
   "code": 10000, // Common ResultCode.SUCCESS numeric code.
   "status": "SUCCESS", // Stable common success status.
   "message": "success", // Common non-branching message.
-  "data": { // Minimal active refresh-token identity returned to Gateway.
+  "data": { // Minimal active refresh-token identity returned to Yuheng.
     "active": true, // Always true in a success body; inactive uses 401 rather than false-200.
-    "subject": "01K2ABCDEF1234567890XYZ", // Verified IdP subject bound to the RT record.
+    "subject": "01K2ABCDEF1234567890XYZ", // Verified Tianquan-Shoubing subject bound to the RT record.
     "tenantId": "2001", // Verified tenant bound to the RT record.
     "expiresAt": "2026-08-18T05:33:00Z" // RT expiration instant in ISO-8601 UTC form.
   },
@@ -784,9 +784,9 @@ Resource management tree只服务RBAC IAM管理员查看报告后的目录，不
 
 | Condition | HTTP/protocol status | Business code/status | Response shape | Retryable | Frontend handling |
 | --- | --- | --- | --- | --- | --- |
-| malformed/expired/revoked/missing Redis record | 401 | `UNAUTHORIZED` | `ResultRecord<Void>` | No | Gateway clears USER cookies and requires login |
-| SERVICE AT missing/invalid/scope absent | 401/403 | common auth status | `ResultRecord<Void>` | credential repair only | Gateway dependency error; no user-token oracle detail |
-| Redis/IdP internal unavailable | 503 | remote/middleware error | `ResultRecord<Void>` | Gateway controlled retry once | preserve cookies and return503 |
+| malformed/expired/revoked/missing Redis record | 401 | `UNAUTHORIZED` | `ResultRecord<Void>` | No | Yuheng clears USER cookies and requires login |
+| SERVICE AT missing/invalid/scope absent | 401/403 | common auth status | `ResultRecord<Void>` | credential repair only | Yuheng dependency error; no user-token oracle detail |
+| Redis/Tianquan-Shoubing internal unavailable | 503 | remote/middleware error | `ResultRecord<Void>` | Yuheng controlled retry once | preserve cookies and return503 |
 
 ```jsonc
 {
@@ -802,13 +802,13 @@ Resource management tree只服务RBAC IAM管理员查看报告后的目录，不
 
 ##### Interface logic for frontend and consumers
 
-1. Gateway classifies the route as protected USER before invoking the internal endpoint.
-2. IdP authenticates SERVICE AT/scope and rejects extra form fields/oversized token before cryptographic work.
+1. Yuheng classifies the route as protected USER before invoking the internal endpoint.
+2. Tianquan-Shoubing authenticates SERVICE AT/scope and rejects extra form fields/oversized token before cryptographic work.
 3. TokenFacade verifies RT signature/type/issuer/audience/expiry and hashes the raw token for store lookup.
 4. RefreshTokenStore reads the Redis record and compares subject/tenant/expiry/status; no database or write transaction applies.
 5. Success returns minimal identity with no-store headers; audit/logs contain service, result, trace, and token fingerprint only.
-6. Inactive results are generic 401; dependency errors are 503; Gateway retries only one dependency failure and never retries definite inactive.
-7. Gateway compares returned subject/tenant with current or refreshed AT, clears cookies on mismatch/inactive, and never exposes this internal response directly to Web.
+6. Inactive results are generic 401; dependency errors are 503; Yuheng retries only one dependency failure and never retries definite inactive.
+7. Yuheng compares returned subject/tenant with current or refreshed AT, clears cookies on mismatch/inactive, and never exposes this internal response directly to Web.
 
 ##### Compatibility and verification
 
@@ -820,19 +820,19 @@ New internal endpoint consumed only byGateway adapter; public OAuth routes uncha
 
 | Concern | Definition |
 | --- | --- |
-| Purpose/owner/consumer | Refresh an expired/missing USER AT from the HttpOnly RT Cookie; IdP Admin owns; Gateway recovery/browser consumes |
+| Purpose/owner/consumer | Refresh an expired/missing USER AT from the HttpOnly RT Cookie; Tianquan-Shoubing Admin owns; Yuheng recovery/browser consumes |
 | Protocol and endpoint | `HTTP POST /oauth2/token` |
 | Content type/version | request`application/x-www-form-urlencoded`；response`application/json`；OAuth-style stable public route |
 | Auth/permission/tenant | public endpoint；RT Cookie self-authenticates; tenant/subject come from verified RT |
-| Timeout/retry/rate limit | Gateway performs one refresh per original request；4xx never automatically retried；IdP public rate limit applies |
+| Timeout/retry/rate limit | Yuheng performs one refresh per original request；4xx never automatically retried；Tianquan-Shoubing public rate limit applies |
 | Idempotency/concurrency | stable RT is not rotated by this design；concurrent valid refreshes may issue separate equivalent-lifetime ATs |
 
 ##### Request parameters
 
 | Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `grant_type` | Form body | string | Required | None | exactly`refresh_token`；no other form key allowed for USER branch | selects USER refresh flow | `refresh_token` | Gateway/browser |
-| refresh cookie | Cookie | raw HttpOnly JWT | Required | None | IdP configured cookie name/path；signature/store validation | refresh credential | hidden | Browser cookie jar |
+| `grant_type` | Form body | string | Required | None | exactly`refresh_token`；no other form key allowed for USER branch | selects USER refresh flow | `refresh_token` | Yuheng/browser |
+| refresh cookie | Cookie | raw HttpOnly JWT | Required | None | Tianquan-Shoubing configured cookie name/path；signature/store validation | refresh credential | hidden | Browser cookie jar |
 
 ##### Success response
 
@@ -850,8 +850,8 @@ HTTP200 sets a newHttpOnly AT Cookie and`Cache-Control:no-store`; body deliberat
 | Condition | HTTP/protocol status | Business code/status | Response shape | Retryable | Frontend handling |
 | --- | --- | --- | --- | --- | --- |
 | unsupported/malformed grant | 400 | `unsupported_grant_type` | OAuth error JSON | No | developer/config error |
-| RT missing/expired/revoked/invalid | 400/401 | `invalid_grant` | OAuth error JSON | login only | Gateway clears cookies/starts login |
-| IdP dependency failure | 5xx | OAuth safe server error | OAuth error JSON | controlled | show unavailable, keep no raw token |
+| RT missing/expired/revoked/invalid | 400/401 | `invalid_grant` | OAuth error JSON | login only | Yuheng clears cookies/starts login |
+| Tianquan-Shoubing dependency failure | 5xx | OAuth safe server error | OAuth error JSON | controlled | show unavailable, keep no raw token |
 
 ```jsonc
 {
@@ -862,13 +862,13 @@ HTTP200 sets a newHttpOnly AT Cookie and`Cache-Control:no-store`; body deliberat
 
 ##### Interface logic for frontend and consumers
 
-1. Gateway invokes only for AT MISSING/EXPIRED after RT online validation; direct browser callers use the same Cookie contract.
+1. Yuheng invokes only for AT MISSING/EXPIRED after RT online validation; direct browser callers use the same Cookie contract.
 2. Controller accepts exactly one grant_type field and obtains RT exclusively from the HttpOnly Cookie.
 3. TokenFacade verifies RT JWT/store record and derives subject/tenant; request cannot override either.
-4. IdP signs one five-minute AT and returns it only through Secure/HttpOnly/SameSite Cookie headers.
+4. Tianquan-Shoubing signs one five-minute AT and returns it only through Secure/HttpOnly/SameSite Cookie headers.
 5. Response carries no-store/Pragma headers and only token type/lifetime metadata; logs omit both tokens.
 6. Non-expiry-invalid AT never enters this flow; invalid RT is terminal login recovery; dependency failure is not disguised as logout.
-7. Gateway verifies the new AT and original subject/tenant before replaying the original request once; frontend does not read response token fields.
+7. Yuheng verifies the new AT and original subject/tenant before replaying the original request once; frontend does not read response token fields.
 
 ##### Compatibility and verification
 
@@ -881,9 +881,9 @@ Existingroute/body/VO remain authoritative and are not wrapped inResultRecord be
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 上线前将当前前端本地registry同步为RBAC全局可管理Permission/Resource/FieldDefinition事实；RBAC Admin拥有；由应用发布流水线调用 |
-| Protocol and endpoint | `HTTP PUT /api/rbac3/v1/iam/resource-catalog/businesses/{bizCode}/applications/{appCode}/frontend-resources` |
+| Protocol and endpoint | `HTTP PUT /api/tianquan-jianshen/v1/iam/resource-catalog/businesses/{bizCode}/applications/{appCode}/frontend-resources` |
 | Content type/version | request/response `application/json`；path v1；破坏式替代全部Manifest提交/激活接口 |
-| Auth/permission/tenant | Gateway验证SERVICE AT；scope=`rbac3:resource-catalog:report`；`sourceBizCode/sourceAppCode`必须等于path；DDC确认BIZ/APP存在、启用且从属正确；无tenant上下文 |
+| Auth/permission/tenant | Gateway验证SERVICE AT；scope=`tianquan-jianshen:resource-catalog:report`；`sourceBizCode/sourceAppCode`必须等于path；DDC确认BIZ/APP存在、启用且从属正确；无tenant上下文 |
 | Timeout/retry/rate limit | 流水线仅在发布前显式调用；网络未知结果可用同buildId/checksum重试；不设置1MiB总体body限制和业务限流 |
 | Idempotency/concurrency | `(globalApplicationId,buildId,checksum)`逻辑幂等；`expectedApplicationVersion`乐观并发；同全局APP一次只提交一个replace事务 |
 
@@ -891,8 +891,8 @@ Existingroute/body/VO remain authoritative and are not wrapped inResultRecord be
 
 | Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `bizCode` | Path | UTF-8 string | Required/nonblank | None | trim后1-128；必须等于SERVICE principal sourceBizCode；DDC全局唯一 | DDC business code | `platform` | pipeline application metadata |
-| `appCode` | Path | UTF-8 string | Required/nonblank | None | trim后1-128；必须等于SERVICE principal sourceAppCode；DDC全局唯一且属于bizCode | DDC/RBAC application code | `rbac3-admin` | local registry/pipeline metadata |
+| `bizCode` | Path | UTF-8 string | Required/nonblank | None | trim后1-128；必须等于SERVICE principal sourceBizCode；DDC全局唯一 | Tianshu business code | `xingyuan` | pipeline application metadata |
+| `appCode` | Path | UTF-8 string | Required/nonblank | None | trim后1-128；必须等于SERVICE principal sourceAppCode；DDC全局唯一且属于bizCode | Tianshu/RBAC application code | `tianquan-jianshen-admin` | local registry/pipeline metadata |
 | `buildId` | Body | UTF-8 string | Required/non-null | None | trim后1-256；同一前端构建稳定 | 报告构建身份 | `web-20260817-a2cde274` | frontend build metadata |
 | `checksum` | Body | string | Required/non-null | None | `sha256:`+64个小写hex；服务端重算必须一致 | 规范化资源集合摘要 | `sha256:0123...abcd` | registry serializer |
 | `expectedApplicationVersion` | Body | integer | Required | None | `>=0`且等于当前全局application version | 防并发覆盖 | `4` | 先前报告结果或管理查询 |
@@ -907,12 +907,12 @@ Existingroute/body/VO remain authoritative and are not wrapped inResultRecord be
   "resources": [ // Required. Complete local MENU/ROUTE/ACTION set; 0-2000 unique entries.
     {
       "type": "ROUTE", // Required. One of MENU, ROUTE, ACTION.
-      "code": "rbac3.roles", // Required. Stable application-local code; 1-128 trimmed characters.
+      "code": "tianquan-jianshen.roles", // Required. Stable application-local code; 1-128 trimmed characters.
       "name": "角色管理", // Required. Display name; 1-200 trimmed characters.
-      "parentCode": "rbac3.iam", // Optional. Existing code in this request; null only for a root node.
+      "parentCode": "tianquan-jianshen.iam", // Optional. Existing code in this request; null only for a root node.
       "permissionCode": "system:role:read", // Required for ROUTE/ACTION; optional for MENU as an extra AND guard.
       "path": "/iam/roles", // Required for ROUTE; null for MENU/ACTION; absolute frontend path.
-      "componentKey": "rbac3-role-list", // Required for ROUTE; null for MENU/ACTION; local static component key.
+      "componentKey": "tianquan-jianshen-role-list", // Required for ROUTE; null for MENU/ACTION; local static component key.
       "routeCode": null, // Required only for ACTION; identifies its owning ROUTE code.
       "order": 50, // Optional. Non-negative sibling order; null sorts after explicit values.
       "hidden": false // Required. Hidden ROUTE remains deep-linkable when its permission is granted.
@@ -920,7 +920,7 @@ Existingroute/body/VO remain authoritative and are not wrapped inResultRecord be
   ],
   "fields": [ // Required. Complete locally declared FIELD usage; 0-5000 unique entries.
     {
-      "resourceCode": "rbac3.roles", // Required. Owning local ROUTE/API resource code.
+      "resourceCode": "tianquan-jianshen.roles", // Required. Owning local ROUTE/API resource code.
       "fieldCode": "role.riskLevel", // Required. Stable field permission code; 1-128 trimmed characters.
       "jsonPath": "$.riskLevel", // Required. Frontend-observed response path; 1-512 characters.
       "dataType": "STRING" // Required. One of STRING, NUMBER, BOOLEAN, DATE, DATETIME, OBJECT, ARRAY.
@@ -943,8 +943,8 @@ HTTP `200 OK`；重复相同报告也返回200。重放时返回当前目录统�
   "message": "success", // Common non-branching success message.
   "data": { // Committed or replayed direct-report outcome.
     "applicationId": "71", // Global RBAC application identity affected by the report.
-    "bizCode": "platform", // Globally unique DDC business code verified against SERVICE principal.
-    "appCode": "rbac3-admin", // Globally unique DDC application code verified against SERVICE principal.
+    "bizCode": "xingyuan", // Globally unique Tianshu business code verified against SERVICE principal.
+    "appCode": "tianquan-jianshen-admin", // Globally unique Tianshu application code verified against SERVICE principal.
     "applicationVersion": 5, // Version visible after commit; unchanged for an idempotent repeat.
     "buildId": "web-20260817-a2cde274", // Accepted build identity from the request.
     "checksum": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef", // Verified canonical checksum.
@@ -966,9 +966,9 @@ HTTP `200 OK`；重复相同报告也返回200。重放时返回当前目录统�
 | body/graph/checksum invalid | 400 | `INVALID_PARAMS`/domain reason in message | `ResultRecord<Void>` | No until fixed | 显示同步校验错误，保留本地运行UI |
 | SERVICE AT无效/过期 | 401 | `UNAUTHORIZED` | `ResultRecord<Void>` | 重新获取短期AT后 | 流水线失败并重新认证 |
 | 非SERVICE、缺scope、source BIZ/APP与path不符 | 403 | `FORBIDDEN` | `ResultRecord<Void>` | No until pipeline identity fixed | 阻断发布且不泄漏目录 |
-| DDC BIZ/APP不存在、禁用或从属关系错误 | 404/422 | `NOT_FOUND`/domain validation | `ResultRecord<Void>` | 配置修复后 | 阻断发布 |
+| Tianshu BIZ/APP不存在、禁用或从属关系错误 | 404/422 | `NOT_FOUND`/domain validation | `ResultRecord<Void>` | 配置修复后 | 阻断发布 |
 | MANUAL身份冲突或application version冲突 | 409 | `CONCURRENCY_ERROR` | `ResultRecord<Void>` | 刷新version/人工处理后 | 重新获取ResourceCatalog再显式重试 |
-| DDC/RBAC数据库不可用 | 503/500 | common remote/system status | `ResultRecord<Void>` | 流水线受控重试 | 阻断发布，不宣称同步成功 |
+| Tianshu/RBAC数据库不可用 | 503/500 | common remote/system status | `ResultRecord<Void>` | 流水线受控重试 | 阻断发布，不宣称同步成功 |
 
 ```jsonc
 {
@@ -985,7 +985,7 @@ HTTP `200 OK`；重复相同报告也返回200。重放时返回当前目录统�
 ##### Interface logic for frontend and consumers
 
 1. CI脚本读取纯数据registry，执行与浏览器registry相同的结构校验，构造剥离React component的稳定projection并计算checksum。
-2. 流水线先向IdP取得短期SERVICE AT；Gateway和目标服务IdP Filter分别验证SERVICE AT，现有`@RequiresServiceScope("rbac3:resource-catalog:report")`/`ServiceScopeAuthorization`验证主体类型与scope；不复用USER `AuthorizationService`。
+2. 流水线先向IdP取得短期SERVICE AT；Gateway和目标服务IdP Filter分别验证SERVICE AT，现有`@RequiresServiceScope("tianquan-jianshen:resource-catalog:report")`/`ServiceScopeAuthorization`验证主体类型与scope；不复用USER `AuthorizationService`。
 3. 该机器Controller可按`REQ-008`例外接收已验证`ServiceIdentityPrincipal`并传给Service；Service取得sourceBizCode/sourceAppCode逐项匹配path，再经DDC确认全局BIZ/APP状态和从属关系；请求不解析principal.tenantId，也不将其写入catalog。
 4. Service规范化、重算checksum、校验父图/action/field引用、查询全局application version和MANUAL冲突。
 5. 一个JPA事务内replace`CI_REPORT`来源Permission/Resource/FieldDefinition/PermissionResource；缺失旧报告项标STALE；不写TenantApplication/RolePermission/FieldRule。
@@ -1002,10 +1002,10 @@ HTTP `200 OK`；重复相同报告也返回200。重放时返回当前目录统�
 
 | Concern | Definition |
 | --- | --- |
-| Purpose/owner/consumer | 返回当前用户在当前system/app的最小授权上下文；RBAC3 Starter拥有；所有接入RBAC的React前端消费 |
+| Purpose/owner/consumer | 返回当前用户在当前system/app的最小授权上下文；Tianquan-Jianshen Starter拥有；所有接入RBAC的React前端消费 |
 | Protocol and endpoint | `HTTP GET /api/v1/auth/about` |
 | Content type/version | response `application/json`；无request body；破坏式替代`GET /api/v1/auth/bootstrap` |
-| Auth/permission/tenant | Gateway USER认证、RT在线；principal必须为`Rbac3UserDetails`；`system:about:read`；tenant/app来自SecurityContext |
+| Auth/permission/tenant | Yuheng USER认证、RT在线；principal必须为`Rbac3UserDetails`；`system:about:read`；tenant/app来自SecurityContext |
 | Timeout/retry/rate limit | 读当前snapshot/cache；503可受控重试；无前端轮询，版本变化/角色激活/显式刷新时重取 |
 | Idempotency/concurrency | read-only；一次响应来自同一snapshot authVersion/policyVersion，不拼接第二次资源查询 |
 
@@ -1022,28 +1022,28 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
   "status": "SUCCESS", // Common stable success status.
   "message": "success", // Common non-branching success message.
   "data": { // Non-null current authorization context; never contains the resource catalog.
-    "user": { // Minimal current RBAC user bound to the verified IdP subject.
+    "user": { // Minimal current RBAC user bound to the verified Tianquan-Shoubing subject.
       "userId": "9001", // Current minimal RBAC user identifier.
       "tenantId": "2001", // Tenant from the verified security context.
-      "identitySub": "01K2ABCDEF1234567890XYZ", // IdP subject bound to this RBAC user.
+      "identitySub": "01K2ABCDEF1234567890XYZ", // Tianquan-Shoubing subject bound to this RBAC user.
       "status": "ACTIVE" // RBAC membership status; ACTIVE is required for this success.
     },
-    "currentApplicationCode": "rbac3-admin", // Current system/application authorization scope; not a caller-supplied value.
+    "currentApplicationCode": "tianquan-jianshen-admin", // Current system/application authorization scope; not a caller-supplied value.
     "activeRoles": [ // Effective active roles in deterministic order.
       { // One active role descriptor.
         "roleId": "301", // Effective active role identity.
         "roleCode": "ROLE_PLATFORM_ADMIN", // Stable role code for display/diagnostics, not frontend authorization branching.
-        "applicationCode": "rbac3-admin" // Application scope of this active role.
+        "applicationCode": "tianquan-jianshen-admin" // Application scope of this active role.
       }
     ],
     "permissions": ["system:role:read", "system:resource:read"], // Sorted unique active USER permission codes; SERVICE report scope never appears here.
     "fieldPolicies": { // Canonical policy-key map used by frontend field guards.
-      "system:role:read:rbac3-admin:rbac3.roles": { // Decision for one permission/application/resource tuple.
+      "system:role:read:tianquan-jianshen-admin:tianquan-jianshen.roles": { // Decision for one permission/application/resource tuple.
         "decision": "ALLOW", // Field-policy decision for this permission/application/resource key.
         "reasonCode": "FIELD_POLICY_RESOLVED", // Stable decision reason.
         "permissionCode": "system:role:read", // Permission whose field decision was resolved.
-        "applicationCode": "rbac3-admin", // Application scope of the decision.
-        "resourceCode": "rbac3.roles", // Resource whose fields are controlled.
+        "applicationCode": "tianquan-jianshen-admin", // Application scope of the decision.
+        "resourceCode": "tianquan-jianshen.roles", // Resource whose fields are controlled.
         "fields": { // Field-code map controlled by this decision.
           "role.riskLevel": { // One field access decision.
             "level": "MASKED_READ", // One of NONE, MASKED_READ, READ, WRITE.
@@ -1052,7 +1052,7 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
         }
       }
     },
-    "landingRouteCode": "rbac3.roles", // Optional local ROUTE code; frontend maps it to its own path after permission filtering.
+    "landingRouteCode": "tianquan-jianshen.roles", // Optional local ROUTE code; frontend maps it to its own path after permission filtering.
     "authVersion": 12, // Authorization membership/role/permission version used by this response.
     "policyVersion": 7 // Field/data policy version used by this response.
   },
@@ -1096,7 +1096,7 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
 
 ##### Compatibility and verification
 
-删除`GET /api/v1/auth/bootstrap`，IdP Admin、RBAC Admin、React SDK、E2E route mocks同步迁移，无旧alias。契约测试验证完整ResultRecord、排序、active role、permission、field policy、版本和“禁止资源字段”；前端测试验证about未READY不闪现权限内容及各错误态。
+删除`GET /api/v1/auth/bootstrap`，Tianquan-Shoubing Admin、RBAC Admin、React SDK、E2E route mocks同步迁移，无旧alias。契约测试验证完整ResultRecord、排序、active role、permission、field policy、版本和“禁止资源字段”；前端测试验证about未READY不闪现权限内容及各错误态。
 
 #### 9.2.5 API-011 — IAM resource management tree
 
@@ -1105,7 +1105,7 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 查询某APP的完整管理目录和报告来源状态；RBAC Admin拥有；仅ResourceCatalogPage消费，不参与运行导航 |
-| Protocol and endpoint | `HTTP GET /api/rbac3/v1/iam/resource-catalog/applications/{applicationId}/resource-tree` |
+| Protocol and endpoint | `HTTP GET /api/tianquan-jianshen/v1/iam/resource-catalog/applications/{applicationId}/resource-tree` |
 | Content type/version | response`application/json`；v1；无request body |
 | Auth/permission/tenant | USER AT/RT；`system:resource:read`；查询全局catalog，不接收tenant参数 |
 | Timeout/retry/rate limit | 一次最多返回2000节点；依赖DB；5xx可手动重试；不轮询 |
@@ -1130,12 +1130,12 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
   "data": [ // Complete filtered management forest; empty array when no resources match.
     { // One MENU or ROUTE management node.
       "id": "501", // Stable RBAC resource identifier used by CRUD routes.
-      "code": "rbac3.roles", // Stable application-local resource code.
-      "parentCode": "rbac3.iam", // Parent resource code; null for a root node.
+      "code": "tianquan-jianshen.roles", // Stable application-local resource code.
+      "parentCode": "tianquan-jianshen.iam", // Parent resource code; null for a root node.
       "type": "ROUTE", // One of APP, MENU, ROUTE; ACTION entries are nested in actions.
       "name": "角色管理", // Current server-side management display name.
       "path": "/iam/roles", // Reported route path; null for MENU/APP.
-      "componentKey": "rbac3-role-list", // Reported local component key; null for MENU/APP.
+      "componentKey": "tianquan-jianshen-role-list", // Reported local component key; null for MENU/APP.
       "permissionCode": "system:role:read", // Required permission linked to this resource.
       "status": "ACTIVE", // PENDING_VALIDATION, ACTIVE, STALE, or ARCHIVED.
       "sourceType": "CI_REPORT", // MANUAL or CI_REPORT.
@@ -1145,7 +1145,7 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
       "actions": [ // ACTION resources directly owned by this ROUTE.
         {
           "id": "502", // Stable ACTION resource identifier.
-          "code": "rbac3.role.create", // Stable local ACTION code.
+          "code": "tianquan-jianshen.role.create", // Stable local ACTION code.
           "name": "新增角色", // ACTION display name.
           "permissionCode": "system:role:create", // Permission required by the local ActionGuard and backend API.
           "status": "PENDING_VALIDATION", // Current management lifecycle state.
@@ -1185,7 +1185,7 @@ None. Path、Query、Body、Multipart均不存在。认证Cookie由浏览器`cre
 
 ##### Interface logic for frontend and consumers
 
-1. Gateway/UserDetails and method permission checks run before any application query.
+1. Yuheng/UserDetails and method permission checks run before any application query.
 2. Controller validates path and unique enum filters; tenant is never accepted from query/body.
 3. Service verifies the global application exists and queries all required flat resources in one bounded call.
 4. Repository uses application/status/type access path; Service validates parent graph and assembles deterministic management nodes/actions without N+1.
@@ -1204,12 +1204,12 @@ New IAM URL has no old alias. Contract/MockMvc tests cover filters, empty, sorti
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 创建当前租户对一个全局APP的购买/启用资格；RBAC IAM拥有；TenantApplicationPage消费 |
-| Protocol and endpoint | `HTTP POST /api/rbac3/v1/iam/tenant-applications` |
+| Protocol and endpoint | `HTTP POST /api/tianquan-jianshen/v1/iam/tenant-applications` |
 | Content type/version | request/response `application/json`；v1 |
 | Auth/permission/tenant | USER AT/RT；`system:tenant-application:create`；tenant只取`CurrentRbac3User` |
 | Idempotency/concurrency | `(tenantId,applicationId)`唯一；重复409；创建没有客户端幂等key |
 
-同一Controller另提供分页`GET /api/rbac3/v1/iam/tenant-applications/page`、更新`PUT /api/rbac3/v1/iam/tenant-applications/{id}`和状态`PUT /api/rbac3/v1/iam/tenant-applications/{id}/status`；它们按统一CRUD规则展开在实现Plan中，不提供按报告自动创建。
+同一Controller另提供分页`GET /api/tianquan-jianshen/v1/iam/tenant-applications/page`、更新`PUT /api/tianquan-jianshen/v1/iam/tenant-applications/{id}`和状态`PUT /api/tianquan-jianshen/v1/iam/tenant-applications/{id}/status`；它们按统一CRUD规则展开在实现Plan中，不提供按报告自动创建。
 
 ##### Request parameters
 
@@ -1239,9 +1239,9 @@ HTTP `200 OK`返回`ResultRecord<TenantApplicationVO>`。VO包含`id/tenantId/ap
     "id": "1701", // TenantApplication identity.
     "tenantId": "2001", // Trusted current tenant.
     "applicationId": "71", // Global application identity.
-    "bizCode": "platform", // Read-only global BIZ projection.
-    "appCode": "rbac3-admin", // Read-only global APP projection.
-    "applicationName": "RBAC3 Admin", // Read-only display name.
+    "bizCode": "xingyuan", // Read-only global BIZ projection.
+    "appCode": "tianquan-jianshen-admin", // Read-only global APP projection.
+    "applicationName": "Tianquan-Jianshen Admin", // Read-only display name.
     "status": "ACTIVE", // Initial entitlement state.
     "validFrom": "2026-08-17T05:33:00Z", // Inclusive valid-from instant.
     "validTo": null, // Optional exclusive end instant.
@@ -1264,9 +1264,9 @@ HTTP `200 OK`返回`ResultRecord<TenantApplicationVO>`。VO包含`id/tenantId/ap
 | --- | --- | --- | --- |
 | body/window/status invalid | 400 `INVALID_PARAMS` | `ResultRecord<Void>` | 修正后 |
 | unauthenticated/forbidden | 401/403 | `ResultRecord<Void>` | 登录/授权后 |
-| global application absent/disabled or DDC disabled | 404/422 | `ResultRecord<Void>` | 目录修复后 |
+| global application absent/disabled or Tianshu disabled | 404/422 | `ResultRecord<Void>` | 目录修复后 |
 | duplicate tenant+application or optimistic conflict | 409 `CONCURRENCY_ERROR` | `ResultRecord<Void>` | 查询现状后 |
-| DB/DDC unavailable | 500/503 | `ResultRecord<Void>` | 受控重试 |
+| DB/Tianshu unavailable | 500/503 | `ResultRecord<Void>` | 受控重试 |
 
 ```jsonc
 {
@@ -1284,7 +1284,7 @@ HTTP `200 OK`返回`ResultRecord<TenantApplicationVO>`。VO包含`id/tenantId/ap
 
 1. Gateway完成USER AT/RT在线校验，Method Security检查创建权限。
 2. Controller只绑定DTO；Service从`CurrentRbac3User`取tenant和actor。
-3. Service确认全局application ACTIVE、DDC BIZ/APP启用且UserBusinessAccess满足既有业务域资格。
+3. Service确认全局application ACTIVE、Tianshu BIZ/APP启用且UserBusinessAccess满足既有业务域资格。
 4. 一个事务写TenantApplication，重复唯一键映射409，commit后推进tenant authVersion并失效Snapshot。
 5. 撤销不删除全局目录，但后续角色创建/绑定/激活失败，既有角色权限不再进入Snapshot。
 6. 相同tenant+application重复不会被当成成功重放；前端先刷新分页结果再决定状态更新。
@@ -1294,16 +1294,16 @@ HTTP `200 OK`返回`ResultRecord<TenantApplicationVO>`。VO包含`id/tenantId/ap
 
 这是V7新增破坏式资格模型，无旧Application tenant CRUD alias。测试覆盖重复、跨tenant、global APP不存在/禁用、窗口、乐观锁、状态迁移、authVersion失效、角色绑定/激活资格与CI报告前后零自动写入。
 
-#### 9.2.7 API-013 — DDC APP global-code uniqueness
+#### 9.2.7 API-013 — Tianshu APP global-code uniqueness
 
 ##### Identity and purpose
 
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 使用现有DDC APP创建接口维护主数据，并把appCode语义收紧为全局唯一 |
-| Protocol and endpoint | `HTTP POST /api/v1/ddc/apps` |
+| Protocol and endpoint | `HTTP POST /api/v1/tianshu/apps` |
 | Content type/version | existing JSON/ResultRecord v1；无URL/字段变更 |
-| Auth/permission/tenant | existing DDC Admin USER security；DDC目录自身无RBAC tenant目录语义 |
+| Auth/permission/tenant | existing Tianshu Admin USER security；DDC目录自身无RBAC tenant目录语义 |
 | Idempotency/concurrency | appCode数据库单列UK；并发唯一异常映射409 |
 
 ##### Request parameters
@@ -1313,15 +1313,15 @@ HTTP `200 OK`返回`ResultRecord<TenantApplicationVO>`。VO包含`id/tenantId/ap
 | Name | Location | Type/format | Required/null | Default | Validation | Meaning | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id` | Body | string | Optional/ignored on create | server UUIDv7 | caller value overwritten | APP id | null |
-| `bizCode` | Body | string | Required | None | 既有启用BIZ | owning BIZ | `platform` |
-| `appCode` | Body | string | Required | None | trim、现有格式、全局唯一 | APP code | `rbac3-admin` |
-| `appName` | Body | string | Required | None | existing length | display name | `RBAC3 Admin` |
-| `owner` | Body | string | Optional/null | null | current length | owner display | `platform-team` |
+| `bizCode` | Body | string | Required | None | 既有启用BIZ | owning BIZ | `xingyuan` |
+| `appCode` | Body | string | Required | None | trim、现有格式、全局唯一 | APP code | `tianquan-jianshen-admin` |
+| `appName` | Body | string | Required | None | existing length | display name | `Tianquan-Jianshen Admin` |
+| `owner` | Body | string | Optional/null | null | current length | owner display | `xingyuan-team` |
 | `description` | Body | string | Optional/null | null | current length | description | `RBAC administration` |
 | `enabled` | Body | boolean | Optional | true | boolean | availability | true |
 | `createdAt/updatedAt` | Body | datetime | Optional/ignored | server time | caller values overwritten | audit timestamps | null |
 
-现有`PUT /api/v1/ddc/apps/{id}`只修改`appName/owner/description`，不允许改变`appCode/bizCode`，因此不新增update唯一预检；需要换code时创建明确的新APP记录并迁移调用方，而不是静默改主键语义。
+现有`PUT /api/v1/tianshu/apps/{id}`只修改`appName/owner/description`，不允许改变`appCode/bizCode`，因此不新增update唯一预检；需要换code时创建明确的新APP记录并迁移调用方，而不是静默改主键语义。
 
 ##### Success response
 
@@ -1333,14 +1333,14 @@ HTTP 200返回现有`ResultRecord<DdcAppEntity>`；保存的appCode保持调用�
   "code": 10000, // Common success code.
   "status": "SUCCESS", // Stable common status.
   "message": "success", // Non-branching success message.
-  "data": { // Persisted DDC application.
+  "data": { // Persisted Tianshu application.
     "id": "app-71", // Server-assigned UUIDv7 identity.
-    "bizCode": "platform", // Owning globally unique BIZ code.
-    "appCode": "rbac3-admin", // Newly reserved globally unique APP code.
-    "appName": "RBAC3 Admin", // Display name.
-    "owner": "platform-team", // Optional owner.
+    "bizCode": "xingyuan", // Owning globally unique BIZ code.
+    "appCode": "tianquan-jianshen-admin", // Newly reserved globally unique APP code.
+    "appName": "Tianquan-Jianshen Admin", // Display name.
+    "owner": "xingyuan-team", // Optional owner.
     "description": "RBAC administration", // Optional description.
-    "enabled": true, // DDC availability flag.
+    "enabled": true, // Tianshu availability flag.
     "createdAt": "2026-08-17T05:33:00", // Server creation time.
     "updatedAt": "2026-08-17T05:33:00" // Server update time.
   },
@@ -1373,7 +1373,7 @@ HTTP 200返回现有`ResultRecord<DdcAppEntity>`；保存的appCode保持调用�
 4. 冲突由调用方显式改为带稳定前缀/后缀的新code后重试，不自动改写。
 5. 成功commit后返回持久化实体；该接口不写RBAC catalog或tenant entitlement。
 6. 重复请求如果appCode已创建则返回409，不把非幂等create伪装为成功。
-7. DDC Admin Web按status/code显示冲突并保留用户输入；改code后显式再次提交。
+7. Tianshu Admin Web按status/code显示冲突并保留用户输入；改code后显式再次提交。
 
 ##### Compatibility and verification
 
@@ -1383,11 +1383,11 @@ URL/JSON兼容，唯一性语义破坏式收紧。PostgreSQL/SQLite V9、Reposit
 
 ##### Identity and purpose
 
-IdP owns `IdentityDirectoryRpc.BatchGetIdentityProfiles`; RBAC user list consumes a minimal read-only username/displayName/status projection so RBAC does not persist profile data. Transport uses the repository RPC runtime and SERVICE identity metadata; deadline/retry follow the existing RPC adapter policy.
+Tianquan-Shoubing owns `IdentityDirectoryRpc.BatchGetIdentityProfiles`; RBAC user list consumes a minimal read-only username/displayName/status projection so RBAC does not persist profile data. Transport uses the repository RPC runtime and SERVICE identity metadata; deadline/retry follow the existing RPC adapter policy.
 
 ##### Request parameters
 
-Request message contains`subjects` as 1-100 unique nonblank IdP subject strings; caller preserves requested identity mapping but provider may return results in canonical subject order. Tenant and SERVICE credential travel in verified RPC metadata, not message fields; duplicates or more than100 produceINVALID_ARGUMENT.
+Request message contains`subjects` as 1-100 unique nonblank Tianquan-Shoubing subject strings; caller preserves requested identity mapping but provider may return results in canonical subject order. Tenant and SERVICE credential travel in verified RPC metadata, not message fields; duplicates or more than100 produceINVALID_ARGUMENT.
 
 ##### Success response
 
@@ -1411,7 +1411,7 @@ New RPC contract is additive toIdP RPC package but required by this breaking Adm
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 public @interface RBACAPIResource {
-    String code();       // stable API resource code; equals Gateway operation id
+    String code();       // stable API resource code; equals Yuheng operation id
     String permission(); // non-blank permission code
     String name();       // reviewable display name
 }
@@ -1674,10 +1674,10 @@ About未完成、未知MENU/ROUTE/ACTION/FIELD、permission或field policy缺失
 
 | Object/path | Selected role | Owner/boundary and consumers | Why a distinct class is necessary or reuse is safe | Mapping owner | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| `IdentityPrincipal` | Contract record/DTO | IdP Starter -> RBAC Starter | 复用现有已验证身份，不复制 | IdP verifier | `REQ-006` |
+| `IdentityPrincipal` | Contract record/DTO | Tianquan-Shoubing Starter -> RBAC Starter | 复用现有已验证身份，不复制 | Tianquan-Shoubing verifier | `REQ-006` |
 | `Rbac3UserDetails` | Security runtime object | RBAC Starter/SecurityContext | UserDetails生命周期和 authorities不同于纯 Snapshot | `Rbac3UserDetailsLoader` | `REQ-006`–`REQ-008` |
 | `ActiveRoleDescriptor` | Contract DTO | Admin snapshot -> Starter | 现有纯 id不足以组装角色上下文 | snapshot builder | `REQ-007` |
-| `RefreshTokenStatusResponse` | Internal protocol Response | IdP -> Gateway | 隔离敏感协议与内部 store record | controller | `REQ-001` |
+| `RefreshTokenStatusResponse` | Internal protocol Response | Tianquan-Shoubing -> Yuheng | 隔离敏感协议与内部 store record | controller | `REQ-001` |
 | Existing `ApplicationPO/PermissionPO/ResourcePO/FieldDefinitionPO` | JPA persistence PO | RBAC Admin global catalog | V7移除tenant继承/列并增加CI报告来源字段，不复制第二套catalog PO | Services/assemblers | `REQ-010`,`REQ-014`,`REQ-024`,`REQ-026` |
 | `TenantApplicationPO` | JPA persistence PO | RBAC tenant entitlement | 将租户购买/启用与全局Application定义分开；角色授权和快照资格依赖它 | TenantApplication Service | `REQ-016`,`REQ-026` |
 | Existing `FieldRulePO/RolePermissionPO/DataRulePO` | JPA persistence PO | RBAC tenant authorization | 保留tenant作用域，FK改为引用全局catalog id并由Service校验同APP | Services/assemblers | `REQ-007`,`REQ-009`,`REQ-012`,`REQ-026` |
@@ -1686,7 +1686,7 @@ About未完成、未知MENU/ROUTE/ACTION/FIELD、permission或field policy缺失
 | `CiResourceReportResultVO` | View Object | RBAC Admin -> pipeline | 组合全局commit版本与差异统计，不对应单表 | Report Service | `REQ-014`,`REQ-015`,`REQ-023` |
 | `ResourceManagementTreeNodeVO/ResourceManagementActionVO` | Admin View Object | IAM resource query -> Admin Web | 管理态需id/status/source/version，不能复用本地前端registry | management tree assembler | `REQ-019`,`REQ-024` |
 | Existing API response/View types | Response/View Object | Admin -> Web | 不暴露 JPA PO；延续现有 assembler，外层只用 common Result | domain assemblers | `REQ-010`,`REQ-019`,`REQ-023` |
-| `ResultRecord/PageResultRecord/PageQuery/PageMetaRecord` | Shared HTTP records | components/common -> RBAC/IdP JSON Controllers/Web clients | 仓库公共权威，直接复用而非复制 | controller/client | `REQ-023` |
+| `ResultRecord/PageResultRecord/PageQuery/PageMetaRecord` | Shared HTTP records | components/common -> RBAC/Tianquan-Shoubing JSON Controllers/Web clients | 仓库公共权威，直接复用而非复制 | controller/client | `REQ-023` |
 
 不创建 UserPO/DTO/BO/VO的机械平行集合；UserDetails不继承 `UserPO`。只有租户授权PO继续继承`TenantScopedPO`；全局`ApplicationPO/PermissionPO/ResourcePO/FieldDefinitionPO/PermissionResourcePO`改为仅继承审计/版本基类或按现有PO风格内联字段，禁止通过继承重新引入tenant。所有 Service使用组合，不创建 BaseService。
 
@@ -1695,7 +1695,7 @@ About未完成、未知MENU/ROUTE/ACTION/FIELD、permission或field policy缺失
 | Model | Kind | Ownership/lifecycle | Validation and state rules | Persistence | Requirements |
 | --- | --- | --- | --- | --- | --- |
 | `UserPO` | JPA PO | RBAC最小授权成员 | `(tenantId,identitySub)`唯一；ACTIVE才可组装 | `rbac3_user` | `REQ-017` |
-| `ApplicationPO` | JPA PO | 全局APP目录头 | DDC BIZ/APP引用、全局code与最后CI报告版本；无tenant | `rbac3_application` | `REQ-014`–`REQ-016`,`REQ-025`,`REQ-026` |
+| `ApplicationPO` | JPA PO | 全局APP目录头 | Tianshu BIZ/APP引用、全局code与最后CI报告版本；无tenant | `rbac3_application` | `REQ-014`–`REQ-016`,`REQ-025`,`REQ-026` |
 | `TenantApplicationPO` | JPA PO | 租户购买/启用APP | `(tenantId,applicationId)`唯一；ACTIVE且有效才允许该tenant创建/激活APP角色授权 | `rbac3_tenant_application` | `REQ-016`,`REQ-026` |
 | `RolePO` | JPA PO | 租户APP内角色 | ACTIVE、有效且tenant已启用该全局APP；未激活不进入上下文 | `rbac3_role` | `REQ-007`,`REQ-026` |
 | `PermissionPO` | JPA PO | 全局权限字符目录 | CI_REPORT新项PENDING不可授予；ACTIVE才进快照；MANUAL身份不被报告覆盖；无tenant | `rbac3_permission` | `REQ-014`,`REQ-015`,`REQ-019`,`REQ-026` |
@@ -1715,13 +1715,13 @@ About未完成、未知MENU/ROUTE/ACTION/FIELD、permission或field policy缺失
 | `Rbac3UserDetails.permissions` | `Set<String>` | non-null immutable | 仅 ACTIVE permission | snapshot | `REQ-006`,`REQ-007` |
 | `Rbac3UserDetails.authVersion/policyVersion` | `long` | >=0 | 缓存失效和审计 | snapshot | `REQ-006` |
 | `Rbac3UserDetails.password` | empty string | fixed | 不用于认证，不持久化 | UserDetails contract | `REQ-006`,`REQ-017` |
-| `Rbac3UserDetails.enabled` | boolean | required | RBAC User ACTIVE；账号登录状态仍由 IdP | UserPO snapshot | `REQ-006` |
-| `ActiveRoleDescriptor.applicationCode` | String | required | DDC/RBAC已接纳 APP code | snapshot builder | `REQ-007`,`REQ-016` |
+| `Rbac3UserDetails.enabled` | boolean | required | RBAC User ACTIVE；账号登录状态仍由 Tianquan-Shoubing | UserPO snapshot | `REQ-006` |
+| `ActiveRoleDescriptor.applicationCode` | String | required | Tianshu/RBAC已接纳 APP code | snapshot builder | `REQ-007`,`REQ-016` |
 | `ActiveRoleDescriptor.roleId/roleCode` | String | required | roleCode符合现有规则 | RolePO | `REQ-007` |
 | `SystemAuthorizationSnapshot.landingRouteCode` | String | nullable | 必须是当前active role解析出的本地ROUTE code；前端再校验permission/registry存在 | selected AppAuthorizationContext | `REQ-020`,`REQ-021` |
 | `Rbac3AboutView.permissions` | `Set<String>` | non-null immutable | 仅ACTIVE且来自有效激活角色，字典序序列化 | UserDetails/snapshot | `REQ-007`,`REQ-020`–`REQ-022` |
 | `Rbac3AboutView.fieldPolicies` | `Map<String,FieldPolicyDecision>` | non-null immutable | canonical key；缺失由前后端均按NONE | snapshot | `REQ-009`,`REQ-020`,`REQ-022` |
-| `ApplicationPO.bizCode/appCode` | String/String | required | 各自全局唯一；DDC id/code交叉验证；不含tenant | V7/DDC RPC | `REQ-016`,`REQ-025`,`REQ-026` |
+| `ApplicationPO.bizCode/appCode` | String/String | required | 各自全局唯一；Tianshu id/code交叉验证；不含tenant | V7/Tianshu RPC | `REQ-016`,`REQ-025`,`REQ-026` |
 | `TenantApplicationPO.tenantId/applicationId/status` | long/long/enum | required | unique tenant+global app；ACTIVE/SUSPENDED/REVOKED/EXPIRED | V7/IAM | `REQ-016`,`REQ-026` |
 | `PermissionPO.sourceType/sourceBuildId/sourceChecksum` | enum/String/String | required/nullable/nullable | `MANUAL/CI_REPORT`；报告来源build/checksum必填 | V7/report | `REQ-014`,`REQ-015`,`REQ-024` |
 | `ResourcePO.sourceType/sourceBuildId/sourceChecksum` | enum/String/String | required/nullable/nullable | 报告replace只匹配CI_REPORT；sourceManifestId删除 | V7/report | `REQ-014`,`REQ-015`,`REQ-024` |
@@ -1732,7 +1732,7 @@ About未完成、未知MENU/ROUTE/ACTION/FIELD、permission或field policy缺失
 | `ResultRecord.data` | generic nullable | success按接口定义 | 单体/有限列表/tree；失败为null | common factory | `REQ-023` |
 | `PageResultRecord.records/page` | list + PageMetaRecord | records non-null | 只承载当前页，禁止再套 DirectoryPageVO | common factory | `REQ-023` |
 
-Authorities保留当前兼容形式 `CAP_<permission>`和 `RBAC3_<permission>`，避免 Gateway/DDC现有 `@PreAuthorize`断裂；角色以 `RBAC3_ROLE_<applicationCode>:<roleCode>`暴露用于诊断，不作为最终授权依据。最终业务判断始终使用 `AuthorizationService`的精确 permission code。
+Authorities保留当前兼容形式 `CAP_<permission>`和 `TIANQUAN_JIANSHEN_<permission>`，避免 Yuheng/DDC现有 `@PreAuthorize`断裂；角色以 `TIANQUAN_JIANSHEN_ROLE_<applicationCode>:<roleCode>`暴露用于诊断，不作为最终授权依据。最终业务判断始终使用 `AuthorizationService`的精确 permission code。
 
 ### 10.4 Object flow and mapping relationships
 
@@ -1760,7 +1760,7 @@ flowchart LR
 
 ### 10.5 Reuse, inheritance, and composition decisions
 
-- `Rbac3UserDetails`使用组合持有 `IdentityPrincipal`和 Snapshot字段，不继承 IdP principal或 JPA UserPO。
+- `Rbac3UserDetails`使用组合持有 `IdentityPrincipal`和 Snapshot字段，不继承 Tianquan-Shoubing principal或 JPA UserPO。
 - JPA现有公共基类继承保持不变；新增字段沿用相同审计/乐观锁生命周期。
 - `Rbac3MethodAuthorizationManager`组合 `AuthorizationService`与 annotation resolver；不继承 Aspect、不创建 Controller基类。
 - Jackson PropertyWriter必须继承 Jackson框架的 `BeanPropertyWriter`扩展点，这是框架要求的 Template Method例外；业务规则仍委托 FieldPolicy resolver与 SensitiveStrategyRegistry。
@@ -1791,7 +1791,7 @@ RBAC PostgreSQL/Flyway只新增`egon-cola-xingyuan/egon-cola-tianquan-jianshen/e
 
 | Table | Existing/new | Purpose and owner | Read/write paths | Change | Migration | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| `public.rbac3_application` | Existing/Alter | 全局APP目录和报告幂等头；RBAC IAM | CI Report read/update；DDC adapter校验 | 删除tenant/current_manifest；保留DDC ids并增加biz/app codes和last CI report identity | V7 | `REQ-014`–`REQ-016`,`REQ-024`–`REQ-026` |
+| `public.rbac3_application` | Existing/Alter | 全局APP目录和报告幂等头；RBAC IAM | CI Report read/update；Tianshu adapter校验 | 删除tenant/current_manifest；保留DDC ids并增加biz/app codes和last CI report identity | V7 | `REQ-014`–`REQ-016`,`REQ-024`–`REQ-026` |
 | `public.rbac3_tenant_application` | New | 租户购买/启用全局APP | TenantApplication CRUD；Role/Snapshot资格校验 | 新表，唯一`(tenant_id,application_id)` | V7 | `REQ-016`,`REQ-026` |
 | `public.rbac3_resource_manifest` | Existing/Drop | 旧Manifest payload/history | 旧ManifestFacade | 整表删除 | V7 | `REQ-024` |
 | `public.rbac3_permission` | Existing/Alter | 全局权限字符目录 | CI Report/Permission CRUD/Snapshot | 删除tenant；增加来源字段和PENDING状态 | V7 | `REQ-014`,`REQ-015`,`REQ-019`,`REQ-026` |
@@ -1820,9 +1820,9 @@ RBAC IAM拥有全局APP目录引用；DDC仍拥有BIZ/APP主数据。CI Report S
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id` | `BIGINT` | 64-bit | No | None | ID component | PK | RBAC global APP identity | catalog lookup | `71` |
-| `ddc_business_id/ddc_application_id` | `VARCHAR(64)` | 64 | No | None | DDC RPC sync | application id unique；business id indexed | DDC stable IDs | DDC adapter | `biz-01/app-71` |
-| `biz_code` | `VARCHAR(128)` | 128 | No | None | DDC/RBAC sync | non-unique index | globally unique DDC BIZ code snapshot；多个APP可属于同一BIZ | path/principal/DDC cross-check | `platform` |
-| `application_code` | `VARCHAR(128)` | 128 | No | None | DDC/RBAC sync | single-column unique | globally unique DDC APP code | path/principal/DDC cross-check | `rbac3-admin` |
+| `ddc_business_id/ddc_application_id` | `VARCHAR(64)` | 64 | No | None | Tianshu RPC sync | application id unique；business id indexed | Tianshu stable IDs | Tianshu adapter | `biz-01/app-71` |
+| `biz_code` | `VARCHAR(128)` | 128 | No | None | Tianshu/RBAC sync | non-unique index | globally unique Tianshu BIZ code snapshot；多个APP可属于同一BIZ | path/principal/Tianshu cross-check | `xingyuan` |
+| `application_code` | `VARCHAR(128)` | 128 | No | None | Tianshu/RBAC sync | single-column unique | globally unique Tianshu APP code | path/principal/Tianshu cross-check | `tianquan-jianshen-admin` |
 | `current_manifest_id` | `BIGINT` | 64-bit | Yes | None | None | 旧FK | 删除 | V7 drop | N/A |
 | `current_manifest_version` | `BIGINT` | 64-bit | Yes | None | None | 旧check | 删除 | V7 drop | N/A |
 | `ci_report_build_id` | `VARCHAR(256)` | 256 | Yes | None | Report Service | all-null/all-present check | 最后成功CI报告build | request | `web-a2cde274` |
@@ -2013,7 +2013,7 @@ RBAC全局管理目录存APP内MENU/ROUTE/ACTION/API；业务前端运行不读�
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id/application_id` | `BIGINT` | 64-bit | No | None | ID/context | PK/global application FK/UK | global identity/scope | ResourcePO | `501/71` |
-| `resource_type/code/name` | `VARCHAR` | 32/128/200 | No | None | report/CRUD | type check+app/type/code UK | resource identity/display | ResourcePO | `ROUTE/rbac3.roles` |
+| `resource_type/code/name` | `VARCHAR` | 32/128/200 | No | None | report/CRUD | type check+app/type/code UK | resource identity/display | ResourcePO | `ROUTE/tianquan-jianshen.roles` |
 | `parent_resource_id` | `BIGINT` | 64-bit | Yes | NULL | report/CRUD | same global app self FK | structural parent | ResourcePO | `500` |
 | `required_permission_id` | `BIGINT` | 64-bit | Yes | NULL | report/CRUD | same global app permission FK | visibility/API permission link | ResourcePO | `601` |
 | `status` | `VARCHAR(32)` | 32 | No | None | Service | existing PENDING/ACTIVE/STALE/ARCHIVED | lifecycle | ResourcePO | `ACTIVE` |
@@ -2060,18 +2060,18 @@ V7按依赖顺序清空旧目录，drop tenant/manifest FK/trigger和`tenant_id/
 
 ##### Purpose, ownership, and lifecycle
 
-保存全局permission-resource映射；Report Service维护CI报告的非API资源当前映射，API/Gateway operation映射继续由现有管理流程拥有。
+保存全局permission-resource映射；Report Service维护CI报告的非API资源当前映射，API/Yuheng operation映射继续由现有管理流程拥有。
 
 ##### Complete column design
 
-保留V1 identity/app/permission/resource/type、API专用definition/gateway/security字段、mapping_version/status/version/audit，删除`tenant_id`并重建全局FK。CI非API报告必须使三个API专用字段NULL，status ACTIVE或按现有流程生成。
+保留V1 identity/app/permission/resource/type、API专用definition/yuheng/security字段、mapping_version/status/version/audit，删除`tenant_id`并重建全局FK。CI非API报告必须使三个API专用字段NULL，status ACTIVE或按现有流程生成。
 
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id/application_id` | `BIGINT` | 64-bit | No | None | ID/context | PK/global app UK | mapping identity/scope | mapping PO | `701/71` |
 | `permission_id/resource_id` | `BIGINT` | 64-bit | No | None | report/CRUD | permission/resource FKs | linked facts | mapping PO | `601/501` |
 | `resource_type` | `VARCHAR(32)` | 32 | No | None | resource | FK/check | APP/MENU/ROUTE/ACTION/API type | mapping PO | `ROUTE` |
-| `definition_set_id/gateway_operation_id/security_policy_id` | `VARCHAR` | 64/64/128 | Yes | NULL | API management only | API identity check | API/Gateway mapping metadata | mapping PO | NULL for frontend report |
+| `definition_set_id/gateway_operation_id/security_policy_id` | `VARCHAR` | 64/64/128 | Yes | NULL | API management only | API identity check | API/Yuheng mapping metadata | mapping PO | NULL for frontend report |
 | `mapping_version/version` | `BIGINT` | 64-bit | No | `0` for version | Service/ORM | non-negative/unique mapping | mapping lifecycle/concurrency | mapping PO | `1` |
 | `status` | `VARCHAR(32)` | 32 | No | None | Service | ACTIVE/STALE/DISABLED | mapping state | mapping PO | `ACTIVE` |
 | audit columns | V1 timestamps/varchars | exact V1 | No | existing | clock/actor | existing | audit | base PO | current actor |
@@ -2087,7 +2087,7 @@ V7按依赖顺序清空旧目录，drop tenant/manifest FK/trigger和`tenant_id/
 | Index | Type/unique | Ordered columns/expressions | Predicate/include | Query and operation | Cardinality/selectivity | Sort/coverage role | Write/storage cost | Decision |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `uq_rbac3_permission_resource_mapping` | unique btree | `(resource_id,mapping_version)` | None | mapping version insert/lookup | unique per global resource/version | lookup | existing shape minus tenant | Rebuild |
-| `uk_rbac3_permission_resource_api_operation` | partial unique btree | V1 API identity columns | definition IDs non-null | Gateway API mapping | API operation unique | lookup | existing API writes | Retain |
+| `uk_rbac3_permission_resource_api_operation` | partial unique btree | V1 API identity columns | definition IDs non-null | Yuheng API mapping | API operation unique | lookup | existing API writes | Retain |
 | `idx_rbac3_permission_resource_operation` | btree | `(gateway_operation_id,definition_set_id,status)` | None | API operation lookup | operation selective | lookup | existing shape minus tenant | Rebuild |
 
 ##### Access patterns and SQL shape
@@ -2097,7 +2097,7 @@ Report为每个resource permission关系insert/disable映射，批量<=2000；�
 | Operation | Caller | Predicate/join/order | Expected rows | Index/constraint | Lock/isolation | Failure/idempotency |
 | --- | --- | --- | --- | --- | --- | --- |
 | Non-API report mapping | Report Repository | global resource+permission/current version | 0/1 per resource | mapping UK/FKs | report tx | duplicate normalized; FK error rollback |
-| API mapping lookup | Gateway/Admin decision | operation+definition+status | 0/1 | API indexes | read-only | unchanged by CI report |
+| API mapping lookup | Yuheng/Admin decision | operation+definition+status | 0/1 | API indexes | read-only | unchanged by CI report |
 
 ##### Migration and historical-data handling
 
@@ -2456,9 +2456,9 @@ erDiagram
 
 `MANIFEST`以孤立drop节点保留在图中以覆盖inventory；目标schema无指向它的关系。APPLICATION/PERMISSION/RESOURCE/PERMISSION_RESOURCE/FIELD_DEFINITION构成无tenant全局目录；RESOURCE自父关系限制同application。TENANT_APPLICATION、ROLE、ROLE_PERMISSION、FIELD_RULE保留tenant授权语义并引用全局目录；跨APP和购买资格由Service校验。删除/归档继续由Service状态和FK restrict控制，不新增cascade。
 
-### 11.4 DDC BIZ/APP global-code migration
+### 11.4 Tianshu BIZ/APP global-code migration
 
-DDC `ddc_biz.biz_code`已有`uk_ddc_biz_code`单列唯一约束，V9保留并用迁移断言验证；`ddc_app`删除V7创建的`uk_ddc_app_biz_code(biz_code,app_code)`，分别保留业务归属索引并新增`uk_ddc_app_code(app_code)`。PostgreSQL和SQLite脚本使用各自DDL语法但保持相同schema结果和Flyway版本号V9。
+Tianshu `ddc_biz.biz_code`已有`uk_ddc_biz_code`单列唯一约束，V9保留并用迁移断言验证；`ddc_app`删除V7创建的`uk_ddc_app_biz_code(biz_code,app_code)`，分别保留业务归属索引并新增`uk_ddc_app_code(app_code)`。PostgreSQL和SQLite脚本使用各自DDL语法但保持相同schema结果和Flyway版本号V9。
 
 `DdcAppRepository`新增`existsByAppCode`和全局`findByAppCode`权威查询；`DdcAppService.save`按trim后的appCode执行全局冲突校验，DB唯一冲突仍兜底映射409。现有`update`只修改name/owner/description，不开放code变更。`bizCode`冲突沿现有`DdcBizService`和数据库UK处理。不同BIZ请求相同appCode必须失败；调用方通过创建带稳定、可读前缀或后缀的新code后重试，不允许自动改code或退回组合唯一。
 
@@ -2511,7 +2511,7 @@ About/query状态由AuthProvider拥有；registry是构建期常量，不写入R
 | 初始化应用 | AuthProvider mounted | about loading -> validate registry -> filter -> render | registry unique/parent/path/permission | 200/401/403/409/503 | 聚焦landing local route或首个可见route | 登录/denied/role activation/retry；不闪现受保护内容 | `API-010` |
 | 直接访问route | about READY | path匹配local route -> permission检查 -> mount | path绝对、component存在 | 业务API另行校验 | 正常页面 | permission缺失403，unknown path404 | local guard |
 | 配置报告字段 | PENDING field且有edit权限 | 打开drawer -> sensitivity/default/mask -> save -> activate | 枚举/required/masking组合 | common CRUD结果 | 刷新field/rule和about version | 409保留输入；validation聚焦首错 | IAM FieldDefinition/FieldRule CRUD（Depends On） |
-| 配置租户APP | tenant admin且全局APP ACTIVE | 选择APP -> status/window/source -> save | 禁止重复tenant+app；窗口合法 | common CRUD结果 | 刷新tenant entitlement和授权版本 | 409保留输入；无全局APP时先修目录/DDC | TenantApplication CRUD |
+| 配置租户APP | tenant admin且全局APP ACTIVE | 选择APP -> status/window/source -> save | 禁止重复tenant+app；窗口合法 | common CRUD结果 | 刷新tenant entitlement和授权版本 | 409保留输入；无全局APP时先修目录/Tianshu | TenantApplication CRUD |
 
 ### 12.4 UI state and API/data mapping
 
@@ -2536,7 +2536,7 @@ About/query状态由AuthProvider拥有；registry是构建期常量，不写入R
 
 | Pattern/principle | Concrete variation point or problem | Placement | Why direct code is insufficient | Repository alignment |
 | --- | --- | --- | --- | --- |
-| Adapter | IdP RT状态/刷新需适配 Gateway Reactive SPI | IdP Gateway Adapter clients/providers | Gateway不能依赖 IdP Admin实现或阻塞调用 | 现有 `IdpRefreshClient`/verifier模式 |
+| Adapter | Tianquan-Shoubing RT状态/刷新需适配 Yuheng Reactive SPI | Tianquan-Shoubing Yuheng Adapter clients/providers | Gateway不能依赖 Tianquan-Shoubing Admin实现或阻塞调用 | 现有 `IdpRefreshClient`/verifier模式 |
 | Facade | Controller/Service需要当前 USER但不应显式参数传递 | `CurrentRbac3User` | 到处读/强转 SecurityContext会重复且不安全 | 取代 CurrentRbac3Principal投影 |
 | Strategy | 字段 MASKED_READ有多种脱敏算法 | existing `SensitiveStrategyRegistry` | if/switch会复制已有策略 | 直接复用 common desensitize |
 | Decorator/Template Method | Jackson按属性包裹现有 writer | `Rbac3FieldPropertyWriter` | 必须保留默认序列化器行为并前置授权 | 现有 SensitivePropertyWriter先例 |
@@ -2547,7 +2547,7 @@ About/query状态由AuthProvider拥有；registry是构建期常量，不写入R
 ### 13.2 Rejected patterns and simpler alternative
 
 - 不采用动态 URL权限 Filter：只能绑定请求路径，无法覆盖 Service方法、字段序列化和自定义语义；Gateway外围 URL策略继续存在但不是服务最终权限。
-- 不采用标准 `UserDetailsService + DaoAuthenticationProvider`：密码和登录在 IdP，标准 username单键不能表达 tenant/system，直接 Loader更清晰。
+- 不采用标准 `UserDetailsService + DaoAuthenticationProvider`：密码和登录在 Tianquan-Shoubing，标准 username单键不能表达 tenant/system，直接 Loader更清晰。
 - 不新增通用权限规则引擎、Factory层、Command Bus或事件溯源：现有 Service/Repository/AuthorizationService足以完成 CRUD与决定。
 - 不用 AOP实现 DataScope/Jackson字段：数据范围语义未决；字段序列化使用 Jackson正式扩展点比通用反射 AOP稳定。
 - 不采用Manifest/sidecar/Processor/Registration Starter/Vite Plugin：前端已经持有资源声明，额外生命周期和模块不增加运行授权能力。
@@ -2557,7 +2557,7 @@ About/query状态由AuthProvider拥有；registry是构建期常量，不写入R
 
 ### 13.3 Architecture principles
 
-Admin Controller只做绑定/transport校验并依赖本领域Service；Report Service组合Repository、DDC adapter、SERVICE principal访问器与audit，拥有全局目录事务；全局Repository禁止tenant谓词，租户授权Repository必须显式tenant范围。Starter保持`filter -> loader/cache -> SecurityContext -> AuthorizationService/About/Jackson`单向依赖。Contract不依赖Spring/JPA。只新增About View、CI Report Request/Result和TenantApplication边界对象，不为每层复制PO/BO/DTO；具体Service使用组合而非BaseService继承。所有权限/字段缺失默认拒绝。现有Admin领域化包结构被保留，不强行迁成skill的传统三层；若未来迁包需单独用户决策。
+Admin Controller只做绑定/transport校验并依赖本领域Service；Report Service组合Repository、Tianshu adapter、SERVICE principal访问器与audit，拥有全局目录事务；全局Repository禁止tenant谓词，租户授权Repository必须显式tenant范围。Starter保持`filter -> loader/cache -> SecurityContext -> AuthorizationService/About/Jackson`单向依赖。Contract不依赖Spring/JPA。只新增About View、CI Report Request/Result和TenantApplication边界对象，不为每层复制PO/BO/DTO；具体Service使用组合而非BaseService继承。所有权限/字段缺失默认拒绝。现有Admin领域化包结构被保留，不强行迁成skill的传统三层；若未来迁包需单独用户决策。
 
 ## 14. Test Design
 
@@ -2576,13 +2576,13 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 
 ### 14.2 Integration, contract, persistence, component, and end-to-end tests
 
-- IdP Admin MockMvc/internal security测试证明只有含 scope的 SERVICE AT可检查 RT，响应 no-store且日志无 raw token。
-- Gateway adapter与 engine契约测试证明每个保护 USER请求调用 status，公开/SERVICE不调用，refresh无递归。
-- RBAC Starter Security Chain测试证明 IdP Filter在前、RBAC Filter在后，principal是 UserDetails，方法403不触发刷新。
+- Tianquan-Shoubing Admin MockMvc/internal security测试证明只有含 scope的 SERVICE AT可检查 RT，响应 no-store且日志无 raw token。
+- Yuheng adapter与 engine契约测试证明每个保护 USER请求调用 status，公开/SERVICE不调用，refresh无递归。
+- RBAC Starter Security Chain测试证明 Tianquan-Shoubing Filter在前、RBAC Filter在后，principal是 UserDetails，方法403不触发刷新。
 - JPA/Flyway PostgreSQL测试验证RBAC V7删除Manifest和global catalog的tenant列/组合FK，创建TenantApplication，增加CI report来源/check/index，PENDING不可授予、报告rollback和租户/角色权限零变化。
-- DDC PostgreSQL/SQLite迁移测试验证V9保留bizCode单列唯一、把appCode恢复为单列唯一并删除组合唯一语义。
+- Tianshu PostgreSQL/SQLite迁移测试验证V9保留bizCode单列唯一、把appCode恢复为单列唯一并删除组合唯一语义。
 - Admin Controller/Service测试覆盖FieldDefinition/FieldRule/Permission/Resource CRUD、全局资源管理树、CI_REPORT/MANUAL所有权、SERVICE source BIZ/APP/DDC校验、TenantApplication与版本409；About MockMvc验证common result与禁止资源字段。
-- Controller架构测试扫描 RBAC3 JSON endpoints，禁止返回 `ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse`，分页查询禁止手写 `page/size`替代 `PageQuery`；OAuth/RPC allowlist单独验证。
+- Controller架构测试扫描 Tianquan-Jianshen JSON endpoints，禁止返回 `ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse`，分页查询禁止手写 `page/size`替代 `PageQuery`；OAuth/RPC allowlist单独验证。
 - React SDK Vitest覆盖common result/page、about、registry validation、`RouteAccessGuard/ActionGuard/getField/FieldColumnGuard`；Admin Web覆盖本地递归导航、深链403、无同步按钮、全局目录/TenantApplication CRUD；Shared覆盖多级Menu/Drawer。
 - CI Node测试覆盖definitions canonicalization、checksum、HTTP状态映射和失败阻断。Source/制品守卫检查JAR/TS/dist不含ResourceManifest、ManifestController/Reporter、旧bootstrap route、CI report脚本代码、SERVICE scope/token配置；报告脚本只存在于Web package的`scripts/`发布任务。
 
@@ -2590,11 +2590,11 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 
 | ID | Level | Target | Scenario/input | Expected assertion | Test double/data | Tool/path | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `TEST-001` | Unit | Gateway online state | valid AT + revoked RT | 401、清双 Cookie、无下游调用 | fake status client | JUnit | `REQ-001`,`REQ-018` |
-| `TEST-002` | Unit | Gateway recovery | expired AT + active RT | refresh一次、新 AT验证、继续原请求 | fake IdP | JUnit/Reactor | `REQ-002` |
-| `TEST-003` | Integration | route policy | login/refresh/SERVICE | 不执行 USER RT前置校验 | MockWebServer | Gateway tests | `REQ-003` |
+| `TEST-001` | Unit | Yuheng online state | valid AT + revoked RT | 401、清双 Cookie、无下游调用 | fake status client | JUnit | `REQ-001`,`REQ-018` |
+| `TEST-002` | Unit | Yuheng recovery | expired AT + active RT | refresh一次、新 AT验证、继续原请求 | fake Tianquan-Shoubing | JUnit/Reactor | `REQ-002` |
+| `TEST-003` | Integration | route policy | login/refresh/SERVICE | 不执行 USER RT前置校验 | MockWebServer | Yuheng tests | `REQ-003` |
 | `TEST-004` | Unit | method manager | API + generic different permissions | 两者都ALLOW才执行 | fake AuthorizationService | JUnit | `REQ-004`,`REQ-005` |
-| `TEST-005` | Integration | SecurityContext | valid identity/snapshot | RBAC principal UserDetails；IdP/RBAC USER Controller无 principal参数；SERVICE参数保留 | MockMvc/reflection guard | idp/rbac starter/admin | `REQ-006`,`REQ-008` |
+| `TEST-005` | Integration | SecurityContext | valid identity/snapshot | RBAC principal UserDetails；Tianquan-Shoubing/RBAC USER Controller无 principal参数；SERVICE参数保留 | MockMvc/reflection guard | tianquan-shoubing/rbac starter/admin | `REQ-006`,`REQ-008` |
 | `TEST-006` | Unit | active roles | assigned but not activated role | role和permission都缺失 | snapshot fixtures | JUnit | `REQ-007` |
 | `TEST-007` | Unit | Jackson field | absent/NONE/MASKED/READ | null/null/masked/raw | DTO fixture | Jackson/JUnit | `REQ-009` |
 | `TEST-008` | Component | Field CRUD | MANUAL vs CI_REPORT field | manual可改；report机械字段/安全字段边界正确 | Testcontainers Postgres | Admin IT | `REQ-010`,`REQ-024`,`REQ-026` |
@@ -2602,43 +2602,43 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 | `TEST-010` | Architecture | DataScope exclusion | source scan | 无 `@DataScope`/query rewriter新增 | rg/ArchUnit | Maven | `REQ-012` |
 | `TEST-011` | Contract/IT | CI global resource report | repeated build/checksum、same build different checksum、invalid graph、MANUAL/conflict/concurrency | idempotent或400/409；整批rollback；tenant_application/role_permission unchanged | DB fixture | JUnit/MockMvc | `REQ-013`–`REQ-015`,`REQ-023`,`REQ-026` |
 | `TEST-012` | Architecture/package | Manifest removal/secrets | inspect source/JAR/dist | 无Manifest symbols/routes/table mappings；dist无report script/SERVICE scope/token配置；scripts报告文件存在 | built artifacts | Maven/Node/rg | `REQ-014`,`REQ-015`,`REQ-024` |
-| `TEST-013` | Integration | DDC/SERVICE boundary | USER主体、缺scope、source/path不符、unknown/disabled/wrong BIZ APP | 401/403/404/422；零目录/DDC/tenant写入 | fake DDC RPC/principal | Admin IT | `REQ-015`,`REQ-016`,`REQ-026` |
-| `TEST-014` | Contract | user list | IdP available/unavailable | enriched/partial marker，无profile持久化 | fake IdP client | MockMvc | `REQ-017` |
+| `TEST-013` | Integration | Tianshu/SERVICE boundary | USER主体、缺scope、source/path不符、unknown/disabled/wrong BIZ APP | 401/403/404/422；零目录/Tianshu/tenant写入 | fake Tianshu RPC/principal | Admin IT | `REQ-015`,`REQ-016`,`REQ-026` |
+| `TEST-014` | Contract | user list | Tianquan-Shoubing available/unavailable | enriched/partial marker，无profile持久化 | fake Tianquan-Shoubing client | MockMvc | `REQ-017` |
 | `TEST-015` | Frontend/API | IAM routes | old/new URL | old 404；new CRUD works | API mocks | Vitest/MockMvc | `REQ-019` |
 | `TEST-016` | Unit/frontend | local resource registry | nested MENU/ROUTE+ACTION+FIELD、invalid graph | stable local tree/report projection；invalid节点fail closed | registry fixtures | Vitest | `REQ-013`,`REQ-014` |
 | `TEST-017` | Frontend | navigation/router/action | local registry+about permissions/hidden/deep link | 递归过滤；hidden可深链；未授权403；action隐藏 | About+registry fixtures | Vitest | `REQ-020`–`REQ-022` |
 | `TEST-018` | Component | shared recursive navigation | desktop + Drawer三级树 | parent展开、leaf跳转、最长 path高亮、键盘可达 | layout fixtures | Vitest/Testing Library | `REQ-021` |
 | `TEST-019` | Architecture/MockMvc | common HTTP envelopes | single/page/error + source scan | JSON字段与 common record一致；无旧 envelope引用；分页不嵌套 | controller fixtures | ArchUnit/MockMvc/rg | `REQ-023` |
-| `TEST-020` | Contract/integration | about | inactive role、permissions、field policy、versions | ResultRecord正确；JSON无apps/menus/routes/actions/tree/path/component | snapshot/repository fakes | Starter/Admin/IdP tests | `REQ-007`,`REQ-020`–`REQ-023` |
+| `TEST-020` | Contract/integration | about | inactive role、permissions、field policy、versions | ResultRecord正确；JSON无apps/menus/routes/actions/tree/path/component | snapshot/repository fakes | Starter/Admin/Tianquan-Shoubing tests | `REQ-007`,`REQ-020`–`REQ-023` |
 | `TEST-021` | Migration | RBAC V7 | migrate clean V1–V6 schema then inspect | Manifest absent；catalog tenant列/组合FK absent；TenantApplication和global report checks/indexes present | PostgreSQL Testcontainers | Flyway IT | `REQ-024`,`REQ-026` |
 | `TEST-022` | Integration | tenant application/grant | no/suspended/active entitlement + role permission bind/snapshot | 前两者拒绝/不入快照；ACTIVE且同APP才允许 | DB fixture | Admin/Snapshot IT | `REQ-007`,`REQ-016`,`REQ-026` |
-| `TEST-023` | Migration/service | DDC global codes | migrate V1–V9；two BIZ same appCode；biz duplicate | 两方言schema各自单列UK；create稳定409；update不改code；新建前后缀code成功 | PostgreSQL+SQLite fixtures | DDC tests | `REQ-025` |
+| `TEST-023` | Migration/service | Tianshu global codes | migrate V1–V9；two BIZ same appCode；biz duplicate | 两方言schema各自单列UK；create稳定409；update不改code；新建前后缀code成功 | PostgreSQL+SQLite fixtures | Tianshu tests | `REQ-025` |
 
 ## 15. Non-functional and Cross-cutting Design
 
-- Security：RT status仅SERVICE AT，raw RT不记录；Gateway删除伪造Authorization/Cookie/trusted headers。CI报告只接受短期SERVICE AT和`rbac3:resource-catalog:report`，source BIZ/APP必须匹配path；不设1MiB总体限制或业务限流，但保留2000 resources、5000 fields、JSON depth/字符串长度、图/checksum校验；报告永不写TenantApplication/RolePermission/FieldRule。前端隐藏不是授权，API/字段PEP继续执行。
+- Security：RT status仅SERVICE AT，raw RT不记录；Gateway删除伪造Authorization/Cookie/trusted headers。CI报告只接受短期SERVICE AT和`tianquan-jianshen:resource-catalog:report`，source BIZ/APP必须匹配path；不设1MiB总体限制或业务限流，但保留2000 resources、5000 fields、JSON depth/字符串长度、图/checksum校验；报告永不写TenantApplication/RolePermission/FieldRule。前端隐藏不是授权，API/字段PEP继续执行。
 - Tenancy：Snapshot、TenantApplication、Role/Rule CRUD以SecurityContext tenant为准；global Application/Permission/Resource/Field CRUD和CI report不接受tenant字段、不拼tenant唯一键。DDC目录id不等于RBAC tenant，不新增跨库FK。
-- Performance：RT每请求Redis读成本明确，IdP status p95目标<=20ms、Gateway新增p95<=30ms；无正向缓存。About只读现有snapshot且不查询资源表，避免资源N+1/树组装。Registry过滤O(n)，CI报告O(n)+批量JPA/SQL且上线前低频；不为它增加运行时限流，代表数据计划待实施EXPLAIN。
-- Privacy：UserDetails不含密码/profile；字段缺失 fail closed；IdP enrichment只读、短期展示缓存不得写 RBAC表。
+- Performance：RT每请求Redis读成本明确，Tianquan-Shoubing status p95目标<=20ms、Gateway新增p95<=30ms；无正向缓存。About只读现有snapshot且不查询资源表，避免资源N+1/树组装。Registry过滤O(n)，CI报告O(n)+批量JPA/SQL且上线前低频；不为它增加运行时限流，代表数据计划待实施EXPLAIN。
+- Privacy：UserDetails不含密码/profile；字段缺失 fail closed；Tianquan-Shoubing enrichment只读、短期展示缓存不得写 RBAC表。
 - Audit：记录哪个SERVICE subject/sourceBizCode/sourceAppCode报告资源、application/build/checksum/diff/result，以及哪个tenant USER激活/修改TenantApplication/RolePermission/FieldRule；不记token、完整payload、component源码或字段原值。
-- Availability：IdP status故障返回503而非旧态放行；RBAC缓存过期/版本错不无限延长；Field异常不泄漏原值。
+- Availability：Tianquan-Shoubing status故障返回503而非旧态放行；RBAC缓存过期/版本错不无限延长；Field异常不泄漏原值。
 - Accessibility/i18n：权限名称/字段名称可展示中文，code稳定英文；递归 MENU可用键盘展开、叶子可聚焦并正确 `aria-current`；隐藏列不保留空 header；错误 badge有文本。
 - Maintainability：Annotation resolver、UserDetails loader、About service、Field writer、前端registry validator和Report Service各单一职责；无Manifest并行生命周期；HTTP外层只依赖common core。
 
 ## 16. Compatibility, Migration, Rollout, and Rollback
 
-本次是破坏式切换，不保留旧Controller URL alias、旧`CurrentRbac3Principal`、`RequiresRbac3Permission`、`/api/v1/auth/bootstrap`、Bootstrap资源字段、Manifest API/page/table、`ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse`或旧TypeScript解析。稳定不变的是AT/RT claims、公开OAuth endpoint、DDC BIZ/APP所有权和RBAC permission code语义。
+本次是破坏式切换，不保留旧Controller URL alias、旧`CurrentRbac3Principal`、`RequiresRbac3Permission`、`/api/v1/auth/bootstrap`、Bootstrap资源字段、Manifest API/page/table、`ApiEnvelopeVO/DirectoryPageVO/Rbac3ErrorResponse`或旧TypeScript解析。稳定不变的是AT/RT claims、公开OAuth endpoint、Tianshu BIZ/APP所有权和RBAC permission code语义。
 
 部署顺序约束（不是实施 Plan）：
 
-1. 先发布 IdP internal RT status与 Gateway adapter兼容能力；Gateway启用强制 RT前必须确认所有受保护浏览器请求均能携带 Path `/`的 RT Cookie。
+1. 先发布 Tianquan-Shoubing internal RT status与 Yuheng adapter兼容能力；Gateway启用强制 RT前必须确认所有受保护浏览器请求均能携带 Path `/`的 RT Cookie。
 2. 先发布DDC V9及DdcApp Service校验，确认PostgreSQL/SQLite都具备bizCode/appCode单列唯一约束；部署前清理或重命名任何重复appCode，当前规格不自动修复。
 3. 维护窗口内发布RBAC V7和Admin/Contract：先停旧Admin writer，按依赖顺序清空旧授权/目录图，删除Manifest，把目录表全局化并创建TenantApplication；清理旧Snapshot Redis key。旧Admin不能与V7共存。
 4. 同版本发布Starter消费者与IdP/RBAC Admin，切`Rbac3AboutView`、`/about`、UserDetails和common Result/PageResult；删除Manifest/旧envelope代码。
 5. 同一个前端发布单元升级React SDK、Admin Web Shared和各Web registry：about client先就绪，再启用本地MENU/ROUTE/ACTION/FIELD过滤；浏览器没有报告动作。旧bootstrap mock/route直接删除。
 6. 每个应用流水线在上线前先构建/测试，再取得短期SERVICE AT并调用API-003；报告失败阻断发布。报告成功后IAM管理员审核PENDING permission/resource/field、配置Field安全属性，并按租户购买结果显式创建TenantApplication和角色授权；报告本身不自动赋权。
 
-回滚：Gateway RT强校验可受控回到“只在刷新时校验”但恢复最多5分钟撤销窗口并告警。DDC V9/RBAC V7都是破坏式schema切换，数据库回退只能恢复预部署备份；否则forward-fix。UserDetails/About/common envelope后端与前端必须成组回滚并清Snapshot，单独回滚不兼容。不得恢复Session/第三Token或tenant资源副本。
+回滚：Yuheng RT强校验可受控回到“只在刷新时校验”但恢复最多5分钟撤销窗口并告警。Tianshu V9/RBAC V7都是破坏式schema切换，数据库回退只能恢复预部署备份；否则forward-fix。UserDetails/About/common envelope后端与前端必须成组回滚并清Snapshot，单独回滚不兼容。不得恢复Session/第三Token或tenant资源副本。
 
 ## 17. Alternatives and Decisions
 
@@ -2664,7 +2664,7 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 
 | ID | Risk/question | Probability | Impact | Mitigation or decision owner | Status |
 | --- | --- | --- | --- | --- | --- |
-| `RISK-001` | 每请求 IdP Redis校验增加延迟和依赖放大 | High | IdP抖动影响所有 USER流量 | 连接池、容量压测、503 fail closed；不得擅自正向缓存 | Open operational risk |
+| `RISK-001` | 每请求 Tianquan-Shoubing Redis校验增加延迟和依赖放大 | High | IdP抖动影响所有 USER流量 | 连接池、容量压测、503 fail closed；不得擅自正向缓存 | Open operational risk |
 | `RISK-002` | CI前端报告只覆盖MENU/ROUTE/ACTION/FIELD，不自动发现后端API注解 | Medium | RBAC API目录与代码可能漂移 | API资源由`@RBACAPIResource`运行PEP和现有API CRUD管理；后端启动扫描/注册不在本轮 | Accepted scope boundary |
 | `RISK-003` | `@Sensitive`与 RBAC Jackson writer顺序导致双脱敏/泄漏 | Medium | 数据展示错误或泄漏 | 单一组合模块、最严格优先、序列化集成测试 | Mitigated |
 | `RISK-004` | 流水线配置错误或SERVICE凭据被误用于其他APP | Low/Medium | 全局目录机械事实被错误更新 | principal source BIZ/APP与path逐项匹配、DDC从属校验、checksum/类型白名单、PENDING、audit、TenantApplication/RolePermission零写入 | Mitigated |
@@ -2675,7 +2675,7 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 | `RISK-009` | common envelope破坏旧前端/API消费者 | High | 解析失败 | 后端/React SDK/Admin Web同版本切换；禁止双写，发布前契约扫描 | Accepted breaking change |
 | `RISK-010` | V7删除Manifest表/列后不能应用级回滚 | High | 旧RBAC Admin无法启动且历史丢失 | 用户允许不保旧数据；维护窗口、备份、整组部署、forward-fix | Accepted destructive change |
 | `RISK-011` | 流水线未接入或跳过API-003导致目录滞后 | Medium | 新版本已上线但IAM目录未维护 | report作为部署前必过步骤，失败即阻断；ResourceCatalog显示last build/checksum供审计 | Mitigated by release gate |
-| `RISK-012` | 既有DDC不同BIZ下存在重复appCode | Medium | DDC V9迁移失败 | 发布前检测并由owner加稳定前后缀；不自动改code、不放宽唯一性 | Accepted destructive precondition |
+| `RISK-012` | 既有DDC不同BIZ下存在重复appCode | Medium | Tianshu V9迁移失败 | 发布前检测并由owner加稳定前后缀；不自动改code、不放宽唯一性 | Accepted destructive precondition |
 | `RISK-013` | RBAC V7清空旧tenant目录和授权图 | High | 必须重新建立TenantApplication/角色授权 | 用户允许不保旧数据；维护窗口、备份、初始化清单和发布后资格校验 | Accepted destructive change |
 
 没有阻塞用户决策。上述均为实施/运行风险，不改变已确认业务语义。
@@ -2684,7 +2684,7 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 
 | Requirement | Use case | Architecture/packages | Interface | Model/database | Frontend | Tests | Acceptance evidence |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `REQ-001` | `UC-001/006` | §7.3.2 IdP/Gateway | `API-001` | RT store unchanged | auth error state | `TEST-001` | revoked RT下一请求401 |
+| `REQ-001` | `UC-001/006` | §7.3.2 Tianquan-Shoubing/Yuheng | `API-001` | RT store unchanged | auth error state | `TEST-001` | revoked RT下一请求401 |
 | `REQ-002` | `UC-001` | §7.3.2 recovery | `API-002` | N/A | transparent retry | `TEST-002` | expired AT同请求继续 |
 | `REQ-003` | `UC-001/006` | §7.3.2 policy | `API-001/002` | N/A | login/logout | `TEST-003` | public/SERVICE无RT前置 |
 | `REQ-004` | `UC-005` | §7.3.3/§8 annotations | Java contracts | N/A | N/A | `TEST-004` | 两注解一致403 |
@@ -2699,8 +2699,8 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 | `REQ-013` | `UC-002/003` | Web registry/SDK/CI script | local/CI report projection | no runtime DB read | local recursive registry | `TEST-016/017` | 一份纯数据声明用于UI和CI报告 |
 | `REQ-014` | `UC-003` | `iam.resource.report` + Web scripts | `API-003` | V7 CI report source | browser无sync action | `TEST-011/012` | CI报告且无Manifest/browser report |
 | `REQ-015` | `UC-003/004` | Report Service transaction/SERVICE security | `API-003` | global catalog；TenantApplication/RolePermission unchanged | read-only report metadata | `TEST-011`–`TEST-013`,`TEST-019` | 冒充零写、重复幂等、无自动赋权 |
-| `REQ-016` | `UC-003/004` | DDC adapter + TenantApplication boundary | DDC RPC/`API-003` | global Application + tenant entitlement | global app/tenant app selectors | `TEST-013/022` | RBAC不写DDC且租户购买独立 |
-| `REQ-017` | `UC-004` | minimal user/IdP read adapter | `RPC-001` | User/OrgUnit | user partial state | `TEST-014` | 无密码/profile/Department表 |
+| `REQ-016` | `UC-003/004` | Tianshu adapter + TenantApplication boundary | Tianshu RPC/`API-003` | global Application + tenant entitlement | global app/tenant app selectors | `TEST-013/022` | RBAC不写DDC且租户购买独立 |
+| `REQ-017` | `UC-004` | minimal user/Tianquan-Shoubing read adapter | `RPC-001` | User/OrgUnit | user partial state | `TEST-014` | 无密码/profile/Department表 |
 | `REQ-018` | `UC-006` | §7.3.2/§16 | logout/revoke+`API-001` | only RT registry | next about401 | `TEST-001` | Gateway立即退出、direct AT到exp |
 | `REQ-019` | `UC-004` | Admin IAM packages/pages | IAM CRUD（Depends On）+ `API-003`、`API-011` | V7+existing tables | `/iam/**` | `TEST-015` | 新CRUD URL、旧URL404 |
 | `REQ-020` | `UC-001/002` | About service/contract | `API-010` | Snapshot only | about provider | `TEST-020` | 响应无资源目录字段 |
@@ -2708,7 +2708,7 @@ Admin Controller只做绑定/transport校验并依赖本领域Service；Report S
 | `REQ-022` | `UC-002/005` | Action/Field guards+Jackson | `API-010`+field/API PEP | FieldDefinition/Rule | local ACTION/FIELD | `TEST-007/009/017/020` | 按钮/字段正确隐藏/脱敏 |
 | `REQ-023` | all | common HTTP migration | JSON APIs | N/A | common clients/page | `TEST-019/020` | RBAC JSON无旧envelope |
 | `REQ-024` | `UC-003/004` | delete Manifest symbols+V7 | `API-003` replaces old | drop manifest table/FKs | delete Manifest page/route | `TEST-012/021` | source/schema/UI均无Manifest能力 |
-| `REQ-025` | `UC-003/004` | DDC App repository/service/V9 | DDC existing CRUD | `ddc_biz.biz_code` + `ddc_app.app_code` global UKs | DDC/RBAC app selector | `TEST-023` | 不同BIZ也不能复用appCode |
+| `REQ-025` | `UC-003/004` | Tianshu App repository/service/V9 | Tianshu existing CRUD | `ddc_biz.biz_code` + `ddc_app.app_code` global UKs | Tianshu/RBAC app selector | `TEST-023` | 不同BIZ也不能复用appCode |
 | `REQ-026` | `UC-003/004/005` | global catalog + TenantApplication + role/snapshot | `API-003` + TenantApplication CRUD | catalog无tenant；tenant app/roles/rules有tenant | global catalog and tenant entitlement pages | `TEST-011/013/021/022` | report无tenant且租户资格独立生效 |
 
 ## 20. Review and Acceptance
@@ -2719,11 +2719,11 @@ JWT/RT、两注解、UserDetails、字段序列化、DataRule延期、DDC边界�
 
 ### 20.2 Repository and technical fidelity
 
-设计基于main`a2cde2749a9b`的实际IdP Filter/TokenFacade/RT Store、Gateway Recovery、RBAC Snapshot Cache/AuthorizationService、Bootstrap flat contract、前端RouteDescriptor/navigation、Manifest contract/Admin包/V1–V6表/FK/trigger、DDC V1–V8双迁移树与App Service组合唯一校验、components/common records和Admin Web Shared扁平导航。沿用Java 21、Spring Boot/Security 6、Maven、JPA/PostgreSQL/Flyway、Redis/Redisson、React/Vite/Vitest；没有启动服务、连接数据库或声称运行验证。
+设计基于main`a2cde2749a9b`的实际IdP Filter/TokenFacade/RT Store、Yuheng Recovery、RBAC Snapshot Cache/AuthorizationService、Bootstrap flat contract、前端RouteDescriptor/navigation、Manifest contract/Admin包/V1–V6表/FK/trigger、Tianshu V1–V8双迁移树与App Service组合唯一校验、components/common records和Admin Web Shared扁平导航。沿用Java 21、Spring Boot/Security 6、Maven、JPA/PostgreSQL/Flyway、Redis/Redisson、React/Vite/Vitest；没有启动服务、连接数据库或声称运行验证。
 
 ### 20.3 Cross-section consistency
 
-RT在线校验只发生于Gateway保护USER链，业务服务仍只收AT；UserDetails只组装RBAC快照，不改变JWT；方法/字段PEP共享同一授权上下文。运行展示只由本地registry+about授权事实决定；CI report只维护无tenant全局目录且不写TenantApplication/RolePermission/FieldRule；V7完整删除Manifest关系并拆出租户APP资格，DDC V9保证bizCode/appCode单列唯一。接口、POJO、数据库、页面、测试与traceability使用同一CI_REPORT/build/checksum/about字段和common Result/PageResult形状；DataScope明确不执行。
+RT在线校验只发生于Gateway保护USER链，业务服务仍只收AT；UserDetails只组装RBAC快照，不改变JWT；方法/字段PEP共享同一授权上下文。运行展示只由本地registry+about授权事实决定；CI report只维护无tenant全局目录且不写TenantApplication/RolePermission/FieldRule；V7完整删除Manifest关系并拆出租户APP资格，Tianshu V9保证bizCode/appCode单列唯一。接口、POJO、数据库、页面、测试与traceability使用同一CI_REPORT/build/checksum/about字段和common Result/PageResult形状；DataScope明确不执行。
 
 ### 20.4 Relationship and effective-design review
 

@@ -1,18 +1,18 @@
-# GWS-06 Rule Snapshot、DDC 发布与 Engine 运行态 Spec
+# GWS-06 Rule Snapshot、Tianshu 发布与 Engine 运行态 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01、GWS-02
 
 主模块：
 
-- `egon-cola-component-gateway-admin`
-- `egon-cola-component-gateway-engine`
-- `egon-cola-component-gateway-contract`
+- `egon-cola-component-yuheng-admin`
+- `egon-cola-component-yuheng-biz-gateway`
+- `egon-cola-component-yuheng-contract`
 
 ## 1. 目标
 
@@ -23,21 +23,21 @@ Admin Draft
 → Validate
 → Compile Rule Snapshot
 → Persist Management Release
-→ DDC SYNC_ALL_ACK Publish
+→ Tianshu SYNC_ALL_ACK Publish
 → Engine Validate/Compile/Persist/Activate
 → Exact ACK
 → Admin Release Result
 ```
 
-上一版“DB + Redis + Redis 消息”的要求由 DDC 承接。Gateway Admin 不直接操作
-DDC DB/Redis。
+上一版“DB + Redis + Redis 消息”的要求由 Tianshu 承接。Yuheng Admin 不直接操作
+Tianshu DB/Redis。
 
 ## 2. 范围
 
 - 编辑态与运行态分离；
-- Gateway Group 级 Rule Snapshot；
+- Yuheng Group 级 Rule Snapshot；
 - Snapshot Schema、Canonicalization 和 Checksum；
-- DDC Config Coordinate；
+- Tianshu Config Coordinate；
 - 发布 Target、ACK、失败、超时、UNKNOWN 和重试；
 - Engine Rule Compiler、原子激活和磁盘 LKG；
 - 历史、差异和回滚；
@@ -52,7 +52,7 @@ DDC DB/Redis。
 
 ```text
 GLOBAL
-GATEWAY_GROUP
+YUHENG_GROUP
 APPLICATION
 BUSINESS_DOMAIN
 ENTITY_DOMAIN
@@ -89,7 +89,7 @@ Draft 包含：
 - 更新必须携带 `baseRevision`；
 - Revision 不匹配返回冲突；
 - 不进行最后写入覆盖；
-- 一个 Gateway Group 可以多人读取，但同一 Draft Revision 只有一个成功写入者。
+- 一个 Yuheng Group 可以多人读取，但同一 Draft Revision 只有一个成功写入者。
 
 ### 4.2 Release
 
@@ -142,7 +142,7 @@ GatewayRuleSnapshot
 Snapshot 不包含：
 
 - 数据库主键以外的 Entity；
-- DDC/Kafka/数据库 Secret；
+- Tianshu/Kafka/数据库 Secret；
 - Provider 静态 Host/Port；
 - Engine Node 地址；
 - 页面展示状态；
@@ -214,21 +214,21 @@ Engine 对收到的 Content 和完整 Artifact 分别重新计算 SHA-256。
 
 ### 6.4 Target
 
-- DDC Config Coordinate 已建立；
+- Tianshu Config Coordinate 已建立；
 - 默认至少一个已注册、可执行 Rule Apply 的 Engine Config Client；
 - 目标 Engine 支持当前 Rule Schema；
 - Group/Env/Namespace 一致。
 
 `CONFIG_APPLY_READY` 与业务流量 `READY` 不同：新 Engine 必须先初始化 Applier、
-Compiler 和本地数据目录，再注册 DDC Config Client；它可以在尚无首个 Rule、业务
+Compiler 和本地数据目录，再注册 Tianshu Config Client；它可以在尚无首个 Rule、业务
 Readiness=false 时成为初始发布 Target，避免启动死锁。
 
-## 7. DDC Config Coordinate
+## 7. Tianshu Config Coordinate
 
-每个 Gateway Group 使用独立 scope：
+每个 Yuheng Group 使用独立 scope：
 
 ```text
-appCode   = gateway-engine-{gatewayGroupCode}
+appCode   = yuheng-biz-gateway-{gatewayGroupCode}
 env       = {env}
 namespace = {namespace}
 ```
@@ -236,13 +236,13 @@ namespace = {namespace}
 统一激活配置：
 
 ```text
-configKey = gateway.rules.active
+configKey = yuheng.rules.active
 ```
 
-该 appCode 只供对应 Group Engine 使用，避免 DDC `SYNC_ALL_ACK` 把其他 Group
+该 appCode 只供对应 Group Engine 使用，避免 Tianshu `SYNC_ALL_ACK` 把其他 Group
 实例固化为 Target。
 
-`gateway.rules.active` 是唯一激活键，无论规则大小都只通过它推进运行版本。激活值为：
+`yuheng.rules.active` 是唯一激活键，无论规则大小都只通过它推进运行版本。激活值为：
 
 ```text
 GatewayRuleActivation
@@ -261,25 +261,25 @@ GatewayRuleActivation
     └── sha256
 ```
 
-禁止为小/大 Snapshot 使用两个独立激活键。DDC 对
-`gateway.rules.active` 的单 Key Version 是 Engine 判断新旧激活指令的唯一顺序。
+禁止为小/大 Snapshot 使用两个独立激活键。Tianshu 对
+`yuheng.rules.active` 的单 Key Version 是 Engine 判断新旧激活指令的唯一顺序。
 
 ## 8. 小 Snapshot 发布
 
-当 Canonical Snapshot 小于 Gateway 上限时：
+当 Canonical Snapshot 小于 Yuheng 上限时：
 
 1. Admin 生成 UUIDv7 `changeId`；
-2. 在 Gateway DB 保存 Release 和完整 Snapshot；
+2. 在 Yuheng DB 保存 Release 和完整 Snapshot；
 3. 构造 `mode=INLINE` 的 `GatewayRuleActivation`；
-4. 通过 DDC Management Client Upsert `gateway.rules.active`；
-5. 调用 DDC Publish，传入 expectedVersion；
-6. DDC 固化当前 Config Client `instanceId + leaseId`；
-7. DDC DB/Redis 保存版本并发送 full-value Pub/Sub；
+4. 通过 Tianshu Management Client Upsert `yuheng.rules.active`；
+5. 调用 Tianshu Publish，传入 expectedVersion；
+6. Tianshu 固化当前 Config Client `instanceId + leaseId`；
+7. Tianshu DB/Redis 保存版本并发送 full-value Pub/Sub；
 8. Engine 从 Inline 字段校验并 Apply；
-9. DDC 等待全部 Target 成功或终态；
-10. Admin 记录 DDC 结果。
+9. Tianshu 等待全部 Target 成功或终态；
+10. Admin 记录 Tianshu 结果。
 
-Gateway 默认 Snapshot 上限 512 KiB，低于 DDC 默认 1 MiB，给 Envelope、Target 和
+Yuheng 默认 Snapshot 上限 512 KiB，低于 Tianshu 默认 1 MiB，给 Envelope、Target 和
 协议开销保留空间。
 
 ## 9. 大 Snapshot Activation/Chunk
@@ -289,8 +289,8 @@ Gateway 默认 Snapshot 上限 512 KiB，低于 DDC 默认 1 MiB，给 Envelope�
 Canonical Snapshot 大于 512 KiB 时使用不可变 Chunk：
 
 ```text
-gateway.rules.chunk.{releaseId}.{index}
-gateway.rules.active
+yuheng.rules.chunk.{releaseId}.{index}
+yuheng.rules.active
 ```
 
 单 Chunk UTF-8 字节数不超过 256 KiB。
@@ -299,12 +299,12 @@ gateway.rules.active
 
 使用第 7 节同一个 `GatewayRuleActivation`，设置 `mode=CHUNKED`，不包含
 `inlineSnapshot`，并列出全部 Chunk。它仍发布到唯一
-`gateway.rules.active`，不创建第二个激活 Key。
+`yuheng.rules.active`，不创建第二个激活 Key。
 
 ### 9.3 发布顺序
 
 1. 生成全部不可变 Chunk；
-2. 逐个通过 DDC `SYNC_ALL_ACK` 发布 Chunk；
+2. 逐个通过 Tianshu `SYNC_ALL_ACK` 发布 Chunk；
 3. Engine Chunk Applier 只校验并写入本地 Staging，不激活；
 4. 所有 Chunk 对全部固化 Target 成功后发布 CHUNKED Activation；
 5. Engine Active Applier 加载、排序、校验全部 Chunk；
@@ -315,16 +315,16 @@ gateway.rules.active
 任何 Chunk 失败都不发布 Activation，当前活动版本不变。
 
 从 INLINE 切换到 CHUNKED，或从 CHUNKED 切换到 INLINE，均只增加
-`gateway.rules.active` 的 Version，因此 Pub/Sub、周期校准和启动全量拉取不会因为
+`yuheng.rules.active` 的 Version，因此 Pub/Sub、周期校准和启动全量拉取不会因为
 两个激活键乱序而回退。
 
 ### 9.4 清理
 
 - 保留当前和最近两个成功 Release 的 Chunk；
 - 失败/超时 Release 的 Chunk 保留诊断期后清理；
-- 清理通过 DDC Management API 删除 Config；
+- 清理通过 Tianshu Management API 删除 Config；
 - 删除前确认没有当前 Active 或正在发布/允许 Retry 的 Activation 引用；
-- 更早的历史 Release 仍可回滚，但回滚从 Gateway DB 的完整 Snapshot 创建新 Release
+- 更早的历史 Release 仍可回滚，但回滚从 Yuheng DB 的完整 Snapshot 创建新 Release
   和新 Chunk Key，不直接复用已清理 Key；
 - Engine 本地 Staging 使用同样保留策略。
 
@@ -404,14 +404,14 @@ Rule 不含 Secret，因此不强制加密；目录权限必须限制。磁盘�
 
 ### 11.1 启动恢复
 
-1. 优先从 DDC 全量拉取；
-2. DDC 不可用时读取 active LKG；
+1. 优先从 Tianshu 全量拉取；
+2. Tianshu 不可用时读取 active LKG；
 3. 校验 SHA、Schema 和 Engine 兼容；
 4. LKG 有效只表示 Rule 可以加载，不代表 Provider Directory 已可执行；
-5. 冷启动无法从 DDC 完成 Provider 首次查询时保持 Not Ready；
-6. 已运行节点 DDC 中断时，可在内存中未过期 Provider Lease 范围内 Degraded Ready；
-7. 无有效 DDC Rule 且无 LKG 时不 Ready；
-8. DDC 恢复后周期校准新版本和 Provider Directory。
+5. 冷启动无法从 Tianshu 完成 Provider 首次查询时保持 Not Ready；
+6. 已运行节点 Tianshu 中断时，可在内存中未过期 Provider Lease 范围内 Degraded Ready；
+7. 无有效 Tianshu Rule 且无 LKG 时不 Ready；
+8. Tianshu 恢复后周期校准新版本和 Provider Directory。
 
 全量拉取不依赖 Config Key 排序：若 CHUNKED Activation 先于 Chunk 到达，Active
 Applier 返回失败且不推进本地 Active Version；Chunk 完成 Staging 后，由后续周期校准
@@ -423,9 +423,9 @@ Applier 返回失败且不推进本地 Active Version；Chunk 完成 Staging 后
 
 Engine 内存切换是原子的：一个请求只看到完整旧版或完整新版。
 
-### 12.2 Gateway Group
+### 12.2 Yuheng Group
 
-DDC `SYNC_ALL_ACK` 确认所有固化 Target 最终返回成功，但不提供分布式同时切换：
+Tianshu `SYNC_ALL_ACK` 确认所有固化 Target 最终返回成功，但不提供分布式同时切换：
 
 - 可能有节点先成功、新旧版本短时并存；
 - 任一节点失败，任务整体 FAILED；
@@ -451,10 +451,10 @@ SUPERSEDED
 ```
 
 - `CREATED`：Release 身份和不可变输入已建立，尚未完成校验；
-- `SUCCESS`：DDC 全部 Target ACK 成功；
+- `SUCCESS`：Tianshu 全部 Target ACK 成功；
 - `FAILED`：校验、准备、分发或任一 Target Apply 失败；
 - `TIMEOUT`：截止时间未收齐成功 ACK；
-- `UNKNOWN`：DDC Admin 在活跃任务期间重启；
+- `UNKNOWN`：Tianshu Admin 在活跃任务期间重启；
 - `SUPERSEDED`：一个原 SUCCESS Release 被后续 SUCCESS Release 替代。
 
 每个 Publish Attempt 的终态不可修改。FAILED/TIMEOUT/UNKNOWN 重试时，在同一
@@ -466,13 +466,13 @@ Release/Change Task 下新增 `attemptNo`，Release 聚合状态重新进入 PUB
 
 ## 14. 幂等与并发
 
-- 同一 Gateway Group 同一时刻只有一个活动发布；
+- 同一 Yuheng Group 同一时刻只有一个活动发布；
 - `changeId` 全局唯一；
 - 重复 publish 相同 changeId 返回原任务；
 - retry 只新增 Attempt，不修改旧 Attempt/Target；
-- 存在更新的 Release，或 DDC Active Version 已前进时，禁止重试旧 Release；需要恢复
+- 存在更新的 Release，或 Tianshu Active Version 已前进时，禁止重试旧 Release；需要恢复
   旧内容时走新回滚 Release；
-- expectedVersion 防止覆盖更新后的 DDC Config；
+- expectedVersion 防止覆盖更新后的 Tianshu Config；
 - Admin 发布锁使用数据库唯一约束/乐观状态更新；
 - 不使用 JVM 本地锁作为跨实例事实；
 - 回滚也是新 releaseId/changeId；
@@ -484,65 +484,65 @@ Release/Change Task 下新增 `attemptNo`，Release 聚合状态重新进入 PUB
 2. Admin 重新执行当前校验；
 3. 使用历史内容生成新的 releaseId；
 4. 重新计算 Snapshot/Activation；
-5. 通过正常 DDC 发布；
+5. 通过正常 Tianshu 发布；
 6. 全部成功后标记新 Release SUCCESS；
 7. 审计记录来源 Release。
 
-不直接修改 DDC 当前版本指针或 Engine active 文件。
+不直接修改 Tianshu 当前版本指针或 Engine active 文件。
 
 ## 16. Engine 状态反馈
 
 Engine 在独立 Management Listener 暴露只读接口：
 
 ```text
-GET /api/v1/gateway/internal/runtime/status
+GET /api/v1/yuheng/internal/runtime/status
 ```
 
-Gateway Admin 从 DDC Config Client 投影取得 Engine 的管理 Host/Port，再查询该接口。
+Yuheng Admin 从 Tianshu Config Client 投影取得 Engine 的管理 Host/Port，再查询该接口。
 Config Client 注册的 Host/Port 必须是 Admin 可达的管理地址，不使用 PUBLIC Listener
 地址。
 
 状态报告：
 
-- active releaseId/DDC Active Version/Rule Schema/两个 SHA；
+- active releaseId/Tianshu Active Version/Rule Schema/两个 SHA；
 - LKG releaseId；
-- DDC Config Client instanceId/leaseId；
+- Tianshu Config Client instanceId/leaseId；
 - last Apply stage/result/error；
 - Route/Operation/Provider Service 数量；
 - Staging Chunk 数量；
 - Readiness/Degraded；
 - Listener 状态。
 
-Gateway Admin 将该状态与 DDC Publish Target ACK 关联，但不以 Engine 自报替代 DDC
+Yuheng Admin 将该状态与 Tianshu Publish Target ACK 关联，但不以 Engine 自报替代 Tianshu
 同步发布结果。
 
 安全和正确性约束：
 
 - 接口只绑定管理网络，不暴露在 PUBLIC 数据面 Listener；
-- 使用 Gateway Admin↔Engine 独立 HMAC Service Credential，不能复用 DDC Secret；
+- 使用 Yuheng Admin↔Engine 独立 HMAC Service Credential，不能复用 Tianshu Secret；
 - Engine 使用有界本地 Nonce TTL Cache 防止状态查询重放；
-- 响应的 `instanceId + leaseId` 必须与 DDC 投影一致，否则丢弃；
+- 响应的 `instanceId + leaseId` 必须与 Tianshu 投影一致，否则丢弃；
 - Admin Client 禁止重定向，并限制目标为配置的可信网段，避免 SSRF；
 - 查询使用短超时、有界并发和周期刷新；
-- 查询失败只标记投影 stale，不修改 DDC ACK 或 Engine Readiness；
+- 查询失败只标记投影 stale，不修改 Tianshu ACK 或 Engine Readiness；
 - 响应不包含 Secret、Rule 原文、Provider Credential 或线程堆栈。
 
 ## 17. 错误代码
 
 ```text
-GATEWAY_RELEASE_CONFLICT
-GATEWAY_RELEASE_VALIDATION_FAILED
-GATEWAY_RELEASE_NO_READY_TARGET
-GATEWAY_RULE_SCHEMA_UNSUPPORTED
-GATEWAY_RULE_CHECKSUM_MISMATCH
-GATEWAY_RULE_COMPILE_FAILED
-GATEWAY_RULE_RESOURCE_PREPARE_FAILED
-GATEWAY_RULE_LKG_WRITE_FAILED
-GATEWAY_RULE_CHUNK_MISSING
-GATEWAY_RULE_CHUNK_CHECKSUM_MISMATCH
-GATEWAY_DDC_PUBLISH_FAILED
-GATEWAY_DDC_PUBLISH_TIMEOUT
-GATEWAY_DDC_PUBLISH_UNKNOWN
+YUHENG_RELEASE_CONFLICT
+YUHENG_RELEASE_VALIDATION_FAILED
+YUHENG_RELEASE_NO_READY_TARGET
+YUHENG_RULE_SCHEMA_UNSUPPORTED
+YUHENG_RULE_CHECKSUM_MISMATCH
+YUHENG_RULE_COMPILE_FAILED
+YUHENG_RULE_RESOURCE_PREPARE_FAILED
+YUHENG_RULE_LKG_WRITE_FAILED
+YUHENG_RULE_CHUNK_MISSING
+YUHENG_RULE_CHUNK_CHECKSUM_MISMATCH
+YUHENG_TIANSHU_PUBLISH_FAILED
+YUHENG_TIANSHU_PUBLISH_TIMEOUT
+YUHENG_TIANSHU_PUBLISH_UNKNOWN
 ```
 
 ## 18. 测试设计
@@ -562,8 +562,8 @@ GATEWAY_DDC_PUBLISH_UNKNOWN
 - 每一阶段失败保留旧版本；
 - 并发请求切换只见完整版本；
 - 进程在各写盘点崩溃后的恢复；
-- 冷启动 DDC 不可用时加载 LKG 但在 Provider Directory 建立前不 Ready；
-- 已运行节点 DDC 中断时按未过期 Provider Lease 降级；
+- 冷启动 Tianshu 不可用时加载 LKG 但在 Provider Directory 建立前不 Ready；
+- 已运行节点 Tianshu 中断时按未过期 Provider Lease 降级；
 - LKG 损坏时不 Ready。
 
 ### 18.3 Publish
@@ -593,24 +593,24 @@ GATEWAY_DDC_PUBLISH_UNKNOWN
 
 ## 19. 验收标准
 
-1. Gateway Admin 不直接写 DDC DB/Redis；
+1. Yuheng Admin 不直接写 Tianshu DB/Redis；
 2. Rule Snapshot 不含 Provider 静态地址和 Secret；
 3. 相同运行语义产生稳定 Content 字节和 `ruleContentSha256`；
 4. Engine 真正激活并持久化后才 ACK 成功；
 5. 单节点 Rule 切换原子；
 6. Group 发布不虚构分布式同时切换；
-7. DDC 丢消息可周期校准；
-8. 已运行节点无 DDC 时可在有效 LKG 与未过期 Provider Lease 范围内 Degraded
+7. Tianshu 丢消息可周期校准；
+8. 已运行节点无 Tianshu 时可在有效 LKG 与未过期 Provider Lease 范围内 Degraded
    Ready，冷启动不能只凭 Rule LKG Ready；
 9. 大 Snapshot 只有 CHUNKED Activation 成功后激活；
 10. 回滚走完整新发布链。
 
 ## 20. 本轮审核项
 
-1. 认可一 Group 一个 DDC appCode scope；
+1. 认可一 Group 一个 Tianshu appCode scope；
 2. 认可 512 KiB 完整 Snapshot、256 KiB Chunk 阈值；
 3. 认可 Chunk 先 Staging、统一 Active Key 后激活；
 4. 认可 Engine LKG 写盘后再内存激活和 ACK；
 5. 认可默认要求至少一个 CONFIG_APPLY_READY Target，而不是要求业务流量 Ready；
-6. 认可 DDC `SYNC_ALL_ACK` 不是分布式同时切换；
+6. 认可 Tianshu `SYNC_ALL_ACK` 不是分布式同时切换；
 7. 认可失败/超时/UNKNOWN 与回滚语义。

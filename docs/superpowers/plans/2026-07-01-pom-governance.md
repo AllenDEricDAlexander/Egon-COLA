@@ -118,7 +118,7 @@ In `cola-components/pom.xml`, replace the existing `<properties>` block with:
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <spring.boot.version>3.2.10</spring.boot.version>
         <lombok.version>1.18.46</lombok.version>
-        <junit.platform.version>1.9.3</junit.platform.version>
+        <junit.xingyuan.version>1.9.3</junit.xingyuan.version>
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
         <embedded.redis.version>0.7.3</embedded.redis.version>
         <jedis.version>5.1.0</jedis.version>
@@ -136,9 +136,9 @@ In `cola-components/pom.xml`, keep the Spring Boot BOM import and make the manag
 
 ```xml
             <dependency>
-                <groupId>org.junit.platform</groupId>
-                <artifactId>junit-platform-launcher</artifactId>
-                <version>${junit.platform.version}</version>
+                <groupId>org.junit.xingyuan</groupId>
+                <artifactId>junit-xingyuan-launcher</artifactId>
+                <version>${junit.xingyuan.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.junit.jupiter</groupId>

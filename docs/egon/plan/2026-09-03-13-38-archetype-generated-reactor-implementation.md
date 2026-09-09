@@ -165,7 +165,7 @@ Pipeline通过现有shell函数实现，不创建仪式性Java Strategy/Factory�
 | Need               | Candidates inspected                 | Exact evidence                              | Fit/gap                               | Decision             | Added dependency/custom code | Owning Step/check       |
 |--------------------|--------------------------------------|---------------------------------------------|---------------------------------------|----------------------|------------------------------|-------------------------|
 | Spring版本管理         | Boot Parent、spring-boot-dependencies | root及3个一级parent、6 source root POM           | 完全满足                                  | 根BOM+应用Parent        | None                         | Step 1; MC-REUSE-001    |
-| Springdoc版本族       | springdoc-openapi-bom                | platform POM已有2.8.17 BOM                    | 完全满足                                  | 复用BOM到4 source roots | None                         | Step 1; MC-DEP-001      |
+| Springdoc版本族       | springdoc-openapi-bom                | xingyuan POM已有2.8.17 BOM                    | 完全满足                                  | 复用BOM到4 source roots | None                         | Step 1; MC-DEP-001      |
 | Baseline migration | Flyway B migration                   | Flyway 11.15.0和官方baseline文档                 | 满足新环境累计起点并兼容既有V                       | 每role一个B文件           | None                         | Steps 2-4; MC-REUSE-001 |
 | migration验证        | existing H2 PostgreSQL mode tests    | three migration test packages               | 可比较B fresh schema与复制V-only schema     | 扩展现有测试               | None                         | Steps 2-4; MC-TEST-001  |
 | Archetype转换        | maven-archetype-plugin 3.4.1         | scripts/generate_archetypes.sh generate_one | 已满足内容转换，缺完整module compose             | 扩展shell composition  | None                         | Step 5; MC-REUSE-001    |
@@ -232,7 +232,7 @@ README.zh-CN.md                                                MODIFY
 |-----------|-------------------------------------------------------|--------------------------------------|------------------------------------------------------|-----------------------------------|------|-----------------------------------|----------------------|
 | CREATE    | scripts/test-spring-dependency-management.sh          | absent                               | repository-wide POM policy assertions                | Spring RED/GREEN gate             | 1    | REQ-012至REQ-015                   | shell+effective POM  |
 | MODIFY    | pom.xml                                               | no Boot BOM                          | root Boot properties/BOM/plugin versions             | shared Maven management           | 1    | REQ-012, REQ-014                  | effective POM        |
-| MODIFY    | egon-cola-{components,platforms,archetypes}/pom.xml   | each imports Boot BOM                | inherit root management; retain domain-specific BOMs | child parent cleanup              | 1    | REQ-012, REQ-014                  | policy test          |
+| MODIFY    | egon-cola-{components,xingyuan,archetypes}/pom.xml   | each imports Boot BOM                | inherit root management; retain domain-specific BOMs | child parent cleanup              | 1    | REQ-012, REQ-014                  | policy test          |
 | MODIFY    | six source root pom.xml                               | Boot Parent plus duplicate Boot BOM  | Parent only; Springdoc BOM where used                | application dependency management | 1    | REQ-013, REQ-015                  | policy/source verify |
 | MODIFY    | three Flyway convention/parity test groups            | expect only four V files/fresh chain | assert one B per role and B/V schema parity          | migration RED/GREEN               | 2-4  | REQ-016至REQ-018                   | targeted JUnit       |
 | CREATE    | six B baseline SQL paths                              | absent                               | cumulative final schema per role                     | fresh-environment baseline        | 2-4  | REQ-016至REQ-018                   | H2 parity            |
@@ -298,7 +298,7 @@ README.zh-CN.md                                                MODIFY
 
 - Requirements: REQ-001, REQ-012, REQ-013, REQ-014, REQ-015, REQ-020
 - Dependencies: None
-- Baseline state: root无Boot BOM；components、platforms、archetypes各自import同一Boot BOM；六source roots既继承Boot
+- Baseline state: root无Boot BOM；components、xingyuan、archetypes各自import同一Boot BOM；六source roots既继承Boot
   Parent又重复import；source-web Springdoc仍为2.8.13。
 - Observable outcome: 非应用模块从root继承Boot BOM，六source roots只使用Boot Parent，四个HTTP source roots统一Springdoc
   BOM 2.8.17，差异版本有单一根级账本。
@@ -315,7 +315,7 @@ README.zh-CN.md                                                MODIFY
   root_boot_bom_once、child_parents_do_not_reimport、source_roots_keep_boot_parent_only、springdoc_bom_2_8_17、documented_flyway_postgresql_exceptions、isolated_it_allowlist。
 - Repository evidence: 当前无同类脚本；scripts/test-generate-archetypes.sh和test-bump-cola-version.sh使用set -Eeuo
   pipefail、fixture、fail/assert helper风格。
-- Dependencies and consumers: 读取root、components、platforms、archetypes、六source root和两个bytecode src/it POM；由Step
+- Dependencies and consumers: 读取root、components、xingyuan、archetypes、六source root和两个bytecode src/it POM；由Step
   1及最终CI调用。
 - Why now: 先建立可重复RED合同，防止凭肉眼删除版本导致隐式降级。
 - Contract/signature changes: 新CLI无参数，成功exit 0，违规exit 1并打印module、artifact和违反的policy。
@@ -332,7 +332,7 @@ README.zh-CN.md                                                MODIFY
 ```bash
 collect every tracked pom.xml containing Spring, Spring Boot, Springdoc, Flyway or PostgreSQL coordinates
 assert root has spring.boot.version=3.5.16 and exactly one spring-boot-dependencies import
-assert components/platforms/archetypes inherit root and contain no local Boot BOM import
+assert components/xingyuan/archetypes inherit root and contain no local Boot BOM import
 for each six source root assert parent is spring-boot-starter-parent:3.5.16 and Boot BOM import count is zero
 for each Light/Web HTTP root assert springdoc-openapi-bom:2.8.17 exists and Springdoc dependencies have no version
 assert flyway.version=11.15.0 and postgresql.version=42.7.8 are declared only by the approved root exception ledger
@@ -350,7 +350,7 @@ allow only the two bytecode src/it fixture POMs to remain self-contained; print 
 - Repository evidence: root当前只管理release
   plugins；三个child都继承root且重复spring.boot.version/BOM；components/platforms还重复与Boot
   3.5.16相同的Micrometer/JUnit/Lombok版本。
-- Dependencies and consumers: 所有components/platforms/archetypes children通过Maven parent继承；source roots不继承root，File
+- Dependencies and consumers: 所有components/xingyuan/archetypes children通过Maven parent继承；source roots不继承root，File
   3单独处理。
 - Why now: policy test已固定唯一来源，先修共享父级再处理独立应用根。
 - Contract/signature changes: artifact GAV/module list不变；effective dependency versions除明确source-web
@@ -367,9 +367,9 @@ allow only the two bytecode src/it fixture POMs to remain self-contained; print 
 root.properties = {spring.boot.version:3.5.16, springdoc.version:2.8.17,
                    flyway.version:11.15.0, postgresql.version:42.7.8, lombok.version:1.18.46}
 root.dependencyManagement imports spring-boot-dependencies at spring.boot.version exactly once
-components/platforms/archetypes delete local spring.boot.version and their Boot BOM import
-components/platforms use inherited flyway/postgresql/lombok properties; remove only local versions proven equal to Boot BOM
-retain platform springdoc BOM and all non-Spring domain BOMs; keep existing public GAV, modules and release plugin behavior
+components/xingyuan/archetypes delete local spring.boot.version and their Boot BOM import
+components/xingyuan use inherited flyway/postgresql/lombok properties; remove only local versions proven equal to Boot BOM
+retain xingyuan springdoc BOM and all non-Spring domain BOMs; keep existing public GAV, modules and release plugin behavior
 compare effective versions before/after and reject any change outside source-web Springdoc 2.8.13 to 2.8.17
 ```
 

@@ -65,14 +65,14 @@ V1.0 does not include:
 
 1. A complete management UI.
 2. A standalone admin service.
-3. Gateway-level rate limiting.
+3. Yuheng-level rate limiting.
 4. Cross-region strongly consistent limiting.
 5. A full circuit breaker state machine with open, half-open, and closed states.
 6. Exception-rate or slow-call-rate automatic circuit breaking.
-7. A risk scoring platform, device fingerprinting, or anti-fraud model.
+7. A risk scoring xingyuan, device fingerprinting, or anti-fraud model.
 8. A permanent blacklist database.
 9. Database tables or Flyway migrations.
-10. A rule orchestration platform.
+10. A rule orchestration xingyuan.
 11. Mandatory Hystrix dependency.
 12. Compatibility packages under old `com.atluofu`, `cn.atluofu`, or `xfg-wrench` package roots.
 13. Direct compile-time dependency on the dynamic config center component. DCC is supported through `AccessGuardConfigProvider` so the starter remains independently usable.
@@ -454,7 +454,7 @@ public interface AccessGuardConfigProvider {
 }
 ```
 
-The default provider reads application properties and returns no external overrides. Business systems or a later DDC adapter can provide a Spring bean that reads DCC, Nacos, database, Redisson config snapshots, or another dynamic source.
+The default provider reads application properties and returns no external overrides. Business systems or a later Tianshu adapter can provide a Spring bean that reads DCC, Nacos, database, Redisson config snapshots, or another dynamic source.
 
 Invalid dynamic overrides must be rejected with an event and log entry. They must not poison the active rule.
 

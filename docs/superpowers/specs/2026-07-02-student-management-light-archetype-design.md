@@ -320,7 +320,7 @@ The student-management sample does not need additional Strategy, Factory, Abstra
 
 - Archetype resource filtering can corrupt Maven placeholders if filtering is applied too broadly.
 - Hidden files require archetype-specific naming and metadata handling; otherwise generated `.gitignore` or `.gitattributes` may be missing.
-- Wrapper script executable permissions may not survive archetype generation on every platform. The implementation should verify this where possible and report any residual limitation.
+- Wrapper script executable permissions may not survive archetype generation on every xingyuan. The implementation should verify this where possible and report any residual limitation.
 - Replacing the charging sample touches many files, so stale class names or documentation references are easy to miss.
 - Adding persistence dependencies without a coherent default database setup can make the generated project harder to run. The implementation must keep H2 as the no-external-service default and include only one initial Flyway migration.
 

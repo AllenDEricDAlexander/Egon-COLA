@@ -1,8 +1,8 @@
-# Components Dynamic Config Center Implementation Plan
+# Components Tianshu (Dynamic Config Center) Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the Egon-COLA Dynamic Config Center component with a Spring Boot starter, admin backend, PostgreSQL/SQLite persistence, Redis publish/subscribe refresh, ACK tracking, and a test/sample module.
+**Goal:** Build the Egon-COLA Tianshu (Dynamic Config Center) component with a Spring Boot starter, admin backend, PostgreSQL/SQLite persistence, Redis publish/subscribe refresh, ACK tracking, and a test/sample module.
 
 **Architecture:** Add one new starter-style component under `egon-cola-components` with `starter`, `admin`, and `test` submodules. Keep the admin flat with Controller -> Service -> Repository and keep the starter focused around annotation scanning, local binding, Admin OpenAPI calls, Redis listener refresh, heartbeat, and ACK reporting.
 
@@ -14,17 +14,17 @@
 
 1. Do not start the admin service or the sample app as a long-running process.
 2. Commit once per task after the task validation passes.
-3. Keep changes scoped to `egon-cola-components`, `docs/superpowers/plans`, and docs for the new DDC component.
-4. Do not modify existing Flyway migrations. DDC is a new component, so create only new DDC migration files.
+3. Keep changes scoped to `egon-cola-components`, `docs/superpowers/plans`, and docs for the new Tianshu component.
+4. Do not modify existing Flyway migrations. Tianshu is a new component, so create only new Tianshu migration files.
 5. Do not add UI, login, account, role, permission, MySQL, Spring Boot 2.7, or JDK 17 support.
-6. Earlier DDC code may be read for reference, but write this implementation in Egon-COLA style.
+6. Earlier Tianshu code may be read for reference, but write this implementation in Egon-COLA style.
 
 ## File Structure Map
 
 ### Reactor and BOM
 
 - Modify: `egon-cola-components/pom.xml`  
-  Add `egon-cola-component-dynamic-config-center` to modules and add dependency versions needed by DDC.
+  Add `egon-cola-component-dynamic-config-center` to modules and add dependency versions needed by Tianshu.
 - Modify: `egon-cola-components/egon-cola-components-bom/pom.xml`  
   Export only `egon-cola-component-dynamic-config-center-starter`.
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/pom.xml`  
@@ -38,55 +38,55 @@
 
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/pom.xml`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/annotation/DdcValue.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcProperties.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcValueConverter.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcValueDefinition.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcValueParser.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcChecksum.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcException.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcAckStatus.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcValueType.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcAckRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcDefaultReportRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcHeartbeatRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcInstanceRegisterRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcPublishMessage.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcConfigValue.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcFieldBinding.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/DdcAdminClient.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/repository/DdcLocalConfigRepository.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcFieldBindingService.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceService.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRefreshService.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/processor/DdcBeanPostProcessor.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeListener.java`
-- Create tests under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/`.
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/annotation/DdcValue.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcAutoConfig.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcProperties.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcKeys.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcValueConverter.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcValueDefinition.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcValueParser.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcChecksum.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcException.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcAckStatus.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcValueType.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcAckRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcDefaultReportRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcHeartbeatRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcInstanceRegisterRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcPublishMessage.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/vo/DdcConfigValue.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/vo/DdcFieldBinding.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/DdcAdminClient.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/HttpDdcAdminClient.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/repository/DdcLocalConfigRepository.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/repository/DdcRedisConfigRepository.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcFieldBindingService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcInstanceService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRefreshService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/processor/DdcBeanPostProcessor.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/listener/DdcRedisChangeListener.java`
+- Create tests under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/`.
 
 ### Admin Module
 
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/pom.xml`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/Dockerfile`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/DynamicConfigCenterAdminApplication.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/DynamicConfigCenterAdminApplication.java`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/application.yml`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/application-test.yml`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/db/postgresql/V1__create_ddc_schema.sql`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/db/sqlite/V1__create_ddc_schema.sql`
-- Create entity classes under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/`.
+- Create entity classes under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/entity/`.
 - Create DTO, VO, enum, repository, service, controller, config, and common classes under the admin package.
-- Create tests under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/`.
+- Create tests under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/`.
 
 ### Test Module
 
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/pom.xml`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/main/java/top/egon/cola/component/ddc/test/DynamicConfigCenterTestApplication.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/main/java/top/egon/cola/component/ddc/test/service/SampleConfigService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/main/java/top/egon/cola/component/tianshu/test/DynamicConfigCenterTestApplication.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/main/java/top/egon/cola/component/tianshu/test/service/SampleConfigService.java`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/main/resources/application.yml`
-- Create integration-style tests under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/`.
+- Create integration-style tests under `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/`.
 
 ---
 
@@ -145,7 +145,7 @@ Add dependency management entries:
 
 Use Spring Boot's imported dependency management for `hibernate-community-dialects` in the admin module dependency.
 
-- [ ] **Step 2: Create the DDC component root POM**
+- [ ] **Step 2: Create the Tianshu component root POM**
 
 Create `egon-cola-components/egon-cola-component-dynamic-config-center/pom.xml`:
 
@@ -304,7 +304,7 @@ Do not add admin or test modules to the BOM.
 Create `README.md` with sections:
 
 ```markdown
-# Egon COLA Dynamic Config Center Component
+# Egon COLA Tianshu (Dynamic Config Center) Component
 
 This component provides Spring Boot dynamic configuration through a business-facing starter and an independently deployable admin backend.
 
@@ -318,11 +318,11 @@ This component provides Spring Boot dynamic configuration through a business-fac
 
 ## Configuration Prefix
 
-`egon.cola.component.ddc`
+`egon.cola.component.tianshu`
 
 ## Admin API
 
-The admin API base path is `/api/v1/ddc`.
+The admin API base path is `/api/v1/tianshu`.
 ```
 
 - [ ] **Step 6: Validate the skeleton**
@@ -350,10 +350,10 @@ git commit -m "feat: add dynamic config center component skeleton"
 
 **Files:**
 - Create: starter annotation/config/common/model files listed in the Starter Module map.
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/common/DdcValueParserTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/common/DdcValueConverterTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/common/DdcKeysTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/common/DdcChecksumTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/common/DdcValueParserTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/common/DdcValueConverterTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/common/DdcKeysTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/common/DdcChecksumTest.java`
 
 - [ ] **Step 1: Write parser tests**
 
@@ -559,7 +559,7 @@ Expected: all selected tests pass.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter
-git commit -m "feat: add ddc starter value parsing"
+git commit -m "feat: add tianshu starter value parsing"
 ```
 
 ---
@@ -682,12 +682,12 @@ void reportDefaults(DdcDefaultReportRequest request);
 void ack(DdcAckRequest request);
 ```
 
-`HttpDdcAdminClient` uses Spring `RestClient` and posts to `/api/v1/ddc/openapi/*`. When `signatureEnabled` is true, add headers:
+`HttpDdcAdminClient` uses Spring `RestClient` and posts to `/api/v1/tianshu/openapi/*`. When `signatureEnabled` is true, add headers:
 
 ```text
-X-DDC-Access-Key
-X-DDC-Timestamp
-X-DDC-Signature
+X-TIANSHU-Access-Key
+X-TIANSHU-Timestamp
+X-TIANSHU-Signature
 ```
 
 Signature body is `CryptoUtils.hmacSha256Hex(accessKey + "|" + timestamp + "|" + path, secretKey)`.
@@ -712,13 +712,13 @@ heartbeat scheduled task through DdcInstanceService
 Auto configuration is conditional on:
 
 ```text
-egon.cola.component.ddc.enabled=true
+egon.cola.component.tianshu.enabled=true
 ```
 
 `AutoConfiguration.imports` contains:
 
 ```text
-top.egon.cola.component.ddc.config.DdcAutoConfig
+top.egon.cola.component.tianshu.config.DdcAutoConfig
 ```
 
 - [ ] **Step 7: Run starter tests**
@@ -735,7 +735,7 @@ Expected: starter tests pass.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter
-git commit -m "feat: add ddc starter runtime refresh"
+git commit -m "feat: add tianshu starter runtime refresh"
 ```
 
 ---
@@ -843,7 +843,7 @@ Create `DdcRepositoryTest` using `@DataJpaTest` and SQLite in-memory URL:
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:sqlite::memory:",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
-        "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
+        "spring.jpa.database-xingyuan=org.hibernate.community.dialect.SQLiteDialect",
         "spring.flyway.enabled=false"
 })
 class DdcRepositoryTest {
@@ -904,7 +904,7 @@ Expected: selected admin tests pass.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
-git commit -m "feat: add ddc admin persistence model"
+git commit -m "feat: add tianshu admin persistence model"
 ```
 
 ---
@@ -1123,7 +1123,7 @@ Expected: selected service tests pass.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
-git commit -m "feat: add ddc admin publish services"
+git commit -m "feat: add tianshu admin publish services"
 ```
 
 ---
@@ -1172,7 +1172,7 @@ class DdcOpenApiControllerTest {
 
     @Test
     void ackReturnsSuccessResult() throws Exception {
-        mockMvc.perform(post("/api/v1/ddc/openapi/publish/ack")
+        mockMvc.perform(post("/api/v1/tianshu/openapi/publish/ack")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("""
                                 {"changeId":"c1","instanceId":"i1","appCode":"demo","env":"dev","namespace":"default","configKey":"switch","targetVersion":2,"currentVersion":2,"status":"SUCCESS"}
@@ -1190,25 +1190,25 @@ Every controller returns `Result<T>` or `PageResult<T>`.
 `DdcOpenApiController` paths:
 
 ```text
-POST /api/v1/ddc/openapi/instances/register
-POST /api/v1/ddc/openapi/instances/heartbeat
-POST /api/v1/ddc/openapi/instances/offline
-GET  /api/v1/ddc/openapi/configs/pull
-GET  /api/v1/ddc/openapi/configs/{key}
-POST /api/v1/ddc/openapi/publish/ack
-POST /api/v1/ddc/openapi/defaults/report
+POST /api/v1/tianshu/openapi/instances/register
+POST /api/v1/tianshu/openapi/instances/heartbeat
+POST /api/v1/tianshu/openapi/instances/offline
+GET  /api/v1/tianshu/openapi/configs/pull
+GET  /api/v1/tianshu/openapi/configs/{key}
+POST /api/v1/tianshu/openapi/publish/ack
+POST /api/v1/tianshu/openapi/defaults/report
 ```
 
 `DdcConfigController` paths:
 
 ```text
-GET    /api/v1/ddc/configs
-POST   /api/v1/ddc/configs
-PUT    /api/v1/ddc/configs/{id}
-DELETE /api/v1/ddc/configs/{id}
-POST   /api/v1/ddc/configs/{id}/publish
-GET    /api/v1/ddc/configs/{id}/versions
-POST   /api/v1/ddc/configs/{id}/rollback
+GET    /api/v1/tianshu/configs
+POST   /api/v1/tianshu/configs
+PUT    /api/v1/tianshu/configs/{id}
+DELETE /api/v1/tianshu/configs/{id}
+POST   /api/v1/tianshu/configs/{id}/publish
+GET    /api/v1/tianshu/configs/{id}/versions
+POST   /api/v1/tianshu/configs/{id}/rollback
 ```
 
 - [ ] **Step 3: Implement manifest endpoint**
@@ -1216,7 +1216,7 @@ POST   /api/v1/ddc/configs/{id}/rollback
 `DdcManifestController` path:
 
 ```text
-GET /api/v1/ddc/manifest
+GET /api/v1/tianshu/manifest
 ```
 
 Return:
@@ -1224,10 +1224,10 @@ Return:
 ```json
 {
   "component": "dynamic-config-center",
-  "displayName": "Dynamic Config Center",
+  "displayName": "Tianshu (Dynamic Config Center)",
   "version": "5.2.0-SNAPSHOT",
   "enabled": true,
-  "baseApiPath": "/api/v1/ddc",
+  "baseApiPath": "/api/v1/tianshu",
   "frontendModuleKey": "dynamic-config-center",
   "routeBase": "/components/dynamic-config-center"
 }
@@ -1242,13 +1242,13 @@ server:
   port: 18080
 spring:
   application:
-    name: egon-cola-ddc-admin
+    name: egon-cola-tianshu-admin
   flyway:
     locations: classpath:db/postgresql
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         admin:
           redis:
             host: 127.0.0.1
@@ -1284,7 +1284,7 @@ Expected: selected controller tests pass.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
-git commit -m "feat: add ddc admin api"
+git commit -m "feat: add tianshu admin api"
 ```
 
 ---
@@ -1329,11 +1329,11 @@ Create `DdcSampleInjectionTest`:
 
 ```java
 @SpringBootTest(properties = {
-        "egon.cola.component.ddc.enabled=true",
-        "egon.cola.component.ddc.app-code=demo-app",
-        "egon.cola.component.ddc.env=dev",
-        "egon.cola.component.ddc.namespace=default",
-        "egon.cola.component.ddc.consistency.fail-fast=false"
+        "egon.cola.component.tianshu.enabled=true",
+        "egon.cola.component.tianshu.app-code=demo-app",
+        "egon.cola.component.tianshu.env=dev",
+        "egon.cola.component.tianshu.namespace=default",
+        "egon.cola.component.tianshu.consistency.fail-fast=false"
 })
 class DdcSampleInjectionTest {
 
@@ -1415,7 +1415,7 @@ Run:
 mvn -pl egon-cola-components/egon-cola-component-dynamic-config-center -am test
 ```
 
-Expected: DDC component tests and required upstream module tests pass.
+Expected: Tianshu component tests and required upstream module tests pass.
 
 - [ ] **Step 7: Run package verification without starting services**
 
@@ -1431,7 +1431,7 @@ Expected: starter, admin, and test modules package successfully. Admin jar is cr
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center
-git commit -m "test: add ddc component sample flow"
+git commit -m "test: add tianshu component sample flow"
 ```
 
 ---
@@ -1450,8 +1450,8 @@ Expected:
 
 ```text
 git status shows no unstaged implementation changes.
-The DDC test command ends with BUILD SUCCESS.
-The DDC package command ends with BUILD SUCCESS.
+The Tianshu test command ends with BUILD SUCCESS.
+The Tianshu package command ends with BUILD SUCCESS.
 No browser is opened.
 No long-running admin or sample app is started.
 ```

@@ -119,7 +119,7 @@ post-process application executor beans.
 - WebFlux treats Reactor Context as the source of truth and MDC as a
   thread-local log projection.
 - RestClient and WebClient create child spans and write standard headers.
-- The self-built Gateway Reactor Netty data plane uses `common-trace`
+- The self-built Yuheng Reactor Netty data plane uses `common-trace`
   directly instead of Spring Cloud Gateway filters.
 - RPC integrates in the existing `rpc-starter` gRPC interceptors; there is no
   separate generic gRPC trace starter.

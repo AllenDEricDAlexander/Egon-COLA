@@ -96,7 +96,7 @@ Step 1前置检查和 Steps 3-4 integration test验证，不在 Archetype内复�
    tests。
 2. Domain先定义纯业务 records/enums/ports，Application用 Facade(Manage)+Observer+Bulkhead编排一次 run，不出现
    ADK/RxJava/HTTP。
-3. Infrastructure Adapter实现 Domain Gateway，消费 AgentFlowService并以四个 static MapStruct/BaseConverter隔离第三方/边界模型。
+3. Infrastructure Adapter实现 Domain Yuheng，消费 AgentFlowService并以四个 static MapStruct/BaseConverter隔离第三方/边界模型。
 4. Starter/Infrastructure创建一个 MCP tool集合、一个具名 ChatModel与固定 flow配置；test profile全部 fake且 key parity。
 5. Adapter最后接唯一 POST SSE、API key/trace/filter/error mapping，复用 application observer，不把 `SseEmitter`向内泄漏。
 6. source project完成 OpenAPI、架构、dependency、secret/profile和 `clean verify`后冻结双语文档。
@@ -109,7 +109,7 @@ Step 1前置检查和 Steps 3-4 integration test验证，不在 Archetype内复�
 |-----------------------|------------------------------------------|--------------------------------------------------|---------------------------------------------|
 | 六模块/禁用面               | POM/static architecture tests对缺 source失败 | exact edges、研究单域、零 DB/GraphQL/RPC                | 只建 module skeleton                          |
 | Domain/Application    | model/manage/capacity tests先失败           | normalized task、终态CAS、permit exactly once        | Facade+Observer+Bulkhead，不建 state hierarchy |
-| Agent Flow gateway    | gateway/converter tests先失败               | one session/run、safe event allowlist、cleanup     | Adapter pattern only                        |
+| Agent Flow yuheng    | yuheng/converter tests先失败               | one session/run、safe event allowlist、cleanup     | Adapter pattern only                        |
 | MCP/model/fixed flow  | context/flow/profile tests先失败            | named Beans、nonempty tools、exact graph、fake test | Starter只装配，Infrastructure tool factory      |
 | HTTP/SSE              | MockMvc/filter/converter tests先失败        | exact status/header/framing/terminal/cancel      | one Controller + filters/advice             |
 | OpenAPI/source verify | OAS/architecture/static gates先失败         | API-GATE + clean verify                          | 文档只在行为稳定后写                                  |
@@ -122,7 +122,7 @@ Step 1前置检查和 Steps 3-4 integration test验证，不在 Archetype内复�
 |--------|-------------------------|--------------------------|------------------------------------|-----------------------------------------------|
 | Step 1 | Component Plan complete | None                     | source root/POM/architecture tests | dependency topology baseline                  |
 | Step 2 | Step 1                  | None                     | domain/application/model tests     | domain ports before adapter                   |
-| Step 3 | Step 2                  | None                     | infrastructure gateway/converters  | consumes stable ports/models                  |
+| Step 3 | Step 2                  | None                     | infrastructure yuheng/converters  | consumes stable ports/models                  |
 | Step 4 | Step 3                  | None                     | tool/starter/config/flow tests     | model/tools must feed component config        |
 | Step 5 | Steps 2-4               | None                     | adapter API/tests                  | HTTP maps stable application contract         |
 | Step 6 | Steps 1-5               | None                     | OpenAPI/docs/full source verify    | freezes source behavior                       |
@@ -141,7 +141,7 @@ definitions/source/Flyway和当前 dirty docs/tsbuildinfo保持未暂存。
 |-----------------------------|--------------------------------|------------------------------------------|--------------------------|---------------------------------|---------------------|
 | 独立 Agent family             | Primary §5 DEC-001             | definitions按 family动态发现                  | 修改 Web业务                 | 会污染现有用户                         | Implement Steps 1/7 |
 | Web六模块                      | Primary DEC-002                | source-web exact modules/bytecode plugin | flat Starter或第七facade    | 偏离用户指定                          | Implement Step 1    |
-| Domain Gateway Adapter      | Primary §13                    | Web Infrastructure实现 Domain ports        | Manage直接调用 AgentFlow     | 泄漏第三方依赖                         | Implement Step 3    |
+| Domain Yuheng Adapter      | Primary §13                    | Web Infrastructure实现 Domain ports        | Manage直接调用 AgentFlow     | 泄漏第三方依赖                         | Implement Step 3    |
 | Observer                    | Primary §13                    | SSE需跨层 progress/cancel                   | 返回 List或SseEmitter下沉     | 阻塞/层泄漏                          | Implement Steps 2/5 |
 | Manage Facade + Bulkhead    | Primary §13                    | Web profile `*Manage`惯例                  | Controller直接拼装/semaphore | 重复业务控制                          | Implement Step 2    |
 | provider Strategy           | Primary §13 rejected           | V1只有一个 model/MCP                         | 多 provider factory       | 无变化点                            | Do not implement    |
@@ -154,7 +154,7 @@ definitions/source/Flyway和当前 dirty docs/tsbuildinfo保持未暂存。
 |------------------------|---------------------------------------------|---------------------------|-------------------------------|--------------------------------|------------------------|-------------|
 | source topology        | REQ-001-REQ-004, REQ-013, REQ-018           | POM/architecture RED      | Component Plan complete       | six modules                    | all source code        | Step 1      |
 | domain/application run | REQ-003, REQ-007, REQ-009-REQ-011, REQ-018  | model/manage tests        | Step 1                        | ports/Facade/Observer/Bulkhead | Infrastructure/Adapter | Step 2      |
-| Agent Flow adapter     | REQ-004, REQ-006, REQ-009, REQ-010, REQ-012 | gateway/converter RED     | Step 2 + component            | domain-safe event run          | Starter/Adapter        | Step 3      |
+| Agent Flow adapter     | REQ-004, REQ-006, REQ-009, REQ-010, REQ-012 | yuheng/converter RED     | Step 2 + component            | domain-safe event run          | Starter/Adapter        | Step 3      |
 | host AI/config         | REQ-004-REQ-006, REQ-011, REQ-012, REQ-018  | context/flow/profile RED  | Step 3                        | model/tools/fixed flow         | HTTP use case          | Step 4      |
 | SSE API                | REQ-007-REQ-012, REQ-014, REQ-018           | MockMvc/serialization RED | Steps 2-4                     | API-001                        | OAS/source verify      | Step 5      |
 | source release quality | REQ-002-REQ-005, REQ-012-REQ-015, REQ-018   | OAS/static/docs RED       | Steps 1-5                     | verified source                | definition             | Step 6      |
@@ -211,7 +211,7 @@ egon-cola-archetypes/source-projects/
     ├── egon-cola-source-agent-common/                        error enum + package docs
     ├── egon-cola-source-agent-domain/                        research models/ports/services + tests
     ├── egon-cola-source-agent-application/                   command/properties/manage/capacity + tests
-    ├── egon-cola-source-agent-infrastructure/                AgentFlow gateway/converter/MCP + tests
+    ├── egon-cola-source-agent-infrastructure/                AgentFlow yuheng/converter/MCP + tests
     ├── egon-cola-source-agent-adapter/                       filters/handler/SSE API/converters + tests
     └── egon-cola-source-agent-starter/                       application/config/profiles/flow + tests
 egon-cola-archetypes/definitions/egon-cola-archetype-agent/   CREATE manifest/metadata/docs/basic IT
@@ -356,7 +356,7 @@ reject JDBC, JPA, MyBatis, Flyway, Redis, MQ, Dubbo, GraphQL and source-web busi
 
 - Purpose: 将新 internal source root登记到正常 source reactor，位于六个既有 source之后。
 - Symbols: modules entry `egon-cola-source-agent`。
-- Repository evidence: 当前 parent同时包含 components/platforms/facades和六 source roots，使 source能解析仓库 artifacts。
+- Repository evidence: 当前 parent同时包含 components/xingyuan/facades和六 source roots，使 source能解析仓库 artifacts。
 - Dependencies and consumers: 完整 source reactor、release preflight；前置 Agent Flow module通过 included components
   reactor解析。
 - Why now: 独立 source root通过结构测试后再进入共享 reactor。
@@ -369,7 +369,7 @@ reject JDBC, JPA, MyBatis, Flyway, Redis, MQ, Dubbo, GraphQL and source-web busi
 
 ```xml
 append egon-cola-source-agent after the six existing source project modules
-retain components, platforms and facade prerequisite entries and every existing source module unchanged
+retain components, xingyuan and facade prerequisite entries and every existing source module unchanged
 run targeted reactor validate and assert the new internal source artifact is not part of the public Central artifact inventory
 ```
 
@@ -398,7 +398,7 @@ run targeted reactor validate and assert the new internal source artifact is not
 - Baseline state: 六模块可解析但没有研究词汇、Domain ports、Observer、Manage或容量控制。
 - Observable outcome: Domain表达 topic/task/event/run；Application通过 Manage Facade验证命令、获取 fair permit并把
   gateway事件传给 Observer，所有终态 exactly-once释放。
-- End state: Domain/Application完全不依赖 ADK/RxJava/HTTP/MCP；Infrastructure可实现稳定 Gateway。
+- End state: Domain/Application完全不依赖 ADK/RxJava/HTTP/MCP；Infrastructure可实现稳定 Yuheng。
 - Test-first gate: Required — 先创建 Domain/Application tests覆盖 normalization、event invariants、capacity、sync
   failure、observer failure和 terminal/cancel race，再实现模型与行为到 GREEN。
 - Manual Checks: MC-ARCH-001, MC-VALID-001, MC-NAME-001, MC-MODEL-001, MC-LOG-001, MC-PATTERN-001, MC-SCOPE-001,
@@ -411,13 +411,13 @@ run targeted reactor validate and assert the new internal source artifact is not
 
 - Purpose: 先固定 domain invariants、状态终止、capacity和 Manage清理次序。
 - Symbols: topic/language/maxSources tests；event conditional fields；four-permit
-  saturation；gateway/observer/terminal/cancel races。
+  saturation；yuheng/observer/terminal/cancel races。
 - Repository evidence: primary TEST-005/009至012；source-web application tests使用 fake ports和 JUnit 5。
-- Dependencies and consumers: 纯 Java fakes，Application test实现 Domain Gateway/Observer；不引用
+- Dependencies and consumers: 纯 Java fakes，Application test实现 Domain Yuheng/Observer；不引用
   AgentFlow/SseEmitter/RxJava。
 - Why now: 业务规则必须先于技术 adapter，且 cancellation ownership必须在跨层前定义。
 - Contract/signature changes: 无生产合同；synthetic topic/keys，不含真实 secrets。
-- Input/output and state mapping: raw command values -> normalized BO；gateway callbacks -> validated Domain Event ->
+- Input/output and state mapping: raw command values -> normalized BO；yuheng callbacks -> validated Domain Event ->
   Observer；terminal -> lease release once。
 - Error and edge behavior: blank/control/length/range、invalid terminal payload、fifth permit、sync start failure、observer
   exception、cancel/complete race全部断言。
@@ -429,20 +429,20 @@ run targeted reactor validate and assert the new internal source artifact is not
 ```java
 parameterize topic trimming, control characters, length, language and maxSources to assert one normalized valid task or a typed validation failure
 construct STARTED, PROGRESS, COMPLETED and FAILED events and reject every missing, conflicting or late terminal field combination
-hold four fair capacity leases, assert the fifth fails without gateway invocation, then release one and prove the next acquisition succeeds
-script gateway start, observer failure, cancel, complete and error races; assert one terminal winner and exactly one capacity release without technical-type leakage
+hold four fair capacity leases, assert the fifth fails without yuheng invocation, then release one and prove the next acquisition succeeds
+script yuheng start, observer failure, cancel, complete and error races; assert one terminal winner and exactly one capacity release without technical-type leakage
 ```
 
 - Verification contribution: TEST-005/009至012及 domain invariant RED/GREEN。
 - After this file: tests RED，因为 Domain/Application production types不存在。
 
 #### File 2 —
-`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-{common,domain}/src/main/java/top/egon/cola/archetype/source/agent/{common/error/ResearchErrorCodeEnum.java,common/package-info.java,domain/research/gateway/DeepResearchAgentGateway.java,domain/research/model/DeepResearchTaskBO.java,domain/research/model/ResearchTopicBO.java,domain/research/model/DeepResearchEvent.java,domain/research/model/ResearchEventTypeEnum.java,domain/research/model/ResearchStageEnum.java,domain/research/model/ReportLanguageEnum.java,domain/research/service/DeepResearchEventObserverService.java,domain/research/service/DeepResearchRunService.java,domain/research/package-info.java}`
+`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-{common,domain}/src/main/java/top/egon/cola/archetype/source/agent/{common/error/ResearchErrorCodeEnum.java,common/package-info.java,domain/research/yuheng/DeepResearchAgentGateway.java,domain/research/model/DeepResearchTaskBO.java,domain/research/model/ResearchTopicBO.java,domain/research/model/DeepResearchEvent.java,domain/research/model/ResearchEventTypeEnum.java,domain/research/model/ResearchStageEnum.java,domain/research/model/ReportLanguageEnum.java,domain/research/service/DeepResearchEventObserverService.java,domain/research/service/DeepResearchRunService.java,domain/research/package-info.java}`
 
-- Purpose: 定义纯研究词汇、Gateway/Observer/Run ports和稳定错误码。
-- Symbols: one error enum；three records + three enums；Gateway start；Observer callback；Run cancel/identity。
+- Purpose: 定义纯研究词汇、Yuheng/Observer/Run ports和稳定错误码。
+- Symbols: one error enum；three records + three enums；Yuheng start；Observer callback；Run cancel/identity。
 - Repository evidence: primary §8/§9/§10要求 Domain零技术 import；Web profile Domain owns ports/models/services。
-- Dependencies and consumers: Application编排，Infrastructure实现 Gateway，Adapter实现 Observer bridge；只依赖 common/JDK。
+- Dependencies and consumers: Application编排，Infrastructure实现 Yuheng，Adapter实现 Observer bridge；只依赖 common/JDK。
 - Why now: Tests先定义 invariants，先固化向内合同再实现外层 adapter。
 - Contract/signature changes: 新 Domain/Application-facing Java APIs；无 Spring annotation或 reactive type。
 - Input/output and state mapping: normalized topic/language/maxSources/trace -> task BO；safe progress/result/error ->
@@ -450,7 +450,7 @@ script gateway start, observer failure, cancel, complete and error races; assert
 - Error and edge behavior: records compact constructors拒绝非法组合；error code/message为 allowlist；late terminal由
   Application owner丢弃。
 - Standards impact: MC-NAME-001、MC-VALID-001、MC-MODEL-001、MC-JSON-001、MC-TIME-001。
-- Literal rule enforcement: Rule 1用 BO/Event/Enum/Gateway/Service；Rule 2 compact validation；Rule 3 records无
+- Literal rule enforcement: Rule 1用 BO/Event/Enum/Yuheng/Service；Rule 2 compact validation；Rule 3 records无
   Lombok数据组合；Rule 10 Instant；Rule 11纯 Domain。
 - Implementation pseudocode:
 
@@ -471,14 +471,14 @@ define DeepResearchRunService identity plus idempotent cancel contract and Resea
 - Symbols: `DeepResearchManage#startResearch`; command/properties；capacity acquire/lease；application
   exception；ManageImpl。
 - Repository evidence: source-web使用 `*Manage`/Impl边界；primary INTERNAL-001明确一个 atomic use case和默认4/范围1-32。
-- Dependencies and consumers: Adapter调用 Manage；Manage只依赖 Domain Gateway/Observer和 ValidationUtils/Clock；不依赖
+- Dependencies and consumers: Adapter调用 Manage；Manage只依赖 Domain Yuheng/Observer和 ValidationUtils/Clock；不依赖
   Infrastructure。
 - Why now: Domain ports稳定后实现唯一业务 orchestration owner，不让 Controller掌管 permit/session。
 - Contract/signature changes: one application API；`DeepResearchRunService`包装 downstream cancel与 lease release但不公开
   semaphore。
-- Input/output and state mapping: Command -> validated TaskBO with UUID/deadline -> capacity lease -> gateway run ->
+- Input/output and state mapping: Command -> validated TaskBO with UUID/deadline -> capacity lease -> yuheng run ->
   wrapped idempotent run。
-- Error and edge behavior: capacity fail在 gateway前；gateway sync失败/observer failure/terminal/cancel均 CAS并 release
+- Error and edge behavior: capacity fail在 gateway前；yuheng sync失败/observer failure/terminal/cancel均 CAS并 release
   once；不自动 retry。
 - Standards impact: MC-VALID-001、MC-BEAN-001、MC-LOG-001、MC-PATTERN-001、MC-TIME-001。
 - Literal rule enforcement: Rule 2 ValidationUtils复验；Rule 4 Slf4j/final/RequiredArgsConstructor/Qualifier/explicit
@@ -487,9 +487,9 @@ define DeepResearchRunService identity plus idempotent cancel contract and Resea
 
 ```java
 validate StartDeepResearchCommand and DeepResearchRuntimeProperties, generate runId and deadline from injected Clock and create immutable DeepResearchTaskBO
-acquire a fair ResearchCapacityService lease before calling the Domain Gateway; on saturation throw RESEARCH_CAPACITY_EXHAUSTED without invoking downstream
+acquire a fair ResearchCapacityService lease before calling the Domain Yuheng; on saturation throw RESEARCH_CAPACITY_EXHAUSTED without invoking downstream
 wrap the caller observer with an atomic terminal flag so completed, failed, cancel and observer exception compete for one terminal outcome
-start the gateway, return a DeepResearchRunService whose cancel is idempotent, and release the capacity lease exactly once for every synchronous/asynchronous terminal path
+start the yuheng, return a DeepResearchRunService whose cancel is idempotent, and release the capacity lease exactly once for every synchronous/asynchronous terminal path
 log only runId, traceId, stage, outcome, duration and safe error code; never log topic, report, raw dependency error or secrets
 ```
 
@@ -506,7 +506,7 @@ log only runId, traceId, stage, outcome, duration and safe error code; never log
 - Rollback: 回退本 Step tests与 common/domain/application sources；保留六模块 skeleton。
 - Commit paths:
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-{domain,application}/src/test/java/top/egon/cola/archetype/source/agent/{domain/research/DeepResearchDomainTest.java,application/research/DeepResearchManageImplTest.java,application/research/package-info.java,domain/research/package-info.java}`;
-  `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-{common,domain}/src/main/java/top/egon/cola/archetype/source/agent/{common/error/ResearchErrorCodeEnum.java,common/package-info.java,domain/research/gateway/DeepResearchAgentGateway.java,domain/research/model/DeepResearchTaskBO.java,domain/research/model/ResearchTopicBO.java,domain/research/model/DeepResearchEvent.java,domain/research/model/ResearchEventTypeEnum.java,domain/research/model/ResearchStageEnum.java,domain/research/model/ReportLanguageEnum.java,domain/research/service/DeepResearchEventObserverService.java,domain/research/service/DeepResearchRunService.java,domain/research/package-info.java}`;
+  `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-{common,domain}/src/main/java/top/egon/cola/archetype/source/agent/{common/error/ResearchErrorCodeEnum.java,common/package-info.java,domain/research/yuheng/DeepResearchAgentGateway.java,domain/research/model/DeepResearchTaskBO.java,domain/research/model/ResearchTopicBO.java,domain/research/model/DeepResearchEvent.java,domain/research/model/ResearchEventTypeEnum.java,domain/research/model/ResearchStageEnum.java,domain/research/model/ReportLanguageEnum.java,domain/research/service/DeepResearchEventObserverService.java,domain/research/service/DeepResearchRunService.java,domain/research/package-info.java}`;
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/research/{command/StartDeepResearchCommand.java,config/DeepResearchRuntimeProperties.java,manage/DeepResearchManage.java,manage/impl/DeepResearchManageImpl.java,service/ResearchCapacityService.java,exception/DeepResearchApplicationException.java,package-info.java}`
 - Commit: `feat(agent-archetype): model deep research use case`
 
@@ -519,7 +519,7 @@ log only runId, traceId, stage, outcome, duration and safe error code; never log
 - Observable outcome: Infrastructure用 AgentFlowService创建/流式执行/删除独立 Session，转换 allowlist事件并在
   complete/error/cancel exactly-once清理；MCP factory拥有 typed配置与 close边界。
 - End state: 技术 adapter可被 Starter注入，但尚未创建真实 ChatModel/MCP client或加载 fixed flow profiles。
-- Test-first gate: Required — 先创建 Gateway/EventConverter/MCP factory tests形成 RED，再实现 static converter、gateway与
+- Test-first gate: Required — 先创建 Yuheng/EventConverter/MCP factory tests形成 RED，再实现 static converter、gateway与
   tool factory到 GREEN。
 - Manual Checks: MC-ARCH-001, MC-REUSE-001, MC-DEP-001, MC-CONVERT-001, MC-LOG-001, MC-BEAN-001, MC-SCOPE-001,
   MC-TEST-001
@@ -553,13 +553,13 @@ construct MCP client/tool fixtures for valid, missing endpoint/key, duplicate ca
 ```
 
 - Verification contribution: TEST-008至015的 Infrastructure部分 RED/GREEN。
-- After this file: tests RED，因为 converter/gateway/tool files不存在。
+- After this file: tests RED，因为 converter/yuheng/tool files不存在。
 
 #### File 2 —
-`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter/AgentFlowEventConverter.java,gateway/AgentFlowDeepResearchAgentGateway.java,package-info.java}`
+`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter/AgentFlowEventConverter.java,yuheng/AgentFlowDeepResearchAgentGateway.java,package-info.java}`
 
 - Purpose: 用 Adapter模式隔离 AgentFlow/ADK/RxJava，并把 raw events投影为 Domain allowlist。
-- Symbols: static `AgentFlowEventConverter.INSTANCE` implements `BaseConverter<Event,DeepResearchEvent>`；Gateway
+- Symbols: static `AgentFlowEventConverter.INSTANCE` implements `BaseConverter<Event,DeepResearchEvent>`；Yuheng
   implements Domain port；idempotent run handle。
 - Repository evidence: primary §10.4明确 exact generic与双向 mapping；§13选择 Adapter；Component不负责业务 event映射。
 - Dependencies and consumers: 注入 `agentFlowService`、flowId/Clock；Application只看 Domain port；Starter扫描/装配 concrete
@@ -571,7 +571,7 @@ construct MCP client/tool fixtures for valid, missing endpoint/key, duplicate ca
 - Error and edge behavior: unknown author/metadata不透传；oversize report/safe text
   bounded；create/subscribe/error/cancel全部按 ownership cleanup；不自动 retry。
 - Standards impact: MC-ARCH-001、MC-CONVERT-001、MC-LOG-001、MC-BEAN-001、MC-TIME-001、MC-PATTERN-001。
-- Literal rule enforcement: Rule 3 `@Mapper(ERROR)` + INSTANCE + exact BaseConverter；Rule 4 gateway
+- Literal rule enforcement: Rule 3 `@Mapper(ERROR)` + INSTANCE + exact BaseConverter；Rule 4 yuheng
   Slf4j/final/RequiredArgsConstructor/Qualifier；Rule 9 Adapter；Rule 10 Clock/Instant；Rule 11技术只在 Infrastructure。
 - Implementation pseudocode:
 
@@ -621,7 +621,7 @@ if any initialization step fails close every allocated transport/client; expose 
   `/Users/mario/SelfProject/Egon-COLA/egon-cola-archetypes/source-projects/egon-cola-source-agent`
 - Verification command:
   `../../../mvnw -B -ntp test -pl egon-cola-source-agent-infrastructure -am -Dtest=AgentFlowDeepResearchAgentGatewayTest,AgentFlowEventConverterTest,McpResearchToolFactoryTest -Dsurefire.failIfNoSpecifiedTests=false`
-- Expected result: gateway/converter/tool tests全部通过；无网络请求；session/subscription/client清理 exactly once；raw
+- Expected result: yuheng/converter/tool tests全部通过；无网络请求；session/subscription/client清理 exactly once；raw
   metadata/secrets不进入 Domain/log。
 - Failure returns to: File 1若 fake不匹配 public contracts；File 2若 session/Mapping/terminal语义错误；File 3若锁定 Spring
   AI MCP能力不足则返回 primary Spec REQ-006。
@@ -629,7 +629,7 @@ if any initialization step fails close every allocated transport/client; expose 
 - Rollback: 回退本 Step Infrastructure tests/sources；Domain/Application ports保留。
 - Commit paths:
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/test/java/top/egon/cola/archetype/source/agent/infrastructure/research/{AgentFlowDeepResearchAgentGatewayTest.java,AgentFlowEventConverterTest.java,McpResearchToolFactoryTest.java,package-info.java}`;
-  `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter/AgentFlowEventConverter.java,gateway/AgentFlowDeepResearchAgentGateway.java,package-info.java}`;
+  `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter/AgentFlowEventConverter.java,yuheng/AgentFlowDeepResearchAgentGateway.java,package-info.java}`;
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/tool/{McpResearchToolFactory.java,McpResearchToolProperties.java,package-info.java}`
 - Commit: `feat(agent-archetype): adapt agent flow and research tools`
 
@@ -682,7 +682,7 @@ execute the configured flow with deterministic model responses and assert Planne
 #### File 2 —
 `CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/{DeepResearchApplication.java,config/DeepResearchAiConfiguration.java,config/DeepResearchConfigurationProperties.java,package-info.java}`
 
-- Purpose: 创建 Boot入口、aggregate typed properties和具名 model/tools/clock/validation/Manage/Gateway wiring。
+- Purpose: 创建 Boot入口、aggregate typed properties和具名 model/tools/clock/validation/Manage/Yuheng wiring。
 - Symbols: `deepResearchChatModel`、`deepResearchSearchTools`、`deepResearchClock`、`deepResearchValidationUtils`
   、configuration-properties registration；Application scan boundary。
 - Repository evidence: source-web Starter只装配 Adapter/Infrastructure并使用配置类；primary Bean表要求显式 names和
@@ -705,7 +705,7 @@ execute the configured flow with deterministic model responses and assert Planne
 bind one DeepResearchConfigurationProperties aggregate containing API, runtime, model and MCP nested records with Jakarta constraints and Duration bounds
 create a named Clock and ValidationUtils, then create deepResearchSearchTools from McpResearchToolFactory with a test-profile same-name override seam
 build the named OpenAI-compatible ChatModel from externally supplied base URL, API key and model name and attach the immutable search callbacks as default tools
-wire capacity service, Domain Gateway implementation and Manage implementation with explicit bean names and qualifiers; let Agent Flow resolve deepResearchChatModel by name
+wire capacity service, Domain Yuheng implementation and Manage implementation with explicit bean names and qualifiers; let Agent Flow resolve deepResearchChatModel by name
 close the MCP factory on context shutdown and fail context creation before HTTP readiness for any invalid dependency configuration
 ```
 
@@ -958,10 +958,10 @@ assert no example, description or extension contains an API key, MCP endpoint, m
 - After this file: OpenAPI global contract存在；package docs/source README仍需完成。
 
 #### File 3 —
-`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-domain/src/main/java/top/egon/cola/archetype/source/agent/domain/research/{gateway,model,service}/package-info.java,egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/research/{command,config,manage,manage/impl,service,exception}/package-info.java}`
+`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-domain/src/main/java/top/egon/cola/archetype/source/agent/domain/research/{yuheng,model,service}/package-info.java,egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/research/{command,config,manage,manage/impl,service,exception}/package-info.java}`
 
 - Purpose: 为 Domain/Application其余 populated Java packages补齐与 Web profile一致的包级职责文档。
-- Symbols: Domain gateway/model/service与 Application command/config/manage/manage.impl/service/exception package
+- Symbols: Domain yuheng/model/service与 Application command/config/manage/manage.impl/service/exception package
   comments。
 - Repository evidence: source-web每个 populated package使用 `package-info.java`；primary verifier要求 exact Web package
   documentation。
@@ -988,10 +988,10 @@ rerun AgentSourceContractTest and Javadoc compilation after package substitution
 - After this file: Domain/Application每个实际 Java package均有可生成文档的职责说明。
 
 #### File 4 —
-`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter,gateway}/package-info.java,egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/{config,filter,handler,research,research/controller,research/converter,research/dto,research/vo}/package-info.java}`
+`CREATE egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter,yuheng}/package-info.java,egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/{config,filter,handler,research,research/controller,research/converter,research/dto,research/vo}/package-info.java}`
 
 - Purpose: 为 Infrastructure/Adapter其余 populated Java packages补齐技术隔离与 HTTP边界文档。
-- Symbols: Infrastructure converter/gateway；Adapter config/filter/handler/research/controller/converter/dto/vo package
+- Symbols: Infrastructure converter/yuheng；Adapter config/filter/handler/research/controller/converter/dto/vo package
   comments。
 - Repository evidence: source-web同样为技术子包与 Adapter子包逐目录提供 package-info；primary verifier要求 package
   substitution后完整。
@@ -1006,7 +1006,7 @@ rerun AgentSourceContractTest and Javadoc compilation after package substitution
 - Implementation pseudocode:
 
 ```text
-add package-info.java to the exact populated Infrastructure converter and gateway packages and describe third-party isolation plus safe mapping ownership
+add package-info.java to the exact populated Infrastructure converter and yuheng packages and describe third-party isolation plus safe mapping ownership
 add package-info.java to the exact populated Adapter config, filter, handler, research, controller, converter, dto and vo packages
 use only matching package declarations and concise responsibility comments; add no annotations, component scan hints or new package directories
 rerun source contract and Javadoc checks to prove the generated package substitution preserves every declaration
@@ -1054,8 +1054,8 @@ include source and generated verification commands, safe logging fields, externa
 - Commit paths:
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/test/java/top/egon/cola/archetype/source/agent/starter/{DeepResearchOpenApiTest.java,AgentSourceContractTest.java}`;
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/egon-cola-source-agent-starter/src/main/java/top/egon/cola/archetype/source/agent/starter/config/{DeepResearchOpenApiConfiguration.java,package-info.java}`;
-  `egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-domain/src/main/java/top/egon/cola/archetype/source/agent/domain/research/{gateway,model,service}/package-info.java,egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/research/{command,config,manage,manage/impl,service,exception}/package-info.java}`;
-  `egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter,gateway}/package-info.java,egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/{config,filter,handler,research,research/controller,research/converter,research/dto,research/vo}/package-info.java}`;
+  `egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-domain/src/main/java/top/egon/cola/archetype/source/agent/domain/research/{yuheng,model,service}/package-info.java,egon-cola-source-agent-application/src/main/java/top/egon/cola/archetype/source/agent/application/research/{command,config,manage,manage/impl,service,exception}/package-info.java}`;
+  `egon-cola-archetypes/source-projects/egon-cola-source-agent/{egon-cola-source-agent-infrastructure/src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/{converter,yuheng}/package-info.java,egon-cola-source-agent-adapter/src/main/java/top/egon/cola/archetype/source/agent/adapter/{config,filter,handler,research,research/controller,research/converter,research/dto,research/vo}/package-info.java}`;
   `egon-cola-archetypes/source-projects/egon-cola-source-agent/{README.md,README.zh-CN.md}`
 - Commit: `test(agent-archetype): verify source API and architecture`
 
@@ -1153,7 +1153,7 @@ make post-generation logic only mark mvnw executable and avoid business rewrites
 - Implementation pseudocode:
 
 ```text
-document the six-module domain-first dependency graph and the API-to-Manage-to-Gateway-to-AgentFlow call path with Adapter/Observer/Facade/Bulkhead ownership
+document the six-module domain-first dependency graph and the API-to-Manage-to-Yuheng-to-AgentFlow call path with Adapter/Observer/Facade/Bulkhead ownership
 explain source project as business truth, definition as packaging contract and ignored generated reactor as derived release material
 state one POST SSE endpoint, fixed workflow, host-owned model/MCP configuration, process-local state and all excluded DB/GraphQL/RPC/UI capabilities
 link Javadoc entry to the architecture and consumer README without embedding generated paths, credentials or environment-specific endpoints
@@ -1326,13 +1326,13 @@ path-limited revert并重新生成 ignored输出；已向 Central发布的版本
 | `REQ-001`   | Primary §4                        | 1, 7          | source/definition               | TEST-018/021         | independent family                  |
 | `REQ-002`   | Primary §4                        | 1, 6, 7       | six POMs/architecture/verifier  | TEST-018/021         | exact Web profile                   |
 | `REQ-003`   | Primary §4                        | 1-7           | research-only tree              | TEST-019/021         | one business root                   |
-| `REQ-004`   | Primary §4 + Component dependency | 1, 3, 4, 6, 8 | POM/gateway/config/policy       | TEST-013/014/017     | component reused, exact versions    |
+| `REQ-004`   | Primary §4 + Component dependency | 1, 3, 4, 6, 8 | POM/yuheng/config/policy       | TEST-013/014/017     | component reused, exact versions    |
 | `REQ-005`   | Primary §4                        | 4, 6          | flow YAML/tests/docs            | TEST-014             | fixed graph/output keys             |
 | `REQ-006`   | Primary §4                        | 3, 4          | MCP factory/profiles            | TEST-015/016         | one external tool source, test fake |
 | `REQ-007`   | Primary §4                        | 2, 5          | Manage/Controller               | TEST-001             | one POST SSE                        |
 | `REQ-008`   | Primary §4                        | 5             | filters/request/controller      | TEST-002至004         | 400/401/406/415 before Manage       |
-| `REQ-009`   | Primary §4                        | 2, 3, 5       | events/gateway/SSE              | TEST-007/009/012     | stable one-terminal sequence        |
-| `REQ-010`   | Primary §4                        | 2-5           | run/gateway/controller          | TEST-009至013         | one session and cleanup             |
+| `REQ-009`   | Primary §4                        | 2, 3, 5       | events/yuheng/SSE              | TEST-007/009/012     | stable one-terminal sequence        |
+| `REQ-010`   | Primary §4                        | 2-5           | run/yuheng/controller          | TEST-009至013         | one session and cleanup             |
 | `REQ-011`   | Primary §4                        | 2, 4, 5       | capacity/properties/API         | TEST-005/011/015     | 429/timeout bounds                  |
 | `REQ-012`   | Primary §4                        | 2-6           | logs/config/converters/OAS      | TEST-004/008/016/020 | no secret leakage                   |
 | `REQ-013`   | Primary §4                        | 1, 2, 6, 7    | POM/tree/docs/verifier          | TEST-019/021         | no persistence/recovery claim       |
@@ -1398,7 +1398,7 @@ Flyway只做不可变检查。
 | `MC-VALID-001`   | `Applicable`  | `PASS` | Steps 2/5、TEST-002/015                 | HTTP与 Application/Domain边界均验证                         | None                      |
 | `MC-MODEL-001`   | `Applicable`  | `PASS` | Domain/API records、run lifecycle types | immutable records；行为对象完整构造                            | None                      |
 | `MC-CONVERT-001` | `Applicable`  | `PASS` | Steps 3/5、四个 exact BaseConverter       | static MapStruct both directions，无绕过                  | None                      |
-| `MC-LOG-001`     | `Applicable`  | `PASS` | REQ-012、gateway/manage/filter tests    | 仅 runId/trace/stage/outcome/duration/code             | None                      |
+| `MC-LOG-001`     | `Applicable`  | `PASS` | REQ-012、yuheng/manage/filter tests    | 仅 runId/trace/stage/outcome/duration/code             | None                      |
 | `MC-BEAN-001`    | `Applicable`  | `PASS` | Steps 2-5、lombok.config/context tests  | 具体 Bean显式名/Qualifier/constructor，converter非 Bean      | None                      |
 | `MC-UTIL-001`    | `Applicable`  | `PASS` | capability ledger/POM/source denylist  | JDK/Spring/Egon/approved AI足够，无 Utils/Fastjson        | None                      |
 | `MC-JSON-001`    | `Applicable`  | `PASS` | Step 5 converter/MockMvc、Step 6 OAS    | Jackson-only，absent/null/enum/NON_NULL/SSE明确          | None                      |

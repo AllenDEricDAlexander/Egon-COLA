@@ -1,10 +1,10 @@
-# Gateway、DDC 与 RPC 开发联调 Runbook
+# Yuheng、Tianshu 与 RPC 开发联调 Runbook
 
-[English](developer-integration.md) | [Gateway 概览](../README.zh-CN.md)
+[English](developer-integration.md) | [Yuheng 概览](../README.zh-CN.md)
 
-本文给出本地完整链路：Gateway Admin 通过 DDC 发布规则，两个 Gateway Engine
+本文给出本地完整链路：Yuheng Admin 通过 Tianshu 发布规则，两个 Yuheng Engine
 订阅规则和 Provider 租约，MVC/WebFlux/RPC Provider 注册并上报接口，RPC Consumer
-只发现内部 Gateway。Nginx、生产 HA、外部 IAM 与生产 TLS 证书不属于该 Demo。
+只发现内部 Yuheng。Nginx、生产 HA、外部 IAM 与生产 TLS 证书不属于该 Demo。
 
 ## 前置与证据边界
 
@@ -25,17 +25,17 @@ chmod 600 .env
 ## 拓扑与端口
 
 ```text
-Admin Web :18090 -> Gateway Admin :18080 -> DDC Admin :18070
+Admin Web :18090 -> Yuheng Admin :18080 -> Tianshu Admin :18070
                                       |          |
-                                      |          +-> DDC Redis
+                                      |          +-> Tianshu Redis
                                       +-> PostgreSQL + Kafka
 Engine 1 :18081/:18082 RPC :19090 ----+----> Provider registry/rules
 Engine 2 :18181/:18182 RPC :19190 ----+
 MVC :18084  WebFlux :18085  RPC Provider :18086/:19091
-RPC Consumer :18087 -> DDC discovers Engine RPC slots -> RPC Provider
+RPC Consumer :18087 -> Tianshu discovers Engine RPC slots -> RPC Provider
 ```
 
-DDC Redis 与分布式限流 Redis 是不同服务和数据卷；两个 Engine 使用不同 LKG 卷。
+Tianshu Redis 与分布式限流 Redis 是不同服务和数据卷；两个 Engine 使用不同 LKG 卷。
 
 ## 一条命令化生命周期
 
@@ -53,7 +53,7 @@ DDC Redis 与分布式限流 Redis 是不同服务和数据卷；两个 Engine �
 ./scripts/demo.sh down
 ```
 
-`init` 生成 12 小时本地 JWT，创建 HTTP/RPC Application、上报凭据和 Gateway Group。
+`init` 生成 12 小时本地 JWT，创建 HTTP/RPC Application、上报凭据和 Yuheng Group。
 JWT、凭据与对象 ID 只写入忽略目录 `.demo/`，文件权限为 0600。`publish` 根据实际上报
 的 `methodIdentity` 解析 operationId，发布 HTTP Provider route、HTTP→RPC route 和
 分布式限流策略，再等待双 Engine 一致。不要手工把 operationId 写入 fixture。
@@ -65,12 +65,12 @@ JWT、凭据与对象 ID 只写入忽略目录 `.demo/`，文件权限为 0600�
 ```
 
 `purge` 需要 `.demo/.local-demo-marker` 且 Compose project name 必须以
-`egon-cola-gateway-demo-` 开头。它不可恢复。
+`egon-cola-yuheng-demo-` 开头。它不可恢复。
 
 ## OpenAI 兼容传输 Route
 
 OpenAI 兼容 Route 仍是绑定 HTTP Operation、通过租约注册中心发现 Provider 的普通
-Gateway Route，不包含静态上游 URL，也不包含模型选择。以下 JSON 是 Draft Route API
+Yuheng Route，不包含静态上游 URL，也不包含模型选择。以下 JSON 是 Draft Route API
 中的规范 `content`；外围请求的 `operationId` 必须来自接口目录。
 
 普通 JSON、SSE 自动识别、Multipart 上传和多模态载荷可以共用一个
@@ -100,7 +100,7 @@ Gateway Route，不包含静态上游 URL，也不包含模型选择。以下 JS
 ```
 
 契约更窄时可显式指定响应模式。Multipart 和大文件上传应保持
-`requestBodyMode=STREAMING`；Gateway 不运行 Multipart Parser。
+`requestBodyMode=STREAMING`；Yuheng 不运行 Multipart Parser。
 
 | Route 用途 | `requestBodyMode` | `responseMode` |
 |---|---|---|
@@ -137,7 +137,7 @@ Continuation、Ping/Pong 和合法 Close Frame，并从客户端候选中协商 
 `OPENAI_HTTP` 默认请求上限为 512 MiB，Connect Timeout 10 秒、Response Header
 Timeout 120 秒、Stream Idle Timeout 90 秒、Total Timeout 30 分钟，并关闭 Body 日志
 和重试；WebSocket 默认 Idle 为 5 分钟、单 Frame 为 16 MiB。Route 显式值优先，但
-始终受 Engine 安全上限约束；同一 Gateway Group 的全部 Engine 必须使用一致的安全上限。
+始终受 Engine 安全上限约束；同一 Yuheng Group 的全部 Engine 必须使用一致的安全上限。
 
 | 字段 | 语义 |
 |---|---|
@@ -168,15 +168,15 @@ Request、SSE、Binary Stream 或 `OPENAI_HTTP` 默认值。OpenAI 传输一旦�
 新 Engine 仍可读取不含 `transportPolicy` 的旧 v1 Release，并维持旧的 HTTP/RPC 聚合
 行为；旧 Engine 不应接收包含新 Transport 字段的 Release。必须按以下顺序发布：
 
-1. 升级同一 Gateway Group 的全部 Engine，并等待所有节点 Ready。
+1. 升级同一 Yuheng Group 的全部 Engine，并等待所有节点 Ready。
 2. 确认 Engine Transport 安全上限同构且 runtime consistency 正常。
-3. 升级 Gateway Admin 与 Admin Web。
+3. 升级 Yuheng Admin 与 Admin Web。
 4. 最后才创建并发布包含 `transportPolicy` 的 Route。
 
 混部窗口继续使用旧规则；激活失败沿用现有 last-known-good Release。历史 UI Draft
 缺少 `host` 时必须人工补录，Admin 不会自动生成通配符 `*`。
 
-该能力严格止于传输：Gateway 不统计 Token、不计费、不管理 Prompt 或会话、不执行
+该能力严格止于传输：Yuheng 不统计 Token、不计费、不管理 Prompt 或会话、不执行
 RAG/Agent 编排或 Function Calling，也不做业务模型选择。
 
 ## 手工成功判据
@@ -184,7 +184,7 @@ RAG/Agent 编排或 Function Calling，也不做业务模型选择。
 ```bash
 curl -fsS http://127.0.0.1:18070/actuator/health/readiness
 curl -fsS http://127.0.0.1:18080/actuator/health/readiness
-curl -fsS -H 'Host: providers.gateway.demo' \
+curl -fsS -H 'Host: providers.yuheng.demo' \
   http://127.0.0.1:18081/api/providers/manual-1 | jq
 curl -fsS 'http://127.0.0.1:18087/test/rpc/echo?message=manual-rpc' | jq
 ```
@@ -196,7 +196,7 @@ curl -fsS 'http://127.0.0.1:18087/test/rpc/echo?message=manual-rpc' | jq
 TOKEN="$(cat .demo/admin.jwt)"
 GROUP_ID="$(cat .demo/group.id)"
 curl -fsS -H "Authorization: Bearer ${TOKEN}" \
-  "http://127.0.0.1:18080/api/v1/gateway/admin/gateway-groups/${GROUP_ID}/runtime-consistency" | jq
+  "http://127.0.0.1:18080/api/v1/yuheng/admin/yuheng-groups/${GROUP_ID}/runtime-consistency" | jq
 ```
 
 成功状态要求 `consistent=true`、`readyEngineNodeCount=2`，Provider 投影包含两个 HTTP
@@ -207,9 +207,9 @@ curl -fsS -H "Authorization: Bearer ${TOKEN}" \
 - `docker compose ... stop http-provider-mvc`：优雅注销后 WebFlux 应继续服务；重启后
   同一 instanceId 获得新 leaseId。
 - `docker compose ... kill http-provider-webflux`：在租约 TTL 后摘除；MVC 继续服务。
-- 停止一个 Engine：RPC Consumer 应在 DDC 更新后选择另一个 Gateway Slot；重启节点
+- 停止一个 Engine：RPC Consumer 应在 Tianshu 更新后选择另一个 Yuheng Slot；重启节点
   后获取新租约并重新进入轮转。
-- 暂停 DDC：已 Ready Engine 只能继续有效内存规则/LKG；冷启动 Engine 不得 Ready。
+- 暂停 Tianshu：已 Ready Engine 只能继续有效内存规则/LKG；冷启动 Engine 不得 Ready。
 - 暂停 Kafka：业务响应不得被改变，但 Kafka 发送失败/丢弃指标必须增加。
 
 故障后重新执行 `publish` 或 `verify` 前，先看 `.demo/logs/compose.log`、Admin 的
@@ -231,7 +231,7 @@ runtime-consistency、Provider/Engine 投影和 Actuator readiness。不要用�
 ```bash
 ./mvnw -B -ntp -f pom.xml \
   -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
-  -am -Pgateway-live verify
+  -am -Pyuheng-live verify
 ```
 
 纯本机真实拓扑门禁（要求 `PATH` 中存在 `initdb`、`postgres` 和 `redis-server`；
@@ -240,10 +240,10 @@ runtime-consistency、Provider/Engine 投影和 Actuator readiness。不要用�
 ```bash
 ./mvnw -B -ntp -f pom.xml \
   -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite \
-  -am -Pgateway-live -Dgateway.live.infrastructure=local verify
+  -am -Pyuheng-live -Dgateway.live.infrastructure=local verify
 ```
 
 基础 Demo 与进程内流式组件测试不验证 Redis Sentinel/Cluster、PostgreSQL/Kafka HA、
 控制面多实例故障转移、生产 TLS/mTLS、证书轮换、公网 OpenAI、私有 CA、外部负载均衡
-或 Kubernetes。Gateway 也不能强制外层 Nginx/Ingress Flush 或关闭缓存。配置可渲染与
+或 Kubernetes。Yuheng 也不能强制外层 Nginx/Ingress Flush 或关闭缓存。配置可渲染与
 组件 Fixture 都不等于真实运行证据，仍需在目标环境验证。

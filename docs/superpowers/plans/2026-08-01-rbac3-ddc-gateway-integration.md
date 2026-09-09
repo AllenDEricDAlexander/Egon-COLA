@@ -1,14 +1,14 @@
-# RBAC3 DDC 配置中心与 Gateway 文档/路由中心一次性实施计划
+# Tianquan-Jianshen Tianshu 配置中心与 Yuheng 文档/路由中心一次性实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` in inline execution mode and execute every checkbox in order. Do not dispatch subagents; the user explicitly prohibited subagent mode.
 
-**Goal:** 在一次完整交付中让 RBAC3 Admin 同时完成 DDC 配置客户端与服务注册接入，以类型化、可校验、可回退的运行时策略消费五项动态配置；仅在 DDC 配置客户端 READY 后发布 HTTP Provider；并以 Gateway 现有注解、Interface Catalog、显式 Release 和 DDC 实例发现形成可验证的文档与流量路由闭环。
+**Goal:** 在一次完整交付中让 Tianquan-Jianshen Admin 同时完成 Tianshu 配置客户端与服务注册接入，以类型化、可校验、可回退的运行时策略消费五项动态配置；仅在 Tianshu 配置客户端 READY 后发布 HTTP Provider；并以 Yuheng 现有注解、Interface Catalog、显式 Release 和 Tianshu 实例发现形成可验证的文档与流量路由闭环。
 
-**Architecture:** 业务层只依赖 `Rbac3RuntimePolicy` 端口及其不可变 Snapshot。`AtomicRbac3RuntimePolicy` 以无锁读、串行候选快照校验和单次原子替换维护最后一次合法配置；DDC Adapter 用五个 `@DdcValue(refreshable = false)` 声明默认值，并以 exact `DdcConfigApplier` 完成字符串解析、完整约束校验和版本记录。RBAC3 专用 Provider 启动 Gate 覆盖 Gateway Provider Runtime 默认 Listener，在 Web Server 事件只保存端口，在 `ApplicationReadyEvent` 且 `DdcRuntimeCoordinator` 为 `READY` 时才注册 `HTTP_PROVIDER`。Gateway Controller 继续使用现有注解，契约测试比较 Spring 实际 Mapping 与 Gateway Contributor 发现集合，Gateway Admin Interface Catalog 继续作为唯一文档中心。
+**Architecture:** 业务层只依赖 `Rbac3RuntimePolicy` 端口及其不可变 Snapshot。`AtomicRbac3RuntimePolicy` 以无锁读、串行候选快照校验和单次原子替换维护最后一次合法配置；Tianshu Adapter 用五个 `@DdcValue(refreshable = false)` 声明默认值，并以 exact `DdcConfigApplier` 完成字符串解析、完整约束校验和版本记录。Tianquan-Jianshen 专用 Provider 启动 Gate 覆盖 Yuheng Provider Runtime 默认 Listener，在 Web Server 事件只保存端口，在 `ApplicationReadyEvent` 且 `DdcRuntimeCoordinator` 为 `READY` 时才注册 `HTTP_PROVIDER`。Yuheng Controller 继续使用现有注解，契约测试比较 Spring 实际 Mapping 与 Yuheng Contributor 发现集合，Yuheng Admin Interface Catalog 继续作为唯一文档中心。
 
-**Tech Stack:** Java 21、Spring Boot 3.5、Spring MVC/Security、Maven、JUnit 5、AssertJ、Mockito、DDC Starter、Gateway Starter/Provider Runtime、PostgreSQL、Redis、React 19、TypeScript、Vitest、Playwright。
+**Tech Stack:** Java 21、Spring Boot 3.5、Spring MVC/Security、Maven、JUnit 5、AssertJ、Mockito、Tianshu Starter、Yuheng Starter/Provider Runtime、PostgreSQL、Redis、React 19、TypeScript、Vitest、Playwright。
 
-**Approved Spec:** `docs/superpowers/specs/2026-08-01-rbac3-ddc-gateway-integration-design.md`
+**Approved Spec:** `docs/superpowers/specs/2026-08-01-tianquan-jianshen-tianshu-yuheng-integration-design.md`
 
 ## 全局执行约束
 
@@ -17,26 +17,26 @@
 - 每个行为变化先写一个能因缺少该行为而失败的测试，确认 RED 后再写最小实现，随后执行 GREEN 与相邻回归。
 - 每个任务只提交该任务列出的文件；工作树出现用户已有或无关变更时必须保留并从暂存区排除。
 - 每个任务使用独立提交；提交前执行 `git diff --check` 和该任务的验证命令，不得把失败测试提交为完成状态。
-- 不新增依赖，不新增 RBAC3 Test 聚合模块，不拆出第二套 DDC/Gateway 客户端，不引入 Swagger/Springdoc。
-- 不修改、重命名或删除 RBAC3 既有 `V1`、`V2` Flyway 文件；本次无数据库结构变化，不创建任何新迁移。
-- 本地 Profile 继续关闭 DDC 配置客户端和 HTTP Provider；生产配置不得出现 `localhost`、默认 Secret 或凭据回退。
-- DDC 配置作用域固定为 `bizCode + env + appCode + configKey`；`namespace` 只用于服务注册与 Gateway Definition/Provider 身份。
-- DDC/Gateway Bootstrap、安全根和信任边界配置不得进入动态配置；五个允许动态调整的 Key 以外一律拒绝。
-- 不启动项目，不打开浏览器。最终只运行构建、单元/集成测试、静态脚本和前端离线验证；真实多进程 DDC/Gateway 拓扑留给用户启动后验证。
+- 不新增依赖，不新增 Tianquan-Jianshen Test 聚合模块，不拆出第二套 Tianshu/Yuheng 客户端，不引入 Swagger/Springdoc。
+- 不修改、重命名或删除 Tianquan-Jianshen 既有 `V1`、`V2` Flyway 文件；本次无数据库结构变化，不创建任何新迁移。
+- 本地 Profile 继续关闭 Tianshu 配置客户端和 HTTP Provider；生产配置不得出现 `localhost`、默认 Secret 或凭据回退。
+- Tianshu 配置作用域固定为 `bizCode + env + appCode + configKey`；`namespace` 只用于服务注册与 Yuheng Definition/Provider 身份。
+- Tianshu/Yuheng Bootstrap、安全根和信任边界配置不得进入动态配置；五个允许动态调整的 Key 以外一律拒绝。
+- 不启动项目，不打开浏览器。最终只运行构建、单元/集成测试、静态脚本和前端离线验证；真实多进程 Tianshu/Yuheng 拓扑留给用户启动后验证。
 - 设计模式只使用已批准且解决实际问题的 Ports and Adapters、Policy/Strategy、Immutable Snapshot、Adapter 和启动 Gate；不增加 Factory/Chain/Observer 等无必要层次。
 
 ## 任务依赖与一次性交付顺序
 
 ```text
 Task 1 Runtime Policy 端口与原子快照
-  ├─ Task 2 DDC 声明、exact Applier 与注册顺序
+  ├─ Task 2 Tianshu 声明、exact Applier 与注册顺序
   ├─ Task 3 JWT/Session 动态消费
   └─ Task 4 激活根角色上限
 Task 2
   ├─ Task 5 生产配置、Spring 装配与作用域
   └─ Task 6 Provider 发布 Gate、状态与 Readiness
 Task 5 + Task 6
-  └─ Task 7 Gateway 文档目录完备性
+  └─ Task 7 Yuheng 文档目录完备性
 Task 1..7
   ├─ Task 8 故障、恢复与跨模块回归
   └─ Task 9 运维文档和静态校验
@@ -46,14 +46,14 @@ Task 1..9
 
 ---
 
-### Task 1：建立与 DDC 解耦的 Runtime Policy 和原子快照
+### Task 1：建立与 Tianshu 解耦的 Runtime Policy 和原子快照
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/Rbac3RuntimePolicy.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicy.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/application/port/Rbac3RuntimePolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/AtomicRbac3RuntimePolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/AtomicRbac3RuntimePolicyTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
 
 **Produces:**
 
@@ -62,7 +62,7 @@ Task 1..9
 - 单例 `AtomicRbac3RuntimePolicy`；所有 Profile 均从 `Rbac3AdminProperties` 初始化同一个 Bean。
 - 白名单 Key 常量、严格整数解析、范围约束、关系约束、失败元数据和原子更新入口。
 
-**Consumes:** 仅消费 `Rbac3AdminProperties` 的既有安全默认值；本任务不依赖 DDC 类型。
+**Consumes:** 仅消费 `Rbac3AdminProperties` 的既有安全默认值；本任务不依赖 Tianshu 类型。
 
 - [ ] **Step 1：先写 Snapshot 和原子更新的 RED 测试**
 
@@ -136,7 +136,7 @@ Task 1..9
   }
   ```
 
-  `Snapshot` 的 canonical constructor 是范围与关系约束的唯一入口，保证测试桩、静态默认值和 DDC Candidate 都不能构造非法快照。`AtomicRbac3RuntimePolicy` 使用 `AtomicReference<Snapshot>` 提供无锁读取；`apply` 使用 `synchronized` 串行解析并构造 Candidate，Snapshot 校验通过后一次 `reference.set(candidate)`。解析必须使用能拒绝空白和附加字符的严格十进制规则，异常消息只能包含 Key、Version 和规则，不包含 `rawValue`。
+  `Snapshot` 的 canonical constructor 是范围与关系约束的唯一入口，保证测试桩、静态默认值和 Tianshu Candidate 都不能构造非法快照。`AtomicRbac3RuntimePolicy` 使用 `AtomicReference<Snapshot>` 提供无锁读取；`apply` 使用 `synchronized` 串行解析并构造 Candidate，Snapshot 校验通过后一次 `reference.set(candidate)`。解析必须使用能拒绝空白和附加字符的严格十进制规则，异常消息只能包含 Key、Version 和规则，不包含 `rawValue`。
 
   将范围与关系校验集中在 `Snapshot` 的一个私有静态校验入口：
 
@@ -166,41 +166,41 @@ Task 1..9
   git diff --check
   ```
 
-  Expected: 测试通过；`admin.application.port` 不出现任何 `top.egon.cola.component.ddc` import。
+  Expected: 测试通过；`admin.application.port` 不出现任何 `top.egon.cola.component.tianshu` import。
 
 - [ ] **Step 5：提交 Task 1**
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/application/port/Rbac3RuntimePolicy.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicy.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java
-  git commit -m "feat(rbac3): add atomic runtime policy"
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/application/port/Rbac3RuntimePolicy.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/AtomicRbac3RuntimePolicy.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/AtomicRbac3RuntimePolicyTest.java
+  git commit -m "feat(tianquan-jianshen): add atomic runtime policy"
   ```
 
 ---
 
-### Task 2：声明五项 DDC 配置并注册 exact Applier
+### Task 2：声明五项 Tianshu 配置并注册 exact Applier
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfigurationTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcValueDeclarations.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyApplier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/AtomicRbac3RuntimePolicyTest.java`
 
-**Produces:** 五个可上报默认值的 `@DdcValue` 声明；五个 exact Applier；固定全量 Pull 优先级；在 DDC Registry freeze 前完成的确定性注册。
+**Produces:** 五个可上报默认值的 `@DdcValue` 声明；五个 exact Applier；固定全量 Pull 优先级；在 Tianshu Registry freeze 前完成的确定性注册。
 
-**Consumes:** `AtomicRbac3RuntimePolicy`、`DdcConfigApplier`、`DdcConfigApplierRegistry`、`@DdcValue`；不得复制 DDC 的版本、Checksum、锁或 ACK 算法。
+**Consumes:** `AtomicRbac3RuntimePolicy`、`DdcConfigApplier`、`DdcConfigApplierRegistry`、`@DdcValue`；不得复制 Tianshu 的版本、Checksum、锁或 ACK 算法。
 
 - [ ] **Step 1：先写注解、注册和优先级 RED 测试**
 
   `Rbac3DdcPolicyConfigurationTest` 通过反射和真实 `DefaultDdcConfigApplierRegistry` 断言：
 
   - 字段 Key 与默认值精确为 Spec 中五项；类型为 `Long.class` 或 `Integer.class`；`required=true`、`refreshable=false`；
-  - exact Registry 能按 Key 返回 RBAC3 Applier，不会落到字段反射 fallback；
+  - exact Registry 能按 Key 返回 Tianquan-Jianshen Applier，不会落到字段反射 fallback；
   - Access/Roots priority 0，Refresh 10，Absolute 20，Idle 30；
   - 重复注册同一 Key 启动失败；Registry freeze 后注册失败；
   - Applier 把 `key/value/version` 原样传给 Policy，不记录 rawValue；
@@ -232,7 +232,7 @@ Task 1..9
 
   ```java
   @DdcValue(
-          value = "rbac3.access-token-ttl-seconds:900",
+          value = "tianquan-jianshen.access-token-ttl-seconds:900",
           key = AtomicRbac3RuntimePolicy.ACCESS_TOKEN_TTL_KEY,
           defaultValue = "900",
           type = Long.class,
@@ -247,7 +247,7 @@ Task 1..9
   @Override
   public void apply(String actualKey, String value, long version) {
       if (!key.equals(actualKey)) {
-          throw new IllegalArgumentException("unexpected RBAC3 config key: " + actualKey);
+          throw new IllegalArgumentException("unexpected Tianquan-Jianshen config key: " + actualKey);
       }
       policy.apply(actualKey, value, version);
   }
@@ -258,9 +258,9 @@ Task 1..9
   }
   ```
 
-  `Rbac3DdcPolicyConfiguration` 只在 `egon.cola.component.ddc.enabled=true` 时创建声明和注册器。注册器实现 `InitializingBean`，构造时持有 Registry，`afterPropertiesSet()` 对五个 Key 调用 `registerExact`；这会发生在 DDC 的 `SmartInitializingSingleton` freezer 之前。不得在 `ApplicationReadyEvent` 或首次 Refresh 时延迟注册。
+  `Rbac3DdcPolicyConfiguration` 只在 `egon.cola.component.tianshu.enabled=true` 时创建声明和注册器。注册器实现 `InitializingBean`，构造时持有 Registry，`afterPropertiesSet()` 对五个 Key 调用 `registerExact`；这会发生在 Tianshu 的 `SmartInitializingSingleton` freezer 之前。不得在 `ApplicationReadyEvent` 或首次 Refresh 时延迟注册。
 
-- [ ] **Step 4：运行 GREEN 和 DDC Starter 邻接回归**
+- [ ] **Step 4：运行 GREEN 和 Tianshu Starter 邻接回归**
 
   ```bash
   ./mvnw -B -ntp \
@@ -270,18 +270,18 @@ Task 1..9
   git diff --check
   ```
 
-  Expected: RBAC3 测试与 DDC 既有版本/ACK 测试全部通过。
+  Expected: Tianquan-Jianshen 测试与 Tianshu 既有版本/ACK 测试全部通过。
 
 - [ ] **Step 5：提交 Task 2**
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcValueDeclarations.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfigurationTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/ddc/AtomicRbac3RuntimePolicyTest.java
-  git commit -m "feat(rbac3): consume validated DDC configuration"
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcValueDeclarations.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyApplier.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyConfigurationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/AtomicRbac3RuntimePolicyTest.java
+  git commit -m "feat(tianquan-jianshen): consume validated Tianshu configuration"
   ```
 
 ---
@@ -290,12 +290,12 @@ Task 1..9
 
 **Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/JwtTokenServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/SessionFacadeTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/auth/application/JwtTokenService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/session/application/SessionFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/security/Rbac3JwtConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/auth/JwtTokenServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/session/SessionFacadeTest.java`
 
 **Behavior:** 一次 `issue()` 或 `create()` 只读取一次 Snapshot；更新后新对象使用新 TTL，旧 JWT claim 和已持久化 Session/Refresh 到期时间不变。
 
@@ -362,14 +362,14 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/JwtTokenService.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/auth/JwtTokenServiceTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/SessionFacadeTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/auth/application/JwtTokenService.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/session/application/SessionFacade.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/security/Rbac3JwtConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/auth/JwtTokenServiceTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/session/SessionFacadeTest.java
   git diff --cached --name-only
-  git commit -m "feat(rbac3): apply runtime policy to new credentials"
+  git commit -m "feat(tianquan-jianshen): apply runtime policy to new credentials"
   ```
 
 ---
@@ -378,12 +378,12 @@ Task 1..9
 
 **Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/tianquan-jianshen/contract/error/Rbac3ErrorCode.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/activation/application/RoleActivationFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3ApplicationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/tianquan-jianshen/contract/Rbac3ErrorCodeTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/activation/RoleActivationFacadeIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/activation/RoleActivationConcurrencyIT.java`
 
 **Rule:** 限制 `resolution.activeRoleSet().rootIds().size()`，不是请求 Role ID 数量，也不是继承展开后的有效角色数量；同一事务内在任何持久化、Fence、投影或发 Token 之前失败。
 
@@ -447,42 +447,42 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/error/Rbac3ErrorCode.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/rbac3/contract/Rbac3ErrorCodeTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/activation/application/RoleActivationFacade.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationFacadeIT.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/activation/RoleActivationConcurrencyIT.java
-  git commit -m "feat(rbac3): enforce active root policy"
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/tianquan-jianshen/contract/error/Rbac3ErrorCode.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/test/java/top/egon/cola/platform/tianquan-jianshen/contract/Rbac3ErrorCodeTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/activation/application/RoleActivationFacade.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3ApplicationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/activation/RoleActivationFacadeIT.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/activation/RoleActivationConcurrencyIT.java
+  git commit -m "feat(tianquan-jianshen): enforce active root policy"
   ```
 
 ---
 
-### Task 5：启用生产 DDC 配置客户端并验证配置/服务作用域分离
+### Task 5：启用生产 Tianshu 配置客户端并验证配置/服务作用域分离
 
 **Files:**
 
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml`
 - Verify unchanged or minimally align: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/resources/application-local-it.yml`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/GatewayDdcConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3AdminApplicationContextTest.java`
 
-**Production contract:** `ddc.enabled=true` 与 `ddc.registry.enabled=true` 同时存在；CONFIG_CLIENT 和 HTTP_PROVIDER 使用同一进程 Instance ID 但独立 Lease；DDC 配置 scope 不含 namespace，Provider/Definition identity 保留 namespace。
+**Production contract:** `tianshu.enabled=true` 与 `tianshu.registry.enabled=true` 同时存在；CONFIG_CLIENT 和 HTTP_PROVIDER 使用同一进程 Instance ID 但独立 Lease；Tianshu 配置 scope 不含 namespace，Provider/Definition identity 保留 namespace。
 
 - [ ] **Step 1：写生产 YAML 和条件装配 RED 测试**
 
   `GatewayDdcConfigurationTest` 使用 `YamlPropertySourceLoader` 或项目既有读取方式断言：
 
-  - `egon.cola.component.ddc.enabled=true`；
-  - `biz-code=${DDC_BIZ_CODE:rbac3}`、`app-code=rbac3-admin`、env 无默认、namespace 仅用于服务身份；
-  - Instance ID 来自 `${RBAC3_INSTANCE_ID}`，租约 30 秒、心跳 10 秒；
+  - `egon.cola.component.tianshu.enabled=true`；
+  - `biz-code=${TIANSHU_BIZ_CODE:tianquan-jianshen}`、`app-code=tianquan-jianshen-admin`、env 无默认、namespace 仅用于服务身份；
+  - Instance ID 来自 `${TIANQUAN_JIANSHEN_INSTANCE_ID}`，租约 30 秒、心跳 10 秒；
   - `consistency.fail-fast=true`、`reconcile-enabled=true`、周期 30 秒；
-  - Registry 与 Gateway reporting/provider 都启用；
+  - Registry 与 Yuheng reporting/provider 都启用；
   - Admin/HMAC/Redis 没有 localhost 或 Secret 默认值；
-  - local profile 显式设置 `ddc.enabled=false`、`ddc.registry.enabled=false` 和 Provider disabled，不因生产配置打开而继承为 true。
+  - local profile 显式设置 `tianshu.enabled=false`、`tianshu.registry.enabled=false` 和 Provider disabled，不因生产配置打开而继承为 true。
 
-  `Rbac3AdminApplicationContextTest` 用隔离 `ApplicationContextRunner` 验证：DDC disabled 时 Policy 仍存在但没有声明/Applier 注册器；DDC enabled 且提供假的 DDC 基础 Bean 时五个 exact Applier 均存在。
+  `Rbac3AdminApplicationContextTest` 用隔离 `ApplicationContextRunner` 验证：Tianshu disabled 时 Policy 仍存在但没有声明/Applier 注册器；Tianshu enabled 且提供假的 Tianshu 基础 Bean 时五个 exact Applier 均存在。
 
 - [ ] **Step 2：运行 RED**
 
@@ -493,7 +493,7 @@ Task 1..9
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
 
-  Expected: 生产 YAML 的 `ddc.enabled` 仍为 false，配置断言失败。
+  Expected: 生产 YAML 的 `tianshu.enabled` 仍为 false，配置断言失败。
 
 - [ ] **Step 3：最小修改生产配置**
 
@@ -503,14 +503,14 @@ Task 1..9
   egon:
     cola:
       component:
-        ddc:
+        tianshu:
           enabled: true
-          biz-code: ${DDC_BIZ_CODE:rbac3}
-          app-code: rbac3-admin
+          biz-code: ${TIANSHU_BIZ_CODE:tianquan-jianshen}
+          app-code: tianquan-jianshen-admin
           env: ${DEPLOYMENT_ENV}
           namespace: ${DEPLOYMENT_NAMESPACE}
           instance:
-            id: ${RBAC3_INSTANCE_ID}
+            id: ${TIANQUAN_JIANSHEN_INSTANCE_ID}
             lease-seconds: 30
             heartbeat-interval-seconds: 10
           consistency:
@@ -521,7 +521,7 @@ Task 1..9
             enabled: true
   ```
 
-  保留现有 Admin Endpoint/HMAC/Redis/Gateway 配置及 Secret 来源，不新建第二组 Redisson 或静态 RBAC3 provider URL。由于 Spring Profile 会继承基础 `application.yml`，必须同时在 `application-local.yml` 的 `egon.cola.component.ddc` 下显式增加 `enabled: false`；既有 `registry.enabled: false` 和 `gateway.provider.http.enabled: false` 保持不变。
+  保留现有 Admin Endpoint/HMAC/Redis/Yuheng 配置及 Secret 来源，不新建第二组 Redisson 或静态 Tianquan-Jianshen provider URL。由于 Spring Profile 会继承基础 `application.yml`，必须同时在 `application-local.yml` 的 `egon.cola.component.tianshu` 下显式增加 `enabled: false`；既有 `registry.enabled: false` 和 `yuheng.provider.http.enabled: false` 保持不变。
 
 - [ ] **Step 4：运行 GREEN 与资源扫描**
 
@@ -543,35 +543,35 @@ Task 1..9
   git add \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application.yml \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/application-local.yml \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java
-  git commit -m "feat(rbac3): enable production DDC configuration client"
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/GatewayDdcConfigurationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3AdminApplicationContextTest.java
+  git commit -m "feat(tianquan-jianshen): enable production Tianshu configuration client"
   ```
 
 ---
 
-### Task 6：以 DDC READY Gate 控制 Provider 发布，并扩展独立状态与 Readiness
+### Task 6：以 Tianshu READY Gate 控制 Provider 发布，并扩展独立状态与 Readiness
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcConfigClientStatusService.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3HttpProviderPublicationGateTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/DdcConfigClientStatusServiceTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3IntegrationMetricsTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/DdcConfigClientStatusService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3IntegrationMetrics.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3HttpProviderPublicationGateTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/DdcConfigClientStatusServiceTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3IntegrationMetricsTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyApplier.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime/application/ControlPlaneRuntimeStatusPort.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime/RuntimeQueryServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3AdminApplicationContextTest.java`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/runtime.api.ts`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.tsx`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx`
 
-**Produces:** 名为 `gatewayHttpProviderServerReadyListener` 的 RBAC3 Bean；Gateway Provider Runtime 默认 Bean 因 `@ConditionalOnMissingBean(name=...)` 退让。Runtime Status 新增独立 `ddcConfigClient`，不合并 Definition、Provider、Release。Micrometer 暴露四个低基数指标：`rbac3_ddc_config_apply_total`、`rbac3_ddc_config_snapshot_version`、`rbac3_ddc_config_ready`、`rbac3_gateway_definition_operation_count`。
+**Produces:** 名为 `gatewayHttpProviderServerReadyListener` 的 Tianquan-Jianshen Bean；Yuheng Provider Runtime 默认 Bean 因 `@ConditionalOnMissingBean(name=...)` 退让。Runtime Status 新增独立 `ddcConfigClient`，不合并 Definition、Provider、Release。Micrometer 暴露四个低基数指标：`rbac3_ddc_config_apply_total`、`rbac3_ddc_config_snapshot_version`、`rbac3_ddc_config_ready`、`rbac3_gateway_definition_operation_count`。
 
 - [ ] **Step 1：写事件时序、状态脱敏与 Readiness RED 测试**
 
@@ -579,17 +579,17 @@ Task 1..9
 
   1. root WebServer event 只记录端口，不调用 `onHttpServerReady`；
   2. management server namespace event 被忽略；
-  3. ApplicationReady + DDC READY + 端口一致时仅调用一次；
+  3. ApplicationReady + Tianshu READY + 端口一致时仅调用一次；
   4. 事件重复或顺序反转也最多发布一次；
-  5. DDC NEW/STARTING/RECOVERING/FAILED 或无 CONFIG_CLIENT session 时不发布并抛出启动失败；
+  5. Tianshu NEW/STARTING/RECOVERING/FAILED 或无 CONFIG_CLIENT session 时不发布并抛出启动失败；
   6. 实际端口与显式 Provider 端口冲突时失败；配置端口为 0 时接受 WebServer 实际端口；
-  7. local/DDC disabled 场景不创建该 Gate Bean，保留现有 disabled 行为。
+  7. local/Tianshu disabled 场景不创建该 Gate Bean，保留现有 disabled 行为。
 
   `DdcConfigClientStatusServiceTest` 与 `RuntimeQueryServiceTest` 断言：
 
   - state、instanceId、leaseExpireAt、五个版本和最后失败非敏感信息均返回；
   - 完整 leaseId 不返回，状态使用短 Hash；
-  - readiness 仅在生产要求 DDC READY + session present；
+  - readiness 仅在生产要求 Tianshu READY + session present；
   - 一次非法动态配置保留 LKG 时，状态记录失败但 readiness 不立即 DOWN；
   - Definition、Config Client、Provider Lease、Release 字段各自保留。
 
@@ -599,10 +599,10 @@ Task 1..9
   - `key` 标签只允许五个白名单 Key，不能使用 rawValue、版本、实例、租户或异常文本；
   - 五个 Snapshot Version Gauge 跟随当前 Policy 版本；
   - Ready Gauge 仅在 Coordinator READY 且存在 Session 时为 1；
-  - Gateway Operation Count 从 `GatewayReportingState.snapshot().result().counts().operations()` 读取，未成功上报时为 0；
+  - Yuheng Operation Count 从 `GatewayReportingState.snapshot().result().counts().operations()` 读取，未成功上报时为 0；
   - Meter/Tag 名称与 Spec 完全一致且总组合数有固定上界。
 
-  `RuntimeStatusPage.test.tsx` 的 fixture 增加 `ddcConfigClient`，断言页面同时显示 “DDC Config Client”、`READY`、脱敏 Lease 信息和原有 Provider 的 `RECOVERING`；并断言完整 leaseId、配置原值和 Secret 不出现在 DOM。
+  `RuntimeStatusPage.test.tsx` 的 fixture 增加 `ddcConfigClient`，断言页面同时显示 “Tianshu Config Client”、`READY`、脱敏 Lease 信息和原有 Provider 的 `RECOVERING`；并断言完整 leaseId、配置原值和 Secret 不出现在 DOM。
 
 - [ ] **Step 2：运行 RED**
 
@@ -631,13 +631,13 @@ Task 1..9
           && published.compareAndSet(false, true)
   ```
 
-  Gate 不注册 DDC、不拉配置、不创建自己的 Lease；它只编排现有 `DdcRuntimeCoordinator` 和 `HttpProviderLeaseRuntime`。生产 fail-fast 下 DDC 未 READY 时抛出不含凭据的 `IllegalStateException`，确保进程不声称 Ready。
+  Gate 不注册 Tianshu、不拉配置、不创建自己的 Lease；它只编排现有 `DdcRuntimeCoordinator` 和 `HttpProviderLeaseRuntime`。生产 fail-fast 下 Tianshu 未 READY 时抛出不含凭据的 `IllegalStateException`，确保进程不声称 Ready。
 
   在 `Rbac3PlatformIntegrationConfiguration` 以同名 Bean 覆盖默认 Listener：
 
   ```java
   @Bean(name = "gatewayHttpProviderServerReadyListener")
-  @ConditionalOnProperty(prefix = "egon.cola.component.ddc", name = "enabled", havingValue = "true")
+  @ConditionalOnProperty(prefix = "egon.cola.component.tianshu", name = "enabled", havingValue = "true")
   ApplicationListener<ApplicationEvent> gatewayHttpProviderServerReadyListener(
           DdcRuntimeCoordinator coordinator,
           HttpProviderLeaseRuntime providerRuntime,
@@ -661,9 +661,9 @@ Task 1..9
 
   `Rbac3ReadinessIndicator` 增加名为 `ddcConfigClient` 的检查：生产环境要求 `READY` 且当前 session 存在；local/test 不要求。非法新配置因 Snapshot 保持 LKG 而不单独把 readiness 置 DOWN。
 
-  保留 `RuntimeStatus` 现有四参数便利构造器供 `GatewayDdcRuntimeStatusService` 使用，并让它填入一个显式 `UNKNOWN` 的 `DdcConfigClientStatus`；最终聚合端口再用真实 Config Client 状态替换该占位。这样不要求 Gateway 状态服务伪造 DDC 配置事实。
+  保留 `RuntimeStatus` 现有四参数便利构造器供 `GatewayDdcRuntimeStatusService` 使用，并让它填入一个显式 `UNKNOWN` 的 `DdcConfigClientStatus`；最终聚合端口再用真实 Config Client 状态替换该占位。这样不要求 Yuheng 状态服务伪造 Tianshu 配置事实。
 
-  Admin Web 的 `ControlPlaneRuntimeStatus` 增加同名只读字段并单独显示 “DDC Config Client” 卡片，展示 state、instanceId、lease expiry 和 last failure code；不显示完整 leaseId 或配置原值。第一行改为四个等宽卡片，页面提示更新为五事实语义；既有 Definition、HTTP Provider Lease、Release 和运维卡片保持独立。
+  Admin Web 的 `ControlPlaneRuntimeStatus` 增加同名只读字段并单独显示 “Tianshu Config Client” 卡片，展示 state、instanceId、lease expiry 和 last failure code；不显示完整 leaseId 或配置原值。第一行改为四个等宽卡片，页面提示更新为五事实语义；既有 Definition、HTTP Provider Lease、Release 和运维卡片保持独立。
 
 - [ ] **Step 5：实现固定白名单的 Micrometer 观测**
 
@@ -679,7 +679,7 @@ Task 1..9
   }
   ```
 
-  不增加 `lastReconcileAt` 的复制调度器；DDC Reconcile 继续复用 Starter 的日志/生命周期，Config Ready Gauge 作为 Spec 允许的替代观测。
+  不增加 `lastReconcileAt` 的复制调度器；Tianshu Reconcile 继续复用 Starter 的日志/生命周期，Config Ready Gauge 作为 Spec 允许的替代观测。
 
 - [ ] **Step 6：运行 GREEN 与 Provider Runtime 自动配置回归**
 
@@ -700,36 +700,36 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/DdcConfigClientStatusService.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3IntegrationMetrics.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyApplier.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc/Rbac3DdcPolicyConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/runtime/application/ControlPlaneRuntimeStatusPort.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3HttpProviderPublicationGateTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/DdcConfigClientStatusServiceTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3IntegrationMetricsTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3AdminApplicationContextTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/DdcConfigClientStatusService.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3IntegrationMetrics.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyApplier.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu/Rbac3DdcPolicyConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3HttpProviderPublicationGate.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime/Rbac3PlatformIntegrationConfiguration.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime/application/ControlPlaneRuntimeStatusPort.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3HttpProviderPublicationGateTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/DdcConfigClientStatusServiceTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3IntegrationMetricsTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3AdminApplicationContextTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime/RuntimeQueryServiceTest.java \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/runtime.api.ts \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/ControlPlaneStatusCards.tsx \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.tsx \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/runtime/RuntimeStatusPage.test.tsx
-  git commit -m "feat(rbac3): gate provider publication on DDC readiness"
+  git commit -m "feat(tianquan-jianshen): gate provider publication on Tianshu readiness"
   ```
 
 ---
 
-### Task 7：把 Gateway 现有注解和 Interface Catalog 固化为完整文档契约
+### Task 7：把 Yuheng 现有注解和 Interface Catalog 固化为完整文档契约
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java`
-- Modify only when a test proves a real gap: RBAC3 Controller/DTO files under `egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java`
+- Modify only when a test proves a real gap: Tianquan-Jianshen Controller/DTO files under `egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java`
 
-**Contract:** Spring MVC 是 Method/Path/Consumes/Produces 机械事实来源；Gateway 注解提供业务目录和 Schema 补充；实际 Mapping 集合必须与 `MvcGatewayDefinitionContributor` 发现集合完全相等，不能长期硬编码 78。
+**Contract:** Spring MVC 是 Method/Path/Consumes/Produces 机械事实来源；Yuheng 注解提供业务目录和 Schema 补充；实际 Mapping 集合必须与 `MvcGatewayDefinitionContributor` 发现集合完全相等，不能长期硬编码 78。
 
 - [ ] **Step 1：先写 Mapping/Definition 集合等价 RED 测试**
 
@@ -743,8 +743,8 @@ Task 1..9
 
   - Controller 同时有 `@RestController`、`@EgonHttpService`、`@GatewayInterfaceGroup`；
   - Handler 有 `@GatewayOperation`；
-  - Operation name 非空、全局唯一，包含 `rbac3` 且具有 `-v数字` 版本后缀；不把 RBAC3 平台代际 `3` 错当成接口版本；
-  - summary 非空，tags 同时含 `rbac3` 和能力域；
+  - Operation name 非空、全局唯一，包含 `tianquan-jianshen` 且具有 `-v数字` 版本后缀；不把 Tianquan-Jianshen 平台代际 `3` 错当成接口版本；
+  - summary 非空，tags 同时含 `tianquan-jianshen` 和能力域；
   - `externalAccessible` 可从 annotation 明确读取；
   - Contributor 保留 Method、Path、参数、Request/Response Schema、summary、description、tags、Provider identity；
   - Schema 可以保留契约要求的敏感字段名，但敏感字段节点不得携带 `example`、`default` 或真实样例值；描述不得嵌入 refresh token、password、credential、private key、secret 或 hash 原文；
@@ -763,15 +763,15 @@ Task 1..9
 
 - [ ] **Step 3：只修复测试发现的具体注解缺口**
 
-  若集合不等，按失败报告定位单个 Controller/Handler，补充现有 Gateway 注解或缺失 Schema 字段说明。不得：
+  若集合不等，按失败报告定位单个 Controller/Handler，补充现有 Yuheng 注解或缺失 Schema 字段说明。不得：
 
-  - 新建 RBAC3 私有文档注解；
-  - 重复在 Gateway 注解内维护 Method/Path；
+  - 新建 Tianquan-Jianshen 私有文档注解；
+  - 重复在 Yuheng 注解内维护 Method/Path；
   - 添加 Swagger/Springdoc；
-  - 自动发布 Gateway Release；
+  - 自动发布 Yuheng Release；
   - 把敏感请求样例加入 Catalog。
 
-- [ ] **Step 4：运行全部 Gateway Discovery 测试**
+- [ ] **Step 4：运行全部 Yuheng Discovery 测试**
 
   ```bash
   ./mvnw -B -ntp \
@@ -785,27 +785,27 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3GatewayDocumentCatalogContractTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3GatewayDefinitionDiscoveryTest.java
   git diff --name-only -- \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http
-  git commit -m "test(rbac3): enforce gateway document catalog coverage"
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http
+  git commit -m "test(tianquan-jianshen): enforce yuheng document catalog coverage"
   ```
 
   Expected: 当前审计显示 78 个 Mapping 已有注解，因此生产目录列表应为空。只有 Step 3 的失败证明确实要求修改时，才把失败报告点名的 Controller/DTO 以完整文件路径追加到 `git add`，并先审阅 `git diff --cached --name-only`；不得暂存整个目录。
 
 ---
 
-### Task 8：覆盖 DDC 非法更新、LKG、恢复和五事实独立性
+### Task 8：覆盖 Tianshu 非法更新、LKG、恢复和五事实独立性
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3DdcRefreshIntegrationTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java`
-- Modify only if required by failing test: DDC integration classes created in Tasks 1, 2 and 6.
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3DdcRefreshIntegrationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/GatewayDdcConfigurationTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime/RuntimeQueryServiceTest.java`
+- Modify only if required by failing test: Tianshu integration classes created in Tasks 1, 2 and 6.
 
-**Boundary:** 本任务在进程内使用真实 DDC Refresh/Registry 算法和 fake Admin/Ack 边界；不把 Testcontainers 或 mock 成功描述为真实 Redis/PostgreSQL/Gateway 多进程证明。
+**Boundary:** 本任务在进程内使用真实 Tianshu Refresh/Registry 算法和 fake Admin/Ack 边界；不把 Testcontainers 或 mock 成功描述为真实 Redis/PostgreSQL/Yuheng 多进程证明。
 
 - [ ] **Step 1：写完整配置 Refresh/LKG RED 测试**
 
@@ -813,7 +813,7 @@ Task 1..9
 
   - 启动全量 Pull 的五个合法 `applySnapshots` 按 priority 应用，版本与 Policy 全部更新；该路径不伪造运行期 Publish ACK；
   - 运行期 `refresh(DdcPublishMessage)` 的合法更新产生 SUCCESS ACK；非法 `idle > absolute` 产生 FAILED ACK，Policy、Repository currentVersion 和 Checksum 仍为旧值；
-  - 同版本同 Checksum为 ignored，低版本为 ignored，同版本不同 Checksum 按 DDC 现有冲突语义执行；
+  - 同版本同 Checksum为 ignored，低版本为 ignored，同版本不同 Checksum 按 Tianshu 现有冲突语义执行；
   - 后续更高合法版本能从 LKG 恢复并产生 SUCCESS ACK；
   - ACK、异常、Runtime Status 均不包含 rawValue；
   - CONFIG_CLIENT session 与 fake HTTP_PROVIDER lease ID 不相等、状态字段不互相推导；
@@ -829,9 +829,9 @@ Task 1..9
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
 
-- [ ] **Step 3：只修复跨边界失败，不复制 DDC 算法**
+- [ ] **Step 3：只修复跨边界失败，不复制 Tianshu 算法**
 
-  如果测试失败，优先修正 RBAC3 exact Applier 注册、优先级、状态映射或 Gate；不得在 RBAC3 重写 `DdcRefreshService` 的版本/Checksum/ACK 流程，也不得把跨 Key 更新包装成不存在的事务。
+  如果测试失败，优先修正 Tianquan-Jianshen exact Applier 注册、优先级、状态映射或 Gate；不得在 Tianquan-Jianshen 重写 `DdcRefreshService` 的版本/Checksum/ACK 流程，也不得把跨 Key 更新包装成不存在的事务。
 
 - [ ] **Step 4：运行 GREEN、模块测试和本机依赖 IT**
 
@@ -843,7 +843,7 @@ Task 1..9
 
   ./mvnw -B -ntp \
     -pl :egon-cola-tianquan-jianshen-admin -am \
-    -Prbac3-local-it verify
+    -Ptianquan-jianshen-local-it verify
   git diff --check
   ```
 
@@ -853,13 +853,13 @@ Task 1..9
 
   ```bash
   git add \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/Rbac3DdcRefreshIntegrationTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/integration/GatewayDdcConfigurationTest.java \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/runtime/RuntimeQueryServiceTest.java
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/Rbac3DdcRefreshIntegrationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/GatewayDdcConfigurationTest.java \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/runtime/RuntimeQueryServiceTest.java
   git diff --name-only -- \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/ddc \
-    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/integration/runtime
-  git commit -m "test(rbac3): verify DDC fail-safe integration"
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/tianshu \
+    egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/integration/runtime
+  git commit -m "test(tianquan-jianshen): verify Tianshu fail-safe integration"
   ```
 
   Expected: 若 Step 3 没有暴露生产缺陷，两个 main 目录列表为空。若有修复，只把测试证明所需的具体文件以完整路径追加到 `git add`，不得使用目录级 `git add -u`。
@@ -883,8 +883,8 @@ Task 1..9
 - 五个 Key、默认值、范围、关系和安全发布顺序；
 - 动态配置只影响新 Token/Session/激活命令；
 - CONFIG_CLIENT 与 HTTP_PROVIDER 是独立 Lease；
-- DDC READY → Provider 发布的启动顺序；
-- Gateway Interface Catalog 是唯一文档中心，Release 必须显式发布；
+- Tianshu READY → Provider 发布的启动顺序；
+- Yuheng Interface Catalog 是唯一文档中心，Release 必须显式发布；
 - 五事实状态模型、常见故障、LKG 和恢复步骤；
 - Secret/Bootstrap 禁入项；
 - Maven/静态验证不等于真实外部拓扑证明。
@@ -893,12 +893,12 @@ Task 1..9
 
   `verify-static.sh` 增加确定性检查：
 
-  - 生产 `ddc.enabled: true` 与 `registry.enabled: true`；
+  - 生产 `tianshu.enabled: true` 与 `registry.enabled: true`；
   - 五个 Key 各出现一次声明且为 `refreshable = false`；
-  - `gatewayHttpProviderServerReadyListener` 由 RBAC3 提供；
+  - `gatewayHttpProviderServerReadyListener` 由 Tianquan-Jianshen 提供；
   - 四个固定低基数 Metric 名称与 `key/status` 白名单实现存在；
-  - Controller 的 Gateway 文档契约测试存在；
-  - RBAC3 仍只有两个既有 Flyway 文件；
+  - Controller 的 Yuheng 文档契约测试存在；
+  - Tianquan-Jianshen 仍只有两个既有 Flyway 文件；
   - 不存在独立 `egon-cola-tianquan-jianshen-test` 模块；
   - 不存在 Swagger/Springdoc 依赖；
   - 生产 YAML 不含 localhost/默认 Secret。
@@ -916,11 +916,11 @@ Task 1..9
   Runbook 必须给出不泄密的排查顺序：
 
   ```text
-  DDC Config Client state/session
+  Tianshu Config Client state/session
   → current five config versions / last apply error code
-  → Gateway Definition status
-  → DDC HTTP_PROVIDER lease
-  → Gateway Release/Consistency
+  → Yuheng Definition status
+  → Tianshu HTTP_PROVIDER lease
+  → Yuheng Release/Consistency
   → routed request evidence
   ```
 
@@ -950,7 +950,7 @@ Task 1..9
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/operations-runbook.md \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/verification-evidence-template.md \
     egon-cola-xingyuan/egon-cola-tianquan-jianshen/scripts/verification/verify-static.sh
-  git commit -m "docs(rbac3): document DDC and gateway operations"
+  git commit -m "docs(tianquan-jianshen): document Tianshu and yuheng operations"
   ```
 
 ---
@@ -959,7 +959,7 @@ Task 1..9
 
 **Files:**
 
-- Verify only: all RBAC3 modules and directly affected DDC/Gateway modules.
+- Verify only: all Tianquan-Jianshen modules and directly affected Tianshu/Yuheng modules.
 - Modify only when a verification failure proves a regression caused by Tasks 1–9; fixes go into the owning task's file scope and require a focused regression test.
 - Do not create a generic “cleanup” refactor commit.
 
@@ -974,7 +974,7 @@ Task 1..9
   git diff --name-only 63571e7b..HEAD
   ```
 
-  Expected: 只有本计划列出的 RBAC3 文件；无迁移、无 Test 模块、无依赖变更、无无关重构。
+  Expected: 只有本计划列出的 Tianquan-Jianshen 文件；无迁移、无 Test 模块、无依赖变更、无无关重构。
 
 - [ ] **Step 2：执行一次完整后端 clean verify**
 
@@ -984,19 +984,19 @@ Task 1..9
     -am clean verify
   ```
 
-  必须读取最终 reactor summary 和失败测试报告；只有命令 exit 0 才能写“通过”。Maven/static 证据不能描述为真实 DDC/Gateway 多 JVM 路由成功。
+  必须读取最终 reactor summary 和失败测试报告；只有命令 exit 0 才能写“通过”。Maven/static 证据不能描述为真实 Tianshu/Yuheng 多 JVM 路由成功。
 
 - [ ] **Step 3：执行本机 Redis/PostgreSQL IT**
 
   ```bash
   ./mvnw -B -ntp \
     -pl :egon-cola-tianquan-jianshen-admin -am \
-    -Prbac3-local-it verify
+    -Ptianquan-jianshen-local-it verify
   ```
 
   不启动服务，不自动准备/清理用户数据库。若本机依赖不可用，记录准确命令、失败测试和根因边界；其余已通过证据仍分别报告。
 
-- [ ] **Step 4：执行 RBAC3 Admin Web 离线回归**
+- [ ] **Step 4：执行 Tianquan-Jianshen Admin Web 离线回归**
 
   ```bash
   npm --prefix egon-cola-xingyuan/egon-cola-tianquan-jianshen ci
@@ -1008,7 +1008,7 @@ Task 1..9
     --workspace @egon-cola/tianquan-jianshen-admin-web -- --list
   ```
 
-  该组验证用于证明新增 DDC Config Client 卡片、Runtime Status 类型和既有页面均未回归。不得打开浏览器或运行需要外部服务的 Playwright 场景。
+  该组验证用于证明新增 Tianshu Config Client 卡片、Runtime Status 类型和既有页面均未回归。不得打开浏览器或运行需要外部服务的 Playwright 场景。
 
 - [ ] **Step 5：重复静态验收并审计最终工作树**
 
@@ -1019,7 +1019,7 @@ Task 1..9
   git log --oneline -10
   ```
 
-  如果验证修复产生改动，回到其所属 Task：补 RED/GREEN 证据、只暂存对应文件、使用 `fix(rbac3): ...` 的独立提交，再重跑 Step 2–5。不得把多个失败用一个未说明的最终提交掩盖。
+  如果验证修复产生改动，回到其所属 Task：补 RED/GREEN 证据、只暂存对应文件、使用 `fix(tianquan-jianshen): ...` 的独立提交，再重跑 Step 2–5。不得把多个失败用一个未说明的最终提交掩盖。
 
 - [ ] **Step 6：停止在交付边界**
 
@@ -1029,36 +1029,36 @@ Task 1..9
   - IG/AC 完成情况；
   - 每条实际执行的验证命令与结果；
   - 本机依赖或真实拓扑未验证的精确边界；
-  - 没有启动 RBAC3/DDC/Gateway 服务；
+  - 没有启动 Tianquan-Jianshen/Tianshu/Yuheng 服务；
   - 建议用户下一步按 Runbook 启动真实拓扑并审核五事实状态。
 
-  不 push、不自动合并、不启动服务、不发布 Gateway Release。
+  不 push、不自动合并、不启动服务、不发布 Yuheng Release。
 
 ## Spec 追踪矩阵
 
 | Spec 条目 | 实施任务 | 主要证据 |
 |---|---:|---|
-| IG-01/02 Gateway 唯一文档中心与现有注解 | 7、9 | Mapping/Contributor 集合等价测试、README/Architecture |
+| IG-01/02 Yuheng 唯一文档中心与现有注解 | 7、9 | Mapping/Contributor 集合等价测试、README/Architecture |
 | IG-03 配置客户端与注册客户端同时启用 | 5、6 | 生产 YAML、Context Test、独立状态 |
 | IG-04/05 配置 scope 与服务 scope 分离 | 5、8、9 | YAML/作用域测试、Runbook |
 | IG-06/07/08 类型化 Policy、声明与 exact Applier | 1、2 | 原子策略与配置装配测试 |
 | IG-09/10 单 Key 原子、非法 ACK/LKG | 1、2、8 | Candidate Snapshot 与真实 Refresh 测试 |
 | IG-11 只影响新 Token/Session | 3 | 两次签发/创建行为测试 |
 | IG-12 规范根数量限制 | 4 | Activation IT 与 422 Error Code |
-| IG-13 安全根不进 DDC | 5、9 | YAML/静态禁止项和文档 |
-| IG-14 DDC READY 后发布 Provider | 6 | 事件顺序与最多一次发布测试 |
+| IG-13 安全根不进 Tianshu | 5、9 | YAML/静态禁止项和文档 |
+| IG-14 Tianshu READY 后发布 Provider | 6 | 事件顺序与最多一次发布测试 |
 | IG-15 五事实独立 | 6、8 | Runtime Status 与路由组合测试 |
 | IG-16 不自动发布 Release | 7、9、10 | 无发布代码、文档和 diff 审计 |
 | IG-17 无数据库变化 | 9、10 | Flyway 数量静态检查、最终 diff |
 | IG-18 无独立 Test 模块 | 9、10 | 静态脚本、最终模块审计 |
-| AC-IG-01 配置客户端闭环 | 2、5、8 | DDC declaration/refresh/context 测试 |
+| AC-IG-01 配置客户端闭环 | 2、5、8 | Tianshu declaration/refresh/context 测试 |
 | AC-IG-02 动态配置生效 | 3、4 | Token/Session/Activation 测试 |
 | AC-IG-03 非法配置 Fail Safe | 1、2、8 | Snapshot/LKG/FAILED ACK 测试 |
 | AC-IG-04 独立服务租约 | 5、6、8 | Config session 与 Provider lease 状态 |
 | AC-IG-05 Provider 发布顺序 | 6 | Publication Gate 测试 |
-| AC-IG-06 Gateway 文档中心 | 7 | 全 Mapping 覆盖与敏感字段测试 |
+| AC-IG-06 Yuheng 文档中心 | 7 | 全 Mapping 覆盖与敏感字段测试 |
 | AC-IG-07 显式 Release | 7、9、10 | 文档、无自动发布实现、diff 审计 |
-| AC-IG-08 DDC 服务发现 | 5、8、10 | 既有 Gateway/DDC 回归与配置测试 |
+| AC-IG-08 Tianshu 服务发现 | 5、8、10 | 既有 Yuheng/Tianshu 回归与配置测试 |
 | AC-IG-09 安全配置边界 | 5、9 | Secret/Bootstrap 禁止项 |
 | AC-IG-10 全量回归 | 8、10 | clean verify、本机 IT、前端离线验证 |
 
@@ -1072,7 +1072,7 @@ Task 1..9
 4. 生产配置同时启用 CONFIG_CLIENT 与 Registry，local/test 行为保持关闭；
 5. 五个动态 Key 通过 exact Applier 更新同一不可变 Policy，非法值保留 LKG；
 6. JWT、Session 和激活命令使用新策略，既有凭证/Session 不追溯修改；
-7. Provider 只在 DDC READY 后发布，状态 API 与 Readiness 保留独立事实；
-8. Spring Mapping 与 Gateway Catalog Definition 集合完全一致；
+7. Provider 只在 Tianshu READY 后发布，状态 API 与 Readiness 保留独立事实；
+8. Spring Mapping 与 Yuheng Catalog Definition 集合完全一致；
 9. 没有新增/修改 Flyway、Test 模块、Swagger/Springdoc、静态 Provider URL 或默认 Secret；
-10. 没有启动服务、打开浏览器、push 或发布 Gateway Release。
+10. 没有启动服务、打开浏览器、push 或发布 Yuheng Release。

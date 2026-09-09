@@ -1,27 +1,27 @@
-# Egon-COLA Gateway 17 项缺口修复设计
+# Egon-COLA Yuheng 17 项缺口修复设计
 
 状态：已确认，实施中
 
 基线：
 
-- `2026-07-24-gateway-component-design.md`
-- `2026-07-25-gateway-implementation-acceptance.md`
-- 当前 `codex/gateway-wave-0-foundation` 代码审计结果
+- `2026-07-24-yuheng-component-design.md`
+- `2026-07-25-yuheng-implementation-acceptance.md`
+- 当前 `codex/yuheng-wave-0-foundation` 代码审计结果
 
 ## 1. 目标
 
-本设计修复验收审计中识别出的 17 项缺口，使 Gateway 从“具备主体模块和 happy
+本设计修复验收审计中识别出的 17 项缺口，使 Yuheng 从“具备主体模块和 happy
 path”提升为具备明确安全边界、流式数据面、规则闭环、最终一致上报、真实可观测性、
 可操作管理平台和生产部署基线的完整 Component 项目。
 
 本轮不改变以下已确认边界：
 
-1. Gateway Engine 自研，不引入 Spring Cloud Gateway、Nacos 或 Dubbo；
-2. Provider 发现、配置和规则下发使用 Egon-COLA DDC；
+1. Yuheng Engine 自研，不引入 Spring Cloud Gateway、Nacos 或 Dubbo；
+2. Provider 发现、配置和规则下发使用 Egon-COLA Tianshu；
 3. RPC 使用 Egon-COLA RPC；
 4. Starter 只上报接口定义，不上报接口调用；
 5. 调用事件只由 Engine 发送到 Kafka；
-6. 下游业务权限系统不在 Gateway 内实现，但 Engine 保留业务鉴权扩展点；
+6. 下游业务权限系统不在 Yuheng 内实现，但 Engine 保留业务鉴权扩展点；
 7. Nginx 节点管理和动态配置不属于本项目。
 
 ## 2. 修复范围与验收口径
@@ -75,7 +75,7 @@ Capability 的管理员。
 
 - `REQUEST_SIZE` 在读取 Body 前先检查 Content-Length，并在流式读取时二次计数；
 - `RESPONSE_SIZE` 在写出前检查 Content-Length，并在流式写出时二次计数；
-- Policy 支持 Gateway Group、Route、Operation 作用域，最具体规则优先；
+- Policy 支持 Yuheng Group、Route、Operation 作用域，最具体规则优先；
 - 未配置时使用 Engine 全局硬上限，规则不能突破全局硬上限。
 
 #### GAP-05 主动健康探测
@@ -113,7 +113,7 @@ Capability 的管理员。
 - PostgreSQL 使用 `percentile_cont(0.50/0.95/0.99) within group`；
 - SQLite/单元测试使用 Java 侧确定性百分位算法；
 - Dashboard DTO 保持现有字段，不再用平均值和最大值冒充；
-- 查询按当前时间窗和 Gateway Group/Operation 过滤。
+- 查询按当前时间窗和 Yuheng Group/Operation 过滤。
 
 #### GAP-09 Definition Set 生命周期
 
@@ -129,7 +129,7 @@ Capability 的管理员。
 #### GAP-10 OpenTelemetry
 
 - 使用 Micrometer Observation + Micrometer Tracing Bridge OTel；
-- 创建 Engine Request、Provider Attempt、DDC Apply、Kafka Send Observation；
+- 创建 Engine Request、Provider Attempt、Tianshu Apply、Kafka Send Observation；
 - Trace ID 继续优先使用前端合法值，否则由 Engine 生成；
 - W3C `traceparent`/`tracestate` 传播到 HTTP/RPC Provider；
 - 指标使用低基数 Tag，Operation Key 等高基数信息只进入 Span/Event；
@@ -162,7 +162,7 @@ Capability 的管理员。
 
 - 增加真实登录态、Token 持久化、刷新、退出和 401/403 页面；
 - Capability 从 `/api/management/session` 获取，不再硬编码；
-- 补齐 Gateway Group 新建、编辑、启停；
+- 补齐 Yuheng Group 新建、编辑、启停；
 - 补齐 Application、Credential 管理；
 - Route/Policy 使用结构化表单，支持新增、编辑、删除和校验；
 - 补齐业务域、实体域、接口组、Operation 的手工维护；
@@ -174,7 +174,7 @@ Capability 的管理员。
 
 1. 登录、登出、401；
 2. Capability 导航与 403；
-3. Gateway Group CRUD/启停；
+3. Yuheng Group CRUD/启停；
 4. Application/Credential；
 5. 三级目录和 Operation；
 6. Draft Route 编辑/删除；
@@ -188,10 +188,10 @@ Capability 的管理员。
 #### GAP-15 真实拓扑验收入口
 
 - 保留并扩展 `GatewayLiveTopologyIT`；
-- Compose 启动 PostgreSQL、Redis、Kafka、DDC、Admin、两台 Engine、HTTP/RPC Provider；
+- Compose 启动 PostgreSQL、Redis、Kafka、Tianshu、Admin、两台 Engine、HTTP/RPC Provider；
 - Maven Profile 执行真实 HTTP/RPC 注册、Admin 可见、规则发布、调用事件闭环；
 - 前端 Playwright 连接同一 Compose；
-- 本地默认 `verify` 不启动外部拓扑，`gateway-live` 与 CI Nightly/Manual 执行。
+- 本地默认 `verify` 不启动外部拓扑，`yuheng-live` 与 CI Nightly/Manual 执行。
 
 #### GAP-16 性能、长稳和故障注入
 
@@ -201,20 +201,20 @@ Capability 的管理员。
 - CI 分为快速单元层、组件层、Live 拓扑层、Admin E2E 层和 Nightly 性能层；
 - 阈值、机器规格、数据规模和测试时长进入版本库，结果产物可归档。
 
-#### GAP-17 DDC HA、RPC Gateway 多活、TLS/mTLS
+#### GAP-17 Tianshu HA、RPC Yuheng 多活、TLS/mTLS
 
-DDC HA：
+Tianshu HA：
 
-- DDC Admin 保持无本地会话，多个实例共享 PostgreSQL 与 Redis；
+- Tianshu Admin 保持无本地会话，多个实例共享 PostgreSQL 与 Redis；
 - 发布任务领取使用数据库 CAS/Skip Locked，避免重复执行；
 - Redis 使用 Sentinel/Cluster URL 配置，不绑定单节点；
-- 两台 DDC Admin 的健康、就绪和故障转移加入 Compose HA Profile；
+- 两台 Tianshu Admin 的健康、就绪和故障转移加入 Compose HA Profile；
 - 本轮不引入 Raft；一致性事实仍由 PostgreSQL 事务和版本/CAS 保证。
 
-RPC Gateway 多活：
+RPC Yuheng 多活：
 
-- `INTERNAL_GATEWAY` 从“单 Slot”改为同 Gateway Group 多实例集合；
-- RPC Consumer 按 DDC Lease 发现全部健康 Engine；
+- `INTERNAL_GATEWAY` 从“单 Slot”改为同 Yuheng Group 多实例集合；
+- RPC Consumer 按 Tianshu Lease 发现全部健康 Engine；
 - 使用 Round Robin + 失败摘除 + 有界重试；
 - Lease 变化增量更新 Channel，关闭时排空；
 - 相同 Group 不再因第二个 Engine 注册而失败。
@@ -222,7 +222,7 @@ RPC Gateway 多活：
 TLS/mTLS：
 
 - PUBLIC HTTP 默认可配置 TLS；
-- INTERNAL HTTP、RPC、DDC Management、Admin 管理 API 支持强制 mTLS；
+- INTERNAL HTTP、RPC、Tianshu Management、Admin 管理 API 支持强制 mTLS；
 - Key/Certificate/Trust Bundle 只通过文件或 Secret 注入；
 - 明文只允许显式 development 配置；
 - 对端 SAN/Authority 校验不允许关闭；
@@ -249,6 +249,6 @@ TLS/mTLS：
 - 配置和运维入口有文档；
 - 不存在回退为 Header 信任、全量聚合、无限重试或静默失败的旁路。
 
-最终再执行 Gateway 27 模块 Reactor、Admin Web 全套静态验证、Compose 配置校验和代码审查。
+最终再执行 Yuheng 27 模块 Reactor、Admin Web 全套静态验证、Compose 配置校验和代码审查。
 真实容器、浏览器和性能测试是否执行，必须按实际结果单独报告，不能用“测试代码存在”
 替代“真实环境已通过”。

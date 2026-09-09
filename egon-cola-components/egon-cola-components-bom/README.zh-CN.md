@@ -6,7 +6,7 @@
 
 `egon-cola-components-bom` 是 Egon COLA 组件体系的 Maven BOM。它不提供运行时代码，只负责统一管理 `egon-cola-components` 下可被业务应用直接依赖的组件版本，避免业务工程在每个组件依赖上重复写版本号。
 
-BOM 当前导出的是稳定消费入口：common core 与工具模块、各业务组件的 starter、扁平化 Agent Flow starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。platform、admin、test、聚合 POM 不作为业务依赖入口导出。
+BOM 当前导出的是稳定消费入口：common core 与工具模块、各业务组件的 starter、扁平化 Agent Flow starter，以及字节码组件的公开 API、桥接层、运行时、Agent 和 starter。xingyuan、admin、test、聚合 POM 不作为业务依赖入口导出。
 
 ## 功能说明
 
@@ -45,7 +45,7 @@ BOM 当前导出的是稳定消费入口：common core 与工具模块、各业�
 | `*-admin` | 独立服务，应按应用部署，不作为业务依赖 |
 | `*-test` | 组件样例和验证模块，不应进入业务运行时 |
 | `egon-cola-component-dynamic-thread-pool` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | 组件聚合 POM，不是业务依赖入口 |
-| `egon-cola-platform-*` | 企业级基础设施平台归属 `egon-cola-xingyuan`，不由 Components BOM 管理版本 |
+| `egon-cola-xingyuan-*` | 企业级基础设施平台归属 `egon-cola-xingyuan`，不由 Components BOM 管理版本 |
 
 ## 完整的使用示例
 

@@ -7,7 +7,7 @@
 | Status | `Review` |
 | Created | `2026-08-23 17:49 CST` |
 | Updated | `2026-08-23 17:49 CST` |
-| Owner | `Egon-COLA platform owner / User` |
+| Owner | `Egon-COLA xingyuan owner / User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-component-bytecode 中 Access Guard Agent vertical slice；egon-cola-component-access-guard-starter 的 AOP-only API、typed policy、Engine split；两组件中英文 README；不改其他模块` |
 | Source Requirement | `2026-08-23 用户决定删除 Guard Agent、只保留 AOP、拆分 Engine、重构策略并更新文档；随后显式调用 egon-coding-writing-plan` |
@@ -68,7 +68,7 @@
 | `REQ-010` | 主规格 §4、§16.4 | 更新四份 README | 不再给出 Guard Agent/constructor 用法；说明 AOP/Client/2.0 migration | Step 5 docs/static gate |
 | `REQ-011` | 主规格 §4、§7.3.5、§16 | 删除能力 fail-fast，Bridge 2.0 | `engine=AGENT`/`features=access-guard` 失败；mixed major 失败 | Steps 1–2 protocol/config tests；Step 5 docs |
 | `REQ-012` | 主规格 §4、§14 | 分层验证并标明证据边界 | focused/module/Invoker/dependency/static gates exit 0；外部 Redis/生产另验 | 所有 Steps + Chapter 8 |
-| `REQ-013` | 主规格 §4、§8、§19 | 其他不动 | diff 仅含 inventory paths；RPC/DDC/DB/UI/并发 dirty files无改动 | 所有 path-limited commits + final scope audit |
+| `REQ-013` | 主规格 §4、§8、§19 | 其他不动 | diff 仅含 inventory paths；RPC/Tianshu/DB/UI/并发 dirty files无改动 | 所有 path-limited commits + final scope audit |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -107,7 +107,7 @@
 - 每个 Step 一个语义 commit，使用 `git add -- <Step exact paths>`；不得使用 `git add .`。
 - Step 1 文件多但不可拆：bridge ABI、generated calls、runtime adapter 和 Agent feature 任一单独删除都会造成编译断裂或静默 bypass。
 - `AccessGuardCoreAutoConfiguration.java` 在 Steps 2/3/4 分别拥有 Agent wiring、typed policy wiring、Engine collaborator wiring；`DefaultGuardEngine.java` 与两份 Engine contract tests在 Steps 3/4 先切 typed contract再迁移职责。每一步结束均可独立验证，不提交已知编译失败状态。
-- 当前所有 identity/Gateway/DDC/RBAC 等 dirty paths以及 `docs/egon/spec/2026-08-23-16-43-open-source-archetype-family.md`不进入任何 commit。
+- 当前所有 identity/Yuheng/Tianshu/RBAC 等 dirty paths以及 `docs/egon/spec/2026-08-23-16-43-open-source-archetype-family.md`不进入任何 commit。
 
 ### 4.5 Spec Simplicity and Implementation-necessity Audit
 
@@ -212,7 +212,7 @@ egon-cola-components/
 
 - Prompt-provided main-agent `AGENTS.md` rules apply；仓库内 `rg --files -g AGENTS.md` 未发现额外文件。
 - Branch `main`，commit `772df2b28b4abf29e7fffae6ea1b10fd616397b4`。
-- 现有 identity/Gateway/DDC/RBAC/scripts/两份 identity Spec/Plan 的 modified files，以及并发创建的 `docs/egon/spec/2026-08-23-16-43-open-source-archetype-family.md` 均属于用户/并发工作，必须保持未暂存、未提交、未修改。
+- 现有 identity/Yuheng/Tianshu/RBAC/scripts/两份 identity Spec/Plan 的 modified files，以及并发创建的 `docs/egon/spec/2026-08-23-16-43-open-source-archetype-family.md` 均属于用户/并发工作，必须保持未暂存、未提交、未修改。
 - 主 Spec 与本 Plan 当前未跟踪；实施前应只 path-stage 它们的审批状态/关系提交，不能把其他 dirty files带入。
 - 本任务没有 generated source、Flyway、数据库、前端或浏览器操作。
 
@@ -1167,7 +1167,7 @@ N/A。主规格 §11明确无数据库/Flyway；Store key、Lua、TTL、rule sch
 | `REQ-010` | 主规格 §16.4 | 5 | four README files | Gate12 | bilingual docs no removed usage |
 | `REQ-011` | 主规格 §7.3.5/§16 | 1,2,5 | Bridge2、parsers/config tests、docs | Gates1–5,11–12,15 | old config/mixed artifacts fail-fast |
 | `REQ-012` | 主规格 §14 | 1,2,3,4,5 | all tests/docs/gates | Gates1–15 | layered proof with explicit gaps |
-| `REQ-013` | 主规格 §3.3/§8/§19 | 1,2,3,4,5 | only §5 inventory | Gates10,12–14 | unrelated dirty/RPC/DDC/DB/UI untouched |
+| `REQ-013` | 主规格 §3.3/§8/§19 | 1,2,3,4,5 | only §5 inventory | Gates10,12–14 | unrelated dirty/RPC/Tianshu/DB/UI untouched |
 
 ## 11. Risks, Blockers, and User Decisions
 
@@ -1192,7 +1192,7 @@ N/A。主规格 §11明确无数据库/Flyway；Store key、Lua、TTL、rule sch
 - Engine拆分：Step4精确实现two collaborators + immutable handoff + thin Facade。
 - Strategy：Step3落实typed closed Strategy；没有Abstract Factory/plugin registry。
 - 文档：Step5只修改四份目标README及必要版本/迁移内容。
-- 别的不要动：所有commit/gate均path-limited；RPC仅测试，DB/UI/DDC/Gateway/identity dirty paths不改。
+- 别的不要动：所有commit/gate均path-limited；RPC仅测试，DB/UI/Tianshu/Yuheng/identity dirty paths不改。
 
 ### 12.2 Spec consistency
 

@@ -65,7 +65,7 @@ V1 不持久化 run/session/report，不提供恢复、历史查询或多实例�
 | `EVD-009`   | Static repository         | `scripts/test-spring-dependency-management.sh`                                               | Boot/source 与 springdoc 清单显式枚举现有 source roots                                                                             | 新 Agent source root 必须进入 Boot Parent 与 springdoc 管理检查                             | 不要求加入 Dubbo 清单                      |
 | `EVD-010`   | Accepted Spec             | `2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md`                       | 已接受两阶段生成、definitions 单一清单、忽略 `.generated`、发布前 fail-closed Gate                                                            | 新 family 必须通过 amendment 扩展产品集合，不能绕过生成/发布链                                         | 该文档当前工作区有用户修改，本任务不编辑它               |
 | `EVD-011`   | Predecessor Accepted Spec | `2026-09-04-09-34-agent-flow-component.md`                                                   | 定义 `AgentFlowService`、具名 `ChatModel`、配置编译、InMemoryRunner、同步/流式执行、取消和关闭                                                    | 生成项目复用该组件；不复制 ADK 装配器                                                             | 已接受但尚无可执行代码；必须先完成并验证对应 Plan         |
-| `EVD-012`   | Static repository         | `egon-cola-source-web/.../GradeController`, `GradeManage`, `GradeManageImpl`                 | Adapter 只调用 Application Manage，Application 只调用 Domain 契约                                                                  | Deep Research 保持 Controller -> Manage -> Domain Gateway -> Infrastructure Adapter | 示例本身非流式                             |
+| `EVD-012`   | Static repository         | `egon-cola-source-web/.../GradeController`, `GradeManage`, `GradeManageImpl`                 | Adapter 只调用 Application Manage，Application 只调用 Domain 契约                                                                  | Deep Research 保持 Controller -> Manage -> Domain Yuheng -> Infrastructure Adapter | 示例本身非流式                             |
 | `EVD-013`   | Static repository         | `OrganizationGlobalExceptionHandler`, `OrganizationErrorResponse`, `OrganizationTraceFilter` | Web profile 使用 ControllerAdvice 的稳定错误体与 `X-Trace-Id`                                                                      | 新项目复用形状与 trace 约定，并换成 Deep Research code namespace                                | 当前 auth filter 仅信任头，不适合直接保护付费 AI 接口 |
 | `EVD-014`   | Static reference source   | `parallel_research_app.yml`                                                                  | 参考流程是 Parallel research agents 后接 SynthesisAgent，依赖搜索工具并通过 output-key 汇总                                                  | 保留 Parallel + Sequential 能力，改为通用 topic 和无密钥配置                                     | 参考 YAML 含供应商地址/凭据，不复制任何值            |
 | `EVD-015`   | Static reference source   | `ChatModelNode`                                                                              | 参考实现把 MCP `ToolCallback` 放入 `OpenAiChatOptions` 后创建 `OpenAiChatModel`                                                     | 工具装配属于宿主 Archetype，不属于通用 component                                                | 参考使用旧版本和 DDD 节点链，仅作结构证据             |
@@ -163,7 +163,7 @@ V1 不持久化 run/session/report，不提供恢复、历史查询或多实例�
 | 认证拒绝        | 缺失或错误 API Key              | 请求到达安全 filter                | 常量时间比较失败                                                                     | 不进入 Controller           | 无状态                            | 401，安全错误不泄露 key                       | `REQ-008`, `REQ-012`            |
 | 容量饱和        | 第 5 个默认并发请求                | 四个许可占用                       | CapacityGuard fail-fast                                                      | 客户端稍后显式重试                | 不建 session                     | 429 + `Retry-After: 5`                | `REQ-011`                       |
 | MCP/模型预检失败  | 启动时工具为空或 Bean 缺失           | dev/prod profile             | context fail closed                                                          | 不发布 API READY            | 已建 MCP client 关闭               | 启动失败且日志无 secret                       | `REQ-004`, `REQ-006`, `REQ-012` |
-| 流中依赖失败      | MCP/LLM 在 200 后报错          | SSE 已建立                      | gateway 映射 safe failure -> failed -> close                                   | 不自动 retry 付费调用           | session 删除、permit 释放           | 一个 `research.failed` 后 EOF            | `REQ-009`-`REQ-011`             |
+| 流中依赖失败      | MCP/LLM 在 200 后报错          | SSE 已建立                      | yuheng 映射 safe failure -> failed -> close                                   | 不自动 retry 付费调用           | session 删除、permit 释放           | 一个 `research.failed` 后 EOF            | `REQ-009`-`REQ-011`             |
 | 客户端断连       | 浏览器/调用方关闭连接                | run ACTIVE                   | emitter callback 取消 Flowable subscription                                    | late event 被丢弃           | session 删除、permit 释放           | 服务端记录 runId/traceId outcome=CANCELLED | `REQ-009`, `REQ-010`            |
 | 总超时         | run 超过 5 分钟                | SSE 已建立或启动阶段阻塞               | deadline 取消下游                                                                | 无内部 retry                | 同步清理所有租约                       | 流内 failed code `RESEARCH_TIMEOUT`     | `REQ-010`, `REQ-011`            |
 | 重复客户端 retry | 同一 body 再次 POST            | 前一次未知/失败                     | 创建新 runId                                                                    | 可能产生第二次费用                | 新独立 session                    | 文档明确 non-idempotent                   | `REQ-007`, `REQ-009`, `REQ-013` |
@@ -292,14 +292,14 @@ flowchart LR
 
 | Literal rule | Affected? | Repository evidence                                                                        | Exact design decision                                                                                                                                                 | Files/types/interfaces                                                                                            | Validation/test evidence                             | Status/blocker |
 |--------------|-----------|--------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------|------------------------------------------------------|----------------|
-| Rule 1       | Yes       | Web source 的 Request/Command/Event/VO/Properties/Gateway/Manage 命名；§8.2/§10.1 完整 inventory | 所有 carrier 使用 `Request/Command/BO/VO/Event`，枚举用 `Enum`，行为用 `Controller/Service/Gateway/Converter/Factory/Exception`；不用 Data/Info/Param/Bean                           | §8.2 与 §10.1 精确类型                                                                                                 | `TEST-018`, `TEST-019`, `TEST-021` naming scan       | PASS           |
-| Rule 2       | Yes       | API -> Adapter -> Application -> Domain Gateway -> Component 全 handoff                     | HTTP 使用 Jakarta Validation；Application/Domain 通过 compact constructor + `ValidationUtils` 复验；无电话号码字段所以 libphonenumber N/A；无复用 create/update 场景所以 Validation Group 不需新增 | Request/Command/BO/Properties 与 INTERNAL-001/002                                                                  | `TEST-002`, `TEST-003`, `TEST-015`                   | PASS           |
+| Rule 1       | Yes       | Web source 的 Request/Command/Event/VO/Properties/Yuheng/Manage 命名；§8.2/§10.1 完整 inventory | 所有 carrier 使用 `Request/Command/BO/VO/Event`，枚举用 `Enum`，行为用 `Controller/Service/Yuheng/Converter/Factory/Exception`；不用 Data/Info/Param/Bean                           | §8.2 与 §10.1 精确类型                                                                                                 | `TEST-018`, `TEST-019`, `TEST-021` naming scan       | PASS           |
+| Rule 2       | Yes       | API -> Adapter -> Application -> Domain Yuheng -> Component 全 handoff                     | HTTP 使用 Jakarta Validation；Application/Domain 通过 compact constructor + `ValidationUtils` 复验；无电话号码字段所以 libphonenumber N/A；无复用 create/update 场景所以 Validation Group 不需新增 | Request/Command/BO/Properties 与 INTERNAL-001/002                                                                  | `TEST-002`, `TEST-003`, `TEST-015`                   | PASS           |
 | Rule 3       | Yes       | 当前 BaseConverter 位于 common-core；Web 使用 MapStruct/MapStructPlus 与 records                   | 简单 carrier 全用 record；四个跨边界 Converter 使用非 Spring `@Mapper`、`Mappers.getMapper` 并实现 exact `BaseConverter<S,T>`；复杂生命周期行为不是 data object，不套数据类 Lombok组合                    | `DeepResearchCommandConverter`, `DeepResearchErrorConverter`, `ResearchEventConverter`, `AgentFlowEventConverter` | converter compile/mapping tests + constructor review | PASS           |
 | Rule 4       | Yes       | Web `lombok.config` 与 constructor injection pattern                                        | 每个具体业务行为类使用 `@Slf4j`；Spring Bean 有显式名；依赖为 final + `@Qualifier`，类使用 `@RequiredArgsConstructor`；lombok.config 复制 Qualifier 到构造参数                                        | ManageImpl/GatewayImpl/Factory/filters/config；Converters 非 Spring static mapper                                   | context wiring + logging/source tests                | PASS           |
 | Rule 5       | Yes       | §6.1 reuse ledger、JDK/Spring/Egon capabilities                                             | 只用 JDK、Spring、Egon 和已批准 AI/MCP framework；不创建 `*Utils`，不使用 BeanUtils/JSON 做转换                                                                                          | all affected call sites                                                                                           | dependency/import scan                               | PASS           |
 | Rule 6       | Yes       | API-001 JSON/SSE/Error contract                                                            | Spring Boot Jackson-only；Request 显式拒绝 unknown/null；VO/ErrorResponse 明确 NON_NULL/Instant/enum wire；不输出 polymorphic class 或 secrets                                     | Request/EventVO/ErrorResponse                                                                                     | `TEST-002`, `TEST-008`, `TEST-020`                   | PASS           |
 | Rule 7       | Yes       | dev/test/prod profiles                                                                     | 模型/MCP/security/limits/docs key 集合三 profile 一致，值可不同；typed validated Properties                                                                                        | application-*.yml/Properties                                                                                      | `TEST-016`                                           | PASS           |
-| Rule 9       | Yes       | planner/parallel/writer、stream observer、terminal race 与 capacity 是复杂业务协作                   | 采用 Adapter + Observer + Facade + Bulkhead + immutable configured workflow；参与者/选择/失败/扩展见 §13                                                                           | Gateway/ObserverService/Manage/CapacityService/Flow config                                                        | `TEST-005`, `TEST-007`-`TEST-014`                    | PASS           |
+| Rule 9       | Yes       | planner/parallel/writer、stream observer、terminal race 与 capacity 是复杂业务协作                   | 采用 Adapter + Observer + Facade + Bulkhead + immutable configured workflow；参与者/选择/失败/扩展见 §13                                                                           | Yuheng/ObserverService/Manage/CapacityService/Flow config                                                        | `TEST-005`, `TEST-007`-`TEST-014`                    | PASS           |
 | Rule 10      | Yes       | run/event/deadline/timeouts 全部是新时间边界                                                       | `Instant` 为 UTC millisecond JSON，`Duration` 为 ISO-8601 config，`Clock` 可注入；禁止新 Date/Calendar/SimpleDateFormat                                                          | DeepResearchEvent/TaskBO/Properties                                                                               | time serialization/config/source scan                | PASS           |
 | Rule 11      | Yes       | 用户指定 Web archetype；`EVD-001`-`EVD-004`                                                     | 严格采用一个 Web non-open profile；不混合扁平 Component 包结构、Traditional `biz.*` 或新层                                                                                               | six modules + §8.2                                                                                                | `AgentArchitectureTest` + generated verifier         | PASS           |
 
@@ -338,10 +338,10 @@ flowchart TB
 
     subgraph Source["egon-cola-source-agent"]
         Common["common\nerror/constants"]
-        Domain["domain/research\nVO + Gateway + Event"]
+        Domain["domain/research\nVO + Yuheng + Event"]
         App["application/research\nCommand + Manage + capacity"]
         Adapter["adapter/research\nAPI key + Controller + SSE mapping"]
-        Infra["infrastructure/research\nAgentFlow gateway + MCP tools"]
+        Infra["infrastructure/research\nAgentFlow yuheng + MCP tools"]
         Starter["starter\nChatModel + Flow/OpenAPI/config"]
     end
 
@@ -379,9 +379,9 @@ flowchart TB
 | Boundary            | Owns                                                                    | Inbound/outbound contract       | Must not own                               | Requirements                              |
 |---------------------|-------------------------------------------------------------------------|---------------------------------|--------------------------------------------|-------------------------------------------|
 | Common              | error code constants、safe utility only if reused                        | Java constants                  | AI/API/domain state                        | `REQ-002`, `REQ-003`                      |
-| Domain              | `ResearchTopicBO`、`DeepResearchEvent`、Gateway/Observer Service contract | pure Java                       | Spring/ADK/HTTP/MCP                        | `REQ-002`, `REQ-010`                      |
+| Domain              | `ResearchTopicBO`、`DeepResearchEvent`、Yuheng/Observer Service contract | pure Java                       | Spring/ADK/HTTP/MCP                        | `REQ-002`, `REQ-010`                      |
 | Application         | Command validation、capacity lease、use-case orchestration                | `DeepResearchManage`            | HTTP/ADK/tool client                       | `REQ-003`, `REQ-007`, `REQ-011`           |
-| Infrastructure      | AgentFlow adapter、MCP lifecycle/tool callbacks                          | Domain Gateway -> component/MCP | Controller/security/business prompt choice | `REQ-004`-`REQ-006`, `REQ-010`            |
+| Infrastructure      | AgentFlow adapter、MCP lifecycle/tool callbacks                          | Domain Yuheng -> component/MCP | Controller/security/business prompt choice | `REQ-004`-`REQ-006`, `REQ-010`            |
 | Adapter             | API Key/trace、request mapping、SSE lifecycle/error                       | API-001 -> Manage               | direct Infrastructure/component call       | `REQ-007`-`REQ-009`, `REQ-012`, `REQ-014` |
 | Starter             | app assembly、OpenAI ChatModel、fixed Flow config、OpenAPI/profile config  | Spring Boot context             | business use-case implementation           | `REQ-004`-`REQ-006`, `REQ-012`            |
 | Definition/pipeline | metadata/post-generate/IT/verifier/public packaging                     | source -> generated artifact    | authoritative business source              | `REQ-015`-`REQ-017`                       |
@@ -436,10 +436,10 @@ flowchart TD
 | 2    | Controller -> Converter     | `toCommand(request)`               | DTO -> Command                      | none                        | validation 400                        | `REQ-008`                       |
 | 3    | Controller -> Manage        | `startResearch(command, observer)` | Command + Observer -> Handle        | capacity lease              | 429 if busy                           | `REQ-007`, `REQ-011`            |
 | 4    | Manage -> Domain            | `ResearchTopicBO.create`           | normalized topic                    | immutable BO                | application validation error          | `REQ-008`                       |
-| 5    | Manage -> Gateway           | `start(task, observer)`            | domain task -> handle               | runId/session               | dependency unavailable pre-stream 503 | `REQ-009`, `REQ-010`            |
-| 6    | Gateway -> AgentFlowService | create + executeStream             | fixed flowId/userId/session/message | ADK session/subscription    | map safe failure; no retry            | `REQ-004`, `REQ-010`            |
+| 5    | Manage -> Yuheng           | `start(task, observer)`            | domain task -> handle               | runId/session               | dependency unavailable pre-stream 503 | `REQ-009`, `REQ-010`            |
+| 6    | Yuheng -> AgentFlowService | create + executeStream             | fixed flowId/userId/session/message | ADK session/subscription    | map safe failure; no retry            | `REQ-004`, `REQ-010`            |
 | 7    | ADK -> ChatModel/tools      | planner/research/writer prompts    | text/tool calls/events              | external billed calls       | timeout/cancel propagates             | `REQ-005`, `REQ-006`, `REQ-011` |
-| 8    | Gateway -> Observer         | started/progress/completed/failed  | domain event                        | sequence increment          | observer error triggers cancel        | `REQ-009`, `REQ-010`            |
+| 8    | Yuheng -> Observer         | started/progress/completed/failed  | domain event                        | sequence increment          | observer error triggers cancel        | `REQ-009`, `REQ-010`            |
 | 9    | Adapter -> SseEmitter       | event/id/data JSON                 | `DeepResearchEventVO`               | socket write                | disconnect callback cleanup           | `REQ-009`, `REQ-010`            |
 | 10   | terminal cleanup            | handle/subscription/session/permit | terminal reason                     | all resources released once | idempotent CAS cleanup                | `REQ-010`, `REQ-011`            |
 
@@ -451,7 +451,7 @@ sequenceDiagram
     participant F as ApiKey/Trace Filter
     participant A as Adapter Controller
     participant M as DeepResearchManage
-    participant G as AgentFlow Gateway
+    participant G as AgentFlow Yuheng
     participant AF as AgentFlowService
     participant L as Spring AI ChatModel
     participant T as MCP Search Tools
@@ -493,7 +493,7 @@ sequenceDiagram
 
 - 无数据库事务。一次 run 的一致性边界是 JVM 内的 `runId + sessionId + subscription + capacity lease`。
 - `ResearchCapacityService` 使用公平 `Semaphore`，默认 4、配置范围 1-32；不排队，获取失败立即 429。
-- Gateway 使用原子 terminal flag 保证 completed/failed/cancelled 只有一个胜者，cleanup 可重复调用但资源只释放一次。
+- Yuheng 使用原子 terminal flag 保证 completed/failed/cancelled 只有一个胜者，cleanup 可重复调用但资源只释放一次。
 - ADK session 的 userId 使用固定前缀加 runId，不来自 API body；sessionId 由组件创建并只在 Infrastructure 内可见。
 - API-001 非幂等。没有 `Idempotency-Key`，因为 V1 不持久化去重结果；网络重试会创建新 run 并可能再次计费。
 - Parallel branches 可并发写不同 output-key；禁止重复 key。Writer 只在 Parallel 完成后读取三个结果和 planner result。
@@ -505,7 +505,7 @@ sequenceDiagram
 | invalid/auth/media                     | Filter/MVC validation        | 4xx error JSON             | no run                                     | client fix only   | 修正请求/key                            |
 | capacity exhausted                     | semaphore                    | 429 + Retry-After 5        | no run                                     | client-controlled | 延迟后新 POST                           |
 | missing ChatModel/tool/config          | context startup validation   | service not READY          | close partial MCP/flow                     | no loop           | 修复 env/config                       |
-| MCP unavailable before first SSE event | Gateway start                | 503 error JSON             | delete session/release                     | no server retry   | client decide retry                 |
+| MCP unavailable before first SSE event | Yuheng start                | 503 error JSON             | delete session/release                     | no server retry   | client decide retry                 |
 | LLM/MCP failure after stream           | subscription onError         | one `research.failed`      | cancel/delete/release                      | none              | client may start new run            |
 | deadline                               | component timeout/scheduler  | `RESEARCH_TIMEOUT` failed  | cancel/delete/release                      | none              | narrow topic or retry               |
 | client disconnect                      | emitter onError/onCompletion | no further wire event      | cancel/delete/release                      | none              | new run required                    |
@@ -529,7 +529,7 @@ sequenceDiagram
 | Conclusion                           | Repository/user evidence                  | Constraint or requirement                  | Design decision                                                     | Consequence and trade-off                        | Verification and acceptance evidence   |
 |--------------------------------------|-------------------------------------------|--------------------------------------------|---------------------------------------------------------------------|--------------------------------------------------|----------------------------------------|
 | 独立 Agent family 是最小隔离边界              | `EVD-001`-`EVD-010`                       | `REQ-001`, `REQ-002`, `REQ-015`, `REQ-016` | source + definition + dynamic generated reactor                     | 多一个 GAV/IT，但现有 Web family 不被污染                   | `TEST-018`-`TEST-024`                  |
-| Deep Research 能在不污染 component 的情况下完成 | `EVD-011`-`EVD-016`                       | `REQ-004`-`REQ-013`                        | Web layers + AgentFlow Gateway + host ChatModel/MCP + SSE lifecycle | Archetype owns provider/tool/HTTP，component 保持通用 | `TEST-001`-`TEST-017`                  |
+| Deep Research 能在不污染 component 的情况下完成 | `EVD-011`-`EVD-016`                       | `REQ-004`-`REQ-013`                        | Web layers + AgentFlow Yuheng + host ChatModel/MCP + SSE lifecycle | Archetype owns provider/tool/HTTP，component 保持通用 | `TEST-001`-`TEST-017`                  |
 | V1 不需要数据库/状态查询                       | 用户 single-business 范围与 one-stream outcome | `REQ-007`, `REQ-013`                       | one task Command + in-memory cleanup                                | 无历史/resume/idempotency，但显著缩小状态面                  | `TEST-013`, `TEST-019`, `API-GATE-001` |
 
 ## 8. Package Structure and Code File Tree
@@ -568,7 +568,7 @@ egon-cola-archetypes/
 │       │       └── package-info.java
 │       ├── egon-cola-source-agent-domain/
 │       │   └── src/main/java/top/egon/cola/archetype/source/agent/domain/research/
-│       │       ├── gateway/DeepResearchAgentGateway.java
+│       │       ├── yuheng/DeepResearchAgentGateway.java
 │       │       ├── model/DeepResearchTaskBO.java
 │       │       ├── model/ResearchTopicBO.java
 │       │       ├── model/DeepResearchEvent.java
@@ -589,7 +589,7 @@ egon-cola-archetypes/
 │       │       └── package-info.java
 │       ├── egon-cola-source-agent-infrastructure/
 │       │   └── src/main/java/top/egon/cola/archetype/source/agent/infrastructure/research/
-│       │       ├── gateway/AgentFlowDeepResearchAgentGateway.java
+│       │       ├── yuheng/AgentFlowDeepResearchAgentGateway.java
 │       │       ├── converter/AgentFlowEventConverter.java
 │       │       ├── tool/McpResearchToolFactory.java
 │       │       ├── tool/McpResearchToolProperties.java
@@ -652,7 +652,7 @@ scripts/
 |-----------|--------------------------------------------------------------------|-------------------------------------------------|-------------------------------------------------------------|---------------------------------------|--------------------------------|
 | Modify    | `egon-cola-archetypes/source-projects/pom.xml`                     | modules                                         | register internal source project                            | current source reactor                | `REQ-001`, `REQ-016`           |
 | Create    | `source-projects/egon-cola-source-agent/pom.xml` + six module POMs | Agent source reactor                            | exact Web profile and managed versions/edges                | Boot/Spring AI/Egon BOMs              | `REQ-002`, `REQ-004`           |
-| Create    | `...-domain/.../domain/research`                                   | BO/Event/Enum/Gateway/Services                  | pure research vocabulary and ports                          | common/JDK only                       | `REQ-003`, `REQ-010`           |
+| Create    | `...-domain/.../domain/research`                                   | BO/Event/Enum/Yuheng/Services                  | pure research vocabulary and ports                          | common/JDK only                       | `REQ-003`, `REQ-010`           |
 | Create    | `...-application/.../application/research`                         | Command/Manage/Capacity/Exception               | atomic use case, validation, capacity lease                 | domain                                | `REQ-007`, `REQ-011`           |
 | Create    | `...-infrastructure/.../infrastructure/research`                   | GatewayImpl/converter/MCP factory/properties    | adapt AgentFlow and MCP, map/redact events, close resources | domain/component/Spring AI MCP        | `REQ-004`-`REQ-006`, `REQ-010` |
 | Create    | `...-adapter/.../adapter`                                          | filters/advice/controller/converters/Request/VO | API key/trace, API-001, SSE lifecycle and public mapping    | application/Web/Jackson/springdoc     | `REQ-007`-`REQ-014`            |
@@ -703,7 +703,7 @@ generated `/v3/api-docs` is tested and not checked in.
 |----------------|------------------------------------|--------------------------------|-----------------------|-------------------------|-------------------|-----------------------|-----------------------------------------------|---------------------------------|---------------------------------------|---------------------|-----------------------------|---------------------------------------|--------------------------------|---------------------------------|
 | `API-001`      | New/Add — only external goal       | Start and stream Deep Research | HTTP                  | REST Command            | API client        | Adapter               | `POST /api/v1/deep-research/runs`             | `startDeepResearch`; code-first | headers + JSON body                   | `text/event-stream` | `researchApiKey`; no tenant | pre-stream JSON + stream failed event | non-idempotent; version 1 path | `REQ-007`-`REQ-014`             |
 | `INTERNAL-001` | New/Keep — layer boundary          | Orchestrate one run            | Java application API  | Command                 | Adapter           | Application           | `DeepResearchManage#startResearch`            | Java types                      | Command + Observer Service            | Run Service         | process-local               | typed exception                       | one call/one run               | `REQ-007`, `REQ-010`, `REQ-011` |
-| `INTERNAL-002` | New/Keep — isolate component       | Execute fixed flow             | Domain Gateway        | Command/stream          | Application       | Domain/Infrastructure | `DeepResearchAgentGateway#start`              | domain types                    | DeepResearchTaskBO + Observer Service | Run Service         | process-local               | safe failure event/exception          | non-replayable                 | `REQ-004`-`REQ-010`             |
+| `INTERNAL-002` | New/Keep — isolate component       | Execute fixed flow             | Domain Yuheng        | Command/stream          | Application       | Domain/Infrastructure | `DeepResearchAgentGateway#start`              | domain types                    | DeepResearchTaskBO + Observer Service | Run Service         | process-local               | safe failure event/exception          | non-replayable                 | `REQ-004`-`REQ-010`             |
 | `INTERNAL-003` | New/Keep — necessary tool boundary | Produce search ToolCallbacks   | Spring Bean/lifecycle | infrastructure assembly | Starter/ChatModel | Infrastructure        | bean `deepResearchSearchTools`                | Spring AI callbacks             | typed properties                      | non-empty callbacks | secret config               | startup failure                       | singleton per JVM              | `REQ-006`, `REQ-012`            |
 
 ### 9.2 Per-interface Detailed Contracts
@@ -785,7 +785,7 @@ heartbeat `: keep-alive`，它没有 id/data 且不改变 sequence。
 |-------------------------------|----------------------|---------------------------------|----------------------------------------|-------------------------------------------|-------------------------------------|
 | SSE `id`                      | String               | required                        | `<runId>:<positive sequence>`          | replay correlation only; server-generated | detect duplicate/out-of-order event |
 | `data.runId`                  | UUID string          | required                        | immutable within stream                | generated before session creation         | correlate one view/run              |
-| `data.sequence`               | int64                | required                        | starts 1 and increases by one          | gateway event counter                     | stable ordering                     |
+| `data.sequence`               | int64                | required                        | starts 1 and increases by one          | yuheng event counter                     | stable ordering                     |
 | `data.type`                   | enum                 | required                        | STARTED/PROGRESS/COMPLETED/FAILED      | domain event variant                      | branch UI state                     |
 | `data.stage`                  | enum                 | required                        | values in event table                  | fixed Agent/stage mapping                 | progress label                      |
 | `data.delta`                  | String               | progress-only/omitted otherwise | bounded safe text; no raw tool payload | AgentFlow event mapper                    | append progress                     |
@@ -909,9 +909,9 @@ heartbeat `: keep-alive`，它没有 id/data 且不改变 sequence。
 | Concern                             | Decision                                                                                                                          |
 |-------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
 | Change classification               | New                                                                                                                               |
-| Independent consumer goal           | Adapter needs one atomic application use case that owns validation/capacity/gateway lifecycle                                     |
+| Independent consumer goal           | Adapter needs one atomic application use case that owns validation/capacity/yuheng lifecycle                                     |
 | Parameter ownership and derivation  | Adapter owns validated request mapping; Manage derives run/deadline and never accepts model/tool/session selectors                |
-| Direct/no-new-interface alternative | Controller calling Domain Gateway directly would move business capacity/cleanup rules into HTTP and violate application ownership |
+| Direct/no-new-interface alternative | Controller calling Domain Yuheng directly would move business capacity/cleanup rules into HTTP and violate application ownership |
 | Caller use of result                | Adapter retains the returned handle for disconnect cancellation and receives events through Observer                              |
 | Round trips and failure points      | one in-process call; typed synchronous rejection or asynchronous Observer terminal; no network round trip at this boundary        |
 | Verdict                             | Keep one Manage method; no separate validate/capacity/status methods                                                              |
@@ -922,7 +922,7 @@ heartbeat `: keep-alive`，它没有 id/data 且不改变 sequence。
 |-----------------|-----------------------------------------------------------------------------------------------------------------------|
 | Symbol          | `DeepResearchRunService DeepResearchManage#startResearch(StartDeepResearchCommand, DeepResearchEventObserverService)` |
 | Owner/consumer  | Application / Adapter                                                                                                 |
-| Side effects    | obtains local capacity lease and starts one Domain Gateway run                                                        |
+| Side effects    | obtains local capacity lease and starts one Domain Yuheng run                                                        |
 | Dependency rule | no HTTP/SSE/ADK/RxJava/Spring AI/MCP imports                                                                          |
 
 ##### Request parameters
@@ -943,17 +943,17 @@ accepted and cleanup ownership is installed, not that research completed.
 | Condition                   | Java outcome                                           | Retry              | Cleanup                      |
 |-----------------------------|--------------------------------------------------------|--------------------|------------------------------|
 | invalid command/observer    | `DeepResearchApplicationException(VALIDATION)`         | caller fixes       | no lease/run                 |
-| capacity unavailable        | `DeepResearchApplicationException(CAPACITY_EXHAUSTED)` | caller-controlled  | no gateway call              |
-| Gateway synchronous failure | typed dependency/internal exception                    | caller-controlled  | lease released               |
+| capacity unavailable        | `DeepResearchApplicationException(CAPACITY_EXHAUSTED)` | caller-controlled  | no yuheng call              |
+| Yuheng synchronous failure | typed dependency/internal exception                    | caller-controlled  | lease released               |
 | async failure               | Observer receives FAILED event                         | no automatic retry | composite handle cleans once |
 
 ##### Interface logic for frontend and consumers
 
 1. Revalidate Command and observer.
-2. Acquire capacity or fail before Gateway.
+2. Acquire capacity or fail before Yuheng.
 3. Construct `DeepResearchTaskBO` with server-owned run/deadline.
 4. Wrap Observer so terminal/cancel releases capacity once.
-5. Call Gateway and return a composite handle.
+5. Call Yuheng and return a composite handle.
 6. Convert synchronous failures to typed Application exceptions.
 7. Adapter maps the result to its existing SSE lifecycle; no polling/status state exists.
 
@@ -963,7 +963,7 @@ Application-internal API; only Adapter is a consumer. Signature changes require 
 `TEST-005`,
 `TEST-006`, `TEST-010`-`TEST-012` prove validation, capacity and terminal cleanup.
 
-#### 9.2.3 INTERNAL-002 — Domain Gateway
+#### 9.2.3 INTERNAL-002 — Domain Yuheng
 
 ##### Necessity and interaction-cost decision
 
@@ -975,7 +975,7 @@ Application-internal API; only Adapter is a consumer. Signature changes require 
 | Direct/no-new-interface alternative | Injecting `AgentFlowService` into Manage violates exact Web dependency direction and leaks third-party events      |
 | Caller use of result                | Application composes the handle with its capacity lease and forwards safe domain events                            |
 | Round trips and failure points      | create session + one stream subscription + terminal delete; external model/MCP calls occur below component         |
-| Verdict                             | Keep one Domain-owned Gateway implemented in Infrastructure                                                        |
+| Verdict                             | Keep one Domain-owned Yuheng implemented in Infrastructure                                                        |
 
 ##### Identity and purpose
 
@@ -1021,7 +1021,7 @@ component session delete and terminal CAS.
 
 ##### Compatibility and verification
 
-Only `DeepResearchManageImpl` consumes the Gateway. Component API drift is isolated to Infrastructure
+Only `DeepResearchManageImpl` consumes the Yuheng. Component API drift is isolated to Infrastructure
 converters/implementation and covered by
 `TEST-009`-`TEST-015`, dependency compilation and the predecessor component verify Gate.
 
@@ -1127,13 +1127,13 @@ protected by the API key.
 | `adapter/.../handler/DeepResearchErrorResponse`    | Response record                  | Advice/filter -> HTTP client            | existing Web error shape with research code namespace                          | `DeepResearchErrorConverter`                        | `REQ-008`, `REQ-014`           |
 | `application/.../command/StartDeepResearchCommand` | Command record                   | Adapter -> Application                  | normalized L1 command independent of HTTP annotations                          | `DeepResearchCommandConverter`                      | `REQ-007`, `REQ-008`           |
 | `domain/.../model/ResearchTopicBO`                 | Business Object record           | Application/Domain                      | central topic normalization/invariant                                          | None after Command conversion                       | `REQ-008`                      |
-| `domain/.../model/DeepResearchTaskBO`              | Business Object record           | Application -> Gateway                  | immutable run/deadline/task input independent of component                     | None                                                | `REQ-005`, `REQ-010`           |
+| `domain/.../model/DeepResearchTaskBO`              | Business Object record           | Application -> Yuheng                  | immutable run/deadline/task input independent of component                     | None                                                | `REQ-005`, `REQ-010`           |
 | `domain/.../model/DeepResearchEvent`               | Event record                     | Infrastructure -> Application/Adapter   | one validated lifecycle fact supports async Observer without third-party types | `AgentFlowEventConverter`, `ResearchEventConverter` | `REQ-009`, `REQ-010`           |
 | `ResearchEventTypeEnum`                            | Enum                             | Domain -> Adapter                       | closed lifecycle type set                                                      | MapStruct explicit value mapping                    | `REQ-009`                      |
 | `ResearchStageEnum`                                | Enum                             | Domain -> Adapter                       | closed public stage set                                                        | MapStruct explicit value mapping                    | `REQ-005`, `REQ-009`           |
 | `ReportLanguageEnum`                               | Enum                             | HTTP/Application/Domain                 | closed two-language wire set                                                   | MapStruct explicit value mapping                    | `REQ-008`                      |
-| `DeepResearchEventObserverService`                 | Behavior Service                 | Gateway -> Application/Adapter          | Observer decouples RxJava/SSE and owns callbacks                               | None                                                | `REQ-009`, `REQ-010`           |
-| `DeepResearchRunService`                           | Behavior Service                 | Gateway/Application -> Adapter          | cancellation crosses layers without ADK type                                   | None                                                | `REQ-010`                      |
+| `DeepResearchEventObserverService`                 | Behavior Service                 | Yuheng -> Application/Adapter          | Observer decouples RxJava/SSE and owns callbacks                               | None                                                | `REQ-009`, `REQ-010`           |
+| `DeepResearchRunService`                           | Behavior Service                 | Yuheng/Application -> Adapter          | cancellation crosses layers without ADK type                                   | None                                                | `REQ-010`                      |
 | `DeepResearchRuntimeProperties`                    | configuration record             | Spring binding -> Application           | capacity/deadline/source caps owned where used                                 | Spring Binder                                       | `REQ-011`                      |
 | `DeepResearchApiProperties`                        | configuration record             | Spring binding -> Adapter               | API key/heartbeat owned by filter/SSE adapter                                  | Spring Binder                                       | `REQ-008`, `REQ-012`           |
 | `McpResearchToolProperties`                        | configuration record             | Spring binding -> Infrastructure        | MCP endpoint/timeout owned by outbound adapter                                 | Spring Binder                                       | `REQ-006`, `REQ-012`           |
@@ -1154,8 +1154,8 @@ or public resource locator. Forbidden: Repository/DAO/Mapper/PO/Entity/table/cac
 | topic                          | String      | required             | trim, 3-500, no control chars                                                     | request -> ResearchTopicBO | public but never logged  |
 | reportLanguage                 | enum        | default zh-CN        | two wire values                                                                   | request                    | public                   |
 | maxSources                     | int         | default 8            | 3-20 and <= server max                                                            | request + server config    | public                   |
-| sequence                       | long        | generated            | starts 1, strictly increasing per run                                             | gateway                    | public                   |
-| stage                          | enum        | required             | monotonic logical lifecycle; parallel stage order between branches not guaranteed | gateway                    | public                   |
+| sequence                       | long        | generated            | starts 1, strictly increasing per run                                             | yuheng                    | public                   |
+| stage                          | enum        | required             | monotonic logical lifecycle; parallel stage order between branches not guaranteed | yuheng                    | public                   |
 | delta/reportMarkdown           | String      | conditional          | UTF-8; bounded accumulated report 200,000 chars; no raw tool object               | model/event mapper         | public untrusted content |
 | code/message/retryable         | typed       | failed only          | stable safe mapping; no exception text                                            | failure mapper             | public                   |
 | traceId                        | String      | generated/propagated | safe pattern 1-128                                                                | trace filter               | public                   |
@@ -1167,7 +1167,7 @@ or public resource locator. Forbidden: Repository/DAO/Mapper/PO/Entity/table/cac
 | Type                                      | Record / class / immutable class | Lombok annotations or compact constructor                                                                    | Validation annotations/groups                                                                                    | Normalization                                          | Framework/ORM reason                                                              | Tests                              |
 |-------------------------------------------|----------------------------------|--------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------|-----------------------------------------------------------------------------------|------------------------------------|
 | Request/Command/BO/VO/Response/Properties | record                           | compact constructor for default/defensive/invariant rules; no Lombok                                         | Jakarta annotations at HTTP/config; Default group only because no object is reused across create/update variants | trim/control chars/enums/ranges at exact boundary      | simple immutable carriers; no ORM                                                 | `TEST-002`, `TEST-008`, `TEST-015` |
-| `DeepResearchEvent`                       | record                           | compact constructor validates conditional type/stage/payload/terminal fields                                 | programmatic invariant + `ValidationUtils` at Gateway boundary                                                   | omit forbidden fields and cap text before construction | one uniform event avoids polymorphic JSON                                         | `TEST-007`-`TEST-012`              |
+| `DeepResearchEvent`                       | record                           | compact constructor validates conditional type/stage/payload/terminal fields                                 | programmatic invariant + `ValidationUtils` at Yuheng boundary                                                   | omit forbidden fields and cap text before construction | one uniform event avoids polymorphic JSON                                         | `TEST-007`-`TEST-012`              |
 | concrete business behavior classes        | normal class, not data object    | `@Slf4j`, named stereotype/Bean, `@RequiredArgsConstructor`; injected final fields all `@Qualifier`          | method boundary validation where proxied                                                                         | no carrier setters                                     | lifecycle/concurrency behavior, so complex-data Lombok baseline is not applicable | context/source tests               |
 | four Converter interfaces                 | MapStruct interface              | `@Mapper(unmappedTargetPolicy=ERROR)` and `INSTANCE=Mappers.getMapper(...)`; implements `BaseConverter<S,T>` | source/target records already validated                                                                          | explicit enum/date/null/redaction mappings             | deliberately non-Spring to avoid generated Bean naming ambiguity                  | converter tests                    |
 
@@ -1278,9 +1278,9 @@ Spec 设计 Markdown sanitization、断连/retry 和状态呈现。
 
 | Pattern                                | Problem solved                               | Variation/complexity                             | Why direct code is insufficient | Repository consistency                           |
 |----------------------------------------|----------------------------------------------|--------------------------------------------------|---------------------------------|--------------------------------------------------|
-| Adapter                                | 隔离 Domain 与 AgentFlow/ADK/MCP                | 第三方 event/session/tool types                     | 直接在 Manage 使用 ADK 会破坏 Web依赖方向   | Infrastructure implements Domain Gateway         |
+| Adapter                                | 隔离 Domain 与 AgentFlow/ADK/MCP                | 第三方 event/session/tool types                     | 直接在 Manage 使用 ADK 会破坏 Web依赖方向   | Infrastructure implements Domain Yuheng         |
 | Observer                               | 跨 Application/Infrastructure/Adapter 传递长流和终态 | progress/failure/cancel callbacks                | 返回 List 会阻塞且不能处理 disconnect     | 小行为接口，无 reactive type 泄漏                         |
-| Facade (Manage)                        | 给 Adapter 一个原子用例入口                           | capacity + domain validation + gateway lifecycle | Controller 直接拼装会重复业务控制          | Web profile `*Manage` 约定                         |
+| Facade (Manage)                        | 给 Adapter 一个原子用例入口                           | capacity + domain validation + yuheng lifecycle | Controller 直接拼装会重复业务控制          | Web profile `*Manage` 约定                         |
 | Bulkhead                               | 限制昂贵并发执行                                     | process-level capacity                           | 仅依赖服务器线程池不能给确定 429/成本上限         | 单一 `ResearchCapacityService`，无 handler hierarchy |
 | Immutable Registry/configured workflow | 固定受审查流程，运行期只读                                | planner/parallel/writer topology                 | 请求动态 prompt/flow 会扩大安全面         | 复用前置 Component pattern                           |
 
@@ -1309,7 +1309,7 @@ Spec 设计 Markdown sanitization、断连/retry 和状态呈现。
 
 - Domain：topic normalization、language/maxSources、`DeepResearchEvent` field invariants、terminal state and late-event
   rejection。
-- Application：capacity acquire/release、Gateway sync failure、observer failure、cancel/terminal race。
+- Application：capacity acquire/release、Yuheng sync failure、observer failure、cancel/terminal race。
 - Infrastructure：ADK event allowlist mapping、fixed flow/session/message mapping、MCP properties and callback
   uniqueness、cleanup idempotency。
 - Adapter：request converter、API key constant-time behavior through outcomes、SSE framing/sequence/terminal/error mapping。
@@ -1331,8 +1331,8 @@ Spec 设计 Markdown sanitization、断连/retry 和状态呈现。
 | `TEST-002` | Controller             | body validation                | blank/2/501/control/null/unknown field              | 400 exact field paths, zero Manage calls                                 | parameterized JSON       | adapter test           | `REQ-008`                       |
 | `TEST-003` | Controller             | media negotiation              | wrong Accept/Content-Type                           | 406/415 exact error                                                      | MockMvc                  | adapter test           | `REQ-008`, `REQ-014`            |
 | `TEST-004` | Security               | API key filter                 | missing/wrong/correct                               | 401/401/pass; no secret log                                              | synthetic keys           | adapter test           | `REQ-008`, `REQ-012`            |
-| `TEST-005` | Application            | capacity                       | 4 held, fifth call                                  | fifth 429 mapping; no Gateway call; releases allow next                  | fake handles             | application test       | `REQ-011`                       |
-| `TEST-006` | Controller/Application | pre-stream dependency error    | Gateway throws before start                         | 503 safe body, permit released                                           | fake exception           | integration test       | `REQ-009`-`REQ-012`             |
+| `TEST-005` | Application            | capacity                       | 4 held, fifth call                                  | fifth 429 mapping; no Yuheng call; releases allow next                  | fake handles             | application test       | `REQ-011`                       |
+| `TEST-006` | Controller/Application | pre-stream dependency error    | Yuheng throws before start                         | 503 safe body, permit released                                           | fake exception           | integration test       | `REQ-009`-`REQ-012`             |
 | `TEST-007` | SSE                    | sequence/framing               | started + interleaved parallel progress + completed | IDs 1..N, one completed, EOF                                             | scripted Observer        | adapter test           | `REQ-009`                       |
 | `TEST-008` | SSE                    | payload redaction              | ADK tool/metadata/secret-like fields                | only allowlist fields serialized                                         | synthetic event          | mapper/JSON test       | `REQ-012`                       |
 | `TEST-009` | SSE                    | stream dependency failure      | onError after started                               | one failed event, no completed, close                                    | fake Flowable            | integration test       | `REQ-009`, `REQ-010`            |
@@ -1420,7 +1420,7 @@ bash scripts/maven-deploy.sh archetypes --dry-run
 | `RISK-002` | ADK 0.7.0 SpringAI adapter 对 tool/stream event 支持有限 | Medium      | tool call 或 final event mapping 不完整 | focused component integration test；失败则停在 Plan Step，不复制 patch                                | Accepted V1 risk       |
 | `RISK-003` | MCP SSE server schema/认证方式不同                        | Medium      | 工具为空/启动失败                           | one documented required schema；startup fail closed；endpoint provider remains consumer-owned | Accepted V1 risk       |
 | `RISK-004` | public report 包含 hallucination/恶意 Markdown          | High        | 消费者误信或 UI XSS                       | grounded prompts、source links、untrusted-content contract；future UI sanitizes                | Accepted product limit |
-| `RISK-005` | process-local capacity 在多实例下不是全局限流                  | Medium      | 总成本超过单实例上限                          | README 明示；gateway/global rate limit 是部署责任                                                   | Accepted V1 limit      |
+| `RISK-005` | process-local capacity 在多实例下不是全局限流                  | Medium      | 总成本超过单实例上限                          | README 明示；yuheng/global rate limit 是部署责任                                                   | Accepted V1 limit      |
 | `RISK-006` | 非幂等 retry 重复计费                                      | Medium      | duplicate runs/cost                 | API/documentation explicit；no automatic retry                                               | Accepted V1 limit      |
 | `RISK-007` | API Key 只提供 service-level identity                  | Medium      | 无 per-user audit/RBAC               | V1 single client sample；production extension needs auth Spec                                | Accepted V1 limit      |
 | `RISK-008` | 发布脚本硬编码 count 漂移                                    | Medium      | seventh artifact blocked or missing | update to seven and assert against unique definitions; shell regression                     | Closed by design       |
@@ -1495,7 +1495,7 @@ Agent family；不改其 Flyway、Spring 治理、旧六产品和发布顺序。
 | `MC-ARCH-001`    | Applicable    | PASS   | §6.1, `EVD-001`-`EVD-004`, `DEC-002`                                   | 唯一选择 Web non-open 六模块 profile，无混合层                                                                         | implementation verifier gate            |
 | `MC-REUSE-001`   | Applicable    | PASS   | §6.1 ledger；AgentFlow/Servlet/Validation/springdoc/MCP/Web conventions | 先复用 Spring/Egon/current module capabilities                                                                | None                                    |
 | `MC-DEP-001`     | Applicable    | PASS   | §6/§8.3/§15, API-GATE-007                                              | AgentFlow/SpringAI/ADK/MCP/Web 是必要依赖；无 DB/Dubbo/GraphQL/Springfox                                          | dependency-tree gate                    |
-| `MC-NAME-001`    | Applicable    | PASS   | §8.2, §10.1                                                            | Request/Command/Event/VO/Properties/Gateway/Manage suffix 语义明确                                             | source scan                             |
+| `MC-NAME-001`    | Applicable    | PASS   | §8.2, §10.1                                                            | Request/Command/Event/VO/Properties/Yuheng/Manage suffix 语义明确                                             | source scan                             |
 | `MC-VALID-001`   | Applicable    | PASS   | API-001 request table、§10.3.1、API-GATE-005                             | HTTP/Application/Domain/config 三级边界完整                                                                      | Tests 002/003/015                       |
 | `MC-MODEL-001`   | Applicable    | PASS   | §10.1-§10.6                                                            | carriers are records with compact constructors；stateful lifecycle behavior remains explicit normal classes | compile/unit tests                      |
 | `MC-CONVERT-001` | Applicable    | PASS   | §10.4                                                                  | 四个真实跨边界 converter；不为简单字段引入 MapStruct                                                                       | Tests 002/008                           |

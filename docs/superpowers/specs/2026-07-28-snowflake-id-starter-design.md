@@ -224,9 +224,9 @@ CAS 失败表示另一个线程先完成生成，当前线程重新读取状态�
 
 仓库仍存在以下必须保持 UUID/String 语义的调用：
 
-- DDC `changeId` 明确解析并校验 UUID version 7。
-- DDC nonce、lease、trace 和管理协议需要字符串或高熵标识。
-- Gateway/RPC 的 request、trace、event、release 和跨进程 ID 是字符串契约。
+- Tianshu `changeId` 明确解析并校验 UUID version 7。
+- Tianshu nonce、lease、trace 和管理协议需要字符串或高熵标识。
+- Yuheng/RPC 的 request、trace、event、release 和跨进程 ID 是字符串契约。
 - Light/Web/Service archetype 使用 `VARCHAR(36)`、UUIDv7 分片算法和版本校验。
 
 因此：

@@ -1,4 +1,4 @@
-# DDC / RPC / Gateway 统一服务模型与管理端优化设计
+# Tianshu / RPC / Yuheng 统一服务模型与管理端优化设计
 
 状态：**部分实施（S1–S4 已合入）；S5 计划已被代码事实推翻，见下方勘误**
 
@@ -12,25 +12,25 @@
 |---|---|---|---|
 | E1 | §9 S5 要"新建 `LoadBalancerRegistry.java` 5 种策略" | **负载均衡已存在**：`engine/balance/LoadBalancerType`（`ROUND_ROBIN` / `SMOOTH_WEIGHTED_ROUND_ROBIN` / `RANDOM` / `LEAST_IN_FLIGHT`）+ `ProviderLoadBalancers` 工厂 | 改为扩展既有实现，不新建 |
 | E2 | §9 S5 要"新建 `HealthProbe.java` + Http/Grpc 实现" | **健康探活已存在**：`ProviderActiveHealthProbe` SPI + `HttpProviderActiveHealthProbe` / `RpcProviderActiveHealthProbe` + `ActiveHealthTracker` / `PassiveHealthTracker` | 同上 |
-| E3 | §3.2 用**新前缀** `egon.meta.*` 投影实例元数据 | **`gateway.*` 约定已在用**：`gateway.weight` / `zone` / `region` / `tags` / `protocol-version` / `definition-set-id` / `artifact-version` / `build-id` / `management-path`，写侧在 rpc-starter 的 `RpcProviderMetadataMerger` 校验，读侧在 gateway-core 的 `ProviderInstance` 解析 | **改用 `gateway.*`**。新前缀会让同一语义有两个事实源，违反本文自己的 P3 |
+| E3 | §3.2 用**新前缀** `egon.meta.*` 投影实例元数据 | **`yuheng.*` 约定已在用**：`yuheng.weight` / `zone` / `region` / `tags` / `protocol-version` / `definition-set-id` / `artifact-version` / `build-id` / `management-path`，写侧在 rpc-starter 的 `RpcProviderMetadataMerger` 校验，读侧在 yuheng-core 的 `ProviderInstance` 解析 | **改用 `yuheng.*`**。新前缀会让同一语义有两个事实源，违反本文自己的 P3 |
 
 另有三处细节修正：
 
 - §5.5 称"`GatewayError` 增加 `retryable`"—— `retryable` **字段已存在**，仅 `upstreamStatus` 缺失。
 - §5.5 称 `GatewayCallEventV1` 需加 `retryCount` / `selectedInstanceId` —— `Governance.retryCount`
   与 `Attempt.providerInstanceId` **均已存在**。
-- §3.2 将 `tags` 设计为 `Set<String>`，但既有 `gateway.tags` 约定是**排序后的 `k=v` 键值对**
+- §3.2 将 `tags` 设计为 `Set<String>`，但既有 `yuheng.tags` 约定是**排序后的 `k=v` 键值对**
   （`RpcProviderMetadataMerger.validateTags` 强制升序并校验模式），故实现取 `Map<String,String>`。
 
 **教训**：G1/G2 的"缺失"判断只核对了类型是否结构化，未核对约定是否已存在。
-"没有类型"不等于"没有约定"—— `gateway.*` 一直在用，只是以**跨模块重复的字面量**而非共享定义的
+"没有类型"不等于"没有约定"—— `yuheng.*` 一直在用，只是以**跨模块重复的字面量**而非共享定义的
 形式存在，这才是 G1 的真实形态。
 
 ### 实施状态
 
 | 阶段 | 状态 | 说明 |
 |---|---|---|
-| S1 | **已实施** | `ServiceInstanceMeta` / `ServiceInstanceMetaCodec` / `InstanceHealthState`（置于 ddc-management-client，是所有消费方都可见的唯一公共模块）；`RpcProviderMetadataMerger` 改为委派；保留键与业务额度分开计数 |
+| S1 | **已实施** | `ServiceInstanceMeta` / `ServiceInstanceMetaCodec` / `InstanceHealthState`（置于 tianshu-management-client，是所有消费方都可见的唯一公共模块）；`RpcProviderMetadataMerger` 改为委派；保留键与业务额度分开计数 |
 | S2 | **已实施（范围调整）** | `ServiceCallPolicy` + `ServiceCallPolicyCodec` + `LoadBalanceStrategy`。定位为既有 TIMEOUT / RETRY / CIRCUIT_BREAKER / LOAD_BALANCE 策略的**类型化视图**（沿用其既有 key 名与默认值），而非新机制；仅 CACHE 为新增能力 |
 | S3 | **已实施** | `@EgonServiceMeta` / `LoadBalance` / `FailStrategy` / `@EgonHttpService`；三个 RPC 注解扩展，既有字段与默认值零改动 |
 | S4 | **已实施（形态调整）** | `MetadataResolver`（注解无关、含来源层级）+ `AnnotationValidationReport`。未按原文改写既有 contributor 上报链路 |
@@ -53,7 +53,7 @@
 **wire 兼容要点**：`parameters` 标注 `@JsonInclude(NON_EMPTY)`，这是必需项而非优化。
 引擎 `GatewayRuleActivationApplier` 会重新序列化快照并与 `ruleContentSha256` 比对，
 若无参数的 operation 多出一个 `"parameters":[]`，老快照将以
-`GATEWAY_RULE_CHECKSUM_MISMATCH` 失败——**仅让紧凑构造器容忍 null 不足以兑现兼容**。
+`YUHENG_RULE_CHECKSUM_MISMATCH` 失败——**仅让紧凑构造器容忍 null 不足以兑现兼容**。
 
 **灰度顺序**：`GatewayRuleJsonCodec` 未关闭 `FAIL_ON_UNKNOWN_PROPERTIES`，
 故带参数的新快照会被老引擎拒绝。升级须**先引擎、后 Admin**。
@@ -69,13 +69,13 @@
 代码基线：`main@55614029`
 
 范围：`egon-cola-component-dynamic-config-center`、`egon-cola-component-rpc`、
-`egon-cola-component-gateway`（含 admin 与 admin-web）
+`egon-cola-component-yuheng`（含 admin 与 admin-web）
 
 关联设计：
 
 - `2026-07-26-components-capability-hardening-design.md`（组件能力兑现，波次 0/1/2 已实施）
-- `2026-07-26-gateway-ddc-rpc-integration-remediation-design.md`（联调闭环，已合入 `a58d7645`）
-- `2026-07-25-gateway-*`（16 份 Gateway 子 Spec，已实现待验收）
+- `2026-07-26-yuheng-tianshu-rpc-integration-remediation-design.md`（联调闭环，已合入 `a58d7645`）
+- `2026-07-25-yuheng-*`（16 份 Yuheng 子 Spec，已实现待验收）
 
 **约束**：保持现有架构与向后兼容；本轮不涉及权限体系。
 
@@ -108,10 +108,10 @@
 | 缺口 | 事实 | 影响 |
 |---|---|---|
 | G1 实例元数据无类型 | `DdcServiceInstance.metadata` 是 `Map<String,String>`，上限 32 项，weight/region/zone/health 全部塞在里面 | 拼写错误无法发现，Admin 无法结构化展示，前端只能平铺字符串 |
-| G2 无统一接口模型 | RPC 侧有 `RpcMethodDescriptor`，HTTP 侧只有 lease 与健康（`gateway-provider-runtime` 仅 6 个类，无接口上报） | HTTP 下游"能调什么"完全不可见，Admin 无法做接口测试 |
+| G2 无统一接口模型 | RPC 侧有 `RpcMethodDescriptor`，HTTP 侧只有 lease 与健康（`yuheng-provider-runtime` 仅 6 个类，无接口上报） | HTTP 下游"能调什么"完全不可见，Admin 无法做接口测试 |
 | G3 调用策略无类型 | `GatewayRuntimePolicy.configuration` 是 `Map<String,Object>` | 超时/重试/负载均衡无字段校验、无默认值、无法在 UI 上表单化 |
 | G4 注解体系过薄 | `@EgonRpcProvider` **零字段**；`@EgonRpcReference` 仅 `timeoutMs`；`@EgonRpcMethod` 仅 `name`+`idempotent` | 需求 2 描述的"字段不足、语义不清、扩展性差"完全属实 |
-| G5 注解体系割裂 | RPC 用 `@EgonRpcService/@EgonRpcMethod`（rpc-starter），上报用 `@GatewayOperation/@GatewayInterfaceGroup`（gateway-starter），HTTP 只有后者 | 同一个接口要标两套注解，语义重叠且无继承关系 |
+| G5 注解体系割裂 | RPC 用 `@EgonRpcService/@EgonRpcMethod`（rpc-starter），上报用 `@GatewayOperation/@GatewayInterfaceGroup`（yuheng-starter），HTTP 只有后者 | 同一个接口要标两套注解，语义重叠且无继承关系 |
 
 ---
 
@@ -151,8 +151,8 @@ graph TD
 
 ### 3.2 实例层：`ServiceInstanceMeta`（解决 G1）
 
-放置位置：`ddc-management-client` 的 `top.egon.cola.component.ddc.management.model`
-（Gateway、RPC 均已依赖该模块，不产生新耦合）。
+放置位置：`tianshu-management-client` 的 `top.egon.cola.component.tianshu.management.model`
+（Yuheng、RPC 均已依赖该模块，不产生新耦合）。
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
@@ -358,7 +358,7 @@ public @interface EgonHttpService {
 
 ### 4.6 元数据解析机制
 
-新增 `ServiceMetadataParser`（放 `gateway-starter`，RPC 与 HTTP 共用）：
+新增 `ServiceMetadataParser`（放 `yuheng-starter`，RPC 与 HTTP 共用）：
 
 ```text
 1. 扫描：@EgonRpcService / @EgonHttpService 标注的 Bean。
@@ -376,7 +376,7 @@ public @interface EgonHttpService {
 
 ---
 
-## 5. Gateway 能力优化
+## 5. Yuheng 能力优化
 
 ### 5.1 服务发现
 
@@ -410,16 +410,16 @@ public @interface EgonHttpService {
 
 ```text
 1. 统一 HealthProbe SPI：HTTP 走 GET {healthPath}，RPC 走 grpc.health.v1.Health/Check。
-2. 主动探活周期 = min(leaseSeconds/3, 10s)，连续 N 次失败置 DOWN 并回写 DDC 实例元数据。
+2. 主动探活周期 = min(leaseSeconds/3, 10s)，连续 N 次失败置 DOWN 并回写 Tianshu 实例元数据。
 3. 被动健康：熔断器状态变化同步 healthState，避免主动探活正常但实际调用全失败。
-4. 复核项：gateway 上游 TLS 缺失（见能力兑现设计 W1-09）会让 https 探活形同虚设，需先修复。
+4. 复核项：yuheng 上游 TLS 缺失（见能力兑现设计 W1-09）会让 https 探活形同虚设，需先修复。
 ```
 
 ### 5.5 异常处理、缓存、可观测性
 
 ```text
 1. 异常：GatewayError 增加 retryable 与 upstreamStatus 字段；所有 upstream 异常必须落到
-   GatewayErrorCategory，禁止塌缩为 INTERNAL_FAILURE（DDC admin 已确认存在该问题）。
+   GatewayErrorCategory，禁止塌缩为 INTERNAL_FAILURE（Tianshu admin 已确认存在该问题）。
 2. 缓存：按 CachePolicy 在 operation 级生效，key = keyExpression + varyHeaders，仅对
    idempotent=true 且 requestMethod ∈ {GET, HEAD} 的接口开放，防止缓存写操作。
 3. 可观测性：GatewayCallEventV1 增加 selectedInstanceId、retryCount、lbStrategy、cacheHit、
@@ -429,25 +429,25 @@ public @interface EgonHttpService {
 
 ---
 
-## 6. Gateway Admin 接口定义
+## 6. Yuheng Admin 接口定义
 
 现有 REST 已覆盖 application / catalog / draft / release / policy / route / observability。
 需求 4 缺的是**实例维度、健康维度、调用配置维度与接口测试**。新增端点（不改既有路径）：
 
 | 方法 | 路径 | 用途 |
 |---|---|---|
-| `GET` | `/api/v1/gateway/admin/services` | 统一服务列表（RPC+HTTP），支持 protocol/env/namespace/keyword 过滤与分页 |
-| `GET` | `/api/v1/gateway/admin/services/{serviceId}` | 服务详情 + 聚合健康 + 实例统计 |
-| `GET` | `/api/v1/gateway/admin/services/{serviceId}/instances` | 实例列表，返回类型化 `ServiceInstanceMeta` |
-| `POST` | `/api/v1/gateway/admin/instances/{instanceId}/online` | 上线（置 `UP`，恢复权重） |
-| `POST` | `/api/v1/gateway/admin/instances/{instanceId}/offline` | 下线（置 `OUT_OF_SERVICE`，优雅摘流） |
-| `PUT` | `/api/v1/gateway/admin/instances/{instanceId}/weight` | 调权重（灰度） |
-| `GET` | `/api/v1/gateway/admin/services/{serviceId}/interfaces` | 接口清单（`ServiceInterfaceDescriptor`） |
-| `GET` | `/api/v1/gateway/admin/interfaces/{interfaceId}` | 接口详情（含参数结构、schema） |
-| `GET/PUT` | `/api/v1/gateway/admin/interfaces/{interfaceId}/call-policy` | 类型化调用配置读写 |
-| `POST` | `/api/v1/gateway/admin/interfaces/{interfaceId}/test-invoke` | 接口测试（见 6.1） |
-| `GET` | `/api/v1/gateway/admin/services/{serviceId}/health` | 健康明细与最近探活历史 |
-| `GET` | `/api/v1/gateway/admin/metrics/operations` | 调用监控：QPS / P99 / 错误率 / 重试率 |
+| `GET` | `/api/v1/yuheng/admin/services` | 统一服务列表（RPC+HTTP），支持 protocol/env/namespace/keyword 过滤与分页 |
+| `GET` | `/api/v1/yuheng/admin/services/{serviceId}` | 服务详情 + 聚合健康 + 实例统计 |
+| `GET` | `/api/v1/yuheng/admin/services/{serviceId}/instances` | 实例列表，返回类型化 `ServiceInstanceMeta` |
+| `POST` | `/api/v1/yuheng/admin/instances/{instanceId}/online` | 上线（置 `UP`，恢复权重） |
+| `POST` | `/api/v1/yuheng/admin/instances/{instanceId}/offline` | 下线（置 `OUT_OF_SERVICE`，优雅摘流） |
+| `PUT` | `/api/v1/yuheng/admin/instances/{instanceId}/weight` | 调权重（灰度） |
+| `GET` | `/api/v1/yuheng/admin/services/{serviceId}/interfaces` | 接口清单（`ServiceInterfaceDescriptor`） |
+| `GET` | `/api/v1/yuheng/admin/interfaces/{interfaceId}` | 接口详情（含参数结构、schema） |
+| `GET/PUT` | `/api/v1/yuheng/admin/interfaces/{interfaceId}/call-policy` | 类型化调用配置读写 |
+| `POST` | `/api/v1/yuheng/admin/interfaces/{interfaceId}/test-invoke` | 接口测试（见 6.1） |
+| `GET` | `/api/v1/yuheng/admin/services/{serviceId}/health` | 健康明细与最近探活历史 |
+| `GET` | `/api/v1/yuheng/admin/metrics/operations` | 调用监控：QPS / P99 / 错误率 / 重试率 |
 
 ### 6.1 接口测试端点的安全边界
 
@@ -535,13 +535,13 @@ public @interface EgonHttpService {
 
 | 阶段 | 内容 | 主要模块 | 规模 |
 |---|---|---|---|
-| S1 | `ServiceInstanceMeta` + Codec + metadata 上限调整 | ddc-management-client、ddc-starter | M |
-| S2 | `ServiceInterfaceDescriptor` + `ServiceCallPolicy` + 与 `GatewayRuntimePolicy` 双向映射 | gateway-contract | M |
-| S3 | `@EgonServiceMeta` + 四个 RPC 注解扩展 + `@EgonHttpService` | rpc-starter、gateway-starter | M |
-| S4 | `ServiceMetadataParser` + 校验报告 + 默认值链 | gateway-starter | L |
-| S5 | 发现 / 路由 / 协议转换 / 健康 / 缓存 / 可观测 | gateway-engine、gateway-core | L |
-| S6 | Admin 新增 12 个端点 + 审计 | gateway-admin | L |
-| S7 | 前端信息架构重构 + 新增 3 个页面 | gateway-admin-web | L |
+| S1 | `ServiceInstanceMeta` + Codec + metadata 上限调整 | tianshu-management-client、tianshu-starter | M |
+| S2 | `ServiceInterfaceDescriptor` + `ServiceCallPolicy` + 与 `GatewayRuntimePolicy` 双向映射 | yuheng-contract | M |
+| S3 | `@EgonServiceMeta` + 四个 RPC 注解扩展 + `@EgonHttpService` | rpc-starter、yuheng-starter | M |
+| S4 | `ServiceMetadataParser` + 校验报告 + 默认值链 | yuheng-starter | L |
+| S5 | 发现 / 路由 / 协议转换 / 健康 / 缓存 / 可观测 | yuheng-biz-gateway、yuheng-core | L |
+| S6 | Admin 新增 12 个端点 + 审计 | yuheng-admin | L |
+| S7 | 前端信息架构重构 + 新增 3 个页面 | yuheng-admin-web | L |
 
 依赖：S2 依赖 S1；S4 依赖 S3；S5 依赖 S2+S4；S6 依赖 S5；S7 依赖 S6。
 S1–S4 是纯增量，可与现网并存；S5 起需要 Engine 与 Admin 同版本发布。
@@ -552,23 +552,23 @@ S1–S4 是纯增量，可与现网并存；S5 起需要 Engine 与 Admin 同版
 
 ```text
 【S1】
-+ ddc-management-client/.../model/ServiceInstanceMeta.java
-+ ddc-management-client/.../model/ServiceInstanceMetaCodec.java
-+ ddc-management-client/.../model/InstanceHealthState.java
-M ddc-starter/.../model/registry/DdcServiceRegistration.java
++ tianshu-management-client/.../model/ServiceInstanceMeta.java
++ tianshu-management-client/.../model/ServiceInstanceMetaCodec.java
++ tianshu-management-client/.../model/InstanceHealthState.java
+M tianshu-starter/.../model/registry/DdcServiceRegistration.java
     validatedMetadata: 上限 32 -> 64，且 egon. 前缀键单独计数
-M ddc-starter/.../registry/DdcServiceRegistryClient.java
+M tianshu-starter/.../registry/DdcServiceRegistryClient.java
     注册时用 Codec.encode 合并结构化元数据
 
 【S2】
-+ gateway-contract/.../rule/ServiceInterfaceDescriptor.java
-+ gateway-contract/.../rule/ParameterDescriptor.java
-+ gateway-contract/.../rule/ServiceCallPolicy.java（含 Retry/LoadBalance/CircuitBreaker/Cache）
-+ gateway-contract/.../rule/ServiceCallPolicyCodec.java
++ yuheng-contract/.../rule/ServiceInterfaceDescriptor.java
++ yuheng-contract/.../rule/ParameterDescriptor.java
++ yuheng-contract/.../rule/ServiceCallPolicy.java（含 Retry/LoadBalance/CircuitBreaker/Cache）
++ yuheng-contract/.../rule/ServiceCallPolicyCodec.java
     与 GatewayRuntimePolicy.configuration 双向映射，未知键原样保留
-M gateway-contract/.../rule/GatewayRuntimeRoute.java
+M yuheng-contract/.../rule/GatewayRuntimeRoute.java
     追加 matchHeaders/matchQuery/rewritePath/stripPrefix/canaryTag，全部带默认值
-！gateway-contract 存在两个同名 GatewayDefinitionIdentity（definition/ 与 reporting/），
+！yuheng-contract 存在两个同名 GatewayDefinitionIdentity（definition/ 与 reporting/），
    本轮一并合并，否则新增字段会加剧混淆（已在能力兑现设计中登记）
 
 【S3】
@@ -578,29 +578,29 @@ M rpc-starter/.../annotation/EgonRpcReference.java   追加 6 个
 M rpc-starter/.../annotation/EgonRpcProvider.java    仅补 Javadoc 与启动校验，不加字段
 + rpc-starter/.../annotation/EgonServiceMeta.java
 + rpc-starter/.../annotation/LoadBalance.java、FailStrategy.java
-+ gateway-starter/.../annotation/EgonHttpService.java
++ yuheng-starter/.../annotation/EgonHttpService.java
 
 【S4】
-+ gateway-starter/.../metadata/ServiceMetadataParser.java
-+ gateway-starter/.../metadata/AnnotationValidationReport.java
-+ gateway-starter/.../metadata/MetadataSource.java（记录字段来源层级）
-M gateway-starter/.../reporting/*ReportBuilder
++ yuheng-starter/.../metadata/ServiceMetadataParser.java
++ yuheng-starter/.../metadata/AnnotationValidationReport.java
++ yuheng-starter/.../metadata/MetadataSource.java（记录字段来源层级）
+M yuheng-starter/.../reporting/*ReportBuilder
     改为消费 ServiceInterfaceDescriptor，替代现有分散解析
 
 【S5】
-M gateway-engine/.../discovery/DdcProviderServiceRegistryAdapter.java  类型化实例 + 健康过滤
-M gateway-engine/.../upstream/ReactorNettyHttpUpstreamAdapter.java     TLS/mTLS（与 W1-09 合并做）
-+ gateway-engine/.../lb/LoadBalancerRegistry.java                      5 种策略 + 预热 + 同区优先
-+ gateway-engine/.../protocol/GatewayProtocolErrorMapper.java          错误映射收敛
-+ gateway-engine/.../health/HealthProbe.java + Http/Grpc 实现
-M gateway-contract/.../observability/GatewayCallEventV1.java           追加 5 个字段
+M yuheng-biz-gateway/.../discovery/DdcProviderServiceRegistryAdapter.java  类型化实例 + 健康过滤
+M yuheng-biz-gateway/.../upstream/ReactorNettyHttpUpstreamAdapter.java     TLS/mTLS（与 W1-09 合并做）
++ yuheng-biz-gateway/.../lb/LoadBalancerRegistry.java                      5 种策略 + 预热 + 同区优先
++ yuheng-biz-gateway/.../protocol/GatewayProtocolErrorMapper.java          错误映射收敛
++ yuheng-biz-gateway/.../health/HealthProbe.java + Http/Grpc 实现
+M yuheng-contract/.../observability/GatewayCallEventV1.java           追加 5 个字段
 
 【S6】
-+ gateway-admin/.../controller/GatewayServiceController.java
-+ gateway-admin/.../controller/GatewayInstanceController.java
-+ gateway-admin/.../controller/GatewayInterfaceController.java
-+ gateway-admin/.../service/GatewayTestInvokeService.java（含 6.1 的四条约束）
-M gateway-admin/.../GatewayAdminSchema / Flyway：新增 call_policy、instance_health_history 两表
++ yuheng-admin/.../controller/GatewayServiceController.java
++ yuheng-admin/.../controller/GatewayInstanceController.java
++ yuheng-admin/.../controller/GatewayInterfaceController.java
++ yuheng-admin/.../service/GatewayTestInvokeService.java（含 6.1 的四条约束）
+M yuheng-admin/.../GatewayAdminSchema / Flyway：新增 call_policy、instance_health_history 两表
 
 【S7】
 + admin-web/src/features/services/ServicesPage.tsx、ServiceDetailPage.tsx
@@ -634,7 +634,7 @@ M admin-web/src/app/App.tsx                 ConfigProvider 主题令牌与深色
 2. 健康过滤如果实现有误会瞬间摘掉全部实例；必须保留"全部不健康时降级为全部可用"的兜底。
 3. 接口测试端点是唯一会主动打到生产下游的管理功能，必须按 6.1 的四条约束实现，否则不要上线。
 4. 前端信息架构重构涉及既有页面，需与 Playwright 用例同步更新（当前只有 1 个 spec，覆盖不足）。
-5. S5 依赖 gateway 上游 TLS 修复（W1-09），该项在能力兑现设计中仍标注为未复核。
+5. S5 依赖 yuheng 上游 TLS 修复（W1-09），该项在能力兑现设计中仍标注为未复核。
 ```
 
 ---

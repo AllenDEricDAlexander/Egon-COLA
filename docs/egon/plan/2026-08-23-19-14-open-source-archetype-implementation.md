@@ -29,9 +29,9 @@ SQL、Proto/DTP/配置切面；最后收口 verifier、全 reactor、CI、双语
 contract 先于 provider/consumer 编译，Long domain/PO 先于 Mapper/SQL，focused RED 先于每个 GREEN 转换。
 
 最终证据是三个新坐标分别通过 Maven Invoker generated-project `clean verify`，六个 archetype 一起通过
-`egon-cola-archetypes` reactor `clean integration-test`，open 生成树不存在 JPA/Flyway/UUID/Gateway/unapproved
+`egon-cola-archetypes` reactor `clean integration-test`，open 生成树不存在 JPA/Flyway/UUID/Yuheng/unapproved
 `top.egon` artifact，21 个 RPC 与 18 个表族合同被验证，原三个 archetype path-limited diff 为零。本文件只
-规划未来命令；当前没有复制模板、执行 SQL、启动 Nacos/Redis/PostgreSQL/RabbitMQ/Gateway 或运行应用。
+规划未来命令；当前没有复制模板、执行 SQL、启动 Nacos/Redis/PostgreSQL/RabbitMQ/Yuheng 或运行应用。
 
 ## 2. Target Spec and Effective Design
 
@@ -62,7 +62,7 @@ documents继续约束 layer direction、domain-first、service-only 和 existing
 - `Amends=None`、`Supersedes=None`；不存在 accepted amendment 或 replacement。
 - 原 ShardingSphere/Flyway/UUID Specs 与 Plans只解释 baseline，不能把 Flyway/UUID 规则带入 open implementation。
 - Common MP Starter Spec 只是冲突证据；`DEC-001` 明确选择 official MP + Common ID，不消费该 Starter。
-- 平台 Gateway、DTP Admin、future components/platforms archetype product line、Spring gRPC/native second server 全部排除。
+- 平台 Yuheng、DTP Admin、future components/xingyuan archetype product line、Spring gRPC/native second server 全部排除。
 
 ## 3. Effective Requirements and Acceptance
 
@@ -71,7 +71,7 @@ documents继续约束 layer direction、domain-first、service-only 和 existing
 | `REQ-001` | [Spec §4](../spec/2026-08-23-16-43-open-source-archetype-family.md) | 新增 light-open | coordinate generates one module and verifies；original light unchanged | Step 1-4、13-14 |
 | `REQ-002` | Spec §4 | 新增 service-open | coordinate generates seven modules and verifies | Step 1、5-8、13-14 |
 | `REQ-003` | Spec §4 | 新增 web-open | coordinate generates seven modules and verifies | Step 1、9-14 |
-| `REQ-004` | Spec §3/§4 | internal product/originals/components/platforms source out of scope | path-limited original/component/platform diff remains zero | Step 1、13-14 |
+| `REQ-004` | Spec §3/§4 | internal product/originals/components/xingyuan source out of scope | path-limited original/component/xingyuan diff remains zero | Step 1、13-14 |
 | `REQ-005` | Spec §4/§7/§13 | 保持 current layer/module/domain-first direction | generated ArchUnit and verifier reject crossings | Step 4、8、12-14 |
 | `REQ-006` | Spec §4/§6 | Java 21、Boot 3.5.16、wrapper 3.9.14 | effective POM/wrapper exact | Step 1、4、8、12-14 |
 | `REQ-007` | Spec §4/§6/§15 | Cloud 2025.0.3、SCA 2025.0.0.0、Nacos 3.0.3 | BOM/config/image aligned；tests open no Nacos socket | Step 4、8、12-14 |
@@ -82,7 +82,7 @@ documents继续约束 layer direction、domain-first、service-only 和 existing
 | `REQ-012` | Spec §4/§6.2 | exact Common/DTP `top.egon` allowlist | effective tree contains only approved direct/transitive artifacts | Step 3-4、6-8、10-13 |
 | `REQ-013` | Spec §4/§7/§15 | each runnable app uses one bounded DTP-governed executor | `applicationTaskExecutor` discovered；context/metric/config test；test DTP disabled | Step 4、8、12-13 |
 | `REQ-014` | Spec §4/§9 | 8 Proto services / 21 RPC；Triple only；standard gRPC interop | descriptor/parity/provider/client/status/deadline tests | Step 7、11、13 |
-| `REQ-015` | Spec §4/§6/§9 | Gateway external；Light/Web Springdoc；Service no Springdoc | no Gateway artifact/config/route；OpenAPI valid | Step 4、8、12-14 |
+| `REQ-015` | Spec §4/§6/§9 | Yuheng external；Light/Web Springdoc；Service no Springdoc | no Yuheng artifact/config/route；OpenAPI valid | Step 4、8、12-14 |
 | `REQ-016` | Spec §4/§7.0 | no unused dependency/framework/pattern | direct-consumer audit and forbidden tree pass | Step 3-4、6-8、10-14 |
 | `REQ-017` | Spec §4/§9/§10/§16 | preserve HTTP/GraphQL/MQ/domain use cases；approved ID/wire representation only | copied behavior fixtures pass；HTTP IDs remain decimal String | Step 2-12、13 |
 | `REQ-018` | Spec §4/§8/§16 | open artifacts independently publishable/discoverable | reactor、catalog、README、CI、deploy guide list all three | Step 1、13-14 |
@@ -110,7 +110,7 @@ documents继续约束 layer direction、domain-first、service-only 和 existing
 | MyBatis/manual schema | copied repository tests + new manual SQL contract tests | JPA repositories/Flyway paths present，Mapper absent | 21 Mapper/XML + PO/RepositoryImpl + manual SQL/no migrator |
 | Proto RPC | descriptor and adapter/client contract tests | local facade module/generated services absent | five Proto files/module + provider/client mapping/status/deadline |
 | DTP/runtime | Async/config/context tests | no DTP dependency/decorator/managed executor；test may try Redis | bounded Boot executor + decorator + profile config |
-| Architecture/API/forbidden | ArchUnit/OpenAPI/verifier assertions | internal plugin/Gateway/forbidden tokens or old version | ArchUnit、Springdoc scope、negative scans |
+| Architecture/API/forbidden | ArchUnit/OpenAPI/verifier assertions | internal plugin/Yuheng/forbidden tokens or old version | ArchUnit、Springdoc scope、negative scans |
 
 ### 4.3 Sequential and parallel boundaries
 
@@ -131,7 +131,7 @@ single-source and Step 13 still performs final byte/wire parity。
 
 Each Step ends in one semantic commit and stages only its declared paths。A copied open POM/config/test file may reappear in
 later Steps only for explicitly named dependency sections：persistence dependency removal，then Proto module/plugin，then
-DTP/ArchUnit/runtime config。No Step stages the dirty IdP/Gateway/DDC/RBAC/scripts/other Spec/Plan paths in §6.1。
+DTP/ArchUnit/runtime config。No Step stages the dirty Tianquan-Shoubing/Yuheng/Tianshu/RBAC/scripts/other Spec/Plan paths in §6.1。
 
 ### 4.5 Spec Simplicity and Implementation-necessity Audit
 
@@ -145,7 +145,7 @@ DTP/ArchUnit/runtime config。No Step stages the dirty IdP/Gateway/DDC/RBAC/scri
 | new Proto DTO mapper layer | no approved necessity | current adapter converters/facade impls already own mapping | change existing converters/impls directly | extra files/calls without value | Do not add |
 | DTP executor config class | bounded executor required / Spec §7 | three existing `AsyncConfiguration` return `null`；Boot provides `applicationTaskExecutor` | configure and decorate existing executor | no new layer，one existing bean governed | Reuse in Steps 4/8/12 |
 | DTP Admin | Remove / Spec §7.0 | separate component module/README | external deployment | second service/UI/ops | Do not add |
-| Gateway module/dependency | Remove / DEC-003 | no current generated Gateway source | external platform + Springdoc | no generated call/state | Forbid and verify |
+| Yuheng module/dependency | Remove / DEC-003 | no current generated Yuheng source | external xingyuan + Springdoc | no generated call/state | Forbid and verify |
 | Dubbo in Light | RPC consumer absent / REQ-016 | Light POM declares starter but no provider/client symbol | remove from Light open | reduces unused runtime/startup | Remove Step 4 |
 | Springdoc in Service | N/A / REQ-015 | no business Controller | no API docs dependency | avoids unused surface | Keep absent |
 | native gRPC server | Remove / DEC-004 | Triple already owns port/registry | standard test client only | avoids second server/port | Do not add |
@@ -170,7 +170,7 @@ as caller-owned positive cross-service references，matching current use cases�
 | Web Long identity | `REQ-009`,`017`,`021` | HTTP/domain/sharding tests | Step 1 | Long Organization call chain | Web Mapper/Proto | Step 9 |
 | Web persistence/manual SQL | `REQ-008`-`012`,`017`,`019`,`021` | repo/manual SQL tests | Step 9 | 8 Mapper + two scripts | Web Proto/runtime | Step 10 |
 | Web local Proto/RPC | `REQ-003`,`005`,`012`,`014`,`017`-`019`,`021` | descriptor/provider/client/interop tests | Steps 7、10 | seven modules + provider/client | runtime/verifier | Step 11 |
-| Web runtime governance | `REQ-005`-`007`,`013`,`015`-`019` | Async/OpenAPI/ArchUnit/config tests | Step 11 | runnable Web，no Gateway | verifier/docs | Step 12 |
+| Web runtime governance | `REQ-005`-`007`,`013`,`015`-`019` | Async/OpenAPI/ArchUnit/config tests | Step 11 | runnable Web，no Yuheng | verifier/docs | Step 12 |
 | final open contracts | `REQ-001`-`019`,`021` | three verify.groovy + full reactor | Steps 2-12 | negative/parity/generated proof | CI/public docs | Step 13 |
 | CI/release/documentation | `REQ-004`,`006`,`015`,`018`-`020` | CI static/full commands | Step 13 | discoverable/releasable family | user implementation review | Step 14 |
 
@@ -234,7 +234,7 @@ egon-cola-archetypes/code-style-abstract-open.md                   # CREATE Step
 - Apply prompt-provided AGENTS rules：smallest safe change，existing JavaDoc/style，one tested commit per Step，no project start。
 - No applicable repository-local `AGENTS.md` exists under `/Users/mario/SelfProject/Egon-COLA`。
 - Branch/revision：`main@772df2b28b4abf29e7fffae6ea1b10fd616397b4`。
-- Existing dirty/untracked work includes IdP/DDC/Gateway/RBAC/platform scripts、two identity docs、Access Guard Spec/Plan
+- Existing dirty/untracked work includes Tianquan-Shoubing/Tianshu/Yuheng/RBAC/xingyuan scripts、two identity docs、Access Guard Spec/Plan
   and `V6__backfill_confidential_client_app_ids.sql`。None overlaps the three new open directories、archetypes parent、root
   README、CI or deploy guide；execution must use explicit `git add <Step commit paths>` and inspect `git diff --cached --name-only`。
 - Never stage `target/**`、generated Proto Java、Invoker `project/basic` output or local `.m2` artifacts。
@@ -252,11 +252,11 @@ egon-cola-archetypes/code-style-abstract-open.md                   # CREATE Step
 
 ### 6.3 Immutable constraints and approved decisions
 
-- Original three archetypes、their six existing Flyway SQL、components/platforms production source are immutable for this work。
+- Original three archetypes、their six existing Flyway SQL、components/xingyuan production source are immutable for this work。
 - Open copies contain no Flyway migration；new manual SQL is initial schema，not an edit/new version in original `classpath:db`。
 - Domain/application behavior、HTTP/GraphQL/MQ semantics and service-only constraint remain；only approved ID/persistence/RPC representation changes。
 - `top.egon` direct allowlist is Components BOM、common-core、common-id-starter、DTP starter；common-trace only transitive。
-- Gateway remains external；no dependency/property/route/module。Service has no Springdoc；Light/Web use 2.8.17。
+- Yuheng remains external；no dependency/property/route/module。Service has no Springdoc；Light/Web use 2.8.17。
 - `EGON_ID_MACHINE_ID` is required in runtime and unique per JVM；tests use deterministic fake/explicit `0`。
 - No automatic mutation retry for Proto commands；read 3s、command 5s；error code/trace travel in trailing metadata。
 
@@ -778,7 +778,7 @@ run forbidden scans for JpaRepository/jakarta.persistence/org.flywaydb/Flyway an
 - Requirements: `REQ-001`,`REQ-005`,`REQ-006`,`REQ-007`,`REQ-012`,`REQ-013`,`REQ-015`,`REQ-016`,`REQ-017`,`REQ-018`,`REQ-019`,`REQ-021`
 - Dependencies: Step 3 committed。
 - Baseline state: Light Long/MP/manual schema GREEN；POM still has copied unused Dubbo/internal architecture plugin and no DTP governance。
-- Observable outcome: generated Light uses required machine ID、bounded managed executor、Nacos 3.0.3-compatible config、Springdoc 2.8.17 and ArchUnit，with no Gateway/Dubbo/internal plugin。
+- Observable outcome: generated Light uses required machine ID、bounded managed executor、Nacos 3.0.3-compatible config、Springdoc 2.8.17 and ArchUnit，with no Yuheng/Dubbo/internal plugin。
 - End state: Light Open product is feature-complete；test profile opens no Nacos/Redis/DB/MQ external socket。
 - Test-first gate: `Required — runtime/async/OpenAPI/architecture tests first fail because DTP/decorator/required machine-id/ArchUnit rules are absent and copied dependencies remain.`
 - Ordered files:
@@ -786,7 +786,7 @@ run forbidden scans for JpaRepository/jakarta.persistence/org.flywaydb/Flyway an
 #### File 1 — `MODIFY egon-cola-archetypes/egon-cola-archetype-light-open/src/main/resources/archetype-resources/src/test/java/start/{StudentManagementApplicationTest.java,config/RuntimeConfigurationTest.java}`
 
 - Purpose: freeze context behavior for ID、DTP test isolation、Springdoc and no forbidden edge/RPC runtime。
-- Symbols: context loads with machine-id `0`、DTP disabled；missing machine-id failure；OpenAPI bean/resource presence；no Gateway/Dubbo bean。
+- Symbols: context loads with machine-id `0`、DTP disabled；missing machine-id failure；OpenAPI bean/resource presence；no Yuheng/Dubbo bean。
 - Repository evidence: copied tests already inspect runtime profiles/config and external-free application context。
 - Dependencies and consumers: start configuration/POM/YAML Files 2-4。
 - Why now: establishes RED before runtime wiring。
@@ -798,7 +798,7 @@ run forbidden scans for JpaRepository/jakarta.persistence/org.flywaydb/Flyway an
 ```java
 load test context with machine-id=0, dtp.enabled=false, Nacos disabled and assert LongIdGenerator plus OpenAPI beans
 load a minimal context without machine-id and assert the exact Common ID fail-fast message
-assert classpath/bean factory contains no Gateway route locator, Dubbo service export, or internal architecture plugin output
+assert classpath/bean factory contains no Yuheng route locator, Dubbo service export, or internal architecture plugin output
 ```
 
 - Verification contribution: runtime config RED/GREEN and external-free proof。
@@ -807,19 +807,19 @@ assert classpath/bean factory contains no Gateway route locator, Dubbo service e
 #### File 2 — `MODIFY egon-cola-archetypes/egon-cola-archetype-light-open/src/main/resources/archetype-resources/pom.xml`
 
 - Purpose: finalize Light dependency/architecture allowlist。
-- Symbols: DTP starter、ArchUnit 1.4.2 test、Springdoc 2.8.17；remove Dubbo/internal bytecode plugin/Gateway absence。
+- Symbols: DTP starter、ArchUnit 1.4.2 test、Springdoc 2.8.17；remove Dubbo/internal bytecode plugin/Yuheng absence。
 - Repository evidence: copied POM has actual Springdoc consumer and unused Dubbo starter/plugin；Spec §6.2 exact allowlist。
 - Dependencies and consumers: Async config、ArchUnit test、runtime context；no RPC source in Light。
 - Why now: test classes/config require dependencies；persistence sections from Step 3 are preserved。
 - Contract/signature changes: direct `top.egon` only common core/id + DTP；common-trace transitive；no Common MP/Trace Starter。
 - Input/output and state mapping: effective dependency tree -> allowed runtime/test artifacts only。
-- Error and edge behavior: any Gateway/Dubbo/unapproved Egon dependency fails `dependency:tree`/verifier。
+- Error and edge behavior: any Yuheng/Dubbo/unapproved Egon dependency fails `dependency:tree`/verifier。
 - Implementation pseudocode:
 
 ```xml
 add egon-cola-component-dynamic-thread-pool-starter and test-scoped org.archunit:archunit-junit5:1.4.2
 retain springdoc-openapi-starter-webmvc-ui:2.8.17; remove unused dubbo starter and internal bytecode plugin
-preserve official MP/Common ID/Sharding/Nacos/business dependencies from prior Steps and enforce no Gateway artifact
+preserve official MP/Common ID/Sharding/Nacos/business dependencies from prior Steps and enforce no Yuheng artifact
 ```
 
 - Verification contribution: effective POM/tree and compile of Files 3/5。
@@ -876,13 +876,13 @@ update every compose image to Nacos 3.0.3 and pass non-secret ID/DTP variables c
 - Why now: final dependency graph exists，so bytecode rules can be exact without false RED from transitional sources。
 - Contract/signature changes: no production API；test-only governance mechanism。
 - Input/output and state mapping: compiled classes -> rule violations with class/dependency evidence。
-- Error and edge behavior: JPA/Flyway/Gateway/Proto-in-Domain/unapproved `top.egon` imports fail；generated/test classes excluded deliberately。
+- Error and edge behavior: JPA/Flyway/Yuheng/Proto-in-Domain/unapproved `top.egon` imports fail；generated/test classes excluded deliberately。
 - Implementation pseudocode:
 
 ```java
 import production classes under generated base package and exclude tests/generated framework code
 assert Adapter->Application, Infrastructure->Domain, Start composition and no inward framework dependency rules
-assert Domain/Application do not depend on MyBatis, ShardingSphere, Dubbo, Gateway, JPA or Flyway packages
+assert Domain/Application do not depend on MyBatis, ShardingSphere, Dubbo, Yuheng, JPA or Flyway packages
 ```
 
 - Verification contribution: `TEST-010/014` Light architecture proof。
@@ -890,7 +890,7 @@ assert Domain/Application do not depend on MyBatis, ShardingSphere, Dubbo, Gatew
 
 #### File 6 — `MODIFY egon-cola-archetypes/egon-cola-archetype-light-open/{large-monolith-light-domain-architecture.md,src/main/resources/archetype-resources/README.md,src/main/resources/archetype-resources/README.zh-CN.md}`
 
-- Purpose: document actual open dependencies、Long/API mapping、manual SQL、DTP and external Gateway boundary。
+- Purpose: document actual open dependencies、Long/API mapping、manual SQL、DTP and external Yuheng boundary。
 - Symbols: module/stack diagrams、operator steps、test commands、proof limits。
 - Repository evidence: copied living/readme documents currently describe UUID/JPA/Flyway and original product。
 - Dependencies and consumers: generated developers/DBA/operators；root public docs later link this product。
@@ -902,7 +902,7 @@ assert Domain/Application do not depend on MyBatis, ShardingSphere, Dubbo, Gatew
 
 ```markdown
 replace UUID/JPA/Flyway diagrams and commands with Long/MyBatis/manual SQL/DTP/ArchUnit truth
-document HTTP decimal IDs, Springdoc endpoints, external Gateway non-ownership and machine-id uniqueness
+document HTTP decimal IDs, Springdoc endpoints, external Yuheng non-ownership and machine-id uniqueness
 keep original Light layer responsibilities and bilingual instructions synchronized; state live topology gaps
 ```
 
@@ -910,7 +910,7 @@ keep original Light layer responsibilities and bilingual instructions synchroniz
 - After this file: Light Open implementation/documentation are internally consistent。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl :egon-cola-archetype-light-open -am clean integration-test && ! rg -n 'spring-cloud-starter-gateway|dubbo-spring-boot-starter|egon-cola-component-bytecode|org\.flywaydb|JpaRepository|UuidV7' egon-cola-archetypes/egon-cola-archetype-light-open/src/main/resources/archetype-resources --glob '!README*' --glob '!deploy/sql/README.md'`
+- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl :egon-cola-archetype-light-open -am clean integration-test && ! rg -n 'spring-cloud-starter-yuheng|dubbo-spring-boot-starter|egon-cola-component-bytecode|org\.flywaydb|JpaRepository|UuidV7' egon-cola-archetypes/egon-cola-archetype-light-open/src/main/resources/archetype-resources --glob '!README*' --glob '!deploy/sql/README.md'`
 - Expected result: Maven exit 0；rg returns no forbidden production/dependency hit（documentation historical wording is excluded or rewritten）；OpenAPI/ArchUnit/DTP context tests pass without sockets。
 - Failure returns to: File 1 assertions，File 2 tree，File 3 executor wiring，File 4 profile/image，File 5 architecture rules，File 6 stale docs。
 - Completion criteria: Light Open individually satisfies all mapped requirements and stays generated-project GREEN。
@@ -1505,27 +1505,27 @@ assert payload mapping, groups/version, canonical statuses/trailing metadata, de
 - Requirements: `REQ-002`,`REQ-005`,`REQ-006`,`REQ-007`,`REQ-012`,`REQ-013`,`REQ-015`,`REQ-016`,`REQ-017`,`REQ-018`,`REQ-019`,`REQ-021`
 - Dependencies: Step 7 committed。
 - Baseline state: Service seven-module Long/MP/Proto project GREEN；no DTP/ArchUnit；copied Nacos image/internal plugin remain。
-- Observable outcome: bounded Boot executor is DTP-governed，runtime machine/Nacos/DTP config exact，Service stays controller/Springdoc/Gateway-free，ArchUnit replaces internal plugin。
+- Observable outcome: bounded Boot executor is DTP-governed，runtime machine/Nacos/DTP config exact，Service stays controller/Springdoc/Yuheng-free，ArchUnit replaces internal plugin。
 - End state: Service Open feature-complete and external-free under test profile。
 - Test-first gate: `Required — starter context/async/architecture tests fail before DTP dependency/decorator/config/ArchUnit and copied plugin removal.`
 - Ordered files:
 
 #### File 1 — `MODIFY egon-cola-archetypes/egon-cola-archetype-service-open/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/test/java/starter/{EvaluationServiceApplicationTest.java,EvaluationExternalFreeContextTest.java}`
 
-- Purpose: freeze ID、DTP executor discovery、no Redis/Nacos socket and service-only/no-Springdoc/no-Gateway behavior。
+- Purpose: freeze ID、DTP executor discovery、no Redis/Nacos socket and service-only/no-Springdoc/no-Yuheng behavior。
 - Symbols: context properties/bean assertions、local Organization stub、managed executor snapshot。
 - Repository evidence: copied starter tests already verify external-free context and service-only boundary。
 - Dependencies and consumers: POM/Async/YAML Files 2-4。
 - Why now: RED runtime contract before wiring。
 - Contract/signature changes: test machine-id `0`、DTP disabled or fake registry；no Controller/API added。
 - Input/output and state mapping: profile -> bean graph；executor registry contains `applicationTaskExecutor` when DTP enabled under isolated fake setup。
-- Error and edge behavior: missing machine ID fails；test profile opens no Nacos/Redis；Springdoc/Gateway beans absent。
+- Error and edge behavior: missing machine ID fails；test profile opens no Nacos/Redis；Springdoc/Yuheng beans absent。
 - Implementation pseudocode:
 
 ```java
 load Service test profile with explicit machine-id and local RPC stubs, asserting no external socket attempts
 assert bounded applicationTaskExecutor is decorated/discoverable in a fake DTP context and cleanup preserves trace state
-assert no business Controller, Springdoc OpenAPI bean, Gateway route locator or unapproved Egon artifact bean exists
+assert no business Controller, Springdoc OpenAPI bean, Yuheng route locator or unapproved Egon artifact bean exists
 ```
 
 - Verification contribution: runtime RED/GREEN/external-free proof。
@@ -1534,19 +1534,19 @@ assert no business Controller, Springdoc OpenAPI bean, Gateway route locator or 
 #### File 2 — `MODIFY egon-cola-archetypes/egon-cola-archetype-service-open/src/main/resources/archetype-resources/{pom.xml,__rootArtifactId__-starter/pom.xml}`
 
 - Purpose: add DTP/ArchUnit and remove internal architecture plugin while preserving Service no-Springdoc boundary。
-- Symbols: DTP starter runtime；ArchUnit JUnit5 test；remove bytecode plugin；no Gateway/Springdoc dependencies。
+- Symbols: DTP starter runtime；ArchUnit JUnit5 test；remove bytecode plugin；no Yuheng/Springdoc dependencies。
 - Repository evidence: copied starter POM owns executable/runtime/plugin；root manages dependency versions。
 - Dependencies and consumers: Async/File 3、architecture test File 5、context File 1。
 - Why now: compile prerequisites for final governance。
 - Contract/signature changes: direct top.egon allowlist only；local facade remains project groupId。
 - Input/output and state mapping: Maven tree -> DTP/runtime + ArchUnit test；no public API change。
-- Error and edge behavior: any Common MP/external facade/plugin/Gateway/Springdoc tree entry fails verifier。
+- Error and edge behavior: any Common MP/external facade/plugin/Yuheng/Springdoc tree entry fails verifier。
 - Implementation pseudocode:
 
 ```xml
 starter adds approved DTP starter and test-scoped archunit-junit5 1.4.2
 remove egon bytecode architecture plugin while preserving Boot/Cloud/Nacos/Dubbo/local facade dependencies
-do not add Springdoc, Gateway, DTP Admin/Test, Common MP or external organization/evaluation facade artifacts
+do not add Springdoc, Yuheng, DTP Admin/Test, Common MP or external organization/evaluation facade artifacts
 ```
 
 - Verification contribution: dependency tree/compile and architecture test。
@@ -1580,7 +1580,7 @@ rely on DTP auto-discovery for governance; never create a second raw pool or Adm
 - Repository evidence: copied runtime configs have Nacos 2.5.1/no ID/DTP and test-local profiles。
 - Dependencies and consumers: Common ID/DTP/Nacos/Dubbo/runtime operator/tests。
 - Why now: bean graph exists，so config closes runtime GREEN。
-- Contract/signature changes: no runtime machine default；test DTP/Nacos off；Service no Springdoc/Gateway config。
+- Contract/signature changes: no runtime machine default；test DTP/Nacos off；Service no Springdoc/Yuheng config。
 - Input/output and state mapping: env -> generator/pool/Redis/Nacos/Dubbo；no secrets in repository。
 - Error and edge behavior: missing machine/Redis/Nacos prod fail-fast；tests no sockets；port collision configurable。
 - Implementation pseudocode:
@@ -1588,7 +1588,7 @@ rely on DTP auto-discovery for governance; never create a second raw pool or Adm
 ```yaml
 add required EGON_ID_MACHINE_ID and env-overridable bounded spring.task.execution properties
 enable DTP Redis/report in dev/prod, disable in test, and align every local compose Nacos image to 3.0.3
-preserve tri port/groups/version and assert no springdoc/gateway property appears in any Service profile
+preserve tri port/groups/version and assert no springdoc/yuheng property appears in any Service profile
 ```
 
 - Verification contribution: config/context/compose tests and negative Service API boundary。
@@ -1603,13 +1603,13 @@ preserve tri port/groups/version and assert no springdoc/gateway property appear
 - Why now: final graph stable after Proto/persistence/runtime transitions。
 - Contract/signature changes: test-only architecture governance。
 - Input/output and state mapping: compiled class dependencies -> exact violations；no runtime state。
-- Error and edge behavior: cycles、Proto/Mapper in Domain、Controller、JPA/Flyway/Gateway/unapproved Egon dependencies fail。
+- Error and edge behavior: cycles、Proto/Mapper in Domain、Controller、JPA/Flyway/Yuheng/unapproved Egon dependencies fail。
 - Implementation pseudocode:
 
 ```java
 assert facade depends on no local business module and Domain depends only on common/Java/validation
 assert Adapter->Application/facade, Infrastructure->Domain/facade, Starter composition and domain-first package rules
-assert Service contains no business controller, Springdoc/Gateway/JPA/Flyway or internal Egon plugin/runtime imports
+assert Service contains no business controller, Springdoc/Yuheng/JPA/Flyway or internal Egon plugin/runtime imports
 ```
 
 - Verification contribution: generated Service architecture gate。
@@ -1630,7 +1630,7 @@ assert Service contains no business controller, Springdoc/Gateway/JPA/Flyway or 
 ```markdown
 document seven modules with local facade Proto and exact provider/consumer dependency directions
 replace UUID/JPA/Flyway with Long/MP/manual SQL and add machine-id/DTP/Nacos/Triple status/deadline runbooks
-retain service-only/MQ/domain-first constraints and explicitly state no Springdoc/Gateway/native gRPC server
+retain service-only/MQ/domain-first constraints and explicitly state no Springdoc/Yuheng/native gRPC server
 ```
 
 - Verification contribution: generated docs/token/structure gate。
@@ -1638,7 +1638,7 @@ retain service-only/MQ/domain-first constraints and explicitly state no Springdo
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
 - Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl :egon-cola-archetype-service-open -am clean integration-test`
-- Expected result: exit 0；seven modules、Proto/DTP/ArchUnit/external-free tests pass；no Springdoc/Gateway/JPA/Flyway/UUID/external facade/internal plugin。
+- Expected result: exit 0；seven modules、Proto/DTP/ArchUnit/external-free tests pass；no Springdoc/Yuheng/JPA/Flyway/UUID/external facade/internal plugin。
 - Failure returns to: File 1 runtime contract，File 2 tree，File 3 executor，File 4 config，File 5 architecture，File 6 docs。
 - Completion criteria: Service Open individually satisfies mapped runtime/product requirements without live infra。
 - Rollback: revert only Service Open Step paths；no runtime/data state。
@@ -2095,7 +2095,7 @@ use int64 for identifiers and common status/page/error/trace messages without HT
 #### File 4 — `CREATE egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/__rootArtifactId__-facade/src/test/java/facade/ProtoContractTest.java`
 
 - Purpose: 锁定 5 文件、8 services、21 methods、field numbers 与 int64 ID 类型。
-- Symbols: descriptor traversal；organization/evaluation ownership sets；forbidden Java facade/gateway assumptions。
+- Symbols: descriptor traversal；organization/evaluation ownership sets；forbidden Java facade/yuheng assumptions。
 - Repository evidence: 文本扫描不足以证明 descriptor 级协议完整性。
 - Dependencies and consumers: File 3 generated descriptors；Step 13 verifier。
 - Why now: 协议源已存在，先于 provider 实现建立 contract GREEN。
@@ -2122,7 +2122,7 @@ assert total service/method counts are 8/21 and common messages are reused rathe
 - Why now: contract稳定后切 reactor/classpath。
 - Contract/signature changes: module count 7；删除 external facade properties/dependencies；Adapter/Infrastructure/Starter 仅依赖 local facade。
 - Input/output and state mapping: reactor modules → ordered build/classpath；no runtime state。
-- Error and edge behavior: dependency tree 发现 external facade、Gateway、native gRPC server transport 或 facade→business dependency 即失败。
+- Error and edge behavior: dependency tree 发现 external facade、Yuheng、native gRPC server transport 或 facade→business dependency 即失败。
 - Implementation pseudocode:
 
 ```xml
@@ -2210,28 +2210,28 @@ test all 10 provider mappings and 3 consumer calls in-process, then assert zero 
 
 - Requirements: `REQ-003`,`REQ-005`,`REQ-006`,`REQ-007`,`REQ-012`,`REQ-013`,`REQ-015`,`REQ-016`,`REQ-017`,`REQ-018`,`REQ-019`,`REQ-021`
 - Dependencies: Steps 9-11 complete Web Java/POM/runtime graph。
-- Baseline state: Web Open 已 Long/MP/Proto，但仍需最终 open dependency allowlist、DTP pool/config、Nacos 3.0.3、Springdoc 2.8.17、ArchUnit、manual SQL/docs 与 Gateway negative boundary。
-- Observable outcome: Web app 启动时拥有一个 DTP 治理的 Boot applicationTaskExecutor、显式 Snowflake machine ID、Springdoc UI/API、Triple/Nacos runtime；架构测试强制七模块/禁止项；不生成 Gateway module/component。
+- Baseline state: Web Open 已 Long/MP/Proto，但仍需最终 open dependency allowlist、DTP pool/config、Nacos 3.0.3、Springdoc 2.8.17、ArchUnit、manual SQL/docs 与 Yuheng negative boundary。
+- Observable outcome: Web app 启动时拥有一个 DTP 治理的 Boot applicationTaskExecutor、显式 Snowflake machine ID、Springdoc UI/API、Triple/Nacos runtime；架构测试强制七模块/禁止项；不生成 Yuheng module/component。
 - End state: Web Open 可独立生成并离线完成 context/architecture/API/RPC tests；生产部署仍需 operator 提供 DB、Redis、Nacos、broker 与 machine ID。
 - Test-first gate: `Required — 先建立 context、OpenAPI、DTP、architecture、external-free tests；RED 必须来自缺依赖/bean/config 或残留 forbidden artifact。`
-- Ordered files: Tests → POM → AsyncConfiguration → profiles/deploy → ArchUnit → docs；不新增第二 executor 或 Gateway placeholder。
+- Ordered files: Tests → POM → AsyncConfiguration → profiles/deploy → ArchUnit → docs；不新增第二 executor 或 Yuheng placeholder。
 
 #### File 1 — `MODIFY egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/test/java/starter/{OrganizationApplicationTest,OrganizationExternalFreeContextTest,OpenApiContractTest}.java`
 
 - Purpose: 固定 Web runnable bean graph、DTP discovery、Springdoc endpoints、Triple/MP/ID 存在和所有禁止项缺席。
-- Symbols: one applicationTaskExecutor；LongIdGenerator；DtpTaskDecorator；OpenAPI group；local facade/provider/client；no Gateway/JPA/Flyway/external facades。
-- Repository evidence: copied context tests仍检查旧依赖；Web 必须保留 API docs，Service 必须不含，Gateway 必须外置。
+- Symbols: one applicationTaskExecutor；LongIdGenerator；DtpTaskDecorator；OpenAPI group；local facade/provider/client；no Yuheng/JPA/Flyway/external facades。
+- Repository evidence: copied context tests仍检查旧依赖；Web 必须保留 API docs，Service 必须不含，Yuheng 必须外置。
 - Dependencies and consumers: Files 2-6。
 - Why now: runtime components stable，可先写最终 RED contract。
 - Contract/signature changes: test-only；API docs URL/metadata 作为生成项目合同。
 - Input/output and state mapping: test profile → local beans/docs descriptor；no external sockets/data。
-- Error and edge behavior: duplicate executor、DTP未发现、OpenAPI丢失、Gateway/JPA/Flyway/external facade residue均失败。
+- Error and edge behavior: duplicate executor、DTP未发现、OpenAPI丢失、Yuheng/JPA/Flyway/external facade residue均失败。
 - Implementation pseudocode:
 
 ```java
 assert exactly one Boot applicationTaskExecutor decorated/registered for DTP and one managed LongIdGenerator
 assert Springdoc 2.8.17 exposes documented MVC endpoints while local Proto provider/client beans load in test profile
-assert no Gateway, JPA, Flyway/Liquibase, external facade or unapproved top.egon runtime class is present
+assert no Yuheng, JPA, Flyway/Liquibase, external facade or unapproved top.egon runtime class is present
 ```
 
 - Verification contribution: Web final runtime RED/GREEN gate。
@@ -2241,10 +2241,10 @@ assert no Gateway, JPA, Flyway/Liquibase, external facade or unapproved top.egon
 
 - Purpose: 完成开源版本矩阵、精确 Egon allowlist、Springdoc 与 ArchUnit dependencies。
 - Symbols: Boot 3.5.16、Cloud 2025.0.3、SCA 2025.0.0.0、Nacos 3.0.3、Dubbo 3.3.6、ShardingSphere 5.5.3、MP 3.5.17、Springdoc 2.8.17。
-- Repository evidence: Web 复制版本为 Springdoc 2.8.13；Common/DTP 必须使用指定 direct artifacts；Gateway 只允许外部部署。
+- Repository evidence: Web 复制版本为 Springdoc 2.8.13；Common/DTP 必须使用指定 direct artifacts；Yuheng 只允许外部部署。
 - Dependencies and consumers: generated reactor、starter、tests、CI。
 - Why now: 所有功能依赖已知，可一次完成 convergence/banlist。
-- Contract/signature changes: only approved `top.egon` artifacts；Springdoc升级 2.8.17；移除 internal architecture plugin；不引 Gateway。
+- Contract/signature changes: only approved `top.egon` artifacts；Springdoc升级 2.8.17；移除 internal architecture plugin；不引 Yuheng。
 - Input/output and state mapping: BOM/direct deps → deterministic classpath；no runtime state。
 - Error and edge behavior: dependency convergence、duplicate SLF4J/Netty/protobuf、forbidden transitive依赖均阻断；禁止靠 broad exclusions 隐藏问题。
 - Implementation pseudocode:
@@ -2252,7 +2252,7 @@ assert no Gateway, JPA, Flyway/Liquibase, external facade or unapproved top.egon
 ```xml
 pin the approved open-source matrix and Springdoc 2.8.17 under central dependency management
 allow only common-id/common-core/common-context/common-dto/common-enum/common-exception plus dtp component artifacts
-add ArchUnit test support and ban Gateway, JPA, Flyway/Liquibase, external facades and internal architecture plugin
+add ArchUnit test support and ban Yuheng, JPA, Flyway/Liquibase, external facades and internal architecture plugin
 ```
 
 - Verification contribution: dependency tree/convergence/forbidden gate。
@@ -2286,7 +2286,7 @@ rely on DTP auto-discovery for governance; never create a second raw pool or Adm
 - Repository evidence: copied configs无机器号/DTP且 Nacos 旧；component README 给出池默认样例；Web需Springdoc但不需Gateway。
 - Dependencies and consumers: ID/DTP/Nacos/Dubbo/Springdoc/runtime operator/tests。
 - Why now: bean graph exists，配置关闭 runtime GREEN。
-- Contract/signature changes: 无生产机器号默认；dev/prod DTP enabled、test disabled；Springdoc docs endpoint稳定；无 Gateway config。
+- Contract/signature changes: 无生产机器号默认；dev/prod DTP enabled、test disabled；Springdoc docs endpoint稳定；无 Yuheng config。
 - Input/output and state mapping: env → generator/pool/Redis/Nacos/RPC/docs；no secrets committed。
 - Error and edge behavior: prod missing machine/Redis/Nacos fail-fast；tests no sockets；pool saturation/port collision/deadline可配置。
 - Implementation pseudocode:
@@ -2294,7 +2294,7 @@ rely on DTP auto-discovery for governance; never create a second raw pool or Adm
 ```yaml
 require EGON_ID_MACHINE_ID and define env-overridable 8/32/1000/60s task-execution bounds
 enable DTP Redis/report in dev/prod, disable external integrations in test and set compose Nacos to 3.0.3
-configure Springdoc 2.8.17 and Triple/gRPC properties while asserting no spring.cloud.gateway namespace
+configure Springdoc 2.8.17 and Triple/gRPC properties while asserting no spring.cloud.yuheng namespace
 ```
 
 - Verification contribution: context/OpenAPI/config/compose gates。
@@ -2303,19 +2303,19 @@ configure Springdoc 2.8.17 and Triple/gRPC properties while asserting no spring.
 #### File 5 — `CREATE egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/test/java/architecture/OpenArchitectureTest.java`
 
 - Purpose: 证明七模块依赖方向、domain-first package rule、Web adapter边界与 forbidden technologies。
-- Symbols: Facade leaf；Adapter/Application/Domain/Infrastructure/Starter rules；controller/GraphQL仅Adapter；no Gateway/JPA/Flyway/internal runtime。
+- Symbols: Facade leaf；Adapter/Application/Domain/Infrastructure/Starter rules；controller/GraphQL仅Adapter；no Yuheng/JPA/Flyway/internal runtime。
 - Repository evidence: Web living architecture §§1-5 与 domain-first Spec；内部 plugin已移除。
 - Dependencies and consumers: compiled modules visible from starter test classpath；ArchUnit。
 - Why now: 最终代码/协议/持久化/runtime graph已稳定。
 - Contract/signature changes: test-only architecture governance。
 - Input/output and state mapping: compiled dependency graph → exact violations；no runtime state。
-- Error and edge behavior: cycles、Proto/Mapper in Domain、controller outside Adapter、Gateway/unapproved Egon dependency均失败。
+- Error and edge behavior: cycles、Proto/Mapper in Domain、controller outside Adapter、Yuheng/unapproved Egon dependency均失败。
 - Implementation pseudocode:
 
 ```java
 assert facade is a leaf and Domain depends only on allowed Java/common/validation APIs
 assert controllers/graphql stay in Adapter, persistence/RPC clients stay in Infrastructure and Starter only composes
-ban JPA, Flyway/Liquibase, Gateway, UUID generators, external facades and internal Egon architecture runtime
+ban JPA, Flyway/Liquibase, Yuheng, UUID generators, external facades and internal Egon architecture runtime
 ```
 
 - Verification contribution: generated Web architecture gate。
@@ -2323,7 +2323,7 @@ ban JPA, Flyway/Liquibase, Gateway, UUID generators, external facades and intern
 
 #### File 6 — `MODIFY egon-cola-archetypes/egon-cola-archetype-web-open/{multi-project-multi-module-architecture.md,src/main/resources/archetype-resources/README.md,src/main/resources/archetype-resources/README.zh-CN.md}`
 
-- Purpose: 同步七模块、本地 Proto、Long/MP/manual SQL、DTP、Springdoc、外部 Gateway 与操作合同。
+- Purpose: 同步七模块、本地 Proto、Long/MP/manual SQL、DTP、Springdoc、外部 Yuheng 与操作合同。
 - Symbols: module tree/dependency graph、10 provider/3 client、manual DBA order、env、test commands/proof limits。
 - Repository evidence: copied docs仍描述 external facades、UUID/JPA/Flyway/六模块和旧版本。
 - Dependencies and consumers: generated developers/operators/DBA；Step 14 root docs。
@@ -2336,17 +2336,17 @@ ban JPA, Flyway/Liquibase, Gateway, UUID generators, external facades and intern
 ```markdown
 document seven modules with local Proto facade, organization Triple providers and evaluation standard-gRPC client
 replace UUID/JPA/Flyway guidance with Long/MP/manual SQL and add machine-id/DTP/Nacos/Springdoc runbooks
-state Gateway is external, generated Web contains no Gateway component, and static tests do not prove live topology
+state Yuheng is external, generated Web contains no Yuheng component, and static tests do not prove live topology
 ```
 
 - Verification contribution: docs/token/structure gate。
 - After this file: Web Open code/config/docs一致。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl :egon-cola-archetype-web-open -am clean integration-test && ! rg -n 'spring-cloud-starter-gateway|spring\.cloud\.gateway|spring-boot-starter-data-jpa|flyway|liquibase|UuidV7Generator|UUID\.randomUUID|egon-cola-architecture' egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources --glob '!README*' --glob '!deploy/sql/README.md'`
+- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl :egon-cola-archetype-web-open -am clean integration-test && ! rg -n 'spring-cloud-starter-yuheng|spring\.cloud\.yuheng|spring-boot-starter-data-jpa|flyway|liquibase|UuidV7Generator|UUID\.randomUUID|egon-cola-architecture' egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources --glob '!README*' --glob '!deploy/sql/README.md'`
 - Expected result: exit 0；七模块、OpenAPI、DTP、Proto、MP、ArchUnit tests通过；forbidden runtime/config无命中。
 - Failure returns to: File 1 runtime contract，File 2 classpath，File 3 executor，File 4 config，File 5 architecture，File 6 docs。
-- Completion criteria: Web Open 满足最终 runtime/API/architecture contracts，且不包含 Gateway/JPA/Flyway/UUID/external facade。
+- Completion criteria: Web Open 满足最终 runtime/API/architecture contracts，且不包含 Yuheng/JPA/Flyway/UUID/external facade。
 - Rollback: 回退 Web Open Step 12 paths；no runtime/data state。
 - Commit paths: `egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/test/java/starter/{OrganizationApplicationTest,OrganizationExternalFreeContextTest,OpenApiContractTest}.java` `egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/{pom.xml,__rootArtifactId__-starter/pom.xml}` `egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/main/java/starter/config/async/AsyncConfiguration.java` `egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/{__rootArtifactId__-starter/src/main/resources/application*.yml,deploy/env/.env*.example,deploy/compose/*.yaml}` `egon-cola-archetypes/egon-cola-archetype-web-open/src/main/resources/archetype-resources/__rootArtifactId__-starter/src/test/java/architecture/OpenArchitectureTest.java` `egon-cola-archetypes/egon-cola-archetype-web-open/{multi-project-multi-module-architecture.md,src/main/resources/archetype-resources/README.md,src/main/resources/archetype-resources/README.zh-CN.md}`
 - Commit: `feat(web-open): finalize open runtime governance`
@@ -2370,13 +2370,13 @@ state Gateway is external, generated Web contains no Gateway component, and stat
 - Why now: Light implementation稳定，可建立最终 generated-project gate。
 - Contract/signature changes: test-only；generated Light产品合同更新。
 - Input/output and state mapping: generated project path → structural/command/token assertions；no external state。
-- Error and edge behavior: missing copied file、extra module、forbidden dependency、auto SQL、Gateway/RPC leak、test失败均明确失败。
+- Error and edge behavior: missing copied file、extra module、forbidden dependency、auto SQL、Yuheng/RPC leak、test失败均明确失败。
 - Implementation pseudocode:
 
 ```groovy
 assert the generated four-module tree matches the temporary copy manifest minus declared migration deletions plus declared additions
 run focused Maven tests and inspect dependency tree/config/manual SQL/architecture/OpenAPI/DTP/Long contracts
-fail on UUID, JPA, Flyway/Liquibase, Gateway, RPC, external facade or unapproved top.egon artifacts
+fail on UUID, JPA, Flyway/Liquibase, Yuheng, RPC, external facade or unapproved top.egon artifacts
 ```
 
 - Verification contribution: Light true-generated-project acceptance。
@@ -2385,7 +2385,7 @@ fail on UUID, JPA, Flyway/Liquibase, Gateway, RPC, external facade or unapproved
 #### File 2 — `MODIFY egon-cola-archetypes/egon-cola-archetype-service-open/src/test/resources/projects/basic/verify.groovy`
 
 - Purpose: 验证 Service Open 七模块、5 Proto、11 provider/3 client、manual SQL/DTP/ArchUnit 和 service-only边界。
-- Symbols: generated manifest、descriptor 8/21、Triple/standard gRPC tests、forbidden Springdoc/Gateway/JPA/Flyway/external facade。
+- Symbols: generated manifest、descriptor 8/21、Triple/standard gRPC tests、forbidden Springdoc/Yuheng/JPA/Flyway/external facade。
 - Repository evidence: copied verifier只认识六模块和外部 Java facade。
 - Dependencies and consumers: Steps 5-8。
 - Why now: Service implementation稳定。
@@ -2397,7 +2397,7 @@ fail on UUID, JPA, Flyway/Liquibase, Gateway, RPC, external facade or unapproved
 ```groovy
 assert seven modules, five unfiltered proto files and the exact 8-service/21-method descriptor contract
 run provider/standard-gRPC/persistence/DTP/architecture tests and inspect the external-free dependency tree
-fail on HTTP controllers, Springdoc, Gateway, UUID, JPA, Flyway/Liquibase or external facade artifacts
+fail on HTTP controllers, Springdoc, Yuheng, UUID, JPA, Flyway/Liquibase or external facade artifacts
 ```
 
 - Verification contribution: Service true-generated-project acceptance。
@@ -2412,13 +2412,13 @@ fail on HTTP controllers, Springdoc, Gateway, UUID, JPA, Flyway/Liquibase or ext
 - Why now: Web implementation稳定。
 - Contract/signature changes: test-only；generated Web contract更新。
 - Input/output and state mapping: generated project → structural/runtime/API/protocol assertions。
-- Error and edge behavior: missing docs、Gateway module/dependency/config、Proto漂移、forbidden persistence/UUID均失败。
+- Error and edge behavior: missing docs、Yuheng module/dependency/config、Proto漂移、forbidden persistence/UUID均失败。
 - Implementation pseudocode:
 
 ```groovy
 assert seven modules, local proto facade, exact provider/client contract and Springdoc 2.8.17 endpoints
 run Long/MP/Triple/gRPC/DTP/OpenAPI/architecture tests and inspect manual SQL plus dependency tree
-fail on Gateway component/config, UUID, JPA, Flyway/Liquibase, external facade or unapproved top.egon artifacts
+fail on Yuheng component/config, UUID, JPA, Flyway/Liquibase, external facade or unapproved top.egon artifacts
 ```
 
 - Verification contribution: Web true-generated-project acceptance。
@@ -2447,7 +2447,7 @@ fail on Gateway component/config, UUID, JPA, Flyway/Liquibase, external facade o
 
 - Purpose: 将三个 Open archetypes加入Java兼容性/生成项目CI矩阵。
 - Symbols: module matrix、archetype integration verify command、artifact cache inputs。
-- Repository evidence: 当前workflow只覆盖已有components/platforms/original archetypes；新modules若未列入可能在发布前不生成测试。
+- Repository evidence: 当前workflow只覆盖已有components/xingyuan/original archetypes；新modules若未列入可能在发布前不生成测试。
 - Dependencies and consumers: Maven reactor、GitHub Actions、Step 13 verifiers。
 - Why now: 本地final gate稳定后接CI，避免中间态持续破坏主流程。
 - Contract/signature changes: CI新增3个 isolated module targets和full reactor聚合gate；不替换原任务。
@@ -2458,7 +2458,7 @@ fail on Gateway component/config, UUID, JPA, Flyway/Liquibase, external facade o
 ```yaml
 add light-open, service-open and web-open to the existing archetype compatibility matrix
 run each archetype integration verifier and retain the aggregate egon-cola-archetypes clean verify gate
-preserve original component/platform/archetype jobs and upload useful failure reports without starting apps
+preserve original component/xingyuan/archetype jobs and upload useful failure reports without starting apps
 ```
 
 - Verification contribution: PR/release持续门禁。
@@ -2509,17 +2509,17 @@ link generation, manual SQL and architecture docs and state that templates/tests
 #### File 4 — `CREATE egon-cola-archetypes/open-source-archetype-family-architecture.md`
 
 - Purpose: 提供三种Open产品、共享/独有依赖、模块方向、协议与运行基础设施的仓库级架构总览。
-- Symbols: Light 4 modules；Service/Web 7 modules；local facade；Triple/gRPC；external Gateway；manual SQL；DTP/ID。
+- Symbols: Light 4 modules；Service/Web 7 modules；local facade；Triple/gRPC；external Yuheng；manual SQL；DTP/ID。
 - Repository evidence: primary Spec与三个living docs分散描述，需要一个实现后公共视图但不得替代Spec。
 - Dependencies and consumers: root README、维护者、future Plans。
 - Why now: 所有最终路径与依赖可从实现验证。
 - Contract/signature changes: docs only；明确non-normative implementation overview并回链Spec。
 - Input/output and state mapping: component/module → consumer/runtime dependency diagrams；no state。
-- Error and edge behavior: 标出test proof与live Nacos/Redis/DB/broker/Gateway proof边界。
+- Error and edge behavior: 标出test proof与live Nacos/Redis/DB/broker/Yuheng proof边界。
 - Implementation pseudocode:
 
 ```markdown
-draw the three module graphs and one runtime context using Mermaid with Facade as leaf and Gateway external
+draw the three module graphs and one runtime context using Mermaid with Facade as leaf and Yuheng external
 record exact approved stack/egon allowlist, ID/route/SQL contracts and provider/client ownership
 link each generated runbook and distinguish static/generated tests from live infrastructure validation
 ```
@@ -2562,7 +2562,7 @@ map every forbidden practice to its ArchUnit, verifier or dependency-tree enforc
 ### 8.1 Step-level validation order
 
 1. Steps 1-4：先验证 Light copy manifest、Long/sharding、MP/manual SQL、DTP/Springdoc/ArchUnit；每步只运行 `:egon-cola-archetype-light-open -am` 对应 test/integration-test。
-2. Steps 5-8：验证 Service Long、5 Mapper、local Proto/Triple、DTP/ArchUnit；Service 始终不得出现 Controller、Springdoc 或 Gateway。
+2. Steps 5-8：验证 Service Long、5 Mapper、local Proto/Triple、DTP/ArchUnit；Service 始终不得出现 Controller、Springdoc 或 Yuheng。
 3. Steps 9-12：验证 Web Long、8 Mapper、local Proto/Triple、DTP/Springdoc/ArchUnit；HTTP/GraphQL ID继续为十进制String。
 4. Step 13：运行三个实际生成项目 verifier，然后执行整个 `egon-cola-archetypes` reactor `clean verify`。
 5. Step 14：重复 full reactor，检查CI/deploy脚本与original family零diff；只产生构建/测试证据，不启动应用、不执行SQL。
@@ -2572,7 +2572,7 @@ map every forbidden practice to its ArchUnit, verifier or dependency-tree enforc
 ```bash
 # dependency/runtime bans; commands are run per generated Open project
 ./mvnw -B -ntp dependency:tree
-rg -n 'JpaRepository|jakarta\.persistence|spring-boot-starter-data-jpa|flyway|liquibase|UuidV7Generator|UUID\.randomUUID|spring-cloud-starter-gateway|spring\.cloud\.gateway|egon-cola-architecture' .
+rg -n 'JpaRepository|jakarta\.persistence|spring-boot-starter-data-jpa|flyway|liquibase|UuidV7Generator|UUID\.randomUUID|spring-cloud-starter-yuheng|spring\.cloud\.yuheng|egon-cola-architecture' .
 
 # protocol equality and complete descriptors
 diff -qr \
@@ -2592,9 +2592,9 @@ The forbidden-token scan is an assertion of **zero hits in runtime source/config
 
 | Product | Required proof |
 |---|---|
-| Light Open | 四模块、Long/route、8 Mapper、manual SQL、DTP、Springdoc、ArchUnit、no RPC/Gateway |
-| Service Open | 七模块、5 Mapper、5 Proto、descriptor 8/21、11 provider、3 standard-gRPC client、DTP、no HTTP docs/Gateway |
-| Web Open | 七模块、8 Mapper、5 Proto、descriptor 8/21、10 provider、3 standard-gRPC client、DTP、Springdoc、no Gateway component |
+| Light Open | 四模块、Long/route、8 Mapper、manual SQL、DTP、Springdoc、ArchUnit、no RPC/Yuheng |
+| Service Open | 七模块、5 Mapper、5 Proto、descriptor 8/21、11 provider、3 standard-gRPC client、DTP、no HTTP docs/Yuheng |
+| Web Open | 七模块、8 Mapper、5 Proto、descriptor 8/21、10 provider、3 standard-gRPC client、DTP、Springdoc、no Yuheng component |
 | Cross-template | Service/Web Proto byte-identical；only approved `top.egon` artifacts；original family zero diff |
 
 ### 8.4 Live-system gaps that remain after implementation
@@ -2633,7 +2633,7 @@ The forbidden-token scan is an assertion of **zero hits in runtime source/config
 | Proto ID | `int64`；field numbers/reservations由descriptor test锁定 |
 | External Java facade artifacts | Open Service/Web不解析、不兼容；local Proto是唯一wire contract |
 | Database | New-project manual BIGINT schema；无自动migration或legacy UUID双读 |
-| Gateway | External deployment compatibility only；不成为generated module/dependency/config |
+| Yuheng | External deployment compatibility only；不成为generated module/dependency/config |
 
 ### 9.4 Rollback strategy
 
@@ -2649,7 +2649,7 @@ The forbidden-token scan is an assertion of **zero hits in runtime source/config
 | REQ-001 | 1-4, 13-14 | Light Open coordinate、template、generated verifier、catalog/release gate |
 | REQ-002 | 1, 5-8, 13-14 | Service Open coordinate、seven modules、generated verifier、catalog/release gate |
 | REQ-003 | 1, 9-14 | Web Open coordinate、seven modules、generated verifier、catalog/release gate |
-| REQ-004 | 1, 13-14 | copy isolation、path-limited commits、original/components/platforms zero-diff |
+| REQ-004 | 1, 13-14 | copy isolation、path-limited commits、original/components/xingyuan zero-diff |
 | REQ-005 | 2, 4-5, 7-9, 11-14 | living-architecture reuse、ArchUnit、module/package/generated gates |
 | REQ-006 | 1, 4, 8, 12-14 | Java/Boot/wrapper exact versions in POM、generated projects、CI |
 | REQ-007 | 4, 8, 12-14 | Cloud/SCA/Nacos versions、profiles/compose、offline context tests |
@@ -2660,7 +2660,7 @@ The forbidden-token scan is an assertion of **zero hits in runtime source/config
 | REQ-012 | 2-13 | exact Common/DTP allowlist、approved BOMs、dependency convergence/tree |
 | REQ-013 | 4, 8, 12-13 | one bounded Boot executor、DtpTaskDecorator、profile/context tests |
 | REQ-014 | 7, 11, 13 | five Proto sources、8 services/21 methods、Triple/standard-gRPC tests |
-| REQ-015 | 4, 8, 12-14 | external Gateway negative gates、Light/Web Springdoc、Service no Springdoc |
+| REQ-015 | 4, 8, 12-14 | external Yuheng negative gates、Light/Web Springdoc、Service no Springdoc |
 | REQ-016 | 3-4, 6-8, 10-14 | direct-consumer audit、forbidden dependencies/tokens、ArchUnit/verifiers |
 | REQ-017 | 2-13 | behavior fixtures、Long internal model、HTTP decimal String、Proto int64、MQ/API parity |
 | REQ-018 | 1, 4, 7-8, 11-14 | independent generation/publishability、reactor、CI、deploy/catalog docs |
@@ -2683,7 +2683,7 @@ The forbidden-token scan is an assertion of **zero hits in runtime source/config
 | Sharding route/schema mismatch | Mitigated | Exact formula tests, route-key YAML, manual SQL indexes, repository integration and DBA verification queries |
 | DTP creates duplicate/unbounded executors | Mitigated | Reuse Boot `applicationTaskExecutor`, one decorator, explicit bounds, bean-count/context tests |
 | Manual SQL executed inconsistently across nodes | Operator gate | Per-product runbook, backup/order/schema/index/count checklist; application never auto-runs SQL |
-| Live Nacos/Redis/DB/broker/Gateway topology unavailable in CI | External gate | Clearly separate static/generated proof from deployment smoke and operator acceptance |
+| Live Nacos/Redis/DB/broker/Yuheng topology unavailable in CI | External gate | Clearly separate static/generated proof from deployment smoke and operator acceptance |
 | Accidental edits to original templates/concurrent dirty work | Mitigated | Path-limited commits, original zero-diff gate, no reset/checkout, preserve unrelated worktree changes |
 
 ### 11.2 Design-pattern decision

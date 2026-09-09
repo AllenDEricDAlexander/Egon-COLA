@@ -2,7 +2,7 @@
 
 [English](README.md) | [中文](README.zh-CN.md)
 
-Egon-COLA is a Java 21 Maven multi-module project that provides cleanly layered project scaffolding, reusable Spring Boot components, and deployable enterprise platform capabilities. It gives business teams a consistent engineering direction while leaving business rules and domain details in the consuming application.
+Egon-COLA is a Java 21 Maven multi-module project that provides cleanly layered project scaffolding, reusable Spring Boot components, and deployable enterprise xingyuan capabilities. It gives business teams a consistent engineering direction while leaving business rules and domain details in the consuming application.
 
 [![Fast CI](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci.yaml)
 [![Java Compatibility](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml/badge.svg)](https://github.com/AllenDEricDAlexander/Egon-COLA/actions/workflows/ci_java_compatibility.yaml)
@@ -12,10 +12,10 @@ Egon-COLA is a Java 21 Maven multi-module project that provides cleanly layered 
 
 ## Features
 
-- **Project scaffolding**: Generate the original component/platform-backed family or the public-stack `-open` family with Maven Archetypes.
+- **Project scaffolding**: Generate the original component/xingyuan-backed family or the public-stack `-open` family with Maven Archetypes.
 - **Layering conventions**: Provide explicit boundaries for `common`, `facade`, `domain`, `application`, `infrastructure`, `adapter`, and `starter` layers.
 - **Reusable components**: Offer common contracts, IDs, tracing, dynamic thread pools, RPC, rule engines, access governance, method extension, transactional outbox, and bytecode tooling.
-- **Enterprise platforms**: Include Dynamic Config Center, Gateway, Unified Identity Provider, and RBAC3 permission platform modules.
+- **Enterprise xingyuan**: Include Tianshu (Dynamic Config Center), Yuheng, Tianquan-Shoubing (Unified Identity Provider), and Tianquan-Jianshen permission xingyuan modules.
 - **Architecture verification**: Support build-time architecture rules, baselines, reports, and optional runtime bytecode enhancements.
 - **Compatibility verification**: Run Maven builds, generated-project verification, Docker-backed tests, and Java compatibility checks in CI.
 
@@ -26,7 +26,7 @@ The repository is organized into three Maven reactors:
 | Reactor | Responsibility | Typical consumer |
 |---|---|---|
 | `egon-cola-archetypes` | Project templates and generated-project fixtures. | New business projects. |
-| `egon-cola-components` | Reusable libraries, Spring Boot starters, BOM, and component tests. | Business applications and platform services. |
+| `egon-cola-components` | Reusable libraries, Spring Boot starters, BOM, and component tests. | Business applications and xingyuan services. |
 | `egon-cola-xingyuan` | Independently deployable infrastructure systems and control planes. | Platform operators and enterprise services. |
 
 The intended dependency direction is:
@@ -49,16 +49,16 @@ starter -> application / domain / infrastructure
 common is shared by the layers where the generated project contract allows it
 ```
 
-The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project. The original family follows Egon-COLA components and platforms; the `-open` family is the currently consumable public-stack baseline.
+The exact rules differ between the light, service, and web archetypes. See the architecture documents under [`egon-cola-archetypes`](egon-cola-archetypes/) and [`egon-cola-components`](egon-cola-components/) before extending a generated project. The original family follows Egon-COLA components and xingyuan; the `-open` family is the currently consumable public-stack baseline.
 
 ## Requirements
 
 - JDK 21 or a later JDK. Java 21 is the project baseline.
 - Maven 3.9.14 through the included Maven Wrapper (`./mvnw`).
 - Git for source checkout and contribution workflows.
-- Docker for Docker-backed integration tests and platform image builds.
-- Node.js 24 for the Gateway Admin Web and RBAC3 web workflows. Java-only builds do not require Node.js.
-- Redis, PostgreSQL, or other external services only when running the corresponding component or platform integration flow. See the module README for the exact topology.
+- Docker for Docker-backed integration tests and xingyuan image builds.
+- Node.js 24 for the Yuheng Admin Web and Tianquan-Jianshen web workflows. Java-only builds do not require Node.js.
+- Redis, PostgreSQL, or other external services only when running the corresponding component or xingyuan integration flow. See the module README for the exact topology.
 
 ## Quick Start
 
@@ -99,7 +99,7 @@ Verify the generated-project contracts:
   -Pgenerated-archetypes clean verify
 ```
 
-For a complete host-local identity, DDC, Gateway, RBAC3, RPC, and MCP topology, use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
+For a complete host-local identity, Tianshu, Yuheng, Tianquan-Jianshen, RPC, and MCP topology, use the [unified identity and MCP local runbook](docs/operations/unified-identity-mcp-local-runbook.md).
 
 ## Maven Dependency
 
@@ -142,7 +142,7 @@ Add only the component entry points required by the business application:
 </dependencies>
 ```
 
-The BOM manages the public component artifacts, including common, tracing, dynamic thread pool, RPC/DDC adapter, rule engine, access guard, method extension, transactional outbox, and bytecode artifacts. It does not export platform artifacts, test modules, admin applications, or frontend packages. See the [Components BOM README](egon-cola-components/egon-cola-components-bom/README.md) for the authoritative export list.
+The BOM manages the public component artifacts, including common, tracing, dynamic thread pool, RPC/Tianshu adapter, rule engine, access guard, method extension, transactional outbox, and bytecode artifacts. It does not export xingyuan artifacts, test modules, admin applications, or frontend packages. See the [Components BOM README](egon-cola-components/egon-cola-components-bom/README.md) for the authoritative export list.
 
 If a component version is not available in the remote Maven repository, install the current reactor locally before consuming it from another project:
 
@@ -152,7 +152,7 @@ If a component version is not available in the remote Maven repository, install 
 
 ## Configuration
 
-The root project is a library, template, and platform reactor; it does not define one application-wide runtime configuration file. Configuration belongs to the selected component or deployable platform.
+The root project is a library, template, and xingyuan reactor; it does not define one application-wide runtime configuration file. Configuration belongs to the selected component or deployable xingyuan.
 
 Common configuration conventions are:
 
@@ -161,7 +161,7 @@ Common configuration conventions are:
 | Snowflake IDs | `egon.cola.component.id` | `machine-id` is explicit and required when the starter is enabled. |
 | Dynamic thread pool | `egon.cola.component.dtp` | Configure executor registration, Redis, reporting, and trace propagation. |
 | RPC | `egon.cola.component.rpc` | Configure provider/consumer roles, TLS, deadlines, and metadata. |
-| DDC integration | `egon.cola.component.ddc` | Configure bootstrap targets, Redis, registry leases, and credentials. |
+| Tianshu integration | `egon.cola.component.tianshu` | Configure bootstrap targets, Redis, registry leases, and credentials. |
 | Transactional outbox | `egon.cola.component.transactional-outbox` | Configure PostgreSQL/JDBC storage, polling, retry, lease, and delivery channels. |
 
 For example, a Spring Boot application using the ID starter must provide an explicit machine ID:
@@ -176,20 +176,20 @@ egon:
         max-clock-backward: 5ms
 ```
 
-Read the component documentation before copying configuration between environments. In particular, credentials, TLS settings, DDC registry settings, Redis topology, and outbox schema ownership are deployment-specific. The [Gateway and DDC integration guide](egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md) documents the multi-process configuration boundary.
+Read the component documentation before copying configuration between environments. In particular, credentials, TLS settings, Tianshu registry settings, Redis topology, and outbox schema ownership are deployment-specific. The [Yuheng and Tianshu integration guide](egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.md) documents the multi-process configuration boundary.
 
 ## Usage
 
 ### Generate a business project
 
-Egon-COLA publishes two parallel archetype families. The original artifact IDs remain available and are not redirected; choose an `-open` artifact when you want the public Spring ecosystem baseline while the Egon-COLA component/platform family continues to evolve.
+Egon-COLA publishes two parallel archetype families. The original artifact IDs remain available and are not redirected; choose an `-open` artifact when you want the public Spring ecosystem baseline while the Egon-COLA component/xingyuan family continues to evolve.
 
 | Family | Light | Service | Web |
 |---|---|---|---|
 | Original | `egon-cola-archetype-light` | `egon-cola-archetype-service` | `egon-cola-archetype-web` |
 | Open | `egon-cola-archetype-light-open` | `egon-cola-archetype-service-open` | `egon-cola-archetype-web-open` |
 
-The Open family uses Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, Nacos 3.0.3, MyBatis-Plus 3.5.17, ShardingSphere 5.5.3, the Common ID generator, and Dynamic Thread Pool. Service and Web additionally use Dubbo 3.3.6 plus gRPC/Protobuf 1.73.0; Light intentionally has no RPC or Gateway dependency. Light and Web use Springdoc where HTTP APIs exist. The family forbids Spring Data JPA, Flyway/Liquibase, and an embedded Gateway. IDs are `Long` internally, `int64` in Proto, and decimal strings at HTTP/GraphQL boundaries. Database DDL is supplied as manual SQL under each generated project's runbook.
+The Open family uses Spring Boot 3.5.16, Spring Cloud 2025.0.3, Spring Cloud Alibaba 2025.0.0.0, Nacos 3.0.3, MyBatis-Plus 3.5.17, ShardingSphere 5.5.3, the Common ID generator, and Dynamic Thread Pool. Service and Web additionally use Dubbo 3.3.6 plus gRPC/Protobuf 1.73.0; Light intentionally has no RPC or Yuheng dependency. Light and Web use Springdoc where HTTP APIs exist. The family forbids Spring Data JPA, Flyway/Liquibase, and an embedded Yuheng. IDs are `Long` internally, `int64` in Proto, and decimal strings at HTTP/GraphQL boundaries. Database DDL is supplied as manual SQL under each generated project's runbook.
 
 Maintainers edit the matching normal project under `egon-cola-archetypes/source-projects`,
 not a generated directory. `definitions` owns only the six packaging contracts. Run
@@ -218,23 +218,23 @@ See the [Open family architecture overview](egon-cola-archetypes/open-source-arc
 
 Import the BOM, select the component's `starter` or pure-JAR entry point, and configure only the capabilities required by the application. Component-specific usage examples are maintained in the linked module READMEs.
 
-### Run a platform
+### Run Xingyuan
 
-Platforms are deployed as independent applications rather than started by the root project. Start the required platform modules and backing services according to their runbooks:
+Platforms are deployed as independent applications rather than started by the root project. Start the required Xingyuan modules and backing services according to their runbooks:
 
-- [Dynamic Config Center](egon-cola-xingyuan/egon-cola-tianshu/README.md)
-- [Gateway](egon-cola-xingyuan/egon-cola-yuheng/README.md)
-- [Unified Identity Provider](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md)
-- [RBAC3 Permission Platform](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md)
+- [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.md)
+- [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.md)
+- [Tianquan-Shoubing (Unified Identity Provider)](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md)
+- [Tianquan-Jianshen Permission Platform](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.md)
 
 ## Core Concepts
 
 - **Archetype**: A template for creating a new business project. It defines the initial module layout and dependency direction but does not implement the consuming application's business domain.
 - **Component**: A reusable library or Spring Boot starter. Runtime components expose contracts and auto-configuration; test and admin modules remain development or deployment concerns.
-- **Platform**: A separately deployable enterprise capability such as DDC, Gateway, IDP, or RBAC3. Platforms may consume components, while business applications consume the platform contracts or platform-facing starters required by their topology.
+- **Platform**: A separately deployable enterprise capability such as Tianshu, Yuheng, Tianquan-Shoubing, or Tianquan-Jianshen. Platforms may consume components, while business applications consume the Xingyuan contracts or Xingyuan-facing starters required by their topology.
 - **Starter boundary**: A starter is the normal business-application entry point for a runtime component. It owns auto-configuration and should not depend back on admin, test, or UI modules.
 - **Contract versus runtime**: API, contract, and descriptor modules define stable integration surfaces; runtime, engine, admin, and adapter modules implement specific deployment responsibilities.
-- **BOM ownership**: The Components BOM centralizes versions for public component consumption. Platform versioning and platform deployment are managed by the platform reactors and their documentation.
+- **BOM ownership**: The Components BOM centralizes versions for public component consumption. Platform versioning and xingyuan deployment are managed by the xingyuan reactors and their documentation.
 
 ## Extension Points
 
@@ -243,11 +243,11 @@ The repository provides extension points at several boundaries:
 - Add or tailor generated project conventions through the Maven Archetype templates.
 - Replace default Spring Boot beans with application-owned beans where a starter documents conditional back-off behavior.
 - Register rules, listeners, policies, access decisions, and method-extension handlers in the corresponding component APIs.
-- Define Protobuf contracts and choose RPC provider, consumer, DDC, or Gateway integration modes.
+- Define Protobuf contracts and choose RPC provider, consumer, Tianshu, or Yuheng integration modes.
 - Supply transactional-outbox delivery handlers for custom destinations or use the built-in HTTP and RabbitMQ adapters.
 - Provide bytecode architecture rules, baselines, report writers, or optional runtime agents when the bytecode component is enabled.
 
-Extension points are module-local contracts, not a promise that every module is wired into every platform. Confirm the registration path and lifecycle in the relevant README before relying on an extension in production.
+Extension points are module-local contracts, not a promise that every module is wired into every xingyuan. Confirm the registration path and lifecycle in the relevant README before relying on an extension in production.
 
 ## Project Structure
 
@@ -278,7 +278,7 @@ Egon-COLA/
 │   ├── egon-cola-component-method-extension/
 │   ├── egon-cola-component-transactional-outbox-starter/
 │   └── egon-cola-component-bytecode/
-├── egon-cola-xingyuan/              # Deployable infrastructure platforms
+├── egon-cola-xingyuan/              # Deployable infrastructure xingyuan
 │   ├── egon-cola-tianshu/
 │   ├── egon-cola-yuheng/
 │   ├── egon-cola-tianquan-shoubing/
@@ -293,7 +293,7 @@ Useful documentation entry points include the [component architecture guide](ego
 
 ## Deployment
 
-Components are normally consumed as Maven dependencies. The DDC, Gateway, IDP, and RBAC3 modules are platform applications with their own runtime configuration, Docker/deployment assets, backing services, and operational boundaries.
+Components are normally consumed as Maven dependencies. The Tianshu, Yuheng, Tianquan-Shoubing, and Tianquan-Jianshen modules are Xingyuan applications with their own runtime configuration, Docker/deployment assets, backing services, and operational boundaries.
 
 For Maven Central publication, the root reactor should be verified and deployed as one dependency-aware graph:
 
@@ -302,7 +302,7 @@ For Maven Central publication, the root reactor should be verified and deployed 
 ./scripts/maven-deploy.sh all --publish
 ```
 
-Use [scripts/maven-deploy.md](scripts/maven-deploy.md) for release prerequisites and credential setup. For local platform deployment, start only the platform modules and external services required by the chosen topology; the root build does not start them automatically.
+Use [scripts/maven-deploy.md](scripts/maven-deploy.md) for release prerequisites and credential setup. For local xingyuan deployment, start only the xingyuan modules and external services required by the chosen topology; the root build does not start them automatically.
 
 The repository also provides a safe target-listing and verification wrapper:
 
@@ -324,7 +324,7 @@ scripts/maven-deploy.sh archetypes --dry-run
 | Open Spring Cloud / Alibaba | 2025.0.3 / 2025.0.0.0 |
 | Open persistence | MyBatis-Plus 3.5.17 and ShardingSphere 5.5.3 |
 | Open service discovery | Nacos 3.0.3 container image |
-| Frontend runtime | Node.js 24 for the Gateway Admin Web and RBAC3 web workflows |
+| Frontend runtime | Node.js 24 for the Yuheng Admin Web and Tianquan-Jianshen web workflows |
 | CI container | Rocky Linux 10 for the main Java compatibility workflows |
 
 The Java source baseline is 21 even though CI also checks a newer JDK. Frontend modules have their own package manifests and lockfiles; do not infer frontend compatibility from the Java reactor alone.
@@ -333,13 +333,13 @@ The Java source baseline is 21 even though CI also checks a newer JDK. Frontend 
 
 ### Is Egon-COLA a complete business framework?
 
-No. It is an engineering foundation: scaffolding, reusable components, platform capabilities, and boundary checks. The consuming project owns its business model, workflows, persistence decisions, and domain rules.
+No. It is an engineering foundation: scaffolding, reusable components, xingyuan capabilities, and boundary checks. The consuming project owns its business model, workflows, persistence decisions, and domain rules.
 
 ### Should a business application depend on a parent or an admin module?
 
-Usually not. Import the Components BOM and depend on the component's documented starter or pure-JAR entry point. Admin and test modules are intended for platform operation or component verification.
+Usually not. Import the Components BOM and depend on the component's documented starter or pure-JAR entry point. Admin and test modules are intended for xingyuan operation or component verification.
 
-### Does the Components BOM include DDC, Gateway, IDP, or RBAC3?
+### Does the Components BOM include Tianshu, Yuheng, Tianquan-Shoubing, or Tianquan-Jianshen?
 
 No. The BOM manages public reusable component artifacts. Platform artifacts have separate module boundaries and deployment documentation.
 
@@ -347,29 +347,29 @@ No. The BOM manages public reusable component artifacts. Platform artifacts have
 
 No. Unit, module, and Docker-backed tests prove the behavior covered by those tests. They do not by themselves prove production Redis/PostgreSQL availability, DNS or VIP routing, credentials, multi-process deployment, or high-availability behavior.
 
-### Does the Open family include Gateway or automatic database migration?
+### Does the Open family include Yuheng or automatic database migration?
 
-No. Gateway is an external Spring Cloud Gateway deployment concern. Open templates provide reviewed manual PostgreSQL SQL under generated Infrastructure `src/main/resources/db/manual/postgresql`; they do not use Spring Data JPA, Flyway, Liquibase, or automatic schema updates.
+No. Yuheng is an external Spring Cloud Gateway deployment concern. Open templates provide reviewed manual PostgreSQL SQL under generated Infrastructure `src/main/resources/db/manual/postgresql`; they do not use Spring Data JPA, Flyway, Liquibase, or automatic schema updates.
 
 ### Where should configuration questions be answered?
 
-Start with the README for the exact component or platform, then follow its runbook for external services, credentials, TLS, and deployment topology. Avoid copying a development configuration into production without reviewing those boundaries.
+Start with the README for the exact component or xingyuan, then follow its runbook for external services, credentials, TLS, and deployment topology. Avoid copying a development configuration into production without reviewing those boundaries.
 
 ## Roadmap
 
 The current roadmap direction is:
 
 - Keep the Java 21 baseline and cross-JDK compatibility verification healthy.
-- Continue aligning DDC, Gateway, Unified Identity, and RBAC3 contracts with their local runbooks.
+- Continue aligning Tianshu, Yuheng, Unified Identity, and Tianquan-Jianshen contracts with their local runbooks.
 - Expand archetype generation examples and architecture checks without forcing unnecessary framework conventions on business projects.
-- Improve operational documentation for local and production-like platform topologies.
+- Improve operational documentation for local and production-like xingyuan topologies.
 - Maintain the Components BOM and Maven Central release workflow as the public consumption surface evolves.
 
 This list is directional. Approved design documents, issues, and release decisions are the authority for committed scope and dates.
 
 ## Contributing
 
-1. Read the README for the component, platform, or archetype being changed.
+1. Read the README for the component, xingyuan, or archetype being changed.
 2. Keep the change scoped to the requested behavior and preserve unrelated worktree changes.
 3. Run the smallest relevant verification first, then the root build when the change crosses module boundaries.
 4. Update the affected documentation and tests together when contracts or configuration change.
@@ -381,7 +381,7 @@ The default repository verification is:
 ./mvnw -B -ntp clean install
 ```
 
-For generated projects, also run the archetype integration-test command from [Quick Start](#quick-start). Platform frontend and live-topology checks are documented in their platform-specific workflows and runbooks.
+For generated projects, also run the archetype integration-test command from [Quick Start](#quick-start). Platform frontend and live-topology checks are documented in their xingyuan-specific workflows and runbooks.
 
 ## Changelog
 

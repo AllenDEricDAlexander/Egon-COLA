@@ -1,8 +1,8 @@
-# DDC Admin Pagination and UI Modernization Implementation Plan
+# Tianshu Admin Pagination and UI Modernization Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 为 DDC Admin 的 12 个集合型管理查询增加兼容的 `PageResultRecord` 服务端分页接口，并把 DDC Admin Web 全部管理表格迁移为稳定、响应式的 Ant Design 服务端分页界面。
+**Goal:** 为 Tianshu Admin 的 12 个集合型管理查询增加兼容的 `PageResultRecord` 服务端分页接口，并把 Tianshu Admin Web 全部管理表格迁移为稳定、响应式的 Ant Design 服务端分页界面。
 
 **Architecture:** 原 List、Catalog、Snapshot 接口保持不变；数据库集合通过 Spring Data `Pageable` 和精确 `countQuery` 分页，Registry 完整快照通过 Admin 专用适配服务稳定切页。前端新增 `ddcPageApi` 和 React Query 基础设施，作用域选项继续使用原 List 接口，管理表格统一使用 `/page`。
 
@@ -22,12 +22,12 @@
 - 默认 `pageNo=1`、`pageSize=10`，后端最大 `pageSize=500`，前端可选 `10/20/50`。
 - 新分页端点统一使用 `/page`；所有现有 List、Catalog、Snapshot URL 和成功响应结构保持不变。
 - 数据库集合不得通过全量 List 加 `subList` 实现分页；只有 Registry Admin 聚合适配允许对已取得的完整快照稳定切页。
-- 不修改 DDC Starter Java 端口、RPC Proto、RPC Provider、RPC DDC Adapter 或 `DdcManagementFacade` 公共签名。
+- 不修改 Tianshu Starter Java 端口、RPC Proto、RPC Provider、RPC Tianshu Adapter 或 `DdcManagementFacade` 公共签名。
 - 不新增依赖，不修改 Common Core，不修改数据库结构，不修改已有 Flyway 文件，也不新增 Flyway 迁移。
 - 前端必须使用现有 Ant Design、React Query 和 Admin Web Shared；不引入 Pro Components 或新的状态库。
 - 前端不得继续新增 `window.confirm` 或静态 `message` 调用；使用 `App.useApp()`、`Popconfirm` 或 `Modal.confirm`。
-- 不启动 DDC、Redis、PostgreSQL、Gateway、Vite dev server 或浏览器；验证限于 Maven、Vitest、typecheck、lint、build 和源码残留扫描。
-- 测试和构建 DDC Admin Web 时统一提供非秘密环境变量：`VITE_IDP_ISSUER=http://127.0.0.1:18120`、`VITE_IDP_CLIENT_ID=ddc-admin-web`、`VITE_IDP_AUDIENCE=ddc-admin`。
+- 不启动 Tianshu、Redis、PostgreSQL、Yuheng、Vite dev server 或浏览器；验证限于 Maven、Vitest、typecheck、lint、build 和源码残留扫描。
+- 测试和构建 Tianshu Admin Web 时统一提供非秘密环境变量：`VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120`、`VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web`、`VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin`。
 - 保留用户工作区内任何无关改动；发现重叠修改时先审查，不回滚他人工作。
 
 ---
@@ -36,10 +36,10 @@
 
 ### Backend new files
 
-- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java`：`PageQuery`、Spring `Pageable/Page` 与 `PageResultRecord` 的 Admin 边界适配。
-- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java`：发布任务分页筛选。
-- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java`：发布任务只读分页编排。
-- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java`：完整 Registry Catalog/Snapshot 到 Admin Page 的适配。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/support/DdcAdminPageSupport.java`：`PageQuery`、Spring `Pageable/Page` 与 `PageResultRecord` 的 Admin 边界适配。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcPublishTaskQueryRequest.java`：发布任务分页筛选。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishTaskQueryService.java`：发布任务只读分页编排。
+- `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/management/DdcRegistryAdminPageService.java`：完整 Registry Catalog/Snapshot 到 Admin Page 的适配。
 - 对应的 support、service、repository 和 controller 测试文件。
 
 ### Backend modified areas
@@ -101,16 +101,16 @@ export async function ddcPageApi<T>(
 ### Task 1: 分页 Support 与 Biz/Namespace 基础分页
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupportTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcBizController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/support/DdcAdminPageSupport.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/support/DdcAdminPageSupportTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcBizRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcNamespaceRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcBizService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcNamespaceService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcBizController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcNamespaceController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcBizControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcNamespaceControllerTest.java`
 
 **Interfaces:**
 - Consumes: Common Core `PageQuery` and `PageResultRecord<T>`; existing Biz/Namespace List APIs.
@@ -209,7 +209,7 @@ void pagesBizsWithoutChangingLegacyList() throws Exception {
                     List.of(biz), PageRequest.of(1, 20), 21
             ));
 
-    mockMvc.perform(get("/api/v1/ddc/bizs/page")
+    mockMvc.perform(get("/api/v1/tianshu/bizs/page")
                     .param("keyword", "pay")
                     .param("pageNo", "2")
                     .param("pageSize", "20"))
@@ -227,7 +227,7 @@ Namespace 测试增加完整请求和 Page envelope 断言：
 when(namespaceService.page(eq("infra"), eq("ops"), any(PageQuery.class)))
         .thenReturn(new PageImpl<>(List.of(namespace), PageRequest.of(0, 10), 1));
 
-mockMvc.perform(get("/api/v1/ddc/namespaces/page")
+mockMvc.perform(get("/api/v1/tianshu/namespaces/page")
                 .param("bizCode", "infra")
                 .param("keyword", "ops")
                 .param("pageNo", "1")
@@ -347,17 +347,17 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupport.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcBizRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcBizService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcBizController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/support/DdcAdminPageSupportTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcBizControllerTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java
-git commit -m "feat(ddc): add core metadata page queries"
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/support/DdcAdminPageSupport.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcBizRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcNamespaceRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcBizService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcNamespaceService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcBizController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcNamespaceController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/support/DdcAdminPageSupportTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcBizControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcNamespaceControllerTest.java
+git commit -m "feat(tianshu): add core metadata page queries"
 ```
 
 ---
@@ -365,15 +365,15 @@ git commit -m "feat(ddc): add core metadata page queries"
 ### Task 2: Env/App 可见性数据库分页
 
 **Files:**
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcEnvService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcEnvController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcAppController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcEnvControllerTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcEnvRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAppRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcEnvService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcAppService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcEnvController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcAppController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataPagingRepositoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcEnvControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAppControllerTest.java`
 
 **Interfaces:**
 - Consumes: `DdcAdminPageSupport` from Task 1 and current namespace/env/app visibility semantics.
@@ -399,7 +399,7 @@ Page<DdcAppEntity> appPage = appRepository.search(
 );
 assertThat(appPage.getContent())
         .extracting(DdcAppEntity::getAppCode)
-        .containsExactly("gateway");
+        .containsExactly("yuheng");
 assertThat(appPage.getTotalElements()).isEqualTo(1);
 ```
 
@@ -565,16 +565,16 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcEnvRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcEnvService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcAppService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcEnvController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcAppController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcEnvControllerTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java
-git commit -m "feat(ddc): paginate scope-aware metadata"
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcEnvRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAppRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcEnvService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcAppService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcEnvController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcAppController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcEnvControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAppControllerTest.java
+git commit -m "feat(tianshu): paginate scope-aware metadata"
 ```
 
 ---
@@ -582,12 +582,12 @@ git commit -m "feat(ddc): paginate scope-aware metadata"
 ### Task 3: Namespace Binding Join 投影分页
 
 **Files:**
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcNamespaceEnvAppBindingRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcNamespaceEnvAppBindingService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataPagingRepositoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java`
 
 **Interfaces:**
 - Consumes: `DdcNamespaceEnvAppBindingVO` 构造器、`DdcAdminPageSupport`。
@@ -599,7 +599,7 @@ git commit -m "feat(ddc): paginate scope-aware metadata"
 
 ```java
 Page<DdcNamespaceEnvAppBindingVO> page = bindingRepository.search(
-        "infra", "default", "prod", "gateway",
+        "infra", "default", "prod", "yuheng",
         PageRequest.of(0, 10)
 );
 
@@ -608,7 +608,7 @@ assertThat(page.getContent()).singleElement().satisfies(row -> {
     assertThat(row.bizCode()).isEqualTo("infra");
     assertThat(row.namespaceCode()).isEqualTo("default");
     assertThat(row.env()).isEqualTo("prod");
-    assertThat(row.appCode()).isEqualTo("gateway");
+    assertThat(row.appCode()).isEqualTo("yuheng");
 });
 ```
 
@@ -626,7 +626,7 @@ Expected: FAIL，Repository Page 方法不存在。
 
 ```java
 @Query(value = """
-        select new top.egon.cola.component.ddc.admin.model.vo.DdcNamespaceEnvAppBindingVO(
+        select new top.egon.cola.component.tianshu.admin.model.vo.DdcNamespaceEnvAppBindingVO(
                binding.id,
                namespace.bizCode,
                namespace.id,
@@ -722,13 +722,13 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceEnvAppBindingRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcMetadataPagingRepositoryTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java
-git commit -m "perf(ddc): paginate namespace bindings"
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcNamespaceEnvAppBindingRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcNamespaceEnvAppBindingService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/metadata/DdcNamespaceEnvAppBindingController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcMetadataPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/metadata/DdcNamespaceEnvAppBindingServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcNamespaceEnvAppBindingControllerTest.java
+git commit -m "perf(tianshu): paginate namespace bindings"
 ```
 
 ---
@@ -736,13 +736,13 @@ git commit -m "perf(ddc): paginate namespace bindings"
 ### Task 4: Config 与 Version 真实分页
 
 **Files:**
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcConfigController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcConfigPagingRepositoryTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigItemRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcConfigController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java`
 
 **Interfaces:**
 - Consumes: 原 Config native search、`DdcConfigQueryRequest`、`DdcAdminPageSupport`。
@@ -836,7 +836,7 @@ when(configService.page(any(DdcConfigQueryRequest.class), any(PageQuery.class)))
                 List.of(config), PageRequest.of(0, 10), 12
         ));
 
-mockMvc.perform(get("/api/v1/ddc/configs/page")
+mockMvc.perform(get("/api/v1/tianshu/configs/page")
                 .param("bizCode", "infra")
                 .param("pageNo", "1")
                 .param("pageSize", "10"))
@@ -853,7 +853,7 @@ when(configService.pageVersions(eq("config-1"), any(PageQuery.class)))
                 List.of(version), PageRequest.of(1, 20), 21
         ));
 
-mockMvc.perform(get("/api/v1/ddc/configs/config-1/versions/page")
+mockMvc.perform(get("/api/v1/tianshu/configs/config-1/versions/page")
                 .param("pageNo", "2")
                 .param("pageSize", "20"))
         .andExpect(status().isOk())
@@ -925,14 +925,14 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcConfigController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcConfigPagingRepositoryTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/config/DdcConfigServiceTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java
-git commit -m "feat(ddc): paginate config history"
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigItemRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcConfigController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/config/DdcConfigServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java
+git commit -m "feat(tianshu): paginate config history"
 ```
 
 ---
@@ -940,23 +940,23 @@ git commit -m "feat(ddc): paginate config history"
 ### Task 5: Publish Task、持久化 Instance 与 Cache Check 分页
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcPublishTaskController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcInstanceRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcInstanceController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcCacheController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcOperationalPagingRepositoryTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskControllerTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcInstanceControllerTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcCacheControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcPublishTaskQueryRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishTaskQueryService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishTaskRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcPublishTaskController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcInstanceRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/lease/DdcInstanceAdminService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/register/DdcInstanceController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcCacheController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcOperationalPagingRepositoryTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishTaskQueryServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/lease/DdcInstanceAdminServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcPublishTaskControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcInstanceControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcCacheControllerTest.java`
 
 **Interfaces:**
 - Consumes: `DdcAdminPageSupport`、现有 Publish Detail/Retry、Instance List、Cache Check。
@@ -968,7 +968,7 @@ git commit -m "feat(ddc): paginate config history"
 
 ```java
 Page<DdcPublishTaskEntity> tasks = publishTaskRepository.search(
-        "infra", "prod", "gateway", "FAILED", "019",
+        "infra", "prod", "yuheng", "FAILED", "019",
         PageRequest.of(0, 10)
 );
 assertThat(tasks.getContent()).extracting(DdcPublishTaskEntity::getStatus)
@@ -980,7 +980,7 @@ assertThat(tasks.getContent()).extracting(DdcPublishTaskEntity::getStatus)
 ```java
 Page<DdcInstanceEntity> instances = instanceRepository
         .findByBizCodeAndEnvAndAppCode(
-                "infra", "prod", "gateway",
+                "infra", "prod", "yuheng",
                 PageRequest.of(0, 10,
                         Sort.by(Sort.Direction.DESC, "updatedAt", "id"))
         );
@@ -992,7 +992,7 @@ Cache seed：
 ```java
 Page<DdcConfigVersionEntity> versions = versionRepository
         .findPublishedRuntimeVersions(
-                "infra", "prod", "gateway", "DELETE",
+                "infra", "prod", "yuheng", "DELETE",
                 PageRequest.of(0, 1)
         );
 assertThat(versions.getTotalElements()).isEqualTo(2);
@@ -1213,24 +1213,24 @@ Expected: PASS，0 failures。
 
 ```bash
 git add -- \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishTaskQueryRequest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcPublishTaskController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcInstanceRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcInstanceController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/config/DdcCacheController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcOperationalPagingRepositoryTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/publish/DdcPublishTaskQueryServiceTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/cache/DdcCacheServiceTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/lease/DdcInstanceAdminServiceTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskControllerTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcInstanceControllerTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcCacheControllerTest.java
-git commit -m "feat(ddc): paginate admin operational queries"
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcPublishTaskQueryRequest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishTaskQueryService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishTaskRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcPublishTaskController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcInstanceRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/lease/DdcInstanceAdminService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/register/DdcInstanceController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/config/DdcCacheController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcOperationalPagingRepositoryTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/publish/DdcPublishTaskQueryServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/cache/DdcCacheServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/lease/DdcInstanceAdminServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcPublishTaskControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcInstanceControllerTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcCacheControllerTest.java
+git commit -m "feat(tianshu): paginate admin operational queries"
 ```
 
 ---
@@ -1238,12 +1238,12 @@ git commit -m "feat(ddc): paginate admin operational queries"
 ### Task 6: Registry Admin Page Adapter
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcRegistryAdminController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryAdminControllerTest.java`
-- Verify unchanged: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/api/client/DdcManagementClient.java`
-- Verify unchanged: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/rpc/provider/DdcManagementRpcProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/management/DdcRegistryAdminPageService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/register/DdcRegistryAdminController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/management/DdcRegistryAdminPageServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcRegistryAdminControllerTest.java`
+- Verify unchanged: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/api/client/DdcManagementClient.java`
+- Verify unchanged: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/rpc/provider/DdcManagementRpcProvider.java`
 
 **Interfaces:**
 - Consumes: `DdcManagementFacade.getServiceKeys(query)` 和 `getInstances(query)` 完整快照。
@@ -1254,8 +1254,8 @@ git commit -m "feat(ddc): paginate admin operational queries"
 ```java
 @Test
 void pagesSortedServiceKeysWithoutChangingCatalog() {
-    DdcManagementServiceKey a = service("infra", "gateway-a", "svc-a");
-    DdcManagementServiceKey b = service("infra", "gateway-b", "svc-b");
+    DdcManagementServiceKey a = service("infra", "yuheng-a", "svc-a");
+    DdcManagementServiceKey b = service("infra", "yuheng-b", "svc-b");
     when(facade.getServiceKeys(query)).thenReturn(
             new DdcManagementServiceCatalog(9, Instant.EPOCH, List.of(b, a))
     );
@@ -1386,12 +1386,12 @@ public PageResultRecord<DdcManagementServiceInstance> pageInstances(
 Controller 测试同时断言：
 
 ```java
-mockMvc.perform(get("/api/v1/ddc/registry/services/page")
+mockMvc.perform(get("/api/v1/tianshu/registry/services/page")
         .param("pageNo", "1").param("pageSize", "10"))
         .andExpect(jsonPath("$.records").isArray())
         .andExpect(jsonPath("$.page.total").value(1));
 
-mockMvc.perform(get("/api/v1/ddc/registry/services"))
+mockMvc.perform(get("/api/v1/tianshu/registry/services"))
         .andExpect(jsonPath("$.data.generation").exists())
         .andExpect(jsonPath("$.data.services").isArray());
 ```
@@ -1418,11 +1418,11 @@ Expected: PASS，0 failures；源码扫描无匹配。
 
 ```bash
 git add -- \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageService.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/register/DdcRegistryAdminController.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/service/management/DdcRegistryAdminPageServiceTest.java \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryAdminControllerTest.java
-git commit -m "feat(ddc): add paged registry admin views"
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/management/DdcRegistryAdminPageService.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/register/DdcRegistryAdminController.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/management/DdcRegistryAdminPageServiceTest.java \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcRegistryAdminControllerTest.java
+git commit -m "feat(tianshu): add paged registry admin views"
 ```
 
 ---
@@ -1475,7 +1475,7 @@ it('returns page records and forwards AbortSignal', async () => {
   const controller = new AbortController()
   vi.mocked(fetch).mockResolvedValue(jsonResponse(pageRecord([{ id: 'b1' }], 21)))
 
-  await expect(ddcPageApi<{ id: string }>('/api/v1/ddc/bizs/page', {
+  await expect(ddcPageApi<{ id: string }>('/api/v1/tianshu/bizs/page', {
     signal: controller.signal,
   })).resolves.toMatchObject({
     records: [{ id: 'b1' }],
@@ -1496,7 +1496,7 @@ it('accepts ResultRecord failures from the global exception handler', async () =
     timestamp: 1,
   }))
 
-  await expect(ddcPageApi('/api/v1/ddc/bizs/page'))
+  await expect(ddcPageApi('/api/v1/tianshu/bizs/page'))
     .rejects.toMatchObject({ code: '422', traceId: 'trace-error' })
 })
 ```
@@ -1507,9 +1507,9 @@ it('accepts ResultRecord failures from the global exception handler', async () =
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/api/client.test.ts
 ```
 
@@ -1589,8 +1589,8 @@ const requestEnvelope = async (
     }
     throw new DdcApiError(
       0,
-      'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE',
-      '无法连接 DDC 管理端',
+      'TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE',
+      '无法连接 Tianshu 管理端',
     )
   }
 
@@ -1633,7 +1633,7 @@ export async function ddcPageApi<T>(
   if (!Array.isArray(payload.records)
       || payload.page === null
       || typeof payload.page !== 'object') {
-    throw new DdcApiError(500, 'DDC_INVALID_PAGE_RESPONSE', '分页响应格式无效', payload.traceId as string | undefined)
+    throw new DdcApiError(500, 'TIANSHU_INVALID_PAGE_RESPONSE', '分页响应格式无效', payload.traceId as string | undefined)
   }
   return payload as PageResultRecord<T>
 }
@@ -1722,7 +1722,7 @@ export function renderWithQueryClient(ui: ReactElement) {
 定义稳定 key：
 
 ```ts
-export const scopeOptionQueryKey = ['ddc', 'scope-options'] as const
+export const scopeOptionQueryKey = ['tianshu', 'scope-options'] as const
 
 export const scopeOptionKey = (path: string) => [
   ...scopeOptionQueryKey,
@@ -1745,13 +1745,13 @@ return useQuery({
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/api/client.test.ts src/hooks/usePageState.test.ts src/components/scope/useScopeOptions.test.ts src/components/scope/ScopeSelects.test.tsx
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run typecheck
 npm run lint
 ```
@@ -1771,7 +1771,7 @@ git add -- \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/test/renderWithQueryClient.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/main.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/components/scope
-git commit -m "feat(ddc-web): add paged query infrastructure"
+git commit -m "feat(tianshu-web): add paged query infrastructure"
 ```
 
 ---
@@ -1826,7 +1826,7 @@ expect(screen.getByText('共 21 条')).toBeInTheDocument()
 
 fireEvent.click(screen.getByTitle('2'))
 await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/bizs/page?pageNo=2&pageSize=10'),
+  expect.stringContaining('/api/v1/tianshu/bizs/page?pageNo=2&pageSize=10'),
   expect.anything(),
 ))
 ```
@@ -1846,7 +1846,7 @@ expect(await screen.findByRole('dialog', { name: /管理绑定/ })).toBeInTheDoc
 expect(document.querySelector('.ant-checkbox-group')).not.toBeInTheDocument()
 expect(document.querySelector('.ant-select-multiple')).toBeInTheDocument()
 expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/namespace-env-app-bindings?'),
+  expect.stringContaining('/api/v1/tianshu/namespace-env-app-bindings?'),
   expect.anything(),
 )
 expect(document.querySelector('.ant-drawer-content-wrapper'))
@@ -1857,9 +1857,9 @@ expect(document.querySelector('.ant-drawer-content-wrapper'))
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/BizsPage.test.tsx src/pages/EnvPage.test.tsx src/pages/AppsPage.test.tsx src/pages/NamespacesPage.test.tsx
 ```
 
@@ -1877,9 +1877,9 @@ const queryString = buildQuery({
   pageSize: pageState.page.pageSize,
 })
 const query = useQuery({
-  queryKey: ['ddc', 'bizs', submittedFilters, pageState.page],
+  queryKey: ['tianshu', 'bizs', submittedFilters, pageState.page],
   queryFn: ({ signal }) => ddcPageApi<DdcBiz>(
-    `/api/v1/ddc/bizs/page?${queryString}`,
+    `/api/v1/tianshu/bizs/page?${queryString}`,
     { signal },
   ),
   placeholderData: keepPreviousData,
@@ -1913,7 +1913,7 @@ scroll={{ x: 'max-content' }}
 四个页面的列表 query key 前缀固定为 `bizs`、`envs`、`apps`、`namespaces`。Biz 页面 mutation 的成功回调写为：
 
 ```ts
-await queryClient.invalidateQueries({ queryKey: ['ddc', 'bizs'] })
+await queryClient.invalidateQueries({ queryKey: ['tianshu', 'bizs'] })
 await queryClient.invalidateQueries({ queryKey: scopeOptionQueryKey })
 message.success('业务域保存成功')
 ```
@@ -1987,13 +1987,13 @@ export default function AdminPageHeader({ title, description, extra }: Props) {
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/BizsPage.test.tsx src/pages/EnvPage.test.tsx src/pages/AppsPage.test.tsx src/pages/NamespacesPage.test.tsx
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run typecheck
 npm run lint
 ```
@@ -2013,7 +2013,7 @@ git add -- \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/EnvPage.test.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/AppsPage.test.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/NamespacesPage.test.tsx
-git commit -m "feat(ddc-web): modernize metadata pages"
+git commit -m "feat(tianshu-web): modernize metadata pages"
 ```
 
 ---
@@ -2036,7 +2036,7 @@ git commit -m "feat(ddc-web): modernize metadata pages"
 renderWithQueryClient(<ConfigsPage />)
 
 await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/configs/page?'),
+  expect.stringContaining('/api/v1/tianshu/configs/page?'),
   expect.anything(),
 ))
 expect(await screen.findByText('共 13 条')).toBeInTheDocument()
@@ -2044,7 +2044,7 @@ expect(await screen.findByText('共 13 条')).toBeInTheDocument()
 fireEvent.click(screen.getByRole('button', { name: '更多操作' }))
 fireEvent.click(await screen.findByRole('menuitem', { name: '查看版本' }))
 await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/configs/cfg-1/versions/page?pageNo=1&pageSize=10'),
+  expect.stringContaining('/api/v1/tianshu/configs/cfg-1/versions/page?pageNo=1&pageSize=10'),
   expect.anything(),
 ))
 ```
@@ -2055,9 +2055,9 @@ await waitFor(() => expect(fetch).toHaveBeenCalledWith(
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/ConfigsPage.test.tsx src/pages/ConfigEditorDialog.test.tsx
 ```
 
@@ -2069,7 +2069,7 @@ Expected: FAIL，页面仍请求 List 和 `window.confirm`。
 
 ```ts
 ddcPageApi<DdcConfig>(
-  `/api/v1/ddc/configs/page?${buildQuery({
+  `/api/v1/tianshu/configs/page?${buildQuery({
     ...submittedScope,
     includeDeleted: false,
     pageNo: page.pageNo,
@@ -2088,9 +2088,9 @@ ddcPageApi<DdcConfig>(
 ```ts
 const versionsQuery = useQuery({
   enabled: versionsConfig !== null,
-  queryKey: ['ddc', 'config-versions', versionsConfig?.id, versionPage],
+  queryKey: ['tianshu', 'config-versions', versionsConfig?.id, versionPage],
   queryFn: ({ signal }) => ddcPageApi<DdcConfigVersion>(
-    `/api/v1/ddc/configs/${encodeURIComponent(versionsConfig!.id)}/versions/page?${buildQuery(versionPage)}`,
+    `/api/v1/tianshu/configs/${encodeURIComponent(versionsConfig!.id)}/versions/page?${buildQuery(versionPage)}`,
     { signal },
   ),
   placeholderData: keepPreviousData,
@@ -2111,19 +2111,19 @@ modal.confirm({
 })
 ```
 
-删除和回滚使用 `Popconfirm` 或 `modal.confirm`。所有消息从 `const { message, modal } = App.useApp()` 获取。Config Editor 保存后失效 `['ddc', 'configs']` 和 `scopeOptionQueryKey`。
+删除和回滚使用 `Popconfirm` 或 `modal.confirm`。所有消息从 `const { message, modal } = App.useApp()` 获取。Config Editor 保存后失效 `['tianshu', 'configs']` 和 `scopeOptionQueryKey`。
 
 - [ ] **Step 6: 运行 Task 9 tests、typecheck 和 lint**
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/ConfigsPage.test.tsx src/pages/ConfigEditorDialog.test.tsx
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run typecheck
 npm run lint
 ```
@@ -2138,7 +2138,7 @@ git add -- \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigsPage.test.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/ConfigEditorDialog.test.tsx
-git commit -m "feat(ddc-web): paginate config management"
+git commit -m "feat(tianshu-web): paginate config management"
 ```
 
 ---
@@ -2165,7 +2165,7 @@ renderWithQueryClient(<PublishTasksPage />)
 
 await vi.runOnlyPendingTimersAsync()
 await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/publish-tasks/page?pageNo=1&pageSize=10'),
+  expect.stringContaining('/api/v1/tianshu/publish-tasks/page?pageNo=1&pageSize=10'),
   expect.anything(),
 ))
 
@@ -2193,11 +2193,11 @@ const [bizInput, namespaceInput, envInput, appInput] =
 chooseScopeValue(bizInput, 'infra')
 chooseScopeValue(namespaceInput, 'default')
 chooseScopeValue(envInput, 'prod')
-chooseScopeValue(appInput, 'gateway')
+chooseScopeValue(appInput, 'yuheng')
 fireEvent.click(screen.getByRole('button', { name: '检查缓存' }))
 
 await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/cache/check/page?'),
+  expect.stringContaining('/api/v1/tianshu/cache/check/page?'),
   expect.anything(),
 ))
 expect(await screen.findByText('共 12 条')).toBeInTheDocument()
@@ -2210,9 +2210,9 @@ expect(screen.getByText('确认重建该作用域下的缓存？')).toBeInTheDoc
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/PublishTasksPage.test.tsx src/pages/CachePage.test.tsx
 ```
 
@@ -2233,9 +2233,9 @@ Query：
 
 ```ts
 useQuery({
-  queryKey: ['ddc', 'publish-tasks', submittedFilters, page],
+  queryKey: ['tianshu', 'publish-tasks', submittedFilters, page],
   queryFn: ({ signal }) => ddcPageApi<DdcPublishTask>(
-    `/api/v1/ddc/publish-tasks/page?${buildQuery({
+    `/api/v1/tianshu/publish-tasks/page?${buildQuery({
       ...submittedFilters,
       pageNo: page.pageNo,
       pageSize: page.pageSize,
@@ -2259,19 +2259,19 @@ const matched = page.records.filter((row) => row.matched).length
 const mismatched = page.records.length - matched
 ```
 
-使用两个 `Statistic` 显示“本页一致”和“本页不一致”，标题明确本页范围。Cache Table 设置 `scroll={{ x: 'max-content' }}`。重建使用 `Modal.confirm`；成功后 invalidate `['ddc', 'cache-check']`。
+使用两个 `Statistic` 显示“本页一致”和“本页不一致”，标题明确本页范围。Cache Table 设置 `scroll={{ x: 'max-content' }}`。重建使用 `Modal.confirm`；成功后 invalidate `['tianshu', 'cache-check']`。
 
 - [ ] **Step 6: 运行 Task 10 tests、typecheck 和 lint**
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/PublishTasksPage.test.tsx src/pages/CachePage.test.tsx
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run typecheck
 npm run lint
 ```
@@ -2286,7 +2286,7 @@ git add -- \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/PublishTasksPage.test.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/CachePage.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/pages/CachePage.test.tsx
-git commit -m "feat(ddc-web): modernize publish and cache pages"
+git commit -m "feat(tianshu-web): modernize publish and cache pages"
 ```
 
 ---
@@ -2316,13 +2316,13 @@ renderWithQueryClient(<RegistryPage />)
 
 expect(await screen.findByText('orders.OrderService')).toBeInTheDocument()
 expect(fetch).not.toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/registry/instances/page'),
+  expect.stringContaining('/api/v1/tianshu/registry/instances/page'),
   expect.anything(),
 )
 
 fireEvent.click(screen.getByRole('button', { name: '查看实例' }))
 await waitFor(() => expect(fetch).toHaveBeenCalledWith(
-  expect.stringContaining('/api/v1/ddc/registry/instances/page?'),
+  expect.stringContaining('/api/v1/tianshu/registry/instances/page?'),
   expect.anything(),
 ))
 
@@ -2364,7 +2364,7 @@ expect(await screen.findByLabelText('移动主导航')).toBeInTheDocument()
 expect(screen.getByText('元数据管理')).toBeInTheDocument()
 ```
 
-Desktop 测试执行 `setViewport(1280)`，断言 `桌面主导航`、`折叠导航`、`Mario`、`DDC 已连接` 和带 icon 的菜单存在。
+Desktop 测试执行 `setViewport(1280)`，断言 `桌面主导航`、`折叠导航`、`Mario`、`Tianshu 已连接` 和带 icon 的菜单存在。
 
 `AuthContext.test.ts` 构造包含 `displayName: 'Mario'` 的三段 JWT，断言 `identityFromToken(token) === 'Mario'`；另断言格式错误 token 返回空字符串。
 
@@ -2372,9 +2372,9 @@ Desktop 测试执行 `setViewport(1280)`，断言 `桌面主导航`、`折叠导
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/RegistryPage.test.tsx src/layouts/AdminLayout.test.tsx src/auth/AuthContext.test.ts
 ```
 
@@ -2386,9 +2386,9 @@ Expected: FAIL，Registry 仍应用聚合并发加载实例，Layout 无移动�
 
 ```ts
 const servicesQuery = useQuery({
-  queryKey: ['ddc', 'registry-services', submittedScope, servicePage],
+  queryKey: ['tianshu', 'registry-services', submittedScope, servicePage],
   queryFn: ({ signal }) => ddcPageApi<RegistryService>(
-    `/api/v1/ddc/registry/services/page?${buildQuery({
+    `/api/v1/tianshu/registry/services/page?${buildQuery({
       ...submittedScope,
       pageNo: servicePage.pageNo,
       pageSize: servicePage.pageSize,
@@ -2408,9 +2408,9 @@ const servicesQuery = useQuery({
 ```ts
 const instancesQuery = useQuery({
   enabled: selectedService !== null,
-  queryKey: ['ddc', 'registry-instances', selectedService?.serviceId, instancePage],
+  queryKey: ['tianshu', 'registry-instances', selectedService?.serviceId, instancePage],
   queryFn: ({ signal }) => ddcPageApi<RegistryInstance>(
-    `/api/v1/ddc/registry/instances/page?${buildQuery({
+    `/api/v1/tianshu/registry/instances/page?${buildQuery({
       bizCode: selectedService!.bizCode,
       env: selectedService!.env,
       appCode: selectedService!.appCode,
@@ -2487,30 +2487,30 @@ const identity = useMemo(() => identityFromToken(token), [token])
 - [ ] **Step 7: 增加最小响应式 CSS**
 
 ```css
-.ddc-admin-layout,
-.ddc-admin-main,
-.ddc-admin-content {
+.tianshu-admin-layout,
+.tianshu-admin-main,
+.tianshu-admin-content {
   min-width: 0;
 }
 
-.ddc-admin-header {
+.tianshu-admin-header {
   position: sticky;
   top: 0;
   z-index: 10;
 }
 
-.ddc-admin-content {
+.tianshu-admin-content {
   padding: 24px;
   overflow-x: hidden;
 }
 
-.ddc-admin-table-card .ant-card-body {
+.tianshu-admin-table-card .ant-card-body {
   min-width: 0;
   overflow-x: auto;
 }
 
 @media (max-width: 767px) {
-  .ddc-admin-content {
+  .tianshu-admin-content {
     padding: 12px;
   }
 }
@@ -2522,18 +2522,18 @@ const identity = useMemo(() => identityFromToken(token), [token])
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test -- src/pages/RegistryPage.test.tsx src/layouts/AdminLayout.test.tsx src/auth/AuthContext.test.ts
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run typecheck
 npm run lint
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run build
 ```
 
@@ -2551,7 +2551,7 @@ git add -- \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/AuthContext.test.ts \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/main.tsx \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/styles/admin.css
-git commit -m "feat(ddc-web): modernize registry and admin shell"
+git commit -m "feat(tianshu-web): modernize registry and admin shell"
 ```
 
 ---
@@ -2582,35 +2582,35 @@ binding editors intentionally keep using the legacy list endpoints because
 they require complete option sets.
 
 Registry tables page service keys and lazily page instances for one selected
-service. DDC Starter and RPC clients continue to consume complete catalogs and
+service. Tianshu Starter and RPC clients continue to consume complete catalogs and
 snapshots; Admin Web pagination is not part of the machine RPC contract.
 ```
 
 中文增加语义完全对应的“服务端分页”章节，明确 `/page`、`records/page`、页码从 1 开始、下拉仍使用完整 List、RPC 完整快照不变。
 
-- [ ] **Step 2: 更新 DDC 总览 API 说明**
+- [ ] **Step 2: 更新 Tianshu 总览 API 说明**
 
 在英文和中文总览的 Admin/API 章节逐项列出以下 12 个新增 URL：
 
 ```text
-GET /api/v1/ddc/bizs/page
-GET /api/v1/ddc/namespaces/page
-GET /api/v1/ddc/envs/page
-GET /api/v1/ddc/apps/page
-GET /api/v1/ddc/namespace-env-app-bindings/page
-GET /api/v1/ddc/configs/page
-GET /api/v1/ddc/configs/{id}/versions/page
-GET /api/v1/ddc/publish-tasks/page
-GET /api/v1/ddc/instances/page
-GET /api/v1/ddc/cache/check/page
-GET /api/v1/ddc/registry/services/page
-GET /api/v1/ddc/registry/instances/page
+GET /api/v1/tianshu/bizs/page
+GET /api/v1/tianshu/namespaces/page
+GET /api/v1/tianshu/envs/page
+GET /api/v1/tianshu/apps/page
+GET /api/v1/tianshu/namespace-env-app-bindings/page
+GET /api/v1/tianshu/configs/page
+GET /api/v1/tianshu/configs/{id}/versions/page
+GET /api/v1/tianshu/publish-tasks/page
+GET /api/v1/tianshu/instances/page
+GET /api/v1/tianshu/cache/check/page
+GET /api/v1/tianshu/registry/services/page
+GET /api/v1/tianshu/registry/instances/page
 ```
 
 并说明请求与响应契约：
 
 ```text
-GET /api/v1/ddc/bizs/page?pageNo=1&pageSize=10
+GET /api/v1/tianshu/bizs/page?pageNo=1&pageSize=10
 success -> PageResultRecord { records, page }
 failure -> existing ResultRecord error envelope
 legacy list/catalog/snapshot endpoints remain available
@@ -2640,18 +2640,18 @@ Expected: `BUILD SUCCESS`。
 
 ```bash
 cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm test
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run typecheck
 npm run lint
-env VITE_IDP_ISSUER=http://127.0.0.1:18120 \
-  VITE_IDP_CLIENT_ID=ddc-admin-web \
-  VITE_IDP_AUDIENCE=ddc-admin \
+env VITE_TIANQUAN_SHOUBING_ISSUER=http://127.0.0.1:18120 \
+  VITE_TIANQUAN_SHOUBING_CLIENT_ID=tianshu-admin-web \
+  VITE_TIANQUAN_SHOUBING_AUDIENCE=tianshu-admin \
   npm run build
 ```
 
@@ -2661,7 +2661,7 @@ Expected: Vitest 0 failures；typecheck、lint、build exit 0。
 
 ```bash
 page_route_count=$(rg -n '@GetMapping\("[^\"]*/page"\)' \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller \
   | wc -l | tr -d ' ')
 test "$page_route_count" = "12"
 
@@ -2673,8 +2673,8 @@ test "$page_route_count" = "12"
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src
 
 ! rg -n 'findAll\(\)\.stream\(\).*toVO|subList\(' \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/service/metadata \
-  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/metadata \
+  egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller
 ```
 
 Expected: 12 routes；三个否定扫描均无匹配。Registry Admin Page Service 中允许且只允许 `DdcAdminPageSupport.slice(...)`。
@@ -2699,7 +2699,7 @@ git add -- \
   egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.md \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/README.zh-CN.md
-git commit -m "docs(ddc): document admin page queries"
+git commit -m "docs(tianshu): document admin page queries"
 ```
 
 - [ ] **Step 8: 最终提交审计**

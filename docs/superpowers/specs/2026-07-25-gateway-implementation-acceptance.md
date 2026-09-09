@@ -1,15 +1,15 @@
-# Egon-COLA Gateway 全量实现验收追踪
+# Egon-COLA Yuheng 全量实现验收追踪
 
 状态：代码已实现，待用户验收
 
-基线：`2026-07-24-gateway-component-design.md`
+基线：`2026-07-24-yuheng-component-design.md`
 
-范围：GWS-01～GWS-13、17 项缺口修复、对应实施 Plan、Gateway Component 代码、
-RPC/DDC 必要扩展、Admin Web、真实测试应用与部署资产。
+范围：GWS-01～GWS-13、17 项缺口修复、对应实施 Plan、Yuheng Component 代码、
+RPC/Tianshu 必要扩展、Admin Web、真实测试应用与部署资产。
 
 ## 1. 文档目的
 
-本文不重新定义 Gateway 需求或技术路线，只负责建立以下闭环：
+本文不重新定义 Yuheng 需求或技术路线，只负责建立以下闭环：
 
 1. 总览 Spec 与原始 29 章能力的对应关系；
 2. GWS-01～GWS-13 与实施 Plan 的对应关系；
@@ -27,43 +27,43 @@ RPC/DDC 必要扩展、Admin Web、真实测试应用与部署资产。
 
 | 交付物 | 数量 | 状态 |
 |---|---:|---|
-| Gateway 总览 Spec | 1 | 已实现，待用户验收 |
+| Yuheng 总览 Spec | 1 | 已实现，待用户验收 |
 | 子 Spec 索引 | 1 | 已实现，待用户验收 |
 | GWS-01～GWS-13 子 Spec | 13 | 已实现，待用户验收 |
 | 全量实现验收追踪 | 1 | 已完成，待用户验收 |
 | 实施 Plan | 15 | 已执行 |
 
-GWS-02 因同时修改 DDC Runtime、DDC Management 和 RPC Contract，被拆成 GWS-02A、
+GWS-02 因同时修改 Tianshu Runtime、Tianshu Management 和 RPC Contract，被拆成 GWS-02A、
 GWS-02B、GWS-02C 三份 Plan；其余子 Spec 各有一份 Plan。
 
-### 2.2 Gateway 产品模块
+### 2.2 Yuheng 产品模块
 
 | 模块 | 职责 | 对外使用边界 |
 |---|---|---|
-| `gateway-contract` | 跨进程身份、定义、规则、Trace、调用事件契约 | 稳定契约 |
-| `gateway-core` | 框架无关路由、上下文、Provider 与安全 SPI | Engine 内核基础 |
-| `gateway-engine` | HTTP/RPC 数据面、发现、治理、安全、规则激活、Kafka | 独立运行，不进 BOM |
-| `gateway-admin` | 控制面、持久化、发布、投影、审计、调用事件消费 | 独立运行，不进 BOM |
-| `gateway-starter` | 下游 HTTP/RPC 接口定义发现与上报 | BOM 导出 |
-| `gateway-provider-runtime` | HTTP Provider DDC 租约注册 | BOM 导出 |
-| `gateway-test` | 真实 HTTP/RPC 应用、进程与容器测试套件 | 测试使用 |
-| `gateway-admin-web` | React 管理平台 | 独立前端制品 |
+| `yuheng-contract` | 跨进程身份、定义、规则、Trace、调用事件契约 | 稳定契约 |
+| `yuheng-core` | 框架无关路由、上下文、Provider 与安全 SPI | Engine 内核基础 |
+| `yuheng-biz-gateway` | HTTP/RPC 数据面、发现、治理、安全、规则激活、Kafka | 独立运行，不进 BOM |
+| `yuheng-admin` | 控制面、持久化、发布、投影、审计、调用事件消费 | 独立运行，不进 BOM |
+| `yuheng-starter` | 下游 HTTP/RPC 接口定义发现与上报 | BOM 导出 |
+| `yuheng-provider-runtime` | HTTP Provider Tianshu 租约注册 | BOM 导出 |
+| `yuheng-test` | 真实 HTTP/RPC 应用、进程与容器测试套件 | 测试使用 |
+| `yuheng-admin-web` | React 管理平台 | 独立前端制品 |
 
-根 Gateway 聚合 POM 可以管理全部内部模块，但全局 Components BOM 只导出下游需要的
-`gateway-starter` 和 `gateway-provider-runtime`，不把 Engine、Admin 或 Core 暴露成
+根 Yuheng 聚合 POM 可以管理全部内部模块，但全局 Components BOM 只导出下游需要的
+`yuheng-starter` 和 `yuheng-provider-runtime`，不把 Engine、Admin 或 Core 暴露成
 普通业务依赖。
 
 ### 2.3 依赖 Component 扩展
 
 | Component | 扩展 |
 |---|---|
-| DDC | `HTTP_PROVIDER`、组合式 Config Applier、版本/checksum 约束、周期校准 |
-| DDC | 独立 Management Client、HMAC 机器接口、配置容量保护、Registry 投影 |
-| DDC | 多 Admin 发布协调、Redis Single/Sentinel/Cluster 拓扑、TLS/mTLS 客户端 |
+| Tianshu | `HTTP_PROVIDER`、组合式 Config Applier、版本/checksum 约束、周期校准 |
+| Tianshu | 独立 Management Client、HMAC 机器接口、配置容量保护、Registry 投影 |
+| Tianshu | 多 Admin 发布协调、Redis Single/Sentinel/Cluster 拓扑、TLS/mTLS 客户端 |
 | RPC | 共享已校验 Provider Registry、只读 Contract Catalog、Descriptor Snapshot |
-| RPC | 可控 `gateway.*` Provider Metadata、`INTERNAL_GATEWAY` 多实例发现与 mTLS |
+| RPC | 可控 `yuheng.*` Provider Metadata、`INTERNAL_GATEWAY` 多实例发现与 mTLS |
 
-没有引入 Nacos、Dubbo 或 Spring Cloud Gateway；Engine 的 Provider 地址只能来自 DDC
+没有引入 Nacos、Dubbo 或 Spring Cloud Gateway；Engine 的 Provider 地址只能来自 Tianshu
 Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 
 ## 3. 最终技术路线
@@ -71,20 +71,20 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 ### 3.1 数据面
 
 - HTTP：Reactor Netty 双 Listener，自研不可变 Route Index 与阶段化执行链；
-- RPC：Egon RPC 的 gRPC/Protobuf Unary 协议，Engine 提供内部动态 Gateway Slot；
+- RPC：Egon RPC 的 gRPC/Protobuf Unary 协议，Engine 提供内部动态 Yuheng Slot；
 - HTTP→RPC：只使用 Rule 中的标准 Protobuf Descriptor 动态映射，不根据客户端输入
   加载 Java Class；
 - PUBLIC/INTERNAL：由物理 Listener 注入可信 `AccessZone`，忽略客户端伪造 Header；
-- Provider：Engine 通过 DDC 发现 HTTP/RPC Provider，不读取 Admin 数据库；
+- Provider：Engine 通过 Tianshu 发现 HTTP/RPC Provider，不读取 Admin 数据库；
 - 路由、Provider 筛选、健康和负载均衡全部在 Engine 执行；
 - 停机：先停止接受新流量，再有界等待 HTTP 存量请求和 RPC/Channel 排空。
 
 ### 3.2 控制面
 
-- Admin 保存三级接口目录、Operation 详情、Gateway Group、Draft、Release、Target、
+- Admin 保存三级接口目录、Operation 详情、Yuheng Group、Draft、Release、Target、
   Audit 和运行投影；
-- Admin 编译不可变 Rule Snapshot，通过 DDC Management Client 发布；
-- DDC 自己负责数据库事实、Redis 状态、Pub/Sub、精确 Target ACK；
+- Admin 编译不可变 Rule Snapshot，通过 Tianshu Management Client 发布；
+- Tianshu 自己负责数据库事实、Redis 状态、Pub/Sub、精确 Target ACK；
 - Engine 完成校验、编译、Provider 订阅准备、LKG Staging 后才原子激活并 ACK；
 - 大规则使用同版本 Activation Manifest + 有界 Chunk，绝不部分激活；
 - 回滚生成新 Release，不修改历史 Release。
@@ -104,13 +104,13 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 ### 3.4 安全边界
 
 - `externalAccessible=false` 默认只允许 INTERNAL Route；
-- Gateway 层提供 Credential Extractor、Authentication Provider、
+- Yuheng 层提供 Credential Extractor、Authentication Provider、
   Authorization Provider、Identity Mapper 四类扩展点；
 - Rule 引用缺失能力时拒绝激活，运行时异常、超时和拒绝全部 Fail Closed；
 - 本项目不实现业务系统自身的用户、角色、权限数据源；
 - 入站保留身份 Header 先清洗，只允许受信 Provider 重新映射；
 - Admin 管理接口从已校验 JWT/Capability 解析 Actor，不信任客户端 Actor Header；
-- PUBLIC HTTP 支持 TLS；INTERNAL HTTP、RPC、DDC Management 和 Admin 管理 API
+- PUBLIC HTTP 支持 TLS；INTERNAL HTTP、RPC、Tianshu Management 和 Admin 管理 API
   支持强制 mTLS，隐式明文启动失败；
 - TLS 热加载 Actuator 默认不创建、不暴露；只有显式启用 operations Profile 时才绑定
   容器内 `127.0.0.1` 管理地址；
@@ -129,23 +129,23 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 
 主要证据：
 
-- `egon-cola-component-gateway/pom.xml`
+- `egon-cola-component-yuheng/pom.xml`
 - `GatewayOperationKey`、`GatewayResult`、`GatewayContext`
 - `GatewayEngineLifecycle`
 - `GatewayContractBoundaryTest`、`GatewayCoreBoundaryTest`
 
-### 4.2 GWS-02 RPC/DDC 扩展
+### 4.2 GWS-02 RPC/Tianshu 扩展
 
 实现：
 
-- DDC 服务类型增加 `HTTP_PROVIDER`；
+- Tianshu 服务类型增加 `HTTP_PROVIDER`；
 - Config Applier 支持 exact、longest-prefix、fallback，并在初始化后冻结；
 - 同版本不同 checksum 拒绝，Pub/Sub 与周期刷新共用原子版本逻辑；
-- 独立 DDC Management Client 和 HMAC Canonical Request；
-- DDC Admin 提供配置、发布、实例与 Registry 机器接口；
+- 独立 Tianshu Management Client 和 HMAC Canonical Request；
+- Tianshu Admin 提供配置、发布、实例与 Registry 机器接口；
 - RPC Provider Scanner 结果共享，暴露只读 Contract Catalog；
 - 标准 FileDescriptorSet 传递依赖闭包、确定性排序与 SHA-256；
-- `gateway.*` Metadata Contributor 合并时保护稳定字段。
+- `yuheng.*` Metadata Contributor 合并时保护稳定字段。
 
 主要证据：
 
@@ -153,7 +153,7 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - `DdcRefreshService`、`DefaultDdcConfigApplierRegistry`
 - `DdcManagementOpenApiController`、`DdcRegistryOpenApiController`
 - `DefaultRpcContractCatalog`、`RpcProviderMethodRegistry`
-- 对应 DDC/RPC 单元、序列化和边界测试。
+- 对应 Tianshu/RPC 单元、序列化和边界测试。
 
 ### 4.3 GWS-03 Engine Core 与 HTTP 数据面
 
@@ -199,7 +199,7 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 实现：
 
 - 统一 Provider Service Key、Instance、Lease、Registry/Health 状态；
-- DDC Registry Adapter 和按引用计数管理订阅的 Provider Directory；
+- Tianshu Registry Adapter 和按引用计数管理订阅的 Provider Directory；
 - HTTP Provider Runtime 独立注册、心跳、恢复和注销；
 - Metadata/Zone/Tag/协议/健康/过期候选过滤；
 - Round Robin、Smooth Weighted Round Robin、Random、Least Inflight；
@@ -222,7 +222,7 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - Admin 从 Draft/Catalog 编译完整、Canonical 的 Rule Content；
 - 内容 SHA 与 Artifact SHA 分离；
 - 小规则 Inline，大规则 Manifest/Chunk；
-- Admin 通过 DDC Management Client 发布 Chunk 后发布 Active Pointer；
+- Admin 通过 Tianshu Management Client 发布 Chunk 后发布 Active Pointer；
 - Engine exact + prefix Applier 组装同版本规则；
 - 校验、编译、Provider 准备、LKG Staging、原子切换、最终 LKG；
 - 失败保留旧快照并返回精确 ACK 事实；
@@ -284,11 +284,11 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 实现：
 
 - 独立 Spring Boot Admin；
-- Gateway Group、Application/Credential、三级目录、Operation Definition；
+- Yuheng Group、Application/Credential、三级目录、Operation Definition；
 - Draft Route/Policy 乐观 Revision 与 Idempotency；
 - Release、Target、Rollback、Retry 和恢复编排；
 - 审计日志和受限管理 API；
-- DDC Engine Node/Provider 投影及 stale 标记；
+- Tianshu Engine Node/Provider 投影及 stale 标记；
 - 当前 Engine 租约按成功发布产物与运行元数据判定一致性，不依赖历史租约身份；
 - PostgreSQL Flyway V1、V2、V3；
 - Credential 使用 AES-GCM，主密钥由运行配置提供。
@@ -312,7 +312,7 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - `externalAccessible=false` 默认值；
 - `idempotent` 标签规范化为稳定属性；
 - Canonical Definition Set、Fingerprint、批量 HMAC 上报；
-- 同一 Definition Identity 同时供 Provider Runtime 写入 DDC 租约元数据；
+- 同一 Definition Identity 同时供 Provider Runtime 写入 Tianshu 租约元数据；
 - 启动时只上报定义，不注册 Provider、不拦截调用、不发 Kafka。
 
 主要证据：
@@ -331,18 +331,18 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 
 - React、TypeScript、Vite、React Router、TanStack Query；
 - Ant Design 管理界面和 Ant Design Charts 聚合图表；
-- Dashboard、Gateway Group、Draft、Release、Catalog、Operation、
+- Dashboard、Yuheng Group、Draft、Release、Catalog、Operation、
   Provider、Trace、Audit 页面；
 - 统一 API Client、Trace、Idempotency、Revision 和错误处理；
 - 投影 stale/source/observedAt 可见；
-- 前端不直接访问 DDC、Redis、Kafka 或 Engine；
+- 前端不直接访问 Tianshu、Redis、Kafka 或 Engine；
 - 菜单和页面不包含 Nginx、Nacos、Dubbo 管理功能。
 
 主要证据：
 
-- `gateway-admin-web/src/app/App.tsx`
-- `gateway-admin-web/src/api`
-- `gateway-admin-web/src/features`
+- `yuheng-admin-web/src/app/App.tsx`
+- `yuheng-admin-web/src/api`
+- `yuheng-admin-web/src/features`
 - Vitest API/规则/Release/脱敏测试和 Playwright 契约入口。
 
 ### 4.12 GWS-12 Trace、可观测性与调用事件
@@ -372,13 +372,13 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - 真实 Spring Boot HTTP Provider；
 - 真实 Protobuf Contract、Egon RPC Provider 和 RPC Consumer；
 - 随机端口、Readiness、日志、脱敏 Manifest、优雅/强制停止的进程 Harness；
-- PostgreSQL、DDC Redis、限流 Redis、Kafka Testcontainers；
-- 默认快速测试与 `gateway-live-test` Failsafe Profile 分离；
-- 真实 HTTP 拓扑覆盖 Starter 上报、DDC 注册、Rule 发布/ACK、双 Provider
+- PostgreSQL、Tianshu Redis、限流 Redis、Kafka Testcontainers；
+- 默认快速测试与 `yuheng-live-test` Failsafe Profile 分离；
+- 真实 HTTP 拓扑覆盖 Starter 上报、Tianshu 注册、Rule 发布/ACK、双 Provider
   Round Robin、Provider 摘除恢复、PUBLIC/INTERNAL、限流、Trace/Kafka/Admin；
-- 真实 RPC 拓扑覆盖 Starter Descriptor、RPC Provider 发现、内部 Gateway Slot、
+- 真实 RPC 拓扑覆盖 Starter Descriptor、RPC Provider 发现、内部 Yuheng Slot、
   RPC→RPC、HTTP→RPC 和 Trace/Kafka/Admin；
-- 0/1/2 RPC Gateway Slot 状态机有 RPC Component 自动化测试；
+- 0/1/2 RPC Yuheng Slot 状态机有 RPC Component 自动化测试；
 - Engine/Admin/Test App 可执行 Jar；
 - 非 Root Java 21 Containerfile、Admin Web 静态镜像、Compose 和部署说明；
 - Engine LKG 持久化目录和优雅停机顺序明确。
@@ -389,23 +389,23 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 - `GatewayProcessHarness`、`GatewayTestInfrastructure`
 - HTTP/RPC Test Applications
 - `deployment/compose.yml`、Containerfile 与部署 README
-- `gateway-admin-web/e2e/gateway-admin.spec.ts`
+- `yuheng-admin-web/e2e/yuheng-admin.spec.ts`
 
 ## 5. 原始 29 章能力追踪
 
-原始 `gateway.md` 的 29 章逐章主责映射保存在
-`2026-07-25-gateway-child-spec-index.md`，本轮没有删除任何原始能力。
+原始 `yuheng.md` 的 29 章逐章主责映射保存在
+`2026-07-25-yuheng-child-spec-index.md`，本轮没有删除任何原始能力。
 
 边界调整只有：
 
 1. 原文涉及的 Nginx 节点负载、配置生成和动态刷新不属于业务网关；
-2. 其动态路由和负载目标由 DDC Provider 发现、Engine 路由/负载和 Rule Snapshot
+2. 其动态路由和负载目标由 Tianshu Provider 发现、Engine 路由/负载和 Rule Snapshot
    承接；
-3. Nacos、Dubbo 被 Egon DDC、Egon RPC 替代；
-4. 业务权限系统不在 Gateway 内实现，但 Gateway 安全扩展框架保留；
+3. Nacos、Dubbo 被 Egon Tianshu、Egon RPC 替代；
+4. 业务权限系统不在 Yuheng 内实现，但 Yuheng 安全扩展框架保留；
 5. Starter 上报接口定义，调用事件只由 Engine 发往 Kafka。
 
-因此“29 章全部实现”指原始业务能力已经由明确的 Gateway/RPC/DDC 模块承接，不包括
+因此“29 章全部实现”指原始业务能力已经由明确的 Yuheng/RPC/Tianshu 模块承接，不包括
 被确认排除的 Nginx 管理实现。
 
 ## 6. 关键端到端链路
@@ -413,22 +413,22 @@ Provider Directory，Admin Route/Rule 不接受静态 Provider URL。
 ### 6.1 HTTP
 
 `Client → PUBLIC/INTERNAL Listener → Route → Security → Governance →
-DDC Provider Directory → Load Balancer → HTTP Provider → Observation →
+Tianshu Provider Directory → Load Balancer → HTTP Provider → Observation →
 Kafka → Admin Projection`
 
 ### 6.2 RPC
 
-`RPC Consumer → DDC INTERNAL_GATEWAY → Engine Dynamic Handler →
-DDC RPC_PROVIDER → RPC Provider → Observation → Kafka → Admin Projection`
+`RPC Consumer → Tianshu INTERNAL_GATEWAY → Engine Dynamic Handler →
+Tianshu RPC_PROVIDER → RPC Provider → Observation → Kafka → Admin Projection`
 
 ### 6.3 HTTP→RPC
 
 `HTTP Client → INTERNAL Route → Rule Descriptor → DynamicMessage →
-DDC RPC_PROVIDER → RPC Provider → JSON Response`
+Tianshu RPC_PROVIDER → RPC Provider → JSON Response`
 
 ### 6.4 规则发布
 
-`Admin Draft → Validate/Diff → Release → DDC DB/Redis/PubSub →
+`Admin Draft → Validate/Diff → Release → Tianshu DB/Redis/PubSub →
 Engine Validate/Compile/Prepare/LKG/Activate → exact instanceId+leaseId ACK →
 Admin Target`
 
@@ -444,11 +444,11 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 | Strategy | 负载均衡、限流后端、调用 Sink | 动态算法和后端替换 |
 | Chain of Responsibility | HTTP Filter、安全链、Config Applier | 有序阶段、短路和扩展 |
 | State | Engine、RPC Slot、Release、Lease | 明确生命周期与非法转换 |
-| Observer | DDC 订阅、调用完成、Kafka 投影 | 解耦事实产生和消费 |
-| Adapter | Reactor Netty、DDC、RPC、Kafka、JPA | 隔离外部技术细节 |
+| Observer | Tianshu 订阅、调用完成、Kafka 投影 | 解耦事实产生和消费 |
+| Adapter | Reactor Netty、Tianshu、RPC、Kafka、JPA | 隔离外部技术细节 |
 | Compiler | Route、Rule、Policy、RPC Method Index | 写时校验并生成只读热路径 |
 | Builder | Process Spec、测试拓扑 | 安全构造多参数不可变对象 |
-| Facade | Admin Application Service、DDC Management | 隔离接口与内部领域模型 |
+| Facade | Admin Application Service、Tianshu Management | 隔离接口与内部领域模型 |
 
 没有为简单 DTO 或直接映射额外引入 Factory/继承层；模式只用于已经存在的变化点和
 一致性边界。
@@ -466,14 +466,14 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 | 7 | Admin 运行投影按 Release/Version/Checksum 判定一致性 | 投影和查询测试通过 |
 | 8 | 延迟 P50/P95/P99 从真实样本计算，不再由均值伪造 | Store/Query 测试通过 |
 | 9 | 定义生命周期加入成员快照、下线和周期校准 | 新 V3 迁移与 Reconciler 测试通过 |
-| 10 | Request、Provider Attempt、DDC Apply、Kafka Send 接入 OTel | Observation 测试通过 |
+| 10 | Request、Provider Attempt、Tianshu Apply、Kafka Send 接入 OTel | Observation 测试通过 |
 | 11 | Starter 使用持久状态和周期重试收敛最终上报状态 | Coordinator/State Store 测试通过 |
 | 12 | Kafka Consumer 监督重启、有限重试、坏消息隔离和指标 | Consumer 故障测试通过 |
 | 13 | Admin Web 补齐认证、目录、规则、发布、审计和观测工作流 | 静态检查、15 个 Vitest 通过 |
 | 14 | Playwright 覆盖核心管理场景并纳入 CI 门禁 | 用例与配置已静态校验，浏览器未运行 |
-| 15 | 双 Engine、HTTP/RPC Provider、Admin/DDC/Kafka Live 拓扑入口 | 测试已编译，容器/JVM 拓扑未运行 |
+| 15 | 双 Engine、HTTP/RPC Provider、Admin/Tianshu/Kafka Live 拓扑入口 | 测试已编译，容器/JVM 拓扑未运行 |
 | 16 | k6 容量/长稳及 Redis/Kafka/PostgreSQL/Provider 故障脚本 | Shell/JS 语法通过，未实际压测或注入 |
-| 17 | DDC 多 Admin、RPC Gateway 多活、TLS/mTLS、HA Compose | 单元/配置校验通过，真实 HA/TLS 未联调 |
+| 17 | Tianshu 多 Admin、RPC Yuheng 多活、TLS/mTLS、HA Compose | 单元/配置校验通过，真实 HA/TLS 未联调 |
 
 上述“修复结果”表示生产代码、自动化用例或显式验收入口已提交。需要外部基础设施、
 浏览器或持续运行环境的 GAP-14～17 不以静态入口代替真实运行结论。
@@ -497,7 +497,7 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 | 严重度 | 二次复核问题 | 修复结果 |
 |---|---|---|
 | Important | 响应已构造、尚未交给调用方时取消可能跳过 Attempt 清理 | 使用 `MonoSink` 原子裁决取消与响应所有权交接；取消先赢时终止上游并释放 Attempt，交接后由 Body 终态释放 |
-| Important | RPC Definition Identity 只由测试应用贡献，真实下游接入 Starter 时缺失 | Gateway Starter 自动贡献三项 RPC 注册元数据，测试应用仅保留 zone/weight |
+| Important | RPC Definition Identity 只由测试应用贡献，真实下游接入 Starter 时缺失 | Yuheng Starter 自动贡献三项 RPC 注册元数据，测试应用仅保留 zone/weight |
 | Evidence | 测试报告统计混入定向运行残留，不能对应单次门禁 | 重新执行完整 32 模块 `clean verify`，只统计该 Reactor 模块本次生成的报告 |
 
 ## 9. 自动化验证层级
@@ -506,7 +506,7 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 |---|---|
 | Contract/Boundary | 模块依赖、序列化、版本、错误、身份 |
 | Unit | 路由、规则、负载、治理、安全、Trace、上报 |
-| Component | Reactor Netty、gRPC Server、Kafka Sink、Admin Service、DDC/RPC |
+| Component | Reactor Netty、gRPC Server、Kafka Sink、Admin Service、Tianshu/RPC |
 | Gated Live | 独立 JVM + Testcontainers 的 HTTP/RPC 完整拓扑 |
 | Frontend | TypeScript、ESLint、Vitest、Vite Build、Playwright 入口 |
 | Deployment | Compose 解析、Containerfile/Jar/静态 Server 结构 |
@@ -515,14 +515,14 @@ HMAC Batch Report → Admin Catalog/Operation/Definition`
 
 ```bash
 ./mvnw -B -ntp \
-  -pl :egon-cola-component-gateway-test-suite,\
+  -pl :egon-cola-component-yuheng-test-suite,\
 :egon-cola-component-rpc-test-suite,\
-:egon-cola-component-gateway-starter,\
-:egon-cola-component-gateway-provider-runtime \
+:egon-cola-component-yuheng-starter,\
+:egon-cola-component-yuheng-provider-runtime \
   -am clean verify
 
-cd egon-cola-components/egon-cola-component-gateway/\
-egon-cola-component-gateway-admin-web
+cd egon-cola-components/egon-cola-component-yuheng/\
+egon-cola-component-yuheng-admin-web
 npm run typecheck
 npm test -- --run
 npm run lint
@@ -540,11 +540,11 @@ Testcontainers Live Profile、不启动 Vite/Playwright 浏览器。
 |---|---|
 | 32 模块 Maven `clean verify` | `BUILD SUCCESS` |
 | Surefire/Failsafe 报告 | 176 份，397 个测试，0 Failure，0 Error，0 Skip |
-| DDC 隐式明文安全回归 | 首次暴露 3 个失败；测试显式声明开发明文后 4/4 通过 |
-| Gateway Engine | 76 个测试通过 |
-| Gateway Admin | 40 个测试通过 |
-| Gateway Starter | 12 个测试通过 |
-| DDC Starter/Admin | 60 + 67 个测试通过 |
+| Tianshu 隐式明文安全回归 | 首次暴露 3 个失败；测试显式声明开发明文后 4/4 通过 |
+| Yuheng Engine | 76 个测试通过 |
+| Yuheng Admin | 40 个测试通过 |
+| Yuheng Starter | 12 个测试通过 |
+| Tianshu Starter/Admin | 60 + 67 个测试通过 |
 | RPC Starter/Test Suite | 39 + 10 个测试通过 |
 | Admin Web TypeScript | 通过 |
 | Admin Web Vitest | 7 个文件、15 个测试全部通过 |
@@ -554,13 +554,13 @@ Testcontainers Live Profile、不启动 Vite/Playwright 浏览器。
 | Compose `config --quiet` | 基础、HA、mTLS、HA+mTLS 四种组合通过 |
 | Workflow/YAML、k6 JS、Shell 语法 | 通过 |
 | Engine/Admin/三个 Test App 可执行 Jar 结构 | 通过 |
-| Flyway 变更检查 | 新增 Gateway Admin V3 和 DDC PostgreSQL/SQLite V3，未修改既有迁移 |
+| Flyway 变更检查 | 新增 Yuheng Admin V3 和 Tianshu PostgreSQL/SQLite V3，未修改既有迁移 |
 | 禁用技术扫描 | 生产代码/POM 无 Spring Cloud Gateway、Nacos、Dubbo |
 | 占位实现扫描 | 生产代码无 TODO、FIXME、`UnsupportedOperationException` |
 
 `GatewayLiveTopologyIT` 的 HTTP、RPC 两个真实拓扑入口已通过 Maven
-`testCompile`。它们受 `gateway-live-test` Profile 和
-`gateway.live.test=true` 双重门禁保护，本轮未启用，因此不包含在上述 397 个已执行
+`testCompile`。它们受 `yuheng-live-test` Profile 和
+`yuheng.live.test=true` 双重门禁保护，本轮未启用，因此不包含在上述 397 个已执行
 测试中；Playwright、k6 和故障注入同样没有实际运行。
 
 验证过程还发现并修复了一处仅在干净 Reactor 中暴露的测试边界问题：Engine
@@ -571,7 +571,7 @@ Contract/Engine 契约构造 Fixture，Engine POM 不再测试依赖 Admin。修
 
 本轮最终验证还发现两处只在完整门禁中暴露的问题：
 
-1. DDC 自动配置测试未显式声明开发明文，与新的 Fail Closed 传输约束冲突；测试配置
+1. Tianshu 自动配置测试未显式声明开发明文，与新的 Fail Closed 传输约束冲突；测试配置
    已补齐，生产默认未放宽；
 2. Admin Web Token Store 的订阅清理函数错误返回 `Set.delete` 的布尔值，TypeScript
    拒绝把它作为 React Effect Destructor；现已改为显式 `void` 清理并通过完整前端门禁。
@@ -589,19 +589,19 @@ Contract/Engine 契约构造 Fixture，Engine POM 不再测试依赖 Admin。修
 1. Vite 报告 Dashboard chunk 压缩前约 1.46 MiB，后续可单独做图表依赖和页面级拆包；
 2. macOS 单测环境未加载 Netty 原生 DNS Resolver，自动回退系统解析；部署目标为
    Linux 容器，本轮不把该测试环境提示当作生产验证；
-3. DDC 既有测试使用的 Mockito 动态 Agent 和 `@MockBean` 有未来版本弃用提示，不是
-   Gateway 本轮构建失败。
+3. Tianshu 既有测试使用的 Mockito 动态 Agent 和 `@MockBean` 有未来版本弃用提示，不是
+   Yuheng 本轮构建失败。
 
 ## 11. 明确未执行或未声称的事项
 
 以下不影响代码交付状态，但必须在生产验收前另行执行：
 
-1. `gateway-live-test` 真实容器/JVM 拓扑本次未运行；
+1. `yuheng-live-test` 真实容器/JVM 拓扑本次未运行；
 2. Playwright 浏览器 E2E 本次未运行；
 3. 生产 PostgreSQL、Redis、Kafka、网络、TLS/mTLS 和证书轮换未联调；
 4. 性能、容量、长稳、故障注入数据尚未测量；
-5. DDC 已支持多 Admin 协调和 Redis Sentinel/Cluster 配置，但本轮未执行真实故障转移；
-   PostgreSQL、Redis、Kafka 自身的生产 HA 仍由部署平台负责，DDC 不引入 Raft；
+5. Tianshu 已支持多 Admin 协调和 Redis Sentinel/Cluster 配置，但本轮未执行真实故障转移；
+   PostgreSQL、Redis、Kafka 自身的生产 HA 仍由部署平台负责，Tianshu 不引入 Raft；
 6. RPC Consumer 已支持多 `INTERNAL_GATEWAY`、Round Robin 和失败摘除，但本轮未执行
    双 Engine 进程级切换；
 7. RPC Streaming、Nacos、Dubbo、Nginx 管理均不在当前范围；

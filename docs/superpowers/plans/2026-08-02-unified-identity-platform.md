@@ -2,25 +2,25 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 新增 `egon-cola-tianquan-shoubing`，把人员认证、统一 SSO 和 Token 发行从 RBAC3 迁移到 IdP，并打通 RBAC3 授权、Gateway 基础身份校验、DDC 配置/注册和模拟后端端到端链路。
+**Goal:** 新增 `egon-cola-tianquan-shoubing`，把人员认证、统一 SSO 和 Token 发行从 Tianquan-Jianshen 迁移到 Tianquan-Shoubing，并打通 Tianquan-Jianshen 授权、Yuheng 基础身份校验、Tianshu 配置/注册和模拟后端端到端链路。
 
-**Architecture:** IdP 是全局人员身份和 OAuth 2.1 Token 的唯一权威；RBAC3 是租户映射和授权事实的唯一权威。Gateway 只校验 IdP JWT、全局用户状态和 Token Version，并透传原始 Bearer；下游使用 IdP Starter 二次验签，再用 RBAC3 Starter 从授权中心拉取并缓存 `systemCode + tid + sid` 授权快照。
+**Architecture:** Tianquan-Shoubing 是全局人员身份和 OAuth 2.1 Token 的唯一权威；Tianquan-Jianshen 是租户映射和授权事实的唯一权威。Yuheng 只校验 Tianquan-Shoubing JWT、全局用户状态和 Token Version，并透传原始 Bearer；下游使用 Tianquan-Shoubing Starter 二次验签，再用 Tianquan-Jianshen Starter 从授权中心拉取并缓存 `systemCode + tid + sid` 授权快照。
 
 **Tech Stack:** Java 21、Spring Boot 3.5.16、Spring Security OAuth2/Jose、PostgreSQL、Flyway 11.15、Redisson 3.26、Kafka/Transactional Outbox、React 19、TypeScript 6、Vite 8、Vitest 4、Playwright。
 
 ## Global Constraints
 
-- 新聚合模块名称固定为 `egon-cola-tianquan-shoubing`，包含 contract、core、starter、gateway-adapter、admin、admin-web。
-- IdP 不保存租户、租户成员、角色、权限、数据范围和字段策略。
-- Access Token 只包含稳定身份声明；不得包含角色、权限或 RBAC3 版本。
-- Gateway 严禁调用 RBAC3 或执行权限判断，只做 IdP 身份基础校验。
-- 下游必须二次校验 JWT，并在自己的 Redis 中缓存 RBAC3 授权快照。
+- 新聚合模块名称固定为 `egon-cola-tianquan-shoubing`，包含 contract、core、starter、yuheng-adapter、admin、admin-web。
+- Tianquan-Shoubing 不保存租户、租户成员、角色、权限、数据范围和字段策略。
+- Access Token 只包含稳定身份声明；不得包含角色、权限或 Tianquan-Jianshen 版本。
+- Yuheng 严禁调用 Tianquan-Jianshen 或执行权限判断，只做 Tianquan-Shoubing 身份基础校验。
+- 下游必须二次校验 JWT，并在自己的 Redis 中缓存 Tianquan-Jianshen 授权快照。
 - Access Token 单租户化，`sub` 是全局身份，`tid` 是当前租户，`sid` 是稳定 SSO/Refresh Family 会话。
-- RBAC3 授权上下文键固定为 `(tid, sid)`；角色激活不重签 IdP Token。
+- Tianquan-Jianshen 授权上下文键固定为 `(tid, sid)`；角色激活不重签 Tianquan-Shoubing Token。
 - Refresh Token 只通过 HttpOnly Cookie 传输，必须 Rotation，并检测重放。
-- 所有既有 Flyway 文件不可修改；IdP 新增一个 V1，RBAC3 只新增一个 V3。
-- 测试放在所属模块 `src/test`；不新增独立 IdP 测试模块。
-- 不引入生产双栈迁移；当前 RBAC3 人员 Token、Refresh 和 Session 直接失效。
+- 所有既有 Flyway 文件不可修改；Tianquan-Shoubing 新增一个 V1，Tianquan-Jianshen 只新增一个 V3。
+- 测试放在所属模块 `src/test`；不新增独立 Tianquan-Shoubing 测试模块。
+- 不引入生产双栈迁移；当前 Tianquan-Jianshen 人员 Token、Refresh 和 Session 直接失效。
 - 按 TDD 执行：每个行为先写测试并确认因缺少行为而失败，再写最小实现。
 - 每个 Task 完成定向验证后独立提交；不启动应用，直到最终端到端 Task。
 
@@ -28,7 +28,7 @@
 
 ## File Structure
 
-### New IdP files
+### New Tianquan-Shoubing files
 
 ```text
 egon-cola-xingyuan/egon-cola-tianquan-shoubing/
@@ -36,7 +36,7 @@ egon-cola-xingyuan/egon-cola-tianquan-shoubing/
 ├── README.md
 ├── egon-cola-tianquan-shoubing-contract/
 │   ├── pom.xml
-│   └── src/main/java/top/egon/cola/platform/idp/contract/
+│   └── src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/
 │       ├── IdpClaimNames.java
 │       ├── IdpErrorCode.java
 │       ├── IdentityPrincipal.java
@@ -44,7 +44,7 @@ egon-cola-xingyuan/egon-cola-tianquan-shoubing/
 │       └── OAuthClientView.java
 ├── egon-cola-tianquan-shoubing-core/
 │   ├── pom.xml
-│   └── src/main/java/top/egon/cola/platform/idp/core/
+│   └── src/main/java/top/egon/cola/platform/tianquan-shoubing/core/
 │       ├── identity/
 │       ├── oauth/
 │       ├── token/
@@ -52,19 +52,19 @@ egon-cola-xingyuan/egon-cola-tianquan-shoubing/
 │       └── port/
 ├── egon-cola-tianquan-shoubing-starter/
 │   ├── pom.xml
-│   └── src/main/java/top/egon/cola/platform/idp/starter/
+│   └── src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/
 │       ├── autoconfigure/
 │       ├── security/
 │       └── state/
 ├── egon-cola-tianquan-shoubing-gateway-adapter/
 │   ├── pom.xml
-│   └── src/main/java/top/egon/cola/platform/idp/gateway/
+│   └── src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/
 │       ├── autoconfigure/
 │       └── security/
 ├── egon-cola-tianquan-shoubing-admin/
 │   ├── pom.xml
 │   └── src/
-│       ├── main/java/top/egon/cola/platform/idp/admin/
+│       ├── main/java/top/egon/cola/platform/tianquan-shoubing/admin/
 │       ├── main/resources/application.yml
 │       ├── main/resources/application-local.yml
 │       ├── main/resources/db/migration/V1__create_idp_schema.sql
@@ -77,32 +77,32 @@ egon-cola-xingyuan/egon-cola-tianquan-shoubing/
 ### Existing files changed by responsibility
 
 - Reactor/dependency management: `egon-cola-xingyuan/pom.xml`.
-- Gateway runtime adapter switch: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml` and engine security tests/configuration.
-- RBAC3 migration/identity/session/snapshot: `egon-cola-tianquan-jianshen-admin` and `egon-cola-tianquan-jianshen-contract`.
+- Yuheng runtime adapter switch: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml` and engine security tests/configuration.
+- Tianquan-Jianshen migration/identity/session/snapshot: `egon-cola-tianquan-jianshen-admin` and `egon-cola-tianquan-jianshen-contract`.
 - Downstream cache and annotations: `egon-cola-tianquan-jianshen-starter`.
-- Existing Admin Backend security: DDC Admin, Gateway Admin, RBAC3 Admin security/configuration files.
-- Existing Admin Web SSO: the `auth/` or `features/auth/` directories and API clients in DDC/Gateway/RBAC3 Admin Web.
-- Live topology: existing Gateway test providers/suite plus a new IdP-aware mock backend fixture.
+- Existing Admin Backend security: Tianshu Admin, Yuheng Admin, Tianquan-Jianshen Admin security/configuration files.
+- Existing Admin Web SSO: the `auth/` or `features/auth/` directories and API clients in Tianshu/Yuheng/Tianquan-Jianshen Admin Web.
+- Live topology: existing Yuheng test providers/suite plus a new Tianquan-Shoubing-aware mock backend fixture.
 
 ---
 
-### Task 1: IdP Reactor and Stable Contracts
+### Task 1: Tianquan-Shoubing Reactor and Stable Contracts
 
 **Files:**
 - Modify: `egon-cola-xingyuan/pom.xml`
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/pom.xml`
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md`
-- Create: all six IdP child `pom.xml` files
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/idp/contract/IdpClaimNames.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/idp/contract/IdpErrorCode.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/idp/contract/IdentityPrincipal.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/idp/contract/IdentityUserState.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/idp/contract/OAuthClientView.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/test/java/top/egon/cola/platform/idp/contract/IdentityPrincipalTest.java`
+- Create: all six Tianquan-Shoubing child `pom.xml` files
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdpClaimNames.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdpErrorCode.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdentityPrincipal.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/IdentityUserState.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/main/java/top/egon/cola/platform/tianquan-shoubing/contract/OAuthClientView.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-contract/src/test/java/top/egon/cola/platform/tianquan-shoubing/contract/IdentityPrincipalTest.java`
 
 **Interfaces:**
 - Produces: `IdentityPrincipal(String subject, String tenantId, String sessionId, String clientId, String tokenId, long tokenVersion, Set<String> audience, Instant issuedAt, Instant expiresAt)`.
-- Produces: claim names `sub/tid/sid/client_id/jti/token_version/aud` shared by IdP, Gateway and downstream.
+- Produces: claim names `sub/tid/sid/client_id/jti/token_version/aud` shared by Tianquan-Shoubing, Yuheng and downstream.
 
 - [ ] **Step 1: Write the failing contract test**
 
@@ -151,7 +151,7 @@ public record IdentityPrincipal(
 }
 ```
 
-Add IdP artifacts to `dependencyManagement` and add the IdP aggregator after DDC/Gateway/RBAC3 in `egon-cola-xingyuan/pom.xml`.
+Add Tianquan-Shoubing artifacts to `dependencyManagement` and add the Tianquan-Shoubing aggregator after Tianshu/Yuheng/Tianquan-Jianshen in `egon-cola-xingyuan/pom.xml`.
 
 - [ ] **Step 4: Run contract tests and reactor validation**
 
@@ -163,23 +163,23 @@ Expected: `BUILD SUCCESS`, all six modules occur exactly once in the reactor.
 
 ```bash
 git add egon-cola-xingyuan/pom.xml egon-cola-xingyuan/egon-cola-tianquan-shoubing
-git commit -m "feat(idp): add platform reactor and contracts"
+git commit -m "feat(tianquan-shoubing): add xingyuan reactor and contracts"
 ```
 
 ### Task 2: Identity Core, Password Policy, and Token Version
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityUser.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityUserStatus.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/PasswordCredential.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/UsernameNormalizer.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/identity/IdentityFacade.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/IdentityUserStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/PasswordHashPort.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/IdentityUserStatePort.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/audit/IdentitySecurityEventPort.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/identity/IdentityFacadeTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/identity/UsernameNormalizerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/identity/IdentityUser.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/identity/IdentityUserStatus.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/identity/PasswordCredential.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/identity/UsernameNormalizer.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/identity/IdentityFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/IdentityUserStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/PasswordHashPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/IdentityUserStatePort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/audit/IdentitySecurityEventPort.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/core/identity/IdentityFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/core/identity/UsernameNormalizerTest.java`
 
 **Interfaces:**
 - Produces: `IdentityFacade.authenticate(String username, char[] password, String sourceBucket, Instant now)` returning `AuthenticatedIdentity`.
@@ -239,29 +239,29 @@ Expected: all tests pass with no logged credentials.
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core
-git commit -m "feat(idp): add identity and credential domain"
+git commit -m "feat(tianquan-shoubing): add identity and credential domain"
 ```
 
-### Task 3: IdP PostgreSQL Schema, Persistence, and Bootstrap CLI
+### Task 3: Tianquan-Shoubing PostgreSQL Schema, Persistence, and Bootstrap CLI
 
 **Files:**
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/db/migration/V1__create_idp_schema.sql`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/IdentityUserEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/identity/domain/IdentityCredentialEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/IdentityClientEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/IdentityClientRedirectUriEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/domain/IdentityClientAudienceEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/token/domain/IdentitySigningKeyEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/audit/domain/IdentityAuditLogEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/outbox/domain/IdentityOutboxEventEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/identity/domain/IdentityUserEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/identity/domain/IdentityCredentialEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/domain/IdentityClientEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/domain/IdentityClientRedirectUriEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/domain/IdentityClientAudienceEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/token/domain/IdentitySigningKeyEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/audit/domain/IdentityAuditLogEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/outbox/domain/IdentityOutboxEventEntity.java`
 - Create: JPA repositories and adapters under matching `infrastructure/` packages
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/bootstrap/IdpBootstrapRunner.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/migration/IdpMigrationIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/bootstrap/IdpBootstrapRunnerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/bootstrap/IdpBootstrapRunner.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/migration/IdpMigrationIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/bootstrap/IdpBootstrapRunnerTest.java`
 
 **Interfaces:**
 - Consumes: core store/port interfaces from Task 2.
-- Produces: PostgreSQL adapters and `--idp-bootstrap-admin=alice` CLI shape reading password from `IDP_BOOTSTRAP_PASSWORD` without logging it.
+- Produces: PostgreSQL adapters and `--tianquan-shoubing-bootstrap-admin=alice` CLI shape reading password from `TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD` without logging it.
 
 - [ ] **Step 1: Write failing migration and bootstrap tests**
 
@@ -281,7 +281,7 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianqu
 
 Expected: V1 and persistence adapters are missing.
 
-- [ ] **Step 3: Add exactly one IdP V1 migration and persistence adapters**
+- [ ] **Step 3: Add exactly one Tianquan-Shoubing V1 migration and persistence adapters**
 
 V1 creates `identity_user`, `identity_user_credential`, `identity_client`, `identity_client_redirect_uri`, `identity_client_audience`, `identity_signing_key`, `identity_audit_log`, and `identity_outbox_event`, with unique normalized username, client/redirect/audience constraints, optimistic versions, UTC timestamps and Outbox indexes. It creates no session or authorization tables.
 
@@ -297,24 +297,24 @@ Expected: V1 applies from empty PostgreSQL and bootstrap creates one ACTIVE user
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin
-git commit -m "feat(idp): add persistence and bootstrap admin"
+git commit -m "feat(tianquan-shoubing): add persistence and bootstrap admin"
 ```
 
 ### Task 4: OAuth Client, PKCE Authorization Code, and Tenant Resolution
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationRequest.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationCode.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/OAuthClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacade.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/AuthorizationCodeStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/OAuthClientStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/TenantMembershipPort.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/oauth/infrastructure/RedisAuthorizationCodeStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/integration/rbac3/HttpTenantMembershipAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/OAuthAuthorizationController.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/oauth/AuthorizationFacadeTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/oauth/OAuthAuthorizationFlowIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/oauth/AuthorizationRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/oauth/AuthorizationCode.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/oauth/OAuthClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/oauth/AuthorizationFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/AuthorizationCodeStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/OAuthClientStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/TenantMembershipPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/infrastructure/RedisAuthorizationCodeStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/tianquan-jianshen/HttpTenantMembershipAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/OAuthAuthorizationController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/core/oauth/AuthorizationFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/oauth/OAuthAuthorizationFlowIT.java`
 
 **Interfaces:**
 - Produces: `TenantMembershipPort.resolve(identitySub, tenantId, clientId)`.
@@ -325,7 +325,7 @@ git commit -m "feat(idp): add persistence and bootstrap admin"
 ```java
 @Test
 void refusesAuthorizationWhenRbac3DoesNotResolveMembership() {
-    membership.reject("alice-sub", "tenant-b", "gateway-admin-web");
+    membership.reject("alice-sub", "tenant-b", "yuheng-admin-web");
     assertThrows(OAuthException.class, () -> facade.authorize(requestFor("tenant-b"), sso("alice-sub")));
 }
 
@@ -369,26 +369,26 @@ Expected: wrong verifier/redirect/tenant all fail; one valid code succeeds exact
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
-git commit -m "feat(idp): add pkce authorization flow"
+git commit -m "feat(tianquan-shoubing): add pkce authorization flow"
 ```
 
 ### Task 5: RS256 Access Token, Refresh Rotation, Replay, and Logout
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/TokenFacade.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/AccessTokenClaims.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshTokenClaims.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token/RefreshFamily.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/TokenSigner.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/port/RefreshTokenStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/token/infrastructure/Rs256TokenService.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/token/infrastructure/RedisRefreshTokenStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/token/TokenFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/token/AccessTokenClaims.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/token/RefreshTokenClaims.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/token/RefreshFamily.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/TokenSigner.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/port/RefreshTokenStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/token/infrastructure/Rs256TokenService.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/token/infrastructure/RedisRefreshTokenStore.java`
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/redis/rotate-refresh-token.lua`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/OAuthTokenController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/OAuthMetadataController.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/idp/core/token/TokenFacadeTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/token/RefreshRotationIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/token/AccessTokenClaimsIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/OAuthTokenController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/OAuthMetadataController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/test/java/top/egon/cola/platform/tianquan-shoubing/core/token/TokenFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/token/RefreshRotationIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/token/AccessTokenClaimsIT.java`
 
 **Interfaces:**
 - Produces: RS256 Access JWT with exact Claims from the spec.
@@ -441,31 +441,31 @@ Expected: rotation is single-winner, replay revokes family, JWK verifies Access 
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
-git commit -m "feat(idp): issue and revoke oauth tokens"
+git commit -m "feat(tianquan-shoubing): issue and revoke oauth tokens"
 ```
 
-### Task 6: IdP Admin APIs, Audit/Outbox, DDC, and Provider Lifecycle
+### Task 6: Tianquan-Shoubing Admin APIs, Audit/Outbox, Tianshu, and Provider Lifecycle
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/IdentityUserController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/OAuthClientController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/SigningKeyController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/IdentityAuditController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/integration/outbox/IdentityOutboxPublisher.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/integration/ddc/IdpRuntimePolicy.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/integration/ddc/AtomicIdpRuntimePolicy.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/integration/ddc/IdpDdcPolicyApplier.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/integration/runtime/IdpHttpProviderPublicationGate.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/IdpAdminApplication.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/IdentityUserController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/OAuthClientController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/SigningKeyController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/IdentityAuditController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/outbox/IdentityOutboxPublisher.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/tianshu/IdpRuntimePolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/tianshu/AtomicIdpRuntimePolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/tianshu/IdpDdcPolicyApplier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/runtime/IdpHttpProviderPublicationGate.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/IdpAdminApplication.java`
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application.yml`
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/resources/application-local.yml`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/interfaces/http/IdpAdminSecurityIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/integration/ddc/IdpDdcPolicyApplierTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/integration/runtime/IdpHttpProviderPublicationGateTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/IdpAdminSecurityIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/tianshu/IdpDdcPolicyApplierTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/integration/runtime/IdpHttpProviderPublicationGateTest.java`
 
 **Interfaces:**
-- Produces: `/api/v1/identity/users|clients|signing-keys|audits|me`.
-- Produces: DDC CONFIG_CLIENT readiness and HTTP_PROVIDER publication only after OAuth runtime is ready.
+- Produces: `/api/v1/tianquan-shoubing/users|clients|signing-keys|audits|me`.
+- Produces: Tianshu CONFIG_CLIENT readiness and HTTP_PROVIDER publication only after OAuth runtime is ready.
 
 - [ ] **Step 1: Write failing security, dynamic policy, and publication-gate tests**
 
@@ -480,7 +480,7 @@ void providerIsNotPublishedBeforeDdcAndOauthAreReady() {
 @Test
 void invalidAccessTtlKeepsLastKnownGoodSnapshot() {
     PolicySnapshot before = policy.snapshot();
-    assertEquals(FAILED, applier.apply("idp.token.access-ttl", "1s", 2).status());
+    assertEquals(FAILED, applier.apply("tianquan-shoubing.token.access-ttl", "1s", 2).status());
     assertEquals(before, policy.snapshot());
 }
 ```
@@ -491,37 +491,37 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianqu
 
 Expected: Admin endpoints and runtime adapters are missing.
 
-- [ ] **Step 3: Implement admin Facades/Controllers and platform adapters**
+- [ ] **Step 3: Implement admin Facades/Controllers and xingyuan adapters**
 
-Reuse the repository's Gateway annotations, DDC `@DdcValue` declaration plus typed custom Applier, CONFIG_CLIENT coordinator and HTTP provider runtime. Do not place secrets in DDC declarations. Every mutating Admin API checks RBAC3 permission through the downstream Starter once Task 11 is available; until then, wire an explicit interface port so the dependency direction stays stable.
+Reuse the repository's Yuheng annotations, Tianshu `@DdcValue` declaration plus typed custom Applier, CONFIG_CLIENT coordinator and HTTP provider runtime. Do not place secrets in Tianshu declarations. Every mutating Admin API checks Tianquan-Jianshen permission through the downstream Starter once Task 11 is available; until then, wire an explicit interface port so the dependency direction stays stable.
 
-- [ ] **Step 4: Run IdP Admin tests**
+- [ ] **Step 4: Run Tianquan-Shoubing Admin tests**
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin -am -DskipITs=false test`
 
-Expected: Admin unauthorized calls return 401/403, invalid DDC updates preserve LKG, provider gate requires all readiness facts.
+Expected: Admin unauthorized calls return 401/403, invalid Tianshu updates preserve LKG, provider gate requires all readiness facts.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing
-git commit -m "feat(idp): add admin and platform lifecycle"
+git commit -m "feat(tianquan-shoubing): add admin and xingyuan lifecycle"
 ```
 
-### Task 7: Reusable IdP Starter
+### Task 7: Reusable Tianquan-Shoubing Starter
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterProperties.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfiguration.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpJwtVerifier.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpBearerAuthenticationFilter.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/security/IdpAuthenticationToken.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/state/IdentityUserStateReader.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/idp/starter/state/RedisIdentityUserStateReader.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/autoconfigure/IdpStarterProperties.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/autoconfigure/IdpStarterAutoConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/security/IdpJwtVerifier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/security/IdpBearerAuthenticationFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/security/IdpAuthenticationToken.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/state/IdentityUserStateReader.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/java/top/egon/cola/platform/tianquan-shoubing/starter/state/RedisIdentityUserStateReader.java`
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpJwtVerifierTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/security/IdpBearerAuthenticationFilterTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/idp/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan-shoubing/starter/security/IdpJwtVerifierTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan-shoubing/starter/security/IdpBearerAuthenticationFilterTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter/src/test/java/top/egon/cola/platform/tianquan-shoubing/starter/autoconfigure/IdpStarterAutoConfigurationTest.java`
 
 **Interfaces:**
 - Produces: authenticated Spring Security principal backed only by `IdentityPrincipal`.
@@ -552,7 +552,7 @@ Expected: Starter classes are missing.
 
 - [ ] **Step 3: Implement fail-closed Starter**
 
-Configure `NimbusJwtDecoder` by JWK Set URI, add Issuer/Audience validators, then validate required Claims and Redis user state. Register one filter at order `-102`, before RBAC3 authorization. The Starter never loads roles or permissions and never trusts forwarded headers as authentication.
+Configure `NimbusJwtDecoder` by JWK Set URI, add Issuer/Audience validators, then validate required Claims and Redis user state. Register one filter at order `-102`, before Tianquan-Jianshen authorization. The Starter never loads roles or permissions and never trusts forwarded headers as authentication.
 
 - [ ] **Step 4: Run Starter tests**
 
@@ -564,29 +564,29 @@ Expected: signature, issuer, audience, required Claims, status and Token Version
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-starter
-git commit -m "feat(idp): add resource server starter"
+git commit -m "feat(tianquan-shoubing): add resource server starter"
 ```
 
-### Task 8: Gateway Identity Adapter and Engine Cutover
+### Task 8: Yuheng Identity Adapter and Engine Cutover
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpBearerCredentialExtractor.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpGatewayJwtVerifier.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpIdentityAuthenticationProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpTrustedIdentityMapper.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/security/IdpReservedHeaderSanitizer.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/idp/gateway/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpBearerCredentialExtractor.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpGatewayJwtVerifier.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpIdentityAuthenticationProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpTrustedIdentityMapper.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpReservedHeaderSanitizer.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/main/java/top/egon/cola/platform/tianquan-shoubing/yuheng/autoconfigure/IdpGatewayAdapterAutoConfiguration.java`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
 - Modify: engine `application.yml` security provider IDs
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/idp/gateway/security/IdpGatewaySecurityProviderTest.java`
-- Modify/Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayOriginalBearerForwardingTest.java`
-- Create/Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/security/GatewayIdentityOnlySecurityTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter/src/test/java/top/egon/cola/platform/tianquan-shoubing/yuheng/security/IdpGatewaySecurityProviderTest.java`
+- Modify/Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/security/GatewayOriginalBearerForwardingTest.java`
+- Create/Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/security/GatewayIdentityOnlySecurityTest.java`
 
 **Interfaces:**
-- Consumes: existing Gateway Credential Extractor, Authentication Provider and Trusted Identity Mapper SPIs.
-- Produces: provider IDs `idp-bearer`, `idp-jwt`, `idp-identity`; no Authorization Provider.
+- Consumes: existing Yuheng Credential Extractor, Authentication Provider and Trusted Identity Mapper SPIs.
+- Produces: provider IDs `tianquan-shoubing-bearer`, `tianquan-shoubing-jwt`, `tianquan-shoubing-identity`; no Authorization Provider.
 
-- [ ] **Step 1: Write failing Gateway tests**
+- [ ] **Step 1: Write failing Yuheng tests**
 
 ```java
 @Test
@@ -608,13 +608,13 @@ void removesSpoofedTrustedHeadersBeforeMappingVerifiedClaims() {
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -DskipITs -Dtest=IdpGatewaySecurityProviderTest,GatewayIdentityOnlySecurityTest,GatewayOriginalBearerForwardingTest test`
 
-Expected: IdP Gateway Adapter is missing and engine still depends on RBAC3 Adapter.
+Expected: Tianquan-Shoubing Yuheng Adapter is missing and engine still depends on Tianquan-Jianshen Adapter.
 
 - [ ] **Step 3: Implement Adapter and replace runtime dependency**
 
-Implement identity-only Gateway SPI composition. Change engine runtime dependency from `egon-cola-tianquan-jianshen-gateway-adapter` to `egon-cola-tianquan-shoubing-gateway-adapter`. Security policies use `ORIGINAL_BEARER`; omit authorization provider ID. Preserve existing generic Chain behavior for other policies.
+Implement identity-only Yuheng SPI composition. Change engine runtime dependency from `egon-cola-tianquan-jianshen-gateway-adapter` to `egon-cola-tianquan-shoubing-gateway-adapter`. Security policies use `ORIGINAL_BEARER`; omit authorization provider ID. Preserve existing generic Chain behavior for other policies.
 
-- [ ] **Step 4: Prove Gateway has no RBAC3 runtime dependency**
+- [ ] **Step 4: Prove Yuheng has no Tianquan-Jianshen runtime dependency**
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-gateway-adapter`
 
@@ -622,34 +622,34 @@ Expected: no dependency line for the engine.
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -DskipITs test`
 
-Expected: Gateway Adapter and engine tests pass.
+Expected: Yuheng Adapter and engine tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway
-git commit -m "feat(gateway): validate idp identity only"
+git commit -m "feat(yuheng): validate tianquan-shoubing identity only"
 ```
 
-### Task 9: RBAC3 Global Identity Mapping and Direct Cutover Migration
+### Task 9: Tianquan-Jianshen Global Identity Mapping and Direct Cutover Migration
 
 **Files:**
 - Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V3__adopt_idp_identity.sql`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/ExternalIdentityEntity.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/domain/UserEntity.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/infrastructure/IdentityRepositories.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/identity/application/IdentityMappingFacade.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalIdentityController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/AuthController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/auth/application/AuthenticationFacade.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/migration/Rbac3IdpMigrationIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/identity/application/IdentityMappingFacadeTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/Rbac3LegacyAuthenticationRemovedIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/identity/domain/ExternalIdentityEntity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/identity/domain/UserEntity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/identity/infrastructure/IdentityRepositories.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/identity/application/IdentityMappingFacade.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/InternalIdentityController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/AuthController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/auth/application/AuthenticationFacade.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/migration/Rbac3IdpMigrationIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/identity/application/IdentityMappingFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/Rbac3LegacyAuthenticationRemovedIT.java`
 
 **Interfaces:**
 - Produces: unique `(tenantId, identitySub) -> rbac3UserId` ACTIVE mapping.
 - Produces: internal tenant list/resolve endpoints.
-- Removes: personnel login/refresh/token endpoints from RBAC3.
+- Removes: personnel login/refresh/token endpoints from Tianquan-Jianshen.
 
 - [ ] **Step 1: Write failing migration, mapping, and removed-endpoint tests**
 
@@ -679,7 +679,7 @@ Expected: V3 and new mapping API are missing; legacy endpoints still exist.
 
 V3 adds/normalizes `identity_sub`, unique/index constraints and authorization-context fields needed by `(tenant_id, session_id)`. It marks/deletes all existing session and refresh records according to FK safety, and does not edit V1/V2. Remove Controller routes and production bean wiring for `AuthenticationFacade`, `JwtTokenService` and `RefreshTokenService`; retain source only when still needed by migration tests, otherwise delete it with its obsolete tests.
 
-- [ ] **Step 4: Verify migration history and RBAC3 tests**
+- [ ] **Step 4: Verify migration history and Tianquan-Jianshen tests**
 
 Run: `git diff 0c5966ad -- egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V2__add_session_strong_authentication_time.sql`
 
@@ -687,29 +687,29 @@ Expected: no output.
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen -am -DskipITs=false test`
 
-Expected: RBAC3 tests pass with IdP identity mapping and no personnel token endpoints.
+Expected: Tianquan-Jianshen tests pass with Tianquan-Shoubing identity mapping and no personnel token endpoints.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-jianshen
-git commit -m "feat(rbac3): adopt global idp identities"
+git commit -m "feat(tianquan-jianshen): adopt global tianquan-shoubing identities"
 ```
 
-### Task 10: RBAC3 Authorization Context and System Snapshot APIs
+### Task 10: Tianquan-Jianshen Authorization Context and System Snapshot APIs
 
 **Files:**
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/domain/SessionEntity.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/session/application/SessionFacade.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/application/SessionSnapshotProjector.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/InternalAuthorizationController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/RoleActivationController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SessionAuthorizationSnapshot.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/rbac3/contract/authorization/SystemAuthorizationSnapshot.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/snapshot/application/SystemAuthorizationSnapshotService.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/session/application/AuthorizationContextFacadeTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/snapshot/application/SystemAuthorizationSnapshotServiceTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/interfaces/http/IdpRoleActivationSecurityIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/session/domain/SessionEntity.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/session/application/SessionFacade.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/snapshot/application/SessionSnapshotProjector.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/InternalAuthorizationController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/RoleActivationController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/tianquan-jianshen/contract/authorization/SessionAuthorizationSnapshot.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract/src/main/java/top/egon/cola/platform/tianquan-jianshen/contract/authorization/SystemAuthorizationSnapshot.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/snapshot/application/SystemAuthorizationSnapshotService.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/session/application/AuthorizationContextFacadeTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/snapshot/application/SystemAuthorizationSnapshotServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/IdpRoleActivationSecurityIT.java`
 
 **Interfaces:**
 - Produces: `snapshot(tid, sid, systemCode, identitySub)` with active roles, permissions, data/field policy and three versions.
@@ -729,9 +729,9 @@ void roleActivationChangesContextVersionWithoutChangingIdentitySession() {
 @Test
 void snapshotContainsOnlyTargetSystemPermissions() {
     Rbac3SystemAuthorizationSnapshot snapshot = service.snapshot(
-            "tenant-a", "sid-1", "gateway-admin", "alice-sub");
-    assertThat(snapshot.permissions()).contains("gateway:release:read");
-    assertThat(snapshot.permissions()).noneMatch(p -> p.startsWith("ddc:"));
+            "tenant-a", "sid-1", "yuheng-admin", "alice-sub");
+    assertThat(snapshot.permissions()).contains("yuheng:release:read");
+    assertThat(snapshot.permissions()).noneMatch(p -> p.startsWith("tianshu:"));
 }
 ```
 
@@ -739,46 +739,46 @@ void snapshotContainsOnlyTargetSystemPermissions() {
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen -am -DskipITs -Dtest=AuthorizationContextFacadeTest,SystemAuthorizationSnapshotServiceTest,IdpRoleActivationSecurityIT test`
 
-Expected: system-scoped snapshot or IdP-bound context behavior is missing.
+Expected: system-scoped snapshot or Tianquan-Shoubing-bound context behavior is missing.
 
 - [ ] **Step 3: Implement Authorization Context semantics and internal APIs**
 
 Reuse the existing Session table and role activation rules, but require caller identity fields to match target context. First snapshot request creates default context only for an ACTIVE mapping. Project `systemCode`-scoped permissions and advance `authVersion/contextVersion/policyVersion` monotonically. Emit the four RBAC invalidation event types from the spec through the existing Transactional Outbox adapter.
 
-- [ ] **Step 4: Run RBAC3 context and snapshot tests**
+- [ ] **Step 4: Run Tianquan-Jianshen context and snapshot tests**
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-tianquan-jianshen -am -DskipITs=false test`
 
-Expected: existing RBAC behavior remains green and new IdP-bound snapshot/activation tests pass.
+Expected: existing RBAC behavior remains green and new Tianquan-Shoubing-bound snapshot/activation tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-jianshen
-git commit -m "feat(rbac3): expose session authorization contexts"
+git commit -m "feat(tianquan-jianshen): expose session authorization contexts"
 ```
 
-### Task 11: Downstream RBAC3 Starter Cache, Events, and Fence
+### Task 11: Downstream Tianquan-Jianshen Starter Cache, Events, and Fence
 
 **Files:**
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/pom.xml`
-- Replace: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3JwtVerifier.java` responsibility with IdP Starter dependency
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/security/Rbac3BearerAuthenticationFilter.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/client/Rbac3AuthorizationClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/AuthorizationSnapshotCache.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/RedisAuthorizationSnapshotCache.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/cache/SingleFlightSnapshotLoader.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/event/Rbac3AuthorizationInvalidationConsumer.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterProperties.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/rbac3/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/AuthorizationSnapshotCacheTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/cache/SingleFlightSnapshotLoaderTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/event/Rbac3AuthorizationInvalidationConsumerTest.java`
-- Modify/Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/rbac3/starter/security/StarterFailClosedSecurityMatrixTest.java`
+- Replace: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/security/Rbac3JwtVerifier.java` responsibility with Tianquan-Shoubing Starter dependency
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/security/Rbac3BearerAuthenticationFilter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/client/Rbac3AuthorizationClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/cache/AuthorizationSnapshotCache.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/cache/RedisAuthorizationSnapshotCache.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/cache/SingleFlightSnapshotLoader.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/event/Rbac3AuthorizationInvalidationConsumer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/autoconfigure/Rbac3StarterProperties.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/main/java/top/egon/cola/platform/tianquan-jianshen/starter/autoconfigure/Rbac3StarterAutoConfiguration.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan-jianshen/starter/cache/AuthorizationSnapshotCacheTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan-jianshen/starter/cache/SingleFlightSnapshotLoaderTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan-jianshen/starter/event/Rbac3AuthorizationInvalidationConsumerTest.java`
+- Modify/Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter/src/test/java/top/egon/cola/platform/tianquan-jianshen/starter/security/StarterFailClosedSecurityMatrixTest.java`
 
 **Interfaces:**
-- Consumes: authenticated `IdentityPrincipal` from IdP Starter.
-- Produces: downstream-owned cache key `rbac3:authorization:{systemCode}:{tenantId}:{sid}`.
+- Consumes: authenticated `IdentityPrincipal` from Tianquan-Shoubing Starter.
+- Produces: downstream-owned cache key `tianquan-jianshen:authorization:{systemCode}:{tenantId}:{sid}`.
 - Produces: `AuthorizationService` backed by current system snapshot and optional synchronous Fence.
 
 - [ ] **Step 1: Write failing cache/failure/invalidation tests**
@@ -815,7 +815,7 @@ Expected: downstream cache/client/event components are missing.
 
 - [ ] **Step 3: Implement Cache-Aside + SingleFlight + idempotent invalidation**
 
-Use a per-Key `CompletableFuture` map for JVM SingleFlight, Redis JSON snapshot with TTL+jitter, and user/tenant Set indexes written atomically. Events compare event/policy versions and delete exact keys or index members; never use `SCAN`. If an unexpired value exists, return it; if missing/expired and RBAC3 fetch fails, throw and map to 503/403 according to current security boundary without extending TTL.
+Use a per-Key `CompletableFuture` map for JVM SingleFlight, Redis JSON snapshot with TTL+jitter, and user/tenant Set indexes written atomically. Events compare event/policy versions and delete exact keys or index members; never use `SCAN`. If an unexpired value exists, return it; if missing/expired and Tianquan-Jianshen fetch fails, throw and map to 503/403 according to current security boundary without extending TTL.
 
 - [ ] **Step 4: Run Starter tests**
 
@@ -827,34 +827,34 @@ Expected: cache concurrency, event order, exact invalidation and fail-closed mat
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-starter egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-contract
-git commit -m "feat(rbac3): add downstream authorization cache"
+git commit -m "feat(tianquan-jianshen): add downstream authorization cache"
 ```
 
-### Task 12: Protect All Four Admin Backends with IdP and RBAC3 Starters
+### Task 12: Protect All Four Admin Backends with Tianquan-Shoubing and Tianquan-Jianshen Starters
 
 **Files:**
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/pom.xml`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/security/IdpAdminSecurityConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/security/IdpAdminSecurityConfiguration.java`
 - Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/pom.xml`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3AdminSecurityConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/security/Rbac3JwtAuthenticationConverter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/security/Rbac3AdminSecurityConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/security/Rbac3JwtAuthenticationConverter.java`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/pom.xml`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/security/GatewayAdminSecurityConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/security/GatewayAdminJwtAuthenticationConverter.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/infrastructure/security/GatewayAdminSecurityConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/infrastructure/security/GatewayAdminJwtAuthenticationConverter.java`
 - Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/pom.xml`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/DdcAdminSecurityConfiguration.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/security/DdcAdminJwtAuthenticationConverter.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/idp/admin/interfaces/http/IdpAuthBootstrapController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/rbac3/admin/interfaces/http/Rbac3AuthBootstrapController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAuthBootstrapController.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/interfaces/http/DdcAuthBootstrapController.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/idp/admin/security/AdminBootstrapAuthorizationIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/rbac3/admin/security/AdminBootstrapAuthorizationIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/infrastructure/security/AdminBootstrapAuthorizationIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/security/AdminBootstrapAuthorizationIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/DdcAdminSecurityConfiguration.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/DdcAdminJwtAuthenticationConverter.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/main/java/top/egon/cola/platform/tianquan-shoubing/admin/interfaces/http/IdpAuthBootstrapController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/java/top/egon/cola/platform/tianquan-jianshen/admin/interfaces/http/Rbac3AuthBootstrapController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayAuthBootstrapController.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/interfaces/http/DdcAuthBootstrapController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin/src/test/java/top/egon/cola/platform/tianquan-shoubing/admin/security/AdminBootstrapAuthorizationIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/test/java/top/egon/cola/platform/tianquan-jianshen/admin/security/AdminBootstrapAuthorizationIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/infrastructure/security/AdminBootstrapAuthorizationIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/AdminBootstrapAuthorizationIT.java`
 
 **Interfaces:**
-- Consumes: IdP `IdentityPrincipal` and RBAC3 system-scoped authorization.
+- Consumes: Tianquan-Shoubing `IdentityPrincipal` and Tianquan-Jianshen system-scoped authorization.
 - Produces: bootstrap response with identity, tenant, permissions/menu and snapshot versions.
 
 - [ ] **Step 1: Change integration tests first**
@@ -884,7 +884,7 @@ Expected: existing converters still grant Claims or bootstrap endpoints are miss
 
 - [ ] **Step 3: Replace role/capability Claim conversion with Starter authorization**
 
-All four Admin Backends use IdP Starter for authentication and RBAC3 Starter for permissions. Remove converters that interpret `roles` or `capabilities`. Configure unique `systemCode` and Audience. Keep service-to-service Internal endpoints in a separate security chain with explicit service credentials.
+All four Admin Backends use Tianquan-Shoubing Starter for authentication and Tianquan-Jianshen Starter for permissions. Remove converters that interpret `roles` or `capabilities`. Configure unique `systemCode` and Audience. Keep service-to-service Internal endpoints in a separate security chain with explicit service credentials.
 
 - [ ] **Step 4: Run backend security tests**
 
@@ -896,22 +896,22 @@ Expected: all Admin security suites pass; Token role/capability Claims have no e
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing egon-cola-xingyuan/egon-cola-tianquan-jianshen egon-cola-xingyuan/egon-cola-yuheng egon-cola-xingyuan/egon-cola-tianshu
-git commit -m "feat(security): protect admin backends with idp sso"
+git commit -m "feat(security): protect admin backends with tianquan-shoubing sso"
 ```
 
-### Task 13: Unified Browser SSO for IdP, RBAC3, Gateway, and DDC
+### Task 13: Unified Browser SSO for Tianquan-Shoubing, Tianquan-Jianshen, Yuheng, and Tianshu
 
 **Files:**
-- Create: IdP Admin Web `package.json`, Vite/TS config, `src/auth/oauthClient.ts`, `src/auth/AuthContext.tsx`, login/consent/tenant/admin pages
-- Modify: Gateway Admin Web `src/auth/AuthContext.tsx`, `LoginPage.tsx`, `tokenStore.ts`, API client and tests
-- Modify: DDC Admin Web `src/auth/AuthContext.tsx`, `LoginPage.tsx`, `tokenStore.ts`, API client and tests
-- Modify: RBAC3 Admin Web `src/features/auth/AuthenticationShell.tsx`, `LoginPage.tsx`, `auth.api.ts`, API client and tests
+- Create: Tianquan-Shoubing Admin Web `package.json`, Vite/TS config, `src/auth/oauthClient.ts`, `src/auth/AuthContext.tsx`, login/consent/tenant/admin pages
+- Modify: Yuheng Admin Web `src/auth/AuthContext.tsx`, `LoginPage.tsx`, `tokenStore.ts`, API client and tests
+- Modify: Tianshu Admin Web `src/auth/AuthContext.tsx`, `LoginPage.tsx`, `tokenStore.ts`, API client and tests
+- Modify: Tianquan-Jianshen Admin Web `src/features/auth/AuthenticationShell.tsx`, `LoginPage.tsx`, `auth.api.ts`, API client and tests
 - Create: `src/auth/pkce.ts` and `src/auth/oauthClient.test.ts` in each Web project, using the same contract but no new shared build package
 - Test: existing Web auth/API/integration tests
 
 **Interfaces:**
-- Produces: Authorization Code + PKCE S256 flow with in-memory Access Token and IdP Refresh Cookie.
-- Removes: manual Token input, LocalStorage/SessionStorage Token persistence and RBAC3 password login.
+- Produces: Authorization Code + PKCE S256 flow with in-memory Access Token and Tianquan-Shoubing Refresh Cookie.
+- Removes: manual Token input, LocalStorage/SessionStorage Token persistence and Tianquan-Jianshen password login.
 
 - [ ] **Step 1: Write failing browser-auth tests in each Web project**
 
@@ -934,11 +934,11 @@ it('deduplicates concurrent refresh and returns to authorize after failure', asy
 
 Run in each Admin Web directory: `npm test -- --run`
 
-Expected: IdP Web is missing; existing Web stores Token persistently or lacks OAuth callback flow.
+Expected: Tianquan-Shoubing Web is missing; existing Web stores Token persistently or lacks OAuth callback flow.
 
 - [ ] **Step 3: Implement the SSO Auth Client and replace old Login pages**
 
-Use Web Crypto SHA-256 for PKCE, `sessionStorage` only for short-lived `state/nonce/verifier` transaction data with immediate deletion at Callback, never for Token. Keep Access Token in React context memory. Call `/oauth2/token` with `credentials: 'include'`; deduplicate Refresh with one module-level Promise. Tenant switch starts a new Authorization request using the existing IdP Cookie.
+Use Web Crypto SHA-256 for PKCE, `sessionStorage` only for short-lived `state/nonce/verifier` transaction data with immediate deletion at Callback, never for Token. Keep Access Token in React context memory. Call `/oauth2/token` with `credentials: 'include'`; deduplicate Refresh with one module-level Promise. Tenant switch starts a new Authorization request using the existing Tianquan-Shoubing Cookie.
 
 - [ ] **Step 4: Run Web verification**
 
@@ -960,24 +960,24 @@ Expected: no Token persistence match; OAuth transaction state matches are allowe
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web
-git commit -m "feat(web): adopt unified idp sso"
+git commit -m "feat(web): adopt unified tianquan-shoubing sso"
 ```
 
-### Task 14: Mock Backend, DDC Registration, Gateway Release, and E2E Harness
+### Task 14: Mock Backend, Tianshu Registration, Yuheng Release, and E2E Harness
 
 **Files:**
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-tianquan-shoubing-backend/pom.xml`
 - Create: fixture application/controller/security under that module `src/main/java`
-- Modify: Gateway test aggregator POM and dependency management
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/idp/UnifiedIdentityTopologyIT.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/idp/UnifiedIdentityRevocationIT.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/idp/UnifiedIdentityTenantSwitchIT.java`
+- Modify: Yuheng test aggregator POM and dependency management
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan-shoubing/UnifiedIdentityTopologyIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan-shoubing/UnifiedIdentityRevocationIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/tianquan-shoubing/UnifiedIdentityTenantSwitchIT.java`
 - Create: `scripts/unified-identity-local.sh`
 - Create: `docs/runbooks/unified-identity-local.md`
-- Modify: local YAML for IdP, RBAC3, Gateway, DDC and fixture ports/identities
+- Modify: local YAML for Tianquan-Shoubing, Tianquan-Jianshen, Yuheng, Tianshu and fixture ports/identities
 
 **Interfaces:**
-- Produces: mock backend `/api/mock/read` and `/api/mock/admin` protected by IdP + RBAC3 Starter.
+- Produces: mock backend `/api/mock/read` and `/api/mock/admin` protected by Tianquan-Shoubing + Tianquan-Jianshen Starter.
 - Produces: deterministic local commands `prepare`, `verify`, `start`, `status`, `stop` without containers.
 
 - [ ] **Step 1: Write failing end-to-end tests**
@@ -985,19 +985,19 @@ git commit -m "feat(web): adopt unified idp sso"
 ```java
 @Test
 void gatewayAcceptsIdentityWhileBackendEnforcesRbacPermission() {
-    String token = idp.loginAndAuthorize("alice", "tenant-a", "mock-backend");
-    assertEquals(403, gateway.get("/mock/admin", token).statusCode());
-    rbac3.grantAndActivate("alice", "tenant-a", tokenSid(token), "mock:admin");
+    String token = tianquan-shoubing.loginAndAuthorize("alice", "tenant-a", "mock-backend");
+    assertEquals(403, yuheng.get("/mock/admin", token).statusCode());
+    tianquan-jianshen.grantAndActivate("alice", "tenant-a", tokenSid(token), "mock:admin");
     awaitAuthorizationEvent();
-    assertEquals(200, gateway.get("/mock/admin", token).statusCode());
+    assertEquals(200, yuheng.get("/mock/admin", token).statusCode());
 }
 
 @Test
 void disablingUserRejectsExistingAccessTokenAtGateway() {
-    String token = idp.loginAndAuthorize("alice", "tenant-a", "mock-backend");
-    idp.disable("alice");
+    String token = tianquan-shoubing.loginAndAuthorize("alice", "tenant-a", "mock-backend");
+    tianquan-shoubing.disable("alice");
     awaitIdentityEvent();
-    assertEquals(401, gateway.get("/mock/read", token).statusCode());
+    assertEquals(401, yuheng.get("/mock/read", token).statusCode());
 }
 ```
 
@@ -1009,7 +1009,7 @@ Expected: fixture module/topology is missing.
 
 - [ ] **Step 3: Implement host-local fixture and lifecycle script**
 
-The script uses explicit local ports and PID files under a task-specific `mktemp -d`/`.runtime/unified-identity` directory. It checks PostgreSQL and Redis without deleting existing databases, creates only named development schemas/databases after confirmation already encoded by the local profile, starts DDC Admin, Gateway Admin/Engine, IdP, RBAC3 and mock backend, bootstraps clients/users/mappings/roles/releases, then runs HTTP assertions. It must not use Docker or start services during ordinary unit-test Tasks.
+The script uses explicit local ports and PID files under a task-specific `mktemp -d`/`.runtime/unified-identity` directory. It checks PostgreSQL and Redis without deleting existing databases, creates only named development schemas/databases after confirmation already encoded by the local profile, starts Tianshu Admin, Yuheng Admin/Engine, Tianquan-Shoubing, Tianquan-Jianshen and mock backend, bootstraps clients/users/mappings/roles/releases, then runs HTTP assertions. It must not use Docker or start services during ordinary unit-test Tasks.
 
 - [ ] **Step 4: Run end-to-end verification**
 
@@ -1022,10 +1022,10 @@ Run:
 
 Expected evidence:
 
-- DDC CONFIG_CLIENT and HTTP_PROVIDER entries for IdP, RBAC3 and mock backend.
-- Gateway Release resolves all three providers through DDC.
-- Valid IdP Token reaches mock backend through Gateway.
-- Missing RBAC permission is 403 downstream, not Gateway.
+- Tianshu CONFIG_CLIENT and HTTP_PROVIDER entries for Tianquan-Shoubing, Tianquan-Jianshen and mock backend.
+- Yuheng Release resolves all three providers through Tianshu.
+- Valid Tianquan-Shoubing Token reaches mock backend through Yuheng.
+- Missing RBAC permission is 403 downstream, not Yuheng.
 - Role activation changes behavior without Token replacement.
 - Tenant switch produces different `tid` with same SSO Family behavior.
 - User disable and Refresh replay reject old Access Token.
@@ -1034,7 +1034,7 @@ Expected evidence:
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng egon-cola-xingyuan/egon-cola-tianquan-shoubing egon-cola-xingyuan/egon-cola-tianquan-jianshen egon-cola-xingyuan/egon-cola-tianshu scripts/unified-identity-local.sh docs/runbooks/unified-identity-local.md
-git commit -m "test(identity): verify unified platform topology"
+git commit -m "test(identity): verify unified xingyuan topology"
 ```
 
 ### Task 15: Full Verification, Completion Audit, and Quality-Control Startup
@@ -1045,7 +1045,7 @@ git commit -m "test(identity): verify unified platform topology"
 
 **Interfaces:**
 - Produces: fresh build/test/runtime evidence for every acceptance item in the spec.
-- Produces: running IdP, RBAC3, Gateway, DDC and mock backend processes for user quality control.
+- Produces: running Tianquan-Shoubing, Tianquan-Jianshen, Yuheng, Tianshu and mock backend processes for user quality control.
 
 - [ ] **Step 1: Verify migration immutability and no forbidden coupling**
 
@@ -1054,7 +1054,7 @@ Run:
 ```bash
 git diff 0c5966ad -- egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V1__create_rbac3_schema.sql egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin/src/main/resources/db/migration/V2__add_session_strong_authentication_time.sql
 ./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am dependency:tree -Dincludes=top.egon:egon-cola-tianquan-jianshen-gateway-adapter
-rg -n 'roles|permissions|capabilities|authVersion|policyVersion' egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/idp/core/token
+rg -n 'roles|permissions|capabilities|authVersion|policyVersion' egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-core/src/main/java/top/egon/cola/platform/tianquan-shoubing/core/token
 ```
 
 Expected: first two commands have no forbidden diff/dependency; Token source match is absent except explicit rejection tests or comments.
@@ -1092,7 +1092,7 @@ Expected: all scenarios in Spec 23.3 and Acceptance 1-18 produce explicit PASS l
 
 - [ ] **Step 5: Audit every spec acceptance item against evidence**
 
-Create a local checklist from Spec Section 24. For each item record the exact test class, command output, HTTP response or DDC/Gateway runtime endpoint that proves it. Any missing evidence returns to the owning Task; do not mark completion from a narrower test.
+Create a local checklist from Spec Section 24. For each item record the exact test class, command output, HTTP response or Tianshu/Yuheng runtime endpoint that proves it. Any missing evidence returns to the owning Task; do not mark completion from a narrower test.
 
 - [ ] **Step 6: Commit verification-driven fixes and final runbook**
 
@@ -1114,7 +1114,7 @@ Run:
 ./scripts/unified-identity-local.sh status
 ```
 
-Expected: status reports running DDC Admin, Gateway Admin, Gateway Engine, IdP Admin, RBAC3 Admin and mock backend, with their exact PIDs/ports and health URLs. Leave these processes running; report the stop command without executing it.
+Expected: status reports running Tianshu Admin, Yuheng Admin, Yuheng Engine, Tianquan-Shoubing Admin, Tianquan-Jianshen Admin and mock backend, with their exact PIDs/ports and health URLs. Leave these processes running; report the stop command without executing it.
 
 ---
 

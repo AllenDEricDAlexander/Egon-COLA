@@ -1,57 +1,57 @@
-# Gateway HTTP OpenAPI 3.1 单一事实源破坏性改造规格
+# Yuheng HTTP OpenAPI 3.1 单一事实源破坏性改造规格
 
 | Field | Value |
 | --- | --- |
-| Document | [2026-08-25-19-01-gateway-openapi31-source-refactor.md](2026-08-25-19-01-gateway-openapi31-source-refactor.md) |
+| Document | [2026-08-25-19-01-yuheng-openapi31-source-refactor.md](2026-08-25-19-01-yuheng-openapi31-source-refactor.md) |
 | Template Version | 6 |
 | Status | Accepted |
 | Type | Architecture / Refactor |
 | Complexity | Complex |
-| Complexity Drivers | Provider Starter、MVC/WebFlux、DDC、Gateway Admin、PostgreSQL、Admin Web、MCP/Catalog/Definition 生命周期跨边界协作；公共注解与依赖破坏性切换；OAuth2 与 SSRF 防护；异步拉取、重试、多实例漂移、永久快照 |
+| Complexity Drivers | Provider Starter、MVC/WebFlux、Tianshu、Yuheng Admin、PostgreSQL、Admin Web、MCP/Catalog/Definition 生命周期跨边界协作；公共注解与依赖破坏性切换；OAuth2 与 SSRF 防护；异步拉取、重试、多实例漂移、永久快照 |
 | Created | 2026-08-25 19:01 CST |
 | Updated | 2026-08-25 19:43 CST |
-| Owner | User / Egon-COLA Gateway maintainers |
+| Owner | User / Egon-COLA Yuheng maintainers |
 | Repository | Egon-COLA |
-| Scope | egon-cola-xingyuan/egon-cola-yuheng；Gateway HTTP Provider 契约生成、DDC 能力声明、Admin OpenAPI 同步/持久化/投影、Admin Web 展示 |
-| Change Surface | 删除 Gateway Starter 自研 HTTP Handler/Java-Type Schema Compiler；新增 Springdoc OpenAPI 3.1 三个适配器模块；Admin 从健康 DDC Provider 安全拉取并永久保存 Raw OpenAPI，映射到既有 Catalog/MCP/Route Definition；新增两个表、三个管理查询接口和同步状态前端 |
+| Scope | egon-cola-xingyuan/egon-cola-yuheng；Yuheng HTTP Provider 契约生成、Tianshu 能力声明、Admin OpenAPI 同步/持久化/投影、Admin Web 展示 |
+| Change Surface | 删除 Yuheng Starter 自研 HTTP Handler/Java-Type Schema Compiler；新增 Springdoc OpenAPI 3.1 三个适配器模块；Admin 从健康 Tianshu Provider 安全拉取并永久保存 Raw OpenAPI，映射到既有 Catalog/MCP/Route Definition；新增两个表、三个管理查询接口和同步状态前端 |
 | Affected Chapters | §7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18 |
 | Source Requirement | 用户请求“把我的网关的 openapi 相关的，改造一下”；用户于 2026-08-25 确认完整闭环、立即破坏性切换、OAuth2 安全拉取、Springdoc 2.8.17、保持当前分层、Raw OpenAPI 永久留存，并明确允许删库重建且不考虑历史数据 |
 | Baseline Revision | main at 3be897e5cb4781890bfbac3104512e6e73bb943a；dirty-worktree snapshot，已有 docs/egon 下用户改动不属于本 Spec |
 | Amends | None |
-| Supersedes | [Gateway 声明式 Operation Schema 与 MCP 参数装配设计](../../superpowers/specs/2026-08-07-gateway-declarative-operation-schema-design.md) 的 §2 中 HTTP Schema 目标、§3 HTTP 非目标、§4–§8、§10.2–§10.3、§13.1 HTTP 部分、§15.1–§15.2、§16.1 HTTP 部分、§18.1–§18.2、§19 中 HTTP 自研 Schema 验收和 §20 中 HTTP 注解决策；[GWS-10 Gateway Starter 接口定义上报 Spec](../../superpowers/specs/2026-07-25-gateway-starter-interface-reporting-design.md) 的 §2.1、§4 中 HTTP 配置/注解、§5、§7 中 HTTP 完整集语义、§9 中 HTTP 主动上报、§10 中 HTTP 调用方、§15.1 与 §16 中 HTTP 验收 |
-| Depends On | [Gateway 声明式 Operation Schema 与 MCP 参数装配设计](../../superpowers/specs/2026-08-07-gateway-declarative-operation-schema-design.md) §9、§10.1、§11–§12 的 RPC Protobuf、内部 Invocation Schema 与 MCP Runtime 契约；[Gateway 注解托管 MCP 设计](../../superpowers/specs/2026-08-06-gateway-annotation-managed-mcp-design.md) §2–§5 的 Managed Tool 投影、稳定 Tool ID 和控制面边界 |
-| Related Specs | [Gateway 多 OpenAPI Group 聚合与来源扩展增补规格](2026-08-25-19-43-gateway-openapi-group-aggregation-amendment.md)；[Gateway 接口 Schema 展示优化设计](../../superpowers/specs/2026-07-28-gateway-operation-schema-presentation-design.md)；[Gateway Engine 与 MCP Core 功能域分包设计](2026-08-19-13-51-gateway-engine-mcp-package-refactor.md) |
-| Related Plans | [Gateway OpenAPI 3.1 多 Group 聚合与来源扩展实施计划](../plan/2026-08-25-20-03-gateway-openapi-group-aggregation-implementation.md) |
+| Supersedes | [Yuheng 声明式 Operation Schema 与 MCP 参数装配设计](../../superpowers/specs/2026-08-07-yuheng-declarative-operation-schema-design.md) 的 §2 中 HTTP Schema 目标、§3 HTTP 非目标、§4–§8、§10.2–§10.3、§13.1 HTTP 部分、§15.1–§15.2、§16.1 HTTP 部分、§18.1–§18.2、§19 中 HTTP 自研 Schema 验收和 §20 中 HTTP 注解决策；[GWS-10 Yuheng Starter 接口定义上报 Spec](../../superpowers/specs/2026-07-25-yuheng-starter-interface-reporting-design.md) 的 §2.1、§4 中 HTTP 配置/注解、§5、§7 中 HTTP 完整集语义、§9 中 HTTP 主动上报、§10 中 HTTP 调用方、§15.1 与 §16 中 HTTP 验收 |
+| Depends On | [Yuheng 声明式 Operation Schema 与 MCP 参数装配设计](../../superpowers/specs/2026-08-07-yuheng-declarative-operation-schema-design.md) §9、§10.1、§11–§12 的 RPC Protobuf、内部 Invocation Schema 与 MCP Runtime 契约；[Yuheng 注解托管 MCP 设计](../../superpowers/specs/2026-08-06-yuheng-annotation-managed-mcp-design.md) §2–§5 的 Managed Tool 投影、稳定 Tool ID 和控制面边界 |
+| Related Specs | [Yuheng 多 OpenAPI Group 聚合与来源扩展增补规格](2026-08-25-19-43-yuheng-openapi-group-aggregation-amendment.md)；[Yuheng 接口 Schema 展示优化设计](../../superpowers/specs/2026-07-28-yuheng-operation-schema-presentation-design.md)；[Yuheng Engine 与 MCP Core 功能域分包设计](2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md) |
+| Related Plans | [Yuheng OpenAPI 3.1 多 Group 聚合与来源扩展实施计划](../plan/2026-08-25-20-03-yuheng-openapi-group-aggregation-implementation.md) |
 
 ## 1. Summary
 
-当前 Gateway Starter 对 Spring MVC/WebFlux Handler、参数绑定、Jackson JavaType、Bean Validation、泛型 Wrapper 和 JSON Schema 进行自研编译，再通过 HMAC Report 将 HTTP 与 RPC Definition 一起提交给 Gateway Admin。该链路重复了 Springdoc 已有能力，并让 HTTP 运行时事实、文档 Schema、Gateway 治理和 MCP 治理集中在 GatewayOperation 等自定义注解中。
+当前 Yuheng Starter 对 Spring MVC/WebFlux Handler、参数绑定、Jackson JavaType、Bean Validation、泛型 Wrapper 和 JSON Schema 进行自研编译，再通过 HMAC Report 将 HTTP 与 RPC Definition 一起提交给 Yuheng Admin。该链路重复了 Springdoc 已有能力，并让 HTTP 运行时事实、文档 Schema、Yuheng 治理和 MCP 治理集中在 GatewayOperation 等自定义注解中。
 
-目标设计将 OpenAPI 3.1 确立为 HTTP Contract Source of Truth，以 Springdoc 2.8.17 生成标准文档，以 x-egon 承载 OpenAPI 不拥有的目录、暴露、幂等与 MCP 治理语义。Provider 只向 DDC 注册经过校验的 OpenAPI 能力定位元数据；Gateway Admin 通过现有 DdcManagementClient 发现健康实例，使用 OAuth2 Client Credentials 拉取文档，完成 SSRF 防护、校验、Canonicalization、永久快照、不可变构建检查和到 GatewayInterfaceDefinitionReport v2 的适配，然后复用现有 Catalog、MCP、Route、Release 和 Definition Lifecycle。
+目标设计将 OpenAPI 3.1 确立为 HTTP Contract Source of Truth，以 Springdoc 2.8.17 生成标准文档，以 x-egon 承载 OpenAPI 不拥有的目录、暴露、幂等与 MCP 治理语义。Provider 只向 Tianshu 注册经过校验的 OpenAPI 能力定位元数据；Yuheng Admin 通过现有 DdcManagementClient 发现健康实例，使用 OAuth2 Client Credentials 拉取文档，完成 SSRF 防护、校验、Canonicalization、永久快照、不可变构建检查和到 GatewayInterfaceDefinitionReport v2 的适配，然后复用现有 Catalog、MCP、Route、Release 和 Definition Lifecycle。
 
-本次按用户决定进行破坏性切换：不提供 HTTP Legacy Bridge，不兼容历史数据库数据，部署前由用户删除数据库并从 V1 开始重新执行全部 Flyway。V1–V11 仍保持不可变；本设计只新增 V12。RPC 继续以 Protobuf Descriptor 为唯一 Schema 事实源，Gateway Engine 不引入 Springdoc、Swagger Core 或 OpenAPI Parser。
+本次按用户决定进行破坏性切换：不提供 HTTP Legacy Bridge，不兼容历史数据库数据，部署前由用户删除数据库并从 V1 开始重新执行全部 Flyway。V1–V11 仍保持不可变；本设计只新增 V12。RPC 继续以 Protobuf Descriptor 为唯一 Schema 事实源，Yuheng Engine 不引入 Springdoc、Swagger Core 或 OpenAPI Parser。
 
 ## 2. Background and Current State
 
 ### 2.1 Business and user context
 
-Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验，同时继续利用 Egon 已有的目录、权限、MCP、Route 和发布控制面。平台维护者需要回答某一构建实际暴露了什么 HTTP Contract、同一 build 是否发生漂移、当前同步为何失败，以及当前 Operation 对应哪一份 Raw OpenAPI。
+Yuheng 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验，同时继续利用 Egon 已有的目录、权限、MCP、Route 和发布控制面。平台维护者需要回答某一构建实际暴露了什么 HTTP Contract、同一 build 是否发生漂移、当前同步为何失败，以及当前 Operation 对应哪一份 Raw OpenAPI。
 
 ### 2.2 Repository evidence
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
 | EVD-001 | Static repository | egon-cola-xingyuan/pom.xml:63-67 | Java 21、Spring Boot 3.5.16，compiler parameters=true | Springdoc 选择 2.8.17；稳定 Java 参数名已具备 | 静态 POM，不证明消费应用有效 POM |
-| EVD-002 | Static repository | gateway-starter/pom.xml:19-58 | Starter 同时声明 optional WebMVC/WebFlux，并无 Springdoc | 需要协议适配器避免 RPC-only 消费者引入 OpenAPI 依赖 | 未解析外部消费者依赖树 |
+| EVD-002 | Static repository | yuheng-starter/pom.xml:19-58 | Starter 同时声明 optional WebMVC/WebFlux，并无 Springdoc | 需要协议适配器避免 RPC-only 消费者引入 OpenAPI 依赖 | 未解析外部消费者依赖树 |
 | EVD-003 | Static repository | GatewayReportingAutoConfiguration:80-90, 193-313 | 当前同一 BuiltReport 聚合 MVC、WebFlux、RPC Contributor | HTTP/RPC 当前共享主动 Report 生命周期 | 不证明实际生产 Bean 组合 |
 | EVD-004 | Static repository | GatewayHttpOperationMapper:73-236 | HTTP 从 HandlerMapping、自定义注解、Java Schema Mapper 生成 Operation；streaming 还读取 Java Flux 类型 | HTTP Schema Compiler 的删除边界和协议事实改造点明确 | 静态代码，不证明所有 Spring 签名 |
 | EVD-005 | Static repository | GatewayInterfaceDefinitionReport:15-255 | v2 报告统一承载 HTTP/RPC、ProviderService、request/response/error Schema 和 attributes | 保留为 Admin 内部统一定义 DTO，避免重写 Catalog/MCP/Route |
 | EVD-006 | Static repository | RpcGatewayDefinitionContributor:72-252 | RPC 从 RpcContractCatalog/Protobuf Descriptor 生成完整 Schema，拒绝 Java Schema 重复声明 | RPC Source of Truth 保持不变 |
 | EVD-007 | Static repository | GatewayDefinitionReportService:151-210 | Admin 已有 HMAC 上报校验、reportId 幂等、buildId 不可变和共享持久化入口 | 抽出共享 Ingestion，而非另建一套 Catalog 写路径 |
 | EVD-008 | Static repository | JdbcGatewayDefinitionReportRepository:267-332 | 现有 ingest 写 Definition Set、目录、Operation、Definition 和 Membership | OpenAPI 适配结果可直接复用 |
-| EVD-009 | Static repository | GatewayProjectionService:620-694；DdcManagementServiceInstance | Admin 已能从 DDC 获取 HTTP Provider 的 host、port、secure、metadata、status、expireAt | 不新增 DDC subscription/API；周期协调器复用现有 Client |
-| EVD-010 | Static repository | DdcServiceRegistration:95-160 | DDC metadata 限制业务条目 32、key 64、value 512，并拦截敏感 key | OpenAPI metadata 必须小型、无 Token/完整文档 |
-| EVD-011 | Static repository | GatewayDefinitionLifecycleReconciler:158-205 | 当前只通过 metadata gateway.definition-set-id 判断活跃 Definition Set | OpenAPI 拉取后 Provider 无法回写 set ID，生命周期需按 build + sync state 联合激活 |
+| EVD-009 | Static repository | GatewayProjectionService:620-694；DdcManagementServiceInstance | Admin 已能从 Tianshu 获取 HTTP Provider 的 host、port、secure、metadata、status、expireAt | 不新增 Tianshu subscription/API；周期协调器复用现有 Client |
+| EVD-010 | Static repository | DdcServiceRegistration:95-160 | Tianshu metadata 限制业务条目 32、key 64、value 512，并拦截敏感 key | OpenAPI metadata 必须小型、无 Token/完整文档 |
+| EVD-011 | Static repository | GatewayDefinitionLifecycleReconciler:158-205 | 当前只通过 metadata yuheng.definition-set-id 判断活跃 Definition Set | OpenAPI 拉取后 Provider 无法回写 set ID，生命周期需按 build + sync state 联合激活 |
 | EVD-012 | Static repository | V1__create_gateway_admin_schema.sql:21-182；V11__rename_mcp_oauth_resource.sql | PostgreSQL、Flyway V1–V11、ID 为 VARCHAR(64)、JSONB、TIMESTAMPTZ | 附件 BIGINT 草案不适用；下一版本必须是 V12 |
 | EVD-013 | Static repository | OperationPage.tsx:10-65；ApplicationsPage.tsx:28-157 | 前端已有 Operation Schema/Definition History 与 Application 表 | 增量增加 OpenAPI/同步状态，不嵌 Swagger UI |
 | EVD-014 | Static repository | GatewayCatalogController:147-152；GatewayAdminErrorVO | 现有 Operation Detail API 暴露 PO，统一错误为 GatewayAdminErrorVO | 不扩大旧 API 的 PO 泄漏；新增独立 OpenAPI 查询契约 |
@@ -64,15 +64,15 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 
 当前 HTTP 路径同时维护 Spring Mapping、GatewayOperation 声明和 GatewayJavaSchemaMapper 生成结果。重复事实会产生位置、required、泛型、Wrapper、内容类型和流式判断漂移；业务开发者还需要学习一套只能服务 Egon 的 Schema Annotation。
 
-目标不是替换 Gateway 控制面，而是把 HTTP Contract 编译职责交回 Springdoc，并把 Egon 维护面缩小为 OpenAPI 3.1 到既有 Gateway Model 的安全 Adapter。Raw OpenAPI 必须保留，否则 Canonical 映射错误或 Springdoc 升级漂移无法审计和重放。
+目标不是替换 Yuheng 控制面，而是把 HTTP Contract 编译职责交回 Springdoc，并把 Egon 维护面缩小为 OpenAPI 3.1 到既有 Yuheng Model 的安全 Adapter。Raw OpenAPI 必须保留，否则 Canonical 映射错误或 Springdoc 升级漂移无法审计和重放。
 
 ### 2.4 Evidence and current-chain map
 
 | Entry/trigger | Current call chain | Data read/written | External dependency | Consumers | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | Provider Spring 启动 | GatewayReportingAutoConfiguration -> Mvc/WebFluxGatewayDefinitionContributor -> GatewayHttpOperationMapper -> GatewayJavaSchemaMapper -> GatewayDefinitionReportFactory | 内存 Report/Identity | Spring HandlerMapping/Jackson | GatewayReportingCoordinator | EVD-002–EVD-005 |
-| Provider 主动上报 | GatewayReportingCoordinator -> GatewayReportHttpClient -> POST report -> GatewayDefinitionReportService -> JdbcGatewayDefinitionReportRepository | gateway_definition_set、目录、operation、definition、idempotency | Gateway Admin HTTP/HMAC/PostgreSQL | Catalog、MCP、Route/Release | EVD-007–EVD-008 |
-| Definition 生命周期 | GatewayDefinitionLifecycleReconciler -> GatewayProjectionService -> DdcManagementClient -> lifecycle.reconcile | Definition Set ACTIVE/RETIRED、Operation ACTIVE/OFFLINE | DDC Management RPC | Admin/Route/MCP | EVD-009、EVD-011 |
+| Provider 主动上报 | GatewayReportingCoordinator -> GatewayReportHttpClient -> POST report -> GatewayDefinitionReportService -> JdbcGatewayDefinitionReportRepository | gateway_definition_set、目录、operation、definition、idempotency | Yuheng Admin HTTP/HMAC/PostgreSQL | Catalog、MCP、Route/Release | EVD-007–EVD-008 |
+| Definition 生命周期 | GatewayDefinitionLifecycleReconciler -> GatewayProjectionService -> DdcManagementClient -> lifecycle.reconcile | Definition Set ACTIVE/RETIRED、Operation ACTIVE/OFFLINE | Tianshu Management RPC | Admin/Route/MCP | EVD-009、EVD-011 |
 | Admin Web 查看 Operation | OperationPage -> gatewayApi.operation -> GatewayCatalogController -> GatewayCatalogService | 读 gateway_operation/definition | Admin HTTP | 平台管理员 | EVD-013–EVD-014 |
 
 ## 3. Goals and Non-goals
@@ -93,7 +93,7 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 - 首版只支持一个 default Springdoc 文档，不支持 GroupedOpenApi 多组。
 - 不嵌 Swagger UI/Knife4j，不提供在线调试/API Explorer。
 - 不从 OpenAPI 自动创建或修改生产 Route。
-- 不改变 RPC Protobuf Descriptor、Gateway Engine、Runtime Invocation 或 Rule Snapshot。
+- 不改变 RPC Protobuf Descriptor、Yuheng Engine、Runtime Invocation 或 Rule Snapshot。
 - 不提供 HTTP Legacy Bridge、旧数据库 backfill、双读双写、滚动混跑或旧 Release 激活。
 - 不执行数据库删除、服务启动、部署或生产验证。
 
@@ -101,16 +101,16 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 
 | Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
 | --- | --- | --- | --- | --- | --- |
-| Platform/Gateway Maven | Affected | egon-cola-xingyuan/pom.xml；gateway/pom.xml | Springdoc BOM；新增 openapi-common/webmvc/webflux 三模块 | 完整依赖/模块设计 | §7, §8, §13, §15, §16, §17 |
+| Platform/Yuheng Maven | Affected | egon-cola-xingyuan/pom.xml；yuheng/pom.xml | Springdoc BOM；新增 openapi-common/webmvc/webflux 三模块 | 完整依赖/模块设计 | §7, §8, §13, §15, §16, §17 |
 | Provider HTTP annotations/compiler | Affected | starter/annotation；discovery/http；GatewayJavaSchemaMapper | HTTP 自研 Schema 删除，标准 OpenAPI + x-egon | 完整文件/契约/删除设计 | §7, §8, §9, §10, §13, §14, §15, §16, §17, §18 |
-| DDC HTTP registration metadata | Affected | GatewayReportingAutoConfiguration:114-139；DdcHttpRegistrationContributor | 增加经校验的 OpenAPI 定位/认证/构建元数据，不存文档 | 完整元数据与安全设计 | §7, §8, §9, §10, §14, §15, §16 |
+| Tianshu HTTP registration metadata | Affected | GatewayReportingAutoConfiguration:114-139；DdcHttpRegistrationContributor | 增加经校验的 OpenAPI 定位/认证/构建元数据，不存文档 | 完整元数据与安全设计 | §7, §8, §9, §10, §14, §15, §16 |
 | Admin OpenAPI sync/ingestion/lifecycle | Affected | reporting、runtime/GatewayProjectionService | 拉取、校验、快照、适配、共享 ingest、按 build 激活 | 完整复杂流/失败/并发 | §7, §8, §9, §10, §13, §14, §15, §16, §18 |
 | PostgreSQL/Flyway | Affected | V1–V11 | 新增 snapshot/sync_state；无历史 backfill | 完整 V12/ER/表/索引设计 | §7, §8, §10, §11, §14, §15, §16, §18 |
 | Admin 管理查询 API | Affected | application/catalog controllers | 新增 sync-state、operation-openapi、snapshot-document 查询；旧 API 不变 | 完整接口设计 | §8, §9, §10, §12, §14, §15, §16 |
 | Admin Web | Affected | ApplicationsPage、OperationPage、gatewayApi、types | 状态、Tabs、Raw JSON、下载和 Source Filter | 完整页面/状态设计 | §8, §9, §10, §12, §14, §15, §16, §18 |
 | RPC reporting/schema | Context-only | RpcGatewayDefinitionContributor；approved §9 | Protobuf 仍为 Schema 事实源；sourceType 仅规范为 RPC_DESCRIPTOR | 边界证据和回归 | §7, §14 |
 | MCP/Catalog/Route/Release | Context-only | GatewayInterfaceDefinitionReport；McpReleaseContentFactory；Route Draft | 继续消费 Invocation Schema v2；无新编辑/自动 Route | preserved invariant | §7, §14, §16 |
-| Gateway Engine/MCP Runtime | Unchanged | gateway-engine、gateway-mcp-core | 不依赖 Springdoc/Swagger/OpenAPI；运行契约不变 | 一条不变记录 | §7, §14 |
+| Yuheng Engine/MCP Runtime | Unchanged | yuheng-biz-gateway、yuheng-mcp-core | 不依赖 Springdoc/Swagger/OpenAPI；运行契约不变 | 一条不变记录 | §7, §14 |
 | 历史数据兼容 | Not applicable | EVD-017 | 用户删库重建，无历史行 | N/A；仅定义 fresh-schema proof | §16 |
 
 ## 4. Requirements and Acceptance Criteria
@@ -118,10 +118,10 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 | ID | Atomic requirement | Priority | Observable acceptance criteria | Source |
 | --- | --- | --- | --- | --- |
 | REQ-001 | HTTP Provider 由 Springdoc 2.8.17 生成 OpenAPI 3.1 | Must | MVC/WebFlux GET /v3/api-docs 返回 openapi=3.1.x 和标准 paths/components | 用户 1A/4A |
-| REQ-002 | Egon 只通过 x-egon/x-egon-service 增强标准 OpenAPI | Must | HTTP 代码不再使用 Gateway Schema Annotation；扩展 version=1 且字段完整 | 附件目标、用户 2B |
+| REQ-002 | Egon 只通过 x-egon/x-egon-service 增强标准 OpenAPI | Must | HTTP 代码不再使用 Yuheng Schema Annotation；扩展 version=1 且字段完整 | 附件目标、用户 2B |
 | REQ-003 | MVC、WebFlux、RPC-only 依赖隔离 | Must | MVC 适配器不引入 WebFlux，WebFlux 不引入 MVC，RPC-only 不引入 Springdoc | 用户 1A/5A |
-| REQ-004 | DDC 只发布能力定位，不发布完整文档/Secret | Must | metadata 满足 DDC 限制且仅含 path/spec/build/resource-uri 等白名单 key | 用户 1A/3A |
-| REQ-005 | Admin 只能安全拉取健康 DDC Provider | Must | OAuth2 scope、CIDR allowlist、禁止 redirect/任意 URL/userInfo/query/fragment/external ref | 用户 3A |
+| REQ-004 | Tianshu 只发布能力定位，不发布完整文档/Secret | Must | metadata 满足 Tianshu 限制且仅含 path/spec/build/resource-uri 等白名单 key | 用户 1A/3A |
+| REQ-005 | Admin 只能安全拉取健康 Tianshu Provider | Must | OAuth2 scope、CIDR allowlist、禁止 redirect/任意 URL/userInfo/query/fragment/external ref | 用户 3A |
 | REQ-006 | Admin 永久保存 Raw OpenAPI 并生成可复现 Canonical SHA | Must | 同文档重试幂等；servers/实例地址不造成不同 canonicalSha；Raw 可查询 | 用户 6A |
 | REQ-007 | 同 build 不同 canonical contract 必须阻止覆盖 | Must | 状态 INCONSISTENT_BUILD；旧 VALID Definition 不被替换 | 附件/现有 immutable build |
 | REQ-008 | OpenAPI 映射到既有 Report v2/Internal Invocation Schema | Must | operationKey 保持 application:http:METHOD:path；request v2 位置分组；response/error 完整 | 用户 1A |
@@ -137,7 +137,7 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 
 | Scenario | Actor/trigger | Preconditions | Main path | Alternative/failure path | Data/state change | Observable result | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| MVC 首次同步 | Provider 构建部署/周期扫描 | DDC ONLINE；metadata 完整；OAuth 可用 | discover -> claim -> fetch -> validate -> snapshot -> adapt -> ingest | 无 | sync VALID、snapshot/definition/catalog 写入 | UI 显示 VALID/计数/hash | REQ-001–REQ-008 |
+| MVC 首次同步 | Provider 构建部署/周期扫描 | Tianshu ONLINE；metadata 完整；OAuth 可用 | discover -> claim -> fetch -> validate -> snapshot -> adapt -> ingest | 无 | sync VALID、snapshot/definition/catalog 写入 | UI 显示 VALID/计数/hash | REQ-001–REQ-008 |
 | WebFlux 首次同步 | 同上 | WebFlux adapter | 同 MVC | SSE/multipart 仍进 Catalog，MCP 投影按既有规则拒绝 | 同上 | OpenAPI content type 决定 streaming | REQ-001、REQ-008、REQ-010 |
 | 重复实例相同 build/contract | 周期扫描 | A/B canonical 相同 | 首份保存；第二份命中 unique/hash | raw servers 不同被 canonical 移除 | 不新增 Definition | 状态继续 VALID | REQ-006、REQ-011 |
 | 同 build 漂移 | 第二实例抽样 | canonical 不同 | 记录新快照并比较 | 标记 INCONSISTENT_BUILD，禁止 ingest/激活新定义 | 旧 VALID set 保持 | UI 红色告警/审计 | REQ-007 |
@@ -147,7 +147,7 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 | Admin 多实例并发 | 两个调度器同时发现 | 同一 sync key/revision | 一个 CAS claim 成功 | 另一个跳过 | 单次外部 fetch/ingest | 无重复写/竞争错误 | REQ-011 |
 | Provider 下线 | 生命周期协调 | 无健康 instance 对应 build | sync 标记 STALE；Definition Set 不再 active | 旧 Provider 仍在线则不退役 | Definition RETIRED/OFFLINE 按现有 Route 保护 | UI STALE | REQ-010、REQ-011 |
 | 空库部署 | 用户删除数据库 | 空 PostgreSQL | V1–V12 -> Admin -> Provider 自动重新发现 | 任一步失败停止恢复流量 | 全部数据重新生成 | 无 backfill/旧数据读写 | REQ-013 |
-| 平台用户查看文档 | OperationPage 打开 OpenAPI Tab | CAP_gateway:read | 查询 operation fragment；按需查询 full snapshot | 404/INVALID 显示受控错误 | 只读 | 可复制/下载，无 Provider CORS | REQ-012 |
+| 平台用户查看文档 | OperationPage 打开 OpenAPI Tab | CAP_yuheng:read | 查询 operation fragment；按需查询 full snapshot | 404/INVALID 显示受控错误 | 只读 | 可复制/下载，无 Provider CORS | REQ-012 |
 
 ### 4.2 Use-case analysis
 
@@ -155,10 +155,10 @@ Gateway 平台需要让业务 Provider 使用标准 Spring/OpenAPI 开发体验�
 
 | Actor ID | Actor/role | Goal and responsibility | Entry/channel | Permission/tenant context | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| ACTOR-001 | HTTP Provider developer/runtime | 用标准注解发布稳定 Contract | Spring code + /v3/api-docs + DDC registration | Provider Resource Server；scope gateway.openapi.read | EVD-001–EVD-004 |
-| ACTOR-002 | Gateway Admin sync runtime | 获取、验证、归档、投影 Contract | Scheduled job/DDC/OAuth2/HTTP/PostgreSQL | PLATFORM SERVICE identity | EVD-007–EVD-011、用户 3A |
-| ACTOR-003 | Gateway platform operator | 诊断同步、漂移和历史 Contract | Applications/Operation 页面 | CAP_gateway:read 或 CAP_* | EVD-013–EVD-014 |
-| ACTOR-004 | Existing Catalog/MCP/Route/Release consumer | 继续消费统一 Operation Definition | Internal Service/DB | 现有 Gateway 权限 | EVD-005–EVD-008 |
+| ACTOR-001 | HTTP Provider developer/runtime | 用标准注解发布稳定 Contract | Spring code + /v3/api-docs + Tianshu registration | Provider Resource Server；scope yuheng.openapi.read | EVD-001–EVD-004 |
+| ACTOR-002 | Yuheng Admin sync runtime | 获取、验证、归档、投影 Contract | Scheduled job/Tianshu/OAuth2/HTTP/PostgreSQL | PLATFORM SERVICE identity | EVD-007–EVD-011、用户 3A |
+| ACTOR-003 | Yuheng platform operator | 诊断同步、漂移和历史 Contract | Applications/Operation 页面 | CAP_yuheng:read 或 CAP_* | EVD-013–EVD-014 |
+| ACTOR-004 | Existing Catalog/MCP/Route/Release consumer | 继续消费统一 Operation Definition | Internal Service/DB | 现有 Yuheng 权限 | EVD-005–EVD-008 |
 
 #### 4.2.2 Use-case artifact
 
@@ -168,14 +168,14 @@ flowchart LR
     Sync["ACTOR-002 Admin sync runtime"]
     Operator["ACTOR-003 Platform operator"]
     Consumer["ACTOR-004 Catalog/MCP/Route consumer"]
-    DDC["DDC + IdP"]
+    Tianshu["Tianshu + Tianquan-Shoubing"]
 
-    subgraph Scope["Gateway HTTP OpenAPI 3.1 boundary"]
+    subgraph Scope["Yuheng HTTP OpenAPI 3.1 boundary"]
         UC001(["UC-001 Publish HTTP contract"])
         UC002(["UC-002 Synchronize and ingest contract"])
         UC003(["UC-003 Detect build drift and recover"])
         UC004(["UC-004 Review OpenAPI and sync state"])
-        UC005(["UC-005 Consume existing Gateway definition"])
+        UC005(["UC-005 Consume existing Yuheng definition"])
     end
 
     Provider -->|"generate/register"| UC001
@@ -183,16 +183,16 @@ flowchart LR
     Sync -->|"sample/retry"| UC003
     Operator -->|"inspect/download"| UC004
     Consumer -->|"read definition"| UC005
-    UC001 -->|"register metadata"| DDC
-    UC002 -->|"discover/token"| DDC
+    UC001 -->|"register metadata"| Tianshu
+    UC002 -->|"discover/token"| Tianshu
     UC002 --> UC005
     UC003 --> UC004
 ```
 
 | ID | Trigger/preconditions | Main success outcome | Alternatives/failures | Postconditions | Requirements | Interfaces/pages | Tests |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| UC-001 | Provider 启动且 OpenAPI/Resource Server 配置合法 | 标准 3.1 文档和 DDC 能力可发现 | 注解/operationId/配置错误使测试或 fail-fast 启动失败 | 不上报自研 HTTP Report | REQ-001–REQ-004、REQ-009 | API-001 | TEST-001–TEST-006 |
-| UC-002 | Admin 周期任务、健康 DDC instance | VALID snapshot 与 Definition 原子关联，现有消费者可读 | timeout/auth/invalid/ingest failure 有稳定状态和重试 | 成功时 set 可被 lifecycle 激活；失败时旧 set 不变 | REQ-005–REQ-008、REQ-011 | JOB-001、INTERNAL-001 | TEST-007–TEST-018 |
+| UC-001 | Provider 启动且 OpenAPI/Resource Server 配置合法 | 标准 3.1 文档和 Tianshu 能力可发现 | 注解/operationId/配置错误使测试或 fail-fast 启动失败 | 不上报自研 HTTP Report | REQ-001–REQ-004、REQ-009 | API-001 | TEST-001–TEST-006 |
+| UC-002 | Admin 周期任务、健康 Tianshu instance | VALID snapshot 与 Definition 原子关联，现有消费者可读 | timeout/auth/invalid/ingest failure 有稳定状态和重试 | 成功时 set 可被 lifecycle 激活；失败时旧 set 不变 | REQ-005–REQ-008、REQ-011 | JOB-001、INTERNAL-001 | TEST-007–TEST-018 |
 | UC-003 | 同 build 多实例或重试 | 相同 hash 幂等；不同 hash 阻断 | exhaustion -> FETCH_FAILED；provider change -> reset | 无错误覆盖 | REQ-006、REQ-007、REQ-011 | JOB-001 | TEST-019–TEST-023 |
 | UC-004 | 用户打开 Applications/Operation | 状态、错误、Operation fragment、完整文档可见 | denied/404/invalid 显示稳定 UI | 只读，无 Provider 直连 | REQ-012 | API-002–API-004；ApplicationsPage/OperationPage | TEST-024–TEST-031 |
 | UC-005 | Release/MCP/Route 读取当前 Definition | v2 Invocation Schema、Tool ID、Route 绑定不变 | 不支持 MCP 的 multipart/streaming 继续拒绝 | Engine 无 OpenAPI 依赖 | REQ-008、REQ-010、REQ-014 | INTERNAL-001 | TEST-032–TEST-037 |
@@ -208,16 +208,16 @@ flowchart LR
 - default 文档路径为 /v3/api-docs；首版单文档。
 - 生产拉取必须 OAuth2；Admin 不接受 Provider 注册完整 URL。
 - Raw OpenAPI 永久不可变留存。
-- Gateway Engine、RPC/MCP Runtime 不引入 Swagger/OpenAPI。
+- Yuheng Engine、RPC/MCP Runtime 不引入 Swagger/OpenAPI。
 
 ### 5.2 Small-gap assumptions
 
 | ID | Inference | Repository evidence | Why locally reversible | Impact if wrong |
 | --- | --- | --- | --- | --- |
-| ASM-001 | 新管理 API 保持 /api/v1/gateway/admin 前缀 | GatewayCatalogController/GatewayApplicationController | 内部路由命名，可在实现前局部调整 | 前端 client 路径更新 |
+| ASM-001 | 新管理 API 保持 /api/v1/yuheng/admin 前缀 | GatewayCatalogController/GatewayApplicationController | 内部路由命名，可在实现前局部调整 | 前端 client 路径更新 |
 | ASM-002 | 首版仅 default OpenAPI 文档 | 附件将 group 描述为可选后续；仓库无 GroupedOpenApi | 可在后续 Spec 加 group 维度，表已保留 openapi_group | 多文档服务需后续支持 |
 | ASM-003 | 每次协调最多尝试 3 个同 build 健康实例 | 现有流程要求有界；无业务 SLO 数值 | 配置项可调整，不改契约 | 故障恢复速度变化 |
-| ASM-004 | x-egon-service 不写 env/namespace | DDC 已拥有物理 scope；Canonical 必须跨实例稳定 | 扩展字段可加版本 | 若外部工具依赖环境字段需另加 |
+| ASM-004 | x-egon-service 不写 env/namespace | Tianshu 已拥有物理 scope；Canonical 必须跨实例稳定 | 扩展字段可加版本 | 若外部工具依赖环境字段需另加 |
 
 ### 5.3 Resolved decisions
 
@@ -225,7 +225,7 @@ flowchart LR
 | --- | --- | --- | --- | --- |
 | DEC-001 | 完整 Provider-to-Admin-Web 闭环 | User | 选择 1A | REQ-001–REQ-014 |
 | DEC-002 | HTTP 立即破坏性切换，无 Legacy Bridge | User | 选择 2B；快速迭代 | REQ-009、REQ-013 |
-| DEC-003 | OAuth2 Client Credentials + DDC target/CIDR/redirect/ref 防护 | User | 选择 3A | REQ-005 |
+| DEC-003 | OAuth2 Client Credentials + Tianshu target/CIDR/redirect/ref 防护 | User | 选择 3A | REQ-005 |
 | DEC-004 | Springdoc 2.8.17 | User | 选择 4A；Boot 3.5 compatibility | REQ-001、REQ-003 |
 | DEC-005 | 保持当前 feature-first 分层 | User | 选择 5A；不做 Archetype/biz.* 迁移 | REQ-015 |
 | DEC-006 | Raw OpenAPI 永久不可变留存 | User | 选择 6A | REQ-006 |
@@ -241,10 +241,10 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
 | Runtime | Java 21 | egon-cola-xingyuan/pom.xml | java.time、records、HttpClient 可用 |
-| Spring | Boot 3.5.16；MVC/WebFlux | platform POM、provider test POM | Springdoc 2.8.17；分别适配 |
+| Spring | Boot 3.5.16；MVC/WebFlux | xingyuan POM、provider test POM | Springdoc 2.8.17；分别适配 |
 | JSON/OpenAPI | Jackson；无 Springdoc | starter/admin POM | Spring Boot Jackson；Json31 解析 |
 | Persistence | PostgreSQL、JDBC/JPA、Flyway | admin POM/application/V1–V11 | V12、JSONB/TIMESTAMPTZ/VARCHAR(64) |
-| Registry/Auth | DDC Management RPC；IdP service client | GatewayProjectionService、Idp starter | 复用 Client；PLATFORM SERVICE token |
+| Registry/Auth | Tianshu Management RPC；Tianquan-Shoubing service client | GatewayProjectionService、Idp starter | 复用 Client；PLATFORM SERVICE token |
 | Frontend | React 19、TS 6、AntD 6、React Query | admin-web/package.json | 不引入 Swagger UI |
 | Test | JUnit 5、Spring Boot Test、Vitest、Playwright、Testcontainers profile | POM/package scripts | Golden/contract/persistence/frontend 分层 |
 
@@ -252,14 +252,14 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 
 | Architecture profile | Archetype/template or base package | Exact evidence and verifier | Existing deviations | Design action |
 | --- | --- | --- | --- | --- |
-| Traditional Layered，feature-first variant explicitly approved by user | top.egon.cola.component.gateway.admin 下每个 feature 的 controller/service/repository/domain；starter 的 annotation/discovery/reporting | 实际目录树；用户 DEC-005；非 Archetype generated | 不使用 biz.*、service.impl；这是用户批准的现有分层实现 | 保持现状；新 openapi feature 使用 controller/service/repository/domain/client/validation/converter/scheduled，不引入第三种架构 |
+| Traditional Layered，feature-first variant explicitly approved by user | top.egon.cola.component.yuheng.admin 下每个 feature 的 controller/service/repository/domain；starter 的 annotation/discovery/reporting | 实际目录树；用户 DEC-005；非 Archetype generated | 不使用 biz.*、service.impl；这是用户批准的现有分层实现 | 保持现状；新 openapi feature 使用 controller/service/repository/domain/client/validation/converter/scheduled，不引入第三种架构 |
 
 | Need | Spring/JDK candidate | Spring Boot Starter candidate | Egon-COLA/module candidate | Proven gap | Decision/dependency impact |
 | --- | --- | --- | --- | --- | --- |
 | HTTP Contract generation | Spring Mapping/Jackson/Validation | springdoc webmvc/webflux API | 当前 GatewayJavaSchemaMapper | 当前自研重复标准能力 | 引入 Springdoc 2.8.17，删除 HTTP compiler |
-| HTTP fetch | JDK HttpClient redirect NEVER | Spring RestClient/JdkClientHttpRequestFactory | 无 Gateway 专用 client | 需要 OAuth/CIDR/size/timeout 策略 | 复用 JDK/Spring，不加另一个 HTTP client |
-| Token | OAuth2 client | IdP starter | IdpServiceOAuth2Client | 无 gap | 复用 |
-| Discovery | 无 | DDC starter | DdcManagementClient/GatewayProjectionService | 无 subscription，但现有 scheduler/pull 足够 | 不改 DDC public contract |
+| HTTP fetch | JDK HttpClient redirect NEVER | Spring RestClient/JdkClientHttpRequestFactory | 无 Yuheng 专用 client | 需要 OAuth/CIDR/size/timeout 策略 | 复用 JDK/Spring，不加另一个 HTTP client |
+| Token | OAuth2 client | Tianquan-Shoubing starter | IdpServiceOAuth2Client | 无 gap | 复用 |
+| Discovery | 无 | Tianshu starter | DdcManagementClient/GatewayProjectionService | 无 subscription，但现有 scheduler/pull 足够 | 不改 Tianshu public contract |
 | JSON parse | Jackson | Spring Boot Jackson | ObjectMapper | 需要 OpenAPI object model | swagger-core-jakarta/Json31，由 Springdoc BOM 管理 |
 | Conversion | MapStruct | common-core | BaseConverter | Swagger graph 需先归一化 | normalized DTO -> Report 使用 MapStruct + BaseConverter；图遍历由 Adapter |
 | ID/time | UUIDv7、Clock | common-id starter | UuidV7/LongIdGenerator | 无 gap | 复用；Instant/TIMESTAMPTZ |
@@ -270,12 +270,12 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 | Literal rule | Affected? | Repository evidence | Exact design decision | Files/types/interfaces | Validation/test evidence | Status/blocker |
 | --- | --- | --- | --- | --- | --- | --- |
 | Rule 1 | Yes | 新增 PO/DTO/VO/Enum/Service/Repository/Adapter/Validator 清单见 §8/§10 | 所有 carrier 使用 PO/DTO/VO，状态使用 Enum，行为使用准确后缀；无 Data/Info/Param/Bean | §8.3/§10.1 | 命名静态扫描 | PASS |
-| Rule 2 | Yes | API、DDC DTO、fetch result、ingestion command 跨层 | Controller @Validated；DTO Jakarta constraints；Service @Validated/@Valid；ValidationUtils 手工 re-entry；无电话字段 | API-002–004、JOB-001、INTERNAL-001 | 正/负/组校验；libphonenumber N/A | PASS |
+| Rule 2 | Yes | API、Tianshu DTO、fetch result、ingestion command 跨层 | Controller @Validated；DTO Jakarta constraints；Service @Validated/@Valid；ValidationUtils 手工 re-entry；无电话字段 | API-002–004、JOB-001、INTERNAL-001 | 正/负/组校验；libphonenumber N/A | PASS |
 | Rule 3 | Yes | common-core BaseConverter；新模型可用 record | 简单 carrier 全部 record；GatewayOpenApiDefinitionConverter 为 MapStruct、实现 BaseConverter 双向 lossless normalized DTO/Report；无复杂新 data class | §10 | 编译生成、双向 mapping test | PASS |
-| Rule 4 | Yes | Gateway 当前无 lombok.config；新/触及业务 Bean | gateway/lombok.config 复制 Qualifier；@Slf4j；显式 Bean 名；@RequiredArgsConstructor；final + 每字段 @Qualifier | openapi service/client/validator/repository/scheduled；触及的 reporting Bean | context/static/log redaction tests | PASS |
+| Rule 4 | Yes | Yuheng 当前无 lombok.config；新/触及业务 Bean | yuheng/lombok.config 复制 Qualifier；@Slf4j；显式 Bean 名；@RequiredArgsConstructor；final + 每字段 @Qualifier | openapi service/client/validator/repository/scheduled；触及的 reporting Bean | context/static/log redaction tests | PASS |
 | Rule 5 | Yes | 需要 URI/hash/CIDR/sort | 只用 JDK、Spring、Jackson、已批准 Commons/Guava；无新 Utils | Adapter/Canonicalizer/Client | import/dependency scan | PASS |
 | Rule 6 | Yes | API-001–004、x-egon、snapshot JSON | Spring Boot Jackson/Json31；VO 只按 wire need 使用 Jackson/Swagger 注解；未知字段由 OAS validator 处理 | VO/DTO/OpenAPI extension | serialization/golden tests | PASS |
-| Rule 7 | Yes | admin application.yml/application-local.yml；provider test configs | gateway.admin.openapi 与 gateway.openapi 新 key 在同模块所有 profile 保持同层级；值可不同 | 两个 admin yml、provider yml、properties | key parity/config binding tests | PASS |
+| Rule 7 | Yes | admin application.yml/application-local.yml；provider test configs | yuheng.admin.openapi 与 yuheng.openapi 新 key 在同模块所有 profile 保持同层级；值可不同 | 两个 admin yml、provider yml、properties | key parity/config binding tests | PASS |
 | Rule 9 | Yes | 多验证规则、多来源、失败/重试/状态 | Adapter 隔离 OpenAPI 3.1；Chain of Responsibility 组织 validator；共享 Ingestion Facade；不使用长 switch | §13.1 | rule ordering/short-circuit/extension tests | PASS |
 | Rule 10 | Yes | sync/snapshot/VO 时间 | Java Instant/Duration/Clock；DB TIMESTAMPTZ；JSON ISO-8601 UTC | PO/VO/properties | serialization/persistence/clock tests | PASS |
 | Rule 11 | Yes | 实际 feature-first 分层；用户 5A | Traditional Layered feature-first profile；不混入 biz.* 或 Archetype；Plan 必须再次确认 | §6.1/§8 | package/dependency scan | PASS |
@@ -287,10 +287,10 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 | Proposed element | Change | Requirements | Existing/direct alternative | Concrete inadequacy of alternative | Added calls/state/coupling/failures/migration/operations | Verdict |
 | --- | --- | --- | --- | --- | --- | --- |
 | springdoc BOM 2.8.17 | New dependency | REQ-001 | 继续 GatewayJavaSchemaMapper | 重复 Spring/Jackson/Validation 编译且漂移 | 版本/Golden gate | Add |
-| openapi-common/webmvc/webflux modules | New modules | REQ-003 | 全塞 gateway-starter | 污染 RPC-only；MVC/WebFlux classpath 不隔离 | 3 artifacts/POM upkeep | Add |
+| openapi-common/webmvc/webflux modules | New modules | REQ-003 | 全塞 yuheng-starter | 污染 RPC-only；MVC/WebFlux classpath 不隔离 | 3 artifacts/POM upkeep | Add |
 | x-egon annotations/customizers | New | REQ-002 | 扩展 GatewayOperation | 继续混合标准字段和治理 | extension version compatibility | Add |
-| DDC OpenAPI metadata | Expand | REQ-004 | Provider 主动 POST OpenAPI | 重复传输/HMAC；无法聚合标准资源 | metadata validation | Add |
-| DdcManagementClient | Keep | REQ-004 | 新 subscription | 新 DDC protocol 无当前必要性 | scheduler polling | Keep |
+| Tianshu OpenAPI metadata | Expand | REQ-004 | Provider 主动 POST OpenAPI | 重复传输/HMAC；无法聚合标准资源 | metadata validation | Add |
+| DdcManagementClient | Keep | REQ-004 | 新 subscription | 新 Tianshu protocol 无当前必要性 | scheduler polling | Keep |
 | GatewayProviderOpenApiClient | New | REQ-005 | 浏览器/Starter 转发 | CORS/内网/鉴权或仍需自研 schema | network/auth/SSRF failure | Add |
 | Raw snapshot + sync state tables | New | REQ-006/011/012 | 只存派生 schema/日志 | 无法重放、审计、展示持久状态 | 永久存储/V12 | Add |
 | Shared GatewayDefinitionIngestionService | New/Extract | REQ-008 | 复制 report persistence | 两条 Catalog 写路径会漂移 | internal service boundary | Add |
@@ -303,8 +303,8 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 | Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 | --- | --- | --- | --- | --- | --- |
 | 当前主动 Report | Provider 启动 1 次及重试 | 无 Admin Web sync state | HMAC report/idempotency/definition | Provider->Admin timeout；Java schema 漂移 | 自研目录 |
-| 直接只换 Springdoc、Provider 仍 POST | Provider 获取本地 doc + POST | 同当前 | 新 payload transport | 仍有主动上报、重复文档传输 | 标准 schema，但未利用 DDC |
-| 选定 Admin pull | 每个新 build 1 次 fetch；抽样/失败有界 | DISCOVERED/FETCHING/VALID/... | 两表、sync job、3 read API | OAuth/DDC/fetch/validation，均可观测恢复 | 标准资源聚合、永久审计、build drift、统一 UI |
+| 直接只换 Springdoc、Provider 仍 POST | Provider 获取本地 doc + POST | 同当前 | 新 payload transport | 仍有主动上报、重复文档传输 | 标准 schema，但未利用 Tianshu |
+| 选定 Admin pull | 每个新 build 1 次 fetch；抽样/失败有界 | DISCOVERED/FETCHING/VALID/... | 两表、sync job、3 read API | OAuth/Tianshu/fetch/validation，均可观测恢复 | 标准资源聚合、永久审计、build drift、统一 UI |
 
 ### 7.1 System Architecture Design
 
@@ -313,14 +313,14 @@ None。所有会改变范围、公共 HTTP 注解、数据库、安全、依赖�
 ```mermaid
 flowchart LR
     Dev["Provider developer"]
-    Operator["Gateway operator"]
+    Operator["Yuheng operator"]
 
     subgraph Provider["Provider JVM trust boundary"]
         Controller["Spring MVC/WebFlux Controller"]
         Springdoc["Springdoc 2.8.17\nOpenAPI 3.1"]
         EgonCustomizer["x-egon Customizers"]
         Docs["GET /v3/api-docs\nOAuth scope"]
-        DdcReg["DDC HTTP registration"]
+        DdcReg["Tianshu HTTP registration"]
         Controller --> Springdoc
         EgonCustomizer --> Springdoc
         Springdoc --> Docs
@@ -328,24 +328,24 @@ flowchart LR
     end
 
     subgraph Platform["Platform control-plane boundary"]
-        DDC["DDC Management Client"]
-        IdP["IdP Service Client"]
+        Tianshu["Tianshu Management Client"]
+        Tianquan-Shoubing["Tianquan-Shoubing Service Client"]
         Sync["GatewayOpenApiSyncReconciler"]
         Validate["OpenAPI Validation Chain"]
         Adapter["OpenAPI31 -> Report v2 Adapter"]
         Ingest["GatewayDefinitionIngestionService"]
         DB[("PostgreSQL\nsnapshot/sync/catalog")]
         Catalog["Catalog / MCP / Route / Release"]
-        Web["Gateway Admin Web"]
-        DDC --> Sync
-        IdP --> Sync
+        Web["Yuheng Admin Web"]
+        Tianshu --> Sync
+        Tianquan-Shoubing --> Sync
         Sync --> Validate --> Adapter --> Ingest --> DB
         DB --> Catalog
         DB --> Web
     end
 
     Dev --> Controller
-    DdcReg --> DDC
+    DdcReg --> Tianshu
     Sync -->|"API-001 HTTPS; redirect NEVER"| Docs
     Operator -->|"API-002..004"| Web
 ```
@@ -354,17 +354,17 @@ flowchart LR
 
 | Module/component | Capability and data owned | Inputs/outputs | Allowed dependencies | Forbidden responsibility | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| gateway-starter | RPC Report、共享 Gateway contract/config | RPC Descriptor -> Report | gateway-contract/RPC/DDC | HTTP Schema 编译/Springdoc | REQ-003、REQ-009、REQ-010 |
-| gateway-starter-openapi | x-egon、properties、customizers、metadata | Spring/OpenAPI annotations -> OpenAPI extensions | starter/springdoc-common/DDC/IdP properties | MVC/WebFlux runtime、fetch/Admin persistence | REQ-001–004 |
+| yuheng-starter | RPC Report、共享 Yuheng contract/config | RPC Descriptor -> Report | yuheng-contract/RPC/Tianshu | HTTP Schema 编译/Springdoc | REQ-003、REQ-009、REQ-010 |
+| yuheng-starter-openapi | x-egon、properties、customizers、metadata | Spring/OpenAPI annotations -> OpenAPI extensions | starter/springdoc-common/Tianshu/Tianquan-Shoubing properties | MVC/WebFlux runtime、fetch/Admin persistence | REQ-001–004 |
 | webmvc/webflux adapters | 技术栈依赖和 docs SecurityFilterChain | API-001 | openapi-common、对应 Springdoc starter、resource server | 同时装入另一 Web stack | REQ-003、REQ-005 |
-| DDC | Provider 身份/健康/端点/metadata | registration/management snapshot | existing contracts | 存 OpenAPI 文档 | REQ-004 |
-| Admin openapi feature | sync 状态、Raw 文档、校验/适配/读取 API | DDC + API-001 -> snapshot/report | DDC/IdP/Jackson/Swagger model/DB | Route 自动创建、Engine runtime | REQ-005–014 |
+| Tianshu | Provider 身份/健康/端点/metadata | registration/management snapshot | existing contracts | 存 OpenAPI 文档 | REQ-004 |
+| Admin openapi feature | sync 状态、Raw 文档、校验/适配/读取 API | Tianshu + API-001 -> snapshot/report | Tianshu/Tianquan-Shoubing/Jackson/Swagger model/DB | Route 自动创建、Engine runtime | REQ-005–014 |
 | shared reporting ingestion | Definition 不可变、目录写入 | normalized Report v2 | repositories/schema validator | OpenAPI transport/URL/auth | REQ-007–010 |
-| Gateway Engine | Data plane | compiled rule | existing contracts | Springdoc/OpenAPI parsing | REQ-010、REQ-014 |
+| Yuheng Engine | Data plane | compiled rule | existing contracts | Springdoc/OpenAPI parsing | REQ-010、REQ-014 |
 
 ### 7.2 High-Level Design
 
-OpenAPI endpoint 与 DDC 注册是 Provider-owned。DDC 的 exact physical application scope 与健康 instance 是拉取目标权威；x-egon-service 只提供 build-level identity，Admin 必须交叉验证 metadata、extension 和 gateway_application，不相信文档自行声明的 env/namespace。
+OpenAPI endpoint 与 Tianshu 注册是 Provider-owned。Tianshu 的 exact physical application scope 与健康 instance 是拉取目标权威；x-egon-service 只提供 build-level identity，Admin 必须交叉验证 metadata、extension 和 gateway_application，不相信文档自行声明的 env/namespace。
 
 Admin 以 applicationId + buildId + default group 为 Sync Key。发现阶段只 upsert/claim 状态；网络拉取不持有数据库事务。合法 Raw 文档先永久写 snapshot，再由 OpenApi31GatewayContractAdapter 生成 Report v2，最后通过共享 Ingestion 在一个本地事务内创建 Definition Set/Operation/Definition/Membership、链接 snapshot 和更新 sync state。Lifecycle Reconciler 将传统 metadata definition-set-id（RPC）与 VALID OpenAPI sync 的 definitionSetId 做并集。
 
@@ -400,7 +400,7 @@ flowchart TD
 | Concern/use case | Required behavior | Selected mechanism | Failure/degradation behavior | Trade-off | Verification | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 | Contract correctness | 标准 OpenAPI 3.1 | Springdoc + Golden fixtures | invalid -> no ingest | 版本耦合 | MVC/WebFlux contract tests | REQ-001/002 |
-| SSRF/Auth | 只读健康 Provider | DDC tuple + CIDR + OAuth scope + no redirect/ref | fail closed | 配置/Token 依赖 | malicious target tests | REQ-005 |
+| SSRF/Auth | 只读健康 Provider | Tianshu tuple + CIDR + OAuth scope + no redirect/ref | fail closed | 配置/Token 依赖 | malicious target tests | REQ-005 |
 | Immutable audit | Raw 永久、hash 可复现 | JSONB snapshot + canonicalizer | DB failure -> no definition | 存储增长 | hash/repository tests/metrics | REQ-006 |
 | Consistency | 同 build 单 contract | CAS + unique + canonical compare | INCONSISTENT_BUILD | 额外抽样 fetch | concurrent/drift tests | REQ-007/011 |
 | Compatibility | HTTP 同版本切换 | 删除 legacy，空库 | 不支持混跑 | 维护窗口 | residual scan | REQ-009/013 |
@@ -413,14 +413,14 @@ flowchart TD
 | Step | Caller -> callee | Contract/symbol | Input/output mapping | State/data effect | Failure behavior | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Provider customizer -> Springdoc | EgonOperationCustomizer | annotations -> x-egon | 无持久化 | 缺 catalog/operationId fail-fast/test failure | REQ-001/002 |
-| 2 | Provider adapter -> DDC contributor | gatewayOpenApiRegistrationContributor | properties/IdP resourceUri -> metadata | DDC lease metadata | key/length/path conflict阻止注册 | REQ-004 |
-| 3 | Scheduler -> DdcManagementClient | JOB-001 | scope query -> instances | upsert sync state | DDC unavailable保留旧状态并计数 | REQ-004/011 |
+| 2 | Provider adapter -> Tianshu contributor | gatewayOpenApiRegistrationContributor | properties/Tianquan-Shoubing resourceUri -> metadata | Tianshu lease metadata | key/length/path conflict阻止注册 | REQ-004 |
+| 3 | Scheduler -> DdcManagementClient | JOB-001 | scope query -> instances | upsert sync state | Tianshu unavailable保留旧状态并计数 | REQ-004/011 |
 | 4 | Scheduler -> Client | API-001 | instance tuple/token -> bounded bytes | status FETCHING | target/auth/timeout分类 | REQ-005/011 |
 | 5 | Client -> Validation Chain | GatewayOpenApiDocumentDTO | bytes -> OpenAPI model/validation report | INVALID snapshot 可写 | short-circuit no ingest | REQ-005/006 |
 | 6 | Canonicalizer -> repository | canonical bytes/hash | OpenAPI -> normalized bytes | snapshot idempotent insert | unique hit reuse | REQ-006/007 |
 | 7 | Adapter -> Converter | GatewayOpenApiDefinitionDTO | path/method/operation/components/x-egon -> Report v2 | 无 | unresolved mapping INVALID | REQ-008 |
 | 8 | Sync Service -> Ingestion | INTERNAL-001 | ingestion command -> result | Definition/Catalog/Membership + snapshot link | transaction rollback；sync INGEST_FAILED | REQ-007–010 |
-| 9 | Lifecycle -> repository | active set union | RPC metadata IDs + VALID sync IDs | ACTIVE/RETIRED/OFFLINE | DDC stale时不推进破坏性状态 | REQ-010/011 |
+| 9 | Lifecycle -> repository | active set union | RPC metadata IDs + VALID sync IDs | ACTIVE/RETIRED/OFFLINE | Tianshu stale时不推进破坏性状态 | REQ-010/011 |
 | 10 | Admin Web -> controllers | API-002–004 | DB projections -> VO | read-only | standard GatewayAdminErrorVO | REQ-012 |
 
 #### 7.3.2 Critical-path Mermaid swimlane
@@ -428,9 +428,9 @@ flowchart TD
 ```mermaid
 sequenceDiagram
     participant P as Provider/Springdoc
-    participant D as DDC
+    participant D as Tianshu
     participant S as OpenAPI Sync Reconciler
-    participant I as IdP
+    participant I as Tianquan-Shoubing
     participant V as Validation/Adapter
     participant G as Definition Ingestion
     participant DB as PostgreSQL
@@ -471,14 +471,14 @@ sequenceDiagram
 | network fetch | GatewayProviderOpenApiClient | 无 DB transaction | 同 build 最多 3 instance | bytes 完整读且 size 合法 | retry/FAILED | REQ-005/011 |
 | snapshot | GatewayOpenApiSnapshotRepository | unique app/build/group/canonical | 相同 canonical reuse；不同 canonical保留用于 drift | snapshot commit | insert rollback | REQ-006/007 |
 | ingestion | GatewayDefinitionIngestionService | 单 PostgreSQL transaction | report/set/build unique + existing canonicalizer | definition、membership、snapshot link、sync VALID 同时提交 | rollback；INGEST_FAILED 后续独立短事务 | REQ-007–010 |
-| lifecycle | existing reconciler | active set union；DDC stale fail-safe | RPC/HTTP set 并存 | reconcile transaction | stale 不 retire | REQ-010/011 |
+| lifecycle | existing reconciler | active set union；Tianshu stale fail-safe | RPC/HTTP set 并存 | reconcile transaction | stale 不 retire | REQ-010/011 |
 
 #### 7.3.4 Failure semantics, recovery, and reconciliation
 
 | Failure point | Detection | Immediate control flow | Data/transaction state | Retry and idempotency | Caller/frontend result | Recovery/reconciliation owner | Verification |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | metadata/path/CIDR | validator code | no connect | sync INVALID | 配置/build 变化重置 | errorCode/message | Provider owner | malicious metadata tests |
-| token denied | IdP exception/401 | next instance only if same resource；then fail | no snapshot | max 3，exponential nextRetry | FETCH_FAILED | Admin/IdP operator | auth tests |
+| token denied | Tianquan-Shoubing exception/401 | next instance only if same resource；then fail | no snapshot | max 3，exponential nextRetry | FETCH_FAILED | Admin/Tianquan-Shoubing operator | auth tests |
 | timeout/5xx | bounded client | next instance | no definition change | same sync key；attempt counter | FETCH_FAILED | scheduler | timeout tests |
 | document too large/invalid JSON | byte counter/parse | abort | no or INVALID parseable snapshot | same build不盲重试直到 provider revision/change | INVALID | Provider owner | limit tests |
 | external ref/ref bomb | validation chain | reject before resolution | INVALID snapshot | no remote fetch | INVALID messages | Provider owner | security fixtures |
@@ -492,18 +492,18 @@ sequenceDiagram
 | Signal/runbook | Emitting owner and point | Fields/dimensions | Sensitive-data rule | Success/failure threshold | Alert/dashboard/operator action | Verification boundary |
 | --- | --- | --- | --- | --- | --- | --- |
 | gateway_openapi_sync_total | Sync Service terminal state | status, reason, specVersion | 无 app/path 高基数；不含 token/doc | INVALID/DRIFT/FETCH_FAILED 增长告警 | 查 Applications 状态和 snapshot | metric unit/static；阈值部署验证 |
-| gateway_openapi_fetch_duration_seconds | Client | result | host 不作 label | p95 由环境设告警 | 检查 Provider/IdP/DDC | runtime only |
+| gateway_openapi_fetch_duration_seconds | Client | result | host 不作 label | p95 由环境设告警 | 检查 Provider/Tianquan-Shoubing/Tianshu | runtime only |
 | gateway_openapi_document_bytes | Client/Validator | result bucket | 不记录 body | 接近 5 MiB 告警 | 拆分/缩小 schema | integration/runtime |
 | structured log | Sync lifecycle | applicationId/buildId/instanceId/snapshotId/canonical prefix/errorCode | 禁止 token、authorization、完整 URI query/body | 每次 terminal one log | correlation/trace 排障 | log tests |
 | audit | Ingestion/Drift | resource OPENAPI_SYNC/SNAPSHOT, before/after status/hash | 不存文档正文 | drift/valid transition | Admin audit page | persistence test |
-| runbook | Operator | errorCode -> Provider/IdP/DDC/DB owner | 只读受权限保护 | VALID 恢复 | 新 build、修配置、等待 retry | 文档/运行环境验证 |
+| runbook | Operator | errorCode -> Provider/Tianquan-Shoubing/Tianshu/DB owner | 只读受权限保护 | VALID 恢复 | 新 build、修配置、等待 retry | 文档/运行环境验证 |
 
 #### 7.3.6 Conclusion evidence chain
 
 | Conclusion | Repository/user evidence | Constraint or requirement | Design decision | Consequence and trade-off | Verification and acceptance evidence |
 | --- | --- | --- | --- | --- | --- |
 | OpenAPI 只替换 HTTP source，不重写控制面 | EVD-005–EVD-008、DEC-001 | REQ-008/010/014 | Adapter 输出现有 Report v2，复用 ingest | 保留成熟模型；需维护一层 mapping | ingestion/Catalog/MCP/Route regression |
-| Admin pull而非 Provider POST | EVD-009–EVD-011、DEC-003 | REQ-004–007/011 | DDC discovery + secure client + raw snapshot | 多一个 fetch 边界，但获得审计/漂移/聚合 | security/retry/drift/persistence tests |
+| Admin pull而非 Provider POST | EVD-009–EVD-011、DEC-003 | REQ-004–007/011 | Tianshu discovery + secure client + raw snapshot | 多一个 fetch 边界，但获得审计/漂移/聚合 | security/retry/drift/persistence tests |
 | 三适配器模块 | EVD-002、DEC-004/005 | REQ-001/003 | common + MVC + WebFlux | 多三个 artifacts，避免 RPC/classpath 污染 | dependency tree/classpath tests |
 | fresh DB 但迁移不可改 | EVD-012、DEC-007 | REQ-013 | V1–V11 unchanged + V12；部署前外部 drop | 无 backfill/rollback数据；保持 Flyway checksum | clean migrate/immutability scan |
 
@@ -615,20 +615,20 @@ Repository-local HTTP annotation migration also modifies these exact controller 
 - admin: application, auth, catalog, credential, group, nine mcp controllers, observability, release, reporting, routing, runtime, scope and shared exception handler listed by EVD repository scan;
 - test-http-provider: BehaviorController、InventoryController、OrderController、ProviderIdentityController；
 - test-webflux-http-provider: ProviderIdentityController、ReactiveInventoryController、StreamingTransportController；
-- test-idp-backend: MockBackendController；
+- test-tianquan-shoubing-backend: MockBackendController；
 - test-mcp-provider: McpJobController。
 
 ### 8.3 Package and file responsibilities
 
 | Operation | Path/package | Symbols | Responsibility | Dependencies | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| Create | starter-openapi | annotations/customizers/properties/registration | 标准文档治理扩展和能力声明 | springdoc-common/DDC/IdP properties | REQ-001–004 |
+| Create | starter-openapi | annotations/customizers/properties/registration | 标准文档治理扩展和能力声明 | springdoc-common/Tianshu/Tianquan-Shoubing properties | REQ-001–004 |
 | Create | starter-openapi-webmvc/webflux | security auto-config | 对应 Web stack + API-001 OAuth protection | Springdoc API/resource server | REQ-003/005 |
 | Delete | starter discovery/http + Java schema | current compiler classes | 消除第二 HTTP 类型系统 | None after delete | REQ-009 |
 | Modify | GatewayOperation/Group/RPC contributor | RPC-only annotations/source type | 保持 Protobuf，移除 HTTP Schema members | RPC | REQ-009/010 |
-| Create | admin/openapi | sync/client/validator/adapter/repository/query | OpenAPI control plane feature | DDC/IdP/Jackson/PostgreSQL | REQ-005–012 |
+| Create | admin/openapi | sync/client/validator/adapter/repository/query | OpenAPI control plane feature | Tianshu/Tianquan-Shoubing/Jackson/PostgreSQL | REQ-005–012 |
 | Extract | reporting/service | GatewayDefinitionIngestionService | transport-neutral validate/build/ingest | existing repositories | REQ-008–010 |
-| Modify | Lifecycle reconciler/repository | active-set union | RPC metadata + OpenAPI sync activation | DDC/DB | REQ-010/011 |
+| Modify | Lifecycle reconciler/repository | active-set union | RPC metadata + OpenAPI sync activation | Tianshu/DB | REQ-010/011 |
 | Create | V12 | two tables | snapshot/sync durable state | PostgreSQL/Flyway | REQ-006/011/013 |
 | Modify | admin-web | sync/OpenAPI panels | read-only operator experience | existing React/AntD/Query | REQ-012 |
 
@@ -638,10 +638,10 @@ Repository-local HTTP annotation migration also modifies these exact controller 
 
 | ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| API-001 | New/Add | Provider OpenAPI 3.1 document | HTTP | Gateway Admin | Provider adapter | GET /v3/api-docs | Bearer token | OpenAPI JSON | SCOPE_gateway.openapi.read；resource URI | OAuth/HTTP | safe read；3.1.x | REQ-001–005 |
-| API-002 | New/Add | 查询 OpenAPI sync states | HTTP | ApplicationsPage | Admin openapi | GET /api/v1/gateway/admin/openapi/sync-states | scope filters | List<GatewayOpenApiSyncStateVO> | CAP_gateway:read | GatewayAdminErrorVO | safe read；v1 additive | REQ-011/012 |
-| API-003 | New/Add | 查询 Operation 的 OpenAPI fragment | HTTP | OperationPage | Admin openapi | GET /api/v1/gateway/admin/operations/{operationId}/openapi | operationId | GatewayOperationOpenApiVO | CAP_gateway:read | GatewayAdminErrorVO | safe read；current definition snapshot | REQ-012 |
-| API-004 | New/Add | 读取完整 immutable snapshot | HTTP | OperationPage download/view | Admin openapi | GET /api/v1/gateway/admin/openapi/snapshots/{snapshotId}/document | snapshotId | GatewayOpenApiDocumentVO | CAP_gateway:read | GatewayAdminErrorVO | safe read；immutable | REQ-006/012 |
+| API-001 | New/Add | Provider OpenAPI 3.1 document | HTTP | Yuheng Admin | Provider adapter | GET /v3/api-docs | Bearer token | OpenAPI JSON | SCOPE_yuheng.openapi.read；resource URI | OAuth/HTTP | safe read；3.1.x | REQ-001–005 |
+| API-002 | New/Add | 查询 OpenAPI sync states | HTTP | ApplicationsPage | Admin openapi | GET /api/v1/yuheng/admin/openapi/sync-states | scope filters | List<GatewayOpenApiSyncStateVO> | CAP_yuheng:read | GatewayAdminErrorVO | safe read；v1 additive | REQ-011/012 |
+| API-003 | New/Add | 查询 Operation 的 OpenAPI fragment | HTTP | OperationPage | Admin openapi | GET /api/v1/yuheng/admin/operations/{operationId}/openapi | operationId | GatewayOperationOpenApiVO | CAP_yuheng:read | GatewayAdminErrorVO | safe read；current definition snapshot | REQ-012 |
+| API-004 | New/Add | 读取完整 immutable snapshot | HTTP | OperationPage download/view | Admin openapi | GET /api/v1/yuheng/admin/openapi/snapshots/{snapshotId}/document | snapshotId | GatewayOpenApiDocumentVO | CAP_yuheng:read | GatewayAdminErrorVO | safe read；immutable | REQ-006/012 |
 | JOB-001 | New/Add | OpenAPI sync reconciliation | Scheduled job | Platform runtime | Admin openapi | GatewayOpenApiSyncReconciler.reconcile() | configured interval | terminal states/metrics | PLATFORM SERVICE | classified states | CAS sync key | REQ-004–011 |
 | INTERNAL-001 | New/Add | shared Definition ingestion | Internal Service | Report service/OpenAPI sync | Admin reporting | GatewayDefinitionIngestionService.ingest(command) | validated command | report result | caller-resolved application | exceptions/transaction | definition/report/build IDs | REQ-007–010 |
 
@@ -655,7 +655,7 @@ Repository-local HTTP annotation migration also modifies these exact controller 
 | --- | --- |
 | Change classification | New standard endpoint supplied by Springdoc adapter |
 | Independent consumer goal | Admin obtains authoritative HTTP Contract and Raw audit source |
-| Parameter ownership and derivation | Target host/scheme/port/path/resourceUri derive from trusted DDC metadata；caller never supplies URL |
+| Parameter ownership and derivation | Target host/scheme/port/path/resourceUri derive from trusted Tianshu metadata；caller never supplies URL |
 | Direct/no-new-interface alternative | 自研 Report cannot provide standard source/raw replay；Provider POST retains duplicate compiler/transport |
 | Caller use of result | 校验、存档、映射，不转发回 Provider |
 | Round trips and failure points | 每个新 build 一次；same-build sample；OAuth/timeout/size/validation |
@@ -665,10 +665,10 @@ Repository-local HTTP annotation migration also modifies these exact controller 
 
 | Concern | Definition |
 | --- | --- |
-| Purpose/owner/consumer | Provider-owned OpenAPI 3.1；consumer 仅 Gateway Admin |
-| Protocol and endpoint | HTTPS GET /v3/api-docs；实际 path 必须等于 DDC metadata 的绝对 path |
+| Purpose/owner/consumer | Provider-owned OpenAPI 3.1；consumer 仅 Yuheng Admin |
+| Protocol and endpoint | HTTPS GET /v3/api-docs；实际 path 必须等于 Tianshu metadata 的绝对 path |
 | Content type/version | application/json；openapi 3.1.x |
-| Auth/permission/tenant | Bearer PLATFORM SERVICE token；authority SCOPE_gateway.openapi.read；resourceUri 来自 Provider IdP 配置并写 DDC metadata |
+| Auth/permission/tenant | Bearer PLATFORM SERVICE token；authority SCOPE_yuheng.openapi.read；resourceUri 来自 Provider Tianquan-Shoubing 配置并写 Tianshu metadata |
 | Timeout/retry/rate limit | connect 3s、read 10s、document 5 MiB；同 build 最多 3 instance；不跟 redirect |
 | Idempotency/concurrency | GET；canonical hash 去重；build drift 阻止 ingest |
 
@@ -676,7 +676,7 @@ Repository-local HTTP annotation migration also modifies these exact controller 
 
 | Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Authorization | Header | Bearer JWT | Required | None | 包含 gateway.openapi.read；aud/resource 符合 Provider | Admin service credential | Bearer *** | IdP |
+| Authorization | Header | Bearer JWT | Required | None | 包含 yuheng.openapi.read；aud/resource 符合 Provider | Admin service credential | Bearer *** | Tianquan-Shoubing |
 | Accept | Header | media type | Optional | application/json | 只接受 JSON | 响应格式 | application/json | Admin client |
 
 Body、Query、Cookie、Multipart：None。
@@ -706,8 +706,8 @@ Body、Query、Cookie、Multipart：None。
   },
   "x-egon-service": { // Required for an Egon Provider document.
     "version": 1, // Required extension contract version.
-    "bizCode": "trade", // Required; must match DDC/application scope.
-    "applicationCode": "order-service", // Required; must match DDC/application scope.
+    "bizCode": "trade", // Required; must match Tianshu/application scope.
+    "applicationCode": "order-service", // Required; must match Tianshu/application scope.
     "artifactVersion": "5.3.3", // Required immutable artifact version.
     "buildId": "build-20260825-001" // Required immutable build identity.
   }
@@ -723,13 +723,13 @@ Body、Query、Cookie、Multipart：None。
 | Token missing/invalid | 401 | OAuth standard | Provider security response | token refresh一次 | N/A |
 | Scope/resource denied | 403 | OAuth standard | Provider security response | No | N/A |
 | Provider failure | 5xx | Provider-defined | not trusted/stored as contract | next instance | N/A |
-| Document too large | Admin client abort | GATEWAY_OPENAPI_DOCUMENT_TOO_LARGE | sync state | No until new build | Applications error |
+| Document too large | Admin client abort | YUHENG_OPENAPI_DOCUMENT_TOO_LARGE | sync state | No until new build | Applications error |
 
 Provider OAuth error bodies are generated by the configured Spring Security resource server and are treated as untrusted Non-JSON error or OAuth JSON by Admin; Admin never persists them as OpenAPI。The stable Admin-side classified error representation is:
 
 ```jsonc
 {
-  "code": "GATEWAY_OPENAPI_FETCH_FORBIDDEN", // Stable sync failure code after Provider returns 401/403.
+  "code": "YUHENG_OPENAPI_FETCH_FORBIDDEN", // Stable sync failure code after Provider returns 401/403.
   "message": "provider denied OpenAPI read", // Safe summary without token, host query, or response body.
   "retryable": false // Whether the scheduler may retry the unchanged build automatically.
 }
@@ -737,7 +737,7 @@ Provider OAuth error bodies are generated by the configured Spring Security reso
 
 ##### Interface logic for frontend and consumers
 
-1. Admin derives target only from exact DDC healthy instance.
+1. Admin derives target only from exact Tianshu healthy instance.
 2. It validates scheme/path/CIDR/resourceUri before token or network.
 3. It acquires a least-privilege token and sends no user credential.
 4. It reads bounded bytes without redirect.
@@ -768,13 +768,13 @@ No legacy HTTP Report compatibility. Contract tests cover MVC/WebFlux、security
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | Bulk sync monitoring owned by Admin openapi；ApplicationsPage is the approved consumer |
-| Protocol and endpoint | HTTP GET /api/v1/gateway/admin/openapi/sync-states |
+| Protocol and endpoint | HTTP GET /api/v1/yuheng/admin/openapi/sync-states |
 | Content type/version | application/json；management API v1 |
-| Auth/permission/tenant | Bearer Admin principal；CAP_gateway:read or CAP_*；scope filters remain authorization-constrained |
+| Auth/permission/tenant | Bearer Admin principal；CAP_yuheng:read or CAP_*；scope filters remain authorization-constrained |
 | Timeout/retry/rate limit | ordinary Admin read timeout；frontend may manually refresh；no automatic command retry |
 | Idempotency/concurrency | safe read；results are point-in-time projections ordered by applicationId/buildId/group |
 
-No pagination because current Applications list is unpaged and result cardinality is bounded by active gateway applications；deterministic order applicationId、buildId、openapiGroup。
+No pagination because current Applications list is unpaged and result cardinality is bounded by active yuheng applications；deterministic order applicationId、buildId、openapiGroup。
 
 ##### Request parameters
 
@@ -793,7 +793,7 @@ Body/Header业务字段/Cookie/Multipart：None；认证来自 Security Context�
 [
   {
     "id": "01993f87-3dc1-7f0c-a2bb-8a83aee9b111", // Required. Sync-state resource UUIDv7.
-    "applicationId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b222", // Required. Gateway application ID used for frontend join.
+    "applicationId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b222", // Required. Yuheng application ID used for frontend join.
     "buildId": "build-20260825-001", // Required immutable provider build.
     "artifactVersion": "5.3.3", // Required provider artifact version.
     "openapiGroup": "default", // Required; V1 only supports default.
@@ -818,7 +818,7 @@ Empty result is []，never null。
 
 ```jsonc
 {
-  "code": "GATEWAY_ADMIN_VALIDATION_FAILED", // Stable code for invalid filters.
+  "code": "YUHENG_ADMIN_VALIDATION_FAILED", // Stable code for invalid filters.
   "message": "request validation failed", // Safe summary.
   "currentRevision": null, // Not used by this read.
   "errors": [ // Field-level violations.
@@ -838,7 +838,7 @@ Empty result is []，never null。
 
 1. Scope comes from authenticated Admin UI selection.
 2. Controller method validation runs before service.
-3. Query joins sync/snapshot projections without external DDC call.
+3. Query joins sync/snapshot projections without external Tianshu call.
 4. Read-only transaction；no cache required initially.
 5. Result sorted deterministically。
 6. Missing sync row means UI NOT_DISCOVERED，not an error。
@@ -866,10 +866,10 @@ New contract only。Verify empty/filter/order/null/time/error/security and front
 
 | Concern | Definition |
 | --- | --- |
-| Purpose/owner/consumer | Resolve the current Gateway Operation back to its exact OpenAPI source；OperationPage consumer |
-| Protocol and endpoint | HTTP GET /api/v1/gateway/admin/operations/{operationId}/openapi |
+| Purpose/owner/consumer | Resolve the current Yuheng Operation back to its exact OpenAPI source；OperationPage consumer |
+| Protocol and endpoint | HTTP GET /api/v1/yuheng/admin/operations/{operationId}/openapi |
 | Content type/version | application/json；management API v1 |
-| Auth/permission/tenant | Bearer Admin principal；CAP_gateway:read or CAP_* |
+| Auth/permission/tenant | Bearer Admin principal；CAP_yuheng:read or CAP_* |
 | Timeout/retry/rate limit | local PostgreSQL read only；frontend retry is explicit |
 | Idempotency/concurrency | immutable snapshot read；a current-definition change is visible on the next query |
 
@@ -879,14 +879,14 @@ The current Definition must come from sourceType OPENAPI and have a linked snaps
 
 | Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| operationId | Path | string UUIDv7/simple | Required | None | non-blank；max 64 | Gateway operation resource | 019... | Router |
+| operationId | Path | string UUIDv7/simple | Required | None | non-blank；max 64 | Yuheng operation resource | 019... | Router |
 
 ##### Success response
 
 ```jsonc
 {
-  "operationId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b555", // Required Gateway operation database identity.
-  "operationKey": "order-service:http:GET:/orders/{id}", // Required stable Gateway identity.
+  "operationId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b555", // Required Yuheng operation database identity.
+  "operationKey": "order-service:http:GET:/orders/{id}", // Required stable Yuheng identity.
   "snapshotId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b333", // Required immutable OpenAPI snapshot identity.
   "openapiVersion": "3.1.0", // Required document version.
   "openapiGroup": "default", // Required document group.
@@ -902,11 +902,11 @@ The current Definition must come from sourceType OPENAPI and have a linked snaps
 
 ##### Error responses
 
-Use GatewayAdminErrorVO。404 GATEWAY_ADMIN_NOT_FOUND for absent operation/snapshot；409 GATEWAY_OPENAPI_SOURCE_NOT_AVAILABLE when current source is MANUAL/RPC_DESCRIPTOR；401/403 current security。
+Use GatewayAdminErrorVO。404 YUHENG_ADMIN_NOT_FOUND for absent operation/snapshot；409 YUHENG_OPENAPI_SOURCE_NOT_AVAILABLE when current source is MANUAL/RPC_DESCRIPTOR；401/403 current security。
 
 ```jsonc
 {
-  "code": "GATEWAY_OPENAPI_SOURCE_NOT_AVAILABLE", // Stable conflict code when the current Operation is not sourced from OpenAPI.
+  "code": "YUHENG_OPENAPI_SOURCE_NOT_AVAILABLE", // Stable conflict code when the current Operation is not sourced from OpenAPI.
   "message": "current operation has no OpenAPI source", // Safe operator-readable reason.
   "currentRevision": null, // This read does not use optimistic resource revision.
   "errors": [], // No field errors for a source-type conflict.
@@ -947,9 +947,9 @@ New contract。Tests cover HTTP success、RPC/MANUAL conflict、missing snapshot
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | Return one complete immutable Raw OpenAPI snapshot for authorized review/download |
-| Protocol and endpoint | HTTP GET /api/v1/gateway/admin/openapi/snapshots/{snapshotId}/document |
+| Protocol and endpoint | HTTP GET /api/v1/yuheng/admin/openapi/snapshots/{snapshotId}/document |
 | Content type/version | application/json；management API v1；ETag=canonicalSha256 |
-| Auth/permission/tenant | Bearer Admin principal；CAP_gateway:read or CAP_* |
+| Auth/permission/tenant | Bearer Admin principal；CAP_yuheng:read or CAP_* |
 | Timeout/retry/rate limit | local PostgreSQL read；document cap 5 MiB；Cache-Control private, immutable |
 | Idempotency/concurrency | immutable read；same ID and ETag always represent the same JSON value |
 
@@ -964,7 +964,7 @@ New contract。Tests cover HTTP success、RPC/MANUAL conflict、missing snapshot
 ```jsonc
 {
   "snapshotId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b333", // Required immutable snapshot identity.
-  "applicationId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b222", // Required owning Gateway application.
+  "applicationId": "01993f87-3dc1-7f0c-a2bb-8a83aee9b222", // Required owning Yuheng application.
   "buildId": "build-20260825-001", // Required provider build.
   "openapiVersion": "3.1.0", // Required document version.
   "documentSha256": "a3f825f004f4b4d11e06e8148d597d4e5db836588337d57d4ccb5c448594e5cf", // Required SHA-256 of exact received bytes.
@@ -981,7 +981,7 @@ New contract。Tests cover HTTP success、RPC/MANUAL conflict、missing snapshot
 
 ```jsonc
 {
-  "code": "GATEWAY_ADMIN_NOT_FOUND", // Stable code when the snapshot ID does not exist or is not visible.
+  "code": "YUHENG_ADMIN_NOT_FOUND", // Stable code when the snapshot ID does not exist or is not visible.
   "message": "OpenAPI snapshot was not found", // Safe message without provider location.
   "currentRevision": null, // Immutable snapshot reads do not use revision conflicts.
   "errors": [], // No field-level error for an absent resource.
@@ -991,7 +991,7 @@ New contract。Tests cover HTTP success、RPC/MANUAL conflict、missing snapshot
 
 ##### Interface logic for frontend and consumers
 
-1. Authorize CAP_gateway:read。
+1. Authorize CAP_yuheng:read。
 2. Lookup immutable snapshot by ID。
 3. Return stored JSONB and hashes without Provider call。
 4. ETag supports conditional read。
@@ -1010,11 +1010,11 @@ New immutable read。Tests cover ETag、5 MiB document、invalid-but-parseable s
 | Concern | Decision |
 | --- | --- |
 | Change classification | New scheduled job |
-| Independent consumer goal | Automatically converge DDC Provider contracts into Admin |
-| Parameter ownership and derivation | Admin configuration owns cadence/batch/retry limits；DDC supplies Provider observations；database owns the durable cursor and CAS revision |
-| Direct/no-new-interface alternative | DDC has no current Admin subscription contract；manual/UI trigger cannot guarantee convergence |
+| Independent consumer goal | Automatically converge Tianshu Provider contracts into Admin |
+| Parameter ownership and derivation | Admin configuration owns cadence/batch/retry limits；Tianshu supplies Provider observations；database owns the durable cursor and CAS revision |
+| Direct/no-new-interface alternative | Tianshu has no current Admin subscription contract；manual/UI trigger cannot guarantee convergence |
 | Caller use of result | Admin scheduler consumes persisted terminal states and metrics；lifecycle reconciler consumes VALID links |
-| Round trips and failure points | One DDC list per tick plus only new/retry/drift build fetches；DDC、OAuth、Provider、validation and database may fail independently |
+| Round trips and failure points | One Tianshu list per tick plus only new/retry/drift build fetches；Tianshu、OAuth、Provider、validation and database may fail independently |
 | Verdict | Add，REQ-004–011 |
 
 ##### Identity and purpose
@@ -1023,7 +1023,7 @@ Named Bean gatewayOpenApiSyncReconciler is the sole scheduled reconciliation ent
 
 ##### Request parameters
 
-This is not an HTTP interface and has no user payload。The invocation reads validated configuration for delay、batch size、timeouts、retry bounds and allowed network ranges；active Gateway applications from PostgreSQL；DDC service-instance snapshots；and existing gateway_openapi_sync_state rows。The current tick timestamp comes from the injected Clock，not from Provider input。
+This is not an HTTP interface and has no user payload。The invocation reads validated configuration for delay、batch size、timeouts、retry bounds and allowed network ranges；active Yuheng applications from PostgreSQL；Tianshu service-instance snapshots；and existing gateway_openapi_sync_state rows。The current tick timestamp comes from the injected Clock，not from Provider input。
 
 ##### Success response
 
@@ -1031,12 +1031,12 @@ The job returns no public value。A successful tick persists zero or more state 
 
 ##### Error responses
 
-Errors never terminate the scheduler thread。A stale or unavailable DDC observation aborts the tick without marking builds STALE；lost CAS claims are benign skips；fetch、validation and ingestion failures are classified into durable states with safe codes/messages。Only FETCH_FAILED and INGEST_FAILED receive nextRetryAt with bounded exponential backoff and jitter；INVALID and INCONSISTENT_BUILD wait for a changed build or Provider revision。
+Errors never terminate the scheduler thread。A stale or unavailable Tianshu observation aborts the tick without marking builds STALE；lost CAS claims are benign skips；fetch、validation and ingestion failures are classified into durable states with safe codes/messages。Only FETCH_FAILED and INGEST_FAILED receive nextRetryAt with bounded exponential backoff and jitter；INVALID and INCONSISTENT_BUILD wait for a changed build or Provider revision。
 
 ##### Interface logic for frontend and consumers
 
-1. Read configuration and Clock，then list active applications and one coherent DDC snapshot。
-2. Abort safely when DDC is unavailable or stale；do not retire Definition Sets from incomplete evidence。
+1. Read configuration and Clock，then list active applications and one coherent Tianshu snapshot。
+2. Abort safely when Tianshu is unavailable or stale；do not retire Definition Sets from incomplete evidence。
 3. Filter instances by explicit OpenAPI capability and resolve the application/build/default-group sync key。
 4. Upsert discovery state，select only new、changed or due-retry keys and claim each with revision CAS。
 5. Fetch outside any database transaction through OAuth2 and SSRF-safe client controls，then persist exact/canonical hashes and validation outcome。
@@ -1045,7 +1045,7 @@ Errors never terminate the scheduler thread。A stale or unavailable DDC observa
 
 ##### Compatibility and verification
 
-Fresh-database cutover only；there is no legacy report-derived HTTP fallback or dual-run scheduler。Verification covers property binding、no-overlap CAS、multi-replica contention、stale DDC fail-safe、OAuth/SSRF timeouts、retry jitter、restart recovery、same-build drift and PostgreSQL integration。Runtime startup is a later manual check and is not performed while writing this Spec。
+Fresh-database cutover only；there is no legacy report-derived HTTP fallback or dual-run scheduler。Verification covers property binding、no-overlap CAS、multi-replica contention、stale Tianshu fail-safe、OAuth/SSRF timeouts、retry jitter、restart recovery、same-build drift and PostgreSQL integration。Runtime startup is a later manual check and is not performed while writing this Spec。
 
 #### 9.2.6 INTERNAL-001 — Shared Definition ingestion
 
@@ -1084,8 +1084,8 @@ GatewayInterfaceDefinitionReportResult returns the accepted Definition Set ident
 | Failure | Stable behavior | Transaction/result |
 | --- | --- | --- |
 | Command or source-scoped validation fails | IllegalArgumentException at the internal boundary；HTTP caller maps through existing error advice | No write |
-| Same application/build/source key has a different fingerprint | GATEWAY_ADMIN_IMMUTABLE_BUILD_CONFLICT | Rollback；previous set remains authoritative |
-| Snapshot missing、invalid、already linked differently or owned by another application | GATEWAY_OPENAPI_SNAPSHOT_CONFLICT | Rollback；sync records INGEST_FAILED outside this transaction |
+| Same application/build/source key has a different fingerprint | YUHENG_ADMIN_IMMUTABLE_BUILD_CONFLICT | Rollback；previous set remains authoritative |
+| Snapshot missing、invalid、already linked differently or owned by another application | YUHENG_OPENAPI_SNAPSHOT_CONFLICT | Rollback；sync records INGEST_FAILED outside this transaction |
 | Catalog、Operation、schema or MCP repository write fails | Preserve the classified persistence exception；mask at HTTP edge | Rollback all definition writes and snapshot link |
 
 ##### Interface logic for frontend and consumers
@@ -1113,9 +1113,9 @@ The existing HMAC report endpoint retains transport authentication and reportId 
 | GatewayDefinitionSourceTypeEnum | Enum | contract/admin/frontend wire | removes hard-coded source branching | Jackson enum name | REQ-008–010 |
 | GatewayOpenApiSyncStateEnum | Enum | Admin persistence/API/UI | explicit state machine | JDBC/Jackson | REQ-011/012 |
 | GatewayOpenApiSyncKeyDTO | DTO record | scheduler/service/repository | stable CAS key | None | REQ-011 |
-| GatewayOpenApiSyncCandidateDTO | DTO record | DDC -> sync boundary | validation/security normalization | None | REQ-004/005 |
+| GatewayOpenApiSyncCandidateDTO | DTO record | Tianshu -> sync boundary | validation/security normalization | None | REQ-004/005 |
 | GatewayOpenApiDocumentDTO | DTO record | client -> validator | bounded raw bytes/model/hashes | Adapter | REQ-005/006 |
-| GatewayOpenApiDefinitionDTO | DTO record with nested records | Adapter -> MapStruct | Swagger dependency stays outside gateway-contract；lossless normalized model | GatewayOpenApiDefinitionConverter | REQ-008 |
+| GatewayOpenApiDefinitionDTO | DTO record with nested records | Adapter -> MapStruct | Swagger dependency stays outside yuheng-contract；lossless normalized model | GatewayOpenApiDefinitionConverter | REQ-008 |
 | GatewayDefinitionIngestionCommandDTO | DTO record | reporting/openapi -> ingestion | source/application/snapshot consistency boundary | None | REQ-007–010 |
 | GatewayOpenApiSnapshotPO | PO record | snapshot repository | exact table row/lifecycle | JDBC row mapper | REQ-006 |
 | GatewayOpenApiSyncPO | PO record | sync repository | exact mutable sync row/revision | JDBC row mapper | REQ-011 |
@@ -1139,10 +1139,10 @@ No new Entity inheritance。All new carriers are simple records。No parallel BO
 | Model.field | Type | Required/null/default | Validation and semantics | Source/mapping | Requirements |
 | --- | --- | --- | --- | --- | --- |
 | SyncKey.applicationId | String | required | max64；existing app | gateway_application.id | REQ-011 |
-| SyncKey.buildId | String | required | max256 immutable | DDC metadata + x-egon-service cross-check | REQ-007 |
+| SyncKey.buildId | String | required | max256 immutable | Tianshu metadata + x-egon-service cross-check | REQ-007 |
 | SyncKey.openapiGroup | String | required/default | only default in V1；max128 | metadata | REQ-006 |
-| Candidate.path | String | required | starts /；no scheme/userInfo/query/fragment/..；max512 | DDC metadata | REQ-005 |
-| Candidate.resourceUri | URI | required production | IdP valid resource URI；no credential | DDC metadata | REQ-005 |
+| Candidate.path | String | required | starts /；no scheme/userInfo/query/fragment/..；max512 | Tianshu metadata | REQ-005 |
+| Candidate.resourceUri | URI | required production | Tianquan-Shoubing valid resource URI；no credential | Tianshu metadata | REQ-005 |
 | Document.rawBytes | byte[] | required | 1..5 MiB；never log/persist duplicate byte array | HTTP response | REQ-005/006 |
 | Document.documentSha256 | String | required | 64 lowercase hex | exact bytes | REQ-006 |
 | Document.canonicalSha256 | String | after parse | 64 lowercase hex | canonical bytes | REQ-006/007 |
@@ -1190,7 +1190,7 @@ GatewayOpenApiDefinitionConverter is a MapStruct mapper with componentModel=spri
 | VALIDATING | valid/no drift | INGESTING | snapshot committed/reused |
 | INGESTING | transaction success | VALID | snapshot/definitionSet linked |
 | INGESTING | rollback | INGEST_FAILED | snapshot may remain unlinked |
-| any active | no healthy matching provider | STALE | DDC observation non-stale |
+| any active | no healthy matching provider | STALE | Tianshu observation non-stale |
 | terminal retryable | new build/provider revision or due retry | DISCOVERED/FETCHING | attempt/reset rules |
 
 INVALID and INCONSISTENT_BUILD do not automatically retry the same unchanged build。FETCH_FAILED/INGEST_FAILED do。Status updates use revision CAS。
@@ -1218,7 +1218,7 @@ Context-only existing neighbors are gateway_application，the physical applicati
 
 ##### Purpose, ownership, and lifecycle
 
-Admin openapi feature is authoritative writer。Rows are immutable after insertion except one nullable definition_set_id link set in the ingestion transaction；after linking it is immutable。Readers are query API、sync/lifecycle and future diff/reprojection。Retention is permanent by DEC-006。No tenant column：application_id supplies platform physical ownership and Admin RBAC is global capability-based。Expected volume is one row per unique canonical contract per application/build/default group plus retained invalid/drift documents；live volume unknown，must expose bytes/count metrics。
+Admin openapi feature is authoritative writer。Rows are immutable after insertion except one nullable definition_set_id link set in the ingestion transaction；after linking it is immutable。Readers are query API、sync/lifecycle and future diff/reprojection。Retention is permanent by DEC-006。No tenant column：application_id supplies xingyuan physical ownership and Admin RBAC is global capability-based。Expected volume is one row per unique canonical contract per application/build/default group plus retained invalid/drift documents；live volume unknown，must expose bytes/count metrics。
 
 ##### Complete column design
 
@@ -1238,7 +1238,7 @@ Admin openapi feature is authoritative writer。Rows are immutable after inserti
 | validation_messages | JSONB | DB | No | [] | validator | JSON array convention | stable messages | chain | [] |
 | operation_count | INTEGER | 32-bit | No | 0 | validator | check >=0 | all document operations | parser | 128 |
 | schema_count | INTEGER | 32-bit | No | 0 | validator | check >=0 | components.schemas count | parser | 43 |
-| fetched_from_instance_id | VARCHAR(256) | 256 | No | none | DDC | none | source instance audit | candidate | instance-1 |
+| fetched_from_instance_id | VARCHAR(256) | 256 | No | none | Tianshu | none | source instance audit | candidate | instance-1 |
 | fetched_at | TIMESTAMPTZ | microsecond DB | No | none | Clock | none | fetch completion Instant | client | UTC |
 | validated_at | TIMESTAMPTZ | microsecond DB | No | none | Clock | none | validation completion Instant | validator | UTC |
 | created_at | TIMESTAMPTZ | microsecond DB | No | none | Clock | none | persistence Instant | repository | UTC |
@@ -1251,7 +1251,7 @@ JSON missing differs from JSON null；document_json is never SQL NULL。Invalid 
 - UNIQUE (application_id, build_id, openapi_group, canonical_sha256) deduplicates instance-address/raw-order differences。
 - Partial unique definition_set_id WHERE definition_set_id IS NOT NULL enforces one source snapshot per definition set。
 - application FK is RESTRICT；fresh-db/user drop is the only destructive cleanup。Definition Set FK is RESTRICT。
-- Application relationship is DB-enforced；Provider instance is audit text，not FK to DDC。
+- Application relationship is DB-enforced；Provider instance is audit text，not FK to Tianshu。
 
 ##### Index inventory and per-index justification
 
@@ -1299,15 +1299,15 @@ One mutable row per application/build/default group owns scheduler claim、retry
 | build_id | VARCHAR(256) | 256 | No | none | provider | unique part | sync build | metadata | build-001 |
 | artifact_version | VARCHAR(128) | 128 | No | none | provider | none | artifact | metadata | 5.3.3 |
 | openapi_group | VARCHAR(128) | 128 | No | default | properties | unique part | V1 default group | metadata | default |
-| provider_service_name | VARCHAR(256) | 256 | No | none | DDC | none | DDC service key | snapshot | order-service |
-| provider_group | VARCHAR(128) | 128 | No | default | DDC | none | DDC group | snapshot | default |
-| provider_version | VARCHAR(128) | 128 | No | none | DDC | none | DDC version | snapshot | 5.3.3 |
+| provider_service_name | VARCHAR(256) | 256 | No | none | Tianshu | none | Tianshu service key | snapshot | order-service |
+| provider_group | VARCHAR(128) | 128 | No | default | Tianshu | none | Tianshu group | snapshot | default |
+| provider_version | VARCHAR(128) | 128 | No | none | Tianshu | none | Tianshu version | snapshot | 5.3.3 |
 | status | VARCHAR(32) | 32 | No | DISCOVERED | service | enum check | lifecycle state | Enum | VALID |
 | latest_snapshot_id | VARCHAR(64) | 64 | Yes | null | service | FK snapshot | current diagnostic snapshot | insert result | 019... |
 | definition_set_id | VARCHAR(64) | 64 | Yes | null | ingestion | FK definition_set | active candidate set | ingest result | abc... |
-| last_instance_id | VARCHAR(256) | 256 | Yes | null | DDC | none | last attempted instance | candidate | instance-1 |
+| last_instance_id | VARCHAR(256) | 256 | Yes | null | Tianshu | none | last attempted instance | candidate | instance-1 |
 | attempt_count | INTEGER | 32-bit | No | 0 | service | check >=0 | attempts in current cycle | scheduler | 1 |
-| last_error_code | VARCHAR(128) | 128 | Yes | null | classifier | none | stable code | service | GATEWAY_OPENAPI_FETCH_TIMEOUT |
+| last_error_code | VARCHAR(128) | 128 | Yes | null | classifier | none | stable code | service | YUHENG_OPENAPI_FETCH_TIMEOUT |
 | last_error_message | VARCHAR(1024) | 1024 | Yes | null | classifier | none | safe operator detail | service | fetch timed out |
 | first_discovered_at | TIMESTAMPTZ | DB | No | none | Clock | none | first observation | service | UTC |
 | last_attempt_at | TIMESTAMPTZ | DB | Yes | null | Clock | none | attempt Instant | service | UTC |
@@ -1341,7 +1341,7 @@ One mutable row per application/build/default group owns scheduler claim、retry
 | transition | Sync Service | id+expected revision | affected 1 | PK | CAS | mismatch re-read/stop |
 | due scan | Scheduler | retryable + next_retry <= now | configured batch | due index | no long lock | batch bounded |
 | API-002 | Query Service | app scope order | 0..apps/builds | app index | read-only | [] |
-| lifecycle active union | Reconciler | status VALID + healthy build | small | app/sync key | read-only | stale DDC abort |
+| lifecycle active union | Reconciler | status VALID + healthy build | small | app/sync key | read-only | stale Tianshu abort |
 
 ##### Migration and historical-data handling
 
@@ -1349,7 +1349,7 @@ Same V12。No historical rows/backfill。Clean migration test starts PostgreSQL 
 
 ##### Transaction, consistency, and recovery
 
-CAS prevents concurrent Admin fetches。No DB transaction spans OAuth/network。A FETCHING row older than configured claim timeout can be reclaimed。Successful ingest atomically sets VALID and definitionSetId；failure state is written only after ingest rollback。DDC stale snapshot cannot cause STALE/retirement transitions。
+CAS prevents concurrent Admin fetches。No DB transaction spans OAuth/network。A FETCHING row older than configured claim timeout can be reclaimed。Successful ingest atomically sets VALID and definitionSetId；failure state is written only after ingest rollback。Tianshu stale snapshot cannot cause STALE/retirement transitions。
 
 ### 11.3 Entity-relationship diagram
 
@@ -1357,20 +1357,20 @@ Relational model change: Yes。
 
 | ER entity | Physical table | Scope/change | Authoritative owner | Notes |
 | --- | --- | --- | --- | --- |
-| GATEWAY_APPLICATION | gateway_application | Existing neighbor | Application feature | physical app |
+| YUHENG_APPLICATION | gateway_application | Existing neighbor | Application feature | physical app |
 | OPENAPI_SNAPSHOT | gateway_openapi_snapshot | New | OpenAPI feature | immutable permanent |
 | OPENAPI_SYNC_STATE | gateway_openapi_sync_state | New | OpenAPI feature | mutable CAS |
-| GATEWAY_DEFINITION_SET | gateway_definition_set | Existing neighbor | Reporting ingestion | immutable definitions |
+| YUHENG_DEFINITION_SET | gateway_definition_set | Existing neighbor | Reporting ingestion | immutable definitions |
 
 ```mermaid
 erDiagram
-    GATEWAY_APPLICATION ||--o{ OPENAPI_SNAPSHOT : owns
-    GATEWAY_APPLICATION ||--o{ OPENAPI_SYNC_STATE : owns
-    OPENAPI_SNAPSHOT o|--o| GATEWAY_DEFINITION_SET : projects_to
+    YUHENG_APPLICATION ||--o{ OPENAPI_SNAPSHOT : owns
+    YUHENG_APPLICATION ||--o{ OPENAPI_SYNC_STATE : owns
+    OPENAPI_SNAPSHOT o|--o| YUHENG_DEFINITION_SET : projects_to
     OPENAPI_SYNC_STATE }o--o| OPENAPI_SNAPSHOT : points_to_latest
-    OPENAPI_SYNC_STATE }o--o| GATEWAY_DEFINITION_SET : activates
+    OPENAPI_SYNC_STATE }o--o| YUHENG_DEFINITION_SET : activates
 
-    GATEWAY_APPLICATION {
+    YUHENG_APPLICATION {
         varchar id PK
         varchar biz_code
         varchar application_code
@@ -1393,7 +1393,7 @@ erDiagram
         varchar definition_set_id FK
         bigint revision
     }
-    GATEWAY_DEFINITION_SET {
+    YUHENG_DEFINITION_SET {
         varchar id PK
         varchar application_id FK
         varchar build_id
@@ -1410,8 +1410,8 @@ All relationships are DB-enforced FKs。Snapshot-to-definition and sync links ar
 
 | Page | Route/deep link | Navigation entry | Owner | Permission/tenant guard | Unauthorized/missing behavior | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| ApplicationsPage | existing /applications | existing Banner + left Sider navigation | applications feature | gateway:read | existing denied flow | REQ-012 |
-| OperationPage | existing /operations/:operationId | Catalog links | interface-catalog | gateway:read | QueryFailure/not found | REQ-012 |
+| ApplicationsPage | existing /applications | existing Banner + left Sider navigation | applications feature | yuheng:read | existing denied flow | REQ-012 |
+| OperationPage | existing /operations/:operationId | Catalog links | interface-catalog | yuheng:read | QueryFailure/not found | REQ-012 |
 
 No new top-level navigation or page route。OpenAPI is a tab/panel in existing pages。
 
@@ -1480,7 +1480,7 @@ Tabs and buttons use accessible names；status never relies on color alone；err
 | Pattern/principle | Concrete variation point or problem | Placement | Why direct code is insufficient | Repository alignment |
 | --- | --- | --- | --- | --- |
 | Adapter | OpenAPI 3.1 graph/refs/parameters/responses/x-egon -> internal Report v2/Invocation Schema | GatewayOpenApi31ContractAdapter、GatewayOpenApiInvocationSchemaAdapter | 直接塞入 Sync Service 会混合协议解析、治理、持久化并形成长分支 | 现有 RpcGatewayDefinitionContributor/ProtobufSchemaMapper 是协议适配边界 |
-| Chain of Responsibility | envelope/version/ref/limit/x-egon/MCP 多个有序、可短路验证责任 | GatewayOpenApiValidationChain + six rule Beans | 一个巨型 Validator 难以独立安全测试/扩展且会硬编码分支 | Gateway 现有 pipeline/validator precedent；用户 Rule 9 |
+| Chain of Responsibility | envelope/version/ref/limit/x-egon/MCP 多个有序、可短路验证责任 | GatewayOpenApiValidationChain + six rule Beans | 一个巨型 Validator 难以独立安全测试/扩展且会硬编码分支 | Yuheng 现有 pipeline/validator precedent；用户 Rule 9 |
 | Facade/Shared Application Service | HMAC Report 与 OpenAPI 两来源共享唯一 Definition writer | GatewayDefinitionIngestionService | 复制 repository ingestion 产生双写漂移；直接调用 transport Service伪造认证 | 现有 Service/Repository 分层 |
 | Optimistic CAS | 多 Admin scheduler claim/transition | sync repository | JVM lock 不能跨实例 | 现有 revision/optimistic patterns |
 
@@ -1491,12 +1491,12 @@ Chain selection is ordered by explicit named aggregate Bean gatewayOpenApiValida
 - Strategy/SPI for OpenAPI 3.2/AsyncAPI rejected：only 3.1 approved；direct Adapter has fewer contracts。
 - State object class hierarchy rejected：Enum + explicit transition table + CAS is sufficient；State pattern would create one class per state without behavior ownership gain。
 - Factory/Abstract Factory rejected：no object family variation。
-- Observer/DDC subscription rejected：existing DdcManagementClient pull and scheduler satisfy current convergence without changing DDC protocol。
+- Observer/Tianshu subscription rejected：existing DdcManagementClient pull and scheduler satisfy current convergence without changing Tianshu protocol。
 - Swagger parser runtime rejected：Json31 + own bounded validation avoids another dependency graph；parser may be used test-only only after dependency convergence proof。
 
 ### 13.3 Architecture principles
 
-Dependency direction remains feature Controller -> Service -> Repository/domain，with client/validation/converter as composed technical collaborators。OpenAPI/Swagger types do not enter gateway-contract、Engine、MCP Runtime or frontend TypeScript contracts。Composition replaces inheritance；records avoid class explosion；YAGNI excludes GroupedOpenApi、3.2 SPI、UI embed and auto Route。
+Dependency direction remains feature Controller -> Service -> Repository/domain，with client/validation/converter as composed technical collaborators。OpenAPI/Swagger types do not enter yuheng-contract、Engine、MCP Runtime or frontend TypeScript contracts。Composition replaces inheritance；records avoid class explosion；YAGNI excludes GroupedOpenApi、3.2 SPI、UI embed and auto Route。
 
 ## 14. Test Design
 
@@ -1514,7 +1514,7 @@ Dependency direction remains feature Controller -> Service -> Repository/domain�
 ### 14.2 Integration, contract, persistence, component, and end-to-end tests
 
 - MVC/WebFlux Spring context GET /v3/api-docs with OpenAPI 3.1、Bean Validation、record/generic/wrapper、x-egon、OAuth。
-- Admin client with mock HTTP/IdP/DDC for redirect/timeout/multiple instances。
+- Admin client with mock HTTP/Tianquan-Shoubing/Tianshu for redirect/timeout/multiple instances。
 - PostgreSQL Testcontainers clean V1–V12 migration、constraints、unique、rollback。
 - Admin ingestion fixture -> snapshot/sync/catalog/request/response/MCP managed tool。
 - Existing RPC contract、MCP Release、Route/Release、Engine suites。
@@ -1581,11 +1581,11 @@ These commands are design targets，not executed by this Spec。
 - Security: fail closed OAuth2、least scope、CIDR、DNS all-address check、no redirect、no external ref、no user URL、Admin RBAC、no token/body logs。
 - Capacity: document <=5 MiB、ops<=5000、schema nodes<=50000、ref depth<=64、bounded batch/attempts。Thresholds are typed properties and tested。
 - Performance: fetch only new/due/sample builds；network outside transaction；JSONB full document on-demand only；no GIN。
-- Availability: DDC stale/unavailable cannot retire definitions；old VALID set continues；sync failures do not affect data plane。
+- Availability: Tianshu stale/unavailable cannot retire definitions；old VALID set continues；sync failures do not affect data plane。
 - Observability: §7.3.5 metrics/log/audit；low cardinality。
 - Privacy: OpenAPI descriptions/examples are management-visible data；Provider must not include real secrets/PII examples；validator rejects sensitive metadata keys，but cannot semantically detect every description leak。
 - Maintainability: Springdoc locked and Golden-gated；x-egon versioned；OpenAPI Adapter isolated；no runtime parser in Engine。
-- Tenancy: Gateway application physical scope is bizCode + appCode + env with namespace context；Admin authorization remains existing platform capability model，not request-supplied tenant。
+- Tenancy: Yuheng application physical scope is bizCode + appCode + env with namespace context；Admin authorization remains existing xingyuan capability model，not request-supplied tenant。
 
 ## 16. Compatibility, Migration, Rollout, and Rollback
 
@@ -1593,11 +1593,11 @@ This is a breaking HTTP and database cutover。
 
 1. V1–V11 remain immutable；add V12 only。
 2. All repository-local HTTP controllers/models migrate to standard Swagger/OpenAPI + x-egon in the same release。
-3. All external Provider consumers must replace gateway-starter HTTP usage with the corresponding MVC/WebFlux adapter and remove old HTTP schema annotations。
-4. Gateway Admin backend/Web/test providers deploy as one version family；old/new mixed operation is unsupported。
-5. User deletes the disposable Gateway database before deployment。Fresh Admin startup executes V1–V12；no historical data/backfill/compatibility verification。
-6. Admin starts before Providers；DDC/IdP connectivity and allowed CIDR config must be ready。Providers then register and contracts are automatically rebuilt。
-7. Operators wait for required applications to reach VALID，then recreate Gateway Draft/Route/MCP overrides/Release as needed from the fresh database。
+3. All external Provider consumers must replace yuheng-starter HTTP usage with the corresponding MVC/WebFlux adapter and remove old HTTP schema annotations。
+4. Yuheng Admin backend/Web/test providers deploy as one version family；old/new mixed operation is unsupported。
+5. User deletes the disposable Yuheng database before deployment。Fresh Admin startup executes V1–V12；no historical data/backfill/compatibility verification。
+6. Admin starts before Providers；Tianshu/Tianquan-Shoubing connectivity and allowed CIDR config must be ready。Providers then register and contracts are automatically rebuilt。
+7. Operators wait for required applications to reach VALID，then recreate Yuheng Draft/Route/MCP overrides/Release as needed from the fresh database。
 8. Engine deploy is not required by OpenAPI code，but fresh database means no old Release exists；traffic resumes only after a new Release is created and activated。
 
 Rollback: stop new Provider/Admin，drop the disposable database again，deploy the previous coherent application set and recreate its database from its migrations/configuration。No data-preserving rollback、Flyway repair、old Definition reactivation or mixed-version fallback。
@@ -1606,7 +1606,7 @@ Preserved compatibility boundaries:
 
 - RPC wire/Protobuf Descriptor and unary rules unchanged。
 - GatewayInterfaceDefinitionReport contractVersion stays v2。
-- Internal gateway-operation-request/response v2 stays。
+- Internal yuheng-operation-request/response v2 stays。
 - GatewayOperationKey、Managed Tool ID、Route/Release/Engine contract stay。
 - Existing Admin Application/Catalog Operation detail APIs stay wire-compatible because OpenAPI reads are separate APIs。
 
@@ -1616,7 +1616,7 @@ Preserved compatibility boundaries:
 | --- | --- | --- | --- | --- | --- |
 | A — keep self-built compiler | none | no dependency/cutover | duplicate framework、maintenance drift | current but contrary goal | Rejected |
 | B — Springdoc but Provider POSTs converted Report | Springdoc + local mapper + existing HMAC | smaller Admin sync | Provider still compiles Egon model、no raw aggregation/drift | partial fit | Rejected |
-| C — Admin pulls OpenAPI via DDC (selected) | adapters、client、2 tables、job、3 APIs | standard source、raw audit、drift、reuse control plane | network/security/storage complexity | reuses DDC/Admin scheduler/repository | Selected by DEC-001/003/006 |
+| C — Admin pulls OpenAPI via Tianshu (selected) | adapters、client、2 tables、job、3 APIs | standard source、raw audit、drift、reuse control plane | network/security/storage complexity | reuses Tianshu/Admin scheduler/repository | Selected by DEC-001/003/006 |
 | D — runtime swagger-parser | parser dependency | broader spec validation | dependency convergence/network ref risks | unnecessary for Springdoc-produced local refs | Rejected |
 | E — Legacy Bridge | bridge/deprecated branches | rolling migration | dual truth and user rejected compatibility | contradicts DEC-002 | Rejected |
 
@@ -1626,9 +1626,9 @@ Preserved compatibility boundaries:
 | --- | --- | --- | --- | --- | --- |
 | RISK-001 | Springdoc 2.8.17 输出在升级/nullable/generic 上变化 | Medium | Contract drift | Lock version、Golden fixtures、manual diff gate | Closed by design |
 | RISK-002 | 永久 JSONB 快照增长 | Medium | storage/bloat | unique canonical dedup、5 MiB cap、bytes/count metrics、无 speculative GIN | Closed by DEC-006/design |
-| RISK-003 | Provider 注册 host/DNS 被利用 SSRF | Medium | security breach | DDC exact scope、OAuth、CIDR all-address validation、no redirect/userInfo/query/ref | Closed by design |
+| RISK-003 | Provider 注册 host/DNS 被利用 SSRF | Medium | security breach | Tianshu exact scope、OAuth、CIDR all-address validation、no redirect/userInfo/query/ref | Closed by design |
 | RISK-004 | fresh DB 丢失 Route/Credential/MCP Override/Release | Certain | all control-plane state removed | 用户明确接受；部署 runbook 要求重建后再恢复流量 | Closed by DEC-007 |
-| RISK-005 | 当前 Gateway 代码无 Lombok/Qualifier baseline | High | Rule 4/injection compile | 新增 gateway/lombok.config、managed Lombok、context tests；仅触及范围迁移 | Closed by design |
+| RISK-005 | 当前 Yuheng 代码无 Lombok/Qualifier baseline | High | Rule 4/injection compile | 新增 yuheng/lombok.config、managed Lombok、context tests；仅触及范围迁移 | Closed by design |
 | RISK-006 | OpenAPI -> Internal Schema mapping遗漏 OAS keyword | Medium | Catalog/MCP mismatch | supported-key inventory、reject unsupported ambiguous constructs、Raw snapshot、Golden tests | Closed by design |
 | RISK-007 | 同步 Job 多 Admin/崩溃竞争 | Medium | duplicate fetch/stuck | DB CAS、claim timeout、idempotent hashes | Closed by design |
 
@@ -1641,14 +1641,14 @@ No unresolved user question remains。
 | REQ-001 | UC-001 | adapters §7–§10 | RPC unchanged source | API-001 | TEST-001/002/005 | 3.1 doc |
 | REQ-002 | UC-001 | annotations/customizer §8/§10 | standard OAS authority | x-egon | TEST-001/006/010 | no old HTTP schema annotation |
 | REQ-003 | UC-001 | modules §7/§8 | base starter RPC | three adapters | TEST-004 | dependency isolation |
-| REQ-004 | UC-001/002 | metadata/sync §7/§9 | DDC stores no doc | CandidateDTO/JOB | TEST-007 | metadata whitelist |
+| REQ-004 | UC-001/002 | metadata/sync §7/§9 | Tianshu stores no doc | CandidateDTO/JOB | TEST-007 | metadata whitelist |
 | REQ-005 | UC-002 | client/security §7/§9/§15 | browser no Provider call | API-001 | TEST-003/007–009/031 | malicious targets denied |
 | REQ-006 | UC-002/003/004 | snapshot §7/§11 | Definition model reused | snapshot/API-004 | TEST-011/015/036 | raw/hash query |
 | REQ-007 | UC-003 | drift/ingest §7/§11 | current valid definition preserved | sync/snapshot | TEST-012/020 | INCONSISTENT_BUILD |
 | REQ-008 | UC-002/005 | adapter/ingest §7/§10 | Report v2 preserved | INTERNAL-001 | TEST-013–017 | catalog/schema match |
 | REQ-009 | UC-001 | delete/migrate §8/§16 | RPC annotations retained | HTTP controllers | TEST-006 | residual zero |
 | REQ-010 | UC-005 | lifecycle/regression §7/§14 | Engine unchanged | source enum/report | TEST-032–035 | regression passes |
-| REQ-011 | UC-002/003 | job/state §7/§11 | DDC stale fail-safe | JOB/sync table | TEST-019–023 | bounded recovery |
+| REQ-011 | UC-002/003 | job/state §7/§11 | Tianshu stale fail-safe | JOB/sync table | TEST-019–023 | bounded recovery |
 | REQ-012 | UC-004 | API/UI §9/§12 | old detail API unchanged | API-002–004/UI | TEST-018/024–031 | operator flows |
 | REQ-013 | UC-002 | migration §11/§16 | history N/A | V12 | TEST-036/037 | clean migrate |
 | REQ-014 | UC-005 | boundary §7/§16 | Route/Release unchanged | no auto interface | TEST-034 | manual route only |
@@ -1658,11 +1658,11 @@ No unresolved user question remains。
 
 ### 20.1 Original-request fidelity
 
-The Spec covers the requested Gateway OpenAPI refactor and all six confirmed choices。It explicitly includes full closed loop、breaking cutover、OAuth2、2.8.17、current layering、permanent raw retention and fresh database rebuild。No Plan/production code/runtime action is included。
+The Spec covers the requested Yuheng OpenAPI refactor and all six confirmed choices。It explicitly includes full closed loop、breaking cutover、OAuth2、2.8.17、current layering、permanent raw retention and fresh database rebuild。No Plan/production code/runtime action is included。
 
 ### 20.2 Repository and technical fidelity
 
-Paths/symbols/POM/migrations/UI/API come from baseline 3be897e。Database types follow actual VARCHAR(64)/JSONB/TIMESTAMPTZ and V12 sequence。Admin reuses DdcManagementClient/IdP/ingestion；Engine/RPC proof is static and test design only，not live topology proof。
+Paths/symbols/POM/migrations/UI/API come from baseline 3be897e。Database types follow actual VARCHAR(64)/JSONB/TIMESTAMPTZ and V12 sequence。Admin reuses DdcManagementClient/Tianquan-Shoubing/ingestion；Engine/RPC proof is static and test design only，not live topology proof。
 
 ### 20.3 Cross-section consistency
 
@@ -1677,7 +1677,7 @@ This Spec supersedes only named HTTP self-built Schema/reporting sections。The 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | MC-ARCH-001 | Applicable | PASS | §6.1、actual tree、DEC-005 | user-approved Traditional Layered feature-first profile；no hybrid | None |
-| MC-REUSE-001 | Applicable | PASS | §6.1 ledger、EVD-005–011 | Spring/JDK/DDC/IdP/Report/repository reuse exhausted before additions | None |
+| MC-REUSE-001 | Applicable | PASS | §6.1 ledger、EVD-005–011 | Spring/JDK/Tianshu/Tianquan-Shoubing/Report/repository reuse exhausted before additions | None |
 | MC-DEP-001 | Applicable | PASS | EVD-001/002/018、§7.0 | Springdoc/Swagger gap proven；2.8.17 locked；no parser/UI | None |
 | MC-NAME-001 | Applicable | PASS | §8/§10 inventory | PO/DTO/VO/Enum/behavior suffixes；no ambiguous new carrier | None |
 | MC-VALID-001 | Applicable | PASS | §6.2 Rule2、API/JOB/INTERNAL details | every handoff uses Jakarta/ValidationUtils；phone N/A with no phone fields | None |

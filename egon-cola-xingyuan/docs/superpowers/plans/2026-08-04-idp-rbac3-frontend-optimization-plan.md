@@ -1,10 +1,10 @@
-# IDP & RBAC3 前端企业级优化 — 实施计划
+# Tianquan-Shoubing & Tianquan-Jianshen 前端企业级优化 — 实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 新建共享包 `@egon-cola/xingyuan-admin-web-shared`（OAuth/HTTP/JWT/组件/主题/i18n），重构 IDP 和 RBAC3 admin-web 消费共享包，修复所有已知 Bug，达企业级前端水平。
+**Goal:** 新建共享包 `@egon-cola/xingyuan-admin-web-shared`（OAuth/HTTP/JWT/组件/主题/i18n），重构 Tianquan-Shoubing 和 Tianquan-Jianshen admin-web 消费共享包，修复所有已知 Bug，达企业级前端水平。
 
-**Architecture:** 方案 C — 统一基础设施先行。共享包通过 Vite library mode 构建为 ES module，消费项目通过 `file:` 引用。两个项目共享 OAuth client、HTTP client、JWT 工具、通用组件、设计 token、i18n 框架。RBAC3 独有的 SDK 适配逻辑保留在项目内。
+**Architecture:** 方案 C — 统一基础设施先行。共享包通过 Vite library mode 构建为 ES module，消费项目通过 `file:` 引用。两个项目共享 OAuth client、HTTP client、JWT 工具、通用组件、设计 token、i18n 框架。Tianquan-Jianshen 独有的 SDK 适配逻辑保留在项目内。
 
 **Tech Stack:** React 19、antd 6、TypeScript 6、Vite 8、Vitest 4、@tanstack/react-query 5、react-router-dom 7、i18next + react-i18next
 
@@ -46,7 +46,7 @@ egon-cola-xingyuan-admin-web-shared/
     ├── auth/
     │   ├── tokenStore.ts           # In-memory token store with subscribe
     │   ├── tokenStore.test.ts
-    │   ├── oauthClient.ts          # PKCE OAuth client (from IDP, bug-fixed)
+    │   ├── oauthClient.ts          # PKCE OAuth client (from Tianquan-Shoubing, bug-fixed)
     │   └── oauthClient.test.ts
     ├── i18n/
     │   ├── index.ts                # initI18n, useT, I18nProvider, changeLanguage
@@ -58,10 +58,10 @@ egon-cola-xingyuan-admin-web-shared/
     │   └── PageTemplate.tsx        # Page shell (Card + breadcrumb)
     └── hooks/
         ├── usePermission.ts        # permission check hook
-        └── useFeatureQuery.ts      # RBAC3 query boilerplate eliminator
+        └── useFeatureQuery.ts      # Tianquan-Jianshen query boilerplate eliminator
 ```
 
-### 修改: IDP `egon-cola-tianquan-shoubing-admin-web/src/`
+### 修改: Tianquan-Shoubing `egon-cola-tianquan-shoubing-admin-web/src/`
 
 ```
 src/
@@ -86,7 +86,7 @@ src/
     └── index.css                   # 删除
 ```
 
-### 修改: RBAC3 `egon-cola-tianquan-jianshen-admin-web/src/`
+### 修改: Tianquan-Jianshen `egon-cola-tianquan-jianshen-admin-web/src/`
 
 ```
 src/
@@ -830,7 +830,7 @@ describe('createOAuthClient', () => {
   })
 
   const client = () => createOAuthClient({
-    issuer: 'https://idp.example.com',
+    issuer: 'https://tianquan-shoubing.example.com',
     clientId: 'test-client',
     audience: 'test-aud',
     redirectUri: 'https://app.example.com/oauth/callback',
@@ -916,7 +916,7 @@ cd egon-cola-xingyuan-admin-web-shared && npx vitest run src/auth/oauthClient.te
 
 - [ ] **Step 3: 实现 oauthClient.ts**
 
-（代码基于 IDP 现有 `oauthClient.ts`，修复所有 Bug。由于篇幅长，关键改动标注在注释中）
+（代码基于 Tianquan-Shoubing 现有 `oauthClient.ts`，修复所有 Bug。由于篇幅长，关键改动标注在注释中）
 
 ```typescript
 import type { TokenStore } from './tokenStore'
@@ -1082,7 +1082,7 @@ export const createOAuthClient = (
   }
 }
 
-// --- Internal helpers (from IDP original, with TextDecoder fix) ---
+// --- Internal helpers (from Tianquan-Shoubing original, with TextDecoder fix) ---
 
 const textDecoder = new TextDecoder('utf-8')
 const textEncoder = new TextEncoder()
@@ -1720,7 +1720,7 @@ git add egon-cola-xingyuan-admin-web-shared/src/hooks/usePermission.ts
 git commit -m "feat(shared): add usePermission hook"
 ```
 
-### Task 14: useFeatureQuery hook (RBAC3 boilerplate eliminator)
+### Task 14: useFeatureQuery hook (Tianquan-Jianshen boilerplate eliminator)
 
 **Files:**
 - Create: `egon-cola-xingyuan-admin-web-shared/src/hooks/useFeatureQuery.ts`
@@ -1748,7 +1748,7 @@ export const useFeatureQuery = <T>(
 ): UseQueryResult<T> => {
   const tenantId = deps.effectiveTenantId ?? 'none'
   return useQuery({
-    queryKey: ['rbac3', ...keys, tenantId],
+    queryKey: ['tianquan-jianshen', ...keys, tenantId],
     queryFn: () => queryFn(deps.featureApi),
     enabled: deps.status === 'READY' && (options?.enabled ?? true),
     retry: false,
@@ -1761,7 +1761,7 @@ export const useFeatureQuery = <T>(
 
 ```bash
 git add egon-cola-xingyuan-admin-web-shared/src/hooks/useFeatureQuery.ts
-git commit -m "feat(shared): add useFeatureQuery hook to eliminate RBAC3 boilerplate"
+git commit -m "feat(shared): add useFeatureQuery hook to eliminate Tianquan-Jianshen boilerplate"
 ```
 
 ### Task 15: Barrel export
@@ -1816,9 +1816,9 @@ git commit -m "feat(shared): add barrel export and verify build"
 
 ---
 
-## Phase 5: IDP 重构
+## Phase 5: Tianquan-Shoubing 重构
 
-### Task 16: IDP 安装共享包并升级 package.json
+### Task 16: Tianquan-Shoubing 安装共享包并升级 package.json
 
 **Files:**
 - Modify: `egon-cola-tianquan-shoubing-admin-web/package.json`
@@ -1853,10 +1853,10 @@ cd egon-cola-tianquan-shoubing-admin-web && npm install
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/package.json egon-cola-tianquan-shoubing-admin-web/package-lock.json
-git commit -m "chore(idp): add shared package, react-router, i18n dependencies"
+git commit -m "chore(tianquan-shoubing): add shared package, react-router, i18n dependencies"
 ```
 
-### Task 17: IDP main.tsx — 接入共享 Theme/i18n
+### Task 17: Tianquan-Shoubing main.tsx — 接入共享 Theme/i18n
 
 **Files:**
 - Modify: `egon-cola-tianquan-shoubing-admin-web/src/main.tsx`
@@ -1893,10 +1893,10 @@ createRoot(document.getElementById('root')!).render(
 ```bash
 git rm egon-cola-tianquan-shoubing-admin-web/src/styles/index.css
 git add egon-cola-tianquan-shoubing-admin-web/src/main.tsx
-git commit -m "refactor(idp): use shared ThemeProvider and i18n, remove global CSS"
+git commit -m "refactor(tianquan-shoubing): use shared ThemeProvider and i18n, remove global CSS"
 ```
 
-### Task 18: IDP AuthContext — 使用共享 OAuth client
+### Task 18: Tianquan-Shoubing AuthContext — 使用共享 OAuth client
 
 **Files:**
 - Modify: `egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx`
@@ -1925,14 +1925,14 @@ import {
 } from '@egon-cola/xingyuan-admin-web-shared'
 import type { AuthorizationBootstrap } from '../api/types'
 
-// --- Browser runtime (from IDP original) ---
+// --- Browser runtime (from Tianquan-Shoubing original) ---
 const tokenStore = createTokenStore()
 
 const oauthClient: OAuthClient = createOAuthClient({
-  issuer: (import.meta.env.VITE_IDP_ISSUER ?? (() => { throw new Error('VITE_IDP_ISSUER is required') })()),
-  clientId: import.meta.env.VITE_IDP_CLIENT_ID ?? (() => { throw new Error('VITE_IDP_CLIENT_ID is required') })(),
-  audience: import.meta.env.VITE_IDP_AUDIENCE ?? (() => { throw new Error('VITE_IDP_AUDIENCE is required') })(),
-  redirectUri: import.meta.env.VITE_IDP_REDIRECT_URI ?? `${window.location.origin}/oauth/callback`,
+  issuer: (import.meta.env.VITE_TIANQUAN_SHOUBING_ISSUER ?? (() => { throw new Error('VITE_TIANQUAN_SHOUBING_ISSUER is required') })()),
+  clientId: import.meta.env.VITE_TIANQUAN_SHOUBING_CLIENT_ID ?? (() => { throw new Error('VITE_TIANQUAN_SHOUBING_CLIENT_ID is required') })(),
+  audience: import.meta.env.VITE_TIANQUAN_SHOUBING_AUDIENCE ?? (() => { throw new Error('VITE_TIANQUAN_SHOUBING_AUDIENCE is required') })(),
+  redirectUri: import.meta.env.VITE_TIANQUAN_SHOUBING_REDIRECT_URI ?? `${window.location.origin}/oauth/callback`,
   tokenStore,
 }, {
   fetch: globalThis.fetch.bind(globalThis),
@@ -1945,7 +1945,7 @@ const oauthClient: OAuthClient = createOAuthClient({
 
 // --- API client ---
 const httpClient = createHttpClient({
-  baseUrl: import.meta.env.VITE_IDP_API_BASE_URL ?? '',
+  baseUrl: import.meta.env.VITE_TIANQUAN_SHOUBING_API_BASE_URL ?? '',
   credentials: 'include',
   onAuthError: () => oauthClient.refresh(),
   onFatalAuthError: () => {
@@ -2029,10 +2029,10 @@ git rm egon-cola-tianquan-shoubing-admin-web/src/auth/tokenStore.ts
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/auth/AuthContext.tsx
-git commit -m "refactor(idp): replace custom oauth/token with shared package implementations"
+git commit -m "refactor(tianquan-shoubing): replace custom oauth/token with shared package implementations"
 ```
 
-### Task 19: IDP App.tsx + router.tsx — react-router 替换手写路由
+### Task 19: Tianquan-Shoubing App.tsx + router.tsx — react-router 替换手写路由
 
 **Files:**
 - Modify: `egon-cola-tianquan-shoubing-admin-web/src/app/App.tsx`
@@ -2120,10 +2120,10 @@ export const AdminLayout = () => {
 
   const items = [
     { key: 'overview', label: '身份概览', path: '/overview' },
-    has('idp:identity-user:read') ? { key: 'users', label: '全局用户', path: '/users' } : null,
-    has('idp:oauth-client:read') ? { key: 'clients', label: 'OAuth 客户端', path: '/clients' } : null,
-    has('idp:signing-key:read') ? { key: 'keys', label: '签名密钥', path: '/keys' } : null,
-    has('idp:audit:read') ? { key: 'audits', label: '安全审计', path: '/audits' } : null,
+    has('tianquan-shoubing:identity-user:read') ? { key: 'users', label: '全局用户', path: '/users' } : null,
+    has('tianquan-shoubing:oauth-client:read') ? { key: 'clients', label: 'OAuth 客户端', path: '/clients' } : null,
+    has('tianquan-shoubing:signing-key:read') ? { key: 'keys', label: '签名密钥', path: '/keys' } : null,
+    has('tianquan-shoubing:audit:read') ? { key: 'audits', label: '安全审计', path: '/audits' } : null,
   ].filter(Boolean) as { key: string; label: string; path: string }[]
 
   const currentPath = location.pathname
@@ -2164,10 +2164,10 @@ export const AdminLayout = () => {
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/app/
-git commit -m "refactor(idp): replace hand-rolled routing with react-router v7 + lazy loading"
+git commit -m "refactor(tianquan-shoubing): replace hand-rolled routing with react-router v7 + lazy loading"
 ```
 
-### Task 20: IDP CallbackPage — 修复卡死 spinner
+### Task 20: Tianquan-Shoubing CallbackPage — 修复卡死 spinner
 
 **Files:**
 - Create: `egon-cola-tianquan-shoubing-admin-web/src/auth/CallbackPage.tsx`
@@ -2237,10 +2237,10 @@ export const CallbackPage = () => {
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/auth/CallbackPage.tsx
-git commit -m "fix(idp): add CallbackPage handling loading/error/success preventing stuck spinner"
+git commit -m "fix(tianquan-shoubing): add CallbackPage handling loading/error/success preventing stuck spinner"
 ```
 
-### Task 21-25: IDP Feature 页面组件
+### Task 21-25: Tianquan-Shoubing Feature 页面组件
 
 每个页面组件基于 `AdminConsole.tsx` 中对应 section 的逻辑提取，用 `useQuery`/`useMutation` 重写。
 
@@ -2260,7 +2260,7 @@ export const OverviewPage = () => {
       <Descriptions column={2} bordered>
         <Descriptions.Item label="全局身份">{auth.bootstrap.identitySub}</Descriptions.Item>
         <Descriptions.Item label="租户">{auth.bootstrap.tenantId}</Descriptions.Item>
-        <Descriptions.Item label="RBAC3 用户">{auth.bootstrap.rbac3UserId}</Descriptions.Item>
+        <Descriptions.Item label="Tianquan-Jianshen 用户">{auth.bootstrap.rbac3UserId}</Descriptions.Item>
         <Descriptions.Item label="系统">{auth.bootstrap.systemCode}</Descriptions.Item>
         <Descriptions.Item label="权限数">{auth.bootstrap.permissions.length}</Descriptions.Item>
         <Descriptions.Item label="策略版本">{auth.bootstrap.policyVersion}</Descriptions.Item>
@@ -2270,7 +2270,7 @@ export const OverviewPage = () => {
 }
 ```
 
-Commit: `git commit -m "refactor(idp): extract OverviewPage"`
+Commit: `git commit -m "refactor(tianquan-shoubing): extract OverviewPage"`
 
 **Task 22: UserListPage**
 
@@ -2297,20 +2297,20 @@ export const UserListPage = () => {
   const [messageApi, contextHolder] = message.useMessage()
 
   const usersQuery = useQuery({
-    queryKey: ['idp', 'users'],
-    queryFn: () => auth.httpClient.request<IdentityUser[]>('/api/v1/identity/users'),
+    queryKey: ['tianquan-shoubing', 'users'],
+    queryFn: () => auth.httpClient.request<IdentityUser[]>('/api/v1/tianquan-shoubing/users'),
   })
 
   const createMutation = useMutation({
     mutationFn: (values: { username: string; displayName: string }) =>
-      auth.httpClient.request<{ oneTimePassword: string }>('/api/v1/identity/users', {
+      auth.httpClient.request<{ oneTimePassword: string }>('/api/v1/tianquan-shoubing/users', {
         method: 'POST',
         body: JSON.stringify(values),
       }),
     onSuccess: async (result) => {
       setModalOpen(false)
       form.resetFields()
-      await queryClient.invalidateQueries({ queryKey: ['idp', 'users'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianquan-shoubing', 'users'] })
       Modal.success({
         title: '用户已创建',
         content: `一次性密码：${result.oneTimePassword}（关闭后不再显示）`,
@@ -2322,7 +2322,7 @@ export const UserListPage = () => {
   const resetPasswordMutation = useMutation({
     mutationFn: (subject: string) =>
       auth.httpClient.request<{ oneTimePassword: string }>(
-        `/api/v1/identity/users/${encodeURIComponent(subject)}/password-reset`,
+        `/api/v1/tianquan-shoubing/users/${encodeURIComponent(subject)}/password-reset`,
         { method: 'POST' },
       ),
     onSuccess: (result) => {
@@ -2333,10 +2333,10 @@ export const UserListPage = () => {
 
   const revokeMutation = useMutation({
     mutationFn: (subject: string) =>
-      auth.httpClient.request(`/api/v1/identity/users/${encodeURIComponent(subject)}/revoke-all`, { method: 'POST' }),
+      auth.httpClient.request(`/api/v1/tianquan-shoubing/users/${encodeURIComponent(subject)}/revoke-all`, { method: 'POST' }),
     onSuccess: async () => {
       void messageApi.success('该用户的全部刷新会话已撤销')
-      await queryClient.invalidateQueries({ queryKey: ['idp', 'users'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianquan-shoubing', 'users'] })
     },
     onError: (err) => { void messageApi.error(err instanceof Error ? err.message : '撤销失败') },
   })
@@ -2346,7 +2346,7 @@ export const UserListPage = () => {
       {contextHolder}
       <Card
         title="全局身份用户"
-        extra={has('idp:identity-user:create') && (
+        extra={has('tianquan-shoubing:identity-user:create') && (
           <Button type="primary" onClick={() => setModalOpen(true)}>创建用户</Button>
         )}
       >
@@ -2368,10 +2368,10 @@ export const UserListPage = () => {
                 title: '操作',
                 render: (_: unknown, row: IdentityUser) => (
                   <Space>
-                    {has('idp:identity-user:password-reset') && (
+                    {has('tianquan-shoubing:identity-user:password-reset') && (
                       <Button size="small" onClick={() => resetPasswordMutation.mutate(row.subject)} loading={resetPasswordMutation.isPending}>重置密码</Button>
                     )}
-                    {has('idp:identity-user:revoke-all') && (
+                    {has('tianquan-shoubing:identity-user:revoke-all') && (
                       <Button size="small" danger onClick={() => revokeMutation.mutate(row.subject)} loading={revokeMutation.isPending}>撤销会话</Button>
                     )}
                   </Space>
@@ -2402,7 +2402,7 @@ export const UserListPage = () => {
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx
-git commit -m "refactor(idp): extract UserListPage with react-query and error handling"
+git commit -m "refactor(tianquan-shoubing): extract UserListPage with react-query and error handling"
 ```
 
 **Task 23: ClientListPage**
@@ -2432,13 +2432,13 @@ export const ClientListPage = () => {
   const [messageApi, contextHolder] = message.useMessage()
 
   const clientsQuery = useQuery({
-    queryKey: ['idp', 'clients'],
-    queryFn: () => auth.httpClient.request<OAuthClientView[]>('/api/v1/identity/clients'),
+    queryKey: ['tianquan-shoubing', 'clients'],
+    queryFn: () => auth.httpClient.request<OAuthClientView[]>('/api/v1/tianquan-shoubing/clients'),
   })
 
   const createMutation = useMutation({
     mutationFn: (values: ClientFormValues) =>
-      auth.httpClient.request('/api/v1/identity/clients', {
+      auth.httpClient.request('/api/v1/tianquan-shoubing/clients', {
         method: 'POST',
         body: JSON.stringify({
           clientId: values.clientId, clientName: values.clientName,
@@ -2450,7 +2450,7 @@ export const ClientListPage = () => {
       setModalOpen(false)
       form.resetFields()
       void messageApi.success('客户端已创建')
-      await queryClient.invalidateQueries({ queryKey: ['idp', 'clients'] })
+      await queryClient.invalidateQueries({ queryKey: ['tianquan-shoubing', 'clients'] })
     },
     onError: (err) => { void messageApi.error(err instanceof Error ? err.message : '创建失败') },
   })
@@ -2460,7 +2460,7 @@ export const ClientListPage = () => {
       {contextHolder}
       <Card
         title="OAuth 公共客户端"
-        extra={has('idp:oauth-client:create') && (
+        extra={has('tianquan-shoubing:oauth-client:create') && (
           <Button type="primary" onClick={() => setModalOpen(true)}>创建客户端</Button>
         )}
       >
@@ -2507,7 +2507,7 @@ export const ClientListPage = () => {
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx
-git commit -m "refactor(idp): extract ClientListPage with react-query"
+git commit -m "refactor(tianquan-shoubing): extract ClientListPage with react-query"
 ```
 
 **Task 24: SigningKeyPage**
@@ -2526,8 +2526,8 @@ import type { SigningKeyView } from '../../api/types'
 export const SigningKeyPage = () => {
   const auth = useAuth()
   const query = useQuery({
-    queryKey: ['idp', 'keys'],
-    queryFn: () => auth.httpClient.request<SigningKeyView[]>('/api/v1/identity/signing-keys'),
+    queryKey: ['tianquan-shoubing', 'keys'],
+    queryFn: () => auth.httpClient.request<SigningKeyView[]>('/api/v1/tianquan-shoubing/signing-keys'),
   })
 
   return (
@@ -2559,7 +2559,7 @@ export const SigningKeyPage = () => {
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx
-git commit -m "refactor(idp): extract SigningKeyPage with react-query"
+git commit -m "refactor(tianquan-shoubing): extract SigningKeyPage with react-query"
 ```
 
 **Task 25: AuditLogPage**
@@ -2585,9 +2585,9 @@ export const AuditLogPage = () => {
   const [page, setPage] = useState(0)
 
   const query = useQuery({
-    queryKey: ['idp', 'audits', page],
+    queryKey: ['tianquan-shoubing', 'audits', page],
     queryFn: () =>
-      auth.httpClient.request<AuditPage>(`/api/v1/identity/audits?page=${page}&size=${PAGE_SIZE}`),
+      auth.httpClient.request<AuditPage>(`/api/v1/tianquan-shoubing/audits?page=${page}&size=${PAGE_SIZE}`),
   })
 
   return (
@@ -2626,9 +2626,9 @@ export const AuditLogPage = () => {
 
 ```bash
 git add egon-cola-tianquan-shoubing-admin-web/src/features/audits/AuditLogPage.tsx
-git commit -m "fix(idp): extract AuditLogPage with proper pagination"
+git commit -m "fix(tianquan-shoubing): extract AuditLogPage with proper pagination"
 
-### Task 26: 删除 IDP AdminConsole.tsx + 清理旧代码
+### Task 26: 删除 Tianquan-Shoubing AdminConsole.tsx + 清理旧代码
 
 **Files:**
 - Delete: `egon-cola-tianquan-shoubing-admin-web/src/app/AdminConsole.tsx`
@@ -2643,46 +2643,46 @@ cd egon-cola-tianquan-shoubing-admin-web && npm run build
 - [ ] **Step 2: Commit**
 
 ```bash
-git commit -m "refactor(idp): remove monolithic AdminConsole, all sections extracted to feature pages"
+git commit -m "refactor(tianquan-shoubing): remove monolithic AdminConsole, all sections extracted to feature pages"
 ```
 
 ---
 
-## Phase 6: RBAC3 重构
+## Phase 6: Tianquan-Jianshen 重构
 
-### Task 27: RBAC3 安装共享包
+### Task 27: Tianquan-Jianshen 安装共享包
 
 **Files:**
 - Modify: `egon-cola-tianquan-jianshen-admin-web/package.json`
 
 添加 `"@egon-cola/xingyuan-admin-web-shared": "file:../egon-cola-xingyuan-admin-web-shared"`、`"i18next"`、`"react-i18next"` 到 dependencies。`npm install`。
 
-Commit: `git commit -m "chore(rbac3): add shared package and i18n dependencies"`
+Commit: `git commit -m "chore(tianquan-jianshen): add shared package and i18n dependencies"`
 
-### Task 28: RBAC3 main.tsx + App.tsx
+### Task 28: Tianquan-Jianshen main.tsx + App.tsx
 
 - Modify `main.tsx`: 接入 `injectTokens()` + `initI18n()` + `AdminThemeProvider` + `I18nProvider`
 - Modify `App.tsx`: 替换项目内 `AppErrorBoundary` 为共享包版本（带 `onError`），替换 `ConfigProvider` 为共享 `AdminThemeProvider`
 
-Commit: `git commit -m "refactor(rbac3): use shared ThemeProvider, ErrorBoundary, i18n"`
+Commit: `git commit -m "refactor(tianquan-jianshen): use shared ThemeProvider, ErrorBoundary, i18n"`
 
-### Task 29: RBAC3 API 层 — 基于共享 HttpClient
+### Task 29: Tianquan-Jianshen API 层 — 基于共享 HttpClient
 
 - Modify `adminApiClient.ts`: 内部 `fetch` 委托给共享 `createHttpClient`，保留 `UnifiedRbac3ApiClient` 适配层
 - 修复 `roleActivationRequired: false` 写死
 - 修复 `tokenClaims`/`expiresIn` 使用共享 `jwt.ts`
 
-Commit: `git commit -m "refactor(rbac3): delegate HTTP to shared HttpClient, fix adapter"`
+Commit: `git commit -m "refactor(tianquan-jianshen): delegate HTTP to shared HttpClient, fix adapter"`
 
-### Task 30: RBAC3 删除项目内 oauthClient + tokenStore + PageState
+### Task 30: Tianquan-Jianshen 删除项目内 oauthClient + tokenStore + PageState
 
 - Delete `features/auth/oauthClient.ts` + 其测试
 - Delete `features/shared/PageState.tsx`
 - 所有引用替换为共享包导入
 
-Commit: `git commit -m "refactor(rbac3): replace local oauth/PageState with shared package"`
+Commit: `git commit -m "refactor(tianquan-jianshen): replace local oauth/PageState with shared package"`
 
-### Task 31: RBAC3 路由懒加载
+### Task 31: Tianquan-Jianshen 路由懒加载
 
 - [ ] **Step 1: 修改 governance.routes.tsx**
 
@@ -2768,10 +2768,10 @@ export interface FeatureRouteDescriptor {
 
 ```bash
 git add egon-cola-tianquan-jianshen-admin-web/src/features/*.routes.tsx egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx egon-cola-tianquan-jianshen-admin-web/src/app/navigation.ts egon-cola-tianquan-jianshen-admin-web/src/features/shared/RouteDescriptor.ts
-git commit -m "refactor(rbac3): add route-level lazy loading, fix navigation visibility with hideFromNav"
+git commit -m "refactor(tianquan-jianshen): add route-level lazy loading, fix navigation visibility with hideFromNav"
 ```
 
-### Task 32: RBAC3 各页面使用 useFeatureQuery + PageTemplate
+### Task 32: Tianquan-Jianshen 各页面使用 useFeatureQuery + PageTemplate
 
 每个页面做以下三处替换：
 
@@ -2783,7 +2783,7 @@ const { status } = useRbac3Session()
 const { effectiveTenantId } = useFeatureTenantContext()
 const api = someApi(useFeatureApi())
 const query = useQuery({
-  queryKey: ['rbac3', 'xxx', effectiveTenantId ?? 'none'],
+  queryKey: ['tianquan-jianshen', 'xxx', effectiveTenantId ?? 'none'],
   queryFn: () => api.fetch(),
   enabled: status === 'READY',
 })
@@ -2832,9 +2832,9 @@ import { usePermission } from '@egon-cola/xingyuan-admin-web-shared'
 - `AssignmentListPage.tsx`、`ConstraintPage.tsx`、`ManagementPolicyPage.tsx`
 - `AuditLogPage.tsx`、`SessionListPage.tsx`、`AuthorizationSimulationPage.tsx`、`RuntimeStatusPage.tsx`
 
-Commit: `git commit -m "refactor(rbac3): apply useFeatureQuery, PageTemplate, usePermission to all pages"`
+Commit: `git commit -m "refactor(tianquan-jianshen): apply useFeatureQuery, PageTemplate, usePermission to all pages"`
 
-### Task 33: RBAC3 Bug 修复
+### Task 33: Tianquan-Jianshen Bug 修复
 
 - [ ] **Step 1: RoleGraphPage — 加并发上限**
 
@@ -2843,7 +2843,7 @@ Commit: `git commit -m "refactor(rbac3): apply useFeatureQuery, PageTemplate, us
 const MAX_CONCURRENT = 50
 const roleQueries = useQueries({
   queries: roles.slice(0, MAX_CONCURRENT).map((role) => ({
-    queryKey: ['rbac3', 'role-impact', tenantId, role.id],
+    queryKey: ['tianquan-jianshen', 'role-impact', tenantId, role.id],
     queryFn: () => api.impact(role.id),
     enabled: status === 'READY',
   })),
@@ -2905,21 +2905,21 @@ const value = useMemo<FeatureApiContextValue>(() => ({
 
 ```bash
 git add egon-cola-tianquan-jianshen-admin-web/src/features/
-git commit -m "fix(rbac3): fix N+1 cap, dead controls, frozen filter, missing deps, stale overview"
+git commit -m "fix(tianquan-jianshen): fix N+1 cap, dead controls, frozen filter, missing deps, stale overview"
 ```
 
-### Task 34: 删除 RBAC3 global.css
+### Task 34: 删除 Tianquan-Jianshen global.css
 
 - Delete `styles/global.css`
 - 样式已由共享 `injectTokens()` 提供
 
-Commit: `git commit -m "refactor(rbac3): remove local CSS, use shared design tokens"`
+Commit: `git commit -m "refactor(tianquan-jianshen): remove local CSS, use shared design tokens"`
 
 ### Task 35: 最终验证
 
 - [ ] 构建共享包: `cd admin-web-shared && npm run build`
-- [ ] 构建 IDP: `cd egon-cola-tianquan-shoubing-admin-web && npm run build`
-- [ ] 构建 RBAC3: `cd egon-cola-tianquan-jianshen-admin-web && npm run build`
+- [ ] 构建 Tianquan-Shoubing: `cd egon-cola-tianquan-shoubing-admin-web && npm run build`
+- [ ] 构建 Tianquan-Jianshen: `cd egon-cola-tianquan-jianshen-admin-web && npm run build`
 - [ ] 运行所有测试: 两个项目 `npm test`
 
 Commit: 如有修复，commit `fix: build and test fixes after refactoring`
@@ -2929,7 +2929,7 @@ Commit: 如有修复，commit `fix: build and test fixes after refactoring`
 ## Plan Review Checklist
 
 - [ ] 共享包 15 个 task 全部完成且可独立构建
-- [ ] IDP 11 个 task 全部完成，AdminConsole 已拆解
-- [ ] RBAC3 9 个 task 全部完成，Bug 已修复
+- [ ] Tianquan-Shoubing 11 个 task 全部完成，AdminConsole 已拆解
+- [ ] Tianquan-Jianshen 9 个 task 全部完成，Bug 已修复
 - [ ] 所有已知 Bug 有对应 task 修复
 - [ ] 两个项目构建通过，测试通过

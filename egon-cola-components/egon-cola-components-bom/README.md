@@ -48,7 +48,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `*-admin` | Standalone services that should be deployed as applications, not used as business dependencies |
 | `*-test` | Component samples and verification modules that should not enter the business runtime |
 | `egon-cola-component-dynamic-thread-pool` / `rpc` / `rule-engine` / `access-guard` / `method-extension` / `transactional-outbox` / `bytecode` | Component aggregator POMs, not business dependency entry points |
-| `egon-cola-platform-*` | Enterprise infrastructure platforms belong to `egon-cola-xingyuan` and are versioned outside the Components BOM |
+| `egon-cola-xingyuan-*` | Enterprise infrastructure xingyuan belong to `egon-cola-xingyuan` and are versioned outside the Components BOM |
 
 ## Complete Usage Example
 

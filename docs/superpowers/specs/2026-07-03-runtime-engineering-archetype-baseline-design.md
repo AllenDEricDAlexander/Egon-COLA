@@ -33,7 +33,7 @@ light archetype's single-module package-layer model.
 - `dev` profile defaults to connecting to Nacos through environment variables.
 - `test` profile defaults to no external registry/config center so CI does not
   require Nacos.
-- `prod` profile must use environment variables, mounted files, or platform
+- `prod` profile must use environment variables, mounted files, or xingyuan
   secrets for registry, config center, database, and decryption secrets.
 - Service archetype remains a pure service archetype. It must not gain business
   HTTP controllers, Web filters, or a Web application boundary.
@@ -246,7 +246,7 @@ Generated projects should support encrypted values from:
 
 Generated `bootstrap*.yml` templates should still avoid `ENC(...)` by default.
 Registry and config-center credentials should prefer environment variables,
-mounted files, or platform secrets. If a team chooses to use encrypted bootstrap
+mounted files, or xingyuan secrets. If a team chooses to use encrypted bootstrap
 values later, generated code must decrypt them before Nacos or Dubbo registry
 properties are bound.
 
@@ -425,7 +425,7 @@ Rules:
   default.
 - Health details default to `never` in production.
 - If Actuator is exposed outside the container network, the generated README must
-  tell users to protect it through gateway, network, or security controls.
+  tell users to protect it through yuheng, network, or security controls.
 
 Expected endpoints:
 

@@ -2,7 +2,7 @@
 
 ## 1. Context
 
-Egon-COLA needs a bytecode platform that covers five selected capabilities:
+Egon-COLA needs a bytecode xingyuan that covers five selected capabilities:
 
 1. build-time COLA architecture validation;
 2. runtime `Executor` submission enhancement;
@@ -10,7 +10,7 @@ Egon-COLA needs a bytecode platform that covers five selected capabilities:
 4. an Agent engine for the existing Method Extension component;
 5. an Agent engine for the existing Access Guard component.
 
-The source requirement document proposes a broader platform that also includes
+The source requirement document proposes a broader xingyuan that also includes
 dynamic Attach, retransformation, `CompletableFuture` call-site enhancement,
 executor-creation discovery, scheduled-task interception, reactive return types,
 dynamic transform filters, and additional diagnostic tooling. Those extensions
@@ -139,7 +139,7 @@ The following are not included:
     with another object;
 16. JVM hard termination after a later class-transformation error;
 17. transformed-class byte dumps or a production bytecode dump endpoint;
-18. direct Dynamic Config Center integration;
+18. direct Tianshu (Dynamic Config Center) integration;
 19. full compatibility certification for Dubbo, Reactor, WebFlux, or arbitrary
     third-party agents;
 20. Docker or long-running business-application startup as a validation step;
@@ -413,7 +413,7 @@ Before constructing an ASM `ClassReader`, the Transformer rejects:
 1. hard-excluded package names;
 2. names outside all configured includes;
 3. bootstrap classes;
-4. bytecode platform classes;
+4. bytecode xingyuan classes;
 5. unsupported class-file versions.
 
 An unmatched class returns `null` immediately.
@@ -1084,7 +1084,7 @@ white list
     -> business invocation
 ```
 
-The bytecode platform must not implement a second white-list, blacklist,
+The bytecode xingyuan must not implement a second white-list, blacklist,
 rate-limiter, timeout, reject, or event model.
 
 ### 14.2 Engine Configuration

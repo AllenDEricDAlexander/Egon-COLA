@@ -15,7 +15,7 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 - **工程脚手架**：通过 Maven Archetype 生成基于 Egon 组件/平台的原始族，或基于公开 Spring 生态的 `-open` 族。
 - **分层约束**：明确 `common`、`facade`、`domain`、`application`、`infrastructure`、`adapter`、`starter` 等层之间的职责和依赖方向。
 - **可复用组件**：覆盖通用契约、ID、Trace、动态线程池、RPC、规则引擎、访问治理、方法扩展、事务 Outbox 和字节码工具。
-- **企业级平台**：包含 Dynamic Config Center、Gateway、统一身份提供方 IDP 和 RBAC3 权限平台。
+- **企业级平台**：包含 Tianshu (Dynamic Config Center)、Yuheng、统一身份提供方 Tianquan-Shoubing 和 Tianquan-Jianshen 权限平台。
 - **架构验证**：支持构建期架构规则、基线、报告，以及可选的运行时字节码增强。
 - **持续兼容性验证**：在 CI 中执行 Maven 构建、Archetype 生成工程验证、Docker 集成验证和多 JDK 兼容性验证。
 
@@ -25,16 +25,16 @@ Egon-COLA 是一个基于 Java 21 的 Maven 多模块工程，提供清晰分层
 |---|---|---|
 | Component | [Common](egon-cola-components/egon-cola-component-common/README.zh-CN.md) | 通用结果、异常、POJO、Trace、ID、加密和脱敏能力。 |
 | Component | [Dynamic Thread Pool](egon-cola-components/egon-cola-component-dynamic-thread-pool/README.zh-CN.md) | 执行器注册、Redis 配置变更、动态扩缩容、虚拟线程限制和 Trace 传播。 |
-| Component | [RPC](egon-cola-components/egon-cola-component-rpc/README.zh-CN.md) | Protobuf/gRPC Provider、Consumer、DDC 注册发现及 Gateway 通道。 |
+| Component | [RPC](egon-cola-components/egon-cola-component-rpc/README.zh-CN.md) | Protobuf/gRPC Provider、Consumer、Tianshu 注册发现及 Yuheng 通道。 |
 | Component | [Rule Engine](egon-cola-components/egon-cola-component-rule-engine-starter/README.zh-CN.md) | Java 规则链、责任链、规则树、Trace、限制和监听器。 |
 | Component | [Access Guard](egon-cola-components/egon-cola-component-access-guard-starter/README.zh-CN.md) | 方法级白名单、黑名单、限流、超时和拒绝治理。 |
 | Component | [Method Extension](egon-cola-components/egon-cola-component-method-extension/README.zh-CN.md) | 在注解方法执行前插入 AOP 或 Agent 业务决策 Handler。 |
 | Component | [Transactional Outbox](egon-cola-components/egon-cola-component-transactional-outbox-starter/README.zh-CN.md) | 基于 PostgreSQL/JDBC 的至少一次 HTTP、RabbitMQ 或自定义 Handler 投递。 |
 | Component | [Bytecode](egon-cola-components/egon-cola-component-bytecode/README.zh-CN.md) | 构建期架构检查，以及可选的 Executor、观测、Method Extension 和 Access Guard 增强。 |
-| Platform | [Dynamic Config Center](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md) | 动态配置、Redis 租约、服务注册、同步发布和独立控制面。 |
-| Platform | [Gateway](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md) | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
-| Platform | [Unified Identity Provider](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | OAuth/OIDC 身份认证和统一身份相关的服务端能力。 |
-| Platform | [RBAC3](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md) | 资源授权、角色权限、策略快照、Gateway 适配和管理控制面。 |
+| Platform | [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md) | 动态配置、Redis 租约、服务注册、同步发布和独立控制面。 |
+| Platform | [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md) | HTTP/RPC 数据面、规则发布、Provider 发现、安全、可观测和部署资产。 |
+| Platform | [Tianquan-Shoubing (Unified Identity Provider)](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md) | OAuth/OIDC 身份认证和统一身份相关的服务端能力。 |
+| Platform | [Tianquan-Jianshen](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md) | 资源授权、角色权限、策略快照、Yuheng 适配和管理控制面。 |
 
 ## Architecture
 
@@ -68,13 +68,13 @@ common 在生成工程约定允许的范围内被各层共享
 
 不同 Archetype 的具体规则并不完全相同：
 
-原始族跟随 Egon-COLA components/platforms 迭代；`-open` 族是当前可以直接使用的开源技术栈基线。具体规则请先阅读 `egon-cola-archetypes` 下的架构文档。
+原始族跟随 Egon-COLA components/xingyuan 迭代；`-open` 族是当前可以直接使用的开源技术栈基线。具体规则请先阅读 `egon-cola-archetypes` 下的架构文档。
 
 - `light` 适合轻量单模块工程和快速验证。
 - `service` 侧重后端服务、Dubbo3 Triple RPC 和 MQ，不默认暴露 HTTP Controller。
 - `web` 提供包含 HTTP adapter、facade、application、domain、infrastructure 的多模块业务工程。
 
-平台和组件也有明确边界：Components BOM 只管理公共组件消费 Artifact，不反向导出 DDC、Gateway、IDP 或 RBAC3 平台 Artifact；平台可以消费组件，但平台的部署、配置和外部依赖由各自文档负责。
+平台和组件也有明确边界：Components BOM 只管理公共组件消费 Artifact，不反向导出 Tianshu、Yuheng、Tianquan-Shoubing 或 Tianquan-Jianshen 平台 Artifact；平台可以消费组件，但平台的部署、配置和外部依赖由各自文档负责。
 
 ## Requirements
 
@@ -82,7 +82,7 @@ common 在生成工程约定允许的范围内被各层共享
 - Maven 3.9.14，推荐使用仓库内置的 Maven Wrapper：`./mvnw`。
 - Git，用于获取源码和参与协作。
 - Docker，用于 Docker-backed 集成测试和平台镜像构建。
-- Node.js 24，用于 Gateway Admin Web 和 RBAC3 Web 工作流；纯 Java Maven 构建不要求 Node.js。
+- Node.js 24，用于 Yuheng Admin Web 和 Tianquan-Jianshen Web 工作流；纯 Java Maven 构建不要求 Node.js。
 - Redis、PostgreSQL 等外部服务只在运行对应组件或平台的集成流程时需要，具体拓扑以模块 README 和 Runbook 为准。
 
 ## Quick Start
@@ -123,7 +123,7 @@ cd Egon-COLA
   -Pgenerated-archetypes clean verify
 ```
 
-如果需要验证统一身份、DDC、Gateway、RBAC3、RPC 和 MCP 的完整本地拓扑，请参考[统一身份与 MCP 本地运行手册](docs/operations/unified-identity-mcp-local-runbook.md)。
+如果需要验证统一身份、Tianshu、Yuheng、Tianquan-Jianshen、RPC 和 MCP 的完整本地拓扑，请参考[统一身份与 MCP 本地运行手册](docs/operations/unified-identity-mcp-local-runbook.md)。
 
 ## Maven Dependency
 
@@ -169,7 +169,7 @@ cd Egon-COLA
 当前 BOM 管理的公共组件包括：
 
 - Common：`common-core`、`common-trace`、`common-id-starter`、`common-crypto`、数据脱敏 Starter。
-- Runtime Starter：动态线程池、Trace Spring Boot Starter、RPC Starter、RPC DDC Adapter、规则引擎、Access Guard、Method Extension、Transactional Outbox。
+- Runtime Starter：动态线程池、Trace Spring Boot Starter、RPC Starter、RPC Tianshu Adapter、规则引擎、Access Guard、Method Extension、Transactional Outbox。
 - Bytecode：API、Bridge、Runtime、Agent、Starter。
 
 BOM 不导出平台 Artifact、测试模块、Admin 应用或前端 npm 包。完整导出列表以 [Components BOM 中文 README](egon-cola-components/egon-cola-components-bom/README.zh-CN.md) 为准。
@@ -191,7 +191,7 @@ BOM 不导出平台 Artifact、测试模块、Admin 应用或前端 npm 包。�
 | Snowflake ID | `egon.cola.component.id` | Starter 启用时必须显式提供 `machine-id`。 |
 | 动态线程池 | `egon.cola.component.dtp` | 配置执行器注册、Redis、快照上报和 Trace 传播。 |
 | RPC | `egon.cola.component.rpc` | 配置 Provider/Consumer 角色、TLS、Deadline 和 Metadata。 |
-| DDC 集成 | `egon.cola.component.ddc` | 配置启动目标、Redis、注册租约和凭据。 |
+| Tianshu 集成 | `egon.cola.component.tianshu` | 配置启动目标、Redis、注册租约和凭据。 |
 | Transactional Outbox | `egon.cola.component.transactional-outbox` | 配置 PostgreSQL/JDBC 存储、轮询、重试、租约和投递通道。 |
 
 例如，使用 ID Starter 的 Spring Boot 应用必须提供明确的机器 ID：
@@ -209,11 +209,11 @@ egon:
 配置时需要注意：
 
 1. `machine-id` 不会从 IP、MAC、主机名、端口、进程 ID、随机数或哈希值推断。
-2. RPC 的 Provider、Consumer、Gateway 和 DDC 是不同运行角色，不应把一个角色的配置直接复制到另一个角色。
-3. Redis、PostgreSQL、TLS 密钥、OIDC 凭据和 DDC 注册凭据必须由部署环境提供，不应写入 README 示例之外的源码默认值。
+2. RPC 的 Provider、Consumer、Yuheng 和 Tianshu 是不同运行角色，不应把一个角色的配置直接复制到另一个角色。
+3. Redis、PostgreSQL、TLS 密钥、OIDC 凭据和 Tianshu 注册凭据必须由部署环境提供，不应写入 README 示例之外的源码默认值。
 4. Outbox 的数据库表结构、迁移执行者和 Schema 所有权需要在业务应用与平台之间提前约定。
 
-具体属性表和完整示例请查看对应模块 README。Gateway 与 DDC 的多进程配置边界见 [Gateway 与 DDC 开发集成指南](egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.zh-CN.md)。
+具体属性表和完整示例请查看对应模块 README。Yuheng 与 Tianshu 的多进程配置边界见 [Yuheng 与 Tianshu 开发集成指南](egon-cola-xingyuan/egon-cola-yuheng/docs/developer-integration.zh-CN.md)。
 
 ## Usage
 
@@ -226,7 +226,7 @@ Egon-COLA 并行发布两族 Maven Archetype。原始 Artifact ID 继续保留�
 | 原始 | `egon-cola-archetype-light` | `egon-cola-archetype-service` | `egon-cola-archetype-web` |
 | Open | `egon-cola-archetype-light-open` | `egon-cola-archetype-service-open` | `egon-cola-archetype-web-open` |
 
-Open 族固定使用 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、MyBatis-Plus 3.5.17、ShardingSphere 5.5.3，以及 Common ID 生成器、Dynamic Thread Pool；Service/Web 额外使用 Dubbo 3.3.6 和 gRPC/Protobuf 1.73.0，Light 刻意不引入 RPC 或 Gateway。Light/Web 的 HTTP API 使用 Springdoc。Open 族禁止 Spring Data JPA、Flyway/Liquibase 和内置 Gateway。内部 ID 为 `Long`，Proto 使用 `int64`，HTTP/GraphQL 边界使用十进制字符串；数据库 DDL 位于生成工程的手工 SQL Runbook 中。
+Open 族固定使用 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba 2025.0.0.0、Nacos 3.0.3、MyBatis-Plus 3.5.17、ShardingSphere 5.5.3，以及 Common ID 生成器、Dynamic Thread Pool；Service/Web 额外使用 Dubbo 3.3.6 和 gRPC/Protobuf 1.73.0，Light 刻意不引入 RPC 或 Yuheng。Light/Web 的 HTTP API 使用 Springdoc。Open 族禁止 Spring Data JPA、Flyway/Liquibase 和内置 Yuheng。内部 ID 为 `Long`，Proto 使用 `int64`，HTTP/GraphQL 边界使用十进制字符串；数据库 DDL 位于生成工程的手工 SQL Runbook 中。
 
 维护者只修改 `egon-cola-archetypes/source-projects` 下对应的正常 Maven 工程，不直接编辑
 生成目录。`definitions` 只负责六个 Archetype 的打包合同；修改源码后先运行
@@ -256,24 +256,24 @@ mvn -B archetype:generate \
 业务应用通常按“BOM + 具体 Starter 或纯 JAR”的方式接入：
 
 1. 导入 `egon-cola-components-bom`，避免每个依赖单独维护版本。
-2. 根据组件 README 选择直接消费入口，例如 `...-starter`、`common-core` 或 `rpc-ddc-adapter`。
-3. 根据当前运行角色填写配置，并确认是否需要 Redis、PostgreSQL、DDC 或 Gateway。
+2. 根据组件 README 选择直接消费入口，例如 `...-starter`、`common-core` 或 `rpc-tianshu-adapter`。
+3. 根据当前运行角色填写配置，并确认是否需要 Redis、PostgreSQL、Tianshu 或 Yuheng。
 4. 先执行模块级测试，再根据变更范围执行根 Reactor 构建。
 
 ### 运行平台
 
 平台模块是独立应用，不会因为执行根工程 Maven 构建而自动启动。请根据拓扑启动所需平台和外部服务：
 
-- [Dynamic Config Center](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md)
-- [Gateway](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md)
+- [Tianshu (Dynamic Config Center)](egon-cola-xingyuan/egon-cola-tianshu/README.zh-CN.md)
+- [Yuheng](egon-cola-xingyuan/egon-cola-yuheng/README.zh-CN.md)
 - [统一身份 Provider](egon-cola-xingyuan/egon-cola-tianquan-shoubing/README.md)
-- [RBAC3 权限平台](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md)
+- [Tianquan-Jianshen 权限平台](egon-cola-xingyuan/egon-cola-tianquan-jianshen/README.zh-CN.md)
 
 ## Core Concepts
 
 - **Archetype**：创建新业务工程的模板，负责初始模块布局和依赖方向，不负责实现业务领域。
 - **Component**：可复用库或 Spring Boot Starter。运行时组件提供契约和自动配置，测试与 Admin 模块属于验证或部署边界。
-- **Platform**：可以独立部署的企业级能力，例如 DDC、Gateway、IDP、RBAC3。平台可以消费组件，业务应用则根据拓扑消费对应契约或 Starter。
+- **Platform**：可以独立部署的企业级能力，例如 Tianshu、Yuheng、Tianquan-Shoubing、Tianquan-Jianshen。平台可以消费组件，业务应用则根据拓扑消费对应契约或 Starter。
 - **Starter 边界**：Starter 是业务应用接入运行时组件的常规入口，负责自动配置，不应反向依赖 Admin、Test 或 UI。
 - **Contract 与 Runtime**：API、Contract、Descriptor 模块定义集成面；Runtime、Engine、Admin、Adapter 模块实现具体运行职责。
 - **BOM 版本所有权**：Components BOM 集中管理公共组件版本；平台版本和平台部署由各平台 Reactor 与平台文档负责。
@@ -286,7 +286,7 @@ mvn -B archetype:generate \
 - 通过 Maven Archetype 模板扩展生成工程的目录、依赖和默认文档。
 - 在 Starter 明确支持条件回退的地方，使用业务应用自有 Bean 替换默认 Spring Boot Bean。
 - 在规则引擎、Access Guard 和 Method Extension 中注册规则、监听器、策略、访问决策和业务 Handler。
-- 定义 Protobuf 契约，并选择 RPC Provider、Consumer、DDC 或 Gateway 集成模式。
+- 定义 Protobuf 契约，并选择 RPC Provider、Consumer、Tianshu 或 Yuheng 集成模式。
 - 为 Transactional Outbox 提供自定义 `DeliveryHandler`，或使用内置 HTTP/RabbitMQ Adapter。
 - 为 Bytecode 组件提供架构规则、基线、报告 Writer，或启用可选 Runtime Agent。
 
@@ -343,7 +343,7 @@ Egon-COLA/
 
 ## Deployment
 
-组件通常作为 Maven 依赖被业务应用消费；DDC、Gateway、IDP、RBAC3 则是具有独立运行配置、Docker/部署资产、外部服务和运维边界的平台应用。
+组件通常作为 Maven 依赖被业务应用消费；Tianshu、Yuheng、Tianquan-Shoubing、Tianquan-Jianshen 则是具有独立运行配置、Docker/部署资产、外部服务和运维边界的平台应用。
 
 Maven Central 发布时，应将根 Reactor 作为一个依赖有序的整体执行验证和部署：
 
@@ -374,7 +374,7 @@ scripts/maven-deploy.sh archetypes --dry-run
 | Open Spring Cloud / Alibaba | 2025.0.3 / 2025.0.0.0 |
 | Open 持久化 | MyBatis-Plus 3.5.17 和 ShardingSphere 5.5.3 |
 | Open 服务发现 | Nacos 3.0.3 容器镜像 |
-| 前端运行时 | Gateway Admin Web 和 RBAC3 Web 工作流使用 Node.js 24 |
+| 前端运行时 | Yuheng Admin Web 和 Tianquan-Jianshen Web 工作流使用 Node.js 24 |
 | CI 容器 | 主 Java 兼容性工作流使用 Rocky Linux 10 |
 
 Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立即升级到 JDK 25。前端模块拥有独立的 `package.json`、锁文件和构建流程，不能仅凭 Java Reactor 的结果判断前端兼容性。
@@ -389,7 +389,7 @@ Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立�
 
 通常不应该。建议导入 Components BOM，然后依赖组件文档中明确的 Starter 或纯 JAR 入口。Admin 和 Test 模块分别服务于平台运行和组件验证。
 
-### Components BOM 是否包含 DDC、Gateway、IDP、RBAC3？
+### Components BOM 是否包含 Tianshu、Yuheng、Tianquan-Shoubing、Tianquan-Jianshen？
 
 不包含。BOM 只管理公共可复用组件 Artifact；平台 Artifact 具有独立的模块边界、版本关系和部署文档。
 
@@ -397,13 +397,13 @@ Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立�
 
 不等于。单元测试、模块测试和 Docker-backed 测试只能证明对应测试覆盖的行为，不能单独证明生产 Redis/PostgreSQL、DNS/VIP 路由、凭据、多进程部署或高可用行为。
 
-### Open 族是否内置 Gateway 或自动更新数据库？
+### Open 族是否内置 Yuheng 或自动更新数据库？
 
-不内置。Gateway 属于外部 Spring Cloud Gateway 部署；Open 模板在生成项目 Infrastructure 的 `src/main/resources/db/manual/postgresql` 提供经过测试的 PostgreSQL 手工 SQL，不使用 Spring Data JPA、Flyway、Liquibase，也不会自动刷表。
+不内置。Yuheng 属于外部 Spring Cloud Gateway 部署；Open 模板在生成项目 Infrastructure 的 `src/main/resources/db/manual/postgresql` 提供经过测试的 PostgreSQL 手工 SQL，不使用 Spring Data JPA、Flyway、Liquibase，也不会自动刷表。
 
 ### 组件应该使用哪个入口？
 
-优先使用组件 README 标出的 Starter 或纯 JAR 入口。不要直接依赖聚合父 POM、测试模块或 Admin 应用；如果需要替换默认 Bean、接入 DDC/Gateway 或使用自定义 Handler，应先确认对应扩展契约。
+优先使用组件 README 标出的 Starter 或纯 JAR 入口。不要直接依赖聚合父 POM、测试模块或 Admin 应用；如果需要替换默认 Bean、接入 Tianshu/Yuheng 或使用自定义 Handler，应先确认对应扩展契约。
 
 ### 配置问题应该去哪里查？
 
@@ -414,7 +414,7 @@ Java 源码基线是 21，CI 额外验证 JDK 25 不代表业务项目必须立�
 当前路线方向包括：
 
 - 保持 Java 21 基线，并持续维护 JDK 21/25 兼容性验证。
-- 持续对齐 DDC、Gateway、统一身份和 RBAC3 的契约、适配器与本地 Runbook。
+- 持续对齐 Tianshu、Yuheng、统一身份和 Tianquan-Jianshen 的契约、适配器与本地 Runbook。
 - 扩展 Archetype 生成示例和架构检查能力，同时避免给业务项目强加不必要的框架约束。
 - 补充本地及类生产平台拓扑的运维文档、故障边界和验证证据。
 - 持续维护 Components BOM 和 Maven Central 发布流程，保证公共消费面稳定演进。

@@ -1,27 +1,27 @@
-# Gateway DDC Scope Authority Implementation Plan
+# Yuheng Tianshu Scope Authority Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. Execute inline in the current worktree; the user explicitly prohibited subagents.
 
-**Goal:** Make Gateway Admin consume DDC enabled namespace-env-app bindings as its only scope catalog, reuse one physical Gateway Application across namespace views, and make Gateway Web select only valid DDC scopes.
+**Goal:** Make Yuheng Admin consume Tianshu enabled namespace-env-app bindings as its only scope catalog, reuse one physical Yuheng Application across namespace views, and make Yuheng Web select only valid Tianshu scopes.
 
-**Architecture:** Extend the existing signed `DdcManagementClient` Adapter with a read-only scope binding operation. Add a Gateway Scope Facade that joins DDC bindings to Gateway physical application identity `(bizCode, env, appCode)`, then expose it to Gateway Web. Keep namespace as a visibility view, preserve existing Gateway Group semantics, and enforce physical application uniqueness with one new Gateway Flyway migration.
+**Architecture:** Extend the existing signed `DdcManagementClient` Adapter with a read-only scope binding operation. Add a Yuheng Scope Facade that joins Tianshu bindings to Yuheng physical application identity `(bizCode, env, appCode)`, then expose it to Yuheng Web. Keep namespace as a visibility view, preserve existing Yuheng Group semantics, and enforce physical application uniqueness with one new Yuheng Flyway migration.
 
 **Tech Stack:** Java 21, Spring Boot MVC/Data JPA/Security, PostgreSQL/Flyway, Maven, React 19, TypeScript 6, TanStack Query, Ant Design, Vitest.
 
 ## Global Constraints
 
-- DDC scope order is exactly `bizCode -> namespaceCode -> env -> appCode`.
-- DDC enabled namespace-env-app bindings are the only selectable Gateway scopes.
+- Tianshu scope order is exactly `bizCode -> namespaceCode -> env -> appCode`.
+- Tianshu enabled namespace-env-app bindings are the only selectable Yuheng scopes.
 - Namespace is a visibility/authorization view and never enters physical application, configuration, service or instance identity.
-- Gateway Application physical identity is exactly `(bizCode, env, applicationCode)`.
-- A physical application bound to multiple namespaces reuses one Gateway Application ID, Catalog and Credential aggregate.
+- Yuheng Application physical identity is exactly `(bizCode, env, applicationCode)`.
+- A physical application bound to multiple namespaces reuses one Yuheng Application ID, Catalog and Credential aggregate.
 - `serviceId` is shared by replicas of one logical service; `instanceId` and `leaseId` distinguish replicas and lease sessions.
-- Gateway Admin remains `infra/ga`; Gateway Engine remains `infra/ge`; `egon-cola-gateway-engine` and `egon-gateway-rpc` remain different services under `ge`.
-- Gateway Web never calls DDC directly and never receives DDC HMAC credentials.
-- Do not copy DDC master data into Gateway and do not add a synchronization job.
-- Do not redesign Gateway Group persistence or release/routing semantics.
-- Add exactly one new Gateway migration, `V6`; never modify existing Flyway files.
-- Preserve existing data. Detect conflicting physical Gateway applications and fail migration instead of deleting or merging them.
+- Yuheng Admin remains `infra/ga`; Yuheng Engine remains `infra/ge`; `egon-cola-yuheng-biz-gateway` and `egon-yuheng-rpc` remain different services under `ge`.
+- Yuheng Web never calls Tianshu directly and never receives Tianshu HMAC credentials.
+- Do not copy Tianshu master data into Yuheng and do not add a synchronization job.
+- Do not redesign Yuheng Group persistence or release/routing semantics.
+- Add exactly one new Yuheng migration, `V6`; never modify existing Flyway files.
+- Preserve existing data. Detect conflicting physical Yuheng applications and fail migration instead of deleting or merging them.
 - Use the existing local PostgreSQL and Redis for live verification; do not use Docker or Testcontainers as host-local topology evidence.
 - Preserve unrelated worktree changes and stage only each task's declared files.
 
@@ -29,46 +29,46 @@
 
 ## File Structure
 
-### DDC signed management boundary
+### Tianshu signed management boundary
 
-- Create `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeQuery.java`: optional four-field scope query.
-- Create `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeBinding.java`: transport-neutral binding projection.
-- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`: add default read-only method.
-- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`: signed HTTP Adapter implementation.
-- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`: HMAC-protected scope endpoint using the existing binding service.
+- Create `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/model/DdcManagementScopeQuery.java`: optional four-field scope query.
+- Create `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/model/DdcManagementScopeBinding.java`: transport-neutral binding projection.
+- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/DdcManagementClient.java`: add default read-only method.
+- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/client/HttpDdcManagementClient.java`: signed HTTP Adapter implementation.
+- Modify `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcManagementOpenApiController.java`: HMAC-protected scope endpoint using the existing binding service.
 
-### Gateway backend
+### Yuheng backend
 
-- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeService.java`: DDC/Gateway join Facade and exact binding validation.
-- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayScopeController.java`: authenticated read-only `/scopes` API.
-- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationAlreadyExistsException.java`: physical duplicate evidence.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/scope/GatewayScopeService.java`: Tianshu/Yuheng join Facade and exact binding validation.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayScopeController.java`: authenticated read-only `/scopes` API.
+- Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/GatewayApplicationAlreadyExistsException.java`: physical duplicate evidence.
 - Modify `GatewayApplicationRepository.java`, `GatewayApplicationService.java`, `GatewayApplicationController.java`, and `GatewayAdminExceptionHandler.java`: physical identity, optional filtering and conflict response.
 - Create `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V6__enforce_gateway_application_physical_identity.sql`: replace the legacy namespace-based unique index.
 
-### Gateway Web
+### Yuheng Web
 
 - Modify `src/api/types.ts` and `src/api/gatewayApi.ts`: scope binding contract and API.
 - Rewrite `src/hooks/scopeDefaults.ts`: pure valid-scope resolver, cascade and options.
-- Rewrite `src/hooks/useScope.tsx`: authenticated async DDC scope loading and persistence.
-- Modify `src/layouts/AdminLayout.tsx`: DDC-derived `biz -> namespace -> env -> app` selectors.
-- Modify `src/features/applications/ApplicationsPage.tsx`: read-only DDC identity during creation and explicit error display.
+- Rewrite `src/hooks/useScope.tsx`: authenticated async Tianshu scope loading and persistence.
+- Modify `src/layouts/AdminLayout.tsx`: Tianshu-derived `biz -> namespace -> env -> app` selectors.
+- Modify `src/features/applications/ApplicationsPage.tsx`: read-only Tianshu identity during creation and explicit error display.
 
 ---
 
-### Task 1: Add the signed DDC scope binding management contract
+### Task 1: Add the signed Tianshu scope binding management contract
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeQuery.java`
-- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementScopeBinding.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
-- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiControllerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/model/DdcManagementScopeQuery.java`
+- Create: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/model/DdcManagementScopeBinding.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/DdcManagementClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/main/java/top/egon/cola/component/tianshu/management/client/HttpDdcManagementClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcManagementOpenApiController.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter/src/test/java/top/egon/cola/component/tianshu/management/client/HttpDdcManagementClientTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcManagementOpenApiControllerTest.java`
 
 **Interfaces:**
 - Produces `DdcManagementClient#getScopeBindings(DdcManagementScopeQuery)`.
-- Produces signed `GET /api/v1/ddc/openapi/management/scope-bindings`.
+- Produces signed `GET /api/v1/tianshu/openapi/management/scope-bindings`.
 - Query parameters `bizCode`, `namespaceCode`, `env`, `appCode` are independently optional and blank values are omitted.
 - Response order is inherited from `DdcNamespaceEnvAppBindingService#list` and is stable by biz, namespace, env, app.
 
@@ -79,7 +79,7 @@
 void scopeBindingsOmitBlankFiltersAndKeepSignedPartialQuery() {
     ClientFixture fixture = fixture("ak", "sk");
     fixture.server().expect(requestTo(
-            "http://ddc.test/api/v1/ddc/openapi/management/scope-bindings"
+            "http://tianshu.test/api/v1/tianshu/openapi/management/scope-bindings"
                     + "?bizCode=retail&namespaceCode=ops"))
             .andExpect(method(HttpMethod.GET))
             .andRespond(withSuccess(scopeBindingResponse(), MediaType.APPLICATION_JSON));
@@ -166,7 +166,7 @@ private Map<String, List<String>> scopeQuery(DdcManagementScopeQuery query) {
 }
 ```
 
-- [ ] **Step 5: Write the failing DDC OpenAPI controller projection test**
+- [ ] **Step 5: Write the failing Tianshu OpenAPI controller projection test**
 
 ```java
 @MockBean
@@ -179,7 +179,7 @@ void scopeBindingsAcceptAnySubsetOfFilters() throws Exception {
                     "binding-1", "retail", "ns-ops", "ops", "local",
                     "app-order", "order", "Order", true)));
 
-    mockMvc.perform(get("/api/v1/ddc/openapi/management/scope-bindings")
+    mockMvc.perform(get("/api/v1/tianshu/openapi/management/scope-bindings")
                     .param("bizCode", "retail")
                     .param("appCode", "order"))
             .andExpect(status().isOk())
@@ -206,7 +206,7 @@ public ResultRecord<List<DdcManagementScopeBinding>> scopeBindings(
 }
 ```
 
-- [ ] **Step 7: Run DDC targeted and module tests**
+- [ ] **Step 7: Run Tianshu targeted and module tests**
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-tianshu/pom.xml \
@@ -217,29 +217,29 @@ public ResultRecord<List<DdcManagementScopeBinding>> scopeBindings(
 
 Expected: all named tests pass and the reactor summary shows Starter and Admin were executed.
 
-- [ ] **Step 8: Commit the DDC contract**
+- [ ] **Step 8: Commit the Tianshu contract**
 
 ```bash
 git add \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter \
   egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin
-git commit -m "feat(ddc): expose signed scope bindings"
+git commit -m "feat(tianshu): expose signed scope bindings"
 ```
 
-### Task 2: Add the Gateway Scope Facade and authenticated catalog API
+### Task 2: Add the Yuheng Scope Facade and authenticated catalog API
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeService.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayScopeController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayApplicationRepository.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/scope/GatewayScopeServiceTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminSecurityIntegrationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/scope/GatewayScopeService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayScopeController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/GatewayApplicationRepository.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/scope/GatewayScopeServiceTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayAdminSecurityIntegrationTest.java`
 
 **Interfaces:**
 - Consumes `DdcManagementClient#getScopeBindings` from Task 1.
 - Produces `GatewayScopeService#list()` and `#bindings(ScopeQuery)`.
 - Produces `GatewayScopeService#requireEnabled(ScopeQuery)` returning `DdcManagementScopeBinding` for creation validation.
-- Produces authenticated `GET /api/v1/gateway/admin/scopes`.
+- Produces authenticated `GET /api/v1/yuheng/admin/scopes`.
 - Produces repository lookup `findByBizCodeAndApplicationCodeAndEnvAndDeletedFalse`.
 
 - [ ] **Step 1: Write failing Facade tests for multi-namespace reuse and upstream failure**
@@ -251,29 +251,29 @@ void mapsTwoNamespaceBindingsToOneGatewayApplication() {
             binding("binding-default", "default", true),
             binding("binding-ops", "ops", true)));
     when(applications.findAllByDeletedFalseOrderByCreatedAtDesc())
-            .thenReturn(List.of(application("gateway-order")));
+            .thenReturn(List.of(application("yuheng-order")));
 
     assertThat(service.list())
             .extracting(GatewayScopeService.ScopeView::namespace,
                     GatewayScopeService.ScopeView::gatewayApplicationId)
             .containsExactly(
-                    tuple("default", "gateway-order"),
-                    tuple("ops", "gateway-order"));
+                    tuple("default", "yuheng-order"),
+                    tuple("ops", "yuheng-order"));
 }
 
 @Test
 void reportsDdcFailureInsteadOfReturningStaticScopes() {
     when(client.getScopeBindings(any()))
             .thenThrow(new DdcManagementClientException(
-                    "DDC_MANAGEMENT_IO_ERROR", "offline", null));
+                    "TIANSHU_MANAGEMENT_IO_ERROR", "offline", null));
 
     assertThatThrownBy(service::list)
             .isInstanceOf(IllegalStateException.class)
-            .hasMessageContaining("DDC scope catalog");
+            .hasMessageContaining("Tianshu scope catalog");
 }
 ```
 
-- [ ] **Step 2: Run Gateway scope test and verify RED**
+- [ ] **Step 2: Run Yuheng scope test and verify RED**
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
@@ -283,7 +283,7 @@ void reportsDdcFailureInsteadOfReturningStaticScopes() {
 
 Expected: compilation fails because `GatewayScopeService` does not exist.
 
-- [ ] **Step 3: Implement the Facade records and DDC/Gateway join**
+- [ ] **Step 3: Implement the Facade records and Tianshu/Yuheng join**
 
 ```java
 public record ScopeQuery(
@@ -328,7 +328,7 @@ public List<DdcManagementScopeBinding> bindings(ScopeQuery query) {
                 .sorted(BINDING_ORDER)
                 .toList();
     } catch (DdcManagementClientException | UnsupportedOperationException error) {
-        throw new IllegalStateException("DDC scope catalog is unavailable", error);
+        throw new IllegalStateException("Tianshu scope catalog is unavailable", error);
     }
 }
 
@@ -337,7 +337,7 @@ public DdcManagementScopeBinding requireEnabled(ScopeQuery query) {
             .filter(value -> exact(value, query))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException(
-                    "DDC scope binding is not enabled"));
+                    "Tianshu scope binding is not enabled"));
 }
 
 public List<ScopeView> list() {
@@ -354,8 +354,8 @@ public List<ScopeView> list() {
 }
 ```
 
-The production constructor receives `ObjectProvider<DdcManagementClient>` so Gateway Admin can still start when DDC management
-is disabled; `client()` then throws `IllegalStateException("DDC management client is not configured")`. The package-private test
+The production constructor receives `ObjectProvider<DdcManagementClient>` so Yuheng Admin can still start when Tianshu management
+is disabled; `client()` then throws `IllegalStateException("Tianshu management client is not configured")`. The package-private test
 constructor accepts a nullable `DdcManagementClient` directly.
 
 - [ ] **Step 4: Add the physical repository lookup**
@@ -374,8 +374,8 @@ Keep the legacy namespace-based method until all existing callers have moved in 
 
 ```java
 @RestController
-@RequestMapping("/api/v1/gateway/admin/scopes")
-@PreAuthorize("hasAnyAuthority('CAP_gateway:read','CAP_*')")
+@RequestMapping("/api/v1/yuheng/admin/scopes")
+@PreAuthorize("hasAnyAuthority('CAP_yuheng:read','CAP_*')")
 public class GatewayScopeController {
     private final GatewayScopeService service;
 
@@ -393,15 +393,15 @@ public class GatewayScopeController {
 - [ ] **Step 6: Extend security coverage**
 
 Add `GatewayScopeController.class` to the existing MVC security slice, mock `GatewayScopeService`, and assert
-an unauthenticated request is rejected while a token with `gateway:read` receives `200`.
+an unauthenticated request is rejected while a token with `yuheng:read` receives `200`.
 
 ```java
-mockMvc.perform(get("/api/v1/gateway/admin/scopes")
-        .with(jwt().authorities(new SimpleGrantedAuthority("CAP_gateway:read"))))
+mockMvc.perform(get("/api/v1/yuheng/admin/scopes")
+        .with(jwt().authorities(new SimpleGrantedAuthority("CAP_yuheng:read"))))
         .andExpect(status().isOk());
 ```
 
-- [ ] **Step 7: Run Gateway scope and security tests**
+- [ ] **Step 7: Run Yuheng scope and security tests**
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
@@ -410,30 +410,30 @@ mockMvc.perform(get("/api/v1/gateway/admin/scopes")
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
 
-- [ ] **Step 8: Commit the Gateway scope catalog**
+- [ ] **Step 8: Commit the Yuheng scope catalog**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
-git commit -m "feat(gateway-admin): expose DDC scope catalog"
+git commit -m "feat(yuheng-admin): expose Tianshu scope catalog"
 ```
 
-### Task 3: Enforce one physical Gateway Application and scope-aware listing
+### Task 3: Enforce one physical Yuheng Application and scope-aware listing
 
 **Files:**
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V6__enforce_gateway_application_physical_identity.sql`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationAlreadyExistsException.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayApplicationRepository.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayApplicationController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/interfaces/management/GatewayAdminExceptionHandler.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/GatewayApplicationServiceTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/migration/GatewayV6MigrationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/GatewayApplicationAlreadyExistsException.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/GatewayApplicationService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/GatewayApplicationRepository.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayApplicationController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/interfaces/management/GatewayAdminExceptionHandler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/GatewayApplicationServiceTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/migration/GatewayV6MigrationTest.java`
 
 **Interfaces:**
 - Consumes `GatewayScopeService#requireEnabled` and `#bindings` from Task 2.
 - `GatewayApplicationController#list` accepts four independently optional request parameters.
 - `GatewayApplicationView` adds `boolean ddcMatched`; scoped results use the selected namespace as visibility context while the stored namespace remains legacy creation context.
-- Duplicate physical creation throws `GatewayApplicationAlreadyExistsException(existingApplicationId)` and returns HTTP 409 with code `GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS`.
+- Duplicate physical creation throws `GatewayApplicationAlreadyExistsException(existingApplicationId)` and returns HTTP 409 with code `YUHENG_ADMIN_APPLICATION_ALREADY_EXISTS`.
 
 - [ ] **Step 1: Write failing service tests for exact validation, namespace reuse and partial filters**
 
@@ -522,8 +522,8 @@ public GatewayApplicationView create(
 ```
 
 `list(ScopeQuery)` obtains enabled bindings from the Facade, converts them to a set of physical keys, filters active
-Gateway applications by those keys, and maps the requested namespace into scoped views. With an empty query it returns
-all active Gateway applications and sets `ddcMatched=false` for physical keys absent from the complete DDC binding set.
+Yuheng applications by those keys, and maps the requested namespace into scoped views. With an empty query it returns
+all active Yuheng applications and sets `ddcMatched=false` for physical keys absent from the complete Tianshu binding set.
 
 - [ ] **Step 4: Add optional controller filters and the conflict handler**
 
@@ -544,8 +544,8 @@ public List<GatewayApplicationView> list(
 public ResponseEntity<ErrorResponse> applicationExists(
         GatewayApplicationAlreadyExistsException error) {
     return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(
-            "GATEWAY_ADMIN_APPLICATION_ALREADY_EXISTS",
-            "gateway application already exists: " + error.existingApplicationId(),
+            "YUHENG_ADMIN_APPLICATION_ALREADY_EXISTS",
+            "yuheng application already exists: " + error.existingApplicationId(),
             null,
             List.of(),
             Instant.now()));
@@ -564,7 +564,7 @@ BEGIN
          GROUP BY biz_code, application_code, env
         HAVING COUNT(*) > 1
     ) THEN
-        RAISE EXCEPTION 'duplicate active gateway application physical identity';
+        RAISE EXCEPTION 'duplicate active yuheng application physical identity';
     END IF;
 END $$;
 
@@ -578,7 +578,7 @@ CREATE UNIQUE INDEX uk_gateway_application_physical_active
 `GatewayV6MigrationTest` reads the classpath resource and asserts the conflict precheck, old-index drop, new column order,
 and `WHERE deleted = FALSE`. The later host-local migration is the execution proof.
 
-- [ ] **Step 6: Run Gateway application and migration tests**
+- [ ] **Step 6: Run Yuheng application and migration tests**
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-xingyuan/egon-cola-yuheng/pom.xml \
@@ -591,10 +591,10 @@ and `WHERE deleted = FALSE`. The later host-local migration is the execution pro
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
-git commit -m "fix(gateway-admin): reuse applications across namespaces"
+git commit -m "fix(yuheng-admin): reuse applications across namespaces"
 ```
 
-### Task 4: Replace Gateway Web hardcoded scopes with DDC catalog resolution
+### Task 4: Replace Yuheng Web hardcoded scopes with Tianshu catalog resolution
 
 **Files:**
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/types.ts`
@@ -604,7 +604,7 @@ git commit -m "fix(gateway-admin): reuse applications across namespaces"
 - Rewrite test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.test.ts`
 
 **Interfaces:**
-- Consumes `GET /api/v1/gateway/admin/scopes` from Task 2.
+- Consumes `GET /api/v1/yuheng/admin/scopes` from Task 2.
 - Produces `GatewayScopeBinding`, `gatewayApi.scopes`, `resolveInitialScope`, `changeScope`, and `optionsFor`.
 - Initial priority is last valid, configured valid, first connected, first valid.
 - No function manufactures `default/default-app/dev/default` or inserts the current string into options.
@@ -625,7 +625,7 @@ it('keeps valid descendants and otherwise resets to the first valid branch', () 
   ])
 })
 
-it('returns undefined when no DDC binding exists', () => {
+it('returns undefined when no Tianshu binding exists', () => {
   expect(resolveInitialScope([], undefined, undefined)).toBeUndefined()
 })
 ```
@@ -654,7 +654,7 @@ scopes: (signal?: AbortSignal) =>
 ```
 
 Add an API test that stubs `fetch`, calls `gatewayApi.scopes()`, and asserts the exact path ends in
-`/api/v1/gateway/admin/scopes` without DDC credentials or static scope query parameters.
+`/api/v1/yuheng/admin/scopes` without Tianshu credentials or static scope query parameters.
 
 - [ ] **Step 4: Implement the pure resolver functions**
 
@@ -694,7 +694,7 @@ export const changeScope = (
     && fieldOrder.slice(index + 1)
       .every((name) => binding[name] === current[name]))
   const selected = retained ?? bindings.find(matchesPrefix)
-  if (!selected) throw new Error(`No DDC scope for ${field}=${value}`)
+  if (!selected) throw new Error(`No Tianshu scope for ${field}=${value}`)
   return scopeOf(selected)!
 }
 
@@ -729,10 +729,10 @@ git add \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.ts \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/scopeDefaults.test.ts
-git commit -m "feat(gateway-web): resolve DDC scopes"
+git commit -m "feat(yuheng-web): resolve Tianshu scopes"
 ```
 
-### Task 5: Wire async scope state, selectors and DDC-owned application creation
+### Task 5: Wire async scope state, selectors and Tianshu-owned application creation
 
 **Files:**
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/hooks/useScope.tsx`
@@ -744,10 +744,10 @@ git commit -m "feat(gateway-web): resolve DDC scopes"
 
 **Interfaces:**
 - Consumes the pure functions and `gatewayApi.scopes` from Task 4.
-- `ScopeContextValue` produces `{ scope, bindings, changeScope }` only after a valid DDC scope is loaded.
-- Persists only complete valid tuples under `egon.gateway.admin.scope.v1`.
+- `ScopeContextValue` produces `{ scope, bindings, changeScope }` only after a valid Tianshu scope is loaded.
+- Persists only complete valid tuples under `egon.yuheng.admin.scope.v1`.
 - Local login remains Access Token only; this task does not reintroduce Refresh Token.
-- Application creation sends the selected DDC `bizCode`, `namespace`, `env`, and `appCode`; those fields are read-only in the modal.
+- Application creation sends the selected Tianshu `bizCode`, `namespace`, `env`, and `appCode`; those fields are read-only in the modal.
 
 - [ ] **Step 1: Write failing provider tests for connected fallback, persistence, empty and error states**
 
@@ -758,10 +758,10 @@ it('loads scopes after login and exposes the first connected binding', async () 
   expect(await screen.findByText('retail/default/local/order')).toBeInTheDocument()
 })
 
-it('does not render scoped children when DDC scope loading fails', async () => {
+it('does not render scoped children when Tianshu scope loading fails', async () => {
   mockScopesFailure()
   renderScopeConsumer()
-  expect(await screen.findByText('DDC 作用域加载失败')).toBeInTheDocument()
+  expect(await screen.findByText('Tianshu 作用域加载失败')).toBeInTheDocument()
   expect(screen.queryByTestId('scoped-child')).not.toBeInTheDocument()
 })
 ```
@@ -778,16 +778,16 @@ npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web \
 
 ```tsx
 const scopes = useQuery({
-  queryKey: ['gateway-scopes'],
+  queryKey: ['yuheng-scopes'],
   queryFn: ({ signal }) => gatewayApi.scopes(signal),
   enabled: Boolean(auth.session),
 })
 
 if (!auth.session) return children
-if (scopes.isLoading) return <Spin fullscreen tip="加载 DDC 作用域" />
-if (scopes.error) return <Result status="error" title="DDC 作用域加载失败" />
+if (scopes.isLoading) return <Spin fullscreen tip="加载 Tianshu 作用域" />
+if (scopes.error) return <Result status="error" title="Tianshu 作用域加载失败" />
 if (!scopes.data?.length) {
-  return <Result status="info" title="DDC 暂无已启用的 namespace-env-app 绑定" />
+  return <Result status="info" title="Tianshu 暂无已启用的 namespace-env-app 绑定" />
 }
 ```
 
@@ -807,7 +807,7 @@ const selectors: Array<[ScopeField, string, string]> = [
 ```
 
 Render the four `Select` components in that order with `optionsFor(bindings, scope, field)`. On confirmed change call the
-context `changeScope`, remove scoped cached queries without removing `gateway-scopes`, and navigate to `/dashboard`.
+context `changeScope`, remove scoped cached queries without removing `yuheng-scopes`, and navigate to `/dashboard`.
 
 - [ ] **Step 5: Make Application identity read-only and display mutation errors**
 
@@ -832,7 +832,7 @@ gatewayApi.createApplication({
 Remove editable Application Code from the new form. Render `save.error` through the existing `QueryFailure`/Alert style.
 After a physical-duplicate 409, invalidate the current applications query so the already connected application is displayed.
 
-- [ ] **Step 6: Run the complete Gateway Web validation**
+- [ ] **Step 6: Run the complete Yuheng Web validation**
 
 ```bash
 npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web test -- --run
@@ -841,11 +841,11 @@ npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run lint
 npm --prefix egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web run build
 ```
 
-- [ ] **Step 7: Commit the Gateway Web integration**
+- [ ] **Step 7: Commit the Yuheng Web integration**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-git commit -m "fix(gateway-web): use DDC scope authority"
+git commit -m "fix(yuheng-web): use Tianshu scope authority"
 ```
 
 ### Task 6: Run full regression, migrate, restart and prove the live flow
@@ -855,10 +855,10 @@ git commit -m "fix(gateway-web): use DDC scope authority"
 - Source changes are allowed only after reproducing a real failure with a targeted test; each repair gets a separate `fix:` commit.
 
 **Interfaces:**
-- DDC Admin: `http://127.0.0.1:18080`.
-- Gateway Admin: `http://127.0.0.1:8080`.
-- Gateway Engine public/internal/management/RPC: `18081/18082/18083/19090`.
-- Gateway Web: `http://127.0.0.1:5173`; DDC Web: `http://127.0.0.1:5174`.
+- Tianshu Admin: `http://127.0.0.1:18080`.
+- Yuheng Admin: `http://127.0.0.1:8080`.
+- Yuheng Engine public/internal/management/RPC: `18081/18082/18083/19090`.
+- Yuheng Web: `http://127.0.0.1:5173`; Tianshu Web: `http://127.0.0.1:5174`.
 - Order Provider replicas: `18084` and `18085`.
 - Access Token file: `target/local-biz-app-run/admin.jwt`, mode `0600`; never print its content.
 
@@ -894,8 +894,8 @@ select biz_code, application_code, env, count(*)
 having count(*) > 1;
 ```
 
-Expected: zero rows. If rows exist, stop before starting the new Gateway Admin and report exact application IDs; do not merge
-or delete them automatically. Starting the packaged Gateway Admin then runs Flyway V6. Verify `flyway_schema_history` contains
+Expected: zero rows. If rows exist, stop before starting the new Yuheng Admin and report exact application IDs; do not merge
+or delete them automatically. Starting the packaged Yuheng Admin then runs Flyway V6. Verify `flyway_schema_history` contains
 version `6` and `uk_gateway_application_physical_active` exists.
 
 - [ ] **Step 4: Build executable artifacts**
@@ -916,22 +916,22 @@ lsof -nP -iTCP:18080 -iTCP:8080 -iTCP:18081 -iTCP:18082 -iTCP:18083 \
 ```
 
 Resolve each PID from the existing `target/local-biz-app-run` PID files, command line and listening port before sending TERM.
-Do not stop PostgreSQL or Redis. Start DDC Admin, Gateway Admin, Gateway Engine, the two Provider replicas, Gateway Web and
-DDC Web in that dependency order, preserving the existing environment/secret files and never echoing credentials. Poll readiness
+Do not stop PostgreSQL or Redis. Start Tianshu Admin, Yuheng Admin, Yuheng Engine, the two Provider replicas, Yuheng Web and
+Tianshu Web in that dependency order, preserving the existing environment/secret files and never echoing credentials. Poll readiness
 URLs instead of using a fixed long sleep.
 
-- [ ] **Step 6: Verify signed scope and Gateway APIs with the stored Access Token**
+- [ ] **Step 6: Verify signed scope and Yuheng APIs with the stored Access Token**
 
 ```text
-GET /api/v1/ddc/openapi/management/scope-bindings
-GET /api/v1/gateway/admin/scopes
-GET /api/v1/gateway/admin/applications?bizCode=retail&namespace=default&env=local&appCode=order
-GET /api/v1/gateway/admin/applications?bizCode=retail&namespace=ops&env=local&appCode=order
-GET /api/v1/gateway/admin/providers/instances?bizCode=retail&namespace=default&env=local&appCode=order
-GET /api/v1/gateway/admin/providers/instances?bizCode=retail&namespace=ops&env=local&appCode=order
+GET /api/v1/tianshu/openapi/management/scope-bindings
+GET /api/v1/yuheng/admin/scopes
+GET /api/v1/yuheng/admin/applications?bizCode=retail&namespace=default&env=local&appCode=order
+GET /api/v1/yuheng/admin/applications?bizCode=retail&namespace=ops&env=local&appCode=order
+GET /api/v1/yuheng/admin/providers/instances?bizCode=retail&namespace=default&env=local&appCode=order
+GET /api/v1/yuheng/admin/providers/instances?bizCode=retail&namespace=ops&env=local&appCode=order
 ```
 
-Use the existing HMAC credentials for the DDC signed endpoint and read the Gateway bearer token from the protected file without
+Use the existing HMAC credentials for the Tianshu signed endpoint and read the Yuheng bearer token from the protected file without
 printing it. Assert both namespace Application responses contain the same application ID. Assert both Provider responses contain
 the same `serviceId`/service key and the same two instance IDs, with distinct lease IDs and ports.
 
@@ -961,10 +961,10 @@ Confirm every task commit is present, no secret is staged, and only intentionall
 
 ## Plan Self-Review
 
-- Spec coverage: Task 1 covers the signed optional-filter DDC catalog; Task 2 covers the server-side Adapter/Facade boundary and future RBAC insertion point; Task 3 covers one physical application, legacy compatibility, unmatched records and exactly one migration; Tasks 4-5 cover authoritative initial selection, cascade, failures, read-only creation, Catalog/Credential reuse and no hardcoded fallback; Task 6 covers identity configuration regression and host-local live proof.
+- Spec coverage: Task 1 covers the signed optional-filter Tianshu catalog; Task 2 covers the server-side Adapter/Facade boundary and future RBAC insertion point; Task 3 covers one physical application, legacy compatibility, unmatched records and exactly one migration; Tasks 4-5 cover authoritative initial selection, cascade, failures, read-only creation, Catalog/Credential reuse and no hardcoded fallback; Task 6 covers identity configuration regression and host-local live proof.
 - Placeholder scan: the plan contains no TBD, TODO, “implement later”, generic error-handling instruction, or undefined “same as prior task” step.
-- Type consistency: DDC transport uses `namespaceCode`; Gateway API/Web use `namespace`; physical keys consistently use `bizCode, env, appCode/applicationCode`; scope ordering consistently uses `bizCode, namespace, env, appCode`.
-- Migration safety: only Gateway `V6` is added; V1-V5 remain untouched; active physical duplicates stop migration before the old unique index is removed.
+- Type consistency: Tianshu transport uses `namespaceCode`; Yuheng API/Web use `namespace`; physical keys consistently use `bizCode, env, appCode/applicationCode`; scope ordering consistently uses `bizCode, namespace, env, appCode`.
+- Migration safety: only Yuheng `V6` is added; V1-V5 remain untouched; active physical duplicates stop migration before the old unique index is removed.
 - Identity consistency: namespace is absent from physical application/service keys; two namespace bindings map to one application ID and the same service instances; replicas share serviceId and differ by instanceId/leaseId.
-- Pattern decision: the existing HTTP Management Client remains the Adapter and one Gateway Scope Facade owns joining/validation. No synchronization, Strategy, Factory or additional persistence layer is added because there is no second variation point.
+- Pattern decision: the existing HTTP Management Client remains the Adapter and one Yuheng Scope Facade owns joining/validation. No synchronization, Strategy, Factory or additional persistence layer is added because there is no second variation point.
 - Validation boundary: Maven/Vitest/typecheck/lint/build prove source behavior; only Task 6 host PostgreSQL/Redis/multi-process and HTTP checks prove this local deployment. They do not prove production HA or multi-host behavior.

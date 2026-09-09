@@ -11,7 +11,7 @@
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-components/egon-cola-component-common-mybatis-plus-spring-boot-starter plus parent dependency management, Common aggregation, Components BOM, bilingual documentation, and module-local tests` |
 | Source Requirement | `2026-08-19 Common MyBatis-Plus request plus 2026-08-20 decisions: use the MyBatis-Plus Boot 3 Starter, use unrestricted nullable Long BusinessID, read it from MDC now without null validation, and preserve a future SecurityContext provider seam` |
-| Baseline Revision | `main@4ae5419c4504250436b98886c03271889a8f2879; 2026-08-20 15:01 CST dirty-worktree snapshot; preserve unrelated Gateway MCP Spec/Plan documents` |
+| Baseline Revision | `main@4ae5419c4504250436b98886c03271889a8f2879; 2026-08-20 15:01 CST dirty-worktree snapshot; preserve unrelated Yuheng MCP Spec/Plan documents` |
 | Implements Spec | [Egon COLA Common MyBatis-Plus Starter full enhancement design](../spec/2026-08-19-16-11-common-mybatis-plus-starter.md) |
 | Spec Status | `Accepted` |
 | Spec Revision | `Obsolete 2026-08-20 snapshot at main@4ae5419c4504250436b98886c03271889a8f2879; current Spec updated 2026-08-21 14:23 CST` |
@@ -65,13 +65,13 @@ The FamilyAiButler Java files are reference evidence only. Their `String busines
 | `REQ-014` | Primary Spec §4, §9 | Extend `DefaultSqlInjector` without losing defaults and preserve logic delete. | Default/custom MappedStatements exist and custom queries exclude deleted rows. | Injector and three AbstractMethod types |
 | `REQ-015` | Primary Spec §4, §10 | Fill normalized BusinessID and configured audit-time fields with supported Java time types. | Fixed Clock tests prove create/update fill and nullable BusinessID overwrite. | MetaObjectHandler and Clock wiring |
 | `REQ-016` | Primary Spec §4, §7 | Back off for safe custom beans and fail fast when a replacement breaks the required contract. | ContextRunner accepts safe replacements and rejects missing/order-invalid plugin or Injector contracts. | Conditional beans and contract validator |
-| `REQ-017` | Primary Spec §4, §6 | Directly depend on MyBatis-Plus Boot3 Starter and JSqlParser, not native/raw MyBatis declarations or unrelated platform/data dependencies. | POM scan and dependency tree show the approved direct edge and excluded direct/unrelated edges. | Parent dependency management and module POM |
+| `REQ-017` | Primary Spec §4, §6 | Directly depend on MyBatis-Plus Boot3 Starter and JSqlParser, not native/raw MyBatis declarations or unrelated xingyuan/data dependencies. | POM scan and dependency tree show the approved direct edge and excluded direct/unrelated edges. | Parent dependency management and module POM |
 | `REQ-018` | Primary Spec §4, §9 | Preserve upstream return shapes, wrapper/chain behavior, logic delete, optimistic locking, and translated errors while enhancing safety. | Service/unit and H2 integration matrix passes. | All 57 method bodies and plugins |
 | `REQ-019` | Primary Spec §4, §6, §9 | Freeze MyBatis-Plus to 3.5.16. | Effective POM and parity fixture resolve exactly 3.5.16. | Parent POM and dependency contract test |
 | `REQ-020` | Primary Spec §4, §16 | Publish synchronized English and Chinese usage, configuration, limits, migration, and rollback documentation. | Both README pairs contain matching symbols, examples, and warnings. | Four Markdown files |
 | `REQ-021` | Primary Spec §4, §14 | Keep all focused tests inside the Starter and package no test fixture. | Tests run from the module; packaged Jar excludes schema/test classes. | Module test tree and Jar gate |
 | `REQ-022` | Primary Spec §4, §14 | Validate statically/module-wise without starting services or claiming live sharding proof. | All listed non-runtime commands exit zero; validation report states boundary. | Execution gates only |
-| `REQ-023` | Primary Spec §4, §16 | Preserve unrelated dirty-worktree content and use isolated commits. | Every commit is path-limited; final status retains unrelated Gateway documents. | All Steps and final Git audit |
+| `REQ-023` | Primary Spec §4, §16 | Preserve unrelated dirty-worktree content and use isolated commits. | Every commit is path-limited; final status retains unrelated Yuheng documents. | All Steps and final Git audit |
 
 ## 4. Implementation Strategy and Dependency Order
 
@@ -109,7 +109,7 @@ The implementation is intentionally sequential. Parallel writes would overlap th
 
 ### 4.4 Commit boundaries
 
-Each Step produces exactly one semantic, path-limited commit after its focused GREEN gate. A Step may touch a previously created type only where the Step names the new symbols/body families it owns. No Step stages the Review Spec/Plan, unrelated Gateway documents, or paths outside the inventory. Failed RED tests are observed but never committed; the corresponding GREEN state is the commit boundary.
+Each Step produces exactly one semantic, path-limited commit after its focused GREEN gate. A Step may touch a previously created type only where the Step names the new symbols/body families it owns. No Step stages the Review Spec/Plan, unrelated Yuheng documents, or paths outside the inventory. Failed RED tests are observed but never committed; the corresponding GREEN state is the commit boundary.
 
 ### 4.5 Spec Simplicity and Implementation-necessity Audit
 
@@ -221,7 +221,7 @@ egon-cola-components/
 
 - Apply the user-provided AGENTS rules: smallest safe change, existing JavaDoc style, one tested commit per Step, no service startup, no existing Flyway edits, and no unrelated refactor.
 - Recheck `git rev-parse HEAD`, `git branch --show-current`, and path-scoped `git status --short` before Step 1 because the baseline changed while design documents were being written.
-- Preserve `docs/egon/plan/2026-08-19-14-28-gateway-engine-mcp-package-refactor.md` and `docs/egon/spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md`; never stage them in this implementation.
+- Preserve `docs/egon/plan/2026-08-19-14-28-yuheng-biz-yuheng-mcp-package-refactor.md` and `docs/egon/spec/2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md`; never stage them in this implementation.
 - The Review Spec and this Review Plan are approval artifacts, not Step commit paths. Execution begins only after user approval changes the effective readiness state.
 - No generated source is edited manually. Spring configuration metadata is generated by the configuration processor during the build.
 
@@ -273,7 +273,7 @@ egon-cola-components/
 
 - Purpose: Establish one 3.5.16 MyBatis-Plus version authority and managed coordinates.
 - Symbols: `mybatis-plus.version`, dependency-management entries for `mybatis-plus-spring-boot3-starter` and `mybatis-plus-jsqlparser`.
-- Repository evidence: The parent already centralizes Boot, database, and platform versions under `<properties>` and `<dependencyManagement>`.
+- Repository evidence: The parent already centralizes Boot, database, and xingyuan versions under `<properties>` and `<dependencyManagement>`.
 - Dependencies and consumers: Consumed by the new child POM and every future BOM consumer; no runtime class is added here.
 - Why now: The child Artifact cannot declare versionless approved dependencies until the parent manages them.
 - Contract/signature changes: Adds Maven coordinates only; leaves Java/API and all existing dependency versions unchanged.
@@ -322,7 +322,7 @@ modules:
 - Why now: It is the compilation prerequisite for the RED auto-configuration test.
 - Contract/signature changes: Publishes a new additive Artifact; no existing Artifact dependency changes.
 - Input/output and state mapping: Managed version coordinates resolve into one Jar whose test dependencies cannot leak to consumers.
-- Error and edge behavior: Direct declarations of `mybatis-spring-boot-starter`, `mybatis`, `mybatis-spring`, raw `mybatis-plus`, drivers, Flyway, ShardingSphere, IdP, or RBAC fail the boundary assertion.
+- Error and edge behavior: Direct declarations of `mybatis-spring-boot-starter`, `mybatis`, `mybatis-spring`, raw `mybatis-plus`, drivers, Flyway, ShardingSphere, Tianquan-Shoubing, or RBAC fail the boundary assertion.
 - Implementation pseudocode:
 
 ```xml
@@ -567,7 +567,7 @@ public interface EgonColaBusinessScoped {
 
 - Purpose: Represent stable startup contract failures without leaking runtime SQL values.
 - Symbols: Public runtime exception with message and message/cause constructors following nearby exception style.
-- Repository evidence: Common defines named exceptions for durable platform failure categories; failed-context tests assert root-cause messages.
+- Repository evidence: Common defines named exceptions for durable xingyuan failure categories; failed-context tests assert root-cause messages.
 - Dependencies and consumers: Thrown by File 7 and technical property checks; never used for null BusinessID.
 - Why now: Validator errors need a clear public failure type before validation is implemented.
 - Contract/signature changes: Adds an additive configuration exception only; persistence exceptions remain Spring/MyBatis translations.
@@ -1391,7 +1391,7 @@ State no null/range validation, future Provider override, consumer schema/shardi
 | GREEN Step 6 | Repository root | `./mvnw -B -ntp -pl :egon-cola-component-common-mybatis-plus-spring-boot-starter -am -Dtest=EgonColaBusinessIdSqlIntegrationTest,EgonColaBatchTransactionIntegrationTest test` | SQL/plugin/transaction/concurrency | Exit 0; all H2 outcomes and rollback pass | Step 6 fixture or owning earlier production Step | In-memory DB; no service/external DB |
 | Full module | Repository root | `./mvnw -B -ntp -pl :egon-cola-component-common-mybatis-plus-spring-boot-starter -am test` | All Starter tests | Exit 0; all 52 Spec cases represented and pass | Owning Step/test | `REQ-021`,`REQ-022` |
 | Package | Repository root | `./mvnw -B -ntp -pl :egon-cola-component-common-mybatis-plus-spring-boot-starter -am package -DskipTests` then `jar tf` | Production Jar | Imports/public classes present; `schema.sql` and test classes absent | Steps 1/6 | `REQ-003`,`REQ-021` |
-| Dependency boundary | Repository root | `./mvnw -B -ntp -pl :egon-cola-component-common-mybatis-plus-spring-boot-starter dependency:tree` plus direct-POM test | Direct/transitive graph | Approved direct MP Boot3/JSqlParser edges; no unrelated platform/data dependencies | Step 1 | `REQ-017`,`REQ-019` |
+| Dependency boundary | Repository root | `./mvnw -B -ntp -pl :egon-cola-component-common-mybatis-plus-spring-boot-starter dependency:tree` plus direct-POM test | Direct/transitive graph | Approved direct MP Boot3/JSqlParser edges; no unrelated xingyuan/data dependencies | Step 1 | `REQ-017`,`REQ-019` |
 | Common reactor | Repository root | `./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/pom.xml test` | All Common modules | Exit 0; no sibling regression | Owning Step | `REQ-001`,`REQ-021` |
 | Components reactor | Repository root | `./mvnw -B -ntp -f egon-cola-components/pom.xml test` | Component parent/BOM integration | Exit 0; Artifact and BOM resolve | Step 1/7 or existing failing module owner | `REQ-001`,`REQ-019` |
 | Docs parity | Repository root | `rg`/source script comparing Artifact, classes, properties, commands, headings in four READMEs | English/Chinese docs | Exact technical symbols and warnings appear in both languages | Step 7 Files 2-5 | `REQ-020`; static |

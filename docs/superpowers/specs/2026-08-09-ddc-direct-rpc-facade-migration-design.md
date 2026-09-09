@@ -1,4 +1,4 @@
-# DDC 直连 RPC Facade、RPC 解耦与分布式 Admin 设计
+# Tianshu 直连 RPC Facade、RPC 解耦与分布式 Admin 设计
 
 状态：设计已确认，等待书面规格复核
 
@@ -14,17 +14,17 @@
 - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
 - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test`
 - `egon-cola-xingyuan/egon-cola-yuheng` 下的 Admin、Engine、Provider Runtime、Starter 与测试模块
-- 启用 DDC 的 IdP、RBAC3、样例、部署和 Archetype
+- 启用 Tianshu 的 Tianquan-Shoubing、Tianquan-Jianshen、样例、部署和 Archetype
 - `egon-cola-components-bom` 与 `egon-cola-xingyuan` dependency management
 
 本文固化用户于 2026-08-09 确认的破坏式迁移设计。本文只定义目标架构、契约、边界和验收条件，不是实施 Plan。书面规格经用户审核通过后，才允许编写逐任务实施 Plan；在此之前不得开始代码改造。
 
 本文在冲突范围内取代以下历史规格的既有决定，历史文件保留为当时事实，不回写：
 
-- `2026-07-25-gateway-rpc-ddc-extension-design.md` 中 RPC Starter 直接使用 DDC 类型的设计；
-- `2026-07-27-ddc-module-boundary-runtime-closure-design.md` 中 DDC 机器客户端使用 HTTP Endpoint 的设计；
-- `2026-08-07-ddc-spring-boot-config-data-design.md` 中 ConfigData 直接创建 `HttpDdcConfigClient` 的传输实现；
-- `2026-08-09-ddc-starter-package-consolidation-design.md` 中 HTTP Client 继续归属 DDC Starter、且不增加集成模块的设计。
+- `2026-07-25-yuheng-rpc-tianshu-extension-design.md` 中 RPC Starter 直接使用 Tianshu 类型的设计；
+- `2026-07-27-tianshu-module-boundary-runtime-closure-design.md` 中 Tianshu 机器客户端使用 HTTP Endpoint 的设计；
+- `2026-08-07-tianshu-spring-boot-config-data-design.md` 中 ConfigData 直接创建 `HttpDdcConfigClient` 的传输实现；
+- `2026-08-09-tianshu-starter-package-consolidation-design.md` 中 HTTP Client 继续归属 Tianshu Starter、且不增加集成模块的设计。
 
 ---
 
@@ -32,23 +32,23 @@
 
 本次迁移采用以下不可分割的架构结论：
 
-1. `egon-cola-component-rpc-starter` 必须完全移除对 DDC Starter 的 Maven 和源码依赖；
+1. `egon-cola-component-rpc-starter` 必须完全移除对 Tianshu Starter 的 Maven 和源码依赖；
 2. 在 `egon-cola-components/egon-cola-component-rpc` 下新增 `egon-cola-component-rpc-tianshu-adapter`；
-3. adapter 是唯一同时理解 RPC 模型和 DDC 模型的集成叶子模块；
-4. DDC Starter 继续拥有 `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 公共端口和领域模型；
-5. adapter 用 egon-rpc 实现这三个端口，并承载 DDC ConfigData 的早期 RPC 引导；
-6. DDC Admin 删除 `DdcOpenApiController`、`DdcRegistryOpenApiController`、`DdcManagementOpenApiController`；
+3. adapter 是唯一同时理解 RPC 模型和 Tianshu 模型的集成叶子模块；
+4. Tianshu Starter 继续拥有 `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 公共端口和领域模型；
+5. adapter 用 egon-rpc 实现这三个端口，并承载 Tianshu ConfigData 的早期 RPC 引导；
+6. Tianshu Admin 删除 `DdcOpenApiController`、`DdcRegistryOpenApiController`、`DdcManagementOpenApiController`；
 7. 三组机器接口改为薄 RPC Provider，分别委托 `DdcConfigFacade`、`DdcRegistryFacade`、`DdcManagementFacade`；
-8. DDC Admin 的人工管理页面、人工管理 REST、Spring Security/JWT 和 Actuator HTTP 能力继续保留；
-9. 原三个 Controller 承载的 DDC request/response 机器操作全部使用 `DIRECT` gRPC 通道，不经过 Gateway，也不通过 DDC 自身的服务注册目录发现 DDC Admin；异步通知继续使用 Redis Topic；
-10. DDC Admin 是平台唯一的服务发现自举例外，通过本地配置的 DNS、VIP、Kubernetes Service 或 gRPC 负载均衡地址访问；
-11. 除 DDC 外的平台托管 RPC/HTTP Provider、Gateway 和动态配置消费者默认由 DDC 提供注册、租约、目录和配置控制面；
-12. 普通业务 RPC 继续经过 Gateway，不因新增 Direct Channel 而允许业务调用绕过 Gateway 治理；
-13. DDC Redis 租约、目录修订、配置发布 Topic、注册变更 Topic 和发布 ACK 状态机保持现有语义；
+8. Tianshu Admin 的人工管理页面、人工管理 REST、Spring Security/JWT 和 Actuator HTTP 能力继续保留；
+9. 原三个 Controller 承载的 Tianshu request/response 机器操作全部使用 `DIRECT` gRPC 通道，不经过 Yuheng，也不通过 Tianshu 自身的服务注册目录发现 Tianshu Admin；异步通知继续使用 Redis Topic；
+10. Tianshu Admin 是平台唯一的服务发现自举例外，通过本地配置的 DNS、VIP、Kubernetes Service 或 gRPC 负载均衡地址访问；
+11. 除 Tianshu 外的平台托管 RPC/HTTP Provider、Yuheng 和动态配置消费者默认由 Tianshu 提供注册、租约、目录和配置控制面；
+12. 普通业务 RPC 继续经过 Yuheng，不因新增 Direct Channel 而允许业务调用绕过 Yuheng 治理；
+13. Tianshu Redis 租约、目录修订、配置发布 Topic、注册变更 Topic 和发布 ACK 状态机保持现有语义；
 14. 本次不把 Redis Pub/Sub 订阅改成 gRPC Streaming；
 15. 本次不保留机器 HTTP OpenAPI 兼容层，不提供 HTTP/RPC 双栈长期切换开关；
 16. 本次不修改数据库表结构，不修改任何已有 Flyway 文件，也不新增 Flyway 迁移；
-17. DDC Admin 支持共享 PostgreSQL 与 Redis 的 Active-Active 多实例部署，但不实现 Raft、选主或存储复制。
+17. Tianshu Admin 支持共享 PostgreSQL 与 Redis 的 Active-Active 多实例部署，但不实现 Raft、选主或存储复制。
 
 最终控制面关系如下：
 
@@ -56,26 +56,26 @@
 DNS / VIP / Kubernetes Service / PostgreSQL / Redis
                          |
                          v
-                DDC Admin gRPC 集群
+                Tianshu Admin gRPC 集群
                          |
         +----------------+----------------+
         |                |                |
         v                v                v
-  ConfigData       Provider 注册      Gateway 管理发布
+  ConfigData       Provider 注册      Yuheng 管理发布
 
-非 DDC Provider ----注册/心跳----> DDC
-Gateway ------------发现 Provider-> DDC
-RPC Consumer --------发现 Gateway--> DDC
-RPC Consumer --------业务调用------> Gateway ------> Provider
+非 Tianshu Provider ----注册/心跳----> Tianshu
+Yuheng ------------发现 Provider-> Tianshu
+RPC Consumer --------发现 Yuheng--> Tianshu
+RPC Consumer --------业务调用------> Yuheng ------> Provider
 ```
 
-DDC 是控制面依赖，不是普通业务请求的数据面中转节点。
+Tianshu 是控制面依赖，不是普通业务请求的数据面中转节点。
 
 ---
 
 ## 2. 当前问题与源码边界
 
-### 2.1 RPC Starter 被 DDC 平台语义污染
+### 2.1 RPC Starter 被 Tianshu 平台语义污染
 
 当前 `egon-cola-component-rpc-starter` 直接依赖 `egon-cola-tianshu-starter`，并在通用 RPC 自动装配中直接引用：
 
@@ -89,10 +89,10 @@ DDC 是控制面依赖，不是普通业务请求的数据面中转节点。
 
 - `RpcProviderLeaseManager` 直接注册、心跳、注销 `RPC_PROVIDER`；
 - `RpcConsumerGatewayManager` 直接查询和订阅 `INTERNAL_GATEWAY`；
-- `RpcProcessIdentityFactory` 直接从 DDC 属性和身份生成 RPC 进程身份；
-- `RpcProviderMetadataMerger` 直接使用 DDC 元数据编码规范。
+- `RpcProcessIdentityFactory` 直接从 Tianshu 属性和身份生成 RPC 进程身份；
+- `RpcProviderMetadataMerger` 直接使用 Tianshu 元数据编码规范。
 
-结果是基础 RPC 组件反向依赖平台 DDC，RPC Starter 无法独立构建、测试或替换注册目录实现。
+结果是基础 RPC 组件反向依赖平台 Tianshu，RPC Starter 无法独立构建、测试或替换注册目录实现。
 
 ### 2.2 三个 OpenAPI Controller 是机器协议入口
 
@@ -100,9 +100,9 @@ DDC 是控制面依赖，不是普通业务请求的数据面中转节点。
 
 | Controller | Starter 端口 | 主要调用方 |
 |---|---|---|
-| `DdcOpenApiController` | `DdcConfigClient` | ConfigData、DDC Runtime、CONFIG_CLIENT 租约和 ACK |
-| `DdcRegistryOpenApiController` | `DdcServiceRegistryClient` | RPC Provider、RPC Consumer、Gateway Engine、Gateway Provider Runtime |
-| `DdcManagementOpenApiController` | `DdcManagementClient` | Gateway Admin 与管理投影 |
+| `DdcOpenApiController` | `DdcConfigClient` | ConfigData、Tianshu Runtime、CONFIG_CLIENT 租约和 ACK |
+| `DdcRegistryOpenApiController` | `DdcServiceRegistryClient` | RPC Provider、RPC Consumer、Yuheng Engine、Yuheng Provider Runtime |
+| `DdcManagementOpenApiController` | `DdcManagementClient` | Yuheng Admin 与管理投影 |
 
 三个 Controller、三个 `HttpDdc*Client`、Servlet HMAC Filter、请求规范化和 HTTP TLS 配置共同形成一套只服务内部机器调用的重复传输栈。
 
@@ -110,17 +110,17 @@ DDC 是控制面依赖，不是普通业务请求的数据面中转节点。
 
 当前 `DdcConfigDataFetcher` 在 ConfigData 阶段直接 `new HttpDdcConfigClient(...)`。该阶段 ApplicationContext 和普通自动装配尚未建立，因此不能仅把运行时 Bean 换成 RPC Bean；必须提供一个不依赖 Spring Bean 的程序化 Direct RPC Client Factory。
 
-### 2.4 DDC 不能依赖自己完成发现
+### 2.4 Tianshu 不能依赖自己完成发现
 
-如果 DDC RPC 也通过 Gateway 或 DDC Registry 发现，将形成以下闭环：
+如果 Tianshu RPC 也通过 Yuheng 或 Tianshu Registry 发现，将形成以下闭环：
 
 ```text
-Gateway 启动需要 DDC 目录
-RPC Provider 注册需要 DDC
-DDC 访问又需要 Gateway 或 DDC 目录
+Yuheng 启动需要 Tianshu 目录
+RPC Provider 注册需要 Tianshu
+Tianshu 访问又需要 Yuheng 或 Tianshu 目录
 ```
 
-Gateway 故障时，Gateway Admin 也无法通过 DDC 发布恢复规则。DDC 必须作为自举根服务，从更底层的本地配置和外部网络地址解析启动。
+Yuheng 故障时，Yuheng Admin 也无法通过 Tianshu 发布恢复规则。Tianshu 必须作为自举根服务，从更底层的本地配置和外部网络地址解析启动。
 
 ---
 
@@ -129,28 +129,28 @@ Gateway 故障时，Gateway Admin 也无法通过 DDC 发布恢复规则。DDC �
 ### 3.1 目标
 
 1. 恢复 RPC Starter 的通用组件边界；
-2. 让 DDC 的机器接口统一使用 Protobuf unary RPC；
-3. 保留 DDC Starter 的稳定 Java 端口，使 Gateway、IdP、RBAC3 的业务层不感知传输替换；
-4. 让 ConfigData、运行时配置、服务注册和管理发布共享同一套 DDC RPC 契约、安全和错误语义；
+2. 让 Tianshu 的机器接口统一使用 Protobuf unary RPC；
+3. 保留 Tianshu Starter 的稳定 Java 端口，使 Yuheng、Tianquan-Shoubing、Tianquan-Jianshen 的业务层不感知传输替换；
+4. 让 ConfigData、运行时配置、服务注册和管理发布共享同一套 Tianshu RPC 契约、安全和错误语义；
 5. 用 Facade 固定 Admin 应用边界，禁止协议 Provider 直接编排 Repository 或跨域 Service；
-6. 切断 DDC 对 Gateway 和 DDC Registry 的自举依赖；
-7. 支持 DDC Admin 通过 DNS/VIP/Kubernetes Service 和共享存储进行 Active-Active 部署；
+6. 切断 Tianshu 对 Yuheng 和 Tianshu Registry 的自举依赖；
+7. 支持 Tianshu Admin 通过 DNS/VIP/Kubernetes Service 和共享存储进行 Active-Active 部署；
 8. 完整保留当前 HMAC 权限、scope、nonce 防重放和可信 operator 审计语义；
 9. 保留 Spring Boot ConfigData 优先级、YAML-only 远程配置和保留键保护；
 10. 一次性迁移仓库内所有生产消费者、测试、文档、示例和部署配置。
 
 ### 3.2 非目标
 
-- 不删除 DDC Admin Web 或人工管理 REST；
+- 不删除 Tianshu Admin Web 或人工管理 REST；
 - 不把普通业务 RPC 改为 Provider 直连；
 - 不让 `@EgonRpcReference` 默认或可随意选择 Direct 路由；
 - 不替换 PostgreSQL、Redis、JPA、Flyway 或现有发布状态机；
 - 不把 Registry Redis Topic 改为 gRPC Server Streaming；
-- 不实现 DDC Admin 节点选举、Raft、共识日志或内置节点发现；
+- 不实现 Tianshu Admin 节点选举、Raft、共识日志或内置节点发现；
 - 不引入新的配置合并规则；
-- 不允许远程 DDC YAML 覆盖 DDC 自身 target、TLS、Credential、Redis 或 Spring ConfigData/Profile 设置；
+- 不允许远程 Tianshu YAML 覆盖 Tianshu 自身 target、TLS、Credential、Redis 或 Spring ConfigData/Profile 设置；
 - 不在本规格阶段编写实施 Plan 或修改生产代码；
-- 不自动启动 DDC、Gateway、Redis、PostgreSQL、IdP 或 RBAC3 进程。
+- 不自动启动 Tianshu、Yuheng、Redis、PostgreSQL、Tianquan-Shoubing 或 Tianquan-Jianshen 进程。
 
 ---
 
@@ -173,49 +173,49 @@ egon-cola-xingyuan/egon-cola-tianshu
 ### 4.2 依赖图
 
 ```text
-rpc-starter                 ddc-starter
+rpc-starter                 tianshu-starter
      ^                           ^
      |                           |
-     +------ rpc-ddc-adapter ----+
+     +------ rpc-tianshu-adapter ----+
                     ^
                     |
           +---------+---------+
           |                   |
-      ddc-admin        Gateway / IdP / RBAC3
+      tianshu-admin        Yuheng / Tianquan-Shoubing / Tianquan-Jianshen
 ```
 
 强制规则：
 
-1. `rpc-starter` 不得依赖 DDC Starter 或 adapter；
-2. `ddc-starter` 不得依赖 RPC Starter 或 adapter；
-3. adapter 直接依赖 RPC Starter 和 DDC Starter；
-4. DDC Admin 直接声明它实际使用的 DDC Starter、RPC Starter 和 adapter，不依赖传递偶然性；
-5. 直接使用 DDC Java 端口的 Gateway 模块继续直接依赖 DDC Starter；
+1. `rpc-starter` 不得依赖 Tianshu Starter 或 adapter；
+2. `tianshu-starter` 不得依赖 RPC Starter 或 adapter；
+3. adapter 直接依赖 RPC Starter 和 Tianshu Starter；
+4. Tianshu Admin 直接声明它实际使用的 Tianshu Starter、RPC Starter 和 adapter，不依赖传递偶然性；
+5. 直接使用 Tianshu Java 端口的 Yuheng 模块继续直接依赖 Tianshu Starter；
 6. 需要默认 RPC 实现或自动装配的可运行组合模块增加 adapter；
 7. adapter 进入 `egon-cola-component-rpc/pom.xml` 的 modules 和 dependency management；
 8. adapter 进入 `egon-cola-components-bom` 只做版本管理，不由 RPC Starter 传递暴露；
 9. `egon-cola-xingyuan` 已导入 Components BOM，平台模块不得重复写 adapter 版本；
-10. 任何生产模块不得依赖 DDC Admin 作为库。
+10. 任何生产模块不得依赖 Tianshu Admin 作为库。
 
 ### 4.3 adapter 位于 Components 的边界说明
 
 adapter 物理位于 `components/rpc`，但逻辑上是集成叶子模块，不是无条件通用基础组件。它形成唯一受控的：
 
 ```text
-components/rpc-ddc-adapter -> platforms/ddc-starter
+components/rpc-tianshu-adapter -> xingyuan/tianshu-starter
 ```
 
 因此：
 
 - `rpc-starter` 可以脱离 Platforms 独立构建；
 - 完整根 Reactor 由 Maven 按 artifact 依赖排序；
-- 单独从 RPC 聚合目录构建包含 adapter 时，需要 DDC Starter 已在同一 Reactor 或本地仓库；
+- 单独从 RPC 聚合目录构建包含 adapter 时，需要 Tianshu Starter 已在同一 Reactor 或本地仓库；
 - 不允许 adapter 的依赖反向渗透到其他无关 Components；
 - 架构扫描必须把该依赖视为显式批准的唯一例外。
 
 ---
 
-## 5. RPC Starter 去 DDC 化
+## 5. RPC Starter 去 Tianshu 化
 
 ### 5.1 中立 Provider Registry SPI
 
@@ -242,7 +242,7 @@ public interface RpcProviderRegistry {
 
 `RpcProviderLeaseManager` 改为只依赖 `RpcProviderRegistry`。adapter 负责把中立注册转换为 `DdcServiceRegistration`，并固定映射为 `RPC_PROVIDER`。
 
-### 5.2 中立 Gateway Directory SPI
+### 5.2 中立 Yuheng Directory SPI
 
 RPC Starter 新增：
 
@@ -261,7 +261,7 @@ public interface RpcGatewayDirectory {
 - `RpcGatewaySnapshot`：revision、observedAt 和 `RpcGatewayEndpoint` 列表；
 - `RpcGatewaySubscription`：关闭订阅的中立句柄。
 
-`RpcConsumerGatewayManager` 只依赖 `RpcGatewayDirectory`，不再构造 `DdcServiceKey`。adapter 把查询映射为 `INTERNAL_GATEWAY` DDC 查询。
+`RpcConsumerGatewayManager` 只依赖 `RpcGatewayDirectory`，不再构造 `DdcServiceKey`。adapter 把查询映射为 `INTERNAL_GATEWAY` Tianshu 查询。
 
 ### 5.3 RPC 进程身份
 
@@ -275,7 +275,7 @@ RPC Starter 新增 `RpcProcessIdentityProvider`。默认实现只读取：
 
 host 和 instanceId 未显式配置时使用 RPC 自己的默认解析器，不引用 `DdcInstanceIdentity`。
 
-adapter 在 DDC 启用时提供优先级更高的 `DdcRpcProcessIdentityProvider`，复用 `DdcProperties` 与 `DdcInstanceIdentity`，保证 RPC 注册和 DDC 配置客户端使用同一物理实例身份。RPC Starter 本身仍不知道该实现。
+adapter 在 Tianshu 启用时提供优先级更高的 `DdcRpcProcessIdentityProvider`，复用 `DdcProperties` 与 `DdcInstanceIdentity`，保证 RPC 注册和 Tianshu 配置客户端使用同一物理实例身份。RPC Starter 本身仍不知道该实现。
 
 ### 5.4 Provider 元数据
 
@@ -287,7 +287,7 @@ adapter 在 DDC 启用时提供优先级更高的 `DdcRpcProcessIdentityProvider
 - 检测冲突值；
 - 生成不可变、稳定顺序的 Map。
 
-`ServiceInstanceMetaCodec` 的 DDC/Gateway 元数据规范校验移动到 adapter 的注册映射边界。RPC Starter 不再引用 DDC format 包。
+`ServiceInstanceMetaCodec` 的 Tianshu/Yuheng 元数据规范校验移动到 adapter 的注册映射边界。RPC Starter 不再引用 Tianshu format 包。
 
 ### 5.5 Provider 注册模式
 
@@ -303,10 +303,10 @@ egon.cola.component.rpc.provider.registration-mode=REQUIRED|DISABLED
 - `DISABLED` 只启动 gRPC Server，不注册、不心跳、不注销；
 - `DISABLED` 时本地 Provider 在 Server 接受请求前进入 available；
 - 停止时先拒绝新调用，再执行现有 graceful shutdown；
-- DDC Admin 必须显式使用 `DISABLED`；
-- 普通平台 Provider 不得使用 `DISABLED` 绕过 DDC，除非属于明确批准的基础设施或测试。
+- Tianshu Admin 必须显式使用 `DISABLED`；
+- 普通平台 Provider 不得使用 `DISABLED` 绕过 Tianshu，除非属于明确批准的基础设施或测试。
 
-### 5.6 Gateway 与 Direct 两种 Channel Strategy
+### 5.6 Yuheng 与 Direct 两种 Channel Strategy
 
 新增中立策略：
 
@@ -322,12 +322,12 @@ public interface RpcInvocationChannelProvider {
 
 实现：
 
-- `GatewayRpcInvocationChannelProvider`：包装现有 Gateway Manager，用于普通业务 RPC；
+- `GatewayRpcInvocationChannelProvider`：包装现有 Yuheng Manager，用于普通业务 RPC；
 - `DirectRpcInvocationChannelProvider`：包装按 target 创建的 gRPC Channel，用于基础设施直连。
 
 `RpcConsumerInvocationHandler` 和 `RpcConsumerProxyFactory` 改为依赖该策略，而不是硬编码 `RpcConsumerGatewayManager`。
 
-`@EgonRpcReference` 继续只走 Gateway。不得增加面向业务代码的 `route=DIRECT` 注解参数。Direct 仅通过程序化 `RpcDirectClientFactory` 使用，并通过架构测试限制生产调用点为 `rpc-ddc-adapter`。
+`@EgonRpcReference` 继续只走 Yuheng。不得增加面向业务代码的 `route=DIRECT` 注解参数。Direct 仅通过程序化 `RpcDirectClientFactory` 使用，并通过架构测试限制生产调用点为 `rpc-tianshu-adapter`。
 
 ### 5.7 程序化 Direct Client
 
@@ -361,11 +361,11 @@ RpcDirectClientFactory
 
 RPC Server Factory 从单一固定 interceptor 改为 ordered interceptor 列表；Direct Client Factory 同样接受 ordered client interceptors。
 
-RPC Starter 只提供通用 trace、source、invocation metadata 扩展，不包含 DDC access key、operation 或 scope 规则。DDC 安全由 adapter 和 DDC Admin 实现。
+RPC Starter 只提供通用 trace、source、invocation metadata 扩展，不包含 Tianshu access key、operation 或 scope 规则。Tianshu 安全由 adapter 和 Tianshu Admin 实现。
 
 ---
 
-## 6. `rpc-ddc-adapter` 模块
+## 6. `rpc-tianshu-adapter` 模块
 
 ### 6.1 模块职责
 
@@ -378,7 +378,7 @@ top.egon:egon-cola-component-rpc-tianshu-adapter
 目标包树：
 
 ```text
-top.egon.cola.component.rpc.ddc
+top.egon.cola.component.rpc.tianshu
 ├── contract
 │   └── proto.v1
 ├── client
@@ -396,24 +396,24 @@ top.egon.cola.component.rpc.ddc
 
 ### 6.2 契约文件
 
-adapter 是 DDC RPC 传输契约的唯一源码归属，包含：
+adapter 是 Tianshu RPC 传输契约的唯一源码归属，包含：
 
 ```text
-src/main/proto/egon/ddc/v1/ddc_common.proto
-src/main/proto/egon/ddc/v1/ddc_config_runtime.proto
-src/main/proto/egon/ddc/v1/ddc_service_registry.proto
-src/main/proto/egon/ddc/v1/ddc_management.proto
+src/main/proto/egon/tianshu/v1/tianshu_common.proto
+src/main/proto/egon/tianshu/v1/tianshu_config_runtime.proto
+src/main/proto/egon/tianshu/v1/tianshu_service_registry.proto
+src/main/proto/egon/tianshu/v1/tianshu_management.proto
 ```
 
 统一设置：
 
 ```proto
-package egon.ddc.v1;
-option java_package = "top.egon.cola.component.rpc.ddc.contract.proto.v1";
+package egon.tianshu.v1;
+option java_package = "top.egon.cola.component.rpc.tianshu.contract.proto.v1";
 option java_multiple_files = true;
 ```
 
-Protobuf 是 RPC wire schema 的唯一事实来源。禁止同时维护 JSON Schema、手写二进制 DTO 或把 Java DDC Model 直接作为 RPC 请求体。
+Protobuf 是 RPC wire schema 的唯一事实来源。禁止同时维护 JSON Schema、手写二进制 DTO 或把 Java Tianshu Model 直接作为 RPC 请求体。
 
 ### 6.3 Java RPC 契约
 
@@ -428,13 +428,13 @@ DdcManagementRpc
 统一使用：
 
 ```text
-group = "ddc"
+group = "tianshu"
 version = "1.0.0"
 ```
 
 这些接口只接受和返回生成的 Protobuf 类型，不返回 `ResultRecord`，不暴露 Admin Entity、Repository 或 Service。
 
-### 6.4 三个 DDC Client Adapter
+### 6.4 三个 Tianshu Client Adapter
 
 adapter 提供：
 
@@ -443,7 +443,7 @@ adapter 提供：
 - `RpcDdcManagementClient implements DdcManagementClient`；
 - `DdcRpcClientFactory`，供 Spring 组合模块按业务开关创建指定端口的 Direct RPC 实现。
 
-上层 DDC Runtime、Gateway 和业务服务继续面向 DDC Starter 的三个端口。传输、Protobuf 转换、deadline、认证和错误还原全部封装在 adapter。
+上层 Tianshu Runtime、Yuheng 和业务服务继续面向 Tianshu Starter 的三个端口。传输、Protobuf 转换、deadline、认证和错误还原全部封装在 adapter。
 
 `DdcManagementClient.findConfig` 和 `getScopeBindings` 从默认抛出实现改为抽象方法。仓库内实现和 Test Double 一次性补齐，不保留“不支持该 RPC 能力”的兼容分支。
 
@@ -454,9 +454,9 @@ adapter 提供：
 - `DdcRpcProviderRegistry implements RpcProviderRegistry`；
 - `DdcRpcGatewayDirectory implements RpcGatewayDirectory`。
 
-前者把中立 RPC Provider Registration 映射为 DDC `RPC_PROVIDER` 注册；后者把 Gateway Query 映射为 `INTERNAL_GATEWAY` 查询和订阅。
+前者把中立 RPC Provider Registration 映射为 Tianshu `RPC_PROVIDER` 注册；后者把 Yuheng Query 映射为 `INTERNAL_GATEWAY` 查询和订阅。
 
-DDC Registry 订阅继续采用：
+Tianshu Registry 订阅继续采用：
 
 ```text
 初始快照：Direct RPC
@@ -468,14 +468,14 @@ DDC Registry 订阅继续采用：
 
 ### 6.6 ConfigData 归属
 
-以下 transport-dependent 类型从 DDC Starter 移入 adapter，并使用 adapter 包名：
+以下 transport-dependent 类型从 Tianshu Starter 移入 adapter，并使用 adapter 包名：
 
 - `DdcConfigDataLocationResolver`；
 - `DdcConfigDataResource`；
 - `DdcConfigDataLoader`；
 - `DdcConfigDataFetcher`。
 
-adapter 的 `META-INF/spring.factories` 注册 Resolver 和 Loader。DDC Starter 不再注册 ConfigData SPI。
+adapter 的 `META-INF/spring.factories` 注册 Resolver 和 Loader。Tianshu Starter 不再注册 ConfigData SPI。
 
 ConfigData Fetcher 必须：
 
@@ -486,21 +486,21 @@ ConfigData Fetcher 必须：
 5. 转换为现有 YAML PropertySource；
 6. 在完成或失败时可靠关闭 bootstrap Channel；
 7. 不要求 `egon.cola.component.rpc.enabled=true`；
-8. 不读取任何远程 DDC 自举属性。
+8. 不读取任何远程 Tianshu 自举属性。
 
-`spring.config.import=ddc:application.yml` 与 `optional:ddc:application.yml` 语义保持不变。非 optional 连接失败时终止启动；optional 连接失败时按现有 ConfigData 语义继续本地配置。
+`spring.config.import=tianshu:application.yml` 与 `optional:tianshu:application.yml` 语义保持不变。非 optional 连接失败时终止启动；optional 连接失败时按现有 ConfigData 语义继续本地配置。
 
 ### 6.7 自动装配顺序
 
-adapter 提供 `DdcRpcAutoConfiguration`，并显式早于 DDC Starter 的 `DdcAutoConfiguration` 和 `DdcRegistryAutoConfiguration`：
+adapter 提供 `DdcRpcAutoConfiguration`，并显式早于 Tianshu Starter 的 `DdcAutoConfiguration` 和 `DdcRegistryAutoConfiguration`：
 
-- `ddc.enabled=true` 时，在 DDC Runtime Coordinator 装配前提供 `DdcConfigClient`；
-- `ddc.registry.enabled=true` 且 Redis subscription 条件满足时，提供 `DdcServiceRegistryClient`、Registry snapshot loader 和 RPC bridge；
+- `tianshu.enabled=true` 时，在 Tianshu Runtime Coordinator 装配前提供 `DdcConfigClient`；
+- `tianshu.registry.enabled=true` 且 Redis subscription 条件满足时，提供 `DdcServiceRegistryClient`、Registry snapshot loader 和 RPC bridge；
 - `DdcRpcClientFactory` 只在存在合法 RPC target、TLS 和 credential 配置时允许创建具体 client；
 - 所有具体 client Bean 使用 `@ConditionalOnMissingBean`，保留测试和应用显式替换端口的能力；
-- DDC Starter 不再提供任何默认传输实现，只消费三个端口；
-- 缺少 adapter 或缺少必需 client Bean 时必须以包含缺失端口和 adapter artifact 名称的错误快速失败，不能静默降级为无远端 DDC；
-- DDC Admin 因 `ddc.enabled=false`、`ddc.registry.enabled=false` 且不请求 management client，不创建任何指向自己的 Direct Client。
+- Tianshu Starter 不再提供任何默认传输实现，只消费三个端口；
+- 缺少 adapter 或缺少必需 client Bean 时必须以包含缺失端口和 adapter artifact 名称的错误快速失败，不能静默降级为无远端 Tianshu；
+- Tianshu Admin 因 `tianshu.enabled=false`、`tianshu.registry.enabled=false` 且不请求 management client，不创建任何指向自己的 Direct Client。
 
 ---
 
@@ -508,7 +508,7 @@ adapter 提供 `DdcRpcAutoConfiguration`，并显式早于 DDC Starter 的 `DdcA
 
 ### 7.1 公共消息规则
 
-`ddc_common.proto` 至少定义：
+`tianshu_common.proto` 至少定义：
 
 - `DdcScope`：`biz_code`、`env`、`app_code`；
 - `DdcLeaseSession`：instanceId、leaseId、registeredAt、leaseExpireAt；
@@ -527,7 +527,7 @@ adapter 提供 `DdcRpcAutoConfiguration`，并显式早于 DDC Starter 的 `DdcA
 - physical scope 不包含已废弃 namespace；
 - management scope query 可以携带 `namespace_code` 作为可见性过滤条件；
 - map metadata 必须经过大小、key 和保留前缀校验；
-- 所有请求限制总消息大小，沿用当前 DDC `maxConfigBytes` 约束并增加 RPC message limit。
+- 所有请求限制总消息大小，沿用当前 Tianshu `maxConfigBytes` 约束并增加 RPC message limit。
 
 ### 7.2 Config Runtime Service
 
@@ -601,7 +601,7 @@ service DdcManagementService {
 
 ---
 
-## 8. DDC Admin Facade 与 RPC Provider
+## 8. Tianshu Admin Facade 与 RPC Provider
 
 ### 8.1 Config Facade
 
@@ -649,9 +649,9 @@ service DdcManagementService {
 Admin 新增：
 
 ```text
-top.egon.cola.component.ddc.admin.rpc.provider.DdcConfigRpcProvider
-top.egon.cola.component.ddc.admin.rpc.provider.DdcRegistryRpcProvider
-top.egon.cola.component.ddc.admin.rpc.provider.DdcManagementRpcProvider
+top.egon.cola.component.tianshu.admin.rpc.provider.DdcConfigRpcProvider
+top.egon.cola.component.tianshu.admin.rpc.provider.DdcRegistryRpcProvider
+top.egon.cola.component.tianshu.admin.rpc.provider.DdcManagementRpcProvider
 ```
 
 三者使用 `@EgonRpcProvider`，分别实现 adapter 中的三个 `@EgonRpcService` 接口。
@@ -663,7 +663,7 @@ Provider 禁止：
 - 自己管理事务；
 - 自己生成 operator；
 - 返回 Admin Entity；
-- 吞掉 DDC Error Code；
+- 吞掉 Tianshu Error Code；
 - 在 Provider 中复制现有 Service 业务校验。
 
 ### 8.5 HTTP 边界
@@ -671,67 +671,67 @@ Provider 禁止：
 最终删除机器路由：
 
 ```text
-/api/v1/ddc/openapi/**
-/api/v1/ddc/openapi/registry/**
-/api/v1/ddc/openapi/management/**
+/api/v1/tianshu/openapi/**
+/api/v1/tianshu/openapi/registry/**
+/api/v1/tianshu/openapi/management/**
 ```
 
 保留：
 
-- DDC Admin Web 使用的 `/api/v1/ddc/**` 人工管理 REST；
+- Tianshu Admin Web 使用的 `/api/v1/tianshu/**` 人工管理 REST；
 - 登录、JWT、RBAC、安全配置；
 - Actuator 和人工运维 HTTP 接口；
 - 静态 Admin Web 资源。
 
 ---
 
-## 9. DDC 自举与平台服务规则
+## 9. Tianshu 自举与平台服务规则
 
-### 9.1 DDC 是唯一自举例外
+### 9.1 Tianshu 是唯一自举例外
 
-所有 DDC 机器调用固定为：
+所有 Tianshu 机器调用固定为：
 
 ```text
-调用方 -> 本地 DDC RPC target -> DNS/VIP/Kubernetes Service -> DDC Admin gRPC
+调用方 -> 本地 Tianshu RPC target -> DNS/VIP/Kubernetes Service -> Tianshu Admin gRPC
 ```
 
 不得：
 
-- 从 DDC Registry 查询 DDC Admin；
-- 把 DDC Admin 注册为 `RPC_PROVIDER`；
-- 通过 `INTERNAL_GATEWAY` 转发 DDC RPC；
-- 从远程 DDC YAML 获取 DDC RPC target；
+- 从 Tianshu Registry 查询 Tianshu Admin；
+- 把 Tianshu Admin 注册为 `RPC_PROVIDER`；
+- 通过 `INTERNAL_GATEWAY` 转发 Tianshu RPC；
+- 从远程 Tianshu YAML 获取 Tianshu RPC target；
 - 在未配置 target 时隐式回退 localhost。
 
-### 9.2 非 DDC 平台服务默认由 DDC 支撑
+### 9.2 非 Tianshu 平台服务默认由 Tianshu 支撑
 
 平台默认规则：
 
 1. RPC Provider 通过 adapter 注册 `RPC_PROVIDER`；
-2. HTTP Provider 通过 Gateway Provider Runtime 注册 `HTTP_PROVIDER`；
-3. Gateway Engine 从 DDC 查询和订阅 Provider；
-4. RPC Consumer 从 DDC 查询和订阅 `INTERNAL_GATEWAY`；
-5. 普通业务 RPC 继续 `Consumer -> Gateway -> Provider`；
-6. 启用动态配置的应用通过 DDC 拉取和刷新配置。
+2. HTTP Provider 通过 Yuheng Provider Runtime 注册 `HTTP_PROVIDER`；
+3. Yuheng Engine 从 Tianshu 查询和订阅 Provider；
+4. RPC Consumer 从 Tianshu 查询和订阅 `INTERNAL_GATEWAY`；
+5. 普通业务 RPC 继续 `Consumer -> Yuheng -> Provider`；
+6. 启用动态配置的应用通过 Tianshu 拉取和刷新配置。
 
-RPC Starter 只依赖中立 SPI，因此该规则是 Egon-COLA 默认平台装配，不是 RPC 核心对 DDC 的硬编码。未来允许其他 adapter 或显式 standalone，但不属于本次实现。
+RPC Starter 只依赖中立 SPI，因此该规则是 Egon-COLA 默认平台装配，不是 RPC 核心对 Tianshu 的硬编码。未来允许其他 adapter 或显式 standalone，但不属于本次实现。
 
-### 9.3 DDC 故障语义
+### 9.3 Tianshu 故障语义
 
-DDC 不在每个业务 RPC 请求路径上。DDC 短时不可用时：
+Tianshu 不在每个业务 RPC 请求路径上。Tianshu 短时不可用时：
 
 - 已应用的本地配置继续有效；
-- 已建立的 Gateway/Provider Channel 和最近目录快照可继续服务；
+- 已建立的 Yuheng/Provider Channel 和最近目录快照可继续服务；
 - 新启动、首次 ConfigData、Provider 注册、租约续期、新目录发现和配置发布受影响；
 - 租约到期并被目录移除后，数据面会逐步降级。
 
-不得把“已建立数据面暂时可用”描述为 DDC 故障完全无影响。
+不得把“已建立数据面暂时可用”描述为 Tianshu 故障完全无影响。
 
 ---
 
 ## 10. 配置模型
 
-### 10.1 DDC RPC Client 配置
+### 10.1 Tianshu RPC Client 配置
 
 adapter 新增 `DdcRpcProperties`：
 
@@ -739,39 +739,39 @@ adapter 新增 `DdcRpcProperties`：
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         rpc:
-          target: dns:///ddc-admin:19080
+          target: dns:///tianshu-admin:19080
           connect-timeout: 3s
           default-timeout: 5s
           load-balancing-policy: round_robin
           tls:
             enabled: true
             development-plaintext: false
-            certificate-chain-path: ${DDC_CLIENT_CERT:}
-            private-key-path: ${DDC_CLIENT_KEY:}
-            trust-certificate-collection-path: ${DDC_CA_CERT:}
+            certificate-chain-path: ${TIANSHU_CLIENT_CERT:}
+            private-key-path: ${TIANSHU_CLIENT_KEY:}
+            trust-certificate-collection-path: ${TIANSHU_CA_CERT:}
           auth:
             enabled: true
             runtime:
-              access-key: ${DDC_RUNTIME_ACCESS_KEY:}
-              secret-key: ${DDC_RUNTIME_SECRET_KEY:}
+              access-key: ${TIANSHU_RUNTIME_ACCESS_KEY:}
+              secret-key: ${TIANSHU_RUNTIME_SECRET_KEY:}
             registry:
-              access-key: ${DDC_REGISTRY_ACCESS_KEY:}
-              secret-key: ${DDC_REGISTRY_SECRET_KEY:}
+              access-key: ${TIANSHU_REGISTRY_ACCESS_KEY:}
+              secret-key: ${TIANSHU_REGISTRY_SECRET_KEY:}
             management:
-              access-key: ${DDC_MANAGEMENT_ACCESS_KEY:}
-              secret-key: ${DDC_MANAGEMENT_SECRET_KEY:}
+              access-key: ${TIANSHU_MANAGEMENT_ACCESS_KEY:}
+              secret-key: ${TIANSHU_MANAGEMENT_SECRET_KEY:}
 ```
 
 启用条件：
 
-- `ddc.enabled=true` 创建 config runtime client；
-- `ddc.registry.enabled=true` 创建 registry client 和 RPC bridge；
-- management client 不全局自动创建，由 Gateway Admin 等组合模块按自己的业务开关调用 `DdcRpcClientFactory.managementClient()` 创建；
-- `spring.config.import` 含 `ddc:` 时在 bootstrap 阶段创建一次性 config client；
+- `tianshu.enabled=true` 创建 config runtime client；
+- `tianshu.registry.enabled=true` 创建 registry client 和 RPC bridge；
+- management client 不全局自动创建，由 Yuheng Admin 等组合模块按自己的业务开关调用 `DdcRpcClientFactory.managementClient()` 创建；
+- `spring.config.import` 含 `tianshu:` 时在 bootstrap 阶段创建一次性 config client；
 - 任一能力启用时 target 必须存在并合法；
-- 不启用任何 client 的 DDC Admin 服务端不要求配置 target。
+- 不启用任何 client 的 Tianshu Admin 服务端不要求配置 target。
 
 runtime、registry、management credential 分离以支持最小权限。部署方可以显式配置为同一 credential，但不提供隐式 profile 回退。
 
@@ -779,34 +779,34 @@ runtime、registry、management credential 分离以支持最小权限。部署�
 
 删除：
 
-- `egon.cola.component.ddc.admin.endpoint`；
-- `egon.cola.component.ddc.admin.connect-timeout`；
-- `egon.cola.component.ddc.admin.read-timeout`；
-- `egon.cola.component.ddc.admin.tls.*`；
-- `egon.cola.component.ddc.admin.access-key`；
-- `egon.cola.component.ddc.admin.secret-key`；
-- `gateway.admin.ddc.endpoint`；
-- `gateway.admin.ddc.access-key`；
-- `gateway.admin.ddc.secret-key`；
-- `gateway.admin.ddc.connect-timeout`；
-- `gateway.admin.ddc.read-timeout`；
-- `gateway.admin.ddc.tls.*`。
+- `egon.cola.component.tianshu.admin.endpoint`；
+- `egon.cola.component.tianshu.admin.connect-timeout`；
+- `egon.cola.component.tianshu.admin.read-timeout`；
+- `egon.cola.component.tianshu.admin.tls.*`；
+- `egon.cola.component.tianshu.admin.access-key`；
+- `egon.cola.component.tianshu.admin.secret-key`；
+- `yuheng.admin.tianshu.endpoint`；
+- `yuheng.admin.tianshu.access-key`；
+- `yuheng.admin.tianshu.secret-key`；
+- `yuheng.admin.tianshu.connect-timeout`；
+- `yuheng.admin.tianshu.read-timeout`；
+- `yuheng.admin.tianshu.tls.*`。
 
-Gateway Admin 保留：
+Yuheng Admin 保留：
 
-- `gateway.admin.ddc.enabled`，用于条件创建基于 `DdcRpcClientFactory` 的 management client；
-- `gateway.admin.ddc.publish-timeout`；
+- `yuheng.admin.tianshu.enabled`，用于条件创建基于 `DdcRpcClientFactory` 的 management client；
+- `yuheng.admin.tianshu.publish-timeout`；
 - target bizCode/appCode 等发布业务范围配置。
 
-### 10.3 DDC Admin RPC Server 配置
+### 10.3 Tianshu Admin RPC Server 配置
 
-DDC Admin 使用：
+Tianshu Admin 使用：
 
 ```yaml
 egon:
   cola:
     component:
-      ddc:
+      tianshu:
         enabled: false
         registry:
           enabled: false
@@ -824,9 +824,9 @@ Admin HTTP 默认端口和 Admin Web 不由本配置修改。外部负载均衡�
 
 ### 10.4 本地保留键
 
-`DdcReservedConfigurationKeys` 已保护整个 `egon.cola.component.ddc` 前缀。新增 `ddc.rpc.*` 自动属于本地保留配置，远程 YAML 出现时必须拒绝。
+`DdcReservedConfigurationKeys` 已保护整个 `egon.cola.component.tianshu` 前缀。新增 `tianshu.rpc.*` 自动属于本地保留配置，远程 YAML 出现时必须拒绝。
 
-DDC Admin 的 PostgreSQL、Redis、RPC Server、Credential、TLS 和 profile 设置同样必须来自本地配置或 Secret 注入。
+Tianshu Admin 的 PostgreSQL、Redis、RPC Server、Credential、TLS 和 profile 设置同样必须来自本地配置或 Secret 注入。
 
 ---
 
@@ -853,12 +853,12 @@ DDC Admin 的 PostgreSQL、Redis、RPC Server、Credential、TLS 和 profile 设
 客户端发送以下 lowercase ASCII metadata：
 
 ```text
-x-egon-ddc-access-key
-x-egon-ddc-timestamp
-x-egon-ddc-nonce
-x-egon-ddc-content-sha256
-x-egon-ddc-signature
-x-egon-ddc-contract-version
+x-egon-tianshu-access-key
+x-egon-tianshu-timestamp
+x-egon-tianshu-nonce
+x-egon-tianshu-content-sha256
+x-egon-tianshu-signature
+x-egon-tianshu-contract-version
 ```
 
 签名规范固定为 UTF-8：
@@ -875,7 +875,7 @@ v1
 
 ### 11.3 服务端认证顺序
 
-DDC RPC Server Interceptor 必须：
+Tianshu RPC Server Interceptor 必须：
 
 1. 读取 metadata 并检查格式；
 2. 收到完整 unary request 后计算 deterministic bytes；
@@ -913,7 +913,7 @@ DDC RPC Server Interceptor 必须：
 
 `DdcNonceStore`、`RedisDdcNonceStore`、credential registry 和 principal 语义迁移到 Admin 的 RPC security 包。删除 Servlet body wrapper、Filter 和 Filter Registration。
 
-启用 DDC RPC 认证的 Admin 必须使用共享 `RedisDdcNonceStore`；没有该 Bean 时启动失败。`InMemoryDdcNonceStore` 只允许测试通过显式 Bean 覆盖使用，不作为可执行 Admin 的运行回退。
+启用 Tianshu RPC 认证的 Admin 必须使用共享 `RedisDdcNonceStore`；没有该 Bean 时启动失败。`InMemoryDdcNonceStore` 只允许测试通过显式 Bean 覆盖使用，不作为可执行 Admin 的运行回退。
 
 ### 11.6 operator
 
@@ -925,9 +925,9 @@ DDC RPC Server Interceptor 必须：
 
 ### 12.1 错误映射
 
-Admin 把 DDC 错误映射为 gRPC status：
+Admin 把 Tianshu 错误映射为 gRPC status：
 
-| DDC 错误类别 | gRPC Status |
+| Tianshu 错误类别 | gRPC Status |
 |---|---|
 | 参数、格式、scope 缺失 | `INVALID_ARGUMENT` |
 | 配置或任务不存在 | `NOT_FOUND` |
@@ -939,20 +939,20 @@ Admin 把 DDC 错误映射为 gRPC status：
 同时使用 binary trailer：
 
 ```text
-x-egon-ddc-error-bin
+x-egon-tianshu-error-bin
 ```
 
-内容为 `DdcRpcErrorDetail`。Client Adapter 根据 detail 还原现有 `DdcException`、`DdcManagementClientException` 和错误码，避免上层 Gateway/Runtime 依赖 gRPC Status。
+内容为 `DdcRpcErrorDetail`。Client Adapter 根据 detail 还原现有 `DdcException`、`DdcManagementClientException` 和错误码，避免上层 Yuheng/Runtime 依赖 gRPC Status。
 
 ### 12.2 中立传输异常
 
-DDC Starter 增加 transport-neutral：
+Tianshu Starter 增加 transport-neutral：
 
 ```text
 DdcClientTransportException
 ```
 
-至少包含 `retryable`。`DdcAckDelivery` 不再识别 Spring HTTP 异常或状态码，只识别该中立异常和 DDC 业务错误。
+至少包含 `retryable`。`DdcAckDelivery` 不再识别 Spring HTTP 异常或状态码，只识别该中立异常和 Tianshu 业务错误。
 
 HTTP 专用 `DdcOpenApiRequestException` 在无生产引用后删除；`DdcManagementClientException` 作为业务端口异常继续保留。
 
@@ -985,11 +985,11 @@ Publish 已有 changeId 幂等和 UNKNOWN 恢复状态机，不使用 Channel �
 
 ---
 
-## 13. 分布式 DDC Admin
+## 13. 分布式 Tianshu Admin
 
 ### 13.1 部署模型
 
-DDC Admin 支持：
+Tianshu Admin 支持：
 
 ```text
 多个无状态 Admin 实例
@@ -1013,12 +1013,12 @@ Admin 多实例不能替代 PostgreSQL 和 Redis 自身的 HA。
 客户端 target 使用逻辑地址，例如：
 
 ```text
-dns:///ddc-admin:19080
+dns:///tianshu-admin:19080
 ```
 
 Direct Channel 默认 `round_robin`。外部 LB 必须支持 HTTP/2、连接摘除和后端 readiness。不得把单个 Pod IP 或单机 IP 作为生产 target。
 
-DDC RPC 是无会话协议，每个请求携带完整 scope、service key、instanceId 和 leaseId，不要求 sticky session。
+Tianshu RPC 是无会话协议，每个请求携带完整 scope、service key、instanceId 和 leaseId，不要求 sticky session。
 
 ### 13.3 共享状态权威
 
@@ -1075,11 +1075,11 @@ Lease Expiry、Publish Timeout 和 Startup Recovery 可以在每个 Admin 实例
 
 ---
 
-## 14. DDC Starter 调整
+## 14. Tianshu Starter 调整
 
 ### 14.1 保留
 
-DDC Starter 继续拥有：
+Tianshu Starter 继续拥有：
 
 - `@DdcValue`、`@DdcRefreshable`；
 - `DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient`；
@@ -1087,14 +1087,14 @@ DDC Starter 继续拥有：
 - Runtime Coordinator、默认值上报、pull/apply、heartbeat、offline、ACK Delivery；
 - Redis Change Subscription 和 Registry Subscription Coordinator；
 - ConfigData YAML 应用、优先级、保留键校验所需的通用环境能力；
-- `DdcServiceKeyFactory` 和 DDC 领域元数据格式能力。
+- `DdcServiceKeyFactory` 和 Tianshu 领域元数据格式能力。
 
 ### 14.2 移出或删除
 
 移入 adapter：
 
 - ConfigData Resolver、Resource、Loader、Fetcher；
-- 三个 RPC DDC Client 实现；
+- 三个 RPC Tianshu Client 实现；
 - Direct RPC security client 能力。
 
 删除：
@@ -1115,29 +1115,29 @@ DDC Starter 继续拥有：
 
 ### 14.3 公共端口稳定性
 
-三个 Java Client 接口的方法语义保持不变。实现由 HTTP 换成 RPC，但上层 DDC Runtime、Gateway Service 和测试 Double 仍面向端口。
+三个 Java Client 接口的方法语义保持不变。实现由 HTTP 换成 RPC，但上层 Tianshu Runtime、Yuheng Service 和测试 Double 仍面向端口。
 
 允许的破坏变化仅包括：
 
 - `DdcManagementClient` 两个 default unsupported 方法变为必实现；
 - HTTP transport-only model 和 exception 删除；
-- Javadoc 从 OpenAPI/HTTP 改为 DDC Control Plane/RPC，不保留错误术语。
+- Javadoc 从 OpenAPI/HTTP 改为 Tianshu Control Plane/RPC，不保留错误术语。
 
 ---
 
 ## 15. 关联模块影响
 
-### 15.1 DDC Admin
+### 15.1 Tianshu Admin
 
 - 增加 RPC Starter 与 adapter 直接依赖；
 - 增加三个 Facade/Provider 和 RPC Security；
 - 删除三个 OpenAPI Controller；
 - 删除 Servlet HMAC Filter 和机器 OpenAPI Filter Registration；
-- Spring Security 删除 `/api/v1/ddc/openapi/**` 规则；
+- Spring Security 删除 `/api/v1/tianshu/openapi/**` 规则；
 - Admin Web 和人工 REST 不变；
-- DDC Admin 不创建 DDC Client，不配置 DDC target，不自注册。
+- Tianshu Admin 不创建 Tianshu Client，不配置 Tianshu target，不自注册。
 
-### 15.2 DDC Test
+### 15.2 Tianshu Test
 
 - 增加 adapter；
 - 端口编排单测继续使用 Recording Client；
@@ -1146,63 +1146,63 @@ DDC Starter 继续拥有：
 - 增加两个 Admin Context 共享 PostgreSQL/Redis 的 Active-Active 测试；
 - 不把单 Context 测试描述成分布式证明。
 
-### 15.3 Gateway Admin
+### 15.3 Yuheng Admin
 
 当前 `GatewayAdminConfiguration` 手工创建 `HttpDdcManagementClient`。迁移后：
 
 - 删除 endpoint/access-key/secret/TLS 字段和 HTTP Client 构造逻辑；
-- 保留 `gateway.admin.ddc.enabled` 条件，由一个只负责组合的 Bean 方法调用 `DdcRpcClientFactory.managementClient()`；
+- 保留 `yuheng.admin.tianshu.enabled` 条件，由一个只负责组合的 Bean 方法调用 `DdcRpcClientFactory.managementClient()`；
 - 继续注入 `DdcManagementClient`；
 - target、TLS、deadline 和 management credential 全部由 adapter 的 `DdcRpcProperties` 提供；
 - `GatewayDdcRulePublisher`、Release Coordinator 和 projection 业务逻辑不修改端口；
-- 保留 Gateway 自己的发布 timeout 与 target scope 配置；
-- Gateway 数据面故障时，Gateway Admin 仍能 Direct RPC 调用 DDC。
+- 保留 Yuheng 自己的发布 timeout 与 target scope 配置；
+- Yuheng 数据面故障时，Yuheng Admin 仍能 Direct RPC 调用 Tianshu。
 
-### 15.4 Gateway Engine
+### 15.4 Yuheng Engine
 
-- 继续编译依赖 DDC Starter 与 RPC Starter；
+- 继续编译依赖 Tianshu Starter 与 RPC Starter；
 - `DdcProviderServiceRegistryAdapter`、`RpcGatewaySlotRuntime` 继续面向 `DdcServiceRegistryClient`；
 - 运行组合增加 adapter，获得 RPC-backed Registry Client；
-- Provider 发现仍使用 DDC，网关转发逻辑不变。
+- Provider 发现仍使用 Tianshu，网关转发逻辑不变。
 
-### 15.5 Gateway Provider Runtime
+### 15.5 Yuheng Provider Runtime
 
 - HTTP_PROVIDER 注册端口不变；
 - 运行时由 adapter 提供 Registry Client；
 - 注册恢复、心跳和注销语义不变；
-- 不直接依赖 RPC DDC 具体 Client 类。
+- 不直接依赖 RPC Tianshu 具体 Client 类。
 
-### 15.6 Gateway Starter 与测试部署
+### 15.6 Yuheng Starter 与测试部署
 
 - Starter 作为组合根引入 adapter；
-- RPC 依赖保持现有 optional 语义时，adapter 条件必须与 RPC/DDC feature 一致；
-- Gateway live、测试应用和部署 YAML 把 DDC HTTP endpoint 改为 gRPC target；
-- 暴露 DDC Admin gRPC 19080；
-- DDC Admin HTTP 端口继续供 Admin Web/Actuator；
-- 测试分别验证 DDC direct control plane 与 Gateway business data plane，不能用一个 root HTTP 200 代替。
+- RPC 依赖保持现有 optional 语义时，adapter 条件必须与 RPC/Tianshu feature 一致；
+- Yuheng live、测试应用和部署 YAML 把 Tianshu HTTP endpoint 改为 gRPC target；
+- 暴露 Tianshu Admin gRPC 19080；
+- Tianshu Admin HTTP 端口继续供 Admin Web/Actuator；
+- 测试分别验证 Tianshu direct control plane 与 Yuheng business data plane，不能用一个 root HTTP 200 代替。
 
-### 15.7 IdP Admin
+### 15.7 Tianquan-Shoubing Admin
 
-- 继续直接依赖 DDC Starter 的注解、模型和运行时；
+- 继续直接依赖 Tianshu Starter 的注解、模型和运行时；
 - 增加 adapter 作为运行时集成；
 - `@DdcValue`、`@DdcRefreshable`、Yaml Applier 和业务配置逻辑不变；
-- 删除旧 DDC Admin HTTP 属性。
+- 删除旧 Tianshu Admin HTTP 属性。
 
-### 15.8 RBAC3
+### 15.8 Tianquan-Jianshen
 
-- 默认关闭 DDC 的路径不强制创建 adapter client；
-- 启用 DDC 的应用、测试和生产配置确保 adapter 在 classpath；
-- Gateway/DDC 生产配置迁移为 gRPC target；
-- 不借本次迁移修复无关 RBAC3 legacy 编译问题。
+- 默认关闭 Tianshu 的路径不强制创建 adapter client；
+- 启用 Tianshu 的应用、测试和生产配置确保 adapter 在 classpath；
+- Yuheng/Tianshu 生产配置迁移为 gRPC target；
+- 不借本次迁移修复无关 Tianquan-Jianshen legacy 编译问题。
 
 ### 15.9 BOM、文档与 Archetype
 
 - Components RPC 聚合 POM 增加 adapter module；
 - Components BOM 增加 adapter version；
 - 平台模块通过已导入 BOM 获取版本；
-- DDC、RPC、Gateway 中英文 README 更新依赖、配置和拓扑；
+- Tianshu、RPC、Yuheng 中英文 README 更新依赖、配置和拓扑；
 - Runbook、部署 YAML、Docker/Kubernetes 端口更新；
-- Archetype 和示例中启用 DDC 的应用增加 adapter；
+- Archetype 和示例中启用 Tianshu 的应用增加 adapter；
 - 历史 specs 不做全量文本替换，但活跃 README、Runbook 和配置不得残留旧 HTTP 说明。
 
 ---
@@ -1211,7 +1211,7 @@ DDC Starter 继续拥有：
 
 最终生产源码中删除：
 
-### DDC Admin
+### Tianshu Admin
 
 - `DdcOpenApiController`；
 - `DdcRegistryOpenApiController`；
@@ -1220,7 +1220,7 @@ DDC Starter 继续拥有：
 - `DdcOpenApiHmacFilter`；
 - `DdcSecurityFilterRegistration`；
 - 仅为 Servlet Filter 存在的 request attribute 和 path canonicalization；
-- `/api/v1/ddc/openapi/**` Security 配置。
+- `/api/v1/tianshu/openapi/**` Security 配置。
 
 保留但迁移包或职责：
 
@@ -1231,7 +1231,7 @@ DDC Starter 继续拥有：
 - `InMemoryDdcNonceStore`；
 - `DdcServicePrincipal`。
 
-### DDC Starter
+### Tianshu Starter
 
 - 三个 `HttpDdc*Client`；
 - `client.http` 整包；
@@ -1261,13 +1261,13 @@ DDC Starter 继续拥有：
 - 不提供旧 Client deprecated wrapper；
 - 不让旧客户端和新 Admin 跨版本互通；
 - 仓库内所有生产消费者必须在同一发布版本迁移；
-- 部署必须先保证 DDC Admin 新 gRPC Endpoint 可用，再升级调用方；
+- 部署必须先保证 Tianshu Admin 新 gRPC Endpoint 可用，再升级调用方；
 - 若需要生产滚动迁移，只允许在部署层安排同版本 Admin 先行，不在源码中保留长期双栈。
 
 保持兼容的业务语义：
 
-- DDC Java Client 端口；
-- DDC model 的业务含义；
+- Tianshu Java Client 端口；
+- Tianshu model 的业务含义；
 - ConfigData location 与 Spring Boot precedence；
 - Redis Key、Topic、租约和 revision；
 - changeId 幂等；
@@ -1281,7 +1281,7 @@ DDC Starter 继续拥有：
 
 ### 18.1 Ports and Adapters
 
-`DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 继续作为业务端口，HTTP Adapter 被 RPC Adapter 替换。该模式隔离上层业务与传输，直接解决 Gateway、Runtime 和 Admin Client 的耦合。
+`DdcConfigClient`、`DdcServiceRegistryClient`、`DdcManagementClient` 继续作为业务端口，HTTP Adapter 被 RPC Adapter 替换。该模式隔离上层业务与传输，直接解决 Yuheng、Runtime 和 Admin Client 的耦合。
 
 ### 18.2 Facade
 
@@ -1289,15 +1289,15 @@ DDC Starter 继续拥有：
 
 ### 18.3 Strategy
 
-`RpcInvocationChannelProvider` 区分 Gateway 与 Direct。普通业务 RPC 使用 Gateway Strategy，DDC 自举使用 Direct Strategy，避免在 Invocation Handler 中继续硬编码路由。
+`RpcInvocationChannelProvider` 区分 Yuheng 与 Direct。普通业务 RPC 使用 Yuheng Strategy，Tianshu 自举使用 Direct Strategy，避免在 Invocation Handler 中继续硬编码路由。
 
 ### 18.4 Adapter
 
-`DdcRpcProviderRegistry` 和 `DdcRpcGatewayDirectory` 把 DDC 领域端口适配为 RPC 中立 SPI，让 RPC Starter 不再理解 `RPC_PROVIDER` 和 `INTERNAL_GATEWAY`。
+`DdcRpcProviderRegistry` 和 `DdcRpcGatewayDirectory` 把 Tianshu 领域端口适配为 RPC 中立 SPI，让 RPC Starter 不再理解 `RPC_PROVIDER` 和 `INTERNAL_GATEWAY`。
 
 ### 18.5 Observer
 
-Registry 与配置发布继续通过现有 Redis Topic 传播变更，快照 RPC 负责初始状态和对账。该模式与现有 DDC Redis 通知体系一致；本次不新增 scope invalidation Topic。
+Registry 与配置发布继续通过现有 Redis Topic 传播变更，快照 RPC 负责初始状态和对账。该模式与现有 Tianshu Redis 通知体系一致；本次不新增 scope invalidation Topic。
 
 不采用额外 Command、Factory Method 层级或大量 Handler 链。现有业务复杂度由 Provider -> Facade -> Service 足够表达，避免无收益抽象。
 
@@ -1307,27 +1307,27 @@ Registry 与配置发布继续通过现有 Redis Topic 传播变更，快照 RPC
 
 ### 19.1 RPC Starter
 
-- RPC Starter compile/test 不需要 DDC artifact；
-- `dependency:tree` 不出现 DDC Starter、DDC Admin 或 adapter；
-- 主源码和测试不出现 `top.egon.cola.component.ddc` import；
+- RPC Starter compile/test 不需要 Tianshu artifact；
+- `dependency:tree` 不出现 Tianshu Starter、Tianshu Admin 或 adapter；
+- 主源码和测试不出现 `top.egon.cola.component.tianshu` import；
 - Provider Registry SPI 使用内存 fake 验证 register/heartbeat/deregister；
-- Gateway Directory SPI 使用内存 fake 验证 READY、drain、round robin 和 failure；
+- Yuheng Directory SPI 使用内存 fake 验证 READY、drain、round robin 和 failure；
 - Direct Channel 验证 target、TLS、deadline、interceptor、shutdown；
-- `@EgonRpcReference` 仍只能走 Gateway。
+- `@EgonRpcReference` 仍只能走 Yuheng。
 
-### 19.2 RPC DDC Adapter
+### 19.2 RPC Tianshu Adapter
 
 - Proto descriptor 和 `@EgonRpcService` method 一致；
-- 每个 DDC model/proto mapper 双向测试；
+- 每个 Tianshu model/proto mapper 双向测试；
 - 三个 Client Adapter 方法覆盖；
 - Registry initial RPC、Redis update、periodic reconciliation 覆盖；
 - ConfigData 在无 ApplicationContext 时拉取并关闭 Channel；
 - optional/non-optional ConfigData 失败语义覆盖；
 - HMAC deterministic body、timestamp、nonce、scope、operation 覆盖；
-- gRPC error detail 正确还原 DDC exception；
+- gRPC error detail 正确还原 Tianshu exception；
 - DNS target round robin 与 backend failure 覆盖。
 
-### 19.3 DDC Admin
+### 19.3 Tianshu Admin
 
 - 三个 Provider 只调用对应 Facade；
 - Facade 保持现有 Service 语义；
@@ -1354,11 +1354,11 @@ Registry 与配置发布继续通过现有 Redis Topic 传播变更，快照 RPC
 
 ### 19.5 关联模块
 
-- DDC Starter、Admin、Test 定向 test；
+- Tianshu Starter、Admin、Test 定向 test；
 - RPC Starter、adapter、RPC Test 定向 test；
-- Gateway Admin、Engine、Provider Runtime、Starter 和 RPC fixtures 定向 test；
-- IdP Admin 定向 compile/test；
-- RBAC3 启用/关闭 DDC 配置路径 compile/test；
+- Yuheng Admin、Engine、Provider Runtime、Starter 和 RPC fixtures 定向 test；
+- Tianquan-Shoubing Admin 定向 compile/test；
+- Tianquan-Jianshen 启用/关闭 Tianshu 配置路径 compile/test；
 - 根 Reactor `clean integration-test`；
 - 不自动启动真实项目进程。
 
@@ -1370,18 +1370,18 @@ Registry 与配置发布继续通过现有 Redis Topic 传播变更，快照 RPC
 
 实现完成后必须满足：
 
-1. RPC Starter POM 和源码对 DDC 零依赖；
-2. adapter 是唯一同时依赖 RPC Starter 与 DDC Starter 的模块；
+1. RPC Starter POM 和源码对 Tianshu 零依赖；
+2. adapter 是唯一同时依赖 RPC Starter 与 Tianshu Starter 的模块；
 3. 三个机器 OpenAPI Controller 不存在；
 4. 三个 `HttpDdc*Client` 和 `client.http` 不存在；
-5. 活跃源码、配置、README 和 Runbook 不出现 `/api/v1/ddc/openapi`；
-6. 活跃配置不出现 `ddc.admin.endpoint` 或 `gateway.admin.ddc.endpoint`；
-7. `spring.config.import=ddc:` 只由 adapter ConfigData SPI 处理；
-8. DDC Admin 不配置 DDC target、不注册自己、不依赖 Gateway；
-9. DDC Direct RPC 使用外部 target 和 round robin；
-10. 普通 `@EgonRpcReference` 继续通过 Gateway；
-11. RPC Provider 默认需要 Registry，DDC Admin 唯一显式使用 registration disabled；
-12. Gateway Admin 在 Gateway 数据面不可用时仍能直连 DDC；
+5. 活跃源码、配置、README 和 Runbook 不出现 `/api/v1/tianshu/openapi`；
+6. 活跃配置不出现 `tianshu.admin.endpoint` 或 `yuheng.admin.tianshu.endpoint`；
+7. `spring.config.import=tianshu:` 只由 adapter ConfigData SPI 处理；
+8. Tianshu Admin 不配置 Tianshu target、不注册自己、不依赖 Yuheng；
+9. Tianshu Direct RPC 使用外部 target 和 round robin；
+10. 普通 `@EgonRpcReference` 继续通过 Yuheng；
+11. RPC Provider 默认需要 Registry，Tianshu Admin 唯一显式使用 registration disabled；
+12. Yuheng Admin 在 Yuheng 数据面不可用时仍能直连 Tianshu；
 13. 所有当前 HMAC operation、scope、nonce 和 operator 语义均有 RPC 测试；
 14. Redis Key、Topic、数据库 Schema 和 Flyway 文件无变化；
 15. Multi-Admin 测试证明跨节点租约、ACK、nonce、发布和故障切换；
@@ -1392,12 +1392,12 @@ Registry 与配置发布继续通过现有 Redis Topic 传播变更，快照 RPC
 
 ```text
 HttpDdc
-/api/v1/ddc/openapi
-ddc.admin.endpoint
-gateway.admin.ddc.endpoint
+/api/v1/tianshu/openapi
+tianshu.admin.endpoint
+yuheng.admin.tianshu.endpoint
 DdcOpenApiHmacFilter
 DdcCanonicalRequest
-top.egon.cola.component.ddc（限定 rpc-starter）
+top.egon.cola.component.tianshu（限定 rpc-starter）
 ```
 
 历史 specs 中的旧名称属于历史记录，不作为活跃残留失败；生产源码、测试、README、Runbook、样例和部署配置属于失败范围。
@@ -1409,13 +1409,13 @@ top.egon.cola.component.ddc（限定 rpc-starter）
 以下事项已经确认，不在实施 Plan 阶段重新开放：
 
 - adapter 放在 `components/rpc` 下；
-- RPC Starter 去 DDC 化；
-- 三个 DDC 机器 Controller 全部删除；
-- DDC 机器协议只使用 Direct egon-rpc；
-- DDC 不使用 Gateway 和 DDC Registry 发现自己；
-- DDC 是平台唯一自举例外；
-- 非 DDC 平台托管服务默认由 DDC 支撑；
-- 普通业务 RPC 不允许 Direct 绕过 Gateway；
+- RPC Starter 去 Tianshu 化；
+- 三个 Tianshu 机器 Controller 全部删除；
+- Tianshu 机器协议只使用 Direct egon-rpc；
+- Tianshu 不使用 Yuheng 和 Tianshu Registry 发现自己；
+- Tianshu 是平台唯一自举例外；
+- 非 Tianshu 平台托管服务默认由 Tianshu 支撑；
+- 普通业务 RPC 不允许 Direct 绕过 Yuheng；
 - Admin Web/人工 REST 保留；
 - Redis Subscription 保留，不做 gRPC Streaming；
 - HMAC scope、nonce、operator 语义保留；

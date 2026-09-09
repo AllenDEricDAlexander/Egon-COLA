@@ -924,7 +924,7 @@ The basic `verify.groovy` contract must assert:
 - The V1 SHA-256 matches the pinned value and exactly one `V2__complete_organization_domains.sql` exists.
 - The generated README contains the dependency graph, both complete domains, integration ownership, fallback behavior, error semantics, deferred cross-Project boundary, and validation commands.
 - The archetype IT goal and generated-project CI execute Maven `verify`, not only `test`.
-- Maven Wrapper 3.9.14, Docker, and cross-platform post-generation behavior remain intact.
+- Maven Wrapper 3.9.14, Docker, and cross-xingyuan post-generation behavior remain intact.
 
 The verifier may be decomposed into focused helper closures but must remain one generation-time contract and must not introduce a new test framework.
 

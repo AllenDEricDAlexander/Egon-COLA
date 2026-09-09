@@ -1,8 +1,8 @@
-# Gateway 接口 Schema 展示优化设计
+# Yuheng 接口 Schema 展示优化设计
 
 ## 背景
 
-Gateway Admin 的 Operation 详情目前直接用 JSON 面板展示 `requestSchema`、
+Yuheng Admin 的 Operation 详情目前直接用 JSON 面板展示 `requestSchema`、
 `responseSchema`。HTTP 上报至少包含 `properties`，但 RPC 上报只有
 `type=protobuf` 和 `messageType`；因此 RPC 请求/响应无法看到字段、嵌套对象、数组、
 枚举、Protobuf 原始类型和字段说明。
@@ -14,14 +14,14 @@ Gateway Admin 的 Operation 详情目前直接用 JSON 面板展示 `requestSche
 - 每行展示字段路径、JSON 类型、协议/Java 类型、必填状态、说明和约束。
 - RPC Starter 从现有 Protobuf Descriptor 生成字段 Schema，不让浏览器解析
   `base64DescriptorSet`。
-- Provider 可以通过 Gateway 自有注解声明请求/响应字段说明；没有说明时页面明确显示
+- Provider 可以通过 Yuheng 自有注解声明请求/响应字段说明；没有说明时页面明确显示
   “暂无字段说明”，不根据字段名伪造业务语义。
 
 ## 方案比较
 
 ### 方案一：Starter 展开 Schema，Admin Web 渲染递归树表（采用）
 
-在 `gateway-starter` 内把 Protobuf Descriptor 转为受限 JSON Schema 形态，并让
+在 `yuheng-starter` 内把 Protobuf Descriptor 转为受限 JSON Schema 形态，并让
 HTTP/RPC 共用字段说明元数据。Admin Web 只消费统一 Schema。
 
 优点：Schema 在上报边界完成校验并持久化，页面轻量，历史 Definition 可复现，不增加
@@ -92,7 +92,7 @@ HTTP 继续使用现有 Jackson Schema 生成器，但同样应用字段说明�
 - Starter：以真实 Protobuf Descriptor 验证嵌套消息、重复字段、标量格式、枚举、字段
   说明和未知说明路径。
 - Admin Web：验证递归行转换、数组/对象类型、必填、说明、约束以及默认展开渲染。
-- 运行 Gateway Starter Maven 测试、前端 Vitest、TypeScript、ESLint 与生产构建。
+- 运行 Yuheng Starter Maven 测试、前端 Vitest、TypeScript、ESLint 与生产构建。
 
 ## 设计模式判断
 

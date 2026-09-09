@@ -488,7 +488,7 @@ git commit -m "feat(id): add common ID Spring Boot starter"
 
 - [ ] **Step 1: Replace active UUID-only module descriptions**
 
-Update module tables and examples so common-id is described as Snowflake plus deprecated UUIDv7 compatibility. Add the Starter artifact to root/BOM consumer tables. Do not rewrite historical `docs/superpowers` plans or migrate DDC/Gateway/RPC/archetype UUID protocols.
+Update module tables and examples so common-id is described as Snowflake plus deprecated UUIDv7 compatibility. Add the Starter artifact to root/BOM consumer tables. Do not rewrite historical `docs/superpowers` plans or migrate Tianshu/Yuheng/RPC/archetype UUID protocols.
 
 - [ ] **Step 2: Write complete Starter README pair**
 

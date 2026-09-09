@@ -70,7 +70,7 @@
 
 ### Repository Callers
 
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/HttpDdcAdminClient.java`
 - Modify only additional files that fail compilation because they call common record contracts through old getters or setters.
 
 ---
@@ -652,7 +652,7 @@ git commit -m "refactor: migrate common model contracts to records"
 ### Task 5: Compile-Driven Caller Migration
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/HttpDdcAdminClient.java`
 - Modify additional compilation failures only.
 
 - [ ] **Step 1: Run component compile to reveal caller failures**
@@ -665,7 +665,7 @@ Run:
 
 Expected before migration: FAIL on old JavaBean accessors for common records.
 
-- [ ] **Step 2: Update known DDC starter caller**
+- [ ] **Step 2: Update known Tianshu starter caller**
 
 In `HttpDdcAdminClient.pull()`, replace:
 

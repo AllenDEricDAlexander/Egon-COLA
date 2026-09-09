@@ -1,4 +1,4 @@
-# Gateway Admin 领域分包、Java 类型独立化与页面级 Scope 改造规格
+# Yuheng Admin 领域分包、Java 类型独立化与页面级 Scope 改造规格
 
 > 状态：已确认，进入实施计划阶段
 > 编写日期：2026-08-13
@@ -12,9 +12,9 @@
 
 本文固化已经确认的三项改造：
 
-1. Gateway Admin Java 包改为领域优先的垂直结构，每个领域内部按 `controller / domain / repository / service` 展开；
-2. Gateway Admin 生产源码不再包含任何嵌套 `record`、`class`、`enum` 或 `interface`，现有 165 个嵌套类型全部独立为顶层 Java 文件；
-3. Gateway Admin Web 不再把 `bizCode / namespace / env / appCode` 作为贯穿全站的全局查询上下文，改为各页面独立筛选和独立查询。
+1. Yuheng Admin Java 包改为领域优先的垂直结构，每个领域内部按 `controller / domain / repository / service` 展开；
+2. Yuheng Admin 生产源码不再包含任何嵌套 `record`、`class`、`enum` 或 `interface`，现有 165 个嵌套类型全部独立为顶层 Java 文件；
+3. Yuheng Admin Web 不再把 `bizCode / namespace / env / appCode` 作为贯穿全站的全局查询上下文，改为各页面独立筛选和独立查询。
 
 本次不删除或修改认证接口，不让前端解析 JWT，也不修改任何既有 HTTP 接口契约。
 
@@ -25,20 +25,20 @@
 | 编号 | 已确认决策 |
 |---|---|
 | GA-01 | `GatewayAuthBootstrapController` 和 `GatewayAdminSessionController` 保留，路径、入参、响应和鉴权行为不变 |
-| GA-02 | Gateway Admin Web 继续通过现有 Session API 获取身份和 capabilities，不解析 JWT |
-| GA-03 | Spring Security、IdP、RBAC3、`AdminActor` 和后端权限校验不在本次改造范围 |
+| GA-02 | Yuheng Admin Web 继续通过现有 Session API 获取身份和 capabilities，不解析 JWT |
+| GA-03 | Spring Security、Tianquan-Shoubing、Tianquan-Jianshen、`AdminActor` 和后端权限校验不在本次改造范围 |
 | GA-04 | 外部 HTTP 契约冻结；Java 内部类型名称、包位置和方法签名允许因类型独立化而调整 |
-| GA-05 | Gateway Admin 全部生产 Java 类中不得继续声明嵌套 `record`、`class`、`enum` 或 `interface` |
+| GA-05 | Yuheng Admin 全部生产 Java 类中不得继续声明嵌套 `record`、`class`、`enum` 或 `interface` |
 | GA-06 | 独立数据载体允许继续使用顶层 `record`；本次不把不可变数据载体机械改写为可变 JavaBean |
 | GA-07 | 不建立通用 `pojo`、巨型 `dto` 或跨功能 `model` 垃圾包；类型放回其所属接口或业务功能包 |
-| GA-08 | Gateway Web 删除全局选中 Scope、Header Scope 选择器、Scope LocalStorage 和切换 Scope 时的全局缓存清理/跳转 |
-| GA-09 | DDC Scope Binding 继续作为页面筛选选项和创建表单的权威数据源，但不再承担全站当前上下文 |
+| GA-08 | Yuheng Web 删除全局选中 Scope、Header Scope 选择器、Scope LocalStorage 和切换 Scope 时的全局缓存清理/跳转 |
+| GA-09 | Tianshu Scope Binding 继续作为页面筛选选项和创建表单的权威数据源，但不再承担全站当前上下文 |
 | GA-10 | 能用现有接口查询全量数据的页面默认展示跨 Scope 数据；仍要求 Scope 参数的接口由对应页面独立选择后查询 |
 | GA-11 | 页面级筛选写入本页面 URL Query，不跨页面共享，不写入 LocalStorage |
 | GA-12 | 本次不以浏览器遍历全部 Scope、并发请求后再合并的方式伪造全局聚合或全局分页 |
 | GA-13 | Java 包采用领域优先结构：`admin.<领域>.controller/domain/repository/service` |
 | GA-14 | `domain` 下按实际需要建立 `dto / vo / po / enums / exception`，不创建空包 |
-| GA-15 | 不再保留承载全部业务的 `interfaces / infrastructure / persistence` 技术根包；`admin.application` 仅表示 Gateway Application 领域，不再作为全局 Application Layer |
+| GA-15 | 不再保留承载全部业务的 `interfaces / infrastructure / persistence` 技术根包；`admin.application` 仅表示 Yuheng Application 领域，不再作为全局 Application Layer |
 | GA-16 | DTO、VO、PO 和 Enum 使用明确后缀；真实领域对象可直接位于本领域 `domain` 包 |
 | GA-17 | Repository 实现按 `jdbc / jpa / filesystem` 继续细分，仓储接口和实现不得散落在 Service 包 |
 | GA-18 | `src/main/java` 中 165 个嵌套类型全部清零；私有辅助类型也必须成为消费者同包下的包级顶层类型 |
@@ -50,7 +50,7 @@
 
 ### 2.1 Java 类型与宿主职责混杂
 
-当前 `gateway-admin` 中，Controller、Service、Store、Repository 实现、配置、消息消费者、规则工具和异常处理器除了自己的主要职责，还在文件尾部声明 Request、Response、Command、Query、View、Result、PO、枚举、校验结果和内部计算状态。
+当前 `yuheng-admin` 中，Controller、Service、Store、Repository 实现、配置、消息消费者、规则工具和异常处理器除了自己的主要职责，还在文件尾部声明 Request、Response、Command、Query、View、Result、PO、枚举、校验结果和内部计算状态。
 
 基线扫描结果为：
 
@@ -87,17 +87,17 @@ rule
 security
 ```
 
-同一业务领域被拆散在多棵技术目录中。例如 Gateway Catalog 的 Controller 位于 `interfaces.management`，Service/Store 位于 `application.catalog`，JDBC 实现位于 `infrastructure.persistence`；查看一次完整调用链必须跨三个根包。
+同一业务领域被拆散在多棵技术目录中。例如 Yuheng Catalog 的 Controller 位于 `interfaces.management`，Service/Store 位于 `application.catalog`，JDBC 实现位于 `infrastructure.persistence`；查看一次完整调用链必须跨三个根包。
 
 新结构以业务领域作为第一层边界，技术职责作为领域内部第二层。`bootstrap` 和 `config` 是模块装配例外，不承担业务对象归属。
 
 ### 2.3 全局 Scope 把查询条件错误提升为应用上下文
 
-当前 Gateway Web 的数据流为：
+当前 Yuheng Web 的数据流为：
 
 ```text
 ScopeProvider
-  -> 加载全部 DDC Scope Binding
+  -> 加载全部 Tianshu Scope Binding
   -> 从 LocalStorage / 环境变量 / connected binding 选择一个完整 Scope
   -> Admin Header 展示 Biz / Namespace / Env / App 四级选择器
   -> 所有页面通过 useScope() 读取同一个 Scope
@@ -112,7 +112,7 @@ ScopeProvider
 - `CatalogPage` 只能从全局 Scope 下的 Application 中选择；
 - MCP 页面通过全局 Scope 缩小 Group 或 Operation 选项；
 - Header 切换任一字段会清空其他页面缓存并跳回 `/dashboard`；
-- DDC Binding 加载失败或没有 Binding 时，`ScopeProvider` 会阻断整个已登录应用；
+- Tianshu Binding 加载失败或没有 Binding 时，`ScopeProvider` 会阻断整个已登录应用；
 - 默认 Scope 环境变量和 LocalStorage 把一次查询偏好变成了全站状态。
 
 ### 2.4 现有接口对“跨 Scope”的支持能力不同
@@ -121,10 +121,10 @@ ScopeProvider
 
 | 页面/数据 | 当前接口能力 | 本期可实现的行为 |
 |---|---|---|
-| Gateway Group | `GET /gateway-groups` 已返回全部 Group，额外 Scope 参数实际未参与后端过滤 | 默认展示全部，可在页面内按 Env/Namespace 过滤 |
+| Yuheng Group | `GET /yuheng-groups` 已返回全部 Group，额外 Scope 参数实际未参与后端过滤 | 默认展示全部，可在页面内按 Env/Namespace 过滤 |
 | Application | `GET /applications` 的四个 Scope 参数均可选，空查询返回全部 | 默认展示全部，页面可选过滤 |
 | Catalog | 由 Application ID 查询目录 | 先从全部/页面筛选后的 Application 选择，再查目录 |
-| MCP | 主要以 Gateway Group ID 或 Server ID 查询 | 先从全部/页面筛选后的 Group 选择，不依赖全局 Scope |
+| MCP | 主要以 Yuheng Group ID 或 Server ID 查询 | 先从全部/页面筛选后的 Group 选择，不依赖全局 Scope |
 | Dashboard | 必须提供 Biz/App/Env/Namespace | 页面独立选择完整 Scope 后查询，不能一次返回全局聚合 |
 | Provider | 必须提供 Biz/App/Env/Namespace | 页面独立选择完整 Scope 后查询，不能一次返回全部 Scope |
 | Trace | 必须提供 Env/Namespace | 页面独立选择 Env/Namespace 后查询 |
@@ -138,32 +138,32 @@ ScopeProvider
 
 ### 3.1 目标
 
-1. 将 Gateway Admin Java 源码改为领域优先、领域内部技术分层的包结构；
-2. 清除 Gateway Admin `src/main/java` 中全部 165 个嵌套类型声明；
+1. 将 Yuheng Admin Java 源码改为领域优先、领域内部技术分层的包结构；
+2. 清除 Yuheng Admin `src/main/java` 中全部 165 个嵌套类型声明；
 3. 为每个 Request、Response、Command、Query、View、Result、PO、枚举和内部计算对象建立独立 Java 文件；
 4. 保持字段、校验注解、不可变性、构造校验、JSON 名称和现有业务行为；
 5. 让 Controller 只负责协议适配、校验、鉴权声明和 Service 调用；
 6. 让 Service 只负责业务流程编排，不在文件尾部兼任类型容器；
 7. 让 Repository 契约、持久化实现和 PO 位于所属领域的明确目录；
 8. 增加结构回归测试，阻止嵌套类型和旧技术根包回流；
-9. 删除 Gateway Web 全局 Scope Context 和 Header Scope 选择器；
-10. 让 Gateway Group、Application、Catalog 和 MCP 默认能看到跨 Scope 候选数据；
+9. 删除 Yuheng Web 全局 Scope Context 和 Header Scope 选择器；
+10. 让 Yuheng Group、Application、Catalog 和 MCP 默认能看到跨 Scope 候选数据；
 11. 让 Dashboard、Provider、Trace 和 Audit 在各自页面独立选择现有接口所要求的 Scope；
 12. 让查询键、筛选状态、缓存失效和页面跳转都局限在所属页面；
-13. 让前端 DDC Binding 查询失败不再阻断应用壳和与该查询无关的页面；
+13. 让前端 Tianshu Binding 查询失败不再阻断应用壳和与该查询无关的页面；
 14. 更新单元测试、前端说明和相关 E2E 测试夹具源码，使其与新页面结构一致。
 
 ### 3.2 非目标
 
-- 不删除、重命名或修改任何 Gateway Admin HTTP 接口；
+- 不删除、重命名或修改任何 Yuheng Admin HTTP 接口；
 - 不改变请求字段、响应 JSON、HTTP 状态码、错误码和权限注解；
 - 不删除或停用 `GatewayAuthBootstrapController`；
 - 不删除或停用 `GatewayAdminSessionController`；
-- 不修改 Gateway Web 的登录、刷新、Session API 或 capability 行为；
-- 不让 Gateway Web 或 Admin Web Shared 新增 JWT 身份解析职责；
-- 不修改 IdP、RBAC3、DDC 的认证授权模型；
+- 不修改 Yuheng Web 的登录、刷新、Session API 或 capability 行为；
+- 不让 Yuheng Web 或 Admin Web Shared 新增 JWT 身份解析职责；
+- 不修改 Tianquan-Shoubing、Tianquan-Jianshen、Tianshu 的认证授权模型；
 - 不修改数据库，不增加 Flyway migration；
-- 不改变 Gateway Application 的物理身份或 DDC Binding 校验语义；
+- 不改变 Yuheng Application 的物理身份或 Tianshu Binding 校验语义；
 - 不为 Dashboard、Provider、Trace、Audit 新增跨 Scope 后端查询；
 - 不在前端并发遍历多个 Scope 后合并分页、排序或聚合数据；
 - 不引入 ArchUnit、ClassGraph、新状态管理框架或新 UI 框架；
@@ -178,7 +178,7 @@ ScopeProvider
 
 ### 4.1 强制规则
 
-实施完成后，Gateway Admin 的整个 `src/main/java` 必须不存在嵌套类型。所有生产类都必须满足 `getDeclaredClasses().length == 0`，编译产物目录中不得出现业务源码生成的 `$` 内部类文件。
+实施完成后，Yuheng Admin 的整个 `src/main/java` 必须不存在嵌套类型。所有生产类都必须满足 `getDeclaredClasses().length == 0`，编译产物目录中不得出现业务源码生成的 `$` 内部类文件。
 
 禁止的嵌套声明包括：
 
@@ -232,7 +232,7 @@ admin.<领域>
 - 不新建模块级通用 `pojo / dto / vo / po / model` 总包；
 - `bootstrap` 和 `config` 是模块装配例外，不承载业务数据模型；
 - 一个顶层类型对应一个 `.java` 文件；
-- 第一层不再保留 `interfaces / infrastructure / persistence` 技术分层目录；`application` 只作为 Gateway Application 业务领域存在。
+- 第一层不再保留 `interfaces / infrastructure / persistence` 技术分层目录；`application` 只作为 Yuheng Application 业务领域存在。
 
 ### 4.4 类型分类与命名
 
@@ -282,7 +282,7 @@ JdbcGatewayCatalogStore.MutableBusiness
 ### 4.6 目标 package tree
 
 ```text
-top.egon.cola.component.gateway.admin
+top.egon.cola.component.yuheng.admin
 ├── bootstrap
 │   ├── GatewayAdminApplication
 │   └── GatewayAdminConfiguration
@@ -454,7 +454,7 @@ top.egon.cola.component.gateway.admin
 | `GatewayCatalogController` | `ManualDefinitionRequest` | `catalog.domain.dto.GatewayManualDefinitionRequestDTO` |
 | `GatewayCatalogController` | `ManualMetadataRequest` | `catalog.domain.dto.GatewayManualMetadataRequestDTO` |
 
-### 5.2 原 Gateway Application Service 范围
+### 5.2 原 Yuheng Application Service 范围
 
 | 当前宿主 | 当前嵌套类型 | 目标顶层类型 |
 |---|---|---|
@@ -672,14 +672,14 @@ top.egon.cola.component.gateway.admin
 
 ```text
 GET /api/v1/auth/bootstrap
-GET /api/v1/gateway/admin/session
+GET /api/v1/yuheng/admin/session
 ```
 
 同时保留：
 
 - `GatewayAuthBootstrapController` 对 `AuthorizationBootstrapService` 的调用；
-- `GatewayAdminSessionController` 从后端 Authentication/RBAC3 Authority 形成 Session View；
-- Gateway Web `AuthContext` 请求 Session API；
+- `GatewayAdminSessionController` 从后端 Authentication/Tianquan-Jianshen Authority 形成 Session View；
+- Yuheng Web `AuthContext` 请求 Session API；
 - `CapabilityProvider`、`RequireCapability` 和 `useCapability`；
 - Spring Security JWT 验签和后端权限校验；
 - `GatewayAdminActorArgumentResolver` 与 `AdminActor` 审计身份链路。
@@ -702,19 +702,19 @@ Java FQCN 不是外部 HTTP 契约，可以改变；任何 JSON 差异都视为�
 
 ---
 
-## 7. Gateway Web 页面级 Scope 架构
+## 7. Yuheng Web 页面级 Scope 架构
 
 ### 7.1 删除全局选择状态
 
 删除以下职责：
 
 - `ScopeProvider` 和 `useScope()`；
-- `egon.gateway.admin.scope.v1` LocalStorage；
+- `egon.yuheng.admin.scope.v1` LocalStorage；
 - `resolveInitialScope`、`configuredInitialScope` 和全局 `changeScope`；
-- `VITE_GATEWAY_ADMIN_DEFAULT_BIZ_CODE`；
-- `VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE`；
-- `VITE_GATEWAY_ADMIN_DEFAULT_ENV`；
-- `VITE_GATEWAY_ADMIN_DEFAULT_APP_CODE`；
+- `VITE_YUHENG_ADMIN_DEFAULT_BIZ_CODE`；
+- `VITE_YUHENG_ADMIN_DEFAULT_NAMESPACE`；
+- `VITE_YUHENG_ADMIN_DEFAULT_ENV`；
+- `VITE_YUHENG_ADMIN_DEFAULT_APP_CODE`；
 - `AdminLayout` Header 中 Biz/Namespace/Env/App 四个选择器；
 - Scope 切换时的 `queryClient.removeQueries(...)`；
 - Scope 切换时强制跳转 `/dashboard`。
@@ -729,7 +729,7 @@ AuthProvider
 
 ### 7.2 保留共享的 Scope Binding 数据，不共享选中值
 
-新增 Gateway Web 内部查询 Hook：
+新增 Yuheng Web 内部查询 Hook：
 
 ```text
 useGatewayScopeBindings()
@@ -737,8 +737,8 @@ useGatewayScopeBindings()
 
 职责仅限：
 
-- 调用现有 `GET /api/v1/gateway/admin/scopes`；
-- 使用固定 React Query Key `['gateway-scopes']` 缓存 Binding 列表；
+- 调用现有 `GET /api/v1/yuheng/admin/scopes`；
+- 使用固定 React Query Key `['yuheng-scopes']` 缓存 Binding 列表；
 - 暴露 loading、error、data 和 refetch；
 - 不选择 Scope；
 - 不写 LocalStorage；
@@ -748,7 +748,7 @@ useGatewayScopeBindings()
 
 ### 7.3 页面级受控筛选组件
 
-新增 Gateway Web 内部组件：
+新增 Yuheng Web 内部组件：
 
 ```text
 GatewayScopeFilter
@@ -819,16 +819,16 @@ type GatewayScopeFilterProps = {
 - 切换条件只影响 Dashboard Query；
 - 本期不把多个 Scope 的统计结果在浏览器相加。
 
-### 8.3 Gateway Group
+### 8.3 Yuheng Group
 
-- `GET /gateway-groups` 不再由前端附加全局 Scope；
-- 默认展示全部 Gateway Group；
+- `GET /yuheng-groups` 不再由前端附加全局 Scope；
+- 默认展示全部 Yuheng Group；
 - 页面提供可选 Env、Namespace 筛选；
 - 由于现有接口没有 Group 查询参数，筛选在已返回的 Group 列表上执行；
 - 表格保留 Env、Namespace 列；
-- 新建 Group 表单新增 Env、Namespace 选择，选项来自 DDC Binding 去重后的组合；
+- 新建 Group 表单新增 Env、Namespace 选择，选项来自 Tianshu Binding 去重后的组合；
 - 编辑已有 Group 不从页面筛选覆盖资源自身 Scope；
-- 创建/更新成功只失效 Gateway Group 相关 Query。
+- 创建/更新成功只失效 Yuheng Group 相关 Query。
 
 ### 8.4 Application / Credential
 
@@ -836,7 +836,7 @@ type GatewayScopeFilterProps = {
 - 页面提供可选 Biz、Namespace、Env、App 筛选；
 - 已选择的非空字段作为现有可选 Request Param 发送；
 - 表格必须显示 Biz、Application Code、Env、Namespace，避免跨 Scope 行不可辨认；
-- 新建 Application 时必须从 DDC Binding 选择一个精确四字段 Scope；
+- 新建 Application 时必须从 Tianshu Binding 选择一个精确四字段 Scope；
 - 已连接 Binding 继续出现在筛选候选中，但创建表单必须禁用 `connected=true` 的 Binding，避免重复创建；
 - 创建请求字段和后端 `requireEnabled` 校验保持不变；
 - 编辑 Application 和 Credential 操作始终以选中资源 ID 为准；
@@ -880,9 +880,9 @@ type GatewayScopeFilterProps = {
 
 ### 8.9 MCP
 
-- `McpServersPage` 和 `McpRemoteProvidersPage` 默认加载全部 Gateway Group；
+- `McpServersPage` 和 `McpRemoteProvidersPage` 默认加载全部 Yuheng Group；
 - 页面可选 Env、Namespace 缩小 Group 候选，但筛选只属于当前 MCP 页面；
-- Server/Remote Provider 的后续请求继续使用选中的 Gateway Group ID；
+- Server/Remote Provider 的后续请求继续使用选中的 Yuheng Group ID；
 - `McpResourcesPanel`、`McpPromptsPanel` 各自提供页面内 Application 选择器，候选默认来自全部 Application；
 - 选定 Application 后只加载该 Application 的 Catalog，再构建 Operation 候选，不并发拉取全部 Application Catalog；
 - Application 选项标签包含 Biz/App/Env/Namespace 和显示名，可在 Panel 内按 Scope 缩小候选；
@@ -893,7 +893,7 @@ type GatewayScopeFilterProps = {
 
 以下详情页继续按路径资源 ID 查询，不要求全局或页面 Scope：
 
-- Gateway Group Overview；
+- Yuheng Group Overview；
 - Draft Routes/Policies；
 - Release List/Detail；
 - Operation Detail；
@@ -903,7 +903,7 @@ type GatewayScopeFilterProps = {
 
 ---
 
-## 9. Gateway Web API Client 调整
+## 9. Yuheng Web API Client 调整
 
 这些是前端内部函数签名调整，不改变后端 HTTP 接口。
 
@@ -952,7 +952,7 @@ Query String 构建规则：
 
 - 应用壳和与 Scope Binding 查询无关的页面仍可进入；
 - 受影响页面继续呈现其实际后端查询结果或错误，不把 Binding Hook 的错误提升为全局错误；
-- 使用 Scope Filter 的局部区域显示“DDC Scope 加载失败”和重试；
+- 使用 Scope Filter 的局部区域显示“Tianshu Scope 加载失败”和重试；
 - 依赖精确 Binding 的创建按钮可以禁用，并说明原因；
 - 不再用全屏 `Result` 替换整个已登录应用。
 
@@ -968,7 +968,7 @@ Dashboard、Provider、Trace、Audit 在筛选不完整时：
 ### 10.3 无匹配数据
 
 - 查询成功且列表为空时使用页面现有空状态/Table empty；
-- Scope Binding 为空不代表 Gateway Group/Application 等本地数据为空；
+- Scope Binding 为空不代表 Yuheng Group/Application 等本地数据为空；
 - 只有依赖 Binding 的筛选/创建区域显示无可用 Binding。
 
 ### 10.4 认证授权
@@ -976,7 +976,7 @@ Dashboard、Provider、Trace、Audit 在筛选不完整时：
 - 401 仍进入现有 Refresh/Fatal Auth 流程；
 - 403 仍由现有页面错误处理和 capability 边界处理；
 - 前端页面级 Scope 只表示查询条件，不是授权边界；
-- 后端仍必须执行全部认证、权限和 DDC Binding 校验。
+- 后端仍必须执行全部认证、权限和 Tianshu Binding 校验。
 
 ---
 
@@ -999,7 +999,7 @@ Dashboard、Provider、Trace、Audit 在筛选不完整时：
 
 ### 12.1 Java 结构测试
 
-新增不依赖第三方扫描库的 JUnit 测试，从当前测试运行时的 `target/classes/top/egon/cola/component/gateway/admin` 动态加载全部顶层生产类，并断言：
+新增不依赖第三方扫描库的 JUnit 测试，从当前测试运行时的 `target/classes/top/egon/cola/component/yuheng/admin` 动态加载全部顶层生产类，并断言：
 
 ```java
 assertThat(type.getDeclaredClasses()).isEmpty();
@@ -1007,7 +1007,7 @@ assertThat(type.getDeclaredClasses()).isEmpty();
 
 测试必须：
 
-- 覆盖整个 Gateway Admin `src/main/java`，不能只枚举 Controller/Service；
+- 覆盖整个 Yuheng Admin `src/main/java`，不能只枚举 Controller/Service；
 - 证明基线 59 个宿主中的 165 个嵌套类型已经全部清零；
 - 对迁移后新增的顶层类型同样执行检查；
 - 输出仍存在嵌套声明的宿主 FQCN，便于定位；
@@ -1038,8 +1038,8 @@ assertThat(type.getDeclaredClasses()).isEmpty();
 
 建议针对迁移前易回归的外部响应增加 JSON Characterization Test，至少覆盖：
 
-- Gateway Admin Session；
-- Gateway Admin Error；
+- Yuheng Admin Session；
+- Yuheng Admin Error；
 - Application/Group View；
 - Projection Envelope/Runtime Consistency；
 - Draft Validation/Mutation Result；
@@ -1055,7 +1055,7 @@ assertThat(type.getDeclaredClasses()).isEmpty();
 4. 页面筛选只修改当前 URL Query；
 5. Dashboard/Provider 缺少完整四字段时不请求；
 6. Trace/Audit 缺少 Env/Namespace 时不请求；
-7. Gateway Group 默认展示不同 Env/Namespace 的数据；
+7. Yuheng Group 默认展示不同 Env/Namespace 的数据；
 8. Application 默认请求无 Scope 参数并展示跨 Scope 行；
 9. Application 创建提交所选 Binding 的精确四字段；
 10. Catalog 候选不再被其他页面 Scope 限制；
@@ -1092,18 +1092,18 @@ rg -n --glob '*.java' \
   '^[[:space:]]+(public[[:space:]]+|protected[[:space:]]+|private[[:space:]]+|static[[:space:]]+|final[[:space:]]+)*(record|class|enum|interface)[[:space:]]+[A-Z]' \
   "$java_root"
 
-rg -n '^package .*gateway\.admin\.(interfaces|infrastructure)(\.|;)' \
+rg -n '^package .*yuheng\.admin\.(interfaces|infrastructure)(\.|;)' \
   "$java_root"
 
-rg -n '^package .*gateway\.admin\.mcp\.(application|interfaces|persistence|artifact)(\.|;)' \
+rg -n '^package .*yuheng\.admin\.mcp\.(application|interfaces|persistence|artifact)(\.|;)' \
   "$java_root"
 
-rg -n '^package .*gateway\.admin\.application\.(catalog|credential|observability|projection|release|reporting|routing|scope)(\.|;)' \
+rg -n '^package .*yuheng\.admin\.application\.(catalog|credential|observability|projection|release|reporting|routing|scope)(\.|;)' \
   "$java_root"
 
 rg --files "$java_root" | rg '/[^/]*(Entity|Store)\.java$'
 
-rg "ScopeProvider|useScope\\(|VITE_GATEWAY_ADMIN_DEFAULT_" \
+rg "ScopeProvider|useScope\\(|VITE_YUHENG_ADMIN_DEFAULT_" \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
 
 git diff --check
@@ -1113,7 +1113,7 @@ git diff --check
 
 ### 12.5 不执行的运行态验证
 
-遵循项目协作约束，本任务完成后不自动启动 Gateway Admin、Gateway Web、DDC、IdP 或 RBAC3，也不打开浏览器。运行态联调由用户启动环境后执行。
+遵循项目协作约束，本任务完成后不自动启动 Yuheng Admin、Yuheng Web、Tianshu、Tianquan-Shoubing 或 Tianquan-Jianshen，也不打开浏览器。运行态联调由用户启动环境后执行。
 
 ---
 
@@ -1124,12 +1124,12 @@ git diff --check
 1. 建立 package 结构守卫，并迁移 `bootstrap/config/shared/auth`；
 2. 迁移 `application/group/scope` 的 Controller、Domain、Repository、Service 和相关测试；
 3. 迁移 `catalog/credential`，独立 Store/JDBC 内部类型并完成 Repository/PO 命名规范化；
-4. 迁移 `routing/release/rule`，保持发布、规则编译和 DDC 交互行为；
+4. 迁移 `routing/release/rule`，保持发布、规则编译和 Tianshu 交互行为；
 5. 迁移 `runtime/observability/reporting`，同步消息、OpenAPI、定时任务和持久化测试；
 6. 迁移完整 `mcp` 领域，清理 Controller/Service/JDBC/FileSystem 中全部嵌套类型；
 7. 执行全模块旧包/FQCN/嵌套类型收口和 Java 契约回归；
-8. Gateway Web 移除全局 Scope 基础设施并建立页面级 Binding/Filter 能力；
-9. Gateway Group/Application/Catalog/MCP 迁移到默认全量与页面筛选；
+8. Yuheng Web 移除全局 Scope 基础设施并建立页面级 Binding/Filter 能力；
+9. Yuheng Group/Application/Catalog/MCP 迁移到默认全量与页面筛选；
 10. Dashboard/Provider/Trace/Audit 迁移到页面级必填 Scope；
 11. 前端测试、E2E 夹具源码和 README 收口。
 
@@ -1146,14 +1146,14 @@ git diff --check
 - DTO、VO、PO、Enum、Exception 和内部辅助类型均位于规定目录并使用规定命名；
 - 全生产类嵌套类型守卫和 package 结构测试通过；
 - Controller 不直接依赖 Repository 实现，Domain 不反向依赖 Controller/Service/Repository；
-- 所有既有 Gateway Admin HTTP 路径与 JSON 契约保持；
-- 两个认证接口、Gateway Web Session API 和 capability 行为未改变；
-- Gateway Web Header 不再存在全局 Scope 选择器；
+- 所有既有 Yuheng Admin HTTP 路径与 JSON 契约保持；
+- 两个认证接口、Yuheng Web Session API 和 capability 行为未改变；
+- Yuheng Web Header 不再存在全局 Scope 选择器；
 - 应用根节点不再由 Scope Binding 成败决定是否可用；
-- Gateway Group、Application、Catalog、MCP 默认候选不受单一全局 Scope 限制；
+- Yuheng Group、Application、Catalog、MCP 默认候选不受单一全局 Scope 限制；
 - Dashboard、Provider、Trace、Audit 各自持有并恢复自己的 URL 查询范围；
 - 页面筛选不会清空其他页面缓存或强制跳转；
-- DDC Binding 仍用于合法筛选和创建输入；
+- Tianshu Binding 仍用于合法筛选和创建输入；
 - 后端目标测试、前端 test/typecheck/lint/build 和 `git diff --check` 全部通过；
 - 没有数据库 migration、认证模型或无关模块变更；
 - 未自动启动项目，运行态边界已明确报告。
@@ -1167,7 +1167,7 @@ git diff --check
 - 可选 Scope 参数；
 - 全局分页与稳定排序；
 - Dashboard 指标的服务端聚合口径；
-- DDC Namespace 可见性和授权边界；
+- Tianshu Namespace 可见性和授权边界；
 - 大范围查询的索引、限流和超时策略。
 
 该后续能力不能通过浏览器循环请求并简单相加代替，也不属于本规格实施范围。

@@ -1,4 +1,4 @@
-# Gateway GWS-03 Engine Core 与 HTTP 数据面实现计划
+# Yuheng GWS-03 Engine Core 与 HTTP 数据面实现计划
 
 状态：已执行
 
@@ -6,7 +6,7 @@
 > superpowers:test-driven-development to implement this plan task-by-task.
 
 **Goal:** 在不依赖 Spring Cloud Gateway 的前提下，建立可由 PUBLIC/INTERNAL 独立
-Listener 驱动的自研 HTTP Gateway 热路径。
+Listener 驱动的自研 HTTP Yuheng 热路径。
 
 **Architecture:** Core 保持框架无关，以不可变 Route Index、阶段化 Filter Chain 和
 `GatewayExecutor` 组织请求。Engine 使用 Reactor Netty 适配网络输入输出和上游调用，
@@ -27,7 +27,7 @@ Listener 只负责把可信 `AccessZone` 注入 Exchange，地址只能来自已
 - 新增聚合 Body 单消费、上限、释放和可选 Cache 语义。
 - 测试非法 UTF-8、重复编码、穿越、编码斜杠和二次消费。
 
-**Commit:** `feat(gateway): normalize inbound http requests`
+**Commit:** `feat(yuheng): normalize inbound http requests`
 
 ## Task 2: 编译不可变 Route Index
 
@@ -35,7 +35,7 @@ Listener 只负责把可信 `AccessZone` 注入 Exchange，地址只能来自已
 - 编译 Host → Method → Path Trie，激活后只读。
 - 检测重复/歧义 Route；测试精确、变量、尾部通配和优先级。
 
-**Commit:** `feat(gateway): compile immutable http routes`
+**Commit:** `feat(yuheng): compile immutable http routes`
 
 ## Task 3: Filter Chain 与 Executor
 
@@ -43,7 +43,7 @@ Listener 只负责把可信 `AccessZone` 注入 Exchange，地址只能来自已
 - 同 Order 冲突失败；Exposure 之前和 Observation 之后禁止扩展。
 - 同步/异步异常统一映射；取消和资源释放使用终结回调。
 
-**Commit:** `feat(gateway): execute staged filter chains`
+**Commit:** `feat(yuheng): execute staged filter chains`
 
 ## Task 4: Reactor Netty Listener 与 HTTP Upstream
 
@@ -53,13 +53,13 @@ Listener 只负责把可信 `AccessZone` 注入 Exchange，地址只能来自已
 - 上游只能接收 `ProviderInstance`，不接受绝对 URL。
 - 真实端口测试覆盖转发、外部不可访问、Body 超限和关停。
 
-**Commit:** `feat(gateway): add reactor netty http data plane`
+**Commit:** `feat(yuheng): add reactor netty http data plane`
 
 ## Task 5: GWS-03 验收
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl :egon-cola-component-gateway-engine -am clean test
+  -pl :egon-cola-component-yuheng-biz-gateway -am clean test
 git diff --check
 ```
 

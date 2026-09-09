@@ -4,7 +4,7 @@
 
 **Goal:** Add an Egon-COLA rule-engine Spring Boot Starter component that supports Java-assembled responsibility chains and rule trees with unified context, result, trace, listener, async, and auto-configuration contracts.
 
-**Architecture:** The component uses Scheme A from the approved design: one business-facing starter module plus one test/sample module under `egon-cola-components`. Runtime contracts and implementations live in the starter under `top.egon.cola.component.ruleengine`; the test module proves real usage flows without starting long-running services. The starter stays independent from DB, Redis, DDC, DTP, admin, and UI dependencies.
+**Architecture:** The component uses Scheme A from the approved design: one business-facing starter module plus one test/sample module under `egon-cola-components`. Runtime contracts and implementations live in the starter under `top.egon.cola.component.ruleengine`; the test module proves real usage flows without starting long-running services. The starter stays independent from DB, Redis, Tianshu, DTP, admin, and UI dependencies.
 
 **Tech Stack:** Java 21, Maven, Spring Boot 3.5.x auto-configuration, JUnit Jupiter, AssertJ, SLF4J, Egon-COLA common core/trace where useful.
 
@@ -2958,7 +2958,7 @@ Expected: all starter unit tests and test-module sample tests pass.
 Run:
 
 ```bash
-rg -n "org\\.springframework\\.data|jakarta\\.persistence|org\\.flywaydb|org\\.redisson|top\\.egon\\.cola\\.component\\.ddc|top\\.egon\\.cola\\.component\\.dtp" egon-cola-components/egon-cola-component-rule-engine/egon-cola-component-rule-engine-starter/src/main/java
+rg -n "org\\.springframework\\.data|jakarta\\.persistence|org\\.flywaydb|org\\.redisson|top\\.egon\\.cola\\.component\\.tianshu|top\\.egon\\.cola\\.component\\.dtp" egon-cola-components/egon-cola-component-rule-engine/egon-cola-component-rule-engine-starter/src/main/java
 ```
 
 Expected: no matches.
@@ -2996,6 +2996,6 @@ git commit -m "test: add rule engine usage samples"
 - [ ] `egon-cola-components/pom.xml` aggregates `egon-cola-component-rule-engine`.
 - [ ] `egon-cola-components/egon-cola-components-bom/pom.xml` exports only `egon-cola-component-rule-engine-starter`, not the test module.
 - [ ] No component-local `docs` directory exists under `egon-cola-component-rule-engine`.
-- [ ] Starter source has no DB, Flyway, Redis, DDC, DTP, admin, or UI dependency.
+- [ ] Starter source has no DB, Flyway, Redis, Tianshu, DTP, admin, or UI dependency.
 - [ ] README documents Java-only topology assembly and V1.0 non-goals.
 - [ ] No long-running service was started during validation.

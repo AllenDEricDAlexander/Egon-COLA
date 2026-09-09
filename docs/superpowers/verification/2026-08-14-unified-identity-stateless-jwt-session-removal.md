@@ -7,7 +7,7 @@ Scope: the implementation described by
 
 ## Boundary
 
-No IdP, Gateway, RBAC3, DDC, Redis, PostgreSQL, or frontend development server was started. The evidence below is
+No Tianquan-Shoubing, Yuheng, Tianquan-Jianshen, Tianshu, Redis, PostgreSQL, or frontend development server was started. The evidence below is
 offline/module evidence only. Runtime verification remains a user-run step against a clean database/Redis namespace.
 
 ## Java verification
@@ -22,7 +22,7 @@ The following sequential Maven commands exited `0`:
 ./mvnw -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am test -q
 ```
 
-The RBAC3, IdP, Gateway Admin, and DDC Admin commands were rerun sequentially after an earlier parallel run exposed only
+The Tianquan-Jianshen, Tianquan-Shoubing, Yuheng Admin, and Tianshu Admin commands were rerun sequentially after an earlier parallel run exposed only
 a protobuf temporary-directory race. The sequential runs are the authoritative results. Test logs contain expected
 warning/error output from negative-path tests; Maven exited successfully.
 
@@ -37,7 +37,7 @@ again exited `0`:
 ./mvnw -B -ntp -f pom.xml -pl egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin -am test -q
 ```
 
-The final MCP/IdP boundary changes were then verified with these focused commands, all exiting
+The final MCP/Tianquan-Shoubing boundary changes were then verified with these focused commands, all exiting
 `0`:
 
 ```text
@@ -52,7 +52,7 @@ verified fixed audience without a USER `client_id` claim, while SERVICE client i
 separate machine-token path. The MCP transport session store is intentionally still covered as
 protocol state.
 
-The post-audit offline checks also exited `0`: shell syntax, direct-run contract, RBAC3 static
+The post-audit offline checks also exited `0`: shell syntax, direct-run contract, Tianquan-Jianshen static
 verification, cleanup-script help, the exact executable-script forbidden scan, production-runtime
 forbidden scan, required-presence scan, and `git diff --check`.
 
@@ -61,22 +61,22 @@ forbidden scan, required-presence scan, and `git diff --check`.
 Sequential Vitest suites and TypeScript typechecks passed for all six frontend packages:
 
 - `egon-cola-xingyuan-admin-web-shared`: 1 file, 4 tests; typecheck passed.
-- DDC Admin Web: 19 files, 45 tests; typecheck passed.
-- Gateway Admin Web: 20 files, 52 tests; typecheck passed.
-- IdP Admin Web: 2 files, 5 tests; typecheck passed.
-- RBAC3 Admin Web: 13 files, 20 tests; typecheck passed.
-- RBAC3 React SDK: 6 files, 26 tests; typecheck passed.
+- Tianshu Admin Web: 19 files, 45 tests; typecheck passed.
+- Yuheng Admin Web: 20 files, 52 tests; typecheck passed.
+- Tianquan-Shoubing Admin Web: 2 files, 5 tests; typecheck passed.
+- Tianquan-Jianshen Admin Web: 13 files, 20 tests; typecheck passed.
+- Tianquan-Jianshen React SDK: 6 files, 26 tests; typecheck passed.
 
-`npm run lint` passed for shared, DDC, Gateway, and the React SDK. IdP Admin Web still reports one pre-existing unused
-`deleteMutation` in `src/features/resource-grants/ClientResourceGrantPage.tsx`; RBAC3 Admin Web reports one existing
+`npm run lint` passed for shared, Tianshu, Yuheng, and the React SDK. Tianquan-Shoubing Admin Web still reports one pre-existing unused
+`deleteMutation` in `src/features/resource-grants/ClientResourceGrantPage.tsx`; Tianquan-Jianshen Admin Web reports one existing
 React Hooks exhaustive-deps warning and no error. Builds were not run because the shared package's `postbuild` script
 removes its local `node_modules`, which is outside this change's requested validation boundary.
 
 Playwright configuration was checked without starting servers:
 
 ```text
-gateway-admin-web: 12 tests listed
-rbac3-admin-web: 3 tests listed
+yuheng-admin-web: 12 tests listed
+tianquan-jianshen-admin-web: 3 tests listed
 ```
 
 ## Structural and migration checks
@@ -85,14 +85,14 @@ The following checks passed:
 
 ```text
 git diff --check
-exactly one IdP V4 migration
-exactly one RBAC3 V5 migration
+exactly one Tianquan-Shoubing V4 migration
+exactly one Tianquan-Jianshen V5 migration
 production Java scan has no old identity/session authority classes
 frontend source scan has no token store, sessionStorage, OAuth authorize/token, admin session, or session-version symbols
 ```
 
-The V5 migration fails fast when legacy RBAC3 identity/session tables contain rows; it does not use `CASCADE`,
-`TRUNCATE`, or silent shared-database deletion. Existing migrations were not modified. DDC lease/session terminology and
+The V5 migration fails fast when legacy Tianquan-Jianshen identity/session tables contain rows; it does not use `CASCADE`,
+`TRUNCATE`, or silent shared-database deletion. Existing migrations were not modified. Tianshu lease/session terminology and
 MCP protocol session identifiers remain intentionally because they are infrastructure/protocol state, not personnel
 login sessions.
 
@@ -106,11 +106,11 @@ bash scripts/unified-xingyuan/cleanup-legacy-identity-keys.sh --help            
 git diff --check                                                                                                                                                   # exit 0
 ```
 
-The browser harness now logs in, refreshes and logs out through the public Gateway routes with
+The browser harness now logs in, refreshes and logs out through the public Yuheng routes with
 one Cookie jar; it does not execute Authorization Code/PKCE or extract per-client USER tokens.
 The legacy script keeps short-lived USER Access Token files only as explicit CLI verification
-artifacts for direct-service and RBAC3 role-activation checks; browser applications never read
-those files. Runtime RBAC3 authorization uses IdP Client Assertion `service-token` configuration;
+artifacts for direct-service and Tianquan-Jianshen role-activation checks; browser applications never read
+those files. Runtime Tianquan-Jianshen authorization uses Tianquan-Shoubing Client Assertion `service-token` configuration;
 the old static `service-credential-file` properties were removed. Short-lived SERVICE token files
 remain only for explicit local control-plane/MCP verification. SERVICE Client Credentials and MCP
 protocol `Mcp-Session-Id`/`McpSessionStore` state remain machine or transport concerns and are not
@@ -121,21 +121,21 @@ Session semantics.
 ## Known remaining implementation boundary
 
 The offline implementation now covers the real control-plane chain: the local harness creates or
-reuses reporting applications and credentials for IdP, RBAC3, Gateway Admin, DDC Admin, and the mock
-backend; obtains a dedicated Gateway Admin SERVICE token; waits for each HTTP catalog; compiles one
-operation-scoped Gateway route per active reported HTTP operation; and validates/releases the route
-set. Gateway Admin maps only `gateway:*` SERVICE scopes to its capability authorities, while USER
-requests continue through the IdP USER-token and RBAC3 authorization path.
+reuses reporting applications and credentials for Tianquan-Shoubing, Tianquan-Jianshen, Yuheng Admin, Tianshu Admin, and the mock
+backend; obtains a dedicated Yuheng Admin SERVICE token; waits for each HTTP catalog; compiles one
+operation-scoped Yuheng route per active reported HTTP operation; and validates/releases the route
+set. Yuheng Admin maps only `yuheng:*` SERVICE scopes to its capability authorities, while USER
+requests continue through the Tianquan-Shoubing USER-token and Tianquan-Jianshen authorization path.
 
 Runtime receipts are intentionally not claimed here. The user still needs to start the stack and
-verify catalog publication, route release, Gateway login/refresh/retry, direct-service rejection of
+verify catalog publication, route release, Yuheng login/refresh/retry, direct-service rejection of
 an expired Access Token, refresh-token deletion and failed refresh after forced logout, and the
 active-role snapshot behavior. The cleanup script is dry-run by default and requires an explicit
 Redis endpoint plus `--execute`; it was only syntax/help tested in this offline run.
 
 ## Remaining user-run checks
 
-Against a clean schema and Redis namespace, verify: Gateway login through IdP, the same USER AT/RT across Admin Web
-clients, Gateway refresh only after AT expiry, direct-service rejection of expired AT, RT deletion on forced logout,
-refresh failure after RT deletion, IdP Admin USER AT plus RBAC3 authorization, and persistence of only currently active
+Against a clean schema and Redis namespace, verify: Yuheng login through Tianquan-Shoubing, the same USER AT/RT across Admin Web
+clients, Yuheng refresh only after AT expiry, direct-service rejection of expired AT, RT deletion on forced logout,
+refresh failure after RT deletion, Tianquan-Shoubing Admin USER AT plus Tianquan-Jianshen authorization, and persistence of only currently active
 roles in authorization snapshots.

@@ -1,8 +1,8 @@
-# DDC Admin Web 下拉化改造实施计划
+# Tianshu Admin Web 下拉化改造实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 把 DDC admin-web 中 appCode/env/namespace 的手输输入框改为可选下拉（可搜索、可输入新值兜底），env 为固定枚举，namespace 为业务域（从数据推导），实现"业务域 → 应用 → 环境"的级联交互。
+**Goal:** 把 Tianshu admin-web 中 appCode/env/namespace 的手输输入框改为可选下拉（可搜索、可输入新值兜底），env 为固定枚举，namespace 为业务域（从数据推导），实现"业务域 → 应用 → 环境"的级联交互。
 
 **Architecture:** 后端加两个端点（`GET /namespaces/domains` 全量去重业务域、`GET /apps?namespace=` 域内应用推导）；前端新建 `useScopeOptions` 会话缓存 hook + `AppSelect`/`EnvSelect`/`NamespaceSelect`/`ScopeSelects` 组件族，替换 6 处筛选栏与 3 处表单字段。antd `Select mode="tags" maxCount={1} showSearch` 实现"下拉 + 可输入新值"。
 
@@ -23,20 +23,20 @@
 
 ---
 
-### Task 1: 后端端点 `GET /api/v1/ddc/namespaces/domains`
+### Task 1: 后端端点 `GET /api/v1/tianshu/namespaces/domains`
 
 **Files:**
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/service/DdcNamespaceService.java`
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceController.java`
-- Create: `<admin>/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcNamespaceControllerTest.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcNamespaceRepository.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcNamespaceService.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcNamespaceController.java`
+- Create: `<admin>/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcNamespaceControllerTest.java`
 
 **Interfaces:**
-- Consumes: 现有 `DdcNamespaceRepository`（JpaRepository）、`DdcNamespaceService`、`DdcNamespaceController`（`@RequestMapping("/api/v1/ddc/namespaces")`）。
+- Consumes: 现有 `DdcNamespaceRepository`（JpaRepository）、`DdcNamespaceService`、`DdcNamespaceController`（`@RequestMapping("/api/v1/tianshu/namespaces")`）。
 - Produces:
   - `DdcNamespaceRepository.findDistinctNamespaces(): List<String>` — JPQL `SELECT DISTINCT n.namespace FROM DdcNamespaceEntity n ORDER BY n.namespace`。
   - `DdcNamespaceService.findDomains(): List<String>` — 透传 repository 结果。
-  - `GET /api/v1/ddc/namespaces/domains` → `ResultRecord<List<String>>`（去重、升序、空列表兜底）。
+  - `GET /api/v1/tianshu/namespaces/domains` → `ResultRecord<List<String>>`（去重、升序、空列表兜底）。
 
 - [ ] **Step 1: 写失败的 controller 测试 `DdcNamespaceControllerTest.java`**
 
@@ -72,7 +72,7 @@ class DdcNamespaceControllerTest {
     void domainsReturnsDistinctSortedNamespaceValues() throws Exception {
         when(namespaceService.findDomains()).thenReturn(List.of("billing", "orders"));
 
-        mockMvc.perform(get("/api/v1/ddc/namespaces/domains"))
+        mockMvc.perform(get("/api/v1/tianshu/namespaces/domains"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data[0]").value("billing"))
@@ -83,7 +83,7 @@ class DdcNamespaceControllerTest {
     void domainsReturnsEmptyListWhenNoData() throws Exception {
         when(namespaceService.findDomains()).thenReturn(List.of());
 
-        mockMvc.perform(get("/api/v1/ddc/namespaces/domains"))
+        mockMvc.perform(get("/api/v1/tianshu/namespaces/domains"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data").isEmpty());
@@ -142,19 +142,19 @@ Expected: PASS（2 条）。
 
 ```bash
 git add <admin>/src
-git commit -m "feat(ddc-admin): add namespaces domains endpoint for business domain options"
+git commit -m "feat(tianshu-admin): add namespaces domains endpoint for business domain options"
 ```
 
 ---
 
-### Task 2: 后端端点 `GET /api/v1/ddc/apps?namespace=`
+### Task 2: 后端端点 `GET /api/v1/tianshu/apps?namespace=`
 
 **Files:**
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcAppRepository.java`
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcNamespaceRepository.java`
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/service/DdcAppService.java`
-- Modify: `<admin>/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcAppController.java`
-- Create: `<admin>/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcAppControllerTest.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcAppRepository.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcNamespaceRepository.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcAppService.java`
+- Modify: `<admin>/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcAppController.java`
+- Create: `<admin>/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcAppControllerTest.java`
 
 **Interfaces:**
 - Consumes: Task 1 的 `DdcNamespaceRepository`（追加查询）。
@@ -162,7 +162,7 @@ git commit -m "feat(ddc-admin): add namespaces domains endpoint for business dom
   - `DdcNamespaceRepository.findDistinctAppCodesByNamespace(String namespace): List<String>` — `SELECT DISTINCT n.appCode FROM DdcNamespaceEntity n WHERE n.namespace = :namespace`。
   - `DdcAppRepository.findAllByAppCodeIn(List<String> appCodes): List<DdcAppEntity>`。
   - `DdcAppService.findByNamespace(String namespace): List<DdcAppEntity>` — namespace 为空白时返回 `list()`；否则查域内 appCode 列表，按 `findAllByAppCodeIn` 取实体（空域返回空列表）。
-  - `GET /api/v1/ddc/apps?namespace=`（可选参数）→ `ResultRecord<List<DdcAppEntity>>`；无参数行为与现状完全一致。
+  - `GET /api/v1/tianshu/apps?namespace=`（可选参数）→ `ResultRecord<List<DdcAppEntity>>`；无参数行为与现状完全一致。
 
 - [ ] **Step 1: 写失败的 controller 测试 `DdcAppControllerTest.java`**
 
@@ -208,7 +208,7 @@ class DdcAppControllerTest {
     void listWithoutNamespaceReturnsAllApps() throws Exception {
         when(appService.list()).thenReturn(List.of(app("orders"), app("billing")));
 
-        mockMvc.perform(get("/api/v1/ddc/apps"))
+        mockMvc.perform(get("/api/v1/tianshu/apps"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.length()").value(2));
@@ -218,7 +218,7 @@ class DdcAppControllerTest {
     void listWithNamespaceReturnsOnlyDomainApps() throws Exception {
         when(appService.findByNamespace("orders-domain")).thenReturn(List.of(app("orders")));
 
-        mockMvc.perform(get("/api/v1/ddc/apps").param("namespace", "orders-domain"))
+        mockMvc.perform(get("/api/v1/tianshu/apps").param("namespace", "orders-domain"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1))
                 .andExpect(jsonPath("$.data[0].appCode").value("orders"));
@@ -289,7 +289,7 @@ Expected: PASS（2 条）。
 
 ```bash
 git add <admin>/src
-git commit -m "feat(ddc-admin): filter apps by business domain namespace"
+git commit -m "feat(tianshu-admin): filter apps by business domain namespace"
 ```
 
 ---
@@ -306,8 +306,8 @@ git commit -m "feat(ddc-admin): filter apps by business domain namespace"
   - `export const ENV_OPTIONS = ['dev', 'test', 'sit', 'gray', 'prod']`（`string[]` 常量）。
   - `export type ScopeOption = { value: string; label: string }`。
   - `export function useScopeOptions(namespace: string): { apps: ScopeOption[]; namespaces: ScopeOption[]; loading: boolean; reload: () => void }`
-    - `apps`：`GET /api/v1/ddc/apps?namespace=xxx`（namespace 空白时不带参数）；label 为 `appCode（appName）`，appName 为空时仅 appCode。
-    - `namespaces`：`GET /api/v1/ddc/namespaces/domains`（挂载时加载一次）。
+    - `apps`：`GET /api/v1/tianshu/apps?namespace=xxx`（namespace 空白时不带参数）；label 为 `appCode（appName）`，appName 为空时仅 appCode。
+    - `namespaces`：`GET /api/v1/tianshu/namespaces/domains`（挂载时加载一次）。
     - 会话级缓存：模块级 `Map<string, Promise<ScopeOption[]>>`，key = 完整请求路径；命中直接复用；失败时从缓存删除该 key 后抛错（调用方展示 message.error）。
     - `namespace` 变化时：清空 `apps` 并重新加载（级联）；`namespaces` 不重载。
     - 响应防御：`data` 非数组时按空数组处理。
@@ -433,7 +433,7 @@ const fetchOptions = (path: string): Promise<ScopeOption[]> => {
 
 const appsPath = (namespace: string): string => {
   const trimmed = namespace.trim()
-  return trimmed === '' ? '/api/v1/ddc/apps' : `/api/v1/ddc/apps?namespace=${encodeURIComponent(trimmed)}`
+  return trimmed === '' ? '/api/v1/tianshu/apps' : `/api/v1/tianshu/apps?namespace=${encodeURIComponent(trimmed)}`
 }
 
 export function useScopeOptions(namespace: string): {
@@ -447,7 +447,7 @@ export function useScopeOptions(namespace: string): {
   const [loading, setLoading] = useState(false)
 
   const loadNamespaces = useCallback(async () => {
-    const options = await fetchOptions('/api/v1/ddc/namespaces/domains')
+    const options = await fetchOptions('/api/v1/tianshu/namespaces/domains')
     setNamespaces(options)
   }, [])
 
@@ -474,7 +474,7 @@ export function useScopeOptions(namespace: string): {
   }, [loadApps])
 
   const reload = useCallback(() => {
-    cache.delete('/api/v1/ddc/namespaces/domains')
+    cache.delete('/api/v1/tianshu/namespaces/domains')
     cache.delete(appsPath(namespace))
     void loadNamespaces().catch((error) => messageError(error))
     void loadApps().catch((error) => messageError(error))
@@ -497,7 +497,7 @@ Expected: PASS（3 条），typecheck 通过。
 
 ```bash
 git add <web>/src/components/scope
-git commit -m "feat(ddc-admin-web): add scope options hook with session cache"
+git commit -m "feat(tianshu-admin-web): add scope options hook with session cache"
 ```
 
 ---
@@ -817,7 +817,7 @@ Expected: PASS（useScopeOptions 3 条 + ScopeSelects 3 条），typecheck 通�
 
 ```bash
 git add <web>/src/components/scope
-git commit -m "feat(ddc-admin-web): add scope select components with domain cascade"
+git commit -m "feat(tianshu-admin-web): add scope select components with domain cascade"
 ```
 
 ---
@@ -939,7 +939,7 @@ Expected: PASS（1 条），typecheck/lint 通过。
 
 ```bash
 git add <web>/src/pages
-git commit -m "feat(ddc-admin-web): convert registry and namespaces filters to scope selects"
+git commit -m "feat(tianshu-admin-web): convert registry and namespaces filters to scope selects"
 ```
 
 ---
@@ -1024,7 +1024,7 @@ Expected: PASS（2 条），typecheck/lint 通过。
 
 ```bash
 git add <web>/src/pages
-git commit -m "feat(ddc-admin-web): convert config management filters and dialog to scope selects"
+git commit -m "feat(tianshu-admin-web): convert config management filters and dialog to scope selects"
 ```
 
 ---
@@ -1076,7 +1076,7 @@ Expected: 全量测试 PASS（26 条 + 新增），typecheck/lint 通过。
 
 ```bash
 git add <web>/src/pages
-git commit -m "feat(ddc-admin-web): convert instances and cache filters to scope selects"
+git commit -m "feat(tianshu-admin-web): convert instances and cache filters to scope selects"
 ```
 
 ---
@@ -1125,7 +1125,7 @@ accepts typed values for new entries.
 
 ```bash
 git add <web>/README.md <web>/README.zh-CN.md
-git commit -m "docs(ddc-admin-web): document scope selects interaction"
+git commit -m "docs(tianshu-admin-web): document scope selects interaction"
 ```
 
 ---

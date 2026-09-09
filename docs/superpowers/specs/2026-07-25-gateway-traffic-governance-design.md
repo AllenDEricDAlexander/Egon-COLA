@@ -1,18 +1,18 @@
-# GWS-07 Gateway 流量治理 Spec
+# GWS-07 Yuheng 流量治理 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-03、GWS-05、GWS-06
 
 主模块：
 
-- `egon-cola-component-gateway-core`
-- `egon-cola-component-gateway-engine`
-- `egon-cola-component-gateway-admin`
+- `egon-cola-component-yuheng-core`
+- `egon-cola-component-yuheng-biz-gateway`
+- `egon-cola-component-yuheng-admin`
 
 ## 1. 目标
 
@@ -71,7 +71,7 @@ RuntimeTrafficPolicy
 支持：
 
 - GLOBAL；
-- GATEWAY_GROUP；
+- YUHENG_GROUP；
 - APPLICATION；
 - BUSINESS_DOMAIN；
 - ENTITY_DOMAIN；
@@ -157,7 +157,7 @@ initialTokens
 
 - 单节点保护；
 - 分布式限流前的快速削峰；
-- DDC/Redis 降级期间的本地保护；
+- Tianshu/Redis 降级期间的本地保护；
 - Provider Instance 局部保护。
 
 本地限流不宣称跨 Engine 共享配额。
@@ -166,10 +166,10 @@ initialTokens
 
 ### 6.1 Redis
 
-使用独立 Gateway Redis Key Space，不使用 DDC 私有 Key：
+使用独立 Yuheng Redis Key Space，不使用 Tianshu 私有 Key：
 
 ```text
-gateway:ratelimit:{env}:{namespace}:{policyId}:{stateEpoch}:{keyHash}
+yuheng:ratelimit:{env}:{namespace}:{policyId}:{stateEpoch}:{keyHash}
 ```
 
 Key 中不保存原始凭据、手机号、Token 或长 URL。
@@ -279,7 +279,7 @@ policyId + stateEpoch + providerServiceKey + instanceId + leaseId
 - HALF_OPEN 允许有界探测；
 - 所有实例 OPEN 时返回 Provider Unavailable/Circuit Open；
 - 熔断状态是 Engine 本地状态；
-- 不写入 DDC；
+- 不写入 Tianshu；
 - Rule 不兼容变更使用新 stateEpoch，兼容阈值调整可保留历史窗口。
 
 ## 9. 重试
@@ -378,22 +378,22 @@ Route 只能在系统允许范围内收紧或受控放宽。超过 Engine 硬上
 - Bulkhead；
 
 不使用其 Spring Annotation 或 Spring Cloud CircuitBreaker 把 Policy 隐式绑定到业务
-方法；Gateway Infrastructure 根据编译后的 Policy 显式创建/释放实例。版本进入仓库
+方法；Yuheng Infrastructure 根据编译后的 Policy 显式创建/释放实例。版本进入仓库
 Dependency Management。
 
 必须自研/明确实现：
 
 - 本地 Token Bucket；
 - Redis Lua 分布式 Token Bucket；
-- Gateway Policy Scope/Key Compiler；
+- Yuheng Policy Scope/Key Compiler；
 - Rule Snapshot 到治理实例的生命周期；
 - HTTP/gRPC 错误映射。
 
 不使用 `access-guard` 作为 Netty 热路径治理链，也不使用现有静态 `rule-engine`
-解释动态 Gateway Policy。
+解释动态 Yuheng Policy。
 
 选择成熟库是因为 Circuit/Retry/Bulkhead 涉及并发状态和取消边界，直接重复实现风险
-高；Gateway 自有 Adapter 仍负责 `stateEpoch`、Provider Lease 隔离、Reactive
+高；Yuheng 自有 Adapter 仍负责 `stateEpoch`、Provider Lease 隔离、Reactive
 Cancellation 和规则原子切换。
 
 ## 13. 可观测性
@@ -413,13 +413,13 @@ Cancellation 和规则原子切换。
 ## 14. 错误代码
 
 ```text
-GATEWAY_RATE_LIMITED
-GATEWAY_RATE_LIMIT_BACKEND_UNAVAILABLE
-GATEWAY_CONCURRENCY_REJECTED
-GATEWAY_CIRCUIT_OPEN
-GATEWAY_RETRY_EXHAUSTED
-GATEWAY_TIMEOUT
-GATEWAY_REQUEST_LIMIT_EXCEEDED
+YUHENG_RATE_LIMITED
+YUHENG_RATE_LIMIT_BACKEND_UNAVAILABLE
+YUHENG_CONCURRENCY_REJECTED
+YUHENG_CIRCUIT_OPEN
+YUHENG_RETRY_EXHAUSTED
+YUHENG_TIMEOUT
+YUHENG_REQUEST_LIMIT_EXCEEDED
 ```
 
 ## 15. 测试设计
@@ -479,4 +479,4 @@ GATEWAY_REQUEST_LIMIT_EXCEEDED
 4. 认可熔断以 Engine 本地 Provider Instance 为维度；
 5. 认可 Retry 默认关闭、幂等显式开启；
 6. 认可 `stateEpoch` 管理不兼容 Policy 变更；
-7. 认可 Resilience4j 只复用算法，不接管 Gateway Policy 模型。
+7. 认可 Resilience4j 只复用算法，不接管 Yuheng Policy 模型。

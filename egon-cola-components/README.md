@@ -12,7 +12,7 @@
 | Common | Shared contracts and utility modules | [Common](egon-cola-component-common/README.md) |
 | Rule Engine | Java rule chains, trees, and execution control | [Rule Engine](egon-cola-component-rule-engine-starter/README.md) |
 | Dynamic Thread Pool | Runtime executor management | [Dynamic Thread Pool](egon-cola-component-dynamic-thread-pool/README.md) |
-| RPC | Protobuf/gRPC and DDC integration | [RPC](egon-cola-component-rpc/README.md) |
+| RPC | Protobuf/gRPC and Tianshu integration | [RPC](egon-cola-component-rpc/README.md) |
 
 The Agent Flow starter is default-off and follows the flat component profile. It owns configuration, ADK graph compilation, registry/session execution, cancellation, timeout, and bounded close. The host owns the provider `ChatModel`, credentials, tools, MCP, HTTP, authentication, and database or other persistence boundaries.
 

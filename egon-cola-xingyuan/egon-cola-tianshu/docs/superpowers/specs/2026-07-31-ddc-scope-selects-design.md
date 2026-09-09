@@ -1,8 +1,8 @@
-# DDC Admin Web 下拉化改造设计（2026-07-31）
+# Tianshu Admin Web 下拉化改造设计（2026-07-31）
 
 ## 背景与目标
 
-DDC admin-web 的筛选器和新建表单中，`appCode` / `env` / `namespace` 目前都是
+Tianshu admin-web 的筛选器和新建表单中，`appCode` / `env` / `namespace` 目前都是
 自由文本输入框，需要人工记忆并键入，容易输错且与后端已有数据脱节。本次改造把
 这些字段改为**可选下拉框**（可搜索、支持直接输入新值兜底），`configKey` 因业务
 数据量大保持自由输入。
@@ -22,7 +22,7 @@ DDC admin-web 的筛选器和新建表单中，`appCode` / `env` / `namespace` �
 |---|---|
 | env 选项来源 | **前端内置固定枚举** dev/test/sit/gray/prod + 可输入新值兜底，不依赖任何数据 |
 | namespace（业务域）选项 | 新增后端端点：全量去重 namespace 列表 |
-| 业务域 → 应用 推导 | `GET /api/v1/ddc/apps` 增加可选 `namespace` 参数：返回在 `ddc_namespace` 中归属该域的应用 |
+| 业务域 → 应用 推导 | `GET /api/v1/tianshu/apps` 增加可选 `namespace` 参数：返回在 `ddc_namespace` 中归属该域的应用 |
 | 级联顺序 | **namespace（业务域）→ appCode（域内应用）→ env（环境）**；env 与 namespace 相互独立，互不级联 |
 | 空库/无选项兜底 | 下拉 + 可输入新值（antd `Select mode="tags" maxCount={1} showSearch`），保存沿用 `ensureAppAndNamespace` 自动创建 |
 | 改造范围 | 筛选栏（6 处）+ 表单对话框（3 处）全改；configKey 保持自由输入 |
@@ -63,9 +63,9 @@ public ResultRecord<List<DdcAppEntity>> list(
 
 ```
 NamespaceSelect（业务域，可输入下拉）
-  └─ options ← GET /api/v1/ddc/namespaces/domains     （新增端点，全局去重）
+  └─ options ← GET /api/v1/tianshu/namespaces/domains     （新增端点，全局去重）
 AppSelect（应用，可输入下拉）
-  └─ options ← GET /api/v1/ddc/apps?namespace=xxx     （域内应用；未选域时全部应用）
+  └─ options ← GET /api/v1/tianshu/apps?namespace=xxx     （域内应用；未选域时全部应用）
 EnvSelect（环境，可输入下拉）
   └─ options ← 前端常量 ['dev','test','sit','gray','prod']，无后端请求
 useScopeOptions：内存 Map 缓存；域/应用列表随上级变化自动重载并失效旧缓存；

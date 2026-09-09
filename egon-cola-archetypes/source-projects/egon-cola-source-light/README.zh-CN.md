@@ -104,7 +104,7 @@ Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastr
 
 Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 H2、内存 adapter 和确定性 stub，并关闭 RabbitMQ、Redis、COLA RPC registry 和外部 HTTP 调用。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`DDC_RPC_TARGET=host:19090`、`DDC_ENABLED=true`、`DDC_REGISTRY_ENABLED=true` 和 `RPC_ENABLED=true` 等环境变量配置真实 adapter。消息代理凭据使用 Spring 自身的变量名 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`，而 `RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 是应用自身的开关。
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`TIANSHU_RPC_TARGET=host:19090`、`TIANSHU_ENABLED=true`、`TIANSHU_REGISTRY_ENABLED=true` 和 `RPC_ENABLED=true` 等环境变量配置真实 adapter。消息代理凭据使用 Spring 自身的变量名 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`，而 `RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 是应用自身的开关。
 
 ## 分片、读写分离与 Flyway
 
@@ -223,14 +223,14 @@ printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-
 
 将输出的 `ENC(v1:...)` 值写入配置。请通过环境变量、挂载文件、`config/application-secrets.yml` 或 `configtree:/run/secrets/` 提供真实密钥；不要提交凭据或解密密钥。
 
-## 原生 RPC 与 DDC 配置
+## 原生 RPC 与 Tianshu 配置
 
-10 个 unary 操作定义于 `src/main/proto/teaching_user_facade.proto`，由四个具名 RPC Provider 实现。platform OpenAPI MVC starter 保留 `/v3/api-docs` 及既有业务 HTTP 访问。文档治理默认关闭；启用 `egon.cola.component.gateway.openapi.enabled` 时，需要按平台合同补齐文档身份、发布分组和 JWT decoder，并使用 `gateway.openapi.read` scope。每个发布 handler 还必须显式声明 `@Operation(operationId = "...")`；现有示例业务 Controller 需完成该编目后才能开启治理。
+10 个 unary 操作定义于 `src/main/proto/teaching_user_facade.proto`，由四个具名 RPC Provider 实现。platform OpenAPI MVC starter 保留 `/v3/api-docs` 及既有业务 HTTP 访问。文档治理默认关闭；启用 `egon.cola.component.yuheng.openapi.enabled` 时，需要按平台合同补齐文档身份、发布分组和 JWT decoder，并使用 `yuheng.openapi.read` scope。每个发布 handler 还必须显式声明 `@Operation(operationId = "...")`；现有示例业务 Controller 需完成该编目后才能开启治理。
 
-`dev` 和 `prod` 使用部署方已有的 DDC RPC 服务（`DDC_RPC_TARGET`）和 DDC Redis 服务，还需提供注册 resource URI 及独立的 runtime/registry HMAC 凭据。RPC/DDC 配置前缀分别为 `egon.cola.component.rpc`、`egon.cola.component.ddc`；应用身份由 `APP_NAME`、`APP_ENV`、`DDC_BIZ_CODE`、`DDC_APP_CODE`、`INSTANCE_ID` 指定。advertised host 必须能被消费者访问。本工程不附带 DDC 容器。`test` 关闭 RPC provider/consumer、DDC config/registry/Redis、HTTP 注册及文档发布。
+`dev` 和 `prod` 使用部署方已有的 Tianshu RPC 服务（`TIANSHU_RPC_TARGET`）和 Tianshu Redis 服务，还需提供注册 resource URI 及独立的 runtime/registry HMAC 凭据。RPC/Tianshu 配置前缀分别为 `egon.cola.component.rpc`、`egon.cola.component.tianshu`；应用身份由 `APP_NAME`、`APP_ENV`、`TIANSHU_BIZ_CODE`、`TIANSHU_APP_CODE`、`INSTANCE_ID` 指定。advertised host 必须能被消费者访问。本工程不附带 Tianshu 容器。`test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册及文档发布。
 
-生产环境启用 RPC 和 DDC mTLS：通过对应的 `RPC_*`、`DDC_RPC_*` 变量传入证书链、私钥和信任证书路径，并将证书文件挂载到容器中的相同路径。开发环境显式允许明文。部署前填写 `deploy/env/.env.prod.example` 中的空白项，真实凭据通过环境变量或挂载文件提供。Compose 保留 PostgreSQL、Redis、RabbitMQ 及原有数据卷。静态和模块测试不能证明真实 DDC 注册、TLS 互通或容器就绪。
+生产环境启用 RPC 和 Tianshu mTLS：通过对应的 `RPC_*`、`TIANSHU_RPC_*` 变量传入证书链、私钥和信任证书路径，并将证书文件挂载到容器中的相同路径。开发环境显式允许明文。部署前填写 `deploy/env/.env.prod.example` 中的空白项，真实凭据通过环境变量或挂载文件提供。Compose 保留 PostgreSQL、Redis、RabbitMQ 及原有数据卷。静态和模块测试不能证明真实 Tianshu 注册、TLS 互通或容器就绪。
 
-DDC Provider 和 HTTP 注册还需获取带 `ddc:registration:write` 的 IdP SERVICE Token。填写 `.env` 样例中的 `IDP_*` 字段，并配置 Spring OAuth2 Client 的 `ddcregistration` registration/provider，使用 `client_credentials`、`client_secret_basic`、client ID/secret 和 token URI。Compose 已映射标准 Spring 环境变量；直接 Java 启动时，请通过外部配置提供 `spring.security.oauth2.client.registration.ddcregistration` 及 `spring.security.oauth2.client.provider.ddcregistration.token-uri`。app ID、resource server ID/URI、registration resource URI 必须与部署方的 IdP/DDC 保持一致。IdP 的 Servlet filter 自动注册关闭，以保留业务 HTTP 行为；显式启用后，平台文档安全链仍负责文档权限。
+Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token。填写 `.env` 样例中的 `TIANQUAN_SHOUBING_*` 字段，并配置 Spring OAuth2 Client 的 `tianshuregistration` registration/provider，使用 `client_credentials`、`client_secret_basic`、client ID/secret 和 token URI。Compose 已映射标准 Spring 环境变量；直接 Java 启动时，请通过外部配置提供 `spring.security.oauth2.client.registration.tianshuregistration` 及 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。app ID、resource server ID/URI、registration resource URI 必须与部署方的 Tianquan-Shoubing/Tianshu 保持一致。Tianquan-Shoubing 的 Servlet filter 自动注册关闭，以保留业务 HTTP 行为；显式启用后，平台文档安全链仍负责文档权限。
 
-排除默认 Redisson 自动配置，由 DDC 管理显式配置的 Redis client；业务 Redis 保持 Spring 原有 connection factory。关闭 DDC 的测试环境不会因此自动建立 Redis 连接。
+排除默认 Redisson 自动配置，由 Tianshu 管理显式配置的 Redis client；业务 Redis 保持 Spring 原有 connection factory。关闭 Tianshu 的测试环境不会因此自动建立 Redis 连接。

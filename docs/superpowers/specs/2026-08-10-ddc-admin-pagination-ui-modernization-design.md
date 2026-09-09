@@ -1,4 +1,4 @@
-# DDC Admin 全量分页查询与前端现代化设计
+# Tianshu Admin 全量分页查询与前端现代化设计
 
 状态：设计已确认，等待书面规格复核
 
@@ -13,7 +13,7 @@
 - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web`
 - `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared`（只复用现有主题和页面状态组件，原则上不修改）
 
-本文固化用户于 2026-08-10 确认的设计：DDC Admin 所有集合型管理查询都增加 `PageResultRecord` 分页接口，原接口保持兼容；DDC Admin Web 全面迁移到服务端分页，并使用现有 Ant Design、React Query 和 Admin Web Shared 能力完成响应式现代化。本文只定义目标、契约、数据边界、交互和验收条件，不是实施 Plan。书面规格经用户审核通过后，才编写逐任务实施 Plan；在此之前不修改生产代码。
+本文固化用户于 2026-08-10 确认的设计：Tianshu Admin 所有集合型管理查询都增加 `PageResultRecord` 分页接口，原接口保持兼容；Tianshu Admin Web 全面迁移到服务端分页，并使用现有 Ant Design、React Query 和 Admin Web Shared 能力完成响应式现代化。本文只定义目标、契约、数据边界、交互和验收条件，不是实施 Plan。书面规格经用户审核通过后，才编写逐任务实施 Plan；在此之前不修改生产代码。
 
 ---
 
@@ -23,14 +23,14 @@
 2. 分页范围采用全量范围 C：Metadata、配置、版本、发布任务、持久化实例、缓存检查、Registry 服务目录和 Registry 实例快照全部提供分页查询；
 3. 兼容策略采用增量方案 A：新增 `/page`，保留所有现有 List、Catalog 和 Snapshot 接口及响应结构；
 4. 作用域下拉框、Namespace 绑定编辑等需要完整选项的前端调用继续使用现有非分页接口；
-5. DDC Starter、RPC DDC Adapter、Gateway 和其他机器调用方继续使用完整 RPC Facade 契约，不感知 Admin HTTP 分页；
+5. Tianshu Starter、RPC Tianshu Adapter、Yuheng 和其他机器调用方继续使用完整 RPC Facade 契约，不感知 Admin HTTP 分页；
 6. 数据库型集合必须在 Repository 层执行真实分页和总数查询，不允许先查全量再 `subList`；
 7. Registry 等 Redis/聚合型集合保持原完整领域快照，在专用 Admin 查询适配层稳定排序并切页；
-8. DDC Admin Web 的所有管理表格改为受控服务端分页；
+8. Tianshu Admin Web 的所有管理表格改为受控服务端分页；
 9. 前端复用现有 `antd`、`@ant-design/icons`、`@tanstack/react-query` 和 `@egon-cola/xingyuan-admin-web-shared`，不引入新的 UI 框架或状态库；
 10. 本次不新增或修改数据库表结构，不修改任何已有 Flyway 文件，也不新增 Flyway 迁移；
 11. 本次不改变写接口、权限能力、JWT、RPC、配置发布、Redis Topic、租约或缓存一致性语义；
-12. 实施验证不自动启动 DDC、Redis、PostgreSQL、Gateway 或浏览器进程。
+12. 实施验证不自动启动 Tianshu、Redis、PostgreSQL、Yuheng 或浏览器进程。
 
 ---
 
@@ -106,7 +106,7 @@ pagination={{ pageSize: 10, size: 'small' }}
 
 ### 3.1 目标
 
-1. 为 DDC Admin 的所有集合型管理查询提供统一 `PageResultRecord<T>` 成功响应；
+1. 为 Tianshu Admin 的所有集合型管理查询提供统一 `PageResultRecord<T>` 成功响应；
 2. 保持当前非分页 REST 和 RPC 契约兼容；
 3. 将数据库型集合查询迁移为真实数据库分页；
 4. 消除 Binding 列表 N+1 和 Metadata 可见性查询的全量内存过滤；
@@ -121,7 +121,7 @@ pagination={{ pageSize: 10, size: 'small' }}
 
 - 不删除、重命名或改变现有 List、Catalog、Snapshot 接口；
 - 不把下拉选项改成远程搜索分页；
-- 不改变 DDC Starter Java 端口、RPC Protobuf 或 RPC Provider；
+- 不改变 Tianshu Starter Java 端口、RPC Protobuf 或 RPC Provider；
 - 不修改 `DdcManagementFacade` 返回完整 Catalog/Snapshot 的领域语义；
 - 不增加通用 BaseController、通用 CRUD Facade 或新的前后端框架；
 - 不改变 RBAC capability、JWT、CSRF、CORS 或登录流程；
@@ -209,11 +209,11 @@ JSON 结构为：
 
 | 新接口 | 保留的筛选参数 | 记录类型 | 固定排序 |
 |---|---|---|---|
-| `GET /api/v1/ddc/bizs/page` | `keyword` | `DdcBizEntity` | `bizCode ASC, id ASC` |
-| `GET /api/v1/ddc/envs/page` | `bizCode, namespaceCode, keyword` | `DdcEnvEntity` | `sortOrder ASC, envCode ASC, id ASC` |
-| `GET /api/v1/ddc/apps/page` | `bizCode, namespaceCode, env, keyword` | `DdcAppEntity` | `bizCode ASC, appCode ASC, id ASC` |
-| `GET /api/v1/ddc/namespaces/page` | `bizCode, keyword` | `DdcNamespaceEntity` | `bizCode ASC, namespaceCode ASC, id ASC` |
-| `GET /api/v1/ddc/namespace-env-app-bindings/page` | `bizCode, namespaceCode, env, appCode` | `DdcNamespaceEnvAppBindingVO` | `bizCode, namespaceCode, env, appCode, id ASC` |
+| `GET /api/v1/tianshu/bizs/page` | `keyword` | `DdcBizEntity` | `bizCode ASC, id ASC` |
+| `GET /api/v1/tianshu/envs/page` | `bizCode, namespaceCode, keyword` | `DdcEnvEntity` | `sortOrder ASC, envCode ASC, id ASC` |
+| `GET /api/v1/tianshu/apps/page` | `bizCode, namespaceCode, env, keyword` | `DdcAppEntity` | `bizCode ASC, appCode ASC, id ASC` |
+| `GET /api/v1/tianshu/namespaces/page` | `bizCode, keyword` | `DdcNamespaceEntity` | `bizCode ASC, namespaceCode ASC, id ASC` |
+| `GET /api/v1/tianshu/namespace-env-app-bindings/page` | `bizCode, namespaceCode, env, appCode` | `DdcNamespaceEnvAppBindingVO` | `bizCode, namespaceCode, env, appCode, id ASC` |
 
 原 `GET` 接口保持不变，继续用于完整选项和兼容调用。
 
@@ -221,9 +221,9 @@ JSON 结构为：
 
 | 新接口 | 筛选参数 | 记录类型 | 固定排序 |
 |---|---|---|---|
-| `GET /api/v1/ddc/configs/page` | 现有 `DdcConfigQueryRequest` 全部字段 | `DdcConfigVO` | `bizCode, env, appCode, resourceName, id ASC` |
-| `GET /api/v1/ddc/configs/{id}/versions/page` | `id` | `DdcConfigVersionVO` | `version DESC, id DESC` |
-| `GET /api/v1/ddc/publish-tasks/page` | `bizCode, env, appCode, status, changeId` | `DdcPublishTaskEntity` | `createdAt DESC, id DESC` |
+| `GET /api/v1/tianshu/configs/page` | 现有 `DdcConfigQueryRequest` 全部字段 | `DdcConfigVO` | `bizCode, env, appCode, resourceName, id ASC` |
+| `GET /api/v1/tianshu/configs/{id}/versions/page` | `id` | `DdcConfigVersionVO` | `version DESC, id DESC` |
+| `GET /api/v1/tianshu/publish-tasks/page` | `bizCode, env, appCode, status, changeId` | `DdcPublishTaskEntity` | `createdAt DESC, id DESC` |
 
 Publish Task 新增的筛选仅作用于新分页接口，不改变原 List 行为。
 
@@ -231,8 +231,8 @@ Publish Task 新增的筛选仅作用于新分页接口，不改变原 List 行�
 
 | 新接口 | 筛选参数 | 记录类型 | 固定排序 |
 |---|---|---|---|
-| `GET /api/v1/ddc/instances/page` | 必填 `bizCode, env, appCode` | `DdcInstanceEntity` | `updatedAt DESC, id DESC` |
-| `GET /api/v1/ddc/cache/check/page` | 必填 `bizCode, env, appCode` | `DdcCacheCheckRow` | `resourceName ASC` |
+| `GET /api/v1/tianshu/instances/page` | 必填 `bizCode, env, appCode` | `DdcInstanceEntity` | `updatedAt DESC, id DESC` |
+| `GET /api/v1/tianshu/cache/check/page` | 必填 `bizCode, env, appCode` | `DdcCacheCheckRow` | `resourceName ASC` |
 
 Cache Check 分页只对当前页的配置执行 Redis 读取和一致性比较，不能先计算全部 Check Row 再截断。
 
@@ -240,13 +240,13 @@ Cache Check 分页只对当前页的配置执行 Redis 读取和一致性比较�
 
 | 新接口 | 筛选参数 | 记录类型 | 固定排序 |
 |---|---|---|---|
-| `GET /api/v1/ddc/registry/services/page` | 现有 services 查询参数 | `DdcManagementServiceKey` | scope、kind、protocol、serviceName、group、version、serviceId |
-| `GET /api/v1/ddc/registry/instances/page` | 现有 instances 查询参数 | `DdcManagementServiceInstance` | status、host、port、instanceId |
+| `GET /api/v1/tianshu/registry/services/page` | 现有 services 查询参数 | `DdcManagementServiceKey` | scope、kind、protocol、serviceName、group、version、serviceId |
+| `GET /api/v1/tianshu/registry/instances/page` | 现有 instances 查询参数 | `DdcManagementServiceInstance` | status、host、port、instanceId |
 
 Registry Page 接口的 `records` 只承载表格需要的服务键或实例。完整接口仍保留：
 
-- `GET /api/v1/ddc/registry/services` 返回 generation、observedAt 和完整 services；
-- `GET /api/v1/ddc/registry/instances` 返回 serviceKey、generation、observedAt 和完整 instances。
+- `GET /api/v1/tianshu/registry/services` 返回 generation、observedAt 和完整 services；
+- `GET /api/v1/tianshu/registry/instances` 返回 serviceKey、generation、observedAt 和完整 instances。
 
 分页接口不改变或削弱完整 Snapshot 的机器契约。
 
@@ -257,7 +257,7 @@ Registry Page 接口的 `records` 只承载表格需要的服务键或实例。�
 - Auth bootstrap；
 - 单实体详情；
 - create/update/delete/enable/publish/rollback/retry/rebuild 等命令；
-- RPC Provider 和 DDC Starter 机器端口。
+- RPC Provider 和 Tianshu Starter 机器端口。
 
 ---
 
@@ -279,7 +279,7 @@ Controller 不负责：
 - 逐条补齐关联对象；
 - 自己复制分页边界计算逻辑。
 
-可增加一个 DDC Admin 内部小型 Page Support，用于：
+可增加一个 Tianshu Admin 内部小型 Page Support，用于：
 
 - `PageQuery` 转换为零基 `PageRequest`；
 - Spring `Page<T>` 转换为公共 `PageResultRecord<T>`；
@@ -352,7 +352,7 @@ DdcRegistryAdminController
 
 - 不修改 `DdcManagementClient`；
 - 不修改 `DdcManagementFacade` 公共方法签名；
-- 不修改 DDC RPC Provider、Proto Mapper 或 RPC DDC Adapter；
+- 不修改 Tianshu RPC Provider、Proto Mapper 或 RPC Tianshu Adapter；
 - 不让 Starter 依赖 `PageQuery` 或 `PageResultRecord`；
 - Registry 分页只能减少浏览器响应和渲染量，不虚假宣称 Redis 完整快照读取已经变成游标扫描。
 
@@ -362,7 +362,7 @@ DdcRegistryAdminController
 
 ### 7.1 类型和客户端
 
-在 DDC Admin Web 定义与后端 JSON 对齐的：
+在 Tianshu Admin Web 定义与后端 JSON 对齐的：
 
 ```ts
 type PageMetaRecord = {
@@ -430,7 +430,7 @@ Mutation 成功后：
 - Desktop：可折叠 `Layout.Sider`；
 - Narrow：隐藏固定 Sider，使用 `Drawer` 导航；
 - Menu 使用 `@ant-design/icons` 并分为运行状态、配置管理、元数据管理；
-- Header 显示当前页面、DDC 连接状态、登录身份和退出操作；
+- Header 显示当前页面、Tianshu 连接状态、登录身份和退出操作；
 - Header 固定在内容顶部；
 - Content padding 在 Desktop 使用 24px，在窄屏使用 12px；
 - 页面根容器设置 `min-width: 0`，表格自己横向滚动，不允许 Layout 被撑宽。
@@ -455,7 +455,7 @@ Mutation 成功后：
 - Retry；
 - 必要时保留旧数据并显示局部错误。
 
-允许增加 DDC Web 内部的轻量 `PageHeader`、`QueryCard` 等展示组件，但不建立包含业务列和 CRUD 行为的万能泛型表格。
+允许增加 Tianshu Web 内部的轻量 `PageHeader`、`QueryCard` 等展示组件，但不建立包含业务列和 CRUD 行为的万能泛型表格。
 
 ### 8.3 Table 统一交互
 
@@ -568,10 +568,10 @@ Namespace Binding：
 
 ## 10. 安全、兼容与分布式边界
 
-1. 新 `/page` 接口位于现有 `/api/v1/ddc/**` 安全边界内，沿用当前 JWT capability；
+1. 新 `/page` 接口位于现有 `/api/v1/tianshu/**` 安全边界内，沿用当前 JWT capability；
 2. 不降低任何写权限，也不把 HMAC/RPC 机器凭据暴露给浏览器；
 3. 保留原接口意味着当前仓库外调用方不会因分页上线而立即破坏；
-4. DDC Admin 多实例部署时，数据库分页依赖共享数据库，Registry 分页依赖共享 Redis 快照，符合现有 Active-Active 边界；
+4. Tianshu Admin 多实例部署时，数据库分页依赖共享数据库，Registry 分页依赖共享 Redis 快照，符合现有 Active-Active 边界；
 5. offset/pageNo 分页不是跨事务快照，数据持续变化时允许总数变化，但固定排序和唯一兜底保证单次响应确定；
 6. Publish Task 和 Registry 高频变化页面以前端刷新当前页为准，不承诺跨页强一致快照；
 7. 原完整 RPC Catalog/Snapshot 仍包含 generation/observedAt；分页 HTTP 表格不冒充完整机器快照。
@@ -606,9 +606,9 @@ Repository/Service：
 
 回归：
 
-- DDC Management RPC Provider 测试；
-- RPC DDC Adapter 相关契约测试在受影响时执行；
-- DDC Admin 安全测试；
+- Tianshu Management RPC Provider 测试；
+- RPC Tianshu Adapter 相关契约测试在受影响时执行；
+- Tianshu Admin 安全测试；
 - 原 Controller 测试。
 
 ### 11.2 前端测试
@@ -632,8 +632,8 @@ Repository/Service：
 
 实施 Plan 必须给出精确命令，至少覆盖：
 
-- DDC Admin 定向 Maven test/compile；
-- DDC Admin Web Vitest；
+- Tianshu Admin 定向 Maven test/compile；
+- Tianshu Admin Web Vitest；
 - TypeScript typecheck；
 - ESLint；
 - Vite production build；
@@ -721,14 +721,14 @@ Repository/Service：
 
 ```text
 人工管理表格
-  -> DDC Admin /page HTTP
+  -> Tianshu Admin /page HTTP
   -> PageQuery
   -> DB Page 或 Admin 聚合 Page Adapter
   -> PageResultRecord
 
 下拉选项 / 完整快照 / 机器调用
-  -> 原 List HTTP 或 DDC RPC Facade
+  -> 原 List HTTP 或 Tianshu RPC Facade
   -> 完整 List / Catalog / Snapshot
 ```
 
-分页是 DDC Admin 管理面的展示与查询能力，不是新的 DDC 机器协议，也不改变 DDC 作为平台控制面的直接 RPC 架构。
+分页是 Tianshu Admin 管理面的展示与查询能力，不是新的 Tianshu 机器协议，也不改变 Tianshu 作为平台控制面的直接 RPC 架构。

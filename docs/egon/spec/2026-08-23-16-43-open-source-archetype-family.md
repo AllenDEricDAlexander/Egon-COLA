@@ -7,16 +7,16 @@
 | Status | `Review` |
 | Type | `Feature / Architecture` |
 | Complexity | `Complex` |
-| Complexity Drivers | `三套 archetype 与 1241 个现有模板文件的并行复制契约、UUID/JPA 到 Snowflake Long/MyBatis-Plus 的全链路替换、Flyway 到纯手工 SQL 的启动边界、ShardingSphere 多物理库、Spring Cloud/Nacos/Dubbo Triple/Protobuf/gRPC 互操作、外置 Gateway、Springdoc、Egon Common/DTP 白名单及生成项目兼容性` |
+| Complexity Drivers | `三套 archetype 与 1241 个现有模板文件的并行复制契约、UUID/JPA 到 Snowflake Long/MyBatis-Plus 的全链路替换、Flyway 到纯手工 SQL 的启动边界、ShardingSphere 多物理库、Spring Cloud/Nacos/Dubbo Triple/Protobuf/gRPC 互操作、外置 Yuheng、Springdoc、Egon Common/DTP 白名单及生成项目兼容性` |
 | Created | `2026-08-23 16:43 CST` |
 | Updated | `2026-08-23 19:42 CST` |
 | Owner | `Mario / Egon-COLA maintainers` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-archetypes 父 reactor；新增 egon-cola-archetype-light-open、egon-cola-archetype-service-open、egon-cola-archetype-web-open；对应生成模板、验证器、CI 与文档` |
-| Change Surface | `以三个现有 archetype 为只读基线新增三个 -open sibling；保持现有业务/分层架构，把 UUID/JPA/Flyway 替换为 Common Snowflake Long/MyBatis-Plus/纯手工 SQL，把 canonical facade 下沉为生成项目本地 Protobuf contract module，以 Dubbo Triple 提供标准 gRPC 互操作并用 Springdoc 暴露现有 HTTP API 文档；Spring Cloud Gateway 明确属于外部基础设施且不进入任何生成模块；原三个 archetype、components 与 platforms 生产源码不变` |
+| Change Surface | `以三个现有 archetype 为只读基线新增三个 -open sibling；保持现有业务/分层架构，把 UUID/JPA/Flyway 替换为 Common Snowflake Long/MyBatis-Plus/纯手工 SQL，把 canonical facade 下沉为生成项目本地 Protobuf contract module，以 Dubbo Triple 提供标准 gRPC 互操作并用 Springdoc 暴露现有 HTTP API 文档；Spring Cloud Gateway 明确属于外部基础设施且不进入任何生成模块；原三个 archetype、components 与 xingyuan 生产源码不变` |
 | Affected Chapters | `§7, §8, §9, §10, §11, §13, §14, §15, §16, §17, §18` |
-| Source Requirement | `2026-08-23 用户请求：为 light/service/web 各新增 -open 开源版；内部 components/platforms 版暂不做；使用 Spring Boot 3.5、Spring Cloud、Spring Cloud Alibaba、Gateway、Dubbo、Nacos、gRPC、Protobuf、MyBatis-Plus、ShardingSphere；额外允许/要求 Common 与 Dynamic Thread Pool；禁止 Spring Data JPA 和 Flyway；resources 提供手工 SQL。2026-08-23 用户补充确认：删除 UUID 并使用 components Common ID 生成器；严格 Common/DTP 白名单、本地 facade 与 ArchUnit；Gateway 选 C、仅外部使用，生成组件内不需要；API 使用 Swagger/OpenAPI 或 Springdoc；RPC 选 Dubbo Triple + Protobuf + 标准 gRPC 互操作` |
-| Baseline Revision | `main@772df2b28b4abf29e7fffae6ea1b10fd616397b4；2026-08-23 16:25 CST dirty-worktree snapshot：仅有两个与本 Spec 无关的 IdP Spec/Plan 已修改，本设计不得覆盖或回退它们` |
+| Source Requirement | `2026-08-23 用户请求：为 light/service/web 各新增 -open 开源版；内部 components/xingyuan 版暂不做；使用 Spring Boot 3.5、Spring Cloud、Spring Cloud Alibaba、Yuheng、Dubbo、Nacos、gRPC、Protobuf、MyBatis-Plus、ShardingSphere；额外允许/要求 Common 与 Dynamic Thread Pool；禁止 Spring Data JPA 和 Flyway；resources 提供手工 SQL。2026-08-23 用户补充确认：删除 UUID 并使用 components Common ID 生成器；严格 Common/DTP 白名单、本地 facade 与 ArchUnit；Yuheng 选 C、仅外部使用，生成组件内不需要；API 使用 Swagger/OpenAPI 或 Springdoc；RPC 选 Dubbo Triple + Protobuf + 标准 gRPC 互操作` |
+| Baseline Revision | `main@772df2b28b4abf29e7fffae6ea1b10fd616397b4；2026-08-23 16:25 CST dirty-worktree snapshot：仅有两个与本 Spec 无关的 Tianquan-Shoubing Spec/Plan 已修改，本设计不得覆盖或回退它们` |
 | Amends | `None` |
 | Supersedes | `None` |
 | Depends On | `[Light living architecture](../../../egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md) §1-§5；[Service living architecture](../../../egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md) §1-§5；[Web living architecture](../../../egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md) §1-§5；[Domain-first package design](../../superpowers/specs/2026-07-13-web-service-archetype-domain-first-package-design.md) §125-§744` |
@@ -30,7 +30,7 @@
 `egon-cola-archetype-web-open`。它们以当前模板为复制基线，保留 Light 的单模块
 `start/adapter/facade/application/infrastructure/common/domain` 包结构，以及 Service/Web 的
 `common/domain/application/infrastructure/adapter/starter` Maven 模块和 domain-first 包结构；
-不修改原三个 archetype，也不提前设计尚在迭代的 components/platforms 版本。
+不修改原三个 archetype，也不提前设计尚在迭代的 components/xingyuan 版本。
 
 开源版必须删除 Spring Data JPA 与 Flyway 的依赖、注解、自动配置、启动编排和测试合同；
 持久化改用 MyBatis-Plus，逻辑数据源仍由 ShardingSphere-JDBC 5.5.3 提供。数据库 DDL 作为
@@ -45,7 +45,7 @@ Boot3 Starter，不采用会额外引入全局 tenant/audit/logical-delete 语�
 
 Service/Web 各新增本地 `facade` contract module，Protobuf 是唯一 RPC wire source，Dubbo Triple 是唯一
 provider/consumer runtime，并以标准 gRPC client 做互操作测试。Spring Cloud Gateway 由部署环境外置，三个
-archetype 均不生成 Gateway module、dependency、route 或配置。Light/Web 保留并统一 Springdoc OpenAPI/
+archetype 均不生成 Yuheng module、dependency、route 或配置。Light/Web 保留并统一 Springdoc OpenAPI/
 Swagger UI，Service 因无 HTTP business API 不堆叠文档依赖。本文已达到 `Review`，仍不写 Plan、不改
 production/template code、不启动项目。
 
@@ -53,7 +53,7 @@ production/template code、不启动项目。
 
 ### 2.1 Business and user context
 
-维护者需要长期保留两条 archetype 产品线：一条未来跟随 Egon components/platforms 演进，另一条
+维护者需要长期保留两条 archetype 产品线：一条未来跟随 Egon components/xingyuan 演进，另一条
 以社区框架为主要运行时基础。当前只交付第二条，防止内部平台继续变化时反复重写社区版生成契约。
 生成项目使用者希望从 Maven archetype 得到可编译、可测试、可容器化的 Light、Service 或 Web 工程，
 数据库运维者则必须清楚知道每个物理库需要手工执行哪些 SQL；应用本身不得越权管理 schema。
@@ -72,28 +72,28 @@ production/template code、不启动项目。
 | `EVD-008` | Static repository | `common-mybatis-plus.../EgonModel.java`、auto-configuration/properties | Common MP Starter 默认启用 TenantLine；`EgonModel` 使用 `Long id/tenantId` 和审计、`is_deleted` 字段 | `DEC-001` 明确不用该 Starter，避免把 Long ID 误等同于 tenant/audit/lifecycle adoption | 只证明当前组件合同 |
 | `EVD-009` | Static repository | `egon-cola-component-common/pom.xml`、Components BOM | Common 是聚合 POM；可消费的是 `common-core`、`common-id-starter`、`common-trace(-starter)`、`common-mybatis-plus-starter` 等 concrete artifact | 生成 POM 不能依赖 `egon-cola-component-common` 聚合器 | 不证明外部 Central 已发布 5.3.3 |
 | `EVD-010` | Static repository | DTP README、Starter POM、`DynamicThreadPoolAutoConfig` | 业务应用应依赖 DTP starter；其默认启用并创建专用 RedissonClient，测试若不显式关闭会尝试连接 Redis | 三套 runnable module 需接入 Starter、executor 和 test-disabled 配置；Admin 不是生成项目子模块 | 未验证 Redis/Nacos live topology |
-| `EVD-011` | Static repository | Service/Web root POM、archetypes facade modules | 生成项目当前消费 `top.egon:egon-cola-organization-facade/evaluation-facade`；starter 还执行 Egon bytecode architecture plugin | `DEC-002` 已决定 local facade + ArchUnit；这些 external artifacts 必须从 open copy 删除 | 当前 artifacts 是原产品合同，不是 components/platforms |
+| `EVD-011` | Static repository | Service/Web root POM、archetypes facade modules | 生成项目当前消费 `top.egon:egon-cola-organization-facade/evaluation-facade`；starter 还执行 Egon bytecode architecture plugin | `DEC-002` 已决定 local facade + ArchUnit；这些 external artifacts 必须从 open copy 删除 | 当前 artifacts 是原产品合同，不是 components/xingyuan |
 | `EVD-012` | Static repository | Living architecture documents、domain-first package Spec | 当前架构是自定义 COLA/light-domain 分层，不是本 Skill 的传统 `biz.controller/service/dao` 三层 | 用户已要求架构保持不变；不得迁移到传统三层或 DDD 新结构 | 文档可能滞后，implementation 必须以模板/verifier 双证据复核 |
 | `EVD-013` | Static repository | `.github/workflows/ci_java_compatibility.yaml:163-251` | CI 只生成三个原 archetype，且 `clean verify` 依赖 Egon architecture plugin | 新坐标必须进入 CI；open generated verify 改用 ArchUnit，原 CI 路径保持 | CI 未在本阶段运行 |
 | `EVD-014` | Static repository | Root README 双语、`scripts/maven-deploy.md` | 公开目录、生成命令、archetype 表只列原三套 | 新产品线需要双语发现/使用文档 | 文档不证明 artifacts 已发布 |
-| `EVD-015` | Official source | [Spring Cloud supported versions](https://github.com/spring-cloud/spring-cloud-release/wiki/Supported-Versions) | Spring Cloud 2025.0 对应 Boot 3.5.x，Gateway 为 4.3.x | Boot/Cloud 大线匹配用户约束 | 官方页面会随支持期变化，实施前复核 |
+| `EVD-015` | Official source | [Spring Cloud supported versions](https://github.com/spring-cloud/spring-cloud-release/wiki/Supported-Versions) | Spring Cloud 2025.0 对应 Boot 3.5.x，Yuheng 为 4.3.x | Boot/Cloud 大线匹配用户约束 | 官方页面会随支持期变化，实施前复核 |
 | `EVD-016` | Official source | [Spring Cloud Alibaba repository](https://github.com/alibaba/spring-cloud-alibaba) | SCA 2025.0.x 对应 Cloud 2025.0.x、Boot 3.5.x、JDK 17+ | 当前版本线合理 | 不证明特定 patch 的所有功能无缺陷 |
 | `EVD-017` | Official maintainer evidence | [SCA Nacos version note](https://github.com/alibaba/spring-cloud-alibaba/issues/4098) | SCA 2025.0.0.0 携带 Nacos client 3.0.3；不应跨大版本连接当前模板的 Nacos Server 2.5.1 | `-open` Compose 推荐改为 Nacos Server 3.0.3 | Issue/静态资料，不是本地连通性测试 |
 | `EVD-018` | Official source | [Dubbo Triple gRPC interop](https://dubbo.apache.org/en/overview/mannual/java-sdk/tasks/protocols/triple/grpc/)、[Protobuf IDL](https://dubbo.apache.org/en/overview/mannual/java-sdk/tasks/protocols/triple/idl/) | Dubbo Triple 可用 Protobuf IDL，且标准 gRPC client/server 可互操作 | 单 RPC 栈即可满足“Dubbo + gRPC + Protobuf”，避免双 server | §9 已设计 21 个合同，但尚未生成/运行验证 |
 | `EVD-019` | Official source | [Spring gRPC requirements](https://docs.spring.io/spring-grpc/reference/system-requirements.html) | 当前稳定 Spring gRPC 1.0.x 面向 Boot 4.0；Boot 3.5 只能选旧/pre-GA 线或 raw grpc-java | Boot 3.5 下不推荐再加第二套 Spring gRPC server | 未来版本可能改变 |
-| `EVD-020` | Official source | [Gateway Server Web MVC starter](https://docs.spring.io/spring-cloud-gateway/reference/spring-cloud-gateway-server-webmvc/starter.html) | `spring-cloud-starter-gateway-server-webmvc` 可嵌入 Servlet/Tomcat 应用，也可配置禁用 | 技术上可嵌入当前 Web，但是否混合 edge/business 是架构决策 | 不证明当前业务 routes |
+| `EVD-020` | Official source | [Yuheng Server Web MVC starter](https://docs.spring.io/spring-cloud-yuheng/reference/spring-cloud-yuheng-server-webmvc/starter.html) | `spring-cloud-starter-yuheng-server-webmvc` 可嵌入 Servlet/Tomcat 应用，也可配置禁用 | 技术上可嵌入当前 Web，但是否混合 edge/business 是架构决策 | 不证明当前业务 routes |
 | `EVD-021` | Official source | [MyBatis-Plus installation](https://baomidou.com/en/getting-started/install/) | Boot 3 使用 `mybatis-plus-spring-boot3-starter`，且不应再直接引入原生 MyBatis starter | 推荐直接 MP 方案的依赖边界 | 官方示例当前显示 3.5.17，未来会变 |
 | `EVD-022` | Official source | [ShardingSphere YAML JDBC](https://shardingsphere.apache.org/document/current/en/user-manual/shardingsphere-jdbc/yaml-config/)、[5.5.3 release](https://github.com/apache/shardingsphere/releases) | YAML factory 生成标准 `DataSource`；5.5.3 为当前 release | 去掉 Flyway 后仍可保持现有 logical DataSource 机制 | 未验证现有 YAML 与新 Mapper SQL |
 
 ### 2.3 Problem statement and gap
 
 原 archetype 已经大量使用社区依赖，但没有独立的长期社区版坐标；继续原地改造会让未来
-components/platforms 化与社区化互相覆盖。当前持久化实现又与本请求相反：JPA/Flyway 是 POM、
+components/xingyuan 化与社区化互相覆盖。当前持久化实现又与本请求相反：JPA/Flyway 是 POM、
 源码、配置、测试和 verifier 的强合同。另有两个静态不一致：SCA 2025.0.0.0 的 Nacos client 3.0.3
 与 Compose 2.5.1 跨大版本；Common MP Starter 的 Long/tenant schema 与 archetype UUIDv7 schema 不同。
 
 目标不能只是复制目录并替换几行依赖。最终 `-open` 生成项目必须在坐标、模块、包、持久化接口、
-物理 SQL、ShardingSphere、Nacos、DTP、RPC/Gateway、测试和文档上形成一个自洽产品；同时原产品线
+物理 SQL、ShardingSphere、Nacos、DTP、RPC/Yuheng、测试和文档上形成一个自洽产品；同时原产品线
 逐字节保持不变，避免尚未设计的内部版被本任务提前冻结。
 
 ### 2.4 Evidence and current-chain map
@@ -116,14 +116,14 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 3. 用确定的 Boot 3.5/Cloud 2025.0/SCA/Dubbo/Nacos/ShardingSphere/MyBatis-Plus 组合形成社区运行时。
 4. 彻底移除 Spring Data JPA 与 Flyway，并用 MyBatis Mapper/PO mapping、手工 SQL 和测试专用显式脚本执行替代。
 5. 在每个 runnable 生成模块实际接入 Common concrete artifacts 与 DTP starter/executor，测试不依赖 live Redis。
-6. 用本地 Protobuf contract module + Dubbo Triple 形成唯一 RPC 栈，以标准 gRPC 客户端证明互操作；Gateway 明确外置。
+6. 用本地 Protobuf contract module + Dubbo Triple 形成唯一 RPC 栈，以标准 gRPC 客户端证明互操作；Yuheng 明确外置。
 7. 通过独立 `verify.groovy`、生成项目 `clean verify`、forbidden scans、CI matrix 与文档验证产品合同。
 8. 删除 open 模板中的 UUID 业务/技术 ID 生成路径，统一使用 Common ID Starter Snowflake，并用 Springdoc 发布现有 HTTP API 文档。
 
 ### 3.2 Non-goals
 
-- 不实现、修改或冻结未来“基于 Egon components/platforms”的原 archetype 方向。
-- 不修改原 light/service/web 模板、六个现有 Flyway SQL、现有 facade artifacts、components 或 platforms 生产源码。
+- 不实现、修改或冻结未来“基于 Egon components/xingyuan”的原 archetype 方向。
+- 不修改原 light/service/web 模板、六个现有 Flyway SQL、现有 facade artifacts、components 或 xingyuan 生产源码。
 - 不在 Spec 阶段写 Plan、复制模板、改 POM、执行 SQL、启动 Spring/Nacos/Redis/RabbitMQ/PostgreSQL 或发布 artifact。
 - 不引入 Spring Data JPA、Hibernate ORM、Flyway、Liquibase 或 Spring SQL init 作为替代自动迁移器。
 - 不以“等等”无限加入 Seata、Sentinel、RocketMQ、OpenFeign、Spring AI 等未被当前样例消费的框架；新增依赖必须通过 §7.0 必要性审计。
@@ -134,17 +134,17 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 | Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
 | --- | --- | --- | --- | --- | --- |
 | Archetype reactor/coordinates/metadata | Affected | `egon-cola-archetypes/pom.xml`、三套 module POM/metadata | 新增三套 `-open` 坐标和生成契约；旧坐标不变 | 完整模块、CLI、发布与验证设计 | `§7, §8, §9, §14, §16, §17, §18` |
-| Template dependency model | Affected | 三个 root POM + Service/Web child POMs | JPA/Flyway/custom platform boundary改为社区 BOM + 允许的 Common/DTP | 完整依赖矩阵与 forbidden contract | `§7, §8, §13, §15, §16, §17, §18` |
+| Template dependency model | Affected | 三个 root POM + Service/Web child POMs | JPA/Flyway/custom xingyuan boundary改为社区 BOM + 允许的 Common/DTP | 完整依赖矩阵与 forbidden contract | `§7, §8, §13, §15, §16, §17, §18` |
 | Persistence adapter/PO/Mapper | Affected | 21 个 PO、19 个 `repo.jpa`、RepositoryImpl/tests | JPA annotation/derived query 改 MyBatis-Plus Mapper/XML/Lambda；domain ports不变 | 完整对象角色、映射、分页/复合键/错误设计 | `§7, §8, §10, §11, §13, §14, §15, §16, §17, §18` |
 | Schema delivery/Flyway startup | Affected | Flyway classes/config/tests、六个 migration SQL | 删除自动 migration；新增手工 SQL 目录、runbook 和 test-only executor | 完整手工交付、启动、失败、回退设计 | `§7, §8, §11, §14, §15, §16, §17, §18` |
 | ShardingSphere topology/routing | Affected | datasource/sharding YAML、`UuidV7BucketShardingAlgorithm`、`ShardingNodeMap`、topology validator | UUID parser/hash 改正 `long` stable-slot hash；None strategy/物理 node-map 保持；移除 Flyway target 维度 | 完整 Long 路由、共置、拒绝非法键与联合测试 | `§7, §10, §11, §14, §15, §16` |
 | Common/DTP integration | Affected | Components BOM、Common/DTP POM/README/AutoConfig | 选择 concrete artifacts；runnable module 加 DTP executor/config | 依赖、线程上下文、Redis failure/test 设计 | `§7, §8, §13, §14, §15, §16, §17, §18` |
 | RPC/Protobuf | Affected | 现有 Dubbo Java facade、provider/client、无 Proto | 本地 facade module 持有 Proto；21 个业务方法转为 Triple/gRPC contract；移除 external facade artifacts | 完整逐 RPC contract、deadline/error/version/interop 设计 | `§7, §8, §9, §10, §13, §14, §15, §16, §17, §18` |
-| External Gateway + HTTP documentation | Context-only | 当前无 Gateway；Light/Web 已有 Springdoc | Gateway 只在外部部署，不进入生成项目；Light/Web 统一 Springdoc 2.8.17，现有 HTTP route/payload 不变 | 负向依赖证明、OpenAPI 生成与外部集成边界 | `§7, §8, §9, §14, §15, §16` |
-| Deployment/config/Nacos | Affected | bootstrap/application、18 compose、`.env*` | Nacos Server 2.5.1 -> 3.0.3；增加 DTP/RPC/Snowflake machine-id 配置；无 DB auto-init/Gateway 配置 | 完整配置/秘密/失败合同 | `§7, §8, §14, §15, §16, §17, §18` |
+| External Yuheng + HTTP documentation | Context-only | 当前无 Yuheng；Light/Web 已有 Springdoc | Yuheng 只在外部部署，不进入生成项目；Light/Web 统一 Springdoc 2.8.17，现有 HTTP route/payload 不变 | 负向依赖证明、OpenAPI 生成与外部集成边界 | `§7, §8, §9, §14, §15, §16` |
+| Deployment/config/Nacos | Affected | bootstrap/application、18 compose、`.env*` | Nacos Server 2.5.1 -> 3.0.3；增加 DTP/RPC/Snowflake machine-id 配置；无 DB auto-init/Yuheng 配置 | 完整配置/秘密/失败合同 | `§7, §8, §14, §15, §16, §17, §18` |
 | Generated-project verification/CI/docs | Affected | 三套 verifier、CI archetype array、README 双语、deploy docs | 新开源产品线必须独立生成、构建、扫描、发布说明 | 完整测试与文档矩阵 | `§8, §14, §16, §18` |
 | Original three archetypes | Unchanged | 当前 tracked paths、用户“基于我的这份先不做” | 不修改任何原模板/POM/verifier/SQL | 路径隔离与 diff proof | `§16` |
-| Components/platforms production code | Unchanged | `egon-cola-components/**`、`egon-cola-xingyuan/**` | 只消费已发布的用户批准 concrete artifacts；不改其实现 | 依赖边界与版本可用性验证 | `§15, §16` |
+| Components/xingyuan production code | Unchanged | `egon-cola-components/**`、`egon-cola-xingyuan/**` | 只消费已发布的用户批准 concrete artifacts；不改其实现 | 依赖边界与版本可用性验证 | `§15, §16` |
 | Business HTTP/GraphQL/MQ behavior | Context-only | 当前 adapter/application/domain tests | 默认保持现有 route、payload、error/use-case 语义 | 最小回归，不重写完整现有契约 | `§9, §14, §16` |
 | Frontend application | Not applicable | 三个 archetype 不含 JS/TS/UI source；DTP Admin 也不生成 UI | N/A，无页面、route component 或浏览器状态 | §12 证据化 N/A | `§12` |
 
@@ -155,7 +155,7 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 | `REQ-001` | 新增 `egon-cola-archetype-light-open` | Must | reactor 可生成并 `clean verify` 一个单模块项目；原 light diff 为零 | “light 做两份…命名追加 -open” |
 | `REQ-002` | 新增 `egon-cola-archetype-service-open` | Must | reactor 可生成并验证 service 多模块项目；原 service diff 为零 | 同上 |
 | `REQ-003` | 新增 `egon-cola-archetype-web-open` | Must | reactor 可生成并验证 web 多模块项目；原 web diff 为零 | 同上 |
-| `REQ-004` | 内部 components/platforms 版本不在本范围 | Must | 没有原 archetype/components/platforms production edit | “基于我的这份先不做” |
+| `REQ-004` | 内部 components/xingyuan 版本不在本范围 | Must | 没有原 archetype/components/xingyuan production edit | “基于我的这份先不做” |
 | `REQ-005` | 保持当前业务架构与包依赖方向 | Must | ArchUnit + verifier 证明现有 layer/module/domain-first 规则；无传统三层迁移或 internal plugin | “架构还是现在的架构” |
 | `REQ-006` | 使用 Boot 3.5 与 Java 21/Maven Wrapper 基线 | Must | effective POM 为 Boot 3.5.16、Java 21；wrapper 3.9.14 | 用户技术栈 + repository baseline |
 | `REQ-007` | 使用 Cloud 2025.0、SCA、Nacos discovery/config | Must | BOM/Starter/config 存在；SCA 2025.0.0.0 配 Nacos Server/client 3.0.3 同大版本 | 用户技术栈 + `EVD-015`-`017` |
@@ -166,7 +166,7 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 | `REQ-012` | 使用 Components Common concrete artifacts | Must | 直接允许 Components BOM、`common-core`、`common-id-starter`、DTP starter，并允许它们解析出的 `common-trace`；其余 Common/Egon artifact 禁止 | “需要使用 components 下的 common 模块” + 用户确认 1/2 |
 | `REQ-013` | 使用 Dynamic Thread Pool starter | Must | 每个 runnable app 有 DTP starter、受管 executor、dev/prod Redis config、test disabled/isolated test | 用户要求 |
 | `REQ-014` | 使用 Dubbo/Nacos RPC 并覆盖 gRPC/Protobuf 目标 | Must | 21 个现有 facade operation 均由本地 Proto v1 定义；Dubbo Triple 是唯一 runtime；标准 gRPC interop、deadline/error/version tests 通过 | 用户技术栈 + 用户确认 4A |
-| `REQ-015` | Gateway 外置且 HTTP API 用 Springdoc | Must | 三个生成项目 dependency/source/config 无 Spring Cloud Gateway；Light/Web 有 Springdoc OpenAPI + Swagger UI，Service 无未消费 Springdoc；文档说明外部 Gateway 按 Nacos/OpenAPI 集成 | 用户确认 3C + “api 使用 swagger 或 spring doc” |
+| `REQ-015` | Yuheng 外置且 HTTP API 用 Springdoc | Must | 三个生成项目 dependency/source/config 无 Spring Cloud Gateway；Light/Web 有 Springdoc OpenAPI + Swagger UI，Service 无未消费 Springdoc；文档说明外部 Yuheng 按 Nacos/OpenAPI 集成 | 用户确认 3C + “api 使用 swagger 或 spring doc” |
 | `REQ-016` | 梳理最小必须框架，不做无消费依赖堆砌 | Must | §6/§7 对每项给出 Must/Feature-specific/Rejected 和必要性结论 | “需要梳理清楚必须的框架” |
 | `REQ-017` | 原有 HTTP/GraphQL/MQ/domain 行为默认兼容 | Must | 现有 API/use-case tests 复制并通过；仅 persistence/RPC representation 的已批准差异可变 | “架构还是现在” |
 | `REQ-018` | Open archetype 自身可独立发布和发现 | Must | root README 双语、deploy docs、CI matrix、archetype catalog/metadata 包含三个新坐标 | 隐含发布正确性 |
@@ -187,7 +187,7 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 | Nacos version match | Runnable app/Compose | SCA client 3.0.3 + Server 3.0.3 | discovery/config 正常连接 | 2.x server 被文档/contract scan 拒绝；连接失败不阻止 test profile | Nacos registry/config | dev/prod 有明确健康/错误 | `REQ-007`,`019` |
 | DTP Redis unavailable | Runnable app | dev/prod DTP enabled | 注册 executor/上报 snapshot | Redis 连接失败按 DTP 当前 fail-fast；test profile 必须 disable | 无业务 DB 变化 | startup/test outcome 明确 | `REQ-013`,`019` |
 | RPC interoperability | gRPC/Dubbo consumer | Proto v1/version 匹配 | Triple/Protobuf provider/consumer 调用 | deadline、UNAVAILABLE、schema mismatch 映射稳定失败 | 无/业务事务按原 use case | 21-operation contract + standard gRPC interop test | `REQ-014`,`017`,`021` |
-| External Gateway/API documentation | HTTP client/operator | 外部 Gateway 自行部署；Light/Web 已启动 | Gateway 根据 Nacos 与受控 route 转发；Springdoc 暴露 OpenAPI/Swagger UI | Gateway/no-instance 属外部运维；生成项目无 Gateway fallback | 无业务 DB 直接写 | dependency-negative scan + OpenAPI generation test | `REQ-015` |
+| External Yuheng/API documentation | HTTP client/operator | 外部 Yuheng 自行部署；Light/Web 已启动 | Yuheng 根据 Nacos 与受控 route 转发；Springdoc 暴露 OpenAPI/Swagger UI | Yuheng/no-instance 属外部运维；生成项目无 Yuheng fallback | 无业务 DB 直接写 | dependency-negative scan + OpenAPI generation test | `REQ-015` |
 | Snowflake ID generation | Application command | `egon.cola.component.id.machine-id` 已显式分配且时钟有效 | 注入 `LongIdGenerator.nextLongId()`；PO/Domain 使用 Long，API 十进制字符串映射 | machine-id 缺失/重复风险、超阈值时钟回拨均 fail closed | 仅业务事务成功后持久化 Long ID | generator/config/mapping/sharding tests | `REQ-012`,`021` |
 | Original family regression | Maintainer diff/check | 实施在 `-open` paths | path-limited diff + original IT | 原文件变化即拒绝该 Step | 原文件不变 | 三原 archetype hash/diff invariant | `REQ-004` |
 
@@ -201,8 +201,8 @@ components/platforms 化与社区化互相覆盖。当前持久化实现又与�
 | `ACTOR-002` | Generated-project developer | 生成并扩展可构建的 Light/Service/Web 工程 | Maven archetype CLI | 由生成项目自行实现 auth/tenant | 当前 archetype properties/README |
 | `ACTOR-003` | Database operator | 在正确物理库按顺序手工执行/验证 SQL | `psql`/受控 DBA 工具 | 数据库权限与环境隔离 | 用户“手工更新” |
 | `ACTOR-004` | CI verifier | 阻止残缺模板、禁用依赖和架构漂移 | Maven IT、Groovy、ArchUnit | 无业务权限 | `EVD-006`,`013` |
-| `ACTOR-005` | Runtime operator | 配置 Nacos、Redis/DTP、Gateway、Dubbo 和物理 DataSource | env/Compose/Kubernetes | secret 由部署环境提供 | 当前 deploy templates、`EVD-010`,`017` |
-| `ACTOR-006` | External service/client | 通过 HTTP/Gateway 或 RPC 观察生成应用 | HTTP/Dubbo Triple/gRPC | 由生成项目现有安全合同负责 | 当前 adapter/facade + 用户 RPC/Gateway 要求 |
+| `ACTOR-005` | Runtime operator | 配置 Nacos、Redis/DTP、Yuheng、Dubbo 和物理 DataSource | env/Compose/Kubernetes | secret 由部署环境提供 | 当前 deploy templates、`EVD-010`,`017` |
+| `ACTOR-006` | External service/client | 通过 HTTP/Yuheng 或 RPC 观察生成应用 | HTTP/Dubbo Triple/gRPC | 由生成项目现有安全合同负责 | 当前 adapter/facade + 用户 RPC/Yuheng 要求 |
 
 #### 4.2.2 Use-case artifact
 
@@ -220,7 +220,7 @@ flowchart LR
         UC002(["UC-002 Verify standalone generated contract"])
         UC003(["UC-003 Provision physical schemas manually"])
         UC004(["UC-004 Run with open-source infrastructure"])
-        UC005(["UC-005 Publish OpenAPI for external Gateway"])
+        UC005(["UC-005 Publish OpenAPI for external Yuheng"])
         UC006(["UC-006 Invoke Protobuf/gRPC-compatible RPC"])
         UC007(["UC-007 Govern application executors"])
     end
@@ -246,7 +246,7 @@ flowchart LR
 | `UC-002` | CI 对生成工程执行 verify；不要求外部服务 | 编译、测试、架构/forbidden scans 全绿 | 任一禁用依赖、模板遗漏、跨层依赖立即失败；无外部状态 | `REQ-008`-`020`,`TEST-005`-`015` |
 | `UC-003` | DBA 获得目标拓扑、凭证、备份和脚本顺序 | 每个 primary schema 与 verification query 一致 | 失败停止并由 DBA 恢复/forward-fix；应用不得介入 | `REQ-009`-`011`,`TEST-016`-`018` |
 | `UC-004` | SQL 已执行，运行配置/secret 完整 | Nacos/DTP/ShardingSphere/MyBatis 正常装配 | 缺 schema/config/dependency 时 fail closed；不自动修复 | `REQ-007`-`013`,`TEST-019`-`022` |
-| `UC-005` | Light/Web 的现有 Controller 与 Springdoc 配置可构建 | 生成 `/v3/api-docs` 与 Swagger UI，供客户端和外部 Gateway 管理者读取 | 文档生成失败则 verify 失败；Gateway runtime 故障不归生成项目自动处理 | `REQ-015`,`TEST-023` |
+| `UC-005` | Light/Web 的现有 Controller 与 Springdoc 配置可构建 | 生成 `/v3/api-docs` 与 Swagger UI，供客户端和外部 Yuheng 管理者读取 | 文档生成失败则 verify 失败；Yuheng runtime 故障不归生成项目自动处理 | `REQ-015`,`TEST-023` |
 | `UC-006` | Proto v1、Triple provider/consumer 与版本兼容 | Dubbo/标准 gRPC 互操作并保持 use-case 语义 | deadline/transport/schema failure 稳定映射，事务按业务边界回滚 | `REQ-014`,`017`,`021`,`TEST-024` |
 | `UC-007` | DTP enabled 且 Redis 可用；executor 已注册 | snapshot/metric/resize 可观察 | Redis 不可用按配置失败；test profile 无连接/无泄漏 | `REQ-013`,`019`,`TEST-025` |
 
@@ -295,13 +295,13 @@ None. `DEC-001`-`DEC-006` 均已关闭；本文仍为 `Review`，只有用户对
 | Java | **Must** Java 21 | archetypes parent/current templates | 不降级；ArchUnit/Protobuf plugin需支持 21 |
 | Build | **Must** Maven Wrapper 3.9.14 | 三套 wrapper properties | 生成/CI 统一 `./mvnw` |
 | Spring Boot | **Must** 3.5.16 | current POM、official system requirements | 不引入 Boot 4-only Spring gRPC 1.0 |
-| Spring Cloud | **Must** 2025.0.3 | current POM、official 2025.0 -> Boot 3.5 | generated apps use Cloud/SCA contracts；external Gateway may use managed 4.3.x but is not a dependency |
+| Spring Cloud | **Must** 2025.0.3 | current POM、official 2025.0 -> Boot 3.5 | generated apps use Cloud/SCA contracts；external Yuheng may use managed 4.3.x but is not a dependency |
 | Spring Cloud Alibaba | **Must** 2025.0.0.0 | current POM、SCA compatibility | Nacos client/server 对齐 3.0.3；保留 bootstrap path 直到另行迁移 |
 | Nacos | **Must** discovery/config + Dubbo registry，Server 3.0.3 | `EVD-017` | Compose 不再使用 2.5.1；test 不连 live server |
 | Dubbo | **Must** 3.3.6 Triple | current POM、Dubbo download/Triple docs | RPC registry、deadline、metadata 只有一个权威模型 |
 | Protobuf/gRPC | **Must for Service/Web RPC**：Proto3 + Dubbo Triple standard gRPC interoperability | `EVD-018`,`019`,`DEC-004` | facade module codegen；不引 Boot 4 Spring gRPC，不建第二 server |
 | Proto codegen | **Must** `org.apache.dubbo:dubbo-maven-plugin:3.3.6` goal `compile`，`dubboGenerateType=tri` | Dubbo 3.3 IDL/plugin docs | only in local facade modules；default `src/main/proto` -> `target/generated-sources/protobuf/java`；no old `protobuf-maven-plugin`/`os-maven-plugin` |
-| Gateway | **External deployment only / generated-project rejected** | user `DEC-003`、`EVD-020` | open POM/source/config 必须无 Gateway；外部团队可使用 Cloud Gateway 2025.0 managed 版本 |
+| Yuheng | **External deployment only / generated-project rejected** | user `DEC-003`、`EVD-020` | open POM/source/config 必须无 Yuheng；外部团队可使用 Cloud Yuheng 2025.0 managed 版本 |
 | HTTP API docs | **Must for Light/Web** Springdoc 2.8.17；**N/A for Service** | current Light/Web POM/config | 生成 OpenAPI v3 与 Swagger UI；不再并列引 springfox/swagger-core starter |
 | Persistence | **Must** official MyBatis-Plus Boot3 3.5.17 | `EVD-008`,`021`,`DEC-001` | 绝不同时引 raw MyBatis starter、Common MP Starter 或 JPA |
 | Sharding | **Must** ShardingSphere-JDBC 5.5.3 | current POM、`EVD-022` | logical table name 交给 Mapper；physical topology/keys 保持 |
@@ -329,7 +329,7 @@ None. `DEC-001`-`DEC-006` 均已关闭；本文仍为 `Review`，只有用户对
 | `top.egon:egon-cola-component-dynamic-thread-pool-starter` | runnable Light/Service/Web only | actual governed executor/Redis integration | direct allowed；Admin/Test artifacts forbidden |
 
 All other `top.egon:*` artifacts are forbidden，including Common aggregator、Common MP Starter、Common Trace Boot Starter、RPC/component starters、
-external organization/evaluation facade、bytecode architecture plugin、platform artifacts and DTP Admin/Test。Generated
+external organization/evaluation facade、bytecode architecture plugin、xingyuan artifacts and DTP Admin/Test。Generated
 local `${groupId}:*-facade` modules are project-owned coordinates，not `top.egon` dependencies。The effective dependency
 tree verifier distinguishes direct and approved transitive entries so a hidden internal artifact cannot pass through a BOM。
 
@@ -361,15 +361,15 @@ DTP/Protobuf/Snowflake，并保留 Nacos 跨大版本问题，因此不足。选
 | Sharding logical DataSource without migrator | Modify copy | `REQ-009`-`011` | 用 JDBC Driver 单 YAML | 当前动态 physical topology/node-map/readwrite validator 已存在 | 保留少量自定义 bootstrap code | Keep/modify |
 | Local facade modules | New | `REQ-012`,`014`,`018` | 继续 published top.egon facades | strict community whitelist/standalone 不满足 | module/version/proto ownership | Add to Service/Web |
 | ArchUnit JUnit5 | New | `REQ-005`,`012` | Egon bytecode plugin | strict whitelist 不允许 plugin | test time、规则需同步 | Add |
-| Spring Cloud Gateway dependency/module | Candidate | None | 外部 gateway docs only | 用户明确组件内不需要 | 无生成项目价值，增加 edge runtime | Remove and forbid |
+| Spring Cloud Gateway dependency/module | Candidate | None | 外部 yuheng docs only | 用户明确组件内不需要 | 无生成项目价值，增加 edge runtime | Remove and forbid |
 | Springdoc | Keep/align | `REQ-015`,`017` | 另一 Swagger library | current Light/Web 已真实消费 Springdoc | OpenAPI endpoint/UI，build test | Keep Light/Web only at 2.8.17 |
 | Dubbo Triple Protobuf | New/modify | `REQ-014` | Java interface Triple | 无 Protobuf/gRPC wire contract | codegen/schema compatibility | Add to Service/Web RPC |
 | Native Spring gRPC 1.0 | New candidate | `REQ-014` | Triple interop | Boot 4-only且职责重复 | second port/server/error/security | Remove for Boot 3.5 |
 
 | Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 | --- | --- | --- | --- | --- | --- |
-| Copy-only baseline | 与现有相同 | 与现有相同 | JPA/Flyway、无 DTP/Gateway/Proto | 保留 Nacos 2/3、自动 migration | 只有新坐标，不满足请求 |
-| Selected design | 生成应用调用数不增加；外部 Gateway hop 不由模板拥有；RPC仍 1 hop | Proto/RPC error state 显式化；HTTP API 文档可发现 | MyBatis Mapper、manual SQL、DTP Redis、Snowflake Long、Triple Proto | 手工 schema、machine-id、Nacos/DTP/RPC failure可见 | 独立社区产品线和明确运维所有权 |
+| Copy-only baseline | 与现有相同 | 与现有相同 | JPA/Flyway、无 DTP/Yuheng/Proto | 保留 Nacos 2/3、自动 migration | 只有新坐标，不满足请求 |
+| Selected design | 生成应用调用数不增加；外部 Yuheng hop 不由模板拥有；RPC仍 1 hop | Proto/RPC error state 显式化；HTTP API 文档可发现 | MyBatis Mapper、manual SQL、DTP Redis、Snowflake Long、Triple Proto | 手工 schema、machine-id、Nacos/DTP/RPC failure可见 | 独立社区产品线和明确运维所有权 |
 
 ### 7.1 System Architecture Design
 
@@ -420,12 +420,12 @@ flowchart LR
 | `*-open` archetype artifact | Template/metadata/verifier contract | Maven properties -> generated tree | archetypes parent/test fixtures | 运行业务、修改原 archetype | `REQ-001`-`004`,`018` |
 | Generated `common` | project-local cross-layer basics | stable common types/config | approved Common concrete artifacts | domain workflow、DB/RPC | `REQ-005`,`012`,`021` |
 | Generated `facade`（Service/Web） | local Proto v1 source and generated Triple/gRPC classes | `.proto` -> generated request/response/service stubs | Protobuf/Dubbo codegen only；no other project module | domain/application/persistence、external Egon facade dependency | `REQ-012`,`014`,`018` |
-| Generated `domain` | current entities/values/repository/client ports | domain commands/results | local common | MyBatis/Spring Data/Dubbo/Gateway | `REQ-005`,`017` |
+| Generated `domain` | current entities/values/repository/client ports | domain commands/results | local common | MyBatis/Spring Data/Dubbo/Yuheng | `REQ-005`,`017` |
 | Generated `application` | use-case orchestration/transaction intent | domain ports/results | domain | Mapper/DataSource/transport details | `REQ-005`,`017` |
 | Generated `infrastructure` | MyBatis Mapper/PO、Long sharding config、Triple clients | domain ports <-> persistence/RPC | domain、local facade、MP、ShardingSphere、Dubbo client | public HTTP、business policy、schema update | `REQ-008`-`011`,`014`,`021` |
-| Generated `adapter` | HTTP/GraphQL/MQ/Triple provider boundary | string/Proto contract <-> application Long input | application、local facade contract；Light/Web Springdoc annotations/config | direct Mapper/DB access、Gateway route | `REQ-005`,`014`,`015`,`017`,`021` |
+| Generated `adapter` | HTTP/GraphQL/MQ/Triple provider boundary | string/Proto contract <-> application Long input | application、local facade contract；Light/Web Springdoc annotations/config | direct Mapper/DB access、Yuheng route | `REQ-005`,`014`,`015`,`017`,`021` |
 | Generated `start/starter` | executable composition、Nacos、DTP、observability | env/config -> beans/runtime | adapter + infrastructure | business logic、schema DDL execution | `REQ-006`,`007`,`010`,`013` |
-| External Gateway | deployment-owned edge routing，not generated | external HTTP -> discovered service | external platform's Cloud Gateway/Nacos | any generated-project dependency/config/route、domain/DB | `REQ-015`,`DEC-003` |
+| External Yuheng | deployment-owned edge routing，not generated | external HTTP -> discovered service | external xingyuan's Cloud Yuheng/Nacos | any generated-project dependency/config/route、domain/DB | `REQ-015`,`DEC-003` |
 | Database operator/manual SQL | physical schema authority | reviewed SQL -> PostgreSQL | DBA tooling | application auto-migration | `REQ-010`,`011` |
 
 ### 7.2 High-Level Design
@@ -470,7 +470,7 @@ flowchart TD
 | External service independence in CI | verify without live infra | test profile disables Nacos/DTP and uses H2/stubs | accidental socket attempt fails test | live interoperability remains separate gap | generated clean verify | `REQ-019` |
 | ID uniqueness/routing | no UUID；stable positive Long | Common `LongIdGenerator` + explicit machine-id + Long hash slot | missing machine-id/clock rollback fails startup/generation；no UUID fallback | deployment must allocate 0..1023 uniquely | generator/mapping/route tests | `REQ-012`,`021`,`DEC-001` |
 | RPC minimality | Dubbo+gRPC+Proto without duplicate servers | local Proto + Triple | protocol/deadline errors mapped once | intentional wire representation change | 21-operation + standard gRPC interop test | `REQ-014`,`DEC-004` |
-| Gateway/API docs | generated app owns API, not edge runtime | no Gateway dependency；Springdoc in Light/Web | external route failure remains external；docs generation fails verify | no bundled edge convenience | negative scan + OpenAPI test | `REQ-015`,`DEC-003` |
+| Yuheng/API docs | generated app owns API, not edge runtime | no Yuheng dependency；Springdoc in Light/Web | external route failure remains external；docs generation fails verify | no bundled edge convenience | negative scan + OpenAPI test | `REQ-015`,`DEC-003` |
 
 ### 7.3 Detailed Design
 
@@ -487,7 +487,7 @@ flowchart TD
 | `7` | DBA -> physical DB | manual SQL files/readme | DDL/seed -> schema | schema changes outside app | stop/restore/forward-fix | `REQ-010`,`011` |
 | `8` | DTP -> Redis | existing DTP registry/topic contracts | executor snapshots/change messages | transient Redis keys | test disabled; runtime fail per DTP | `REQ-013` |
 | `9` | Triple/gRPC -> Adapter | `RPC-001`-`RPC-021` | Proto `int64`/Timestamp -> Domain Long/Instant | no direct persistence | validation/status/deadline mapping | `REQ-014`,`017`,`021` |
-| `10` | HTTP client/external Gateway -> Light/Web Adapter | existing routes + Springdoc | decimal ID strings -> positive Long；OpenAPI describes string pattern | no direct persistence | malformed/out-of-range ID -> current HTTP validation wrapper | `REQ-015`,`017`,`021` |
+| `10` | HTTP client/external Yuheng -> Light/Web Adapter | existing routes + Springdoc | decimal ID strings -> positive Long；OpenAPI describes string pattern | no direct persistence | malformed/out-of-range ID -> current HTTP validation wrapper | `REQ-015`,`017`,`021` |
 
 **Long stable-slot routing contract.** `ShardingNodeMap.routeSlot(long key)` first rejects `key <= 0`，then computes
 `hash = Long.hashCode(key)`、`spread = hash ^ (hash >>> 16)`、`slot = spread & (nodeCount - 1)`；`nodeCount` remains
@@ -562,7 +562,7 @@ sequenceDiagram
 | DTP Redis unavailable | Redisson initialization/health | current DTP fail-fast when enabled | no business DB write | operator fixes Redis or explicitly disables feature by policy | app startup failure | runtime operator | ApplicationContext test + live gap |
 | Missing/duplicate machine-id | configuration binding/deployment inventory | startup fail when missing/out-of-range；duplicate cannot be inferred locally and blocks rollout by policy | no row should be created before ready | no random/IP/MAC fallback | explicit configuration error | runtime operator | `TEST-028`,`029` + deployment review |
 | Clock rollback | Common generator | <=5ms bounded wait；larger rollback/interrupt throws | surrounding business transaction does not write new row | retry only after clock health restored | stable ID generation exception | runtime operator | `TEST-030` |
-| External Gateway no instance/timeout | external Gateway | external platform owns route/error/retry | generated app has no direct state or fallback | no generated-project retry policy | external gateway response | gateway operator | out of generated verification scope；negative dependency `TEST-023` |
+| External Yuheng no instance/timeout | external Yuheng | external xingyuan owns route/error/retry | generated app has no direct state or fallback | no generated-project retry policy | external yuheng response | yuheng operator | out of generated verification scope；negative dependency `TEST-023` |
 | RPC deadline/transport | Triple/gRPC status | map once at infrastructure/adapter | business commit may be unknown after response loss | operation-specific idempotency | stable status + error metadata | service owner | `TEST-024` |
 
 #### 7.3.5 Observability and operational boundaries
@@ -573,7 +573,7 @@ sequenceDiagram
 | Manual SQL ledger | DBA per target/script | environment、target、script、checksum、operator、time、result | credentials never stored | every required primary exactly once | stop deployment on gap | runbook/static; live ledger external |
 | Sharding route/log | generated infrastructure | datasource mode、logical table、route error、trace ID | redact URLs/user/password/SQL params | any broadcast/route audit failure | app/DB operator | tests + runtime dashboard gap |
 | DTP metrics | DTP starter | app/instance/executor、pool metrics | no task payload/tenant/user IDs | current component thresholds | DTP Admin/operator | component tests; live Redis gap |
-| RPC/OpenAPI metrics | Triple adapter + Light/Web HTTP adapter | service/method or route、status、latency、trace | no token/body/Snowflake ID dimensions | existing actuator thresholds；external Gateway metrics outside | service/external gateway owner | component tests；live topology gap |
+| RPC/OpenAPI metrics | Triple adapter + Light/Web HTTP adapter | service/method or route、status、latency、trace | no token/body/Snowflake ID dimensions | existing actuator thresholds；external Yuheng metrics outside | service/external yuheng owner | component tests；live topology gap |
 
 #### 7.3.6 Conclusion evidence chain
 
@@ -584,7 +584,7 @@ sequenceDiagram
 | Nacos Server 必须升级到 3.x matching client | `EVD-003`,`017` | `REQ-007` | select 3.0.3 server/client pair | Compose 行为变化，但消除跨大版本空配置风险 | image/config assertion；live discovery gap disclosed |
 | Common MP 不应采用 | `EVD-007`,`008`、用户只要求 Common ID | `REQ-005`,`008`,`012`,`017`,`021` | official MP + Common ID；Long schema 但不引 tenant/audit/is_deleted | 保留业务语义，同时承担显式 ID/Mapper mapping | Long schema、Mapper、tenant-absence tests |
 | gRPC 不应形成第二 RPC 栈 | `EVD-018`,`019`、`DEC-004` | `REQ-006`,`014`,`016` | Dubbo Triple Protobuf interop | 单 registry/port/error model；需 21 个 proto contract | Proto breaking check + interop contract test |
-| Gateway 不进入生成组件 | 用户 `DEC-003`、当前无 Gateway source | `REQ-015`,`016` | dependency/module/config negative contract；Light/Web Springdoc | 外部 edge 团队自行部署，但模板更小且边界清楚 | forbidden scan + OpenAPI generation test |
+| Yuheng 不进入生成组件 | 用户 `DEC-003`、当前无 Yuheng source | `REQ-015`,`016` | dependency/module/config negative contract；Light/Web Springdoc | 外部 edge 团队自行部署，但模板更小且边界清楚 | forbidden scan + OpenAPI generation test |
 
 ## 8. Package Structure and Code File Tree
 
@@ -675,7 +675,7 @@ Open target 内必须不存在的最终路径/symbol：
 - `spring-boot-starter-data-jpa`、`org.springframework.data.jpa`、`jakarta.persistence`、`org.flywaydb`；
 - `java.util.UUID`、`UuidV7`、`UuidV7Generator`、`VARCHAR(36)` ID、`UuidV7BucketShardingAlgorithm`；
 - `egon-cola-component-bytecode-architecture-maven-plugin`、external canonical facade artifacts；
-- `spring-cloud-starter-gateway*`、任何 `${rootArtifactId}-gateway` module、Gateway route/config/class。
+- `spring-cloud-starter-yuheng*`、任何 `${rootArtifactId}-yuheng` module、Yuheng route/config/class。
 
 Persistence replacement final paths：
 
@@ -714,7 +714,7 @@ start(er)/src/main/resources/application*.yml           # egon.cola.component.id
 | Create | `db/manual/postgresql/**` | 6 SQL + 3 README | operator-owned BIGINT schema scripts/order/verification | PostgreSQL | `REQ-010`,`011`,`021` |
 | Create | runnable config | `*ExecutorConfiguration` | one bounded `ThreadPoolTaskExecutor` with `DtpTaskDecorator` | DTP starter | `REQ-013` |
 | Create | Service/Web local facade/proto files | 8 Proto services / 21 RPC operations | only public RPC wire source and generated stubs | Dubbo/Protobuf；no external Egon facade | `REQ-012`,`014`,`018`,`021` |
-| Modify copy | Light/Web Springdoc POM/config/tests | OpenAPI v3 + Swagger UI | document existing HTTP interfaces；no Gateway ownership | Springdoc 2.8.17 | `REQ-015`,`017` |
+| Modify copy | Light/Web Springdoc POM/config/tests | OpenAPI v3 + Swagger UI | document existing HTTP interfaces；no Yuheng ownership | Springdoc 2.8.17 | `REQ-015`,`017` |
 | Create | three open `verify.groovy` | generated-project assertions | positive + negative product contract | Groovy/Maven | `REQ-018`,`019` |
 | Modify | CI/README/deploy docs | archetype arrays/tables/commands | discover and continuously verify open family | GitHub Actions/Maven | `REQ-018`,`019` |
 
@@ -722,7 +722,7 @@ start(er)/src/main/resources/application*.yml           # egon.cola.component.id
 
 §9 is Affected because三个 Maven generation interfaces are new，且 21 个现有 Java facade method 的 wire source
 改为本地 Proto v1。每个 Proto service method 都有独立 `RPC-*` ID；不得把一个 facade 家族压成“RPC CRUD”。
-Gateway 是外部基础设施且不属于本 Spec 的生成接口。Light/Web 的既有 HTTP/GraphQL route、payload、error
+Yuheng 是外部基础设施且不属于本 Spec 的生成接口。Light/Web 的既有 HTTP/GraphQL route、payload、error
 wrapper 保持 `Context-only`；Springdoc 只从这些既有接口生成 OpenAPI，并不新增业务 route。
 
 ### 9.1 Interface Inventory
@@ -830,7 +830,7 @@ generated verify. Future breaking output changes require normal artifact version
 
 Exact artifact is `top.egon:egon-cola-archetype-service-open:${egon-cola.version}`. It generates seven modules:
 `common/facade/domain/application/infrastructure/adapter/starter`。Facade 仅拥有 evaluation Proto v1/codegen，
-Service 仍不生成 HTTP business Controller package，也不引 Springdoc 或 Gateway。
+Service 仍不生成 HTTP business Controller package，也不引 Springdoc 或 Yuheng。
 
 ##### Request parameters
 
@@ -866,7 +866,7 @@ cover the open coordinate、七模块 graph、local Proto contract 与 generated
 | Independent consumer goal | Generate one organization Web community-stack project with local Proto facade and Springdoc |
 | Parameter ownership and derivation | caller owns groupId/rootArtifactId/version/package；archetype owns seven business/contract modules |
 | Direct/no-new-interface alternative | profile on old web archetype rejected by DEC-005 |
-| Caller use of result | develops/deploys generated business；external Gateway remains a separate platform concern |
+| Caller use of result | develops/deploys generated business；external Yuheng remains a separate xingyuan concern |
 | Round trips and failure points | one artifact resolution + seven-module generation + verify；Proto/module contract may fail |
 | Verdict | Add for `REQ-003` |
 
@@ -874,22 +874,22 @@ cover the open coordinate、七模块 graph、local Proto contract 与 generated
 
 Exact artifact is `top.egon:egon-cola-archetype-web-open:${egon-cola.version}`. It generates seven modules:
 `common/facade/domain/application/infrastructure/adapter/starter`。Facade 同时持有 organization provider Proto
-和 evaluation consumer Proto copy；后者必须与 Service Open descriptor/checksum 相同。没有 Gateway module。
+和 evaluation consumer Proto copy；后者必须与 Service Open descriptor/checksum 相同。没有 Yuheng module。
 
 ##### Request parameters
 
 CLI-002 parameters apply. No hidden flag selects original versus open edition；the archetype artifactId is the edition
-contract。也没有 `withGateway` 一类开关；外部 Gateway 不属于生成输出。
+contract。也没有 `withGateway` 一类开关；外部 Yuheng 不属于生成输出。
 
 ##### Success response
 
 Maven exits `0`; seven modules exist；HTTP/GraphQL business adapters retain current contracts；Springdoc、local Proto、
-forbidden Gateway/JPA/Flyway/UUID scans pass；no external services are contacted。
+forbidden Yuheng/JPA/Flyway/UUID scans pass；no external services are contacted。
 
 ##### Error responses
 
 CLI-002 errors apply，plus `LOCAL_PROTO_CONTRACT_INVALID` when Service/Web evaluation descriptors drift，and
-`FORBIDDEN_GATEWAY_DEPENDENCY` when any generated POM/source/config introduces Gateway。
+`FORBIDDEN_YUHENG_DEPENDENCY` when any generated POM/source/config introduces Yuheng。
 
 ##### Interface logic for frontend and consumers
 
@@ -899,7 +899,7 @@ persistence、forbidden dependencies and tests -> return valid project or fail�
 ##### Compatibility and verification
 
 Old web coordinate/output remains unchanged. `TEST-001`,`004`,`005`,`010`,`015`,`023`,`024` cover identity、tree、
-business compatibility、OpenAPI、negative Gateway boundary and Proto interoperability。
+business compatibility、OpenAPI、negative Yuheng boundary and Proto interoperability。
 
 所有 RPC 使用 `proto3`、package `egon.evaluation.v1` 或 `egon.organization.v1`。Dubbo group 保留现状：
 Course/Exam/Score services 分别为 `course`/`exam`/`score`，Organization 五个 services 均为
@@ -1696,7 +1696,7 @@ Invalid code/name maps to `INVALID_ARGUMENT`；duplicate code maps to `ALREADY_E
 ##### Interface logic for frontend and consumers
 
 Build actor context，validate code/name，allocate grade ID，invoke existing domain creation，persist in master data，
-commit once，and map the result to Proto。No Gateway or HTTP controller is involved in the RPC path。
+commit once，and map the result to Proto。No Yuheng or HTTP controller is involved in the RPC path。
 
 ##### Compatibility and verification
 
@@ -3005,7 +3005,7 @@ co-location rules。Cross-database lines are logical relationships without Postg
 
 N/A. Repository evidence：三个 archetype 只生成 Java/Maven/backend/deploy 文件，不生成 React/Vue/HTML application；
 DTP component README 也明确 Admin 不含 UI。本任务没有 frontend route、component、form、cache 或 accessibility
-surface。Springdoc Swagger UI 是 framework-generated API documentation，external Gateway 也是部署上下文，二者
+surface。Springdoc Swagger UI 是 framework-generated API documentation，external Yuheng 也是部署上下文，二者
 都不是本仓库要设计的 frontend application page。
 
 ## 13. Design Patterns and Architecture Principles
@@ -3027,7 +3027,7 @@ surface。Springdoc Swagger UI 是 framework-generated API documentation，exter
 - 不建立 `MigrationStrategy`/Factory；生产只有 `Manual` 一种选项，任何自动策略均违反需求。
 - 不为单一固定 community stack 建 `FrameworkProviderFactory` 或 Maven profile matrix。
 - 不建立双 Dubbo/gRPC server；Triple Protobuf 是唯一协议实现，grpc-java 仅作为互操作 test client。
-- 不把 DTP Admin、Gateway Admin 或 Nacos 管理面复制进业务工程。
+- 不把 DTP Admin、Yuheng Admin 或 Nacos 管理面复制进业务工程。
 - 不建立 local `IdGeneratorFactory`；Common `LongIdGenerator` 已是足够的 Strategy seam。
 - 不使用 Common MP Starter/TenantLine/EgonModel；官方 MP + direct PO mapping 不改变未要求的 tenant/lifecycle。
 
@@ -3072,7 +3072,7 @@ surface。Springdoc Swagger UI 是 framework-generated API documentation，exter
 | `TEST-001` | Static | archetypes parent | module list | all 3 open artifacts exactly once | XML | verifier | `REQ-001`-`003` |
 | `TEST-002` | Archetype IT | light-open | basic properties | single module generated/verify | fixture | Maven Invoker/Groovy | `REQ-001` |
 | `TEST-003` | Archetype IT | service-open | rootArtifactId | seven modules + evaluation Proto generated/verify | local fixture | same | `REQ-002`,`014` |
-| `TEST-004` | Archetype IT | web-open | rootArtifactId | seven modules + local Proto/Springdoc，no Gateway | fixture | same | `REQ-003`,`015` |
+| `TEST-004` | Archetype IT | web-open | rootArtifactId | seven modules + local Proto/Springdoc，no Yuheng | fixture | same | `REQ-003`,`015` |
 | `TEST-005` | Regression | original archetypes | path-limited diff/hash | no production/template source change | Git | `git diff -- egon-cola-archetypes/egon-cola-archetype-light egon-cola-archetypes/egon-cola-archetype-service egon-cola-archetypes/egon-cola-archetype-web` | `REQ-004` |
 | `TEST-006` | Build model | generated POMs | effective POM/tree | fixed compatible BOMs；no version leakage | local/temp Maven repo | Maven | `REQ-006`,`007`,`012` |
 | `TEST-007` | Forbidden scan | all generated files | JPA tokens/artifacts | zero hits | source/tree | rg + Groovy | `REQ-008` |
@@ -3091,7 +3091,7 @@ surface。Springdoc Swagger UI 是 framework-generated API documentation，exter
 | `TEST-020` | Config | Nacos | BOM/image/config | client/server 3.0.3 and test disabled | static config | Groovy | `REQ-007`,`019` |
 | `TEST-021` | Config | DTP | each runnable app | starter + governed executor + test disabled | ApplicationContextRunner | JUnit | `REQ-013`,`019` |
 | `TEST-022` | Dependency boundary | generated project | Egon group IDs | exact DEC-002 whitelist only | dependency tree | Maven/Groovy | `REQ-012` |
-| `TEST-023` | API/Gateway boundary | all generated projects | Gateway artifacts/routes absent；Light/Web OpenAPI generated；Service Springdoc absent | exact negative dependency scan + valid docs | MockMvc/OpenAPI fixture | Groovy/JUnit | `REQ-015`,`016` |
+| `TEST-023` | API/Yuheng boundary | all generated projects | Yuheng artifacts/routes absent；Light/Web OpenAPI generated；Service Springdoc absent | exact negative dependency scan + valid docs | MockMvc/OpenAPI fixture | Groovy/JUnit | `REQ-015`,`016` |
 | `TEST-024` | RPC contract | Service/Web local facade | `RPC-001`-`021` + standard gRPC interop | descriptor/checksum、status、deadline、provider/consumer parity | Triple provider + standard gRPC client | Dubbo/gRPC test | `REQ-014`,`017`,`021` |
 | `TEST-025` | DTP component | managed executor | submit/trace/snapshot/config change | task once、context cleanup、metric/snapshot | fake registry/no live Redis | JUnit | `REQ-013` |
 | `TEST-026` | Full reactor | archetypes parent | `clean integration-test` | six archetypes + existing facades pass | Maven local repo | `./mvnw -f egon-cola-archetypes/pom.xml` | `REQ-001`-`019`,`021` |
@@ -3104,11 +3104,11 @@ surface。Springdoc Swagger UI 是 framework-generated API documentation，exter
 
 | Concern | Required behavior/design | Verification boundary |
 | --- | --- | --- |
-| Security/secrets | Nacos/Redis/PostgreSQL/RabbitMQ credentials only via env/secret；RPC actor/roles/trace metadata validated；external Gateway trusted-proxy/auth rules remain external | static config/test；production secret manager/Gateway policy unverified |
+| Security/secrets | Nacos/Redis/PostgreSQL/RabbitMQ credentials only via env/secret；RPC actor/roles/trace metadata validated；external Yuheng trusted-proxy/auth rules remain external | static config/test；production secret manager/Yuheng policy unverified |
 | Tenancy | no universal tenant semantics are invented；Common MP/TenantLine absent；current domain authorization/sharding keys stay authoritative | source/tests；live tenant topology not claimed |
 | ID uniqueness | machine-id required 0..1023 and unique among concurrent writers；reliable NTP required；no IP/MAC/random derivation or UUID fallback | component/config tests；multi-JVM allocation and severe rollback+restart remain operational proof gaps |
 | Correctness | JPA-derived query semantics become explicit Mapper SQL；composite keys/order/page/affected-row rules are tested | H2/contract tests；production plans pending |
-| Performance | MyBatis removes ORM session/lazy behavior；external Gateway hop is outside generated process；DTP executor is bounded；Long indexes replace wider UUID strings | benchmarks/query plans/load tests not part of Spec |
+| Performance | MyBatis removes ORM session/lazy behavior；external Yuheng hop is outside generated process；DTP executor is bounded；Long indexes replace wider UUID strings | benchmarks/query plans/load tests not part of Spec |
 | Availability | missing schema/config/registry fails closed；test profile does not require external systems；no fallback to auto DDL or unsharded DataSource | tests/static；live failover pending |
 | Observability | existing trace/logback/actuator/prometheus retained；trace fallback uses decimal Common ID；DTP/RPC dimensions remain low-cardinality and never tag Snowflake IDs | static/component；dashboards/alerts runtime gap |
 | Operability | manual SQL target/order/checksum/verification/restore owner explicit；Nacos 3.0.3 image and ports documented | runbook review；DB rehearsal required later |
@@ -3125,7 +3125,7 @@ surface。Springdoc Swagger UI 是 framework-generated API documentation，exter
 | `spring.sql.init.mode` | all runnable，fixed `never` | verifier rejects profile override or initializer bean | only explicit `src/test` helper executes SQL |
 | Nacos discovery/config/registry | dev/prod enabled，test disabled/stubbed | client/server 3.0.3 major match；credentials via secret/env | generated verify opens no Nacos socket |
 | DTP/Redis | dev/prod enabled and explicitly configured，test disabled or fake registry | one named bounded business executor per runnable app；no DTP Admin module | missing runtime Redis follows current starter fail-fast；test opens no Redis socket |
-| Springdoc | Light/Web enabled；Service absent | `/v3/api-docs` and Swagger UI generated from existing controllers | MockMvc/OpenAPI test；no external Gateway required |
+| Springdoc | Light/Web enabled；Service absent | `/v3/api-docs` and Swagger UI generated from existing controllers | MockMvc/OpenAPI test；no external Yuheng required |
 | Spring Cloud Gateway | absent from every generated config/profile | any property prefix、route、dependency or module is a verifier failure | external deployment is validated by its owner only |
 
 ## 16. Compatibility, Migration, Rollout, and Rollback
@@ -3133,14 +3133,14 @@ surface。Springdoc Swagger UI 是 framework-generated API documentation，exter
 ### Compatibility
 
 - New archetype coordinates are additive. Existing three coordinates、generated projects、facade artifacts、SQL checksum、
-  components/platforms and consumers remain unchanged.
+  components/xingyuan and consumers remain unchanged.
 - Generated `-open` projects are new products；they do not promise source/binary/schema/wire compatibility with a project
   generated from an original archetype。Within open edition，business use cases and HTTP JSON ID-as-string shape are
   preserved，but values are decimal Snowflake strings；Proto v1 intentionally replaces Java facade serialization。
 - Java 21/Boot 3.5.16/Cloud 2025.0.3/SCA 2025.0.0.0/Dubbo 3.3.6/ShardingSphere 5.5.3 are the initial frozen matrix；
   dependency upgrades require rerunning all six archetypes.
 - Open v1 Proto follows additive-field compatibility；breaking field removal/renumber/type changes require a new package/
-  service version。Gateway remains external and is not part of generated-project compatibility guarantees。
+  service version。Yuheng remains external and is not part of generated-project compatibility guarantees。
 
 ### Migration/adoption
 
@@ -3158,7 +3158,7 @@ After this Spec reaches `Accepted`, a separate implementation Plan must derive f
 AGENTS rules each completed Step receives one commit. Publish Common/DTP 5.3.3 (or selected compatible version) before
 running open generated-project IT in a clean/temp Maven repository. Publish three archetypes together only after the full
 archetypes reactor、21-RPC descriptor/interop、Long schema/routing、OpenAPI and CI generation matrix pass。This paragraph
-defines gates，not implementation order；external Gateway deployment is not a publish prerequisite for artifacts。
+defines gates，not implementation order；external Yuheng deployment is not a publish prerequisite for artifacts。
 
 ### Rollback
 
@@ -3178,8 +3178,8 @@ project/DBA and cannot be undone by removing the archetype artifact.
 | E — Common MP Starter adoption | Long tenant/audit/logical-delete model | maximal Common reuse | introduces unrequested tenant/audit/schema semantics | poor for current domain | Rejected by `DEC-001` |
 | F — strict Egon whitelist/local facade/ArchUnit | local facade modules + open tests | standalone community project except approved Common/DTP | Service/Web become seven modules | strong literal fit | Selected by `DEC-002` |
 | G — keep external facade/plugin artifacts | no extra module | closest copy | community edition still depends on unapproved Egon artifacts | conflicts with user confirmation | Rejected |
-| H — generated Gateway module | second deployable app | edge template convenience | user says component not needed；larger ops/security scope | not requested | Rejected by `DEC-003` |
-| I — external Gateway + Springdoc | no generated edge runtime；document existing APIs | smallest boundary，external platform chooses routes | no bundled edge application | strongest user fit | Selected by `DEC-003` |
+| H — generated Yuheng module | second deployable app | edge template convenience | user says component not needed；larger ops/security scope | not requested | Rejected by `DEC-003` |
+| I — external Yuheng + Springdoc | no generated edge runtime；document existing APIs | smallest boundary，external xingyuan chooses routes | no bundled edge application | strongest user fit | Selected by `DEC-003` |
 | J — Triple + Protobuf + gRPC interop | 21 Proto operations and one RPC stack | meets all named protocols with one port/registry | intentional wire migration/codegen | strong | Selected by `DEC-004` |
 | K — Dubbo + native grpc-java dual stack | two providers/clients/ports | explicit separate stacks | duplicated contracts/errors/observability | over-engineered | Rejected |
 
@@ -3189,14 +3189,14 @@ project/DBA and cannot be undone by removing the archetype artifact.
 | --- | --- | --- | --- | --- | --- |
 | `RISK-001` | Snowflake machine-id 重复或严重时钟回拨造成冲突/停写 | Medium | Critical | deployment inventory、NTP、required config、typed fail-fast、no fallback；runtime operator | Mitigated，live proof pending |
 | `RISK-002` | 生成项目误引 external Egon facade/plugin/Common MP | Medium | High | exact `top.egon` allowlist + dependency/source scan + ArchUnit | Mitigated |
-| `RISK-003` | 外部 Gateway 与生成 API 的 auth/header/route 策略不匹配 | Medium | High | Springdoc contract、external runbook；明确不由 archetype伪造 route | External integration gap |
+| `RISK-003` | 外部 Yuheng 与生成 API 的 auth/header/route 策略不匹配 | Medium | High | Springdoc contract、external runbook；明确不由 archetype伪造 route | External integration gap |
 | `RISK-004` | Service/Web duplicated evaluation Proto source发生 wire drift | Medium | High | byte/checksum + descriptor parity + breaking check + interop tests | Mitigated |
 | `RISK-005` | SCA 2025.0 Nacos config refresh 的社区已知问题 | Medium | Medium/High | 锁 patch、bootstrap path contract、集成测试；不声称 live refresh | Open |
 | `RISK-006` | 手工 SQL 被遗漏或重复执行 | Medium | High | runbook、checksum ledger、verification、deployment gate；无 app fallback | Open |
 | `RISK-007` | MyBatis Mapper query与 JPA derived semantics 漂移 | Medium | High | method-by-method query inventory、same fixtures/order/page tests | Open |
 | `RISK-008` | DTP default enabled 导致无 Redis 环境 startup failure | High if unconfigured | Medium | test disable；dev/prod explicit config/health；document fail-fast | Open |
 | `RISK-009` | 1241-file family长期漂移 | High | Medium | copy manifest、paired architecture tests、full six-archetype reactor | Open |
-| `RISK-010` | Static/H2 tests不能证明 PostgreSQL plans/locks、Nacos/Dubbo/live Gateway topology | High | High | 明确 proof boundary；release前安排 PostgreSQL/Nacos/Triple rehearsal，Gateway由外部团队验收 | Open |
+| `RISK-010` | Static/H2 tests不能证明 PostgreSQL plans/locks、Nacos/Dubbo/live Yuheng topology | High | High | 明确 proof boundary；release前安排 PostgreSQL/Nacos/Triple rehearsal，Gateway由外部团队验收 | Open |
 | `RISK-011` | HTTP decimal string 与 Proto int64 mapping发生精度/overflow错误 | Medium | High | positive-long boundary validator、OpenAPI regex、round-trip/property tests | Mitigated |
 | `RISK-012` | 手工 fixed BIGINT seed 与运行时 Snowflake冲突 | Low | High | reserve IDs `1/2` at fixed epoch semantics，static duplicate/range checks，post-epoch Common generator only | Mitigated |
 
@@ -3207,7 +3207,7 @@ project/DBA and cannot be undone by removing the archetype artifact.
 | `REQ-001` | `UC-001`,`002` | Light Open module/§7-§9,§14,§16 | original Light unchanged | `CLI-001` | `TEST-001`,`002`,`026` | Light generation + verify |
 | `REQ-002` | `UC-001`,`002` | Service Open module/§7-§9,§14,§16 | original Service unchanged | `CLI-002` | `TEST-001`,`003`,`026` | Service generation + verify |
 | `REQ-003` | `UC-001`,`002` | Web Open module/§7-§9,§14,§16 | original Web unchanged | `CLI-003` | `TEST-001`,`004`,`026` | Web generation + verify |
-| `REQ-004` | `UC-001` | scope/§8,§16 | originals/components/platforms unchanged | N/A | `TEST-005`,`027` | path diff zero |
+| `REQ-004` | `UC-001` | scope/§8,§16 | originals/components/xingyuan unchanged | N/A | `TEST-005`,`027` | path diff zero |
 | `REQ-005` | all runtime UCs | architecture/§7,§8,§13 | current business behavior context | existing domain/ports | `TEST-010`,`014`,`015` | dependency rules |
 | `REQ-006` | `UC-001`,`002` | POM/§6-§8,§16 | no Boot4 | CLI contracts | `TEST-006`,`026` | effective POM |
 | `REQ-007` | `UC-004` | config/deploy/§7,§8,§15 | test live registry excluded | Nacos config | `TEST-020` | 3.0.3 aligned |
@@ -3218,7 +3218,7 @@ project/DBA and cannot be undone by removing the archetype artifact.
 | `REQ-012` | `UC-002`,`004` | deps/§6-§8,§15 | Components implementation unchanged | exact Common/DTP allowlist | `TEST-006`,`022`,`028`-`030` | exact tree and ID strategy |
 | `REQ-013` | `UC-007` | DTP/§7,§8,§13-§16 | Admin external | executor/Redis state | `TEST-021`,`025` | governed executor/test isolation |
 | `REQ-014` | `UC-006` | RPC/§7-§10,§13-§16 | existing use cases preserved | `RPC-001`-`021`，8 Proto services | `TEST-024`,`030` | descriptor + Triple/gRPC interop |
-| `REQ-015` | `UC-005` | API docs/external Gateway/§6-§9,§14-§16 | external Gateway runtime context only | existing HTTP + Springdoc；no generated route | `TEST-004`,`023` | OpenAPI valid + Gateway absent |
+| `REQ-015` | `UC-005` | API docs/external Yuheng/§6-§9,§14-§16 | external Yuheng runtime context only | existing HTTP + Springdoc；no generated route | `TEST-004`,`023` | OpenAPI valid + Yuheng absent |
 | `REQ-016` | all | necessity/§6,§7,§17 | speculative frameworks rejected | dependency classification | `TEST-006`,`022` | no unused must-deps |
 | `REQ-017` | `UC-004`-`006` | compatibility/§7,§9,§10,§14,§16 | current HTTP/domain/MQ | existing contracts/PO conversion | `TEST-009`,`011`,`014`,`015`,`024` | same observable results |
 | `REQ-018` | `UC-001`,`002` | docs/CI/discovery/§8,§14,§16 | original docs retained with additive entries | CLI + catalog | `TEST-001`-`006`,`026`,`027` | published/discoverable family |
@@ -3230,7 +3230,7 @@ project/DBA and cannot be undone by removing the archetype artifact.
 
 ### 20.1 Original-request fidelity
 
-三套 `-open`、内部版延期、Boot/Cloud/Alibaba/Gateway/Dubbo/Nacos/gRPC/Protobuf/MyBatis-Plus、Common/DTP、
+三套 `-open`、内部版延期、Boot/Cloud/Alibaba/Yuheng/Dubbo/Nacos/gRPC/Protobuf/MyBatis-Plus、Common/DTP、
 ShardingSphere、禁止 JPA/Flyway、resources 手工 SQL、删除 UUID/Common Snowflake ID、Springdoc 和现架构保留
 均已逐项映射到 `REQ-001`-`021`。
 “等等”没有被解释为无限依赖清单；每个依赖必须有真实消费者与测试。
@@ -3246,8 +3246,8 @@ Service/Web 目标七模块是 `DEC-002` 的明确结果。官方资料只用于
 
 Change Surface/Header 均指向 `§7,§8,§9,§10,§11,§13,§14,§15,§16,§17,§18`；三张 Mermaid 图、
 use cases、failure matrix、file tree、21 个 RPC、18 个表族、manual SQL、tests 和 traceability 使用同一
-Long ID/Proto/Gateway-external 边界。HTTP 仍用 decimal String，Proto 用 int64，PO/SQL 用 Long/BIGINT；
-Gateway negative contract 与 Springdoc positive contract 没有混写成 generated edge runtime。
+Long ID/Proto/Yuheng-external 边界。HTTP 仍用 decimal String，Proto 用 int64，PO/SQL 用 Long/BIGINT；
+Yuheng negative contract 与 Springdoc positive contract 没有混写成 generated edge runtime。
 
 ### 20.4 Relationship and effective-design review
 

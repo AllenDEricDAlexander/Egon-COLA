@@ -1,27 +1,27 @@
-# DDC Admin Web 摘出实施计划
+# Tianshu Admin Web 摘出实施计划
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 把 DDC 管理控制台从 admin 后端模块摘出，建成独立的 `egon-cola-tianshu-admin-web` 前端工程（React + antd + Vite，对齐 gateway-admin-web 范式），并清理 admin 模块中的旧静态资源。
+**Goal:** 把 Tianshu 管理控制台从 admin 后端模块摘出，建成独立的 `egon-cola-tianshu-admin-web` 前端工程（React + antd + Vite，对齐 yuheng-admin-web 范式），并清理 admin 模块中的旧静态资源。
 
-**Architecture:** 新建纯 Node 前端工程（不进 Maven reactor），覆盖 DDC 全部管理 API（服务注册/实例、配置管理+发布、应用、命名空间、发布任务、实例、缓存）。前端经 `static-server.mjs` 同源托管并以 `/api` 反代 admin（JWT Bearer 认证不变）。建成后删除 admin 的 `static/ddc-admin/` 与 `src/test/js/`，移除 `/ddc-admin/**` permitAll。
+**Architecture:** 新建纯 Node 前端工程（不进 Maven reactor），覆盖 Tianshu 全部管理 API（服务注册/实例、配置管理+发布、应用、命名空间、发布任务、实例、缓存）。前端经 `static-server.mjs` 同源托管并以 `/api` 反代 admin（JWT Bearer 认证不变）。建成后删除 admin 的 `static/tianshu-admin/` 与 `src/test/js/`，移除 `/tianshu-admin/**` permitAll。
 
-**Tech Stack:** React 19 + antd 6 + Vite 8 + TypeScript 6（版本号对齐 gateway-admin-web 的 package.json）；Vitest + jsdom；Playwright e2e；node:22-alpine + static-server.mjs。
+**Tech Stack:** React 19 + antd 6 + Vite 8 + TypeScript 6（版本号对齐 yuheng-admin-web 的 package.json）；Vitest + jsdom；Playwright e2e；node:22-alpine + static-server.mjs。
 
 ## Global Constraints
 
 - 模块目录：`egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/`（下称 `<web>/`）。
 - 纯 Node 工程：无 pom.xml，不进 Maven reactor，不参与 Maven 构建。
 - `package.json` 的 `name` 为 `@egon-cola/tianshu-admin-web`，`version` 为 `5.3.2`。
-- 依赖版本一律照抄 gateway-admin-web 的 package.json：`react@19.2.8`、`react-dom@19.2.8`、`antd@6.5.2`、`@ant-design/icons@6.3.2`、`react-router-dom@7.18.1`、`@tanstack/react-query@5.101.4`、`vite@8.1.5`、`vitest@4.1.10`、`typescript@6.0.3`、`@vitejs/plugin-react@6.0.4`、`eslint@10.8.0`、`typescript-eslint@8.65.0`、`@playwright/test@1.62.0`、`@testing-library/react@16.3.2`、`@testing-library/jest-dom@7.0.0`、`jsdom@29.1.1`。
-- 认证：Bearer token 存 `sessionStorage`，key 固定 `egon.ddc.admin.token`；HTTP 401 一律清 token 并回登录页，提示"登录已过期，请重新粘贴 Access Token"。
+- 依赖版本一律照抄 yuheng-admin-web 的 package.json：`react@19.2.8`、`react-dom@19.2.8`、`antd@6.5.2`、`@ant-design/icons@6.3.2`、`react-router-dom@7.18.1`、`@tanstack/react-query@5.101.4`、`vite@8.1.5`、`vitest@4.1.10`、`typescript@6.0.3`、`@vitejs/plugin-react@6.0.4`、`eslint@10.8.0`、`typescript-eslint@8.65.0`、`@playwright/test@1.62.0`、`@testing-library/react@16.3.2`、`@testing-library/jest-dom@7.0.0`、`jsdom@29.1.1`。
+- 认证：Bearer token 存 `sessionStorage`，key 固定 `egon.tianshu.admin.token`；HTTP 401 一律清 token 并回登录页，提示"登录已过期，请重新粘贴 Access Token"。
 - 后端契约：所有响应为 `ResultRecord`：`{ success: boolean, code: number, status: string, message: string, data: T, traceId: string, timestamp: number }`；`!response.ok || payload.success === false` 视为错误，错误文案取 `payload.message || String(payload.code)`；API 字段一律用 camelCase（Jackson 默认）。
 - UI 文案用中文，页面标题/菜单沿用旧 UI 用词：服务注册、配置管理、应用、命名空间、发布任务、实例、缓存。
-- 创建应用/命名空间时沿用旧行为：应用 `{ appCode, appName: appCode, owner: 'local-admin', description: 'Created by DDC Admin Web', enabled: true }`；命名空间 `{ appCode, env, namespace, description: 'Created by DDC Admin Web', enabled: true }`。
+- 创建应用/命名空间时沿用旧行为：应用 `{ appCode, appName: appCode, owner: 'local-admin', description: 'Created by Tianshu Admin Web', enabled: true }`；命名空间 `{ appCode, env, namespace, description: 'Created by Tianshu Admin Web', enabled: true }`。
 - 发布配置请求体：`{ changeId: uuidV7(), configValue, expectedVersion: currentVersion, timeoutMs: 30000 }`。
-- 部署环境变量前缀 `DDC_ADMIN_*`（`DDC_ADMIN_API_BASE_URL`、`DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT`、`DDC_ADMIN_PROXY`）；反代失败错误码 `DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE`。
+- 部署环境变量前缀 `TIANSHU_ADMIN_*`（`TIANSHU_ADMIN_API_BASE_URL`、`TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT`、`TIANSHU_ADMIN_PROXY`）；反代失败错误码 `TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE`。
 - e2e 仅在有真实 admin 可达时运行（`npm run e2e`），不作 CI 必过项。
-- 参考实现：gateway-admin-web（`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/`，下称 `<gateway-web>/`）是本工程的结构模板；旧 webui（Task 12 之前仍存在于 admin 的 `static/ddc-admin/`）是功能行为模板。
+- 参考实现：yuheng-admin-web（`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/`，下称 `<yuheng-web>/`）是本工程的结构模板；旧 webui（Task 12 之前仍存在于 admin 的 `static/tianshu-admin/`）是功能行为模板。
 
 ---
 
@@ -44,10 +44,10 @@
 - Consumes: 无（首个任务）。
 - Produces: 可运行的 Vite + vitest 工程骨架；`npm run dev / typecheck / build / test / lint` 脚本齐备。
 
-- [ ] **Step 1: 复制 gateway-web 骨架为起点**
+- [ ] **Step 1: 复制 yuheng-web 骨架为起点**
 
 ```bash
-cp -R <gateway-web> <web>
+cp -R <yuheng-web> <web>
 cd <web>
 rm -rf node_modules dist .git* e2e playwright.config.ts static-server.mjs Dockerfile src features src/api src/auth src/layouts src/hooks src/components src/app 2>/dev/null
 mkdir -p src/test
@@ -99,7 +99,7 @@ mkdir -p src/test
 }
 ```
 
-- [ ] **Step 3: 改写 vite.config.ts（代理前缀改 DDC）**
+- [ ] **Step 3: 改写 vite.config.ts（代理前缀改 Tianshu）**
 
 ```ts
 import { defineConfig } from 'vitest/config'
@@ -110,7 +110,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18080',
+        target: process.env.TIANSHU_ADMIN_PROXY ?? 'http://127.0.0.1:18080',
         changeOrigin: true,
       },
     },
@@ -118,7 +118,7 @@ export default defineConfig({
   preview: {
     proxy: {
       '/api': {
-        target: process.env.DDC_ADMIN_PROXY ?? 'http://127.0.0.1:18080',
+        target: process.env.TIANSHU_ADMIN_PROXY ?? 'http://127.0.0.1:18080',
         changeOrigin: true,
       },
     },
@@ -146,7 +146,7 @@ export default defineConfig({
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DDC Admin</title>
+    <title>Tianshu Admin</title>
   </head>
   <body>
     <div id="root"></div>
@@ -180,7 +180,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
 ```tsx
 export default function App() {
-  return <div data-testid="app-root">DDC Admin</div>
+  return <div data-testid="app-root">Tianshu Admin</div>
 }
 ```
 
@@ -194,7 +194,7 @@ import App from './App'
 describe('App', () => {
   it('renders the application shell', () => {
     render(<App />)
-    expect(screen.getByTestId('app-root')).toHaveTextContent('DDC Admin')
+    expect(screen.getByTestId('app-root')).toHaveTextContent('Tianshu Admin')
   })
 })
 ```
@@ -205,7 +205,7 @@ describe('App', () => {
 import '@testing-library/jest-dom/vitest'
 ```
 
-`src/styles/index.css`（对齐 gateway-web 的版本，必要时保留 minimal reset，antd 负责组件样式）。
+`src/styles/index.css`（对齐 yuheng-web 的版本，必要时保留 minimal reset，antd 负责组件样式）。
 
 - [ ] **Step 6: 安装依赖并验证**
 
@@ -224,7 +224,7 @@ Expected: typecheck/lint/build 全部通过；vitest 1 条用例 PASS；`dist/` 
 
 ```bash
 git add <web>
-git commit -m "feat(ddc-admin-web): scaffold vite react antd project"
+git commit -m "feat(tianshu-admin-web): scaffold vite react antd project"
 ```
 
 ---
@@ -242,7 +242,7 @@ git commit -m "feat(ddc-admin-web): scaffold vite react antd project"
   - `export class DdcApiError extends Error { constructor(readonly status: number, readonly code: string, message: string, readonly traceId?: string) }`，带 `category: 'UNAUTHENTICATED' | 'FORBIDDEN' | 'NOT_FOUND' | 'CONFLICT' | 'VALIDATION' | 'SERVER' | 'NETWORK' | 'UNKNOWN'`（status 0 为 NETWORK）。
   - `export const setDdcTokenProvider(provider: () => string): void` — 设置取 token 的函数。
   - `export const setDdcUnauthorizedHandler(handler: () => void): void` — 401 时回调（Task 3 注册登出）。
-  - `export async function ddcApi<T>(path: string, options?: { method?: string; body?: unknown }): Promise<T>` — 返回 `ResultRecord<T>['data']`；`GET` 不带 body；body 非空时自动设 `Content-Type: application/json` 并 `JSON.stringify`；非 2xx 或 `success === false` 抛 `DdcApiError`（message 取 `payload.message || String(payload.code)`）；401 调 unauthorized handler 后抛 `DdcApiError`（message "登录已过期，请重新粘贴 Access Token"）；网络失败（fetch reject）抛 `DdcApiError`（status 0, code 'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE'）。
+  - `export async function ddcApi<T>(path: string, options?: { method?: string; body?: unknown }): Promise<T>` — 返回 `ResultRecord<T>['data']`；`GET` 不带 body；body 非空时自动设 `Content-Type: application/json` 并 `JSON.stringify`；非 2xx 或 `success === false` 抛 `DdcApiError`（message 取 `payload.message || String(payload.code)`）；401 调 unauthorized handler 后抛 `DdcApiError`（message "登录已过期，请重新粘贴 Access Token"）；网络失败（fetch reject）抛 `DdcApiError`（status 0, code 'TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE'）。
   - `src/api/types.ts`：`export type ResultRecord<T> = { success: boolean; code: number; status: string; message: string; data: T; traceId: string; timestamp: number }`，及后续任务复用的 DTO 类型（Task 6-9 各自的实体类型也放这里，见各任务）。
 
 - [ ] **Step 1: 写失败的测试 `src/api/client.test.ts`**
@@ -269,15 +269,15 @@ describe('ddcApi', () => {
 
   it('sends bearer token and returns data', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(record({ list: [1] })))
-    await expect(ddcApi<{ list: number[] }>('/api/v1/ddc/apps')).resolves.toEqual({ list: [1] })
+    await expect(ddcApi<{ list: number[] }>('/api/v1/tianshu/apps')).resolves.toEqual({ list: [1] })
     const [url, init] = vi.mocked(fetch).mock.calls[0]
-    expect(url).toBe('/api/v1/ddc/apps')
+    expect(url).toBe('/api/v1/tianshu/apps')
     expect((init!.headers as Headers).get('Authorization')).toBe('Bearer token-1')
   })
 
   it('stringifies JSON bodies with content type', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse(record(null)))
-    await ddcApi('/api/v1/ddc/configs', { method: 'POST', body: { configKey: 'a' } })
+    await ddcApi('/api/v1/tianshu/configs', { method: 'POST', body: { configKey: 'a' } })
     const [, init] = vi.mocked(fetch).mock.calls[0]
     expect((init!.headers as Headers).get('Content-Type')).toBe('application/json')
     expect(init!.body).toBe(JSON.stringify({ configKey: 'a' }))
@@ -285,7 +285,7 @@ describe('ddcApi', () => {
 
   it('throws DdcApiError with backend message on success=false', async () => {
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ success: false, code: 500, status: 'FAIL', message: '配置格式无效', data: null, traceId: 't', timestamp: 1 }, 200))
-    const error = await ddcApi('/api/v1/ddc/apps').catch((e) => e as DdcApiError)
+    const error = await ddcApi('/api/v1/tianshu/apps').catch((e) => e as DdcApiError)
     expect(error).toBeInstanceOf(DdcApiError)
     expect(error.message).toBe('配置格式无效')
     expect(error.category).toBe('SERVER')
@@ -295,7 +295,7 @@ describe('ddcApi', () => {
     const handler = vi.fn()
     setDdcUnauthorizedHandler(handler)
     vi.mocked(fetch).mockResolvedValue(jsonResponse({ success: false, code: 401, status: 'UNAUTHORIZED', message: 'jwt expired', data: null, traceId: 't', timestamp: 1 }, 401))
-    const error = await ddcApi('/api/v1/ddc/apps').catch((e) => e as DdcApiError)
+    const error = await ddcApi('/api/v1/tianshu/apps').catch((e) => e as DdcApiError)
     expect(handler).toHaveBeenCalledTimes(1)
     expect(error.message).toBe('登录已过期，请重新粘贴 Access Token')
     expect(error.category).toBe('UNAUTHENTICATED')
@@ -303,10 +303,10 @@ describe('ddcApi', () => {
 
   it('maps network failures to NETWORK category', async () => {
     vi.mocked(fetch).mockRejectedValue(new TypeError('fetch failed'))
-    const error = await ddcApi('/api/v1/ddc/apps').catch((e) => e as DdcApiError)
+    const error = await ddcApi('/api/v1/tianshu/apps').catch((e) => e as DdcApiError)
     expect(error.status).toBe(0)
     expect(error.category).toBe('NETWORK')
-    expect(error.code).toBe('DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE')
+    expect(error.code).toBe('TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE')
   })
 })
 ```
@@ -380,7 +380,7 @@ export async function ddcApi<T>(path: string, options: DdcRequestOptions = {}): 
   try {
     response = await fetch(path, { method: options.method ?? 'GET', headers, body })
   } catch {
-    throw new DdcApiError(0, 'DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE', '无法连接 DDC 管理端')
+    throw new DdcApiError(0, 'TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE', '无法连接 Tianshu 管理端')
   }
   const payload = (await response.json().catch(() => ({}))) as Partial<ResultRecord<unknown>>
   if (response.status === 401) {
@@ -408,7 +408,7 @@ Expected: PASS（5 条）。
 
 ```bash
 git add <web>/src/api
-git commit -m "feat(ddc-admin-web): add ddc api client with ResultRecord contract"
+git commit -m "feat(tianshu-admin-web): add tianshu api client with ResultRecord contract"
 ```
 
 ---
@@ -425,10 +425,10 @@ git commit -m "feat(ddc-admin-web): add ddc api client with ResultRecord contrac
 **Interfaces:**
 - Consumes: Task 2 的 `ddcApi`、`setDdcTokenProvider`、`setDdcUnauthorizedHandler`。
 - Produces:
-  - `tokenStore`：`export const TOKEN_KEY = 'egon.ddc.admin.token'`；`export function getStoredToken(): string`；`export function saveToken(token: string): void`；`export function clearToken(): void`（sessionStorage）。
+  - `tokenStore`：`export const TOKEN_KEY = 'egon.tianshu.admin.token'`；`export function getStoredToken(): string`；`export function saveToken(token: string): void`；`export function clearToken(): void`（sessionStorage）。
   - `AuthProvider`（Props: `{ children: ReactNode }`）：context 值 `{ token: string; setToken: (token: string) => void; logout: () => void }`；挂载时 `setDdcTokenProvider(getStoredToken)`、`setDdcUnauthorizedHandler(logout)`；`setToken` 同时写 sessionStorage。
   - `useAuth(): { token: string; setToken: (t: string) => void; logout: () => void }`。
-  - `LoginPage`：antd 卡片 + TextArea（placeholder "粘贴 admin.token 内容"）+ 按钮"登录并加载"；提交时 `await ddcApi('/api/v1/ddc/apps')` 验证 token（沿用旧 UI 的探活路径），成功 `setToken`，失败 `message.error`。
+  - `LoginPage`：antd 卡片 + TextArea（placeholder "粘贴 admin.token 内容"）+ 按钮"登录并加载"；提交时 `await ddcApi('/api/v1/tianshu/apps')` 验证 token（沿用旧 UI 的探活路径），成功 `setToken`，失败 `message.error`。
   - `RequireAuth`（Props `{ children: ReactNode }`）：`token` 为空时渲染 `LoginPage`，否则渲染 children。
 
 - [ ] **Step 1: 写失败的测试 `tokenStore.test.ts`**
@@ -466,7 +466,7 @@ Expected: FAIL（模块不存在）。
 `tokenStore.ts`：
 
 ```ts
-export const TOKEN_KEY = 'egon.ddc.admin.token'
+export const TOKEN_KEY = 'egon.tianshu.admin.token'
 
 export const getStoredToken = (): string => sessionStorage.getItem(TOKEN_KEY) ?? ''
 
@@ -537,7 +537,7 @@ export default function LoginPage() {
   const submit = async () => {
     setLoading(true)
     try {
-      await ddcApi('/api/v1/ddc/apps')
+      await ddcApi('/api/v1/tianshu/apps')
       setToken(accessToken.trim())
     } catch (error) {
       message.error(error instanceof Error ? error.message : String(error))
@@ -549,7 +549,7 @@ export default function LoginPage() {
   return (
     <div style={{ maxWidth: 480, margin: '96px auto', padding: '0 16px' }}>
       <Card>
-        <Typography.Title level={4}>连接本机 DDC 管理端</Typography.Title>
+        <Typography.Title level={4}>连接本机 Tianshu 管理端</Typography.Title>
         <Typography.Paragraph type="secondary">
           Token 仅保存在当前浏览器会话，不会写入 URL 或服务端。
         </Typography.Paragraph>
@@ -599,7 +599,7 @@ Expected: PASS（2 条）。随后 `npm run typecheck` 通过。
 
 ```bash
 git add <web>/src/auth
-git commit -m "feat(ddc-admin-web): add token store, auth context and login page"
+git commit -m "feat(tianshu-admin-web): add token store, auth context and login page"
 ```
 
 ---
@@ -656,7 +656,7 @@ export default function AdminLayout() {
     <Layout style={{ minHeight: '100vh' }}>
       <Layout.Sider theme="light" width={200}>
         <div style={{ padding: 16 }}>
-          <Typography.Text strong>DDC Admin</Typography.Text>
+          <Typography.Text strong>Tianshu Admin</Typography.Text>
         </div>
         <Menu
           mode="inline"
@@ -668,7 +668,7 @@ export default function AdminLayout() {
       <Layout>
         <Layout.Header style={{ background: '#fff', display: 'flex', justifyContent: 'flex-end', alignItems: 'center' }}>
           <Space>
-            <Typography.Text>DDC 已连接</Typography.Text>
+            <Typography.Text>Tianshu 已连接</Typography.Text>
             <Button onClick={logout}>退出</Button>
           </Space>
         </Layout.Header>
@@ -736,7 +736,7 @@ describe('App', () => {
   it('renders the login page when no token is stored', () => {
     sessionStorage.clear()
     render(<App />)
-    expect(screen.getByText('连接本机 DDC 管理端')).toBeInTheDocument()
+    expect(screen.getByText('连接本机 Tianshu 管理端')).toBeInTheDocument()
   })
 })
 ```
@@ -750,7 +750,7 @@ Expected: PASS（App.test 1 条 + tokenStore 2 条 + client 5 条），typecheck
 
 ```bash
 git add <web>/src
-git commit -m "feat(ddc-admin-web): add admin layout, menu and routes"
+git commit -m "feat(tianshu-admin-web): add admin layout, menu and routes"
 ```
 
 ---
@@ -767,12 +767,12 @@ git commit -m "feat(ddc-admin-web): add admin layout, menu and routes"
 - Consumes: 无。
 - Produces:
   - `export function uuidV7(timestamp?: number, randomBytes?: Uint8Array): string`（行为与旧 `uuid.mjs` 完全一致）。
-  - `export type ConfigEditor = { format: 'JSON' | 'YAML' | 'TOML' | 'TXT'; content: string; adapter: 'PLAIN' | 'GATEWAY_INLINE_RULE'; originalValue: string; gateway: { activation: unknown; snapshot: unknown } | null; notice: string }`。
+  - `export type ConfigEditor = { format: 'JSON' | 'YAML' | 'TOML' | 'TXT'; content: string; adapter: 'PLAIN' | 'YUHENG_INLINE_RULE'; originalValue: string; yuheng: { activation: unknown; snapshot: unknown } | null; notice: string }`。
   - `export function detectConfigFormat(config: { configKey?: string; configValue?: string; valueType?: string }): 'JSON' | 'YAML' | 'TOML' | 'TXT'`。
   - `export function prepareConfigEditor(config?: { configKey?: string; configValue?: string; valueType?: string }): ConfigEditor`。
-  - `export async function serializeConfigEditor(editor: ConfigEditor, content: string): Promise<string>`（JSON 时校验+缩进保存；GATEWAY_INLINE_RULE 时重建校验和与 activation，逻辑与旧 `config-format.mjs` 完全一致）。
+  - `export async function serializeConfigEditor(editor: ConfigEditor, content: string): Promise<string>`（JSON 时校验+缩进保存；YUHENG_INLINE_RULE 时重建校验和与 activation，逻辑与旧 `config-format.mjs` 完全一致）。
 
-- [ ] **Step 1: 写失败的测试（迁移自 `admin/src/test/js/ddc-admin/uuid.test.mjs` 与 `config-format.test.mjs`）**
+- [ ] **Step 1: 写失败的测试（迁移自 `admin/src/test/js/tianshu-admin/uuid.test.mjs` 与 `config-format.test.mjs`）**
 
 `uuid.test.ts`：
 
@@ -807,7 +807,7 @@ const gatewayConfig = () => {
     content: { env: 'dev', routes: [] },
   }
   return {
-    configKey: 'gateway.rules.active',
+    configKey: 'yuheng.rules.active',
     valueType: 'JSON',
     configValue: JSON.stringify({
       activationSchemaVersion: 'v1',
@@ -850,16 +850,16 @@ describe('prepareConfigEditor', () => {
     expect(editor.content).toMatch(/"metadata": \{/)
   })
 
-  it('exposes only Gateway inline rule content', () => {
+  it('exposes only Yuheng inline rule content', () => {
     const editor = prepareConfigEditor(gatewayConfig())
-    expect(editor.adapter).toBe('GATEWAY_INLINE_RULE')
+    expect(editor.adapter).toBe('YUHENG_INLINE_RULE')
     expect(editor.format).toBe('JSON')
     expect(editor.content).toBe('{\n  "env": "dev",\n  "routes": []\n}')
-    expect(editor.notice).toMatch(/Gateway/)
+    expect(editor.notice).toMatch(/Yuheng/)
     expect(editor.content).not.toMatch(/artifactSha256|generatedAt|releaseId/)
   })
 
-  it('does not unwrap an inconsistent Gateway-like object', () => {
+  it('does not unwrap an inconsistent Yuheng-like object', () => {
     const config = gatewayConfig()
     const activation = JSON.parse(config.configValue) as Record<string, unknown>
     const snapshot = JSON.parse(String(activation.inlineSnapshot)) as Record<string, unknown>
@@ -872,7 +872,7 @@ describe('prepareConfigEditor', () => {
 })
 
 describe('serializeConfigEditor', () => {
-  it('rebuilds Gateway checksums and activation metadata', async () => {
+  it('rebuilds Yuheng checksums and activation metadata', async () => {
     const editor = prepareConfigEditor(gatewayConfig())
     const serialized = await serializeConfigEditor(editor, '{\n  "env": "prod",\n  "routes": []\n}')
     const activation = JSON.parse(serialized) as Record<string, unknown>
@@ -935,7 +935,7 @@ export const uuidV7 = (
 
 - [ ] **Step 4: 写实现——`configFormat.ts` 为旧 `config-format.mjs` 逐行移植**
 
-要点（完整代码 = 旧文件内容 + 以下类型标注）：`extensionFormats`、`parseJson`、`jsonValue`、`isObject`、`gatewayInlineRule`、`extensionFormat`、`looksLikeToml`、`looksLikeYaml` 原样保留；`detectConfigFormat`、`prepareConfigEditor`、`serializeConfigEditor` 的返回类型标注为 Task 5 Interfaces 定义的类型；`sha256` 用 `globalThis.crypto.subtle`（jsdom 测试环境通过 `src/test/setup.ts` 引入 Node 的 `webcrypto` polyfill，见 Step 5）。逐行对照旧文件 `admin/src/main/resources/static/ddc-admin/config-format.mjs` 移植，不得改变任何判定逻辑与文案。
+要点（完整代码 = 旧文件内容 + 以下类型标注）：`extensionFormats`、`parseJson`、`jsonValue`、`isObject`、`gatewayInlineRule`、`extensionFormat`、`looksLikeToml`、`looksLikeYaml` 原样保留；`detectConfigFormat`、`prepareConfigEditor`、`serializeConfigEditor` 的返回类型标注为 Task 5 Interfaces 定义的类型；`sha256` 用 `globalThis.crypto.subtle`（jsdom 测试环境通过 `src/test/setup.ts` 引入 Node 的 `webcrypto` polyfill，见 Step 5）。逐行对照旧文件 `admin/src/main/resources/static/tianshu-admin/config-format.mjs` 移植，不得改变任何判定逻辑与文案。
 
 - [ ] **Step 5: 在 `src/test/setup.ts` 增加 webcrypto polyfill（jsdom 无 subtle）**
 
@@ -957,7 +957,7 @@ Expected: PASS（uuid 1 条 + configFormat 6 条），typecheck 通过。
 
 ```bash
 git add <web>/src/lib <web>/src/test/setup.ts
-git commit -m "feat(ddc-admin-web): migrate config-format and uuid to typescript"
+git commit -m "feat(tianshu-admin-web): migrate config-format and uuid to typescript"
 ```
 
 ---
@@ -971,11 +971,11 @@ git commit -m "feat(ddc-admin-web): migrate config-format and uuid to typescript
 
 **Interfaces:**
 - Consumes: Task 2 `ddcApi`；Task 5 无需。类型契约（后端 `DdcRegistryAdminController`）：
-  - `GET /api/v1/ddc/registry/services?env&namespace&serviceKind&protocol` → `data: { services: RegistryService[] }`；service 字段：`serviceKind`、`protocol`、`serviceName`、`group`、`version`、`metadata`（可选 object）。
-  - `GET /api/v1/ddc/registry/instances?env&namespace&serviceKind&protocol&serviceName&group?&version?` → `data: { instances: RegistryInstance[] }`；instance 字段：`instanceId`、`host`、`port`、`secure`、`status`、`lastHeartbeatAt`、`expireAt`、`metadata?: { buildId?: string }`。
+  - `GET /api/v1/tianshu/registry/services?env&namespace&serviceKind&protocol` → `data: { services: RegistryService[] }`；service 字段：`serviceKind`、`protocol`、`serviceName`、`group`、`version`、`metadata`（可选 object）。
+  - `GET /api/v1/tianshu/registry/instances?env&namespace&serviceKind&protocol&serviceName&group?&version?` → `data: { instances: RegistryInstance[] }`；instance 字段：`instanceId`、`host`、`port`、`secure`、`status`、`lastHeartbeatAt`、`expireAt`、`metadata?: { buildId?: string }`。
 - Produces:
   - `src/api/types.ts` 新增：`export type RegistryService = { serviceKind: string; protocol: string; serviceName: string; group?: string; version?: string; metadata?: Record<string, unknown> }`；`export type RegistryInstance = { instanceId: string; host: string; port: number; secure: boolean; status: string; lastHeartbeatAt?: string; expireAt?: string; metadata?: { buildId?: string } }`。
-  - `RegistryPage`：env/namespace 两个输入框 + 刷新按钮；4 个统计卡（HTTP Provider / RPC Provider / Internal Gateway 服务数 + 在线实例数）；服务表格（label、serviceName、protocol、group/version，点击行加载实例）；实例表格（status 徽标、instanceId、host:port、lastHeartbeatAt、expireAt）。4 组查询：`[{ serviceKind: 'HTTP_PROVIDER', protocol: 'http', label: 'HTTP Provider' }, { serviceKind: 'HTTP_PROVIDER', protocol: 'https', label: 'HTTPS Provider' }, { serviceKind: 'RPC_PROVIDER', protocol: 'grpc', label: 'RPC Provider' }, { serviceKind: 'INTERNAL_GATEWAY', protocol: 'grpc', label: 'Internal Gateway' }]`；合并去重键 `serviceKind|protocol|serviceName|group|version`（对齐旧 `app.js` 的 `loadRegistry` / `serviceIdentity` / `loadInstances` 行为）。
+  - `RegistryPage`：env/namespace 两个输入框 + 刷新按钮；4 个统计卡（HTTP Provider / RPC Provider / Internal Yuheng 服务数 + 在线实例数）；服务表格（label、serviceName、protocol、group/version，点击行加载实例）；实例表格（status 徽标、instanceId、host:port、lastHeartbeatAt、expireAt）。4 组查询：`[{ serviceKind: 'HTTP_PROVIDER', protocol: 'http', label: 'HTTP Provider' }, { serviceKind: 'HTTP_PROVIDER', protocol: 'https', label: 'HTTPS Provider' }, { serviceKind: 'RPC_PROVIDER', protocol: 'grpc', label: 'RPC Provider' }, { serviceKind: 'INTERNAL_GATEWAY', protocol: 'grpc', label: 'Internal Yuheng' }]`；合并去重键 `serviceKind|protocol|serviceName|group|version`（对齐旧 `app.js` 的 `loadRegistry` / `serviceIdentity` / `loadInstances` 行为）。
 
 - [ ] **Step 1: 写失败的测试 `RegistryPage.test.tsx`**
 
@@ -1055,7 +1055,7 @@ Expected: PASS（2 条）。
 
 ```bash
 git add <web>/src/pages/RegistryPage.tsx <web>/src/pages/RegistryPage.test.tsx <web>/src/api/types.ts
-git commit -m "feat(ddc-admin-web): add service registry page"
+git commit -m "feat(tianshu-admin-web): add service registry page"
 ```
 
 ---
@@ -1071,18 +1071,18 @@ git commit -m "feat(ddc-admin-web): add service registry page"
 **Interfaces:**
 - Consumes: Task 2 `ddcApi`、Task 5 `prepareConfigEditor` / `serializeConfigEditor` / `detectConfigFormat`、Task 5 `uuidV7`。
 - 契约（后端 `DdcConfigController` / `DdcAppController` / `DdcNamespaceController`）：
-  - `GET /api/v1/ddc/configs?appCode&env&namespace&configKey&includeDeleted=false` → `data: DdcConfig[]`；字段：`id`、`appCode`、`env`、`namespace`、`configKey`、`configValue`、`defaultValue`、`valueType`、`currentVersion`、`description`、`createdAt`、`updatedAt`。
-  - `POST /api/v1/ddc/configs` body `{ appCode, env, namespace, configKey, configValue, defaultValue, valueType, description }` → `data: DdcConfig`。
-  - `PUT /api/v1/ddc/configs/{id}` body `{ configValue, changeReason, currentVersion }` → `data: DdcConfig`。
-  - `DELETE /api/v1/ddc/configs/{id}?operator=local-admin&reason=delete config` → `data: DdcConfig`。
-  - `POST /api/v1/ddc/configs/{id}/publish` body `{ changeId, configValue, expectedVersion, timeoutMs }` → `data: DdcPublishResult`，字段 `changeId`、`status`、`targetCount`、`ackCount`、`failedCount`、`ignoredCount`、`timeoutCount`、`attemptCount`、`targetVersion`、`contentChecksum`、`errorMessage`。
-  - `GET /api/v1/ddc/configs/{id}/versions` → `data: DdcConfigVersion[]`；字段 `id`、`configId`、`version`、`oldValue`、`newValue`、`changeType`、`changeReason`、`operator`、`createdAt`。
-  - `POST /api/v1/ddc/configs/{id}/rollback` body `{ configId, version, reason }` → `data: DdcConfig`。
-  - 应用/命名空间自动补齐（创建配置前，对齐旧 `ensureScope`）：`GET /api/v1/ddc/apps` → 若无 `appCode` 匹配则 `POST /api/v1/ddc/apps`（body 见 Global Constraints）；`GET /api/v1/ddc/namespaces?appCode&env` → 若无 `namespace` 匹配则 `POST /api/v1/ddc/namespaces`。
+  - `GET /api/v1/tianshu/configs?appCode&env&namespace&configKey&includeDeleted=false` → `data: DdcConfig[]`；字段：`id`、`appCode`、`env`、`namespace`、`configKey`、`configValue`、`defaultValue`、`valueType`、`currentVersion`、`description`、`createdAt`、`updatedAt`。
+  - `POST /api/v1/tianshu/configs` body `{ appCode, env, namespace, configKey, configValue, defaultValue, valueType, description }` → `data: DdcConfig`。
+  - `PUT /api/v1/tianshu/configs/{id}` body `{ configValue, changeReason, currentVersion }` → `data: DdcConfig`。
+  - `DELETE /api/v1/tianshu/configs/{id}?operator=local-admin&reason=delete config` → `data: DdcConfig`。
+  - `POST /api/v1/tianshu/configs/{id}/publish` body `{ changeId, configValue, expectedVersion, timeoutMs }` → `data: DdcPublishResult`，字段 `changeId`、`status`、`targetCount`、`ackCount`、`failedCount`、`ignoredCount`、`timeoutCount`、`attemptCount`、`targetVersion`、`contentChecksum`、`errorMessage`。
+  - `GET /api/v1/tianshu/configs/{id}/versions` → `data: DdcConfigVersion[]`；字段 `id`、`configId`、`version`、`oldValue`、`newValue`、`changeType`、`changeReason`、`operator`、`createdAt`。
+  - `POST /api/v1/tianshu/configs/{id}/rollback` body `{ configId, version, reason }` → `data: DdcConfig`。
+  - 应用/命名空间自动补齐（创建配置前，对齐旧 `ensureScope`）：`GET /api/v1/tianshu/apps` → 若无 `appCode` 匹配则 `POST /api/v1/tianshu/apps`（body 见 Global Constraints）；`GET /api/v1/tianshu/namespaces?appCode&env` → 若无 `namespace` 匹配则 `POST /api/v1/tianshu/namespaces`。
 - Produces:
   - `src/api/types.ts` 新增 `DdcConfig`、`DdcPublishResult`、`DdcConfigVersion` 类型（字段如上）。
-  - `ConfigEditorDialog`（Props `{ open: boolean; config: DdcConfig | null; defaultScope: { appCode: string; env: string; namespace: string }; onClose: () => void; onSaved: () => void }`）：antd Modal + Form；编辑态锁定 appCode/env/namespace/configKey；字段：configKey、valueType（Select：STRING/JSON/INTEGER/BOOLEAN/YAML/TOML，默认 STRING）、configValue（TextArea，key/type/value 变化时重算 format 并显示格式徽标与 notice）、defaultValue（仅新建）、description、changeReason（仅编辑，默认 'DDC Admin Web update'）；保存：新建先 ensureScope → `serializeConfigEditor` 序列化后 POST；编辑 PUT `{ configValue, changeReason, currentVersion }`。
-  - `ConfigsPage`：筛选行（appCode、env、namespace、configKey + 查询按钮 + 新建按钮）；Table：configKey、valueType、format（`detectConfigFormat` 徽标）、configValue 预览（`prepareConfigEditor(config).content` 压缩为单行，>96 字符截断，附 description 小字）、currentVersion、updatedAt、操作（编辑/发布/删除/版本）；发布/删除/回滚的确认统一用 `window.confirm`（对齐旧 UI："确认发布 {configKey} 当前版本？" / "确认删除 {configKey}？"），确认后调接口、`message.success(\`发布任务 ${result.changeId}：${result.status}\`)` 并刷新；版本对话框：`Modal` 内 `Table` 展示 `GET versions` 结果（列：version、changeType、changeReason、operator、createdAt、newValue 截断），每行"回滚"按钮 `window.confirm` 后 `POST rollback` body `{ configId: id, version, reason: 'rollback from DDC Admin Web' }`。
+  - `ConfigEditorDialog`（Props `{ open: boolean; config: DdcConfig | null; defaultScope: { appCode: string; env: string; namespace: string }; onClose: () => void; onSaved: () => void }`）：antd Modal + Form；编辑态锁定 appCode/env/namespace/configKey；字段：configKey、valueType（Select：STRING/JSON/INTEGER/BOOLEAN/YAML/TOML，默认 STRING）、configValue（TextArea，key/type/value 变化时重算 format 并显示格式徽标与 notice）、defaultValue（仅新建）、description、changeReason（仅编辑，默认 'Tianshu Admin Web update'）；保存：新建先 ensureScope → `serializeConfigEditor` 序列化后 POST；编辑 PUT `{ configValue, changeReason, currentVersion }`。
+  - `ConfigsPage`：筛选行（appCode、env、namespace、configKey + 查询按钮 + 新建按钮）；Table：configKey、valueType、format（`detectConfigFormat` 徽标）、configValue 预览（`prepareConfigEditor(config).content` 压缩为单行，>96 字符截断，附 description 小字）、currentVersion、updatedAt、操作（编辑/发布/删除/版本）；发布/删除/回滚的确认统一用 `window.confirm`（对齐旧 UI："确认发布 {configKey} 当前版本？" / "确认删除 {configKey}？"），确认后调接口、`message.success(\`发布任务 ${result.changeId}：${result.status}\`)` 并刷新；版本对话框：`Modal` 内 `Table` 展示 `GET versions` 结果（列：version、changeType、changeReason、operator、createdAt、newValue 截断），每行"回滚"按钮 `window.confirm` 后 `POST rollback` body `{ configId: id, version, reason: 'rollback from Tianshu Admin Web' }`。
 
 - [ ] **Step 1: 写失败的测试 `ConfigsPage.test.tsx`**
 
@@ -1145,13 +1145,13 @@ Expected: FAIL（占位组件）。
 ```ts
 const configValue = await serializeConfigEditor(editor, formValue.configValue)
 if (editing) {
-  await ddcApi(`/api/v1/ddc/configs/${encodeURIComponent(config.id)}`, {
+  await ddcApi(`/api/v1/tianshu/configs/${encodeURIComponent(config.id)}`, {
     method: 'PUT',
-    body: { configValue, changeReason: formValue.changeReason || 'DDC Admin Web update', currentVersion: config.currentVersion },
+    body: { configValue, changeReason: formValue.changeReason || 'Tianshu Admin Web update', currentVersion: config.currentVersion },
   })
 } else {
   await ensureAppAndNamespace(scope)
-  await ddcApi('/api/v1/ddc/configs', {
+  await ddcApi('/api/v1/tianshu/configs', {
     method: 'POST',
     body: { ...scope, configKey: formValue.configKey, configValue, defaultValue: serializedDefault, valueType: formValue.valueType, description: formValue.description },
   })
@@ -1173,7 +1173,7 @@ Expected: PASS（2 条）。
 
 ```bash
 git add <web>/src/pages/ConfigsPage.tsx <web>/src/pages/ConfigsPage.test.tsx <web>/src/pages/ConfigEditorDialog.tsx <web>/src/api/types.ts
-git commit -m "feat(ddc-admin-web): add config management page with editor dialog"
+git commit -m "feat(tianshu-admin-web): add config management page with editor dialog"
 ```
 
 ---
@@ -1188,10 +1188,10 @@ git commit -m "feat(ddc-admin-web): add config management page with editor dialo
 **Interfaces:**
 - Consumes: Task 2 `ddcApi`。
 - 契约：
-  - `GET /api/v1/ddc/apps` → `data: DdcApp[]`；字段 `id`、`appCode`、`appName`、`owner`、`description`、`enabled`、`createdAt`、`updatedAt`。
-  - `POST /api/v1/ddc/apps` body `{ appCode, appName, owner, description, enabled }` → `data: DdcApp`。
-  - `GET /api/v1/ddc/namespaces?appCode&env` → `data: DdcNamespace[]`；字段 `id`、`appCode`、`env`、`namespace`、`description`、`enabled`、`createdAt`、`updatedAt`。
-  - `POST /api/v1/ddc/namespaces` body `{ appCode, env, namespace, description, enabled }` → `data: DdcNamespace`。
+  - `GET /api/v1/tianshu/apps` → `data: DdcApp[]`；字段 `id`、`appCode`、`appName`、`owner`、`description`、`enabled`、`createdAt`、`updatedAt`。
+  - `POST /api/v1/tianshu/apps` body `{ appCode, appName, owner, description, enabled }` → `data: DdcApp`。
+  - `GET /api/v1/tianshu/namespaces?appCode&env` → `data: DdcNamespace[]`；字段 `id`、`appCode`、`env`、`namespace`、`description`、`enabled`、`createdAt`、`updatedAt`。
+  - `POST /api/v1/tianshu/namespaces` body `{ appCode, env, namespace, description, enabled }` → `data: DdcNamespace`。
 - Produces: `src/api/types.ts` 新增 `DdcApp`、`DdcNamespace`；`AppsPage`（Table：appCode、appName、owner、enabled（Tag）、description、updatedAt + 新建 Modal：appCode/appName/owner/description/enabled）；`NamespacesPage`（筛选 appCode + env；Table：appCode、env、namespace、enabled、description + 新建 Modal：appCode/env/namespace/description/enabled）。
 
 - [ ] **Step 1: 写失败的测试（各一条用例，模式同 Task 6 Step 1：mock fetch 返回 record 数组，断言表格渲染与新建提交 body）**
@@ -1248,7 +1248,7 @@ Expected: PASS（各 1 条）。
 
 ```bash
 git add <web>/src/pages/AppsPage.tsx <web>/src/pages/AppsPage.test.tsx <web>/src/pages/NamespacesPage.tsx <web>/src/pages/NamespacesPage.test.tsx <web>/src/api/types.ts
-git commit -m "feat(ddc-admin-web): add apps and namespaces pages"
+git commit -m "feat(tianshu-admin-web): add apps and namespaces pages"
 ```
 
 ---
@@ -1263,12 +1263,12 @@ git commit -m "feat(ddc-admin-web): add apps and namespaces pages"
 **Interfaces:**
 - Consumes: Task 2 `ddcApi`。
 - 契约（后端 controller 对应字段见 Task 1 探索记录；以 `grep -n "private "` 核对实体）：
-  - `GET /api/v1/ddc/publish-tasks` → `data: DdcPublishTask[]`；字段：`id`、`changeId`、`configId`、`appCode`、`env`、`namespace`、`configKey`、`targetVersion`、`publishMode`、`contentChecksum`、`attemptCount`、`dispatchedAt`、`completedAt`、`failureStage`、`status`、`targetCount`、`ackCount`、`failedCount`、`ignoredCount`、`timeoutCount`、`timeoutMs`、`operator`、`errorMessage`、`createdAt`、`updatedAt`。
-  - `GET /api/v1/ddc/publish-tasks/{changeId}` → `data: DdcPublishTask`。
-  - `POST /api/v1/ddc/publish-tasks/{changeId}/retry?operator=local-admin` → `data: DdcPublishResult`（`changeId`、`status`）。
-  - `GET /api/v1/ddc/instances?appCode&env` → `data: DdcInstance[]`；字段：`id`、`instanceId`、`appCode`、`env`、`namespace`、`host`、`port`、`pid`、`sdkVersion`、`leaseId`、`leaseExpireAt`、`status`、`lastHeartbeatAt`、`createdAt`、`updatedAt`、`runtimeMetadata`（`Record<string, string>`）。
-  - `POST /api/v1/ddc/cache/rebuild?appCode&env` → `data: number`（重建条数）。
-  - `GET /api/v1/ddc/cache/check?appCode&env` → `data: DdcCacheCheckRow[]`；字段 `configKey`、`databaseValue`、`redisValue`、`databaseVersion`、`redisVersion`、`matched`（boolean）。
+  - `GET /api/v1/tianshu/publish-tasks` → `data: DdcPublishTask[]`；字段：`id`、`changeId`、`configId`、`appCode`、`env`、`namespace`、`configKey`、`targetVersion`、`publishMode`、`contentChecksum`、`attemptCount`、`dispatchedAt`、`completedAt`、`failureStage`、`status`、`targetCount`、`ackCount`、`failedCount`、`ignoredCount`、`timeoutCount`、`timeoutMs`、`operator`、`errorMessage`、`createdAt`、`updatedAt`。
+  - `GET /api/v1/tianshu/publish-tasks/{changeId}` → `data: DdcPublishTask`。
+  - `POST /api/v1/tianshu/publish-tasks/{changeId}/retry?operator=local-admin` → `data: DdcPublishResult`（`changeId`、`status`）。
+  - `GET /api/v1/tianshu/instances?appCode&env` → `data: DdcInstance[]`；字段：`id`、`instanceId`、`appCode`、`env`、`namespace`、`host`、`port`、`pid`、`sdkVersion`、`leaseId`、`leaseExpireAt`、`status`、`lastHeartbeatAt`、`createdAt`、`updatedAt`、`runtimeMetadata`（`Record<string, string>`）。
+  - `POST /api/v1/tianshu/cache/rebuild?appCode&env` → `data: number`（重建条数）。
+  - `GET /api/v1/tianshu/cache/check?appCode&env` → `data: DdcCacheCheckRow[]`；字段 `configKey`、`databaseValue`、`redisValue`、`databaseVersion`、`redisVersion`、`matched`（boolean）。
 - Produces: `src/api/types.ts` 新增 `DdcPublishTask`、`DdcInstance`、`DdcCacheCheckRow`、`DdcPublishResult`（字段同 Task 7 定义）；三个页面组件：
   - `PublishTasksPage`：Table（changeId、appCode/env/namespace/configKey、targetVersion、status Tag、attemptCount、targetCount/ackCount/failedCount/timeoutCount、operator、createdAt、updatedAt、errorMessage 截断）+ "重试"按钮（`window.confirm` 后 POST retry，成功后 `message.success(\`重试任务 ${result.changeId}：${result.status}\`)` 并刷新）+ 点击 changeId 打开详情 Modal（`GET {changeId}` 全字段只读展示）。页面提供手动刷新按钮，并每 15 秒自动刷新一次（`useEffect` + `setInterval`，卸载时清理），满足 spec 的发布任务轮询约定。
   - `InstancesPage`：筛选 appCode + env；Table（status Tag、instanceId、host:port、pid、sdkVersion、leaseId、leaseExpireAt、lastHeartbeatAt）+ 展开行或 Modal 展示 `runtimeMetadata`（key-value 列表）。
@@ -1338,12 +1338,12 @@ Expected: PASS（1 条），typecheck/lint 通过。
 
 ```bash
 git add <web>/src/pages/PublishTasksPage.tsx <web>/src/pages/PublishTasksPage.test.tsx <web>/src/pages/InstancesPage.tsx <web>/src/pages/CachePage.tsx <web>/src/api/types.ts
-git commit -m "feat(ddc-admin-web): add publish tasks, instances and cache pages"
+git commit -m "feat(tianshu-admin-web): add publish tasks, instances and cache pages"
 ```
 
 ---
 
-### Task 10: static-server 与 Dockerfile（DDC 前缀）
+### Task 10: static-server 与 Dockerfile（Tianshu 前缀）
 
 **Files:**
 - Create: `<web>/static-server.mjs`
@@ -1352,27 +1352,27 @@ git commit -m "feat(ddc-admin-web): add publish tasks, instances and cache pages
 
 **Interfaces:**
 - Consumes: Task 1 的构建产物 `dist/`。
-- Produces: 独立可部署容器：`node:22-alpine`，`ENV PORT=8080 DDC_ADMIN_API_BASE_URL=http://ddc-admin:18080 DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT=true`，`USER node`，`EXPOSE 8080`，`ENTRYPOINT ["node", "/app/static-server.mjs"]`。
+- Produces: 独立可部署容器：`node:22-alpine`，`ENV PORT=8080 TIANSHU_ADMIN_API_BASE_URL=http://tianshu-admin:18080 TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT=true`，`USER node`，`EXPOSE 8080`，`ENTRYPOINT ["node", "/app/static-server.mjs"]`。
 
 - [ ] **Step 1: 写 `static-server.mjs`**
 
-以 `<gateway-web>/static-server.mjs` 为模板逐段移植，以下三点必须替换：
+以 `<yuheng-web>/static-server.mjs` 为模板逐段移植，以下三点必须替换：
 
 ```js
 const apiBase = new URL(
-  process.env.DDC_ADMIN_API_BASE_URL ?? 'http://ddc-admin:18080',
+  process.env.TIANSHU_ADMIN_API_BASE_URL ?? 'http://tianshu-admin:18080',
 )
 const developmentPlaintext =
-  process.env.DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
+  process.env.TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT === 'true'
 ```
 
 错误码（`proxy` 的 error 分支）改为：
 
 ```js
-outgoing.end('{"code":"DDC_ADMIN_WEB_UPSTREAM_UNAVAILABLE"}')
+outgoing.end('{"code":"TIANSHU_ADMIN_WEB_UPSTREAM_UNAVAILABLE"}')
 ```
 
-其余逻辑（mTLS 文件读取、contentTypes 表、`/healthz`、`/api/` 反代、SPA fallback 到 index.html、`no-cache`/`immutable` 缓存头、PORT 校验）与 gateway 模板完全一致。
+其余逻辑（mTLS 文件读取、contentTypes 表、`/healthz`、`/api/` 反代、SPA fallback 到 index.html、`no-cache`/`immutable` 缓存头、PORT 校验）与 yuheng 模板完全一致。
 
 - [ ] **Step 2: 写 `Dockerfile`**
 
@@ -1388,8 +1388,8 @@ RUN npm run build
 FROM node:22-alpine
 
 ENV PORT=8080
-ENV DDC_ADMIN_API_BASE_URL=http://ddc-admin:18080
-ENV DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT=true
+ENV TIANSHU_ADMIN_API_BASE_URL=http://tianshu-admin:18080
+ENV TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT=true
 
 WORKDIR /app
 COPY --from=build --chown=node:node /workspace/dist /app/dist
@@ -1410,17 +1410,17 @@ node static-server.mjs &
 sleep 1
 curl -s http://127.0.0.1:8080/healthz   # 期望: ok
 curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/  # 期望: 200
-curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/ddc/apps  # 期望: 502（admin 不可达时）
+curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/api/v1/tianshu/apps  # 期望: 502（admin 不可达时）
 kill %1
 ```
 
-- [ ] **Step 4: 写 README（中英）**：模块定位（独立管理控制台，仅调 DDC Admin）、开发命令（`npm ci && npm run typecheck && npm test -- --run && npm run lint && npm run build`）、部署（`docker build` + 环境变量表：`DDC_ADMIN_API_BASE_URL` / `DDC_ADMIN_API_DEVELOPMENT_PLAINTEXT` / `PORT`）、e2e 前置条件（可达的 admin + `DDC_E2E_TOKEN`，见 Task 11）。
+- [ ] **Step 4: 写 README（中英）**：模块定位（独立管理控制台，仅调 Tianshu Admin）、开发命令（`npm ci && npm run typecheck && npm test -- --run && npm run lint && npm run build`）、部署（`docker build` + 环境变量表：`TIANSHU_ADMIN_API_BASE_URL` / `TIANSHU_ADMIN_API_DEVELOPMENT_PLAINTEXT` / `PORT`）、e2e 前置条件（可达的 admin + `TIANSHU_E2E_TOKEN`，见 Task 11）。
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add <web>/static-server.mjs <web>/Dockerfile <web>/README.md <web>/README.zh-CN.md
-git commit -m "feat(ddc-admin-web): add static server, dockerfile and docs"
+git commit -m "feat(tianshu-admin-web): add static server, dockerfile and docs"
 ```
 
 ---
@@ -1429,10 +1429,10 @@ git commit -m "feat(ddc-admin-web): add static server, dockerfile and docs"
 
 **Files:**
 - Create: `<web>/playwright.config.ts`
-- Create: `<web>/e2e/ddc-admin.spec.ts`
+- Create: `<web>/e2e/tianshu-admin.spec.ts`
 
 **Interfaces:**
-- Consumes: 部署好的 admin（`DDC_E2E_ADMIN_URL`，默认 `http://127.0.0.1:18080`）+ 有效 token（`DDC_E2E_TOKEN`）；Task 1 的 dev server 与 Task 10 的 static-server。
+- Consumes: 部署好的 admin（`TIANSHU_E2E_ADMIN_URL`，默认 `http://127.0.0.1:18080`）+ 有效 token（`TIANSHU_E2E_TOKEN`）；Task 1 的 dev server 与 Task 10 的 static-server。
 - Produces: `npm run e2e` 可跑通冒烟：登录 → 服务注册加载 → 配置管理加载。
 
 - [ ] **Step 1: 写 `playwright.config.ts`**
@@ -1456,16 +1456,16 @@ export default defineConfig({
 
 （`vite preview` 的 `/api` 代理已在 Task 1 的 `vite.config.ts` `preview` 段配置。）
 
-- [ ] **Step 2: 写 `e2e/ddc-admin.spec.ts`**
+- [ ] **Step 2: 写 `e2e/tianshu-admin.spec.ts`**
 
 ```ts
 import { expect, test } from '@playwright/test'
 
-const token = process.env.DDC_E2E_TOKEN ?? ''
-const adminUrl = process.env.DDC_E2E_ADMIN_URL ?? 'http://127.0.0.1:18080'
+const token = process.env.TIANSHU_E2E_TOKEN ?? ''
+const adminUrl = process.env.TIANSHU_E2E_ADMIN_URL ?? 'http://127.0.0.1:18080'
 
 test('admin console smoke: login, registry, configs', async ({ page }) => {
-  test.skip(token === '', 'DDC_E2E_TOKEN is required')
+  test.skip(token === '', 'TIANSHU_E2E_TOKEN is required')
 
   await page.goto('/')
   await page.getByPlaceholder('粘贴 admin.token 内容').fill(token)
@@ -1477,14 +1477,14 @@ test('admin console smoke: login, registry, configs', async ({ page }) => {
 })
 ```
 
-（页面文案以 Task 6/7 实际实现为准，若"服务注册目录"未出现在 RegistryPage 中，改为断言 `page.getByText('DDC 已连接')` 或注册表格存在。）
+（页面文案以 Task 6/7 实际实现为准，若"服务注册目录"未出现在 RegistryPage 中，改为断言 `page.getByText('Tianshu 已连接')` 或注册表格存在。）
 
 - [ ] **Step 3: 本地验证（admin 可达时）**
 
 ```bash
 cd <web>
 npx playwright install chromium
-DDC_E2E_TOKEN=<有效 token> npm run e2e
+TIANSHU_E2E_TOKEN=<有效 token> npm run e2e
 ```
 
 Expected: 1 条 e2e PASS（无 token 时 SKIP）。
@@ -1493,7 +1493,7 @@ Expected: 1 条 e2e PASS（无 token 时 SKIP）。
 
 ```bash
 git add <web>/playwright.config.ts <web>/e2e <web>/vite.config.ts
-git commit -m "test(ddc-admin-web): add playwright smoke e2e"
+git commit -m "test(tianshu-admin-web): add playwright smoke e2e"
 ```
 
 ---
@@ -1501,21 +1501,21 @@ git commit -m "test(ddc-admin-web): add playwright smoke e2e"
 ### Task 12: 清理 admin 模块旧 webui
 
 **Files:**
-- Delete: `admin/src/main/resources/static/ddc-admin/`（整个目录）
+- Delete: `admin/src/main/resources/static/tianshu-admin/`（整个目录）
 - Delete: `admin/src/test/js/`（整个目录）
-- Modify: `admin/src/test/java/top/egon/cola/component/ddc/admin/web/DdcAdminWebResourceTest.java`（重写为断言资源已移除）
-- Modify: `admin/src/test/java/top/egon/cola/component/ddc/admin/security/DdcAdminSecurityIntegrationTest.java:118`（`/ddc-admin/index.html` 断言改为 404）
-- Modify: `admin/src/main/java/top/egon/cola/component/ddc/admin/security/DdcAdminSecurityConfiguration.java:51-52`（移除 `/ddc-admin`、`/ddc-admin/**` permitAll）
+- Modify: `admin/src/test/java/top/egon/cola/component/tianshu/admin/web/DdcAdminWebResourceTest.java`（重写为断言资源已移除）
+- Modify: `admin/src/test/java/top/egon/cola/component/tianshu/admin/security/DdcAdminSecurityIntegrationTest.java:118`（`/tianshu-admin/index.html` 断言改为 404）
+- Modify: `admin/src/main/java/top/egon/cola/component/tianshu/admin/security/DdcAdminSecurityConfiguration.java:51-52`（移除 `/tianshu-admin`、`/tianshu-admin/**` permitAll）
 - Modify: `admin/pom.xml`（version 5.3.2 → 5.4.0）
 
 **Interfaces:**
 - Consumes: Task 1-11 的 admin-web 工程已验收可独立部署。
-- Produces: admin jar 不再含任何 webui 资源；`/ddc-admin` 返回 401/404（由默认认证行为决定）；admin 侧测试全绿。
+- Produces: admin jar 不再含任何 webui 资源；`/tianshu-admin` 返回 401/404（由默认认证行为决定）；admin 侧测试全绿。
 
 - [ ] **Step 1: 删除静态资源与 JS 测试**
 
 ```bash
-git rm -r admin/src/main/resources/static/ddc-admin admin/src/test/js
+git rm -r admin/src/main/resources/static/tianshu-admin admin/src/test/js
 ```
 
 - [ ] **Step 2: 重写 `DdcAdminWebResourceTest`**
@@ -1532,8 +1532,8 @@ class DdcAdminWebResourceTest {
     @Test
     void noLongerShipsTheBundledAdminWeb() {
         assertThat(DdcAdminWebResourceTest.class.getClassLoader()
-                .getResource("static/ddc-admin/index.html"))
-                .as("the admin jar must not bundle the extracted ddc-admin web")
+                .getResource("static/tianshu-admin/index.html"))
+                .as("the admin jar must not bundle the extracted tianshu-admin web")
                 .isNull();
     }
 }
@@ -1541,24 +1541,24 @@ class DdcAdminWebResourceTest {
 
 - [ ] **Step 3: 更新 `DdcAdminSecurityIntegrationTest.java:118`**
 
-原断言（约 118 行，`mockMvc.perform(get("/ddc-admin/index.html"))` 期望 200）改为：
+原断言（约 118 行，`mockMvc.perform(get("/tianshu-admin/index.html"))` 期望 200）改为：
 
 ```java
-mockMvc.perform(get("/ddc-admin/index.html"))
+mockMvc.perform(get("/tianshu-admin/index.html"))
         .andExpect(status().is4xxClientError());
 ```
 
 （先读该测试上下文确认断言写法，保持与文件内既有风格一致。）
 
-- [ ] **Step 4: 移除 permitAll 中的 `/ddc-admin` 与 `/ddc-admin/**`**
+- [ ] **Step 4: 移除 permitAll 中的 `/tianshu-admin` 与 `/tianshu-admin/**`**
 
 `DdcAdminSecurityConfiguration.java` 中：
 
 ```java
 .requestMatchers(
-        "/api/v1/ddc/manifest",
-        "/ddc-admin",
-        "/ddc-admin/**",
+        "/api/v1/tianshu/manifest",
+        "/tianshu-admin",
+        "/tianshu-admin/**",
         "/actuator/health/**",
         "/actuator/info"
 ).permitAll()
@@ -1568,7 +1568,7 @@ mockMvc.perform(get("/ddc-admin/index.html"))
 
 ```java
 .requestMatchers(
-        "/api/v1/ddc/manifest",
+        "/api/v1/tianshu/manifest",
         "/actuator/health/**",
         "/actuator/info"
 ).permitAll()
@@ -1580,19 +1580,19 @@ mockMvc.perform(get("/ddc-admin/index.html"))
 
 - [ ] **Step 6: 运行 admin 侧测试**
 
-Run: `cd <ddc-platform>/egon-cola-tianshu-admin && mvn -q test`
+Run: `cd <tianshu-xingyuan>/egon-cola-tianshu-admin && mvn -q test`
 Expected: BUILD SUCCESS（含重写后的 `DdcAdminWebResourceTest`、`DdcAdminSecurityIntegrationTest` 全绿）。
 
 - [ ] **Step 7: 全仓 grep 确认无残留**
 
-Run: `grep -rn "ddc-admin/index.html\|static/ddc-admin" admin/src || true`
+Run: `grep -rn "tianshu-admin/index.html\|static/tianshu-admin" admin/src || true`
 Expected: 无输出。
 
 - [ ] **Step 8: Commit**
 
 ```bash
 git add -A
-git commit -m "refactor(ddc-admin): remove bundled webui after extraction to admin-web"
+git commit -m "refactor(tianshu-admin): remove bundled webui after extraction to admin-web"
 ```
 
 ---
@@ -1615,13 +1615,13 @@ git commit -m "refactor(ddc-admin): remove bundled webui after extraction to adm
   构建与部署说明见 `egon-cola-tianshu-admin-web/README.md`。
 ```
 
-并在"管理端访问"相关段落说明：webui 已从 admin jar 摘出，`/ddc-admin` 不再由 admin 提供服务；管理控制台经 `DDC_ADMIN_API_BASE_URL` 指向 admin。
+并在"管理端访问"相关段落说明：webui 已从 admin jar 摘出，`/tianshu-admin` 不再由 admin 提供服务；管理控制台经 `TIANSHU_ADMIN_API_BASE_URL` 指向 admin。
 
 - [ ] **Step 2: Commit**
 
 ```bash
 git add README.md README.zh-CN.md
-git commit -m "docs(ddc): document admin-web module after extraction"
+git commit -m "docs(tianshu): document admin-web module after extraction"
 ```
 
 ---
@@ -1632,5 +1632,5 @@ git commit -m "docs(ddc): document admin-web module after extraction"
 - [ ] 新增能力可用：发布任务列表/详情/重试、实例管理、缓存重建/检查、应用/命名空间管理。
 - [ ] `<web>` 全部 vitest 通过；`npm run lint`、`npm run typecheck`、`npm run build` 通过。
 - [ ] e2e 冒烟在有 token 时通过（或无 token 时 SKIP）。
-- [ ] admin jar 不再含 `static/ddc-admin`；`/ddc-admin` 不再可达；`/api/v1/ddc/**` 不受影响（admin 测试全绿）。
+- [ ] admin jar 不再含 `static/tianshu-admin`；`/tianshu-admin` 不再可达；`/api/v1/tianshu/**` 不受影响（admin 测试全绿）。
 - [ ] 独立部署验证：`docker build` 出的镜像 `curl /healthz` 返回 ok，`/` 返回 index.html，`/api/**` 反代到 admin。

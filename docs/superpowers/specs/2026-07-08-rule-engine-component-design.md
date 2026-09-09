@@ -9,7 +9,7 @@ The first version is a Spring Boot Starter for Java 21 and Spring Boot 3.5.x. It
 1. Chain of Responsibility for linear, ordered processing.
 2. Rule Tree for branching, dynamic routing, jump-back, and loop-capable decision flows.
 
-This component is not a full rule platform. It does not provide UI, database-backed rule configuration, runtime topology hot updates, or an expression engine.
+This component is not a full rule xingyuan. It does not provide UI, database-backed rule configuration, runtime topology hot updates, or an expression engine.
 
 ## 2. Confirmed Decisions
 
@@ -597,7 +597,7 @@ This keeps the design extensible at real variation points without turning a ligh
 3. Listener failures can hide observability bugs, so ignored listener exceptions must still be logged.
 4. Async context writes can race, so context attributes must use a concurrency-safe structure.
 5. Rule topology configuration can easily creep into properties, so V1.0 properties must remain runtime-only.
-6. The starter should remain independent from DDC, DTP, DB, Redis, and admin modules.
+6. The starter should remain independent from Tianshu, DTP, DB, Redis, and admin modules.
 
 ## 23. Implementation Sequence Preview
 

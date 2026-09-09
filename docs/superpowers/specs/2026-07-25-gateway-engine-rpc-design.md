@@ -1,32 +1,32 @@
-# GWS-04 Gateway Engine Egon RPC 数据面 Spec
+# GWS-04 Yuheng Engine Egon RPC 数据面 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01、GWS-02、GWS-03
 
-主模块：`egon-cola-component-gateway-engine`
+主模块：`egon-cola-component-yuheng-biz-gateway`
 
 ## 1. 目标
 
-在 Gateway Engine 中实现生产级 Egon RPC 数据面：
+在 Yuheng Engine 中实现生产级 Egon RPC 数据面：
 
 - INTERNAL gRPC Listener；
-- `INTERNAL_GATEWAY` 单活 Gateway Slot；
+- `INTERNAL_GATEWAY` 单活 Yuheng Slot；
 - 动态 Unary Method Handler；
 - RPC Provider 发现后的 Channel 管理和转发；
 - Deadline、Cancellation、Metadata、Trace 和 Status/Trailer 透传；
 - PUBLIC/INTERNAL HTTP → RPC Provider 参数绑定。
 
-生产实现不能依赖 RPC Test 的 Mock Gateway 类。
+生产实现不能依赖 RPC Test 的 Mock Yuheng 类。
 
 Engine 可以依赖 RPC Starter 中 GWS-02 固化的公共 Contract/Metadata/Error 类型，但
 必须保持 `egon.cola.component.rpc.consumer.enabled=false`，不得创建
 `RpcConsumerGatewayManager`。否则 Engine 会再次寻找 `INTERNAL_GATEWAY` 并形成错误
-回路；Engine 到业务 Provider 的发现、选择和 Channel 始终由 Gateway 自己完成。
+回路；Engine 到业务 Provider 的发现、选择和 Channel 始终由 Yuheng 自己完成。
 
 ## 2. 调用场景
 
@@ -34,7 +34,7 @@ Engine 可以依赖 RPC Starter 中 GWS-02 固化的公共 Contract/Metadata/Err
 
 ```text
 Egon RPC Consumer
-  → DDC 发现唯一 INTERNAL_GATEWAY
+  → Tianshu 发现唯一 INTERNAL_GATEWAY
   → Engine INTERNAL gRPC Listener
   → RPC Route
   → Provider Directory / Load Balancer
@@ -64,7 +64,7 @@ PUBLIC / INTERNAL HTTP
 egon:
   cola:
     component:
-      gateway:
+      yuheng:
         engine:
           rpc:
             enabled: true
@@ -72,7 +72,7 @@ egon:
             max-inbound-message-bytes: 4194304
             slot:
               enabled: false
-              service-name: gateway-internal
+              service-name: yuheng-internal
               group: default
               version: v1
 ```
@@ -87,9 +87,9 @@ egon:
 6. RPC 端口不能与 HTTP 端口相同；
 7. 首期只支持明文内网或外部提供的 TLS 终止；证书管理不属于本项目。
 
-## 4. RPC Gateway Slot
+## 4. RPC Yuheng Slot
 
-### 4.1 DDC 身份
+### 4.1 Tianshu 身份
 
 ```text
 env
@@ -117,28 +117,28 @@ Metadata 至少包含：
 egon.rpc.transport=grpc
 egon.rpc.serialization=protobuf
 egon.rpc.runtime-version={componentVersion}
-gateway.engine-version={gatewayVersion}
-gateway.group-code={gatewayGroupCode}
+yuheng.engine-version={gatewayVersion}
+yuheng.group-code={gatewayGroupCode}
 ```
 
 活动 Release/Rule Version 不写入 Slot Metadata，避免每次发布通过换租约刷新动态字段。
-该状态由 DDC Publish ACK 和 GWS-06 Engine Runtime Status 提供。
+该状态由 Tianshu Publish ACK 和 GWS-06 Engine Runtime Status 提供。
 
 ### 4.2 单活规则
 
 RPC Consumer 当前要求同一 Service Key 恰好一个活跃实例：
 
-- 0 个：Consumer 返回 `RPC_GATEWAY_UNAVAILABLE`；
-- 多个：Consumer 返回 `RPC_GATEWAY_AMBIGUOUS`；
+- 0 个：Consumer 返回 `RPC_YUHENG_UNAVAILABLE`；
+- 多个：Consumer 返回 `RPC_YUHENG_AMBIGUOUS`；
 - 1 个：建立单 Channel。
 
 因此首期：
 
-1. 一个 RPC Gateway Slot 只有一个 Engine 注册；
+1. 一个 RPC Yuheng Slot 只有一个 Engine 注册；
 2. 其他 Engine 可以承担 HTTP 或作为 RPC Standby，但不能注册相同 Slot；
 3. 切换前等待旧租约注销或过期；
 4. Admin 只做受控切换，不模拟自动选主；
-5. 没有 DDC Fencing Token 前不承诺无损自动故障转移。
+5. 没有 Tianshu Fencing Token 前不承诺无损自动故障转移。
 
 ## 5. 动态 gRPC Handler
 
@@ -233,10 +233,10 @@ Engine 还必须以 gRPC Full Method Name 为协议事实，Metadata 与方法�
 ### 7.2 透传策略
 
 - 只透传白名单 Metadata；
-- 移除客户端伪造的内部身份、Provider 地址和 Gateway 决策字段；
+- 移除客户端伪造的内部身份、Provider 地址和 Yuheng 决策字段；
 - Trace、Invocation、Principal 由 Engine 重新写入；
 - Binary Metadata 只有明确 Schema 时允许；
-- 不透传 DDC Secret、Admin Token 或任意 `authorization` 到 Provider，除非安全
+- 不透传 Tianshu Secret、Admin Token 或任意 `authorization` 到 Provider，除非安全
   Mapper 显式允许；
 - Metadata 总大小受限。
 
@@ -274,7 +274,7 @@ Channel Cache 不属于 RPC Component。
 处理顺序：
 
 1. 验证 Method 与 Metadata；
-2. 创建 Gateway Exchange/Context；
+2. 创建 Yuheng Exchange/Context；
 3. 执行 Exposure/Security/Governance；
 4. 选择 Provider；
 5. 获取 Provider Channel；
@@ -321,9 +321,9 @@ Provider 标准 gRPC Status 和受允许 Trailer 原样转发：
 - `DEADLINE_EXCEEDED`
 - `INTERNAL`
 
-### 11.2 Gateway 错误
+### 11.2 Yuheng 错误
 
-| Gateway Error | gRPC Status |
+| Yuheng Error | gRPC Status |
 |---|---|
 | Route Not Found | `UNIMPLEMENTED` |
 | External Not Accessible | `PERMISSION_DENIED`，仅内部诊断；RPC Listener 本身不对外 |
@@ -332,11 +332,11 @@ Provider 标准 gRPC Status 和受允许 Trailer 原样转发：
 | Rate Limited | `RESOURCE_EXHAUSTED` |
 | No Provider | `UNAVAILABLE` |
 | Circuit Open | `UNAVAILABLE` |
-| Gateway Deadline | `DEADLINE_EXCEEDED` |
+| Yuheng Deadline | `DEADLINE_EXCEEDED` |
 | Invalid Metadata/Message | `INVALID_ARGUMENT` |
 | Internal Error | `INTERNAL` |
 
-Gateway Trailer 只包含稳定 Error Code、Trace ID 和可公开重试提示。
+Yuheng Trailer 只包含稳定 Error Code、Trace ID 和可公开重试提示。
 
 ## 12. HTTP → RPC
 
@@ -374,7 +374,7 @@ HTTP Path/Query/Header/Body
 
 ## 13. 重试边界
 
-RPC Component Consumer 默认关闭重试，Gateway 也默认不重试 RPC。
+RPC Component Consumer 默认关闭重试，Yuheng 也默认不重试 RPC。
 
 只有 GWS-07 明确满足以下条件才允许：
 
@@ -403,7 +403,7 @@ Admin 节点页面分别展示：
 
 - Listener 是否监听；
 - Slot 是否注册；
-- DDC leaseId/过期时间；
+- Tianshu leaseId/过期时间；
 - 当前 RPC Route Version；
 - Provider Directory 状态；
 - Channel 数量和 Drain 数量；
@@ -446,7 +446,7 @@ Admin 节点页面分别展示：
 
 ## 16. 验收标准
 
-1. 生产 Gateway 不引用 RPC Test 包；
+1. 生产 Yuheng 不引用 RPC Test 包；
 2. RPC 入站只支持 Unary；
 3. Consumer 只连接唯一 `INTERNAL_GATEWAY`；
 4. Provider Directory 与负载均衡只在 Engine；
@@ -460,9 +460,9 @@ Admin 节点页面分别展示：
 ## 17. 本轮审核项
 
 1. 认可同一 Engine 增加独立 INTERNAL gRPC Listener；
-2. 认可 RPC Gateway Slot 首期单活和受控切换；
+2. 认可 RPC Yuheng Slot 首期单活和受控切换；
 3. 认可 Raw Byte Unary 透明转发；
-4. 认可 Channel Cache 属于 Gateway Engine；
+4. 认可 Channel Cache 属于 Yuheng Engine；
 5. 认可 HTTP→RPC 使用 FileDescriptorSet/DynamicMessage；
 6. 认可 RPC 默认不重试；
-7. 认可 gRPC Status/Trailer 透明优先和统一 Gateway Error 映射。
+7. 认可 gRPC Status/Trailer 透明优先和统一 Yuheng Error 映射。

@@ -1,25 +1,25 @@
-# Egon Gateway 全能力 MCP 网关需求与技术设计
+# Egon Yuheng 全能力 MCP 网关需求与技术设计
 
 > 本文保留为初始实现记录。其中本地 Tool Draft、手工 Schema/bindings 和
 > disabled Route 锚点已经废弃；当前设计以
-> [Gateway 注解托管 MCP 设计与破坏性迁移](./2026-08-06-gateway-annotation-managed-mcp-design.md)
+> [Yuheng 注解托管 MCP 设计与破坏性迁移](./2026-08-06-yuheng-annotation-managed-mcp-design.md)
 > 为准。
 
 - 日期：2026-08-02
 - 状态：设计自审通过；按用户授权无需二次确认
-- 范围：Gateway MCP 控制面、数据面、Admin Web、IdP/RBAC3/DDC 集成与端到端验证
-- 关联设计：[统一身份平台设计](./2026-08-01-unified-identity-platform-design.md)
+- 范围：Yuheng MCP 控制面、数据面、Admin Web、Tianquan-Shoubing/Tianquan-Jianshen/Tianshu 集成与端到端验证
+- 关联设计：[统一身份平台设计](./2026-08-01-unified-identity-xingyuan-design.md)
 - 原始材料：`/Users/mario/SelfProject/blog/source/_posts/paper/Egon_Gateway_Complete_MCP_Design_2026.md`、同目录 `mcp_gateway.md` 与配套图片
 
 ## 1. 结论
 
-本次建设不是给 Gateway 增加一个固定的 `tools/call` 接口，而是让现有 Egon Gateway 同时成为：
+本次建设不是给 Yuheng 增加一个固定的 `tools/call` 接口，而是让现有 Egon Yuheng 同时成为：
 
 1. 完整的 MCP Server；
 2. HTTP/RPC Operation 到 MCP Capability 的动态转换网关；
 3. Resources、Prompts、Completion、Durable Tasks 和 MCP Apps 运行时；
-4. Remote MCP Federation Gateway；
-5. 由现有 Gateway Admin、Release、DDC、LKG、Trace、Metrics、Audit 统一治理的生产级能力。
+4. Remote MCP Federation Yuheng；
+5. 由现有 Yuheng Admin、Release、Tianshu、LKG、Trace、Metrics、Audit 统一治理的生产级能力。
 
 正式交付只有一个 Release Gate。协议、Tools、Resources、Prompts、Completion、Tasks、Apps、Remote Federation、前后端、权限、安全、故障恢复和实际多进程联调中任一项未通过，均不得把功能标记为完成。
 
@@ -45,20 +45,20 @@
 - 依赖单 JVM `ConcurrentHashMap` 保存 Session；
 - 用 URL `api_key` 作为主要人类身份；
 - Handler 返回硬编码 Tool/Resource；
-- MCP Handler 再请求 Gateway 自己的 HTTP Route；
+- MCP Handler 再请求 Yuheng 自己的 HTTP Route；
 - `@CrossOrigin("*")`、无限请求超时和正文日志；
 - 自定义教程工程的 trigger/case/domain 层级和外部规则树依赖。
 
-正式实现遵循当前 Egon Gateway 的 contract/core/runtime/admin 边界，不引入与仓库风格重复的新架构。
+正式实现遵循当前 Egon Yuheng 的 contract/core/runtime/admin 边界，不引入与仓库风格重复的新架构。
 
-### 2.3 当前 Gateway 可复用能力
+### 2.3 当前 Yuheng 可复用能力
 
 当前仓库已经具备：
 
 - HTTP/RPC Operation Catalog 与 JSON Schema；
-- Provider 注册、租约、健康、负载均衡和 DDC 服务发现；
+- Provider 注册、租约、健康、负载均衡和 Tianshu 服务发现；
 - 安全、限流、并发、超时、重试、熔断、Bulkhead 和大小限制；
-- 不可变 Draft/Release、Canonical Hash、Chunk、DDC 发布日志；
+- 不可变 Draft/Release、Canonical Hash、Chunk、Tianshu 发布日志；
 - Engine 校验、编译、LKG 和内存原子激活；
 - Trace、Metrics、Audit 和 Admin Web；
 - 本机 Redis/PostgreSQL/Kafka 测试基础设施与模拟 Provider。
@@ -83,9 +83,9 @@ MCP 必须复用这些能力，不另建平行的服务目录、发布系统或�
 
 - 官方 Java SDK 2.0.0 只用于 `2025-11-25` Schema、稳定协议兼容和 Conformance 参考；
 - `2026-07-28-RC` 使用 Egon 自有 Dialect Adapter；
-- `gateway-contract`、`gateway-core` 不暴露 SDK 类型；
+- `yuheng-contract`、`yuheng-core` 不暴露 SDK 类型；
 - 内部统一模型使用 Jackson `JsonNode`、不可变 record 和显式校验；
-- 外部 SDK 升级不得改变 Gateway Rule、数据库或运行时核心接口。
+- 外部 SDK 升级不得改变 Yuheng Rule、数据库或运行时核心接口。
 
 ### 3.3 官方依据
 
@@ -115,8 +115,8 @@ MCP 必须复用这些能力，不另建平行的服务目录、发布系统或�
 - MCP Apps：UI Resource、Tool Binding、CSP、Permission、Artifact Registry
 - Remote MCP：Tools、Resources、Templates、Prompts、Completion、Tasks、Apps、Subscriptions
 - Stable/RC/Legacy 方言转换
-- OAuth/JWT/mTLS、RBAC3 Scope/Risk/Approval、输入输出 Schema
-- 与现有 Gateway Release、DDC、LKG、Trace、Metrics、Audit 整合
+- OAuth/JWT/mTLS、Tianquan-Jianshen Scope/Risk/Approval、输入输出 Schema
+- 与现有 Yuheng Release、Tianshu、LKG、Trace、Metrics、Audit 整合
 - 完整 Admin API 和 Admin Web
 - 稳定/RC/Legacy 模拟客户端、远端 MCP Server 和本地 HTTP/RPC/Job Provider
 - 协议一致性、安全、HA、恢复、前端 E2E 和实际多进程验证
@@ -126,27 +126,27 @@ MCP 必须复用这些能力，不另建平行的服务目录、发布系统或�
 - 模型推理和模型供应商代理；
 - Agent 编排、Conversation、Memory 或 RAG；
 - Token 计费和商业账单；
-- Gateway 代替业务 Provider 做业务权限判断；
+- Yuheng 代替业务 Provider 做业务权限判断；
 - 把远端 Prompt 或 Resource 自动升级为系统指令；
 - 在本次范围内实现任意用户上传并执行服务端代码。
 
 ## 5. 方案比较与选型
 
-### 5.1 方案 A：Gateway 内部独立 MCP Runtime，推荐
+### 5.1 方案 A：Yuheng 内部独立 MCP Runtime，推荐
 
-新增 `yuheng-mcp-runtime`，依赖 `gateway-core` 和 `gateway-contract`；Engine 依赖该 Runtime。MCP 配置成为现有 Gateway Rule 的可选嵌套部分，与 HTTP/RPC Route 共用一个 Release、一个哈希、一个 DDC Active Pointer、一个 LKG 和一次原子激活。
+新增 `yuheng-mcp-runtime`，依赖 `yuheng-core` 和 `yuheng-contract`；Engine 依赖该 Runtime。MCP 配置成为现有 Yuheng Rule 的可选嵌套部分，与 HTTP/RPC Route 共用一个 Release、一个哈希、一个 Tianshu Active Pointer、一个 LKG 和一次原子激活。
 
 优点：
 
 - 无自调用双跳；
 - 复用 Operation、Provider、治理和 Trace；
-- DDC/LKG/回滚语义只有一套；
+- Tianshu/LKG/回滚语义只有一套；
 - 2025 与 2026 方言共享统一内部 Handler；
 - 可独立测试和演进，不把 Engine 变成巨型模块。
 
-### 5.2 方案 B：单独部署 MCP Gateway
+### 5.2 方案 B：单独部署 MCP Yuheng
 
-MCP 服务通过 HTTP 再请求现有 Gateway。虽然初期开发较快，但会重复鉴权、限流、序列化、Trace 与重试，并形成 Gateway 调自己 Gateway 的旁路。拒绝。
+MCP 服务通过 HTTP 再请求现有 Yuheng。虽然初期开发较快，但会重复鉴权、限流、序列化、Trace 与重试，并形成 Yuheng 调自己 Yuheng 的旁路。拒绝。
 
 ### 5.3 方案 C：直接用 Java SDK 暴露静态 MCP Server
 
@@ -157,10 +157,10 @@ MCP 服务通过 HTTP 再请求现有 Gateway。虽然初期开发较快，但�
 ```mermaid
 flowchart TB
     Client["MCP Client / Host"] --> Ingress["MCP HTTP + Legacy SSE Ingress"]
-    Ingress --> Identity["Gateway 基础 IdP 身份校验"]
+    Ingress --> Identity["Yuheng 基础 Tianquan-Shoubing 身份校验"]
     Identity --> Dialect["Stable / RC / Legacy Adapter"]
     Dialect --> Dispatcher["统一 JSON-RPC Dispatcher"]
-    Dispatcher --> McpAuth["MCP Runtime RBAC3 权限与审批"]
+    Dispatcher --> McpAuth["MCP Runtime Tianquan-Jianshen 权限与审批"]
     McpAuth --> Catalog["Compiled MCP Capability Catalog"]
     Catalog --> Tool["Tool Runtime"]
     Catalog --> Resource["Resource Runtime"]
@@ -171,14 +171,14 @@ flowchart TB
     Tool --> Invoker["GatewayOperationInvoker"]
     Resource --> Invoker
     Prompt --> Invoker
-    Invoker --> Governance["Gateway Security / Traffic / Provider Directory"]
+    Invoker --> Governance["Yuheng Security / Traffic / Provider Directory"]
     Governance --> Provider["HTTP / RPC Provider"]
     Remote --> RemoteServer["Remote MCP Server"]
-    Release["Gateway Admin + Release"] --> DDC["DDC"]
-    DDC --> Active["Atomic Active Release + LKG"]
+    Release["Yuheng Admin + Release"] --> Tianshu["Tianshu"]
+    Tianshu --> Active["Atomic Active Release + LKG"]
     Active --> Catalog
-    IdP["IdP"] --> Identity
-    RBAC3["RBAC3"] --> McpAuth
+    Tianquan-Shoubing["Tianquan-Shoubing"] --> Identity
+    Tianquan-Jianshen["Tianquan-Jianshen"] --> McpAuth
 ```
 
 ## 7. 模块边界
@@ -212,31 +212,31 @@ egon-cola-yuheng
 
 - Dialect Adapter：隔离 Stable、RC、Legacy Wire 差异；
 - Strategy/Registry：按 method、resource source、prompt source、completion source、task executor 选择实现；
-- Adapter：Operation、Redis、PostgreSQL、Artifact、RBAC3、Remote Auth；
+- Adapter：Operation、Redis、PostgreSQL、Artifact、Tianquan-Jianshen、Remote Auth；
 - State：Durable Task 和 Remote Provider 健康状态；
 - Facade：Admin 的 MCP Draft/Validation/Release 编排；
 - 不引入通用规则树、抽象工厂或深层模板方法；现有 Handler Registry 和明确 Driver 接口足够。
 
 ## 8. 身份与授权边界
 
-### 8.1 Gateway 基础身份层
+### 8.1 Yuheng 基础身份层
 
-基础 Gateway 只负责：
+基础 Yuheng 只负责：
 
 - JWT 签名、issuer、audience、过期时间；
-- IdP 用户存在且有效；
+- Tianquan-Shoubing 用户存在且有效；
 - tokenVersion 未失效；
 - 清理伪造的内部身份 Header；
 - 把规范化身份上下文传给 MCP Runtime 或业务 Provider。
 
-基础层不得查询 RBAC3，不判断 Role/Permission。
+基础层不得查询 Tianquan-Jianshen，不判断 Role/Permission。
 
 ### 8.2 MCP Runtime 是下游授权主体
 
-MCP Runtime 虽与 Gateway 同进程，但逻辑上是下游应用。它必须：
+MCP Runtime 虽与 Yuheng 同进程，但逻辑上是下游应用。它必须：
 
 - 再次解析/验证规范化 JWT Claims；
-- 以 `(tid, sid)` 从 RBAC3 拉取授权快照；
+- 以 `(tid, sid)` 从 Tianquan-Jianshen 拉取授权快照；
 - 使用下游授权 Starter 缓存在自己的 Redis Namespace；
 - 校验 `mcp:{serverCode}:...` 权限、快照版本和 Fencing；
 - 不使用 Access Token 中不存在的 Role/Permission；
@@ -251,7 +251,7 @@ Tool Risk：`LOW`、`MEDIUM`、`HIGH`、`CRITICAL`。
 - HIGH：需要一次性 Approval；
 - CRITICAL：需要一次性 Approval，且配置必须显式允许该 Tool 对 MCP 暴露。
 
-Approval 由 Gateway Admin API 创建，绑定 `sid`、`tid`、`clientId`、`serverCode`、`toolName`、请求摘要和过期时间。客户端通过 `_meta.egon.approvalToken` 提交；Token 只存摘要、一次消费、默认 5 分钟过期，不能跨参数复用。
+Approval 由 Yuheng Admin API 创建，绑定 `sid`、`tid`、`clientId`、`serverCode`、`toolName`、请求摘要和过期时间。客户端通过 `_meta.egon.approvalToken` 提交；Token 只存摘要、一次消费、默认 5 分钟过期，不能跨参数复用。
 
 ## 9. Endpoint 与传输
 
@@ -282,22 +282,22 @@ Approval 由 Gateway Admin API 创建，绑定 `sid`、`tid`、`clientId`、`ser
 
 1. HTTP 方法、Header、MIME、Body 大小；
 2. Origin/Host/TLS；
-3. IdP 身份；
+3. Tianquan-Shoubing 身份；
 4. serverCode 与启用状态；
 5. 方言协商；
 6. JSON-RPC `2.0`、id、method、params；
 7. Header/body method/name 一致；
 8. per-request capabilities；
-9. MCP Runtime RBAC3 权限；
+9. MCP Runtime Tianquan-Jianshen 权限；
 10. Handler Schema 和业务约束。
 
-JSON-RPC 错误保留标准 code；MCP/Gateway 业务错误放入稳定的 `data.code`。任何异常都不得返回栈、SQL、Provider URL、Secret Reference 或内部类名。
+JSON-RPC 错误保留标准 code；MCP/Yuheng 业务错误放入稳定的 `data.code`。任何异常都不得返回栈、SQL、Provider URL、Secret Reference 或内部类名。
 
 ## 11. 能力模型
 
 ### 11.1 MCP Server
 
-Server 归属一个 Gateway Group，定义 serverCode、展示信息、instructions、协议方言、OAuth audience、列表缓存和启用状态。`serverCode` 在同 Group 内唯一，Endpoint 由固定前缀和 serverCode 生成，不允许管理员填任意路径。
+Server 归属一个 Yuheng Group，定义 serverCode、展示信息、instructions、协议方言、OAuth audience、列表缓存和启用状态。`serverCode` 在同 Group 内唯一，Endpoint 由固定前缀和 serverCode 生成，不允许管理员填任意路径。
 
 ### 11.2 Tool
 
@@ -355,7 +355,7 @@ Artifact 必须：
 - 只允许声明的依赖 Origin 和 Tool；
 - 提供安全下载 Header，禁止 Cookie 和父页面 DOM 访问。
 
-Gateway 不渲染 App，只注册、校验、发布、以 Resource 暴露并审计。Admin Web 的 App 预览也必须使用 sandbox iframe。
+Yuheng 不渲染 App，只注册、校验、发布、以 Resource 暴露并审计。Admin Web 的 App 预览也必须使用 sandbox iframe。
 
 ### 11.8 Remote MCP Federation
 
@@ -380,16 +380,16 @@ public interface GatewayOperationInvoker {
 Engine 实现必须直接复用：
 
 - Active Release 中的 Operation；
-- Gateway Security Context；
+- Yuheng Security Context；
 - Traffic Governance；
 - Provider Directory；
 - HTTP/RPC Upstream Adapter；
 - Timeout、Retry、Circuit、Bulkhead、大小限制；
 - Trace、Metrics、Audit。
 
-禁止 MCP Handler 请求 Gateway 自己的公开 Route。
+禁止 MCP Handler 请求 Yuheng 自己的公开 Route。
 
-## 13. Release、DDC 与 LKG
+## 13. Release、Tianshu 与 LKG
 
 ### 13.1 推荐的单快照模型
 
@@ -397,17 +397,17 @@ Engine 实现必须直接复用：
 
 发布时：
 
-1. Admin 同时读取 Gateway Draft 与 MCP Draft；
+1. Admin 同时读取 Yuheng Draft 与 MCP Draft；
 2. 校验 Operation、Schema、Artifact、Remote Capability 和权限引用；
 3. 生成一个 canonical snapshot 和 artifact SHA；
 4. 复用现有 inline/chunk publication journal；
-5. 写同一个 `gateway.rules.active`；
+5. 写同一个 `yuheng.rules.active`；
 6. Engine 同时编译 HTTP/RPC 与 MCP；
 7. 所有资源准备成功后写 LKG；
 8. 单次 `AtomicReference<CompiledGatewayRules>` 切换；
 9. 任一 MCP 编译失败时保持旧版本，不出现部分激活。
 
-这比多个 DDC Key 加 Bundle Pointer 更符合当前实现，也避免 DDC 多键非事务窗口。
+这比多个 Tianshu Key 加 Bundle Pointer 更符合当前实现，也避免 Tianshu 多键非事务窗口。
 
 ### 13.2 兼容
 
@@ -449,11 +449,11 @@ Engine 实现必须直接复用：
 - Approval token 只存 SHA-256，带 consumedAt 和 expiresAt；
 - Task owner、status/expiry、pending worker 建索引；
 - Task 状态和关键枚举有 CHECK；
-- 不在 Gateway MCP 表中保存 IdP 密码、RBAC Role 或 Permission 副本。
+- 不在 Yuheng MCP 表中保存 Tianquan-Shoubing 密码、RBAC Role 或 Permission 副本。
 
 ## 15. Admin API
 
-统一前缀：`/api/v1/gateway/admin/mcp`。
+统一前缀：`/api/v1/yuheng/admin/mcp`。
 
 ### 15.1 Servers 与能力
 
@@ -481,7 +481,7 @@ Engine 实现必须直接复用：
 - `POST /servers/{serverId}/validate`
 - `GET /servers/{serverId}/capability-preview`
 - `POST /servers/{serverId}/protocol-inspect`
-- 复用现有 Gateway Release preview/publish/rollback API，MCP 不单独发布
+- 复用现有 Yuheng Release preview/publish/rollback API，MCP 不单独发布
 - `POST /approvals` 创建一次性高风险调用审批
 
 所有写 API 使用 Idempotency-Key、expectedRevision、审计 actor、统一错误模型；Remote test、Tool test 和 Prompt test 不允许绕过正常权限与治理。
@@ -518,24 +518,24 @@ Engine 实现必须直接复用：
 - Remote discover 显示能力 diff 和冲突；
 - Protocol Inspector 能构造 Stable/RC 请求并展示脱敏响应/Trace；
 - Release 页面显示 MCP 变更摘要并与 HTTP/RPC 一起发布；
-- Unified SSO 替换当前本地 Login，不再保存旧 RBAC3/Gateway token。
+- Unified SSO 替换当前本地 Login，不再保存旧 Tianquan-Jianshen/Yuheng token。
 
 ### 16.3 权限
 
-页面和按钮分别使用 RBAC3 权限：
+页面和按钮分别使用 Tianquan-Jianshen 权限：
 
-- `gateway:mcp:read`
-- `gateway:mcp:write`
-- `gateway:mcp:test`
-- `gateway:mcp:release`
-- `gateway:mcp:approve`
-- `gateway:mcp:runtime:read`
+- `yuheng:mcp:read`
+- `yuheng:mcp:write`
+- `yuheng:mcp:test`
+- `yuheng:mcp:release`
+- `yuheng:mcp:approve`
+- `yuheng:mcp:runtime:read`
 
 前端隐藏不代表授权，后端必须再次校验。
 
 ## 17. 安全
 
-- JWT、RBAC3、Origin、Host、TLS/mTLS 分层校验；
+- JWT、Tianquan-Jianshen、Origin、Host、TLS/mTLS 分层校验；
 - 不信任 Tool/Prompt/Resource/Remote 描述；
 - JSON Schema 2020-12，限制深度、引用、正则和校验时间；
 - 禁止自动获取外部 `$ref`；
@@ -558,9 +558,9 @@ Engine 实现必须直接复用：
 - Durable Task 使用 PostgreSQL，共享 Worker Lease；
 - App Artifact 使用不可变共享/本机测试存储，哈希校验；
 - Remote Client Pool 有 timeout、bulkhead、circuit breaker 和健康探测；
-- DDC 中断继续使用 Active/LKG；
+- Tianshu 中断继续使用 Active/LKG；
 - 新 Release 编译失败不替换旧 Active；
-- Engine 启动优先恢复 LKG，再等待 DDC；
+- Engine 启动优先恢复 LKG，再等待 Tianshu；
 - Remote capability 漂移只告警，不改变 Active Release。
 
 ### 18.2 Metrics
@@ -577,7 +577,7 @@ Engine 实现必须直接复用：
 
 ### 18.3 Trace 与 Audit
 
-Trace 根为 `mcp.server.request`，子 Span 包括 primitive handler、`gateway.operation.invoke`、remote attempt、artifact read 和 task store。Stable/RC Header 与 `_meta` Trace Context 双向适配。
+Trace 根为 `mcp.server.request`，子 Span 包括 primitive handler、`yuheng.operation.invoke`、remote attempt、artifact read 和 task store。Stable/RC Header 与 `_meta` Trace Context 双向适配。
 
 审计覆盖控制面 CRUD、Release、Tool Call、Resource Read、Prompt Get、Task 全生命周期、App Read、Remote Sync/Call 和 Approval，正文只保存摘要与哈希。
 
@@ -603,7 +603,7 @@ Trace 根为 `mcp.server.request`，子 Span 包括 primitive handler、`gateway
 
 ```yaml
 egon:
-  gateway:
+  yuheng:
     mcp:
       enabled: true
       endpoint-prefix: /mcp
@@ -669,7 +669,7 @@ egon:
 - RC 使用固定官方 Schema/场景测试；
 - Legacy SSE 与现有兼容 Client；
 - 无效 JSON、批量、重复 id、超深/超大、慢请求；
-- Origin/Host、JWT、audience、tokenVersion、RBAC3、Approval；
+- Origin/Host、JWT、audience、tokenVersion、Tianquan-Jianshen、Approval；
 - SSRF、路径穿越、外部 `$ref`、Prompt Injection、Artifact XSS/CSP；
 - Task/Approval 枚举、重放、跨用户/租户/客户端访问；
 - Remote Token 泄漏、Secret 日志和 Header 清理。
@@ -678,12 +678,12 @@ egon:
 
 最终验证必须实际启动：
 
-- IdP
-- RBAC3
-- DDC
-- Gateway Admin/Engine
-- Gateway Admin Web
-- DDC/RBAC3/IdP Admin Web
+- Tianquan-Shoubing
+- Tianquan-Jianshen
+- Tianshu
+- Yuheng Admin/Engine
+- Yuheng Admin Web
+- Tianshu/Tianquan-Jianshen/Tianquan-Shoubing Admin Web
 - 本地 Redis、PostgreSQL；若现有发布链需要则启动 Kafka
 - HTTP Provider、RPC Provider、Job Provider
 - Stable Remote MCP、RC Remote MCP、Remote Apps Server
@@ -691,17 +691,17 @@ egon:
 
 验证链路：
 
-1. IdP 登录与 SSO；
-2. RBAC3 租户映射和权限发布；
-3. Gateway Admin 创建 MCP Server 和所有能力；
-4. DDC 发布统一 Release；
+1. Tianquan-Shoubing 登录与 SSO；
+2. Tianquan-Jianshen 租户映射和权限发布；
+3. Yuheng Admin 创建 MCP Server 和所有能力；
+4. Tianshu 发布统一 Release；
 5. Engine 激活并从 LKG 恢复；
 6. Stable/RC/Legacy 发现、列表和调用；
 7. HTTP/RPC Tool、Resource、Prompt、Completion；
 8. Task 跨 Engine 创建/读取/更新/取消；
 9. App Artifact 获取和 Host 调用；
 10. Remote Stable/RC 能力挂载和互译；
-11. 断开 DDC、Redis/Remote 短暂故障、错误 Release 回滚；
+11. 断开 Tianshu、Redis/Remote 短暂故障、错误 Release 回滚；
 12. Admin Web Playwright 完成关键配置与发布路径。
 
 Maven、H2、Mock 或 Testcontainers 结果只能证明对应范围，不能替代上述本机真实多进程证据。
@@ -715,9 +715,9 @@ Maven、H2、Mock 或 Testcontainers 结果只能证明对应范围，不能替�
 - V7 在空 PostgreSQL 和从 V1-V6 升级两种路径通过；
 - Stable/RC/Legacy 客户端成功；
 - 所有 primitive、本地/远端能力和前端页面可用；
-- IdP、RBAC3、Gateway、DDC 和模拟后端实际打通；
+- Tianquan-Shoubing、Tianquan-Jianshen、Yuheng、Tianshu 和模拟后端实际打通；
 - 最终所需进程保持运行并给出端口、PID、日志与测试账号获取方式；
-- 无默认密码、明文 Secret、旧 RBAC3 Token 或未审计的旁路。
+- 无默认密码、明文 Secret、旧 Tianquan-Jianshen Token 或未审计的旁路。
 
 ## 22. 设计自审
 
@@ -727,14 +727,14 @@ Maven、H2、Mock 或 Testcontainers 结果只能证明对应范围，不能替�
 
 ### 22.2 一致性
 
-- Gateway 基础层只做身份校验；MCP Runtime 作为下游应用读取 RBAC3，符合已批准统一身份边界；
+- Yuheng 基础层只做身份校验；MCP Runtime 作为下游应用读取 Tianquan-Jianshen，符合已批准统一身份边界；
 - HTTP/RPC 与 MCP 共享一个 Release/LKG/Atomic Reference，不存在部分激活；
 - Remote 不接收入站 Token；本地 Provider 继续自己授权；
 - 旧 Snapshot 缺 MCP 字段时可读，兼容当前发布历史。
 
 ### 22.3 取舍
 
-相对原始完整设计，唯一重要结构调整是不用四类 DDC Artifact Key 和第二个 Bundle Pointer，而把 MCP Rule 嵌入现有 canonical snapshot。该调整减少多键一致性窗口，直接复用当前发布日志、回滚和 LKG，能力范围没有减少。
+相对原始完整设计，唯一重要结构调整是不用四类 Tianshu Artifact Key 和第二个 Bundle Pointer，而把 MCP Rule 嵌入现有 canonical snapshot。该调整减少多键一致性窗口，直接复用当前发布日志、回滚和 LKG，能力范围没有减少。
 
 ### 22.4 清晰性
 

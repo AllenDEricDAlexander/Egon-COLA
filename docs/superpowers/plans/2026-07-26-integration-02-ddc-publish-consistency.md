@@ -1,8 +1,8 @@
-# Integration 02 DDC Publish Consistency Implementation Plan
+# Integration 02 Tianshu Publish Consistency Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 DDC 具备 exact config 查询、draft/published 分离、Cluster-safe 原子 Redis 发布、可恢复 dispatcher、可靠 ACK 和确定性应用顺序。
+**Goal:** 让 Tianshu 具备 exact config 查询、draft/published 分离、Cluster-safe 原子 Redis 发布、可恢复 dispatcher、可靠 ACK 和确定性应用顺序。
 
 **Architecture:** DB 保存 immutable config version 和 durable publish task，`published_version` 是 pull 唯一运行态指针。Redis v2 key 使用同 scope hash tag，Lua 原子写 value/version/event；失败通过同一 task 前向重放，不引入 DB/Redis 2PC。
 
@@ -11,7 +11,7 @@
 ## Global Constraints
 
 - 依赖 Integration 01 已完成。
-- 不修改 DDC V1-V3；PostgreSQL、SQLite 各新增一份 V4。
+- 不修改 Tianshu V1-V3；PostgreSQL、SQLite 各新增一份 V4。
 - `current_version` 仍表示最新 draft；pull 只读 `published_version` 对应的 immutable version。
 - Redis 合同是幂等至少一次和前向收敛，不宣称分布式事务。
 - Redis v2 与 legacy 双写/双 topic 一个 minor release。
@@ -21,31 +21,31 @@
 ### Task 1: 增加 management exact config GET
 
 **Files:**
-- Create: `.../management-client/src/main/java/top/egon/cola/component/ddc/management/model/DdcManagementConfigQuery.java`
-- Create: `.../management-client/src/main/java/top/egon/cola/component/ddc/management/client/DdcManagementErrorCode.java`
-- Modify: `.../management-client/src/main/java/top/egon/cola/component/ddc/management/DdcManagementClient.java`
-- Modify: `.../management-client/src/main/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClient.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiController.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacade.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`
-- Test: `.../management-client/src/test/java/top/egon/cola/component/ddc/management/client/HttpDdcManagementClientTest.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcManagementOpenApiControllerTest.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcManagementFacadeTest.java`
+- Create: `.../management-client/src/main/java/top/egon/cola/component/tianshu/management/model/DdcManagementConfigQuery.java`
+- Create: `.../management-client/src/main/java/top/egon/cola/component/tianshu/management/client/DdcManagementErrorCode.java`
+- Modify: `.../management-client/src/main/java/top/egon/cola/component/tianshu/management/DdcManagementClient.java`
+- Modify: `.../management-client/src/main/java/top/egon/cola/component/tianshu/management/client/HttpDdcManagementClient.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcManagementOpenApiController.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcManagementFacade.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcConfigService.java`
+- Test: `.../management-client/src/test/java/top/egon/cola/component/tianshu/management/client/HttpDdcManagementClientTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcManagementOpenApiControllerTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcManagementFacadeTest.java`
 
 **Interfaces:**
 - Produces `Optional<DdcManagementConfig> findConfig(DdcManagementConfigQuery query)`.
 - Produces GET
-  `/api/v1/ddc/openapi/management/configs/{appCode}/{env}/{namespace}/{configKey}`.
+  `/api/v1/tianshu/openapi/management/configs/{appCode}/{env}/{namespace}/{configKey}`.
 - Produces stable codes `CONFIG_NOT_FOUND` and `PUBLISH_TASK_NOT_FOUND`.
 
 - [ ] **Step 1: Write failing client and controller tests**
 
 ```java
 assertThat(client.findConfig(new DdcManagementConfigQuery(
-        "gateway-engine-default", "test", "default", "gateway.rules.active"
+        "yuheng-biz-gateway-default", "test", "default", "yuheng.rules.active"
 ))).contains(new DdcManagementConfig(
-        "gateway-engine-default", "test", "default",
-        "gateway.rules.active", "{}", "JSON", 3L,
+        "yuheng-biz-gateway-default", "test", "default",
+        "yuheng.rules.active", "{}", "JSON", 3L,
         true, false, Instant.parse("2026-07-26T00:00:00Z")
 ));
 ```
@@ -95,7 +95,7 @@ Run Step 2. Expected: PASS.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center
-git commit -m "feat: query exact ddc management config"
+git commit -m "feat: query exact tianshu management config"
 ```
 
 ### Task 2: 增加 published_version 与运行态读取
@@ -103,13 +103,13 @@ git commit -m "feat: query exact ddc management config"
 **Files:**
 - Create: `.../admin/src/main/resources/db/postgresql/V4__add_published_config_pointer.sql`
 - Create: `.../admin/src/main/resources/db/sqlite/V4__add_published_config_pointer.sql`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcConfigItemEntity.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigService.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcCacheService.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigVersionRepository.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV4MigrationTest.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcConfigServiceTest.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcCacheServiceTest.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/model/entity/DdcConfigItemEntity.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcConfigService.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcCacheService.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigVersionRepository.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcV4MigrationTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcConfigServiceTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcCacheServiceTest.java`
 
 **Interfaces:**
 - Produces `DdcConfigItemEntity.publishedVersion`.
@@ -178,20 +178,20 @@ Run Step 2 and the existing SQLite/PostgreSQL migration test profiles. Expected:
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
-git commit -m "feat: separate ddc draft and published versions"
+git commit -m "feat: separate tianshu draft and published versions"
 ```
 
 ### Task 3: 建立 Redis v2 hash-tag key 合同
 
 **Files:**
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/repository/DdcRedisConfigRepository.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeSubscription.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManager.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigLeaseRedisRepository.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepository.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/common/DdcKeys.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/repository/DdcRedisConfigRepository.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/listener/DdcRedisChangeSubscription.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/registry/DdcRegistrySubscriptionManager.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/config/DdcAutoConfig.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepository.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`
 - Modify: `.../admin/src/main/resources/redis/ddc_config_lease_register.lua`
 - Modify: `.../admin/src/main/resources/redis/ddc_config_lease_heartbeat.lua`
 - Modify: `.../admin/src/main/resources/redis/ddc_config_lease_deregister.lua`
@@ -201,10 +201,10 @@ git commit -m "feat: separate ddc draft and published versions"
 - Modify: `.../admin/src/main/resources/redis/ddc_service_deregister.lua`
 - Modify: `.../admin/src/main/resources/redis/ddc_service_expire.lua`
 - Modify: `.../dynamic-config-center-test/pom.xml`
-- Create: `.../dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcRedisSentinelIT.java`
-- Create: `.../dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcRedisClusterIT.java`
-- Test: `.../starter/src/test/java/top/egon/cola/component/ddc/common/DdcKeysTest.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcRedisClusterSlotContractTest.java`
+- Create: `.../dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/DdcRedisSentinelIT.java`
+- Create: `.../dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/DdcRedisClusterIT.java`
+- Test: `.../starter/src/test/java/top/egon/cola/component/tianshu/common/DdcKeysTest.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisClusterSlotContractTest.java`
 
 **Interfaces:**
 - Produces `DdcKeys.v2Config*`, `v2Registry*`, legacy fallback and topic names.
@@ -263,7 +263,7 @@ compatibility window.
 ./mvnw -B -ntp \
   -pl egon-cola-components/egon-cola-component-dynamic-config-center/\
 egon-cola-component-dynamic-config-center-test -am \
-  -Pddc-redis-sentinel,ddc-redis-cluster verify
+  -Pddc-redis-sentinel,tianshu-redis-cluster verify
 ```
 
 Expected: Sentinel master failover reconnects; Cluster registration, heartbeat, deregistration, lease expiry and
@@ -274,22 +274,22 @@ gaps separately.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center
-git commit -m "feat: add cluster-safe ddc redis keys"
+git commit -m "feat: add cluster-safe tianshu redis keys"
 ```
 
 ### Task 4: 原子 Redis dispatch 与 published pointer 推进
 
 **Files:**
-- Create: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcAtomicPublishCommand.java`
+- Create: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcAtomicPublishCommand.java`
 - Create: `.../admin/src/main/resources/redis/ddc_config_publish.lua`
-- Create: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPendingPublishDispatcher.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishService.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishStateTransitionService.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishStartupRecovery.java`
-- Modify: `.../admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigItemRepository.java`
-- Test: `.../admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishDispatchConsistencyTest.java`
+- Create: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPendingPublishDispatcher.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/common/DdcKeys.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPublishService.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPublishStateTransitionService.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/service/PublishStartupRecovery.java`
+- Modify: `.../admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigItemRepository.java`
+- Test: `.../admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcPublishDispatchConsistencyTest.java`
 - Test: existing Admin publish preparation, retry, failure and startup recovery tests
 
 **Interfaces:**
@@ -352,20 +352,20 @@ Run Step 2 plus existing Admin integration tests. Expected: PASS, including lost
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin
-git commit -m "feat: make ddc redis publish recoverable"
+git commit -m "feat: make tianshu redis publish recoverable"
 ```
 
 ### Task 5: ACK 重试和确定性 Applier 顺序
 
 **Files:**
-- Create: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DdcAckDelivery.java`
-- Create: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DdcAckDeliveryProperties.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DdcRefreshService.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DdcConfigApplier.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/service/DefaultDdcConfigApplierRegistry.java`
-- Modify: `.../starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Test: `.../starter/src/test/java/top/egon/cola/component/ddc/service/DdcAckDeliveryTest.java`
-- Test: `.../starter/src/test/java/top/egon/cola/component/ddc/service/DdcRefreshServiceTest.java`
+- Create: `.../starter/src/main/java/top/egon/cola/component/tianshu/service/DdcAckDelivery.java`
+- Create: `.../starter/src/main/java/top/egon/cola/component/tianshu/service/DdcAckDeliveryProperties.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRefreshService.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/service/DdcConfigApplier.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/service/DefaultDdcConfigApplierRegistry.java`
+- Modify: `.../starter/src/main/java/top/egon/cola/component/tianshu/config/DdcAutoConfig.java`
+- Test: `.../starter/src/test/java/top/egon/cola/component/tianshu/service/DdcAckDeliveryTest.java`
+- Test: `.../starter/src/test/java/top/egon/cola/component/tianshu/service/DdcRefreshServiceTest.java`
 
 **Interfaces:**
 - Produces `DdcConfigApplier.priority()` default `0`.
@@ -399,7 +399,7 @@ Use a `DelayQueue`/single bounded scheduled executor, key requests by
 `changeId|instanceId|leaseId`, retry only transport/5xx, use exponential backoff with jitter, and expose counters.
 `DdcRefreshService` applies sorted snapshots and submits ACK rather than performing a single synchronous call.
 
-- [ ] **Step 4: Run full DDC reactor**
+- [ ] **Step 4: Run full Tianshu reactor**
 
 ```bash
 ./mvnw -B -ntp \
@@ -413,5 +413,5 @@ Expected: PASS with no lingering ACK executor thread.
 
 ```bash
 git add egon-cola-components/egon-cola-component-dynamic-config-center
-git commit -m "feat: retry ddc acknowledgements safely"
+git commit -m "feat: retry tianshu acknowledgements safely"
 ```

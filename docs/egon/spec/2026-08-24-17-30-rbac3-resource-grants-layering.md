@@ -1,37 +1,37 @@
-# RBAC3 资源授权、权限字符内隐化与控制面重新分层规格
+# Tianquan-Jianshen 资源授权、权限字符内隐化与控制面重新分层规格
 
 | Field | Value |
 | --- | --- |
-| Document | `docs/egon/spec/2026-08-24-17-30-rbac3-resource-grants-layering.md` |
+| Document | `docs/egon/spec/2026-08-24-17-30-tianquan-jianshen-resource-grants-layering.md` |
 | Template Version | `4` |
 | Status | `Accepted` |
 | Type | `Architecture / Refactor` |
 | Complexity | `Complex` |
-| Complexity Drivers | `角色授权语义由权限字符改为资源授权、Spring Method Security双重资源/权限判定、PostgreSQL破坏式关系替换、About与React运行时契约变更、CI资源上报与人工映射所有权拆分、RBAC3 Admin大包重新分层、共享Admin Web布局及DDC/Gateway/IdP/RBAC3四个消费者协同发布` |
+| Complexity Drivers | `角色授权语义由权限字符改为资源授权、Spring Method Security双重资源/权限判定、PostgreSQL破坏式关系替换、About与React运行时契约变更、CI资源上报与人工映射所有权拆分、Tianquan-Jianshen Admin大包重新分层、共享Admin Web布局及DDC/Yuheng/Tianquan-Shoubing/RBAC3四个消费者协同发布` |
 | Created | `2026-08-24 17:30 CST` |
 | Updated | `2026-08-25 10:42 CST` |
 | Owner | `Mario / Egon-COLA` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-tianquan-jianshen-contract、core、starter、admin、react-sdk、admin-web；egon-cola-xingyuan-admin-web-shared；DDC/Gateway/IdP/RBAC3四个Admin Web；RBAC3 Admin Java包分层；RBAC3 PostgreSQL V13；CI前端资源上报脚本` |
+| Scope | `egon-cola-tianquan-jianshen-contract、core、starter、admin、react-sdk、admin-web；egon-cola-xingyuan-admin-web-shared；Tianshu/Yuheng/Tianquan-Shoubing/RBAC3四个Admin Web；Tianquan-Jianshen Admin Java包分层；Tianquan-Jianshen PostgreSQL V13；CI前端资源上报脚本` |
 | Change Surface | `角色-权限字符关系替换为角色-资源授权；资源-权限字符映射成为唯一运行时翻译关系；About/React按resourceCodes控制MENU/ROUTE/ACTION；API注解同时校验资源和权限；IAM/authorization/registration/runtime及历史残留重新分层命名；共享Admin Header只保留Banner职责，四个Admin Web的树状菜单/路由移到桌面左侧Sider并在窄屏使用左侧Drawer` |
 | Affected Chapters | `§7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18` |
-| Source Requirement | `2026-08-24 用户决定：角色绑定接口、菜单和菜单按钮而不是权限字符；权限字符对用户无感，由管理员维护资源与权限字符映射，运行时判定才使用权限字符；页面与按钮分别获得其调用API，共享API按任一来源满足的OR并集语义；保留Egon-COLA授权能力，并重新分层命名基础IAM六类实体、授权关系、运行时策略、CI上报和历史残留；MENU/ROUTE必须以树状左侧菜单呈现，顶部仅是Banner/Header，DDC、Gateway、IdP、RBAC3四个Admin Web全部纳入改造` |
+| Source Requirement | `2026-08-24 用户决定：角色绑定接口、菜单和菜单按钮而不是权限字符；权限字符对用户无感，由管理员维护资源与权限字符映射，运行时判定才使用权限字符；页面与按钮分别获得其调用API，共享API按任一来源满足的OR并集语义；保留Egon-COLA授权能力，并重新分层命名基础IAM六类实体、授权关系、运行时策略、CI上报和历史残留；MENU/ROUTE必须以树状左侧菜单呈现，顶部仅是Banner/Header，Tianshu、Yuheng、Tianquan-Shoubing、RBAC3四个Admin Web全部纳入改造` |
 | Baseline Revision | `main@df425ed9484d20e6235666d91e947742998ab475；工作树另有用户未提交的IdP Spec/Plan与Access Guard/Open Archetype文档，本Spec不修改它们` |
-| Amends | [RBAC3 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md) §1–§5、§7.3.3、§7.3.5、§8、§9.2.3–§9.2.5、§9.3–§9.5、§10.2–§10.7、§11.2.4–§11.2.9、§12–§19；[RBAC3 Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §3、§4.2–§4.4、§5.5–§5.6、§6–§9 |
+| Amends | [Tianquan-Jianshen 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-tianquan-jianshen-annotation-userdetails-field-authorization.md) §1–§5、§7.3.3、§7.3.5、§8、§9.2.3–§9.2.5、§9.3–§9.5、§10.2–§10.7、§11.2.4–§11.2.9、§12–§19；[Tianquan-Jianshen Admin IAM 聚合迁移 Spec](../../../egon-cola-xingyuan/egon-cola-tianquan-jianshen/docs/iam-package-aggregation-migration-spec.md) §3、§4.2–§4.4、§5.5–§5.6、§6–§9 |
 | Supersedes | `None` |
-| Depends On | [RBAC3 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-rbac3-annotation-userdetails-field-authorization.md) §3.2、§5.1、§7.1–§7.3.2、§7.3.4、§15–§16中未被本规格明确修订的JWT、UserDetails、active role、字段策略与无Session规则 |
-| Related Specs | [IdP OAuth Client 与租户所有权迁移规格](2026-08-21-07-51-idp-oauth-client-tenant-ownership.md) |
-| Related Plans | [RBAC3 注解权限、全局资源目录与无状态认证实施计划](../plan/2026-08-17-15-07-rbac3-annotation-resource-catalog-implementation.md)；[RBAC3 资源授权、控制面分层与四端左树布局实施计划](../plan/2026-08-25-10-19-rbac3-resource-grants-layering-implementation.md) |
+| Depends On | [Tianquan-Jianshen 注解化权限、UserDetails、字段权限与 RT 在线态改造规格](2026-08-17-09-37-tianquan-jianshen-annotation-userdetails-field-authorization.md) §3.2、§5.1、§7.1–§7.3.2、§7.3.4、§15–§16中未被本规格明确修订的JWT、UserDetails、active role、字段策略与无Session规则 |
+| Related Specs | [Tianquan-Shoubing OAuth Client 与租户所有权迁移规格](2026-08-21-07-51-tianquan-shoubing-oauth-client-tenant-ownership.md) |
+| Related Plans | [Tianquan-Jianshen 注解权限、全局资源目录与无状态认证实施计划](../plan/2026-08-17-15-07-tianquan-jianshen-annotation-resource-catalog-implementation.md)；[Tianquan-Jianshen 资源授权、控制面分层与四端左树布局实施计划](../plan/2026-08-25-10-19-tianquan-jianshen-resource-grants-layering-implementation.md) |
 
 ## 1. Summary
 
-当前角色授权的真实写入链是 `RolePermissionPage.permissionIds -> POST /api/rbac3/v1/roles/{roleId}/permissions -> RolePermissionPO -> rbac3_role_permission`。管理员需要输入不可读的数据库 ID，角色直接感知权限字符；运行时再从 `rbac3_role_permission`读取字符。与此同时，`RBACAPIResource(code, permission, name)` 的 `code` 当前只被检查非空，`Rbac3MethodAuthorizationManager`最终只调用 `AuthorizationService.requirePermission(permission)`。这与用户确认的“角色绑定接口、菜单、菜单按钮；权限字符只作为内部判定键”不一致。
+当前角色授权的真实写入链是 `RolePermissionPage.permissionIds -> POST /api/tianquan-jianshen/v1/roles/{roleId}/permissions -> RolePermissionPO -> rbac3_role_permission`。管理员需要输入不可读的数据库 ID，角色直接感知权限字符；运行时再从 `rbac3_role_permission`读取字符。与此同时，`RBACAPIResource(code, permission, name)` 的 `code` 当前只被检查非空，`Rbac3MethodAuthorizationManager`最终只调用 `AuthorizationService.requirePermission(permission)`。这与用户确认的“角色绑定接口、菜单、菜单按钮；权限字符只作为内部判定键”不一致。
 
 目标模型改为：角色直接授权菜单/页面、按钮，以及确有需要的独立API资源。现有技术模型中，无路径的 `MENU` 是导航分组，带页面路径的 `ROUTE` 才是用户口中的“菜单/页面”；管理页面把二者合成一棵“菜单/页面树”，只把 `ROUTE` 叶子作为直接授权根，把 `ACTION`显示为“按钮”，不向角色配置者展示权限字符。页面和按钮分别维护其调用的API资源集合；运行时按并集展开：拥有任意一个页面就获得该页面调用的全部API，拥有按钮就获得该按钮调用的全部API，同一API被多个页面/按钮复用时任意一个来源满足即可，不记录或判定具体来源。没有UI入口的API仍可直接授权。管理员在资源目录的高级配置中维护“可授权资源 -> 权限字符”的唯一映射。运行时从直接/继承授权根和展开后的API集合派生权限字符；仅为导航组树而补齐的父MENU不派生权限。`@RBACAPIResource` 同时要求 API resource code 和 permission code，通用 `@RequiresPermission`继续只按权限字符判定。FIELD 不进入角色资源授权，继续由字段规则和 Jackson PEP 决定；BIZ/APP 访问、用户角色、active role、数据规则、字段规则、SOD、Fence、缓存与失效机制均保留。
 
-控制面按职责重新分层：`admin.iam` 只保留 User、Role、Business、Application、Organization、Position 六类基础管理对象；资源目录、权限字符、授权关系和策略进入 `admin.authorization`；CI 上报进入 `admin.registration.ci`；active role、快照、决策、发布与授权状态进入 `admin.authorization.runtime`。Tenant 主数据仍由 IdP 持有，RBAC 只保留可信 tenant context 与 tenant authorization state。历史的 `RolePermission*`、`PermissionResource*`、裸权限字符角色页、重复 Controller、空 package-info 壳和旧 principal/envelope 不建立 legacy 包，直接迁移或删除。
+控制面按职责重新分层：`admin.iam` 只保留 User、Role、Business、Application、Organization、Position 六类基础管理对象；资源目录、权限字符、授权关系和策略进入 `admin.authorization`；CI 上报进入 `admin.registration.ci`；active role、快照、决策、发布与授权状态进入 `admin.authorization.runtime`。Tenant 主数据仍由 Tianquan-Shoubing 持有，RBAC 只保留可信 tenant context 与 tenant authorization state。历史的 `RolePermission*`、`PermissionResource*`、裸权限字符角色页、重复 Controller、空 package-info 壳和旧 principal/envelope 不建立 legacy 包，直接迁移或删除。
 
-四个管理前端的应用框架同时修正：顶部 `EnterpriseHeader` 只承担品牌、平台状态、全局操作和用户区的Banner职责，不再渲染桌面导航；`EnterpriseLayout`在桌面端把授权过滤后的MENU/ROUTE递归树放入左侧`Layout.Sider`，窄屏改用从左侧打开的Drawer。DDC、Gateway、IdP、RBAC3继续拥有各自的路由、菜单数据和既有认证/授权上下文；共享包只负责树渲染、当前路由高亮、祖先展开、折叠和响应式行为，不新增后端接口、全局前端store或第二套权限来源。
+四个管理前端的应用框架同时修正：顶部 `EnterpriseHeader` 只承担品牌、平台状态、全局操作和用户区的Banner职责，不再渲染桌面导航；`EnterpriseLayout`在桌面端把授权过滤后的MENU/ROUTE递归树放入左侧`Layout.Sider`，窄屏改用从左侧打开的Drawer。Tianshu、Yuheng、Tianquan-Shoubing、RBAC3继续拥有各自的路由、菜单数据和既有认证/授权上下文；共享包只负责树渲染、当前路由高亮、祖先展开、折叠和响应式行为，不新增后端接口、全局前端store或第二套权限来源。
 
 ## 2. Background and Current State
 
@@ -39,13 +39,13 @@
 
 角色配置是面向管理员的业务操作。管理员能理解“用户管理菜单”“新增用户按钮”“创建用户 API”，但不应通过 `system:user:create` 或数据库 permission ID 推断业务含义。权限字符仍是稳定的运行时能力键：方法注解、数据范围、字段规则、SOD 和审计继续引用它；只是它不再作为角色配置的主对象。
 
-本文把“基础 IAM 六类实体”固定定义为：`User`、`Role`、`Business`、`Application`、`Organization`、`Position`。其中 Business/Application 的主数据仍在 DDC，RBAC 的对应包只保存目录投影、接纳状态和授权所需引用；Tenant 主数据和核心用户信息仍在 IdP。`Resource`、`Permission`、`Grant`、`Policy`不是第七、第八类基础实体，而是授权控制面的资源目录、翻译关系、授权事实和运行时策略。
+本文把“基础 IAM 六类实体”固定定义为：`User`、`Role`、`Business`、`Application`、`Organization`、`Position`。其中 Business/Application 的主数据仍在 Tianshu，RBAC 的对应包只保存目录投影、接纳状态和授权所需引用；Tenant 主数据和核心用户信息仍在 Tianquan-Shoubing。`Resource`、`Permission`、`Grant`、`Policy`不是第七、第八类基础实体，而是授权控制面的资源目录、翻译关系、授权事实和运行时策略。
 
 ### 2.2 Repository evidence
 
 | Evidence ID | Classification | Exact path/symbol/decision/command | Observed fact | Design significance | Verification limit/freshness |
 | --- | --- | --- | --- | --- | --- |
-| `EVD-001` | Static repository | `admin/iam/role/controller/RolePermissionController#bindPermissions` | `POST /api/rbac3/v1/roles/{roleId}/permissions` 接收 `permissionIds` | 当前角色直接绑定权限字符关系 | 源码证据，未启动服务 |
+| `EVD-001` | Static repository | `admin/iam/role/controller/RolePermissionController#bindPermissions` | `POST /api/tianquan-jianshen/v1/roles/{roleId}/permissions` 接收 `permissionIds` | 当前角色直接绑定权限字符关系 | 源码证据，未启动服务 |
 | `EVD-002` | Static repository | `admin-web/src/features/role/RolePermissionPage.tsx` | 页面要求手填逗号分隔的 Permission IDs | 当前用户体验不可读且容易配错 | 前端源码证据 |
 | `EVD-003` | Static repository | `JpaRoleRepository#assignPermissions` | 校验 `PermissionPO` 后写 `RolePermissionPO`；方法是增量添加，页面文案却写“原子替换” | 契约、实现和页面语义已漂移 | 未连接PostgreSQL |
 | `EVD-004` | Static repository | `V1__create_rbac3_schema.sql`、`V7__globalize_resource_catalog_and_remove_manifest.sql` | 同时存在 `rbac3_role_permission`、`rbac3_permission_resource` 和 `rbac3_resource.required_permission_id` | 角色关系错误且资源映射有双重事实 | Flyway源码，不证明live schema无漂移 |
@@ -64,12 +64,12 @@
 | `EVD-017` | Static repository | `egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseHeader.tsx` | 桌面端在`Layout.Header`内渲染`Menu mode="horizontal"`，品牌、导航、操作和用户全部挤在顶部 | 证实当前所谓菜单实际位于Banner/Header | 源码证据，未做浏览器视觉验证 |
 | `EVD-018` | Static repository | `EnterpriseLayout.tsx` | 当前骨架只有Header、Content、Footer，没有`Layout.Sider` | 左侧菜单必须由共享Layout补齐，不能只改四个平台CSS | 源码证据 |
 | `EVD-019` | Static repository | shared `layout/types.ts`、`EnterpriseLayout.test.tsx` | `EnterpriseNavigationItem.children`与递归菜单已经存在；窄屏已有左Drawer，桌面仍横向 | 可复用现有树模型和移动Drawer，无需新导航模型/store | 测试只证明组件行为，不证明四应用视觉一致 |
-| `EVD-020` | Static repository | DDC `src/layouts/AdminLayout.tsx` | 8条导航是flat数组，但已有运行状态/配置管理/元数据管理`group` | DDC可直接把现有分组提升为树父MENU | 本地静态定义 |
-| `EVD-021` | Static repository | IdP `src/app/AdminLayout.tsx`、Gateway `src/layouts/AdminLayout.tsx` | 两端先按bootstrap permission/capability过滤，再把flat items传给`EnterpriseLayout` | 树改造必须保留各自过滤来源与deep-link guard | 未验证live bootstrap内容 |
-| `EVD-022` | Static repository | RBAC3 `resourceDefinitions.json -> FrontendResourceRegistry.navigation -> visibleNavigation` | RBAC3已经产出`MENU/ROUTE children`递归树，但shared在桌面端仍放到Header横向Menu | RBAC3不需第二棵树，只需共享Layout正确放置 | 当前registry仍按permission，目标按REQ-007改为resourceCodes |
+| `EVD-020` | Static repository | Tianshu `src/layouts/AdminLayout.tsx` | 8条导航是flat数组，但已有运行状态/配置管理/元数据管理`group` | DDC可直接把现有分组提升为树父MENU | 本地静态定义 |
+| `EVD-021` | Static repository | Tianquan-Shoubing `src/app/AdminLayout.tsx`、Yuheng `src/layouts/AdminLayout.tsx` | 两端先按bootstrap permission/capability过滤，再把flat items传给`EnterpriseLayout` | 树改造必须保留各自过滤来源与deep-link guard | 未验证live bootstrap内容 |
+| `EVD-022` | Static repository | Tianquan-Jianshen `resourceDefinitions.json -> FrontendResourceRegistry.navigation -> visibleNavigation` | RBAC3已经产出`MENU/ROUTE children`递归树，但shared在桌面端仍放到Header横向Menu | RBAC3不需第二棵树，只需共享Layout正确放置 | 当前registry仍按permission，目标按REQ-007改为resourceCodes |
 | `EVD-023` | Static repository | 四个Admin Web `package.json`及shared `package.json` | 四端均消费`@egon-cola/xingyuan-admin-web-shared ^0.1.4`，shared当前版本`0.1.4` | 共享布局先发布、四消费者再升级是明确兼容边界 | npm registry可用性未在本次验证 |
 | `EVD-024` | User decision | 2026-08-24最新补充 | MENU/ROUTE必须树状显示在左侧；顶部是Banner，不叫菜单；四个前端全部改造 | 将共享Layout和四消费者纳入本Spec | 明确用户决策 |
-| `EVD-025` | Static repository | Gateway `App.tsx`、`AdminLayout.tsx` | 接口目录入口是`/interface-catalog`，Operation详情却是`/operations/:operationId`，不满足普通path前缀 | shared选择契约需允许本地声明额外active path前缀，不能改现有deep link | 仅当前已发现的非前缀详情路由 |
+| `EVD-025` | Static repository | Yuheng `App.tsx`、`AdminLayout.tsx` | 接口目录入口是`/interface-catalog`，Operation详情却是`/operations/:operationId`，不满足普通path前缀 | shared选择契约需允许本地声明额外active path前缀，不能改现有deep link | 仅当前已发现的非前缀详情路由 |
 
 ### 2.3 Problem statement and gap
 
@@ -88,11 +88,11 @@
 | Entry/trigger | Current call chain | Data read/written | External dependency | Consumers | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | 管理员保存角色权限 | `RolePermissionPage -> roleApi.bindPermissions -> RolePermissionController -> RoleFacade -> JpaRoleRepository` | 写 `rbac3_role_permission`，输入permissionIds | PostgreSQL | RBAC Admin Web | `EVD-001`–`EVD-003` |
-| 用户授权快照生成 | `RoleActivationFacade -> JpaRoleActivationFactRepository -> Core builder -> UserAuthorizationSnapshotProjector` | 读role_permission、permission、resource、data/field rules，写缓存/快照 | PostgreSQL、Redis | Starter、Gateway、About | `EVD-007`,`EVD-008`,`EVD-012` |
+| 用户授权快照生成 | `RoleActivationFacade -> JpaRoleActivationFactRepository -> Core builder -> UserAuthorizationSnapshotProjector` | 读role_permission、permission、resource、data/field rules，写缓存/快照 | PostgreSQL、Redis | Starter、Yuheng、About | `EVD-007`,`EVD-008`,`EVD-012` |
 | API方法授权 | `Spring Method Security -> Rbac3MethodAuthorizationManager -> AuthorizationService.requirePermission` | 只读SecurityContext快照permissions | Redis/远端快照仅在装载阶段 | 所有接入Starter的业务方法 | `EVD-006`,`EVD-012` |
-| 前端展示 | `GET /api/v1/auth/about -> FrontendResourceRegistry/PermissionGuard/ActionGuard` | 读取about.permissions和fieldPolicies | Gateway/IdP/RBAC快照 | RBAC/IdP等React Admin | `EVD-008`,`EVD-009` |
-| CI上报 | `report-rbac-resources.mjs -> CiResourceReportController -> JpaCiResourceReportStore` | 写resource、permission、required_permission_id与CI head | Gateway SERVICE认证、DDC目录校验 | 发布流水线 | `EVD-005`,`EVD-013` |
-| 四端桌面导航 | `各AdminLayout -> EnterpriseLayout(config.navigation) -> EnterpriseHeader -> AntD Menu(horizontal)` | 只读本地导航定义与现有授权上下文 | `@egon-cola/xingyuan-admin-web-shared 0.1.4` | DDC/Gateway/IdP/RBAC3管理用户 | `EVD-017`–`EVD-023` |
+| 前端展示 | `GET /api/v1/auth/about -> FrontendResourceRegistry/PermissionGuard/ActionGuard` | 读取about.permissions和fieldPolicies | Yuheng/Tianquan-Shoubing/RBAC快照 | RBAC/IdP等React Admin | `EVD-008`,`EVD-009` |
+| CI上报 | `report-rbac-resources.mjs -> CiResourceReportController -> JpaCiResourceReportStore` | 写resource、permission、required_permission_id与CI head | Yuheng SERVICE认证、DDC目录校验 | 发布流水线 | `EVD-005`,`EVD-013` |
+| 四端桌面导航 | `各AdminLayout -> EnterpriseLayout(config.navigation) -> EnterpriseHeader -> AntD Menu(horizontal)` | 只读本地导航定义与现有授权上下文 | `@egon-cola/xingyuan-admin-web-shared 0.1.4` | Tianshu/Yuheng/Tianquan-Shoubing/RBAC3管理用户 | `EVD-017`–`EVD-023` |
 
 ## 3. Goals and Non-goals
 
@@ -114,7 +114,7 @@
 
 ### 3.2 Non-goals
 
-- 不改变AT/RT、Gateway RT在线校验、IdP租户/用户主数据所有权或无Session模型。
+- 不改变AT/RT、Yuheng RT在线校验、IdP租户/用户主数据所有权或无Session模型。
 - 不把permission codes写入JWT，也不让前端隐藏替代后端鉴权。
 - 不把FIELD作为RoleResourceGrant；字段仍由FieldRule和Jackson PEP控制。
 - 不把BIZ/APP购买/访问关系合并到RoleResourceGrant。
@@ -123,7 +123,7 @@
 - 不新增Manifest、processor、registration starter、Node plugin、消息队列或新的授权缓存。
 - 不创建`legacy`包保存旧类、旧URL或旧表。
 - 不在本次重写所有六类基础实体CRUD；它们仅作包边界收敛和回归验证。
-- 不因布局迁移统一重写DDC、Gateway、IdP的认证/授权bootstrap，也不新增导航接口、导航数据库、全局导航store或菜单配置后台。
+- 不因布局迁移统一重写DDC、Yuheng、IdP的认证/授权bootstrap，也不新增导航接口、导航数据库、全局导航store或菜单配置后台。
 - 不把移动端强制成常驻窄Sider；小于`lg`断点使用左Drawer，保证内容可用宽度。
 
 ### 3.3 Change Surface and Design Depth
@@ -138,14 +138,14 @@
 | Page/action API bindings | Affected | 当前Resource parent/mechanical facts无跨类型API调用关系；`EVD-016` | 新增同APP ROUTE/ACTION -> API多对多机械关系，保留页面/按钮source边界并由runtime按union展开 | 完整数据、CI、runtime、UI与测试设计 | `§7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18` |
 | Java package responsibility layering | Affected | `admin.iam/*`及顶层authorization/runtime/management/participation/simulation | 六类IAM、authorization、registration.ci、authorization.runtime明确归属 | 目标树、迁移映射、架构守卫 | `§7, §8, §13, §14, §15, §16, §17, §18` |
 | Shared Admin Web shell | Affected | `admin-web-shared/src/layout/{EnterpriseHeader,EnterpriseLayout,types}.tsx/ts` | 桌面horizontal Header导航迁移为左Sider树；Header只保留Banner；移动Drawer保留 | 完整组件契约、布局、状态、可访问性、版本与测试设计 | `§7, §8, §9, §10, §12, §13, §14, §15, §16, §17, §18` |
-| DDC Admin Web navigation | Affected | DDC `src/layouts/AdminLayout.tsx`及测试 | 现有group提升为运行状态/配置管理/元数据管理树，权限和路由不变 | 精确树、文件、状态和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
-| Gateway Admin Web navigation | Affected | Gateway `src/layouts/AdminLayout.tsx`及测试 | flat capability-filtered导航改为左侧分组树，capability和deep links不变 | 精确树、文件、状态和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
-| IdP Admin Web navigation | Affected | IdP `src/app/AdminLayout.tsx`及测试 | flat permission-filtered导航改为左侧分组树，breadcrumb/bootstrap不变 | 精确树、文件、状态和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
-| RBAC3 Admin Web navigation | Affected | RBAC3 `resourceDefinitions.json -> navigation.ts -> router.tsx` | 复用既有MENU/ROUTE树并改由左Sider呈现；REQ-007资源过滤不变 | 精确树消费、空权限/deep-link和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
+| Tianshu Admin Web navigation | Affected | Tianshu `src/layouts/AdminLayout.tsx`及测试 | 现有group提升为运行状态/配置管理/元数据管理树，权限和路由不变 | 精确树、文件、状态和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
+| Yuheng Admin Web navigation | Affected | Yuheng `src/layouts/AdminLayout.tsx`及测试 | flat capability-filtered导航改为左侧分组树，capability和deep links不变 | 精确树、文件、状态和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
+| Tianquan-Shoubing Admin Web navigation | Affected | Tianquan-Shoubing `src/app/AdminLayout.tsx`及测试 | flat permission-filtered导航改为左侧分组树，breadcrumb/bootstrap不变 | 精确树、文件、状态和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
+| Tianquan-Jianshen Admin Web navigation | Affected | Tianquan-Jianshen `resourceDefinitions.json -> navigation.ts -> router.tsx` | 复用既有MENU/ROUTE树并改由左Sider呈现；REQ-007资源过滤不变 | 精确树消费、空权限/deep-link和消费者测试 | `§7, §8, §12, §14, §15, §16, §17, §18` |
 | Shared package distribution | Affected | shared与四消费者`package.json/package-lock.json` | 发布shared `0.2.0`并协调四消费者升级；RBAC3使用平台级lockfile | 版本、构建、回滚和registry边界 | `§8, §14, §16, §18` |
 | CI browser-bundle isolation | Context-only | `report-rbac-resources.mjs`、`verify-browser-bundle.mjs` | CI脚本仍不进入浏览器bundle，不在应用启动执行 | 记录不变量并回归bundle guard | `§14` |
-| IdP/Gateway token chain | Unchanged | 前序Spec以及IdP/Gateway现有Filter | AT/RT、RT在线态、SecurityContext身份链不变 | 只做Starter链回归，不重新设计 | `§14` |
-| DDC BIZ/APP master data | Unchanged | `DdcBizService/DdcAppService`、RBAC `DdcCatalogGateway` | DDC继续拥有主数据；RBAC只引用和授权 | RPC边界回归 | `§14` |
+| Tianquan-Shoubing/Yuheng token chain | Unchanged | 前序Spec以及IdP/Gateway现有Filter | AT/RT、RT在线态、SecurityContext身份链不变 | 只做Starter链回归，不重新设计 | `§14` |
+| Tianshu BIZ/APP master data | Unchanged | `DdcBizService/DdcAppService`、RBAC `DdcCatalogGateway` | DDC继续拥有主数据；RBAC只引用和授权 | RPC边界回归 | `§14` |
 | Audit/simulation/bootstrap capability | Context-only | `admin.audit/simulation/bootstrap` | 能力保留；仅import、包依赖和RoleResource事实适配 | 精确调用方回归 | `§14` |
 
 ## 4. Requirements and Acceptance Criteria
@@ -175,7 +175,7 @@
 | `REQ-021` | 页面基础API与按钮操作API按真实触发源声明 | Must | ROUTE只声明打开/使用页面即需要的API，ACTION声明执行按钮才需要的API；仅有ROUTE权限不会获得仅绑定ACTION的API | 用户对page与button权限边界的补充 |
 | `REQ-022` | 桌面MENU/ROUTE必须是左侧树状导航 | Must | `lg`及以上不存在Header horizontal主导航；左侧Sider以inline tree展示父MENU和ROUTE叶子 | “树状的，在左边” |
 | `REQ-023` | 顶部区域只承担Banner/Header职责 | Must | 顶部只含品牌/平台名、全局状态操作、用户区和窄屏菜单触发器，不平铺业务菜单 | “上方这叫banner，不叫菜单” |
-| `REQ-024` | DDC、Gateway、IdP、RBAC3四个Admin Web全部采用统一左侧树 | Must | 四端桌面均有左Sider，当前route高亮且祖先展开；各自现有路由与授权过滤无回退 | “四个前端的改造也写到spec中” |
+| `REQ-024` | Tianshu、Yuheng、Tianquan-Shoubing、RBAC3四个Admin Web全部采用统一左侧树 | Must | 四端桌面均有左Sider，当前route高亮且祖先展开；各自现有路由与授权过滤无回退 | “四个前端的改造也写到spec中” |
 | `REQ-025` | 左侧树具备折叠、deep-link和响应式闭环 | Must | desktop可折叠且不丢内容状态；deep link选中最长匹配叶子并展开祖先；小于lg通过左Drawer操作同一棵树 | 左侧树可用性的必要条件 |
 
 ### 4.1 Scenario matrix
@@ -205,11 +205,11 @@
 | Actor ID | Actor/role | Goal and responsibility | Entry/channel | Permission/tenant context | Evidence |
 | --- | --- | --- | --- | --- | --- |
 | `ACTOR-001` | RBAC管理员 | 通过可读资源配置角色，并维护资源权限映射 | RBAC Admin Web | 当前tenant；role/resource管理权限 | 角色与资源页面、用户要求 |
-| `ACTOR-002` | 已登录业务用户 | 只看到被授权菜单/按钮并调用已授权API | React Web + Gateway | USER AT/RT、active roles | About/Starter链 |
+| `ACTOR-002` | 已登录业务用户 | 只看到被授权菜单/按钮并调用已授权API | React Web + Yuheng | USER AT/RT、active roles | About/Starter链 |
 | `ACTOR-003` | 发布流水线 | 上报应用代码中声明的前端资源机械事实 | CI脚本/API | SERVICE AT + report scope + source BIZ/APP | 当前report脚本 |
 | `ACTOR-004` | 接入RBAC的业务方法 | 在方法调用前执行资源/权限/策略判定 | Spring Method Security | Rbac3UserDetails/SecurityContext | Starter manager |
 | `ACTOR-005` | 平台运维 | 在破坏式窗口完成V13与bootstrap | Flyway/CLI/验证脚本 | 数据库和部署权限 | 既有迁移机制 |
-| `ACTOR-006` | 四个平台管理用户 | 在DDC/Gateway/IdP/RBAC3控制台通过左侧树定位授权页面 | 四个Admin Web | 各平台既有AuthContext/permission/capability；RBAC3按REQ-007使用resourceCodes | `EVD-017`–`EVD-024` |
+| `ACTOR-006` | 四个平台管理用户 | 在DDC/Yuheng/Tianquan-Shoubing/RBAC3控制台通过左侧树定位授权页面 | 四个Admin Web | 各平台既有AuthContext/permission/capability；RBAC3按REQ-007使用resourceCodes | `EVD-017`–`EVD-024` |
 
 #### 4.2.2 Use-case artifact
 
@@ -271,7 +271,7 @@ flowchart LR
 | `ASM-001` | 角色页面把MENU和ROUTE合并称为“菜单/页面” | 当前resourceDefinitions用MENU作分组、ROUTE作真实页面 | 仅展示分类，不改ResourceType持久语义 | 若产品坚持只称菜单，只需改文案 |
 | `ASM-002` | 资源树最多2000节点，继续沿用当前CI上报边界 | 前序Spec和CiResourceReportRequestDTO已有2000限制 | 可配置/调大，不改变授权语义 | 超大应用需分页或分组查询 |
 | `ASM-003` | mapping同值PUT视为幂等成功 | 当前资源version与CI幂等设计 | 局部且安全 | 若要求每次都审计，需增加no-op audit规则 |
-| `ASM-004` | DDC沿用现有三个group作为树父MENU | DDC `AdminLayout.navigation.group`已有运行状态/配置管理/元数据管理 | 只改变本地导航嵌套和文案层级 | 若产品调整信息架构，只改本地children |
+| `ASM-004` | DDC沿用现有三个group作为树父MENU | Tianshu `AdminLayout.navigation.group`已有运行状态/配置管理/元数据管理 | 只改变本地导航嵌套和文案层级 | 若产品调整信息架构，只改本地children |
 | `ASM-005` | IdP树分为身份目录、OAuth与资源、安全治理，身份概览保持根ROUTE | IdP现有routes和页面职责 | 本地可逆，不改变route/permission | 若需其他分组，只改NavItem树 |
 | `ASM-006` | Gateway树分为网关治理、MCP、观测与审计，总览保持根ROUTE | Gateway现有route前缀和capability分布 | 本地可逆，不改变route/capability | 若需其他分组，只改navigation树 |
 
@@ -284,13 +284,13 @@ flowchart LR
 | `DEC-003` | API注解检查resource code + permission；通用注解保持permission-only | Mario | 同时保留可读资源授权和Egon-COLA通用能力 | `REQ-006`,`008` |
 | `DEC-004` | UI资源展示按resourceCodes，不删除About.permissions | Mario | 普通UI不感知字符；runtime/data/field/通用guard仍可复用permissions | `REQ-007`,`008` |
 | `DEC-005` | CI只报告suggestion，管理员确认actual mapping | Mario | 避免流水线越过管理配置 | `REQ-003`,`009` |
-| `DEC-006` | 六类IAM固定为User/Role/Business/Application/Organization/Position | Mario + V8/DDC/IdP边界 | Tenant已外部化；resource/permission/policy属于authorization | `REQ-011`,`012` |
+| `DEC-006` | 六类IAM固定为User/Role/Business/Application/Organization/Position | Mario + V8/Tianshu/IdP边界 | Tenant已外部化；resource/permission/policy属于authorization | `REQ-011`,`012` |
 | `DEC-007` | 不保留legacy包和旧数据 | Mario | 已允许破坏式切换，兼容层没有消费者价值 | `REQ-013`,`017` |
 | `DEC-008` | 页面和按钮关联API按集合并集展开，独立API可直授 | Mario | 最新明确“任意一个page权限即可获得共享API，button同理，不深入区分” | `REQ-019`,`020` |
 | `DEC-009` | ROUTE与ACTION分别声明其真实调用API | Mario | 页面权限必须支持页面基础调用，按钮权限必须独立保护按钮操作；把按钮API全挂到页面会绕过按钮授权 | `REQ-021` |
 | `DEC-010` | Header是Banner，desktop业务导航只能进入左Sider | Mario | `EVD-017`,`EVD-018`,`EVD-024`；用户明确纠正顶部区域语义 | `REQ-022`,`023` |
 | `DEC-011` | shared统一渲染树，四平台只提供授权后的导航数据 | Mario + repository evidence | 四端已共同使用EnterpriseLayout，children模型已存在；复制四套Sider会漂移 | `REQ-024`,`025` |
-| `DEC-012` | 布局迁移不统一重写四端认证/授权bootstrap | Mario scope + smallest design | 左侧树只需移动渲染位置；DDC/IdP/Gateway当前过滤来源与RBAC3目标resourceCodes均可输出同一navigation类型 | `REQ-007`,`024` |
+| `DEC-012` | 布局迁移不统一重写四端认证/授权bootstrap | Mario scope + smallest design | 左侧树只需移动渲染位置；Tianshu/Tianquan-Shoubing/Gateway当前过滤来源与RBAC3目标resourceCodes均可输出同一navigation类型 | `REQ-007`,`024` |
 
 ### 5.4 Open major decisions
 
@@ -301,8 +301,8 @@ None. 本规格不把未来API注解的独立构建期扫描器纳入本次实�
 | Concern | Current choice | Repository evidence | Constraint on design |
 | --- | --- | --- | --- |
 | Java/runtime | Java 21 | `egon-cola-xingyuan/pom.xml` | 使用record、Spring 6 API；不引入Java 25专用语法 |
-| Framework | Spring Boot 3.5.16 / Spring Security 6 | platforms POM、Starter POM | Method Security与SecurityContext继续作为PEP上下文 |
-| Persistence | JPA/EntityManager + PostgreSQL + Flyway | rbac3-admin POM、V1–V12 | 只新增V13，不编辑历史迁移 |
+| Framework | Spring Boot 3.5.16 / Spring Security 6 | xingyuan POM、Starter POM | Method Security与SecurityContext继续作为PEP上下文 |
+| Persistence | JPA/EntityManager + PostgreSQL + Flyway | tianquan-jianshen-admin POM、V1–V12 | 只新增V13，不编辑历史迁移 |
 | Cache/runtime | Redis/Redisson + JVM near cache | Starter/Admin cache代码 | 复用snapshot/version失效，不增第二缓存 |
 | Frontend | React 19、TypeScript 6、Ant Design 6、React Router 7、TanStack Query、Vitest | shared及四Admin Web package.json | 左Sider/Drawer/Menu复用AntD；route选择复用React Router；不新增UI框架/store |
 | Shared frontend distribution | `@egon-cola/xingyuan-admin-web-shared 0.1.4`被四端以`^0.1.4`消费 | shared和四消费者package/lock | 布局公共契约升级为0.2.0后，四端必须协调更新并分别build/test |
@@ -313,7 +313,7 @@ None. 本规格不把未来API注解的独立构建期扫描器纳入本次实�
 
 | Architecture profile | Base package | Evidence or explicit decision | Existing deviations | Design action |
 | --- | --- | --- | --- | --- |
-| Existing capability-sliced custom structure | `top.egon.cola.platform.rbac3.admin` | 当前每个能力使用controller/service/repository/domain子包；用户明确要求重新分层命名而非迁成另一架构 | Service实现不统一使用`service.impl`，大量Facade/Repository为现有边界 | 保留现有内部结构，只移动能力归属；不引入DDD/COLA或新的三层骨架 |
+| Existing capability-sliced custom structure | `top.egon.cola.platform.tianquan.jianshen.admin` | 当前每个能力使用controller/service/repository/domain子包；用户明确要求重新分层命名而非迁成另一架构 | Service实现不统一使用`service.impl`，大量Facade/Repository为现有边界 | 保留现有内部结构，只移动能力归属；不引入DDD/COLA或新的三层骨架 |
 
 ## 7. Architecture Design
 
@@ -336,7 +336,7 @@ None. 本规格不把未来API注解的独立构建期扫描器纳入本次实�
 | `EnterpriseNavigationItem.children` | Keep | `REQ-022`,`024` | 新建另一套MenuTree DTO | 现有children已能表达MENU/ROUTE递归树 | 无新类型；移除已不需要的flat `group`语义 | Keep |
 | `EnterpriseHeader` desktop navigation | Remove/Refocus | `REQ-023` | 保留horizontal并另加左Sider | 同一导航重复且Banner语义继续错误 | Header props调整；0.2.0消费者协调升级 | Remove from Header |
 | global navigation store/provider | Proposed then rejected | None | Layout本地`collapsed/openKeys/drawerOpen` | 状态不跨页面/应用共享，不需要缓存或全局同步 | 新provider会增加生命周期和测试面 | Remove |
-| Four AdminLayout navigation trees | Modify | `REQ-024` | shared根据flat `group`自动猜树 | IdP/Gateway无group，shared不应知道平台信息架构或权限 | 四个本地树定义/测试；route/API调用数不变 | Keep ownership / Modify shape |
+| Four AdminLayout navigation trees | Modify | `REQ-024` | shared根据flat `group`自动猜树 | Tianquan-Shoubing/Gateway无group，shared不应知道平台信息架构或权限 | 四个本地树定义/测试；route/API调用数不变 | Keep ownership / Modify shape |
 
 | Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 | --- | --- | --- | --- | --- | --- |
@@ -351,24 +351,24 @@ None. 本规格不把未来API注解的独立构建期扫描器纳入本次实�
 
 ```mermaid
 flowchart LR
-    Admin["RBAC管理员"] -->|"API-001/002/003/004"| Web["RBAC3 Admin Web"]
+    Admin["RBAC管理员"] -->|"API-001/002/003/004"| Web["Tianquan-Jianshen Admin Web"]
     CI["发布流水线"] -->|"API-006 SERVICE AT"| Registration["admin.registration.ci"]
     Web --> Iam["admin.iam 六类基础对象"]
     Web --> Authz["admin.authorization resource/permission/grant/policy"]
     Iam --> Authz
-    Authz --> DB[("PostgreSQL RBAC3")]
+    Authz --> DB[("PostgreSQL Tianquan-Jianshen")]
     Registration -->|"mechanical facts + suggestion"| DB
     Authz --> Runtime["admin.authorization.runtime"]
     Runtime --> Cache[("Redis/JVM snapshot cache")]
-    User["业务用户"] -->|"API-005 about"| Starter["RBAC3 Starter"]
+    User["业务用户"] -->|"API-005 about"| Starter["Tianquan-Jianshen Starter"]
     Starter --> Cache
     Method["@RBACAPIResource / @RequiresPermission"] --> Starter
     Starter -->|"permission + optional resource"| Decision["AuthorizationService"]
     subgraph AdminWebs["四个Admin Web浏览器应用"]
-        DdcWeb["DDC AdminLayout"]
-        GatewayWeb["Gateway AdminLayout"]
-        IdpWeb["IdP AdminLayout"]
-        RbacWeb["RBAC3 AdminLayout"]
+        DdcWeb["Tianshu AdminLayout"]
+        GatewayWeb["Yuheng AdminLayout"]
+        IdpWeb["Tianquan-Shoubing AdminLayout"]
+        RbacWeb["Tianquan-Jianshen AdminLayout"]
     end
     Shared["@egon-cola/xingyuan-admin-web-shared 0.2.0\nHeader Banner + left Sider tree + mobile Drawer"]
     DdcWeb -->|"authorized navigation tree"| Shared
@@ -390,8 +390,8 @@ flowchart LR
 | `admin.registration.ci` | CI上报校验、checksum和机械事实写入 | SERVICE report | DDC目录、resource store | actual mapping、role grant、tenant entitlement | `REQ-009`,`010` |
 | Starter/Contract/React SDK | 业务PEP和消费契约 | SecurityContext/About/guards | runtime snapshot | 管理面持久化 | `REQ-006`–`008` |
 | `admin-web-shared` | Banner、左Sider递归树、route高亮、祖先展开、折叠、mobile Drawer | `EnterpriseLayoutConfig` -> rendered shell | AntD、React Router；平台传入navigation | 平台route/permission定义、认证、数据请求 | `REQ-022`–`025` |
-| DDC/Gateway/IdP Admin Web | 各自信息架构、route、icon、排序及现有permission/capability过滤 | authorized `EnterpriseNavigationItem[]` | shared shell、各自AuthContext | 复制shared布局或改变RBAC事实 | `REQ-024`,`025` |
-| RBAC3 Admin Web | resourceDefinitions到可见MENU/ROUTE树、角色资源页 | REQ-007 filtered navigation | React SDK、shared shell | Header横向渲染或第二导航模型 | `REQ-007`,`022`–`025` |
+| Tianshu/Yuheng/Tianquan-Shoubing Admin Web | 各自信息架构、route、icon、排序及现有permission/capability过滤 | authorized `EnterpriseNavigationItem[]` | shared shell、各自AuthContext | 复制shared布局或改变RBAC事实 | `REQ-024`,`025` |
+| Tianquan-Jianshen Admin Web | resourceDefinitions到可见MENU/ROUTE树、角色资源页 | REQ-007 filtered navigation | React SDK、shared shell | Header横向渲染或第二导航模型 | `REQ-007`,`022`–`025` |
 
 ### 7.2 High-Level Design
 
@@ -441,7 +441,7 @@ flowchart TD
 | `5` | Core -> Projector | existing snapshot builder/projector | active effective roles -> permission/resource sets | cache snapshot | invalid context fail closed |
 | `6` | Method manager -> AuthorizationService | `PermissionRequest.api`或`of` | annotation -> permission + optional resource | none | DENY/INDETERMINATE blocks method |
 | `7` | About -> React SDK | `API-005` | snapshot resourceCodes -> UI registry | browser state only | no READY no render |
-| `8` | Four AdminLayout -> EnterpriseLayout | `INTERNAL-002` | platform-auth-filtered tree -> shared config.navigation | none | empty tree hides navigation shell |
+| `8` | Four AdminLayout -> EnterpriseLayout | `INTERNAL-002` | xingyuan-auth-filtered tree -> shared config.navigation | none | empty tree hides navigation shell |
 | `9` | EnterpriseLayout -> EnterpriseHeader/EnterpriseSidebar | shared component props | Banner data与navigation tree分流 | local collapsed/openKeys/drawerOpen | invalid/missing path remains non-clickable parent |
 | `10` | EnterpriseSidebar -> React Router | longest matching leaf/onNavigate | current pathname -> selected leaf + ancestor keys | browser route only | route guard owns denied/not-found outcome |
 
@@ -566,7 +566,7 @@ flowchart LR
 | invalidation发布失败 | existing outbox/runtime signal | commit remains，标记传播pending | DB authoritative，cache可能旧 | existing retry owns delivery | 503/fail-closed where version gap detected | runtime/operator | `TEST-021` |
 | CI上报suggestion非法 | validation/checksum | reject before store | no mechanical/mapping/grant write | correct payload/build and retry | pipeline non-zero | pipeline owner | `TEST-013` |
 | API binding target缺失/跨APP/非API | CI registration validation | reject complete report | no partial binding/resource report | 修复API目录或声明后重试 | pipeline明确422 | pipeline/resource catalog owner | `TEST-030` |
-| V13后bootstrap失败 | readiness/bootstrap smoke | service不进入ready | schema已前滚、无旧授权 | forward-fix and rerun bootstrap | maintenance remains | platform operator | `TEST-028`,`029` |
+| V13后bootstrap失败 | readiness/bootstrap smoke | service不进入ready | schema已前滚、无旧授权 | forward-fix and rerun bootstrap | maintenance remains | xingyuan operator | `TEST-028`,`029` |
 | 四端navigation为空 | derived navigation length zero | hide Sider/Drawer trigger | no state/data mutation | permission/bootstrap refresh by existing owner | 现有无权限/403落点，内容不被空栏挤压 | each AdminLayout | `TEST-037`–`040` |
 | selected deep link属于隐藏detail route | longest visible path prefix has parent | select parent ROUTE and open ancestors | no route rewrite | existing router/guard remains authoritative | detail page正常，左树定位到所属入口 | each AdminLayout | `TEST-034`,`038`–`040` |
 | shared 0.2.0未发布或consumer lock仍指向0.1.4 | clean install/package assertion | stop build/release | no runtime/business data change | publish/fix lock then rerun | 不允许回退到顶部horizontal导航 | frontend release owner | `TEST-041`,`042` |
@@ -617,18 +617,18 @@ egon-cola-xingyuan-admin-web-shared/src/layout
 ├── EnterpriseLayout.test.tsx
 └── types.ts                          # children exists; group supports flat mobile grouping
 
-DDC/Gateway/IdP AdminLayout           # flat navigation passed to shared
-RBAC3 resourceDefinitions/navigation  # nested tree passed to shared, still horizontal on desktop
+Tianshu/Yuheng/Tianquan-Shoubing AdminLayout           # flat navigation passed to shared
+Tianquan-Jianshen resourceDefinitions/navigation  # nested tree passed to shared, still horizontal on desktop
 ```
 
 ### 8.2 Target tree
 
 ```text
-top/egon/cola/platform/rbac3/admin
+top/egon/cola/platform/tianquan-jianshen/admin
 ├── iam
 │   ├── user
 │   ├── role                         # Role CRUD/impact only
-│   ├── business                     # DDC Business catalog/read model only
+│   ├── business                     # Tianshu Business catalog/read model only
 │   ├── application                  # global Application reference/read model only
 │   ├── organization
 │   └── position
@@ -709,11 +709,11 @@ egon-cola-xingyuan
 | MODIFY | `ResourceCatalogPage.tsx`、`PermissionPage.tsx` | mapping drawer + advanced selector；移除独立权限字符导航 | 管理actual mapping | `REQ-003` |
 | CREATE | `egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseSidebar.tsx` | `EnterpriseSidebar` | desktop left Sider、mobile left Drawer、recursive Menu、route selection/open ancestors | `REQ-022`–`025` |
 | MODIFY | shared `EnterpriseHeader.tsx`、`EnterpriseLayout.tsx`、`types.ts`、i18n、tests | `EnterpriseHeader`、`EnterpriseLayoutConfig` | Header收敛为Banner，Layout拥有navigation；本地响应式/折叠状态；Sidebar保持包内实现不新增export | `REQ-022`–`025` |
-| MODIFY | DDC `src/layouts/AdminLayout.tsx`及test | `navigation` | 生成`运行状态 -> 服务注册/发布任务/缓存`、`配置管理 -> 配置资源`、`元数据管理 -> 业务域/环境/应用/命名空间`树 | `REQ-024`,`025` |
-| MODIFY | IdP `src/app/AdminLayout.tsx`及App/layout tests | `ALL_NAV_ITEMS/navigation` | 根`身份概览`；`身份目录 -> 全局用户/租户目录`；`OAuth与资源 -> OAuth客户端/Resource Server`；`安全治理 -> 签名密钥/安全审计`，递归permission过滤 | `REQ-024`,`025` |
-| MODIFY | Gateway `src/layouts/AdminLayout.tsx`及test | `navigation/items` | 根`总览`；`网关治理 -> Gateway Group/Application Credential/接口目录/Provider`；`MCP -> Control Plane/Remote MCP`；`观测与审计 -> 调用观测/审计日志`，递归capability过滤 | `REQ-024`,`025` |
-| MODIFY | RBAC3 `src/app/{router.tsx,navigation.ts}`及integration tests | `visibleNavigation/AdminLayout` | 保持resourceDefinitions递归树与REQ-007过滤，验证左Sider、空树和hidden detail deep-link定位 | `REQ-007`,`024`,`025` |
-| MODIFY/PUBLISH | shared `package.json/package-lock.json`、四消费者`package.json`与三个本地/一个平台级lockfile | `@egon-cola/xingyuan-admin-web-shared 0.2.0` | 发布共享布局并协调DDC/Gateway/IdP/RBAC3依赖更新 | `REQ-024` |
+| MODIFY | Tianshu `src/layouts/AdminLayout.tsx`及test | `navigation` | 生成`运行状态 -> 服务注册/发布任务/缓存`、`配置管理 -> 配置资源`、`元数据管理 -> 业务域/环境/应用/命名空间`树 | `REQ-024`,`025` |
+| MODIFY | Tianquan-Shoubing `src/app/AdminLayout.tsx`及App/layout tests | `ALL_NAV_ITEMS/navigation` | 根`身份概览`；`身份目录 -> 全局用户/租户目录`；`OAuth与资源 -> OAuth客户端/Resource Server`；`安全治理 -> 签名密钥/安全审计`，递归permission过滤 | `REQ-024`,`025` |
+| MODIFY | Yuheng `src/layouts/AdminLayout.tsx`及test | `navigation/items` | 根`总览`；`网关治理 -> Yuheng Group/Application Credential/接口目录/Provider`；`MCP -> Control Plane/Remote MCP`；`观测与审计 -> 调用观测/审计日志`，递归capability过滤 | `REQ-024`,`025` |
+| MODIFY | Tianquan-Jianshen `src/app/{router.tsx,navigation.ts}`及integration tests | `visibleNavigation/AdminLayout` | 保持resourceDefinitions递归树与REQ-007过滤，验证左Sider、空树和hidden detail deep-link定位 | `REQ-007`,`024`,`025` |
+| MODIFY/PUBLISH | shared `package.json/package-lock.json`、四消费者`package.json`与三个本地/一个平台级lockfile | `@egon-cola/xingyuan-admin-web-shared 0.2.0` | 发布共享布局并协调DDC/Yuheng/Tianquan-Shoubing/RBAC3依赖更新 | `REQ-024` |
 
 包迁移包含同路径的production/test `package`、imports、package-info和architecture assertions；不在本规格中逐个复制数百个纯import改名文件，因为它们的唯一语义由上表根路径映射完全决定。
 
@@ -723,16 +723,16 @@ egon-cola-xingyuan
 
 | ID | Change/necessity verdict | Name/purpose | Kind | Consumer | Owner | Method + URL / symbol / topic | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `API-001` | New/Add | 查询角色可配置资源树和direct/inherited状态 | HTTP | RoleResourceGrantPage | grant.roleresource | `GET /api/rbac3/v1/iam/roles/{roleId}/resources` | roleId | ResultRecord tree | USER/current tenant | common | read-only roleVersion | `REQ-001`,`002`,`016`,`019`,`021` |
-| `API-002` | Replace/Add | 原子替换角色direct资源授权 | HTTP | RoleResourceGrantPage | grant.roleresource | `PUT /api/rbac3/v1/iam/roles/{roleId}/resources` | resourceIds/window/version | ResultRecord mutation | USER/current tenant | common 4xx/5xx | expectedRoleVersion | `REQ-001`,`014`,`016`,`018`,`019`,`021` |
-| `API-003` | New/Add | 查询资源实际及建议权限映射 | HTTP | Resource mapping drawer | authorization.permission | `GET /api/rbac3/v1/iam/resources/{resourceId}/permission-mapping` | resourceId | ResultRecord mapping | USER/current tenant admin | common | resourceVersion | `REQ-003`,`016` |
-| `API-004` | New/Add | 设置资源实际权限映射 | HTTP | Resource mapping drawer | authorization.permission | `PUT /api/rbac3/v1/iam/resources/{resourceId}/permission-mapping` | permissionId/version | ResultRecord mapping | USER/admin | common 409/422 | expectedResourceVersion | `REQ-003`,`015`,`016`,`018` |
+| `API-001` | New/Add | 查询角色可配置资源树和direct/inherited状态 | HTTP | RoleResourceGrantPage | grant.roleresource | `GET /api/tianquan-jianshen/v1/iam/roles/{roleId}/resources` | roleId | ResultRecord tree | USER/current tenant | common | read-only roleVersion | `REQ-001`,`002`,`016`,`019`,`021` |
+| `API-002` | Replace/Add | 原子替换角色direct资源授权 | HTTP | RoleResourceGrantPage | grant.roleresource | `PUT /api/tianquan-jianshen/v1/iam/roles/{roleId}/resources` | resourceIds/window/version | ResultRecord mutation | USER/current tenant | common 4xx/5xx | expectedRoleVersion | `REQ-001`,`014`,`016`,`018`,`019`,`021` |
+| `API-003` | New/Add | 查询资源实际及建议权限映射 | HTTP | Resource mapping drawer | authorization.permission | `GET /api/tianquan-jianshen/v1/iam/resources/{resourceId}/permission-mapping` | resourceId | ResultRecord mapping | USER/current tenant admin | common | resourceVersion | `REQ-003`,`016` |
+| `API-004` | New/Add | 设置资源实际权限映射 | HTTP | Resource mapping drawer | authorization.permission | `PUT /api/tianquan-jianshen/v1/iam/resources/{resourceId}/permission-mapping` | permissionId/version | ResultRecord mapping | USER/admin | common 409/422 | expectedResourceVersion | `REQ-003`,`015`,`016`,`018` |
 | `API-005` | Modify/Keep | 返回当前用户最小授权上下文含resourceCodes | HTTP | React SDK/Admin Web | Starter/About | `GET /api/v1/auth/about` | None | ResultRecord about | USER/current context | common | snapshot versions | `REQ-007`,`008`,`016` |
-| `API-006` | Modify/Keep | CI注册前端资源机械事实 | HTTP | release pipeline | registration.ci | `PUT /api/rbac3/v1/registration/businesses/{businessCode}/applications/{applicationCode}/frontend-resources` | build/checksum/resources/fields | ResultRecord summary | SERVICE/source BIZ/APP | common 4xx/5xx | build/checksum/appVersion | `REQ-009`,`010`,`016`,`020`,`021` |
+| `API-006` | Modify/Keep | CI注册前端资源机械事实 | HTTP | release pipeline | registration.ci | `PUT /api/tianquan-jianshen/v1/registration/businesses/{businessCode}/applications/{applicationCode}/frontend-resources` | build/checksum/resources/fields | ResultRecord summary | SERVICE/source BIZ/APP | common 4xx/5xx | build/checksum/appVersion | `REQ-009`,`010`,`016`,`020`,`021` |
 | `INTERNAL-001` | Modify/Keep | PermissionRequest通用/API双模式决定 | Java internal | Method Security | Starter AuthorizationService | `PermissionRequest.of/api -> AuthorizationService.requirePermission` | permission + optional resource | AuthorizationDecision | SecurityContext | DENY/INDETERMINATE | snapshot versions | `REQ-005`,`006`,`008` |
 | `INTERNAL-002` | Modify/Keep | Shared Admin Web shell prop/render contract | TypeScript package API | Four AdminLayout consumers | admin-web-shared | `EnterpriseLayout({config, children})` | Banner config + authorized navigation tree + page content | Header/Sider-or-Drawer/Content/Footer | caller-owned auth context | render-safe empty/non-clickable parent | pathname + local UI state | `REQ-022`–`025` |
 
-旧 `POST /api/rbac3/v1/roles/{roleId}/permissions` 与 `DELETE /api/rbac3/v1/roles/{roleId}/permissions/{permissionId}` 被API-002完整替代并删除；不保留alias或fallback。
+旧 `POST /api/tianquan-jianshen/v1/roles/{roleId}/permissions` 与 `DELETE /api/tianquan-jianshen/v1/roles/{roleId}/permissions/{permissionId}` 被API-002完整替代并删除；不保留alias或fallback。
 
 ### 9.2 Per-interface Detailed Contracts
 
@@ -755,7 +755,7 @@ egon-cola-xingyuan
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 查询一个角色所属Application的完整可配置资源树；grant.roleresource拥有；RoleResourceGrantPage消费 |
-| Protocol and endpoint | `HTTP GET /api/rbac3/v1/iam/roles/{roleId}/resources` |
+| Protocol and endpoint | `HTTP GET /api/tianquan-jianshen/v1/iam/roles/{roleId}/resources` |
 | Content/version | `application/json`；v1破坏式新契约 |
 | Auth/permission/tenant | USER认证；`system:role-resource:read`；tenant从CurrentRbac3User取得 |
 | Timeout/retry | 单次DB查询最多2000非归档节点；5xx可手动重试；不轮询 |
@@ -809,7 +809,7 @@ HTTP 200，完整wire shape：
             "resourceCode": "iam.api.users.list", // API code checked by RBACAPIResource.
             "name": "查询用户列表", // Human-readable API name.
             "method": "GET", // Mechanical HTTP method when available.
-            "path": "/api/rbac3/v1/iam/users" // Mechanical path when available.
+            "path": "/api/tianquan-jianshen/v1/iam/users" // Mechanical path when available.
           }
         ],
         "children": [] // Recursive child nodes in order/name/code order.
@@ -844,7 +844,7 @@ HTTP 200，完整wire shape：
 
 ##### Interface logic for frontend and consumers
 
-1. Gateway/IdP/RBAC filters establish CurrentRbac3User before Controller execution.
+1. Yuheng/Tianquan-Shoubing/RBAC filters establish CurrentRbac3User before Controller execution.
 2. Method Security checks `system:role-resource:read` before role disclosure.
 3. Service derives tenant and loads the role/application; no applicationId query parameter exists.
 4. Repository loads non-archived resources, actual mapping status, direct/inherited roots and ROUTE/ACTION-to-API bindings without N+1.
@@ -875,7 +875,7 @@ New route has no legacy equivalent. Contract tests assert no permissionCode/perm
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 原子替换一个角色的direct resource grants；grant.roleresource拥有；RoleResourceGrantPage调用 |
-| Protocol and endpoint | `HTTP PUT /api/rbac3/v1/iam/roles/{roleId}/resources` |
+| Protocol and endpoint | `HTTP PUT /api/tianquan-jianshen/v1/iam/roles/{roleId}/resources` |
 | Content/version | request/response `application/json`；v1 breaking |
 | Auth/permission/tenant | USER；`system:role-resource:manage`；tenant/actor来自CurrentRbac3User |
 | Timeout/retry | 前端不自动重试409/422；未知网络结果先GET刷新再决定 |
@@ -982,7 +982,7 @@ Deletes old permission POST/DELETE routes and all `BindPermissionsRequestDTO` co
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 查询单资源actual/suggested permission mapping；authorization.permission拥有；ResourceCatalog mapping drawer消费 |
-| Protocol and endpoint | `HTTP GET /api/rbac3/v1/iam/resources/{resourceId}/permission-mapping` |
+| Protocol and endpoint | `HTTP GET /api/tianquan-jianshen/v1/iam/resources/{resourceId}/permission-mapping` |
 | Content/version | `application/json` v1 |
 | Auth/permission/tenant | USER；`system:resource-permission:read`；global catalog read受平台管理权限限制 |
 | Timeout/retry | PK查询+ACTIVE grant count；5xx手动重试 |
@@ -1076,7 +1076,7 @@ New advanced management endpoint. Tests cover configured/unconfigured, inactive 
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 设置一条资源的唯一actual permission；authorization.permission拥有 |
-| Protocol and endpoint | `HTTP PUT /api/rbac3/v1/iam/resources/{resourceId}/permission-mapping` |
+| Protocol and endpoint | `HTTP PUT /api/tianquan-jianshen/v1/iam/resources/{resourceId}/permission-mapping` |
 | Content/version | request/response `application/json` v1 |
 | Auth/permission/tenant | USER；`system:resource-permission:manage`；平台资源管理员 |
 | Timeout/retry | 4xx不自动重试；网络未知结果先GET；5xx受控 |
@@ -1199,11 +1199,11 @@ None. 认证Cookie/headers由现有Gateway/IdP链处理；调用方不发送tena
   "message": "success", // Common success message.
   "data": { // Minimal current-user authorization context.
     "user": { // Verified current RBAC member projection.
-      "subject": "01K2ABCDEF123", // IdP identity subject.
+      "subject": "01K2ABCDEF123", // Tianquan-Shoubing identity subject.
       "tenantId": "2001", // Trusted tenant context.
       "status": "ACTIVE" // Current RBAC member status.
     },
-    "currentApplicationCode": "rbac3-admin", // Current application scope.
+    "currentApplicationCode": "tianquan-jianshen-admin", // Current application scope.
     "activeRoles": [], // Effective active role descriptors in deterministic order.
     "permissions": ["system:user:read"], // Internal sorted permission facts retained for generic/data/field decisions.
     "resourceCodes": ["iam", "iam.users", "iam.user.create"], // Sorted effective resource codes used by UI and API-resource PEP.
@@ -1240,7 +1240,7 @@ None. 认证Cookie/headers由现有Gateway/IdP链处理；调用方不发送tena
 
 ##### Interface logic for frontend and consumers
 
-1. Gateway/IdP verify identity and RBAC Filter loads one system authorization snapshot.
+1. Yuheng/Tianquan-Shoubing verify identity and RBAC Filter loads one system authorization snapshot.
 2. About permission check runs before returning current context.
 3. Rbac3AboutService copies activeRoles、permissions、resourceCodes、fieldPolicies、landing and versions from the same UserDetails/snapshot.
 4. No resource-catalog query, write transaction, CI call or second cache is introduced.
@@ -1271,9 +1271,9 @@ All React consumers and fixtures release together. Contract tests assert resourc
 | Concern | Definition |
 | --- | --- |
 | Purpose/owner/consumer | 注册完整前端MENU/ROUTE/ACTION/FIELD机械集合；registration.ci拥有；发布流水线消费 |
-| Protocol and endpoint | `HTTP PUT /api/rbac3/v1/registration/businesses/{businessCode}/applications/{applicationCode}/frontend-resources` |
+| Protocol and endpoint | `HTTP PUT /api/tianquan-jianshen/v1/registration/businesses/{businessCode}/applications/{applicationCode}/frontend-resources` |
 | Content/version | request/response `application/json` v1 breaking URL/field rename |
-| Auth/permission/tenant | SERVICE AT；scope `rbac3:resource-catalog:report`；sourceBiz/App必须与path一致；无tenant |
+| Auth/permission/tenant | SERVICE AT；scope `tianquan-jianshen:resource-catalog:report`；sourceBiz/App必须与path一致；无tenant |
 | Timeout/retry | 同build/checksum可安全重试；4xx不重试；5xx同payload重试 |
 | Idempotency/concurrency | application expected version + buildId + canonical checksum |
 | Audit/security | 记录source/build/checksum/diff/result；不记录token/完整payload；不设业务限流/1MiB特设 |
@@ -1282,8 +1282,8 @@ All React consumers and fixtures release together. Contract tests assert resourc
 
 | Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `businessCode` | Path | string | Required | None | exact DDC code and SERVICE source match | source business | `platform` | pipeline config |
-| `applicationCode` | Path | string | Required | None | exact DDC/app/principal match | source app | `rbac3-admin` | pipeline config |
+| `businessCode` | Path | string | Required | None | exact Tianshu code and SERVICE source match | source business | `xingyuan` | pipeline config |
+| `applicationCode` | Path | string | Required | None | exact Tianshu/app/principal match | source app | `tianquan-jianshen-admin` | pipeline config |
 | `buildId` | Body | string | Required | None | trimmed 1–256 | build identity | `web-20260824-d1980ccf` | CI |
 | `checksum` | Body | lowercase hex | Required | None | canonical payload checksum | idempotency/content identity | `a4e12f` | script |
 | `expectedApplicationVersion` | Body | int64 | Required | None | >=0 | catalog optimistic version | `5` | prior CI state |
@@ -1303,7 +1303,7 @@ All React consumers and fixtures release together. Contract tests assert resourc
       "parentCode": "iam.directory", // Parent code; null for a root.
       "suggestedPermissionCode": "system:user:read", // Non-authoritative code suggestion for administrator confirmation.
       "path": "/iam/users", // ROUTE local path; null for MENU/ACTION.
-      "componentKey": "rbac3-users", // ROUTE component key; null otherwise.
+      "componentKey": "tianquan-jianshen-users", // ROUTE component key; null otherwise.
       "routeCode": null, // Owning ROUTE for ACTION; null for this ROUTE.
       "apiResourceCodes": ["iam.api.users.list", "iam.api.users.profile"], // APIs automatically granted with this page; unique stable API resource codes.
       "order": 10, // Non-negative sibling display order; nullable.
@@ -1364,9 +1364,9 @@ All React consumers and fixtures release together. Contract tests assert resourc
 | --- | --- | --- | --- | --- | --- |
 | invalid graph/checksum/field | 400/422 | validation code | ResultRecord | after build fix | fail pipeline |
 | missing/invalid SERVICE identity/scope | 401/403 | auth common | ResultRecord | after credential fix | fail pipeline |
-| source BIZ/APP mismatch or DDC absent/disabled | 403/422 | source/catalog code | ResultRecord | after config/catalog fix | fail pipeline |
+| source BIZ/APP mismatch or Tianshu absent/disabled | 403/422 | source/catalog code | ResultRecord | after config/catalog fix | fail pipeline |
 | same build different checksum/version conflict | 409 | `CONCURRENCY_ERROR` | ResultRecord | inspect then new build/version | fail pipeline |
-| DB/DDC unavailable | 503 | remote/middleware | ResultRecord | same payload controlled retry | fail after retry budget |
+| DB/Tianshu unavailable | 503 | remote/middleware | ResultRecord | same payload controlled retry | fail after retry budget |
 
 ```jsonc
 {
@@ -1382,8 +1382,8 @@ All React consumers and fixtures release together. Contract tests assert resourc
 
 ##### Interface logic for frontend and consumers
 
-1. Gateway/IdP validate SERVICE AT, scope and sourceBiz/sourceApp before Controller logic.
-2. Controller validates path/body; Service validates principal binding, DDC hierarchy, checksum, uniqueness and parent/action graph.
+1. Yuheng/Tianquan-Shoubing validate SERVICE AT, scope and sourceBiz/sourceApp before Controller logic.
+2. Controller validates path/body; Service validates principal binding, Tianshu hierarchy, checksum, uniqueness and parent/action graph.
 3. Registration validates every `apiResourceCodes` target as an existing same-application ACTIVE/PENDING API resource, preserves whether the declaring source is ROUTE or ACTION without folding ACTION APIs into its owner ROUTE, then atomically replaces CI-owned bindings together with mechanical resource/field facts and `suggested_permission_code`.
 4. The transaction marks missing CI-owned definitionsSTALE and advances application report head；it never creates/updates actual Permission mapping, RoleResourceGrant, TenantApplication, UserBusinessAccess or FieldRule.
 5. Audit and result counts are derived from committed changes; report code remains outside browser bundle and startup lifecycle.
@@ -1392,7 +1392,7 @@ All React consumers and fixtures release together. Contract tests assert resourc
 
 ##### Compatibility and verification
 
-Old `/api/rbac3/v1/iam/resource-catalog/businesses/{businessCode}/applications/{applicationCode}/frontend-resources` URL and `permissionCode` request field are removed. Node tests, Controller tests and store integration tests update together. Assertions cover source binding, canonical checksum including sorted apiResourceCodes, same-app/type validation, shared API from multiple sources, binding replace/removal, duplicate/replay/conflict, DDC failure, actual mapping/grant zero-write, common wrapper and bundle isolation.
+Old `/api/tianquan-jianshen/v1/iam/resource-catalog/businesses/{businessCode}/applications/{applicationCode}/frontend-resources` URL and `permissionCode` request field are removed. Node tests, Controller tests and store integration tests update together. Assertions cover source binding, canonical checksum including sorted apiResourceCodes, same-app/type validation, shared API from multiple sources, binding replace/removal, duplicate/replay/conflict, Tianshu failure, actual mapping/grant zero-write, common wrapper and bundle isolation.
 
 #### INTERNAL-001 — PermissionRequest and AuthorizationService decision modes
 
@@ -1410,7 +1410,7 @@ Old `/api/rbac3/v1/iam/resource-catalog/businesses/{businessCode}/applications/{
 
 ##### Identity and purpose
 
-Java contract remains `AuthorizationService.requirePermission(PermissionRequest)`。`PermissionRequest.of(permissionCode)` means generic permission-only；`PermissionRequest.api(permissionCode, resourceCode)` means API resource + permission。It is owned by RBAC3 Contract/Starter and consumed by `Rbac3MethodAuthorizationManager` and explicit business callers.
+Java contract remains `AuthorizationService.requirePermission(PermissionRequest)`。`PermissionRequest.of(permissionCode)` means generic permission-only；`PermissionRequest.api(permissionCode, resourceCode)` means API resource + permission。It is owned by Tianquan-Jianshen Contract/Starter and consumed by `Rbac3MethodAuthorizationManager` and explicit business callers.
 
 ##### Request parameters
 
@@ -1418,7 +1418,7 @@ Java contract remains `AuthorizationService.requirePermission(PermissionRequest)
 
 ##### Success response
 
-Returns existing `top.egon.cola.platform.rbac3.contract.authorization.AuthorizationDecision` with `Decision.ALLOW` only when permission exists and, for API mode, resourceCode also exists in the same app context. Existing reason/version/evidence fields remain unchanged.
+Returns existing `top.egon.cola.platform.tianquan.jianshen.contract.authorization.AuthorizationDecision` with `Decision.ALLOW` only when permission exists and, for API mode, resourceCode also exists in the same app context. Existing reason/version/evidence fields remain unchanged.
 
 ##### Error responses
 
@@ -1446,7 +1446,7 @@ Invalid construction throws `IllegalArgumentException` before decision. Missing 
 | --- | --- |
 | Change classification | Existing public TypeScript component contract modified in shared package 0.2.0 |
 | Independent consumer goal | 四个Admin Web需要同一Banner+左树壳，避免四套布局行为漂移 |
-| Parameter ownership and derivation | platform/user/actions和授权后的navigation由各AdminLayout拥有；pathname由React Router提供；collapsed/openKeys/drawerOpen由shared本地派生/维护 |
+| Parameter ownership and derivation | xingyuan/user/actions和授权后的navigation由各AdminLayout拥有；pathname由React Router提供；collapsed/openKeys/drawerOpen由shared本地派生/维护 |
 | Direct/no-new-interface alternative | 继续调用同一`EnterpriseLayout`，不新增组件级provider或后端接口；只在shared内部新增Sidebar |
 | Caller use of result | consumer直接渲染页面壳，不把值转发给第二接口 |
 | Round trips and failure points | 0新增网络调用；新增desktop折叠/openKeys及mobile drawer UI状态；唯一跨模块风险是npm版本不一致 |
@@ -1454,16 +1454,16 @@ Invalid construction throws `IllegalArgumentException` before decision. Missing 
 
 ##### Identity and purpose
 
-Public consumer entry remains `EnterpriseLayout({config, children})` from `@egon-cola/xingyuan-admin-web-shared`。`EnterpriseLayoutConfig.navigation` and `onNavigate` semantically belong to Layout；`EnterpriseHeaderConfig` no longer declares desktop navigation。`EnterpriseHeaderProps` adds `mobileNavigationVisible` and `onOpenNavigation` for Layout-controlled narrow-screen triggering。`EnterpriseSidebar` stays package-internal and is tested throughEnterpriseLayout；four platforms cannot instantiate a second shell。
+Public consumer entry remains `EnterpriseLayout({config, children})` from `@egon-cola/xingyuan-admin-web-shared`。`EnterpriseLayoutConfig.navigation` and `onNavigate` semantically belong to Layout；`EnterpriseHeaderConfig` no longer declares desktop navigation。`EnterpriseHeaderProps` adds `mobileNavigationVisible` and `onOpenNavigation` for Layout-controlled narrow-screen triggering。`EnterpriseSidebar` stays package-internal and is tested throughEnterpriseLayout；four xingyuan cannot instantiate a second shell。
 
 ##### Request parameters
 
 | Prop | Type | Required/default | Validation/semantics | Owner/source |
 | --- | --- | --- | --- | --- |
-| `config.platformName` | string | Required | nonblank platform Banner label | each AdminLayout |
+| `config.platformName` | string | Required | nonblank xingyuan Banner label | each AdminLayout |
 | `config.logo/actions/user` | ReactNode/user config | Optional | Banner-only content；no route semantics | each Auth/Layout |
-| `config.navigation` | readonly `EnterpriseNavigationItem[]` | Optional/default empty | unique stable keys；MENU uses children and normally no path；ROUTE leaf has absolute path；optional activePathPrefixes only affects selection；already permission-filtered | each platform navigation assembler |
-| `config.onNavigate` | function | Optional/default React Router navigate | receives clicked leaf；parent without path never emitted | platform override/shared |
+| `config.navigation` | readonly `EnterpriseNavigationItem[]` | Optional/default empty | unique stable keys；MENU uses children and normally no path；ROUTE leaf has absolute path；optional activePathPrefixes only affects selection；already permission-filtered | each xingyuan navigation assembler |
+| `config.onNavigate` | function | Optional/default React Router navigate | receives clicked leaf；parent without path never emitted | xingyuan override/shared |
 | `config.footer/contentStyle` | existing config | Optional | existing footer/content behavior preserved | each AdminLayout |
 | `children` | ReactNode | Required | existing Outlet/page tree；must not remount on Sider collapse/open | consumer router |
 | `EnterpriseHeaderProps.mobileNavigationVisible` | boolean | Optional/default false | true only when viewport<lg and navigation nonempty | EnterpriseLayout |
@@ -1481,8 +1481,8 @@ This is an in-process render contract, not an HTTP response. On`lg`and wider, it
 | --- | --- | --- | --- |
 | empty navigation | no Sider/Drawer trigger；Content full width | none | existing denied/empty route UI remains authoritative |
 | parent without path clicked | only toggle open state | no navigation | no error copy |
-| leaf path has no current route | navigate normally；existing Router returns404/guard | no shared recovery state | platform errorElement/route guard |
-| no selected prefix for current deep link | render no selection；do not rewrite URL | none | platform may expose matching visible parent in its tree definition |
+| leaf path has no current route | navigate normally；existing Router returns404/guard | no shared recovery state | xingyuan errorElement/route guard |
+| no selected prefix for current deep link | render no selection；do not rewrite URL | none | xingyuan may expose matching visible parent in its tree definition |
 | consumer installs0.1.x | old horizontal behavior or contract test failure | no business state | clean-install/version/build gate blocks release |
 
 ##### Interface logic for frontend and consumers
@@ -1497,7 +1497,7 @@ This is an in-process render contract, not an HTTP response. On`lg`and wider, it
 
 ##### Compatibility and verification
 
-Publish `@egon-cola/xingyuan-admin-web-shared 0.2.0` before updating consumers. DDC、Gateway、IdP update their localpackage-lock；RBAC3 updates its platform-levelpackage-lock。No HTTP、backend、database or authentication contract changes。Verification covers shared typecheck/unit/build, four clean installs/typechecks/tests/builds, package resolution to0.2.0 and desktop/mobile Playwright shell smoke。
+Publish `@egon-cola/xingyuan-admin-web-shared 0.2.0` before updating consumers. Tianshu、Yuheng、Tianquan-Shoubing update their localpackage-lock；Tianquan-Jianshen updates its xingyuan-levelpackage-lock。No HTTP、backend、database or authentication contract changes。Verification covers shared typecheck/unit/build, four clean installs/typechecks/tests/builds, package resolution to0.2.0 and desktop/mobile Playwright shell smoke。
 
 ## 10. POJO and Data Model Design
 
@@ -1792,12 +1792,12 @@ This legacy table duplicates the actual resource mapping already stored in`rbac3
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id/application_id/permission_id/resource_id` | `bigint` | 64-bit | No | None | old writer | old PK/FKs | duplicate mapping identity | PermissionResourcePO | `1/71/901/501` |
 | `resource_type` | `varchar(32)` | 32 | No | None | old writer | old type check | duplicated resource type | old PO | `API` |
-| `definition_set_id/gateway_operation_id/security_policy_id` | `varchar` | existing | mixed | null | old manifests/gateway | old checks | old API mapping metadata | old PO | null |
+| `definition_set_id/gateway_operation_id/security_policy_id` | `varchar` | existing | mixed | null | old manifests/yuheng | old checks | old API mapping metadata | old PO | null |
 | `mapping_version/status/source/build/checksum/version/audit` | mixed | existing | existing | existing | old lifecycle | old checks | unused parallel lifecycle | old PO | `ACTIVE` |
 
 ##### Keys, relationships, and constraints
 
-All relationships and API-operation unique indexes are removed with the table. Gateway operation identity, if needed for display, remains mechanical metadata onResource rather than a second authorization mapping owner.
+All relationships and API-operation unique indexes are removed with the table. Yuheng operation identity, if needed for display, remains mechanical metadata onResource rather than a second authorization mapping owner.
 
 ##### Index inventory and per-index justification
 
@@ -1926,10 +1926,10 @@ FKs useRESTRICT/no cascade forauthorization history；normal revoke usesstatus. 
 
 | Page | Route/deep link | Navigation entry | Owner | Permission/tenant guard | Unauthorized/missing behavior | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| DDC Admin shell | `/registry`及现有DDC routes | left tree：运行状态/配置管理/元数据管理 | DDC `layouts/AdminLayout` | existing DDC AuthContext/bootstrap；layout不改权限 | RequireAuth/现有route结果；空树隐藏Sider | `REQ-022`–`025` |
-| Gateway Admin shell | `/dashboard`及现有Gateway routes/details | left tree：总览/网关治理/MCP/观测与审计 | Gateway `layouts/AdminLayout` | existing CapabilityProvider；MCP分支按`gateway:mcp:read` | RequireCapability/errorElement/404保持 | `REQ-022`–`025` |
-| IdP Admin shell | `/overview`及现有IdP routes/details | left tree：身份概览/身份目录/OAuth与资源/安全治理 | IdP `app/AdminLayout` | existing bootstrap permissions/current tenant | ConsoleGuard、breadcrumb、resource-grant detail保持 | `REQ-022`–`025` |
-| RBAC3 Admin shell | `/iam/**` | left tree：resourceDefinitions MENU/ROUTE | RBAC3 `app/router/navigation` | REQ-007 resourceCodes + existing backend guards | no visible route -> existing403；hidden detail selects visible parent | `REQ-007`,`022`–`025` |
+| Tianshu Admin shell | `/registry`及现有DDC routes | left tree：运行状态/配置管理/元数据管理 | Tianshu `layouts/AdminLayout` | existing Tianshu AuthContext/bootstrap；layout不改权限 | RequireAuth/现有route结果；空树隐藏Sider | `REQ-022`–`025` |
+| Yuheng Admin shell | `/dashboard`及现有Gateway routes/details | left tree：总览/网关治理/MCP/观测与审计 | Yuheng `layouts/AdminLayout` | existing CapabilityProvider；MCP分支按`yuheng:mcp:read` | RequireCapability/errorElement/404保持 | `REQ-022`–`025` |
+| Tianquan-Shoubing Admin shell | `/overview`及现有IdP routes/details | left tree：身份概览/身份目录/OAuth与资源/安全治理 | Tianquan-Shoubing `app/AdminLayout` | existing bootstrap permissions/current tenant | ConsoleGuard、breadcrumb、resource-grant detail保持 | `REQ-022`–`025` |
+| Tianquan-Jianshen Admin shell | `/iam/**` | left tree：resourceDefinitions MENU/ROUTE | Tianquan-Jianshen `app/router/navigation` | REQ-007 resourceCodes + existing backend guards | no visible route -> existing403；hidden detail selects visible parent | `REQ-007`,`022`–`025` |
 | RoleResourceGrantPage | `/iam/roles/:roleId/resources` | Role detail action | admin-web role | resource code + backend manage permission | denied/not-found | `REQ-001`,`002` |
 | ResourceCatalogPage mapping drawer | `/iam/resources` row action | 资源目录 | admin-web resource | `system:resource-permission:read/manage`；admin-only | button hidden/denied | `REQ-003`,`015` |
 | Standalone PermissionPage | removed from normal navigation | None | advanced selector only | admin mapping flow | no route | `REQ-003`,`013` |
@@ -1960,10 +1960,10 @@ Mobile < lg
 └─────────────────────────────────────┘
 [菜单] opens a left overlay Drawer with the same MENU/ROUTE tree.
 
-EnterpriseLayout (shared by DDC/Gateway/IdP/RBAC3)
+EnterpriseLayout (shared by Tianshu/Yuheng/Tianquan-Shoubing/Tianquan-Jianshen)
 ├── EnterpriseHeader [Banner, sticky top]
 │   ├── Brand (logo + platformName)
-│   ├── GlobalActions (status/scope/tenant; platform-owned)
+│   ├── GlobalActions (status/scope/tenant; xingyuan-owned)
 │   ├── UserMenu
 │   └── MobileNavigationTrigger [only < lg and tree nonempty]
 └── ResponsiveBody
@@ -1999,22 +1999,22 @@ ResourceCatalogPage
 
 Shared reuses Ant Design `Layout.Sider`、`Menu mode="inline"`、`Drawer`、`Grid.useBreakpoint` and React Router。Role/resource pages continue reusing `Tree`、`Tabs`、`Table`、`Alert`、`Form` and existing PageState/PermissionGuard/QueryClient；不新建设计系统、导航API或全局store。
 
-Four platform tree inventory：
+Four xingyuan tree inventory：
 
 | Platform | Root/parent MENU | Ordered ROUTE children | Authorization/filter owner | Deep-link selection rule |
 | --- | --- | --- | --- | --- |
-| DDC | 运行状态 | 服务注册、发布任务、缓存 | existing AuthContext/RequireAuth | exact visible route |
-| DDC | 配置管理 | 配置资源 | same | exact visible route |
-| DDC | 元数据管理 | 业务域、环境、应用、命名空间 | same | exact visible route |
-| Gateway | root ROUTE | 总览 | `gateway:read` | `/dashboard` |
-| Gateway | 网关治理 | Gateway Group、Application / Credential、接口目录、Provider | `gateway:read` | group/application details use path prefix；接口目录 adds active prefix `/operations` |
-| Gateway | MCP | MCP Control Plane、Remote MCP | `gateway:mcp:read` | server/workbench detail selects MCP Control Plane |
-| Gateway | 观测与审计 | 调用观测、审计日志 | `gateway:read` | trace/audit route |
-| IdP | root ROUTE | 身份概览 | public within authenticated console | `/overview` |
-| IdP | 身份目录 | 全局用户、租户目录 | existing bootstrap permission per child | exact visible route |
-| IdP | OAuth与资源 | OAuth 客户端、Resource Server | existing bootstrap permission per child | client resource-grant detail selects OAuth客户端 |
-| IdP | 安全治理 | 签名密钥、安全审计 | existing bootstrap permission per child | exact visible route |
-| RBAC3 | IAM/目录/授权/资源目录/诊断 | existing visible `resourceDefinitions.json` ROUTEs in declared order | REQ-007 resourceCodes | hidden role/assignment details select longest visible parent |
+| Tianshu | 运行状态 | 服务注册、发布任务、缓存 | existing AuthContext/RequireAuth | exact visible route |
+| Tianshu | 配置管理 | 配置资源 | same | exact visible route |
+| Tianshu | 元数据管理 | 业务域、环境、应用、命名空间 | same | exact visible route |
+| Yuheng | root ROUTE | 总览 | `yuheng:read` | `/dashboard` |
+| Yuheng | 网关治理 | Yuheng Group、Application / Credential、接口目录、Provider | `yuheng:read` | group/application details use path prefix；接口目录 adds active prefix `/operations` |
+| Yuheng | MCP | MCP Control Plane、Remote MCP | `yuheng:mcp:read` | server/workbench detail selects MCP Control Plane |
+| Yuheng | 观测与审计 | 调用观测、审计日志 | `yuheng:read` | trace/audit route |
+| Tianquan-Shoubing | root ROUTE | 身份概览 | public within authenticated console | `/overview` |
+| Tianquan-Shoubing | 身份目录 | 全局用户、租户目录 | existing bootstrap permission per child | exact visible route |
+| Tianquan-Shoubing | OAuth与资源 | OAuth 客户端、Resource Server | existing bootstrap permission per child | client resource-grant detail selects OAuth客户端 |
+| Tianquan-Shoubing | 安全治理 | 签名密钥、安全审计 | existing bootstrap permission per child | exact visible route |
+| Tianquan-Jianshen | IAM/目录/授权/资源目录/诊断 | existing visible `resourceDefinitions.json` ROUTEs in declared order | REQ-007 resourceCodes | hidden role/assignment details select longest visible parent |
 
 ### 12.3 User flows, forms, and validation
 
@@ -2089,7 +2089,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 - Mapping同值、API suggestion mismatch、in-use conflict。
 - Package architecture规则和旧symbol禁用。
 - Shared longest-path leaf selection、ancestor-chain derivation、pathless parent click、empty tree、collapse state不remount children。
-- DDC/IdP/Gateway本地flat-to-tree shape与递归授权过滤；RBAC3既有resource tree消费不创建第二模型。
+- Tianshu/Tianquan-Shoubing/Gateway本地flat-to-tree shape与递归授权过滤；RBAC3既有resource tree消费不创建第二模型。
 
 ### 14.2 Integration, contract, persistence, component, and end-to-end tests
 
@@ -2099,7 +2099,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 - React SDK navigation/action/resource guards；Admin Web tree/drawer/query invalidation。
 - Shared desktop Sider/mobile Drawer component tests；四AdminLayout consumer tests；shared0.2.0 clean package resolution、typecheck/test/build与Playwright shell smoke。
 - Node CI report tests、bundle/conformance guards。
-- Static proof不替代live Redis/PostgreSQL/DDC/IdP/Gateway/CI；真实拓扑验证单独报告。
+- Static proof不替代live Redis/PostgreSQL/Tianshu/Tianquan-Shoubing/Yuheng/CI；真实拓扑验证单独报告。
 
 ### 14.3 Test cases and data
 
@@ -2132,7 +2132,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 | `TEST-025` | Migration | V13 | migrate V1–V13 clean | both new tables、suggestion column、checks/indexes exist；old tables absent | PostgreSQL | JUnit/Flyway | `REQ-004`,`017`,`020` |
 | `TEST-026` | Runtime | version/invalidation | replace/mapping commit | monotonic version and cache eviction | fake/Redis optional | JUnit | `REQ-018` |
 | `TEST-027` | Architecture | packages | production/test imports | exact sixIAM roots, no forbidden old roots | ArchUnit/rg | JUnit/shell | `REQ-011`–`013` |
-| `TEST-028` | Bootstrap | platform admin | V13 empty grants then bootstrap | admin receives required resource grants | DB fixture | JUnit/CLI | `REQ-017`,`018` |
+| `TEST-028` | Bootstrap | xingyuan admin | V13 empty grants then bootstrap | admin receives required resource grants | DB fixture | JUnit/CLI | `REQ-017`,`018` |
 | `TEST-029` | Static/release | old residue/bundle | source/JAR/dist scans | no old classes/routes/tables；CI script absent browser dist | rg/jar/node | shell | `REQ-010`,`013`,`017` |
 | `TEST-030` | Persistence/contract | ResourceApiBinding | one page many APIs、one button API、cross-app/non-API target | valid pairs commit；invalid set zero-write422 | PostgreSQL/MockMvc | JUnit | `REQ-019`,`020` |
 | `TEST-031` | Runtime/component | shared API union | two pages and one button reference same API；grant/revoke roots | API remains while any source/direct grant exists；removed after last source | DB/SDK fixtures | JUnit/Vitest | `REQ-019`,`020` |
@@ -2141,10 +2141,10 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 | `TEST-034` | Shared unit/component | route selection/open ancestors | nested paths、normal detail prefix、additional activePathPrefixes | longest boundary-aware candidate selects one leaf；all ancestors open；no URL rewrite | navigation fixture | Vitest | `REQ-022`,`025` |
 | `TEST-035` | Shared component | collapsible Sider | collapse/expand on mounted Outlet | width/labels/tooltips change；same child instance/query state retained | stateful child fixture | Vitest | `REQ-022`,`025` |
 | `TEST-036` | Shared component/a11y | mobile Drawer | <lg open/parent/leaf/Esc | noSider；leftDrawer uses same tree；parent stays open；leaf closes/navigates；focus restored | matchMedia/UserEvent | Vitest | `REQ-023`,`025` |
-| `TEST-037` | Consumer component | DDC AdminLayout | existing 8 routes | three parents and ordered children；no Header business menu；route click works | mocked AuthContext | Vitest | `REQ-024`,`025` |
-| `TEST-038` | Consumer component | IdP AdminLayout | permission subsets and client resource-grant deep link | empty parents pruned；four intended roots/groups；OAuth client parent selected for detail | mocked bootstrap | Vitest | `REQ-024`,`025` |
-| `TEST-039` | Consumer component | Gateway AdminLayout | gateway read without/with MCP capability、group detail、`/operations/:id` | MCP parent absent/present；group detail selects Gateway Group；operation detail selects接口目录 | mocked capabilities | Vitest | `REQ-024`,`025` |
-| `TEST-040` | Consumer integration | RBAC3 AdminLayout | resourceCodes subset、hidden role detail、no routes | existing recursive tree in left Sider；hidden detail selects roles；empty keeps403 without blank rail | Rbac3Provider fixture | Vitest | `REQ-007`,`024`,`025` |
+| `TEST-037` | Consumer component | Tianshu AdminLayout | existing 8 routes | three parents and ordered children；no Header business menu；route click works | mocked AuthContext | Vitest | `REQ-024`,`025` |
+| `TEST-038` | Consumer component | Tianquan-Shoubing AdminLayout | permission subsets and client resource-grant deep link | empty parents pruned；four intended roots/groups；OAuth client parent selected for detail | mocked bootstrap | Vitest | `REQ-024`,`025` |
+| `TEST-039` | Consumer component | Yuheng AdminLayout | yuheng read without/with MCP capability、group detail、`/operations/:id` | MCP parent absent/present；group detail selects Yuheng Group；operation detail selects接口目录 | mocked capabilities | Vitest | `REQ-024`,`025` |
+| `TEST-040` | Consumer integration | Tianquan-Jianshen AdminLayout | resourceCodes subset、hidden role detail、no routes | existing recursive tree in left Sider；hidden detail selects roles；empty keeps403 without blank rail | Rbac3Provider fixture | Vitest | `REQ-007`,`024`,`025` |
 | `TEST-041` | Package/release | shared + four dependency graphs | publish/build0.2.0 and clean install locks | every consumer resolves0.2.0；no0.1.4 tarball/link；typecheck/test/build pass | npm registry/package locks | shell/npm | `REQ-024` |
 | `TEST-042` | E2E visual/interaction | four Admin Web shells | one permitted desktop route and one mobile viewport per app | Banner top、tree left ondesktop、Drawer onmobile、selected route visible、no horizontal business menu | existing Playwright configs | Playwright | `REQ-022`–`025` |
 
@@ -2167,7 +2167,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 这是整组破坏式切换：
 
 1. 合并前冻结旧role permission写入和资源mapping变更，备份RBAC数据库。
-2. 先构建、测试并发布`@egon-cola/xingyuan-admin-web-shared 0.2.0`；更新DDC/Gateway/IdP三个本地lockfile和RBAC3平台级lockfile，四端clean install/typecheck/test/build必须全部解析0.2.0且不存在0.1.4残留。
+2. 先构建、测试并发布`@egon-cola/xingyuan-admin-web-shared 0.2.0`；更新DDC/Yuheng/IdP三个本地lockfile和RBAC3平台级lockfile，四端clean install/typecheck/test/build必须全部解析0.2.0且不存在0.1.4残留。
 3. 同版本发布Contract/Core/Starter/Admin/React SDK、四个Admin Web和CI脚本；旧二进制不得与V13共存。
 4. Flyway执行V13：创建role_resource_grant和resource_api_binding、增加suggestion、处理unmapped ACTIVE资源状态、删除role_permission/permission_resource。
 5. 先保证API资源目录已存在，再执行CI frontend registration，重新登记机械资源、suggestion和ROUTE/ACTION到API bindings。
@@ -2175,7 +2175,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 7. 清理旧snapshot Redis keys或推进版本，启动服务并验证About resourceCodes、角色树、API PEP以及四端desktop左Sider/mobile Drawer。
 8. 发布后只允许forward-fix。V13后回滚旧应用会因旧表/contract不存在失败；数据库恢复只能在维护窗口使用备份并回滚整组部署。若只回滚前端布局，四个consumer及shared依赖必须整体退回0.1.4，禁止新旧shared混用。
 
-稳定不变：AT/RT claims与Cookie、IdP/Gateway认证链、DDC BIZ/APP主数据、UserDetails identity、active role显式选择、Data/Field/SOD/Fence公共决定能力，以及DDC/IdP/Gateway现有bootstrap permission/capability来源。破坏变化：RolePermission API/table/classes、PermissionResource table/classes、About response、React guards、CI URL/payload、Java包FQCN和旧duplicate controllers；shared视觉/prop归属从Header horizontal navigation切换为Layout left tree，四端需协调升级0.2.0。
+稳定不变：AT/RT claims与Cookie、Tianquan-Shoubing/Gateway认证链、Tianshu BIZ/APP主数据、UserDetails identity、active role显式选择、Data/Field/SOD/Fence公共决定能力，以及DDC/Tianquan-Shoubing/Gateway现有bootstrap permission/capability来源。破坏变化：RolePermission API/table/classes、PermissionResource table/classes、About response、React guards、CI URL/payload、Java包FQCN和旧duplicate controllers；shared视觉/prop归属从Header horizontal navigation切换为Layout left tree，四端需协调升级0.2.0。
 
 ## 17. Alternatives and Decisions
 
@@ -2205,7 +2205,7 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 | `RISK-009` | shared0.2.0与四端lockfile未同步导致部分应用仍显示顶部菜单 | Medium | Medium | package resolution断言+四端clean build+整组发布 | Mitigated |
 | `RISK-010` | 左Sider压缩复杂表格/编辑器内容宽度 | High | Medium | 240/64折叠、Content minWidth0、既有表格横向滚动、四端desktop E2E | Mitigated |
 | `RISK-011` | deep-link detail没有独立导航叶子时高亮丢失 | Medium | Low | 最长可见path前缀；四端detail fixture覆盖 | Mitigated |
-| `RISK-012` | IdP/Gateway推断分组不符合最终产品文案 | Low | Low | `ASM-005`,`006`仅本地可逆；用户审核本Spec树表 | Review assumption |
+| `RISK-012` | Tianquan-Shoubing/Gateway推断分组不符合最终产品文案 | Low | Low | `ASM-005`,`006`仅本地可逆；用户审核本Spec树表 | Review assumption |
 
 ## 19. Traceability Matrix
 
@@ -2221,8 +2221,8 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 | `REQ-008` | `UC-004`,`UC-005` | policy/runtime §7/§14 | token/field/data/SOD/Fence preserved | existing decisions | `TEST-024` | regressions pass |
 | `REQ-009` | `UC-003` | registration §7/§9/§11 | browser bundle boundary | API-006/suggestion | `TEST-011`–`014` | mapping/grants zero-write |
 | `REQ-010` | `UC-003` | package/CI §8/§9 | CI-only execution retained | registration.ci/API-006 | `TEST-011`,`029` | new name/URL, no bundle code |
-| `REQ-011` | `UC-006` | packages §8 | IdP tenant ownership unchanged | six IAM roots | `TEST-027` | exact package inventory |
-| `REQ-012` | `UC-005`,`UC-006` | packages/architecture §7/§8 | DDC ownership unchanged | authorization layers | `TEST-027` | dependency guard |
+| `REQ-011` | `UC-006` | packages §8 | Tianquan-Shoubing tenant ownership unchanged | six IAM roots | `TEST-027` | exact package inventory |
+| `REQ-012` | `UC-005`,`UC-006` | packages/architecture §7/§8 | Tianshu ownership unchanged | authorization layers | `TEST-027` | dependency guard |
 | `REQ-013` | `UC-006` | cleanup §8/§11/§16 | audit/bootstrap capabilities retained | deletes/renames | `TEST-025`,`027`,`029` | no old symbols/tables/routes |
 | `REQ-014` | `UC-001` | transaction/schema §7/§11 | role CRUD contract context-only | API-002/table | `TEST-003`–`006` | atomic replace/isolation/conflict |
 | `REQ-015` | `UC-002` | mapping transaction §7/§9/§11 | permission metadata update unchanged | API-004 | `TEST-008`–`010` | no silent remap |
@@ -2230,18 +2230,18 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 | `REQ-017` | `UC-006` | migration §11/§16 | backup external | V13/old URL removal | `TEST-025`,`028`,`029` | destructive cutover complete |
 | `REQ-018` | `UC-001`,`UC-002`,`UC-006` | runtime consistency §7/§15/§16 | existing invalidation mechanism | versions/outbox | `TEST-026`,`028` | new snapshot visible/fail closed |
 | `REQ-019` | `UC-001`,`UC-005` | binding/runtime/UI §7/§11/§12 | role inheritance preserved | ResourceApiBinding + union projection | `TEST-023`,`030`,`031` | page/button grants linked APIs with OR semantics |
-| `REQ-020` | `UC-001`,`UC-003`,`UC-005` | CI/data/runtime §7/§9/§11 | DDC/app ownership unchanged | API-006 + binding table | `TEST-030`,`031` | only same-app ROUTE/ACTION-to-API facts accepted |
+| `REQ-020` | `UC-001`,`UC-003`,`UC-005` | CI/data/runtime §7/§9/§11 | Tianshu/app ownership unchanged | API-006 + binding table | `TEST-030`,`031` | only same-app ROUTE/ACTION-to-API facts accepted |
 | `REQ-021` | `UC-001`,`UC-003`,`UC-005` | source contract/runtime §7/§9/§14 | frontend owns truthful call declaration | ROUTE/ACTION apiResourceCodes | `TEST-030`–`032` | page-only role cannot call action-only API |
 | `REQ-022` | `UC-007` | shared layout/tree §7/§8/§12 | backend/API/schema unchanged | EnterpriseSidebar/INTERNAL-002 | `TEST-033`–`035`,`042` | desktop business menu exists only in leftSider |
 | `REQ-023` | `UC-007` | Banner/responsive shell §7/§9/§12 | brand/actions/user sources unchanged | EnterpriseHeader/EnterpriseLayout | `TEST-033`,`036`,`042` | Header has no horizontal business menu |
-| `REQ-024` | `UC-007` | four consumers/package §8/§12/§16 | each auth/route contract preserved | four AdminLayout trees + shared0.2.0 | `TEST-037`–`042` | DDC/Gateway/IdP/RBAC3 all use left tree |
+| `REQ-024` | `UC-007` | four consumers/package §8/§12/§16 | each auth/route contract preserved | four AdminLayout trees + shared0.2.0 | `TEST-037`–`042` | Tianshu/Yuheng/Tianquan-Shoubing/Tianquan-Jianshen all use left tree |
 | `REQ-025` | `UC-007` | local UI state/a11y §7/§12/§15 | no server navigation state | selected/open/collapsed/drawer | `TEST-034`–`036`,`038`–`042` | deep links, collapse and mobile behavior pass |
 
 ## 20. Review and Acceptance
 
 ### 20.1 Original-request fidelity
 
-角色管理的主对象已从permission字符/ID改为菜单/页面、按钮和独立接口资源；页面基础API与按钮操作API保持各自声明来源后按并集自动获得，共享API任一来源即可，permission仅由管理员mapping与runtime消费。MENU/ROUTE在DDC、Gateway、IdP、RBAC3四端全部通过共享左Sider递归树呈现，顶部只保留Banner；desktop折叠、deep-link祖先展开和mobile左Drawer均有明确契约。基础IAM六类对象、授权关系、策略、runtime、CI和残留清理均有明确包边界，且未扩展Token/DataScope SQL或用户中台。
+角色管理的主对象已从permission字符/ID改为菜单/页面、按钮和独立接口资源；页面基础API与按钮操作API保持各自声明来源后按并集自动获得，共享API任一来源即可，permission仅由管理员mapping与runtime消费。MENU/ROUTE在DDC、Yuheng、Tianquan-Shoubing、RBAC3四端全部通过共享左Sider递归树呈现，顶部只保留Banner；desktop折叠、deep-link祖先展开和mobile左Drawer均有明确契约。基础IAM六类对象、授权关系、策略、runtime、CI和残留清理均有明确包边界，且未扩展Token/DataScope SQL或用户中台。
 
 ### 20.2 Repository and technical fidelity
 
@@ -2249,11 +2249,11 @@ Role-resource page：Tree checkboxes and tabs have accessible names；keyboard c
 
 ### 20.3 Cross-section consistency
 
-API-002 resourceIds映射到RoleResourceGrant root；ResourceApiBinding把有效页面/按钮展开为API union；runtime facts派生permissions/resourceCodes；API注解按两者判定；About返回resourceCodes；React用同一codes展示。CI写suggestion与API bindings，API-004写actual mapping。四端各自产生授权后的`EnterpriseNavigationItem.children`，shared只渲染Banner+left tree/mobile Drawer，0新增API/store且不改变DDC/IdP/Gateway现有bootstrap来源。接口、POJO/TS types、DB、页面、测试、迁移与traceability使用同一字段和状态语义。
+API-002 resourceIds映射到RoleResourceGrant root；ResourceApiBinding把有效页面/按钮展开为API union；runtime facts派生permissions/resourceCodes；API注解按两者判定；About返回resourceCodes；React用同一codes展示。CI写suggestion与API bindings，API-004写actual mapping。四端各自产生授权后的`EnterpriseNavigationItem.children`，shared只渲染Banner+left tree/mobile Drawer，0新增API/store且不改变DDC/Tianquan-Shoubing/Gateway现有bootstrap来源。接口、POJO/TS types、DB、页面、测试、迁移与traceability使用同一字段和状态语义。
 
 ### 20.4 Relationship and effective-design review
 
-本规格仅修订前序Spec的角色授权、资源映射、API annotation code执行、About/前端展示、CI mapping ownership、包分层、历史残留及shared/Four Admin Web导航布局；JWT/RT、IdP/Gateway链、四端认证bootstrap来源、UserDetails、active role、Data/Field/SOD/Fence及DDC/IdP所有权在未明确修改处继续有效。前序Accepted文本未被重写。
+本规格仅修订前序Spec的角色授权、资源映射、API annotation code执行、About/前端展示、CI mapping ownership、包分层、历史残留及shared/Four Admin Web导航布局；JWT/RT、Tianquan-Shoubing/Gateway链、四端认证bootstrap来源、UserDetails、active role、Data/Field/SOD/Fence及DDC/IdP所有权在未明确修改处继续有效。前序Accepted文本未被重写。
 
 ### 20.5 Final verdict
 

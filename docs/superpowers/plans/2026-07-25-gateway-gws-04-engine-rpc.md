@@ -1,4 +1,4 @@
-# Gateway GWS-04 Egon RPC 数据面实现计划
+# Yuheng GWS-04 Egon RPC 数据面实现计划
 
 状态：已执行
 
@@ -25,7 +25,7 @@ Channel Cache 以 leaseId 为键；需要映射时才使用 `DynamicMessage`。
 - 重复 Full Method、非 Unary、Descriptor 不一致发布失败。
 - 测试旧索引捕获与未知方法。
 
-**Commit:** `feat(gateway): compile rpc method index`
+**Commit:** `feat(yuheng): compile rpc method index`
 
 ## Task 2: Raw Byte Handler 与 Unary Forwarder
 
@@ -33,7 +33,7 @@ Channel Cache 以 leaseId 为键；需要映射时才使用 `DynamicMessage`。
 - 透传允许的 Metadata、Status、Trailer；限制消息和 Metadata 大小。
 - Deadline 取入站、Route 和系统上限最小值；Cancellation 传播。
 
-**Commit:** `feat(gateway): forward raw unary rpc calls`
+**Commit:** `feat(yuheng): forward raw unary rpc calls`
 
 ## Task 3: Provider Channel Cache
 
@@ -41,16 +41,16 @@ Channel Cache 以 leaseId 为键；需要映射时才使用 `DynamicMessage`。
 - 租约替换停止新借用并有界 Drain。
 - 测试旧 lease Channel 不复用、并发 acquire/release 和关闭。
 
-**Commit:** `feat(gateway): manage rpc provider channels`
+**Commit:** `feat(yuheng): manage rpc provider channels`
 
 ## Task 4: RPC Listener 与 INTERNAL_GATEWAY Slot
 
 - 启动独立 INTERNAL gRPC Server。
-- Engine Ready 后注册单个 DDC `INTERNAL_GATEWAY` 租约，Drain 前注销。
-- Engine 强制关闭 RPC Consumer Gateway Manager。
+- Engine Ready 后注册单个 Tianshu `INTERNAL_GATEWAY` 租约，Drain 前注销。
+- Engine 强制关闭 RPC Consumer Yuheng Manager。
 - 真实 gRPC 测试覆盖调用、deadline、cancel、未知方法和多 Slot 拒绝。
 
-**Commit:** `feat(gateway): expose internal rpc listener`
+**Commit:** `feat(yuheng): expose internal rpc listener`
 
 ## Task 5: HTTP 到 RPC 动态消息桥
 
@@ -58,13 +58,13 @@ Channel Cache 以 leaseId 为键；需要映射时才使用 `DynamicMessage`。
 - 按显式映射创建/读取 `DynamicMessage`，拒绝未知字段和类型错误。
 - 测试不依赖业务接口 JAR。
 
-**Commit:** `feat(gateway): bridge http requests to rpc`
+**Commit:** `feat(yuheng): bridge http requests to rpc`
 
 ## Task 6: GWS-04 验收
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl :egon-cola-component-gateway-engine -am clean test
+  -pl :egon-cola-component-yuheng-biz-gateway -am clean test
 test -z "$(rg 'test\\.mockgateway|MockRpcGateway' \
-  egon-cola-components/egon-cola-component-gateway/*/src/main || true)"
+  egon-cola-components/egon-cola-component-yuheng/*/src/main || true)"
 ```

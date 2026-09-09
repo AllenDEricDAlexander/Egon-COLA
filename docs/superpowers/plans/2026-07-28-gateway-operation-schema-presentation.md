@@ -1,10 +1,10 @@
-# Gateway Operation Schema Presentation Implementation Plan
+# Yuheng Operation Schema Presentation Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 展开 Gateway Operation 的 HTTP/RPC 请求与响应 Schema，并清楚展示每个字段的类型、必填、说明和约束。
+**Goal:** 展开 Yuheng Operation 的 HTTP/RPC 请求与响应 Schema，并清楚展示每个字段的类型、必填、说明和约束。
 
-**Architecture:** Gateway Starter 在 Definition 上报时把 Protobuf Descriptor 转成有界递归 Schema，并从 `GatewayOperation` 合并字段说明。Gateway Admin Web 将统一 Schema 转成 Composite 风格的树行，由 Ant Design Table 默认展开，同时保留折叠的原始 JSON。
+**Architecture:** Yuheng Starter 在 Definition 上报时把 Protobuf Descriptor 转成有界递归 Schema，并从 `GatewayOperation` 合并字段说明。Yuheng Admin Web 将统一 Schema 转成 Composite 风格的树行，由 Ant Design Table 默认展开，同时保留折叠的原始 JSON。
 
 **Tech Stack:** Java 21、Spring Boot 3.5.16、Protobuf 4.32、React 19、TypeScript 6、Ant Design 6、Vitest、JUnit 5、Maven。
 
@@ -21,13 +21,13 @@
 ### Task 1: Starter RPC Schema 与字段说明契约
 
 **Files:**
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaField.java`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/ProtobufSchemaMapper.java`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewaySchemaDescriptions.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewayOperation.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributor.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayHttpOperationMapper.java`
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/ProtobufSchemaMapperTest.java`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaField.java`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/ProtobufSchemaMapper.java`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewaySchemaDescriptions.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewayOperation.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/RpcGatewayDefinitionContributor.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewayHttpOperationMapper.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/ProtobufSchemaMapperTest.java`
 
 **Interfaces:**
 - Consumes: `Descriptors.Descriptor` 和 `GatewaySchemaField[]`。
@@ -46,7 +46,7 @@ Descriptor。断言字面量：`customerId.type=string`、`sku.type=array`、
 Run:
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-component-gateway-starter -am \
+./mvnw -B -ntp -pl :egon-cola-component-yuheng-starter -am \
   -Dtest=ProtobufSchemaMapperTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -85,17 +85,17 @@ GatewaySchemaField[] responseSchemaFields() default {};
 - [ ] **Step 5: 提交**
 
 ```bash
-git add egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-starter
-git commit -m "feat: expand gateway operation schemas"
+git add egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-starter
+git commit -m "feat: expand yuheng operation schemas"
 ```
 
 ### Task 2: 测试 Provider 字段说明示例
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-contract/src/main/java/top/egon/cola/component/gateway/test/rpc/contract/OrderRpc.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-contract/src/main/java/top/egon/cola/component/gateway/test/rpc/contract/EchoRpc.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`
-- Test: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-contract/src/test/java/top/egon/cola/component/gateway/test/rpc/contract/GatewayRpcContractTest.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/yuheng/test/rpc/contract/OrderRpc.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/yuheng/test/rpc/contract/EchoRpc.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-http-provider/src/main/java/top/egon/cola/component/yuheng/test/http/OrderController.java`
+- Test: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-contract/src/test/java/top/egon/cola/component/yuheng/test/rpc/contract/GatewayRpcContractTest.java`
 
 **Interfaces:**
 - Consumes: Task 1 的 `GatewaySchemaField` 注解。
@@ -112,7 +112,7 @@ request 字段说明包含 `customerId=客户编号`、`sku=商品 SKU 列表`�
 Run:
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-component-gateway-test-rpc-contract -am \
+./mvnw -B -ntp -pl :egon-cola-component-yuheng-test-rpc-contract -am \
   -Dtest=GatewayRpcContractTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -129,19 +129,19 @@ Expected: 字段说明断言失败，因为测试 Contract 尚未声明这些元
 重复 Step 2 命令后提交：
 
 ```bash
-git add egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test
-git commit -m "test: document gateway provider schemas"
+git add egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test
+git commit -m "test: document yuheng provider schemas"
 ```
 
 ### Task 3: Admin Web 递归 Schema 表格
 
 **Files:**
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/interface-catalog/schemaRows.ts`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/interface-catalog/schemaRows.test.ts`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/interface-catalog/SchemaPanel.tsx`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/interface-catalog/SchemaPanel.test.tsx`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/interface-catalog/OperationPage.tsx`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/styles/index.css`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/interface-catalog/schemaRows.ts`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/interface-catalog/schemaRows.test.ts`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/interface-catalog/SchemaPanel.tsx`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/interface-catalog/SchemaPanel.test.tsx`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/interface-catalog/OperationPage.tsx`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/styles/index.css`
 
 **Interfaces:**
 - Consumes: `Record<string, unknown>` 的 request/response Schema。
@@ -203,7 +203,7 @@ Expected: `SchemaPanel` 不存在。随后使用 Ant Design Table，设置
 - [ ] **Step 6: 提交**
 
 ```bash
-git add egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web
+git add egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web
 git commit -m "feat: render expanded operation schemas"
 ```
 
@@ -219,7 +219,7 @@ git commit -m "feat: render expanded operation schemas"
 - [ ] **Step 1: Maven 验证**
 
 ```bash
-./mvnw -B -ntp -pl :egon-cola-component-gateway-starter,:egon-cola-component-gateway-test-rpc-contract -am test
+./mvnw -B -ntp -pl :egon-cola-component-yuheng-starter,:egon-cola-component-yuheng-test-rpc-contract -am test
 ```
 
 - [ ] **Step 2: 前端验证**

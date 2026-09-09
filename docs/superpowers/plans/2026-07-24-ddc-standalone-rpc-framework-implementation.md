@@ -1,14 +1,14 @@
-# DDC Standalone and gRPC + Protobuf RPC Framework Implementation Plan
+# Tianshu Standalone and gRPC + Protobuf RPC Framework Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 在不引入任何集群协调代码的前提下，先完成单 Admin、单 Redis 的 DDC 运行闭环和 Redis-only 服务注册发现，再交付 Provider/Consumer 轻量 gRPC + Protobuf RPC Component，并仅用测试范围的 Mock Gateway 验证调用链。
+**Goal:** 在不引入任何集群协调代码的前提下，先完成单 Admin、单 Redis 的 Tianshu 运行闭环和 Redis-only 服务注册发现，再交付 Provider/Consumer 轻量 gRPC + Protobuf RPC Component，并仅用测试范围的 Mock Yuheng 验证调用链。
 
-**Architecture:** PR1 将 DDC 重构为统一 `instanceId + leaseId` 租约协议、配置客户端生命周期协调器、Redis-only 服务目录和单 Admin 同步全目标确认发布。PR2 只依赖已经合入的 PR1，使用标准 Proto 生成的 gRPC Descriptor 作为唯一协议事实，通过注解绑定 Provider 和 JDK Proxy Consumer；Consumer 永远只连接唯一 Gateway，但本轮 Gateway、Provider Directory、动态 Handler 和转发器全部是 `rpc-test-suite` 内的 Mock，生产 Gateway 延后到 PR1/PR2 完成后单独开发。
+**Architecture:** PR1 将 Tianshu 重构为统一 `instanceId + leaseId` 租约协议、配置客户端生命周期协调器、Redis-only 服务目录和单 Admin 同步全目标确认发布。PR2 只依赖已经合入的 PR1，使用标准 Proto 生成的 gRPC Descriptor 作为唯一协议事实，通过注解绑定 Provider 和 JDK Proxy Consumer；Consumer 永远只连接唯一 Yuheng，但本轮 Yuheng、Provider Directory、动态 Handler 和转发器全部是 `rpc-test-suite` 内的 Mock，生产 Yuheng 延后到 PR1/PR2 完成后单独开发。
 
 **Tech Stack:** Java 21、Spring Boot 3.5.16、Maven、Redisson 3.26.0、PostgreSQL、SQLite、Flyway 11.15.0、grpc-java 1.75.0、Protocol Buffers 4.32.0、`protobuf-maven-plugin` 0.6.1、JUnit 5、Mockito、AssertJ、Awaitility、Maven Surefire/Failsafe。
 
-**Design Spec:** `docs/superpowers/specs/2026-07-24-ddc-standalone-rpc-framework-design.md`
+**Design Spec:** `docs/superpowers/specs/2026-07-24-tianshu-standalone-rpc-framework-design.md`
 
 ---
 
@@ -18,32 +18,32 @@
 
 This plan is one architecture plan implemented as two strictly sequential pull requests:
 
-1. **PR1 — DDC standalone closure and registry**
+1. **PR1 — Tianshu standalone closure and registry**
    - starts from the current `main`;
    - does not add or reference the RPC Component;
    - must compile, test, and package independently;
    - must be merged before PR2 starts.
 2. **PR2 — RPC Starter and test topology**
    - starts from `main` after PR1 has been merged;
-   - consumes only public APIs exported by the DDC Starter;
+   - consumes only public APIs exported by the Tianshu Starter;
    - must compile, test, and package independently.
 
 Do not create PR2 files on the PR1 branch. Do not combine the two pull requests into one commit series.
 
 ### 0.2 Hard scope boundaries
 
-- DDC remains a single Admin process and one Redis single-server connection.
+- Tianshu remains a single Admin process and one Redis single-server connection.
 - Do not add Raft, JRaft, leader election, Redisson distributed locks, Redis Cluster, Sentinel, multi-Admin coordination, or cross-node Waiter recovery.
-- Provider and Gateway registry state remains Redis-only. Do not add a service registry database entity or table.
-- Preserve existing DDC management/configuration paths. New registry paths are added under `/api/v1/ddc/openapi/registry/**`.
+- Provider and Yuheng registry state remains Redis-only. Do not add a service registry database entity or table.
+- Preserve existing Tianshu management/configuration paths. New registry paths are added under `/api/v1/tianshu/openapi/registry/**`.
 - Do not edit either existing `V1__create_ddc_schema.sql`.
 - Add exactly one logical migration version, `V2__add_lease_and_sync_publish.sql`, with one PostgreSQL script and one SQLite dialect script.
 - New publishes use only `SYNC_ALL_ACK`; legacy mode strings remain readable as historical data.
 - `.proto` is the only RPC IDL. Do not create a second serializer, envelope IDL, schema registry, or custom protoc plugin.
 - RPC V1 supports only unary methods whose request and response implement `com.google.protobuf.Message`.
-- Do not add a production Gateway engine, Provider selector, Consumer-to-Provider channel, retry, gray routing, rate limiting, circuit breaking, or business retry.
-- Do not add a production RPC Gateway package or the production types `RpcGatewayNodeRegistrar`, `RpcProviderDirectory`, `RpcProviderChannelFactory`, `RpcGatewayHandlerRegistry`, or `RpcUnaryForwarder`.
-- All Gateway registration, Provider discovery, selection, dynamic handling, Provider channels, and forwarding used by current tests must remain under `rpc-test-suite/src/test`; they are Mock fixtures, not published APIs.
+- Do not add a production Yuheng engine, Provider selector, Consumer-to-Provider channel, retry, gray routing, rate limiting, circuit breaking, or business retry.
+- Do not add a production RPC Yuheng package or the production types `RpcGatewayNodeRegistrar`, `RpcProviderDirectory`, `RpcProviderChannelFactory`, `RpcGatewayHandlerRegistry`, or `RpcUnaryForwarder`.
+- All Yuheng registration, Provider discovery, selection, dynamic handling, Provider channels, and forwarding used by current tests must remain under `rpc-test-suite/src/test`; they are Mock fixtures, not published APIs.
 - Every `ManagedChannelBuilder` in RPC production code must call `disableRetry()`.
 - Do not start any application after implementation verification. Tests may start bounded test servers/processes and must close them.
 
@@ -52,9 +52,9 @@ Do not create PR2 files on the PR1 branch. Do not combine the two pull requests 
 Use patterns only at the variation points already present in the design:
 
 - **Facade / lifecycle coordinator:** `DdcRuntimeCoordinator`, `RpcProviderLifecycle`, and `RpcConsumerGatewayManager` own ordered startup and shutdown.
-- **Observer:** DDC service snapshot/catalog subscriptions publish immutable complete snapshots.
-- **Adapter:** `DdcOpenApiServiceRegistryClient` is the production registry adapter; deterministic registry and Gateway adapters exist only in RPC test code.
-- **Registry:** publish locks, publish Waiters, and Provider method bindings use narrow registries keyed by their real identities; Mock Gateway registries remain test-private.
+- **Observer:** Tianshu service snapshot/catalog subscriptions publish immutable complete snapshots.
+- **Adapter:** `DdcOpenApiServiceRegistryClient` is the production registry adapter; deterministic registry and Yuheng adapters exist only in RPC test code.
+- **Registry:** publish locks, publish Waiters, and Provider method bindings use narrow registries keyed by their real identities; Mock Yuheng registries remain test-private.
 - **Proxy:** Consumer bindings use JDK Dynamic Proxy only.
 - **Factory:** channel creation is isolated in channel factories, with retry disabled in the only creation path.
 
@@ -76,28 +76,28 @@ Never use `Thread.sleep` in convergence tests. Use Awaitility with explicit time
 
 ---
 
-# PR1 — DDC standalone closure and Redis-only registry
+# PR1 — Tianshu standalone closure and Redis-only registry
 
-## Task 1: Introduce the unified lease contract in the DDC Starter
+## Task 1: Introduce the unified lease contract in the Tianshu Starter
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcLeaseRole.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcLeaseOperationStatus.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcErrorStatus.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcInstanceIdentity.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcLeaseSession.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/vo/DdcLeaseOperationResult.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcLeaseSessionHolder.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcInstanceRegisterRequest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcHeartbeatRequest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcAckRequest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/DdcAdminClient.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcException.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcLeaseRole.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcLeaseOperationStatus.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcErrorStatus.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/vo/DdcInstanceIdentity.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/vo/DdcLeaseSession.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/vo/DdcLeaseOperationResult.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcLeaseSessionHolder.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcInstanceRegisterRequest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcHeartbeatRequest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcAckRequest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/DdcAdminClient.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/HttpDdcAdminClient.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcException.java`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/pom.xml`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcLeaseSessionHolderTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/client/HttpDdcAdminClientTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DdcLeaseSessionHolderTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/client/HttpDdcAdminClientTest.java`
 
 ### Public contract
 
@@ -193,7 +193,7 @@ public interface DdcAdminClient {
   Expected: compilation/test failure because the lease types and new return signatures do not exist.
 
 - [ ] Add the enums, immutable records, holder, request fields, and client signatures.
-- [ ] Add the direct common-core dependency, stable DDC errors, and parse/check every existing `ResultDto` envelope without changing public OpenAPI paths.
+- [ ] Add the direct common-core dependency, stable Tianshu errors, and parse/check every existing `ResultDto` envelope without changing public OpenAPI paths.
 - [ ] Update existing fake `DdcAdminClient` implementations in tests so the Starter compiles; return deterministic lease results.
 - [ ] Rerun the focused command. Expected: `BUILD SUCCESS`.
 - [ ] Run the complete Starter test suite:
@@ -208,7 +208,7 @@ public interface DdcAdminClient {
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): define unified lease contract"
+  git commit -m "feat(tianshu): define unified lease contract"
   ```
 
 ---
@@ -217,27 +217,27 @@ public interface DdcAdminClient {
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcConfigLeaseRedisRepository.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcLeaseValidator.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcConfigLeaseService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcConfigLeaseRedisRepository.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcLeaseValidator.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcConfigLeaseService.java`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_config_lease_register.lua`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_config_lease_heartbeat.lua`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_config_lease_deregister.lua`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcAdminProperties.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcAdminRedisConfig.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/common/DdcAdminException.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcInstanceAdminService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcOpenApiController.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcConfigLeaseServiceTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcOpenApiControllerTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcKeys.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminProperties.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminRedisConfig.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/common/DdcAdminException.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcInstanceAdminService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcOpenApiController.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcConfigLeaseServiceTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcOpenApiControllerTest.java`
 
 ### Redis contract
 
 Keep the current config-client index as a secondary index and replace the instance bucket with:
 
 ```text
-ddc:lease:instance:{env}:{namespace}:CONFIG_CLIENT:{instanceId}
+tianshu:lease:instance:{env}:{namespace}:CONFIG_CLIENT:{instanceId}
 ```
 
 The bucket value is the complete JSON lease record and has a real Redis TTL. The existing scope index contains `instanceId` members so Admin can list live config clients without `KEYS` or `SCAN`.
@@ -289,7 +289,7 @@ Lua return codes map to `RENEWED`, `DELETED`, `NOT_FOUND`, `LEASE_MISMATCH`, or 
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): enforce atomic config leases"
+  git commit -m "feat(tianshu): enforce atomic config leases"
   ```
 
 ---
@@ -300,19 +300,19 @@ Lua return codes map to `RENEWED`, `DELETED`, `NOT_FOUND`, `LEASE_MISMATCH`, or 
 
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/db/postgresql/V2__add_lease_and_sync_publish.sql`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/db/sqlite/V2__add_lease_and_sync_publish.sql`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcInstanceEntity.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcPublishTaskEntity.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/entity/DdcPublishAckEntity.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/enums/PublishMode.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/enums/PublishStatus.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishAckRepository.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcPublishTaskRepository.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcInstanceAdminService.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcLeaseExpiryScanner.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcAdminProperties.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcSchemaScriptTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/repository/DdcV2MigrationTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcLeaseExpiryScannerTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/entity/DdcInstanceEntity.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/entity/DdcPublishTaskEntity.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/entity/DdcPublishAckEntity.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/enums/PublishMode.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/enums/PublishStatus.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishAckRepository.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcPublishTaskRepository.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcInstanceAdminService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcLeaseExpiryScanner.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminProperties.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcSchemaScriptTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/repository/DdcV2MigrationTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcLeaseExpiryScannerTest.java`
 
 ### Migration content
 
@@ -398,7 +398,7 @@ After the columns exist, persist the current config-client `leaseId` and `leaseE
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): migrate lease-aware publish state"
+  git commit -m "feat(tianshu): migrate lease-aware publish state"
   ```
 
 ---
@@ -407,25 +407,25 @@ After the columns exist, persist the current config-client `leaseId` and `leaseE
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinator.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRuntimeState.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceIdentityFactory.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeSubscription.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/resources/META-INF/egon-cola-ddc.properties`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRuntimeCoordinator.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRuntimeState.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcInstanceIdentityFactory.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/listener/DdcRedisChangeSubscription.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/resources/META-INF/egon-cola-tianshu.properties`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/pom.xml`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcProperties.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcInstanceService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcRefreshService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/service/DdcFieldBindingService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/repository/DdcLocalConfigRepository.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/listener/DdcRedisChangeListener.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcPublishTarget.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcPublishMessage.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcRuntimeCoordinatorTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcRefreshServiceTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/service/DdcFieldBindingServiceTest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcSampleRefreshFlowTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcProperties.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcAutoConfig.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcInstanceService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcRefreshService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/service/DdcFieldBindingService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/repository/DdcLocalConfigRepository.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/listener/DdcRedisChangeListener.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcPublishTarget.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcPublishMessage.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DdcRuntimeCoordinatorTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DdcRefreshServiceTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/service/DdcFieldBindingServiceTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/DdcSampleRefreshFlowTest.java`
 
 ### Lifecycle implementation
 
@@ -448,11 +448,11 @@ Its stop sequence is:
 3. fetch the current lease and best-effort deregister;
 4. remove the Redis topic listener by listener ID;
 5. clear the session;
-6. allow the container to invoke the DDC Redisson bean's `shutdown` destroy method.
+6. allow the container to invoke the Tianshu Redisson bean's `shutdown` destroy method.
 
 `fail-fast=true` throws from `SmartLifecycle.start()` on Register/default-report/initial-pull failure. `fail-fast=false` keeps defaults and schedules recovery; recovery Register always replaces the current lease and then performs the initial snapshot.
 
-Replace the hard-coded SDK version with a Maven-filtered property in `META-INF/egon-cola-ddc.properties`.
+Replace the hard-coded SDK version with a Maven-filtered property in `META-INF/egon-cola-tianshu.properties`.
 
 ### Refresh implementation
 
@@ -501,7 +501,7 @@ Serialize snapshot/topic updates per `configKey` with a local keyed lock so an o
 - [ ] Remove `ackEnabled`; V1 topic refresh ACK is mandatory.
 - [ ] Rename `heartbeatTimeoutSeconds` to `leaseSeconds` while accepting the old property name as a deprecated binding alias for one release.
 - [ ] Update the sample tests to provide a valid lease and target identity.
-- [ ] Rerun focused tests and then the Starter + DDC test modules:
+- [ ] Rerun focused tests and then the Starter + Tianshu test modules:
 
   ```bash
   ./mvnw -B -ntp \
@@ -520,7 +520,7 @@ Serialize snapshot/topic updates per `configKey` with a local keyed lock so an o
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): close config client lifecycle"
+  git commit -m "feat(tianshu): close config client lifecycle"
   ```
 
 ---
@@ -529,18 +529,18 @@ Serialize snapshot/topic updates per `configKey` with a local keyed lock so an o
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/security/DdcCanonicalRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/security/DdcRequestSigner.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/DdcCachedBodyHttpServletRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/DdcNonceCache.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/security/DdcOpenApiHmacFilter.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/client/HttpDdcAdminClient.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcProperties.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcAdminProperties.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcGlobalExceptionHandler.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/security/DdcCanonicalRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/security/DdcRequestSigner.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/DdcCachedBodyHttpServletRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/DdcNonceCache.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/security/DdcOpenApiHmacFilter.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/client/HttpDdcAdminClient.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcProperties.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminProperties.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcGlobalExceptionHandler.java`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/application.yml`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/security/DdcRequestSignerTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/security/DdcOpenApiHmacFilterTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/security/DdcRequestSignerTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/security/DdcOpenApiHmacFilterTest.java`
 
 ### Canonical request
 
@@ -569,11 +569,11 @@ Rules:
 Headers are exactly:
 
 ```text
-X-DDC-Access-Key
-X-DDC-Timestamp
-X-DDC-Nonce
-X-DDC-Content-SHA256
-X-DDC-Signature
+X-TIANSHU-Access-Key
+X-TIANSHU-Timestamp
+X-TIANSHU-Nonce
+X-TIANSHU-Content-SHA256
+X-TIANSHU-Signature
 ```
 
 Admin configuration remains one configured credential in V1:
@@ -606,13 +606,13 @@ openapi:
 
 - [ ] Implement one canonicalization algorithm in the Starter and consume it from the Admin module through its existing Starter dependency.
 - [ ] Ensure the repeatable-body wrapper exposes identical bytes to Jackson after the filter verifies them.
-- [ ] Return stable DDC error codes from the filter without entering a controller.
+- [ ] Return stable Tianshu error codes from the filter without entering a controller.
 - [ ] Rerun focused tests and both module suites.
 - [ ] Commit:
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): verify canonical OpenAPI signatures"
+  git commit -m "feat(tianshu): verify canonical OpenAPI signatures"
   ```
 
 ---
@@ -621,35 +621,35 @@ openapi:
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/enums/DdcServiceKind.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceKey.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceRegistration.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceInstance.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceSnapshot.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceQuery.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcServiceCatalogSnapshot.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/registry/DdcRegistryEvent.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcServiceLeaseRequest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscription.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcServiceRegistryClient.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcOpenApiServiceRegistryClient.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManager.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcRegistryAutoConfig.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryOpenApiController.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcServiceRegistryRedisRepository.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcServiceRegistryService.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/enums/DdcServiceKind.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceKey.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceRegistration.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceInstance.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceSnapshot.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceQuery.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcServiceCatalogSnapshot.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/registry/DdcRegistryEvent.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcServiceLeaseRequest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/registry/DdcRegistrySubscription.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/registry/DdcServiceRegistryClient.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/registry/DdcOpenApiServiceRegistryClient.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/registry/DdcRegistrySubscriptionManager.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcRegistryAutoConfig.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcRegistryOpenApiController.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcServiceRegistryRedisRepository.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcServiceRegistryService.java`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_service_register.lua`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_service_heartbeat.lua`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_service_deregister.lua`
 - Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/redis/ddc_service_expire.lua`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcKeys.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/config/DdcAutoConfig.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcKeys.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/config/DdcAutoConfig.java`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/resources/META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcLeaseExpiryScanner.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/registry/DdcRegistrySubscriptionManagerTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/ddc/config/DdcRegistryAutoConfigTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcServiceRegistryServiceTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcRegistryOpenApiControllerTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcLeaseExpiryScanner.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/registry/DdcRegistrySubscriptionManagerTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/test/java/top/egon/cola/component/tianshu/config/DdcRegistryAutoConfigTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcServiceRegistryServiceTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcRegistryOpenApiControllerTest.java`
 
 ### Public Starter interface
 
@@ -684,18 +684,18 @@ All registry model records defensively copy maps/lists and expose stable orderin
 Implement exactly these endpoints:
 
 ```text
-POST /api/v1/ddc/openapi/registry/instances/register
-POST /api/v1/ddc/openapi/registry/instances/heartbeat
-POST /api/v1/ddc/openapi/registry/instances/deregister
-GET  /api/v1/ddc/openapi/registry/instances
-GET  /api/v1/ddc/openapi/registry/services
+POST /api/v1/tianshu/openapi/registry/instances/register
+POST /api/v1/tianshu/openapi/registry/instances/heartbeat
+POST /api/v1/tianshu/openapi/registry/instances/deregister
+GET  /api/v1/tianshu/openapi/registry/instances
+GET  /api/v1/tianshu/openapi/registry/services
 ```
 
 The Lua scripts atomically maintain the bucket, service ZSET, service revision, catalog SET, catalog revision, and invalidation topic described in the Spec. Use SHA-256 of the canonical Service Key for Redis key suffixes. Do not use `KEYS`, `SCAN`, a database repository, or a distributed lock.
 
 Register always creates a new lease. Heartbeat only extends a matching lease and never changes Service Key/address/metadata. Deregister with an old lease returns `NOT_DELETED`. List and catalog reads clean stale members idempotently before returning a complete snapshot.
 
-Because the canonical Redis bucket is keyed by kind + instanceId, Register must reject reuse of one instanceId for a different Service Key with `DDC_INSTANCE_ID_CONFLICT`; it must not silently overwrite the other service. RPC Provider avoids this by deriving one registry instance ID per service.
+Because the canonical Redis bucket is keyed by kind + instanceId, Register must reject reuse of one instanceId for a different Service Key with `TIANSHU_INSTANCE_ID_CONFLICT`; it must not silently overwrite the other service. RPC Provider avoids this by deriving one registry instance ID per service.
 
 ### Subscription behavior
 
@@ -709,9 +709,9 @@ Because the canonical Redis bucket is keyed by kind + instanceId, Register must 
 6. expires locally cached instances at `leaseExpireAt` even while Admin is unavailable;
 7. catches listener exceptions without terminating Redis listener/scheduler threads.
 
-Split auto-configuration so `egon.cola.component.ddc.enabled=false` can disable the CONFIG_CLIENT lifecycle while `egon.cola.component.ddc.registry.enabled=true` still creates the public registry client for RPC applications.
+Split auto-configuration so `egon.cola.component.tianshu.enabled=false` can disable the CONFIG_CLIENT lifecycle while `egon.cola.component.tianshu.registry.enabled=true` still creates the public registry client for RPC applications.
 
-`registry.enabled` defaults to `false` and uses `matchIfMissing=false`. RPC Provider applications and the test-only Mock Gateway enable it explicitly; the future production Gateway will opt in during its own project. This prevents the Admin application's existing `ddc.enabled=false` setting from accidentally auto-configuring a registry client back to itself.
+`registry.enabled` defaults to `false` and uses `matchIfMissing=false`. RPC Provider applications and the test-only Mock Yuheng enable it explicitly; the future production Yuheng will opt in during its own project. This prevents the Admin application's existing `tianshu.enabled=false` setting from accidentally auto-configuring a registry client back to itself.
 
 ### TDD steps
 
@@ -742,7 +742,7 @@ Split auto-configuration so `egon.cola.component.ddc.enabled=false` can disable 
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): add Redis service registry"
+  git commit -m "feat(tianshu): add Redis service registry"
   ```
 
 ---
@@ -751,26 +751,26 @@ Split auto-configuration so `egon.cola.component.ddc.enabled=false` can disable 
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcConfigResourceKey.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishResourceLockRegistry.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishCompletionWaiterRegistry.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishStateTransitionService.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/policy/AsyncPublishConsistencyPolicy.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/policy/StrongAllAckPublishConsistencyPolicy.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/policy/StrongQuorumAckPublishConsistencyPolicy.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/policy/PublishConsistencyPolicy.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/policy/PublishConsistencyPolicyFactory.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/policy/PublishDecision.java`
-- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/policy/PublishConsistencyPolicyTest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/dto/DdcPublishRequest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/model/vo/DdcPublishResultVO.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/repository/DdcRedisRepository.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/common/DdcChecksum.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/ddc/model/dto/DdcPublishMessage.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/PublishResourceLockRegistryTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishPreparationTest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishServiceFailureTest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcConfigResourceKey.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/PublishResourceLockRegistry.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/PublishCompletionWaiterRegistry.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPublishStateTransitionService.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/policy/AsyncPublishConsistencyPolicy.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/policy/StrongAllAckPublishConsistencyPolicy.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/policy/StrongQuorumAckPublishConsistencyPolicy.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/policy/PublishConsistencyPolicy.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/policy/PublishConsistencyPolicyFactory.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/policy/PublishDecision.java`
+- Delete: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/policy/PublishConsistencyPolicyTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/dto/DdcPublishRequest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/model/vo/DdcPublishResultVO.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPublishService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/repository/DdcRedisRepository.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/common/DdcChecksum.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter/src/main/java/top/egon/cola/component/tianshu/model/dto/DdcPublishMessage.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/PublishResourceLockRegistryTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcPublishPreparationTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcPublishServiceFailureTest.java`
 
 ### Request and locking contract
 
@@ -803,16 +803,16 @@ Optional<String> owner(DdcConfigResourceKey key);
 
 ### Preparation transaction
 
-Before claiming a resource, load by changeId. A matching persisted `SUCCESS/PENDING/PUBLISHING` task follows the idempotent rules in Task 8 without preparing again. A conflicting persisted task fails immediately. If no task exists, claim the resource; a race that finds the same changeId as current owner but no committed task returns `DDC_PUBLISH_IN_PROGRESS` and the caller can repeat the same idempotent request after preparation commits.
+Before claiming a resource, load by changeId. A matching persisted `SUCCESS/PENDING/PUBLISHING` task follows the idempotent rules in Task 8 without preparing again. A conflicting persisted task fails immediately. If no task exists, claim the resource; a race that finds the same changeId as current owner but no committed task returns `TIANSHU_PUBLISH_IN_PROGRESS` and the caller can repeat the same idempotent request after preparation commits.
 
 Under newly acquired resource ownership, one transaction:
 
 1. validates the UUIDv7 `changeId`, resource, expected version, and bounded timeout;
-2. rejects a mismatched existing change with `DDC_CHANGE_ID_CONFLICT`;
+2. rejects a mismatched existing change with `TIANSHU_CHANGE_ID_CONFLICT`;
 3. persists the new config value/version;
 4. computes `contentChecksum = SHA256(configValue UTF-8)`;
 5. asks `DdcConfigLeaseService` for the active CONFIG_CLIENT snapshot from Redis;
-6. fails with `DDC_NO_LIVE_INSTANCE` when empty;
+6. fails with `TIANSHU_NO_LIVE_INSTANCE` when empty;
 7. creates one `PENDING` task with `attemptCount=0`;
 8. pre-creates one target row per exact `instanceId + leaseId`, with version/checksum;
 9. records the operation log.
@@ -825,7 +825,7 @@ After commit:
 4. conditionally transition `PENDING -> PUBLISHING` and set `dispatchedAt`;
 5. wait outside the database transaction and outside the resource registry.
 
-Different resource keys may publish in parallel. A second change on the same key fails fast with `DDC_PUBLISH_IN_PROGRESS` and the owning changeId.
+Different resource keys may publish in parallel. A second change on the same key fails fast with `TIANSHU_PUBLISH_IN_PROGRESS` and the owning changeId.
 
 ### TDD steps
 
@@ -856,7 +856,7 @@ Different resource keys may publish in parallel. A second change on the same key
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): serialize sync publish resources"
+  git commit -m "feat(tianshu): serialize sync publish resources"
   ```
 
 ---
@@ -865,18 +865,18 @@ Different resource keys may publish in parallel. A second change on the same key
 
 **Files:**
 
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishTimeoutScanner.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/PublishStartupRecovery.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishStateTransitionService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/service/DdcPublishService.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/controller/DdcPublishTaskController.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/ddc/admin/config/DdcAdminProperties.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/PublishTimeoutScanner.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/PublishStartupRecovery.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPublishStateTransitionService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/service/DdcPublishService.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/controller/DdcPublishTaskController.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/java/top/egon/cola/component/tianshu/admin/config/DdcAdminProperties.java`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/main/resources/application.yml`
-- Replace: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcAckServiceTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishTimeoutScannerTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/PublishStartupRecoveryTest.java`
-- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/service/DdcPublishRetryTest.java`
-- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/ddc/admin/controller/DdcConfigControllerTest.java`
+- Replace: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcAckServiceTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcPublishTimeoutScannerTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/PublishStartupRecoveryTest.java`
+- Test: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/service/DdcPublishRetryTest.java`
+- Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin/src/test/java/top/egon/cola/component/tianshu/admin/controller/DdcConfigControllerTest.java`
 
 ### ACK state machine
 
@@ -896,7 +896,7 @@ Rules:
 - any target `FAILED` conditionally terminates the task as `FAILED`;
 - all targets `SUCCESS` conditionally terminate it as `SUCCESS`;
 - terminal task ACKs are read-only and cannot rewrite the result;
-- invalid identity/version/checksum returns stable DDC errors and does not update counters;
+- invalid identity/version/checksum returns stable Tianshu errors and does not update counters;
 - after commit, signal the changeId Waiter and conditionally release the resource when the task is terminal.
 
 ### Timeout and recovery
@@ -921,14 +921,14 @@ Rules:
 Add:
 
 ```text
-POST /api/v1/ddc/publish-tasks/{changeId}/retry
+POST /api/v1/tianshu/publish-tasks/{changeId}/retry
 ```
 
 The original publish endpoint behavior is:
 
 - matching `SUCCESS` returns the persisted result;
 - matching `PENDING/PUBLISHING` returns/re-waits on the existing task without creating rows;
-- mismatched resource/version/checksum/timeout returns `DDC_CHANGE_ID_CONFLICT`;
+- mismatched resource/version/checksum/timeout returns `TIANSHU_CHANGE_ID_CONFLICT`;
 - `FAILED/TIMEOUT/UNKNOWN` does not re-dispatch through the normal endpoint.
 
 Retry:
@@ -936,7 +936,7 @@ Retry:
 1. only accepts `FAILED`, `TIMEOUT`, or `UNKNOWN`;
 2. re-acquires the original resource key;
 3. verifies every fixed target's exact lease is still active;
-4. if any target expired, transitions to `FAILED/DDC_TARGET_LEASE_EXPIRED`;
+4. if any target expired, transitions to `FAILED/TIANSHU_TARGET_LEASE_EXPIRED`;
 5. resets only the original target ACK states;
 6. increments `attemptCount`;
 7. republishes the original version/checksum/target set;
@@ -974,20 +974,20 @@ Retry:
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "feat(ddc): complete synchronous publish state machine"
+  git commit -m "feat(tianshu): complete synchronous publish state machine"
   ```
 
 ---
 
-## Task 9: Add DDC integration coverage, documentation, and the PR1 release gate
+## Task 9: Add Tianshu integration coverage, documentation, and the PR1 release gate
 
 **Files:**
 
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/README.md`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/README.zh-CN.md`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcLeaseLifecycleTest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcRegistryLifecycleTest.java`
-- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/ddc/test/DdcSyncPublishFlowTest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/DdcLeaseLifecycleTest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/DdcRegistryLifecycleTest.java`
+- Create: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/test/java/top/egon/cola/component/tianshu/test/DdcSyncPublishFlowTest.java`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/pom.xml`
 - Modify: `egon-cola-components/egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-test/src/main/resources/application.yml`
 
@@ -995,11 +995,11 @@ Retry:
 
 Use test-scoped deterministic Redis doubles for the normal Maven test suite; do not introduce Testcontainers or require Docker.
 
-The DDC test module must prove:
+The Tianshu test module must prove:
 
 - config-client startup Register → defaults → snapshot → READY ordering;
 - new lease replaces old lease and stale heartbeat/offline cannot mutate it;
-- Provider and Mock-Gateway-style registry entry Register → subscribe → heartbeat → deregister;
+- Provider and Mock-Yuheng-style registry entry Register → subscribe → heartbeat → deregister;
 - registry state is absent from all JPA tables;
 - one publish snapshots exact config-client leases and returns only after every success ACK;
 - same-resource concurrent publish rejects one request without blocking ACK handling;
@@ -1029,8 +1029,8 @@ The English and Chinese READMEs must stay structurally aligned and document:
 
   Expected before final fixture wiring: focused failures identifying missing integration seams.
 
-- [ ] Add only the test fixture/configuration needed to exercise public DDC APIs; do not reach into Admin private methods.
-- [ ] Rerun the DDC reactor:
+- [ ] Add only the test fixture/configuration needed to exercise public Tianshu APIs; do not reach into Admin private methods.
+- [ ] Rerun the Tianshu reactor:
 
   ```bash
   ./mvnw -B -ntp \
@@ -1071,16 +1071,16 @@ The English and Chinese READMEs must stay structurally aligned and document:
 
   ```bash
   git add egon-cola-components/egon-cola-component-dynamic-config-center
-  git commit -m "test(ddc): verify standalone runtime closure"
+  git commit -m "test(tianshu): verify standalone runtime closure"
   ```
 
 - [ ] Open PR1 only after all commands above pass. PR1 title:
 
   ```text
-  feat(ddc): complete standalone leases registry and sync publish
+  feat(tianshu): complete standalone leases registry and sync publish
   ```
 
-- [ ] Merge PR1 and rerun the DDC reactor from updated `main` before creating the PR2 branch.
+- [ ] Merge PR1 and rerun the Tianshu reactor from updated `main` before creating the PR2 branch.
 
 ---
 
@@ -1088,7 +1088,7 @@ The English and Chinese READMEs must stay structurally aligned and document:
 
 ## Task 10: Create the RPC two-aggregator module shape and standard Protobuf toolchain
 
-**Precondition:** PR1 is merged, `main` contains the public DDC registry contract, and the DDC reactor passes from `main`.
+**Precondition:** PR1 is merged, `main` contains the public Tianshu registry contract, and the Tianshu reactor passes from `main`.
 
 **Files:**
 
@@ -1377,7 +1377,7 @@ Every handler consults `RpcProviderAvailabilityRegistry` before invoking the bea
 
 One grpc-netty-shaded Server exposes every Provider service. Do not use `InProcessServerBuilder`.
 
-`RpcProcessIdentityFactory` creates one immutable process identity independently of whether the DDC CONFIG_CLIENT lifecycle is enabled. It uses `spring.application.name`, DDC env/namespace, resolved host, PID, and one UUIDv7 suffix. Provider registry IDs and Consumer source Metadata derive from this same process identity.
+`RpcProcessIdentityFactory` creates one immutable process identity independently of whether the Tianshu CONFIG_CLIENT lifecycle is enabled. It uses `spring.application.name`, Tianshu env/namespace, resolved host, PID, and one UUIDv7 suffix. Provider registry IDs and Consumer source Metadata derive from this same process identity.
 
 ### Provider lifecycle
 
@@ -1407,7 +1407,7 @@ egon.rpc.serialization=protobuf
 egon.rpc.runtime-version={filtered project version}
 ```
 
-User metadata cannot override `ddc.*`, `egon.internal.*`, or `egon.rpc.*`.
+User metadata cannot override `tianshu.*`, `egon.internal.*`, or `egon.rpc.*`.
 
 Heartbeat `NOT_FOUND` or `LEASE_MISMATCH` marks that service unavailable, re-registers it for a new lease, and only then restores `READY`.
 
@@ -1422,7 +1422,7 @@ Shutdown:
 
 ### Trace and Metadata
 
-The server interceptor accepts only the Spec whitelist, validates lengths/characters, creates a TraceContext scope, and clears it in `finally`. It never exposes DDC credentials or arbitrary metadata to application code.
+The server interceptor accepts only the Spec whitelist, validates lengths/characters, creates a TraceContext scope, and clears it in `finally`. It never exposes Tianshu credentials or arbitrary metadata to application code.
 
 ### TDD steps
 
@@ -1452,7 +1452,7 @@ The server interceptor accepts only the Spec whitelist, validates lengths/charac
 
 ---
 
-## Task 13: Implement unique-Gateway discovery and JDK Proxy Consumer
+## Task 13: Implement unique-Yuheng discovery and JDK Proxy Consumer
 
 **Files:**
 
@@ -1470,19 +1470,19 @@ The server interceptor accepts only the Spec whitelist, validates lengths/charac
 - Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/consumer/RpcConsumerInvocationHandlerTest.java`
 - Test: `egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/test/java/top/egon/cola/component/rpc/exception/RpcStatusExceptionMapperTest.java`
 
-### Gateway-only discovery
+### Yuheng-only discovery
 
 The Consumer constructs one fixed `DdcServiceKey`:
 
 ```text
 kind=INTERNAL_GATEWAY
-serviceName=egon-internal-rpc-gateway
+serviceName=egon-internal-rpc-yuheng
 group={configured}
 version={configured}
 protocol=grpc
 ```
 
-It calls only `DdcServiceRegistryClient.subscribe` with the fixed Gateway key and snapshot listener. It never calls `getServiceKeys`, never queries `RPC_PROVIDER`, and accepts no Provider host/port property.
+It calls only `DdcServiceRegistryClient.subscribe` with the fixed Yuheng key and snapshot listener. It never calls `getServiceKeys`, never queries `RPC_PROVIDER`, and accepts no Provider host/port property.
 
 `RpcConsumerGatewayManager` states:
 
@@ -1494,15 +1494,15 @@ AMBIGUOUS
 STOPPED
 ```
 
-Startup waits up to `gateway-discovery-timeout-ms`:
+Startup waits up to `yuheng-discovery-timeout-ms`:
 
 - exactly one unexpired instance → create channel and `READY`;
-- zero → `RPC_GATEWAY_UNAVAILABLE`;
-- more than one → `RPC_GATEWAY_AMBIGUOUS`.
+- zero → `RPC_YUHENG_UNAVAILABLE`;
+- more than one → `RPC_YUHENG_AMBIGUOUS`.
 
 Runtime:
 
-- zero or multiple active Gateway leases closes any no-longer-unique channel and new calls fail immediately;
+- zero or multiple active Yuheng leases closes any no-longer-unique channel and new calls fail immediately;
 - a new single endpoint creates a new channel first, atomically swaps after connectivity reaches READY, and drains the old channel;
 - a failed replacement may keep the old channel only while its original lease remains valid;
 - expired old lease must close even during Admin/Redis outage.
@@ -1522,12 +1522,12 @@ NettyChannelBuilder.forAddress(host, port)
 
 For each RPC call:
 
-1. require Gateway state `READY`;
+1. require Yuheng state `READY`;
 2. fetch the native generated unary `MethodDescriptor`;
 3. reject null request;
 4. select the shorter of current gRPC Context deadline, `@EgonRpcReference.timeoutMs`, and global default;
 5. add framework service/group/version/invocation/source/trace Metadata;
-6. invoke only the Gateway channel with `ClientCalls.blockingUnaryCall`;
+6. invoke only the Yuheng channel with `ClientCalls.blockingUnaryCall`;
 7. map final gRPC Status to `EgonRpcException`.
 
 gRPC Context cancellation or thread interruption must cancel the underlying call. No catch block retries it.
@@ -1538,7 +1538,7 @@ Implement the exact public codes from the Spec. In particular:
 
 - `DEADLINE_EXCEEDED -> RPC_DEADLINE_EXCEEDED`;
 - `CANCELLED -> RPC_CANCELLED`;
-- Consumer-side `UNAVAILABLE -> RPC_GATEWAY_UNAVAILABLE`;
+- Consumer-side `UNAVAILABLE -> RPC_YUHENG_UNAVAILABLE`;
 - `INVALID_ARGUMENT -> RPC_INVALID_REQUEST`;
 - `NOT_FOUND` is classified as service/method using the framework status trailer;
 - all unclassified statuses become `RPC_INTERNAL`.
@@ -1547,8 +1547,8 @@ Do not expose `StatusRuntimeException` as the public proxy contract.
 
 ### TDD steps
 
-- [ ] Add Gateway manager tests for zero/one/multiple at startup, runtime transitions, atomic replacement, expired old endpoint, drain close, and retry-disabled channel factory invocation.
-- [ ] Add invocation tests for generated Descriptor use, Gateway-only channel, deadline precedence, cancellation, null rejection, Metadata, status mapping, and absence of retries.
+- [ ] Add Yuheng manager tests for zero/one/multiple at startup, runtime transitions, atomic replacement, expired old endpoint, drain close, and retry-disabled channel factory invocation.
+- [ ] Add invocation tests for generated Descriptor use, Yuheng-only channel, deadline precedence, cancellation, null rejection, Metadata, status mapping, and absence of retries.
 - [ ] Add a reflection/bytecode boundary assertion that `consumer` production classes contain no `RPC_PROVIDER` query and no Provider channel type.
 - [ ] Run:
 
@@ -1562,7 +1562,7 @@ Do not expose `StatusRuntimeException` as the public proxy contract.
   Expected: failure because Consumer discovery/proxy/channel classes do not exist.
 
 - [ ] Implement Consumer auto-config conditional on `rpc.enabled && rpc.consumer.enabled`.
-- [ ] Configure defaults: global timeout `3000ms`, discovery `5000ms`, Gateway group `default`, version `1.0.0`, channel drain `5000ms`.
+- [ ] Configure defaults: global timeout `3000ms`, discovery `5000ms`, Yuheng group `default`, version `1.0.0`, channel drain `5000ms`.
 - [ ] Rerun focused and complete Starter tests.
 - [ ] Assert production Consumer has no Provider discovery:
 
@@ -1575,12 +1575,12 @@ Do not expose `StatusRuntimeException` as the public proxy contract.
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "feat(rpc): proxy consumers through one gateway"
+  git commit -m "feat(rpc): proxy consumers through one yuheng"
   ```
 
 ---
 
-## Task 14: Build the test-only Mock Gateway fixture
+## Task 14: Build the test-only Mock Yuheng fixture
 
 **Files:**
 
@@ -1604,10 +1604,10 @@ Do not expose `StatusRuntimeException` as the public proxy contract.
 ### Mock-only boundary
 
 Every class in this task is under `rpc-test-suite/src/test`. Nothing is added to
-`rpc-starter/src/main`, no Gateway auto-configuration is created, and no Mock type is
+`rpc-starter/src/main`, no Yuheng auto-configuration is created, and no Mock type is
 exported through the BOM.
 
-`MockRpcGateway` uses public DDC and grpc-java APIs directly:
+`MockRpcGateway` uses public Tianshu and grpc-java APIs directly:
 
 1. starts one grpc-netty-shaded Server on loopback port `0`;
 2. registers itself through `DdcServiceRegistryClient.register` as
@@ -1637,7 +1637,7 @@ full method name and does not parse business Proto.
 `MockRoundRobinSelector`, forwards one payload, applies the remaining Deadline, binds
 Consumer cancellation to the Provider `ClientCall`, copies only the Metadata
 whitelist, and returns the Provider Status. These semantics validate the target
-network boundary but make no production Gateway API commitment.
+network boundary but make no production Yuheng API commitment.
 
 ### TDD steps
 
@@ -1648,9 +1648,9 @@ network boundary but make no production Gateway API commitment.
 - [ ] Add Forwarder tests for preselected endpoint, retry-disabled channel, remaining
   Deadline, cancellation, Status, and Metadata whitelist.
 - [ ] Add a boundary test proving:
-  - every Mock Gateway type is under `rpc-test-suite/src/test`;
-  - RPC Starter has no `top.egon.cola.component.rpc.gateway` package;
-  - RPC Starter has none of the deferred Gateway production type names.
+  - every Mock Yuheng type is under `rpc-test-suite/src/test`;
+  - RPC Starter has no `top.egon.cola.component.rpc.yuheng` package;
+  - RPC Starter has none of the deferred Yuheng production type names.
 - [ ] Run:
 
   ```bash
@@ -1660,16 +1660,16 @@ network boundary but make no production Gateway API commitment.
     -Dsurefire.failIfNoSpecifiedTests=false test
   ```
 
-  Expected: failure because the Mock Gateway fixtures do not exist.
+  Expected: failure because the Mock Yuheng fixtures do not exist.
 
 - [ ] Implement only the test fixtures and keep their lifecycle manually controlled by
   the test suite.
 - [ ] Rerun the focused command. Expected: `BUILD SUCCESS`.
-- [ ] Assert no production Gateway implementation exists:
+- [ ] Assert no production Yuheng implementation exists:
 
   ```bash
   test ! -d \
-    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway
+    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/yuheng
 
   ! rg -n 'RpcGatewayNodeRegistrar|RpcProviderDirectory|RpcProviderChannelFactory|RpcGatewayHandlerRegistry|RpcUnaryForwarder' \
     egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main
@@ -1679,7 +1679,7 @@ network boundary but make no production Gateway API commitment.
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "test(rpc): add mock gateway fixture"
+  git commit -m "test(rpc): add mock yuheng fixture"
   ```
 
 ---
@@ -1735,7 +1735,7 @@ Both applications depend on the same `rpc-test-contract` artifact. Neither copie
 
 - [ ] Add Provider test proving its implementation returns a Protobuf response and is discovered as an RPC Provider.
 - [ ] Add Consumer context test proving `EchoRpcClient` receives a JDK Proxy when a
-  one-Mock-Gateway lease fixture is supplied, and context startup fails for
+  one-Mock-Yuheng lease fixture is supplied, and context startup fails for
   zero/multiple Gateways.
 - [ ] Run:
 
@@ -1766,7 +1766,7 @@ Both applications depend on the same `rpc-test-contract` artifact. Neither copie
 
 ---
 
-## Task 16: Prove Consumer → Mock Gateway → Provider over real TCP in ordinary mvn test
+## Task 16: Prove Consumer → Mock Yuheng → Provider over real TCP in ordinary mvn test
 
 **Files:**
 
@@ -1781,7 +1781,7 @@ Both applications depend on the same `rpc-test-contract` artifact. Neither copie
 
 ### Deterministic test registry
 
-The in-memory backend exists only under `rpc-test-suite/src/test`. It implements the public DDC lease/registry semantics:
+The in-memory backend exists only under `rpc-test-suite/src/test`. It implements the public Tianshu lease/registry semantics:
 
 - every Register creates a new lease;
 - heartbeat/deregister compare exact `instanceId + leaseId`;
@@ -1789,15 +1789,15 @@ The in-memory backend exists only under `rpc-test-suite/src/test`. It implements
 - explicit clock/expiry advancement for deterministic tests.
 
 Each Spring context receives a distinct `InMemoryDdcServiceRegistryClient` facade over
-the shared test backend. Provider, Mock Gateway, and Consumer do not share Spring
+the shared test backend. Provider, Mock Yuheng, and Consumer do not share Spring
 beans, application contexts, channels, or direct service object references.
 
-### Mock Gateway integration
+### Mock Yuheng integration
 
 Wire the Task 14 `MockRpcGateway` to a distinct
-`InMemoryDdcServiceRegistryClient` facade. It registers through the DDC public
+`InMemoryDdcServiceRegistryClient` facade. It registers through the Tianshu public
 interface, discovers Provider snapshots through `MockProviderDirectory`, and uses its
-test-private Handler/Channel/Forwarder. Do not add an RPC Starter Gateway adapter to
+test-private Handler/Channel/Forwarder. Do not add an RPC Starter Yuheng adapter to
 make this wiring easier.
 
 ### TCP smoke test
@@ -1805,8 +1805,8 @@ make this wiring easier.
 `RpcTcpCallTest` starts three isolated Spring contexts in one JVM:
 
 - Provider context with a real Netty Server on loopback random TCP port;
-- Mock Gateway context/server on a different loopback random TCP port;
-- Consumer context with only the Gateway snapshot/channel.
+- Mock Yuheng context/server on a different loopback random TCP port;
+- Consumer context with only the Yuheng snapshot/channel.
 
 Call:
 
@@ -1818,21 +1818,21 @@ Assert:
 
 - response message is `hello`;
 - response provider ID is the Provider's ID;
-- Mock Gateway recorded the invocation;
-- Consumer channel target equals Mock Gateway address;
-- Mock Gateway Provider channel target equals Provider address;
+- Mock Yuheng recorded the invocation;
+- Consumer channel target equals Mock Yuheng address;
+- Mock Yuheng Provider channel target equals Provider address;
 - Consumer Provider-channel creation count is zero;
 - Server/channel classes are not gRPC In-Process;
 - full method name remains `/egon.rpc.test.v1.EchoService/Echo`;
-- retry is disabled on the Consumer Channel and Mock Gateway Provider Channels;
+- retry is disabled on the Consumer Channel and Mock Yuheng Provider Channels;
 - all contexts, subscriptions, schedulers, channels, servers, and executors terminate in teardown.
 
-`RpcTcpCancellationTest` uses a blocking Provider method, cancels the Consumer context/call, and asserts the Mock Gateway's Provider `ClientCall` is cancelled and the Consumer receives `RPC_CANCELLED`.
+`RpcTcpCancellationTest` uses a blocking Provider method, cancels the Consumer context/call, and asserts the Mock Yuheng's Provider `ClientCall` is cancelled and the Consumer receives `RPC_CANCELLED`.
 
 ### TDD steps
 
-- [ ] Add boundary test that proves the Mock Gateway is test-only and the Starter has no
-  Gateway production package or deferred Gateway type.
+- [ ] Add boundary test that proves the Mock Yuheng is test-only and the Starter has no
+  Yuheng production package or deferred Yuheng type.
 - [ ] Add the TCP/cancellation tests first.
 - [ ] Run:
 
@@ -1845,7 +1845,7 @@ Assert:
 
   Expected: failure because the test registry integration/topology does not exist.
 
-- [ ] Implement the deterministic registry facade and wire the existing Mock Gateway,
+- [ ] Implement the deterministic registry facade and wire the existing Mock Yuheng,
   only in test scope.
 - [ ] Use Awaitility for every directory/channel readiness wait.
 - [ ] Rerun focused tests and then ordinary RPC tests:
@@ -1867,7 +1867,7 @@ Assert:
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "test(rpc): verify mock gateway TCP call path"
+  git commit -m "test(rpc): verify mock yuheng TCP call path"
   ```
 
 ---
@@ -1884,11 +1884,11 @@ Assert:
 
 ### Test flow
 
-Use one Consumer, one Mock Gateway, and two Provider contexts exposing the same Echo Service Key but different instance IDs/ports.
+Use one Consumer, one Mock Yuheng, and two Provider contexts exposing the same Echo Service Key but different instance IDs/ports.
 
 1. Start both Providers and wait until `MockProviderDirectory` has two exact lease identities.
 2. Make four Consumer calls.
-3. Assert `MockRpcGateway` selected both Provider IDs and Consumer stayed on the one Gateway channel.
+3. Assert `MockRpcGateway` selected both Provider IDs and Consumer stayed on the one Yuheng channel.
 4. Deregister/stop Provider A.
 5. Wait until the Mock Directory contains only Provider B and Provider A's cached
    test channel is evicted.
@@ -1896,9 +1896,9 @@ Use one Consumer, one Mock Gateway, and two Provider contexts exposing the same 
 7. Re-register Provider A with the same instance ID but a new lease.
 8. Assert the Mock Directory replaces the old identity rather than duplicating it.
 9. Advance the deterministic clock past A's lease without heartbeat.
-10. Assert expiry removes A and Mock Gateway never forwards to the expired lease.
+10. Assert expiry removes A and Mock Yuheng never forwards to the expired lease.
 
-This test validates DDC discovery and removal through test fixtures only. Do not add
+This test validates Tianshu discovery and removal through test fixtures only. Do not add
 `RpcProviderDirectory`, a selector, or Provider Channel code to production Starter.
 
 ### TDD steps
@@ -1926,7 +1926,7 @@ This test validates DDC discovery and removal through test fixtures only. Do not
 
 ---
 
-## Task 18: Add opt-in independent-JVM DDC/Redis process verification
+## Task 18: Add opt-in independent-JVM Tianshu/Redis process verification
 
 **Files:**
 
@@ -1938,7 +1938,7 @@ This test validates DDC discovery and removal through test fixtures only. Do not
 
 ### Maven profile
 
-Add `ddc-live-test` only in the test-suite POM:
+Add `tianshu-live-test` only in the test-suite POM:
 
 - Maven Failsafe 3.2.5 binds `integration-test` and `verify`;
 - includes only `**/RpcProcessIT.java`;
@@ -1960,7 +1960,7 @@ The harness:
 - uses the current Java executable;
 - allocates distinct loopback ports;
 - supplies Admin SQLite JDBC URL and `db/sqlite` Flyway location through command-line properties;
-- supplies the single Redis host/port from `DDC_TEST_REDIS_HOST` and `DDC_TEST_REDIS_PORT`;
+- supplies the single Redis host/port from `TIANSHU_TEST_REDIS_HOST` and `TIANSHU_TEST_REDIS_PORT`;
 - enables registry/HMAC settings consistently;
 - captures each process stdout/stderr in separate files under `target/rpc-process-it`;
 - polls bounded health/readiness conditions instead of sleeping;
@@ -1975,9 +1975,9 @@ The Consumer process performs one Echo call, prints one machine-readable success
 `RpcProcessIT` proves:
 
 - Admin applied V1 + V2 against SQLite;
-- Provider is visible in DDC as `RPC_PROVIDER` with a lease;
-- Mock Gateway is visible as the only `INTERNAL_GATEWAY` with a different lease/TTL;
-- Consumer discovers only Mock Gateway and completes Consumer → Mock Gateway → Provider over TCP;
+- Provider is visible in Tianshu as `RPC_PROVIDER` with a lease;
+- Mock Yuheng is visible as the only `INTERNAL_GATEWAY` with a different lease/TTL;
+- Consumer discovers only Mock Yuheng and completes Consumer → Mock Yuheng → Provider over TCP;
 - stopping Provider actively deregisters it and the Mock Provider Directory removes
   its exact `instanceId + leaseId`;
 - child exit codes and logs contain no leaked credential;
@@ -1999,8 +1999,8 @@ The Consumer process performs one Echo call, prints one machine-readable success
 - [ ] With one external Redis single server available, run:
 
   ```bash
-  DDC_TEST_REDIS_HOST=127.0.0.1 \
-  DDC_TEST_REDIS_PORT=6379 \
+  TIANSHU_TEST_REDIS_HOST=127.0.0.1 \
+  TIANSHU_TEST_REDIS_PORT=6379 \
   ./mvnw -B -ntp \
     -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
     -am -Pddc-live-test -Dit.test=RpcProcessIT verify
@@ -2041,15 +2041,15 @@ The English and Chinese READMEs must stay structurally aligned and include:
 - standard `protobuf-maven-plugin` setup;
 - one complete Proto, annotated Java Contract, Provider, and Consumer example;
 - Provider/Consumer property reference;
-- unique-Gateway startup/runtime behavior;
-- Mock Gateway test topology and its non-production boundary;
+- unique-Yuheng startup/runtime behavior;
+- Mock Yuheng test topology and its non-production boundary;
 - deadline, cancellation, status, trace, and Metadata rules;
 - real TCP test and opt-in process-test commands;
 - V1 non-goals: direct Provider, client LB, gray, retry, rate limiting, circuit
-  breaking, production Gateway, Provider Directory, dynamic Gateway Handler, Provider
+  breaking, production Yuheng, Provider Directory, dynamic Yuheng Handler, Provider
   Channel Factory, and Unary Forwarder.
 
-Do not document Mock Gateway classes as reusable public APIs or production-ready.
+Do not document Mock Yuheng classes as reusable public APIs or production-ready.
 
 ### Final verification
 
@@ -2063,7 +2063,7 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
 
   Expected: all RPC Starter, Contract, Provider, Consumer, and Suite tests pass over real TCP where applicable.
 
-- [ ] Run DDC + RPC combined regression:
+- [ ] Run Tianshu + RPC combined regression:
 
   ```bash
   ./mvnw -B -ntp \
@@ -2074,8 +2074,8 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
 - [ ] Rerun opt-in process verification against one external Redis:
 
   ```bash
-  DDC_TEST_REDIS_HOST=127.0.0.1 \
-  DDC_TEST_REDIS_PORT=6379 \
+  TIANSHU_TEST_REDIS_HOST=127.0.0.1 \
+  TIANSHU_TEST_REDIS_PORT=6379 \
   ./mvnw -B -ntp \
     -pl egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-test/egon-cola-component-rpc-test-suite \
     -am -Pddc-live-test -Dit.test=RpcProcessIT verify
@@ -2099,7 +2099,7 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
     egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main
 
   test ! -d \
-    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/gateway
+    egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main/java/top/egon/cola/component/rpc/yuheng
 
   ! rg -n 'RpcGatewayNodeRegistrar|RpcProviderDirectory|RpcProviderChannelFactory|RpcGatewayHandlerRegistry|RpcUnaryForwarder' \
     egon-cola-components/egon-cola-component-rpc/egon-cola-component-rpc-starter/src/main
@@ -2126,19 +2126,19 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
     -Dincludes=io.grpc:*,com.google.protobuf:*,top.egon:egon-cola-component-dynamic-config-center-*
   ```
 
-  Expected: Starter depends on DDC Starter and gRPC/Protobuf runtime only; it does not depend on DDC Admin, DDC Test, any RPC test module, or a third-party gRPC Spring Boot Starter.
+  Expected: Starter depends on Tianshu Starter and gRPC/Protobuf runtime only; it does not depend on Tianshu Admin, Tianshu Test, any RPC test module, or a third-party gRPC Spring Boot Starter.
 
 - [ ] Commit:
 
   ```bash
   git add egon-cola-components/egon-cola-component-rpc
-  git commit -m "docs(rpc): document mock gateway test boundary"
+  git commit -m "docs(rpc): document mock yuheng test boundary"
   ```
 
 - [ ] Open PR2 only after every available command passes. PR2 title:
 
   ```text
-  feat(rpc): add protobuf grpc starter and mock gateway tests
+  feat(rpc): add protobuf grpc starter and mock yuheng tests
   ```
 
 ---
@@ -2147,12 +2147,12 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
 
 ### PR1
 
-- [ ] DDC contains no multi-Admin, Raft, Redis Cluster, Sentinel, or distributed-lock code.
+- [ ] Tianshu contains no multi-Admin, Raft, Redis Cluster, Sentinel, or distributed-lock code.
 - [ ] Every Register creates a new Admin-issued lease.
 - [ ] Heartbeat/deregister atomically compare exact `instanceId + leaseId`.
-- [ ] Config client, Provider, and Gateway-role registrations use one lease contract
+- [ ] Config client, Provider, and Yuheng-role registrations use one lease contract
   with separate defaults.
-- [ ] Provider/Gateway service registration facts exist only in Redis.
+- [ ] Provider/Yuheng service registration facts exist only in Redis.
 - [ ] Config-client lifecycle starts, recovers, ACKs, and shuts down in the specified order.
 - [ ] New publish requests accept caller changeId and only `SYNC_ALL_ACK`.
 - [ ] Resource serialization is keyed by config resource; Waiters are keyed by changeId.
@@ -2161,7 +2161,7 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
 - [ ] Restart converts unfinished tasks to `UNKNOWN`; retry keeps original targets.
 - [ ] Canonical HMAC verifies method/path/query/timestamp/nonce/body.
 - [ ] Exactly one V2 logical migration exists in both supported dialect directories.
-- [ ] DDC Starter/Admin/Test pass independently and Admin packages without starting.
+- [ ] Tianshu Starter/Admin/Test pass independently and Admin packages without starting.
 
 ### PR2
 
@@ -2170,19 +2170,19 @@ Do not document Mock Gateway classes as reusable public APIs or production-ready
 - [ ] Java Contract is strictly validated against generated Proto/gRPC Descriptors.
 - [ ] V1 supports only unary Protobuf Message contracts.
 - [ ] Provider registers leases and gracefully deregisters/drains.
-- [ ] Consumer discovers exactly one Gateway and never Provider.
-- [ ] Zero/multiple Gateway states fail fast at startup and runtime.
+- [ ] Consumer discovers exactly one Yuheng and never Provider.
+- [ ] Zero/multiple Yuheng states fail fast at startup and runtime.
 - [ ] Every production channel disables gRPC Retry.
 - [ ] Deadline, cancellation, status, trace, and Metadata tests pass.
-- [ ] RPC Starter contains no production Gateway package, Directory, dynamic Handler,
+- [ ] RPC Starter contains no production Yuheng package, Directory, dynamic Handler,
   Provider Channel Factory, or Unary Forwarder.
 - [ ] Mock Provider Directory discovers/removes instances only in test code.
-- [ ] Mock Gateway selection/forwarding exists only in `rpc-test-suite/src/test`.
-- [ ] Ordinary `mvn test` proves Consumer → Mock Gateway → Provider over real loopback
+- [ ] Mock Yuheng selection/forwarding exists only in `rpc-test-suite/src/test`.
+- [ ] Ordinary `mvn test` proves Consumer → Mock Yuheng → Provider over real loopback
   TCP.
 - [ ] Multi-Provider test proves Mock Directory convergence/eviction.
 - [ ] Opt-in `mvn verify -Pddc-live-test` proves the four-JVM path with one Admin/Redis.
-- [ ] RPC and combined DDC/RPC regression suites pass.
+- [ ] RPC and combined Tianshu/RPC regression suites pass.
 
 ### Validation reporting
 

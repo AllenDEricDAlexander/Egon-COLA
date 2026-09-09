@@ -140,7 +140,7 @@ stage该 Step列出的路径，绝不包含当前并发 `tsconfig.app.tsbuildinf
 | Spec element                        | Spec necessity verdict/section | Current repository evidence                                    | Direct/reuse alternative                     | Interaction/implementation cost  | Plan decision       |
 |-------------------------------------|--------------------------------|----------------------------------------------------------------|----------------------------------------------|----------------------------------|---------------------|
 | six normal source projects          | Add / 主 Spec §7.0              | 六个 template tree 不能作为 Maven source root                        | IDE mark-source不能解析模板 POM/Velocity           | 六 tracked trees替代旧编辑所有权          | Implement Steps 2-4 |
-| source reactor                      | Add / §7.0                     | same-version components/platforms/facades需 fresh local reactor | 六次手工 install易漏依赖顺序                           | 一个 internal POM，无 Central module | Implement Step 4    |
+| source reactor                      | Add / §7.0                     | same-version components/xingyuan/facades需 fresh local reactor | 六次手工 install易漏依赖顺序                           | 一个 internal POM，无 Central module | Implement Step 4    |
 | manifest-driven generator           | Add / §7.0/§13                 | 当前无 generate precondition                                      | 六个硬编码命令会漂移；自研 plugin过重                       | 一个 shell CLI、六 properties        | Implement Steps 1/5 |
 | atomic `.generated`                 | Add / §7.0                     | package当前直接读 tracked template                                  | 逐目录覆盖可留下半套                                   | ignored state、lock、staging、swap  | Implement Steps 1/5 |
 | existing package modules            | Keep/Modify / §7.0             | 六 GAV/metadata/IT/root release已存在                              | 直接 deploy plugin生成 POM会丢 Central metadata/IT | 六轻量POM+curated contract          | Implement Steps 6-8 |
@@ -183,7 +183,7 @@ round-trip守护。结构选择是六个已存在的精确 Egon Archetype profil
 | Need                       | Candidates inspected                                           | Exact evidence                                                     | Fit/gap                             | Decision                               | Added dependency/custom code | Owning Step/check        |
 |----------------------------|----------------------------------------------------------------|--------------------------------------------------------------------|-------------------------------------|----------------------------------------|------------------------------|--------------------------|
 | source -> archetype        | Apache Plugin / custom Maven plugin                            | `egon-cola-archetypes/pom.xml`已管理 3.4.1；本地 goal help确认参数           | Apache goal满足转换；缺少Egon overlay/原子集合 | reuse Plugin + shell orchestration     | 无依赖；一个 repository script     | Steps 1/5；`MC-REUSE-001` |
-| source same-version build  | root reactor / six manual builds                               | components/platforms/facades当前module证据                             | internal aggregator能保持依赖顺序          | reuse modules，source POM不入root         | 无新artifact依赖                 | Step 4                   |
+| source same-version build  | root reactor / six manual builds                               | components/xingyuan/facades当前module证据                             | internal aggregator能保持依赖顺序          | reuse modules，source POM不入root         | 无新artifact依赖                 | Step 4                   |
 | lock/staging/hash          | JDK/POSIX / third-party CLI                                    | `bump_cola_version.sh`的mktemp/trap/backup；系统`shasum`/`sha256sum`差异 | POSIX工具足够，需跨macOS/Linux选择           | direct functions with capability probe | 无                            | Step 1；`MC-UTIL-001`     |
 | descriptor/consumer checks | create-from-project metadata / current curated metadata+Groovy | six `META-INF`与`projects/basic`                                    | 自动metadata不能表达当前合同                  | keep curated + extend verifier         | 无                            | Steps 5-8                |
 | Central attachments        | existing Source/Javadoc/GPG/Jar plugins                        | parent pluginManagement；当前 javadoc跳过证据                             | Jar plugin可在GPG前附说明 classifier      | reuse maven-jar-plugin                 | 无                            | Steps 6-9；`MC-DEP-001`   |
@@ -248,7 +248,7 @@ egon-cola-archetypes/
 | CREATE    | `egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open}/**`                                                                          | current public templates                          | two concrete normal projects                                               | Light source truth                          | 2                  | `REQ-001`,`002`,`009`,`015`,`017`                   | direct verify          |
 | CREATE    | `egon-cola-archetypes/source-projects/egon-cola-source-{service,service-open}/**`                                                                      | current 6/7-module templates                      | two normal multi-module projects                                           | Service source truth                        | 3                  | `REQ-001`,`002`,`009`,`015`,`017`,`019`-`026`       | direct verify          |
 | CREATE    | `egon-cola-archetypes/source-projects/egon-cola-source-{web,web-open}/**`                                                                              | current 6/7-module templates                      | two normal multi-module projects                                           | Web source truth                            | 4                  | `REQ-001`,`002`,`009`,`010`,`015`,`017`,`019`-`026` | source reactor         |
-| CREATE    | `egon-cola-archetypes/source-projects/pom.xml`                                                                                                         | absent                                            | components -> platforms -> facades -> six sources module order             | non-Central verification reactor            | 4                  | `REQ-001`,`010`                                     | clean install          |
+| CREATE    | `egon-cola-archetypes/source-projects/pom.xml`                                                                                                         | absent                                            | components -> xingyuan -> facades -> six sources module order             | non-Central verification reactor            | 4                  | `REQ-001`,`010`                                     | clean install          |
 | CREATE    | six `egon-cola-archetype-*/src/main/archetype/archetype.properties`                                                                                    | absent                                            | seven-field allowlisted manifest                                           | dynamic mapping/topology                    | 5                  | `REQ-003`,`004`,`007`                               | generation test        |
 | GENERATED | `egon-cola-archetypes/.generated/egon-cola-archetype-*/**`                                                                                             | absent/ignored                                    | six atomic resources + SHA manifests                                       | read-only package input                     | 5                  | `REQ-005`,`006`,`008`                               | generate/check         |
 | MODIFY    | `egon-cola-archetypes/pom.xml`                                                                                                                         | extension 3.2.1/plugin 3.4.1                      | one `maven.archetype.version=3.4.1` + shared plugin config                 | version/release governance                  | 6                  | `REQ-012`,`013`                                     | effective POM/shape    |
@@ -263,7 +263,7 @@ egon-cola-archetypes/
 | DELETE    | `egon-cola-archetypes/egon-cola-archetype-{service,service-open}/src/main/resources/archetype-resources/**` except legacy Service `**/db/migration/**` | 337/345 files                                     | only legacy four-file archive remains                                      | Service ownership cutover                   | 7                  | `REQ-002`,`015`,`020`                               | hash/inventory         |
 | MODIFY    | `egon-cola-archetypes/egon-cola-archetype-{web,web-open}/pom.xml`                                                                                      | no generated resource/preflight                   | generated + curated resources, shared executions                           | Web package wiring                          | 8                  | `REQ-005`,`007`,`012`                               | targeted IT/shape      |
 | CREATE    | `egon-cola-archetypes/egon-cola-archetype-{web,web-open}/src/main/javadoc/README.md`                                                                   | absent                                            | explanatory classifier content                                             | Web Central docs                            | 8                  | `REQ-012`                                           | jar content scan       |
-| MODIFY    | `egon-cola-archetypes/egon-cola-archetype-{web,web-open}/src/test/resources/projects/basic/verify.groovy`                                              | current consumer checks                           | sentinel/root/topology/OpenAPI/Gateway checks                              | Web output proof                            | 8                  | `REQ-008`,`009`,`024`                               | Archetype IT           |
+| MODIFY    | `egon-cola-archetypes/egon-cola-archetype-{web,web-open}/src/test/resources/projects/basic/verify.groovy`                                              | current consumer checks                           | sentinel/root/topology/OpenAPI/Yuheng checks                              | Web output proof                            | 8                  | `REQ-008`,`009`,`024`                               | Archetype IT           |
 | DELETE    | `egon-cola-archetypes/egon-cola-archetype-{web,web-open}/src/main/resources/archetype-resources/**` except legacy Web `**/db/migration/**`             | 427/436 files                                     | only legacy four-file archive remains                                      | Web ownership cutover                       | 8                  | `REQ-002`,`015`,`020`                               | hash/inventory         |
 | CREATE    | `scripts/test-bump-cola-version.sh`                                                                                                                    | absent                                            | isolated source-version/sentinel/rollback assertions                       | version RED/GREEN                           | 9                  | `REQ-014`,`016`                                     | shell test             |
 | MODIFY    | `scripts/bump_cola_version.sh`                                                                                                                         | scans `archetype-resources/**/pom.xml`            | scans source POMs with `egon-cola.version`, excludes sentinel/`.generated` | version owner                               | 9                  | `REQ-014`                                           | fixture test           |
@@ -290,7 +290,7 @@ egon-cola-archetypes/
 |-----------------------|------------------------------------------------------------------------------------------|---------------------------------------------------------------|---------------------------------------|
 | JDK/Maven             | `java -version`; `./mvnw -version`                                                       | JDK 21+、repo wrapper executable                               | toolchain only                        |
 | parent bootstrap      | `./mvnw -B -ntp -N install`; `./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install` | current parent POM in local repo                              | local Maven repo；no deploy            |
-| normal source reactor | `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install`           | six sources + current components/platforms/facades            | Maven/JUnit only                      |
+| normal source reactor | `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install`           | six sources + current components/xingyuan/facades            | Maven/JUnit only                      |
 | generator             | `./scripts/generate_archetypes.sh generate`; `./scripts/generate_archetypes.sh check`    | no active lock；repo-contained paths                           | filesystem/Maven only                 |
 | package reactor       | `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test`                  | complete `.generated`                                         | Archetype IT/generated JUnit          |
 | release shape         | `./mvnw -B -ntp -Prelease -Dgpg.skip=true clean verify`                                  | prior Gates green                                             | no Central write, no signature proof  |
@@ -548,7 +548,7 @@ for product in light light-open:
   后缀）；module artifact prefixes同root；packages `top.egon.cola.archetype.source.service{,open}`。
 - Repository evidence: current descriptor module suffixes与canonical evaluation facade；legacy四Flyway、open manual
   SQL/Proto/ArchUnit contracts。
-- Dependencies and consumers: components/platforms、`egon-cola-evaluation-facade`/organization fixture、Step 5 generator。
+- Dependencies and consumers: components/xingyuan、`egon-cola-evaluation-facade`/organization fixture、Step 5 generator。
 - Why now: Light证明单模块路径后，建立RPC/MQ multi-module source，单独提交便于审查module parent/dependency映射。
 - Contract/signature changes: 仅internal sentinel POM中root parent artifact机械收敛为sourceArtifactId；public generated
   POM仍由normalize恢复`${rootArtifactId}-parent`。
@@ -596,7 +596,7 @@ for product in service service-open:
   `REQ-023`,`REQ-025`,`REQ-026`
 - Dependencies: `Step 3`
 - Baseline state: four source projects存在；Web两族仍template-first；无统一source build入口。
-- Observable outcome: six source projects在一个internal reactor按components/platforms/facades/source顺序`clean install`。
+- Observable outcome: six source projects在一个internal reactor按components/xingyuan/facades/source顺序`clean install`。
 - End state: 完整normal-code stage存在且root `pom.xml` module list未改变。
 - Test-first gate: `Not applicable` — materialization/aggregator是build structure，existing project
   tests提供直接proof；任何业务测试变化禁止。
@@ -611,12 +611,12 @@ for product in service service-open:
 - Symbols: `egon-cola-source-web{,-open}` roots/modules；packages `top.egon.cola.archetype.source.web{,open}`
   ；现有HTTP/GraphQL/OpenAPI/local Proto内容。
 - Repository evidence: 427/436 current files、organization facade、current metadata/verifier、legacy Web四Flyway。
-- Dependencies and consumers: components/platforms/facades、source aggregator、Step 5 generator。
+- Dependencies and consumers: components/xingyuan/facades、source aggregator、Step 5 generator。
 - Why now: 最后引入Web pair后aggregator可一次声明最终全部modules，避免无效中间POM。
-- Contract/signature changes: internal sentinel only；HTTP/GraphQL/OpenAPI/Gateway-negative business contracts不变。
+- Contract/signature changes: internal sentinel only；HTTP/GraphQL/OpenAPI/Yuheng-negative business contracts不变。
 - Input/output and state mapping: current Web GAV -> sentinel temp projects -> exact source dirs，6/7 module topology
   preserved。
-- Error and edge behavior: module suffix/parent GAV、placeholder、profile key、OpenAPI/Gateway negative scan或old migration
+- Error and edge behavior: module suffix/parent GAV、placeholder、profile key、OpenAPI/Yuheng negative scan或old migration
   hash任一不符都停止，不现场改业务合同。
 - Standards impact: `MC-ARCH-001`,`MC-CONFIG-001`；exact Web/Open COLA profile，all profile configs成组，Java/business
   contracts原样。
@@ -631,7 +631,7 @@ generate web and web-open from current public top.egon GAVs with
 assert module suffixes and local facade only for open
 normalize internal root parent artifact only
 copy preserving wrapper mode; remove targets
-assert no template placeholder, no generated Gateway artifact/property, current OpenAPI tests remain
+assert no template placeholder, no generated Yuheng artifact/property, current OpenAPI tests remain
 assert legacy Web migration source copies equal immutable archive hashes
 ```
 
@@ -643,7 +643,7 @@ assert legacy Web migration source copies equal immutable archive hashes
 - Purpose: 为fresh/unreleased同版本提供一个不进入Central的build reactor。
 - Symbols: internal aggregator `top.egon.internal:egon-cola-archetype-source-projects:0.1.0-SNAPSHOT`; ordered Maven
   module list。
-- Repository evidence: root modules顺序components -> platforms -> archetypes；主 Spec ASM-004要求复用facades。
+- Repository evidence: root modules顺序components -> xingyuan -> archetypes；主 Spec ASM-004要求复用facades。
 - Dependencies and consumers: references `../../egon-cola-components`, `../../egon-cola-xingyuan`,
   `../egon-cola-organization-facade`, `../egon-cola-evaluation-facade`, then six sources；CI/local build only。
 - Why now: every declared directory已存在，可保持commit Maven-valid。
@@ -661,7 +661,7 @@ assert legacy Web migration source copies equal immutable archive hashes
   <version>0.1.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   modules in order:
-    components; platforms; organization-facade; evaluation-facade;
+    components; xingyuan; organization-facade; evaluation-facade;
     light; service; web; light-open; service-open; web-open
 </project>
 ```
@@ -1097,14 +1097,14 @@ assert package/source jars contain generated POM/Java/config/SQL for all modules
 #### File 1 —
 `MODIFY egon-cola-archetypes/egon-cola-archetype-{web,web-open}/src/test/resources/projects/basic/verify.groovy`
 
-- Purpose: 固定6/7-module Web、OpenAPI、Gateway-negative、rootArtifactId和sentinel contract。
+- Purpose: 固定6/7-module Web、OpenAPI、Yuheng-negative、rootArtifactId和sentinel contract。
 - Symbols: existing Web Groovy verifiers。
 - Repository evidence: current verifier已有HTTP/GraphQL/config/architecture assertions。
 - Dependencies and consumers: generated basic projects/local facade/OpenAPI tests。
 - Why now: 先测试consumer再cutover。
 - Contract/signature changes: none；only stronger transformation invariants。
 - Input/output and state mapping: generated project -> exact modules/POM/HTTP docs/config/SQL and no sentinel。
-- Error and edge behavior: Gateway artifact/property出现、OpenAPI缺失、module/root POM错误、sentinel/hash mismatch全部fail。
+- Error and edge behavior: Yuheng artifact/property出现、OpenAPI缺失、module/root POM错误、sentinel/hash mismatch全部fail。
 - Standards impact: `MC-ARCH-001`,`MC-CONFIG-001`；config/profile and architecture only。
 - Literal rule enforcement: `Rule 7`profile parity；`Rule 11`Web/Open exact profile。
 - Implementation pseudocode:
@@ -1156,7 +1156,7 @@ preserve current GAV, facade test dependencies and curated integration tests
 - Why now: generated resource wiring完成后，删除old business tree前补齐independent committed docs。
 - Contract/signature changes: new javadoc classifier content only；no HTTP/GraphQL/OpenAPI contract change。
 - Input/output and state mapping: README -> javadoc JAR root -> real release signature。
-- Error and edge behavior: no local/sentinel/secret；Web Open说明external Gateway且不声称generated Gateway module。
+- Error and edge behavior: no local/sentinel/secret；Web Open说明external Gateway且不声称generated Yuheng module。
 - Standards impact: `MC-DEP-001`,`MC-SCOPE-001`；documentation-only，无Java/dependency。
 - Literal rule enforcement: `Rule 11`分别说明exact Web 6-module和Web Open 7-module profile。
 - Implementation pseudocode:
@@ -1164,7 +1164,7 @@ preserve current GAV, facade test dependencies and curated integration tests
 ```markdown
 # Egon-COLA Web Archetype documentation
 Name the owning public GAV and exact six/seven-module project purpose.
-State that HTTP, GraphQL and OpenAPI live in the generated project while Gateway remains external.
+State that HTTP, GraphQL and OpenAPI live in the generated project while Yuheng remains external.
 Document the public archetype:generate entry and the normal source maintenance path.
 Do not expose internal sentinel coordinates, local paths, credentials or unsupported runtime claims.
 ```
@@ -1469,7 +1469,7 @@ published，不覆盖同版本：恢复仓库后发布更高patch；timeout/UNKN
 |----------------|----------------------------------------------------------------------------------------------|---------------------------------|------------------------------------------------------------------------|------------------|--------------------------------------------------------------------------------------------------------|
 | `RISK-001`     | create-from-project对multi-module `${artifactId}`/`${rootArtifactId}`处理与current curated POM不同 | Steps 1/5, multi-source/package | local diagnostic已见自动metadata/module POM差异                              | Maintainer       | Closed by manifest-derived custom property + explicit POM/path normalize + round-trip; mismatch blocks |
 | `RISK-002`     | `.gitignore`被Plugin默认排除                                                                      | Steps 1/5                       | local diagnostic output缺`.gitignore`，current template使用`__gitignore__` | Maintainer       | Closed：explicit source copy -> `__gitignore__` + consumer check                                        |
-| `RISK-003`     | source同版本Egon依赖在fresh repo不可解析                                                               | Steps 2-4/9                     | current BOM/components/platforms topology                              | Build owner      | Closed：two parent `-N install` + internal source reactor                                               |
+| `RISK-003`     | source同版本Egon依赖在fresh repo不可解析                                                               | Steps 2-4/9                     | current BOM/components/xingyuan topology                              | Build owner      | Closed：two parent `-N install` + internal source reactor                                               |
 | `RISK-004`     | source+full IT增加CI时间                                                                         | Step 9 workflows                | six full products/current heavy tests                                  | CI owner         | Mitigated：先保留完整Gate并记录duration；超时后仅拆job，不skip correctness                                              |
 | `RISK-005`     | old Flyway archive与source working copy双份漂移                                                   | Steps 2-8                       | AGENTS immutable rule + 12 current files                               | Maintainer       | Closed by exact path/hash Gate；future migration source-only                                            |
 | `RISK-006`     | maven-source-plugin未包含external generated resources                                           | Steps 6-8                       | current plugin behavior未在final wiring验证                                | Build owner      | Closed by release-shape content test；若失败仅调整existing Source/Jar config，不改Spec/依赖                        |
@@ -1523,7 +1523,7 @@ GPG/Central；无database/runtime/browser/Docker动作。
 | `MC-TIME-001`    | `Not applicable` | `N/A`  | Rule 10 matrix；no time symbol change                            | java.time inventory preserved                                                    | None                               |
 | `MC-CONFIG-001`  | `Applicable`     | `PASS` | Rule 7 matrix；Steps 2-8 profile parity                          | all environment files migrate/generate together                                  | None                               |
 | `MC-PATTERN-001` | `Not applicable` | `N/A`  | no business logic change；main Spec §13                          | build flow uses selected manifest/atomic pattern；Rule 9 business scope untouched | None                               |
-| `MC-SCOPE-001`   | `Applicable`     | `PASS` | §5 tree、§6.1 dirty boundaries、per-Step commit paths             | no unrelated platform path or business redesign                                  | None                               |
+| `MC-SCOPE-001`   | `Applicable`     | `PASS` | §5 tree、§6.1 dirty boundaries、per-Step commit paths             | no unrelated xingyuan path or business redesign                                  | None                               |
 | `MC-TEST-001`    | `Applicable`     | `PASS` | §7 exact commands、§8 gates、§10 traceability                     | all standards/requirements have executable future proof                          | None                               |
 | `MC-BLOCKER-001` | `Applicable`     | `PASS` | §11 only Plan approval Gate remains；all technical rows PASS/N/A | no unresolved Spec/technical decision blocks review                              | User must approve before execution |
 

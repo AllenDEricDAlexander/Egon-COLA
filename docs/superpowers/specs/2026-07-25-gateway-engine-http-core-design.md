@@ -1,21 +1,21 @@
-# GWS-03 Gateway Engine Core 与 HTTP 数据面 Spec
+# GWS-03 Yuheng Engine Core 与 HTTP 数据面 Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-01
 
 主模块：
 
-- `egon-cola-component-gateway-core`
-- `egon-cola-component-gateway-engine`
+- `egon-cola-component-yuheng-core`
+- `egon-cola-component-yuheng-biz-gateway`
 
 ## 1. 目标
 
-实现 Reactor Netty/Netty 之上的自研 Gateway Engine Core，承载：
+实现 Reactor Netty/Netty 之上的自研 Yuheng Engine Core，承载：
 
 - PUBLIC/INTERNAL HTTP Listener；
 - HTTP 请求规范化与 Route Match；
@@ -23,7 +23,7 @@
 - HTTP Provider 调用；
 - 统一响应、异常、生命周期和 LKG Rule Runtime 接口。
 
-本 Spec 不实现 RPC Listener、DDC Provider Directory、具体限流算法、鉴权 Provider、
+本 Spec 不实现 RPC Listener、Tianshu Provider Directory、具体限流算法、鉴权 Provider、
 Admin、Starter 或 Kafka 事件细节。
 
 ## 2. 入口场景
@@ -55,7 +55,7 @@ PUBLIC/INTERNAL 是 Listener 固有属性，不读取客户端自报 Header。
 
 - 使用 Reactor Netty `HttpServer` 和 `HttpClient`；
 - Engine 不依赖 Spring Cloud Gateway；
-- Netty EventLoop 上禁止数据库、Redis、DDC、Kafka 同步等待和阻塞式 JSON 处理；
+- Netty EventLoop 上禁止数据库、Redis、Tianshu、Kafka 同步等待和阻塞式 JSON 处理；
 - 必须对阻塞扩展点进行独立有界 Scheduler 隔离；
 - EventLoop、Worker、连接池和业务隔离线程使用不同命名前缀。
 
@@ -65,7 +65,7 @@ PUBLIC/INTERNAL 是 Listener 固有属性，不读取客户端自报 Header。
 egon:
   cola:
     component:
-      gateway:
+      yuheng:
         engine:
           http:
             public:
@@ -80,7 +80,7 @@ egon:
 
 1. 两个 Listener 使用不同端口；
 2. 可在仅内部环境关闭 PUBLIC；
-3. 两个 Listener 共享同一 Rule Runtime 和 Gateway Core；
+3. 两个 Listener 共享同一 Rule Runtime 和 Yuheng Core；
 4. Listener 启动成功不代表 Engine Ready；
 5. 端口冲突或 Listener 启动失败使 Engine 进入 FAILED；
 6. TLS 可以由受信任部署入口终止；Engine 直连 TLS 属于运行配置，证书管理平台不在
@@ -108,7 +108,7 @@ egon:
 - 无限请求体；
 - 客户端通过 Header 切换 Access Zone。
 
-## 4. Gateway Exchange
+## 4. Yuheng Exchange
 
 ### 4.1 请求模型
 
@@ -265,10 +265,10 @@ HostIndex
 - 必须声明阶段和 Order；
 - 不得插入 Exposure 之前绕过外部访问检查；
 - 不得在 Observation 之后改变业务结果；
-- 短路结果必须使用统一 Gateway Error；
+- 短路结果必须使用统一 Yuheng Error；
 - 同 Order 冲突时启动失败，不依赖 Bean 顺序。
 
-## 8. Gateway Executor
+## 8. Yuheng Executor
 
 网络层只调用：
 
@@ -335,7 +335,7 @@ Adapter 不负责服务发现和负载均衡。
 
 ### 10.2 URL 构造
 
-- Scheme 来自 DDC protocol/secure；
+- Scheme 来自 Tianshu protocol/secure；
 - Host/Port 来自有效 Provider Lease；
 - Path 来自 Operation Contract 和受控模板变量；
 - 禁止 Route 提供任意绝对 URL 绕过 Provider Directory；
@@ -350,7 +350,7 @@ Adapter 不负责服务发现和负载均衡。
 - 移除客户端伪造的内部身份 Header；
 - 写入 Trace、Request ID 和可信身份 Header；
 - `X-Forwarded-*` 只由 Engine 重建；
-- 不转发 DDC/Admin Secret；
+- 不转发 Tianshu/Admin Secret；
 - Provider 响应中的危险 Header 按规则过滤。
 
 ### 10.4 连接池
@@ -369,7 +369,7 @@ Route 明确选择：
 
 - 保留受允许的上游 Status、Header 和 Body；
 - 适合文件、流式和已有稳定 HTTP API；
-- 网关自身错误仍使用 Gateway Error。
+- 网关自身错误仍使用 Yuheng Error。
 
 ### 11.2 Wrapped
 
@@ -397,15 +397,15 @@ Route 明确选择：
 
 1. 创建基础资源；
 2. 启动 Listener，但保持 Readiness false；
-3. 注册 DDC Config Client；
-4. 加载 DDC Rule/LKG；
+3. 注册 Tianshu Config Client；
+4. 加载 Tianshu Rule/LKG；
 5. 编译 Route、初始化必要连接资源；
 6. 所有必要能力 Ready 后对外 Ready。
 
 停止：
 
 1. Readiness false；
-2. 注销 RPC Gateway Slot 和 DDC Config Client 租约，避免成为新发布 Target；
+2. 注销 RPC Yuheng Slot 和 Tianshu Config Client 租约，避免成为新发布 Target；
 3. 停止接受新请求；
 4. 保持 Provider Directory 足够时间以完成在途请求；
 5. 等待在途请求到 Drain Timeout；
@@ -413,7 +413,7 @@ Route 明确选择：
 7. 关闭 Provider 订阅、连接池、Listener、Scheduler；
 8. 进入 STOPPED。
 
-异常退出不承诺完成注销，DDC TTL 负责最终摘除。
+异常退出不承诺完成注销，Tianshu TTL 负责最终摘除。
 
 ## 14. 配置
 
@@ -440,16 +440,16 @@ engine.http.upstream.pending-acquire-max-count
 
 | 场景 | Error Code | HTTP |
 |---|---|---|
-| 非法请求行/Header/Path | `GATEWAY_REQUEST_INVALID` | 400 |
-| Body 超限 | `GATEWAY_REQUEST_BODY_TOO_LARGE` | 413 |
-| 无 Route | `GATEWAY_ROUTE_NOT_FOUND` | 404 |
-| Route 冲突 | `GATEWAY_ROUTE_AMBIGUOUS` | 500 |
-| PUBLIC 调内部接口 | `GATEWAY_EXTERNAL_NOT_ACCESSIBLE` | 404 |
-| 无 Provider | `GATEWAY_PROVIDER_UNAVAILABLE` | 503 |
-| 连接失败 | `GATEWAY_UPSTREAM_CONNECT_FAILED` | 502 |
-| 上游超时 | `GATEWAY_UPSTREAM_TIMEOUT` | 504 |
-| Engine 无规则 | `GATEWAY_RULE_NOT_READY` | 503 |
-| 未分类异常 | `GATEWAY_INTERNAL_ERROR` | 500 |
+| 非法请求行/Header/Path | `YUHENG_REQUEST_INVALID` | 400 |
+| Body 超限 | `YUHENG_REQUEST_BODY_TOO_LARGE` | 413 |
+| 无 Route | `YUHENG_ROUTE_NOT_FOUND` | 404 |
+| Route 冲突 | `YUHENG_ROUTE_AMBIGUOUS` | 500 |
+| PUBLIC 调内部接口 | `YUHENG_EXTERNAL_NOT_ACCESSIBLE` | 404 |
+| 无 Provider | `YUHENG_PROVIDER_UNAVAILABLE` | 503 |
+| 连接失败 | `YUHENG_UPSTREAM_CONNECT_FAILED` | 502 |
+| 上游超时 | `YUHENG_UPSTREAM_TIMEOUT` | 504 |
+| Engine 无规则 | `YUHENG_RULE_NOT_READY` | 503 |
+| 未分类异常 | `YUHENG_INTERNAL_ERROR` | 500 |
 
 外部不可访问返回 404，避免泄漏内部接口存在性。
 
@@ -488,7 +488,7 @@ engine.http.upstream.pending-acquire-max-count
 2. PUBLIC/INTERNAL 必须由独立 Listener 确定；
 3. Route Match 不扫描全部 Route；
 4. Route 冲突在发布/编译阶段失败；
-5. EventLoop 无阻塞 DDC/DB/Kafka 调用；
+5. EventLoop 无阻塞 Tianshu/DB/Kafka 调用；
 6. Body 超限和资源释放可验证；
 7. HTTP Provider 地址只来自 GWS-05 的 Provider Instance；
 8. Rule 切换在单节点原子完成；
@@ -502,5 +502,5 @@ engine.http.upstream.pending-acquire-max-count
 3. 认可 2 MiB 默认聚合 Body 上限及流式透传分离；
 4. 认可固定 Filter 阶段和不可绕过 Exposure；
 5. 认可 Transparent/Wrapped 两种显式响应模式；
-6. 认可 HTTP Upstream 只能使用 DDC Provider Instance 地址；
+6. 认可 HTTP Upstream 只能使用 Tianshu Provider Instance 地址；
 7. 认可 Engine 启停、Readiness 和 Drain 顺序。

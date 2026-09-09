@@ -1,4 +1,4 @@
-# Egon Gateway Admin Web — 企业级前端重构设计
+# Egon Yuheng Admin Web — 企业级前端重构设计
 
 **日期**: 2026-07-31  
 **状态**: 设计完成，待实现  
@@ -46,12 +46,12 @@
 | 路径片段 | 中文 |
 |---------|------|
 | `/dashboard` | 运行总览 |
-| `/gateway-groups` | Gateway Group |
-| `/gateway-groups/:id/overview` | 概览 |
-| `/gateway-groups/:id/draft/routes` | Draft · Routes |
-| `/gateway-groups/:id/draft/policies` | Draft · Policies |
-| `/gateway-groups/:id/releases` | 发布历史 |
-| `/gateway-groups/:id/releases/:rid` | Release 详情 |
+| `/yuheng-groups` | Yuheng Group |
+| `/yuheng-groups/:id/overview` | 概览 |
+| `/yuheng-groups/:id/draft/routes` | Draft · Routes |
+| `/yuheng-groups/:id/draft/policies` | Draft · Policies |
+| `/yuheng-groups/:id/releases` | 发布历史 |
+| `/yuheng-groups/:id/releases/:rid` | Release 详情 |
 | `/applications` | Application / Credential |
 | `/interface-catalog` | 接口目录 |
 | `/operations/:id` | Operation 详情 |
@@ -67,11 +67,11 @@
 
 **1.4 页脚**
 - 使用 antd `Layout.Footer`
-- 内容：`© 2025 Egon Gateway · v{version}`（version 从 `package.json` 读取，构建时注入）
+- 内容：`© 2025 Egon Yuheng · v{version}`（version 从 `package.json` 读取，构建时注入）
 
 **1.5 Sider 菜单**
 - 在 `navigation` 数组中添加分组分隔（`Menu.Divider` 方式）
-- 分组：`核心管理`（Dashboard, Gateway Group, Application, 接口目录, Provider） + `观测审计`（调用观测, 审计日志）
+- 分组：`核心管理`（Dashboard, Yuheng Group, Application, 接口目录, Provider） + `观测审计`（调用观测, 审计日志）
 - collapsed 时菜单项增加 `Tooltip`（antd 6 Menu 的 `inlineCollapsed` 模式原生支持）
 
 **1.6 受影响文件**
@@ -179,7 +179,7 @@ function useTableConfig(key: string, allColumns: string[]): {
 
 | 页面 | useTableConfig | 批量操作 | 搜索/筛选 | 导出 |
 |------|:---:|:---:|:---:|:---:|
-| Gateway Groups | ✓ | ✓ 批量启停 | ✓ | ✓ |
+| Yuheng Groups | ✓ | ✓ 批量启停 | ✓ | ✓ |
 | Applications | ✓ | — | ✓ | ✓ |
 | Providers | ✓ | — | — | ✓ |
 | Draft Routes | ✓ | ✓ 批量删除 | ✓ | ✓ |
@@ -191,7 +191,7 @@ function useTableConfig(key: string, allColumns: string[]): {
 ### 受影响文件
 - `hooks/useTableConfig.ts` — 新增
 - `utils/export.ts` — 新增（导出工具函数）
-- `features/gateway-groups/GatewayGroupsPage.tsx`
+- `features/yuheng-groups/GatewayGroupsPage.tsx`
 - `features/applications/ApplicationsPage.tsx`
 - `features/providers/ProvidersPage.tsx`
 - `features/releases/ReleasesPage.tsx`
@@ -206,7 +206,7 @@ function useTableConfig(key: string, allColumns: string[]): {
 ### 改动点
 
 **4.1 简单表单（≤8 字段）：保持 Modal**
-- 适用页面：Gateway Group CRUD, Application CRUD, Policy, 三级目录, Operation
+- 适用页面：Yuheng Group CRUD, Application CRUD, Policy, 三级目录, Operation
 - 改动：
   - 增加 **"保存并新建"** 按钮：`Button` + `onClick` 触发保存后重置表单而非关闭
   - 表单校验失败时自动 `scrollToFirstError`
@@ -239,7 +239,7 @@ Step 3: 高级 & 提交
 
 ### 受影响文件
 - `features/draft/DraftPage.tsx` — 主要改动
-- `features/gateway-groups/GatewayGroupsPage.tsx` — "保存并新建"
+- `features/yuheng-groups/GatewayGroupsPage.tsx` — "保存并新建"
 - `features/applications/ApplicationsPage.tsx` — "保存并新建"
 - `features/interface-catalog/CatalogPage.tsx` — "保存并新建"
 
@@ -288,7 +288,7 @@ interface PageSkeletonProps {
 **5.4 空状态**
 - 每个页面检查 `data.length === 0`（或等效），显示 antd `Empty` 组件
 - 空状态包含：插图（`Empty.PRESENTED_IMAGE_SIMPLE`）+ 上下文文案 + CTA 按钮（如有写权限）
-- 例如 Gateway Groups 为空时："还没有 Gateway Group，创建第一个开始管理 API 网关" + `[新建 Gateway Group]`
+- 例如 Yuheng Groups 为空时："还没有 Yuheng Group，创建第一个开始管理 API 网关" + `[新建 Yuheng Group]`
 
 ### 受影响文件
 - `components/PageSkeleton.tsx` — 新增
@@ -479,14 +479,14 @@ theme={{
 | `src/app/App.tsx` | 中 |
 | `src/features/dashboard/DashboardPage.tsx` | 大 |
 | `src/features/draft/DraftPage.tsx` | 大 |
-| `src/features/gateway-groups/GatewayGroupsPage.tsx` | 中 |
+| `src/features/yuheng-groups/GatewayGroupsPage.tsx` | 中 |
 | `src/features/applications/ApplicationsPage.tsx` | 中 |
 | `src/features/providers/ProvidersPage.tsx` | 中 |
 | `src/features/releases/ReleasesPage.tsx` | 中 |
 | `src/features/observability/TracesPage.tsx` | 中 |
 | `src/features/audit/AuditPage.tsx` | 中 |
 | `src/features/interface-catalog/CatalogPage.tsx` | 中 |
-| `src/features/gateway-groups/GatewayGroupDetailPage.tsx` | 中 |
+| `src/features/yuheng-groups/GatewayGroupDetailPage.tsx` | 中 |
 | `src/features/releases/ReleaseDetailPage.tsx` | 中 |
 | `src/features/interface-catalog/OperationPage.tsx` | 中 |
 | `src/auth/LoginPage.tsx` | 小 |

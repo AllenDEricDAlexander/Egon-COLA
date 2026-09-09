@@ -530,7 +530,7 @@ Strategy, Factory Method, Decorator, State, and Chain of Responsibility are unne
 - Hidden files and wrapper files need careful archetype metadata handling.
 - Cross-module dependency rules can become circular if application, domain, and infrastructure responsibilities are mixed.
 - Adding JPA and Flyway requires a coherent default H2 configuration so generated tests do not need external services.
-- Maven Wrapper executable permissions may not survive generation on every platform; this should be verified and reported.
+- Maven Wrapper executable permissions may not survive generation on every xingyuan; this should be verified and reported.
 
 ## Acceptance Criteria
 

@@ -49,7 +49,7 @@ flowchart TD
     F --> G[创建 Git Tag / Release Note]
 ```
 
-DDC 归属 Platforms，但 RPC 组件消费 DDC Starter，Gateway 又消费 RPC。这个依赖图在
+Tianshu 归属 Platforms，但 RPC 组件消费 Tianshu Starter，Gateway 又消费 RPC。这个依赖图在
 根 Reactor 内可以由 Maven 正确排序，却不能拆成独立的 Components 和 Platforms 新版本
 发布批次。因此 Maven Central 发布只允许使用根 Reactor 的 `all` 目标。
 
@@ -252,7 +252,7 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 该命令会先完整执行 source → generate/check → Archetype IT → release-shape 预检，随后只执行一次根 Reactor `clean deploy`。
 真实发布不能传 `-Dgpg.skip=true`；Central Portal 返回 `UNKNOWN` 时必须先按 deployment id 查询状态，不能盲目重放 deploy。
 
-发布后可以验证 BOM、DDC 平台和 Archetype 是否可解析：
+发布后可以验证 BOM、Tianshu 平台和 Archetype 是否可解析：
 
 ```bash
 ./mvnw -B -ntp dependency:get -Dartifact=top.egon:egon-cola-components-bom:5.x.y:pom
@@ -300,7 +300,7 @@ GitHub Repository → Actions → Publish Maven Central → Run workflow
 ```text
 1. all
 2. 等待本次 Central Deployment 发布完成
-3. 验证 BOM、DDC Starter 和 Archetype 坐标可解析
+3. 验证 BOM、Tianshu Starter 和 Archetype 坐标可解析
 ```
 
 工作流不再暴露 parent-only、Components-only 或 Platforms-only 目标，避免跨 Reactor

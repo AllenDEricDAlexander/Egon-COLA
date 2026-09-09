@@ -91,8 +91,8 @@ Organization Facade client 仍是一个暂未使用的 infrastructure 基础能�
 `prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization COLA RPC client，通过生成的 POM 固定 `top.egon:egon-cola-organization-facade`，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
 
 - 数据库：按下文为 `master_data`、`shard_0`、`shard_1` 配置 ShardingSphere 物理数据源。
-- DDC：使用 `DDC_RPC_TARGET`、`DDC_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 IdP SERVICE Token 配置；`DDC_ENABLED` 与 `DDC_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、DDC 与远程查询”。
-- COLA RPC：`DDC_RPC_TARGET`、`RPC_PORT`、`ORGANIZATION_FACADE_TIMEOUT_MS`。
+- Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
+- COLA RPC：`TIANSHU_RPC_TARGET`、`RPC_PORT`、`ORGANIZATION_FACADE_TIMEOUT_MS`。
 - Organization Facade：`ORGANIZATION_FACADE_ENABLED`、`ORGANIZATION_FACADE_GROUP`、`ORGANIZATION_FACADE_SERVICE_VERSION`。
 - RabbitMQ：连接参数通过 Spring 自身的变量名绑定——`SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`；`RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 则是本应用自己的开关。
 - 配置解密：`EGON_CONFIG_DECRYPT_KEY`、`EGON_CONFIG_DECRYPT_KEY_FILE` 或文档化的 config-tree secret source。
@@ -206,12 +206,12 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 该生成的 service 项目不包含业务 Controller、Web Filter、GraphQL endpoint、native grpc-java 模块或启用的 H2 console。Organization Facade client 有意未接入当前 Application 行为。
 
-## 原生 RPC、DDC 与远程查询
+## 原生 RPC、Tianshu 与远程查询
 
-本工程使用共享 evaluation 的 11 个 Protobuf unary 操作。Provider 继续调用原有 Facade；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms；`ORGANIZATION_FACADE_APP_CODE` 必须填写对端在 DDC 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程使用共享 evaluation 的 11 个 Protobuf unary 操作。Provider 继续调用原有 Facade；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms；`ORGANIZATION_FACADE_APP_CODE` 必须填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
-`dev`/`prod` 需提供已有 DDC RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `ddc:registration:write` 的 IdP SERVICE Token client。填写 `.env` 样例中的 `DDC_*`、`IDP_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `ddcregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.ddcregistration` 和 `spring.security.oauth2.client.provider.ddcregistration.token-uri`。生产启用 RPC/DDC mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。DDC/IdP 服务不随 Compose 创建。
+`dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 
-文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`gateway.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。IdP Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
+文档由 platform OpenAPI MVC starter 提供，现有业务 HTTP 访问保持。文档治理默认关闭；开启前须配置平台身份、发布分组、JWT decoder/`yuheng.openapi.read` scope，并为已发布 handler 显式补齐 `@Operation(operationId = "...")`。Tianquan-Shoubing Servlet filter 自动注册关闭。HTTP 注册端口跟随实际 `server.port`。
 
-`test` 关闭 RPC provider/consumer、DDC config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 DDC 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 DDC/IdP、TLS 或容器互通。
+`test` 关闭 RPC provider/consumer、Tianshu config/registry/Redis、HTTP 注册和外部查询客户端，保留既有 H2/本地 stub。默认 Redisson 自动配置被排除，由 Tianshu 创建其显式配置的 Redis client。原 PostgreSQL、Redis、RabbitMQ 及数据卷保持。配置解密在 Spring Boot Config Data 加载后执行，使用显式 import/configtree 替代旧 bootstrap；加解密与密钥规则不变。静态、模块和进程内 RPC 测试不能证明真实 Tianshu/Tianquan-Shoubing、TLS 或容器互通。

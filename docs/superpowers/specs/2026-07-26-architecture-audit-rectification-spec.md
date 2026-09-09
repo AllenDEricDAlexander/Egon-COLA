@@ -6,7 +6,7 @@
 
 | 阶段                     | 状态 | 产出                                                                 |
 |------------------------|----|--------------------------------------------------------------------|
-| 类别地图（7 个面）             | 完成 | components / archetypes / gateway / DDC / RPC / gateway 测试与部署 / 治理 |
+| 类别地图（7 个面）             | 完成 | components / archetypes / yuheng / Tianshu / RPC / yuheng 测试与部署 / 治理 |
 | 缺口裁决（16 项）             | 完成 | 每项独立审计者先尝试证伪；16/16 确认为真                                            |
 | 计划套件复核                 | 完成 | 约 95 条路径核验，19 项缺陷                                                  |
 | ShardingSphere 设计/计划复核 | 完成 | 20 条路径核验，13 项缺陷                                                    |
@@ -20,9 +20,9 @@
 审计日期：2026-07-26（初审基线 `main@bff002cd`，结论已按 `main@a58d7645` 重标）
 
 当前基线：`main@b12592ff`（§3 全部 17 项已在此提交上复验仍然成立；相关代码事实自
-`a58d7645`「Merge branch 'codex/gateway-ddc-rpc-integration'」以来未变；其后的提交为文档收口与 components 能力整改，不触及本规格所列位置）
+`a58d7645`「Merge branch 'codex/yuheng-tianshu-rpc-integration'」以来未变；其后的提交为文档收口与 components 能力整改，不触及本规格所列位置）
 
-被审设计：`2026-07-26-gateway-ddc-rpc-integration-remediation-design.md` + 其 7 份实施计划
+被审设计：`2026-07-26-yuheng-tianshu-rpc-integration-remediation-design.md` + 其 7 份实施计划
 
 姊妹设计：`2026-07-26-components-capability-hardening-design.md`（components 类别，**本规格不重复其范围**）
 
@@ -30,7 +30,7 @@
 
 ## 0. 结论摘要
 
-**审计期间代码基线发生了变化。** 审计启动时 `main@bff002cd`，`codex/gateway-ddc-rpc-integration`
+**审计期间代码基线发生了变化。** 审计启动时 `main@bff002cd`，`codex/yuheng-tianshu-rpc-integration`
 是一条未合入的分支；审计进行中该分支被合入（`a58d7645`），同时 ShardingSphere archetype 改造
 的 4 个提交直接落在 main 上。本规格已按合并后的事实重标结论。
 
@@ -38,7 +38,7 @@
 
 **设计满足要求吗？** 满足。设计第 4 节列出的 **16 项缺口，逐条复核后 16 项全部被代码证据确认**
 （1 项 P1-04 问题为真但陈述不准）。所有补救方案都被判定为合理、最小、可实施，无一项过度设计。
-设计拒绝 Saga/2PC、Strategy/Chain、Gateway 专用 DDC Bundle API 的决策是正确的。
+设计拒绝 Saga/2PC、Strategy/Chain、Yuheng 专用 Tianshu Bundle API 的决策是正确的。
 
 **实现合理吗？** 合理，且已完成合入。7 份计划全部执行完毕（compose.demo.yml、demo/、scripts/、
 `docs/developer-integration*.md`、`Dockerfile.test-app` 均已存在）。抽查表明实现**独立命中了审计
@@ -58,7 +58,7 @@
    7 处 `service_started`**——它恰好带着设计要消灭的那个竞态发布了。
 2. **计划套件本身有 19 个缺陷**（§4），包括 3 处错误文件路径、20/25 条定向测试命令会因错误原因失败、
    以及覆盖矩阵对 3 个 P2 行的过度声明。这些计划已经被执行过了。
-3. **同一个文档漂移模式出现了三次**（§6）。gateway 7 份计划 0/160 勾选、ShardingSphere 计划
+3. **同一个文档漂移模式出现了三次**（§6）。yuheng 7 份计划 0/160 勾选、ShardingSphere 计划
    0/39 勾选且 spec 仍写"等待实施"、全仓 62 份计划仅 3 份有勾选——**而三处的代码都已经写完并合入**。
 
 ### 严重度分布
@@ -88,7 +88,7 @@ components 类别（原 C-01..C-07）**已从本规格删除**，全部由姊妹
 
 **未执行**：任何构建、测试、容器。所有"当前行为"来自代码阅读，不来自运行观察。因此以下为
 **未验证边界**：真实 Redis Cluster 的 CROSSSLOT（按 CRC16 算术推导）、镜像内 curl/wget 是否存在、
-`gateway-live` 套件实际通过率、ShardingSphere 生成项目在真实 PostgreSQL 上的行为。
+`yuheng-live` 套件实际通过率、ShardingSphere 生成项目在真实 PostgreSQL 上的行为。
 
 | 级别           | 覆盖                                              | 复核方式                                     |
 |--------------|-------------------------------------------------|------------------------------------------|
@@ -114,10 +114,10 @@ components 类别（原 C-01..C-07）**已从本规格删除**，全部由姊妹
 
 | 缺口                            | 裁决              | 要点                                                                              |
 |-------------------------------|-----------------|---------------------------------------------------------------------------------|
-| P0-01 Gateway→DDC 请求无效        | 确认              | 真实发布必然在 `requireUuidV7` 第一步失败                                                   |
-| P0-02 服务状态不一致                 | 确认              | 真实 DDC 下**无任何 Provider 可路由、无任何 Gateway Slot 被连接**                               |
-| P0-03 DDC 容器不可执行              | 确认              | thin JAR 无 `Main-Class`，实测确认                                                    |
-| P0-04 联调进程连错 Redis            | 确认              | 两个 engine 开了 DDC 却无 Redis 环境变量，回退 `127.0.0.1:6379`                              |
+| P0-01 Yuheng→Tianshu 请求无效        | 确认              | 真实发布必然在 `requireUuidV7` 第一步失败                                                   |
+| P0-02 服务状态不一致                 | 确认              | 真实 Tianshu 下**无任何 Provider 可路由、无任何 Yuheng Slot 被连接**                               |
+| P0-03 Tianshu 容器不可执行              | 确认              | thin JAR 无 `Main-Class`，实测确认                                                    |
+| P0-04 联调进程连错 Redis            | 确认              | 两个 engine 开了 Tianshu 却无 Redis 环境变量，回退 `127.0.0.1:6379`                              |
 | P0-05 HTTP Provider 不可消费      | 确认              | provider-runtime 无任何 Spring 类型                                                  |
 | P1-01 只记录 activation changeId | 确认（**严重度被低估**）  | chunk 中途崩溃留下 `PUBLISHING + change_id NULL`，`recoverable()` 永远选不到                |
 | P1-02 draft/published 混用      | 确认（**比设计更广**）   | 未发布的 draft 编辑本来就会在一个 reconcile 周期内静默扩散                                          |
@@ -127,7 +127,7 @@ components 类别（原 C-01..C-07）**已从本规格删除**，全部由姊妹
 | P1-06 ACK 无重试                 | 确认（**比设计更差**）   | 日志**不含异常本身**，且吞掉服务端业务拒绝                                                         |
 | P1-07 chunk 顺序/生命周期           | 确认（**严重度被低估**）  | 默认 `failFast=true` 下不是"丢失激活机会"而是 **engine 启动失败**                                |
 | P1-08 RPC 重试/错误分类             | 确认              | 字面量 `"provider"` 的唯一写入者是测试 mock                                                 |
-| P2-01 DDC 管理面安全               | 确认（**比设计更差**）   | 签名默认 `false`、传输默认 plaintext——**默认配置下连 openapi 都不鉴权**                            |
+| P2-01 Tianshu 管理面安全               | 确认（**比设计更差**）   | 签名默认 `false`、传输默认 plaintext——**默认配置下连 openapi 都不鉴权**                            |
 | P2-02 Compose 与真实测试           | 确认              | 全 `service_started`，Java 服务无 healthcheck                                        |
 | P2-03 live IT 覆盖面与文档          | 确认（10 条子断言全复现）  | 两 engine 共用 spec name 导致日志互相截断；`5.2.1` 硬编码在**两处**                               |
 
@@ -142,9 +142,9 @@ components 类别（原 C-01..C-07）**已从本规格删除**，全部由姊妹
 
 ### 3.0 【已撤销】原阻断级发现 B-1 —— 实测推翻
 
-> **状态：撤销。原判断错误，DDC Admin 可以正常启动。**
+> **状态：撤销。原判断错误，Tianshu Admin 可以正常启动。**
 
-原结论称：`DdcManifestController` 的 `@Value("${egon.cola.component.ddc.admin.manifest.version}")`
+原结论称：`DdcManifestController` 的 `@Value("${egon.cola.component.tianshu.admin.manifest.version}")`
 无默认值，而 `application.yml` 把它接到 `${sdk.version}`，且 `sdk.version` 无人提供，因此上下文
 启动失败。
 
@@ -156,11 +156,11 @@ components 类别（原 C-01..C-07）**已从本规格删除**，全部由姊妹
 ```yaml
 spring:
   config:
-    import: classpath:META-INF/egon-cola-ddc.properties
+    import: classpath:META-INF/egon-cola-tianshu.properties
 ```
 
 admin 自己的 `application.yml` 用 `spring.config.import` 把 starter 模块那份 **Maven 过滤过的**
-`META-INF/egon-cola-ddc.properties`（内容 `sdk.version=${project.version}`）导入成了正规 Spring
+`META-INF/egon-cola-tianshu.properties`（内容 `sdk.version=${project.version}`）导入成了正规 Spring
 配置源。所以 `sdk.version` **确实是 Spring 属性**，链路完整：
 Maven 过滤 → starter jar 内的 properties → `spring.config.import` → Environment → `@Value`。
 
@@ -191,7 +191,7 @@ G-1（live IT 不在 push/PR 上运行）本身仍然成立，但**不能**再�
 
 **H-1｜设计 §13.5（Compose readiness）无任何计划任务认领，且新建的 demo 拓扑带着原竞态发布**
 
-设计承诺给 DDC、Gateway Admin、Engine 加 healthcheck 并依赖 readiness 而非 `service_started`。
+设计承诺给 Tianshu、Yuheng Admin、Engine 加 healthcheck 并依赖 readiness 而非 `service_started`。
 七份计划中**没有任何一步**提及 Compose 的 healthcheck/readiness，而索引的覆盖矩阵却把它算在
 `P2 Compose | 07/Task 1-4` 里。实测：
 
@@ -206,8 +206,8 @@ compose.demo.yml  healthcheck: 0 处                                      servic
 **H-2｜设计 §17（可观测性与敏感信息）零任务、零矩阵行**
 
 §17 列了 7 类必须输出的结构化日志/指标维度（releaseId/attempt/phase/changeId/configKey、
-DDC expected/target version 与 dispatch/replay 次数、ACK 重试/队列饱和/最终耗尽、legacy/v2 回退
-次数、chunk GC 数量与被保护 release、Provider/Gateway lease 重注册、HMAC credential id/scope
+Tianshu expected/target version 与 dispatch/replay 次数、ACK 重试/队列饱和/最终耗尽、legacy/v2 回退
+次数、chunk GC 数量与被保护 release、Provider/Yuheng lease 重注册、HMAC credential id/scope
 拒绝/重放拒绝）和 3 条禁令（禁止记录 configValue/chunk Base64/完整规则正文；禁止记录 credential
 secret/JWT/HMAC secret/数据库密码；禁止记录完整敏感 cache diff）。
 
@@ -235,8 +235,8 @@ secret/JWT/HMAC secret/数据库密码；禁止记录完整敏感 cache diff）�
 **H-4｜计划 06 打开 fail-closed 鉴权，但无任务认领部署侧凭据传播**
 
 计划 06 Task 3 引入 `DdcHmacCredential`（accessKey + clientType + appCode/env/namespace 模式 +
-allowedOperations），Task 4 让所有未匹配路由默认拒绝。但 06 的 Files 全部在 ddc-admin 模块内，
-不含任何部署文件或 Gateway Admin 的 DDC 客户端配置；计划 07 Task 4 的 Files 只有 `.env.example`
+allowedOperations），Task 4 让所有未匹配路由默认拒绝。但 06 的 Files 全部在 tianshu-admin 模块内，
+不含任何部署文件或 Yuheng Admin 的 Tianshu 客户端配置；计划 07 Task 4 的 Files 只有 `.env.example`
 和新建的 `compose.demo.yml`，不含既有的 `deployment/compose.yml`。
 
 后果：计划 06 **不是独立可提交的**——按它提交后既有 Compose 拓扑处于鉴权断裂状态，实际是四个
@@ -251,10 +251,10 @@ content_value / expected_version / change_id / ddc_target_version / ddc_status /
 error_message / created_at / updated_at`——**没有 timeout**。全模块 grep 也没有任何
 publication/journal/phase 相关代码引用 `timeoutMs`。
 
-而 DDC 的 changeId 幂等重放校验会比较 timeoutMs，不匹配即抛 `CHANGE_ID_CONFLICT`
+而 Tianshu 的 changeId 幂等重放校验会比较 timeoutMs，不匹配即抛 `CHANGE_ID_CONFLICT`
 （`DdcPublishService.java:638`），设计 §7.1 的约束也明写"重试复用原超时"。当前潜伏是因为
-Gateway 超时是固定 10s 常量（`GatewayAdminConfiguration.java:88`）——**一旦这个值改成可配置，
-所有跨配置变更的重试都会被 DDC 拒绝。**
+Yuheng 超时是固定 10s 常量（`GatewayAdminConfiguration.java:88`）——**一旦这个值改成可配置，
+所有跨配置变更的重试都会被 Tianshu 拒绝。**
 
 **M-2｜N-01 的入口崩溃窗口只收窄了，没有关闭**
 
@@ -274,22 +274,22 @@ release（崩在 beginAttempt 之前）同理，且 READY 根本不在 `recovera
 
 窗口比修复前窄得多，但后果完全相同且无上限。
 
-**M-3｜engine 默认 DDC app-code 仍与 publisher 约定不匹配**
+**M-3｜engine 默认 Tianshu app-code 仍与 publisher 约定不匹配**
 
-`gateway-engine/src/main/resources/application.yml:31` 仍是 `app-code: egon-cola-gateway-engine`，
-而 publisher 写入 `gateway-engine-{group}`。只有 compose 覆盖了它——**用默认配置起的 engine
+`yuheng-biz-gateway/src/main/resources/application.yml:31` 仍是 `app-code: egon-cola-yuheng-biz-gateway`，
+而 publisher 写入 `yuheng-biz-gateway-{group}`。只有 compose 覆盖了它——**用默认配置起的 engine
 静默订阅错误 scope，永远收不到规则**（会停在 LKG 或空规则）。
 
 **M-4｜版本字面量漂移仍有两处**
 
 `GatewayEngineConfiguration.java:527-528` 仍是两行 `"5.2.3"`，进入注册元数据
-（`gateway.engine-version` / `egon.rpc.runtime-version`）；`DtpManifestController.java:15-16` 仍有
-两处 `5.2.1`（`@Value` 默认值 + 字段初始值）。RPC starter 已经用 Maven 过滤资源做对了，DDC manifest
+（`yuheng.engine-version` / `egon.rpc.runtime-version`）；`DtpManifestController.java:15-16` 仍有
+两处 `5.2.1`（`@Value` 默认值 + 字段初始值）。RPC starter 已经用 Maven 过滤资源做对了，Tianshu manifest
 本轮也修好了（现在是无默认值的属性注入）——**只有这两处漏了**。两者都经对抗性复核确认成立。
 
 **M-5｜ACK 重试的错误分类缺服务端配套（原 D-21）**
 
-未见服务端改动。DDC admin 仍把业务失败返回为 HTTP 200 + failure `ResultDto`；ACK 拒绝抛的是
+未见服务端改动。Tianshu admin 仍把业务失败返回为 HTTP 200 + failure `ResultDto`；ACK 拒绝抛的是
 `DdcAdminException`，而全局 handler 只捕 `DdcException`，于是 lease mismatch / checksum mismatch
 被兜底压成通用 `INTERNAL_FAILURE(56999)`——**与真正可重试的瞬时失败不可区分**。"重试 5xx 不重试
 4xx"在这个 wire 合同下不可实现。
@@ -302,20 +302,20 @@ release（崩在 beginAttempt 之前）同理，且 READY 根本不在 `recovera
 **M-7｜部署侧发的是"全通配"HMAC 凭据，把 fail-closed 抵消了**
 
 P2-01 的 scope 化凭据确实实现了（`DdcHmacCredential` / `DdcHmacCredentialRegistry` 存在）。但
-`deployment/compose.yml:80-89` 给 DDC Admin 配的那把凭据，**每一个 scope 维度都是 `*`**：
-`DDC_OPENAPI_CLIENT_TYPE`、`DDC_OPENAPI_APP_CODE_PATTERNS`、`DDC_OPENAPI_ENV_PATTERNS`、
-`DDC_OPENAPI_NAMESPACE_PATTERNS`、`DDC_OPENAPI_ALLOWED_OPERATIONS` 全是 `*`，且复用紧邻上方那对
+`deployment/compose.yml:80-89` 给 Tianshu Admin 配的那把凭据，**每一个 scope 维度都是 `*`**：
+`TIANSHU_OPENAPI_CLIENT_TYPE`、`TIANSHU_OPENAPI_APP_CODE_PATTERNS`、`TIANSHU_OPENAPI_ENV_PATTERNS`、
+`TIANSHU_OPENAPI_NAMESPACE_PATTERNS`、`TIANSHU_OPENAPI_ALLOWED_OPERATIONS` 全是 `*`，且复用紧邻上方那对
 legacy 静态密钥。默认拒绝的机制在，但被这把凭据在部署层面还原成了"全放行"。这比 H-4 更进一步：
 不是"没人认领部署传播"，而是**传播了，传播成了空**。
 
 **M-8｜8 个 `@Scheduled` 作业、零 leader election，而 HA 拓扑刻意跑双副本**
 
 全仓 grep `shedlock`/leader election/`LeaderLatch` **零命中**，但两个 admin 都带无保护的定时任务：
-Gateway Admin 有 `GatewayReleaseReconciler:59`、`GatewayRuleChunkGarbageCollector:62`、
+Yuheng Admin 有 `GatewayReleaseReconciler:59`、`GatewayRuleChunkGarbageCollector:62`、
 `GatewayDefinitionLifecycleReconciler:75`、`GatewayObservabilityRetentionReaper:15`、
-`GatewayHmacNonceReaper:20`；DDC Admin 有 `PublishTimeoutScanner:50`、`DdcLeaseExpiryScanner:52`、
-`PublishStartupRecovery:68`。而 `compose.ha.yml` 同时定义 `ddc-admin`+`ddc-admin-2`、
-`gateway-admin`+`gateway-admin-2`。§7.1 的发布互斥只是这个风险类里的一个实例——**整类没有机制**。
+`GatewayHmacNonceReaper:20`；Tianshu Admin 有 `PublishTimeoutScanner:50`、`DdcLeaseExpiryScanner:52`、
+`PublishStartupRecovery:68`。而 `compose.ha.yml` 同时定义 `tianshu-admin`+`tianshu-admin-2`、
+`yuheng-admin`+`yuheng-admin-2`。§7.1 的发布互斥只是这个风险类里的一个实例——**整类没有机制**。
 决策点 §9.6 应扩大到覆盖全部 8 个作业，而不只是发布互斥。
 
 **M-9｜journal 每次 attempt 重存一份完整规则正文，且无回收**
@@ -326,7 +326,7 @@ Gateway Admin 有 `GatewayReleaseReconciler:59`、`GatewayRuleChunkGarbageCollec
 清单里只有 `contentSha256`，审计对 P1-01 的分析也明确假设"正文从 `gateway_release_content` 取"。
 与决策点 §9.1 一并裁定。
 
-**M-10｜DDC V4 回填是无保护的全表 UPDATE，且全仓没有回滚方向**
+**M-10｜Tianshu V4 回填是无保护的全表 UPDATE，且全仓没有回滚方向**
 
 两个方言的 `V4__add_published_config_pointer.sql` 都是
 `alter table ... add column published_version ...` + 无条件
@@ -350,12 +350,12 @@ Gateway Admin 有 `GatewayReleaseReconciler:59`、`GatewayRuleChunkGarbageCollec
 
 ### 3.3 低
 
-**L-1｜legacy failure-stage 值处理未定义（原 D-39）** — 现网 gateway 把错误码写进
+**L-1｜legacy failure-stage 值处理未定义（原 D-39）** — 现网 yuheng 把错误码写进
 `x-egon-rpc-failure-stage`，新 consumer 若严格要求 `stage==GATEWAY` 对旧 engine 永不 failover。
 未见前缀/大小写兼容规则。
 
 **L-2｜历史遗留 release 行无终结策略（原 D-03）** — V4 迁移与 reconciler 中未见 legacy 处置分支。
-修复前的 `gateway-release-*` changeId 行不会有 journal，新恢复逻辑处理不了。实际风险低（DDC 本来
+修复前的 `yuheng-release-*` changeId 行不会有 journal，新恢复逻辑处理不了。实际风险低（Tianshu 本来
 就拒绝非 UUIDv7，不可能存在成功的历史发布），但会永久占用 `hasReleaseInProgress`。
 
 ### 3.4 已确认吸收（无需行动）
@@ -369,7 +369,7 @@ Gateway Admin 有 `GatewayReleaseReconciler:59`、`GatewayRuleChunkGarbageCollec
 | published 值从 version 表取（决策 §8.2 已由实现选定方案 a）                                         | `DdcConfigService.java:267,276,366`                                        |
 | chunk 清理是选择性的，非全量 `clear()`                                                         | `GatewayRuleChunkStore.java`                                               |
 | Demo 的构建上下文已解决                                                                      | `deployment/Dockerfile.test-app` 已存在                                       |
-| WebFlux Provider 模块已建                                                               | `egon-cola-component-gateway-test-webflux-http-provider`                   |
+| WebFlux Provider 模块已建                                                               | `egon-cola-component-yuheng-test-webflux-http-provider`                   |
 | 七份计划全部执行完毕                                                                          | `compose.demo.yml`、`demo/`、`scripts/`、`docs/developer-integration*.md` 均存在 |
 
 ---
@@ -378,7 +378,7 @@ Gateway Admin 有 `GatewayReleaseReconciler:59`、`GatewayRuleChunkGarbageCollec
 
 复核范围：1 份设计 + 1 份索引 + 7 份计划（31 个任务），核验约 95 条路径。
 
-**结构性结论**：四条最终验证的 `-pl` reactor 路径全部正确，`-Pgateway-live` 真实存在且被
+**结构性结论**：四条最终验证的 `-pl` reactor 路径全部正确，`-Pyuheng-live` 真实存在且被
 test-suite 子模块继承，failsafe 版本在 `egon-cola-components/pom.xml:375-376` 受管——**门禁命令
 是可执行的**。迁移文件名与设计完全一致。执行顺序（01 → {02,04,05,06} → 03 在 02 之后 → 07）
 无环，各计划的"依赖 Integration 0X"声明自洽（计划 06 除外）。
@@ -395,23 +395,23 @@ test-suite 子模块继承，failsafe 版本在 `egon-cola-components/pom.xml:37
   `./mvnw -pl <module> -am test -Dtest=<X>`，而 Surefire 3.x 的 `failIfNoSpecifiedTests` 默认为
   true，全仓无任何 POM 覆盖它。配合 `-am`，上游有测试类但无匹配的模块会以
   `No tests were executed!` 中止 reactor，**在预期的断言失败被观察到之前**。受影响的上游包括
-  common-core（3 个测试类）、management-client（6）、gateway-core（10）、gateway-contract（4）。
+  common-core（3 个测试类）、management-client（6）、yuheng-core（10）、yuheng-contract（4）。
   计划作者显然知道这件事——01/T3、01/T4、02/T1、02/T2、02/T3 这 5 条带了
   `-Dsurefire.failIfNoSpecifiedTests=false`，其余 20 条没带，包括计划 03 之后的每一个 Step 2。
 - **P-5｜计划 07 Task 1 的四个 live fixture 文件路径错了包。** 列为
-  `.../gateway/test/live/` 下的 `GatewayProcessSpec/GatewayProcessHarness/GatewayTestInfrastructure/
-  GatewayProcessHarnessTest`，在基线和 HEAD 上都位于 `.../gateway/test/process/`。照做会在 `live/`
+  `.../yuheng/test/live/` 下的 `GatewayProcessSpec/GatewayProcessHarness/GatewayTestInfrastructure/
+  GatewayProcessHarnessTest`，在基线和 HEAD 上都位于 `.../yuheng/test/process/`。照做会在 `live/`
   下新建四个重复类而不是重构既有 harness。（同任务的两个 `Create` 条目路径正确。）
 - **P-6｜计划 03 Task 3 引用了不存在的 `admin/config/` 子包。** 实际类在
-  `.../gateway/admin/GatewayAdminConfiguration.java`；`admin/config/` 下只有
+  `.../yuheng/admin/GatewayAdminConfiguration.java`；`admin/config/` 下只有
   `GatewayAdminProperties.java`。照做会新建一个竞争的 `@Configuration`。
 - **P-7｜§9 四 Bean 合同只覆盖 3/4**（同 H-3），矩阵行 P1-04 不准确。
-- **P-8｜计划 01 与 05 同时拥有 `egon-gateway-rpc` 默认值。** 两者都改 `EgonRpcProperties.java`、
+- **P-8｜计划 01 与 05 同时拥有 `egon-yuheng-rpc` 默认值。** 两者都改 `EgonRpcProperties.java`、
   都建/改 `EgonRpcPropertiesTest.java`。索引要求 01 先于 05，所以 05/T4 的那半边在开始时**已经是
   绿的**，"先观察失败"的证据不可获得。
 - **P-9｜计划 04 Task 3 的 YAML 片段用了无法解析的占位符。** 写的是
-  `${gateway.reporting.artifact-version}`，但该属性不存在；同任务下两行的散文说的是
-  `egon.cola.component.gateway.reporting.artifact-version`。照抄会在启动时占位符解析失败——正好
+  `${yuheng.reporting.artifact-version}`，但该属性不存在；同任务下两行的散文说的是
+  `egon.cola.component.yuheng.reporting.artifact-version`。照抄会在启动时占位符解析失败——正好
   打破计划 04 顶部"上报与注册版本必须一致"的约束。
 - **P-10｜计划 03 Task 1 自相矛盾三处。** (a) Step 1 调 `store.insert(List.of(...))`，同任务
   Step 3 的 Store API 声明是 `insertAll(...)`；(b) Step 1 的 `PublicationRecord` 传 14 个位置参数
@@ -420,7 +420,7 @@ test-suite 子模块继承，failsafe 版本在 `egon-cola-components/pom.xml:37
   (c) Step 3 对 V4 的描述只提"非空内容哈希/状态"，从不提内容列。设计 §7.1 同样漏了它，**于是
   "把完整规则正文存进 gateway_release_publication" 这个决定从未被评审过**。
 - **P-11｜§4.3 P2 第 8 条（外部 Redis 精确清理）无任务、无矩阵行。** 唯一相关文字是计划 07 的
-  全局约束，作用域是 gateway live 套件，而缺口报告的位置是 DDC 测试模块。
+  全局约束，作用域是 yuheng live 套件，而缺口报告的位置是 Tianshu 测试模块。
 
 ### 4.3 低
 
@@ -475,7 +475,7 @@ test-suite 子模块继承，failsafe 版本在 `egon-cola-components/pom.xml:37
 
 ### 5.3 低
 
-计划的隔离 worktree 约束被违反（三个模板提交直接落在 main 的 first-parent 链上，且与 gateway 分支
+计划的隔离 worktree 约束被违反（三个模板提交直接落在 main 的 first-parent 链上，且与 yuheng 分支
 时间交错）；`app.sharding.routing` 只在 SHARDING 拓扑文件里声明却被无条件绑定，删掉看似无用的
 import 会让 readwrite 模式启动失败；archetype IT 零 PostgreSQL 覆盖（唯一真 PG 路径是 opt-in
 profile，且 Flyway 指向未拆分的 location）；三份生成项目都带了没用到的 MySQL SQL 解析器依赖；
@@ -490,7 +490,7 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 
 | 实例                   | 代码状态                         | 文档状态                                |
 |----------------------|------------------------------|-------------------------------------|
-| gateway/DDC/RPC 七份计划 | 全部实现并合入 `a58d7645`           | **0/160 勾选**                        |
+| yuheng/Tianshu/RPC 七份计划 | 全部实现并合入 `a58d7645`           | **0/160 勾选**                        |
 | ShardingSphere 计划    | 全部实现并合入 main                 | **0/39 勾选**，spec 仍写"等待实施"           |
 | 全仓 62 份计划            | 含已完成的 transactional-outbox 等 | 仅 3 份有任何勾选；outbox 计划 110 未勾选 / 0 勾选 |
 
@@ -500,8 +500,8 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 
 其余治理项：
 
-- **G-1（中）** gateway/ddc/rpc 唯一的跨组件集成测试 `GatewayLiveTopologyIT` 被双重门控
-  （`gateway-live` profile + `gateway.live.test=true`），启用它的 job 只在 nightly cron 和手动派发
+- **G-1（中）** yuheng/tianshu/rpc 唯一的跨组件集成测试 `GatewayLiveTopologyIT` 被双重门控
+  （`yuheng-live` profile + `yuheng.live.test=true`），启用它的 job 只在 nightly cron 和手动派发
   下运行——**push 和 PR 永远不跑**，包括修改这三个组件的 PR。
 - **G-2（中）** `cola-samples/` 为空且未被 git 跟踪（样例在 `c99c5f78` 删除），两份 README 的
   仓库布局仍列出 `light/`、`fable/`、`fable-web/`，且在更晚的 `3690c5f1` 刷新 README 时也没改。
@@ -543,7 +543,7 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 
 ### 7.1 复核后仍成立（3 项，需排期）
 
-- **（高）DDC 发布互斥与完成通知是进程内状态，但 HA 已被设想。** `PublishResourceLockRegistry`
+- **（高）Tianshu 发布互斥与完成通知是进程内状态，但 HA 已被设想。** `PublishResourceLockRegistry`
   与 `PublishCompletionWaiterRegistry` 是内存 Map，而 `compose.ha.yml` 已经跑两个 admin，
   `PublishStartupRecovery` 的消息里甚至写了 "HA stale timeout"。2 副本下：两节点都能通过
   tryAcquire 与非串行化的活跃任务检查并在 expectedVersion 上竞争；资源锁只在执行终态迁移的那个
@@ -551,7 +551,7 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 - **（中）`GatewayReleaseStateMachine` 是死代码。** 状态迁移已定义并有测试，但服务与 Store 从不
   执行它；状态由裸 SQL UPDATE 改写，非法迁移无守卫，`SUPERSEDED` 从不写入，release 直接以 READY
   插入、跳过 CREATED/VALIDATING。
-- **（中）DTP 仍硬编码 `5.2.1`。** 本轮修好了 DDC（`DdcManifestController.java:15` 现在是无默认值
+- **（中）DTP 仍硬编码 `5.2.1`。** 本轮修好了 Tianshu（`DdcManifestController.java:15` 现在是无默认值
   的属性注入），但 `DtpManifestController.java:15-16` 仍有两处 `5.2.1`（`@Value` 默认值 + 字段
   初始值），项目版本是 5.2.3。与 §3 的 M-4（engine 硬编码 `"5.2.3"`）属同一漂移类，一并修。
 
@@ -564,14 +564,14 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 |----------------------------------------------|----------------------------------------------------------|
 | Provider 状态 ONLINE/REGISTERED 不匹配            | `9f7b273d` 已统一状态语义                                       |
 | provider-runtime 无自动装配                       | `c79522fa` + `45e4eac4` 已补齐                              |
-| DDC Redis value/version/event 非原子            | HEAD 上已走 Lua 原子发布                                        |
-| DDC starter Redisson 装配被压制                   | 51 个提交前已修，且有回归测试守护                                       |
+| Tianshu Redis value/version/event 非原子            | HEAD 上已走 Lua 原子发布                                        |
+| Tianshu starter Redisson 装配被压制                   | 51 个提交前已修，且有回归测试守护                                       |
 | 多键 Lua 无 hash tag（CROSSSLOT）                 | HEAD 已有专门的同槽键实现                                          |
-| DDC 管理端点完全无鉴权                                | admin 已引入完整 Spring Security + OAuth2 JWT resource server |
+| Tianshu 管理端点完全无鉴权                                | admin 已引入完整 Spring Security + OAuth2 JWT resource server |
 | HMAC nonce 为单进程内存态                           | `b7bb9869` 已改为共享状态                                       |
 | Draft 编辑绕过发布协议                               | `56966430`（draft/published 分离）已闭合                        |
 | Admin Docker 打包 thin JAR                     | 证据在 HEAD 上已不存在                                           |
-| RPC 无幂等契约 / 网关不发 provider stage              | `cc0efb3d` 已分类 gateway 与 provider 失败                     |
+| RPC 无幂等契约 / 网关不发 provider stage              | `cc0efb3d` 已分类 yuheng 与 provider 失败                     |
 | RPC 默认网关服务名不一致                               | 引用行在 HEAD 上已不是该内容                                        |
 | RPC slot 心跳失败进终态 FAILED                      | 引用源码在 HEAD 上已不存在                                         |
 | RPC NOT_FOUND/UNIMPLEMENTED 分类只能靠 mock       | `UNIMPLEMENTED` 已不再走默认分支                                 |
@@ -594,7 +594,7 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 
 一个专职复核者检查了"这次审计漏了什么"。除已并入 §3 的 B-1、M-7..M-10 外，还有四类：
 
-- **（高）七个组件零实现级覆盖。** 本次七个类别只深挖了 gateway/DDC/RPC。完全未做实现级审计的
+- **（高）七个组件零实现级覆盖。** 本次七个类别只深挖了 yuheng/Tianshu/RPC。完全未做实现级审计的
   有：bytecode（31 个 pom、264 个 java）、transactional-outbox（115）、access-guard（86）、
   dynamic-thread-pool（75）、common（63，9 模块，**所有其它组件的依赖基座**）、rule-engine（52）、
   method-extension（36）——约 690 个 java 文件。**bytecode 是最高杠杆的遗漏**：它同时是运行时
@@ -622,10 +622,10 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 
 本规格在实施阶段自己推翻了自己的头号发现，记录在此，因为它暴露的是**方法问题**而不是运气问题。
 
-**误判内容**：断言 DDC Admin 因 `${sdk.version}` 无法解析而启动失败，并把它列为唯一的阻断级项、
+**误判内容**：断言 Tianshu Admin 因 `${sdk.version}` 无法解析而启动失败，并把它列为唯一的阻断级项、
 写进摘要、写进 Wave 1 的第一刀。
 
-**真相**：`application.yml:17-18` 的 `spring.config.import: classpath:META-INF/egon-cola-ddc.properties`
+**真相**：`application.yml:17-18` 的 `spring.config.import: classpath:META-INF/egon-cola-tianshu.properties`
 把 starter 里那份 Maven 过滤过的属性文件导入成了正规配置源，链路完整、功能正常。
 
 **根因**：我用"排除法"证明一个否定命题——检查了 `spring.factories`、`EnvironmentPostProcessor`、
@@ -654,7 +654,7 @@ profile，且 Flyway 指向未拆分的 location）；三份生成项目都带�
 
 | 任务   | 产出                                                                               |
 |------|----------------------------------------------------------------------------------|
-| W0-1 | 按代码事实回填 gateway 七份计划（0/160）与 ShardingSphere 计划（0/39）的勾选框                         |
+| W0-1 | 按代码事实回填 yuheng 七份计划（0/160）与 ShardingSphere 计划（0/39）的勾选框                         |
 | W0-2 | 翻转 ShardingSphere spec 状态；给 2026-07-23 旧计划加取代声明（S-3）                             |
 | W0-3 | 建 `docs/superpowers/INDEX.md`，112 份文档全部归类（已实现/进行中/计划中/已废弃）                       |
 | W0-4 | 修正设计与计划中的事实错误：S-2 三段式表名、P-5/P-6 错误路径、P-9 占位符、低级项里的 `isOnline`/`REGISTERED`/基线不一致 |
@@ -695,7 +695,7 @@ A-3 约定文档收口、A-4/A-5。
 
 ### Wave 5｜治理（§6 的 G-1..G-7）
 
-G-1 把 gateway-live 至少纳入 PR 路径过滤触发；G-2/G-3 README 与版本一致性（并让 bump 脚本覆盖
+G-1 把 yuheng-live 至少纳入 PR 路径过滤触发；G-2/G-3 README 与版本一致性（并让 bump 脚本覆盖
 markdown，或删除 `maven-deploy.md` 里的失效声明）；G-4 清理 `.gitmodules`；G-5 发布门禁；
 G-6/G-7 修正。
 
@@ -717,7 +717,7 @@ ShardingSphere 改造刚落在 main 上且未走 worktree（S-3 低级项），�
 | 9.3 | Provider 版本来源统一方向                | **(a)** 契约版本赢，`artifactVersion` 只进 metadata                            | 兼容既有 `1.0.0` catalog，无需数据迁移                                                                |
 | 9.4 | UNKNOWN 状态实例的处置                  | **(a)** UNKNOWN 一律不可用                                                  | 维持现状；需确认无老生产者依赖"不写 status 即在线"                                                             |
 | 9.5 | LKG 恢复失败时 engine 行为              | **(a)** 维持 fail closed                                                 | 现状即目标，只需在设计中显式记录该取舍                                                                        |
-| 9.6 | DDC Admin 是否支持多副本                | **(b)** 本轮不做，显式声明单副本                                                   | **必须从 `compose.ha.yml` 移除 `ddc-admin-2` 与 `gateway-admin-2`**，否则 M-8 的 8 个无锁定时任务会在双副本下真实并发 |
+| 9.6 | Tianshu Admin 是否支持多副本                | **(b)** 本轮不做，显式声明单副本                                                   | **必须从 `compose.ha.yml` 移除 `tianshu-admin-2` 与 `yuheng-admin-2`**，否则 M-8 的 8 个无锁定时任务会在双副本下真实并发 |
 | 9.7 | ShardingSphere `test` profile 定位 | **(b)** `test` 快速失败、不回退 H2，H2 拓扑另起名字                                   | 与设计 §3.1.3/§3.2.1 一致；需同步改三个 archetype 的 `application-test.yml` 与 `verify.groovy`           |
 
 > **9.6 的落地要点**：选 (b) 不是"什么都不做"。当前 `compose.ha.yml` 实际在跑双 admin，而
@@ -746,9 +746,9 @@ journal 表把完整规则正文以 `TEXT NOT NULL` 存在 `gateway_release_publ
 (b) 迁移窗口内 UNKNOWN 视同 ONLINE 并打告警指标。
 
 **9.5｜LKG 恢复失败时 engine 的行为**
-(a) fail closed（现状）。(b) 空载启动 + 等待 DDC 推送。
+(a) fail closed（现状）。(b) 空载启动 + 等待 Tianshu 推送。
 
-**9.6｜DDC Admin 是否支持多副本**
+**9.6｜Tianshu Admin 是否支持多副本**
 (a) 本轮做（发布互斥与完成通知改分布式）——范围显著扩大。
 (b) 本轮不做，显式声明单副本并从 `compose.ha.yml` 移除双 admin——**推荐**。
 
@@ -763,7 +763,7 @@ journal 表把完整规则正文以 `TEXT NOT NULL` 存在 `gateway_release_publ
 本规格自身的完成条件（审计侧）已全部满足，见文首完成度表。以下是**整改侧**的完成定义。
 
 0. §9 的七项决策点全部有评审意见，且已据此更新受影响的设计条目。
-1. **M-11 已处置**：DDC Admin 与 Gateway Admin 各有一个可用的完整上下文启动测试路径
+1. **M-11 已处置**：Tianshu Admin 与 Yuheng Admin 各有一个可用的完整上下文启动测试路径
    （当前 admin 因 Redis 强依赖无法启动完整上下文）。配置链路回归网
    `DdcAdminContextSmokeTest` 保持绿色。
 2. §3 的 17 项各有修复 + 先失败后通过的定向测试，或明确排期。
@@ -792,15 +792,15 @@ journal 表把完整规则正文以 `TEXT NOT NULL` 存在 `gateway_release_publ
 | ~~B-1~~     | **已撤销**（§3.0）——`spring.config.import` 使该链路成立                             | —                                           | 不适用                            |
 | **配置链路回归网** | `./mvnw -pl …-admin test -Dtest=DdcAdminContextSmokeTest`                | 绿                                           | ✅ 已加入，2 断言通过；admin 全量 111 测试通过 |
 | **M-11**    | 存在可启动完整 admin 上下文的测试路径                                                   | 存在                                          | 无（Redis 强依赖）✗                  |
-| **H-1**     | `grep -c 'healthcheck:' …/gateway/deployment/compose.demo.yml`           | `>0`                                        | 0 ✗                            |
+| **H-1**     | `grep -c 'healthcheck:' …/yuheng/deployment/compose.demo.yml`           | `>0`                                        | 0 ✗                            |
 | **H-1**     | `grep -c 'service_started' …/deployment/compose.demo.yml`                | `0`                                         | 7 ✗                            |
-| **H-3**     | `grep -c 'destroyMethod' …/ddc…-admin/…/config/DdcAdminRedisConfig.java` | `>0`                                        | 0 ✗                            |
-| **M-1**     | `grep -c 'timeout' …/gateway-admin/…/db/migration/V4__*.sql`             | `>0`                                        | 0 ✗                            |
-| **M-3**     | `grep 'app-code' …/gateway-engine/src/main/resources/application.yml`    | 与 publisher 的 `gateway-engine-{group}` 约定一致 | `egon-cola-gateway-engine` ✗   |
-| **M-4**     | `grep -c '"5\.2\.3"' …/gateway/engine/GatewayEngineConfiguration.java`   | `0`                                         | 2 ✗                            |
+| **H-3**     | `grep -c 'destroyMethod' …/tianshu…-admin/…/config/DdcAdminRedisConfig.java` | `>0`                                        | 0 ✗                            |
+| **M-1**     | `grep -c 'timeout' …/yuheng-admin/…/db/migration/V4__*.sql`             | `>0`                                        | 0 ✗                            |
+| **M-3**     | `grep 'app-code' …/yuheng-biz-gateway/src/main/resources/application.yml`    | 与 publisher 的 `yuheng-biz-gateway-{group}` 约定一致 | `egon-cola-yuheng-biz-gateway` ✗   |
+| **M-4**     | `grep -c '"5\.2\.3"' …/yuheng/engine/GatewayEngineConfiguration.java`   | `0`                                         | 2 ✗                            |
 | **M-4b**    | `grep -c '5\.2\.1' …/dtp/admin/manifest/DtpManifestController.java`      | `0`                                         | 2 ✗                            |
 | **9.1/M-9** | `grep -c 'content_value' …/V4__add_release_publication_journal.sql`      | `0`（决策 b）                                   | 1 ✗                            |
-| **9.6/M-8** | `grep -cE 'ddc-admin-2\|gateway-admin-2' …/deployment/compose.ha.yml`    | `0`（决策 b）                                   | >0 ✗                           |
+| **9.6/M-8** | `grep -cE 'tianshu-admin-2\|yuheng-admin-2' …/deployment/compose.ha.yml`    | `0`（决策 b）                                   | >0 ✗                           |
 | **A-1**     | `grep -c 'it.pkg' …/archetype-light/…/archetype-resources/pom.xml`       | `0`                                         | 7 ✗                            |
 | **A-2**     | `grep -c 'clean test' .github/workflows/ci_java_compatibility.yaml`      | light/service 改为 `clean verify`             | 未改 ✗                           |
 | **W0-1**    | 七份 `2026-07-26-integration-0*.md` 的 `- [x]` 计数                           | `160`                                       | 0 ✗                            |

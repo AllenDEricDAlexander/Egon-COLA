@@ -1,14 +1,14 @@
-# Gateway 声明式 Operation Schema 与 MCP 参数装配设计
+# Yuheng 声明式 Operation Schema 与 MCP 参数装配设计
 
 状态：已审核通过（2026-08-07），RPC Proto 单一事实源增补已确认
 
-实施计划：`../plans/2026-08-07-gateway-declarative-operation-schema.md`
+实施计划：`../plans/2026-08-07-yuheng-declarative-operation-schema.md`
 
 关联文档：
 
-- `2026-08-06-gateway-annotation-managed-mcp-design.md`
-- `2026-07-28-gateway-operation-schema-presentation-design.md`
-- `2026-07-25-gateway-starter-interface-reporting-design.md`
+- `2026-08-06-yuheng-annotation-managed-mcp-design.md`
+- `2026-07-28-yuheng-operation-schema-presentation-design.md`
+- `2026-07-25-yuheng-starter-interface-reporting-design.md`
 
 ## 1. 文档关系与决策边界
 
@@ -35,7 +35,7 @@ Remote MCP 边界和手工本地 Tool 入口删除规则继续有效。
 6. 使用 Jackson `JavaType` 保留嵌套泛型，统一支持对象、数组、Map、枚举、基本类型、递归引用和 Jakarta Validation。
 7. RPC 继续以 Protobuf Descriptor 为类型事实来源，并通过自定义 Field Option 补充字段业务说明。
 8. HTTP Managed MCP 输入直接采用 `path/query/body` 结构，删除 `inputLocations` 和扁平参数二次绑定。
-9. Gateway Admin 后端和 Admin Web 同步升级，Managed Tool Schema 只读展示，不恢复任何手工 Schema 配置。
+9. Yuheng Admin 后端和 Admin Web 同步升级，Managed Tool Schema 只读展示，不恢复任何手工 Schema 配置。
 
 ## 3. 非目标
 
@@ -75,7 +75,7 @@ public @interface GatewayInterfaceGroup {
 }
 ```
 
-类或 RPC Contract 接口没有该注解时，不进入 Gateway 接口目录。组内只要存在 `registerMcp = true` 的方法，`mcpServerCode` 就必须非空并能在目标 Gateway Group 内唯一解析；环境改派仍只能通过严格 Managed Override 完成。
+类或 RPC Contract 接口没有该注解时，不进入 Yuheng 接口目录。组内只要存在 `registerMcp = true` 的方法，`mcpServerCode` 就必须非空并能在目标 Yuheng Group 内唯一解析；环境改派仍只能通过严格 Managed Override 完成。
 
 ### 4.2 `GatewayOperation`
 
@@ -235,7 +235,7 @@ public @interface GatewaySchemaField {
 
 `implementation` 只补足无法从真实 `JavaType` 得到的类型信息。若 Java 泛型已明确，例如 `List<OrderLineView>` 或 `Map<String, MoneyView>`，不得重复声明。显式类型与真实类型不可赋值、容器形态冲突或覆盖 Bean Validation 时，扫描失败。
 
-共享的 `ResultRecord`、`PageResultRecord` 位于 Common Core，不反向依赖 Gateway Starter 注解。其包装字段由响应 Wrapper Adapter 和 Jackson 属性模型生成，业务 Payload DTO 仍使用 `GatewaySchemaField`。
+共享的 `ResultRecord`、`PageResultRecord` 位于 Common Core，不反向依赖 Yuheng Starter 注解。其包装字段由响应 Wrapper Adapter 和 Jackson 属性模型生成，业务 Payload DTO 仍使用 `GatewaySchemaField`。
 
 Record Component 上的注解可能同时传播到生成的 Field、Accessor 和构造器参数。Schema Mapper 必须按同一 Record Component 去重；传播出的相同元数据不是重复声明，只有不同来源给出互相冲突的值才失败。
 
@@ -571,7 +571,7 @@ public class OrderController {
 }
 ```
 
-Authorization 只进入接口目录，不进入 MCP inputSchema。它由 Gateway 身份上下文注入，模型不能提供或覆盖。
+Authorization 只进入接口目录，不进入 MCP inputSchema。它由 Yuheng 身份上下文注入，模型不能提供或覆盖。
 
 ### 6.3 复杂 Query + `ResultRecord<List<T>>` 示例
 
@@ -679,7 +679,7 @@ Starter 以 Spring 最终 Handler Method 模型为事实来源，对注解做双
 6. 每个真实业务参数必须被声明一次，Servlet、Principal、Request/Response 等框架参数除外；
 7. `expanded=true` 只允许 `QUERY + OBJECT`，并且展开后的属性名必须唯一；
 8. `registerMcp=true` 时存在 PART/Multipart、Streaming 或无法可信注入的 Required HEADER/COOKIE，直接拒绝 MCP 投影；
-9. Authorization、Trace 和身份上下文只能由 Gateway 注入，不能进入模型输入；
+9. Authorization、Trace 和身份上下文只能由 Yuheng 注入，不能进入模型输入；
 10. 注解声明与真实签名冲突时启动失败，不输出警告后继续运行。
 
 ## 8. Java Schema 生成
@@ -719,31 +719,31 @@ Nullability 只来自明确的 `@Nullable`、受支持的 Optional 类型或已�
 
 ### 9.1 类型来源
 
-Unary RPC 的请求/响应结构只从 `RpcContractCatalog` 和 Protobuf Descriptor 生成。`RpcContractValidator` 负责校验 Java 方法只有一个 Protobuf Message 参数、返回值也是 Protobuf Message，且两者分别匹配 Proto Input/Output Descriptor；Gateway Starter 不再重复声明或重复校验根 Java 类型。
+Unary RPC 的请求/响应结构只从 `RpcContractCatalog` 和 Protobuf Descriptor 生成。`RpcContractValidator` 负责校验 Java 方法只有一个 Protobuf Message 参数、返回值也是 Protobuf Message，且两者分别匹配 Proto Input/Output Descriptor；Yuheng Starter 不再重复声明或重复校验根 Java 类型。
 
 RPC 方法不得填写 `GatewayOperation.requestSchemaFields` 或 `responseSchema`。Starter 遇到显式声明时直接拒绝，不能静默忽略或让 Java 注解覆盖 Proto。RPC Managed Tool 的 inputSchema 是完整 Input Message，outputSchema 是完整 Output Message。
 
-Protobuf 生成类不能稳定承载手写 Java 字段注解。字段说明、格式、示例和 Required 语义使用 Gateway 自有 Proto Field Option。
+Protobuf 生成类不能稳定承载手写 Java 字段注解。字段说明、格式、示例和 Required 语义使用 Yuheng 自有 Proto Field Option。
 
 ### 9.2 Proto Option 定义
 
-`gateway-contract` 发布 `egon/gateway/schema_options.proto` 及生成的 Java Extension：
+`yuheng-contract` 发布 `egon/yuheng/schema_options.proto` 及生成的 Java Extension：
 
 ```proto
 syntax = "proto3";
 
-package egon.gateway.schema.v1;
+package egon.yuheng.schema.v1;
 
 option java_package =
-    "top.egon.cola.component.gateway.contract.schema.proto";
+    "top.egon.cola.component.yuheng.contract.schema.proto";
 option java_multiple_files = true;
 
 import "google/protobuf/descriptor.proto";
 
 enum GatewayRequiredOption {
-  GATEWAY_REQUIRED_AUTO = 0;
-  GATEWAY_REQUIRED = 1;
-  GATEWAY_OPTIONAL = 2;
+  YUHENG_REQUIRED_AUTO = 0;
+  YUHENG_REQUIRED = 1;
+  YUHENG_OPTIONAL = 2;
 }
 
 message GatewaySchemaFieldOption {
@@ -770,49 +770,49 @@ package trade.order.v1;
 option java_package = "com.example.trade.order.rpc.proto";
 option java_multiple_files = true;
 
-import "egon/gateway/schema_options.proto";
+import "egon/yuheng/schema_options.proto";
 
 message UpdateOrderLine {
-  string line_id = 1 [(egon.gateway.schema.v1.gateway_schema) = {
+  string line_id = 1 [(egon.yuheng.schema.v1.gateway_schema) = {
     description: "订单行 ID"
-    required: GATEWAY_REQUIRED
+    required: YUHENG_REQUIRED
     example: "OL-10001"
   }];
-  int32 quantity = 2 [(egon.gateway.schema.v1.gateway_schema) = {
+  int32 quantity = 2 [(egon.yuheng.schema.v1.gateway_schema) = {
     description: "新数量"
-    required: GATEWAY_REQUIRED
+    required: YUHENG_REQUIRED
     example: "2"
   }];
 }
 
 message UpdateOrderRequest {
-  string order_id = 1 [(egon.gateway.schema.v1.gateway_schema) = {
+  string order_id = 1 [(egon.yuheng.schema.v1.gateway_schema) = {
     description: "订单 ID"
-    required: GATEWAY_REQUIRED
+    required: YUHENG_REQUIRED
     example: "O-20260807-0001"
   }];
   repeated UpdateOrderLine lines = 2
-      [(egon.gateway.schema.v1.gateway_schema) = {
+      [(egon.yuheng.schema.v1.gateway_schema) = {
         description: "订单行修改列表"
-        required: GATEWAY_REQUIRED
+        required: YUHENG_REQUIRED
       }];
   map<string, string> attributes = 3
-      [(egon.gateway.schema.v1.gateway_schema) = {
+      [(egon.yuheng.schema.v1.gateway_schema) = {
         description: "扩展业务属性"
       }];
-  bool force = 4 [(egon.gateway.schema.v1.gateway_schema) = {
+  bool force = 4 [(egon.yuheng.schema.v1.gateway_schema) = {
     description: "是否强制覆盖并发版本"
     example: "false"
   }];
 }
 
 message MoneyView {
-  string amount = 1 [(egon.gateway.schema.v1.gateway_schema) = {
+  string amount = 1 [(egon.yuheng.schema.v1.gateway_schema) = {
     description: "金额"
     format: "decimal"
     example: "128.50"
   }];
-  string currency = 2 [(egon.gateway.schema.v1.gateway_schema) = {
+  string currency = 2 [(egon.yuheng.schema.v1.gateway_schema) = {
     description: "币种"
     example: "CNY"
   }];
@@ -842,7 +842,7 @@ message UpdateOrderResult {
   int32 code = 2;
   string message = 3;
   OrderAggregateView data = 4
-      [(egon.gateway.schema.v1.gateway_schema) = {
+      [(egon.yuheng.schema.v1.gateway_schema) = {
         description: "修改后的订单聚合对象"
       }];
 }
@@ -857,7 +857,7 @@ message OrderListResult {
   int32 code = 2;
   string message = 3;
   repeated OrderSummaryView data = 4
-      [(egon.gateway.schema.v1.gateway_schema) = {
+      [(egon.yuheng.schema.v1.gateway_schema) = {
         description: "订单列表"
       }];
 }
@@ -932,13 +932,13 @@ public interface OrderRpc {
 - JSON 字段名使用 `FieldDescriptor#getJsonName()`，同时保留 proto name、field number 和 protobuf type；
 - Field Option 只补充 description、format、required、example；
 - Option 指定的 example 必须通过生成后的字段 Schema 校验；
-- Unary 以外的 RPC 继续拒绝 Gateway/MCP 投影。
+- Unary 以外的 RPC 继续拒绝 Yuheng/MCP 投影。
 
 ## 10. Operation Definition v2
 
 ### 10.1 破坏性协议升级
 
-Starter 上报 `contractVersion` 从 `v1` 升级为 `v2`。Gateway Admin v2 只接收 v2，不保留 v1 解析分支。
+Starter 上报 `contractVersion` 从 `v1` 升级为 `v2`。Yuheng Admin v2 只接收 v2，不保留 v1 解析分支。
 
 `GatewayInterfaceDefinitionReport.Operation` 删除：
 
@@ -957,7 +957,7 @@ HTTP requestSchema 固定为位置分组对象。只输出当前 Operation 实�
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "x-egon-schema-model": "gateway-operation-request/v2",
+  "x-egon-schema-model": "yuheng-operation-request/v2",
   "type": "object",
   "properties": {
     "path": {
@@ -1013,7 +1013,7 @@ responseSchema 始终描述线上完整响应，不只描述 Payload。`ResultRe
 ```json
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "x-egon-schema-model": "gateway-operation-response/v2",
+  "x-egon-schema-model": "yuheng-operation-response/v2",
   "type": "object",
   "properties": {
     "success": {"type": "boolean"},
@@ -1122,7 +1122,7 @@ lowercaseHex(SHA-256(serverCode + "\0" + operationKey))
 - HTTP Schema 根位置非法或结构不完整；
 - RPC Message 与 Descriptor 不一致；
 - 无法解析的 `$ref`、非法 example、非法 Map Key；
-- Required HEADER/COOKIE 无可信 Gateway 注入来源；
+- Required HEADER/COOKIE 无可信 Yuheng 注入来源；
 - PART/Multipart/Streaming；
 - 响应 Wrapper、Payload Field、Shape 与真实 Schema 不一致。
 
@@ -1173,7 +1173,7 @@ queryArguments = {}
 
 ## 13. 后端模块改动范围
 
-### 13.1 Gateway Starter
+### 13.1 Yuheng Starter
 
 - 替换 `GatewayOperation`、`GatewaySchemaField`，新增请求/响应注解和枚举；
 - 新增基于 `JavaType` 的 Java Schema Adapter；
@@ -1184,14 +1184,14 @@ queryArguments = {}
 - Definition Report 升级为 v2；
 - `McpExposureMapper` 继续只写 MCP Exposure，不复制 Schema。
 
-### 13.2 Gateway Contract
+### 13.2 Yuheng Contract
 
 - 修改 Reporting v2 DTO，删除 Parameter；
 - 修改 `McpRuntimeTool`，删除 `inputLocations`；
 - 发布 `schema_options.proto` 及 Java Extension；
 - 保持 `GatewayOperationCall` 的位置感知契约。
 
-### 13.3 Gateway Admin
+### 13.3 Yuheng Admin
 
 - v2 Report 校验和持久化；
 - Catalog 不再把 `parameters` 写入 Operation attributes；
@@ -1201,7 +1201,7 @@ queryArguments = {}
 - Release 和 Activation 拒绝 v1 Operation；
 - Remote MCP Tool 契约和手工 Remote Schema 不变。
 
-### 13.4 Gateway Engine 与 MCP Runtime
+### 13.4 Yuheng Engine 与 MCP Runtime
 
 - Rule Codec 与 Runtime Tool 删除 `inputLocations`；
 - `McpToolsCallHandler` 直接解析结构化 arguments；
@@ -1322,7 +1322,7 @@ export type McpManagedTool = {
 
 ### 16.1 代码迁移
 
-1. 发布新的 Gateway Contract/Starter 编译依赖；
+1. 发布新的 Yuheng Contract/Starter 编译依赖；
 2. 所有业务 DTO 把字段说明迁移到 `GatewaySchemaField`；
 3. 所有 Managed MCP HTTP 方法补齐完整 `requestSchemaFields` 和 `responseSchema`；
 4. 所有 RPC Contract 删除 `requestSchemaFields` 和 `responseSchema`；
@@ -1345,13 +1345,13 @@ export type McpManagedTool = {
 
 本次不支持新旧版本混跑，必须使用维护窗口：
 
-1. 备份数据库，冻结 Gateway Draft 写入和 Release 发布；
+1. 备份数据库，冻结 Yuheng Draft 写入和 Release 发布；
 2. 构建已完成注解/Proto 迁移的 Provider 新版本；
-3. 停止旧 Gateway Admin 和 Engine；
-4. 同步部署 Gateway Contract 消费方、Admin 后端、Admin Web、Engine 和 MCP Runtime v2；
+3. 停止旧 Yuheng Admin 和 Engine；
+4. 同步部署 Yuheng Contract 消费方、Admin 后端、Admin Web、Engine 和 MCP Runtime v2；
 5. 部署 Provider 新版本并使用新 `buildId` 上报；
 6. 验证 Catalog 中 HTTP/RPC 当前 Definition 均为 v2；
-7. 创建全新 Gateway Release，不复用旧 Snapshot；
+7. 创建全新 Yuheng Release，不复用旧 Snapshot；
 8. 验证无 Route 的 Managed Tool 仍带入 Operation；
 9. 完成 HTTP 对象/List/Page/Map/Value 与 Unary RPC 对象/List 调用验收；
 10. 恢复流量、Draft 写入和 Release 发布。
@@ -1406,7 +1406,7 @@ export type McpManagedTool = {
 - Option 依赖进入 Descriptor Snapshot；
 - Request/Response 根类与 Descriptor 不一致失败；
 - Proto Result 的 OBJECT/LIST Payload；
-- RPC 与 Gateway 幂等声明不一致失败；
+- RPC 与 Yuheng 幂等声明不一致失败；
 - Streaming RPC 失败。
 
 ### 18.4 Reporting、Catalog 与 Release

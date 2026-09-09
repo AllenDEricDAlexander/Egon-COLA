@@ -1,8 +1,8 @@
-# Gateway 多 OpenAPI Group 聚合与来源扩展增补规格
+# Yuheng 多 OpenAPI Group 聚合与来源扩展增补规格
 
 | Field | Value |
 | --- | --- |
-| Document | [2026-08-25-19-43-gateway-openapi-group-aggregation-amendment.md](2026-08-25-19-43-gateway-openapi-group-aggregation-amendment.md) |
+| Document | [2026-08-25-19-43-yuheng-openapi-group-aggregation-amendment.md](2026-08-25-19-43-yuheng-openapi-group-aggregation-amendment.md) |
 | Template Version | 6 |
 | Status | Review |
 | Type | Architecture / Amendment |
@@ -10,38 +10,38 @@
 | Complexity Drivers | 多 Springdoc Group、同 build 完整集聚合、跨实例 Group Manifest 漂移、HTTP OpenAPI 与 RPC Descriptor 双来源、可选 MCP 扩展、SSRF/OAuth2、永久快照与单 Definition Set 的多对一关系 |
 | Created | 2026-08-25 19:43 CST |
 | Updated | 2026-08-25 19:43 CST |
-| Owner | User / Egon-COLA Gateway maintainers |
+| Owner | User / Egon-COLA Yuheng maintainers |
 | Repository | Egon-COLA |
-| Scope | egon-cola-xingyuan/egon-cola-yuheng；Provider 多 Group 发布、DDC 能力清单、Admin Group 聚合、来源类型、MCP 可选投影、事务与 Canonicalization 修正 |
-| Change Surface | 将单 default 文档改为显式多 Group；一个应用/build 的全部 HTTP Group 聚合为一个 Definition Set；规范来源枚举、注解、DDC/config、Canonicalization、响应映射和事务；保持 RPC Protobuf 事实源并定义来源扩展边界 |
+| Scope | egon-cola-xingyuan/egon-cola-yuheng；Provider 多 Group 发布、Tianshu 能力清单、Admin Group 聚合、来源类型、MCP 可选投影、事务与 Canonicalization 修正 |
+| Change Surface | 将单 default 文档改为显式多 Group；一个应用/build 的全部 HTTP Group 聚合为一个 Definition Set；规范来源枚举、注解、Tianshu/config、Canonicalization、响应映射和事务；保持 RPC Protobuf 事实源并定义来源扩展边界 |
 | Affected Chapters | §7, §8, §9, §10, §11, §12, §13, §14, §15, §16, §17, §18 |
-| Source Requirement | 用户于 2026-08-25 确认此前六项实施阻塞全部采用 A，并新增：不同业务系统配置不同 OpenAPI Group，Gateway 负责聚合；设计 HTTP/RPC 定义来源扩展和 MCP 可选扩展 |
+| Source Requirement | 用户于 2026-08-25 确认此前六项实施阻塞全部采用 A，并新增：不同业务系统配置不同 OpenAPI Group，Yuheng 负责聚合；设计 HTTP/RPC 定义来源扩展和 MCP 可选扩展 |
 | Baseline Revision | main at 3be897e5cb4781890bfbac3104512e6e73bb943a；dirty-worktree snapshot；本增补不拥有其他 docs/egon 改动 |
-| Amends | [Gateway HTTP OpenAPI 3.1 单一事实源破坏性改造规格](2026-08-25-19-01-gateway-openapi31-source-refactor.md) 的 §3.2 单 default 非目标、§4、§5、§7–§18、§19–§20 中 Group、来源类型、注解、DDC/config、Canonicalization、响应映射、事务和扩展边界 |
+| Amends | [Yuheng HTTP OpenAPI 3.1 单一事实源破坏性改造规格](2026-08-25-19-01-yuheng-openapi31-source-refactor.md) 的 §3.2 单 default 非目标、§4、§5、§7–§18、§19–§20 中 Group、来源类型、注解、Tianshu/config、Canonicalization、响应映射、事务和扩展边界 |
 | Supersedes | None |
-| Depends On | [Gateway HTTP OpenAPI 3.1 单一事实源破坏性改造规格](2026-08-25-19-01-gateway-openapi31-source-refactor.md) 未被本增补修改的全部内容；[Gateway 声明式 Operation Schema 与 MCP 参数装配设计](../../superpowers/specs/2026-08-07-gateway-declarative-operation-schema-design.md) §9、§10.1、§11–§12；[Gateway 注解托管 MCP 设计](../../superpowers/specs/2026-08-06-gateway-annotation-managed-mcp-design.md) §2–§5 |
-| Related Specs | [Gateway Engine 与 MCP Core 功能域分包设计](2026-08-19-13-51-gateway-engine-mcp-package-refactor.md) |
+| Depends On | [Yuheng HTTP OpenAPI 3.1 单一事实源破坏性改造规格](2026-08-25-19-01-yuheng-openapi31-source-refactor.md) 未被本增补修改的全部内容；[Yuheng 声明式 Operation Schema 与 MCP 参数装配设计](../../superpowers/specs/2026-08-07-yuheng-declarative-operation-schema-design.md) §9、§10.1、§11–§12；[Yuheng 注解托管 MCP 设计](../../superpowers/specs/2026-08-06-yuheng-annotation-managed-mcp-design.md) §2–§5 |
+| Related Specs | [Yuheng Engine 与 MCP Core 功能域分包设计](2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md) |
 | Related Plans | None |
 
 ## 1. Summary
 
-本增补把 HTTP Contract 发布从单一 default 文档提升为显式多 Springdoc Group。业务 Provider 使用标准 GroupedOpenApi 或 springdoc.group-configs 定义 Group，并通过 Gateway 配置显式选择允许发布的 Group；DDC 只发布排序后的 Group Manifest 和固定路径模板。Gateway Admin 拉取一个应用同一 build 的全部 Group，逐份永久保存 Raw OpenAPI，只有 Group 集合完整、每份有效、Operation 不跨 Group 重复且聚合 Fingerprint 无漂移时，才生成一个 HTTP Definition Set。
+本增补把 HTTP Contract 发布从单一 default 文档提升为显式多 Springdoc Group。业务 Provider 使用标准 GroupedOpenApi 或 springdoc.group-configs 定义 Group，并通过 Yuheng 配置显式选择允许发布的 Group；Tianshu 只发布排序后的 Group Manifest 和固定路径模板。Yuheng Admin 拉取一个应用同一 build 的全部 Group，逐份永久保存 Raw OpenAPI，只有 Group 集合完整、每份有效、Operation 不跨 Group 重复且聚合 Fingerprint 无漂移时，才生成一个 HTTP Definition Set。
 
 聚合边界仍是 GatewayInterfaceDefinitionReport v2，而不是把所有协议强行合并成一份 OpenAPI。HTTP 的事实源为 OpenAPI 3.1；RPC 的事实源继续为 Protobuf Descriptor，并由 RpcGatewayDefinitionContributor 生成同一内部 Report v2。来源类型固定为 MANUAL、RPC_DESCRIPTOR、OPENAPI31。未来新增来源必须通过新的 Adapter 生成 Report v2 并经过同一 Ingestion，不得绕过控制面不变量。
 
-MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operation 仍是完整 Catalog Operation；只有显式 enabled=true 才进入 Managed MCP 投影。本增补同时闭合原 Spec 的来源枚举、Ingestion 事务、Annotation、DDC/config、Canonicalization、响应选择、同步默认值和 DNS/SSRF 细节。
+MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operation 仍是完整 Catalog Operation；只有显式 enabled=true 才进入 Managed MCP 投影。本增补同时闭合原 Spec 的来源枚举、Ingestion 事务、Annotation、Tianshu/config、Canonicalization、响应选择、同步默认值和 DNS/SSRF 细节。
 
 ## 2. Background and Current State
 
 ### 2.1 Business and user context
 
-不同业务系统需要以稳定 Group 划分其 HTTP Contract，例如 orders、inventory、settlement。Gateway 不是某一个业务系统的 Swagger UI，而是跨应用、跨 Group 聚合 Catalog、MCP、Route/Release 所需的统一 Operation Definition。Group 必须是来源分区，不得替代 Business Domain/Entity Domain/Interface Group 目录语义。
+不同业务系统需要以稳定 Group 划分其 HTTP Contract，例如 orders、inventory、settlement。Yuheng 不是某一个业务系统的 Swagger UI，而是跨应用、跨 Group 聚合 Catalog、MCP、Route/Release 所需的统一 Operation Definition。Group 必须是来源分区，不得替代 Business Domain/Entity Domain/Interface Group 目录语义。
 
 ### 2.2 Repository and external evidence
 
 | Evidence ID | Classification | Exact path/symbol/source | Observed fact | Design significance | Verification limit |
 | --- | --- | --- | --- | --- | --- |
-| AM-EVD-001 | Static repository | gateway-starter/GatewayReportingAutoConfiguration | 当前 DDC Contributor 只能向同一 HTTP registration 合并 version/metadata | 使用紧凑 Group Manifest，不为每 Group 新建 DDC Lease/API | 静态代码，不证明生产 metadata |
+| AM-EVD-001 | Static repository | yuheng-starter/GatewayReportingAutoConfiguration | 当前 Tianshu Contributor 只能向同一 HTTP registration 合并 version/metadata | 使用紧凑 Group Manifest，不为每 Group 新建 Tianshu Lease/API | 静态代码，不证明生产 metadata |
 | AM-EVD-002 | Static repository | DdcServiceRegistration.MAX_BUSINESS_METADATA_ENTRIES；validatedMetadata | 最多 32 个业务 key，key 64，value 512，敏感 key 拒绝 | Group 清单必须排序、限数并满足 512 字符 | 不证明所有业务已有 metadata 数量 |
 | AM-EVD-003 | Static repository | gateway_openapi_snapshot/openapi_group 与 gateway_openapi_sync_state/openapi_group 的主 Spec 设计 | 数据模型已预留 Group 维度 | 无需新增第三张聚合表；修正 Definition Set 多对一链接即可 | 表尚未实现 |
 | AM-EVD-004 | Static repository | gateway_definition_set unique(application_id,build_id,protocol,fingerprint) | Definition Set 已按 protocol 区分 HTTP/RPC | HTTP 全 Group 可聚合为一个 protocol=HTTP Set；RPC 保持独立 | findBuildFingerprint 当前忽略 protocol，实施时必须修正 |
@@ -63,12 +63,12 @@ MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operatio
 
 ### 2.4 Evidence and current-chain map
 
-必须同时解决三类一致性：同一实例声明的 Group 清单完整性；同一 build 多实例的 Group Manifest 与每 Group Canonical 一致性；全部 Group 到一个 HTTP Definition Set 的原子可见性。只把 openapi_group 从 default 改成任意字符串而逐组独立 ingest，会让半套业务 Contract 激活并使 Group 新增/删除无法参与 immutable build 判断，因此不满足 Gateway 聚合目标。
+必须同时解决三类一致性：同一实例声明的 Group 清单完整性；同一 build 多实例的 Group Manifest 与每 Group Canonical 一致性；全部 Group 到一个 HTTP Definition Set 的原子可见性。只把 openapi_group 从 default 改成任意字符串而逐组独立 ingest，会让半套业务 Contract 激活并使 Group 新增/删除无法参与 immutable build 判断，因此不满足 Yuheng 聚合目标。
 
 | Entry/trigger | Current call chain | Data read/written | External dependency | Consumers | Evidence |
 | --- | --- | --- | --- | --- | --- |
-| Provider Group startup | GroupedOpenApi -> Springdoc grouped resource -> DDC contributor | in-memory Group config + registration metadata | Springdoc/DDC | Admin sync | AM-EVD-001/002/008 |
-| HTTP aggregate sync | Reconciler -> DDC -> Group fetch -> snapshot -> aggregate -> ingestion | snapshot/sync/definition/catalog | DDC/IdP/Provider/PostgreSQL | Catalog/MCP/Lifecycle/UI | AM-EVD-003/004/007 |
+| Provider Group startup | GroupedOpenApi -> Springdoc grouped resource -> Tianshu contributor | in-memory Group config + registration metadata | Springdoc/Tianshu | Admin sync | AM-EVD-001/002/008 |
+| HTTP aggregate sync | Reconciler -> Tianshu -> Group fetch -> snapshot -> aggregate -> ingestion | snapshot/sync/definition/catalog | Tianshu/Tianquan-Shoubing/Provider/PostgreSQL | Catalog/MCP/Lifecycle/UI | AM-EVD-003/004/007 |
 | RPC report | RpcContractCatalog -> RpcGatewayDefinitionContributor -> signed Report -> ingestion | Descriptor-derived Report/Definition | RPC Catalog/HMAC/PostgreSQL | Catalog/MCP/Lifecycle | AM-EVD-006/007 |
 
 ## 3. Goals and Non-goals
@@ -86,12 +86,12 @@ MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operatio
 
 ### 3.2 Non-goals
 
-- 不把多个 Group 合并成对外暴露的单一 Swagger/OpenAPI 文档；Gateway 聚合的是内部 Definition。
+- 不把多个 Group 合并成对外暴露的单一 Swagger/OpenAPI 文档；Yuheng 聚合的是内部 Definition。
 - 不把 RPC 方法伪装为 HTTP paths，不以 OpenAPI 覆盖 Protobuf Descriptor。
-- 不支持业务调用方在请求中选择任意 Group/URL；Admin 只消费 DDC Manifest。
+- 不支持业务调用方在请求中选择任意 Group/URL；Admin 只消费 Tianshu Manifest。
 - 不支持 Group 跨应用共享一个 Definition Set。
 - 不支持同一 HTTP Operation 同时属于多个 published Group。
-- 不新增 DDC subscription、Group Manifest HTTP API、Swagger UI 或动态插件加载器。
+- 不新增 Tianshu subscription、Group Manifest HTTP API、Swagger UI 或动态插件加载器。
 - 不把 MCP 变为必填；不恢复本地 Tool 手工 Schema/CRUD。
 - 不修改 V1–V11，不执行删库、迁移、启动或部署。
 
@@ -99,13 +99,13 @@ MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operatio
 
 | Area/layer | Disposition | Exact repository evidence | Changed or preserved behavior/contract | Required Spec treatment | Chapter(s) |
 | --- | --- | --- | --- | --- | --- |
-| Provider OpenAPI adapter/config | Affected | AM-EVD-001/002/008/010 | published-groups、Group root extension、DDC Manifest | Full multi-group contract/config/security design | §7, §8, §9, §10, §13, §14, §15, §16, §17, §18 |
+| Provider OpenAPI adapter/config | Affected | AM-EVD-001/002/008/010 | published-groups、Group root extension、Tianshu Manifest | Full multi-group contract/config/security design | §7, §8, §9, §10, §13, §14, §15, §16, §17, §18 |
 | Admin sync/aggregation | Affected | AM-EVD-003/004/007 | complete Manifest barrier、one HTTP Definition Set、recovery | Full flow/interface/model/transaction design | §7, §8, §9, §10, §11, §13, §14, §15, §16, §17, §18 |
 | Definition source and optional MCP | Affected | AM-EVD-005/006 | exact Enum、protocol/source invariant、optional x-egon.mcp | Full source boundary/pattern/test design | §7, §8, §9, §10, §13, §14, §15, §16, §17, §18 |
 | PostgreSQL V12 pending design | Affected | AM-EVD-003/004 | one Definition Set to many snapshots；sync rows share set | Full table/index/ER/transaction design | §7, §8, §10, §11, §13, §14, §15, §16, §17, §18 |
 | Admin Web | Affected | ApplicationsPage/OperationPage | aggregate status plus expandable Group detail | Full page/state/test design | §7, §8, §10, §12, §13, §14, §15, §16, §17, §18 |
 | RPC Descriptor generation | Context-only | RpcGatewayDefinitionContributor/ProtobufSchemaMapper | sourceType rename only；schema facts unchanged | Boundary evidence and focused regression | §7, §14, §16 |
-| Gateway Engine/Runtime | Unchanged | primary runtime preservation contract | no OpenAPI/Group dependency | Preserved invariant and dependency scan | §14, §16 |
+| Yuheng Engine/Runtime | Unchanged | primary runtime preservation contract | no OpenAPI/Group dependency | Preserved invariant and dependency scan | §14, §16 |
 | Existing Application/Catalog APIs | Unchanged | primary management read APIs and current controllers | wire unchanged；existing openapiGroup reused | Focused contract regression | §9, §12, §14 |
 
 ## 4. Requirements and Acceptance Criteria
@@ -114,8 +114,8 @@ MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operatio
 
 | ID | Atomic requirement | Priority | Observable acceptance | Source |
 | --- | --- | --- | --- | --- |
-| REQ-016 | Provider 显式发布多个标准 Springdoc Group | Must | 每个 configured published group 在 /v3/api-docs/{group} 返回 3.1 文档；未发布 Group 不进入 DDC | 用户新增 |
-| REQ-017 | DDC 发布有界 Group Manifest | Must | 1–16 个 code 排序、唯一、总值 <=512；固定 path-template；无完整文档/Secret | 用户新增 + AM-EVD-002 |
+| REQ-016 | Provider 显式发布多个标准 Springdoc Group | Must | 每个 configured published group 在 /v3/api-docs/{group} 返回 3.1 文档；未发布 Group 不进入 Tianshu | 用户新增 |
+| REQ-017 | Tianshu 发布有界 Group Manifest | Must | 1–16 个 code 排序、唯一、总值 <=512；固定 path-template；无完整文档/Secret | 用户新增 + AM-EVD-002 |
 | REQ-018 | Admin 按完整 Group Manifest 聚合 | Must | 全 Group VALID 前不 ingest；成功只产生一个 HTTP Definition Set；所有 sync row 指向同一 set | 用户“gateway聚合” |
 | REQ-019 | Group/build 漂移与重复 Operation fail closed | Must | Manifest 变化、同 Group hash 变化、跨 Group operationKey 重复均为 INCONSISTENT_BUILD/INVALID；旧 set 不变 | 全部A/immutable build |
 | REQ-020 | 来源模型统一且可扩展 | Must | Enum 只有 MANUAL/RPC_DESCRIPTOR/OPENAPI31；HTTP/RPC 都经 Report v2/Ingestion；protocol/source 配对校验 | 全部A + 用户扩展要求 |
@@ -130,7 +130,7 @@ MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operatio
 
 | Scenario | Trigger/preconditions | Main outcome | Alternative/failure | State/data result | Requirements |
 | --- | --- | --- | --- | --- | --- |
-| 两 Group 首次发布 | orders/inventory 同 build、DDC Manifest 一致 | 拉取两份、两 snapshot、聚合一份 HTTP Set | 任一失败不 ingest | 两 sync row 最终指向同一 set | REQ-016–019 |
+| 两 Group 首次发布 | orders/inventory 同 build、Tianshu Manifest 一致 | 拉取两份、两 snapshot、聚合一份 HTTP Set | 任一失败不 ingest | 两 sync row 最终指向同一 set | REQ-016–019 |
 | 不同业务系统不同 Group | 应用 A=orders，B=settlement | 各自按 application 聚合并在 Catalog 共存 | code 只要求应用内唯一 | 不跨应用合并 set | REQ-016/018 |
 | 同 build 新增 Group | 某实例 Manifest 增加 payments | 视为 immutable build 漂移 | 不做部分追加 | 旧 VALID set 保持 | REQ-019 |
 | Group 重叠 Operation | 两文档都含 GET /orders/{id} | 聚合前拒绝 | INVALID_GROUP_ASSIGNMENT | snapshots 保留、无新 Definition | REQ-019 |
@@ -144,8 +144,8 @@ MCP 是可选治理扩展：没有 EgonMcpTool 或没有 x-egon.mcp 的 Operatio
 | Actor | Goal | Entry/context | Evidence |
 | --- | --- | --- | --- |
 | ACTOR-101 Provider developer | 用标准 Group 配置划分业务 Contract | GroupedOpenApi + published-groups | AM-EVD-008/010 |
-| ACTOR-102 Provider runtime | 发布 Manifest 和受保护 Group 文档 | DDC + API-101 | AM-EVD-001/002 |
-| ACTOR-103 Admin sync runtime | 聚合完整 build HTTP Contract | JOB-101/DDC/OAuth/PostgreSQL | AM-EVD-003/007 |
+| ACTOR-102 Provider runtime | 发布 Manifest 和受保护 Group 文档 | Tianshu + API-101 | AM-EVD-001/002 |
+| ACTOR-103 Admin sync runtime | 聚合完整 build HTTP Contract | JOB-101/Tianshu/OAuth/PostgreSQL | AM-EVD-003/007 |
 | ACTOR-104 RPC provider | 从 Descriptor 上报 RPC Definition | current HMAC Report | AM-EVD-006 |
 | ACTOR-105 Operator | 查看应用与 Group 状态 | Applications/Operation | primary frontend |
 | ACTOR-106 MCP release | 只消费显式 MCP exposure | McpReleaseContentFactory | accepted MCP Specs |
@@ -167,10 +167,10 @@ flowchart LR
 | UC | Trigger/preconditions | Main outcome | Failure/alternative | Postcondition | Interfaces | Tests |
 | --- | --- | --- | --- | --- | --- | --- |
 | UC-101 | explicit GroupedOpenApi + allowlist | every group yields 3.1+x-egon-service | missing/duplicate/mismatch fails configuration/contract test | no unlisted group advertised | API-101 | TEST-101–104 |
-| UC-102 | DDC registration enabled | compact sorted Manifest | size/key/resource invalid blocks registration | one lease advertises all groups | DDC metadata | TEST-105 |
+| UC-102 | Tianshu registration enabled | compact sorted Manifest | size/key/resource invalid blocks registration | one lease advertises all groups | Tianshu metadata | TEST-105 |
 | UC-103 | coherent healthy instances | all groups snapshot and one set | incomplete/drift/duplicate -> no ingest | current set changes only after aggregate success | JOB-101/INTERNAL-101 | TEST-106–116 |
 | UC-104 | valid Unary descriptor | RPC_DESCRIPTOR set | non-Unary/schema override rejected | RPC schema truth unchanged | current Report | TEST-117 |
-| UC-105 | CAP_gateway:read | aggregate + group state visible | partial query error retains available page data | read-only | primary API-002/003 | TEST-118–121 |
+| UC-105 | CAP_yuheng:read | aggregate + group state visible | partial query error retains available page data | read-only | primary API-002/003 | TEST-118–121 |
 | UC-106 | mcp extension enabled | Managed Tool projected | absent means no tool；invalid fails safely | Catalog remains authoritative | INTERNAL-101 | TEST-122–124 |
 
 ## 5. Constraints, Assumptions, and Decisions
@@ -189,7 +189,7 @@ flowchart LR
 | ID | Inference | Evidence | Reversibility | Impact if wrong |
 | --- | --- | --- | --- | --- |
 | ASM-101 | published-groups selects existing GroupedOpenApi beans/config instead of duplicating packages/paths config | Springdoc owns grouping | local property binding | Provider config migration |
-| ASM-102 | max group count 16 plus serialized manifest <=512 | DDC value limit | configurable only through future Spec | very large monolith needs manifest API later |
+| ASM-102 | max group count 16 plus serialized manifest <=512 | Tianshu value limit | configurable only through future Spec | very large monolith needs manifest API later |
 | ASM-103 | UI uses expandable row instead of new route | ApplicationsPage already owns application status | presentational | component layout only |
 
 ### 5.3 Resolved decisions
@@ -201,7 +201,7 @@ flowchart LR
 | DEC-A03 | adopt three Annotation contracts and one x-egon root | User 全部A + attachment | no legacy HTTP annotation bridge |
 | DEC-A04 | deterministic canonicalization and explicit response/media mapping | User 全部A | drift becomes reproducible |
 | DEC-A05 | fixed scheduler/retry/sample defaults in §15 | User 全部A | typed properties and tests |
-| DEC-A06 | trusted DDC/internal DNS + two all-address checks + CIDR/HTTPS/no redirect | User 全部A | no Apache client/new network dependency |
+| DEC-A06 | trusted Tianshu/internal DNS + two all-address checks + CIDR/HTTPS/no redirect | User 全部A | no Apache client/new network dependency |
 | DEC-A07 | explicit multi Group and one aggregate HTTP Definition Set | User latest | partial Group success not visible |
 | DEC-A08 | MCP extension optional；RPC remains descriptor source | User latest + prior invariant | Report v2 is protocol aggregation seam |
 
@@ -213,14 +213,14 @@ None。RPC-as-OpenAPI ingestion is deliberately not selected because it would co
 
 ### 6.1 Runtime and architecture profile
 
-Java 21、Spring Boot 3.5.16、Springdoc 2.8.17、PostgreSQL/Flyway、React/TypeScript remain as primary Spec。Architecture remains the user-approved Traditional Layered feature-first variant under top.egon.cola.component.gateway.admin；no Archetype/biz.* hybrid is introduced。
+Java 21、Spring Boot 3.5.16、Springdoc 2.8.17、PostgreSQL/Flyway、React/TypeScript remain as primary Spec。Architecture remains the user-approved Traditional Layered feature-first variant under top.egon.cola.component.yuheng.admin；no Archetype/biz.* hybrid is introduced。
 
 ### 6.2 Capability reuse ledger
 
 | Need | Existing candidate | Fit/gap | Decision |
 | --- | --- | --- | --- |
 | Group generation | GroupedOpenApi/springdoc.group-configs | exact standard capability | reuse；no scanner |
-| Group discovery | ObjectProvider<GroupedOpenApi> + explicit allowlist | no standard secured manifest endpoint needed | publish compact DDC list |
+| Group discovery | ObjectProvider<GroupedOpenApi> + explicit allowlist | no standard secured manifest endpoint needed | publish compact Tianshu list |
 | Aggregation | GatewayInterfaceDefinitionReport + Definition repository | supports multiple groups/operations | aggregate before one ingest |
 | RPC schema | RpcContractCatalog/ProtobufSchemaMapper | complete | reuse unchanged |
 | Source differentiation | sourceType String | hardcoded gap | add Enum |
@@ -235,7 +235,7 @@ Java 21、Spring Boot 3.5.16、Springdoc 2.8.17、PostgreSQL/Flyway、React/Type
 | Rule 1 | Yes | §8/§10 type inventory | carriers end DTO/PO/VO；Enum and behavior suffixes exact | Group/Manifest/Aggregate/Ingestion types | type inventory/static scan | PASS |
 | Rule 2 | Yes | ValidationUtils + affected handoffs §10.3 | config、manifest、aggregate command validated at every handoff | properties/DTO/coordinator/ingestion | positive-negative/group tests | PASS |
 | Rule 3 | Yes | BaseConverter/MapStruct baseline | simple carriers records；converter implements BaseConverter | DTO records + GatewayOpenApiDefinitionConverter | constructor/mapping tests | PASS |
-| Rule 4 | Yes | gateway has no lombok.config；primary adds it | @Slf4j、explicit Bean names、@RequiredArgsConstructor、final @Qualifier | changed coordinator/service/validator/repository Beans | context/constructor/log scan | PASS |
+| Rule 4 | Yes | yuheng has no lombok.config；primary adds it | @Slf4j、explicit Bean names、@RequiredArgsConstructor、final @Qualifier | changed coordinator/service/validator/repository Beans | context/constructor/log scan | PASS |
 | Rule 5 | Yes | JDK HttpClient/Spring/Jackson candidates | no new HTTP/utility dependency | all affected Java files/POMs | import/dependency scan | PASS |
 | Rule 6 | Yes | OpenAPI/x-egon/VO JSON boundaries | Spring Boot Jackson/Json31 only | extensions/DTO/VO/controllers | serialization Golden | PASS |
 | Rule 7 | Yes | admin base/local + provider YAML files | identical new key structure，values may differ | all affected application.yml profiles | key parity/config tests | PASS |
@@ -250,9 +250,9 @@ Java 21、Spring Boot 3.5.16、Springdoc 2.8.17、PostgreSQL/Flyway、React/Type
 | Proposed element | Change | Requirements | Existing/direct alternative | Concrete inadequacy of alternative | Added calls/state/coupling/failures/migration/operations | Verdict |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | GroupedOpenApi reuse | Keep | REQ-016 | custom scanner | standard already owns paths/packages and custom code duplicates it | config/Golden only | Keep |
-| DDC CSV Manifest | Add | REQ-017 | one key per Group or new HTTP manifest | per-key wastes quota；new API adds auth/call/failure | one metadata value + validation | Add |
+| Tianshu CSV Manifest | Add | REQ-017 | one key per Group or new HTTP manifest | per-key wastes quota；new API adds auth/call/failure | one metadata value + validation | Add |
 | Aggregate Coordinator | Add | REQ-018/019 | independent per-group ingest | exposes partial build and misses removal drift | barrier/state orchestration/recovery | Add |
-| extra aggregate table | Candidate | REQ-018 | query sync rows + DDC Manifest | current bounded data already derives readiness | migration/state duplication | Remove |
+| extra aggregate table | Candidate | REQ-018 | query sync rows + Tianshu Manifest | current bounded data already derives readiness | migration/state duplication | Remove |
 | one set per Group | Candidate | REQ-018 | simplest local ingest | fails application-level complete-set semantics | lifecycle/partial visibility | Reject |
 | one HTTP set per build | Add | REQ-018 | aggregate Report v2 | direct per-group set is semantically incomplete | waits for all groups | Add |
 | generic runtime plugin system | Candidate | REQ-020 | Report v2 + explicit Adapter modules | dynamic loading has no present source/use case | classloader/security/registration | Remove |
@@ -274,7 +274,7 @@ flowchart LR
         G2[GroupedOpenApi inventory]
         X[x-egon customizers]
         Docs[GET /v3/api-docs/group]
-        Meta[DDC Group Manifest]
+        Meta[Tianshu Group Manifest]
         G1 --> Docs
         G2 --> Docs
         X --> G1
@@ -282,8 +282,8 @@ flowchart LR
         G1 --> Meta
         G2 --> Meta
     end
-    subgraph Admin[Gateway Admin]
-        Discover[DDC discovery]
+    subgraph Admin[Yuheng Admin]
+        Discover[Tianshu discovery]
         Sync[Group Sync]
         Barrier[Build Aggregate Coordinator]
         Adapter[OpenAPI31 Aggregate Adapter]
@@ -300,7 +300,7 @@ flowchart LR
 
 ### 7.2 High-Level Design
 
-Group Manifest is the complete build-level membership contract。Admin chooses one coherent healthy instance manifest per application/build，requires every same-build instance it samples to advertise the identical sorted group list，then maintains one sync row and snapshot history per Group。Readiness is derived from DDC Manifest plus sync rows；no aggregate table/cache is authoritative。
+Group Manifest is the complete build-level membership contract。Admin chooses one coherent healthy instance manifest per application/build，requires every same-build instance it samples to advertise the identical sorted group list，then maintains one sync row and snapshot history per Group。Readiness is derived from Tianshu Manifest plus sync rows；no aggregate table/cache is authoritative。
 
 When all Group snapshots are VALID and canonical-stable，GatewayOpenApiAggregateCoordinator validates global operationId and operationKey uniqueness，sorts Group codes，adapts all documents into one GatewayInterfaceDefinitionReport，and calls INTERNAL-101 once。Ingestion writes one protocol=HTTP Definition Set and links every source snapshot in the same transaction。After commit，Sync Service advances each claimed group row to VALID with revision CAS；a crash leaves linked snapshots and INGESTING rows，which the next tick recognizes and repairs without a second Definition Set。
 
@@ -310,7 +310,7 @@ HTTP and RPC share only normalized Report v2 and Ingestion。HTTP acquisition is
 
 ```mermaid
 flowchart TD
-    Tick([sync tick]) --> Manifest[read coherent DDC group manifest]
+    Tick([sync tick]) --> Manifest[read coherent Tianshu group manifest]
     Manifest --> Changed{same build manifest changed?}
     Changed -->|yes| Drift[INCONSISTENT_BUILD keep old set]
     Changed -->|no| Groups[claim due group rows]
@@ -329,10 +329,10 @@ flowchart TD
 
 | Concern/use case | Required quality | Selected mechanism | Failure/degradation | Trade-off | Verification | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| Group completeness | no partial build visibility | coherent DDC Manifest + aggregate barrier | any missing/invalid Group keeps old set | one bad Group blocks new build | TEST-106/107 | REQ-017–019 |
+| Group completeness | no partial build visibility | coherent Tianshu Manifest + aggregate barrier | any missing/invalid Group keeps old set | one bad Group blocks new build | TEST-106/107 | REQ-017–019 |
 | Immutable consistency | same build means same membership/contract | manifest SHA + per-group canonical + aggregate fingerprint | INCONSISTENT_BUILD | extra five-minute samples | TEST-108–111 | REQ-019/023 |
 | Protocol correctness | HTTP/RPC keep native facts | OPENAPI31 Adapter and RPC_DESCRIPTOR Contributor -> Report v2 | source/protocol mismatch rejects | two acquisition paths | TEST-117 | REQ-020 |
-| Security | no arbitrary target/ref/credential forwarding | DDC tuple、double DNS/CIDR、OAuth、HTTPS、no redirect/ref | fail closed/next same-build instance | trusts controlled internal DNS | TEST-105/114 | REQ-025 |
+| Security | no arbitrary target/ref/credential forwarding | Tianshu tuple、double DNS/CIDR、OAuth、HTTPS、no redirect/ref | fail closed/next same-build instance | trusts controlled internal DNS | TEST-105/114 | REQ-025 |
 | Recovery | crash/concurrency does not duplicate/partially activate | aggregate DB transaction + separate per-row CAS repair | transient INGESTING rows | eventual status convergence | TEST-115/116 | REQ-024 |
 | Optional MCP | ordinary APIs do not require MCP | conditional x-egon.mcp validation/projection | invalid enabled extension rejects；absence succeeds | conditional branches/tests | TEST-122–124 | REQ-021 |
 
@@ -342,23 +342,23 @@ flowchart TD
 
 - Group code pattern: lowercase [a-z][a-z0-9-]{0,63}。
 - published-groups contains 1–16 distinct codes；sort lexicographically；joined CSV UTF-8 length <=512。
-- Every published code must resolve to exactly one GroupedOpenApi Bean/config；unlisted groups may exist locally but are not advertised or fetched by Gateway。
+- Every published code must resolve to exactly one GroupedOpenApi Bean/config；unlisted groups may exist locally but are not advertised or fetched by Yuheng。
 - Standard endpoint is /v3/api-docs/{group}；base path is fixed in V1 and not read from caller input。
-- x-egon-service.openapiGroup and DDC group code must match exactly。
+- x-egon-service.openapiGroup and Tianshu group code must match exactly。
 - Same application/build instances with different manifests are build drift。
 
-#### 7.3.2 Exact DDC metadata contract
+#### 7.3.2 Exact Tianshu metadata contract
 
 | Key | Required value/source | Validation |
 | --- | --- | --- |
-| gateway.definition-source | OPENAPI31 | exact enum name |
-| gateway.openapi.enabled | true | literal |
-| gateway.openapi.path-template | /v3/api-docs/{group} | absolute path；one placeholder；no scheme/query/fragment/dot segments |
-| gateway.openapi.spec | 3.1 | exact |
-| gateway.openapi.groups | sorted CSV | 1–16 codes；unique；<=512 |
-| gateway.openapi.resource-uri | Provider Resource URI | absolute normalized HTTPS in production；no userInfo/query/fragment |
-| gateway.artifact-version | GatewayReportingProperties.artifactVersion | nonblank <=128 |
-| gateway.build-id | GatewayReportingProperties.buildId | nonblank <=256 |
+| yuheng.definition-source | OPENAPI31 | exact enum name |
+| yuheng.openapi.enabled | true | literal |
+| yuheng.openapi.path-template | /v3/api-docs/{group} | absolute path；one placeholder；no scheme/query/fragment/dot segments |
+| yuheng.openapi.spec | 3.1 | exact |
+| yuheng.openapi.groups | sorted CSV | 1–16 codes；unique；<=512 |
+| yuheng.openapi.resource-uri | Provider Resource URI | absolute normalized HTTPS in production；no userInfo/query/fragment |
+| yuheng.artifact-version | GatewayReportingProperties.artifactVersion | nonblank <=128 |
+| yuheng.build-id | GatewayReportingProperties.buildId | nonblank <=256 |
 
 No token、client ID/secret、host、complete document or tenant claim appears in metadata。
 
@@ -397,7 +397,7 @@ Every catalogued operation declares @Operation.operationId explicitly。Naming c
 
 Per-operation extension shape is one x-egon object with version=1 and optional catalog、policy、mcp sections。catalog exists for a published Controller；policy exists when EgonGatewayPolicy is present；mcp is absent unless EgonMcpTool.enabled=true。When enabled，name defaults to operationId，serverCode is required，permissions are sorted unique，riskLevel is required enum。
 
-Root x-egon-service fields are version=1、bizCode、applicationCode、artifactVersion、buildId、openapiGroup。env/namespace remain trusted DDC/application scope and are not duplicated in the document。
+Root x-egon-service fields are version=1、bizCode、applicationCode、artifactVersion、buildId、openapiGroup。env/namespace remain trusted Tianshu/application scope and are not duplicated in the document。
 
 #### 7.3.4 Canonicalization contract
 
@@ -412,9 +412,9 @@ Root x-egon-service fields are version=1、bizCode、applicationCode、artifactV
 #### 7.3.5 OpenAPI to internal model mapping
 
 - Merge PathItem parameters then Operation parameters；Operation overrides the same (in,name) pair；duplicates within one level reject。
-- Build gateway-operation-request/v2 groups path/query/header/cookie/body/part；Path required is always true。
+- Build yuheng-operation-request/v2 groups path/query/header/cookie/body/part；Path required is always true。
 - multipart/form-data maps its object schema to part；other request content selects application/json，then application/*+json，then the only remaining media type。If multiple selected candidates have different canonical schemas，reject as ambiguous。All media types remain sorted in attributes.consumes。
-- Main response selection is exact 200，otherwise numerically lowest 2xx，otherwise default。204/no-content becomes type=null plus x-egon-schema-model=gateway-operation-response/v2。
+- Main response selection is exact 200，otherwise numerically lowest 2xx，otherwise default。204/no-content becomes type=null plus x-egon-schema-model=yuheng-operation-response/v2。
 - Response content uses the same JSON/+json/single rule；ambiguous schemas reject。Other non-2xx/default responses become ordered errorSchema entries with status、description、sorted contentTypes and schema。
 - attributes preserve httpMethod、path、openapiOperationId、openapiGroup、consumes、produces、responseMode=TRANSPARENT、streaming、idempotent and optional mcpExposure。
 - streaming derives from text/event-stream or application/x-ndjson，not Java return type。
@@ -433,7 +433,7 @@ Root x-egon-service fields are version=1、bizCode、applicationCode、artifactV
 
 | sourceType | protocol | Acquisition | Authoritative schema | MCP behavior |
 | --- | --- | --- | --- | --- |
-| OPENAPI31 | HTTP | Admin DDC pull of complete Group Manifest | OpenAPI 3.1 | optional x-egon.mcp |
+| OPENAPI31 | HTTP | Admin Tianshu pull of complete Group Manifest | OpenAPI 3.1 | optional x-egon.mcp |
 | RPC_DESCRIPTOR | RPC | existing signed Report | Protobuf Descriptor | optional GatewayOperation RPC governance |
 | MANUAL | HTTP or RPC per existing contract | Admin management | explicit existing Definition | no invented annotation exposure |
 
@@ -449,7 +449,7 @@ MCP absence is success。McpProjectionValidator executes only when exposure exis
 | Snapshot insert | short local | immutable/reused row | retry hash idempotently |
 | Aggregate ingestion | one PostgreSQL transaction | one Definition Set + all Operation/Catalog rows + every snapshot definition_set_id link | rollback all Definition/link writes |
 | Sync terminal updates | separate per-row CAS transactions | every Group points same set and VALID | restart sees linked snapshots/set and repairs remaining rows |
-| Lifecycle | existing transaction | union RPC metadata IDs + VALID aggregate HTTP set IDs | stale DDC never retires |
+| Lifecycle | existing transaction | union RPC metadata IDs + VALID aggregate HTTP set IDs | stale Tianshu never retires |
 
 The aggregate transaction never updates gateway_openapi_sync_state。GatewayDefinitionIngestionCommandDTO carries snapshotIds，not sync row IDs/revisions。This preserves the transport-neutral writer boundary selected by DEC-A02。
 
@@ -458,7 +458,7 @@ The aggregate transaction never updates gateway_openapi_sync_state。GatewayDefi
 ```mermaid
 sequenceDiagram
     participant P as Provider GroupedOpenApi
-    participant D as DDC
+    participant D as Tianshu
     participant S as Group Sync
     participant A as Aggregate Coordinator
     participant I as Definition Ingestion
@@ -526,8 +526,8 @@ Primary Spec §8 remains authoritative for every other Create/Modify/Delete path
 | Path/symbol | Responsibility | Dependencies | Requirements |
 | --- | --- | --- | --- |
 | GatewayOpenApiProperties | explicit published group allowlist and Provider toggles | Springdoc properties | REQ-016/017 |
-| GatewayOpenApiGroupManifestDTO | one shared normalized DDC wire/handoff contract | gateway-contract/Jakarta Validation | REQ-017–019 |
-| GatewayOpenApiRegistrationContributor | build compact DDC Manifest | DDC contributor/report identity | REQ-017 |
+| GatewayOpenApiGroupManifestDTO | one shared normalized Tianshu wire/handoff contract | yuheng-contract/Jakarta Validation | REQ-017–019 |
+| GatewayOpenApiRegistrationContributor | build compact Tianshu Manifest | Tianshu contributor/report identity | REQ-017 |
 | GatewayOpenApiAggregateCoordinator | completeness、duplicates、aggregate fingerprint | sync/snapshot/Adapter | REQ-018/019 |
 | GatewayAdminOpenApiProperties | bounded sync/security/limits | configuration binding | REQ-025 |
 | GatewayDefinitionSourceTypeEnum | source/protocol semantic enum | contract/Admin/frontend | REQ-020 |
@@ -539,8 +539,8 @@ Primary Spec §8 remains authoritative for every other Create/Modify/Delete path
 
 | ID | Change/necessity | Kind | Identity | Input | Output | Auth | Error/idempotency | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| API-101 | Change/Add per Group | HTTP | HTTP GET /v3/api-docs/{group} | path group + Bearer | OpenAPI 3.1 group doc | SCOPE_gateway.openapi.read | safe read/hash | REQ-016/022/025 |
-| JOB-101 | Change multi-group reconcile | Scheduled | GatewayOpenApiSyncReconciler.reconcile() | config/DDC/DB/Clock | states/metrics | PLATFORM SERVICE | CAS/retry/barrier | REQ-017–019/024/025 |
+| API-101 | Change/Add per Group | HTTP | HTTP GET /v3/api-docs/{group} | path group + Bearer | OpenAPI 3.1 group doc | SCOPE_yuheng.openapi.read | safe read/hash | REQ-016/022/025 |
+| JOB-101 | Change multi-group reconcile | Scheduled | GatewayOpenApiSyncReconciler.reconcile() | config/Tianshu/DB/Clock | states/metrics | PLATFORM SERVICE | CAS/retry/barrier | REQ-017–019/024/025 |
 | INTERNAL-101 | Change aggregate ingestion | Internal Service | GatewayDefinitionIngestionService.ingest(command) | sourceType/report/snapshotIds | report result | caller-resolved app | one transaction/idempotent | REQ-018–021/024 |
 
 Primary sync-state、Operation-fragment and snapshot-document management read wire shapes remain unchanged：the state and Operation responses already carry openapiGroup，and the document response is snapshot-specific。
@@ -555,7 +555,7 @@ Primary sync-state、Operation-fragment and snapshot-document management read wi
 | --- | --- |
 | Change classification | Existing standard endpoint expanded from default to named Group |
 | Independent consumer goal | Admin fetches exactly one advertised source partition |
-| Parameter ownership and derivation | group comes only from DDC Manifest；browser/user never chooses target |
+| Parameter ownership and derivation | group comes only from Tianshu Manifest；browser/user never chooses target |
 | Direct/no-new-interface alternative | one merged Provider doc loses business partition and completeness evidence |
 | Caller use of result | snapshot + aggregate Report；never forwarded unchanged to another Provider request |
 | Round trips and failure points | one per new/due/sample Group；bounded by max16 and batch50；OAuth/network/validation may fail |
@@ -567,7 +567,7 @@ Primary sync-state、Operation-fragment and snapshot-document management read wi
 | --- | --- |
 | Protocol | HTTPS GET /v3/api-docs/{group} |
 | Content | application/json；openapi starts 3.1 |
-| Auth | Bearer PLATFORM SERVICE；SCOPE_gateway.openapi.read；audience=metadata resource URI |
+| Auth | Bearer PLATFORM SERVICE；SCOPE_yuheng.openapi.read；audience=metadata resource URI |
 | Timeout/limit | connect 3s；read 10s；5 MiB each；redirect NEVER |
 | Idempotency | safe read；document/canonical SHA |
 
@@ -575,8 +575,8 @@ Primary sync-state、Operation-fragment and snapshot-document management read wi
 
 | Name | Location | Type | Required | Validation | Source |
 | --- | --- | --- | --- | --- | --- |
-| group | Path | string | Yes | advertised code pattern；published allowlist；max64 | DDC Manifest |
-| Authorization | Header | Bearer JWT | Yes | scope/audience/resource | IdP client |
+| group | Path | string | Yes | advertised code pattern；published allowlist；max64 | Tianshu Manifest |
+| Authorization | Header | Bearer JWT | Yes | scope/audience/resource | Tianquan-Shoubing client |
 | Accept | Header | media type | No | application/json only | Admin client |
 
 ##### Success response
@@ -606,7 +606,7 @@ Primary sync-state、Operation-fragment and snapshot-document management read wi
   "x-egon-service": { // Required Egon build/group identity.
     "version": 1, // Required extension version.
     "bizCode": "trade", // Required; cross-checked with application scope.
-    "applicationCode": "order-service", // Required; cross-checked with DDC/application.
+    "applicationCode": "order-service", // Required; cross-checked with Tianshu/application.
     "artifactVersion": "5.3.3", // Required; matches metadata.
     "buildId": "build-20260825-001", // Required immutable build ID.
     "openapiGroup": "orders" // Required; matches path and Manifest.
@@ -618,7 +618,7 @@ Primary sync-state、Operation-fragment and snapshot-document management read wi
 
 ```jsonc
 {
-  "code": "GATEWAY_OPENAPI_GROUP_NOT_PUBLISHED", // Stable Provider/Admin classification for an unadvertised group.
+  "code": "YUHENG_OPENAPI_GROUP_NOT_PUBLISHED", // Stable Provider/Admin classification for an unadvertised group.
   "message": "OpenAPI group is not published", // Safe message without target address or token.
   "retryable": false // Unchanged build is not retried until manifest/config changes.
 }
@@ -628,7 +628,7 @@ Primary sync-state、Operation-fragment and snapshot-document management read wi
 
 ##### Interface logic for frontend and consumers
 
-1. Derive group and target from coherent DDC observation。
+1. Derive group and target from coherent Tianshu observation。
 2. Validate scheme、path template、group、resource URI and all DNS addresses before token acquisition。
 3. Acquire least-privilege token。
 4. Re-resolve and revalidate all DNS addresses immediately before request。
@@ -648,19 +648,19 @@ Breaking replacement of default-only API-001。Contract tests cover MVC/WebFlux 
 | --- | --- |
 | Change classification | Existing scheduled job expanded for aggregate readiness |
 | Independent consumer goal | converge one complete application/build HTTP contract |
-| Parameter ownership and derivation | typed config owns bounds；DDC owns Manifest；database owns group state/revision；Clock owns time |
+| Parameter ownership and derivation | typed config owns bounds；Tianshu owns Manifest；database owns group state/revision；Clock owns time |
 | Direct/no-new-interface alternative | independent group jobs expose partial set and cannot detect removed groups |
 | Caller use of result | lifecycle、UI and metrics consume the one aggregate set/group states |
-| Round trips and failure points | max batch50；max3 instances/group；5m sampling；DDC/OAuth/Provider/DB may fail independently |
+| Round trips and failure points | max batch50；max3 instances/group；5m sampling；Tianshu/OAuth/Provider/DB may fail independently |
 | Verdict | Change |
 
 ##### Identity and purpose
 
-Named Bean gatewayOpenApiSyncReconciler invokes named Service gatewayOpenApiSyncService and gatewayOpenApiAggregateCoordinator。It has no user payload and never holds a transaction across DDC/OAuth/HTTP。
+Named Bean gatewayOpenApiSyncReconciler invokes named Service gatewayOpenApiSyncService and gatewayOpenApiAggregateCoordinator。It has no user payload and never holds a transaction across Tianshu/OAuth/HTTP。
 
 ##### Request parameters
 
-Inputs are validated GatewayAdminOpenApiProperties，active applications，one coherent DDC snapshot，and due sync rows。Group membership is derived only from metadata，not from database stale rows or UI filters。
+Inputs are validated GatewayAdminOpenApiProperties，active applications，one coherent Tianshu snapshot，and due sync rows。Group membership is derived only from metadata，not from database stale rows or UI filters。
 
 ##### Success response
 
@@ -668,7 +668,7 @@ No public return。A complete build ends with one Definition Set ID referenced b
 
 ##### Error responses
 
-Stale DDC aborts destructive reconciliation。Manifest drift marks build inconsistent；missing Group waits/fails without ingest；duplicate Operation marks invalid assignment；CAS loss skips owned row；all errors are safe and scheduler continues。
+Stale Tianshu aborts destructive reconciliation。Manifest drift marks build inconsistent；missing Group waits/fails without ingest；duplicate Operation marks invalid assignment；CAS loss skips owned row；all errors are safe and scheduler continues。
 
 ##### Interface logic for frontend and consumers
 
@@ -682,7 +682,7 @@ Stale DDC aborts destructive reconciliation。Manifest drift marks build inconsi
 
 ##### Compatibility and verification
 
-No default-only fallback or mixed version。Tests cover incomplete barrier、manifest add/remove drift、duplicate Operation、two Admins、restart after ingest and DDC stale fail-safe。
+No default-only fallback or mixed version。Tests cover incomplete barrier、manifest add/remove drift、duplicate Operation、two Admins、restart after ingest and Tianshu stale fail-safe。
 
 #### 9.2.3 INTERNAL-101 — Ingest one aggregate Definition source
 
@@ -720,7 +720,7 @@ GatewayInterfaceDefinitionReportResult preserves current wire fields。OPENAPI31
 
 ```jsonc
 {
-  "code": "GATEWAY_OPENAPI_AGGREGATE_CONFLICT", // Stable immutable-build/group/source conflict.
+  "code": "YUHENG_OPENAPI_AGGREGATE_CONFLICT", // Stable immutable-build/group/source conflict.
   "message": "OpenAPI aggregate conflicts with the current build", // Safe reason without document body.
   "currentRevision": null, // Sync CAS is outside this transaction.
   "errors": [], // Detailed validation messages remain in group snapshots/states.
@@ -751,7 +751,7 @@ RPC HMAC/reportId behavior remains outside this Service and delegates here。Tes
 | Type | Role/representation | Fields/lifecycle | Necessity | Mapping |
 | --- | --- | --- | --- | --- |
 | GatewayDefinitionSourceTypeEnum | Enum | MANUAL/RPC_DESCRIPTOR/OPENAPI31 | public/internal source vocabulary | Jackson name/JDBC name |
-| GatewayOpenApiGroupManifestDTO | shared contract record DTO | sorted groups、pathTemplate、resourceUri、artifactVersion、buildId；compact validation | Provider DDC wire -> Admin trusted discovery handoff；one semantic model avoids duplication | direct |
+| GatewayOpenApiGroupManifestDTO | shared contract record DTO | sorted groups、pathTemplate、resourceUri、artifactVersion、buildId；compact validation | Provider Tianshu wire -> Admin trusted discovery handoff；one semantic model avoids duplication | direct |
 | GatewayOpenApiAggregateDTO | record DTO | applicationId/buildId/groups/documents/snapshotIds/aggregateSha | coordinator -> Adapter | MapStruct after graph normalization |
 | GatewayDefinitionIngestionCommandDTO | record DTO | applicationId/sourceType/sourceScope/report/snapshotIds | shared writer boundary | Validation groups |
 | Existing GatewayOpenApiSnapshotPO | record PO | one row per group contract | permanent provenance | JDBC |
@@ -775,7 +775,7 @@ All are simple immutable records with compact constructor copy/sort/trim。No ne
 | Handoff | Validation |
 | --- | --- |
 | Config -> Group registration | @Validated properties、@NotBlank/@Pattern/@Size；custom aggregate length through ValidationUtils |
-| DDC -> Candidate | GatewayOpenApiGroupManifestDTO compact constructor + ValidationUtils Default |
+| Tianshu -> Candidate | GatewayOpenApiGroupManifestDTO compact constructor + ValidationUtils Default |
 | Job -> Coordinator | @Valid Aggregate DTO；exact map/list key equality |
 | Coordinator -> Adapter | source/group/build cross-check before traversal |
 | Adapter -> Ingestion | @Valid command Ingestion group；source/protocol/snapshot rules |
@@ -830,7 +830,7 @@ All primary Spec columns remain unchanged：id、application_id、definition_set
 | validation_messages | JSONB | DB | No | [] | validator | JSON array convention | stable messages | chain | [] |
 | operation_count | INTEGER | 32-bit | No | 0 | validator | check >=0 | group operations | parser | 42 |
 | schema_count | INTEGER | 32-bit | No | 0 | validator | check >=0 | group schemas | parser | 18 |
-| fetched_from_instance_id | VARCHAR(256) | 256 | No | none | DDC | none | source audit | candidate | instance-1 |
+| fetched_from_instance_id | VARCHAR(256) | 256 | No | none | Tianshu | none | source audit | candidate | instance-1 |
 | fetched_at | TIMESTAMPTZ | microsecond | No | none | Clock | none | fetch completion UTC | client | 2026-08-25T11:01:00Z |
 | validated_at | TIMESTAMPTZ | microsecond | No | none | Clock | none | validation completion UTC | chain | 2026-08-25T11:01:01Z |
 | created_at | TIMESTAMPTZ | microsecond | No | none | Clock | none | persistence UTC | repository | 2026-08-25T11:01:01Z |
@@ -891,13 +891,13 @@ All primary Spec columns remain unchanged。openapi_group now accepts configured
 | build_id | VARCHAR(256) | 256 | No | none | provider | unique part | immutable build | Manifest | build-001 |
 | artifact_version | VARCHAR(128) | 128 | No | none | provider | none | display version | Manifest | 5.3.3 |
 | openapi_group | VARCHAR(128) | 128 | No | none | Manifest | unique part/check pattern | group key | sorted manifest | orders |
-| provider_service_name | VARCHAR(256) | 256 | No | none | DDC | none | DDC service | observation | order-service |
-| provider_group | VARCHAR(128) | 128 | No | default | DDC | none | DDC registry group | observation | default |
-| provider_version | VARCHAR(128) | 128 | No | none | DDC | none | DDC version | observation | 5.3.3 |
+| provider_service_name | VARCHAR(256) | 256 | No | none | Tianshu | none | Tianshu service | observation | order-service |
+| provider_group | VARCHAR(128) | 128 | No | default | Tianshu | none | Tianshu registry group | observation | default |
+| provider_version | VARCHAR(128) | 128 | No | none | Tianshu | none | Tianshu version | observation | 5.3.3 |
 | status | VARCHAR(32) | 32 | No | DISCOVERED | service | exact enum check | group lifecycle | state machine | VALID |
 | latest_snapshot_id | VARCHAR(64) | 64 | Yes | null | service | FK snapshot | latest group diagnostic | snapshot result | snapshot-001 |
 | definition_set_id | VARCHAR(64) | 64 | Yes | null | aggregate result | FK definition_set | shared HTTP set | ingestion result | set-http-001 |
-| last_instance_id | VARCHAR(256) | 256 | Yes | null | DDC | none | last attempted instance | candidate | instance-1 |
+| last_instance_id | VARCHAR(256) | 256 | Yes | null | Tianshu | none | last attempted instance | candidate | instance-1 |
 | attempt_count | INTEGER | 32-bit | No | 0 | service | check >=0 | attempts/cycle | scheduler | 1 |
 | last_error_code | VARCHAR(128) | 128 | Yes | null | classifier | none | stable failure code | service | INVALID_GROUP_ASSIGNMENT |
 | last_error_message | VARCHAR(1024) | 1024 | Yes | null | classifier | none | safe detail | service | duplicate operation key |
@@ -916,7 +916,7 @@ All primary Spec columns remain unchanged。openapi_group now accepts configured
 
 ##### Keys, relationships, and constraints
 
-UNIQUE(application_id,build_id,openapi_group) remains。FKs remain RESTRICT。Application/build Group completeness is enforced by Service transaction/CAS because PostgreSQL cannot constrain a dynamic DDC Manifest without another authoritative table。
+UNIQUE(application_id,build_id,openapi_group) remains。FKs remain RESTRICT。Application/build Group completeness is enforced by Service transaction/CAS because PostgreSQL cannot constrain a dynamic Tianshu Manifest without another authoritative table。
 
 ##### Index inventory and per-index justification
 
@@ -992,7 +992,7 @@ erDiagram
 
 ### 12.1 Route and ownership
 
-No new route/navigation。ApplicationsPage remains /applications and OperationPage remains /operations/:operationId under existing gateway:read permission。
+No new route/navigation。ApplicationsPage remains /applications and OperationPage remains /operations/:operationId under existing yuheng:read permission。
 
 ### 12.2 Application aggregate/group layout
 
@@ -1045,7 +1045,7 @@ No dynamic plugin registry、generic classloader or RPC-to-OpenAPI Factory is ad
 | TEST-102 | Contract | WebFlux group | 3.1+x-egon-service group | REQ-016 |
 | TEST-103 | Unit | published allowlist missing/duplicate/unresolved | fail configuration | REQ-016/017 |
 | TEST-104 | Golden | stable explicit operationId/x-egon | exact JSON | REQ-022 |
-| TEST-105 | Unit | DDC Manifest max16/512/path/resource | accept/reject exact cases | REQ-017/025 |
+| TEST-105 | Unit | Tianshu Manifest max16/512/path/resource | accept/reject exact cases | REQ-017/025 |
 | TEST-106 | Unit | one of two groups missing | no ingest | REQ-018 |
 | TEST-107 | Integration | two groups complete | one set/two linked snapshots/two sync rows | REQ-018/024 |
 | TEST-108 | Unit | manifest add/remove same build | INCONSISTENT_BUILD | REQ-019 |
@@ -1082,12 +1082,12 @@ Provider keys:
 | springdoc.api-docs.enabled | true |
 | springdoc.api-docs.version | OPENAPI_3_1 |
 | springdoc.group-configs | business-owned standard group definitions |
-| egon.cola.component.gateway.openapi.enabled | true when adapter installed |
-| egon.cola.component.gateway.openapi.publish-to-ddc | true |
-| egon.cola.component.gateway.openapi.published-groups | required 1–16 explicit codes |
-| egon.cola.component.gateway.openapi.resource-uri | required production normalized URI |
+| egon.cola.component.yuheng.openapi.enabled | true when adapter installed |
+| egon.cola.component.yuheng.openapi.publish-to-tianshu | true |
+| egon.cola.component.yuheng.openapi.published-groups | required 1–16 explicit codes |
+| egon.cola.component.yuheng.openapi.resource-uri | required production normalized URI |
 
-Admin gateway.admin.openapi keys/defaults:
+Admin yuheng.admin.openapi keys/defaults:
 
 | Key | Default |
 | --- | --- |
@@ -1107,19 +1107,19 @@ Admin gateway.admin.openapi keys/defaults:
 | retry-jitter | 0.20 |
 | drift-sample-interval | PT5M |
 | allowed-cidrs | empty/fail closed；local profile loopback only |
-| required-scope | gateway.openapi.read |
+| required-scope | yuheng.openapi.read |
 
-Base/local and every affected Provider config file carry the same core key structure with environment-specific values。OAuth registration/appId reuse egon.cola.platform.idp.service-client and Spring Security client-registration configuration；Secrets remain environment/file supplied。
+Base/local and every affected Provider config file carry the same core key structure with environment-specific values。OAuth registration/appId reuse egon.cola.platform.tianquan.shoubing.service-client and Spring Security client-registration configuration；Secrets remain environment/file supplied。
 
 ### 15.2 Security and SSRF threat boundary
 
-DDC and internal DNS are trusted control-plane inputs but still validated。Admin resolves every hostname before token acquisition and again immediately before connect；every returned address on both resolutions must be inside allowed CIDRs。Production requires HTTPS；literal user URL、userinfo、query、fragment、dot segments、redirect and external refs are rejected。JDK HttpClient follows no redirect。Because JDK HttpClient cannot pin a per-request DNS result while retaining ordinary TLS host verification，production DNS must be controlled internal infrastructure；this residual risk is explicit and monitored，not silently claimed eliminated。
+Tianshu and internal DNS are trusted control-plane inputs but still validated。Admin resolves every hostname before token acquisition and again immediately before connect；every returned address on both resolutions must be inside allowed CIDRs。Production requires HTTPS；literal user URL、userinfo、query、fragment、dot segments、redirect and external refs are rejected。JDK HttpClient follows no redirect。Because JDK HttpClient cannot pin a per-request DNS result while retaining ordinary TLS host verification，production DNS must be controlled internal infrastructure；this residual risk is explicit and monitored，not silently claimed eliminated。
 
 ### 15.3 Capacity, availability, observability
 
 - Worst-case one new build fetches max16 documents，but scheduler processes max50 group rows per tick and max3 instances/group。
 - Permanent retention remains；metrics add expected_groups、valid_groups and aggregate result without group/application high-cardinality labels。
-- DDC stale/unavailable or incomplete Manifest never retires the old Definition Set。
+- Tianshu stale/unavailable or incomplete Manifest never retires the old Definition Set。
 - Logs contain applicationId/buildId/group/snapshotId/hash prefix/errorCode，never token/body/full URI query。
 - Springdoc 2.8.17 nullable/generic output remains Golden-gated；no silent library upgrade。
 
@@ -1133,7 +1133,7 @@ This remains a breaking coherent-version cutover。
 4. Replace all source literals with Enum values in Contract、Starter、Admin、frontend、fixtures。
 5. Deploy Admin backend/Web and all Provider adapters as one version family；mixed default/multi-group operation unsupported。
 6. User deletes disposable DB；fresh Admin runs V1–V12。
-7. Admin/IdP/DDC/CIDR ready，then Providers register coherent manifests。
+7. Admin/Tianquan-Shoubing/Tianshu/CIDR ready，then Providers register coherent manifests。
 8. Wait until every required application build shows groups valid/expected and one aggregate Definition Set。
 9. Recreate Draft/Route/MCP overrides/Release；resume traffic only after new Release activation。
 
@@ -1147,9 +1147,9 @@ Preserved boundaries：RPC wire/Descriptor、Report v2、Invocation Schema v2、
 | --- | --- | --- | --- |
 | one default doc per app | smallest | fails explicit business groups | Rejected |
 | independently ingest each Group | simple scheduling | partial build visibility/removal drift | Rejected |
-| one DDC lease per Group | direct discovery | contributor cannot create leases；registry cardinality | Rejected |
+| one Tianshu lease per Group | direct discovery | contributor cannot create leases；registry cardinality | Rejected |
 | custom manifest HTTP API | unlimited groups | new auth/API/call/failure | Rejected until >512 real need |
-| compact DDC Manifest + standard paths | no new API；bounded | max16/512 | Selected |
+| compact Tianshu Manifest + standard paths | no new API；bounded | max16/512 | Selected |
 | merge Group docs into one public OpenAPI | easy external view | ref/name/path conflicts；not requested | Rejected |
 | RPC represented as OpenAPI paths | apparent uniformity | second type truth/HTTP semantic distortion | Rejected |
 | Report v2 aggregation seam | preserves protocol truth | two acquisition adapters | Selected |
@@ -1175,7 +1175,7 @@ No unresolved major user decision remains。
 | Requirement | Use cases | Affected design | Preserved boundary | Tests | Acceptance |
 | --- | --- | --- | --- | --- | --- |
 | REQ-016 | UC-101 | Provider Group config/API-101 | Springdoc standard | TEST-101–104 | each group 3.1 |
-| REQ-017 | UC-102 | DDC Manifest | no new DDC API | TEST-103/105 | bounded metadata |
+| REQ-017 | UC-102 | Tianshu Manifest | no new Tianshu API | TEST-103/105 | bounded metadata |
 | REQ-018 | UC-103 | Coordinator/Ingestion/DB | Report v2 | TEST-106/107 | one set/all groups |
 | REQ-019 | UC-103 | drift/duplicates | old set active | TEST-108–110 | no partial overwrite |
 | REQ-020 | UC-103/104 | source Enum/adapters | RPC Descriptor | TEST-117 | exact source/protocol |
@@ -1183,7 +1183,7 @@ No unresolved major user decision remains。
 | REQ-022 | UC-101 | annotations/x-egon | standard OpenAPI | TEST-104 | explicit stable IDs |
 | REQ-023 | UC-103 | canonical/mapping | Invocation v2 | TEST-110–113 | deterministic schemas |
 | REQ-024 | UC-103 | transaction/recovery | sync CAS owner | TEST-107/115/116 | atomic links/recovery |
-| REQ-025 | UC-102/103 | config/security | JDK/IdP/DDC reuse | TEST-105/114 | bounded fail closed |
+| REQ-025 | UC-102/103 | config/security | JDK/Tianquan-Shoubing/Tianshu reuse | TEST-105/114 | bounded fail closed |
 | REQ-026 | UC-105 | Applications group detail | existing routes/APIs | TEST-118–121 | aggregate/group visible |
 | REQ-010 | UC-104/106 | unchanged runtime/RPC/MCP boundary inherited from primary | Engine/Route/Release unchanged | TEST-117/122–124 plus primary regression | no runtime/OpenAPI coupling |
 
@@ -1195,11 +1195,11 @@ This amendment records all six confirmed A decisions and adds current multi-Grou
 
 ### 20.2 Repository fidelity
 
-GroupedOpenApi replaces any custom group scanner；DDC Manifest fits proven key/value limits；V12 remains the only new migration；gateway_definition_set protocol dimension supports separate HTTP/RPC sets；GatewayInterfaceDefinitionReport and existing repositories remain the aggregation target。
+GroupedOpenApi replaces any custom group scanner；Tianshu Manifest fits proven key/value limits；V12 remains the only new migration；gateway_definition_set protocol dimension supports separate HTTP/RPC sets；GatewayInterfaceDefinitionReport and existing repositories remain the aggregation target。
 
 ### 20.3 Cross-section consistency
 
-Config、DDC Manifest、API path、x-egon-service、sync key、snapshot openapi_group、aggregate fingerprint、one Definition Set、API/UI and tests use the same group code/manifest semantics。Source enum values are identical across Contract、Ingestion、RPC、HTTP and frontend。Ingestion never updates sync state，matching DEC-A02 and recovery tests。
+Config、Tianshu Manifest、API path、x-egon-service、sync key、snapshot openapi_group、aggregate fingerprint、one Definition Set、API/UI and tests use the same group code/manifest semantics。Source enum values are identical across Contract、Ingestion、RPC、HTTP and frontend。Ingestion never updates sync state，matching DEC-A02 and recovery tests。
 
 ### 20.4 Relationship correctness
 
@@ -1210,10 +1210,10 @@ This document amends only the named primary sections。Primary breaking cutover�
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | MC-ARCH-001 | Applicable | PASS | §6.1/§8 | one approved feature-first Traditional Layered profile | None |
-| MC-REUSE-001 | Applicable | PASS | §6.2 | GroupedOpenApi、DDC、Report v2、IdP、repositories reused | None |
+| MC-REUSE-001 | Applicable | PASS | §6.2 | GroupedOpenApi、Tianshu、Report v2、Tianquan-Shoubing、repositories reused | None |
 | MC-DEP-001 | Applicable | PASS | DEC-A06/§6.2 | no new network/group/plugin dependency | None |
 | MC-NAME-001 | Applicable | PASS | §10.1 | DTO/PO/VO/Enum/behavior names semantic | None |
-| MC-VALID-001 | Applicable | PASS | §10.3 | every config/DDC/job/adapter/ingest handoff validated | None |
+| MC-VALID-001 | Applicable | PASS | §10.3 | every config/Tianshu/job/adapter/ingest handoff validated | None |
 | MC-MODEL-001 | Applicable | PASS | §10.1 | new carriers are records；no complex data class | None |
 | MC-CONVERT-001 | Applicable | PASS | §10.4 | MapStruct + BaseConverter only for normalized conversion | None |
 | MC-LOG-001 | Applicable | PASS | §6.3 Rule4/§15.3 | changed business Beans @Slf4j and safe fields | None |

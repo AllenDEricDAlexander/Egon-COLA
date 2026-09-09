@@ -12,7 +12,7 @@
 | Common | 共享契约和基础工具模块 | [Common](egon-cola-component-common/README.zh-CN.md) |
 | Rule Engine | Java 规则链、规则树和执行控制 | [Rule Engine](egon-cola-component-rule-engine-starter/README.zh-CN.md) |
 | Dynamic Thread Pool | 运行时执行器管理 | [Dynamic Thread Pool](egon-cola-component-dynamic-thread-pool/README.zh-CN.md) |
-| RPC | Protobuf/gRPC 与 DDC 集成 | [RPC](egon-cola-component-rpc/README.zh-CN.md) |
+| RPC | Protobuf/gRPC 与 Tianshu 集成 | [RPC](egon-cola-component-rpc/README.zh-CN.md) |
 
 Agent Flow starter 默认关闭，采用扁平组件结构。它负责配置、ADK 图编译、Registry/Session 执行、cancel、timeout 和有界 close；宿主负责 provider `ChatModel`、凭据、工具、MCP、HTTP、认证，以及 database 等持久化边界。
 

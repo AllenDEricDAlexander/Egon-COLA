@@ -1,17 +1,17 @@
-# Gateway Admin Scope And Observability Fix Implementation Plan
+# Yuheng Admin Scope And Observability Fix Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 让 Gateway Admin Web 使用部署配置的默认作用域，并让成功调用和路由未命中的 curl 都能在当前作用域自动展示。
+**Goal:** 让 Yuheng Admin Web 使用部署配置的默认作用域，并让成功调用和路由未命中的 curl 都能在当前作用域自动展示。
 
-**Architecture:** 保持 Gateway Admin 与 DDC 的现有投影接口不变，在 Web 边界增加一个纯函数解析 Vite 默认作用域，并让作用域选择器包含该部署值。调用观测继续使用 React Query 定时重新获取；Engine 在路由匹配前先给事件写入自身作用域，匹配成功后仍由路由上游作用域覆盖，因此未命中事件也能被作用域查询看到。
+**Architecture:** 保持 Yuheng Admin 与 Tianshu 的现有投影接口不变，在 Web 边界增加一个纯函数解析 Vite 默认作用域，并让作用域选择器包含该部署值。调用观测继续使用 React Query 定时重新获取；Engine 在路由匹配前先给事件写入自身作用域，匹配成功后仍由路由上游作用域覆盖，因此未命中事件也能被作用域查询看到。
 
 **Tech Stack:** Java 21、Spring Boot、Reactor、JUnit 5、React 19、TypeScript 6、Ant Design、TanStack Query、Vitest、Testing Library、Vite。
 
 ## Global Constraints
 
 - 在当前 `main` 分支内联执行，不创建子代理或 worktree。
-- 不使用 Docker，不修改 PostgreSQL、Redis 或现有 DDC/Gateway 数据。
+- 不使用 Docker，不修改 PostgreSQL、Redis 或现有 Tianshu/Yuheng 数据。
 - 保留用户已有未跟踪文件，只提交本任务文件。
 - 直接实现足够；Strategy、Adapter 等设计模式不会降低这里的简单配置与轮询复杂度，因此不引入新抽象层。
 
@@ -20,17 +20,17 @@
 ### Task 1: 修复部署作用域与调用观测刷新
 
 **Files:**
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/hooks/scopeDefaults.ts`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/hooks/scopeDefaults.test.ts`
-- Create: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/observability/TracesPage.test.tsx`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/hooks/useScope.tsx`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/layouts/AdminLayout.tsx`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/src/features/observability/TracesPage.tsx`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/README.zh-CN.md`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-admin-web/README.md`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/hooks/scopeDefaults.ts`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/hooks/scopeDefaults.test.ts`
+- Create: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/observability/TracesPage.test.tsx`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/hooks/useScope.tsx`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/layouts/AdminLayout.tsx`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/src/features/observability/TracesPage.tsx`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/README.zh-CN.md`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-admin-web/README.md`
 
 **Interfaces:**
-- Consumes: `VITE_GATEWAY_ADMIN_DEFAULT_ENV`、`VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE`、现有 `Scope` 与 `gatewayApi.traces`。
+- Consumes: `VITE_YUHENG_ADMIN_DEFAULT_ENV`、`VITE_YUHENG_ADMIN_DEFAULT_NAMESPACE`、现有 `Scope` 与 `gatewayApi.traces`。
 - Produces: `resolveInitialScope(configuredEnv, configuredNamespace): Scope` 与 `scopeOptions(current, configured, defaults): SelectOption[]`；调用观测每 5 秒重新获取当前作用域。
 
 - [ ] **Step 1: 写默认作用域失败测试**
@@ -65,14 +65,14 @@
 
 - [ ] **Step 7: 提交修复**
 
-  Run: `git add <本任务文件> && git commit -m "fix: align gateway admin runtime scope"`
+  Run: `git add <本任务文件> && git commit -m "fix: align yuheng admin runtime scope"`
 
 ### Task 2: 给路由未命中事件补齐 Engine 作用域
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/src/test/java/top/egon/cola/component/gateway/engine/http/DefaultGatewayHttpDataPlaneHandlerTraceTest.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/DefaultGatewayHttpDataPlaneHandler.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/GatewayEngineConfiguration.java`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/http/DefaultGatewayHttpDataPlaneHandlerTraceTest.java`
 
 **Interfaces:**
 - Consumes: `GatewayEngineRuntimeProperties.env`、`GatewayEngineRuntimeProperties.namespace` 和现有 `GatewayCallObservation.scope`。
@@ -80,7 +80,7 @@
 
 - [ ] **Step 1: 扩展现有路由未命中测试并确认 RED**
 
-  断言 `GATEWAY_ROUTE_NOT_FOUND` 事件携带 `dev/codex-local`；先运行测试确认构造器或作用域断言失败。
+  断言 `YUHENG_ROUTE_NOT_FOUND` 事件携带 `dev/codex-local`；先运行测试确认构造器或作用域断言失败。
 
 - [ ] **Step 2: 实现最小作用域注入**
 
@@ -88,9 +88,9 @@
 
 - [ ] **Step 3: 运行 Engine 验证并提交**
 
-  Run: `./mvnw -B -ntp -f egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-engine/pom.xml test`
+  Run: `./mvnw -B -ntp -f egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway/pom.xml test`
 
-  Run: `git add <本任务文件> && git commit -m "fix: scope unmatched gateway traffic"`
+  Run: `git add <本任务文件> && git commit -m "fix: scope unmatched yuheng traffic"`
 
 ### Task 3: 装载并验证本机修复
 
@@ -98,20 +98,20 @@
 - Modify locally only: `target/local-dev-run/start-local-stack.zsh`
 
 **Interfaces:**
-- Consumes: 当前本机 Gateway Admin API、DDC、PostgreSQL、Redis、Kafka 与已签发 Admin Token。
-- Produces: 以 `dev/codex-local` 为默认作用域运行的 Gateway Admin Web。
+- Consumes: 当前本机 Yuheng Admin API、Tianshu、PostgreSQL、Redis、Kafka 与已签发 Admin Token。
+- Produces: 以 `dev/codex-local` 为默认作用域运行的 Yuheng Admin Web。
 
 - [ ] **Step 1: 给本机 Vite 启动参数增加默认作用域**
 
-  设置 `VITE_GATEWAY_ADMIN_DEFAULT_ENV=dev` 与 `VITE_GATEWAY_ADMIN_DEFAULT_NAMESPACE=codex-local`，不提交 `target/` 运行文件。
+  设置 `VITE_YUHENG_ADMIN_DEFAULT_ENV=dev` 与 `VITE_YUHENG_ADMIN_DEFAULT_NAMESPACE=codex-local`，不提交 `target/` 运行文件。
 
-- [ ] **Step 2: 重启 Gateway Admin Web 与 Gateway Engine**
+- [ ] **Step 2: 重启 Yuheng Admin Web 与 Yuheng Engine**
 
-  保持 DDC、Gateway Admin、Provider、Consumer 与数据不变；Engine 使用原环境变量和数据目录重启。
+  保持 Tianshu、Yuheng Admin、Provider、Consumer 与数据不变；Engine 使用原环境变量和数据目录重启。
 
 - [ ] **Step 3: 验证 Provider 与流量闭环**
 
-  验证 Web 为 200，Gateway Provider API 在 `dev/codex-local` 返回 HTTP/RPC Provider；成功路由和 `GATEWAY_ROUTE_NOT_FOUND` curl 都在该作用域出现新增调用记录。
+  验证 Web 为 200，Yuheng Provider API 在 `dev/codex-local` 返回 HTTP/RPC Provider；成功路由和 `YUHENG_ROUTE_NOT_FOUND` curl 都在该作用域出现新增调用记录。
 
 - [ ] **Step 4: 最终检查**
 

@@ -1,14 +1,14 @@
-# Gateway Declarative Operation Schema Implementation Plan
+# Yuheng Declarative Operation Schema Implementation Plan
 
 状态：待用户审核
 
 > Approved Spec:
-> [Gateway 声明式 Operation Schema 与 MCP 参数装配设计](../specs/2026-08-07-gateway-declarative-operation-schema-design.md)
+> [Yuheng 声明式 Operation Schema 与 MCP 参数装配设计](../specs/2026-08-07-yuheng-declarative-operation-schema-design.md)
 
 > **For agentic workers:** Execute this plan inline, task by task. Do not create
 > subagents or worktrees unless the user explicitly changes that instruction.
 
-**Goal:** 将 Gateway HTTP 的接口 Schema 切换到声明式注解模型，Unary RPC Schema 切换到 Proto Descriptor 单一事实源，并彻底删除旧字段路径、Reporting Parameter、RPC 重复 Schema 声明和 `inputLocations` 链路。
+**Goal:** 将 Yuheng HTTP 的接口 Schema 切换到声明式注解模型，Unary RPC Schema 切换到 Proto Descriptor 单一事实源，并彻底删除旧字段路径、Reporting Parameter、RPC 重复 Schema 声明和 `inputLocations` 链路。
 
 **Architecture:** Starter 使用 Java/Protobuf Adapter 生成同一套 JSON Schema Draft 2020-12；HTTP requestSchema 按位置分组，RPC requestSchema 保持完整 Message。Admin 只接收 Definition Report v2，并将当前 Operation Definition 投影成只读 Managed Tool。Runtime 直接把 HTTP `path/query/body` 或完整 RPC arguments 组装成 `GatewayOperationCall`。Admin Web 解析 `$defs/$ref` 并展示 Operation/Managed Tool 的完整只读 Schema。
 
@@ -20,7 +20,7 @@
 - 不修改任何既有 Flyway 文件；本次不改变数据库表结构，也不新增 Flyway Migration。
 - 不恢复本地 MCP Tool 手工 CRUD、Schema、Operation、bindings 或幂等配置入口。
 - Remote MCP Tool 的独立 Schema 配置不属于本次删除范围。
-- `ResultRecord`、`PageResultRecord` 所在 Common Core 不得依赖 Gateway Starter；Wrapper 语义由 Starter Adapter 处理。
+- `ResultRecord`、`PageResultRecord` 所在 Common Core 不得依赖 Yuheng Starter；Wrapper 语义由 Starter Adapter 处理。
 - Java Schema 递归只使用完整 Jackson `JavaType`，不得退化为 Raw Class。
 - Protobuf 类型事实只来自 Descriptor；生成的 Java Class 只用于 Contract 根类型校验。
 - HTTP Managed Tool 输入只能包含 `path/query/body`；RPC Managed Tool 输入是完整 Message。
@@ -36,7 +36,7 @@
 采用已有 Mapper/Adapter 风格：
 
 - `GatewayJavaSchemaMapper`：`JavaType + Jackson + Validation` 到 JSON Schema；
-- `ProtobufSchemaMapper`：`Descriptor + Gateway Field Option` 到 JSON Schema；
+- `ProtobufSchemaMapper`：`Descriptor + Yuheng Field Option` 到 JSON Schema；
 - `GatewayResponseSchemaMapper`：真实返回类型与 Result/PageResult/Proto Wrapper 的交叉校验；
 - `McpManagedSchemaProjector`：Operation v2 Schema 到 Managed Tool Schema；
 - `McpToolsCallHandler` 内保留一个 Request Assembler，把结构化 arguments 转成 `GatewayOperationCall`。
@@ -72,7 +72,7 @@ git rev-parse HEAD
 git diff --check
 ```
 
-Expected: 将实际 HEAD 记为 `<GATE_0_HEAD>`；若存在 Admin Web `package.json`/`package-lock.json` 修改，继续保留且不进入任何 Gateway Schema 提交。
+Expected: 将实际 HEAD 记为 `<GATE_0_HEAD>`；若存在 Admin Web `package.json`/`package-lock.json` 修改，继续保留且不进入任何 Yuheng Schema 提交。
 
 - [ ] **Step 2: 运行后端基线**
 
@@ -82,7 +82,7 @@ Expected: 将实际 HEAD 记为 `<GATE_0_HEAD>`；若存在 Admin Web `package.j
   -DskipITs test
 ```
 
-Expected: Gateway Reactor 测试通过。若基线失败，先记录原始失败，不能用本功能修改掩盖。
+Expected: Yuheng Reactor 测试通过。若基线失败，先记录原始失败，不能用本功能修改掩盖。
 
 - [ ] **Step 3: 运行 Admin Web 基线**
 
@@ -105,10 +105,10 @@ GatewayRequestLocation
 GatewaySchemaShape
 GatewaySchemaType
 GatewaySchemaRequired
-egon/gateway/schema_options.proto
+egon/yuheng/schema_options.proto
 contractVersion = v2
-x-egon-schema-model = gateway-operation-request/v2
-x-egon-schema-model = gateway-operation-response/v2
+x-egon-schema-model = yuheng-operation-request/v2
+x-egon-schema-model = yuheng-operation-response/v2
 ```
 
 Expected: 后续 Task 不自行重命名；确需变化时停止执行并回到 Spec 审核。
@@ -119,21 +119,21 @@ Expected: 后续 Task 不自行重命名；确需变化时停止执行并回到 
 
 **Files:**
 
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewayRequestSchemaField.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewayResponseSchema.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewayRequestLocation.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaShape.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaType.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaRequired.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewayRequestSchemaField.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewayResponseSchema.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewayRequestLocation.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaShape.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaType.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaRequired.java`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/pom.xml`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/proto/egon/gateway/schema_options.proto`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/schema/GatewaySchemaOptionsContractTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaAnnotationContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/proto/egon/yuheng/schema_options.proto`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/yuheng/contract/schema/GatewaySchemaOptionsContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaAnnotationContractTest.java`
 
 **Interfaces:**
 
 - Produces the approved enum values and nested annotation defaults.
-- Publishes `schema_options.proto` inside the Contract jar and generated Java Extension classes under `top.egon.cola.component.gateway.contract.schema.proto`.
+- Publishes `schema_options.proto` inside the Contract jar and generated Java Extension classes under `top.egon.cola.component.yuheng.contract.schema.proto`.
 - Does not change `GatewayOperation` or the old `GatewaySchemaField` yet; therefore no compatibility branch is added.
 
 - [ ] **Step 1: Write failing annotation contract tests**
@@ -157,7 +157,7 @@ Expected: tests fail because the annotations, Proto asset and generated extensio
 
 - [ ] **Step 4: Add the primitives and Contract Proto build**
 
-Add `protobuf-java` and the existing managed `protobuf-maven-plugin`/`os-maven-plugin` configuration to Gateway Contract. Use the repository-managed Protobuf versions; do not introduce a second code generator or commit `target/generated-sources`.
+Add `protobuf-java` and the existing managed `protobuf-maven-plugin`/`os-maven-plugin` configuration to Yuheng Contract. Use the repository-managed Protobuf versions; do not introduce a second code generator or commit `target/generated-sources`.
 
 Package the source `.proto` in the Contract jar so downstream RPC Contract modules can import it through their normal Protobuf dependency path.
 
@@ -170,7 +170,7 @@ Package the source `.proto` in the Contract jar so downstream RPC Contract modul
   -Dtest=GatewaySchemaOptionsContractTest,GatewaySchemaAnnotationContractTest test
 
 jar tf egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/target/yuheng-contract-*.jar \
-  | rg 'egon/gateway/schema_options.proto|GatewaySchemaFieldOption|GatewaySchemaOptions'
+  | rg 'egon/yuheng/schema_options.proto|GatewaySchemaFieldOption|GatewaySchemaOptions'
 ```
 
 Expected: tests pass and the jar contains both the Proto source and generated Java classes.
@@ -181,11 +181,11 @@ Expected: tests pass and the jar contains both the Proto source and generated Ja
 git add \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/pom.xml \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/proto \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/schema \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/annotation
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/yuheng/contract/schema \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/annotation
 git diff --cached --check
-git commit -m "feat(gateway): add declarative schema primitives"
+git commit -m "feat(yuheng): add declarative schema primitives"
 ```
 
 ---
@@ -197,45 +197,45 @@ This Task changes the public annotation API and all repository consumers in one 
 **Starter Files:**
 
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/pom.xml`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewayOperation.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewayInterfaceGroup.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaField.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayJavaSchemaMapper.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayResponseSchemaMapper.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayRequestSchemaValidator.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewayHttpOperationMapper.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/ProtobufSchemaMapper.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributor.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/McpExposureMapper.java`
-- Delete: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/discovery/GatewaySchemaDescriptions.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewayOperation.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewayInterfaceGroup.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaField.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewayJavaSchemaMapper.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewayResponseSchemaMapper.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewayRequestSchemaValidator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewayHttpOperationMapper.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/ProtobufSchemaMapper.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/RpcGatewayDefinitionContributor.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/McpExposureMapper.java`
+- Delete: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/discovery/GatewaySchemaDescriptions.java`
 
 **Starter Test Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/annotation/GatewaySchemaAnnotationContractTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/GatewayJavaSchemaMapperTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/GatewayHttpOperationMapperTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/RpcGatewayDefinitionContributorTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/ProtobufSchemaMapperTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/McpExposureMapperTest.java`
-- Delete: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/discovery/GatewaySchemaDescriptionsTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/annotation/GatewaySchemaAnnotationContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/GatewayJavaSchemaMapperTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/GatewayHttpOperationMapperTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/RpcGatewayDefinitionContributorTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/ProtobufSchemaMapperTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/McpExposureMapperTest.java`
+- Delete: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/discovery/GatewaySchemaDescriptionsTest.java`
 
 **Repository Consumer Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/test/java/top/egon/cola/component/gateway/test/http/HttpProviderContractTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/java/top/egon/cola/component/gateway/test/mcp/provider/McpJobController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/test/java/top/egon/cola/component/gateway/test/mcp/provider/McpOperationSchemaContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/java/top/egon/cola/component/yuheng/test/http/OrderController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/test/java/top/egon/cola/component/yuheng/test/http/HttpProviderContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/java/top/egon/cola/component/yuheng/test/mcp/provider/McpJobController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/test/java/top/egon/cola/component/yuheng/test/mcp/provider/McpOperationSchemaContractTest.java`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/pom.xml`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/proto/gateway_test_services.proto`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/gateway/test/rpc/contract/OrderRpc.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/test/java/top/egon/cola/component/gateway/test/rpc/contract/GatewayRpcContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/proto/yuheng_test_services.proto`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/yuheng/test/rpc/contract/OrderRpc.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/test/java/top/egon/cola/component/yuheng/test/rpc/contract/GatewayRpcContractTest.java`
 
 **Interfaces:**
 
 - `GatewayOperation.requestSchemaFields` becomes the HTTP-only `GatewayRequestSchemaField[]`.
 - `GatewayOperation.responseSchemaFields` is deleted and replaced by the HTTP-only `GatewayResponseSchema responseSchema()`.
 - `GatewaySchemaField.path` is deleted; metadata moves to actual DTO properties/parameters.
-- All public Gateway Schema annotations match the approved `@Target`, runtime retention and `@Documented` contract.
+- All public Yuheng Schema annotations match the approved `@Target`, runtime retention and `@Documented` contract.
 - HTTP requestSchema becomes a location-grouped Draft 2020-12 Schema.
 - RPC request/response are generated only from Descriptor-root Schemas and read Proto Field Options; Java Schema declarations are rejected.
 - For this Task only, `GatewayInterfaceDefinitionReport.Operation.parameters` receives `List.of()` until Task 3 removes the field. No old behavior reads or writes it.
@@ -268,7 +268,7 @@ Failure cases must cover missing declaration, duplicate declaration, wrong locat
 
 - [ ] **Step 3: Write failing Protobuf/RPC tests**
 
-Use a real Descriptor with nested Message, repeated, Map, Enum, oneof, supported well-known types, recursion and Gateway Field Options. Assert JSON field name plus `protobufName/protobufType/fieldNumber`, option metadata and `$defs/$ref`.
+Use a real Descriptor with nested Message, repeated, Map, Enum, oneof, supported well-known types, recursion and Yuheng Field Options. Assert JSON field name plus `protobufName/protobufType/fieldNumber`, option metadata and `$defs/$ref`.
 
 RPC Contributor tests must accept `registerMcp=true` without Java Schema declarations, assert complete Descriptor input/output discovery, reject Java Schema declarations, Streaming and idempotency disagreement. Java/Proto root type mismatch remains owned by `RpcContractValidator`.
 
@@ -287,7 +287,7 @@ Expected: tests fail on the old annotation model and old flattened/body-only Sch
 
 Add the repository-managed `jakarta.validation-api` to the Starter; do not add a Validation implementation. Use a deterministic Definition registry keyed by canonical `JavaType`. Resolve Jackson properties using the configured `ObjectMapper`; never recurse with only `getRawClass()`.
 
-Generate local `$defs/$ref`, apply validation constraints, validate examples, and fail rather than emit `truncated=true` when safety limits are exceeded. Wrapper adapters must not add a Gateway dependency to Common Core.
+Generate local `$defs/$ref`, apply validation constraints, validate examples, and fail rather than emit `truncated=true` when safety limits are exceeded. Wrapper adapters must not add a Yuheng dependency to Common Core.
 
 - [ ] **Step 6: Implement strict HTTP request composition**
 
@@ -297,7 +297,7 @@ Generate only present `path/query/header/cookie/body/part` groups with stable or
 
 - [ ] **Step 7: Implement Descriptor mapping and RPC validation**
 
-Read the generated Gateway Field Option from the live Descriptor. Include the option Proto in Descriptor Snapshot dependencies. Type, shape, Enum and Map come only from Descriptor. Remove `RPC_MESSAGE` and reject `requestSchemaFields`/`responseSchema` on RPC methods.
+Read the generated Yuheng Field Option from the live Descriptor. Include the option Proto in Descriptor Snapshot dependencies. Type, shape, Enum and Map come only from Descriptor. Remove `RPC_MESSAGE` and reject `requestSchemaFields`/`responseSchema` on RPC methods.
 
 - [ ] **Step 8: Migrate every repository annotation consumer**
 
@@ -339,7 +339,7 @@ git add \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract
 git diff --cached --check
-git commit -m "feat(gateway): generate declarative operation schemas"
+git commit -m "feat(yuheng): generate declarative operation schemas"
 ```
 
 ---
@@ -348,20 +348,20 @@ git commit -m "feat(gateway): generate declarative operation schemas"
 
 **Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting/GatewayInterfaceDefinitionReport.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/reporting/GatewayDefinitionReportFactory.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter/reporting/GatewayReportHttpClient.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/reporting/GatewayDefinitionReportService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/reporting/GatewayReportCanonicalizer.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayDefinitionReportStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/reporting/GatewayOperationSchemaValidator.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/reporting/GatewayDefinitionReportFactoryTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter/reporting/GatewayReportHttpClientTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/reporting/GatewayDefinitionReportServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/reporting/GatewayReportCanonicalizerTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/reporting/GatewayOperationSchemaValidatorTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/reporting/GatewayInterfaceDefinitionReport.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/reporting/GatewayDefinitionReportFactory.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter/reporting/GatewayReportHttpClient.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/reporting/GatewayDefinitionReportService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/reporting/GatewayReportCanonicalizer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/JdbcGatewayDefinitionReportStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/reporting/GatewayOperationSchemaValidator.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseService.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/reporting/GatewayDefinitionReportFactoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter/reporting/GatewayReportHttpClientTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/reporting/GatewayDefinitionReportServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/reporting/GatewayReportCanonicalizerTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/reporting/GatewayOperationSchemaValidatorTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseServiceTest.java`
 
 **Interfaces:**
 
@@ -416,16 +416,16 @@ Expected: no matches.
 
 ```bash
 git add \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/reporting \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/gateway/starter \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/gateway/starter \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/reporting \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayDefinitionReportStore.java \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/reporting \
-  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseServiceTest.java
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/reporting \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/main/java/top/egon/cola/component/yuheng/starter \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-starter/src/test/java/top/egon/cola/component/yuheng/starter \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/reporting \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseService.java \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/JdbcGatewayDefinitionReportStore.java \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/reporting \
+  egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseServiceTest.java
 git diff --cached --check
-git commit -m "feat(gateway): require operation definition v2"
+git commit -m "feat(yuheng): require operation definition v2"
 ```
 
 ---
@@ -436,23 +436,23 @@ This Task removes `inputLocations` from Contract, Admin, Runtime, Rule fixtures 
 
 **Contract and Admin Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeTool.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/mcp/McpContractTest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/application/McpManagedSchemaProjector.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/application/McpReleaseContentFactory.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/application/McpToolAdminService.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/application/McpManagedSchemaProjectorTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/application/McpReleaseContentFactoryTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/application/McpToolAdminServiceTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/application/McpUnifiedReleaseTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeTool.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/yuheng/contract/mcp/McpContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/application/McpManagedSchemaProjector.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/application/McpReleaseContentFactory.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/application/McpToolAdminService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/application/McpManagedSchemaProjectorTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/application/McpReleaseContentFactoryTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/application/McpToolAdminServiceTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/application/McpUnifiedReleaseTest.java`
 
 **Runtime and Engine Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/tool/McpToolsCallHandler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/rule/McpRuleCompiler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/tool/McpLocalToolFlowTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/operation/EngineGatewayOperationInvokerTest.java`
-- Modify when compilation identifies affected fixtures: Gateway Admin/Engine/MCP Rule JSON tests that directly construct `McpRuntimeTool`.
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/tool/McpToolsCallHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/rule/McpRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/tool/McpLocalToolFlowTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/operation/EngineGatewayOperationInvokerTest.java`
+- Modify when compilation identifies affected fixtures: Yuheng Admin/Engine/MCP Rule JSON tests that directly construct `McpRuntimeTool`.
 
 **Interfaces:**
 
@@ -533,7 +533,7 @@ git add \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime \
   egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test
 git diff --cached --check
-git commit -m "feat(gateway): invoke structured managed tools"
+git commit -m "feat(yuheng): invoke structured managed tools"
 ```
 
 ---
@@ -621,7 +621,7 @@ git add \
   e2e/mcp-control-plane.spec.ts
 git diff --cached --check
 git diff --cached --name-status
-git commit -m "feat(gateway-web): render declarative schemas"
+git commit -m "feat(yuheng-web): render declarative schemas"
 ```
 
 ---
@@ -630,16 +630,16 @@ git commit -m "feat(gateway-web): render declarative schemas"
 
 **Files:**
 
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/java/top/egon/cola/component/gateway/test/http/OrderController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/main/java/top/egon/cola/component/yuheng/test/http/OrderController.java`
 - Create as needed under the same package: dedicated request/response DTO Records for complex Body, complex Query, Object/List/Map/Value and PageResult fixtures.
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/test/java/top/egon/cola/component/gateway/test/http/HttpProviderContractTest.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/proto/gateway_test_services.proto`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/gateway/test/rpc/contract/OrderRpc.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/test/java/top/egon/cola/component/gateway/test/rpc/contract/GatewayRpcContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-http-provider/src/test/java/top/egon/cola/component/yuheng/test/http/HttpProviderContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/proto/yuheng_test_services.proto`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/main/java/top/egon/cola/component/yuheng/test/rpc/contract/OrderRpc.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-rpc-contract/src/test/java/top/egon/cola/component/yuheng/test/rpc/contract/GatewayRpcContractTest.java`
 - Modify RPC Provider implementation/tests when new methods require behavior.
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpFixtureContractTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpFixtureContractTest.java`
 - Modify affected rule/report JSON fixtures found by the deletion scan.
-- Modify relevant Gateway README/developer example documents that still teach the old annotation model.
+- Modify relevant Yuheng README/developer example documents that still teach the old annotation model.
 
 **Required Fixture Matrix:**
 
@@ -709,7 +709,7 @@ Stage only files actually changed by the fixture/document cleanup, inspect the s
 ```bash
 git diff --cached --check
 git diff --cached --name-status
-git commit -m "test(gateway): cover declarative schema fixtures"
+git commit -m "test(yuheng): cover declarative schema fixtures"
 ```
 
 ---
@@ -728,7 +728,7 @@ git diff --check
 
 Expected: only known user-owned files remain dirty. Implementation history contains exactly one commit for each completed Task.
 
-- [ ] **Step 2: Run the full Gateway backend reactor**
+- [ ] **Step 2: Run the full Yuheng backend reactor**
 
 ```bash
 ./mvnw -B -ntp \
@@ -736,7 +736,7 @@ Expected: only known user-owned files remain dirty. Implementation history conta
   -DskipITs test
 ```
 
-Expected: all Gateway modules and test applications compile; all non-Live tests pass.
+Expected: all Yuheng modules and test applications compile; all non-Live tests pass.
 
 - [ ] **Step 3: Run focused cross-module MCP/Schema tests once more**
 
@@ -794,7 +794,7 @@ Report every command and exit status, the six Task commit SHAs, remaining user-o
 ```text
 maintenance-window deployment order
 real Provider v2 buildId reporting
-new unified Gateway Release publication
+new unified Yuheng Release publication
 live HTTP Managed Tool calls
 live Unary RPC Managed Tool calls
 multi-Engine activation

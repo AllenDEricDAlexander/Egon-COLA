@@ -202,7 +202,7 @@ jackson-databind test
 
 1. 先修改 common record 契约、工厂方法和 common 测试。
 2. 运行 common 子 reactor。
-3. 搜索并迁移仓库内调用方，重点关注 DDC admin/starter 中 `ResultDto` 的访问方式。
+3. 搜索并迁移仓库内调用方，重点关注 Tianshu admin/starter 中 `ResultDto` 的访问方式。
 4. 所有 `getXxx()` / `isXxx()` 改为 record accessor，例如 `code()`、`success()`、`data()`。
 5. 所有 `new + setter` 改为 record 构造、`of(...)`、`defaultPage()` 或 `ResultDtos` / `ResultModels` 工厂方法。
 6. 不新增兼容 getter，不新增兼容 setter，不新增 bridge method。
@@ -223,7 +223,7 @@ jackson-databind test
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-common/pom.xml test
 ```
 
-受影响调用方迁移后，再运行最小相关组件测试。若 DDC 组件受影响，优先运行 DDC admin/starter 的 targeted Maven 测试。不会启动项目。
+受影响调用方迁移后，再运行最小相关组件测试。若 Tianshu 组件受影响，优先运行 Tianshu admin/starter 的 targeted Maven 测试。不会启动项目。
 
 ## 11. 任务提交策略
 

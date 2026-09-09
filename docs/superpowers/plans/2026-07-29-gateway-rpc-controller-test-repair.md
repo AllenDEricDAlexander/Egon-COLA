@@ -1,8 +1,8 @@
-# Gateway RPC Controller Test Repair Implementation Plan
+# Yuheng RPC Controller Test Repair Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Repair the stale Gateway RPC controller test, complete repository verification, merge the logging consolidation into `main`, and remove its temporary branch and worktree.
+**Goal:** Repair the stale Yuheng RPC controller test, complete repository verification, merge the logging consolidation into `main`, and remove its temporary branch and worktree.
 
 **Architecture:** Keep the production W3C Trace Context contract unchanged. Update the unit test to call the existing three-argument controller entry point with a valid `traceparent` and request ID, then verify the trace ID visible to the RPC client and the scope cleanup after the call.
 
@@ -10,7 +10,7 @@
 
 ## Global Constraints
 
-- Change only the stale Gateway RPC controller test and this plan before merging.
+- Change only the stale Yuheng RPC controller test and this plan before merging.
 - Do not add a legacy controller overload or weaken W3C Trace Context validation.
 - Run the full repository `clean integration-test` before and after merging.
 - Do not start applications or services.
@@ -21,8 +21,8 @@
 ### Task 1: Align the controller test with W3C Trace Context
 
 **Files:**
-- Modify: `egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-consumer/src/test/java/top/egon/cola/component/gateway/test/rpc/consumer/GatewayRpcDriverControllerTest.java`
-- Create: `docs/superpowers/plans/2026-07-29-gateway-rpc-controller-test-repair.md`
+- Modify: `egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-consumer/src/test/java/top/egon/cola/component/yuheng/test/rpc/consumer/GatewayRpcDriverControllerTest.java`
+- Create: `docs/superpowers/plans/2026-07-29-yuheng-rpc-controller-test-repair.md`
 
 **Interfaces:**
 - Consumes: `GatewayRpcDriverController.echo(String message, String traceparent, String requestId)`.
@@ -33,7 +33,7 @@
 Run:
 
 ```bash
-mvn -f egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-consumer/pom.xml \
+mvn -f egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-consumer/pom.xml \
   -Dtest=GatewayRpcDriverControllerTest test
 ```
 
@@ -45,7 +45,7 @@ Call the controller with these literal values:
 
 ```java
 GatewayRpcDriverController.EchoView response = controller.echo(
-        "through-gateway",
+        "through-yuheng",
         "00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01",
         "rpc-driver-request"
 );
@@ -59,7 +59,7 @@ Run from the repository root so the current reactor sources supply all changed
 dependencies instead of resolving an older locally installed snapshot:
 
 ```bash
-mvn -pl :egon-cola-component-gateway-test-rpc-consumer -am \
+mvn -pl :egon-cola-component-yuheng-test-rpc-consumer -am \
   -Dtest=GatewayRpcDriverControllerTest \
   -Dsurefire.failIfNoSpecifiedTests=false test
 ```
@@ -80,9 +80,9 @@ Expected: the complete reactor exits zero.
 - [ ] **Step 5: Commit the repair**
 
 ```bash
-git add docs/superpowers/plans/2026-07-29-gateway-rpc-controller-test-repair.md \
-  egon-cola-components/egon-cola-component-gateway/egon-cola-component-gateway-test/egon-cola-component-gateway-test-rpc-consumer/src/test/java/top/egon/cola/component/gateway/test/rpc/consumer/GatewayRpcDriverControllerTest.java
-git commit -m "test(gateway): align rpc driver trace contract"
+git add docs/superpowers/plans/2026-07-29-yuheng-rpc-controller-test-repair.md \
+  egon-cola-components/egon-cola-component-yuheng/egon-cola-component-yuheng-test/egon-cola-component-yuheng-test-rpc-consumer/src/test/java/top/egon/cola/component/yuheng/test/rpc/consumer/GatewayRpcDriverControllerTest.java
+git commit -m "test(yuheng): align rpc driver trace contract"
 ```
 
 ### Task 2: Merge and clean up

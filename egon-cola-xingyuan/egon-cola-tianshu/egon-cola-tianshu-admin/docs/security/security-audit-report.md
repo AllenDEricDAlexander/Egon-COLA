@@ -1,4 +1,4 @@
-# Egon-COLA Dynamic Config Center — 网络安全审计报告
+# Egon-COLA Tianshu (Dynamic Config Center) — 网络安全审计报告
 
 **项目名称：** egon-cola-tianshu
 **审计日期：** 2026-08-12
@@ -52,7 +52,7 @@
 
 ## 3. 漏洞详情
 
-### DDC-SEC-001: Mass Assignment — 实体直接反序列化导致不可信字段注入
+### Tianshu-SEC-001: Mass Assignment — 实体直接反序列化导致不可信字段注入
 
 - **严重等级：** Medium
 - **CWE：** CWE-915（Improperly Controlled Modification of Dynamically-Determined Object Attributes）
@@ -63,10 +63,10 @@
   - `controller/metadata/DdcEnvController.java:56` — POST `@RequestBody DdcEnvEntity`
   - `controller/metadata/DdcNamespaceController.java:55` — POST `@RequestBody DdcNamespaceEntity`
 - **对应 HTTP 接口：**
-  - `POST /api/v1/ddc/apps`
-  - `POST /api/v1/ddc/bizs`
-  - `POST /api/v1/ddc/envs`
-  - `POST /api/v1/ddc/namespaces`
+  - `POST /api/v1/tianshu/apps`
+  - `POST /api/v1/tianshu/bizs`
+  - `POST /api/v1/tianshu/envs`
+  - `POST /api/v1/tianshu/namespaces`
 - **攻击前置条件：** 攻击者需持有有效的 WRITE 或 ALL 权限的 JWT Token
 - **用户可控输入：** HTTP 请求体 JSON（所有实体字段）
 - **完整调用链：**
@@ -95,14 +95,14 @@
 
 ---
 
-### DDC-SEC-002: 硬编码默认密码 `HomeLab666`
+### Tianshu-SEC-002: 硬编码默认密码 `HomeLab666`
 
 - **严重等级：** Medium
 - **CWE：** CWE-259（Use of Hard-coded Password）
 - **受影响模块：** egon-cola-tianshu-admin
 - **受影响文件：**
   - `src/main/resources/application-local.yml:5` — `password: ${SPRING_DATASOURCE_PASSWORD:HomeLab666}`
-  - `src/main/resources/application-local.yml:24` — `password: ${DDC_REDIS_PASSWORD:HomeLab666}`
+  - `src/main/resources/application-local.yml:24` — `password: ${TIANSHU_REDIS_PASSWORD:HomeLab666}`
 - **对应 HTTP 接口：** N/A（配置漏洞）
 - **攻击前置条件：**
   1. 攻击者需能读取编译后的 JAR 包或源代码
@@ -114,13 +114,13 @@
 - **修复方案：** 移除硬编码默认值，要求显式通过环境变量配置密码。如果密码未配置，应用启动时会因数据库/Redis 连接失败而快速失败（fail-fast），这比使用弱口令更安全。
 - **实际修改内容：**
   - `application-local.yml:5`：将 `password: ${SPRING_DATASOURCE_PASSWORD:HomeLab666}` 改为 `password: ${SPRING_DATASOURCE_PASSWORD}`
-  - `application-local.yml:24`：将 `password: ${DDC_REDIS_PASSWORD:HomeLab666}` 改为 `password: ${DDC_REDIS_PASSWORD}`
+  - `application-local.yml:24`：将 `password: ${TIANSHU_REDIS_PASSWORD:HomeLab666}` 改为 `password: ${TIANSHU_REDIS_PASSWORD}`
 - **修复状态：** ✅ 已修复
 - **修复后验证：** 代码审查确认已移除两处硬编码默认密码。
 
 ---
 
-### DDC-SEC-003: Actuator Metrics 端点暴露内部指标信息
+### Tianshu-SEC-003: Actuator Metrics 端点暴露内部指标信息
 
 - **严重等级：** Low
 - **CWE：** CWE-200（Exposure of Sensitive Information to an Unauthorized Actor）
@@ -137,7 +137,7 @@
 
 ---
 
-### DDC-SEC-004: Transport Security 默认使用明文模式
+### Tianshu-SEC-004: Transport Security 默认使用明文模式
 
 - **严重等级：** Low
 - **CWE：** CWE-319（Cleartext Transmission of Sensitive Information）
@@ -149,11 +149,11 @@
 - **漏洞原理：** 默认 Transport Security 模式为 `DEVELOPMENT_PLAINTEXT`，不要求 TLS/mTLS。`DdcAdminTransportSecurityValidator` 在启动时验证配置，当模式为 `DEVELOPMENT_PLAINTEXT` 时直接放行，不检查 TLS 配置。这意味着默认部署时不启用传输层加密。
 - **安全影响：** 在非开发环境中，如果未显式将 mode 设置为 `MTLS`，管理端与客户端之间的通信将以明文传输，包括 JWT Token、配置数据等敏感信息可能被网络嗅探窃取。
 - **修复状态：** ⚠️ 未修改（部署时配置项，需运维配合）
-- **推荐处理方案：** 生产环境部署时设置 `egon.cola.component.ddc.admin.transport-security.mode=MTLS` 并配置有效的 SSL 证书。
+- **推荐处理方案：** 生产环境部署时设置 `egon.cola.component.tianshu.admin.transport-security.mode=MTLS` 并配置有效的 SSL 证书。
 
 ---
 
-### DDC-SEC-005: RPC 签名禁用时使用通配符权限的本地 Principal
+### Tianshu-SEC-005: RPC 签名禁用时使用通配符权限的本地 Principal
 
 - **严重等级：** Low
 - **CWE：** CWE-285（Improper Authorization）
@@ -168,7 +168,7 @@
 
 ---
 
-### DDC-SEC-006: RPC Nonce Store 不可用时读操作跳过回放保护
+### Tianshu-SEC-006: RPC Nonce Store 不可用时读操作跳过回放保护
 
 - **严重等级：** Low
 - **CWE：** CWE-294（Authentication Bypass by Capture-replay）
@@ -182,19 +182,19 @@
 
 ---
 
-### DDC-SEC-007: JWT Authentication Converter 返回空权限列表
+### Tianshu-SEC-007: JWT Authentication Converter 返回空权限列表
 
 - **严重等级：** Low (降级为 Low — 此问题导致过度拒绝而非过度授权)
 - **CWE：** CWE-862（Missing Authorization）
 - **受影响模块：** egon-cola-tianshu-admin
 - **受影响文件：** `security/management/DdcAdminJwtAuthenticationConverter.java:15-19`
 - **对应类：** `DdcAdminJwtAuthenticationConverter`
-- **漏洞原理：** `DdcAdminJwtAuthenticationConverter.convert(Jwt)` 方法创建的 `JwtAuthenticationToken` 使用 `List.of()`（空列表）作为 authorities 参数。当使用纯 JWT OAuth2 Resource Server 模式时（无 IDP + RBAC3 过滤器），所有认证用户的权限列表为空，导致所有 `hasAnyAuthority()` 规则匹配失败，用户仅能访问 `permitAll()` 和 `authenticated()` 端点。
+- **漏洞原理：** `DdcAdminJwtAuthenticationConverter.convert(Jwt)` 方法创建的 `JwtAuthenticationToken` 使用 `List.of()`（空列表）作为 authorities 参数。当使用纯 JWT OAuth2 Resource Server 模式时（无 Tianquan-Shoubing + Tianquan-Jianshen 过滤器），所有认证用户的权限列表为空，导致所有 `hasAnyAuthority()` 规则匹配失败，用户仅能访问 `permitAll()` 和 `authenticated()` 端点。
 - **安全影响：** **此问题不会导致权限提升**（攻击者无法获得未授权的访问），而是导致 JWT 模式下的功能完全不可用（过度拒绝）。这是功能性缺陷而非安全漏洞，降级为 Low。
-- **修复状态：** ⚠️ 未修改（该模式设计为与 IDP+RBAC3 过滤器配合使用，独立的 JWT 模式可能不是预期的使用场景。如需支持独立 JWT 模式，需从 JWT Claims 中提取权限。）
+- **修复状态：** ⚠️ 未修改（该模式设计为与 Tianquan-Shoubing+Tianquan-Jianshen 过滤器配合使用，独立的 JWT 模式可能不是预期的使用场景。如需支持独立 JWT 模式，需从 JWT Claims 中提取权限。）
 - **推荐处理方案：**
-  - 如果计划支持独立 JWT 模式（不依赖 IDP+RBAC3），需要修改 `DdcAdminJwtAuthenticationConverter` 以从 JWT 的 claims 中提取权限信息
-  - 如果仅支持 IDP+RBAC3 模式，建议在 SecurityConfig 中完全禁用 fallback JWT 路径以避免混淆
+  - 如果计划支持独立 JWT 模式（不依赖 Tianquan-Shoubing+Tianquan-Jianshen），需要修改 `DdcAdminJwtAuthenticationConverter` 以从 JWT 的 claims 中提取权限信息
+  - 如果仅支持 Tianquan-Shoubing+Tianquan-Jianshen 模式，建议在 SecurityConfig 中完全禁用 fallback JWT 路径以避免混淆
 
 ---
 
@@ -249,16 +249,16 @@
 
 本项目支持两种认证模式：
 
-1. **IDP + RBAC3 过滤器模式**（生产模式）：
-   - `IdpBearerAuthenticationFilter`：验证 IdP JWT Bearer Token
-   - `Rbac3BearerAuthenticationFilter`：查询 RBAC3 服务获取用户权限
-   - 权限从 RBAC3 服务的 `/authorization` 端点获取
+1. **Tianquan-Shoubing + Tianquan-Jianshen 过滤器模式**（生产模式）：
+   - `IdpBearerAuthenticationFilter`：验证 Tianquan-Shoubing JWT Bearer Token
+   - `Rbac3BearerAuthenticationFilter`：查询 Tianquan-Jianshen 服务获取用户权限
+   - 权限从 Tianquan-Jianshen 服务的 `/authorization` 端点获取
 
 2. **独立 JWT OAuth2 Resource Server 模式**（Fallback 模式）：
    - 使用 `DdcAdminJwtAuthenticationConverter` 提取 JWT 信息
    - 支持 JWK Set URI 或 HMAC-SHA256 对称密钥
    - 支持 Issuer 和 Audience 验证
-   - ⚠️ 此模式下权限提取不完整（见 DDC-SEC-007）
+   - ⚠️ 此模式下权限提取不完整（见 Tianshu-SEC-007）
 
 ### 5.3 授权机制
 
@@ -306,8 +306,8 @@
 | PostgreSQL | TCP (JDBC) | 用户名密码 | 否（配置文件控制） | ✅ 无风险 |
 | gRPC Server (入站) | gRPC | HMAC | N/A（入站） | ✅ 无风险 |
 | gRPC Client (出站) | gRPC | 外部 adapter | 否（配置控制） | ✅ 无风险 |
-| IdP JWK Set URI | HTTPS | 无（公钥获取） | 否（配置文件控制） | ✅ 无风险 |
-| RBAC3 Authorization Endpoint | HTTP/HTTPS | Service JWT | 否（配置文件控制） | ✅ 无风险 |
+| Tianquan-Shoubing JWK Set URI | HTTPS | 无（公钥获取） | 否（配置文件控制） | ✅ 无风险 |
+| Tianquan-Jianshen Authorization Endpoint | HTTP/HTTPS | Service JWT | 否（配置文件控制） | ✅ 无风险 |
 
 ### 6.3 SSRF 评估结论
 
@@ -484,11 +484,11 @@ Spring Security 自动添加以下安全响应头（默认配置）：
 
 | 编号 | 问题 | 严重等级 | 原因 |
 |------|------|---------|------|
-| DDC-SEC-003 | Actuator metrics 端点暴露 | Low | 安全加固建议，非紧急 |
-| DDC-SEC-004 | 默认明文传输模式 | Low | 部署配置项，需运维配合 |
-| DDC-SEC-005 | RPC 本地开发通配符权限 | Low | 开发便利性，已有防护措施 |
-| DDC-SEC-006 | Nonce Store 读操作回放保护跳过 | Low | 设计权衡，可用性优先 |
-| DDC-SEC-007 | JWT Converter 空权限列表 | Low | 功能性缺陷，非安全漏洞 |
+| Tianshu-SEC-003 | Actuator metrics 端点暴露 | Low | 安全加固建议，非紧急 |
+| Tianshu-SEC-004 | 默认明文传输模式 | Low | 部署配置项，需运维配合 |
+| Tianshu-SEC-005 | RPC 本地开发通配符权限 | Low | 开发便利性，已有防护措施 |
+| Tianshu-SEC-006 | Nonce Store 读操作回放保护跳过 | Low | 设计权衡，可用性优先 |
+| Tianshu-SEC-007 | JWT Converter 空权限列表 | Low | 功能性缺陷，非安全漏洞 |
 
 ---
 

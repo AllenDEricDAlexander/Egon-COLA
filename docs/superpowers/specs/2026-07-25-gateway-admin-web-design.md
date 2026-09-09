@@ -1,10 +1,10 @@
-# GWS-11 Gateway Admin Web Spec
+# GWS-11 Yuheng Admin Web Spec
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
-索引：`2026-07-25-gateway-child-spec-index.md`
+索引：`2026-07-25-yuheng-child-spec-index.md`
 
 依赖：GWS-09、GWS-10
 
@@ -13,24 +13,24 @@ Ant Design Charts
 
 ## 1. 目标
 
-Gateway Admin Web 是 Gateway 的管理平台前端，面向平台管理员、网关运维人员和接口
+Yuheng Admin Web 是 Yuheng 的管理平台前端，面向平台管理员、网关运维人员和接口
 负责人，提供：
 
-1. Gateway Group 与 Engine 节点总览；
+1. Yuheng Group 与 Engine 节点总览；
 2. 业务域 → 实体域 → 接口组 → Operation 的接口目录；
 3. Route、流量治理和安全策略编辑；
 4. 校验、差异、发布、Target ACK、重试和回滚；
 5. Provider、Trace、调用统计和审计查询；
 6. 所有前端请求优先生成并传递 Trace ID。
 
-页面不直接访问 DDC、Redis、Kafka 或 Engine，只调用 GWS-09 Admin API。
+页面不直接访问 Tianshu、Redis、Kafka 或 Engine，只调用 GWS-09 Admin API。
 
 ## 2. 非目标
 
-- 不在前端实现 Gateway 路由或规则编译；
+- 不在前端实现 Yuheng 路由或规则编译；
 - 不允许页面直接修改运行态 Redis；
 - 不通过 WebSocket 向 Engine 直接下发规则；
-- 不在浏览器保存 DDC/HMAC Secret；
+- 不在浏览器保存 Tianshu/HMAC Secret；
 - 不在本期实现完整企业 IAM、登录和权限后端；
 - 不提供 Nginx 节点、配置或发布页面；
 - 不提供 Nacos/Dubbo 管理页面；
@@ -40,7 +40,7 @@ Gateway Admin Web 是 Gateway 的管理平台前端，面向平台管理员、�
 ## 3. 工程结构
 
 ```text
-egon-cola-component-gateway-admin-web/
+egon-cola-component-yuheng-admin-web/
 ├── package.json
 ├── vite.config.ts
 ├── tsconfig.json
@@ -50,7 +50,7 @@ egon-cola-component-gateway-admin-web/
 │   ├── components/          领域无关复用组件
 │   ├── features/
 │   │   ├── dashboard/
-│   │   ├── gateway-groups/
+│   │   ├── yuheng-groups/
 │   │   ├── interface-catalog/
 │   │   ├── routes/
 │   │   ├── policies/
@@ -75,12 +75,12 @@ egon-cola-component-gateway-admin-web/
 
 ```text
 /dashboard
-/gateway-groups
-/gateway-groups/:groupId/overview
-/gateway-groups/:groupId/draft/routes
-/gateway-groups/:groupId/draft/policies
-/gateway-groups/:groupId/releases
-/gateway-groups/:groupId/releases/:releaseId
+/yuheng-groups
+/yuheng-groups/:groupId/overview
+/yuheng-groups/:groupId/draft/routes
+/yuheng-groups/:groupId/draft/policies
+/yuheng-groups/:groupId/releases
+/yuheng-groups/:groupId/releases/:releaseId
 /interface-catalog
 /applications/:applicationId/catalog
 /operations/:operationId
@@ -164,7 +164,7 @@ X-Trace-Id: {traceId}
 
 ```text
 总览
-Gateway Group
+Yuheng Group
 接口目录
 Provider
 调用观测
@@ -186,7 +186,7 @@ Env/Namespace 是强作用域选择。切换后清空不兼容缓存和未保存
 
 卡片：
 
-- Gateway Group 数量；
+- Yuheng Group 数量；
 - Ready/Not Ready Engine 节点；
 - 当前版本不一致 Group；
 - 活跃 Provider/异常 Provider；
@@ -203,7 +203,7 @@ Env/Namespace 是强作用域选择。切换后清空不兼容缓存和未保存
 所有图表下提供同等信息的表格或可访问摘要。高基数 Operation 不在总览一次性全部
 绘制。
 
-### 6.3 Gateway Group
+### 6.3 Yuheng Group
 
 列表展示：
 
@@ -358,7 +358,7 @@ Release。
 - Host/Port；
 - Region/Zone/Weight/Tags；
 - Definition Set ID；
-- DDC Lease 与 observedAt；
+- Tianshu Lease 与 observedAt；
 - Engine 本地健康投影（若有）。
 
 页面明确标注“管理投影，不是静态路由配置”。不得提供把 Instance 地址写入 Route 的
@@ -370,7 +370,7 @@ Release。
 
 - 时间范围；
 - Trace ID；
-- Gateway Group；
+- Yuheng Group；
 - Protocol；
 - Operation/Route；
 - 状态类别；
@@ -411,12 +411,12 @@ SHA，不在浏览器渲染整份无界 JSON。
 前端提供路由和操作级 Capability：
 
 ```text
-gateway.group.read
-gateway.draft.write
-gateway.release.publish
-gateway.release.rollback
-gateway.operation.manage
-gateway.audit.read
+yuheng.group.read
+yuheng.draft.write
+yuheng.release.publish
+yuheng.release.rollback
+yuheng.operation.manage
+yuheng.audit.read
 ```
 
 本期可以使用 Mock/占位 Actor 完成 UI 开发，但：
@@ -529,7 +529,7 @@ gateway.audit.read
 2. 用户能完整浏览三级接口目录与详细接口定义；
 3. 用户能编辑、校验、比较、发布、重试和回滚规则；
 4. 节点 ACK、版本不一致和 stale 投影被真实展示；
-5. 页面不直接访问 DDC/Redis/Kafka/Engine；
+5. 页面不直接访问 Tianshu/Redis/Kafka/Engine；
 6. 每个前端请求优先生成并传递 Trace ID；
 7. Draft 并发冲突不会静默覆盖；
 8. PUBLIC/INTERNAL 和 `externalAccessible` 在编辑时有明确约束；

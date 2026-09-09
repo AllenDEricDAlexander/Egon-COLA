@@ -1,8 +1,8 @@
-# Gateway 注解托管 MCP 设计与破坏性迁移
+# Yuheng 注解托管 MCP 设计与破坏性迁移
 
 ## 1. 目标
 
-Gateway 本地 MCP Tool 只允许由业务接口注解声明。控制面不再保存本地
+Yuheng 本地 MCP Tool 只允许由业务接口注解声明。控制面不再保存本地
 Tool 的名称、Schema、Operation 绑定、幂等性或字段绑定，也不提供创建、
 编辑、删除本地 Tool 的入口。
 
@@ -55,7 +55,7 @@ lowercaseHex(SHA-256(serverCode + "\0" + operationKey))
 
 HTTP Tool 的输入 Schema 从 `attributes.parameters` 合并 PATH、QUERY 和 BODY；
 同时生成 `inputLocations`，运行时据此构造位置感知调用。HEADER 和 COOKIE
-永远不进入模型 Schema：optional 参数忽略，Authorization 由 Gateway 身份上下文
+永远不进入模型 Schema：optional 参数忽略，Authorization 由 Yuheng 身份上下文
 注入，其他 required HEADER/COOKIE 拒绝投影。PART、Multipart 和 Streaming
 不允许自动投影。
 
@@ -96,7 +96,7 @@ disabled Route 不再贡献 Operation。只供 MCP 使用的 Operation 由 Manag
 - Managed Tool 只读目录与严格 Override；
 - Remote MCP Provider、Mount 和 Remote Tool；
 - Resource、Resource Template、Prompt、Completion、App、Task、Approval；
-- 审计、幂等键、草稿修订和统一 Gateway Release。
+- 审计、幂等键、草稿修订和统一 Yuheng Release。
 
 删除：
 
@@ -130,12 +130,12 @@ V10 是本次唯一数据库迁移，并且不得修改 V1-V9：
 
 由于不提供兼容层，本次使用维护窗口，不做新旧版本滚动混跑：
 
-1. 为现有数据库创建可恢复备份，冻结 Gateway/MCP 草稿写入和发布；
+1. 为现有数据库创建可恢复备份，冻结 Yuheng/MCP 草稿写入和发布；
 2. 升级 Starter 和业务应用，为目标接口添加注解并使用新 buildId 上报；
 3. 确认当前 Catalog Definition 已包含完整 `mcpExposure`，且 Server/Tool 名唯一；
-4. 停止旧 Gateway Admin 和 Engine，避免旧 Runtime Tool 契约继续消费新发布；
-5. 部署新 Gateway Admin，执行 V10；
-6. 部署新 Gateway Engine；
+4. 停止旧 Yuheng Admin 和 Engine，避免旧 Runtime Tool 契约继续消费新发布；
+5. 部署新 Yuheng Admin，执行 V10；
+6. 部署新 Yuheng Engine；
 7. 检查 MCP Server、Remote Provider/Mount/Tool 和其他 capability 草稿；
 8. 创建第一份注解托管 Release，确认无 Route 的 Managed Tool 也带入 Operation；
 9. 验证 PATH/QUERY/BODY、Unary RPC、权限、HIGH/CRITICAL Approval、Task、

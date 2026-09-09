@@ -4,7 +4,7 @@
 
 ## 目标
 
-建立统一、轻量、可扩展、与现有 Micrometer Observation/OpenTelemetry 兼容的 Trace Context、结构化业务日志和跨协议传播能力。Trace Core、Trace Spring Boot Starter 与 Common Log 都归入 `egon-cola-component-common` 聚合。改造范围覆盖 DDC、RPC、Gateway、DTP、Bytecode，以及涉及 Spring Boot、Spring MVC、内嵌 Tomcat、WebFlux、Reactor Netty、RestClient、WebClient 和 gRPC 的相关代码。
+建立统一、轻量、可扩展、与现有 Micrometer Observation/OpenTelemetry 兼容的 Trace Context、结构化业务日志和跨协议传播能力。Trace Core、Trace Spring Boot Starter 与 Common Log 都归入 `egon-cola-component-common` 聚合。改造范围覆盖 Tianshu、RPC、Yuheng、DTP、Bytecode，以及涉及 Spring Boot、Spring MVC、内嵌 Tomcat、WebFlux、Reactor Netty、RestClient、WebClient 和 gRPC 的相关代码。
 
 ## 非目标
 
@@ -26,7 +26,7 @@
 - 当前 `TraceSnapshot` 只是一个只读 `traceId` DTO，没有 Scope、任务包装、Executor 装饰或完整 MDC 恢复能力。
 - `ResultRecord` 和 `PageResultRecord` 只通过 `TraceContext.getTraceId()` 输出响应 `traceId`，这是需要保留的兼容入口。
 
-### DDC
+### Tianshu
 
 - `DdcTraceIdFilter` 是 Admin 私有 Servlet Filter，使用 `X-Trace-Id` 和 UUID 字符串生成 trace，结束时只删除 `traceId`。
 - `HttpDdcAdminClient` 私有构建 `RestClient.Builder`，全局 `RestClientCustomizer` 不一定能影响 `register`、`heartbeat`、`offline`、`pull`、`reportDefaults`、`ack`。
@@ -42,12 +42,12 @@
 - Consumer 当前只写 `x-egon-trace-id`，未创建 child span，未写 requestId，未区分 traceId/requestId/spanId/invocationId。
 - `RpcProviderServerInterceptor` 当前解析 `x-egon-trace-id` 后只写 gRPC `Context`，不写 MDC，不包装 `ServerCall.Listener` 回调，线程切换和 streaming 扩展下日志会丢 trace。
 
-### Gateway
+### Yuheng
 
-- `GatewayTraceContext` 当前承担 W3C `traceparent` 解析、traceId/spanId 生成、tracestate 限制、header conflict 检测和 Gateway engineSpanId 生成。
-- `GatewayTelemetry` 已通过 Micrometer Observation 尝试将 Gateway trace 与 Micrometer span 对齐；当存在有效 tracing span 时会用 Micrometer traceId/spanId 替换 fallback。
-- Gateway HTTP/RPC data plane 当前直接使用 `GatewayTraceContext`，下游只稳定写 `traceparent`，部分响应/错误路径仍使用 `x-trace-id`，不是统一的 `x-egon-trace-id`。
-- Gateway Engine 是自研 Reactor Netty 数据面，不适用 Spring Cloud Gateway `GlobalFilter`。
+- `GatewayTraceContext` 当前承担 W3C `traceparent` 解析、traceId/spanId 生成、tracestate 限制、header conflict 检测和 Yuheng engineSpanId 生成。
+- `GatewayTelemetry` 已通过 Micrometer Observation 尝试将 Yuheng trace 与 Micrometer span 对齐；当存在有效 tracing span 时会用 Micrometer traceId/spanId 替换 fallback。
+- Yuheng HTTP/RPC data plane 当前直接使用 `GatewayTraceContext`，下游只稳定写 `traceparent`，部分响应/错误路径仍使用 `x-trace-id`，不是统一的 `x-egon-trace-id`。
+- Yuheng Engine 是自研 Reactor Netty 数据面，不适用 Spring Cloud Gateway `GlobalFilter`。
 - `GatewayCallEventV1.Trace` 当前只有 `traceId`、`engineSpanId`、`sampled`，attempt 里记录 spanId。
 
 ### Bytecode 与 DTP
@@ -80,8 +80,8 @@
 
 1. `common-trace` 作为协议无关、Spring 无关、JDK+slf4j-only 的 Trace 核心，并提供单类 `CommonLogUtil` 业务日志工具。
 2. `common-trace-spring-boot-starter` 作为 Spring Boot Web/MVC/WebFlux/RestClient/WebClient 自动装配层。
-3. RPC、Gateway、DDC 直接接入 `common-trace`，不再各自维护 traceId 校验和生成逻辑。
-4. Gateway 的 Micrometer Observation/OpenTelemetry 仍由 Gateway Engine 自己掌握，`common-trace` 只做轻量 fallback 与 MDC 投影，不创建与 OTel 平行冲突的 span。
+3. RPC、Yuheng、Tianshu 直接接入 `common-trace`，不再各自维护 traceId 校验和生成逻辑。
+4. Yuheng 的 Micrometer Observation/OpenTelemetry 仍由 Yuheng Engine 自己掌握，`common-trace` 只做轻量 fallback 与 MDC 投影，不创建与 OTel 平行冲突的 span。
 
 备选方案与取舍：
 
@@ -89,7 +89,7 @@
 |---|---|---|
 | 只增强 `common-core` | 改动少，但 core 会继续承担 trace、pojo、exception、converter 等职责 | 不推荐，违背拆出 trace 的目标 |
 | 完全复制 FamilyAiButler 六 Starter | 覆盖面广，但依赖污染、实现过重、默认传播敏感身份字段 | 不采用 |
-| common 聚合内的 `common-trace` + Trace Spring Starter，RPC/Gateway/DDC 直接接入 | Trace 与日志关联共用 MDC 边界，依赖可控，不为一个工具类单建 artifact | 采用 |
+| common 聚合内的 `common-trace` + Trace Spring Starter，RPC/Yuheng/Tianshu 直接接入 | Trace 与日志关联共用 MDC 边界，依赖可控，不为一个工具类单建 artifact | 采用 |
 
 ## 模块布局
 
@@ -117,7 +117,7 @@
 `common-trace` 生产依赖限制：
 
 - 允许：JDK、`org.slf4j:slf4j-api`
-- 禁止：Spring、Spring Boot、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson、Logback 实现、业务组件
+- 禁止：Spring、Spring Boot、Servlet、WebFlux、Reactor、gRPC、Yuheng、Jackson、Logback 实现、业务组件
 - 测试允许：JUnit、AssertJ、logback-classic
 
 ### Common 内部 Trace 模块
@@ -306,7 +306,7 @@ public interface TraceCarrierWriter<C> {
 
 - 如果 `traceparent` 合法且兼容 trace header 合法，但 traceId 不一致，则 `headerConflict=true`。
 - 冲突不改变主协议优先级，仍以 `traceparent` 为准。
-- 冲突信息通过 `Extraction` 返回，供 Gateway 安全日志和指标使用。
+- 冲突信息通过 `Extraction` 返回，供 Yuheng 安全日志和指标使用。
 
 建议模型：
 
@@ -637,7 +637,7 @@ public record RpcInvocationMetadata(
   - `x-egon-rpc-invocation-id`
   - `x-egon-rpc-source-app`
   - `x-egon-rpc-source-instance`
-- 对 gateway retry，每次实际 `start()` 有独立 child span，invocationId 保持不变。
+- 对 yuheng retry，每次实际 `start()` 有独立 child span，invocationId 保持不变。
 
 ### Provider
 
@@ -656,7 +656,7 @@ public record RpcInvocationMetadata(
 - `next.startCall()` 本身也在 Scope 中执行，执行后恢复原上下文。
 - 当前 unary 也按 Listener 模型实现，避免未来 streaming 重做。
 
-## Gateway 改造
+## Yuheng 改造
 
 ### GatewayTraceContext 下沉边界
 
@@ -669,13 +669,13 @@ public record RpcInvocationMetadata(
 - header conflict 检测。
 - 协议无关 carrier。
 
-保留在 Gateway：
+保留在 Yuheng：
 
 - `engineSpanId`
 - `headerConflict`
 - `source`
 - provider attempt span
-- Gateway 安全/路由/治理相关 trace 投影字段
+- Yuheng 安全/路由/治理相关 trace 投影字段
 
 建议改造后：
 
@@ -704,7 +704,7 @@ public record GatewayTraceContext(
 要求：
 
 - 不使用 Spring Cloud Gateway `GlobalFilter`。
-- Gateway HTTP Listener 在最早阶段建立 TraceState 并写入 Reactor Context。
+- Yuheng HTTP Listener 在最早阶段建立 TraceState 并写入 Reactor Context。
 - 路由、安全、鉴权、限流、熔断、重试、HTTP Upstream、RPC Upstream、GatewayCallEvent 都使用同一 Trace 来源。
 - `TraceScope` 用于日志投影，不把 MDC 当作 Reactor 真实上下文。
 
@@ -712,11 +712,11 @@ public record GatewayTraceContext(
 
 要求：
 
-- Gateway 已有 Micrometer Tracing Bridge 和 OpenTelemetry，Gateway traceId/spanId 优先与当前 Observation/Tracer Span 对齐。
-- 有有效 Observation span 时，由 Gateway adapter 读取 Micrometer `TraceContext` 并生成/替换 Gateway TraceState 的当前 span。
+- Yuheng 已有 Micrometer Tracing Bridge 和 OpenTelemetry，Yuheng traceId/spanId 优先与当前 Observation/Tracer Span 对齐。
+- 有有效 Observation span 时，由 Yuheng adapter 读取 Micrometer `TraceContext` 并生成/替换 Yuheng TraceState 的当前 span。
 - 没有 Tracer 或 span 为 noop 时，才使用 common-trace 轻量生成逻辑。
-- 禁止 common-trace 在 Gateway 中创建与 OTel 不一致的平行 span。
-- Gateway 普通日志、OpenTelemetry Trace、`GatewayCallEventV1.Trace`、管理端 Trace 查询、下游 `traceparent` 中的 traceId/spanId 必须一致。
+- 禁止 common-trace 在 Yuheng 中创建与 OTel 不一致的平行 span。
+- Yuheng 普通日志、OpenTelemetry Trace、`GatewayCallEventV1.Trace`、管理端 Trace 查询、下游 `traceparent` 中的 traceId/spanId 必须一致。
 
 ### Attempt span
 
@@ -727,11 +727,11 @@ public record GatewayTraceContext(
 
 ### Header 统一
 
-- Gateway 入站只接受 `traceparent`、`tracestate`、`x-egon-request-id`；无兼容期，不读取旧 traceId Header。
+- Yuheng 入站只接受 `traceparent`、`tracestate`、`x-egon-request-id`；无兼容期，不读取旧 traceId Header。
 - 出站统一写 `traceparent`、`tracestate`、`x-egon-request-id`。
 - 响应错误路径写标准 `traceparent` 与 requestId，不写 `x-trace-id` 或 `x-egon-trace-id`。
 
-## DDC 改造
+## Tianshu 改造
 
 ### 内部 Trace 注入器
 
@@ -749,11 +749,11 @@ public record GatewayTraceContext(
 
 规则：
 
-- 业务请求触发 DDC 调用：继承当前 traceId，创建 child span。
+- 业务请求触发 Tianshu 调用：继承当前 traceId，创建 child span。
 - 后台注册、心跳、定时 pull、ACK 重试、Redis Topic 回调、租约恢复：没有上游 trace 时，为每次逻辑操作创建独立 root TraceScope。
 - 执行结束后恢复线程原上下文。
 - 结构化日志 additional MDC 可包含：
-  - `component=ddc`
+  - `component=tianshu`
   - `operation=heartbeat|pull|ack|register|offline|reconcile|redis-event|registry-refresh`
 - 不把这些 additional MDC 默认跨服务传播。
 
@@ -765,7 +765,7 @@ public record GatewayTraceContext(
 
 ## Spring MVC Admin 应用接入
 
-DDC Admin、Gateway Admin 等 Spring MVC 应用应直接依赖 `egon-cola-component-common-trace-spring-boot-starter`。
+Tianshu Admin、Yuheng Admin 等 Spring MVC 应用应直接依赖 `egon-cola-component-common-trace-spring-boot-starter`。
 
 删除或合并：
 
@@ -829,10 +829,10 @@ Spring、Logback、Jackson、日志采集平台或 APM。
 | WebClient | Reactor Context 优先，MDC 降级 | Reactor Context | HTTP headers | 每次请求 child span | 支持线程切换 |
 | RPC Consumer | TraceContext/MDC | 调用开始时 | gRPC Metadata | 每次 start child span | invocationId 与 spanId 分离 |
 | RPC Provider | gRPC Metadata | gRPC Context + MDC | 业务内当前上下文 | provider server span | Listener 每回调恢复 |
-| Gateway HTTP | HTTP headers | Reactor Context + GatewayTraceContext | Upstream HTTP headers | request span + attempt span | 与 OTel span 对齐 |
-| Gateway RPC | gRPC Metadata | gRPC Context + GatewayTraceContext | Upstream gRPC Metadata | request span + attempt span | attempt span 不复用 |
-| DDC Client | TraceContext/MDC 或 root | TraceScope | HTTP headers | child/root operation span | 私有 RestClient 显式注入 |
-| DDC 后台任务 | root 或提交 snapshot | TraceScope | HTTP headers | 每次逻辑操作独立 | 执行后恢复线程 |
+| Yuheng HTTP | HTTP headers | Reactor Context + GatewayTraceContext | Upstream HTTP headers | request span + attempt span | 与 OTel span 对齐 |
+| Yuheng RPC | gRPC Metadata | gRPC Context + GatewayTraceContext | Upstream gRPC Metadata | request span + attempt span | attempt span 不复用 |
+| Tianshu Client | TraceContext/MDC 或 root | TraceScope | HTTP headers | child/root operation span | 私有 RestClient 显式注入 |
+| Tianshu 后台任务 | root 或提交 snapshot | TraceScope | HTTP headers | 每次逻辑操作独立 | 执行后恢复线程 |
 
 ## 兼容性影响
 
@@ -842,7 +842,7 @@ Spring、Logback、Jackson、日志采集平台或 APM。
 - `TraceContext.getTraceId()`、`setTraceId()`、`clearTraceId()`、`snapshot()` 保留。
 - `TraceSnapshot.getTraceId()` 保留。
 - `ResultRecord`、`PageResultRecord` 继续只输出 `traceId`。
-- Gateway `GatewayTraceContext.traceId()` 等访问器保留。
+- Yuheng `GatewayTraceContext.traceId()` 等访问器保留。
 - RPC `RpcInvocationMetadata.current()` 保留。
 
 行为变化：
@@ -851,15 +851,15 @@ Spring、Logback、Jackson、日志采集平台或 APM。
 - spanId 统一为 W3C 16 位小写 hex 非全零。
 - `traceparent` 成为主协议。
 - 不传播 `x-egon-trace-id`、`x-trace-id` 或 `X-Trace-Id`。
-- `X-Trace-Id` 仅在非 Gateway 的通用提取器中默认只读兼容；Gateway 无过渡期。
+- `X-Trace-Id` 仅在非 Yuheng 的通用提取器中默认只读兼容；Yuheng 无过渡期。
 - Admin 私有 Filter 被统一 Starter 替代。
 - RPC Provider 日志在 listener 回调中带 trace。
-- DDC 后台线程不会残留上一轮 trace。
+- Tianshu 后台线程不会残留上一轮 trace。
 
 需要审查的破坏点：
 
 - 外部客户端如果只依赖旧 traceId Header，必须直接迁移到 W3C `traceparent`；不提供出站过渡期双写。
-- Gateway 管理端和前端从响应 `traceparent` 读取 traceId，并使用 `x-egon-request-id` 关联请求。
+- Yuheng 管理端和前端从响应 `traceparent` 读取 traceId，并使用 `x-egon-request-id` 关联请求。
 - 依赖树新增 `egon-cola-component-common-trace` 和 `egon-cola-component-common-trace-spring-boot-starter`。
 
 ## 测试验收
@@ -948,15 +948,15 @@ cause、敏感字段脱敏、字符串单行限长、集合边界和禁用日志
 ./mvnw -B -ntp -f egon-cola-components/egon-cola-component-rpc/pom.xml test
 ```
 
-### Gateway
+### Yuheng
 
 覆盖：
 
 - `GatewayTraceContext` 复用 common-trace parser。
-- Gateway 忽略旧 traceId Header，只接受 `traceparent`。
-- Gateway OTel Span 与 MDC/CallEvent 对齐。
-- Gateway HTTP upstream 传播统一 header。
-- Gateway RPC upstream 传播统一 metadata。
+- Yuheng 忽略旧 traceId Header，只接受 `traceparent`。
+- Yuheng OTel Span 与 MDC/CallEvent 对齐。
+- Yuheng HTTP upstream 传播统一 header。
+- Yuheng RPC upstream 传播统一 metadata。
 - 重试 attempt span 不重复。
 - GatewayCallEvent traceId/spanId 一致。
 - 错误响应写 `traceparent` 与 `x-egon-request-id`，不写旧 traceId Header。
@@ -964,10 +964,10 @@ cause、敏感字段脱敏、字符串单行限长、集合边界和禁用日志
 命令：
 
 ```bash
-./mvnw -B -ntp -f egon-cola-components/egon-cola-component-gateway/pom.xml test
+./mvnw -B -ntp -f egon-cola-components/egon-cola-component-yuheng/pom.xml test
 ```
 
-### DDC
+### Tianshu
 
 覆盖：
 
@@ -997,9 +997,9 @@ egon-cola-component-common/egon-cola-component-common-trace-spring-boot-starter,
 egon-cola-component-rpc/egon-cola-component-rpc-starter,\
 egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-starter,\
 egon-cola-component-dynamic-config-center/egon-cola-component-dynamic-config-center-admin,\
-egon-cola-component-gateway/egon-cola-component-gateway-contract,\
-egon-cola-component-gateway/egon-cola-component-gateway-engine,\
-egon-cola-component-gateway/egon-cola-component-gateway-admin \
+egon-cola-component-yuheng/egon-cola-component-yuheng-contract,\
+egon-cola-component-yuheng/egon-cola-component-yuheng-biz-gateway,\
+egon-cola-component-yuheng/egon-cola-component-yuheng-admin \
 -am test
 
 ./mvnw -B -ntp -f egon-cola-components/pom.xml test
@@ -1015,7 +1015,7 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 - Servlet/WebFlux 条件互斥。
 - common-trace 依赖树只有 JDK + slf4j-api。
 - 没有重复注册 Micrometer Context Propagation accessor。
-- Gateway OTel span 与 `GatewayCallEvent` 对齐。
+- Yuheng OTel span 与 `GatewayCallEvent` 对齐。
 - 无 MDC 泄漏。
 - 无敏感数据默认日志或传播。
 
@@ -1033,8 +1033,8 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 - `egon-cola-components/egon-cola-component-rpc/README.zh-CN.md`
 - `egon-cola-components/egon-cola-component-dynamic-config-center/README.md`
 - `egon-cola-components/egon-cola-component-dynamic-config-center/README.zh-CN.md`
-- `egon-cola-components/egon-cola-component-gateway/README.md`
-- `egon-cola-components/egon-cola-component-gateway/README.zh-CN.md`
+- `egon-cola-components/egon-cola-component-yuheng/README.md`
+- `egon-cola-components/egon-cola-component-yuheng/README.zh-CN.md`
 
 必须说明：
 
@@ -1042,7 +1042,7 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 - `traceId`、`spanId`、`parentSpanId`、`requestId`、`invocationId` 的差异。
 - `traceparent` 是唯一 trace 主协议；Egon 只保留 requestId Header，不携带 Egon traceId Header。
 - 请求体和响应体默认不记录的安全原因。
-- Spring MVC、WebFlux、RestClient、WebClient、RPC、Gateway、DDC 示例。
+- Spring MVC、WebFlux、RestClient、WebClient、RPC、Yuheng、Tianshu 示例。
 - 通过日志 Pattern 输出 `%X{traceId}`、`%X{spanId}`、`%X{requestId}`。
 - 不强制替换业务应用 logback 配置。
 
@@ -1061,7 +1061,7 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 
 - 在日志工具类中重复 Trace 生成、协议传播、线程上下文恢复，以及日志平台封装。
 - Controller AOP 全量日志，本次不是审计平台。
-- 独立 OTel SDK 封装，Gateway 已由 Micrometer/OTel 负责。
+- 独立 OTel SDK 封装，Yuheng 已由 Micrometer/OTel 负责。
 
 ## 实施切分建议
 
@@ -1069,8 +1069,8 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 2. common-core 依赖 common-trace，并保持 `ResultRecord`/`PageResultRecord` 兼容。
 3. Trace Spring Boot Starter：Servlet、RestClient、WebFlux、WebClient 与 Reactor Context。
 4. RPC Consumer/Provider metadata 与 Listener Scope。
-5. DDC RestClient 显式注入与后台任务 Scope。
-6. GatewayTraceContext 下沉、Gateway Engine Reactor Context/MDC/OTel 对齐。
+5. Tianshu RestClient 显式注入与后台任务 Scope。
+6. GatewayTraceContext 下沉、Yuheng Engine Reactor Context/MDC/OTel 对齐。
 7. Admin 私有 Filter 删除并接入 common Trace Starter。
 8. DTP Runnable/Callable/Supplier 与 Bytecode `MdcContextCarrier` 复用 TraceSnapshot。
 9. README/BOM/依赖树/整体验证。
@@ -1081,7 +1081,7 @@ egon-cola-component-gateway/egon-cola-component-gateway-admin \
 
 - 不新增 common 外的 Trace 聚合；Log、Trace Core 和 Trace Starter 都在 common 下。
 - `X-Trace-Id` 默认只读，不提供出站过渡期。
-- Gateway 无过渡期，不读写旧 traceId Header。
+- Yuheng 无过渡期，不读写旧 traceId Header。
 - 不携带 `x-egon-trace-id`。
 - DTP 不新增 Starter，只增强并复用 Runnable/Callable/Supplier/Executor 上下文包装。
 - Bytecode `MdcContextCarrier` 复用 common-trace Snapshot。

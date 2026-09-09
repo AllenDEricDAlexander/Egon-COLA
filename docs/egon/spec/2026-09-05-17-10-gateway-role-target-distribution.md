@@ -1,8 +1,8 @@
-# Gateway 按角色分发 Release 的双目标修订
+# Yuheng 按角色分发 Release 的双目标修订
 
 | Field              | Value                                                                                                                                                                                                                                                                                            |
 |--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Document           | `2026-09-05-17-10-gateway-role-target-distribution.md`                                                                                                                                                                                                                                           |
+| Document           | `2026-09-05-17-10-yuheng-role-target-distribution.md`                                                                                                                                                                                                                                           |
 | Template Version   | `7`                                                                                                                                                                                                                                                                                              |
 | Status             | `Accepted`                                                                                                                                                                                                                                                                                       |
 | Type               | `Bugfix`                                                                                                                                                                                                                                                                                         |
@@ -12,41 +12,41 @@
 | Updated            | `2026-09-05 18:02 CST`                                                                                                                                                                                                                                                                           |
 | Owner              | 用户 / Codex                                                                                                                                                                                                                                                                                       |
 | Repository         | `Egon-COLA`                                                                                                                                                                                                                                                                                      |
-| Scope              | Gateway Admin 发布、恢复、投影、清理与角色部署配置                                                                                                                                                                                                                                                                 |
+| Scope              | Yuheng Admin 发布、恢复、投影、清理与角色部署配置                                                                                                                                                                                                                                                                 |
 | Change Surface     | publication 四个目标列；Coordinator/Service/JDBC/Projection/GC；配置与回归夹具                                                                                                                                                                                                                                 |
 | Affected Chapters  | §7, §8, §9, §10, §11, §13, §14, §15, §16, §17, §18                                                                                                                                                                                                                                               |
-| Source Requirement | 用户批准两个 Engine 与 Admin 各自独立 OAuth Resource Server，批准 Gateway 双目标分发，要求“继续，自行决定，不要问我”                                                                                                                                                                                                               |
+| Source Requirement | 用户批准两个 Engine 与 Admin 各自独立 OAuth Resource Server，批准 Yuheng 双目标分发，要求“继续，自行决定，不要问我”                                                                                                                                                                                                               |
 | Baseline Revision  | `main@1a82cd477e9313c115470e0b314602c025f8e1ee`                                                                                                                                                                                                                                                  |
-| Amends             | [双 Engine 分离](2026-09-02-19-52-gateway-dual-engine-separation.md) §3.2、§4–§5、§7–§11、§14–§20 中共享 DDC app、全局同数字 version、无 Gateway schema 变更及关联发布/投影/部署结论；[Admin 后端设计](../../superpowers/specs/2026-07-25-gateway-admin-backend-design.md) §3.5–§3.6、§4、§8、§10 的 journal/恢复锁实现，保留不可变 Release 和事务外网络 |
+| Amends             | [双 Engine 分离](2026-09-02-19-52-yuheng-dual-engine-separation.md) §3.2、§4–§5、§7–§11、§14–§20 中共享 Tianshu app、全局同数字 version、无 Yuheng schema 变更及关联发布/投影/部署结论；[Admin 后端设计](../../superpowers/specs/2026-07-25-yuheng-admin-backend-design.md) §3.5–§3.6、§4、§8、§10 的 journal/恢复锁实现，保留不可变 Release 和事务外网络 |
 | Supersedes         | `None`                                                                                                                                                                                                                                                                                           |
-| Depends On         | [双 Engine 分离](2026-09-02-19-52-gateway-dual-engine-separation.md) §7.1、§8 的已实现 executable/core 边界；[三资源身份种子](2026-09-05-16-00-gateway-oauth-resource-bootstrap.md) §7、§16 的身份与数据保护                                                                                                                |
+| Depends On         | [双 Engine 分离](2026-09-02-19-52-yuheng-dual-engine-separation.md) §7.1、§8 的已实现 executable/core 边界；[三资源身份种子](2026-09-05-16-00-yuheng-oauth-resource-bootstrap.md) §7、§16 的身份与数据保护                                                                                                                |
 | Related Specs      | `None`                                                                                                                                                                                                                                                                                           |
-| Related Plans      | [主实施计划](../plan/2026-09-02-21-03-gateway-dual-engine-separation-implementation.md) Step 11 继续完整 local platforms/RBAC/OpenAPI 浏览器验收                                                                                                                                                               |
+| Related Plans      | [主实施计划](../plan/2026-09-02-21-03-yuheng-dual-engine-separation-implementation.md) Step 11 继续完整 local xingyuan/RBAC/OpenAPI 浏览器验收                                                                                                                                                               |
 
 ## 1. Summary
 
-保留一个 Gateway Admin、API_RPC/MCP 两个固定 Engine。三个进程各有 OAuth Resource Server/Client，两个 Engine 的 DDC
-biz/app/env 必须符合自身 source 身份。Admin 将一份不可变 Release/Artifact 分发到两个独立 app，不放宽 IdP/DDC 校验。
+保留一个 Yuheng Admin、API_RPC/MCP 两个固定 Engine。三个进程各有 OAuth Resource Server/Client，两个 Engine 的 Tianshu
+biz/app/env 必须符合自身 source 身份。Admin 将一份不可变 Release/Artifact 分发到两个独立 app，不放宽 Tianquan-Shoubing/Tianshu 校验。
 
 新发布冻结角色目标和 phase journal，Retry 沿用原目标/changeId，只继续未完成部分。运行一致性严格检查角色、scope、Release、Artifact
-SHA、ACK 和新鲜性；version 不低于自己角色成功激活的版本即可，不能比较两个 app 的数字相等。原全量 platforms 与 RBAC/OpenAPI
+SHA、ACK 和新鲜性；version 不低于自己角色成功激活的版本即可，不能比较两个 app 的数字相等。原全量 xingyuan 与 RBAC/OpenAPI
 浏览器目标保持，不能用本修订的局部测试代替。
 
 ## 2. Background and Current State
 
 ### 2.1 Business and user context
 
-用户已确认三 Resource 和继续自主修复。身份前置提交 1a82cd477 已有 24 项边界回归，本修订消除 Gateway 剩余单目标假设。
+用户已确认三 Resource 和继续自主修复。身份前置提交 1a82cd477 已有 24 项边界回归，本修订消除 Yuheng 剩余单目标假设。
 
 ### 2.2 Repository evidence
 
 | Evidence ID | Classification    | Exact path/symbol/decision/command                                                                                                                                                                                     | Observed fact                                 | Design significance             | Verification limit/freshness |
 |-------------|-------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------|---------------------------------|------------------------------|
-| EVD-001     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/service/GatewayReleasePublicationCoordinator.java initialize/execute/scope | 全局targetBiz/App、一条phase链、最后一个activation       | 冻结双目标链                          | 当前HEAD，非live                 |
-| EVD-002     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/repository/jdbc/JdbcGatewayReleasePublicationRepository.java；V4 journal    | 无角色/目标，changeId全局唯一                           | 根journal跨审计Attempt复用            | 历史迁移不改                       |
-| EVD-003     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayProjectionService.java expectation/runtimeConsistency       | 全局version unanimous，未直接否决stale                | 角色期望及fail closed                | 外部字段保持                       |
-| EVD-004     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/controller/scheduled/GatewayRuleChunkGarbageCollector.java                 | 使用当前全局目标、successor不分目标                        | 冻结scope驱动GC                     | 未验证真实DB                      |
-| EVD-005     | Static repository | DDC starter DdcYamlConfigApplier.apply/applyCurrent，DdcRefreshService.compare                                                                                                                                          | 普通更新只触发changed leaf；启动重放用当前文档version；旧版本STALE | 同Release/SHA的重启版本可能更高，必须使用下界    | 核心不修改                        |
+| EVD-001     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/service/GatewayReleasePublicationCoordinator.java initialize/execute/scope | 全局targetBiz/App、一条phase链、最后一个activation       | 冻结双目标链                          | 当前HEAD，非live                 |
+| EVD-002     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/repository/jdbc/JdbcGatewayReleasePublicationRepository.java；V4 journal    | 无角色/目标，changeId全局唯一                           | 根journal跨审计Attempt复用            | 历史迁移不改                       |
+| EVD-003     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/runtime/service/GatewayProjectionService.java expectation/runtimeConsistency       | 全局version unanimous，未直接否决stale                | 角色期望及fail closed                | 外部字段保持                       |
+| EVD-004     | Static repository | egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/controller/scheduled/GatewayRuleChunkGarbageCollector.java                 | 使用当前全局目标、successor不分目标                        | 冻结scope驱动GC                     | 未验证真实DB                      |
+| EVD-005     | Static repository | Tianshu starter DdcYamlConfigApplier.apply/applyCurrent，DdcRefreshService.compare                                                                                                                                          | 普通更新只触发changed leaf；启动重放用当前文档version；旧版本STALE | 同Release/SHA的重启版本可能更高，必须使用下界    | 核心不修改                        |
 | EVD-006     | User decision     | 本轮三Resource/fan-out/继续自行修复                                                                                                                                                                                             | 管理Client/source app不共享                        | 授权此修正方向                         | 不授权清空数据                      |
 | EVD-007     | Static repository | GatewayReleaseService/ReleaseReconciler；Admin Spec §10                                                                                                                                                                 | 尚无跨进程执行guard，请求/恢复可能重叠                        | PostgreSQL execute-around guard | 真实会话锁待验证                     |
 
@@ -59,9 +59,9 @@ SHA、ACK 和新鲜性；version 不低于自己角色成功激活的版本即�
 
 | Entry/trigger | Current call chain                                | Data read/written                   | External dependency  | Consumers  | Evidence        |
 |---------------|---------------------------------------------------|-------------------------------------|----------------------|------------|-----------------|
-| 发布/回滚         | Controller→Service.prepare→insert→Coordinator→DDC | Release/Content/Attempt/Publication | DDC management       | 两Engine    | EVD-001/002     |
-| Retry/恢复      | Service.retry/Reconciler→Coordinator              | Attempt/journal/ACK                 | DDC task/query/retry | 历史/draft基线 | EVD-002/007     |
-| 运行查询/GC       | Projection/GC→Repository/DDC                      | 元数据/旧chunk                          | 租约/config            | 角色卡片       | EVD-003/004/005 |
+| 发布/回滚         | Controller→Service.prepare→insert→Coordinator→Tianshu | Release/Content/Attempt/Publication | Tianshu management       | 两Engine    | EVD-001/002     |
+| Retry/恢复      | Service.retry/Reconciler→Coordinator              | Attempt/journal/ACK                 | Tianshu task/query/retry | 历史/draft基线 | EVD-002/007     |
+| 运行查询/GC       | Projection/GC→Repository/Tianshu                      | 元数据/旧chunk                          | 租约/config            | 角色卡片       | EVD-003/004/005 |
 
 ## 3. Goals and Non-goals
 
@@ -71,7 +71,7 @@ SHA、ACK 和新鲜性；version 不低于自己角色成功激活的版本即�
 
 ### 3.2 Non-goals
 
-不改 IdP/DDC 核心授权/schema/source app、不修改历史 Flyway、不引入跨进程事务/总线/新分发服务/Web页面、不让MCP经peer转发。原
+不改 Tianquan-Shoubing/Tianshu 核心授权/schema/source app、不修改历史 Flyway、不引入跨进程事务/总线/新分发服务/Web页面、不让MCP经peer转发。原
 Step11 local脚本/全平台/RBAC/OpenAPI浏览器验收继续，不能因为本修订而缩小或关闭总目标。
 
 ### 3.3 Change Surface and Design Depth
@@ -83,7 +83,7 @@ Step11 local脚本/全平台/RBAC/OpenAPI浏览器验收继续，不能因为本
 | 投影/GC            | Affected     | Projection/Collector                           | 角色scope、版本下界、清理隔离                      | 查询/测试                   | §7, §8, §9, §14 |
 | REST wire/页面     | Context-only | ProjectionController/ReleaseController及角色卡片    | URL/字段/鉴权/显示不变，修正内部目标和计算               | 引用原契约，不新建API            | §9, §12         |
 | 配置/部署            | Affected     | Admin application、MCP base/operations、Compose  | 独立app/目标键                              | parity/切换               | §8, §15, §16    |
-| IdP/DDC/Engine核心 | Unchanged    | identity seed、RefreshService、ActivationApplier | strict binding、单调版本、独立LKG/协议           | 边界回归                    | §9, §10         |
+| Tianquan-Shoubing/Tianshu/Engine核心 | Unchanged    | identity seed、RefreshService、ActivationApplier | strict binding、单调版本、独立LKG/协议           | 边界回归                    | §9, §10         |
 | 测试/风险/替代         | Affected     | §14–§18                                        | 不同版本/失败/legacy/guard                   | 明确证据边界                  | §14, §17, §18   |
 
 ## 4. Requirements and Acceptance Criteria
@@ -92,7 +92,7 @@ Step11 local脚本/全平台/RBAC/OpenAPI浏览器验收继续，不能因为本
 
 | ID      | Requirement                                     | Observable acceptance                                            |
 |---------|-------------------------------------------------|------------------------------------------------------------------|
-| REQ-013 | 三 Resource 各自对应自己的 DDC app，Admin 不是 Engine 规则目标 | 两个合法且不同的 Engine scope；错角色或 source 绑定拒绝                           |
+| REQ-013 | 三 Resource 各自对应自己的 Tianshu app，Admin 不是 Engine 规则目标 | 两个合法且不同的 Engine scope；错角色或 source 绑定拒绝                           |
 | REQ-014 | 一次编译，在创建事务内冻结双目标和 canonical artifact            | 两份 leaf 字节相同；各自 YAML 无关键保留；配置漂移不重定向                              |
 | REQ-015 | 独立目标发布与真实聚合                                     | peer 失败不跳过另一角色；两激活成功才整体成功；CHUNK 不算 partialApplied                |
 | REQ-016 | 持久化恢复、跨进程互斥与旧 Retry fencing                     | 根 journal/changeId 不变，成功部分不重发；新审计 Attempt；旧 Release 不覆盖新 Release |
@@ -120,16 +120,16 @@ Step11 local脚本/全平台/RBAC/OpenAPI浏览器验收继续，不能因为本
 
 | Actor ID  | Actor/role | Goal and responsibility | Entry/channel      | Permission/tenant context   | Evidence    |
 |-----------|------------|-------------------------|--------------------|-----------------------------|-------------|
-| ACTOR-001 | 操作员        | 发布/观察/修复                | 既有REST/Web         | gateway:read/releases:write | Controllers |
-| ACTOR-002 | Engine     | 自己身份加载共同制品              | DDC push/bootstrap | 固定角色/独立Resource             | EVD-005/006 |
+| ACTOR-001 | 操作员        | 发布/观察/修复                | 既有REST/Web         | yuheng:read/releases:write | Controllers |
+| ACTOR-002 | Engine     | 自己身份加载共同制品              | Tianshu push/bootstrap | 固定角色/独立Resource             | EVD-005/006 |
 | ACTOR-003 | 后台任务       | 恢复/安全清理                 | Reconciler/GC      | 原管理凭证                       | EVD-004/007 |
 
 | ID     | Use case/goal | Primary actor | Supporting actors/systems | Trigger   | Preconditions             | Main success outcome | Alternatives/failures     | Postconditions  | Requirements    | Interfaces/pages      | Tests        |
 |--------|---------------|---------------|---------------------------|-----------|---------------------------|----------------------|---------------------------|-----------------|-----------------|-----------------------|--------------|
-| UC-001 | 发布双角色Release  | ACTOR-001     | ACTOR-002/DDC             | 确认draft   | 权限/revision/guard/合法scope | 共同Release/SHA激活      | 部分失败/超时/错目标               | 真实journal，独立LKG | REQ-013/014/015 | 发布页、INTERNAL-001/002  | TEST-001/002 |
-| UC-002 | 恢复中断发布        | ACTOR-003     | ACTOR-001/DDC             | 重启/retry  | 原journal/latest/guard     | 仅继续未完成               | 旧release/legacy/争用        | 目标/changeId不变   | REQ-016/021     | INTERNAL-002/005      | TEST-003/004 |
-| UC-003 | 判断真实一致性       | ACTOR-001     | ACTOR-002/DDC             | 查询        | 新鲜租约/可信期望                 | 自己version下界+共同制品     | 缺角色/错scope/旧version/stale | 无假阳性            | REQ-017         | INTERNAL-003/004、角色卡片 | TEST-005     |
-| UC-004 | 清理旧chunk      | ACTOR-003     | DDC                       | retention | 同scope成功后继                | 仅移除本目标旧leaf          | peer成功/legacy/故障          | 活跃/未知规则保留       | REQ-018         | INTERNAL-006          | TEST-006     |
+| UC-001 | 发布双角色Release  | ACTOR-001     | ACTOR-002/Tianshu             | 确认draft   | 权限/revision/guard/合法scope | 共同Release/SHA激活      | 部分失败/超时/错目标               | 真实journal，独立LKG | REQ-013/014/015 | 发布页、INTERNAL-001/002  | TEST-001/002 |
+| UC-002 | 恢复中断发布        | ACTOR-003     | ACTOR-001/Tianshu             | 重启/retry  | 原journal/latest/guard     | 仅继续未完成               | 旧release/legacy/争用        | 目标/changeId不变   | REQ-016/021     | INTERNAL-002/005      | TEST-003/004 |
+| UC-003 | 判断真实一致性       | ACTOR-001     | ACTOR-002/Tianshu             | 查询        | 新鲜租约/可信期望                 | 自己version下界+共同制品     | 缺角色/错scope/旧version/stale | 无假阳性            | REQ-017         | INTERNAL-003/004、角色卡片 | TEST-005     |
+| UC-004 | 清理旧chunk      | ACTOR-003     | Tianshu                       | retention | 同scope成功后继                | 仅移除本目标旧leaf          | peer成功/legacy/故障          | 活跃/未知规则保留       | REQ-018         | INTERNAL-006          | TEST-006     |
 
 ## 5. Constraints, Assumptions, and Decisions
 
@@ -140,7 +140,7 @@ Step11 local脚本/全平台/RBAC/OpenAPI浏览器验收继续，不能因为本
 ### 5.2 Small-gap assumptions
 
 ASM-001：API保留 target-biz-code/target-app-code，MCP新增 mcp-target-biz-code/mcp-target-app-code；默认 infra/ge 与
-infra/ge-mcp。本地明确 identity/gateway-engine-default 与 identity/gateway-mcp-engine-default。命名沿用现有规则，可逆。
+infra/ge-mcp。本地明确 identity/yuheng-biz-gateway-default 与 identity/yuheng-mcp-gateway-default。命名沿用现有规则，可逆。
 
 ### 5.3 Resolved decisions
 
@@ -166,7 +166,7 @@ layered：release.service→release.repository/JDBC，runtime.service读取发�
 
 | Need  | Candidate/evidence                                      | Fit/gap                | Decision                  |
 |-------|---------------------------------------------------------|------------------------|---------------------------|
-| 分发    | 既有Coordinator/Command/Publisher/DDC client              | 缺目标维度                  | 扩展                        |
+| 分发    | 既有Coordinator/Command/Publisher/Tianshu client              | 缺目标维度                  | 扩展                        |
 | 持久化   | V4 journal/JdbcTemplate/事务                              | 可保存scope，已有changeId UK | 一个V13                     |
 | 互斥    | DataSource/PostgreSQL；未发现当前guard                        | JVM不能覆盖多Admin          | 小型execute-around DAO      |
 | 校验/模型 | ValidationUtils/BaseConverter、starter-validation、record | 原生约束/命令组装/列投影足够        | 不新增Validator/Converter/依赖 |
@@ -178,7 +178,7 @@ layered：release.service→release.repository/JDBC，runtime.service读取发�
 | Rule 1       | Yes       | 类型/文件库存，现有Gateway能力                 | 语义 PO/DTO/DAO/Service；配置为 Properties record；移除旧全局期望载体                                                             | §8库存                   | §14具体场景/编译/静态            | PASS           |
 | Rule 2       | Yes       | 每个受影响 handoff 的校验表，现有Gateway能力      | Service @Validated/@Valid；Repository TargetedWrite extends Default；无代理重入用现有 ValidationUtils；原生约束，不新建 Validator    | §8库存                   | §14具体场景/编译/静态            | PASS           |
 | Rule 3       | Yes       | §10，现有Gateway能力                     | 简单对象 record，无新增复杂数据类或 Converter；JDBC 列投影与多来源命令组装，不用 JSON/BeanUtils 转换；新 Converter 若必要必须另列 MapStruct/BaseConverter | §8库存                   | §14具体场景/编译/静态            | PASS           |
-| Rule 4       | Yes       | 受影响业务类/装配，现有Gateway能力               | @Slf4j、显式原Bean名、final @Qualifier依赖、@RequiredArgsConstructor；Gateway lombok.config复制Value/Qualifier                | §8库存                   | §14具体场景/编译/静态            | PASS           |
+| Rule 4       | Yes       | 受影响业务类/装配，现有Gateway能力               | @Slf4j、显式原Bean名、final @Qualifier依赖、@RequiredArgsConstructor；Yuheng lombok.config复制Value/Qualifier                | §8库存                   | §14具体场景/编译/静态            | PASS           |
 | Rule 5       | Yes       | 复用 ledger，现有Gateway能力               | 仅 JDK/已管理 Commons 与现有框架，无新库/通用Utils                                                                               | §8库存                   | §14具体场景/编译/静态            | PASS           |
 | Rule 6       | Yes       | wire回归，现有Gateway能力                  | Boot Jackson；canonical artifact与外部字段不变；内部enum按name存储                                                              | §8库存                   | §14具体场景/编译/静态            | PASS           |
 | Rule 7       | Yes       | base/operations/Compose，现有Gateway能力 | 所有环境核心键等价；API旧key保留，MCP新key明确                                                                                     | §8库存                   | §14具体场景/编译/静态            | PASS           |
@@ -207,10 +207,10 @@ layered：release.service→release.repository/JDBC，runtime.service读取发�
 
 ```mermaid
 flowchart LR
-    U["Operator"] --> A["One Gateway Admin / own OAuth Resource"]
-    A --> J[("Gateway PostgreSQL journal")]
-    A --> D1["DDC API_RPC app"]
-    A --> D2["DDC MCP app"]
+    U["Operator"] --> A["One Yuheng Admin / own OAuth Resource"]
+    A --> J[("Yuheng PostgreSQL journal")]
+    A --> D1["Tianshu API_RPC app"]
+    A --> D2["Tianshu MCP app"]
     D1 --> E1["API_RPC Engine / own Resource + LKG"]
     D2 --> E2["MCP Engine / own Resource + LKG"]
     E1 --> P["Providers"]
@@ -219,7 +219,7 @@ flowchart LR
 
 | Module/component | Capability and data owned       | Inputs/outputs | Allowed dependencies | Forbidden responsibility | Requirements |
 |------------------|---------------------------------|----------------|----------------------|--------------------------|--------------|
-| Admin            | canonical Release、目标、journal、投影 | 原请求→DB/DDC     | 原JDBC/DDC            | 不伪造共享身份/version          | REQ-013–018  |
+| Admin            | canonical Release、目标、journal、投影 | 原请求→DB/Tianshu     | 原JDBC/Tianshu            | 不伪造共享身份/version          | REQ-013–018  |
 | DDC两app          | 各自YAML/version/task             | 相同leaf，不同文档    | 原鉴权/SDK              | 不加shared alias           | REQ-013/019  |
 | 两Engine          | 固定角色/独立激活LKG                    | 自己app          | core/Provider        | 不经peer转发                 | 父REQ-001–006 |
 
@@ -257,10 +257,10 @@ sequenceDiagram
     actor U as Operator
     participant S as Service or Reconciler
     participant G as Group guard
-    participant DB as Gateway DB
+    participant DB as Yuheng DB
     participant C as Coordinator
-    participant A as DDC API_RPC
-    participant M as DDC MCP
+    participant A as Tianshu API_RPC
+    participant M as Tianshu MCP
     U->>S: Existing publish/retry
     S->>G: Acquire
     S->>DB: Short transaction: Release/content/attempt/root targets
@@ -310,49 +310,49 @@ draft/retention/leaf删除/expectedVersion保护。
 
 | Operation | Exact repository-relative path                                                                                                                                                                                            | Responsibility                                           | Requirements        |
 |-----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------|---------------------|
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/config/properties/GatewayAdminDdcProperties.java`                                    | 不可变四字段 record，保留 API 旧键，新增 MCP 目标及现有 getter 兼容           | REQ-013             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/domain/dto/GatewayPublicationScopeDTO.java`                                  | biz/env/app 的原生 Validation 与紧凑构造规范化                      | REQ-014             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/domain/po/GatewayReleasePublicationPO.java`                                  | 追加 engineRole/targetScope，TargetedWrite 分组与 legacy 读兼容   | REQ-014             |
-| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/domain/dto/GatewayReleaseActivationExpectationDTO.java`                      | 仅角色、目标、DDC version、artifact SHA 的查询投影                    | REQ-017             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/domain/po/GatewayChunkCleanupCandidatePO.java`                               | 追加冻结角色/目标，旧候选不自动清理                                       | REQ-018             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/config/properties/GatewayAdminDdcProperties.java`                                    | 不可变四字段 record，保留 API 旧键，新增 MCP 目标及现有 getter 兼容           | REQ-013             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/domain/dto/GatewayPublicationScopeDTO.java`                                  | biz/env/app 的原生 Validation 与紧凑构造规范化                      | REQ-014             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/domain/po/GatewayReleasePublicationPO.java`                                  | 追加 engineRole/targetScope，TargetedWrite 分组与 legacy 读兼容   | REQ-014             |
+| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/domain/dto/GatewayReleaseActivationExpectationDTO.java`                      | 仅角色、目标、Tianshu version、artifact SHA 的查询投影                    | REQ-017             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/domain/po/GatewayChunkCleanupCandidatePO.java`                               | 追加冻结角色/目标，旧候选不自动清理                                       | REQ-018             |
 | CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V13__add_gateway_release_engine_targets.sql`                                                             | 四个 nullable legacy-compatible 列及完整目标 CHECK；不改旧版本         | REQ-014/021         |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/repository/GatewayReleasePublicationRepository.java`                         | 冻结目标/激活期望元数据查询；显式 write validation                       | REQ-014/017/018     |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/repository/jdbc/JdbcGatewayReleasePublicationRepository.java`                | 读写四列；元数据查询无 YAML；GC 按相同目标比较 successor                    | REQ-014/017/018     |
-| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/release/domain/GatewayReleaseEngineTargetModelTest.java`                             | record 参数/legacy/read/write/配置绑定和迁移静态合同                  | REQ-013/014/021     |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayReleasePublicationStoreTest.java`              | 完整 scope 参数、RowMapper、元数据与 GC SQL 边界                     | REQ-014/017/018     |
-| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/repository/jdbc/GatewayReleaseExecutionLockDAO.java`                         | 同 Group 跨进程执行互斥；session advisory lock 的 execute-around   | REQ-016             |
-| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/GatewayReleaseExecutionLockDAOTest.java`                  | 同连接获取/释放、争用、异常、连接 abort；真实锁留作 runtime gate               | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/service/GatewayReleasePublicationCoordinator.java`                           | prepare 冻结双链；状态处理策略；根 journal 重试；双目标聚合                   | REQ-014/015/016     |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/service/GatewayReleaseService.java`                                          | prepare 事务内冻结目标；create/retry/rollback guard；旧发布 retry 拒绝 | REQ-014/015/016/021 |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/domain/dto/GatewayReleaseCreateCommandDTO.java`                              | 对齐既有 Request 的 PositiveOrZero/NotBlank                   | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/domain/dto/GatewayReleaseRollbackCommandDTO.java`                            | 对齐既有 Request 的 source/revision/reason validation         | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/controller/scheduled/GatewayReleaseReconciler.java`                          | 同 guard 重读状态后恢复；保留真实 artifact SHA；不回退 draft              | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/repository/jdbc/JdbcGatewayReleaseRepository.java`                           | 恢复读取最新审计 attempt 而非根 journal attempt；确定性 history 顺序      | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/bootstrap/GatewayAdminConfiguration.java`                                            | 显式 Bean/Qualifier/Clock/ValidationUtils 及双目标属性装配         | REQ-013/014/015/016 |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleasePublicationCoordinatorTest.java`                   | 双作用域 YAML/不同版本、peer 故障、稳定 changeId、恢复、legacy             | REQ-014/015/016/021 |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseServiceTest.java`                                  | 冻结事务、同 Group guard、新 Attempt/旧 journal、旧 retry fencing   | REQ-014/016/021     |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/scheduled/GatewayReleaseReconcilerTest.java`                              | 同 guard 和过时恢复候选、恢复后 artifact SHA                         | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/infrastructure/persistence/JdbcGatewayReleaseStoreTest.java`                         | 审计 attempt 与 journal attempt 分离的查询                       | REQ-016             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayProjectionService.java`                                       | 两目标租约与角色绑定，各自 version/共同 SHA，stale fail closed           | REQ-017             |
-| DELETE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/runtime/service/GatewayRuleExpectation.java`                                         | 旧全局 version 二元期望被目标元数据 DTO 取代                            | REQ-017             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/release/controller/scheduled/GatewayRuleChunkGarbageCollector.java`                  | 只清理冻结目标内已被后继取代的 chunk                                    | REQ-018             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/application/projection/GatewayProjectionServiceTest.java`                            | 42/7 同 Release/SHA 为一致；错角色/错目标/缺失/陈旧拒绝                   | REQ-017             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/interfaces/scheduled/GatewayRuleChunkGarbageCollectorTest.java`                      | API 前进不能清理仍使用旧版本的 MCP；旧未知 scope 跳过                       | REQ-018             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/repository/GatewayReleasePublicationRepository.java`                         | 冻结目标/激活期望元数据查询；显式 write validation                       | REQ-014/017/018     |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/repository/jdbc/JdbcGatewayReleasePublicationRepository.java`                | 读写四列；元数据查询无 YAML；GC 按相同目标比较 successor                    | REQ-014/017/018     |
+| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/release/domain/GatewayReleaseEngineTargetModelTest.java`                             | record 参数/legacy/read/write/配置绑定和迁移静态合同                  | REQ-013/014/021     |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/JdbcGatewayReleasePublicationStoreTest.java`              | 完整 scope 参数、RowMapper、元数据与 GC SQL 边界                     | REQ-014/017/018     |
+| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/repository/jdbc/GatewayReleaseExecutionLockDAO.java`                         | 同 Group 跨进程执行互斥；session advisory lock 的 execute-around   | REQ-016             |
+| CREATE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/GatewayReleaseExecutionLockDAOTest.java`                  | 同连接获取/释放、争用、异常、连接 abort；真实锁留作 runtime gate               | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/service/GatewayReleasePublicationCoordinator.java`                           | prepare 冻结双链；状态处理策略；根 journal 重试；双目标聚合                   | REQ-014/015/016     |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/service/GatewayReleaseService.java`                                          | prepare 事务内冻结目标；create/retry/rollback guard；旧发布 retry 拒绝 | REQ-014/015/016/021 |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/domain/dto/GatewayReleaseCreateCommandDTO.java`                              | 对齐既有 Request 的 PositiveOrZero/NotBlank                   | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/domain/dto/GatewayReleaseRollbackCommandDTO.java`                            | 对齐既有 Request 的 source/revision/reason validation         | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/controller/scheduled/GatewayReleaseReconciler.java`                          | 同 guard 重读状态后恢复；保留真实 artifact SHA；不回退 draft              | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/repository/jdbc/JdbcGatewayReleaseRepository.java`                           | 恢复读取最新审计 attempt 而非根 journal attempt；确定性 history 顺序      | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/bootstrap/GatewayAdminConfiguration.java`                                            | 显式 Bean/Qualifier/Clock/ValidationUtils 及双目标属性装配         | REQ-013/014/015/016 |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleasePublicationCoordinatorTest.java`                   | 双作用域 YAML/不同版本、peer 故障、稳定 changeId、恢复、legacy             | REQ-014/015/016/021 |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseServiceTest.java`                                  | 冻结事务、同 Group guard、新 Attempt/旧 journal、旧 retry fencing   | REQ-014/016/021     |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/interfaces/scheduled/GatewayReleaseReconcilerTest.java`                              | 同 guard 和过时恢复候选、恢复后 artifact SHA                         | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/infrastructure/persistence/JdbcGatewayReleaseStoreTest.java`                         | 审计 attempt 与 journal attempt 分离的查询                       | REQ-016             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/runtime/service/GatewayProjectionService.java`                                       | 两目标租约与角色绑定，各自 version/共同 SHA，stale fail closed           | REQ-017             |
+| DELETE    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/runtime/service/GatewayRuleExpectation.java`                                         | 旧全局 version 二元期望被目标元数据 DTO 取代                            | REQ-017             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/release/controller/scheduled/GatewayRuleChunkGarbageCollector.java`                  | 只清理冻结目标内已被后继取代的 chunk                                    | REQ-018             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/application/projection/GatewayProjectionServiceTest.java`                            | 42/7 同 Release/SHA 为一致；错角色/错目标/缺失/陈旧拒绝                   | REQ-017             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/interfaces/scheduled/GatewayRuleChunkGarbageCollectorTest.java`                      | API 前进不能清理仍使用旧版本的 MCP；旧未知 scope 跳过                       | REQ-018             |
 | MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/application.yml`                                                                                                      | API 兼容键 + MCP 目标键；不把 Admin 自身当 Engine 目标                 | REQ-013/019         |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`                                                                                                 | DDC app 默认 ge-mcp；其余 role/security 键保留                   | REQ-019             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application.yml`                                                                                                 | Tianshu app 默认 ge-mcp；其余 role/security 键保留                   | REQ-019             |
 | MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-gateway/src/main/resources/application-operations.yml`                                                                                      | 与 base 等价键结构、独立 MCP app 默认值                              | REQ-019             |
 | MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.yml`                                                                                                                                                   | 两个 Engine 角色绑定独立 app，Admin 目标坐标与之相符                      | REQ-019             |
 | MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/deployment/.env.example`                                                                                                                                                  | MCP app/目标配置说明；无凭证值                                      | REQ-019             |
 | MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/deployment/README.md`                                                                                                                                                     | 三 Resource/双 app/角色内版本/新 journal 的切换及回退                  | REQ-019/021         |
 | MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/deployment/README.zh-CN.md`                                                                                                                                               | 同步英文部署边界与迁移限制                                            | REQ-019/021         |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/deployment/GatewayComposeConfigurationTest.java` | 角色各自 app/目标静态契约                                          | REQ-019             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayLiveTopologyIT.java`                 | 两个认证作用域与每角色 activation 版本                                | REQ-020             |
-| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/live/GatewayRuleWireCompatibilityTest.java`      | 两角色不同 DDC 版本、同制品及 LKG 独立失败                               | REQ-020             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/deployment/GatewayComposeConfigurationTest.java` | 角色各自 app/目标静态契约                                          | REQ-019             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayLiveTopologyIT.java`                 | 两个认证作用域与每角色 activation 版本                                | REQ-020             |
+| MODIFY    | `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/live/GatewayRuleWireCompatibilityTest.java`      | 两角色不同 Tianshu 版本、同制品及 LKG 独立失败                               | REQ-020             |
 
 | MODIFY | `egon-cola-xingyuan/egon-cola-yuheng/deployment/compose.ha.yml` | 第二 Admin 的 MCP
 目标键与主副本一致 | REQ-019 |
 | MODIFY |
-`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/GatewayAdminConfigurationTest.java` |
+`egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/GatewayAdminConfigurationTest.java` |
 新发布工厂/Clock/ValidationUtils、Projection 增加依赖的构造与上下文校验 | REQ-013/017 |
 
 ## 9. Interface Definitions
@@ -542,7 +542,7 @@ Projection按role+scope选期望；activeRuleVersion达到自己的下界，且R
 |-------------------------------------|---------------------------------------------------------------------------------|
 | Change classification               | Add internal contract；同Group执行guard                                             |
 | Independent consumer goal           | 同Group执行guard由明确Service/Repository/任务边界承担；不新增Web调用                              |
-| Parameter ownership and derivation  | 非空groupId和内部callback；入口在事务外；稳定gateway-release:groupId的64bit hash                |
+| Parameter ownership and derivation  | 非空groupId和内部callback；入口在事务外；稳定yuheng-release:groupId的64bit hash                |
 | Direct/no-new-interface alternative | 当前单目标/global版本或JVM-only路径不能满足该边界；复用§7.0组件                                       |
 | Caller use of result                | 返回callback原值；pg_try_advisory_lock；同borrowed Connection finally unlock           |
 | Round trips and failure points      | 只有既有DDC调用/本地SQL；失败语义：争用用既有RELEASE_IN_PROGRESS；不执行callback；解锁失败abort物理连接，不能带锁返还池 |
@@ -554,7 +554,7 @@ Java内部方法：`GatewayReleaseExecutionLockDAO.execute(String gatewayGroupId
 
 ##### Request parameters
 
-非空groupId和内部callback；入口在事务外；稳定gateway-release:groupId的64bit hash。原生校验与调用组见§10，无token/secret参数。
+非空groupId和内部callback；入口在事务外；稳定yuheng-release:groupId的64bit hash。原生校验与调用组见§10，无token/secret参数。
 
 ##### Success response
 
@@ -620,7 +620,7 @@ GC SQL/collector negative tests。保留既有外部Request/Response/Jackson/Ope
 | Object/path                            | Selected role        | Owner/boundary and consumers     | Why distinct/reuse                | Mapping owner          | Requirements |
 |----------------------------------------|----------------------|----------------------------------|-----------------------------------|------------------------|--------------|
 | GatewayAdminDdcProperties              | Configuration record | bootstrap→publication/projection | 四字符串足以定义固定两角色，不建registry          | 配置+env命令组装             | REQ-013      |
-| GatewayPublicationScopeDTO             | DTO record           | Service/JDBC/DDC                 | 复用三元scope并加原生约束                   | JDBC列/可信配置             | REQ-014      |
+| GatewayPublicationScopeDTO             | DTO record           | Service/JDBC/Tianshu                 | 复用三元scope并加原生约束                   | JDBC列/可信配置             | REQ-014      |
 | GatewayReleasePublicationPO            | PO record            | root journal                     | 追加engineRole/targetScope；legacy可空 | JdbcTemplate RowMapper | REQ-014/021  |
 | GatewayReleaseActivationExpectationDTO | DTO record           | metadata→Projection              | 避免每次读取大制品，取代全局期望                  | JDBC列投影                | REQ-017      |
 | GatewayChunkCleanupCandidatePO         | PO record            | journal→GC                       | 候选必须携带冻结目标                        | JDBC列投影                | REQ-018      |
@@ -661,10 +661,10 @@ write。
 round-trip。
 
 受影响业务类均Slf4j、显式原Bean名、final
-qualified依赖、RequiredArgsConstructor。保留jdbcGatewayReleasePublicationRepository、jdbcGatewayReleaseRepository、gatewayReleaseService、gatewayReleasePublicationCoordinator、gatewayReleaseReconciler、gatewayRuleChunkGarbageCollector等原隐式名称的显式等价值；新增gatewayReleaseExecutionLockDAO。基础Bean按实际既有名称dataSource/jdbcTemplate/jacksonObjectMapper/transactionTemplate/ddcManagementClient注入；新增gatewayReleaseClock/gatewayReleaseValidationUtils工厂。Gateway
+qualified依赖、RequiredArgsConstructor。保留jdbcGatewayReleasePublicationRepository、jdbcGatewayReleaseRepository、gatewayReleaseService、gatewayReleasePublicationCoordinator、gatewayReleaseReconciler、gatewayRuleChunkGarbageCollector等原隐式名称的显式等价值；新增gatewayReleaseExecutionLockDAO。基础Bean按实际既有名称dataSource/jdbcTemplate/jacksonObjectMapper/transactionTemplate/ddcManagementClient注入；新增gatewayReleaseClock/gatewayReleaseValidationUtils工厂。Yuheng
 lombok.config已复制Qualifier/Value。
 
-Coordinator改为始终装配，DDC client/publisher使用qualified
+Coordinator改为始终装配，Tianshu client/publisher使用qualified
 ObjectProvider；prepare只做本地冻结，execute才要求外部依赖。不能在client缺失时生成没有冻结目标的新Release。辅助YAML/canonicalizer等现有无状态对象保留，不扩展无关业务类。
 
 ## 11. Database Design
@@ -681,7 +681,7 @@ ObjectProvider；prepare只做本地冻结，execute才要求外部依赖。不�
 
 ##### Purpose, ownership, and lifecycle
 
-原V4表保存不可变目标下的phase执行事实。Gateway Admin为writer；Projection/GC只取相关元数据。新root每Release两条有限phase链，audit
+原V4表保存不可变目标下的phase执行事实。Yuheng Admin为writer；Projection/GC只取相关元数据。新root每Release两条有限phase链，audit
 retry不复制正文；历史不删除。业务scope包含env，目标不是IdP/DDC跨库FK。正文可能含目标已有配置，禁止投影或日志泄露；仅内部JDBC使用。增长约为两倍原phase行数，artifact/chunk仍由既有大小上限约束。
 
 ##### Complete column design
@@ -692,12 +692,12 @@ retry不复制正文；历史不删除。业务scope包含env，目标不是IdP/
 | attempt_no         | INTEGER     | 32-bit                 | No                | None    | Root=1             | PK/FK; >0              | 根journal所属初始审计attempt                                                     | PO.attemptNo           | 1                          |
 | phase_order        | INTEGER     | 32-bit                 | No                | None    | 两角色连续序列            | PK; >=0                | phase排序                                                                   | PO.phaseOrder          | 0                          |
 | phase_type         | VARCHAR     | 32                     | No                | None    | Command规划          | CHECK CHUNK/ACTIVATION | 阶段类型                                                                      | PO.phaseType           | ACTIVATION                 |
-| config_key         | VARCHAR     | 512                    | No                | None    | compiled           | 原约束                    | Gateway leaf                                                              | PO.configKey           | gateway.rules.active       |
+| config_key         | VARCHAR     | 512                    | No                | None    | compiled           | 原约束                    | Yuheng leaf                                                              | PO.configKey           | yuheng.rules.active       |
 | content_value      | TEXT        | unbounded type;原大小限制保持 | No                | None    | compiled→目标merge   | 原NOT NULL              | leaf或已resolve YAML，metadata不选                                             | PO.contentValue        | activation JSON            |
 | content_sha256     | VARCHAR     | 64                     | No                | None    | canonical leaf SHA | CHECK length=64        | 原leaf摘要                                                                   | PO.contentSha256       | 64 hex                     |
 | expected_version   | BIGINT      | 64-bit                 | Yes               | NULL    | resolve            | 非PLANNED必须有值           | 本scope CAS                                                                | PO.expectedVersion     | 41                         |
 | change_id          | VARCHAR     | 128                    | No                | None    | UUIDv7             | UNIQUE                 | 稳定DDC task标识                                                              | PO.changeId            | UUIDv7                     |
-| ddc_target_version | BIGINT      | 64-bit                 | Yes               | NULL    | DDC result         | SUCCESS必须有值            | 本scope已发布版本                                                               | PO.ddcTargetVersion    | 42                         |
+| ddc_target_version | BIGINT      | 64-bit                 | Yes               | NULL    | Tianshu result         | SUCCESS必须有值            | 本scope已发布版本                                                               | PO.ddcTargetVersion    | 42                         |
 | ddc_status         | VARCHAR     | 32                     | No                | None    | state registry     | 原8状态CHECK              | PLANNED/RESOLVED/SUBMITTED/SUCCESS/FAILED/PARTIAL_SUCCESS/TIMEOUT/UNKNOWN | PO.status              | SUCCESS                    |
 | error_code         | VARCHAR     | 128                    | Yes               | NULL    | 执行结果               | 原约束                    | 诊断/GC标记                                                                   | PO.errorCode           | CHUNK_GC_DELETED           |
 | error_message      | VARCHAR     | 1024                   | Yes               | NULL    | bounded error      | 原约束                    | 不含正文凭证                                                                    | PO.errorMessage        | target unavailable         |
@@ -706,7 +706,7 @@ retry不复制正文；历史不删除。业务scope包含env，目标不是IdP/
 | engine_role        | VARCHAR     | 16                     | Yes (legacy only) | NULL    | 角色枚举               | 新scope CHECK           | API_RPC/MCP，不能从app猜测                                                      | PO.engineRole          | MCP                        |
 | target_biz_code    | VARCHAR     | 128                    | Yes (legacy only) | NULL    | prepare冻结          | 新scope CHECK nonblank  | 角色目标biz                                                                   | PO.targetScope.bizCode | identity                   |
 | target_env         | VARCHAR     | 64                     | Yes (legacy only) | NULL    | snapshot env       | 新scope CHECK nonblank  | 角色目标env                                                                   | PO.targetScope.env     | local                      |
-| target_app_code    | VARCHAR     | 128                    | Yes (legacy only) | NULL    | prepare冻结          | 新scope CHECK nonblank  | 独立角色app                                                                   | PO.targetScope.appCode | gateway-mcp-engine-default |
+| target_app_code    | VARCHAR     | 128                    | Yes (legacy only) | NULL    | prepare冻结          | 新scope CHECK nonblank  | 独立角色app                                                                   | PO.targetScope.appCode | yuheng-mcp-gateway-default |
 
 ##### Keys, relationships, and constraints
 
@@ -823,11 +823,11 @@ repo cwd使用实际Maven wrapper，先新增focused RED、最小GREEN、Admin�
 
 ## 15. Non-functional and Cross-cutting Design
 
-Admin新增gateway.admin.ddc.mcp-target-biz-code，由GATEWAY_ADMIN_DDC_MCP_TARGET_BIZ_CODE提供，默认infra；mcp-target-app-code由GATEWAY_ADMIN_DDC_MCP_TARGET_APP_CODE提供，默认ge-mcp。API原target
-keys/default保持。MCP base/operations的DDC_APP_CODE默认ge-mcp，核心key集合相同。Admin自己的Resource/DDC
-app仍gateway-admin，不加入Engine分发。
+Admin新增yuheng.admin.tianshu.mcp-target-biz-code，由YUHENG_ADMIN_TIANSHU_MCP_TARGET_BIZ_CODE提供，默认infra；mcp-target-app-code由YUHENG_ADMIN_TIANSHU_MCP_TARGET_APP_CODE提供，默认ge-mcp。API原target
+keys/default保持。MCP base/operations的TIANSHU_APP_CODE默认ge-mcp，核心key集合相同。Admin自己的Resource/Tianshu
+app仍yuheng-admin，不加入Engine分发。
 
-本地原Step11明确配置identity/gateway-engine-default和identity/gateway-mcp-engine-default，分别使用自己的Client/Resource
+本地原Step11明确配置identity/yuheng-biz-gateway-default和identity/yuheng-mcp-gateway-default，分别使用自己的Client/Resource
 token；不能只改app不改凭证。MCP server protected resource与Provider audience不同于进程management
 Resource，不盲目替换协议resourceUri。
 
@@ -933,7 +933,7 @@ journal；激活下界不同于当前文档版本；partialApplied不同于chunk
 |----------------|----------------|--------|------------------------------------------------------------------------|------------------|---------------------------|
 | MC-ARCH-001    | Applicable     | PASS   | §6/8现有feature-local traditional layered和已实现Engine边界                    | 不引入第三架构          | None                      |
 | MC-REUSE-001   | Applicable     | PASS   | Coordinator/Publisher/JDBC/DataSource/ValidationUtils/BaseConverter已存在 | 扩展journal，不新增平台  | None                      |
-| MC-DEP-001     | Not applicable | N/A    | Gateway Admin已有Lombok/Validation/JDBC/PostgreSQL/Jackson               | 无新增依赖            | None                      |
+| MC-DEP-001     | Not applicable | N/A    | Yuheng Admin已有Lombok/Validation/JDBC/PostgreSQL/Jackson               | 无新增依赖            | None                      |
 | MC-NAME-001    | Applicable     | PASS   | §8/10 DTO/PO/DAO命名；旧GatewayRuleExpectation移除                           | 语义角色清楚           | None                      |
 | MC-VALID-001   | Applicable     | PASS   | §10 handoff/groups/ValidationUtils及negative tests                      | 跨层和任务重入校验        | None                      |
 | MC-MODEL-001   | Applicable     | PASS   | 简单record，旧Publication构造仅legacy read                                    | 无复杂Lombok冲突      | None                      |

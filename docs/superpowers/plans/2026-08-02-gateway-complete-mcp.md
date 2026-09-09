@@ -1,15 +1,15 @@
-# Egon Gateway Complete MCP Implementation Plan
+# Egon Yuheng Complete MCP Implementation Plan
 
 > 本文保留为初始实施记录，不再代表当前本地 Tool 注册方式。手工本地 Tool
 > Draft 和 disabled Route 锚点已由
-> [Gateway 注解托管 MCP 设计与破坏性迁移](../specs/2026-08-06-gateway-annotation-managed-mcp-design.md)
+> [Yuheng 注解托管 MCP 设计与破坏性迁移](../specs/2026-08-06-yuheng-annotation-managed-mcp-design.md)
 > 取代。
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. This plan is inline-only; do not create or dispatch subagents.
 
-**Goal:** Build the complete MCP control plane, runtime, Admin Web, federation, security, release integration, and multi-process validation on top of the existing Egon Gateway.
+**Goal:** Build the complete MCP control plane, runtime, Admin Web, federation, security, release integration, and multi-process validation on top of the existing Egon Yuheng.
 
-**Architecture:** Add a dependency-light `gateway-mcp-runtime` between Gateway Core and Engine. MCP configuration is nested in the existing canonical Gateway Rule so HTTP/RPC and MCP compile, persist to LKG, and activate atomically through the current DDC key. Gateway performs base IdP identity validation; the MCP runtime acts as a downstream application and pulls authorization snapshots from RBAC3.
+**Architecture:** Add a dependency-light `yuheng-mcp-runtime` between Yuheng Core and Engine. MCP configuration is nested in the existing canonical Yuheng Rule so HTTP/RPC and MCP compile, persist to LKG, and activate atomically through the current Tianshu key. Yuheng performs base Tianquan-Shoubing identity validation; the MCP runtime acts as a downstream application and pulls authorization snapshots from Tianquan-Jianshen.
 
 **Tech Stack:** Java 21, Spring Boot 3.5.16, Reactor/Netty, Jackson, PostgreSQL 18/Flyway, Redis Streams, Micrometer/OpenTelemetry, Resilience4j, React 19, TypeScript 6, Ant Design 6, TanStack Query, Vitest, Playwright, official MCP Java SDK 2.0.0 compatibility fixtures, MCP conformance CLI.
 
@@ -17,17 +17,17 @@
 
 - Execute inline in `/Users/mario/SelfProject/Egon-COLA`; never create a subagent or worktree.
 - Complete the approved unified identity plan before Task 7; do not create a second authentication system.
-- Base Gateway validation is limited to IdP JWT/user state/tokenVersion; MCP authorization is a downstream RBAC3 concern.
-- Do not add roles or permissions to the IdP access token.
-- Never modify Flyway V1-V6. Add exactly one Gateway migration: `V7__add_gateway_mcp_control_plane.sql`.
-- Do not call Gateway's public HTTP route from an MCP handler; invoke operations through `GatewayOperationInvoker`.
-- The existing `gateway.rules.active` key remains the only active pointer.
+- Base Yuheng validation is limited to Tianquan-Shoubing JWT/user state/tokenVersion; MCP authorization is a downstream Tianquan-Jianshen concern.
+- Do not add roles or permissions to the Tianquan-Shoubing access token.
+- Never modify Flyway V1-V6. Add exactly one Yuheng migration: `V7__add_gateway_mcp_control_plane.sql`.
+- Do not call Yuheng's public HTTP route from an MCP handler; invoke operations through `GatewayOperationInvoker`.
+- The existing `yuheng.rules.active` key remains the only active pointer.
 - A release either activates HTTP/RPC and MCP together or leaves the previous release active.
 - `2025-11-25` is the stable baseline; `2026-07-28` remains explicitly marked RC until the official release source changes.
 - Never forward an inbound token to a remote MCP provider. Local business providers receive the original JWT and authorize independently.
 - No default password, inline secret, arbitrary external `$ref`, arbitrary file path, provider URL, or command execution.
 - Every backend task uses TDD and ends with the exact Maven command stated in that task; every frontend task ends with lint, typecheck, unit tests, and build for the changed surface.
-- Maven/static/H2 evidence is not real PostgreSQL/Redis/DDC/multi-process proof; Task 19 supplies that evidence.
+- Maven/static/H2 evidence is not real PostgreSQL/Redis/Tianshu/multi-process proof; Task 19 supplies that evidence.
 - Do not start long-lived project processes until Task 19 has passed all prior gates.
 
 ---
@@ -38,22 +38,22 @@
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/pom.xml`
 - Modify: `egon-cola-xingyuan/pom.xml`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/pom.xml`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/protocol/McpProtocolDialect.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/protocol/McpJsonRpcRequest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/protocol/McpJsonRpcResponse.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/protocol/McpJsonRpcError.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/protocol/McpErrorCode.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuleContent.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeServer.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeTool.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeResource.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeResourceTemplate.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimePrompt.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeTaskPolicy.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeApp.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeRemoteProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/mcp/rule/McpRuntimeRemoteMount.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/gateway/contract/mcp/McpContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/protocol/McpProtocolDialect.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/protocol/McpJsonRpcRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/protocol/McpJsonRpcResponse.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/protocol/McpJsonRpcError.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/protocol/McpErrorCode.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuleContent.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeServer.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeTool.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeResource.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeResourceTemplate.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimePrompt.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeTaskPolicy.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeApp.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeRemoteProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/mcp/rule/McpRuntimeRemoteMount.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/test/java/top/egon/cola/component/yuheng/contract/mcp/McpContractTest.java`
 
 **Interfaces:**
 - Consumes: existing `GatewayRuntimeOperation.operationId()` and stable Jackson-compatible contract conventions.
@@ -127,26 +127,26 @@ Expected: contract tests pass and the empty runtime jar builds.
 
 ```bash
 git add egon-cola-xingyuan/pom.xml egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): add MCP runtime contracts"
+git commit -m "feat(yuheng): add MCP runtime contracts"
 ```
 
 ### Task 2: JSON-RPC Codec, Dialect Adapters, and Dispatcher
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/protocol/McpJsonRpcCodec.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/protocol/McpDialectAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/protocol/StableMcpDialectAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/protocol/RcMcpDialectAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/protocol/LegacySseMcpAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/McpRequestContext.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/McpMethodHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/McpMethodDispatcher.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/handler/McpDiscoverHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/handler/McpInitializeHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/handler/McpInitializedHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/server/handler/McpPingHandler.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/protocol/McpDialectCompatibilityTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/server/McpMethodDispatcherTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/protocol/McpJsonRpcCodec.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/protocol/McpDialectAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/protocol/StableMcpDialectAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/protocol/RcMcpDialectAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/protocol/LegacySseMcpAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/McpRequestContext.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/McpMethodHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/McpMethodDispatcher.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/handler/McpDiscoverHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/handler/McpInitializeHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/handler/McpInitializedHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/server/handler/McpPingHandler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/protocol/McpDialectCompatibilityTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/server/McpMethodDispatcherTest.java`
 
 **Interfaces:**
 - Consumes: `McpJsonRpcRequest`, `McpProtocolDialect`, `McpRuntimeServer`.
@@ -220,24 +220,24 @@ Expected: dialect and dispatcher tests pass.
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime
-git commit -m "feat(gateway): add MCP protocol adapters"
+git commit -m "feat(yuheng): add MCP protocol adapters"
 ```
 
-### Task 3: Nest MCP in the Existing Rule, Compiler, DDC Activation, and LKG
+### Task 3: Nest MCP in the Existing Rule, Compiler, Tianshu Activation, and LKG
 
 **Files:**
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/gateway/contract/rule/GatewayRuleContent.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCanonicalizer.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/rule/GatewayRuleCompiler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/EngineGatewayRuleCompiler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/CompiledGatewayRules.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/GatewayRuleJsonCodec.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/rule/GatewayRuleActivationApplier.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/rule/CompiledMcpRules.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/rule/McpRuleCompiler.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/rule/GatewayMcpRuleCompilerTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayMcpActivationTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/rule/GatewayLegacySnapshotCompatibilityTest.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-contract/src/main/java/top/egon/cola/component/yuheng/contract/rule/GatewayRuleContent.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/rule/GatewayRuleCanonicalizer.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/rule/GatewayRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rule/EngineGatewayRuleCompiler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rule/CompiledGatewayRules.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rule/GatewayRuleJsonCodec.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/rule/GatewayRuleActivationApplier.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/rule/CompiledMcpRules.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/rule/McpRuleCompiler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/rule/GatewayMcpRuleCompilerTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rule/GatewayMcpActivationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/rule/GatewayLegacySnapshotCompatibilityTest.java`
 
 **Interfaces:**
 - Consumes: `McpRuleContent.empty()` from Task 1.
@@ -316,28 +316,28 @@ Compile MCP before resource preparation. Only after HTTP/RPC and MCP compile, ar
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -DskipITs test`
 
-Expected: all existing Gateway release tests and new MCP tests pass.
+Expected: all existing Yuheng release tests and new MCP tests pass.
 
 - [ ] **Step 5: Commit**
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): activate MCP in unified releases"
+git commit -m "feat(yuheng): activate MCP in unified releases"
 ```
 
 ### Task 4: V7 PostgreSQL Control Plane, Task, Approval, and Artifact Metadata
 
 **Files:**
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/resources/db/migration/V7__add_gateway_mcp_control_plane.sql`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/McpServerEntity.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/McpServerRepository.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/JdbcMcpCapabilityDraftStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/JdbcMcpRemoteProviderStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/JdbcMcpArtifactMetadataStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/JdbcMcpApprovalStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/persistence/JdbcMcpTaskStore.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/persistence/GatewayMcpFlywayPostgresqlIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/persistence/JdbcMcpControlPlaneStoreTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/McpServerEntity.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/McpServerRepository.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/JdbcMcpCapabilityDraftStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/JdbcMcpRemoteProviderStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/JdbcMcpArtifactMetadataStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/JdbcMcpApprovalStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/persistence/JdbcMcpTaskStore.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/persistence/GatewayMcpFlywayPostgresqlIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/persistence/JdbcMcpControlPlaneStoreTest.java`
 
 **Interfaces:**
 - Consumes: `LongIdGenerator`, Jackson and existing Admin actor/revision conventions.
@@ -390,28 +390,28 @@ Expected: empty migration, V1-V6 upgrade and store concurrency tests pass.
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
-git commit -m "feat(gateway): add MCP control plane schema"
+git commit -m "feat(yuheng): add MCP control plane schema"
 ```
 
 ### Task 5: MCP Admin Domain, Validation, CRUD, Preview, and Unified Release
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/application/McpControlPlaneService.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/application/McpValidationService.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/application/McpReleaseContentFactory.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpServerController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpCapabilityController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpTaskAdminController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpAppAdminController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpRemoteProviderController.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpProtocolInspectorController.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/application/release/GatewayReleaseService.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpAdminApiIT.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/application/McpUnifiedReleaseTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/application/McpControlPlaneService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/application/McpValidationService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/application/McpReleaseContentFactory.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpServerController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpCapabilityController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpTaskAdminController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpAppAdminController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpRemoteProviderController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpProtocolInspectorController.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/application/release/GatewayReleaseService.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpAdminApiIT.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/application/McpUnifiedReleaseTest.java`
 
 **Interfaces:**
 - Consumes: Task 4 stores and Task 3 unified rule compiler.
-- Produces: `/api/v1/gateway/admin/mcp/**` and MCP content in normal Gateway preview/publish/rollback.
+- Produces: `/api/v1/yuheng/admin/mcp/**` and MCP content in normal Yuheng preview/publish/rollback.
 
 - [ ] **Step 1: Write failing API and release tests**
 
@@ -423,7 +423,7 @@ void publishingGatewayReleaseIncludesMcpDraftAndRejectsUnknownOperation() {
     mockMvc.perform(post(releasePreviewUrl))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code")
-                    .value("GATEWAY_MCP_OPERATION_NOT_FOUND"));
+                    .value("YUHENG_MCP_OPERATION_NOT_FOUND"));
 }
 ```
 
@@ -435,7 +435,7 @@ Expected: controllers/services are missing.
 
 - [ ] **Step 3: Implement CRUD and validation facade**
 
-Validation must resolve Operation IDs from Catalog, compile schemas, verify immutable Artifact SHA, validate Remote fingerprints, URI templates, namespace conflicts, task policies and permission names. All writes require Idempotency-Key and expectedRevision and emit existing Gateway audit records.
+Validation must resolve Operation IDs from Catalog, compile schemas, verify immutable Artifact SHA, validate Remote fingerprints, URI templates, namespace conflicts, task policies and permission names. All writes require Idempotency-Key and expectedRevision and emit existing Yuheng audit records.
 
 ```java
 public McpRuleContent compileForRelease(
@@ -457,23 +457,23 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin -am -DskipITs 
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin
-git commit -m "feat(gateway): add MCP management APIs"
+git commit -m "feat(yuheng): add MCP management APIs"
 ```
 
 ### Task 6: Direct Operation Invoker and Local Tools
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/invocation/GatewayOperationInvoker.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/invocation/GatewayOperationInvocation.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/invocation/GatewayInvocationResult.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/invocation/EngineGatewayOperationInvoker.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/tool/McpToolCatalog.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/tool/McpArgumentBinder.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/tool/McpResultBinder.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/tool/McpToolsListHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/tool/McpToolsCallHandler.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/invocation/EngineGatewayOperationInvokerTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/tool/McpLocalToolFlowTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/invocation/GatewayOperationInvoker.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/invocation/GatewayOperationInvocation.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/invocation/GatewayInvocationResult.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/invocation/EngineGatewayOperationInvoker.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/tool/McpToolCatalog.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/tool/McpArgumentBinder.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/tool/McpResultBinder.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/tool/McpToolsListHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/tool/McpToolsCallHandler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/invocation/EngineGatewayOperationInvokerTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/tool/McpLocalToolFlowTest.java`
 
 **Interfaces:**
 - Consumes: active `GatewayRuntimeOperation`, provider directory and governance services.
@@ -507,26 +507,26 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): invoke local operations as MCP tools"
+git commit -m "feat(yuheng): invoke local operations as MCP tools"
 ```
 
-### Task 7: IdP Identity, RBAC3 Snapshot Authorization, and One-Time Approval
+### Task 7: Tianquan-Shoubing Identity, Tianquan-Jianshen Snapshot Authorization, and One-Time Approval
 
 **Prerequisite:** Unified identity plan Tasks 4-11 are complete and the downstream authorization starter exists.
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/mcp/security/McpAuthorizationPort.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/mcp/security/McpAuthorizationRequest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/mcp/security/McpApprovalPort.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/security/Rbac3McpAuthorizationAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/security/JdbcMcpApprovalAdapter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/security/McpSecurityGate.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/interfaces/McpApprovalController.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/security/McpSecurityGateTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/security/McpRbac3IntegrationTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/mcp/security/McpAuthorizationPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/mcp/security/McpAuthorizationRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/mcp/security/McpApprovalPort.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/security/Rbac3McpAuthorizationAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/security/JdbcMcpApprovalAdapter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/security/McpSecurityGate.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/interfaces/McpApprovalController.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/security/McpSecurityGateTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/security/McpRbac3IntegrationTest.java`
 
 **Interfaces:**
-- Consumes: IdP principal `(iss, sub, tid, sid, clientId, tokenVersion)` and RBAC3 downstream snapshot cache.
+- Consumes: Tianquan-Shoubing principal `(iss, sub, tid, sid, clientId, tokenVersion)` and Tianquan-Jianshen downstream snapshot cache.
 - Produces: per-primitive authorization and one-time HIGH/CRITICAL approval consumption.
 
 - [ ] **Step 1: Write failing boundary tests**
@@ -548,9 +548,9 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 - [ ] **Step 3: Implement downstream authorization**
 
-Map operations to exact permission keys such as `mcp:{serverCode}:tool:{toolName}:call`; fetch/refresh RBAC3 snapshots with the approved starter; compare snapshot/fencing versions; hash approval tokens at rest; bind approval to subject, tenant, client, server, tool and canonical argument digest.
+Map operations to exact permission keys such as `mcp:{serverCode}:tool:{toolName}:call`; fetch/refresh Tianquan-Jianshen snapshots with the approved starter; compare snapshot/fencing versions; hash approval tokens at rest; bind approval to subject, tenant, client, server, tool and canonical argument digest.
 
-- [ ] **Step 4: Run GREEN and prove Gateway base auth makes no RBAC call**
+- [ ] **Step 4: Run GREEN and prove Yuheng base auth makes no RBAC call**
 
 Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway,egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-gateway-adapter -am -DskipITs -Dsurefire.failIfNoSpecifiedTests=false -Dtest=McpSecurityGateTest,McpRbac3IntegrationTest,IdpGatewaySecurityProviderTest,GatewayIdentityOnlySecurityTest,GatewayOriginalBearerForwardingTest test`.
 
@@ -558,26 +558,26 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): authorize MCP through RBAC3"
+git commit -m "feat(yuheng): authorize MCP through Tianquan-Jianshen"
 ```
 
 ### Task 8: Reactor Netty MCP Ingress, Stable Session, RC Stateless Requests, and Legacy SSE
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/transport/McpHttpRequest.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/transport/McpHttpResponse.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/transport/McpSessionStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/transport/McpSubscriptionEventStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/RedisMcpSessionStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpEngineHttpHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/http/GatewayCompositeHttpDataPlaneHandler.java`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/transport/McpHttpRequest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/transport/McpHttpResponse.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/transport/McpSessionStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/transport/McpSubscriptionEventStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/RedisMcpSessionStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/McpEngineHttpHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/http/GatewayCompositeHttpDataPlaneHandler.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/GatewayEngineConfiguration.java`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/pom.xml`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/McpTransportIntegrationTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/McpCrossNodeSessionTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/McpTransportIntegrationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/McpCrossNodeSessionTest.java`
 
 **Interfaces:**
-- Consumes: Task 2 adapters/dispatcher and existing Gateway listener request/response types.
+- Consumes: Task 2 adapters/dispatcher and existing Yuheng listener request/response types.
 - Produces: all public MCP endpoints and Redis-backed cross-node Stable/Legacy streams.
 
 - [ ] **Step 1: Write failing transport tests**
@@ -612,28 +612,28 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dsk
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): expose MCP transport endpoints"
+git commit -m "feat(yuheng): expose MCP transport endpoints"
 ```
 
 ### Task 9: Resources, Templates, and Cross-Node Subscriptions
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/McpResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/McpResourceCatalog.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/McpResourceUriValidator.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/StaticTextResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/StaticBlobResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/OperationResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/ObjectStorageResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/DatabaseSchemaResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/McpResourcesListHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/McpResourcesReadHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/resource/McpResourceTemplatesListHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/subscription/McpSubscriptionService.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/subscription/McpResourceSubscribeHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/subscription/McpSubscriptionsListenHandler.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/resource/McpResourceFlowTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/McpSubscriptionHaTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/McpResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/McpResourceCatalog.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/McpResourceUriValidator.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/StaticTextResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/StaticBlobResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/OperationResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/ObjectStorageResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/DatabaseSchemaResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/McpResourcesListHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/McpResourcesReadHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/resource/McpResourceTemplatesListHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/subscription/McpSubscriptionService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/subscription/McpResourceSubscribeHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/subscription/McpSubscriptionsListenHandler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/resource/McpResourceFlowTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/McpSubscriptionHaTest.java`
 
 **Interfaces:**
 - Consumes: `GatewayOperationInvoker`, artifact/content ports, Redis event store.
@@ -672,24 +672,24 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): add MCP resources and subscriptions"
+git commit -m "feat(yuheng): add MCP resources and subscriptions"
 ```
 
 ### Task 10: Prompts and Completion
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/prompt/McpPromptDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/prompt/StrictPromptTemplate.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/prompt/StaticPromptDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/prompt/OperationPromptDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/prompt/McpPromptsListHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/prompt/McpPromptsGetHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/completion/McpCompletionProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/completion/DictionaryCompletionProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/completion/OperationCompletionProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/completion/McpCompletionHandler.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/prompt/McpPromptFlowTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/completion/McpCompletionTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/prompt/McpPromptDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/prompt/StrictPromptTemplate.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/prompt/StaticPromptDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/prompt/OperationPromptDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/prompt/McpPromptsListHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/prompt/McpPromptsGetHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/completion/McpCompletionProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/completion/DictionaryCompletionProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/completion/OperationCompletionProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/completion/McpCompletionHandler.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/prompt/McpPromptFlowTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/completion/McpCompletionTest.java`
 
 **Interfaces:**
 - Consumes: resource runtime, operation invoker, active prompt descriptors.
@@ -727,24 +727,24 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime -am -Dsk
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): add MCP prompts and completion"
+git commit -m "feat(yuheng): add MCP prompts and completion"
 ```
 
 ### Task 11: Durable Tasks, Worker Lease, Input, Cancellation, and Recovery
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTask.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTaskStateMachine.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTaskStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTaskExecutor.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTaskService.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTasksGetHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTasksUpdateHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/task/McpTasksCancelHandler.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/JdbcMcpRuntimeTaskStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpTaskWorker.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/task/McpTaskStateMachineTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/McpTaskRecoveryPostgresqlIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTask.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTaskStateMachine.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTaskStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTaskExecutor.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTaskService.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTasksGetHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTasksUpdateHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/task/McpTasksCancelHandler.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/JdbcMcpRuntimeTaskStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/McpTaskWorker.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/task/McpTaskStateMachineTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/McpTaskRecoveryPostgresqlIT.java`
 
 **Interfaces:**
 - Consumes: Task 4 table and Tool/Remote executors.
@@ -785,20 +785,20 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): add durable MCP tasks"
+git commit -m "feat(yuheng): add durable MCP tasks"
 ```
 
 ### Task 12: MCP App Artifact Registry and UI Resources
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/mcp/app/McpAppArtifactStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/app/McpAppRuntime.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/app/McpAppSecurityValidator.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/app/AppUiResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/gateway/admin/mcp/artifact/FileSystemMcpAppArtifactStore.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/FileSystemMcpAppArtifactReader.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/app/McpAppSecurityTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/gateway/admin/mcp/artifact/McpArtifactUploadIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/mcp/app/McpAppArtifactStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/app/McpAppRuntime.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/app/McpAppSecurityValidator.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/app/AppUiResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/main/java/top/egon/cola/component/yuheng/admin/mcp/artifact/FileSystemMcpAppArtifactStore.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/FileSystemMcpAppArtifactReader.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/app/McpAppSecurityTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin/src/test/java/top/egon/cola/component/yuheng/admin/mcp/artifact/McpArtifactUploadIT.java`
 
 **Interfaces:**
 - Consumes: immutable artifact metadata and Resource runtime.
@@ -832,26 +832,26 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): add MCP app artifacts"
+git commit -m "feat(yuheng): add MCP app artifacts"
 ```
 
 ### Task 13: Remote MCP Federation and Dialect Translation
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/mcp/remote/RemoteMcpClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/gateway/core/mcp/remote/RemoteAuthProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/McpRemoteClientPool.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/McpCapabilitySynchronizer.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/McpNamespaceRouter.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/McpDialectTranslator.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/RemoteMcpToolDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/RemoteMcpResourceDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/RemoteMcpPromptDriver.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/remote/RemoteMcpCompletionProvider.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/remote/ReactorNettyRemoteMcpClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/remote/ReferenceRemoteAuthProvider.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/gateway/mcp/remote/McpFederationTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/remote/RemoteTokenIsolationIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/mcp/remote/RemoteMcpClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-core/src/main/java/top/egon/cola/component/yuheng/core/mcp/remote/RemoteAuthProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/McpRemoteClientPool.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/McpCapabilitySynchronizer.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/McpNamespaceRouter.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/McpDialectTranslator.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/RemoteMcpToolDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/RemoteMcpResourceDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/RemoteMcpPromptDriver.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/remote/RemoteMcpCompletionProvider.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/remote/ReactorNettyRemoteMcpClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/remote/ReferenceRemoteAuthProvider.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/test/java/top/egon/cola/component/yuheng/mcp/remote/McpFederationTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/remote/RemoteTokenIsolationIT.java`
 
 **Interfaces:**
 - Consumes: remote descriptors fixed in Active Release and outbound secret references.
@@ -885,24 +885,24 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime,egon-col
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): add MCP remote federation"
+git commit -m "feat(yuheng): add MCP remote federation"
 ```
 
 ### Task 14: MCP Telemetry, Audit, Configuration, Health, and Failure Recovery
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/gateway/mcp/telemetry/McpTelemetry.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/MicrometerMcpTelemetry.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpRuntimeProperties.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpRuntimeHealthIndicator.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/mcp/McpAuditPublisher.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-mcp-runtime/src/main/java/top/egon/cola/component/yuheng/mcp/telemetry/McpTelemetry.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/MicrometerMcpTelemetry.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/McpRuntimeProperties.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/McpRuntimeHealthIndicator.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/mcp/McpAuditPublisher.java`
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/resources/application.yml`
-- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/gateway/engine/GatewayEngineConfiguration.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/McpTelemetrySecurityTest.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/gateway/engine/mcp/McpLkgRecoveryIT.java`
+- Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/main/java/top/egon/cola/component/yuheng/engine/GatewayEngineConfiguration.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/McpTelemetrySecurityTest.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway/src/test/java/top/egon/cola/component/yuheng/engine/mcp/McpLkgRecoveryIT.java`
 
 **Interfaces:**
-- Consumes: all runtime events and existing Gateway trace/audit infrastructure.
+- Consumes: all runtime events and existing Yuheng trace/audit infrastructure.
 - Produces: bounded metrics, trace tree, sanitized audit and readiness/degraded status.
 
 - [ ] **Step 1: Write failing sanitization and recovery tests**
@@ -922,7 +922,7 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dsk
 
 - [ ] **Step 3: Implement telemetry and configuration validation**
 
-Record method/primitive/status/server/remote provider only. Trace child spans for operation/remote/artifact/task. Health exposes active release, protocols, Redis/task/artifact/remote summary without secrets. Restore MCP content from the same LKG and remain on prior Active after failed DDC apply.
+Record method/primitive/status/server/remote provider only. Trace child spans for operation/remote/artifact/task. Health exposes active release, protocols, Redis/task/artifact/remote summary without secrets. Restore MCP content from the same LKG and remain on prior Active after failed Tianshu apply.
 
 - [ ] **Step 4: Run GREEN**
 
@@ -932,7 +932,7 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-biz-gateway -am -Dsk
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "feat(gateway): observe and recover MCP runtime"
+git commit -m "feat(yuheng): observe and recover MCP runtime"
 ```
 
 ### Task 15: Admin Web Foundation, SSO, MCP Servers, Tools, and Protocol Inspector
@@ -968,7 +968,7 @@ it('selects an Operation from catalog and never exposes a provider URL field', a
 
 - [ ] **Step 2: Run RED**
 
-Run: `npm test -- --run src/features/mcp/McpServersPage.test.tsx src/features/mcp/McpToolsPanel.test.tsx src/features/mcp/McpProtocolInspector.test.tsx` in `gateway-admin-web`.
+Run: `npm test -- --run src/features/mcp/McpServersPage.test.tsx src/features/mcp/McpToolsPanel.test.tsx src/features/mcp/McpProtocolInspector.test.tsx` in `yuheng-admin-web`.
 
 - [ ] **Step 3: Implement navigation, routes, typed API and forms**
 
@@ -982,7 +982,7 @@ Run: `npm run lint && npm run typecheck && npm test -- --run && npm run build`.
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-git commit -m "feat(gateway-web): manage MCP servers and tools"
+git commit -m "feat(yuheng-web): manage MCP servers and tools"
 ```
 
 ### Task 16: Admin Web Resources, Prompts, Tasks, Apps, Remote Federation, and Release
@@ -1031,7 +1031,7 @@ Run: `npm run lint && npm run typecheck && npm test -- --run && npm run build &&
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
-git commit -m "feat(gateway-web): complete MCP control plane"
+git commit -m "feat(yuheng-web): complete MCP control plane"
 ```
 
 ### Task 17: Local HTTP/RPC/Job Providers, Remote MCP Fixtures, Apps Host, and Clients
@@ -1039,19 +1039,19 @@ git commit -m "feat(gateway-web): complete MCP control plane"
 **Files:**
 - Modify: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/pom.xml`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/pom.xml`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/java/top/egon/cola/component/gateway/test/mcp/provider/McpTestProviderApplication.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/java/top/egon/cola/component/gateway/test/mcp/provider/McpJobController.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/java/top/egon/cola/component/yuheng/test/mcp/provider/McpTestProviderApplication.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-provider/src/main/java/top/egon/cola/component/yuheng/test/mcp/provider/McpJobController.java`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/pom.xml`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/src/main/java/top/egon/cola/component/gateway/test/mcp/remote/StableRemoteMcpApplication.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/src/main/java/top/egon/cola/component/gateway/test/mcp/remote/RcRemoteMcpApplication.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/src/main/java/top/egon/cola/component/yuheng/test/mcp/remote/StableRemoteMcpApplication.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/src/main/java/top/egon/cola/component/yuheng/test/mcp/remote/RcRemoteMcpApplication.java`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-mcp-remote/src/main/resources/apps/test-dashboard.html`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/StableMcpTestClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/RcMcpTestClient.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/LegacyMcpTestClient.java`
-- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpFixtureContractTest.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/StableMcpTestClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/RcMcpTestClient.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/LegacyMcpTestClient.java`
+- Test: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpFixtureContractTest.java`
 
 **Interfaces:**
-- Consumes: existing provider runtime/DDC registration and protocol contracts.
+- Consumes: existing provider runtime/Tianshu registration and protocol contracts.
 - Produces: deterministic fixtures for every primitive and dialect, with no external model/API dependency.
 
 - [ ] **Step 1: Write failing fixture contract tests**
@@ -1082,17 +1082,17 @@ Run: `./mvnw -pl egon-cola-xingyuan/egon-cola-yuheng/yuheng-test -am -DskipITs t
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng/yuheng-test
-git commit -m "test(gateway): add complete MCP fixtures"
+git commit -m "test(yuheng): add complete MCP fixtures"
 ```
 
 ### Task 18: Conformance, Security, Failure, HA, and Frontend End-to-End Gates
 
 **Files:**
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpStableConformanceIT.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpRcConformanceIT.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpSecurityIT.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpHaRecoveryIT.java`
-- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/gateway/test/mcp/McpCompleteReleaseIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpStableConformanceIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpRcConformanceIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpSecurityIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpHaRecoveryIT.java`
+- Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/java/top/egon/cola/component/yuheng/test/mcp/McpCompleteReleaseIT.java`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/resources/mcp/rc-scenarios.json`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/resources/mcp/security-corpus.json`
 - Create: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-test/yuheng-test-suite/src/test/resources/mcp/complete-release.json`
@@ -1106,7 +1106,7 @@ git commit -m "test(gateway): add complete MCP fixtures"
 
 - [ ] **Step 1: Add failing release-gate tests**
 
-The complete IT must assert every spec primitive, local HTTP/RPC, remote Stable/RC, task recovery, App SHA/CSP, RBAC/approval, DDC interruption, LKG restore, failed release rollback and cross-node calls.
+The complete IT must assert every spec primitive, local HTTP/RPC, remote Stable/RC, task recovery, App SHA/CSP, RBAC/approval, Tianshu interruption, LKG restore, failed release rollback and cross-node calls.
 
 ```java
 @Test
@@ -1152,7 +1152,7 @@ Expected: every command exits 0.
 
 ```bash
 git add egon-cola-xingyuan/egon-cola-yuheng
-git commit -m "test(gateway): verify complete MCP release"
+git commit -m "test(yuheng): verify complete MCP release"
 ```
 
 ### Task 19: Four-System Host-Local E2E, Operator Scripts, and Final Running Topology
@@ -1163,24 +1163,24 @@ git commit -m "test(gateway): verify complete MCP release"
 - Create: `scripts/unified-xingyuan/status-local-stack.sh`
 - Create: `scripts/unified-xingyuan/verify-local-stack.sh`
 - Create: `scripts/unified-xingyuan/lib/common.sh`
-- Create: `scripts/unified-xingyuan/fixtures/unified-platform-release.json`
-- Create: `scripts/unified-xingyuan/fixtures/rbac3-bootstrap.json`
+- Create: `scripts/unified-xingyuan/fixtures/unified-xingyuan-release.json`
+- Create: `scripts/unified-xingyuan/fixtures/tianquan-jianshen-bootstrap.json`
 - Create: `docs/operations/unified-identity-mcp-local-runbook.md`
 - Modify: `README.md`
 
 **Interfaces:**
 - Consumes: completed unified identity plan, Tasks 1-18, host PostgreSQL/Redis/Kafka and executable jars/web builds.
-- Produces: verified IdP/RBAC3/DDC/Gateway/MCP/mock-provider topology left running for user QA.
+- Produces: verified Tianquan-Shoubing/Tianquan-Jianshen/Tianshu/Yuheng/MCP/mock-provider topology left running for user QA.
 
 - [ ] **Step 1: Write the failing verification script first**
 
-`verify-local-stack.sh` must fail unless all processes, health endpoints, SSO, RBAC snapshots, DDC registration/release, Stable/RC/Legacy MCP calls, local/remote primitives, task recovery and Admin Web static endpoints are healthy. It reads passwords/tokens from restrictive files and never prints them.
+`verify-local-stack.sh` must fail unless all processes, health endpoints, SSO, RBAC snapshots, Tianshu registration/release, Stable/RC/Legacy MCP calls, local/remote primitives, task recovery and Admin Web static endpoints are healthy. It reads passwords/tokens from restrictive files and never prints them.
 
 ```bash
-verify_http "idp" "${IDP_BASE_URL}/actuator/health/readiness"
-verify_http "rbac3" "${RBAC3_BASE_URL}/actuator/health/readiness"
-verify_http "ddc" "${DDC_BASE_URL}/actuator/health/readiness"
-verify_http "gateway" "${GATEWAY_BASE_URL}/actuator/health/readiness"
+verify_http "tianquan-shoubing" "${TIANQUAN_SHOUBING_BASE_URL}/actuator/health/readiness"
+verify_http "tianquan-jianshen" "${TIANQUAN_JIANSHEN_BASE_URL}/actuator/health/readiness"
+verify_http "tianshu" "${TIANSHU_BASE_URL}/actuator/health/readiness"
+verify_http "yuheng" "${YUHENG_BASE_URL}/actuator/health/readiness"
 verify_mcp_stable
 verify_mcp_rc
 verify_mcp_legacy
@@ -1195,7 +1195,7 @@ Expected: exits non-zero with a precise missing-process report.
 
 - [ ] **Step 3: Implement safe start/stop/status and fixture bootstrap**
 
-Use explicit ports, PID files, log files and secret files under a validated `target/local-unified-platform/` directory. Start host-local PostgreSQL/Redis/Kafka only if owned by the script; otherwise verify and reuse user-local services without deleting data. Bootstrap IdP only from `IDP_BOOTSTRAP_PASSWORD_FILE`; publish RBAC3 mappings/permissions; create Gateway MCP control-plane data; publish one unified release; never log credentials.
+Use explicit ports, PID files, log files and secret files under a validated `target/local-unified-xingyuan/` directory. Start host-local PostgreSQL/Redis/Kafka only if owned by the script; otherwise verify and reuse user-local services without deleting data. Bootstrap Tianquan-Shoubing only from `TIANQUAN_SHOUBING_BOOTSTRAP_PASSWORD_FILE`; publish Tianquan-Jianshen mappings/permissions; create Yuheng MCP control-plane data; publish one unified release; never log credentials.
 
 - [ ] **Step 4: Perform deep host-local validation**
 
@@ -1207,7 +1207,7 @@ scripts/unified-xingyuan/verify-local-stack.sh
 scripts/unified-xingyuan/status-local-stack.sh
 ```
 
-Manually induce and automatically verify: DDC interruption/LKG continuity, invalid release rollback, Remote MCP outage/circuit recovery, Engine A task creation/Engine B read, RBAC permission revocation and IdP tokenVersion revocation.
+Manually induce and automatically verify: Tianshu interruption/LKG continuity, invalid release rollback, Remote MCP outage/circuit recovery, Engine A task creation/Engine B read, RBAC permission revocation and Tianquan-Shoubing tokenVersion revocation.
 
 Expected: verifier exits 0 after recovery and records only sanitized evidence.
 
@@ -1215,7 +1215,7 @@ Expected: verifier exits 0 after recovery and records only sanitized evidence.
 
 ```bash
 git add scripts/unified-xingyuan docs/operations/unified-identity-mcp-local-runbook.md README.md
-git commit -m "test(platform): verify unified identity and MCP stack"
+git commit -m "test(xingyuan): verify unified identity and MCP stack"
 ```
 
 - [ ] **Step 6: Leave the verified topology running for user QA**
@@ -1226,9 +1226,9 @@ Do not run the stop script. Report exact Admin Web URLs, API/health URLs, MCP en
 
 ### Spec coverage
 
-- Tasks 1-3 cover contracts, protocols and atomic DDC/LKG release.
+- Tasks 1-3 cover contracts, protocols and atomic Tianshu/LKG release.
 - Tasks 4-5 cover the full control plane, one V7 migration and APIs.
-- Tasks 6-8 cover local invocation, IdP/RBAC3/approval and all transports.
+- Tasks 6-8 cover local invocation, Tianquan-Shoubing/Tianquan-Jianshen/approval and all transports.
 - Tasks 9-13 cover Resources, Prompts, Completion, Tasks, Apps and Remote Federation.
 - Task 14 covers config, telemetry, audit, health and recovery.
 - Tasks 15-16 cover the complete Admin Web and SSO surface.

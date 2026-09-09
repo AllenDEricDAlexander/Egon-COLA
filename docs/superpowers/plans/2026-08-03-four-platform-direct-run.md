@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Make IdP, RBAC3, Gateway, and DDC launchable from packaged JARs and frontend `npm run dev` commands, then prove the unified SSO and platform feature chains end to end.
+**Goal:** Make Tianquan-Shoubing, Tianquan-Jianshen, Yuheng, and Tianshu launchable from packaged JARs and frontend `npm run dev` commands, then prove the unified SSO and xingyuan feature chains end to end.
 
 **Architecture:** The existing local preparation workflow remains the authority for database initialization and secret generation. It emits both shell `.env` files and Java `.properties` files from the same values; each executable Spring Boot JAR imports only its own optional properties file, while process environment and command-line arguments retain override precedence. Vite development proxies use the documented local backend ports by default, and the existing deep verifier is extended with authenticated admin read coverage.
 
@@ -12,9 +12,9 @@
 
 - Keep PostgreSQL and Redis as real host-local dependencies; do not introduce embedded or fake persistence.
 - Never commit generated passwords, client secrets, private keys, `.env` files, or `.properties` runtime files.
-- Generated runtime configuration lives under `target/local-unified-platform/env` and has mode `0600`.
+- Generated runtime configuration lives under `target/local-unified-xingyuan/env` and has mode `0600`.
 - Direct backend commands are `java -jar <module>/target/*-exec.jar`; direct frontend commands are `npm run dev` from each admin web directory.
-- Local endpoints are IdP `18120/18121`, RBAC3 `18130/18131`, Gateway Admin `18140/18141`, Gateway Engine `18181`, and DDC `18150/18152`.
+- Local endpoints are Tianquan-Shoubing `18120/18121`, Tianquan-Jianshen `18130/18131`, Yuheng Admin `18140/18141`, Yuheng Engine `18181`, and Tianshu `18150/18152`.
 - Preserve environment-variable and command-line overrides and all existing unified-stack orchestration commands.
 - Do not add dependencies, modify existing Flyway migrations, expose secret values, or refactor unrelated code.
 - Pattern decision: use one small Shell-to-Java-properties adapter helper; reject Strategy, Factory, and inheritance because there is one stable encoding variation and no runtime strategy selection.
@@ -69,9 +69,9 @@ Run:
 ```bash
 bash scripts/unified-xingyuan/test-direct-run-contract.sh
 bash scripts/unified-identity-local.sh prepare
-for name in idp rbac3 gateway-admin gateway-engine ddc; do
-  test -s "target/local-unified-platform/env/${name}.properties"
-  test "$(stat -f '%Lp' "target/local-unified-platform/env/${name}.properties")" = 600
+for name in tianquan-shoubing tianquan-jianshen yuheng-admin yuheng-biz-gateway tianshu; do
+  test -s "target/local-unified-xingyuan/env/${name}.properties"
+  test "$(stat -f '%Lp' "target/local-unified-xingyuan/env/${name}.properties")" = 600
 done
 ```
 
@@ -81,7 +81,7 @@ Expected: every command exits `0`; no secret value appears in output.
 
 ```bash
 git add scripts/unified-identity-local.sh scripts/unified-xingyuan/test-direct-run-contract.sh
-git commit -m "feat(platform): generate direct jar runtime properties"
+git commit -m "feat(xingyuan): generate direct jar runtime properties"
 ```
 
 ### Task 2: Auto-import per-service runtime properties
@@ -95,8 +95,8 @@ git commit -m "feat(platform): generate direct jar runtime properties"
 - Test: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 **Interfaces:**
-- Consumes: `target/local-unified-platform/env/{idp,rbac3,gateway-admin,gateway-engine,ddc}.properties` from Task 1.
-- Produces: optional service-specific Spring imports controlled by `UNIFIED_PLATFORM_RUNTIME_DIR`.
+- Consumes: `target/local-unified-xingyuan/env/{tianquan-shoubing,tianquan-jianshen,yuheng-admin,yuheng-biz-gateway,tianshu}.properties` from Task 1.
+- Produces: optional service-specific Spring imports controlled by `UNIFIED_XINGYUAN_RUNTIME_DIR`.
 
 - [ ] **Step 1: Extend the failing contract assertions**
 
@@ -107,10 +107,10 @@ spring:
   profiles:
     default: local
   config:
-    import: optional:file:${UNIFIED_PLATFORM_RUNTIME_DIR:target/local-unified-platform}/env/<service>.properties
+    import: optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/<service>.properties
 ```
 
-For DDC, assert that `classpath:META-INF/egon-cola-ddc.properties` remains in the import list.
+For Tianshu, assert that `classpath:META-INF/egon-cola-tianshu.properties` remains in the import list.
 
 - [ ] **Step 2: Verify the new assertions fail**
 
@@ -120,7 +120,7 @@ Expected: non-zero identifying the first missing import.
 
 - [ ] **Step 3: Add the five optional imports and local defaults**
 
-Use the exact filenames `idp.properties`, `rbac3.properties`, `gateway-admin.properties`, `gateway-engine.properties`, and `ddc.properties`. Preserve every existing YAML property and express DDC imports as a YAML list containing both the classpath resource and optional file.
+Use the exact filenames `tianquan-shoubing.properties`, `tianquan-jianshen.properties`, `yuheng-admin.properties`, `yuheng-biz-gateway.properties`, and `tianshu.properties`. Preserve every existing YAML property and express Tianshu imports as a YAML list containing both the classpath resource and optional file.
 
 - [ ] **Step 4: Validate resources and package executable JARs**
 
@@ -137,7 +137,7 @@ Expected: contract PASS and reactor `BUILD SUCCESS` with five `*-exec.jar` files
 
 ```bash
 git add scripts/unified-xingyuan/test-direct-run-contract.sh egon-cola-xingyuan/*/*/src/main/resources/application.yml
-git commit -m "feat(platform): auto-load direct jar configuration"
+git commit -m "feat(xingyuan): auto-load direct jar configuration"
 ```
 
 ### Task 3: Make frontend development commands direct
@@ -149,14 +149,14 @@ git commit -m "feat(platform): auto-load direct jar configuration"
 - Test: `scripts/unified-xingyuan/test-direct-run-contract.sh`
 
 **Interfaces:**
-- Consumes: backend endpoints RBAC3 `18130`, Gateway Admin `18140`, DDC `18150`.
+- Consumes: backend endpoints Tianquan-Jianshen `18130`, Yuheng Admin `18140`, Tianshu `18150`.
 - Produces: working `/api` proxy defaults when the user runs plain `npm run dev`.
 
 - [ ] **Step 1: Add failing Vite proxy assertions**
 
-Assert that the four frontend configs resolve their API targets to IdP `18120`, RBAC3 `18130`, Gateway Admin `18140`, and DDC `18150` when no override is set.
+Assert that the four frontend configs resolve their API targets to Tianquan-Shoubing `18120`, Tianquan-Jianshen `18130`, Yuheng Admin `18140`, and Tianshu `18150` when no override is set.
 
-- [ ] **Step 2: Verify the current RBAC3/Gateway/DDC defaults fail**
+- [ ] **Step 2: Verify the current Tianquan-Jianshen/Yuheng/Tianshu defaults fail**
 
 Run `bash scripts/unified-xingyuan/test-direct-run-contract.sh`.
 
@@ -167,9 +167,9 @@ Expected: non-zero identifying `8080` or `18080` as stale defaults.
 Keep the current environment override names and proxy options. Change only fallback URLs to:
 
 ```text
-RBAC3  http://127.0.0.1:18130
-Gateway http://127.0.0.1:18140
-DDC http://127.0.0.1:18150
+Tianquan-Jianshen  http://127.0.0.1:18130
+Yuheng http://127.0.0.1:18140
+Tianshu http://127.0.0.1:18150
 ```
 
 - [ ] **Step 4: Run frontend validation**
@@ -180,7 +180,7 @@ Run the contract test, then each workspace's existing test, lint, and build comm
 
 ```bash
 git add scripts/unified-xingyuan/test-direct-run-contract.sh egon-cola-xingyuan/*/*-admin-web/vite.config.ts
-git commit -m "fix(platform): align direct frontend proxy defaults"
+git commit -m "fix(xingyuan): align direct frontend proxy defaults"
 ```
 
 ### Task 4: Provide one safe preparation command and operator documentation
@@ -225,7 +225,7 @@ Expected: both preparations exit `0`, proving idempotency, and the contract pass
 
 ```bash
 git add scripts/unified-xingyuan/prepare-local-stack.sh scripts/unified-xingyuan/test-direct-run-contract.sh docs/runbooks/unified-identity-local.md docs/operations/unified-identity-mcp-local-runbook.md
-git commit -m "docs(platform): document verified direct startup"
+git commit -m "docs(xingyuan): document verified direct startup"
 ```
 
 ### Task 5: Expand authenticated admin feature-chain verification
@@ -243,7 +243,7 @@ Implement `verify_authenticated_json <label> <url> <token>` using `curl --fail-w
 
 - [ ] **Step 2: Add the read-only endpoint matrix**
 
-Cover IdP users/clients/signing keys/audits; RBAC3 runtime/tenants/users/applications/roles/management policies/SoD/data/field/operation rules/audits/session; Gateway session/scopes/dashboard/groups/applications/draft/releases/runtime consistency/traces/audit; and DDC biz/env/app/namespace/binding/config/cache/registry/publish-task reads. Reuse initialized IDs from the verifier and preserve its existing mutation, revocation, DDC LKG, MCP failover, and recovery scenarios.
+Cover Tianquan-Shoubing users/clients/signing keys/audits; Tianquan-Jianshen runtime/tenants/users/applications/roles/management policies/SoD/data/field/operation rules/audits/session; Yuheng session/scopes/dashboard/groups/applications/draft/releases/runtime consistency/traces/audit; and Tianshu biz/env/app/namespace/binding/config/cache/registry/publish-task reads. Reuse initialized IDs from the verifier and preserve its existing mutation, revocation, Tianshu LKG, MCP failover, and recovery scenarios.
 
 - [ ] **Step 3: Run the verifier against the managed stack and fix endpoint assumptions**
 
@@ -260,14 +260,14 @@ Expected: every new matrix row and every existing scenario passes; evidence cont
 
 ```bash
 git add scripts/unified-xingyuan/verify-local-stack.sh
-git commit -m "test(platform): cover authenticated admin feature chains"
+git commit -m "test(xingyuan): cover authenticated admin feature chains"
 ```
 
 ### Task 6: Prove exact direct commands and complete the release gate
 
 **Files:**
 - Verify only: all files from Tasks 1-5
-- Evidence: `target/local-unified-platform/evidence/`
+- Evidence: `target/local-unified-xingyuan/evidence/`
 
 **Interfaces:**
 - Consumes: packaged JARs, generated properties, plain npm commands, and the full verifier.
@@ -279,7 +279,7 @@ Run the stop command, then start the five primary JVMs from repository root usin
 
 - [ ] **Step 2: Prove health and frontend proxy behavior**
 
-Wait for backend Actuator health endpoints and frontend roots, then call `/api` through each Vite origin using its platform token. Expected: HTTP `200`, valid JSON, and no `Failed to fetch`/CORS response.
+Wait for backend Actuator health endpoints and frontend roots, then call `/api` through each Vite origin using its xingyuan token. Expected: HTTP `200`, valid JSON, and no `Failed to fetch`/CORS response.
 
 - [ ] **Step 3: Run the complete regression gate**
 

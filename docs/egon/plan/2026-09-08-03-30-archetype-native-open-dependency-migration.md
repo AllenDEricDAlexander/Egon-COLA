@@ -9,7 +9,7 @@
 | Updated | `2026-09-08 15:08 CST` |
 | Owner | `用户 / Egon-COLA 维护者` |
 | Repository | `Egon-COLA` |
-| Scope | 根 parent、archetypes parent/source roots、native RPC/DDC/API Doc、open/agent 边界、definitions、generator/generated reactor |
+| Scope | 根 parent、archetypes parent/source roots、native RPC/Tianshu/API Doc、open/agent 边界、definitions、generator/generated reactor |
 | Source Requirement | 用户确认的 parent/BOM 归属、native/open 技术栈边界、Components BOM、ShardingSphere、commons-lang3 和 native Protobuf RPC 迁移 |
 | Baseline Revision | `main @ dfd24ce3f57f77e2edc8628dac56fe8aba14b87e`；工作区保留用户未提交 POM/Agent 变更 |
 | Implements Spec | [Archetype 原生与 Open 技术栈依赖治理迁移](../spec/2026-09-07-16-52-archetype-native-open-dependency-governance.md) |
@@ -50,9 +50,9 @@
 
 | Requirement | Source Spec section | Effective statement | Observable acceptance | Implementation impact |
 | --- | --- | --- | --- | --- |
-| `REQ-001` | §4 | native light/service/web 使用 Egon DDC/RPC/API Doc | native 无 Dubbo/Nacos/Cloud/Alibaba/Springdoc 直连 | POM、Java、配置、测试、verifier |
+| `REQ-001` | §4 | native light/service/web 使用 Egon Tianshu/RPC/API Doc | native 无 Dubbo/Nacos/Cloud/Alibaba/Springdoc 直连 | POM、Java、配置、测试、verifier |
 | `REQ-002` | §4 | `-open` 保留外部 Spring 体系 | Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC/Protobuf/Springdoc/ShardingSphere 可解析 | open POM/测试/配置 |
-| `REQ-003` | §4 | Agent 不引入无用基础设施 | Agent 无 DDC/RPC/Nacos/Dubbo/ShardingSphere | Agent POM/verifier |
+| `REQ-003` | §4 | Agent 不引入无用基础设施 | Agent 无 Tianshu/RPC/Nacos/Dubbo/ShardingSphere | Agent POM/verifier |
 | `REQ-004` | §4 | Components BOM 负责组件版本 | 七个 roots 从 BOM 取得 Common/ID/MyBatis/DTP/RPC 版本 | archetype/source POM |
 | `REQ-005` | §4 | ShardingSphere owner 在 archetype 层 | source roots 无本地 `${shardingsphere.version}` | parent/source POM |
 | `REQ-006` | §4 | commons-lang3 不由 archetype 管版本 | 删除本地 version，保留 Common Core 传递路径 | POM/dependency scan |
@@ -66,7 +66,7 @@
 
 ### 4.1 Ordered strategy
 
-先让 Maven 模型具备正确 parent、Components BOM 和 version owner（保留旧 native 依赖直至对应完整切换），再在 Light/两个既有 shared facade 发布完整 31-operation native Protobuf contract，随后按真实模块依赖接 light、service/web provider/consumer/DDC/API Doc。open/agent 只改边界 guard，最后改 generator/definitions 并重新生成 `.generated`。
+先让 Maven 模型具备正确 parent、Components BOM 和 version owner（保留旧 native 依赖直至对应完整切换），再在 Light/两个既有 shared facade 发布完整 31-operation native Protobuf contract，随后按真实模块依赖接 light、service/web provider/consumer/Tianshu/API Doc。open/agent 只改边界 guard，最后改 generator/definitions 并重新生成 `.generated`。
 
 ### 4.2 Test-first strategy
 
@@ -88,7 +88,7 @@ Spec/Plan 补齐先作一个 docs commit；七个实现 Step 各一个 path-limi
 | Native Protobuf facade contracts | §9 RPC-001..031/REQ-011 | native facades and `RpcContractValidator` | retain Dubbo/Nacos | violates native boundary | Implement |
 | New business DTO/DAO layer | §10 reuse | existing DTO/Result/Converter/DAO tree | duplicate models | unnecessary mapping/coupling | Exclude |
 | Generator normalization | §7.0 Add | `normalize_generated_product` | copy source POM | local parent leaks | Implement |
-| Agent DDC/RPC classes | §3/§7 | Agent only AI/ADK/Agent Flow | universal BOM | unused footprint | Exclude |
+| Agent Tianshu/RPC classes | §3/§7 | Agent only AI/ADK/Agent Flow | universal BOM | unused footprint | Exclude |
 
 ### 4.6 Change-unit Dependency Matrix
 
@@ -96,7 +96,7 @@ Spec/Plan 补齐先作一个 docs commit；七个实现 Step 各一个 path-limi
 | --- | --- | --- | --- | --- | --- | --- |
 | Parent/BOM ownership | `REQ-004..007` | effective-POM duplicate owner failure | published parents/BOM | managed versions | all roots | 1 |
 | Native unary IDL | `REQ-011` | validator missing descriptor | protobuf/gRPC generation | generated classes | native adapters | 2 |
-| Native light transport | `REQ-001,008,011` | Dubbo marker scan | Step 2 contract | provider/reference/DDC wiring | light tests | 3 |
+| Native light transport | `REQ-001,008,011` | Dubbo marker scan | Step 2 contract | provider/reference/Tianshu wiring | light tests | 3 |
 | Native service/web transport | `REQ-001,008,011` | Dubbo client/provider scan | Step 2 contract | module adapters | service/web tests | 4 |
 | Open/agent guards | `REQ-002,003,009` | allowlist fixture | Step 1 BOM | family proof | definitions | 5 |
 | Generator normalization | `REQ-007,010` | sentinel/relativePath fixture | final source | deterministic products | generated reactor | 6 |
@@ -107,7 +107,7 @@ Spec/Plan 补齐先作一个 docs commit；七个实现 Step 各一个 path-limi
 | Concern | Current repository evidence | Effective Spec decision | Planned implementation consequence | Owning Steps/checks |
 | --- | --- | --- | --- | --- |
 | Architecture profile | exact Light/Service/Web/Open/Agent archetype trees and verifiers | preserve exact Egon-COLA profiles | no `biz.*` hybrid or new layer | all; `MC-ARCH-001` |
-| Reuse/capability | Components BOM, RPC starter/DDC adapter, platform DDC/OpenAPI, BaseConverter | reuse existing capabilities first | no duplicate registry/converter/doc stack | 1–4; `MC-REUSE-001` |
+| Reuse/capability | Components BOM, RPC starter/Tianshu adapter, xingyuan Tianshu/OpenAPI, BaseConverter | reuse existing capabilities first | no duplicate registry/converter/doc stack | 1–4; `MC-REUSE-001` |
 | Naming/model/validation/conversion | existing DTO/Request/Response/DAO and MapStruct/BaseConverter | no new business carrier | generated messages map to existing DTOs | 2–4; `MC-NAME/VALID/MODEL/CONVERT-001` |
 | Bean/logging/injection | existing `@RequiredArgsConstructor`, `@Qualifier`, Spring beans | stable bean names and constructor injection | native adapters/providers follow conventions | 3–4; `MC-LOG/BEAN-001` |
 | Utility/JSON/time/config | Jackson/profile files; Common Core transitive commons-lang3 | closed utilities, unchanged JSON/time, profile parity | no new utility or JSON trick | 1,3–5; `MC-UTIL/JSON/TIME/CONFIG-001` |
@@ -119,9 +119,9 @@ Spec/Plan 补齐先作一个 docs commit；七个实现 Step 各一个 path-limi
 | --- | --- | --- | --- | --- | --- | --- |
 | Component versions | Boot management; Components BOM | `egon-cola-components/egon-cola-components-bom/pom.xml` | sufficient | import BOM at archetype owner | None | 1; `MC-REUSE-001` |
 | Native RPC | Spring context; RPC starter | annotations and `RpcContractValidator` | source adapters are gap | reuse starter, add proto/adapters | approved native proto only | 2–4; `MC-DEP-001` |
-| Native DDC/API Doc | platform/RPC modules | platform POM and module trees | sufficient | reuse starters | None beyond config | 3–4 |
+| Native Tianshu/API Doc | xingyuan/RPC modules | xingyuan POM and module trees | sufficient | reuse starters | None beyond config | 3–4 |
 | Open transport | native alternative; Dubbo/Triple/gRPC | open providers/clients/IDL | external is required | keep open stack | no native fallback | 5 |
-| Agent workflow | native infra; AI/ADK/Flow | Agent source POM/modules | AI stack sufficient | keep AI only | no DDC/RPC | 5 |
+| Agent workflow | native infra; AI/ADK/Flow | Agent source POM/modules | AI stack sufficient | keep AI only | no Tianshu/RPC | 5 |
 
 ### 4.8 User-mandated Java Rule Implementation Matrix
 
@@ -471,7 +471,7 @@ Light MVC 切片装配修复（同属 Step 3 HTTP 兼容验证，用户已允许
 
 ### 6.2 Build, test, and environment prerequisites
 
-使用仓库 Maven Wrapper/Java21、现有本地 Maven repository。只运行源码、编译、focused/module/in-process/H2 测试和本地生成；不启动应用、浏览器、Docker、外部数据库/Redis/DDC，也不推送、PR或发布。Bootstrap POM/artifact install 与真正运行 test 分开记录。
+使用仓库 Maven Wrapper/Java21、现有本地 Maven repository。只运行源码、编译、focused/module/in-process/H2 测试和本地生成；不启动应用、浏览器、Docker、外部数据库/Redis/Tianshu，也不推送、PR或发布。Bootstrap POM/artifact install 与真正运行 test 分开记录。
 
 ### 6.3 Immutable constraints and approved decisions
 
@@ -501,7 +501,7 @@ Spec §7.4 是已授权补齐：具体parent版本、Components Commons owner、
 
 | PLAN-CLAR-012 | root 清除 Boot parent 的默认 Shade configuration/执行配置并取消隐式 default phase；子模块显式执行保留 | Step 7 完整 install 因 AppendingTransformer.resource 合入 Bytecode Agent ManifestResourceTransformer 而失败 | 恢复 parent 迁移前库/Agent/JMH 各自的 Shade 配置，不修改组件源码或自定义执行 | Step 1 独立修正；Bytecode Agent/benchmark 包与 manifest 校验、完整 install 必须通过 |
 
-| PLAN-CLAR-013 | Native Compose 使用显式 DDC_APP_CODE，不在 unfiltered 文件里嵌入 source artifact 默认值 | 七产品 IT 的 Light Compose 中出现未展开 ${artifactId}；Service/Web 同结构 | .env 示例仍生成项目默认值；缺少应用编码时 Compose 明确拒绝，避免错误注册 | 分别归属 Step 3/4 的独立修正；18个 Compose 的编码和生成 sentinel 门禁必须通过 |
+| PLAN-CLAR-013 | Native Compose 使用显式 TIANSHU_APP_CODE，不在 unfiltered 文件里嵌入 source artifact 默认值 | 七产品 IT 的 Light Compose 中出现未展开 ${artifactId}；Service/Web 同结构 | .env 示例仍生成项目默认值；缺少应用编码时 Compose 明确拒绝，避免错误注册 | 分别归属 Step 3/4 的独立修正；18个 Compose 的编码和生成 sentinel 门禁必须通过 |
 
 | PLAN-CLAR-014 | 统一 create-from-project 生成的 parentArtifactId alias 为 rootArtifactId 后再 Velocity escaping | Native Service/Web 生成配置测试期待未展开的 ${parentArtifactId}；Open 既有测试资源亦有同类 alias | 保留原测试断言和源 Java，修正生成变量语义；project.parent.artifactId 等 Maven 表达式不改 | Step 6 独立修正；夹具须先 RED 再 GREEN，完整生成测试必须通过 |
 
@@ -995,7 +995,7 @@ use MapStruct generation; inspect produced builders and round-trip tests
 
 - Commit: `feat(archetypes): define native protobuf rpc contracts`
 
-### Step 3 — Migrate native light provider and DDC/API Doc wiring
+### Step 3 — Migrate native light provider and Tianshu/API Doc wiring
 
 - Requirements: `REQ-001`, `REQ-008`, `REQ-011`
 - Dependencies: `Step 2`
@@ -1021,7 +1021,7 @@ use MapStruct generation; inspect produced builders and round-trip tests
 - Dependencies and consumers: 当前 providers 是 Dubbo，runtime flags 使用 dubbo.*，native bootstrap 仍有 Nacos。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
 - Contract/signature changes: exportsAllContracts; validatesRequests; preservesHttpRoutes; compareProfileKeys; native file/dependency scan；以Spec §7.4/§9/§10为准。
-- Input/output and state mapping: 测试不连接 DDC/Redis/HTTP，现有 fake facade + MockMvc/ApplicationContextRunner。
+- Input/output and state mapping: 测试不连接 Tianshu/Redis/HTTP，现有 fake facade + MockMvc/ApplicationContextRunner。
 - Error and edge behavior: 必须证明 target tests 实际执行；无服务监听、无 runtime 启动。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 先建立 provider/config/HTTP 与 native 残留 RED。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
 - Literal rule enforcement: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11` — 必须逐项核对本组实际diff；手写简单carrier用record，复杂carrier若出现必须完整Lombok；不允许未闭合例外。Rule11保持所选archetype树。
@@ -1148,8 +1148,8 @@ repeat exact existing 10 operations and failure envelopes
 
 - Purpose: 显式接线 Converter/Validation 和兼容 HTTP chain。
 - Symbols: lightRpcConverter; nativeRpcValidation; native validation exception mapper; applicationSecurityFilterChain
-- Repository evidence: Core ValidationUtils/MapStruct Mappers 与 RpcProviderExceptionMapper SPI；platform webmvc 引入 security。
-- Dependencies and consumers: Core ValidationUtils/MapStruct Mappers 与 RpcProviderExceptionMapper SPI；platform webmvc 引入 security。；后续本Step接线及source/generated consumer。
+- Repository evidence: Core ValidationUtils/MapStruct Mappers 与 RpcProviderExceptionMapper SPI；xingyuan webmvc 引入 security。
+- Dependencies and consumers: Core ValidationUtils/MapStruct Mappers 与 RpcProviderExceptionMapper SPI；xingyuan webmvc 引入 security。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
 - Contract/signature changes: lightRpcConverter; nativeRpcValidation; native validation exception mapper; applicationSecurityFilterChain；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: named beans，final qualified injections；原 HTTP 不变；OpenAPI governance 由显式配置启用。
@@ -1178,11 +1178,11 @@ repeat exact existing 10 operations and failure envelopes
 - `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/rpc/package-info.java`
 
 - Purpose: 完整切换 runtime 依赖和应用 bootstrap。
-- Symbols: native RPC/DDC/OpenAPI dependencies; remove EnableDubbo; retain OpenAPI Info
+- Symbols: native RPC/Tianshu/OpenAPI dependencies; remove EnableDubbo; retain OpenAPI Info
 - Repository evidence: 当前 POM 直接 Dubbo/Cloud/Nacos/Springdoc；app 使用 EnableDubbo。
 - Dependencies and consumers: 当前 POM 直接 Dubbo/Cloud/Nacos/Springdoc；app 使用 EnableDubbo。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: native RPC/DDC/OpenAPI dependencies; remove EnableDubbo; retain OpenAPI Info；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: native RPC/Tianshu/OpenAPI dependencies; remove EnableDubbo; retain OpenAPI Info；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 添加已有 native starter，移除旧依赖和 annotations；public scans/HTTP metadata 不变。
 - Error and edge behavior: 没有 Nacos/Dubbo fallback；不把 RPC 4.32 runtime 用 Open 3.25 版本覆盖。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 完整切换 runtime 依赖和应用 bootstrap。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -1191,12 +1191,12 @@ repeat exact existing 10 operations and failure envelopes
 
 ```xml
 remove Dubbo/Cloud/Nacos/direct Springdoc dependencies
-add BOM-managed RPC starter + DDC adapter + platform OpenAPI MVC
+add BOM-managed RPC starter + Tianshu adapter + xingyuan OpenAPI MVC
 remove @EnableDubbo; preserve component scanning
 name OpenAPI configuration/bean explicitly; retain Info and routes
 ```
 
-- Verification contribution: 本Step下列命令验证 native RPC/DDC/OpenAPI dependencies; remove EnableDubbo; retain OpenAPI Info；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 native RPC/Tianshu/OpenAPI dependencies; remove EnableDubbo; retain OpenAPI Info；需要非零目标测试数或明确静态断言。
 - After this file: 完整切换 runtime 依赖和应用 bootstrap。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 7 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`
@@ -1208,11 +1208,11 @@ name OpenAPI configuration/bean explicitly; retain Info and routes
 - `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`
 
 - Purpose: 迁移身份并对齐四 profile 的真实 starter keys。
-- Symbols: spring.application.name; egon.cola.component.rpc/ddc/gateway.openapi
+- Symbols: spring.application.name; egon.cola.component.rpc/tianshu/yuheng.openapi
 - Repository evidence: 旧 app name 位于 bootstrap；真实 prefix 来自已读 properties。
 - Dependencies and consumers: 旧 app name 位于 bootstrap；真实 prefix 来自已读 properties。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: spring.application.name; egon.cola.component.rpc/ddc/gateway.openapi；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: spring.application.name; egon.cola.component.rpc/tianshu/yuheng.openapi；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: base/dev/test/prod 同 key，值可不同；test 关闭 server/registry/remote；不改变 datasource/Flyway location。
 - Error and edge behavior: bootstrap 移除后不能丢 name；缺 target/credentials 依原 native starter fail-fast。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 迁移身份并对齐四 profile 的真实 starter keys。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -1222,11 +1222,11 @@ name OpenAPI configuration/bean explicitly; retain Info and routes
 ```yaml
 move non-Cloud bootstrap identity into application profiles
 replace dubbo/logging namespaces with native RPC
-bind actual DDC/RPC/OpenAPI properties in all profiles
+bind actual Tianshu/RPC/OpenAPI properties in all profiles
 test: no external/port lifecycle; dev/prod: explicit env settings
 ```
 
-- Verification contribution: 本Step下列命令验证 spring.application.name; egon.cola.component.rpc/ddc/gateway.openapi；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 spring.application.name; egon.cola.component.rpc/tianshu/yuheng.openapi；需要非零目标测试数或明确静态断言。
 - After this file: 迁移身份并对齐四 profile 的真实 starter keys。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 8 — `DELETE egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/bootstrap-dev.yml`
@@ -1316,13 +1316,13 @@ assert test profile disables all network runtime hooks
 - `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/container/README.md`
 
 - Purpose: 同步 deployment/env/README 的 native 边界。
-- Symbols: native RPC port; external DDC env; remove Nacos service/volumes
+- Symbols: native RPC port; external Tianshu env; remove Nacos service/volumes
 - Repository evidence: 6 Compose 和2 env 共用当前运行参数，数据库/Redis/MQ 仍被业务使用。
 - Dependencies and consumers: 6 Compose 和2 env 共用当前运行参数，数据库/Redis/MQ 仍被业务使用。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: native RPC port; external DDC env; remove Nacos service/volumes；以Spec §7.4/§9/§10为准。
-- Input/output and state mapping: 仅删除 Nacos 专用服务、volume/dependency/env，保留其他数据卷，DDC endpoint 外部提供。
-- Error and edge behavior: 不运行容器、不增加未经发布的 DDC 镜像；源码中的地址仅为配置。
+- Contract/signature changes: native RPC port; external Tianshu env; remove Nacos service/volumes；以Spec §7.4/§9/§10为准。
+- Input/output and state mapping: 仅删除 Nacos 专用服务、volume/dependency/env，保留其他数据卷，Tianshu endpoint 外部提供。
+- Error and edge behavior: 不运行容器、不增加未经发布的 Tianshu 镜像；源码中的地址仅为配置。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 同步 deployment/env/README 的 native 边界。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
 - Literal rule enforcement: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11` — 必须逐项核对本组实际diff；手写简单carrier用record，复杂carrier若出现必须完整Lombok；不允许未闭合例外。Rule11保持所选archetype树。
 - Implementation pseudocode:
@@ -1331,10 +1331,10 @@ assert test profile disables all network runtime hooks
 replace native transport env/port examples
 remove Nacos-only service/depends_on/volumes
 retain database/Redis/MQ identities and volumes
-write operator-configured DDC/TLS/credential prerequisites
+write operator-configured Tianshu/TLS/credential prerequisites
 ```
 
-- Verification contribution: 本Step下列命令验证 native RPC port; external DDC env; remove Nacos service/volumes；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 native RPC port; external Tianshu env; remove Nacos service/volumes；需要非零目标测试数或明确静态断言。
 - After this file: 同步 deployment/env/README 的 native 边界。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### 配置解密补充文件组 — 用户确认的 `PLAN-CLAR-007`
@@ -1380,9 +1380,9 @@ python3 scripts/check-native-archetype-boundaries.py light
 - Rollback: 仅回退本Step源代码commit；保留用户worktree和不可变migration，generated通过脚本重建。
 - Commit paths: `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/CourseControllerTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/controller/SchoolClassControllerTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/controller/PermissionControllerTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/controller/RoleControllerTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/controller/UserControllerTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/encryption/ConfigDecryptEnvironmentPostProcessor.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/encryption/ConfigDecryptEnvironmentPostProcessorTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/README.md`, `egon-cola-archetypes/source-projects/egon-cola-source-light/README.zh-CN.md`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compose.docker.prod.yaml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compose.docker.yaml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compose.nerdctl.prod.yaml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compose.nerdctl.yaml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compose.podman.prod.yaml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/compose/compose.podman.yaml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/container/README.md`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/env/.env.example`, `egon-cola-archetypes/source-projects/egon-cola-source-light/deploy/env/.env.prod.example`, `egon-cola-archetypes/source-projects/egon-cola-source-light/pom.xml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/rpc/CourseRpcProvider.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/rpc/SchoolClassRpcProvider.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/teaching/rpc/package-info.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/rpc/PermissionRpcProvider.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/rpc/UserRpcProvider.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/adapter/user/rpc/package-info.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/rpc/NativeRpcValidationGroup.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/rpc/RpcIdQuery.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/teaching/dto/CourseDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/teaching/dto/CreateCourseDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/teaching/dto/CreateSchoolClassDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/teaching/dto/ScheduleCourseDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/teaching/dto/SchoolClassDetailDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/teaching/dto/package-info.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/AssignRoleDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/CreateUserDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/GrantPermissionDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/PermissionDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/PermissionDetailDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/UserDetailDTO.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/facade/user/dto/package-info.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/StudentManagementApplication.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeHttpSecurityConfiguration.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfiguration.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/java/top/egon/cola/archetype/source/light/start/config/OpenApiConfig.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/application.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/bootstrap-dev.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/bootstrap-prod.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/bootstrap-test.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/main/resources/bootstrap.yml`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/NativeRpcProviderTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/rpc/CourseRpcProviderTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/teaching/rpc/SchoolClassRpcProviderTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/rpc/PermissionRpcProviderTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/adapter/user/rpc/UserRpcProviderTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/StudentManagementApplicationTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeHttpCompatibilityTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/NativeRpcConfigurationTest.java`, `egon-cola-archetypes/source-projects/egon-cola-source-light/src/test/java/top/egon/cola/archetype/source/light/start/config/RuntimeConfigurationTest.java`, `scripts/check-native-archetype-boundaries.py`
 
-- Commit: `refactor(archetype-light): migrate native rpc and ddc wiring`
+- Commit: `refactor(archetype-light): migrate native rpc and tianshu wiring`
 
-### Step 4 — Migrate native service/web RPC, DDC and API Doc
+### Step 4 — Migrate native service/web RPC, Tianshu and API Doc
 
 - Requirements: `REQ-001`, `REQ-008`, `REQ-011`
 - Dependencies: `Step 3`
@@ -1412,7 +1412,7 @@ python3 scripts/check-native-archetype-boundaries.py light
 - Dependencies and consumers: 现有 Dubbo tests/port results、OrganizationFacadeSupport 和 profile 配置。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
 - Contract/signature changes: native contracts exported; direct clients; metadata lifecycle; failure categories; key parity；以Spec §7.4/§9/§10为准。
-- Input/output and state mapping: 使用 mocks、in-process RPC、fake DDC directories 和 MockMvc；覆盖完整31清单中对应21项。
+- Input/output and state mapping: 使用 mocks、in-process RPC、fake Tianshu directories 和 MockMvc；覆盖完整31清单中对应21项。
 - Error and edge behavior: 空响应/业务失败不得伪成功；metadata 不泄漏或丢失；没有 external runtime。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 为 shared provider/client/context/config 建立完整 RED。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
 - Literal rule enforcement: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11` — 必须逐项核对本组实际diff；手写简单carrier用record，复杂carrier若出现必须完整Lombok；不允许未闭合例外。Rule11保持所选archetype树。
@@ -1690,51 +1690,51 @@ retain current holder precedence, default values, business exception and finally
 
 #### File 11 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/java/top/egon/cola/archetype/source/service/starter/config/NativeHttpSecurityConfiguration.java`
 
-- Purpose: 保持引入 platform OpenAPI 后的原业务 HTTP 行为。
+- Purpose: 保持引入 xingyuan OpenAPI 后的原业务 HTTP 行为。
 - Symbols: applicationSecurityFilterChain
-- Repository evidence: platform MVC 提供 security；旧业务路径无新增认证要求。
-- Dependencies and consumers: platform MVC 提供 security；旧业务路径无新增认证要求。；后续本Step接线及source/generated consumer。
+- Repository evidence: xingyuan MVC 提供 security；旧业务路径无新增认证要求。
+- Dependencies and consumers: xingyuan MVC 提供 security；旧业务路径无新增认证要求。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
 - Contract/signature changes: applicationSecurityFilterChain；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 与 Light 同一配置语义，无真实 JWT 请求。
 - Error and edge behavior: 意外401/CSRF拒绝是回归。
-- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 保持引入 platform OpenAPI 后的原业务 HTTP 行为。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
+- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 保持引入 xingyuan OpenAPI 后的原业务 HTTP 行为。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
 - Literal rule enforcement: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11` — 必须逐项核对本组实际diff；手写简单carrier用record，复杂carrier若出现必须完整Lombok；不允许未闭合例外。Rule11保持所选archetype树。
 - Implementation pseudocode:
 
 ```java
 named application SecurityFilterChain preserves original business access
-leave explicitly enabled document governance to platform chain
+leave explicitly enabled document governance to xingyuan chain
 // Preserved mapping: 与 Light 同一配置语义，无真实 JWT 请求。
 // Required failure assertion: 意外401/CSRF拒绝是回归。
 ```
 
 - Verification contribution: 本Step下列命令验证 applicationSecurityFilterChain；需要非零目标测试数或明确静态断言。
-- After this file: 保持引入 platform OpenAPI 后的原业务 HTTP 行为。 已完成；只有全部组和门禁完成后可提交本Step。
+- After this file: 保持引入 xingyuan OpenAPI 后的原业务 HTTP 行为。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 12 — `CREATE egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/java/top/egon/cola/archetype/source/web/starter/config/NativeHttpSecurityConfiguration.java`
 
-- Purpose: 保持引入 platform OpenAPI 后的原业务 HTTP 行为。
+- Purpose: 保持引入 xingyuan OpenAPI 后的原业务 HTTP 行为。
 - Symbols: applicationSecurityFilterChain
-- Repository evidence: platform MVC 提供 security；旧业务路径无新增认证要求。
-- Dependencies and consumers: platform MVC 提供 security；旧业务路径无新增认证要求。；后续本Step接线及source/generated consumer。
+- Repository evidence: xingyuan MVC 提供 security；旧业务路径无新增认证要求。
+- Dependencies and consumers: xingyuan MVC 提供 security；旧业务路径无新增认证要求。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
 - Contract/signature changes: applicationSecurityFilterChain；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 与 Light 同一配置语义，无真实 JWT 请求。
 - Error and edge behavior: 意外401/CSRF拒绝是回归。
-- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 保持引入 platform OpenAPI 后的原业务 HTTP 行为。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
+- Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 保持引入 xingyuan OpenAPI 后的原业务 HTTP 行为。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
 - Literal rule enforcement: `Rule 1`, `Rule 2`, `Rule 3`, `Rule 4`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11` — 必须逐项核对本组实际diff；手写简单carrier用record，复杂carrier若出现必须完整Lombok；不允许未闭合例外。Rule11保持所选archetype树。
 - Implementation pseudocode:
 
 ```java
 named application SecurityFilterChain preserves original business access
-leave explicitly enabled document governance to platform chain
+leave explicitly enabled document governance to xingyuan chain
 // Preserved mapping: 与 Light 同一配置语义，无真实 JWT 请求。
 // Required failure assertion: 意外401/CSRF拒绝是回归。
 ```
 
 - Verification contribution: 本Step下列命令验证 applicationSecurityFilterChain；需要非零目标测试数或明确静态断言。
-- After this file: 保持引入 platform OpenAPI 后的原业务 HTTP 行为。 已完成；只有全部组和门禁完成后可提交本Step。
+- After this file: 保持引入 xingyuan OpenAPI 后的原业务 HTTP 行为。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 13 — `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/pom.xml`
 
@@ -1771,7 +1771,7 @@ leave explicitly enabled document governance to platform chain
 
 ```xml
 remove native Dubbo/Cloud/Nacos/direct Springdoc in actual consumer modules
-add RPC/DDC/platform OpenAPI MVC and required native BOM selection
+add RPC/Tianshu/xingyuan OpenAPI MVC and required native BOM selection
 remove EnableDubbo; retain application/component scan
 name touched configuration beans
 ```
@@ -1788,11 +1788,11 @@ name touched configuration beans
 - `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/application.yml`
 
 - Purpose: 同步四 profiles 的真实 native settings。
-- Symbols: application identity; native RPC/DDC/OpenAPI; typed direct targets
+- Symbols: application identity; native RPC/Tianshu/OpenAPI; typed direct targets
 - Repository evidence: bootstrap identity 和旧 app integration group/version 已核对。
 - Dependencies and consumers: bootstrap identity 和旧 app integration group/version 已核对。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: application identity; native RPC/DDC/OpenAPI; typed direct targets；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: application identity; native RPC/Tianshu/OpenAPI; typed direct targets；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 保留 datasource/Flyway/MQ/Redis键与值，新增基础设施 key 四环境对齐。
 - Error and edge behavior: test 不创建 server/client/registry；dev/prod fail-fast 配置边界明确。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 同步四 profiles 的真实 native settings。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -1805,7 +1805,7 @@ bind exact native prefixes and target properties
 replace Dubbo logger/settings; compare profile core-key sets
 ```
 
-- Verification contribution: 本Step下列命令验证 application identity; native RPC/DDC/OpenAPI; typed direct targets；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 application identity; native RPC/Tianshu/OpenAPI; typed direct targets；需要非零目标测试数或明确静态断言。
 - After this file: 同步四 profiles 的真实 native settings。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 15 — `DELETE egon-cola-archetypes/source-projects/egon-cola-source-service/egon-cola-source-service-starter/src/main/resources/bootstrap-dev.yml`
@@ -1846,11 +1846,11 @@ verify remaining useful keys moved; delete Cloud bootstrap files
 - `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/application.yml`
 
 - Purpose: 同步四 profiles 的真实 native settings。
-- Symbols: application identity; native RPC/DDC/OpenAPI; typed direct targets
+- Symbols: application identity; native RPC/Tianshu/OpenAPI; typed direct targets
 - Repository evidence: bootstrap identity 和旧 app integration group/version 已核对。
 - Dependencies and consumers: bootstrap identity 和旧 app integration group/version 已核对。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: application identity; native RPC/DDC/OpenAPI; typed direct targets；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: application identity; native RPC/Tianshu/OpenAPI; typed direct targets；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 保留 datasource/Flyway/MQ/Redis键与值，新增基础设施 key 四环境对齐。
 - Error and edge behavior: test 不创建 server/client/registry；dev/prod fail-fast 配置边界明确。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 同步四 profiles 的真实 native settings。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -1863,7 +1863,7 @@ bind exact native prefixes and target properties
 replace Dubbo logger/settings; compare profile core-key sets
 ```
 
-- Verification contribution: 本Step下列命令验证 application identity; native RPC/DDC/OpenAPI; typed direct targets；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 application identity; native RPC/Tianshu/OpenAPI; typed direct targets；需要非零目标测试数或明确静态断言。
 - After this file: 同步四 profiles 的真实 native settings。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 17 — `DELETE egon-cola-archetypes/source-projects/egon-cola-source-web/egon-cola-source-web-starter/src/main/resources/bootstrap-dev.yml`
@@ -1982,11 +1982,11 @@ run all affected module tests
 - `MODIFY egon-cola-archetypes/source-projects/egon-cola-source-web/deploy/container/README.md`
 
 - Purpose: 同步两个 native 产品的部署与使用文档。
-- Symbols: native port/env; external DDC; profile boundary
+- Symbols: native port/env; external Tianshu; profile boundary
 - Repository evidence: 各6Compose/2env当前含Nacos。
 - Dependencies and consumers: 各6Compose/2env当前含Nacos。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: native port/env; external DDC; profile boundary；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: native port/env; external Tianshu; profile boundary；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 只移除旧基础设施专属项，保留原数据卷和数据库/MQ/Redis。
 - Error and edge behavior: 不启动/连接基础设施，不引入未发布镜像。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 同步两个 native 产品的部署与使用文档。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -1995,11 +1995,11 @@ run all affected module tests
 
 ```yaml
 replace Dubbo port/env and remove Nacos-only services/volumes
-wire operator-provided DDC target/TLS/credentials
+wire operator-provided Tianshu target/TLS/credentials
 document original HTTP and new native wire boundary
 ```
 
-- Verification contribution: 本Step下列命令验证 native port/env; external DDC; profile boundary；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 native port/env; external Tianshu; profile boundary；需要非零目标测试数或明确静态断言。
 - After this file: 同步两个 native 产品的部署与使用文档。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### 配置解密补充文件组 — 用户确认的 `PLAN-CLAR-007`
@@ -2077,7 +2077,7 @@ python3 scripts/check-native-archetype-boundaries.py service web
 ```python
 assert Light Open retains Cloud/Nacos/Springdoc/Common/MyBatis/DTP as consumed
 assert Service/Web Open retain Dubbo/Triple/gRPC/proto and local facade
-assert Agent excludes exact forbidden Egon/DDC/Nacos/Dubbo/ShardingSphere coordinates
+assert Agent excludes exact forbidden Egon/Tianshu/Nacos/Dubbo/ShardingSphere coordinates
 verify negative fixtures without editing source
 ```
 
@@ -2174,7 +2174,7 @@ assert required Agent Flow/SpringAI/ADK and topology
 ```groovy
 assert parsed POM inherits expected parent
 assert Light Open existing external/Common stack
-assert no native RPC/DDC dependencies
+assert no native RPC/Tianshu dependencies
 use resolved tree only for runtime assertions
 ```
 
@@ -2399,11 +2399,11 @@ assert shared contract dependency resolution in generated service/web
 - `MODIFY egon-cola-archetypes/definitions/egon-cola-archetype-web-open/src/main/javadoc/README.md`
 
 - Purpose: 同步交付文档中的parent/native/Open/Agent说明。
-- Symbols: native RPC/DDC/OpenAPI; source-to-generated ownership
+- Symbols: native RPC/Tianshu/OpenAPI; source-to-generated ownership
 - Repository evidence: definitions架构文档是curated交付内容；原native部分仍写Dubbo/Nacos。
 - Dependencies and consumers: definitions架构文档是curated交付内容；原native部分仍写Dubbo/Nacos。；后续本Step接线及source/generated consumer。
 - Why now: 本组在前组编译/测试或转换前置之后完成，产生下一组依赖的状态；首组负责本Step最早可执行的证明点。
-- Contract/signature changes: native RPC/DDC/OpenAPI; source-to-generated ownership；以Spec §7.4/§9/§10为准。
+- Contract/signature changes: native RPC/Tianshu/OpenAPI; source-to-generated ownership；以Spec §7.4/§9/§10为准。
 - Input/output and state mapping: 只更新本次变动能力和契约位置，Open/Agent原业务技术栈说明保持。
 - Error and edge behavior: 不重写无关业务章节，不引入runtime已验收断言。
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001` — 同步交付文档中的parent/native/Open/Agent说明。 Java类遵守语义后缀、Validation、MapStruct/BaseConverter、named Bean/qualified constructor与java.time；本组非Java部分不凭空增加业务对象。
@@ -2416,7 +2416,7 @@ record shared native facade artifact and native/Open version separation
 preserve unrelated architecture and immutable SQL instructions
 ```
 
-- Verification contribution: 本Step下列命令验证 native RPC/DDC/OpenAPI; source-to-generated ownership；需要非零目标测试数或明确静态断言。
+- Verification contribution: 本Step下列命令验证 native RPC/Tianshu/OpenAPI; source-to-generated ownership；需要非零目标测试数或明确静态断言。
 - After this file: 同步交付文档中的parent/native/Open/Agent说明。 已完成；只有全部组和门禁完成后可提交本Step。
 
 #### File 4 — `GENERATED egon-cola-archetypes/.generated/**`
@@ -2522,7 +2522,7 @@ Step 2 修正记录：Step 3 的完整 `verify` 发现唯一 `ARCH-010` 来自�
 
 | Requirement | Source and effective meaning | Steps | Primary proof |
 | --- | --- | --- | --- |
-| `REQ-001` | primary §4：native RPC/DDC/API Doc | 2,3,4,7 | Step命令与Spec TEST对应，最终source/generated审计 |
+| `REQ-001` | primary §4：native RPC/Tianshu/API Doc | 2,3,4,7 | Step命令与Spec TEST对应，最终source/generated审计 |
 | `REQ-002` | primary §4：Open外部体系 | 5,7 | Step命令与Spec TEST对应，最终source/generated审计 |
 | `REQ-003` | primary §4：Agent最小依赖 | 5,7 | Step命令与Spec TEST对应，最终source/generated审计 |
 | `REQ-004` | primary §4：Components BOM owner | 1,7 | Step命令与Spec TEST对应，最终source/generated审计 |

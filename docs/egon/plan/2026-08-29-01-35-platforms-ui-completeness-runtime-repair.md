@@ -1,37 +1,37 @@
-# platforms Web UI 完整性、Wujie 聚合与登录运行时修复实施计划
+# xingyuan Web UI 完整性、Wujie 聚合与登录运行时修复实施计划
 
 | Field | Value |
 | --- | --- |
-| Document | `2026-08-29-01-35-platforms-ui-completeness-runtime-repair.md` |
+| Document | `2026-08-29-01-35-xingyuan-ui-completeness-runtime-repair.md` |
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-08-29 01:35 CST` |
 | Updated | `2026-08-29 01:35 CST` |
-| Owner | `User / Egon-COLA platform owner` |
+| Owner | `User / Egon-COLA xingyuan owner` |
 | Repository | `Egon-COLA` |
-| Scope | `egon-cola-xingyuan` Portal、admin-web-shared、IDP/RBAC3/Gateway/DDC Admin Web 与本地统一平台脚本 |
-| Source Requirement | 用户要求修复 Portal 内嵌四个平台的 UI 展示、Wujie 挂载、登录失败和 loopback 地址，并逐 Controller 校验前端体现，重点补齐 RBAC3 IAM 用户/角色/权限 CRUD 与关系绑定 CRUD；用户要求直接开始修复 |
+| Scope | `egon-cola-xingyuan` Portal、admin-web-shared、Tianquan-Shoubing/Tianquan-Jianshen/Yuheng/Tianshu Admin Web 与本地统一平台脚本 |
+| Source Requirement | 用户要求修复 Portal 内嵌四个平台的 UI 展示、Wujie 挂载、登录失败和 loopback 地址，并逐 Controller 校验前端体现，重点补齐 Tianquan-Jianshen IAM 用户/角色/权限 CRUD 与关系绑定 CRUD；用户要求直接开始修复 |
 | Baseline Revision | `main@86a47ed74`；工作区另有用户未跟踪文档 `docs/egon/spec/2026-08-27-20-31-archetype-two-stage-source-generation.md`，必须保留 |
-| Implements Spec | [platforms Web UI 完整性、Wujie 聚合与登录运行时修复规格](../spec/2026-08-29-01-11-platforms-ui-completeness-and-runtime-repair.md) |
+| Implements Spec | [xingyuan Web UI 完整性、Wujie 聚合与登录运行时修复规格](../spec/2026-08-29-01-11-xingyuan-ui-completeness-and-runtime-repair.md) |
 | Spec Status | `Accepted` |
 | Spec Revision | `2026-08-29 01:11 CST`，commit `86a47ed74` |
-| Effective Specs | [platforms Web UI 完整性、Wujie 聚合与登录运行时修复规格](../spec/2026-08-29-01-11-platforms-ui-completeness-and-runtime-repair.md)、[平台 Web 企业级微前端规格](../spec/2026-08-27-08-09-platforms-web-enterprise-microfrontend.md)、[DDC Admin 分页设计](../../superpowers/specs/2026-08-10-ddc-admin-pagination-ui-modernization-design.md) |
-| Depends On Plans | [平台 Web 运行修复前序计划](2026-08-28-11-06-platforms-web-runtime-repair-and-controller-coverage.md) |
+| Effective Specs | [xingyuan Web UI 完整性、Wujie 聚合与登录运行时修复规格](../spec/2026-08-29-01-11-xingyuan-ui-completeness-and-runtime-repair.md)、[平台 Web 企业级微前端规格](../spec/2026-08-27-08-09-xingyuan-web-enterprise-microfrontend.md)、[Tianshu Admin 分页设计](../../superpowers/specs/2026-08-10-tianshu-admin-pagination-ui-modernization-design.md) |
+| Depends On Plans | [平台 Web 运行修复前序计划](2026-08-28-11-06-xingyuan-web-runtime-repair-and-controller-coverage.md) |
 | Supersedes | None |
 | Superseded By | None |
 | Related Plans | None |
 
 ## 1. Summary
 
-本计划实现已 Accepted 的平台 Web UI 完整性规格，按五个独立语义 Step 推进：先修共享嵌入壳、Wujie child route/fallback、登录 origin 与启动诊断；再补 RBAC3 用户/组织/岗位/角色任职关系；随后补 RBAC3 角色、权限、资源、约束、业务目录和应用详情；最后补 IDP/Gateway/DDC 的真实 Controller action/UI 缺口与 Ant Design UI bug，并以逐方法 Controller/UI 覆盖审计收口。每个 Step 先建立 focused RED，再实现最小修改，执行模块验证后路径限定提交。
+本计划实现已 Accepted 的平台 Web UI 完整性规格，按五个独立语义 Step 推进：先修共享嵌入壳、Wujie child route/fallback、登录 origin 与启动诊断；再补 Tianquan-Jianshen 用户/组织/岗位/角色任职关系；随后补 Tianquan-Jianshen 角色、权限、资源、约束、业务目录和应用详情；最后补 Tianquan-Shoubing/Yuheng/Tianshu 的真实 Controller action/UI 缺口与 Ant Design UI bug，并以逐方法 Controller/UI 覆盖审计收口。每个 Step 先建立 focused RED，再实现最小修改，执行模块验证后路径限定提交。
 
-完成证据由 Portal/shared/RBAC3/Gateway/IDP/DDC focused Vitest、四套 Web typecheck/build、静态 Controller/UI audit、`git diff --check` 和每 Step commit 组成。Gateway Engine active release、Cookie/CSRF、Wujie DOM 高度和真实 IAM CRUD 的浏览器证据属于用户控制的重启后验证，本计划不自动重启项目或打开浏览器。
+完成证据由 Portal/shared/Tianquan-Jianshen/Yuheng/Tianquan-Shoubing/Tianshu focused Vitest、四套 Web typecheck/build、静态 Controller/UI audit、`git diff --check` 和每 Step commit 组成。Yuheng Engine active release、Cookie/CSRF、Wujie DOM 高度和真实 IAM CRUD 的浏览器证据属于用户控制的重启后验证，本计划不自动重启项目或打开浏览器。
 
 ## 2. Target Spec and Effective Design
 
 ### 2.1 Primary target
 
-- Path: [docs/egon/spec/2026-08-29-01-11-platforms-ui-completeness-and-runtime-repair.md](../spec/2026-08-29-01-11-platforms-ui-completeness-and-runtime-repair.md)
+- Path: [docs/egon/spec/2026-08-29-01-11-xingyuan-ui-completeness-and-runtime-repair.md](../spec/2026-08-29-01-11-xingyuan-ui-completeness-and-runtime-repair.md)
 - Status: `Accepted`
 - Revision: `2026-08-29 01:11 CST`, baseline `86a47ed74`
 - Approval evidence: 用户已明确要求“直接开始修复”；本计划仍标记 `Review`，等待本计划本身的审查后再进入执行技能。
@@ -40,9 +40,9 @@
 
 | Role | Spec/link | Status/revision | Effective sections | Why included |
 | --- | --- | --- | --- | --- |
-| Primary | [UI 完整性、Wujie 聚合与登录运行时修复](../spec/2026-08-29-01-11-platforms-ui-completeness-and-runtime-repair.md) | Accepted / 2026-08-29 01:11 | §1-§20；REQ-001..REQ-011；TEST-001..TEST-011 | 本轮用户要求、现状证据、页面布局、范围和验收唯一主设计 |
-| Normative dependency | [平台 Web 企业级微前端](../spec/2026-08-27-08-09-platforms-web-enterprise-microfrontend.md) | accepted predecessor / repository document | §5、§7、§12 | 保留 Portal/child ownership、manifest、Wujie 和菜单组织基线 |
-| Normative dependency | [DDC Admin 分页设计](../../superpowers/specs/2026-08-10-ddc-admin-pagination-ui-modernization-design.md) | repository design dependency | §1-§10 | 保留 DDC 分页、横向滚动和详情交互合同 |
+| Primary | [UI 完整性、Wujie 聚合与登录运行时修复](../spec/2026-08-29-01-11-xingyuan-ui-completeness-and-runtime-repair.md) | Accepted / 2026-08-29 01:11 | §1-§20；REQ-001..REQ-011；TEST-001..TEST-011 | 本轮用户要求、现状证据、页面布局、范围和验收唯一主设计 |
+| Normative dependency | [平台 Web 企业级微前端](../spec/2026-08-27-08-09-xingyuan-web-enterprise-microfrontend.md) | accepted predecessor / repository document | §5、§7、§12 | 保留 Portal/child ownership、manifest、Wujie 和菜单组织基线 |
+| Normative dependency | [Tianshu Admin 分页设计](../../superpowers/specs/2026-08-10-tianshu-admin-pagination-ui-modernization-design.md) | repository design dependency | §1-§10 | 保留 Tianshu 分页、横向滚动和详情交互合同 |
 
 ### 2.3 Superseded or excluded content
 
@@ -53,12 +53,12 @@
 | Requirement | Source Spec section | Effective statement | Observable acceptance | Implementation impact |
 | --- | --- | --- | --- | --- |
 | `REQ-001` | 主 Spec §4、§7.3、§12.1 | Wujie fallback 不得加载 Portal 自身，child host 具有稳定可滚动视口 | `attrs.src` 为 `about:blank`；host 有明确高度、最小高度和 overflow；reject 进入可恢复状态 | Step 1 修改 Wujie adapter、Portal host 和测试 |
-| `REQ-002` | 主 Spec §4、§7.2、§12.1 | Portal 将 `/platform/{key}` 后的当前路由传给 child 初始 URL | 四个平台深链打开对应 child 页面 | Step 1 增加 route resolver 与 route 测试 |
+| `REQ-002` | 主 Spec §4、§7.2、§12.1 | Portal 将 `/xingyuan/{key}` 后的当前路由传给 child 初始 URL | 四个平台深链打开对应 child 页面 | Step 1 增加 route resolver 与 route 测试 |
 | `REQ-003` | 主 Spec §4、§7.1、§12.2-§12.5 | embedded child 保留领域侧栏，standalone 保持完整 shell | 四个平台侧栏在 Portal 内可导航，重复 Header/Footer 隐藏 | Step 1 扩展 shared Layout 与四个平台 Layout |
-| `REQ-004` | 主 Spec §4、§7.2、§15 | 登录 origin、CSRF、Cookie、Gateway Engine active route 一致可诊断 | 客户端和启动脚本均指向 Engine；401/timeout/CSRF 失败能区分 | Step 1 修改 auth client、start/status 诊断 |
+| `REQ-004` | 主 Spec §4、§7.2、§15 | 登录 origin、CSRF、Cookie、Yuheng Engine active route 一致可诊断 | 客户端和启动脚本均指向 Engine；401/timeout/CSRF 失败能区分 | Step 1 修改 auth client、start/status 诊断 |
 | `REQ-005` | 主 Spec §4、§5.1、§16 | 未覆盖时本地地址默认 loopback-first，换 Wi-Fi 不需改 IP | common URL、manifest、Web API 默认 127.0.0.1；LAN 只能显式覆盖 | Step 1 验证并收紧启动输出/检查 |
 | `REQ-006` | 主 Spec §4、§7.3.3、§14 | 每个 external Controller method 有 UI/API 体现或解释性排除 | 审计逐方法输出四种分类；管理接口无 `UNCONSUMED` | Step 5 建立 Python inventory/classifier 和 shell gate |
-| `REQ-007` | 主 Spec §4、§7.3.4、§12.3 | IAM 用户、角色、权限具备 CRUD 闭环 | 用户新增/编辑/状态/归档，角色新增/编辑/停用，权限新建/详情/状态均可操作 | Steps 2-3 使用已有 RBAC3 API/Query/PermissionGuard |
+| `REQ-007` | 主 Spec §4、§7.3.4、§12.3 | IAM 用户、角色、权限具备 CRUD 闭环 | 用户新增/编辑/状态/归档，角色新增/编辑/停用，权限新建/详情/状态均可操作 | Steps 2-3 使用已有 Tianquan-Jianshen API/Query/PermissionGuard |
 | `REQ-008` | 主 Spec §4、§7.3.4、§12.3 | IAM 组织/岗位/角色任职/继承/角色资源/权限映射/约束关系可 CRUD | 从用户、角色、资源、策略主体进入绑定动作，403/409 可恢复 | Steps 2-3 增加 panel、drawer、editor 和 route entry |
 | `REQ-009` | 主 Spec §4、§12.1-§12.6 | 每个受影响页面有文字设计对应的布局和 loading/empty/error/403/409 | 页面可审查、宽表不裁剪、Drawer/Modal 可用、状态不伪造 | Steps 1-4 统一状态和响应式样式 |
 | `REQ-010` | 主 Spec §4、§3.2、§15 | 不扩大安全、数据和架构范围，并修复触及页面的 AntD UI bug | 无 token/secret/raw body；无新 BFF/DB；受影响页消除旧属性告警 | Steps 1-4 source/static review |
@@ -69,9 +69,9 @@
 ### 4.1 Ordered strategy
 
 1. Step 1 先完成 shared 类型/布局契约，再完成 Portal Wujie route/fallback/viewport，最后接入四 child embedded Layout 和 login/startup diagnostics；它解除下游页面“存在但看不到”和登录地址不一致两个公共阻塞。
-2. Step 2 只处理 RBAC3 directory/relations：先让用户详情能够组合组织、岗位、角色任职，再让组织/岗位自身的 CRUD 可见；它依赖 shared shell，但不改角色、权限、约束文件。
-3. Step 3 处理 RBAC3 authorization/catalog：角色资源入口、权限详情、租户应用详情、业务目录、约束写操作和管理策略能力读取形成一个资源/策略语义单元；它依赖 Step 2 的主体入口但写作用域不重叠。
-4. Step 4 处理 IDP/Gateway/DDC 真实页面 action 和受影响 UI props；只消费已存在 Controller，不为不存在的 Trace detail 增加后端合同。
+2. Step 2 只处理 Tianquan-Jianshen directory/relations：先让用户详情能够组合组织、岗位、角色任职，再让组织/岗位自身的 CRUD 可见；它依赖 shared shell，但不改角色、权限、约束文件。
+3. Step 3 处理 Tianquan-Jianshen authorization/catalog：角色资源入口、权限详情、租户应用详情、业务目录、约束写操作和管理策略能力读取形成一个资源/策略语义单元；它依赖 Step 2 的主体入口但写作用域不重叠。
+4. Step 4 处理 Tianquan-Shoubing/Yuheng/Tianshu 真实页面 action 和受影响 UI props；只消费已存在 Controller，不为不存在的 Trace detail 增加后端合同。
 5. Step 5 扩展现有 shell audit 为逐方法 registry/classifier，先由 Python 单元测试固定解析和分类，再由 shell 集成 gate 验证四个 Admin 源码目录，最后执行所有 Web 模块回归和文件范围审计。
 
 这种顺序不需要生成代码、Java 编译或数据库迁移：Java Controller 是 context-only source，前端 API 合同已存在，shared layout 类型必须在 child 编译前就绪，audit 只有在页面动作完成后才能判断 `UNCONSUMED`。Step 2 与 Step 3 在设计上可由不同开发者并行分析，但由于 Step 3 依赖 Step 2 后的 user-entry contract，执行时按序提交；所有写入路径不重叠。
@@ -82,11 +82,11 @@
 | --- | --- | --- | --- | --- |
 | shared embedded shell | `admin-web-shared/src/layout/EnterpriseLayout.test.tsx` | `hideHeader/hideFooter` 配置当前类型不存在或仍渲染 Header/Footer | 类型增加两个可选开关，Layout 条件渲染 | 只调整主列/footer和 shell CSS |
 | Portal Wujie route/fallback/viewport | `WujieChild.test.tsx`, `ChildRoutePage.test.tsx` | mock 未收到 route suffix/about:blank，host 高度仍为 420 或初始 URL 为 root | route resolver、`attrs.src`、host style 和安全 reject 状态 | 只接入已有 lifecycle reducer/error boundary |
-| child embedded navigation | existing IDP/RBAC3/Gateway/DDC layout/App tests | embedded branch 当前直接返回 children/Outlet，无 domain nav | 四个 Layout 复用 shared config，hide header/footer | 不改变 standalone nav/perms |
+| child embedded navigation | existing Tianquan-Shoubing/Tianquan-Jianshen/Yuheng/Tianshu layout/App tests | embedded branch 当前直接返回 children/Outlet，无 domain nav | 四个 Layout 复用 shared config，hide header/footer | 不改变 standalone nav/perms |
 | auth diagnosis/startup | shared auth tests and shell static assertions | generic Error/无 preflight 无法区分 origin/CSRF/timeout | typed local error mapping、Engine preflight、127 output | 不改变 backend Cookie/CSRF contract |
 | IAM directory relations | `UserRelationsPanel.test.tsx`, Directory/Assignment tests | org/position actions 未消费或 user 页无关系入口 | existing directoryApi + assignmentApi + Query invalidation | subject drawer/tab composition |
 | IAM role/permission/constraint/catalog | Role/Application/Constraint tests | role resource/permission detail/constraint writes/business route absent | existing API methods + minimal page actions/route registry | avoid new state store/BFF |
-| Gateway/IDP/DDC coverage/UI | existing platform focused tests | release diff/MCP capability validate unused, Trace calls nonexistent, old props warn | actual API actions and current AntD props | preserve existing page design and redacted data |
+| Yuheng/Tianquan-Shoubing/Tianshu coverage/UI | existing xingyuan focused tests | release diff/MCP capability validate unused, Trace calls nonexistent, old props warn | actual API actions and current AntD props | preserve existing page design and redacted data |
 | Controller audit | `scripts/unified-xingyuan/controller_ui_coverage_test.py` | parser/classification registry absent | stdlib parser + explicit exclusion/management registry | shell wrapper output formatting only |
 
 ### 4.3 Sequential and parallel boundaries
@@ -94,9 +94,9 @@
 | Step | Depends on | May run in parallel with | Must not overlap with | Reason |
 | --- | --- | --- | --- | --- |
 | Step 1 | None | None | shared/Portal/child layout/startup paths | all child page work needs embedded shell and route contract |
-| Step 2 | Step 1 shared layout contract | Static inventory preparation for Step 5 | RBAC3 Step 3 directory/user files | user relation panel and directory CRUD own these files |
-| Step 3 | Step 1; Step 2 user-entry behavior | Step 4 only during read-only analysis | RBAC3 role/application/constraint/policy files | role/resource and catalog actions use Step 2 navigation semantics |
-| Step 4 | Step 1; Step 3 not required for platform isolation | Step 3 during analysis only | IDP/Gateway/DDC files and gateway audit files | remaining platform UI must not alter RBAC3 files |
+| Step 2 | Step 1 shared layout contract | Static inventory preparation for Step 5 | Tianquan-Jianshen Step 3 directory/user files | user relation panel and directory CRUD own these files |
+| Step 3 | Step 1; Step 2 user-entry behavior | Step 4 only during read-only analysis | Tianquan-Jianshen role/application/constraint/policy files | role/resource and catalog actions use Step 2 navigation semantics |
+| Step 4 | Step 1; Step 3 not required for xingyuan isolation | Step 3 during analysis only | Tianquan-Shoubing/Yuheng/Tianshu files and yuheng audit files | remaining xingyuan UI must not alter Tianquan-Jianshen files |
 | Step 5 | Steps 1-4 source changes committed | None during final audit | `check-admin-web-controller-coverage.sh` and new audit files | final classifier must inspect final UI, then close REQ-006/011 |
 
 ### 4.4 Commit boundaries
@@ -117,7 +117,7 @@ Each Step has exactly one semantic, path-limited commit. Step 1 is one shared/ru
 | Trace detail removal | Remove false UI call, §7.3.3/§12.4 | `TracesPage` calls `gatewayApi.traceDetail`, but Java observability controller has no mapping | add backend endpoint | new public contract/backend scope not approved and detail page reports missing | Remove frontend call/action in Step 4 |
 | startup OAuth preflight | Add script diagnostic, §7.0/§16 | current `start-local-stack.sh` reuses/release routes without checking Engine `/oauth2/login/csrf` | trust old release or control-plane 401 | one safe GET and explicit failure message; no data mutation | Implement in existing startup/status scripts Step 1 |
 | Python controller/UI audit registry | Add, §7.0/§7.3.3 | old shell only counts Controller files/mapping lines and Web references | retain counts | cannot answer per method and risks false confidence | Implement stdlib script + shell gate Step 5 |
-| BFF, DB migration, new dependency | Remove, §7.0 | existing Gateway/shared/API clients and Java controllers are sufficient | add BFF/store/framework | new auth/data ownership, calls, migration and ops cost without gap | Not implemented |
+| BFF, DB migration, new dependency | Remove, §7.0 | existing Yuheng/shared/API clients and Java controllers are sufficient | add BFF/store/framework | new auth/data ownership, calls, migration and ops cost without gap | Not implemented |
 
 No fetch-then-forward API is added: child route is derived from current Portal pathname, tenant/identity remain server/bootstrap-owned, role/permission/constraint requests use the selected row and expected version already held by the page, and the audit only reads source text.
 
@@ -132,7 +132,7 @@ No fetch-then-forward API is added: child route is derived from current Portal p
 | Directory CRUD pages | `REQ-007`, `REQ-008`, `REQ-009` | Organization/Position tests | shared layout and directory API | create/edit/archive forms | IAM directory nav | Step 2 |
 | Role/resource/permission/catalog actions | `REQ-007`, `REQ-008` | Role/Application/Permission tests | Step 2 route/user entry and applicationApi/roleApi | action links, detail reads, business route | IAM resource tree | Step 3 |
 | Constraint/policy mutation workbench | `REQ-006`, `REQ-008`, `REQ-009` | Constraint tests | existing DTO field contracts and Query client | POST/PUT action forms | authorization policy page | Step 3 |
-| Remaining platform actions and UI cleanup | `REQ-006`, `REQ-009`, `REQ-010` | Gateway/IDP/DDC focused tests | existing APIs and page state components | real action/detail surfaces | final audit | Step 4 |
+| Remaining xingyuan actions and UI cleanup | `REQ-006`, `REQ-009`, `REQ-010` | Yuheng/Tianquan-Shoubing/Tianshu focused tests | existing APIs and page state components | real action/detail surfaces | final audit | Step 4 |
 | Per-method coverage classifier | `REQ-006`, `REQ-011` | Python RED fixtures/source assertions | Steps 1-4 committed source | report statuses and shell nonzero gate | final review/release | Step 5 |
 
 ### 4.7 Java, Spring, and Egon-COLA Implementation Standards
@@ -142,7 +142,7 @@ No fetch-then-forward API is added: child route is derived from current Portal p
 | Concern | Current repository evidence | Effective Spec decision | Planned implementation consequence | Owning Steps/checks |
 | --- | --- | --- | --- | --- |
 | Architecture profile | 四个平台 Java 的 `admin/controller`→`service`→`repository` 与 Web `src/features`；主 Spec §6.1 | preserve existing Traditional Three-Layer backend context + feature-first React; no hybrid Java tree | only modify existing Web feature/layout and `scripts/unified-xingyuan`; no Java package | Steps 1-5; `MC-ARCH-001` |
-| Reuse/capability | shared `EnterpriseLayout/PageState/httpClient`、Wujie Core、RBAC3 `FeatureApiClient`/TanStack Query、Gateway/DDC/IDP API clients | existing capability sufficient; no BFF/new framework | extend existing types/hooks/page components; use stdlib Python only for audit | Steps 1-5; `MC-REUSE-001`, `MC-DEP-001` |
+| Reuse/capability | shared `EnterpriseLayout/PageState/httpClient`、Wujie Core、Tianquan-Jianshen `FeatureApiClient`/TanStack Query、Yuheng/Tianshu/Tianquan-Shoubing API clients | existing capability sufficient; no BFF/new framework | extend existing types/hooks/page components; use stdlib Python only for audit | Steps 1-5; `MC-REUSE-001`, `MC-DEP-001` |
 | Naming/model/validation/conversion | existing Controller DTO/VO names and frontend `*View/*Command`, Form rules | no Java models or converters added; preserve server validation/version/idempotency contract | TypeScript form mapping trims user fields, keeps expected version and ISO values; no new backend object | Steps 2-4; `MC-NAME-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001` |
 | Bean/logging/util/JSON/time/config | no changed Java Bean; existing JSON envelopes and `java.time` contracts; `common.sh` URL constants | no Java Bean/logging/config/time change; no secret/raw JSON in UI/audit | use existing clients, shell/curl/Python stdlib; never read token/secret/cookie; preserve ISO strings | Steps 1-5; `MC-LOG-001`, `MC-BEAN-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001` |
 | Business variation/pattern | Wujie lifecycle, coverage status taxonomy and composed relations are real variation points; Spec §13 | use Adapter/Reducer/Registry/Composition only where already justified | Wujie adapter owns lifecycle; audit registry owns classification; React Query owns mutation states; relation panels compose APIs | Steps 1-5; `MC-PATTERN-001` |
@@ -153,9 +153,9 @@ No fetch-then-forward API is added: child route is derived from current Portal p
 | --- | --- | --- | --- | --- | --- | --- |
 | Embedded shell | shared `EnterpriseLayout`, `EnterpriseSidebar`, `EnterpriseHeader/Footer` | `egon-cola-xingyuan-admin-web-shared/src/layout/*` | missing only header/footer flags; sidebar already recursive/responsive | reuse/extend | no dependency; two config booleans | Step 1; `MC-REUSE-001` |
 | Wujie mount | `wujie.startApp` and lifecycle reducer | Portal `WujieChild.tsx`, `lifecycleState.ts`, lockfile 2.1.0 | Core exists; missing safe attrs/route/viewport | reuse adapter | no new microfrontend | Step 1; `MC-REUSE-001`, `MC-DEP-001` |
-| Auth transport | shared `createGatewayAuthClient`, Gateway Engine OAuth routes | `admin-web-shared/src/auth/gatewayAuthClient.ts`, `OAuthLoginController` | contract exists; errors/preflight insufficient | reuse and improve diagnosis | no token store/BFF | Step 1; `MC-JSON-001`, `MC-CONFIG-001` |
-| IAM data/mutations | RBAC3 `FeatureApiClient`, `directoryApi`, `assignmentApi`, `roleApi`, `applicationApi`, Query | RBAC3 `src/features/*` | APIs mostly exist; page consumers missing | reuse existing clients | no SDK replacement/store | Steps 2-3; `MC-REUSE-001` |
-| Gateway actions | `gatewayApi`, `useMcpCapabilityCollection`, QueryState | Gateway `src/api`, `src/features/mcp`, `src/components/QueryState` | actual methods exist; two action surfaces unused | reuse and wire | no backend/BFF | Step 4; `MC-REUSE-001` |
+| Auth transport | shared `createGatewayAuthClient`, Yuheng Engine OAuth routes | `admin-web-shared/src/auth/gatewayAuthClient.ts`, `OAuthLoginController` | contract exists; errors/preflight insufficient | reuse and improve diagnosis | no token store/BFF | Step 1; `MC-JSON-001`, `MC-CONFIG-001` |
+| IAM data/mutations | Tianquan-Jianshen `FeatureApiClient`, `directoryApi`, `assignmentApi`, `roleApi`, `applicationApi`, Query | Tianquan-Jianshen `src/features/*` | APIs mostly exist; page consumers missing | reuse existing clients | no SDK replacement/store | Steps 2-3; `MC-REUSE-001` |
+| Yuheng actions | `gatewayApi`, `useMcpCapabilityCollection`, QueryState | Yuheng `src/api`, `src/features/mcp`, `src/components/QueryState` | actual methods exist; two action surfaces unused | reuse and wire | no backend/BFF | Step 4; `MC-REUSE-001` |
 | Coverage parsing | Bash `rg` shell audit, Python stdlib available | `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` and local Python | count-only; needs per-method registry | extend existing script with stdlib helper | no pip/npm dependency | Step 5; `MC-UTIL-001`, `MC-DEP-001` |
 
 ### 4.8 User-mandated Java Rule Implementation Matrix
@@ -257,25 +257,25 @@ MODIFY scripts/unified-xingyuan/check-admin-web-controller-coverage.sh
 | MODIFY | `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts` | generic auth errors | safe typed diagnosis | login transport | 1 | REQ-004/005 | shared tests |
 | MODIFY | `scripts/unified-xingyuan/start-local-stack.sh` | release reuse/publish | public login preflight | startup gate | 1 | REQ-004/005 | bash/static |
 | MODIFY | `scripts/unified-xingyuan/status-local-stack.sh` | process/health output | origin/login status | operator diagnosis | 1 | REQ-004/005 | shell/static |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts` | relation API methods | stable view/form mappings | directory client | 2 | REQ-007/008 | RBAC3 tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts` | relation API methods | stable view/form mappings | directory client | 2 | REQ-007/008 | Tianquan-Jianshen tests |
 | CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.tsx` | absent | org/position tabs and assignment link | relation composition | 2 | REQ-008 | panel test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx` | user detail only | relation panel entry | user subject UI | 2 | REQ-007/008 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx` | read-only | CRUD forms/actions | organization UI | 2 | REQ-008 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx` | read-only | CRUD forms/actions | position UI | 2 | REQ-008 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx` | role actions | role resource entry | role relation UI | 3 | REQ-007/008 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts` | list/resource methods | detail methods | catalog client | 3 | REQ-006/007 | RBAC3 tests |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx` | list row drawer | controller detail query | permission UI | 3 | REQ-006/007 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts` | GET only | POST/PUT mappings | constraint client | 3 | REQ-006/008 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx` | read-only tabs | CRUD editor workbench | policy UI | 3 | REQ-008/009 | RBAC3 test |
-| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx` | absent | business/application catalog | catalog UI | 3 | REQ-006 | RBAC3 test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx` | route descriptors | catalog route | route reachability | 3 | REQ-006/009 | RBAC3 route test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx` | user detail only | relation panel entry | user subject UI | 2 | REQ-007/008 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx` | read-only | CRUD forms/actions | organization UI | 2 | REQ-008 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx` | read-only | CRUD forms/actions | position UI | 2 | REQ-008 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx` | role actions | role resource entry | role relation UI | 3 | REQ-007/008 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts` | list/resource methods | detail methods | catalog client | 3 | REQ-006/007 | Tianquan-Jianshen tests |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx` | list row drawer | controller detail query | permission UI | 3 | REQ-006/007 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts` | GET only | POST/PUT mappings | constraint client | 3 | REQ-006/008 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx` | read-only tabs | CRUD editor workbench | policy UI | 3 | REQ-008/009 | Tianquan-Jianshen test |
+| CREATE | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx` | absent | business/application catalog | catalog UI | 3 | REQ-006 | Tianquan-Jianshen test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx` | route descriptors | catalog route | route reachability | 3 | REQ-006/009 | Tianquan-Jianshen route test |
 | MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json` | IAM resource tree | business child node | menu ownership | 3 | REQ-003/009 | resource report |
-| MODIFY | `egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx` | structured diff only | actual diff action | release UI | 4 | REQ-006/009 | Gateway test |
-| MODIFY | `egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx` | fake detail call | summary-only view | honest observability | 4 | REQ-006/010 | Gateway test |
-| CREATE | `egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx` | absent | per-capability validate | MCP UI composition | 4 | REQ-006/009 | Gateway test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx` | old modal prop | current AntD prop/state | IDP UI bug | 4 | REQ-009/010 | IDP test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx` | embedded Outlet only | domain sidebar retained | DDC shell | 4 | REQ-003/009 | DDC test |
-| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx` | `Spin.tip` | `Spin.description` | DDC UI bug | 4 | REQ-010 | DDC typecheck |
+| MODIFY | `egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx` | structured diff only | actual diff action | release UI | 4 | REQ-006/009 | Yuheng test |
+| MODIFY | `egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx` | fake detail call | summary-only view | honest observability | 4 | REQ-006/010 | Yuheng test |
+| CREATE | `egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx` | absent | per-capability validate | MCP UI composition | 4 | REQ-006/009 | Yuheng test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx` | old modal prop | current AntD prop/state | Tianquan-Shoubing UI bug | 4 | REQ-009/010 | Tianquan-Shoubing test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx` | embedded Outlet only | domain sidebar retained | Tianshu shell | 4 | REQ-003/009 | Tianshu test |
+| MODIFY | `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx` | `Spin.tip` | `Spin.description` | Tianshu UI bug | 4 | REQ-010 | Tianshu typecheck |
 | CREATE | `scripts/unified-xingyuan/controller_ui_coverage.py` | absent | per-method inventory/classifier | static audit | 5 | REQ-006/011 | Python test |
 | CREATE | `scripts/unified-xingyuan/controller_ui_coverage_test.py` | absent | parser/classifier tests | audit RED/GREEN | 5 | REQ-006/011 | Python unittest |
 | MODIFY | `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh` | count-only | authoritative per-method gate | audit command | 5 | REQ-006/011 | shell audit |
@@ -288,7 +288,7 @@ Tests not listed individually in this summary table are present in the code tree
 
 - Repository: `/Users/mario/SelfProject/Egon-COLA`; branch `main`; baseline `86a47ed74` after the accepted Spec commit.
 - At Plan creation, `git status --short` contains only `?? docs/egon/spec/2026-08-27-20-31-archetype-two-stage-source-generation.md`; this user-owned path must never be staged.
-- `node_modules`, `target`, generated local env, cookies, secrets, Java jars and active Gateway release are runtime/generated state, not commit paths.
+- `node_modules`, `target`, generated local env, cookies, secrets, Java jars and active Yuheng release are runtime/generated state, not commit paths.
 - Before each Step: `git status --short`, `git diff --check`, `git ls-files --error-unmatch` for MODIFY paths, and `test -e` for CREATE parents. Use path-limited `git add`.
 - Do not modify existing Flyway files under `classpath:db`, Java Controller/service/DTO/VO, database, active release or user untracked Spec.
 
@@ -299,18 +299,18 @@ Tests not listed individually in this summary table are present in the code tree
 | Skill resources | `python3 .agents/skills/egon-coding-writing-plan/scripts/validate_skill_resources.py` | exit 0 | skill integrity |
 | shared Web | `cd egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared && npm run test -- --run && npm run typecheck && npm run build` | installed dependencies | static/module |
 | Portal Web | `cd egon-cola-xingyuan/egon-cola-xingyuan-admin-portal && npm run test -- --run && npm run typecheck && npm run build` | installed Wujie/Vite dependencies | static/module |
-| IDP Web | `cd egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web && npm run test -- --run && npm run typecheck && npm run build` | existing shared resolution | static/module |
-| RBAC3 Web | `cd egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web && npm run test -- --run && npm run typecheck && npm run build && npm run report:resources` | existing SDK/API mocks | static/module |
-| Gateway Web | `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run test -- --run && npm run typecheck && npm run build` | Gateway API mocks | static/module |
-| DDC Web | `cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web && npm run test -- --run && npm run typecheck && npm run build` | DDC mocks | static/module |
+| Tianquan-Shoubing Web | `cd egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web && npm run test -- --run && npm run typecheck && npm run build` | existing shared resolution | static/module |
+| Tianquan-Jianshen Web | `cd egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web && npm run test -- --run && npm run typecheck && npm run build && npm run report:resources` | existing SDK/API mocks | static/module |
+| Yuheng Web | `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run test -- --run && npm run typecheck && npm run build` | Yuheng API mocks | static/module |
+| Tianshu Web | `cd egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web && npm run test -- --run && npm run typecheck && npm run build` | Tianshu mocks | static/module |
 | Shell/static | `bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/status-local-stack.sh scripts/unified-xingyuan/check-admin-web-controller-coverage.sh && python3 scripts/unified-xingyuan/controller_ui_coverage_test.py` | shell/Python available | static |
-| Runtime proof | user-controlled restart/re-publish then loopback curl/browser | current process and Gateway release refreshed | runtime, not automatic |
+| Runtime proof | user-controlled restart/re-publish then loopback curl/browser | current process and Yuheng release refreshed | runtime, not automatic |
 
 ### 6.3 Immutable constraints and approved decisions
 
 - Wujie 2.1.0 remains primary; no new microfrontend framework, bare iframe primary mode, BFF, Redux, database table, migration or dependency.
-- `GATEWAY_BASE_URL` is the browser public origin and defaults to `http://127.0.0.1:18180`; `18140` is control-plane only.
-- `UNIFIED_PLATFORM_ADVERTISED_HOST` remains an explicit LAN override; default 127.0.0.1 is backward-compatible for local use. Source changes do not mutate running processes.
+- `YUHENG_BASE_URL` is the browser public origin and defaults to `http://127.0.0.1:18180`; `18140` is control-plane only.
+- `UNIFIED_XINGYUAN_ADVERTISED_HOST` remains an explicit LAN override; default 127.0.0.1 is backward-compatible for local use. Source changes do not mutate running processes.
 - Existing backend paths, permissions, tenant isolation, CSRF header/cookie, HttpOnly token ownership, expected version, idempotency and error contracts remain unchanged.
 - Protocol/internal/callback methods are included in audit evidence but are not forced into misleading CRUD pages.
 
@@ -341,7 +341,7 @@ Tests not listed individually in this summary table are present in the code tree
 - Purpose: Extend the shared shell contract with optional embedded visibility switches.
 - Symbols: `EnterpriseLayoutConfig`, `hideHeader?: boolean`, `hideFooter?: boolean`.
 - Repository evidence: the interface already carries header/footer/navigation/content style and all four child Layouts import it.
-- Dependencies and consumers: `EnterpriseLayout.tsx`, IDP `AdminLayout`, RBAC3 `router.tsx`, Gateway/DDC `AdminLayout`; no generated output.
+- Dependencies and consumers: `EnterpriseLayout.tsx`, Tianquan-Shoubing `AdminLayout`, Tianquan-Jianshen `router.tsx`, Yuheng/Tianshu `AdminLayout`; no generated output.
 - Why now: new shell tests and Layout implementation need the contract before their behavior can compile.
 - Contract/signature changes: add two optional readonly booleans; absent/false preserves standalone rendering.
 - Input/output and state mapping: `undefined/false` renders Header/Footer; `true` removes only that region while navigation/content remain.
@@ -371,7 +371,7 @@ interface EnterpriseLayoutConfig extends EnterpriseHeaderConfig {
 - Repository evidence: current test uses MemoryRouter, asserts `主菜单`, user/footer and nested navigation.
 - Dependencies and consumers: `EnterpriseLayoutConfig` from File 1 and existing Header/Sidebar/Footer DOM roles.
 - Why now: independent Header/Footer hiding is the RED contract.
-- Contract/signature changes: config with both flags hides platform header/footer but keeps menu and page content; single-flag case proves independence.
+- Contract/signature changes: config with both flags hides xingyuan header/footer but keeps menu and page content; single-flag case proves independence.
 - Input/output and state mapping: flags -> DOM presence only; no network or persistence.
 - Error and edge behavior: default config continues to render full shell; hidden footer does not hide content; sidebar remains accessible.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing Testing Library/MemoryRouter only.
@@ -381,7 +381,7 @@ interface EnterpriseLayoutConfig extends EnterpriseHeaderConfig {
 ```typescript
 it('keeps the domain menu while hiding duplicate embedded shell regions', () => {
   renderLayoutWith({...config, hideHeader: true, hideFooter: true})
-  expect(screen.queryByText('DDC Admin')).not.toBeInTheDocument()
+  expect(screen.queryByText('Tianshu Admin')).not.toBeInTheDocument()
   expect(screen.queryByText(/版本 v5\.3\.2/)).not.toBeInTheDocument()
   expect(screen.getByRole('navigation', {name: '主菜单'})).toBeInTheDocument()
 })
@@ -433,9 +433,9 @@ return <Layout style={{minHeight: '100vh'}}>{config.hideHeader !== true && <Ente
 expect(vi.mocked(startApp)).toHaveBeenCalledWith(expect.objectContaining({
   attrs: {src: 'about:blank'},
   url: expect.stringMatching(/\/overview$/),
-  el: screen.getByTestId('wujie-host-idp'),
+  el: screen.getByTestId('wujie-host-tianquan-shoubing'),
 }))
-expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({height: 'calc(100vh - 160px)', overflow: 'hidden'})
+expect(screen.getByTestId('wujie-host-tianquan-shoubing')).toHaveStyle({height: 'calc(100vh - 160px)', overflow: 'hidden'})
 ```
 
 - Verification contribution: fails until safe fallback/route/viewport are implemented; existing reject/cleanup assertions remain.
@@ -444,8 +444,8 @@ expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({height: 'calc(100vh - 
 #### File 5 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.test.tsx`
 
 - Purpose: Define Portal pathname-to-child-route behavior and visible mount host.
-- Symbols: add compatible deep-link test for `/platform/gateway/dashboard`; retain incompatible-manifest/cleanup tests.
-- Repository evidence: fixture has gateway manifest and MemoryRouter deep link but does not assert route suffix.
+- Symbols: add compatible deep-link test for `/xingyuan/yuheng/dashboard`; retain incompatible-manifest/cleanup tests.
+- Repository evidence: fixture has yuheng manifest and MemoryRouter deep link but does not assert route suffix.
 - Dependencies and consumers: `ChildRoutePage.tsx`, manifest loader and Wujie mock.
 - Why now: route acceptance must exist before page composition changes.
 - Contract/signature changes: compatible child receives `/dashboard` suffix; malformed/incompatible key still 404/manifest error without Wujie call.
@@ -458,8 +458,8 @@ expect(screen.getByTestId('wujie-host-idp')).toHaveStyle({height: 'calc(100vh - 
 ```typescript
 it('passes the Portal deep-link suffix to the selected child', async () => {
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response(manifest())))
-  renderRoute('/platform/gateway/dashboard')
-  await screen.findByTestId('wujie-host-gateway')
+  renderRoute('/xingyuan/yuheng/dashboard')
+  await screen.findByTestId('wujie-host-yuheng')
   expect(startApp).toHaveBeenCalledWith(expect.objectContaining({url: expect.stringMatching(/\/dashboard$/)}))
 })
 ```
@@ -469,12 +469,12 @@ it('passes the Portal deep-link suffix to the selected child', async () => {
 
 #### File 6 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`
 
-- Purpose: Assert IDP embedded mode keeps its permission-filtered domain navigation.
+- Purpose: Assert Tianquan-Shoubing embedded mode keeps its permission-filtered domain navigation.
 - Symbols: add embedded layout render assertion to existing app/navigation tests.
 - Repository evidence: current tests already verify navigation pruning and deep-link selection; App passes an `embedded` prop.
-- Dependencies and consumers: IDP `AdminLayout.tsx` and shared Layout flags.
-- Why now: child shell RED tests must cover each platform’s actual entry point.
-- Contract/signature changes: embedded render must show an IDP menu item and omit duplicate platform banner/footer; standalone test remains unchanged.
+- Dependencies and consumers: Tianquan-Shoubing `AdminLayout.tsx` and shared Layout flags.
+- Why now: child shell RED tests must cover each xingyuan’s actual entry point.
+- Contract/signature changes: embedded render must show an Tianquan-Shoubing menu item and omit duplicate xingyuan banner/footer; standalone test remains unchanged.
 - Input/output and state mapping: `$wujie.props.embedded`/App prop -> Layout DOM; permission list still prunes unauthorized nodes.
 - Error and edge behavior: no permission remains hidden; no auth bootstrap means existing app behavior remains.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse current mocks and permission guard.
@@ -482,22 +482,22 @@ it('passes the Portal deep-link suffix to the selected child', async () => {
 - Implementation pseudocode:
 
 ```typescript
-it('renders the IDP domain navigation when embedded', async () => {
-  renderApp({embedded: true, permissions: ['idp:identity-user:read']})
+it('renders the Tianquan-Shoubing domain navigation when embedded', async () => {
+  renderApp({embedded: true, permissions: ['tianquan-shoubing:identity-user:read']})
   expect(await screen.findByText('身份目录')).toBeInTheDocument()
   expect(screen.queryByText('统一身份平台')).not.toBeInTheDocument()
 })
 ```
 
 - Verification contribution: fails against the current `return <>{children}</>` branch.
-- After this file: IDP embedded contract is RED and standalone guards remain.
+- After this file: Tianquan-Shoubing embedded contract is RED and standalone guards remain.
 
 #### File 7 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`
 
-- Purpose: Assert RBAC3 embedded mode exposes the IAM tree.
+- Purpose: Assert Tianquan-Jianshen embedded mode exposes the IAM tree.
 - Symbols: add route rendering case for `embedded: true`, visible `IAM` and child route labels.
 - Repository evidence: current integration tests cover organization/position routes, permission guards and navigation registry.
-- Dependencies and consumers: RBAC3 `router.tsx`, `visibleNavigation(about)`, shared Layout.
+- Dependencies and consumers: Tianquan-Jianshen `router.tsx`, `visibleNavigation(about)`, shared Layout.
 - Why now: IAM menu visibility is a direct user requirement and must be tested at router boundary.
 - Contract/signature changes: no new route contract; existing `about` menus/routes/actions drive visible navigation.
 - Input/output and state mapping: about permissions/routes -> sidebar DOM; route guard still returns 403 for forbidden manual paths.
@@ -507,50 +507,50 @@ it('renders the IDP domain navigation when embedded', async () => {
 - Implementation pseudocode:
 
 ```typescript
-it('keeps IAM navigation inside the embedded RBAC3 child', () => {
+it('keeps IAM navigation inside the embedded Tianquan-Jianshen child', () => {
   renderApplicationRouter({embedded: true, about: authorizedAbout(['system:user:read', 'system:role:read'])})
   expect(screen.getByText('IAM')).toBeInTheDocument()
   expect(screen.getByText('用户目录')).toBeInTheDocument()
-  expect(screen.queryByText('RBAC3 权限平台')).not.toBeInTheDocument()
+  expect(screen.queryByText('Tianquan-Jianshen 权限平台')).not.toBeInTheDocument()
 })
 ```
 
 - Verification contribution: fails while embedded returns bare children; existing route access tests remain.
-- After this file: RBAC3 shell contract is RED.
+- After this file: Tianquan-Jianshen shell contract is RED.
 
 #### File 8 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx`
 
-- Purpose: Assert Gateway capability-filtered navigation remains visible in embedded mode.
+- Purpose: Assert Yuheng capability-filtered navigation remains visible in embedded mode.
 - Symbols: add `$wujie.props.embedded` test; retain standalone capability pruning and operation deep-link tests.
 - Repository evidence: current test renders AdminLayout through MemoryRouter and stubs auth/capabilities.
-- Dependencies and consumers: Gateway `AdminLayout.tsx`, shared Layout flags and `filterNavigation`.
+- Dependencies and consumers: Yuheng `AdminLayout.tsx`, shared Layout flags and `filterNavigation`.
 - Why now: verifies the third child’s actual shell branch.
-- Contract/signature changes: embedded still renders Gateway menu such as `网关治理`, while `Gateway Admin` Header/Footer are hidden.
+- Contract/signature changes: embedded still renders Yuheng menu such as `网关治理`, while `Yuheng Admin` Header/Footer are hidden.
 - Input/output and state mapping: capability booleans -> nav tree; embedded flag -> shell DOM.
-- Error and edge behavior: MCP menu remains hidden without `gateway:mcp:read`; standalone behavior unchanged.
+- Error and edge behavior: MCP menu remains hidden without `yuheng:mcp:read`; standalone behavior unchanged.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing capability hooks/mocks only.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 11` — preserve capability validation/JSON and current Layout path.
 - Implementation pseudocode:
 
 ```typescript
-it('keeps Gateway navigation in embedded mode', () => {
+it('keeps Yuheng navigation in embedded mode', () => {
   renderLayout('/dashboard', {embedded: true, canRead: true, canReadMcp: true})
   expect(screen.getByText('网关治理')).toBeInTheDocument()
-  expect(screen.queryByText('Gateway Admin')).not.toBeInTheDocument()
+  expect(screen.queryByText('Yuheng Admin')).not.toBeInTheDocument()
 })
 ```
 
 - Verification contribution: RED against current early Outlet return.
-- After this file: Gateway embedded shell behavior is fixed by test contract only.
+- After this file: Yuheng embedded shell behavior is fixed by test contract only.
 
 #### File 9 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx`
 
-- Purpose: Assert DDC runtime/metadata second-level menu stays visible when embedded.
+- Purpose: Assert Tianshu runtime/metadata second-level menu stays visible when embedded.
 - Symbols: add embedded `$wujie` case; retain current responsive/standalone assertions.
-- Repository evidence: existing DDC layout test already controls `matchMedia` and tests responsive shell behavior.
-- Dependencies and consumers: DDC `AdminLayout.tsx`, shared sidebar and Outlet.
+- Repository evidence: existing Tianshu layout test already controls `matchMedia` and tests responsive shell behavior.
+- Dependencies and consumers: Tianshu `AdminLayout.tsx`, shared sidebar and Outlet.
 - Why now: covers the fourth downstream child and the user’s incomplete embedded-page complaint.
-- Contract/signature changes: embedded DOM contains `运行状态`/`元数据管理` children and omits duplicate DDC banner/footer.
+- Contract/signature changes: embedded DOM contains `运行状态`/`元数据管理` children and omits duplicate Tianshu banner/footer.
 - Input/output and state mapping: embedded flag -> Layout; current identity/logout config is preserved in standalone.
 - Error and edge behavior: child route still renders Outlet; mobile drawer remains controlled by shared Layout.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing responsive fixture and shared component.
@@ -558,16 +558,16 @@ it('keeps Gateway navigation in embedded mode', () => {
 - Implementation pseudocode:
 
 ```typescript
-it('keeps DDC runtime and metadata navigation when embedded', () => {
+it('keeps Tianshu runtime and metadata navigation when embedded', () => {
   renderLayout({embedded: true})
   expect(screen.getByText('运行状态')).toBeInTheDocument()
   expect(screen.getByText('元数据管理')).toBeInTheDocument()
-  expect(screen.queryByText('DDC Admin')).not.toBeInTheDocument()
+  expect(screen.queryByText('Tianshu Admin')).not.toBeInTheDocument()
 })
 ```
 
 - Verification contribution: RED against bare Outlet; responsive standalone tests remain.
-- After this file: DDC embedded shell contract is RED.
+- After this file: Tianshu embedded shell contract is RED.
 
 #### File 10 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`
 
@@ -607,7 +607,7 @@ return <div ref={hostRef} data-testid={`wujie-host-${manifest.key}`} style={{wid
 - Why now: page must pass route intent and wrap the now-fixed host without changing manifest ownership.
 - Contract/signature changes: child context route intent remains current pathname; route suffix maps to `/overview`, `/roles`, `/dashboard`, `/registry` through pathname rather than a new API.
 - Input/output and state mapping: location -> safe child URL; manifest pending/error/empty/mounting/failure -> existing PageState-like branches; viewport fills available content.
-- Error and edge behavior: invalid platform stays 404; incompatible manifest shows standalone link; retry waits for cleanup; no query string is synchronized back to Portal.
+- Error and edge behavior: invalid xingyuan stays 404; incompatible manifest shows standalone link; retry waits for cleanup; no query string is synchronized back to Portal.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-JSON-001`, `MC-CONFIG-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse existing reducer/ErrorBoundary/manifest and correct current props.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 7`, `Rule 11` — preserve input/manifest/config field shapes and current page structure.
 - Implementation pseudocode:
@@ -625,14 +625,14 @@ const content = <Space orientation="vertical" size="middle" style={{width: '100%
 
 #### File 12 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx`
 
-- Purpose: Keep IDP’s permission-filtered second-level menu in embedded mode.
+- Purpose: Keep Tianquan-Shoubing’s permission-filtered second-level menu in embedded mode.
 - Symbols: existing `config`, `navigation`, `breadcrumbItems`, embedded return branch.
 - Repository evidence: current config is complete but `if (embedded) return <>{children}</>` discards it.
-- Dependencies and consumers: shared Layout File 3, IDP App/router and AuthContext.
+- Dependencies and consumers: shared Layout File 3, Tianquan-Shoubing App/router and AuthContext.
 - Why now: implements File 6 RED without duplicating shell/config.
 - Contract/signature changes: embedded returns shared Layout with `hideHeader:true, hideFooter:true` and same breadcrumb/children; standalone return unchanged.
 - Input/output and state mapping: permission bootstrap -> nav tree; children -> content; header/footer flags -> DOM only.
-- Error and edge behavior: filterNavigation still removes unauthorized leaves; logout remains on standalone/user config; no cross-platform data.
+- Error and edge behavior: filterNavigation still removes unauthorized leaves; logout remains on standalone/user config; no cross-xingyuan data.
 - Standards impact: `MC-ARCH-001`, `MC-REUSE-001`, `MC-VALID-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse shared config and existing permission hook.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 11` — retain validation/JSON permission semantics and current feature tree.
 - Implementation pseudocode:
@@ -644,12 +644,12 @@ return embedded
   : <EnterpriseLayout config={config}>{layoutChildren}</EnterpriseLayout>
 ```
 
-- Verification contribution: IDP App test turns GREEN and standalone shell remains visible.
-- After this file: IDP embedded sidebar and page content are reachable.
+- Verification contribution: Tianquan-Shoubing App test turns GREEN and standalone shell remains visible.
+- After this file: Tianquan-Shoubing embedded sidebar and page content are reachable.
 
 #### File 13 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx`
 
-- Purpose: Keep RBAC3 `visibleNavigation(about)` and IAM tree in embedded mode.
+- Purpose: Keep Tianquan-Jianshen `visibleNavigation(about)` and IAM tree in embedded mode.
 - Symbols: local `AdminLayout`, `ApplicationRouter`, `EnterpriseLayout` return branch.
 - Repository evidence: `AdminLayout` computes `visibleNavigation(about)` but drops it when `embedded` is true.
 - Dependencies and consumers: SDK `about`, `RouteAccessGuard`, shared Layout and route descriptors.
@@ -668,16 +668,16 @@ assertShellMode(shell, embeddedLabel)
 return shell
 ```
 
-- Verification contribution: RBAC3 integration test turns GREEN; direct route guard tests remain.
+- Verification contribution: Tianquan-Jianshen integration test turns GREEN; direct route guard tests remain.
 - After this file: IAM menu is visible inside Portal.
 
 #### File 14 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`
 
-- Purpose: Preserve Gateway capability-filtered navigation in embedded mode.
+- Purpose: Preserve Yuheng capability-filtered navigation in embedded mode.
 - Symbols: `AdminLayout`, existing `navigation`, `filterNavigation`, `$wujie` embedded detection.
 - Repository evidence: config is built after capability checks, but embedded branch returns `<Outlet />` before it is used.
-- Dependencies and consumers: shared Layout, `useAuth/useCapability`, Gateway BrowserRouter/Outlet.
-- Why now: implements File 8 RED while keeping capability ownership in Gateway.
+- Dependencies and consumers: shared Layout, `useAuth/useCapability`, Yuheng BrowserRouter/Outlet.
+- Why now: implements File 8 RED while keeping capability ownership in Yuheng.
 - Contract/signature changes: compute `items/config` for both modes; embedded wraps `Outlet` in shared flags; standalone remains full shell.
 - Input/output and state mapping: capability -> filtered nav; auth user/actions -> config; Outlet -> content.
 - Error and edge behavior: no capability gives no shell item; logout/query clear behavior remains; no route/API contract changes.
@@ -692,15 +692,15 @@ assert navigationItems.length >= 0
 return content
 ```
 
-- Verification contribution: Gateway embedded test turns GREEN; standalone tests preserve Header/Footer.
-- After this file: Gateway child menu is visible in Portal.
+- Verification contribution: Yuheng embedded test turns GREEN; standalone tests preserve Header/Footer.
+- After this file: Yuheng child menu is visible in Portal.
 
 #### File 15 — `MODIFY egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`
 
-- Purpose: Preserve DDC runtime/metadata navigation in embedded mode.
+- Purpose: Preserve Tianshu runtime/metadata navigation in embedded mode.
 - Symbols: `AdminLayout`, `navigation`, `$wujie` detection, shared config.
 - Repository evidence: current embedded branch returns `<Outlet />` although the full navigation config already exists.
-- Dependencies and consumers: shared Layout, DDC AuthContext, BrowserRouter Outlet.
+- Dependencies and consumers: shared Layout, Tianshu AuthContext, BrowserRouter Outlet.
 - Why now: implements File 9 RED.
 - Contract/signature changes: embedded wraps Outlet in `EnterpriseLayout` with only header/footer hidden; standalone remains unchanged.
 - Input/output and state mapping: identity/logout/actions remain config values; nav/content render in child viewport.
@@ -716,15 +716,15 @@ assertShellMode(body, shellMode)
 return body
 ```
 
-- Verification contribution: DDC embedded test turns GREEN; standalone responsive behavior remains.
+- Verification contribution: Tianshu embedded test turns GREEN; standalone responsive behavior remains.
 - After this file: all four child Layouts expose their domain menus.
 
 #### File 16 — `MODIFY egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`
 
 - Purpose: Make login errors distinguish normalized origin, CSRF challenge and HTTP/network failure without exposing credentials.
 - Symbols: local/exported `GatewayAuthError` if package convention requires; `request`, `csrf`, `createGatewayAuthClient`.
-- Repository evidence: client already uses trailing-slash normalization, `credentials:'include'`, `/oauth2/login/csrf`, `X-IDP-CSRF` and envelope parsing.
-- Dependencies and consumers: IDP/RBAC3/Gateway/DDC AuthContext/LoginPage; backend `OAuthLoginController`.
+- Repository evidence: client already uses trailing-slash normalization, `credentials:'include'`, `/oauth2/login/csrf`, `X-Tianquan-Shoubing-CSRF` and envelope parsing.
+- Dependencies and consumers: Tianquan-Shoubing/Tianquan-Jianshen/Yuheng/Tianshu AuthContext/LoginPage; backend `OAuthLoginController`.
 - Why now: source login must expose actionable cause when public Engine route is stale.
 - Contract/signature changes: preserve `GatewayAuthClient` methods/payloads; add safe code/status/path metadata to errors; do not read/store/return token.
 - Input/output and state mapping: base URL -> request origin; CSRF token is transient header; result remains `GatewayLoginResult`; errors classify network/timeout, CSRF and HTTP status.
@@ -745,12 +745,12 @@ const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
 
 #### File 17 — `MODIFY scripts/unified-xingyuan/start-local-stack.sh`
 
-- Purpose: Preflight the public Gateway Engine login route after active release reuse/publication and report loopback origin.
+- Purpose: Preflight the public Yuheng Engine login route after active release reuse/publication and report loopback origin.
 - Symbols: `resolve_local_advertised_host`, new `preflight_gateway_login_route`.
-- Repository evidence: `common.sh` already defaults `GATEWAY_BASE_URL` to 18180; start script has skip/publish branch but no login route check.
+- Repository evidence: `common.sh` already defaults `YUHENG_BASE_URL` to 18180; start script has skip/publish branch but no login route check.
 - Dependencies and consumers: supervisor, generated env/manifest and legacy publish script; no application data mutation.
 - Why now: source defaults cannot repair an already-running process or stale active release.
-- Contract/signature changes: safe GET `${GATEWAY_BASE_URL}/oauth2/login/csrf` with Origin, expect 200; output actual public origin/advertised host; retain explicit LAN override.
+- Contract/signature changes: safe GET `${YUHENG_BASE_URL}/oauth2/login/csrf` with Origin, expect 200; output actual public origin/advertised host; retain explicit LAN override.
 - Input/output and state mapping: environment -> URL/status; response body discarded; timeout/401/5xx returns nonzero with restart/re-publish guidance.
 - Error and edge behavior: skip-release still preflights; no token/cookie/body persistence; 18140 is not substituted for login.
 - Standards impact: `MC-UTIL-001`, `MC-JSON-001`, `MC-CONFIG-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing curl/bash helpers and safe output only.
@@ -760,11 +760,11 @@ const request = async <T>(path: string, init: RequestInit = {}): Promise<T> => {
 ```bash
 preflight_gateway_login_route() {
   local status
-  status="$(curl --max-time 5 -sS -o /dev/null -w '%{http_code}' -H "Origin: ${PLATFORM_PORTAL_URL}" "${GATEWAY_BASE_URL}/oauth2/login/csrf" 2>/dev/null || true)"
-  [[ "${status}" == "200" ]] || unified_platform_fail "Gateway Engine login route is ${status:-timeout}; restart the stack and publish the current release"
+  status="$(curl --max-time 5 -sS -o /dev/null -w '%{http_code}' -H "Origin: ${PLATFORM_PORTAL_URL}" "${YUHENG_BASE_URL}/oauth2/login/csrf" 2>/dev/null || true)"
+  [[ "${status}" == "200" ]] || unified_xingyuan_fail "Yuheng Engine login route is ${status:-timeout}; restart the stack and publish the current release"
 }
 preflight_gateway_login_route
-printf 'Gateway public origin: %s; advertised host: %s\n' "${GATEWAY_BASE_URL}" "${local_advertised_host}"
+printf 'Yuheng public origin: %s; advertised host: %s\n' "${YUHENG_BASE_URL}" "${local_advertised_host}"
 ```
 
 - Verification contribution: `bash -n` and static text checks prove the gate; runtime HTTP is user-controlled.
@@ -777,7 +777,7 @@ printf 'Gateway public origin: %s; advertised host: %s\n' "${GATEWAY_BASE_URL}" 
 - Repository evidence: status script already prints PID/process/actuator/web health but not advertised host or public OAuth status.
 - Dependencies and consumers: `lib/common.sh` URL variables; operator terminal output; read-only curl.
 - Why now: status must answer “是没重启还是 IP 不对” without exposing secrets.
-- Contract/signature changes: add `GATEWAY_BASE_URL`, `PLATFORM_PORTAL_URL`, effective host and `/oauth2/login/csrf` code; no writes.
+- Contract/signature changes: add `YUHENG_BASE_URL`, `PLATFORM_PORTAL_URL`, effective host and `/oauth2/login/csrf` code; no writes.
 - Input/output and state mapping: URL -> status string; unreachable remains `unreachable`; no runtime state update.
 - Error and edge behavior: timeout is labeled, control-plane health remains separate, no cookie/token/body output.
 - Standards impact: `MC-UTIL-001`, `MC-CONFIG-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse read-only status helper and loopback defaults.
@@ -785,25 +785,25 @@ printf 'Gateway public origin: %s; advertised host: %s\n' "${GATEWAY_BASE_URL}" 
 - Implementation pseudocode:
 
 ```bash
-printf 'Portal URL: %s\nGateway public origin: %s\nAdvertised host: %s\n' "${PLATFORM_PORTAL_URL}" "${GATEWAY_BASE_URL}" "${UNIFIED_PLATFORM_ADVERTISED_HOST:-127.0.0.1}"
-print_status gateway-login "${GATEWAY_BASE_URL}/oauth2/login/csrf"
-login_status="$(unified_platform_http_code "${GATEWAY_BASE_URL}/oauth2/login/csrf")"
-printf 'Gateway login route status: %s\n' "${login_status:-unreachable}"
+printf 'Portal URL: %s\nGateway public origin: %s\nAdvertised host: %s\n' "${PLATFORM_PORTAL_URL}" "${YUHENG_BASE_URL}" "${UNIFIED_XINGYUAN_ADVERTISED_HOST:-127.0.0.1}"
+print_status yuheng-login "${YUHENG_BASE_URL}/oauth2/login/csrf"
+login_status="$(unified_xingyuan_http_code "${YUHENG_BASE_URL}/oauth2/login/csrf")"
+printf 'Yuheng login route status: %s\n' "${login_status:-unreachable}"
 ```
 
 - Verification contribution: shell syntax and output assertions prove diagnostic fields; no process is restarted.
 - After this file: operators can distinguish 127 loopback source defaults from a stale LAN runtime.
 
-- Validation working directory: repository root for shell checks; shared/Portal/IDP/RBAC3/Gateway/DDC package roots for focused tests.
+- Validation working directory: repository root for shell checks; shared/Portal/Tianquan-Shoubing/Tianquan-Jianshen/Yuheng/Tianshu package roots for focused tests.
 - Verification command: `bash -n scripts/unified-xingyuan/start-local-stack.sh scripts/unified-xingyuan/status-local-stack.sh && cd egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared && npm run test -- --run src/layout/EnterpriseLayout.test.tsx && npm run typecheck && cd ../egon-cola-xingyuan-admin-portal && npm run test -- --run src/lifecycle/WujieChild.test.tsx src/pages/ChildRoutePage.test.tsx && npm run typecheck`
 - Expected result: shell syntax, shared/Portal focused tests and typechecks pass; four child layout tests prove domain navigation; no process/release is mutated by validation.
 - Completion criteria: REQ-001..REQ-005 source behavior is implemented/tested; all four embedded child menus remain; `git diff --check` is clean and no unrelated path is staged.
 - Failure returns to: Files 2/4/5/6/7/8/9 for RED fixture issues; Files 3/10-15 for shell/Wujie wiring; Files 16-18 for auth/preflight diagnostics.
 - Rollback: revert only Step 1 paths; leave runtime DB/env/cookies/secrets and user untracked document unchanged.
 - Commit paths: `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/types.ts`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/layout/EnterpriseLayout.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/App.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/App.integration.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.test.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/lifecycle/WujieChild.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-portal/src/pages/ChildRoutePage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/app/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/router.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/layouts/AdminLayout.tsx`, `egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src/auth/gatewayAuthClient.ts`, `scripts/unified-xingyuan/start-local-stack.sh`, `scripts/unified-xingyuan/status-local-stack.sh`.
-- Commit: `fix(platforms): restore embedded child shell and loopback login diagnostics`
+- Commit: `fix(xingyuan): restore embedded child shell and loopback login diagnostics`
 
-### Step 2 — Complete RBAC3 IAM directory and user relation CRUD
+### Step 2 — Complete Tianquan-Jianshen IAM directory and user relation CRUD
 
 - Requirements: `REQ-007`, `REQ-008`, `REQ-009`, `REQ-010`, `REQ-011`, `REQ-013`, `REQ-014`, `REQ-015`
 - Dependencies: Step 1 committed; shared embedded Layout available; existing `directoryApi`/`assignmentApi` contracts unchanged.
@@ -822,7 +822,7 @@ printf 'Gateway login route status: %s\n' "${login_status:-unreachable}"
 - Repository evidence: current test mocks FeatureApiClient/Rbac3Provider and only verifies the organization list endpoint.
 - Dependencies and consumers: `OrganizationPage.tsx`, `directoryApi`, QueryClient and existing MemoryRouter wrapper.
 - Why now: first RED contract for the currently read-only organization page.
-- Contract/signature changes: assert existing `/api/rbac3/v1/iam/organizations` POST, `/{orgUnitId}` PUT and DELETE query; no new endpoint.
+- Contract/signature changes: assert existing `/api/tianquan-jianshen/v1/iam/organizations` POST, `/{orgUnitId}` PUT and DELETE query; no new endpoint.
 - Input/output and state mapping: form values -> API body; selected organization version -> update/delete expected version; success -> invalidate list.
 - Error and edge behavior: required name/type/validFrom blocks submit; `validTo` empty maps null; 403/409 stays visible and does not close editor.
 - Standards impact: `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-SCOPE-001`, `MC-TEST-001` — assert exact existing command fields and ISO/null mapping.
@@ -835,7 +835,7 @@ it('creates an organization and sends its row version when archiving', async () 
   await user.click(screen.getByRole('button', {name: '新增组织'}))
   await fillOrganizationForm({type: 'DEPARTMENT', name: '华东', parentId: null, validFrom: '2026-08-29T00:00:00Z', validTo: null})
   await user.click(screen.getByRole('button', {name: '保存'}))
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/organizations', expect.objectContaining({method: 'POST'}))
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/organizations', expect.objectContaining({method: 'POST'}))
 })
 ```
 
@@ -846,7 +846,7 @@ it('creates an organization and sends its row version when archiving', async () 
 
 - Purpose: Define position create/edit/archive behavior and required organization scope.
 - Symbols: tests for `新增岗位`, create body, update/delete version, empty org validation and 409 rendering.
-- Repository evidence: current test verifies only `/api/rbac3/v1/iam/positions` GET with `orgUnitId` query.
+- Repository evidence: current test verifies only `/api/tianquan-jianshen/v1/iam/positions` GET with `orgUnitId` query.
 - Dependencies and consumers: `PositionPage.tsx`, directory API and existing test provider.
 - Why now: second RED contract for read-only position page.
 - Contract/signature changes: assert existing positions POST/PUT/DELETE paths and `expectedVersion`; no route change.
@@ -889,7 +889,7 @@ it('opens role assignments from the user subject route', async () => {
   await screen.findByText(/用户 7 的角色任职/)
   await user.click(screen.getByRole('button', {name: '新增任职资格'}))
   expect(screen.getByRole('dialog')).toBeInTheDocument()
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/users/7/role-assignments', expect.anything())
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/users/7/role-assignments', expect.anything())
 })
 ```
 
@@ -916,7 +916,7 @@ it('loads organization relations and maps revoke with row version', async () => 
   await user.click(await screen.findByRole('tab', {name: '组织关系'}))
   expect(await screen.findByText('总部')).toBeInTheDocument()
   await user.click(screen.getByRole('button', {name: '撤销组织关系'}))
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/users/7/organizations/assignment-1', expect.objectContaining({method: 'DELETE', query: {expectedVersion: 4}}))
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/users/7/organizations/assignment-1', expect.objectContaining({method: 'DELETE', query: {expectedVersion: 4}}))
   expect(screen.getByRole('link', {name: '打开角色任职工作台'})).toHaveAttribute('href', '/iam/users/7/role-assignments')
 })
 ```
@@ -940,11 +940,11 @@ it('loads organization relations and maps revoke with row version', async () => 
 
 ```typescript
 assignPosition: (userId, values) => client.request<UserPositionAssignmentView>(
-  `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions`,
+  `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/positions`,
   {method: 'POST', body: {...values, validTo: values.validTo || null, reason: values.reason.trim(), ticketNo: values.ticketNo.trim()}},
 )
 revokePosition: (userId, assignmentId, expectedVersion) => client.request<null>(
-  `/api/rbac3/v1/iam/users/${encodeURIComponent(userId)}/positions/${encodeURIComponent(assignmentId)}`,
+  `/api/tianquan-jianshen/v1/iam/users/${encodeURIComponent(userId)}/positions/${encodeURIComponent(assignmentId)}`,
   {method: 'DELETE', query: {expectedVersion}},
 )
 ```
@@ -956,7 +956,7 @@ revokePosition: (userId, assignmentId, expectedVersion) => client.request<null>(
 
 - Purpose: Compose the three user relationship surfaces with existing Query, mutation and permission primitives.
 - Symbols: `UserRelationsPanel`, organization/position query keys, assign/revoke mutations, tab renderers and `Link`.
-- Repository evidence: adjacent RBAC3 pages use `useRbac3Authorization`, `useFeatureApi`, `useFeatureTenantContext`, `PageState`, `PermissionGuard`, AntD Table/Form/Modal.
+- Repository evidence: adjacent Tianquan-Jianshen pages use `useRbac3Authorization`, `useFeatureApi`, `useFeatureTenantContext`, `PageState`, `PermissionGuard`, AntD Table/Form/Modal.
 - Dependencies and consumers: File 5 API, UserDirectoryPage File 9, assignment route and QueryClient.
 - Why now: implements the File 4 RED contract with no global store or new backend layer.
 - Contract/signature changes: props `{userId, authVersion}`; relation requests are enabled only for nonempty user ID and READY auth; role link uses encoded user ID.
@@ -1008,7 +1008,7 @@ const save = useMutation({mutationFn: (values: OrganizationForm) => selected
 - Dependencies and consumers: File 2 tests, File 5 API and organization IDs from directory context.
 - Why now: GREEN implementation for position RED test after client mapping.
 - Contract/signature changes: create maps code/name/orgUnitId/externalId/validFrom/validTo; update/delete uses `positionId/version`; no path change.
-- Input/output and state mapping: filter query -> list; selected row -> form; success invalidates `['rbac3','positions']` and closes editor.
+- Input/output and state mapping: filter query -> list; selected row -> form; success invalidates `['tianquan-jianshen','positions']` and closes editor.
 - Error and edge behavior: orgUnitId/name/time required; 403 hides write actions; 409 keeps modal; archived/source rows not silently overwritten.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing API/Form/Table only.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 10`, `Rule 11` — exact validation/JSON/time and current structure.
@@ -1050,20 +1050,20 @@ const save = useMutation({mutationFn: (values: PositionForm) => selected
 
 - Validation working directory: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web`.
 - Verification command: `npm run test -- --run src/features/directory/OrganizationPage.test.tsx src/features/directory/PositionPage.test.tsx src/features/directory/UserRelationsPanel.test.tsx src/features/assignment/AssignmentPages.test.tsx && npm run typecheck && npm run build`
-- Expected result: focused tests pass; exact existing paths/methods/version queries are observed; RBAC3 typecheck/build pass.
+- Expected result: focused tests pass; exact existing paths/methods/version queries are observed; Tianquan-Jianshen typecheck/build pass.
 - Completion criteria: users can discover and mutate org/position/role relationships from IAM, organization/position pages are CRUD-capable, and no new endpoint/dependency/migration exists.
 - Failure returns to: Files 1-4 for fixtures; File 5 for API mapping; File 6 for relation state/cache; Files 7-9 for page wiring.
 - Rollback: revert only Step 2 paths; tests/build do not mutate runtime or persistent application data.
 - Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/assignment/AssignmentPages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/directory.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserRelationsPanel.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/OrganizationPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/PositionPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/directory/UserDirectoryPage.tsx`.
-- Commit: `feat(rbac3-admin-web): complete IAM directory relations`
+- Commit: `feat(tianquan-jianshen-admin-web): complete IAM directory relations`
 
-### Step 3 — Complete RBAC3 IAM role, permission, resource, catalog and policy workbenches
+### Step 3 — Complete Tianquan-Jianshen IAM role, permission, resource, catalog and policy workbenches
 
 - Requirements: `REQ-006`, `REQ-007`, `REQ-008`, `REQ-009`, `REQ-010`, `REQ-011`, `REQ-013`, `REQ-014`, `REQ-015`
 - Dependencies: Step 1 committed; Step 2 user relation entry committed; existing `roleApi`, `applicationApi`, `managementPolicyApi` and read-only `constraintApi` verified.
 - Baseline state: role CRUD/inheritance/impact exists but has no role-resource entry; permission page uses list row as detail and does not consume `PermissionController.find`; tenant applications lack detail; business catalog page is absent; constraint page has only four GET queries; management policy page lacks detail/capability/target reads.
 - Observable outcome: IAM menu exposes business catalog and all relevant role/resource/permission/policy actions; detail and policy writes use actual Controller paths and version/idempotency contracts.
-- End state: RBAC3 focused tests prove role resource links, permission/application detail, business catalog route, constraint POST/PUT fields and management-policy reads. No Java/DB changes.
+- End state: Tianquan-Jianshen focused tests prove role resource links, permission/application detail, business catalog route, constraint POST/PUT fields and management-policy reads. No Java/DB changes.
 - Test-first gate: `Required` — existing tests do not observe the new action paths; add assertions before production wiring.
 - Manual Checks: `MC-ARCH-001`, `MC-REUSE-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001`
 - Literal Rules: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 9`, `Rule 10`, `Rule 11`
@@ -1103,7 +1103,7 @@ it('exposes resource authorization from each role', async () => {
 - Why now: application detail is a real external method currently absent from UI.
 - Contract/signature changes: selected row ID -> existing GET; expected version stays on status/remove.
 - Input/output and state mapping: row -> detail query -> Drawer; close does not clear list; mutation invalidates list/detail.
-- Error and edge behavior: 403/404 stays in Drawer PageState; empty list remains valid; no DDC direct access.
+- Error and edge behavior: 403/404 stays in Drawer PageState; empty list remains valid; no Tianshu direct access.
 - Standards impact: `MC-VALID-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — exact path/JSON and error assertions.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 11` — preserve server validation/JSON and current feature structure.
 - Implementation pseudocode:
@@ -1112,7 +1112,7 @@ it('exposes resource authorization from each role', async () => {
 it('loads tenant application detail through the existing controller', async () => {
   render(<ApplicationListPage />, {wrapper: applicationWrapper})
   await user.click(await screen.findByRole('button', {name: '查看详情'}))
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/tenant-applications/71', expect.anything())
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/tenant-applications/71', expect.anything())
 })
 ```
 
@@ -1122,7 +1122,7 @@ it('loads tenant application detail through the existing controller', async () =
 #### File 3 — `MODIFY egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`
 
 - Purpose: Define direct permission detail endpoint consumption and status/create regression behavior.
-- Symbols: selected permission -> `GET /api/rbac3/v1/iam/permissions/{id}` assertion; 403/409 and list refresh cases.
+- Symbols: selected permission -> `GET /api/tianquan-jianshen/v1/iam/permissions/{id}` assertion; 403/409 and list refresh cases.
 - Repository evidence: current page opens a Drawer from list row; `application.api.ts` has list/create/status but no find method; Java PermissionController has GET detail.
 - Dependencies and consumers: PermissionCatalogPage and application API changes.
 - Why now: prevents a list object from being mistaken for Controller detail coverage.
@@ -1137,7 +1137,7 @@ it('loads tenant application detail through the existing controller', async () =
 it('requests permission detail instead of using only the selected list row', async () => {
   render(<PermissionCatalogPage />, {wrapper: permissionWrapper})
   await user.click(await screen.findByText('orders:read'))
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/permissions/91', expect.anything())
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/permissions/91', expect.anything())
 })
 ```
 
@@ -1164,7 +1164,7 @@ it('posts an SSD set with the selected roles and expected dates', async () => {
   await user.click(screen.getByRole('button', {name: '新建 SSD/DSD'}))
   await fillSodForm({setCode: 'maker-checker', constraintType: 'SSD', memberRoleIds: ['1'], validFrom: '2026-08-29T00:00:00Z', validTo: null})
   await user.click(screen.getByRole('button', {name: '保存'}))
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/policies/sod-sets', expect.objectContaining({method: 'POST'}))
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/policies/sod-sets', expect.objectContaining({method: 'POST'}))
 })
 ```
 
@@ -1190,8 +1190,8 @@ it('loads policy capability and selected policy detail', async () => {
   render(<ManagementPolicyPage />, {wrapper: policyWrapper})
   await screen.findByText('授权代理策略')
   await user.click(screen.getByRole('button', {name: '查看详情'}))
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/management-policies/policy-1', expect.anything())
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/management-capabilities/me', expect.anything())
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/management-policies/policy-1', expect.anything())
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/management-capabilities/me', expect.anything())
 })
 ```
 
@@ -1237,10 +1237,10 @@ it('loads policy capability and selected policy detail', async () => {
 
 ```typescript
 application: (applicationId: string) => client.request<TenantApplicationView>(
-  `/api/rbac3/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
+  `/api/tianquan-jianshen/v1/iam/tenant-applications/${encodeURIComponent(applicationId)}`,
 ),
 permission: (id: string) => client.request<PermissionView>(
-  `/api/rbac3/v1/iam/permissions/${encodeURIComponent(id)}`,
+  `/api/tianquan-jianshen/v1/iam/permissions/${encodeURIComponent(id)}`,
 ),
 ```
 
@@ -1262,7 +1262,7 @@ permission: (id: string) => client.request<PermissionView>(
 - Implementation pseudocode:
 
 ```tsx
-const detail = useQuery({queryKey: ['rbac3','permission',tenant,selectedId], queryFn: () => api.permission(selectedId!), enabled: ready && Boolean(selectedId)})
+const detail = useQuery({queryKey: ['tianquan-jianshen','permission',tenant,selectedId], queryFn: () => api.permission(selectedId!), enabled: ready && Boolean(selectedId)})
 <Drawer open={Boolean(selectedId)} onClose={() => setSelectedId(undefined)} title="权限详情">
   <PageState loading={detail.isPending} error={detail.error} empty={!detail.data} onRetry={() => void detail.refetch()}>{detail.data && <Descriptions ... />}</PageState>
 </Drawer>
@@ -1280,13 +1280,13 @@ const detail = useQuery({queryKey: ['rbac3','permission',tenant,selectedId], que
 - Why now: GREEN implementation for application detail RED.
 - Contract/signature changes: no write changes; selected row ID only; GET detail uses existing path.
 - Input/output and state mapping: row -> detail GET -> Drawer; list mutation invalidates list/detail.
-- Error and edge behavior: detail 403/404 local; remove still confirms; no inferred DDC fields.
+- Error and edge behavior: detail 403/404 local; remove still confirms; no inferred Tianshu fields.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing UI/API and expected version.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 11` — preserve server validation/JSON and current page structure.
 - Implementation pseudocode:
 
 ```tsx
-const detail = useQuery({queryKey: ['rbac3','tenant-application',tenant,selectedId], queryFn: () => api.application(selectedId!), enabled: ready && Boolean(selectedId)})
+const detail = useQuery({queryKey: ['tianquan-jianshen','tenant-application',tenant,selectedId], queryFn: () => api.application(selectedId!), enabled: ready && Boolean(selectedId)})
 <Button size="small" onClick={(event) => {event.stopPropagation(); setSelectedId(row.applicationId)}}>查看详情</Button>
 const detailState = detail.isPending ? 'loading' : detail.error ? 'error' : 'ready'
 renderDetailState(detailState, detail.data)
@@ -1299,20 +1299,20 @@ renderDetailState(detailState, detail.data)
 
 - Purpose: Provide the existing BusinessCatalogController read methods through FeatureApiClient.
 - Symbols: `BusinessCatalogView`, `ApplicationCatalogView`, `businesses(keyword)`, `applications(ddcBusinessId, keyword)`.
-- Repository evidence: Java controller has `/api/rbac3/v1/iam/businesses` and `/{ddcBusinessId}/applications`; no client/page exists.
+- Repository evidence: Java controller has `/api/tianquan-jianshen/v1/iam/businesses` and `/{ddcBusinessId}/applications`; no client/page exists.
 - Dependencies and consumers: new BusinessCatalogPage, FeatureApiClient and PageState.
 - Why now: page needs exact API paths before creation.
 - Contract/signature changes: keyword is optional and omitted when blank; response fields map only controller VO fields.
 - Input/output and state mapping: keyword -> business list; business ID -> application list.
-- Error and edge behavior: empty business ID disables applications call; server errors propagate; no DDC direct access.
+- Error and edge behavior: empty business ID disables applications call; server errors propagate; no Tianshu direct access.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing client/View pattern, no new dependency.
 - Literal rule enforcement: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 11` — input/query validation, allowed utilities, JSON and current structure.
 - Implementation pseudocode:
 
 ```typescript
 export const businessApi = (client: FeatureApiClient) => ({
-  businesses: (keyword?: string) => client.request<readonly BusinessCatalogView[]>('/api/rbac3/v1/iam/businesses', {query: {keyword: keyword?.trim() || undefined}}),
-  applications: (businessId: string, keyword?: string) => client.request<readonly ApplicationCatalogView[]>(`/api/rbac3/v1/iam/businesses/${encodeURIComponent(businessId)}/applications`, {query: {keyword: keyword?.trim() || undefined}}),
+  businesses: (keyword?: string) => client.request<readonly BusinessCatalogView[]>('/api/tianquan-jianshen/v1/iam/businesses', {query: {keyword: keyword?.trim() || undefined}}),
+  applications: (businessId: string, keyword?: string) => client.request<readonly ApplicationCatalogView[]>(`/api/tianquan-jianshen/v1/iam/businesses/${encodeURIComponent(businessId)}/applications`, {query: {keyword: keyword?.trim() || undefined}}),
 })
 ```
 
@@ -1323,7 +1323,7 @@ export const businessApi = (client: FeatureApiClient) => ({
 
 - Purpose: Define business/application catalog query and selection states before page implementation.
 - Symbols: list query, selected-business application query, empty/error behavior.
-- Repository evidence: existing RBAC3 page tests use QueryClient/Rbac3Provider/FeatureApiProvider and mock `request` by path.
+- Repository evidence: existing Tianquan-Jianshen page tests use QueryClient/Rbac3Provider/FeatureApiProvider and mock `request` by path.
 - Dependencies and consumers: BusinessCatalogPage and business API File 10.
 - Why now: RED proof for the new page/controller coverage.
 - Contract/signature changes: assert `/businesses?keyword` query and `/{ddcBusinessId}/applications` query; no write.
@@ -1334,11 +1334,11 @@ export const businessApi = (client: FeatureApiClient) => ({
 - Implementation pseudocode:
 
 ```typescript
-it('loads applications only after selecting a DDC business', async () => {
+it('loads applications only after selecting a Tianshu business', async () => {
   render(<BusinessCatalogPage />, {wrapper: businessWrapper})
   await user.click(await screen.findByText('交易域'))
   expect(await screen.findByText('订单应用')).toBeInTheDocument()
-  expect(request).toHaveBeenCalledWith('/api/rbac3/v1/iam/businesses/business-1/applications', expect.anything())
+  expect(request).toHaveBeenCalledWith('/api/tianquan-jianshen/v1/iam/businesses/business-1/applications', expect.anything())
 })
 ```
 
@@ -1354,14 +1354,14 @@ it('loads applications only after selecting a DDC business', async () => {
 - Why now: GREEN implementation for the catalog RED test.
 - Contract/signature changes: no mutation; route component accepts no security context beyond existing Rbac3 provider.
 - Input/output and state mapping: keyword trimmed -> businesses; selected `ddcBusinessId` -> applications; Drawer close clears selection.
-- Error and edge behavior: no selection avoids network call; query error has retry; 403 route guard remains; no direct DDC access.
+- Error and edge behavior: no selection avoids network call; query error has retry; 403 route guard remains; no direct Tianshu access.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing PageState/Table/Query only.
 - Literal rule enforcement: `Rule 2`, `Rule 6`, `Rule 11` — preserve input validation/JSON and feature-first structure.
 - Implementation pseudocode:
 
 ```tsx
-const businesses = useQuery({queryKey: ['rbac3','businesses',tenant,keyword], queryFn: () => api.businesses(keyword), enabled: ready})
-const applications = useQuery({queryKey: ['rbac3','business-applications',tenant,selectedId], queryFn: () => api.applications(selectedId!), enabled: ready && Boolean(selectedId)})
+const businesses = useQuery({queryKey: ['tianquan-jianshen','businesses',tenant,keyword], queryFn: () => api.businesses(keyword), enabled: ready})
+const applications = useQuery({queryKey: ['tianquan-jianshen','business-applications',tenant,selectedId], queryFn: () => api.applications(selectedId!), enabled: ready && Boolean(selectedId)})
 return <Card title="业务目录"><Input.Search onSearch={(value) => setKeyword(value.trim())}/><Table dataSource={businesses.data ?? []} onRow={(row) => ({onClick: () => setSelectedId(row.ddcBusinessId)})}/><Drawer open={Boolean(selectedId)}><PageState loading={applications.isPending} error={applications.error}>{applications.data && <Table dataSource={applications.data}/>}</PageState></Drawer></Card>
 ```
 
@@ -1383,7 +1383,7 @@ return <Card title="业务目录"><Input.Search onSearch={(value) => setKeyword(
 - Implementation pseudocode:
 
 ```tsx
-{key: 'business-catalog', path: '/iam/businesses', title: '业务目录', permission: 'system:business:read', componentKey: 'rbac3-business-catalog', component: BusinessCatalogPage, navigationOrder: 42}
+{key: 'business-catalog', path: '/iam/businesses', title: '业务目录', permission: 'system:business:read', componentKey: 'tianquan-jianshen-business-catalog', component: BusinessCatalogPage, navigationOrder: 42}
 const route = governanceRouteDescriptors.find((item) => item.key === 'business-catalog')
 assert route?.permission === 'system:business:read'
 ```
@@ -1395,7 +1395,7 @@ assert route?.permission === 'system:business:read'
 
 - Purpose: Place business catalog under IAM’s second-level `资源目录` tree.
 - Symbols: existing IAM/resource catalog node and new business child resource definition.
-- Repository evidence: JSON is the local resource/menu registry used by RBAC3 resource report; current entries include tenant apps/resources/fields/permissions.
+- Repository evidence: JSON is the local resource/menu registry used by Tianquan-Jianshen resource report; current entries include tenant apps/resources/fields/permissions.
 - Dependencies and consumers: route descriptor, `report:resources`, backend registration conventions.
 - Why now: route alone does not satisfy the user’s IAM menu organization requirement.
 - Contract/signature changes: add one read resource with path `/iam/businesses`, permission `system:business:read`; preserve group structure and no duplicate top-level route.
@@ -1429,9 +1429,9 @@ assert route?.permission === 'system:business:read'
 - Implementation pseudocode:
 
 ```typescript
-createSod: (request: SodSetRequest) => client.request<MutationResult>('/api/rbac3/v1/iam/policies/sod-sets', {method: 'POST', body: request}),
-updateSod: (setId: string, request: SodSetRequest) => client.request<MutationResult>(`/api/rbac3/v1/iam/policies/sod-sets/${encodeURIComponent(setId)}`, {method: 'PUT', body: request}),
-savePrerequisites: (roleId: string, request: PrerequisiteGroupRequest) => client.request<MutationResult>(`/api/rbac3/v1/iam/policies/roles/${encodeURIComponent(roleId)}/prerequisite-groups`, {method: 'POST', body: request}),
+createSod: (request: SodSetRequest) => client.request<MutationResult>('/api/tianquan-jianshen/v1/iam/policies/sod-sets', {method: 'POST', body: request}),
+updateSod: (setId: string, request: SodSetRequest) => client.request<MutationResult>(`/api/tianquan-jianshen/v1/iam/policies/sod-sets/${encodeURIComponent(setId)}`, {method: 'PUT', body: request}),
+savePrerequisites: (roleId: string, request: PrerequisiteGroupRequest) => client.request<MutationResult>(`/api/tianquan-jianshen/v1/iam/policies/roles/${encodeURIComponent(roleId)}/prerequisite-groups`, {method: 'POST', body: request}),
 ```
 
 - Verification contribution: ConstraintPage tests assert the complete method/path/body matrix.
@@ -1467,7 +1467,7 @@ return <Card title="授权约束"><Tabs items={sodTab(dataTab, fieldTab, operati
 - Repository evidence: controller exposes six GETs; client currently maps only list plus three mutations.
 - Dependencies and consumers: ManagementPolicyPage, FeatureApiClient, existing `ManagementPolicyView` and VO-derived shapes.
 - Why now: page requires typed read calls before UI wiring.
-- Contract/signature changes: exact paths `/api/rbac3/v1/management-policies/{policyId}`, `/api/rbac3/v1/management-capabilities/me`, `/manageable-users`, `/manageable-roles`; no write changes.
+- Contract/signature changes: exact paths `/api/tianquan-jianshen/v1/management-policies/{policyId}`, `/api/tianquan-jianshen/v1/management-capabilities/me`, `/manageable-users`, `/manageable-roles`; no write changes.
 - Input/output and state mapping: IDs -> detail/target arrays; response fields remain server-owned.
 - Error and edge behavior: encode IDs; empty target arrays valid; 403/404 propagates; no target value is copied into a write unless selected by existing editor.
 - Standards impact: `MC-REUSE-001`, `MC-VALID-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing client and idempotency contract.
@@ -1475,10 +1475,10 @@ return <Card title="授权约束"><Tabs items={sodTab(dataTab, fieldTab, operati
 - Implementation pseudocode:
 
 ```typescript
-get: (policyId: string) => client.request<ManagementPolicyView>(`/api/rbac3/v1/management-policies/${encodeURIComponent(policyId)}`),
-capabilities: () => client.request<CapabilityView>('/api/rbac3/v1/management-capabilities/me'),
-manageableUsers: () => client.request<readonly ManagedUserView[]>('/api/rbac3/v1/management-capabilities/manageable-users'),
-manageableRoles: () => client.request<readonly ManagedRoleView[]>('/api/rbac3/v1/management-capabilities/manageable-roles'),
+get: (policyId: string) => client.request<ManagementPolicyView>(`/api/tianquan-jianshen/v1/management-policies/${encodeURIComponent(policyId)}`),
+capabilities: () => client.request<CapabilityView>('/api/tianquan-jianshen/v1/management-capabilities/me'),
+manageableUsers: () => client.request<readonly ManagedUserView[]>('/api/tianquan-jianshen/v1/management-capabilities/manageable-users'),
+manageableRoles: () => client.request<readonly ManagedRoleView[]>('/api/tianquan-jianshen/v1/management-capabilities/manageable-roles'),
 ```
 
 - Verification contribution: policy tests assert all new GET paths.
@@ -1499,8 +1499,8 @@ manageableRoles: () => client.request<readonly ManagedRoleView[]>('/api/rbac3/v1
 - Implementation pseudocode:
 
 ```tsx
-const capability = useQuery({queryKey: ['rbac3','management-capabilities',tenant], queryFn: api.capabilities, enabled: ready})
-const detail = useQuery({queryKey: ['rbac3','management-policy',tenant,selected?.policyId], queryFn: () => api.get(selected!.policyId), enabled: ready && Boolean(selected)})
+const capability = useQuery({queryKey: ['tianquan-jianshen','management-capabilities',tenant], queryFn: api.capabilities, enabled: ready})
+const detail = useQuery({queryKey: ['tianquan-jianshen','management-policy',tenant,selected?.policyId], queryFn: () => api.get(selected!.policyId), enabled: ready && Boolean(selected)})
 return <><CapabilitySummary value={capability.data}/><Table onRow={(row) => setSelected(row)}/><Drawer open={Boolean(selected)}><PageState loading={detail.isPending} error={detail.error}>{detail.data && <Descriptions .../>}</PageState></Drawer><ManagementPolicyEditor ... /></>
 ```
 
@@ -1514,16 +1514,16 @@ return <><CapabilitySummary value={capability.data}/><Table onRow={(row) => setS
 - Failure returns to: Files 1-5 for RED fixtures; Files 6-9 for role/detail wiring; Files 10-15 for business route; Files 16-19 for constraint/policy mapping/UI.
 - Rollback: revert only Step 3 paths; no runtime or persistent mutation is part of tests/build.
 - Commit paths: `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RolePages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationPages.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/role/RoleGraphPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/application.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/permission/PermissionCatalogPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/application/ApplicationListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/business.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.test.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/business/BusinessCatalogPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/governance.routes.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/constraint.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/constraint/ConstraintPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/managementPolicy.api.ts`, `egon-cola-xingyuan/egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/features/management-policy/ManagementPolicyPage.tsx`.
-- Commit: `feat(rbac3-admin-web): complete IAM authorization workbenches`
+- Commit: `feat(tianquan-jianshen-admin-web): complete IAM authorization workbenches`
 
-### Step 4 — Close remaining IDP/Gateway/DDC Controller actions and UI bugs
+### Step 4 — Close remaining Tianquan-Shoubing/Yuheng/Tianshu Controller actions and UI bugs
 
 - Requirements: `REQ-006`, `REQ-009`, `REQ-010`, `REQ-011`, `REQ-012`, `REQ-013`, `REQ-014`, `REQ-015`
-- Dependencies: Step 1 committed; Step 2/3 do not overlap these files; Gateway/IDP/DDC API and PageState components remain authoritative.
-- Baseline state: Gateway API has unused release diff and capability validation actions; TracesPage calls a backend-nonexistent detail endpoint; IDP management pages contain old `destroyOnClose`; DDC embedded layout is fixed by Step 1 but RouteGuards uses old `Spin.tip`.
-- Observable outcome: Gateway release diff and per-capability MCP validation are usable; Trace page offers only backend-supported summary; touched IDP/DDC/Gateway pages use current Ant Design props and retain loading/empty/error states; IDP profile endpoint is visible in overview.
+- Dependencies: Step 1 committed; Step 2/3 do not overlap these files; Yuheng/Tianquan-Shoubing/Tianshu API and PageState components remain authoritative.
+- Baseline state: Yuheng API has unused release diff and capability validation actions; TracesPage calls a backend-nonexistent detail endpoint; Tianquan-Shoubing management pages contain old `destroyOnClose`; Tianshu embedded layout is fixed by Step 1 but RouteGuards uses old `Spin.tip`.
+- Observable outcome: Yuheng release diff and per-capability MCP validation are usable; Trace page offers only backend-supported summary; touched Tianquan-Shoubing/Tianshu/Yuheng pages use current Ant Design props and retain loading/empty/error states; Tianquan-Shoubing profile endpoint is visible in overview.
 - End state: remaining management methods have real UI/API consumers or will be explicitly classified in Step 5. No backend Trace endpoint is added.
-- Test-first gate: `Required` — existing Gateway tests and package tests must first assert missing actions/no-fake endpoint/current props before production edits.
+- Test-first gate: `Required` — existing Yuheng tests and package tests must first assert missing actions/no-fake endpoint/current props before production edits.
 - Manual Checks: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-VALID-001`, `MC-MODEL-001`, `MC-CONVERT-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-TIME-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001`
 - Literal Rules: `Rule 2`, `Rule 5`, `Rule 6`, `Rule 7`, `Rule 9`, `Rule 10`, `Rule 11`
 - Ordered files:
@@ -1533,12 +1533,12 @@ return <><CapabilitySummary value={capability.data}/><Table onRow={(row) => setS
 - Purpose: Define actual release-diff/capability validation calls and remove false Trace detail expectation.
 - Symbols: `releaseDiff`, `validateMcpCapability`, and no production `traceDetail` call assertion.
 - Repository evidence: current test already calls `releaseDiff` and `traceDetail`; API exposes both methods, but only the first has a backend Controller mapping.
-- Dependencies and consumers: Gateway API/page tests and implementations in later files.
+- Dependencies and consumers: Yuheng API/page tests and implementations in later files.
 - Why now: fixes the real/fake endpoint boundary before UI changes.
 - Contract/signature changes: assert GET release diff and POST capability validate paths; remove test that expects a 404 Trace detail business action.
 - Input/output and state mapping: IDs/group/plural -> request URL; report -> test result; no response body secrets.
 - Error and edge behavior: 404/403/409 remains visible to the page; unsupported Trace detail is not called.
-- Standards impact: `MC-REUSE-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing Gateway client/test harness only.
+- Standards impact: `MC-REUSE-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing Yuheng client/test harness only.
 - Literal rule enforcement: `Rule 5`, `Rule 6`, `Rule 11` — existing utility/client, JSON and package structure are preserved.
 - Implementation pseudocode:
 
@@ -1554,7 +1554,7 @@ it('calls the capability validation endpoint with plural and group', async () =>
 ```
 
 - Verification contribution: RED until test fixtures match the actual page/action contract; protects no-fake-detail boundary.
-- After this file: Gateway endpoint tests are ready for GREEN implementation.
+- After this file: Yuheng endpoint tests are ready for GREEN implementation.
 
 #### File 2 — `MODIFY egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.test.tsx`
 
@@ -1613,9 +1613,9 @@ it('keeps traces summary-only when the backend has no detail mapping', async () 
 - Purpose: Define shared per-capability validation button behavior before component creation.
 - Symbols: `validatesOneCapability`, disabled permission state, success findings and 403/409 error states.
 - Repository evidence: `gatewayApi.validateMcpCapability(plural,id,group)` already exists; capability panels have row IDs/group IDs but no shared action.
-- Dependencies and consumers: new button, Gateway API and capability panel rows.
+- Dependencies and consumers: new button, Yuheng API and capability panel rows.
 - Why now: closes the unused capability validation method with a focused RED test.
-- Contract/signature changes: props use `McpCapabilityPlural`, capability ID and gateway group ID; POST has no new body.
+- Contract/signature changes: props use `McpCapabilityPlural`, capability ID and yuheng group ID; POST has no new body.
 - Input/output and state mapping: click -> mutation -> `McpValidationReport`; result stays local to row.
 - Error and edge behavior: pending lock; no permission disables; findings render safe code/path/message; no auto-publish/retry.
 - Standards impact: `MC-REUSE-001`, `MC-JSON-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001` — existing client/Query and justified component Composition.
@@ -1663,7 +1663,7 @@ assertNoTraceDetailConsumerBeforeDelete()
 - Purpose: Add on-demand Release Diff Drawer using the existing API and structured redacted data.
 - Symbols: `diffOpen`, `releaseDiff` query, `JsonPanel`, `QueryFailure`, current retry/rollback actions.
 - Repository evidence: page already has QueryClient, release query, structured diff panels and status/error UI.
-- Dependencies and consumers: File 2 test/File 5 API, Gateway route and capability guard.
+- Dependencies and consumers: File 2 test/File 5 API, Yuheng route and capability guard.
 - Why now: GREEN implementation for real Release Diff coverage.
 - Contract/signature changes: no backend change; GET query enabled only when Drawer open.
 - Input/output and state mapping: release ID -> diff query -> JSON panel; close leaves release query intact.
@@ -1709,12 +1709,12 @@ assert(hasDetailAction === false)
 
 - Purpose: Implement one reusable per-capability validation action.
 - Symbols: `McpCapabilityValidationButton`, props `plural/capabilityId/gatewayGroupId`, `useMutation`, result Alert.
-- Repository evidence: panels use existing row capabilities and Gateway API; server-level preview is separate.
+- Repository evidence: panels use existing row capabilities and Yuheng API; server-level preview is separate.
 - Dependencies and consumers: File 4 test/File 5 API, four capability panels.
 - Why now: GREEN component implementation before row wiring.
 - Contract/signature changes: no public backend contract; plural is constrained to API-supported values.
 - Input/output and state mapping: click -> POST -> report; mutation state/render is local.
-- Error and edge behavior: no permission/pending disables; error text uses existing Gateway API error; findings display safe fields only; no publish side effect.
+- Error and edge behavior: no permission/pending disables; error text uses existing Yuheng API error; findings display safe fields only; no publish side effect.
 - Standards impact: `MC-REUSE-001`, `MC-JSON-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001` — reuse Query/API and Composition.
 - Literal rule enforcement: `Rule 5`, `Rule 6`, `Rule 9`, `Rule 11` — existing utility/JSON, justified capability composition, current tree.
 - Implementation pseudocode:
@@ -1827,7 +1827,7 @@ renderTaskValidationStatus(taskValidationTarget)
 - Purpose: Replace deprecated modal lifecycle props in identity user CRUD without changing one-time password semantics.
 - Symbols: both `Modal` instances using `destroyOnClose` -> `destroyOnHidden`; existing create/edit/reset/revoke handlers.
 - Repository evidence: current file contains two old props and tests cover user API actions.
-- Dependencies and consumers: IDP AuthContext/httpClient, UserListPage tests and IdentityUserController.
+- Dependencies and consumers: Tianquan-Shoubing AuthContext/httpClient, UserListPage tests and IdentityUserController.
 - Why now: concrete UI warning in a high-use CRUD page.
 - Contract/signature changes: Ant Design prop rename only; backend paths/body/version unchanged.
 - Input/output and state mapping: modal close destroys form; one-time password remains only in successful result view.
@@ -1964,8 +1964,8 @@ assert publishResult === null || isPublicKeyMetadata(publishResult)
 
 - Purpose: Consume `IdentityProfileController.me` safely in the visible overview.
 - Symbols: `IdentityProfileView`, `httpClient` query, profile PageState/Descriptions card; existing bootstrap authorization cards remain.
-- Repository evidence: `/api/v1/identity/me` is an external GET with `IdentityPrincipal`; current Overview only uses bootstrap, and principal `tokenId/audience` are sensitive.
-- Dependencies and consumers: IDP AuthContext/httpClient, shared PageState, IdentityProfileController.
+- Repository evidence: `/api/v1/tianquan-shoubing/me` is an external GET with `IdentityPrincipal`; current Overview only uses bootstrap, and principal `tokenId/audience` are sensitive.
+- Dependencies and consumers: Tianquan-Shoubing AuthContext/httpClient, shared PageState, IdentityProfileController.
 - Why now: gives the profile Controller method a real UI consumer without displaying token identifiers.
 - Contract/signature changes: GET only; display subject/tenant and safe times, never tokenId/audience.
 - Input/output and state mapping: authenticated bootstrap -> profile GET -> profile card; bootstrap remains authorization source.
@@ -1975,7 +1975,7 @@ assert publishResult === null || isPublicKeyMetadata(publishResult)
 - Implementation pseudocode:
 
 ```tsx
-const profile = useQuery({queryKey: ['idp','identity-profile'], queryFn: () => httpClient.request<IdentityProfileView>('/api/v1/identity/me'), enabled: Boolean(auth.bootstrap)})
+const profile = useQuery({queryKey: ['tianquan-shoubing','identity-profile'], queryFn: () => httpClient.request<IdentityProfileView>('/api/v1/tianquan-shoubing/me'), enabled: Boolean(auth.bootstrap)})
 <PageState loading={profile.isPending} error={profile.error} empty={!profile.data} onRetry={() => void profile.refetch()}>{profile.data && <Descriptions><Descriptions.Item label="主体">{profile.data.subject}</Descriptions.Item><Descriptions.Item label="租户">{profile.data.tenantId}</Descriptions.Item></Descriptions>}</PageState>
 const safeProfile = profile.data ? {subject: profile.data.subject, tenantId: profile.data.tenantId} : null
 assert safeProfile === null || !('tokenId' in safeProfile) && !('audience' in safeProfile)
@@ -1989,7 +1989,7 @@ assert safeProfile === null || !('tokenId' in safeProfile) && !('audience' in sa
 - Purpose: Replace deprecated `Spin.tip` with Ant Design’s current `description` while preserving auth loading state.
 - Symbols: `RouteGuards` loading branch.
 - Repository evidence: current source uses `<Spin fullscreen tip="校验统一登录态" />`.
-- Dependencies and consumers: DDC AuthContext/router and Ant Design 6.
+- Dependencies and consumers: Tianshu AuthContext/router and Ant Design 6.
 - Why now: direct UI warning and smallest safe fix.
 - Contract/signature changes: prop rename only; auth transition unchanged.
 - Input/output and state mapping: loading boolean -> fullscreen spinner text.
@@ -2004,24 +2004,24 @@ if (!loading && authError) return <Navigate to="/login" replace />
 return <Outlet />
 ```
 
-- Verification contribution: DDC typecheck/build and deprecation search.
-- After this file: DDC auth loading warning is removed.
+- Verification contribution: Tianshu typecheck/build and deprecation search.
+- After this file: Tianshu auth loading warning is removed.
 
-- Validation working directory: run Gateway, IDP and DDC package commands separately; repository root for unsupported endpoint/deprecation searches.
-- Verification command: `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run test -- --run src/api/gatewayApi.test.ts src/features/releases/ReleaseDetailPage.test.tsx src/features/observability/TracesPage.test.tsx src/features/mcp/McpCapabilityValidationButton.test.tsx && npm run typecheck && npm run build`; then run `npm run test -- --run && npm run typecheck && npm run build` in the IDP and DDC Web roots.
-- Expected result: Gateway/IDP/DDC tests and builds pass; Release Diff/MCP validation use real paths; production has no fake Trace detail or touched deprecated props.
-- Completion criteria: remaining in-scope IDP/Gateway/DDC UI methods are consumed, redacted data boundaries remain, and Step paths are clean.
-- Failure returns to: Files 1-4 for RED fixtures; Files 5-7 for Gateway API/pages; Files 8-12 for MCP; Files 13-19 for IDP; File 20 for DDC.
+- Validation working directory: run Yuheng, Tianquan-Shoubing and Tianshu package commands separately; repository root for unsupported endpoint/deprecation searches.
+- Verification command: `cd egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web && npm run test -- --run src/api/gatewayApi.test.ts src/features/releases/ReleaseDetailPage.test.tsx src/features/observability/TracesPage.test.tsx src/features/mcp/McpCapabilityValidationButton.test.tsx && npm run typecheck && npm run build`; then run `npm run test -- --run && npm run typecheck && npm run build` in the Tianquan-Shoubing and Tianshu Web roots.
+- Expected result: Yuheng/Tianquan-Shoubing/Tianshu tests and builds pass; Release Diff/MCP validation use real paths; production has no fake Trace detail or touched deprecated props.
+- Completion criteria: remaining in-scope Tianquan-Shoubing/Yuheng/Tianshu UI methods are consumed, redacted data boundaries remain, and Step paths are clean.
+- Failure returns to: Files 1-4 for RED fixtures; Files 5-7 for Yuheng API/pages; Files 8-12 for MCP; Files 13-19 for Tianquan-Shoubing; File 20 for Tianshu.
 - Rollback: revert only Step 4 paths; no Java/backend/runtime state changes.
 - Commit paths: `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.test.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.test.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/api/gatewayApi.ts`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/releases/ReleaseDetailPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/observability/TracesPage.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpCapabilityValidationButton.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpPromptsPanel.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpResourcesPanel.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpAppsPanel.tsx`, `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src/features/mcp/McpTasksPanel.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/users/UserListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/clients/ClientListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/tenants/TenantListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-servers/ResourceServerListPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/resource-grants/ClientResourceGrantPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/keys/SigningKeyPage.tsx`, `egon-cola-xingyuan/egon-cola-tianquan-shoubing/egon-cola-tianquan-shoubing-admin-web/src/features/overview/OverviewPage.tsx`, `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin-web/src/auth/RouteGuards.tsx`.
-- Commit: `fix(platforms-admin-web): close controller actions and UI gaps`
+- Commit: `fix(xingyuan-admin-web): close controller actions and UI gaps`
 
 ### Step 5 — Produce per-method Controller/UI coverage audit and final static closure
 
 - Requirements: `REQ-006`, `REQ-008`, `REQ-009`, `REQ-010`, `REQ-011`, `REQ-012`, `REQ-013`, `REQ-014`, `REQ-015`, `REQ-016`
 - Dependencies: Steps 1-4 committed; Java Controller source and all four Web source trees readable; no running process required.
 - Baseline state: `check-admin-web-controller-coverage.sh` counts files/mapping lines/API references but cannot identify an individual method’s UI/API evidence; protocol/internal/callback endpoints must not be forced into business pages.
-- Observable outcome: one command inventories every external Controller method and emits platform/controller/method/http/path/status/evidence, with management methods `UI_ACTION` or `API_CONSUMED`, explicit `PROTOCOL_OR_INTERNAL`, and nonzero on unexplained `UNCONSUMED`.
+- Observable outcome: one command inventories every external Controller method and emits xingyuan/controller/method/http/path/status/evidence, with management methods `UI_ACTION` or `API_CONSUMED`, explicit `PROTOCOL_OR_INTERNAL`, and nonzero on unexplained `UNCONSUMED`.
 - End state: audit test/script/shell gate are committed; final Web typecheck/build and path audit run. Login/Wujie/real CRUD browser proof remains user-controlled TEST-011.
 - Test-first gate: `Required` — Python tests first fail because the classifier/registry is absent; implement parser/classifier and shell integration afterward.
 - Manual Checks: `MC-ARCH-001`, `MC-REUSE-001`, `MC-DEP-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-CONFIG-001`, `MC-PATTERN-001`, `MC-SCOPE-001`, `MC-TEST-001`, `MC-BLOCKER-001`
@@ -2033,9 +2033,9 @@ return <Outlet />
 - Purpose: Fix parser/classifier behavior with Python standard-library tests before implementation.
 - Symbols: class/method mapping composition, external annotation, protocol/internal exclusion, UI/API evidence and management-unconsumed test cases.
 - Repository evidence: old shell audit uses `rg`; Python 3 is used by repository skill scripts; Java annotations/Web routes are source evidence.
-- Dependencies and consumers: new `controller_ui_coverage.py`, shell wrapper and four platform source roots.
+- Dependencies and consumers: new `controller_ui_coverage.py`, shell wrapper and four xingyuan source roots.
 - Why now: prevents count-only false success or silent parser omission.
-- Contract/signature changes: expected rows contain `platform/controller/method/http/path/status/evidence`; no business data.
+- Contract/signature changes: expected rows contain `xingyuan/controller/method/http/path/status/evidence`; no business data.
 - Input/output and state mapping: temporary source fixtures -> inventory/classification; status -> CLI exit code.
 - Error and edge behavior: unsupported dynamic mapping is review/internal with evidence, never silently UI-covered; secrets are not read or printed.
 - Standards impact: `MC-REUSE-001`, `MC-UTIL-001`, `MC-JSON-001`, `MC-SCOPE-001`, `MC-TEST-001` — deterministic stdlib tests only.
@@ -2101,9 +2101,9 @@ def classify(row, web):
 - Implementation pseudocode:
 
 ```bash
-python3 "${script_dir}/controller_ui_coverage.py" --repo-root "${unified_platform_repo_root}" --format text
+python3 "${script_dir}/controller_ui_coverage.py" --repo-root "${unified_xingyuan_repo_root}" --format text
 audit_status=$?
-[[ "${audit_status}" -eq 0 ]] || unified_platform_fail "external Controller/UI coverage has unexplained management methods"
+[[ "${audit_status}" -eq 0 ]] || unified_xingyuan_fail "external Controller/UI coverage has unexplained management methods"
 ```
 
 - Verification contribution: shell command runs Python audit and retains existing key assertions.
@@ -2116,7 +2116,7 @@ audit_status=$?
 - Failure returns to: File 1/2 for parser errors; File 3 for shell integration; owning Step 2-4 for a true missing UI action. Do not suppress a management gap with a blanket exclusion.
 - Rollback: revert only Step 5 paths; prior UI commits remain independently revertible and runtime/database state is untouched.
 - Commit paths: `scripts/unified-xingyuan/controller_ui_coverage.py`, `scripts/unified-xingyuan/controller_ui_coverage_test.py`, `scripts/unified-xingyuan/check-admin-web-controller-coverage.sh`.
-- Commit: `test(platforms): audit every external controller against admin web`
+- Commit: `test(xingyuan): audit every external controller against admin web`
 
 ## 8. Test, Validation, and Quality Gates
 
@@ -2125,9 +2125,9 @@ audit_status=$?
 | Step | RED evidence | GREEN focused command | Module gate | Commit gate |
 | --- | --- | --- | --- | --- |
 | Step 1 | shared/Wujie/child embedded tests fail on missing flags/options/sidebar | shared Layout + Portal tests/typecheck | Portal/shared and four child layout tests/typechecks | diff check, path status, no runtime start |
-| Step 2 | directory/relation tests cannot find actions/requests | RBAC3 directory/relation/assignment tests | RBAC3 typecheck/build | exact Step 2 paths |
-| Step 3 | role/catalog/constraint/policy tests cannot find action/detail | RBAC3 Step 3 tests | RBAC3 typecheck/build/resource report | exact Step 3 paths |
-| Step 4 | Gateway/IDP/DDC tests observe unused/fake actions/old props | Gateway/IDP/DDC focused tests | three Web typecheck/builds | no unsupported production endpoint/old props |
+| Step 2 | directory/relation tests cannot find actions/requests | Tianquan-Jianshen directory/relation/assignment tests | Tianquan-Jianshen typecheck/build | exact Step 2 paths |
+| Step 3 | role/catalog/constraint/policy tests cannot find action/detail | Tianquan-Jianshen Step 3 tests | Tianquan-Jianshen typecheck/build/resource report | exact Step 3 paths |
+| Step 4 | Yuheng/Tianquan-Shoubing/Tianshu tests observe unused/fake actions/old props | Yuheng/Tianquan-Shoubing/Tianshu focused tests | three Web typecheck/builds | no unsupported production endpoint/old props |
 | Step 5 | Python classifier/module absent | Python unittest + shell audit | all four Web final typecheck/build | final diff/path/audit gate |
 
 ### 8.2 Exact validation commands
@@ -2156,19 +2156,19 @@ Each command must run from its actual package root; reset to repository root if 
 ```bash
 rg -n "traceDetail\(" egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web/src
 rg -n "destroyOnClose|<Space[^>]*direction=|<Spin[^>]*tip=" egon-cola-xingyuan/egon-cola-xingyuan-admin-portal egon-cola-xingyuan/egon-cola-tianquan-shoubing egon-cola-xingyuan/egon-cola-yuheng egon-cola-xingyuan/egon-cola-tianshu egon-cola-xingyuan/egon-cola-xingyuan-admin-web-shared/src
-rg -n "VITE_GATEWAY_ORIGIN|127\.0\.0\.1|UNIFIED_PLATFORM_ADVERTISED_HOST" scripts/unified-xingyuan egon-cola-xingyuan/egon-cola-xingyuan-admin-portal
+rg -n "VITE_YUHENG_ORIGIN|127\.0\.0\.1|UNIFIED_XINGYUAN_ADVERTISED_HOST" scripts/unified-xingyuan egon-cola-xingyuan/egon-cola-xingyuan-admin-portal
 ```
 
 The first search must have no production consumer after Step 4. The deprecation search must have no touched production usage; unrelated remaining usage is recorded rather than broad-refactored. The origin search must show loopback defaults and explicit LAN override only.
 
 ### 8.4 Runtime boundary
 
-TEST-011 is not closed by static validation. After user-controlled clean restart and, if preflight requires it, current Gateway route publication, verify:
+TEST-011 is not closed by static validation. After user-controlled clean restart and, if preflight requires it, current Yuheng route publication, verify:
 
-1. `http://127.0.0.1:18125/` and each Portal platform deep link show full child viewport plus child sidebar.
+1. `http://127.0.0.1:18125/` and each Portal xingyuan deep link show full child viewport plus child sidebar.
 2. `http://127.0.0.1:18180/oauth2/login/csrf` returns 200; super-admin login succeeds via Cookie/CSRF; 18140 remains control-plane only.
 3. IAM user detail loads organization/position/role relations; CRUD success refreshes and 409 is visible.
-4. Gateway Release Diff/MCP validation and DDC/IDP routes respond through the public origin.
+4. Yuheng Release Diff/MCP validation and Tianshu/Tianquan-Shoubing routes respond through the public origin.
 
 If preflight reports timeout/401, source is not claimed broken: old Java/Vite processes or stale active release must be restarted/re-published according to script output. The implementation turn does not start/stop the current stack automatically.
 
@@ -2177,7 +2177,7 @@ If preflight reports timeout/401, source is not claimed broken: old Java/Vite pr
 - Database/Flyway: no new migration and no existing migration modification. After every Step, verify `git diff --name-only -- '*/db/*'` is empty.
 - Backend compatibility: no Controller path, permission, tenant, JSON envelope, Cookie/CSRF, expected version, idempotency or error contract changes; frontend consumes existing methods only.
 - Frontend compatibility: optional shared flags default to standalone shell; Portal manifest version and child props retain `embedded`, `routeIntent`, `scopeDisplay`, `hostVersion`; child BrowserRouter owns internal links.
-- Configuration compatibility: `common.sh` URL key names remain; default values are loopback; `UNIFIED_PLATFORM_ADVERTISED_HOST` explicitly opts into LAN. Existing LAN users continue with an override but must restart to regenerate env/manifest.
+- Configuration compatibility: `common.sh` URL key names remain; default values are loopback; `UNIFIED_XINGYUAN_ADVERTISED_HOST` explicitly opts into LAN. Existing LAN users continue with an override but must restart to regenerate env/manifest.
 - Rollout: commit Step 1 -> user-controlled clean restart/release preflight -> Steps 2-5 build-verified; final runtime proof after all Web bundles refresh. No automatic process start.
 - Rollback: revert individual semantic commits in reverse order if needed. Never delete runtime DB, cookies, secrets, env, target jars or Flyway history. If only runtime is stale, restart/re-publish rather than revert source.
 - Release safety: do not claim public login or Wujie DOM proof from npm build; runtime evidence remains partial until TEST-011.
@@ -2197,7 +2197,7 @@ If preflight reports timeout/401, source is not claimed broken: old Java/Vite pr
 | `REQ-009` | X | X | X | X | X | page/layout/status/build gates |
 | `REQ-010` | X | X | X | X | X | security/deprecation/source audit |
 | `REQ-011` | X | X | X | X | X | five path-limited commits and final gates |
-| `REQ-012` |  |  |  | X | X | DDC UI/build and final controller audit |
+| `REQ-012` |  |  |  | X | X | Tianshu UI/build and final controller audit |
 | `REQ-013` | X | X | X | X | X | typed auth/PageState/403/409/timeout handling |
 | `REQ-014` | X | X | X | X | X | pending locks, idempotency/version preservation and audit evidence |
 | `REQ-015` | X | X | X | X | X | independent child entries and per-Step rollback |
@@ -2208,8 +2208,8 @@ If preflight reports timeout/401, source is not claimed broken: old Java/Vite pr
 | ID | Risk or question | Evidence | Impact | Mitigation/status |
 | --- | --- | --- | --- | --- |
 | `RISK-001` | Wujie srcdoc trick may still fail in a browser after safe fallback | current Portal log/EVD-001 and Wujie source/EVD-004 | child may remain unavailable | visible retry/standalone path; TEST-011 user runtime proof |
-| `RISK-002` | running Gateway Engine/active release remains stale after source change | supervisor LAN override and 18180 timeout/EVD-002/003 | login remains unavailable until restart/re-publish | startup preflight names action; runtime state is not mutated |
-| `RISK-003` | Java annotation paths or computed frontend API paths can evade parser | EVD-012 and Gateway `admin` composition | false manual/unconsumed status | parser tests, explicit registry evidence, owning Step follow-up |
+| `RISK-002` | running Yuheng Engine/active release remains stale after source change | supervisor LAN override and 18180 timeout/EVD-002/003 | login remains unavailable until restart/re-publish | startup preflight names action; runtime state is not mutated |
+| `RISK-003` | Java annotation paths or computed frontend API paths can evade parser | EVD-012 and Yuheng `admin` composition | false manual/unconsumed status | parser tests, explicit registry evidence, owning Step follow-up |
 | `RISK-004` | two sidebars reduce content width | EVD-005/ASM-002 | dense UI on narrow viewport | shared responsive drawer/overflow and manual review |
 | `RISK-005` | Constraint DTO details may drift before execution | current `ConstraintController` imports/methods | wrong frontend payload | reopen DTO declarations before code; return to Spec on contract drift |
 
@@ -2231,14 +2231,14 @@ All production paths are existing Web/script locations except explicitly marked 
 
 ### 12.4 Coverage and release safety
 
-Controller coverage is static evidence, not runtime authorization proof. Runtime login, active Gateway release, cookies, Wujie iframe geometry and real CRUD remain user-controlled TEST-011. A build passing with the old supervisor does not prove the open Portal is refreshed; preflight and handoff keep that boundary explicit.
+Controller coverage is static evidence, not runtime authorization proof. Runtime login, active Yuheng release, cookies, Wujie iframe geometry and real CRUD remain user-controlled TEST-011. A build passing with the old supervisor does not prove the open Portal is refreshed; preflight and handoff keep that boundary explicit.
 
 ### 12.5 Blocking Manual Check
 
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | `MC-ARCH-001` | Applicable | PASS | §4.7 existing backend Traditional Three-Layer + feature-first Web; §5 paths | no new architecture profile | preserve structure |
-| `MC-REUSE-001` | Applicable | PASS | §4.5/§4.7 capability audit; shared/Wujie/FeatureApi/Gateway clients exist | reuse sufficient; no duplicate client/BFF | use existing symbols |
+| `MC-REUSE-001` | Applicable | PASS | §4.5/§4.7 capability audit; shared/Wujie/FeatureApi/Yuheng clients exist | reuse sufficient; no duplicate client/BFF | use existing symbols |
 | `MC-DEP-001` | Applicable | PASS | reuse ledger; no package/lockfile change | no new dependency | verify manifests/diff |
 | `MC-NAME-001` | Not applicable | N/A | no Java type created; TS names follow current conventions | no Java naming surface | no Java naming action |
 | `MC-VALID-001` | Applicable | PASS | Steps 2-4 preserve server validation, 403/409 and expected versions | required fields remain | focused negative/error tests |

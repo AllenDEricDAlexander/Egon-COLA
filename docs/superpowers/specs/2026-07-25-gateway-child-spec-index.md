@@ -1,24 +1,24 @@
-# Egon-COLA Gateway 子 Spec 索引
+# Egon-COLA Yuheng 子 Spec 索引
 
 状态：已实现，待用户验收
 
-父文档：`2026-07-24-gateway-component-design.md`
+父文档：`2026-07-24-yuheng-component-design.md`
 
 文档阶段：实施级设计、计划与代码已完成
 
 ## 1. 目的
 
-Gateway 是由 Engine、Admin、Starter、Provider Runtime 和 Test 共同组成的大型
+Yuheng 是由 Engine、Admin、Starter、Provider Runtime 和 Test 共同组成的大型
 Component 平台。父 Spec 已经确认产品范围与总体技术路线，本索引用于：
 
 1. 把父 Spec 拆成可以独立审核、独立实施和独立验收的能力域；
 2. 固定子 Spec 之间的依赖顺序，防止不同文档重复定义同一契约；
 3. 保证原始 29 章能力都有唯一主责文档；
-4. 明确哪些前置能力需要先在 RPC/DDC Component 中补齐；
+4. 明确哪些前置能力需要先在 RPC/Tianshu Component 中补齐；
 5. 记录“子 Spec 审核 → 实施计划 → 代码实现”的完整交付链。
 
 GWS-01～GWS-13 均已形成实施 Plan 并完成代码实现。实现证据、验证层级和未执行的
-运行态验证边界见 `2026-07-25-gateway-implementation-acceptance.md`。
+运行态验证边界见 `2026-07-25-yuheng-implementation-acceptance.md`。
 
 ## 2. 拆分原则
 
@@ -34,26 +34,26 @@ GWS-01～GWS-13 均已形成实施 Plan 并完成代码实现。实现证据、�
 
 | 编号 | 子 Spec | 主责范围 | 前置依赖 |
 |---|---|---|---|
-| GWS-01 | `2026-07-25-gateway-foundation-module-contract-design.md` | 工程模块、分层、公共身份、版本、错误与依赖规则 | 父 Spec |
-| GWS-02 | `2026-07-25-gateway-rpc-ddc-extension-design.md` | RPC/DDC 必要扩展及稳定机器契约 | GWS-01 |
-| GWS-03 | `2026-07-25-gateway-engine-http-core-design.md` | 自研 Engine Core、HTTP Listener、路由和 HTTP Upstream | GWS-01 |
-| GWS-04 | `2026-07-25-gateway-engine-rpc-design.md` | 内部 RPC Gateway Slot、动态 Unary 转发、HTTP→RPC | GWS-01、GWS-02、GWS-03 |
-| GWS-05 | `2026-07-25-gateway-provider-discovery-load-balancing-design.md` | DDC Provider Directory、HTTP Provider Runtime、健康与负载均衡 | GWS-01、GWS-02 |
-| GWS-06 | `2026-07-25-gateway-rule-publication-runtime-design.md` | Rule Snapshot、DDC 发布、ACK、LKG、回滚和节点版本 | GWS-01、GWS-02 |
-| GWS-07 | `2026-07-25-gateway-traffic-governance-design.md` | 限流、超时、隔离、熔断、重试和资源保护 | GWS-03、GWS-05、GWS-06 |
-| GWS-08 | `2026-07-25-gateway-security-extension-design.md` | PUBLIC/INTERNAL、外部暴露、认证授权 SPI 和身份透传 | GWS-01、GWS-03、GWS-04、GWS-06 |
-| GWS-09 | `2026-07-25-gateway-admin-backend-design.md` | Admin 领域模型、存储、管理 API、发布编排和节点投影 | GWS-01、GWS-02、GWS-06 |
-| GWS-10 | `2026-07-25-gateway-starter-interface-reporting-design.md` | HTTP/RPC 接口定义采集、三级目录、指纹、批量上报 | GWS-01、GWS-02、GWS-09 |
-| GWS-11 | `2026-07-25-gateway-admin-web-design.md` | React/Ant Design 管理页面、发布工作台和图表 | GWS-09、GWS-10 |
-| GWS-12 | `2026-07-25-gateway-observability-call-event-design.md` | Trace、日志、指标和 Engine→Kafka 调用事件 | GWS-01、GWS-03、GWS-04 |
-| GWS-13 | `2026-07-25-gateway-test-deployment-design.md` | 真实应用、E2E、故障测试、构建和容器运行边界 | GWS-01～GWS-12 |
+| GWS-01 | `2026-07-25-yuheng-foundation-module-contract-design.md` | 工程模块、分层、公共身份、版本、错误与依赖规则 | 父 Spec |
+| GWS-02 | `2026-07-25-yuheng-rpc-tianshu-extension-design.md` | RPC/Tianshu 必要扩展及稳定机器契约 | GWS-01 |
+| GWS-03 | `2026-07-25-yuheng-biz-gateway-http-core-design.md` | 自研 Engine Core、HTTP Listener、路由和 HTTP Upstream | GWS-01 |
+| GWS-04 | `2026-07-25-yuheng-biz-gateway-rpc-design.md` | 内部 RPC Yuheng Slot、动态 Unary 转发、HTTP→RPC | GWS-01、GWS-02、GWS-03 |
+| GWS-05 | `2026-07-25-yuheng-provider-discovery-load-balancing-design.md` | Tianshu Provider Directory、HTTP Provider Runtime、健康与负载均衡 | GWS-01、GWS-02 |
+| GWS-06 | `2026-07-25-yuheng-rule-publication-runtime-design.md` | Rule Snapshot、Tianshu 发布、ACK、LKG、回滚和节点版本 | GWS-01、GWS-02 |
+| GWS-07 | `2026-07-25-yuheng-traffic-governance-design.md` | 限流、超时、隔离、熔断、重试和资源保护 | GWS-03、GWS-05、GWS-06 |
+| GWS-08 | `2026-07-25-yuheng-security-extension-design.md` | PUBLIC/INTERNAL、外部暴露、认证授权 SPI 和身份透传 | GWS-01、GWS-03、GWS-04、GWS-06 |
+| GWS-09 | `2026-07-25-yuheng-admin-backend-design.md` | Admin 领域模型、存储、管理 API、发布编排和节点投影 | GWS-01、GWS-02、GWS-06 |
+| GWS-10 | `2026-07-25-yuheng-starter-interface-reporting-design.md` | HTTP/RPC 接口定义采集、三级目录、指纹、批量上报 | GWS-01、GWS-02、GWS-09 |
+| GWS-11 | `2026-07-25-yuheng-admin-web-design.md` | React/Ant Design 管理页面、发布工作台和图表 | GWS-09、GWS-10 |
+| GWS-12 | `2026-07-25-yuheng-observability-call-event-design.md` | Trace、日志、指标和 Engine→Kafka 调用事件 | GWS-01、GWS-03、GWS-04 |
+| GWS-13 | `2026-07-25-yuheng-test-deployment-design.md` | 真实应用、E2E、故障测试、构建和容器运行边界 | GWS-01～GWS-12 |
 
 ## 4. 依赖关系
 
 ```mermaid
 flowchart TD
-    Parent["Gateway 总览 Spec"] --> S01["GWS-01 Foundation"]
-    S01 --> S02["GWS-02 RPC/DDC Extension"]
+    Parent["Yuheng 总览 Spec"] --> S01["GWS-01 Foundation"]
+    S01 --> S02["GWS-02 RPC/Tianshu Extension"]
     S01 --> S03["GWS-03 Engine HTTP Core"]
     S02 --> S04["GWS-04 Engine RPC"]
     S03 --> S04
@@ -91,9 +91,9 @@ flowchart TD
 ### 波次 0：基础契约
 
 - GWS-01 工程与公共契约；
-- GWS-02 RPC/DDC 扩展。
+- GWS-02 RPC/Tianshu 扩展。
 
-该波次先解决 Gateway 是否能稳定依赖现有 Component，未通过前不实现数据面。
+该波次先解决 Yuheng 是否能稳定依赖现有 Component，未通过前不实现数据面。
 
 ### 波次 1：数据面闭环
 
@@ -132,7 +132,7 @@ flowchart TD
 
 1. 父 Spec 决定产品范围、已排除能力和技术总路线；
 2. GWS-01 决定模块依赖、公共身份、版本和错误基线；
-3. GWS-02 决定 RPC/DDC Component 的公共契约；
+3. GWS-02 决定 RPC/Tianshu Component 的公共契约；
 4. 对应能力域 Spec 决定本能力内部模型和行为；
 5. GWS-13 只定义如何验证，不得重新定义业务行为。
 
@@ -145,18 +145,18 @@ flowchart TD
 1. Java 21、Spring Boot 3.5.x 和当前仓库版本治理；
 2. Engine 使用 Reactor Netty/Netty 上的自研 Core，不引入 Spring Cloud Gateway；
 3. RPC 只使用 Egon RPC 的 gRPC + Protobuf Unary 契约；
-4. 配置和服务注册只使用 DDC，不支持 Nacos；
+4. 配置和服务注册只使用 Tianshu，不支持 Nacos；
 5. 不支持 Dubbo；
 6. 不建设、生成或管理 Nginx 配置；
-7. Gateway Starter 只上报接口定义，不拦截调用、不发送 Kafka、不维持 Provider 租约；
+7. Yuheng Starter 只上报接口定义，不拦截调用、不发送 Kafka、不维持 Provider 租约；
 8. HTTP Provider 租约由独立 Provider Runtime 负责，RPC Provider 租约由 RPC
    Component 负责；
 9. 调用事件只由 Engine 异步发送 Kafka；
 10. `externalAccessible` 默认 false，PUBLIC/INTERNAL 来源不能由普通 Header 伪造；
 11. 不实现具体下游权限系统，但必须保留安全扩展链；
 12. 前端优先生成 Trace ID，缺失或非法时由 Engine 生成；
-13. DDC V1 的单 Admin、单 Redis 边界必须如实保留；
-14. RPC Gateway Slot 首期遵守唯一 `INTERNAL_GATEWAY` 单活约束；
+13. Tianshu V1 的单 Admin、单 Redis 边界必须如实保留；
+14. RPC Yuheng Slot 首期遵守唯一 `INTERNAL_GATEWAY` 单活约束；
 15. Engine 不从 Admin 获取静态 Provider 地址；
 16. 每个能力必须包含失败语义、可观测性和可执行测试设计。
 
@@ -190,7 +190,7 @@ flowchart TD
 | 24 | 前后端分离与 CORS | GWS-03、GWS-11 | GWS-08 |
 | 25 | 节点负载目标 | GWS-05 | GWS-06；仅承接业务目标，不实现 Nginx |
 | 26 | 动态负载配置目标 | GWS-06 | GWS-05；仅承接动态能力，不实现 Nginx |
-| 27 | 算力节点动态负载 | GWS-05 | GWS-13；不管理 Gateway 前置负载 |
+| 27 | 算力节点动态负载 | GWS-05 | GWS-13；不管理 Yuheng 前置负载 |
 | 28 | Component 工程合并 | GWS-01 | GWS-13 |
 | 29 | 算力关联、接口上报、调用反馈 | GWS-09、GWS-10、GWS-12 | GWS-06 |
 

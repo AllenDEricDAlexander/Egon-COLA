@@ -242,7 +242,7 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 2. 公共 PO 契约优先使用 Java record，保持不可变、可序列化、JSON 字段顺序稳定。
 3. 用 record 自身的静态工厂方法替代独立的 `ResultDtos` 或 `ResultModels` 工厂类。
 4. `common-core` 保持无 Spring 运行时依赖；Jackson annotation 是显式轻量依赖，因为 core 负责 JSON 契约。
-5. `common-trace` 只依赖 JDK 和 `slf4j-api`；Trace 传播不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Gateway、Jackson 或 Logback 实现。
+5. `common-trace` 只依赖 JDK 和 `slf4j-api`；Trace 传播不依赖 Spring、Servlet、WebFlux、Reactor、gRPC、Yuheng、Jackson 或 Logback 实现。
 6. 执行器适配保留在所属组件内；`common-trace` 只提供 `TraceContext` 和三个本地线程任务模板。
 7. Trace Spring Boot Starter 与 Trace Core 同属 common 聚合，但 Spring 依赖不会进入 `common-trace`。
 8. 只暴露 converter 契约，不在生产代码里提供生成式 converter 实现。MapStruct 和 MapStruct Plus 实现由业务侧或测试示例承载。

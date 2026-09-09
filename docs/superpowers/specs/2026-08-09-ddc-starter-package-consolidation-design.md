@@ -1,4 +1,4 @@
-# DDC Starter 角色分包设计
+# Tianshu Starter 角色分包设计
 
 状态：设计已确认，等待书面规格复核
 
@@ -11,7 +11,7 @@
 - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-starter`
 - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin`
 - `egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-test`
-- 所有直接引用 DDC Starter 类型的 Gateway、RPC、IdP、RBAC3 和测试模块
+- 所有直接引用 Tianshu Starter 类型的 Yuheng、RPC、Tianquan-Shoubing、Tianquan-Jianshen 和测试模块
 
 本文记录用户于 2026-08-09 确认的破坏式重组方案。实现必须一次性迁移仓库内消费者，不保留旧包兼容壳，不修改数据库和 Flyway，不启动应用。
 
@@ -19,13 +19,13 @@
 
 ## 1. 设计结论
 
-DDC 保持一个可执行代码模块：
+Tianshu 保持一个可执行代码模块：
 
 ```text
 egon-cola-tianshu-starter
 ```
 
-不新增 `autoconfigure`、`client`、`core` 或 `infrastructure` Maven 模块。业务应用、Gateway、RPC、IdP 和测试模块继续只依赖 Starter。
+不新增 `autoconfigure`、`client`、`core` 或 `infrastructure` Maven 模块。业务应用、Yuheng、RPC、Tianquan-Shoubing 和测试模块继续只依赖 Starter。
 
 Starter 内部采用按代码角色划分的顶层包：
 
@@ -130,7 +130,7 @@ Starter 同时承载公共 API、模型、客户端运行时和 Spring Boot 自�
 完整清单如下：
 
 ```text
-top/egon/cola/component/ddc
+top/egon/cola/component/tianshu
 ├── package-info.java
 ├── annotation/package-info.java
 ├── api/package-info.java
@@ -187,18 +187,18 @@ top/egon/cola/component/ddc
 
 ```java
 /**
- * DDC 配置客户端公共端口，定义配置拉取、实例生命周期和发布确认能力。
+ * Tianshu 配置客户端公共端口，定义配置拉取、实例生命周期和发布确认能力。
  * 本包只保存调用方可实现或替换的接口；HTTP、Redis 和默认实现分别位于
  * {@code client}、{@code redis} 和 {@code service} 包。
  *
- * <p>Public DDC configuration-client ports for configuration retrieval,
+ * <p>Public Tianshu configuration-client ports for configuration retrieval,
  * instance lifecycle, and publication acknowledgements. This package contains
  * only interfaces that callers may implement or replace; HTTP, Redis, and
  * default implementations belong to {@code client}, {@code redis}, and
  * {@code service}, respectively.</p>
  */
 @NonNullApi
-package top.egon.cola.component.ddc.api.client;
+package top.egon.cola.component.tianshu.api.client;
 
 import org.springframework.lang.NonNullApi;
 ```
@@ -207,7 +207,7 @@ import org.springframework.lang.NonNullApi;
 
 ### 4.3 包级注解与可空性
 
-每个 `package-info.java` 使用 Spring 现有的 `org.springframework.lang.NonNullApi`，将本包方法返回值和参数默认声明为非空。不新增只为标记 DDC 包而存在的自定义注解，也不为此引入 JSpecify 或其他依赖。
+每个 `package-info.java` 使用 Spring 现有的 `org.springframework.lang.NonNullApi`，将本包方法返回值和参数默认声明为非空。不新增只为标记 Tianshu 包而存在的自定义注解，也不为此引入 JSpecify 或其他依赖。
 
 `@NonNullApi` 是真实 API 契约，不是装饰。迁移时必须同步审计：
 
@@ -237,7 +237,7 @@ Java 不支持直接声明“包级变量”，因此禁止在 `package-info.jav
 egon-cola-tianshu-starter
 ├── pom.xml
 └── src/main
-    ├── java/top/egon/cola/component/ddc
+    ├── java/top/egon/cola/component/tianshu
     │   ├── annotation
     │   │   ├── DdcRefreshable.java
     │   │   └── DdcValue.java
@@ -437,7 +437,7 @@ egon-cola-tianshu-starter
 
 本次只重组模块内代码位置、可见边界和自动装配注册方式，不改变以下行为：
 
-- `ddc:application.yml` ConfigData 加载和 Spring Boot 属性优先级；
+- `tianshu:application.yml` ConfigData 加载和 Spring Boot 属性优先级；
 - YAML-only 远程配置格式；
 - `@DdcValue` 字段刷新和 `@DdcRefreshable` 配置属性重绑定语义；
 - 配置客户端注册、默认值上报、拉取、ACK、心跳和下线顺序；
@@ -470,8 +470,8 @@ egon-cola-tianshu-starter
 9. 仓库内不存在旧包 import、旧自动装配类名或过渡兼容类；
 10. 包边界测试自动检查生产源码目录与 `package-info.java` 清单一致；
 11. Starter 单元测试通过；
-12. DDC Admin/Test 模块测试通过；
-13. 受影响 Gateway、RPC、IdP、RBAC3 模块至少完成源码编译，相关测试按影响范围执行；
+12. Tianshu Admin/Test 模块测试通过；
+13. 受影响 Yuheng、RPC、Tianquan-Shoubing、Tianquan-Jianshen 模块至少完成源码编译，相关测试按影响范围执行；
 14. README、包边界测试、示例和 SPI 资源同步更新；
 15. 不修改现有 Flyway 文件，不新增数据库迁移；
 16. 不启动任何应用进程。

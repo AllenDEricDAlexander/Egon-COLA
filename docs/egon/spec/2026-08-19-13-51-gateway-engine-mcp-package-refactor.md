@@ -1,8 +1,8 @@
-# Gateway Engine 与 MCP Core 功能域分包设计
+# Yuheng Engine 与 MCP Core 功能域分包设计
 
 | Field              | Value                                                                                                                                                                                                                                                                                                                                                                                                    |
 |--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| Document           | docs/egon/spec/2026-08-19-13-51-gateway-engine-mcp-package-refactor.md                                                                                                                                                                                                                                                                                                                                   |
+| Document           | docs/egon/spec/2026-08-19-13-51-yuheng-biz-yuheng-mcp-package-refactor.md                                                                                                                                                                                                                                                                                                                                   |
 | Template Version   | 4                                                                                                                                                                                                                                                                                                                                                                                                        |
 | Status             | Accepted                                                                                                                                                                                                                                                                                                                                                                                                 |
 | Type               | Architecture                                                                                                                                                                                                                                                                                                                                                                                             |
@@ -10,22 +10,22 @@
 | Complexity Drivers | 两个运行时模块、284 个生产类、HTTP/RPC/MCP/Provider/Rule/Traffic/Security 多域交叉依赖、Spring 装配入口、108 个测试类和包名兼容影响                                                                                                                                                                                                                                                                                                          |
 | Created            | 2026-08-19 13:51 CST                                                                                                                                                                                                                                                                                                                                                                                     |
 | Updated            | 2026-08-19 14:28 CST                                                                                                                                                                                                                                                                                                                                                                                     |
-| Owner              | Egon-COLA platform owner / User                                                                                                                                                                                                                                                                                                                                                                          |
+| Owner              | Egon-COLA xingyuan owner / User                                                                                                                                                                                                                                                                                                                                                                          |
 | Repository         | Egon-COLA                                                                                                                                                                                                                                                                                                                                                                                                |
 | Scope              | yuheng-biz-gateway、yuheng-mcp-core，以及包迁移所需的直接测试导入                                                                                                                                                                                                                                                                                                                     |
 | Change Surface     | 调整 Java package、import、package-info 和对应测试包路径；新增包边界测试；不改变业务逻辑、运行时协议、数据库、Maven 模块依赖或部署入口                                                                                                                                                                                                                                                                                                                   |
 | Affected Chapters  | §7, §8, §13, §14                                                                                                                                                                                                                                                                                                                                                                                         |
-| Source Requirement | 用户请求：梳理 Gateway Engine 与 MCP Core，按功能/service domain 和 common/* 深度分包，解决实体类与业务类混杂、难以阅读的问题                                                                                                                                                                                                                                                                                                                 |
+| Source Requirement | 用户请求：梳理 Yuheng Engine 与 MCP Core，按功能/service domain 和 common/* 深度分包，解决实体类与业务类混杂、难以阅读的问题                                                                                                                                                                                                                                                                                                                 |
 | Baseline Revision  | main@26ba1413；工作区另有已暂存的 GatewayContractVersions.java 删除，本 Spec 不处理该变更                                                                                                                                                                                                                                                                                                                                    |
 | Amends             | None                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Supersedes         | None                                                                                                                                                                                                                                                                                                                                                                                                     |
 | Depends On         | None                                                                                                                                                                                                                                                                                                                                                                                                     |
-| Related Specs      | [Gateway BIZ/APP 范围与 DDC 直连 RPC 规格](2026-08-15-16-57-gateway-biz-app-scope-direct-rpc-design.md); [Gateway HTTP Core legacy design](../../superpowers/specs/2026-07-25-gateway-engine-http-core-design.md); [Gateway RPC legacy design](../../superpowers/specs/2026-07-25-gateway-engine-rpc-design.md); [Gateway MCP legacy design](../../superpowers/specs/2026-08-02-gateway-complete-mcp-design.md) |
-| Related Plans      | [Gateway Engine 与 MCP Core 功能域分包实施计划](../plan/2026-08-19-14-28-gateway-engine-mcp-package-refactor.md)                                                                                                                                                                                                                                                                                                   |
+| Related Specs      | [Yuheng BIZ/APP 范围与 Tianshu 直连 RPC 规格](2026-08-15-16-57-yuheng-biz-app-scope-direct-rpc-design.md); [Yuheng HTTP Core legacy design](../../superpowers/specs/2026-07-25-yuheng-biz-gateway-http-core-design.md); [Yuheng RPC legacy design](../../superpowers/specs/2026-07-25-yuheng-biz-gateway-rpc-design.md); [Yuheng MCP legacy design](../../superpowers/specs/2026-08-02-yuheng-complete-mcp-design.md) |
+| Related Plans      | [Yuheng Engine 与 MCP Core 功能域分包实施计划](../plan/2026-08-19-14-28-yuheng-biz-yuheng-mcp-package-refactor.md)                                                                                                                                                                                                                                                                                                   |
 
 ## 1. Summary
 
-当前 Gateway Engine 和 MCP Core 已经具备若干功能包，但主要按技术名平铺。HTTP、RPC、Rule、Traffic、Security、Transport、MCP
+当前 Yuheng Engine 和 MCP Core 已经具备若干功能包，但主要按技术名平铺。HTTP、RPC、Rule、Traffic、Security、Transport、MCP
 包内同时放置了服务编排、运行时状态、配置、协议模型和外部适配器。跨域依赖因此从包名上不可见，阅读一个请求链路需要在多个平级包之间跳转。
 
 本规格采用“功能域优先，功能域内再按 service/domain/adapter/common 分层”的方案。Engine 的 HTTP、RPC、MCP、Rule、Operation
@@ -39,14 +39,14 @@ Bean，HTTP/RPC/MCP/Rule/Provider/Traffic/Security 的方法、状态、错误�
 
 ### 2.1 Business and user context
 
-本次是开发者可读性和维护边界重构。不新增业务能力，不改变 Gateway 的 HTTP/RPC/MCP 行为，也不改变
-DDC、Provider、Rule、RBAC3、IdP、Redis、PostgreSQL、Kafka 或外部 MCP 的协议契约。
+本次是开发者可读性和维护边界重构。不新增业务能力，不改变 Yuheng 的 HTTP/RPC/MCP 行为，也不改变
+Tianshu、Provider、Rule、Tianquan-Jianshen、Tianquan-Shoubing、Redis、PostgreSQL、Kafka 或外部 MCP 的协议契约。
 
 ### 2.2 Repository evidence
 
 | Evidence ID | Classification    | Exact path/symbol/decision/command                                                 | Observed fact                                                                                                                  | Design significance                                                     | Verification limit |
 |-------------|-------------------|------------------------------------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|--------------------|
-| EVD-001     | Static repository | gateway-engine/pom.xml:14-17, 19-162                                               | Engine 是可执行 Data Plane，依赖 DDC、IdP、RBAC3、Redis、gRPC、Jackson、Micrometer、Kafka、JDBC 等                                             | 必须区分功能代码和技术适配器，不能用新的模块解决阅读问题                                            | 只证明 Maven 声明       |
+| EVD-001     | Static repository | yuheng-biz-gateway/pom.xml:14-17, 19-162                                               | Engine 是可执行 Data Plane，依赖 Tianshu、Tianquan-Shoubing、Tianquan-Jianshen、Redis、gRPC、Jackson、Micrometer、Kafka、JDBC 等                                             | 必须区分功能代码和技术适配器，不能用新的模块解决阅读问题                                            | 只证明 Maven 声明       |
 | EVD-002     | Static repository | engine/src/main/java 当前包树                                                          | Engine 有 balance、discovery、http、mcp、observability、operation、rpc、rule、security、traffic、transport、websocket，生产类 195、测试类 98       | 当前不是没有功能包，而是域内角色混杂、共享边界不清                                               | 统计基于当前源码           |
 | EVD-003     | Static repository | GatewayEngineConfiguration.java:1-160                                              | 一个根配置类导入并装配 Provider、HTTP、MCP、Observability、Operation、RPC、Rule、Security、Traffic、Transport、WebSocket                            | 需要保留 bootstrap/config 装配边界；本次不拆 Bean 方法                                 | 不证明真实启动            |
 | EVD-004     | Static repository | GatewayEngineApplication.java:1-20；engine/pom.xml:164-182                          | 应用入口在 engine 根包，默认 Spring Boot 扫描，Jar mainClass 指向该类                                                                           | 入口保留根包，避免改变扫描和启动契约                                                      | 未启动服务              |
@@ -55,7 +55,7 @@ DDC、Provider、Rule、RBAC3、IdP、Redis、PostgreSQL、Kafka 或外部 MCP �
 | EVD-007     | Static repository | mcp-core/pom.xml:14-17, 19-41                                                      | MCP Core 是共享 protocol/runtime core，生产类 89、测试类 10                                                                               | MCP 应按 capability 分组，并把真正公共的 protocol/transport/security/telemetry 独立出来 | 只证明模块声明            |
 | EVD-008     | Static repository | mcp-core 当前包树及 package-info.java                                                   | app、completion、prompt、protocol、remote、resource、rule、security、server、subscription、task、telemetry、tool、transport 已存在，但各包仍混放行为和模型 | 目标以现有 capability 为第一层，避免另造全局大 service 包                                 | 静态源码证据             |
 | EVD-009     | Static repository | McpMethodDispatcherTest.java:1-146；MCP 各功能测试                                       | MCP Server、Tool、Resource、Task 等通过 Handler、Driver、Compiled Rule 和 Context 协作                                                    | 包迁移必须保留现有协作与测试边界                                                        | 仅进程内测试证据           |
-| EVD-010     | Static repository | Gateway Admin 现有 feature/controller/domain/repository/service 包树                   | 同仓库已有按功能域再分 service/domain 的风格                                                                                                 | 新方案与现有 Gateway 代码风格一致                                                   | Admin 生产逻辑不在本次范围   |
+| EVD-010     | Static repository | Yuheng Admin 现有 feature/controller/domain/repository/service 包树                   | 同仓库已有按功能域再分 service/domain 的风格                                                                                                 | 新方案与现有 Yuheng 代码风格一致                                                   | Admin 生产逻辑不在本次范围   |
 
 ### 2.3 Problem statement and gap
 
@@ -71,10 +71,10 @@ DDC、Provider、Rule、RBAC3、IdP、Redis、PostgreSQL、Kafka 或外部 MCP �
 
 | Entry/trigger   | Current call chain                                                                                                 | Data/state                                                | External dependency                         | Consumers                | Evidence                                     |
 |-----------------|--------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------|---------------------------------------------|--------------------------|----------------------------------------------|
-| Engine startup  | GatewayEngineApplication → GatewayEngineConfiguration → GatewayEngineRuntime                                       | Bean graph、Engine properties、Server/Rule/Provider runtime | Spring、DDC、Redis、PostgreSQL、Kafka、IdP/RBAC3 | Engine executable        | Engine root classes                          |
+| Engine startup  | GatewayEngineApplication → GatewayEngineConfiguration → GatewayEngineRuntime                                       | Bean graph、Engine properties、Server/Rule/Provider runtime | Spring、Tianshu、Redis、PostgreSQL、Kafka、Tianquan-Shoubing/Tianquan-Jianshen | Engine executable        | Engine root classes                          |
 | HTTP request    | GatewayHttpListener → GatewayHttpExecutionPipeline → Security/Traffic/Route/Provider/Operation → HTTP/RPC upstream | request/response stream、Route、Provider、Observation        | Reactor Netty、Provider、gRPC                 | HTTP client/Provider     | engine/http、operation、common concerns        |
-| RPC request     | RpcGatewayServer → RpcGatewayHandlerRegistry → RpcGatewayForwarder → Provider channel                              | fullMethodName、Method Index、raw Protobuf                  | gRPC、DDC Provider registry                  | RPC Consumer/Provider    | engine/rpc                                   |
-| Rule activation | GatewayRuleActivationApplier → EngineGatewayRuleCompiler → MCP Rule Compiler/Provider Directory                    | immutable Rule Snapshot、LKG、active index                  | DDC、LKG storage                             | HTTP/RPC/MCP             | engine/rule、mcp-core/rule                    |
+| RPC request     | RpcGatewayServer → RpcGatewayHandlerRegistry → RpcGatewayForwarder → Provider channel                              | fullMethodName、Method Index、raw Protobuf                  | gRPC、Tianshu Provider registry                  | RPC Consumer/Provider    | engine/rpc                                   |
+| Rule activation | GatewayRuleActivationApplier → EngineGatewayRuleCompiler → MCP Rule Compiler/Provider Directory                    | immutable Rule Snapshot、LKG、active index                  | Tianshu、LKG storage                             | HTTP/RPC/MCP             | engine/rule、mcp-core/rule                    |
 | MCP method      | MCP transport → dialect adapter → McpMethodDispatcher → capability Handler                                         | JSON-RPC、session/task/subscription state                  | Reactor、Redis/PostgreSQL、remote MCP         | MCP client/remote server | mcp-core/protocol、server、capability packages |
 
 ## 3. Goals and Non-goals
@@ -93,7 +93,7 @@ DDC、Provider、Rule、RBAC3、IdP、Redis、PostgreSQL、Kafka 或外部 MCP �
 - 不拆分 GatewayEngineConfiguration 的 Bean 方法或业务编排。
 - 不重写 HTTP/RPC/MCP Handler，不改 Filter、Strategy、Adapter、Observer、State 的运行逻辑。
 - 不新增 Maven module，不合并 engine 与 mcp-core，不修改 POM 依赖。
-- 不修改 HTTP、RPC、MCP、DDC、Kafka、Redis、PostgreSQL、IdP、RBAC3 或前端契约。
+- 不修改 HTTP、RPC、MCP、Tianshu、Kafka、Redis、PostgreSQL、Tianquan-Shoubing、Tianquan-Jianshen 或前端契约。
 - 不引入 DDD Aggregate、Domain Service、Repository Port、COLA 四层或新的业务抽象。
 - 不借分包重构顺手修复既有功能缺陷。
 
@@ -104,10 +104,10 @@ DDC、Provider、Rule、RBAC3、IdP、Redis、PostgreSQL、Kafka 或外部 MCP �
 | Engine production packages   | Affected       | engine/src/main/java                            | package/import 改变，方法和运行语义不变            | detailed target tree and boundaries | §7, §8, §13  |
 | MCP Core production packages | Affected       | mcp-core/src/main/java                          | package/import 改变，MCP 语义不变             | detailed target tree and boundaries | §7, §8, §13  |
 | Engine/MCP tests             | Affected       | 两模块 src/test/java                               | 测试包/import 跟随移动，断言不变                   | migration and new boundary tests    | §8, §14      |
-| Gateway Admin test import    | Context-only   | gateway-admin/src/test 中引用 MCP security utility | 只更新 FQCN，不改 Admin 行为                   | direct consumer record              | §8, §14, §16 |
+| Yuheng Admin test import    | Context-only   | yuheng-admin/src/test 中引用 MCP security utility | 只更新 FQCN，不改 Admin 行为                   | direct consumer record              | §8, §14, §16 |
 | GatewayEngineApplication     | Unchanged      | engine/GatewayEngineApplication.java            | 根包、注解、mainClass 不变                     | scan boundary record                | §7, §16      |
 | GatewayEngineConfiguration   | Affected       | engine/GatewayEngineConfiguration.java          | 只移动到 bootstrap.config，方法和装配顺序不变        | bootstrap design                    | §7, §8, §14  |
-| HTTP/RPC/MCP/Rule contracts  | Unchanged      | gateway-contract、core、现有测试和 legacy Specs        | 协议、字段、错误、状态不变                          | concise compatibility record        | §9, §10, §16 |
+| HTTP/RPC/MCP/Rule contracts  | Unchanged      | yuheng-contract、core、现有测试和 legacy Specs        | 协议、字段、错误、状态不变                          | concise compatibility record        | §9, §10, §16 |
 | Database/schema/migration    | Not applicable | 本次无 SQL/schema 变更                               | N/A                                    | no migration                        | §11          |
 | Frontend                     | Unchanged      | Admin Web 不引用 Java package                      | 页面/API 不变                              | concise record                      | §12          |
 
@@ -137,7 +137,7 @@ DDC、Provider、Rule、RBAC3、IdP、Redis、PostgreSQL、Kafka 或外部 MCP �
 
 | Actor ID  | Actor/role                 | Goal                     | Entry/channel            | Evidence            |
 |-----------|----------------------------|--------------------------|--------------------------|---------------------|
-| ACTOR-001 | Gateway developer          | 快速定位和维护一个功能域             | IDE、源码、评审                | 用户请求和模块源码           |
+| ACTOR-001 | Yuheng developer          | 快速定位和维护一个功能域             | IDE、源码、评审                | 用户请求和模块源码           |
 | ACTOR-002 | Maven/build pipeline       | 编译、测试并发现迁移遗漏             | Maven reactor            | 两模块 POM 和 tests     |
 | ACTOR-003 | Spring Boot Engine runtime | 以相同 Bean graph 启动 Engine | GatewayEngineApplication | Engine root classes |
 
@@ -206,15 +206,15 @@ flowchart LR
 
 | Concern          | Current choice                                             | Evidence                           | Constraint                        |
 |------------------|------------------------------------------------------------|------------------------------------|-----------------------------------|
-| Language         | Java 21 baseline                                           | parent/Gateway source              | 不改语言级别                            |
+| Language         | Java 21 baseline                                           | parent/Yuheng source              | 不改语言级别                            |
 | Runtime          | Spring Boot Engine；MCP Core 为 Reactor shared runtime       | 两模块 POM                            | Spring wiring 留在 Engine bootstrap |
 | Transport        | Reactor Netty、gRPC/Protobuf                                | Engine POM 和 HTTP/RPC classes      | 技术类型进入 adapter，不进入通用 domain       |
-| External systems | DDC、IdP、RBAC3、Redis、PostgreSQL、Kafka、filesystem、remote MCP | GatewayEngineConfiguration imports | 按 adapter 归属，不放公共模型               |
+| External systems | Tianshu、Tianquan-Shoubing、Tianquan-Jianshen、Redis、PostgreSQL、Kafka、filesystem、remote MCP | GatewayEngineConfiguration imports | 按 adapter 归属，不放公共模型               |
 | Build/test       | Maven reactor、JUnit 5、Spring Boot Test、Reactor Test        | POM 和 src/test                     | 以 focused reactor tests 验证        |
 
 ### 6.1 Java package architecture applicability
 
-本次不是传统业务 Controller/Service/DAO 模块，而是 Gateway Data Plane/MCP Runtime。现有代码采用功能域优先的基础设施架构，用户明确要求功能/service
+本次不是传统业务 Controller/Service/DAO 模块，而是 Yuheng Data Plane/MCP Runtime。现有代码采用功能域优先的基础设施架构，用户明确要求功能/service
 domain/common 深度分包，因此不强制迁移到 biz.controller、biz.service、biz.dao，也不引入 DDD/COLA。
 
 ## 7. Architecture Design
@@ -302,8 +302,8 @@ flowchart TD
 #### 7.3.1 Package grammar
 
 ~~~text
-top.egon.cola.component.gateway.engine.feature.role[.technical-subdomain]
-top.egon.cola.component.gateway.engine.common.capability.role[.technical-subdomain]
+top.egon.cola.component.yuheng.engine.feature.role[.technical-subdomain]
+top.egon.cola.component.yuheng.engine.common.capability.role[.technical-subdomain]
 ~~~
 
 - service：行为、编排、Handler/Driver/SPI、状态转换。
@@ -315,7 +315,7 @@ top.egon.cola.component.gateway.engine.common.capability.role[.technical-subdoma
 #### 7.3.2 Engine target package tree
 
 ~~~text
-top.egon.cola.component.gateway.engine
+top.egon.cola.component.yuheng.engine
 ├── GatewayEngineApplication.java                                  KEEP
 ├── bootstrap
 │   ├── config/GatewayEngineConfiguration.java                       MOVE
@@ -390,7 +390,7 @@ separate WebSocket lifecycle remains separate inside engine.http.websocket.
 #### 7.3.3 MCP Core target package tree
 
 ~~~text
-top.egon.cola.component.gateway.mcp
+top.egon.cola.component.yuheng.mcp
 ├── common
 │   ├── protocol  {dialect adapters, JSON-RPC codec, protocol exception}
 │   ├── transport {McpHttpRequest/Response, session/subscription stores}
@@ -408,7 +408,7 @@ top.egon.cola.component.gateway.mcp
 └── tool         {service: result binder/catalog/call/list handlers}
 ~~~
 
-Contract-side MCP records remain in gateway-contract. This includes McpJsonRpcRequest/Response/Error, McpErrorCode,
+Contract-side MCP records remain in yuheng-contract. This includes McpJsonRpcRequest/Response/Error, McpErrorCode,
 McpProtocolDialect and McpRuntime records. Only mcp-core runtime classes move.
 
 #### 7.3.4 Dependency direction
@@ -520,9 +520,9 @@ RpcGatewayHandlerRegistry, RpcGatewayForwarder, EngineGatewayOperationInvoker.Op
 McpMethodHandler and MCP capability Handler/Driver methods retain their signatures, consumers, errors and lifecycle.
 Only Java package names and imports change.
 
-No HTTP Method + URL, gRPC fullMethodName, JSON-RPC method, Kafka event payload, DDC key, Provider Service Key, error
+No HTTP Method + URL, gRPC fullMethodName, JSON-RPC method, Kafka event payload, Tianshu key, Provider Service Key, error
 code or configuration property is added, removed or semantically changed. Existing contract evidence remains in
-gateway-contract, core and the existing Gateway Specs.
+yuheng-contract, core and the existing Yuheng Specs.
 
 ## 10. POJO and Data Model Design
 
@@ -551,7 +551,7 @@ N/A. Admin Web has no Java package dependency and no page/API behavior changes i
 
 | Pattern/principle          | Problem                                                 | Placement                                   | Why direct current tree is insufficient | Alignment              |
 |----------------------------|---------------------------------------------------------|---------------------------------------------|-----------------------------------------|------------------------|
-| Package by feature/domain  | 平级技术包不能表达功能边界                                           | engine.<feature>、mcp.<capability>           | 当前包树已造成跨域检索和角色混杂                        | 与 Gateway Admin 现有风格一致 |
+| Package by feature/domain  | 平级技术包不能表达功能边界                                           | engine.<feature>、mcp.<capability>           | 当前包树已造成跨域检索和角色混杂                        | 与 Yuheng Admin 现有风格一致 |
 | Common capability boundary | Provider/Traffic/Transport/Security/Observation 被多个协议使用 | engine.common、mcp.common                    | 复制会重复；根 common 会继续混乱                    | 保留既有能力归属               |
 | Adapter boundary           | 外部技术依赖混入行为或模型                                           | feature.adapter 或 common capability adapter | 会泄漏 Netty/gRPC/JDBC/Redis 等类型           | 与现有 Adapter 类一致        |
 
@@ -574,7 +574,7 @@ bootstrap.config；Provider、HTTP、RPC、Rule、Traffic、Transport、WebSocke
 
 ### 14.2 Integration, contract, persistence, component, and end-to-end tests
 
-不新增数据库或跨进程行为。继续使用 Engine/MCP Core focused tests；Gateway live、DDC、Redis、PostgreSQL、Kafka、多 JVM
+不新增数据库或跨进程行为。继续使用 Engine/MCP Core focused tests；Yuheng live、Tianshu、Redis、PostgreSQL、Kafka、多 JVM
 证据不因静态包迁移自动成立。
 
 ### 14.3 Test cases and data
@@ -609,7 +609,7 @@ bootstrap.config；Provider、HTTP、RPC、Rule、Traffic、Transport、WebSocke
 实施时应一次性移动生产和测试文件、更新 package/import/package-info、增加 boundary tests，然后运行 focused reactor
 tests。不得同时拆大方法、改 Bean 构造、改配置 key 或改 migration。
 
-不需要服务 rollout 或数据迁移；回滚是源码包迁移的整体 revert。用户启动服务后的真实 DDC/Redis/Provider/MCP topology 验收不属于本
+不需要服务 rollout 或数据迁移；回滚是源码包迁移的整体 revert。用户启动服务后的真实 Tianshu/Redis/Provider/MCP topology 验收不属于本
 Spec。
 
 ## 17. Alternatives and Decisions
@@ -651,7 +651,7 @@ Spec。
 
 ### 20.2 Repository and technical fidelity
 
-方案基于当前 POM、包树、根配置/应用类、现有测试、跨包 import、Gateway Admin 包风格和 legacy HTTP/RPC/MCP
+方案基于当前 POM、包树、根配置/应用类、现有测试、跨包 import、Yuheng Admin 包风格和 legacy HTTP/RPC/MCP
 设计边界。未启动服务，未把静态源码证据表述为真实拓扑验证。
 
 ### 20.3 Cross-section consistency
@@ -665,7 +665,7 @@ Spec。
 
 ### 20.4 Relationship and effective-design review
 
-这是新的 Review Spec，不修改既有 Gateway 行为 Spec；既有 HTTP/RPC/MCP、安全、Traffic、Provider、Rule 和兼容语义继续有效。
+这是新的 Review Spec，不修改既有 Yuheng 行为 Spec；既有 HTTP/RPC/MCP、安全、Traffic、Provider、Rule 和兼容语义继续有效。
 
 ### 20.5 Final verdict
 

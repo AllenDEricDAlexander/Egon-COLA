@@ -6,13 +6,13 @@
 
 审计基线：`main@bff002cd4e1d`
 
-实施基线：`main@a58d7645`（`Merge branch 'codex/gateway-ddc-rpc-integration'`）
+实施基线：`main@a58d7645`（`Merge branch 'codex/yuheng-tianshu-rpc-integration'`）
 
-> 基线变更说明：审计执行期间 `codex/gateway-ddc-rpc-integration` 被合入 main。本文第 4 章原
+> 基线变更说明：审计执行期间 `codex/yuheng-tianshu-rpc-integration` 被合入 main。本文第 4 章原
 > 将该分支范围记为"已确认待实施"并排除，该判断在合入后已过期——相关联调闭环工作现已落地。
 > 第 17 章的实施均基于合入后的 `a58d7645`，components 类结论不受影响（合入内容集中在
-> gateway/DDC/RPC 联调，未触及本文所列的 M1–M4 缺陷点）。
-> 姊妹规格 `2026-07-26-architecture-audit-rectification-spec.md` 负责合入后的 gateway 类审计。
+> yuheng/Tianshu/RPC 联调，未触及本文所列的 M1–M4 缺陷点）。
+> 姊妹规格 `2026-07-26-architecture-audit-rectification-spec.md` 负责合入后的 yuheng 类审计。
 
 审计方式：12 个只读审计 Agent 并行执行（10 个组件各 1 个，跨组件结构 1 个，文档覆盖 1 个），
 共 1194 次工具调用。对结论执行对抗式复核（要求复核方尽力证伪）：22 条完成复核，其中
@@ -21,9 +21,9 @@
 
 关联设计（**本设计明确不覆盖其范围**）：
 
-- `2026-07-26-gateway-ddc-rpc-integration-remediation-design.md`（已确认，待实施）
-- `2026-07-25-gateway-17-gap-remediation-design.md`（已确认，实施中）
-- `2026-07-24-ddc-standalone-rpc-framework-design.md`（待用户确认）
+- `2026-07-26-yuheng-tianshu-rpc-integration-remediation-design.md`（已确认，待实施）
+- `2026-07-25-yuheng-17-gap-remediation-design.md`（已确认，实施中）
+- `2026-07-24-tianshu-standalone-rpc-framework-design.md`（待用户确认）
 - `2026-07-08-access-guard-component.md`、`2026-07-16-bytecode-agent-executor.md`（已存在计划，与本设计部分任务重叠，见第 11 章）
 
 ---
@@ -43,12 +43,12 @@
    UnsupportedOperationException 型未完成残桩。
 2. 成熟度评级：bytecode、transactional-outbox 为 mature；其余 8 个为 functional；
    无一为 skeleton。
-3. 测试是真的：transactional-outbox 本地实跑 87/87 + 10/10 通过；gateway 180 个
+3. 测试是真的：transactional-outbox 本地实跑 87/87 + 10/10 通过；yuheng 180 个
    @Test；dcc 159 个；dtp 115 个；bytecode 110 个（含 ASM 字节码帧验证）；
    rpc 有真实 loopback TCP 与多 JVM 进程测试。
 ```
 
-对 gateway 与 rpc 两个组件，审计方主动记录了对原命题的反驳：二者"模块内实现有真实深度，
+对 yuheng 与 rpc 两个组件，审计方主动记录了对原命题的反驳：二者"模块内实现有真实深度，
 空脚手架假设不成立"。
 
 ### 1.2 但"空"的感受是真实的，它有确切来源
@@ -119,7 +119,7 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 | rule-engine | `RouteDecision.end(data)` | 树执行器从不返回该 payload | 已复核并修复 |
 | rule-engine | 链 / 树最后一个节点的超时 | 超时判定在节点之间，末节点后不再判定 | 已复核并修复 |
 | method-extension | `engine=AGENT` | 未引入 bytecode starter 时静默不拦截，README 宣称等价 | 已复核并修复 |
-| gateway | 上游 HTTP TLS / mTLS | 仅按 `provider.secure()` 选 scheme，从不配置 SslContext / truststore / 客户端证书 | [未复核] |
+| yuheng | 上游 HTTP TLS / mTLS | 仅按 `provider.secure()` 选 scheme，从不配置 SslContext / truststore / 客户端证书 | [未复核] |
 
 ### 2.3 M3 死脚手架
 
@@ -127,8 +127,8 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 |---|---|---|
 | common | `CodeEnum` / `IntCodeEnum` 全仓零实现；`ErrorResultDto` / `ErrorResultModel` 从未被构造；`common-test` 模块零消费方（其逻辑被内联复制两处）；`TraceSnapshot` 只能捕获不能恢复 | confirmed（4 条独立复核） |
 | rule-engine | 整个 8 类异常体系为死脚手架；`RuleRouter` 接口与 `AbstractAsyncRuleNode` 无价值抽象 | [未复核] |
-| gateway | 4 个安全 SPI 全仓零实现且无进入独立 Engine 的投递路径；`GatewayFilterStage` 14 个阶段中 10 个零生产引用，链本身对扩展封闭 | [未复核] |
-| rpc | `RPC_REGISTRATION_FAILED`、`RPC_GATEWAY_AMBIGUOUS`、`RpcGatewayState.AMBIGUOUS` 零引用 | [未复核] |
+| yuheng | 4 个安全 SPI 全仓零实现且无进入独立 Engine 的投递路径；`GatewayFilterStage` 14 个阶段中 10 个零生产引用，链本身对扩展封闭 | [未复核] |
+| rpc | `RPC_REGISTRATION_FAILED`、`RPC_YUHENG_AMBIGUOUS`、`RpcGatewayState.AMBIGUOUS` 零引用 | [未复核] |
 | dcc | `DdcRedisConfigRepository` bean 已注册、全仓零使用；App / Namespace 治理端点为装饰性 CRUD，无任何运行时约束 | confirmed |
 | method-extension | 事件 / 可观测层只提供 no-op publisher 且无文档 | [未复核] |
 
@@ -142,7 +142,7 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
    Redisson bean —— 即：强制引入了一个自己不用的重依赖。 [confirmed]
 2. dtp-starter 同样强推 redisson-spring-boot-starter，另加 commons-lang 2.6
    （2011 年即 EOL）与 fastjson2。 [未复核]
-3. rpc-starter 与 gateway-provider-runtime 以 compile 非 optional 依赖
+3. rpc-starter 与 yuheng-provider-runtime 以 compile 非 optional 依赖
    dcc-starter，而 dcc-starter 自身非 optional 引入 redisson-spring-boot-starter，
    形成传递污染。 [未复核]
 ```
@@ -165,8 +165,8 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 
 | 组件 | 表面 | 实际 |
 |---|---|---|
-| gateway | admin 持久层约 2700 行手写 JDBC（含 594 行 `JdbcGatewayCatalogStore`） | 仅 2 个测试，均 `mock(JdbcTemplate)` 并断言 SQL 字符串片段；从未对任何真实数据库执行 |
-| gateway | 12 个已声明 live 场景 | 场景目录测试只断言"静态清单等于硬编码清单"，实际映射到 2 个从未执行的测试方法 |
+| yuheng | admin 持久层约 2700 行手写 JDBC（含 594 行 `JdbcGatewayCatalogStore`） | 仅 2 个测试，均 `mock(JdbcTemplate)` 并断言 SQL 字符串片段；从未对任何真实数据库执行 |
+| yuheng | 12 个已声明 live 场景 | 场景目录测试只断言"静态清单等于硬编码清单"，实际映射到 2 个从未执行的测试方法 |
 | transactional-outbox | `RabbitDeliveryHandlerIntegrationTest` | 第 34 行 `mock(RabbitTemplate.class)`，名为集成测试实为单测；ACK 语义零真实 broker 验证 |
 | access-guard | -test 模块声称"集成验证" | 单个测试类 + 手工构造的 `ProceedingJoinPoint` 假件；无真实 Spring AOP 代理、无 Redis |
 | rpc | `EgonRpcAutoConfig` | 零测试覆盖；53 个测试全部手工装配 bean，条件装配矩阵完全未验证 |
@@ -179,9 +179,9 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 2. docs/ 目录：规范要求 architecture.md + usage.md，实际仅 2/10 组件有。
 3. 版本漂移：架构文档正文写父 POM 5.1.1、BOM 5.2.1，实际所有 POM 为 5.2.3。
 4. 结构漂移：规范只认可 starter/test/admin 三件套 + common 例外，实际 bytecode 为 9
-   模块、gateway 为 7 模块（含 contract/core/engine/provider-runtime），规范未追认。
-5. UI 越界：gateway 下有 58 个纳入 git 的 React/Vite/TS 文件（admin-web），
-   且未注册进 gateway 的 pom modules；架构规范第 10 / 13.4 节明确要求 UI 独立工程。
+   模块、yuheng 为 7 模块（含 contract/core/engine/provider-runtime），规范未追认。
+5. UI 越界：yuheng 下有 58 个纳入 git 的 React/Vite/TS 文件（admin-web），
+   且未注册进 yuheng 的 pom modules；架构规范第 10 / 13.4 节明确要求 UI 独立工程。
 6. 发布面失控：release 走 central-publishing-maven-plugin，全仓零处设置
    skipPublishing —— admin / test / engine / benchmark 模块会被一并发布。
 7. 无用依赖管理：父 POM 管理 com.alibaba:fastjson 1.2.83，全仓零模块声明、零 import。
@@ -191,13 +191,13 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 
 ```text
 1. 三份近乎相同的 admin trace-id servlet filter（DdcTraceIdFilter / DtpTraceIdFilter /
-   gateway-admin），且 dtp 绕开 common-trace 直写裸 MDC key。
+   yuheng-admin），且 dtp 绕开 common-trace 直写裸 MDC key。
 2. Redis key 构造各写各的：AccessGuardRedisKeys、DtpRedisKeys、dcc 内联拼接，
    无共享命名空间约定。
 3. 分页计算块在 common 的三个模块中复制粘贴，且 pageSize 归一化行为不一致。
 4. transactional-outbox 的 sanitize() 在 store 与 dispatcher 中逐行重复，
    且截断循环在超预算后继续扫描，导致宽字符被跳过而后续窄字符被保留。
-5. gateway-contract 中存在两个同名不同构的 GatewayDefinitionIdentity record。
+5. yuheng-contract 中存在两个同名不同构的 GatewayDefinitionIdentity record。
 6. 4 个组件聚合 POM 各自复制粘贴相同的 common-* dependencyManagement 块。
 ```
 
@@ -230,11 +230,11 @@ access-guard 的情形最典型：自动装配只消费 `corePoolSize`，其余�
 本设计**不覆盖**以下内容，避免与在途工作冲突：
 
 ```text
-1. Gateway / DDC / RPC 三方联调闭环合同问题 —— 由 2026-07-26 联调闭环设计及其 7 份
+1. Yuheng / Tianshu / RPC 三方联调闭环合同问题 —— 由 2026-07-26 联调闭环设计及其 7 份
    integration 计划负责。该工作已于 a58d7645 合入 main，合入后的复核由姊妹规格
    2026-07-26-architecture-audit-rectification-spec.md 负责。
-2. Gateway 17 项差距修复 —— 由 2026-07-25 对应设计负责，状态为实施中。
-3. Gateway 16 份子 Spec 的功能范围 —— 状态为"已实现，待用户验收"，本设计只针对其中
+2. Yuheng 17 项差距修复 —— 由 2026-07-25 对应设计负责，状态为实施中。
+3. Yuheng 16 份子 Spec 的功能范围 —— 状态为"已实现，待用户验收"，本设计只针对其中
    审计新发现的实现缺口（上游 TLS、安全 SPI 投递、admin 持久层验证）。
 4. archetypes 与 cola-samples —— 不属于 Components 范围。
 5. 不新增任何组件，不改变现有组件的能力定位。
@@ -324,16 +324,16 @@ B. 删除：同时删除代码声明、配置属性、README 条目、设计文�
 
 ```text
 1. 为所有 admin / test / engine / benchmark 模块设置 skipPublishing。
-2. 校验 BOM 导出集：补 gateway-contract；为 bytecode maven 插件提供版本通道。
+2. 校验 BOM 导出集：补 yuheng-contract；为 bytecode maven 插件提供版本通道。
 3. 移除父 POM 中零使用的 com.alibaba:fastjson 1.2.83 依赖管理。
 ```
 
 规模 S。
 
-### 6.5 W0-05 rpc / gateway-provider-runtime 依赖解耦
+### 6.5 W0-05 rpc / yuheng-provider-runtime 依赖解耦
 
 ```text
-1. 评估 dcc-starter 是否必须为 compile 非 optional；若接入方可选择非 DDC 注册中心，
+1. 评估 dcc-starter 是否必须为 compile 非 optional；若接入方可选择非 Tianshu 注册中心，
    应改为 optional + 条件装配。
 2. 若必须强依赖，则 dcc-starter 自身的 redisson 依赖必须先 optional 化（依赖 W0-01 同类改造）。
 ```
@@ -439,14 +439,14 @@ returnJson 非法、ObjectMapper 缺失）从惰性改为启动期。
 
 规模 M。
 
-### 7.9 W1-09 gateway 上游 TLS / mTLS [未复核]
+### 7.9 W1-09 yuheng 上游 TLS / mTLS [未复核]
 
 ```text
 当前仅按 provider.secure() 选择 https scheme，从不配置 SslContext、truststore 或客户端
 证书，实际得不到 TLS 保证。需实现真实信任材料装配，并保证失败时 fail-closed。
 ```
 
-规模 L。实施前需先复核，并与 gateway 在途设计对齐边界。
+规模 L。实施前需先复核，并与 yuheng 在途设计对齐边界。
 
 ---
 
@@ -482,7 +482,7 @@ returnJson 非法、ObjectMapper 缺失）从惰性改为启动期。
 4. rpc：3 个零引用常量。
 5. dcc：DdcRedisConfigRepository bean；App / Namespace 治理端点需明确"要么施加运行时约束，
    要么下线"。
-6. gateway：安全 SPI 需给出投递路径 + 至少 1 个参考实现，否则删除；
+6. yuheng：安全 SPI 需给出投递路径 + 至少 1 个参考实现，否则删除；
    GatewayFilterStage 14 个阶段收敛为实际使用的 4 个，或开放链的扩展点。
 7. method-extension：事件层提供真实 publisher 并补文档，或删除。
 ```
@@ -496,14 +496,14 @@ returnJson 非法、ObjectMapper 缺失）从惰性改为启动期。
 对第 2.6 节的安慰剂测试补真实基础设施验证：
 
 ```text
-1. gateway admin 持久层：对真实 PostgreSQL（Testcontainers）验证 9 个 Jdbc store，
+1. yuheng admin 持久层：对真实 PostgreSQL（Testcontainers）验证 9 个 Jdbc store，
    替代断言 SQL 字符串的 mock 测试。—— 优先级最高，约 2700 行代码零真实验证。
 2. transactional-outbox：真实 RabbitMQ broker 集成套件，验证 ACK 语义与
    mandatory return 行为。
 3. access-guard：-test 模块补真实 Spring AOP 代理 + Redis 路径验证。
 4. rpc：为 EgonRpcAutoConfig 补 ApplicationContextRunner 条件装配矩阵测试。
-5. dcc：补 1 个 DDC-only 真实进程集成测试。
-6. gateway：将 12 个场景码绑定到实际执行的 live 场景，或下调声明。
+5. dcc：补 1 个 Tianshu-only 真实进程集成测试。
+6. yuheng：将 12 个场景码绑定到实际执行的 live 场景，或下调声明。
 ```
 
 统一约定：依赖外部中间件的测试用环境变量 assumption 门控（沿用 outbox 的
@@ -520,9 +520,9 @@ returnJson 非法、ObjectMapper 缺失）从惰性改为启动期。
 ```text
 1. 补齐 10 个组件的 CHANGELOG.md 与 docs/（architecture.md、usage.md）。
 2. 架构文档版本号同步为 5.2.3（当前正文写 5.1.1 / 5.2.1）。
-3. 架构文档追认 bytecode 9 模块与 gateway 7 模块形态，或反向调整代码结构。
+3. 架构文档追认 bytecode 9 模块与 yuheng 7 模块形态，或反向调整代码结构。
    建议追认并补充"多模块运行时组件"形态说明。
-4. gateway admin-web 定位决策：迁出为独立前端工程（符合规范第 10 章），
+4. yuheng admin-web 定位决策：迁出为独立前端工程（符合规范第 10 章），
    或在架构文档中明确记为受控例外。README 当前已按例外描述，但规范正文未追认。
 ```
 
@@ -533,7 +533,7 @@ returnJson 非法、ObjectMapper 缺失）从惰性改为启动期。
 2. Redis key：下沉统一命名空间约定到 common。
 3. 分页计算：下沉到 common-model，统一 pageSize 归一化行为。
 4. outbox sanitize()：抽公共文本清洗器，并修正截断循环的宽字符跳过缺陷。
-5. gateway-contract 两个同名 GatewayDefinitionIdentity 合一。
+5. yuheng-contract 两个同名 GatewayDefinitionIdentity 合一。
 6. 4 个聚合 POM 的重复 dependencyManagement 上提至父 POM。
 ```
 
@@ -558,7 +558,7 @@ returnJson 非法、ObjectMapper 缺失）从惰性改为启动期。
    beanFactory.getBeansOfType 扫描）。
 6. bytecode：停止在每次类加载时重建并发布完整 agent 状态；加固架构缓存配置摘要
    （当前是对无序 map toString 取 32 位 hashCode）。
-7. gateway：拆分 admin-web Dashboard chunk。
+7. yuheng：拆分 admin-web Dashboard chunk。
 ```
 
 ---
@@ -633,7 +633,7 @@ G4 与 G5 先行（成本最低、收益最直接），G1 次之，G2 / G3 随�
 | rule-engine | functional | — | W1-07 语义四项 | 死脚手架清理（占比最高） |
 | method-extension | functional | — | W1-08 AGENT 快速失败、启动期校验 | 热路径缓存 |
 | transactional-outbox | mature | — | RabbitMQ 真实验证、HTTP 客户端复用、看门狗 | 质量最高，工作量最小 |
-| gateway | functional | — | W1-09 TLS、安全 SPI、admin 持久层验证 | 与在途设计对齐边界后再动 |
+| yuheng | functional | — | W1-09 TLS、安全 SPI、admin 持久层验证 | 与在途设计对齐边界后再动 |
 
 说明：transactional-outbox 与 bytecode 是本仓库质量基准，其形态应作为其他组件的参照。
 
@@ -683,8 +683,8 @@ G4 与 G5 先行（成本最低、收益最直接），G1 次之，G2 / G3 随�
 ```text
 1. 删除优先可能误删有真实规划的能力。
    缓解：第 5.2 节判据 + 波次 3 前逐条确认，删除均可从 git 历史恢复。
-2. 波次 2 / 3 横跨多组件，易与 gateway 在途实施冲突。
-   缓解：gateway 相关项排在最后，且先与在途设计对齐边界。
+2. 波次 2 / 3 横跨多组件，易与 yuheng 在途实施冲突。
+   缓解：yuheng 相关项排在最后，且先与在途设计对齐边界。
 3. 闸门可能在存量代码上大面积报红。
    缓解：允许携带初始例外清单上线，只减不增。
 4. 真实中间件测试增加 CI 时长。
@@ -759,10 +759,10 @@ method-extension 的 shouldUseAgentEngineWithoutCreatingAopAdvisor 同样把静�
    c. common CodeEnum / IntCodeEnum / ErrorResultDto —— 本文建议删除
    d. common 异常体系 9 类收敛为 1 类 + ErrorStatus  —— 本文建议收敛
    e. rule-engine 8 类异常体系                       —— 本文建议删除
-   f. gateway 安全 SPI                               —— 本文建议实现投递路径 + 参考实现
-   g. gateway GatewayFilterStage 14 阶段             —— 本文建议收敛为 4 个
+   f. yuheng 安全 SPI                               —— 本文建议实现投递路径 + 参考实现
+   g. yuheng GatewayFilterStage 14 阶段             —— 本文建议收敛为 4 个
    h. dcc App / Namespace 治理端点                   —— 本文建议施加运行时约束或下线
-5. gateway admin-web：迁出为独立前端工程，还是在架构规范中追认为受控例外？
-6. 架构规范文档：追认 bytecode / gateway 的多模块形态，还是调整代码结构向规范靠拢？
+5. yuheng admin-web：迁出为独立前端工程，还是在架构规范中追认为受控例外？
+6. 架构规范文档：追认 bytecode / yuheng 的多模块形态，还是调整代码结构向规范靠拢？
 7. 是否需要为本设计拆分逐波次的实施计划文档（放入 docs/superpowers/plans/）？
 ```

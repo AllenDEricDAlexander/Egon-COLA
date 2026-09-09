@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add deterministic Snowflake boundary tests, platform/virtual-thread concurrency tests, and an independently runnable JMH capacity benchmark to the existing common ID Starter.
+**Goal:** Add deterministic Snowflake boundary tests, xingyuan/virtual-thread concurrency tests, and an independently runnable JMH capacity benchmark to the existing common ID Starter.
 
 **Architecture:** Keep production code unchanged. Place a thread-safe fake clock and JUnit Jupiter tests in `src/test`, place JMH code in a profile-enabled `src/jmh` source set, and package an attached executable benchmark jar without affecting the default Maven lifecycle.
 
@@ -12,7 +12,7 @@
 
 - Keep all changes inside `egon-cola-component-common-id-starter` plus this plan.
 - Do not change `SnowflakeIdGenerator`, its public API, the `1/41/10/12` layout, or the fixed Epoch.
-- Use one shared generator instance in every concurrent test and every JMH platform-thread method.
+- Use one shared generator instance in every concurrent test and every JMH xingyuan-thread method.
 - Verify exact sequences `0..4095` in a fixed millisecond and wait for the 4097th call.
 - Protect every potentially blocking JUnit operation with a timeout.
 - Use `Executors.newVirtualThreadPerTaskExecutor()` for virtual-thread correctness and throughput scenarios.
@@ -156,7 +156,7 @@ git commit --only \
 
 **Interfaces:**
 - Consumes: the production system-clock constructor and Java 21 executor factories.
-- Produces: bounded correctness coverage for shared-generator platform and virtual-thread callers.
+- Produces: bounded correctness coverage for shared-generator xingyuan and virtual-thread callers.
 
 - [x] **Step 1: Add shared-generator concurrency tests**
 
@@ -185,7 +185,7 @@ mvn -f egon-cola-components/egon-cola-component-common/egon-cola-component-commo
   -Dtest=SnowflakeIdGeneratorConcurrencyTest test
 ```
 
-Expected: both platform-thread and 20,000-virtual-thread correctness cases complete within the class-level
+Expected: both xingyuan-thread and 20,000-virtual-thread correctness cases complete within the class-level
 timeout with no duplicate or non-positive IDs.
 
 - [x] **Step 3: Run the complete Starter suite**
@@ -217,7 +217,7 @@ git commit --only egon-cola-components/egon-cola-component-common/egon-cola-comp
 
 **Interfaces:**
 - Consumes: public `SnowflakeIdGenerator(long)` and JMH annotations/runner.
-- Produces: an optional `jmh` Maven Profile, an attached `benchmarks` executable jar, platform-thread
+- Produces: an optional `jmh` Maven Profile, an attached `benchmarks` executable jar, xingyuan-thread
   throughput/latency methods, virtual-thread batch scaling, and reproducible commands.
 
 - [x] **Step 1: Add benchmark source before the JMH profile**
@@ -299,7 +299,7 @@ java -jar egon-cola-components/egon-cola-component-common/egon-cola-component-co
   '.*virtualThreadBatch(32|512|2048|8192|32768|65536)$' -wi 0 -i 1 -r 200ms -f 1 -prof gc
 ```
 
-Expected: the jar starts JMH; platform methods produce throughput, average-time and GC rows; all feasible
+Expected: the jar starts JMH; xingyuan methods produce throughput, average-time and GC rows; all feasible
 virtual-thread sizes finish, raw throughput is IDs/s, and infeasible sizes are reported with their actual failure.
 
 - [x] **Step 6: Run final verification and commit Task 3**

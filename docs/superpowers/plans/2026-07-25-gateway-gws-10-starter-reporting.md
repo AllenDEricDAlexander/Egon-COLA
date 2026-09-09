@@ -1,9 +1,9 @@
-# GWS-10 Gateway Starter 接口定义上报实施计划
+# GWS-10 Yuheng Starter 接口定义上报实施计划
 
 状态：已执行
 
 > 对应 Spec：
-> `docs/superpowers/specs/2026-07-25-gateway-starter-interface-reporting-design.md`
+> `docs/superpowers/specs/2026-07-25-yuheng-starter-interface-reporting-design.md`
 
 ## 目标
 
@@ -14,7 +14,7 @@
 
 涉及：
 
-- `egon-cola-component-gateway-contract`
+- `egon-cola-component-yuheng-contract`
 - `GatewayDefinitionIdentity`
 - `GatewayInterfaceDefinitionReport`
 - HTTP/RPC、三级目录、Operation Definition、结果 DTO
@@ -31,7 +31,7 @@
 
 涉及：
 
-- `gateway-starter` HTTP scanner；
+- `yuheng-starter` HTTP scanner；
 - Spring MVC/WebFlux 已注册 `RequestMappingHandlerMapping`；
 - Jackson Schema 中间模型；
 - Jakarta Validation 与参数位置。
@@ -87,7 +87,7 @@
 
 涉及：
 
-- `gateway-admin/interfaces/reporting`；
+- `yuheng-admin/interfaces/reporting`；
 - Credential 解密与 Scope 校验；
 - `gateway_hmac_nonce` 原子占用；
 - Definition Set、三级目录、Operation/Definition 入库；
@@ -96,7 +96,7 @@
 步骤：
 
 1. 先测试成功、过期、Body 篡改、Nonce 重放、Scope 越权；
-2. 使用独立 `/api/v1/gateway/openapi/interface-definitions` Filter Chain，
+2. 使用独立 `/api/v1/yuheng/openapi/interface-definitions` Filter Chain，
    明确拒绝页面身份 Header；
 3. 事务内写 Definition Set、目录和不可变 Definition；
 4. 同 Report ID/同 Payload 返回原结果，不同 Payload 返回冲突；
@@ -111,7 +111,7 @@
 
 ```bash
 ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-  -pl :egon-cola-component-gateway-starter,:egon-cola-component-gateway-admin \
+  -pl :egon-cola-component-yuheng-starter,:egon-cola-component-yuheng-admin \
   -am test
 ```
 

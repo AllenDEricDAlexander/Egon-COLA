@@ -25,7 +25,7 @@ reliability is explicitly best-effort non-blocking.
 
 ## Task 1: Trace contract and propagation
 
-Add the W3C trace parser/context to `gateway-contract`, accepting only non-zero
+Add the W3C trace parser/context to `yuheng-contract`, accepting only non-zero
 32-hex IDs. Add HTTP and RPC selection/child-span helpers, response propagation,
 and Admin management Trace filter. Test priority, normalization, conflict,
 invalid generation, and child spans.

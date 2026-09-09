@@ -245,7 +245,7 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 2. Prefer Java records for common PO contracts to preserve immutability, serializability, and stable JSON field ordering.
 3. Use direct record factory methods instead of separate `ResultDtos` or `ResultModels` classes.
 4. Keep `common-core` free of Spring runtime dependencies; Jackson annotations are explicit lightweight dependencies because core owns JSON contracts.
-5. Keep `common-trace` limited to the JDK and `slf4j-api`; Trace propagation does not depend on Spring, Servlet, WebFlux, Reactor, gRPC, Gateway, Jackson, or a Logback implementation.
+5. Keep `common-trace` limited to the JDK and `slf4j-api`; Trace propagation does not depend on Spring, Servlet, WebFlux, Reactor, gRPC, Yuheng, Jackson, or a Logback implementation.
 6. Keep executor-specific adapters in their owning components; `common-trace` exposes only `TraceContext` and three local-thread task templates.
 7. Keep the Trace Spring Boot Starter in the same common aggregator without leaking Spring dependencies into `common-trace`.
 8. Expose converter contracts, not generated converter implementations. MapStruct and MapStruct Plus implementations belong in consumers or tests.

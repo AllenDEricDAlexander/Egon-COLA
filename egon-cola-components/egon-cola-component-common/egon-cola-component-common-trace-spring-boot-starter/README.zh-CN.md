@@ -108,7 +108,7 @@ executor.execute(new TraceRouteRunnable() {
 - Servlet 使用高优先级 `OncePerRequestFilter`。
 - WebFlux 以 Reactor Context 为真实上下文来源，MDC 只是当前线程日志投影。
 - RestClient 和 WebClient 出站创建 child span 并写入标准 Header。
-- Gateway 自研 Reactor Netty 数据面直接使用 `common-trace`，不套用 Spring Cloud
-  Gateway Filter。
+- Yuheng 自研 Reactor Netty 数据面直接使用 `common-trace`，不套用 Spring Cloud
+  Yuheng Filter。
 - RPC 直接在现有 `rpc-starter` 的 gRPC Interceptor 中接入，不另建通用 gRPC Trace
   Starter。

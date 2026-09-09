@@ -16,7 +16,7 @@
 | Change Surface | `修改 common-core POM/边界测试并新增 ValidationUtils；新增 MyBatis-Plus Starter，直接依赖官方 Boot 3 MyBatis-Plus Starter/JSqlParser、common-core 和 Boot Validation；新增 EgonModel、只扩展 BaseMapper 的 EgonColaMapper、57 方法 IService 套件、MDC TenantID/UserId Provider、MetaObjectHandler、参数/结果自动校验与隔离拦截器；不新增自定义 tenant 查询或 SQL Injector；消费者表和业务 DTO/PO/Model 由采用者迁移，本 Spec 不修改具体业务表或 Archetype` |
 | Affected Chapters | `§7, §8, §9, §10, §13, §14, §15, §16, §17, §18` |
 | Source Requirement | `2026-08-19 原始 Mapper/IService 全量增强；2026-08-20 Boot3 Starter/MDC 隔离上下文；2026-08-21 EgonModel ActiveRecord 全套、DTO/PO/Model 分层校验、common-core ValidationUtils、BaseConverter 转换、仓储手动/自动校验；删除 businessId 与 create/update user name，只保留 Long tenantId 和 user ID/time，逻辑删除为 isDeleted/is_deleted；最终决定不保留 4 个重复 Service tenant 查询和 3 个 Mapper/Injector 查询，直接增强官方 list/count/getById/getOptById 等方法` |
-| Baseline Revision | `main@0b7b9b3a2a4bc71ae4bb3ce127270d00033e8b60；2026-08-21 14:07 CST dirty-worktree snapshot；4ae5419c..0b7b9b3a 仅新增无关 RPC 文档提交，目标 Common 源码未漂移；保留 staged GatewayContractVersions 删除、未跟踪 0 文件及无关 Gateway Spec/Plan、IdP OAuth Spec；本 Spec 与 obsolete MyBatis Plan 仍为未跟踪文件` |
+| Baseline Revision | `main@0b7b9b3a2a4bc71ae4bb3ce127270d00033e8b60；2026-08-21 14:07 CST dirty-worktree snapshot；4ae5419c..0b7b9b3a 仅新增无关 RPC 文档提交，目标 Common 源码未漂移；保留 staged GatewayContractVersions 删除、未跟踪 0 文件及无关 Yuheng Spec/Plan、Tianquan-Shoubing OAuth Spec；本 Spec 与 obsolete MyBatis Plan 仍为未跟踪文件` |
 | Amends | `None` |
 | Supersedes | `None` |
 | Depends On | `[Common enterprise restructure](../../superpowers/specs/2026-07-07-egon-cola-component-common-enterprise-restructure-design.md) §3.3-§4.3、§5.1、§6、§11-§12（保留聚合/BOM/底层依赖方向；由本 Spec 明确修订 common-core 禁止 Jakarta Validation API 与不做业务实体基类的旧范围）` |
@@ -56,12 +56,12 @@ MyBatis-Plus 文档仍常见 `User extends Model<User>` 示例，但已锁定的
 | `EVD-011` | External published source | 3.5.16 `MybatisPlusInnerInterceptorAutoConfiguration` 源码 | 官方自动配置在存在 `InnerInterceptor` Bean 且缺少 `MybatisPlusInterceptor` 时按 Spring 顺序组装列表 | 本 Starter 应声明有序 InnerInterceptor Bean，而不是创建多个外层拦截器 | 自定义外层 Bean 时官方会 back off，需额外验证 |
 | `EVD-012` | Static repository | `egon-cola-archetypes/.../shardingsphere-sharding*.yml` 与 `ShardingSphereDataSourceConfiguration` | Archetype 已存在 ShardingSphere 逻辑数据源与多种业务分片列，但当前没有统一 TenantID 约定 | 新 Starter 只保证 SQL 携带 `tenant_id`，不接管分库分表拓扑 | 未启动 Archetype，不证明真实路由 |
 | `EVD-013` | Superseded user decision | 2026-08-21 较早一轮 | 曾要求 non-null Long `businessId` 不由 Handler 填充 | 仅解释旧 Plan/Spec 为何包含 businessId | 已被 `EVD-021` 完全取代，不是 effective requirement |
-| `EVD-014` | Static repository | `git rev-parse HEAD`、`git status --short`、`git diff 4ae5419c..HEAD -- <target Common paths>` at 2026-08-21 14:07 CST | 基线为 `0b7b9b3a2a4bc71ae4bb3ce127270d00033e8b60`；4ae5419c 后仅新增无关 RPC 文档提交，目标 Common 源码无 diff；dirty worktree 仍含 staged GatewayContractVersions 删除、未跟踪 `0`、无关 Gateway MCP Spec/Plan、IdP OAuth Spec、旧 MyBatis Plan 与本设计文档 | Spec/Plan 阶段仅修改本 Spec 与关系文档；不得覆盖、恢复或提交无关状态 | 状态是时间点快照，实施前必须重查 |
+| `EVD-014` | Static repository | `git rev-parse HEAD`、`git status --short`、`git diff 4ae5419c..HEAD -- <target Common paths>` at 2026-08-21 14:07 CST | 基线为 `0b7b9b3a2a4bc71ae4bb3ce127270d00033e8b60`；4ae5419c 后仅新增无关 RPC 文档提交，目标 Common 源码无 diff；dirty worktree 仍含 staged GatewayContractVersions 删除、未跟踪 `0`、无关 Yuheng MCP Spec/Plan、Tianquan-Shoubing OAuth Spec、旧 MyBatis Plan 与本设计文档 | Spec/Plan 阶段仅修改本 Spec 与关系文档；不得覆盖、恢复或提交无关状态 | 状态是时间点快照，实施前必须重查 |
 | `EVD-015` | User decision | 2026-08-20 决定 1 | 生产模块使用官方 `com.baomidou:mybatis-plus-spring-boot3-starter:3.5.16`，不直接依赖 `org.mybatis.spring.boot:mybatis-spring-boot-starter`、`org.mybatis:mybatis`、`org.mybatis:mybatis-spring` 或 raw `mybatis-plus`；租户/分页插件仍使用同版本官方 `mybatis-plus-jsqlparser` | POM 依赖边界与 dependency tree 测试必须把原生/底层直接依赖排除 | 传递依赖仍由官方 Starter 自身管理 |
 | `EVD-016` | Published artifact + official source | `/Users/mario/maven/repository/com/baomidou/mybatis-plus-extension/3.5.16/mybatis-plus-extension-3.5.16.jar`，`jar tf`/`javap`；官方 tag `v3.5.16` `AbstractModel.java` | 3.5.16 只有 `AbstractModel`，没有 `Model`；公开 14 个 AR 方法；3.5.7/3.4.3.4 发布 Jar 仍含 `Model` | 保持 3.5.16 时 `EgonModel` 必须扩展 `AbstractModel`，文档示例名不能覆盖真实 ABI | 静态发布物；不证明所有方言运行行为 |
 | `EVD-017` | Static repository | `common-core/.../converter/BaseConverter.java` 与 `BaseConverterContractTest` | 已有 `BaseConverter<S,T>`、双向单体/列表转换及 MapStruct/MapStruct Plus 兼容测试 | DTO<->PO、PO<->Model 直接复用现有契约，不新增反射式万能转换器 | 不证明具体业务字段映射正确，业务 converter 必须单测 |
 | `EVD-018` | Static repository | `common-core/pom.xml`、`CoreBoundaryTest`、`common-test/SourceBoundaryAssert` | common-core 当前没有 Jakarta Validation；边界测试禁止所有 `import jakarta.`；Common README 只承诺无 Spring 运行时依赖 | 新 `ValidationUtils` 需要 `jakarta.validation-api` 并把边界改为“只允许 Jakarta Validation API”，仍禁止 Spring/JPA/Servlet | 这是对 predecessor §6/§11 的明确修订，不允许泛化为任意 Jakarta 依赖 |
-| `EVD-019` | Static repository | `common-core/.../OperatorContext.java`、Gateway/RBAC 审计 PO、Archetype `@Valid/@Validated` 与 Validation POM | 现有审计用户/租户多使用 String，审计时间大量使用 `Instant`；Controller DTO 和 Service method validation 已有 Spring/Jakarta 先例 | userId 采用 String、时间采用 Instant；用户最新删除 userName；本组件 tenantId 采用 Long，未来 Security adapter 负责映射 | 仓库命名存在 `createdAt/createTime` 并存；本需求字面采用 `createTime/updateTime` |
+| `EVD-019` | Static repository | `common-core/.../OperatorContext.java`、Yuheng/RBAC 审计 PO、Archetype `@Valid/@Validated` 与 Validation POM | 现有审计用户/租户多使用 String，审计时间大量使用 `Instant`；Controller DTO 和 Service method validation 已有 Spring/Jakarta 先例 | userId 采用 String、时间采用 Instant；用户最新删除 userName；本组件 tenantId 采用 Long，未来 Security adapter 负责映射 | 仓库命名存在 `createdAt/createTime` 并存；本需求字面采用 `createTime/updateTime` |
 | `EVD-020` | Superseded-in-part user decision | 2026-08-21 较早一轮 | `EgonModel`、Mapper、IService、ServiceImpl 必须成套；Handler 曾被要求填创建/更新用户 ID、name、时间、tenantId、deleted，明确不填 businessId | 完整套件、ID/time/tenant 填充仍有效；businessId、name、deleted 命名分别由 `EVD-021`-`023` 取代 | “update”按对称字段 `updateUserId/updateTime` 解释，记录为 `ASM-005` |
 | `EVD-021` | User decision | 2026-08-21 最新“都不需要 businessId，有 tenantId 就行了” | 全部删除 businessId 字段及其 Provider/方法/SQL/配置/测试合同；tenantId 是唯一租户/分片键并由 MetaObjectHandler 填充 | 目标只保留 `Long tenantId`、`tenant_id` 与 `EgonColaTenantIdProvider`；PO->Model 不映射任何租户字段 | 这是 effective requirement，再次使旧 Plan 与本 Spec 的 businessId revision 失效 |
 | `EVD-022` | User decision | 2026-08-21 最新“name字段不要了，只留ID” | 删除 create/update user name 字段、MDC key、Provider 值、列、配置与测试 | 公共审计身份只有 `createUserId/updateUserId`，UserId Provider 只返回 String ID | effective requirement |
@@ -103,7 +103,7 @@ FamilyAiButler 参考实现只覆盖 Mapper/Service/Handler 的一小部分，�
 
 - 不在本 Starter 内实现 ShardingSphere、动态数据源、实际分库/分表算法或 DataSource 创建。
 - 不新增任何生产 Flyway migration，不修改消费者既有表；采用者负责为 EgonModel 公共列建立 NOT NULL、逻辑删除默认值和真实索引并完成历史数据迁移。
-- 不在本 Starter 中猜测 Egon IdP/RBAC 的 String tenantId 到 Long tenantId 的映射策略，也不依赖安全平台模块；未来 SecurityContext TenantId Provider 由消费者实现显式映射。
+- 不在本 Starter 中猜测 Egon Tianquan-Shoubing/RBAC 的 String tenantId 到 Long tenantId 的映射策略，也不依赖安全平台模块；未来 SecurityContext TenantId Provider 由消费者实现显式映射。
 - 不提供额外静态 Validator/ThreadLocal TenantID Holder；ValidationUtils 通过构造器接收 `Validator`，Provider 默认读 MDC，未来业务可用 SecurityContext Bean 覆盖。
 - 不提供公共跨租户读写、`@InterceptorIgnore(tenantLine=true)` 管理 API 或绕过保护的“超级管理员”快捷入口。
 - 不生成具体业务 Controller/DTO/PO/Model、Repository Port、DDD Aggregate 或数据库迁移；只定义采用规范和测试 fixture。
@@ -260,7 +260,7 @@ flowchart LR
 | `ASM-001` | Artifact 使用完整标准拼写 `mybatis-plus`，不采用请求中的 `mybati-plus` | MyBatis-Plus 官方 Artifact 与仓库 kebab-case | 只影响新路径，尚无消费者 | 用户若要求字面拼写需统一改模块/BOM/README |
 | `ASM-002` | 单 Starter 内同时放公共 API、自动装配和测试 | Common ID/Desensitize Starter 现状 | 新模块尚未发布，可在 Plan 前调整 | 若拆 API/Starter 会增加 Artifact 与 BOM 项 |
 | `ASM-003` | 审计字段固定使用用户字面名称 `createUserId/createTime/updateUserId/updateTime`，不再提供字段名 properties | 2026-08-21 字面需求；统一 EgonModel 的价值就是稳定字段 | 新模块尚未发布，命名可在审核时整体改 | 若业务已有 `createdAt/createdBy` 表需显式 migration/converter，不得静默双映射 |
-| `ASM-004` | 公共字段类型为 `Long id`、`Long tenantId`、String user id、`Instant` time、`Boolean isDeleted` | 用户 Long 隔离键决定、`OperatorContext`、Gateway/RBAC PO 与 Java 21 时间证据 `EVD-019`,`EVD-021` | 尚无 Starter 消费者，审核时可统一变更 | 类型变化会影响公共 ABI、DDL、MetaObjectHandler 和 Provider，审核后不可局部漂移 |
+| `ASM-004` | 公共字段类型为 `Long id`、`Long tenantId`、String user id、`Instant` time、`Boolean isDeleted` | 用户 Long 隔离键决定、`OperatorContext`、Yuheng/RBAC PO 与 Java 21 时间证据 `EVD-019`,`EVD-021` | 尚无 Starter 消费者，审核时可统一变更 | 类型变化会影响公共 ABI、DDL、MetaObjectHandler 和 Provider，审核后不可局部漂移 |
 | `ASM-005` | 用户“还有 update”解释为对称 `updateUserId/updateTime`；默认 MDC keys 只为 `tenantId/userId` | 用户措辞 + common OperatorContext 字段 | keys 可配置且 Provider 可覆盖 | 若实际 key 是 operatorId，默认配置/文档/测试需同步调整 |
 
 ### 5.3 Resolved decisions
@@ -330,7 +330,7 @@ None — 2026-08-21 用户已明确全套 AR/Mapper/IService/ServiceImpl、只�
 | DTO/PO/Model 专用 Converter 类型 | Keep consumer-owned | `REQ-029` | 复用 `BaseConverter` | 已足够；公共实现无法知道业务字段 | 每业务边界两个显式 mapper/test | Keep/reuse；不新增 common 类型 |
 | `EgonColaMybatisPlusContractValidator` | New | `REQ-006`,`REQ-016`,`REQ-019` | 文档提醒 | 自定义 outer interceptor/Handler 可静默移除保护 | 启动校验成本；错误更早暴露；不检查/扩展 Injector | Add |
 | TenantID 专用生产表/migration | Remove | None | 消费者表自有 migration | Common 不拥有通用业务表 | 会错误耦合 schema | Remove |
-| ShardingSphere/IdP adapter | Remove | None | Provider/DataSource 边界 | 当前类型和拓扑不统一 | 新跨模块耦合与版本成本 | Remove |
+| ShardingSphere/Tianquan-Shoubing adapter | Remove | None | Provider/DataSource 边界 | 当前类型和拓扑不统一 | 新跨模块耦合与版本成本 | Remove |
 
 | Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 | --- | --- | --- | --- | --- | --- |
@@ -575,7 +575,7 @@ sequenceDiagram
 
 | Failure point | Detection | Immediate control flow | Data/transaction state | Retry and idempotency | Caller/frontend result | Recovery/reconciliation owner | Verification |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Default Providers | auto-configuration | register MDC TenantID/UserId Providers when no custom Bean | no data state | custom SecurityContext Beans cause defaults to back off | normal startup | platform integrator | ContextRunner |
+| Default Providers | auto-configuration | register MDC TenantID/UserId Providers when no custom Bean | no data state | custom SecurityContext Beans cause defaults to back off | normal startup | xingyuan integrator | ContextRunner |
 | MDC context missing | Provider/Guard/MetaHandler | throw validation/configured context failure before JDBC | no write/no result | correct/propagate context then retry whole business operation | deterministic error without raw context | caller/integrator | missing-key tests |
 | MDC TenantID malformed | `Long.valueOf` | throw before mapper/JDBC | no write | correct/clear MDC then retry | NumberFormatException | caller/integrator | unit + integration |
 | write Model tenantId spoof/null | MetaHandler | overwrite with current TenantId Provider before final Model validation/bind | no cross-tenant effect; Model now contains trusted tenantId | no retry needed unless context missing | normal write or context error | framework contract | AR/Mapper/IService spoof tests |
@@ -3392,7 +3392,7 @@ DAO/repository 或构造器注入它的 `EgonColaServiceImpl` 在 batch 前调�
 | 消费者业务 Model | Concrete ORM Entity | consumer repository/Mapper/table | 继承 `EgonModel`，添加业务列与 Jakarta Validation 约束；由仓储入口手动/自动校验 | consumer DAO/repository | `REQ-024`,`REQ-027`,`REQ-030` |
 | `ValidationUtils` | Generic validation facade | common-core -> Controller/Service/Repository | 统一手动对象/property/value/group 校验，不绑定 Spring 或 MyBatis | injected Jakarta Validator | `REQ-026`,`REQ-028` |
 | `EgonColaModelValidationUtils` | Repository validation facade | starter -> AR/Mapper/IService | 组合通用校验、操作 group 和 TenantID 一致性 | Starter auto-configuration | `REQ-025`-`REQ-027`,`REQ-030` |
-| `EgonColaTenantIdProvider` | Context SPI, behavior interface | trusted context -> Starter | 当前 ID 来源随认证/任务基础设施变化，不能固化 ThreadLocal 或 IdP 依赖 | consumer adapter | `REQ-007`,`REQ-016` |
+| `EgonColaTenantIdProvider` | Context SPI, behavior interface | trusted context -> Starter | 当前 ID 来源随认证/任务基础设施变化，不能固化 ThreadLocal 或 Tianquan-Shoubing 依赖 | consumer adapter | `REQ-007`,`REQ-016` |
 | `EgonColaUserIdProvider` | Context SPI, behavior interface | trusted context -> MetaObjectHandler | 当前 user ID 来源可从 MDC 切换到 SecurityContext；无 user name/value object | consumer adapter | `REQ-015`,`REQ-016`,`REQ-025` |
 
 `EgonColaMapper`、ServiceImpl、Handler 和 Interceptor 是行为组件，不进入 POJO inventory。Starter 只提供基类/合同，不为每个业务自动生成 DTO、PO、Model 或 converter，也不增加自定义 SQL Injector。
@@ -3571,7 +3571,7 @@ N/A — `egon-cola-components/egon-cola-component-common` 是 Maven/Java 组件�
 ### 13.3 Architecture principles
 
 - Single responsibility：TenantID Provider 只解析 ID，UserId Provider 只提供当前用户 ID，Validation facade 只验证，TenantLine 只改 SQL，技术 Service 只持久化编排；默认 Injector 保持上游职责。
-- Dependency inversion：Starter 依赖 Provider SPI，不依赖 IdP/RBAC；业务应用适配其可信上下文。
+- Dependency inversion：Starter 依赖 Provider SPI，不依赖 Tianquan-Shoubing/RBAC；业务应用适配其可信上下文。
 - Information hiding：JSqlParser Expression、statement ID、plugin order 不泄漏进业务 Service API。
 - YAGNI：无 ShardingSphere adapter、无网络接口、无生产 schema、无 cross-tenant admin bypass。
 - Composition over inheritance：业务规则和 converter 仍组合；继承仅用于 MyBatis-Plus 明确扩展点 `AbstractModel/ServiceImpl/BaseMapper`，不为 SQL 创建多余继承层。
@@ -3636,7 +3636,7 @@ H2 + Spring Boot/MyBatis Context 执行真实 SQL，验证 AR/Mapper/IService �
 | `TEST-043` | Unit/AutoConfig | Clock/time fill | custom Clock / system UTC default | `Instant` create/update deterministic；custom Clock accepted；不支持多时间类型形成漂移 ABI | fixed Clock + MetaObject | JUnit | `REQ-015`,`REQ-016` |
 | `TEST-044` | Contract | mapper usage boundary | global mapper/plain BaseMapper vs EgonColaMapper | 全局表可 plain BaseMapper；EgonColaMapper 泛型必须 extends EgonModel | compile fixture | JUnit | `REQ-017`,`REQ-024` |
 | `TEST-045` | AutoConfig/Contract | default Injector ownership | enabled/disabled/custom outer interceptor contexts | Starter 从不声明 `ISqlInjector` Bean；enabled 时官方 BaseMapper statements 仍注册，outer interceptor 合同独立验证 | ContextRunner + MyBatis Configuration | JUnit | `REQ-014`,`REQ-016` |
-| `TEST-046` | Build | dependency boundary | dependency tree + direct POM declarations | direct production deps include MP Boot3 starter 3.5.16 + jsqlparser；不直接声明原生 MyBatis Starter/底层/raw MP；无 ShardingSphere/IdP/RBAC/Flyway/driver | Maven | dependency:tree/source scan | `REQ-017` |
+| `TEST-046` | Build | dependency boundary | dependency tree + direct POM declarations | direct production deps include MP Boot3 starter 3.5.16 + jsqlparser；不直接声明原生 MyBatis Starter/底层/raw MP；无 ShardingSphere/Tianquan-Shoubing/RBAC/Flyway/driver | Maven | dependency:tree/source scan | `REQ-017` |
 | `TEST-047` | Build | packaged Jar | jar entries | imports、public classes、无 test schema | jar tf | Maven | `REQ-003`,`REQ-021` |
 | `TEST-048` | Docs | bilingual README | headings/code symbols | English/Chinese contract synchronized | source scan | JUnit/script | `REQ-020` |
 | `TEST-049` | Compile fixture | consumer usage | Model/Mapper/IService/ServiceImpl 整套继承 | `UserModel extends EgonModel<UserModel>`、Mapper/Service 泛型、ServiceImpl 构造器转交与 AR 调用均编译 | test sources | Maven testCompile | `REQ-004`,`REQ-005`,`REQ-024`,`REQ-027` |
@@ -3747,7 +3747,7 @@ Starter Artifact 与 BOM/parent/common README 同版本发布；模块自身无�
 | `RISK-004` | JSqlParser 对复杂/方言 SQL 不支持 | Medium | 合法 statement fail closed | consumer custom SQL integration test；显式 global table policy | Open for adoption |
 | `RISK-005` | 自定义 MybatisPlusInterceptor 顺序错误 | Medium | 租户/wide-write/pagination 保护失效 | startup validator + order tests | Mitigated |
 | `RISK-006` | 57 个显式 override 带来维护重复 | High | 上游升级成本 | private family helpers + reflection parity；不隐藏漏项 | Accepted trade-off |
-| `RISK-007` | Egon IdP tenantId 当前常为 String | High | 不能直接作为 `Long` TenantID | future SecurityContext Provider 明确转换/映射；Starter 不猜 | Open per consumer |
+| `RISK-007` | Egon Tianquan-Shoubing tenantId 当前常为 String | High | 不能直接作为 `Long` TenantID | future SecurityContext Provider 明确转换/映射；Starter 不猜 | Open per consumer |
 | `RISK-008` | 消费表缺任一 EgonModel 公共列/NOT NULL/索引/历史数据 | High | mapping/validation/SQL 失败、路由广播或慢查询 | consumer schema Spec + one new migration + data backfill + EXPLAIN | Open per consumer |
 | `RISK-009` | 当前 worktree 有无关未跟踪 Spec/Plan | Medium | 实施时误覆盖/提交污染 | 路径限界、每 Step 单独 commit、先复查 status | Mitigated by process |
 | `RISK-010` | 加载结果自动验证暴露旧脏数据 | High | 原可读请求在 Mapper 返回前失败 | adoption 前扫描/回填；不提供运行时 bypass | Open per consumer |
@@ -3776,13 +3776,13 @@ Starter Artifact 与 BOM/parent/common README 同版本发布；模块自身无�
 | `REQ-014` | `UC-001`,`UC-004` | default Injector/§7-§9,§13 | no custom Injector/API | BaseMapper official contracts | `TEST-032`-`038`,`TEST-045` | default statements only; removed methods/classes absent |
 | `REQ-015` | `UC-002`,`UC-005`,`UC-007` | Meta handler/§8,§10 | consumer context source | exact 6-insert/3-update fields | `TEST-039`-`043`,`TEST-068`,`TEST-069` | authoritative tenantId/userId/time/isDeleted fill; no names |
 | `REQ-016` | `UC-001`,`UC-005` | overrides/§7,§15,§16 | custom owner remains consumer | properties/validator | `TEST-003`-`008`,`TEST-042`-`045` | safe backoff/fail-fast |
-| `REQ-017` | `UC-005` | dependency boundary/§7,§11,§15 | schema/Sharding/IdP unchanged | no production table/frontend | `TEST-024`,`TEST-042`,`TEST-044`,`TEST-046` | dependency/source boundary |
+| `REQ-017` | `UC-005` | dependency boundary/§7,§11,§15 | schema/Sharding/Tianquan-Shoubing unchanged | no production table/frontend | `TEST-024`,`TEST-042`,`TEST-044`,`TEST-046` | dependency/source boundary |
 | `REQ-018` | `UC-002`,`UC-003` | method semantics/§9 | official signatures preserved | logic delete/chain/batch | `TEST-016`-`019`,`TEST-025`-`031` | behavior regression |
 | `REQ-019` | `UC-006` | version/§6,§9,§16 | Boot parent retained | MP 3.5.16 API | `TEST-009`-`011`,`TEST-051` | no dependency drift |
 | `REQ-020` | `UC-001`,`UC-006` | docs/§8,§16 | existing docs remain | bilingual README | `TEST-048` | synchronized examples/limits |
 | `REQ-021` | `UC-006` | tests/§8,§14 | no test module | Starter src/test | `TEST-047`,`TEST-050` | tests packaged correctly |
 | `REQ-022` | `UC-006` | validation/§14 | live DB/runtime unverified | N/A frontend/production schema | `TEST-052` | no service process |
-| `REQ-023` | `UC-006` | worktree/§16,§18 | parallel common-core/gateway/rpc changes preserved | path-limited diff | `TEST-052` | status/diff evidence |
+| `REQ-023` | `UC-006` | worktree/§16,§18 | parallel common-core/yuheng/rpc changes preserved | path-limited diff | `TEST-052` | status/diff evidence |
 | `REQ-024` | `UC-007` | EgonModel/§8-§10 | no downgrade/fake old Model | `INTERNAL-059`-`064` + 8 inherited AR | `TEST-049`,`TEST-053`-`058` | 14 AR parity and six final templates |
 | `REQ-025` | `UC-002`,`UC-007` | common fields/fill/groups/§9,§10 | consumer business columns remain owned | 7 EgonModel fields | `TEST-012`,`TEST-039`,`TEST-040`,`TEST-062`,`TEST-063`,`TEST-069` | exact annotations/non-null persisted state; is_deleted |
 | `REQ-026` | `UC-008` | common-core validation/§8-§10 | no Spring/runtime provider in core | `INTERNAL-065` | `TEST-059`-`061`,`TEST-075` | manual API/group/boundary pass |

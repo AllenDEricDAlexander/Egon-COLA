@@ -42,7 +42,7 @@
 | --- | --- | --- | --- | --- |
 | Primary and consolidated effective contract | [MyBatis-Plus unification](../spec/2026-08-25-19-09-archetype-mybatis-plus-unification.md) | `Review` / 2026-08-25 22:28；本轮修复阻断 | 全文 `REQ-001`-`REQ-026`、`DEC-001`-`DEC-007`、21 表、46 tests、Manual Checks | 唯一执行需求命名空间；已把下列历史设计的适用部分、修订和冲突收敛为一份当前合同 |
 | Incorporated accepted dependency | [Common MyBatis-Plus Starter](../spec/2026-08-19-16-11-common-mybatis-plus-starter.md) | `Accepted` / 2026-08-21 14:50 | 现有 Starter API、57-method parity、TenantLine、MetaFill、Validation；primary 仅修订 ServiceImpl constructor seam，并明确 EgonModel 不增加 Lombok builder | 证明复用能力；不重新执行已完成的 Starter 创建工作，也不复活已漂移的 `AbstractModel` 文本 |
-| Incorporated amended predecessor | [Open-source archetype family](../spec/2026-08-23-16-43-open-source-archetype-family.md) | `Review` / 2026-08-23 19:42；实现已存在 | Open 模块、Protobuf/Triple、manual SQL、外部 Gateway、生成验证边界；持久依赖/Service/PO/DAO/tenant 合同由 primary 覆盖 | 保留 Open 的非持久化产品边界，不执行旧 Plan |
+| Incorporated amended predecessor | [Open-source archetype family](../spec/2026-08-23-16-43-open-source-archetype-family.md) | `Review` / 2026-08-23 19:42；实现已存在 | Open 模块、Protobuf/Triple、manual SQL、外部 Yuheng、生成验证边界；持久依赖/Service/PO/DAO/tenant 合同由 primary 覆盖 | 保留 Open 的非持久化产品边界，不执行旧 Plan |
 | Living architecture context | `egon-cola-archetypes/egon-cola-archetype-light/large-monolith-light-domain-architecture.md`；`egon-cola-archetypes/egon-cola-archetype-service/student-management-service-only-rpc-mq-architecture.md`；`egon-cola-archetypes/egon-cola-archetype-web/multi-project-multi-module-architecture.md` | repository living docs | Light 单模块；Service/Web 七模块；domain-first bounded context、入口边界 | 决定文件归属和依赖方向；相关章节由 primary 明确修订 |
 | Code-style dependency | `egon-cola-archetypes/open-source-archetype-code-style.md` | repository guide | 除 domain/MP 依赖这一行外的 package/module ownership、mapper safety、manual SQL review | 约束 Open 代码；旧的 domain 禁 MP 条目被用户 `DEC-001/REQ-003` 明确覆盖 |
 
@@ -248,7 +248,7 @@ egon-cola-archetypes/
 - Applicable instructions：本线程用户提供的 root `AGENTS.md`；仓库内 `rg --files -g AGENTS.md` 未发现更深层文件。
 - Branch/commit：`main@3be897e5cb4781890bfbac3104512e6e73bb943a`。
 - Interrupted Step 1 state：六个 Common main/test 文件存在未提交实验改动；其中 `EgonModel`/`TestBusinessModel` 的 SuperBuilder 分支已由 `ModelBuilder` 编译错误判定无效。恢复执行时只能在 Step 1 内纠正这些现有改动，不得把失败分支提交，也不得用 broad reset/checkout 覆盖其他用户改动。
-- 必须保留且不得 stage/commit：现有 IdP Spec/Plan 修改、Access Guard/Open/RBAC3/Gateway Specs/Plans，包括并不限于 `docs/egon/spec/2026-08-25-19-01-gateway-openapi31-source-refactor.md`、`docs/egon/spec/2026-08-25-19-43-gateway-openapi-group-aggregation-amendment.md`。
+- 必须保留且不得 stage/commit：现有 Tianquan-Shoubing Spec/Plan 修改、Access Guard/Open/Tianquan-Jianshen/Yuheng Specs/Plans，包括并不限于 `docs/egon/spec/2026-08-25-19-01-yuheng-openapi31-source-refactor.md`、`docs/egon/spec/2026-08-25-19-43-yuheng-openapi-group-aggregation-amendment.md`。
 - 每个 Step 使用 `git status --short`、显式 `git add -- <Step paths>`、`git diff --cached --name-only`；不使用 broad add/reset/checkout。
 - 不修改 generated `target/**`；archetype source of truth 是 `src/main/resources/archetype-resources`、metadata 和 `verify.groovy`。
 
@@ -262,7 +262,7 @@ egon-cola-archetypes/
 | Archetype per module | `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -pl egon-cola-archetype-NAME -am clean integration-test` | named generated project + verify.groovy pass | generated static/H2 |
 | Full archetype | `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml clean integration-test` | all eight reactor modules success | generated static/H2 |
 | PostgreSQL | user-controlled disposable PostgreSQL/manual review after implementation | not required for Plan or default static gate | runtime/DBA external |
-| External systems | Redis/RabbitMQ/Nacos/Dubbo/Gateway/browser/Docker | not started automatically | user runtime external |
+| External systems | Redis/RabbitMQ/Nacos/Dubbo/Yuheng/browser/Docker | not started automatically | user runtime external |
 
 ### 6.3 Immutable constraints and approved decisions
 
@@ -628,7 +628,7 @@ add archunit-junit5 1.4.2 in test scope only; keep compiler Lombok/MapStruct pro
 - Verification contribution: dependency tree、architecture testCompile、Mapper context。
 - After this file: compile仍RED，因old JPA sources and missing DAO；dependency基础已正确。
 
-#### File 3 — `RENAME egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/domain/{user,teaching}/{service,client,gateway,event}/**`
+#### File 3 — `RENAME egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/domain/{user,teaching}/{service,client,yuheng,event}/**`
 
 - Purpose: 固定5个generic persistence Service并将cache/query/publisher ports移出service package。
 - Symbols: `User/Role/Permission/Course/SchoolClassDomainService<P extends EgonModel<P>>`；`User/CourseCachePort`、`User/TeachingQueryGateway`、event publishers及消费者imports。
@@ -639,7 +639,7 @@ add archunit-junit5 1.4.2 in test scope only; keep compiler Lombok/MapStruct pro
 - Input/output and state mapping: commands/domain entities/events Long一对一；tenant不加参数；cache key/event ref ID变Long。
 - Error and edge behavior: inherited CRUD禁止application跨边界滥用由architecture/verifier scan；missing/nonpositive IDs在owning validation boundary失败。
 - Standards impact: `MC-NAME-001`,`MC-VALID-001`,`MC-PATTERN-001`,`MC-ARCH-001` — 语义suffix和domain contract精确，无新层。
-- Literal rule enforcement: `Rule 1`,`Rule 2`,`Rule 9`,`Rule 11` — Service only含Egon Service，其他ports使用Port/Gateway/Event角色。
+- Literal rule enforcement: `Rule 1`,`Rule 2`,`Rule 9`,`Rule 11` — Service only含Egon Service，其他ports使用Port/Yuheng/Event角色。
 - Implementation pseudocode:
 
 ```java
@@ -792,7 +792,7 @@ metadata/verifier require DAO/PO/ServiceImpl/XML/new migrations and forbid JPA/U
 - Failure returns to: File 1 architecture，Files 3-4 contracts/validation，Files 5-6 persistence，File 7 schema，File 8 route/config/generation。
 - Completion criteria: one generated Light project独立可`clean verify`，8 PO/DAO、5 Service pair、Long/wire/tenant/schema全部有proof。
 - Rollback: application/source可revert本Step；已执行新migration后不得回旧UUID/JPA writer，只能forward-fix/restore新app。
-- Commit paths: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/architecture/LightPersistenceArchitectureTest.java`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/{pom.xml,lombok.config,src/main/java/start/StudentManagementApplication.java}`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/domain/{user,teaching}/{service,client,gateway,event}/**`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/{adapter,facade,application,domain}/**/*{DTO,VO,Request,Command,Query,Event,Entity,Controller,Resolver,Facade,Manage,Validator}.java`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/{domain/{user,teaching}/repos,infrastructure/{user,teaching}/repo/{jpa,impl}}/**`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/{java/infrastructure/{user,teaching}/{repo/dao,service/impl},resources/mybatis/mapper/{user,teaching}}/**`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/{master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql,shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql}`; `egon-cola-archetypes/egon-cola-archetype-light/{src/main/resources/archetype-resources/src/main/{java/infrastructure/config/datasource/**,resources/{application.yml,application-dev.yml,application-test.yml,application-prod.yml,sharding/shardingsphere-sharding.yml,sharding/shardingsphere-sharding-readwrite.yml}},src/main/resources/META-INF/maven/archetype-metadata.xml,src/test/resources/projects/basic/verify.groovy,src/main/resources/archetype-resources/README.md,src/main/resources/archetype-resources/README.zh-CN.md,large-monolith-light-domain-architecture.md}`
+- Commit paths: `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/test/java/architecture/LightPersistenceArchitectureTest.java`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/{pom.xml,lombok.config,src/main/java/start/StudentManagementApplication.java}`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/domain/{user,teaching}/{service,client,yuheng,event}/**`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/{adapter,facade,application,domain}/**/*{DTO,VO,Request,Command,Query,Event,Entity,Controller,Resolver,Facade,Manage,Validator}.java`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/java/{domain/{user,teaching}/repos,infrastructure/{user,teaching}/repo/{jpa,impl}}/**`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/{java/infrastructure/{user,teaching}/{repo/dao,service/impl},resources/mybatis/mapper/{user,teaching}}/**`; `egon-cola-archetypes/egon-cola-archetype-light/src/main/resources/archetype-resources/src/main/resources/db/migration/sharding/{master-data/V20260825_001__migrate_light_master_data_to_egon_model.sql,shard/V20260825_002__migrate_light_sharded_to_tenant_model.sql}`; `egon-cola-archetypes/egon-cola-archetype-light/{src/main/resources/archetype-resources/src/main/{java/infrastructure/config/datasource/**,resources/{application.yml,application-dev.yml,application-test.yml,application-prod.yml,sharding/shardingsphere-sharding.yml,sharding/shardingsphere-sharding-readwrite.yml}},src/main/resources/META-INF/maven/archetype-metadata.xml,src/test/resources/projects/basic/verify.groovy,src/main/resources/archetype-resources/README.md,src/main/resources/archetype-resources/README.zh-CN.md,large-monolith-light-domain-architecture.md}`
 - Commit: `refactor(archetype-light): migrate persistence to common mybatis plus`
 
 ### Step 4 — 将 Light Open 收敛到同一 Common MP合同

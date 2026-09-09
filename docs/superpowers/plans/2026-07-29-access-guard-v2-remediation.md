@@ -27,7 +27,7 @@
 - Make governed constructors fail closed before the Access Guard runtime is ready; constructors never support TimeLimiter, fallback, `returnJson`, `returnNull`, or instance state.
 - Do not implement or configure ConcurrencyLimit in V2.
 - Keep Reactor, Redisson, Micrometer, and Actuator optional; absence of an unselected capability must not break Starter loading.
-- Do not add JPA, database, Flyway, MQ, Hystrix, or direct DDC/Nacos dependencies.
+- Do not add JPA, database, Flyway, MQ, Hystrix, or direct Tianshu/Nacos dependencies.
 - Do not edit existing Flyway migrations or start an application/service during validation.
 - Preserve unrelated worktree changes. Each task ends with one scoped commit; do not push or create a pull request.
 - Treat Maven/static evidence as process-local proof only; report real Redis, multi-JVM, proxy, and cancellation evidence separately.
@@ -757,7 +757,7 @@ git commit -m "feat(access-guard): implement unified guard engine"
 
 **Interfaces:**
 - Consumes: Task 1 invocation/outcome, Task 2 execution config, Task 6 Engine, and Spring-managed Jackson.
-- Produces: caller observe-only, bounded platform pool, managed virtual-thread execution, startup-validated MethodHandles, THROW/FALLBACK/RETURN_JSON/RETURN_NULL, and accurate timeout/fallback outcomes.
+- Produces: caller observe-only, bounded xingyuan pool, managed virtual-thread execution, startup-validated MethodHandles, THROW/FALLBACK/RETURN_JSON/RETURN_NULL, and accurate timeout/fallback outcomes.
 
 - [ ] **Step 1: Write failing execution-resolution tests**
 
@@ -1085,7 +1085,7 @@ void completionStageReturnsImmediatelyAndComposesTimeout() {
 }
 ```
 
-Also test reactive fallback shape, rejection as error, Flux cancellation, business exception, final result only after termination, Reactor-absent context loading, and no submission to platform TimeLimiter executors.
+Also test reactive fallback shape, rejection as error, Flux cancellation, business exception, final result only after termination, Reactor-absent context loading, and no submission to xingyuan TimeLimiter executors.
 
 - [ ] **Step 2: Run async/reactive tests and verify RED**
 
@@ -1100,7 +1100,7 @@ Expected: compilation fails before optional Reactor executor/dependencies are ad
 
 - [ ] **Step 3: Implement optional nonblocking adapters**
 
-Declare `reactor-core` optional and `reactor-test` test-scoped. `ReactorGuardExecutor` uses `Mono.defer`/`Flux.defer`, native `timeout`, `onErrorResume` for configured fallback, and `doOnEach`/`doFinally` only to finalize one outcome. It never calls `block`, `subscribe`, `Future.get`, or the platform/virtual TimeLimiter.
+Declare `reactor-core` optional and `reactor-test` test-scoped. `ReactorGuardExecutor` uses `Mono.defer`/`Flux.defer`, native `timeout`, `onErrorResume` for configured fallback, and `doOnEach`/`doFinally` only to finalize one outcome. It never calls `block`, `subscribe`, `Future.get`, or the xingyuan/virtual TimeLimiter.
 
 `CompletionStageGuardExecutor` composes `orTimeout`/`handle` without blocking. Advisor checks declared return type and delegates only when the relevant adapter Bean exists; an explicitly reactive rule without Reactor fails startup.
 

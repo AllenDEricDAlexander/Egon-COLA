@@ -466,7 +466,7 @@ configurationFingerprint
 `rules` 使用 `Map<String, RuleProperties>`，禁止继续用 List 扫描并允许重复 ruleId。
 
 动态能力通过 `GuardPlanSource` SPI 提供当前快照和变更订阅。Starter 提供 properties source，
-配置中心通过业务方自定义 Bean 接入；Access Guard 不直接依赖 DDC/Nacos。多个动态 Source 同时存在
+配置中心通过业务方自定义 Bean 接入；Access Guard 不直接依赖 Tianshu/Nacos。多个动态 Source 同时存在
 且没有显式优先级时启动失败，不能按 Bean 注册顺序选取。
 
 ### 11.4 状态版本

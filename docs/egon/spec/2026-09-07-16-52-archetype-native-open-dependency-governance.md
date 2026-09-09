@@ -13,21 +13,21 @@
 | Owner | `用户 / Egon-COLA 维护者` |
 | Repository | `Egon-COLA` |
 | Scope | `pom.xml`、`egon-cola-components`、`egon-cola-xingyuan`、`egon-cola-archetypes` 七个 source project、definitions、生成脚本与 archetype verifier |
-| Change Surface | 依赖管理、parent/BOM 继承、原生 DDC/RPC/API Doc 能力边界、`-open` 外部 Spring 体系边界、源码配置/测试/Compose/verifier 一致性、generated POM parent 规范化 |
+| Change Surface | 依赖管理、parent/BOM 继承、原生 Tianshu/RPC/API Doc 能力边界、`-open` 外部 Spring 体系边界、源码配置/测试/Compose/verifier 一致性、generated POM parent 规范化 |
 | Affected Chapters | `§7, §8, §9, §10, §13, §14, §15, §16` |
-| Source Requirement | 用户关于 Spring Boot parent、Spring Cloud/Alibaba、ShardingSphere、commons-lang3、Components BOM、DDC/RPC/API Doc、`-open` 外部体系及原生 archetype 依赖解耦的确认请求 |
+| Source Requirement | 用户关于 Spring Boot parent、Spring Cloud/Alibaba、ShardingSphere、commons-lang3、Components BOM、Tianshu/RPC/API Doc、`-open` 外部体系及原生 archetype 依赖解耦的确认请求 |
 | Baseline Revision | `main @ dfd24ce3f57f77e2edc8628dac56fe8aba14b87e`，工作区含用户已做的 parent/POM 迁移未提交变更 |
 | Amends | [generated reactor design](2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md) §7.1/§7.2、§8、§14/§16 的 source Boot-parent 归属；[open family](2026-08-23-16-43-open-source-archetype-family.md) §7.0/§7.1/§16 的 parent/Common allowlist 以本 Spec REQ-004/007/009 为准。其余生成、业务和数据库边界保持。 |
 | Supersedes | None |
 | Depends On | [`2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md`](2026-09-03-11-04-archetype-generated-reactor-spring-flyway-design.md) §7、§8、§14、§16、§19、§20 的生成 reactor 与验证约束；[`2026-08-23-16-43-open-source-archetype-family.md`](2026-08-23-16-43-open-source-archetype-family.md) §3、§7、§9、§16 的 `-open` 外部体系边界 |
-| Related Specs | [`2026-08-19-15-36-rpc-runtime-governance-evolution.md`](2026-08-19-15-36-rpc-runtime-governance-evolution.md)；[`2026-08-25-19-01-gateway-openapi31-source-refactor.md`](2026-08-25-19-01-gateway-openapi31-source-refactor.md) |
+| Related Specs | [`2026-08-19-15-36-rpc-runtime-governance-evolution.md`](2026-08-19-15-36-rpc-runtime-governance-evolution.md)；[`2026-08-25-19-01-yuheng-openapi31-source-refactor.md`](2026-08-25-19-01-yuheng-openapi31-source-refactor.md) |
 | Related Plans | [native migration Plan](../plan/2026-09-08-03-30-archetype-native-open-dependency-migration.md) |
 
 ## 1. Summary
 
-当前七个 archetype source project 把 Spring Cloud、Spring Cloud Alibaba、ShardingSphere、commons-lang3 及部分 Springdoc/Dubbo 版本重复写在各自父 POM 中，导致原生 archetype 被 Nacos/Dubbo/Spring Cloud 外部体系耦合；同时 source root 删除 Spring Boot parent 后尚未形成可独立解析的新 parent 链。用户已确认：不以 `-open` 结尾的 `light/service/web` 使用 Egon-COLA 原生 components/platforms 能力，`-open` 保留外部 Spring 体系。
+当前七个 archetype source project 把 Spring Cloud、Spring Cloud Alibaba、ShardingSphere、commons-lang3 及部分 Springdoc/Dubbo 版本重复写在各自父 POM 中，导致原生 archetype 被 Nacos/Dubbo/Spring Cloud 外部体系耦合；同时 source root 删除 Spring Boot parent 后尚未形成可独立解析的新 parent 链。用户已确认：不以 `-open` 结尾的 `light/service/web` 使用 Egon-COLA 原生 components/xingyuan 能力，`-open` 保留外部 Spring 体系。
 
-本 Spec 规定统一的依赖治理与迁移边界：根聚合 POM 继续提供 Spring Boot parent；`egon-cola-archetypes` 继承根 parent 并集中管理 archetype 具体依赖，source/generated archetype parent 继承已发布的 `egon-cola-archetypes-parent`；原生三类移除 Dubbo、Nacos、Spring Cloud/Alibaba 及外部 Springdoc 直连，改接 Egon RPC/DDC/OpenAPI，并为 native facade 新增 Protobuf unary contract；`-open` 继续使用外部 Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC/Protobuf/Springdoc，并保留源码实际使用的 Common/ID/MyBatis/DTP 组件；Agent 不引入 DDC、RPC、Nacos、Dubbo 或 ShardingSphere。
+本 Spec 规定统一的依赖治理与迁移边界：根聚合 POM 继续提供 Spring Boot parent；`egon-cola-archetypes` 继承根 parent 并集中管理 archetype 具体依赖，source/generated archetype parent 继承已发布的 `egon-cola-archetypes-parent`；原生三类移除 Dubbo、Nacos、Spring Cloud/Alibaba 及外部 Springdoc 直连，改接 Egon RPC/Tianshu/OpenAPI，并为 native facade 新增 Protobuf unary contract；`-open` 继续使用外部 Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC/Protobuf/Springdoc，并保留源码实际使用的 Common/ID/MyBatis/DTP 组件；Agent 不引入 Tianshu、RPC、Nacos、Dubbo 或 ShardingSphere。
 
 成功标准是：七个 source root 与 generated archetype 均能独立解析 parent/BOM；原生与 `-open` 的依赖集合和源码/配置/测试边界一致；生成器不会把仓库本地相对 parent 泄漏到用户项目；`mvn` source reactor、generated reactor、archetype verifier 与依赖边界静态门禁通过。本文只写设计，不声称实现或运行时验证已完成。
 
@@ -44,9 +44,9 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | `EVD-001` | Static repository | `pom.xml:7-15, 72-92` | 根聚合 POM 当前继承 `spring-boot-starter-parent:3.5.16`，并导入 `spring-boot-dependencies`。 | 根 parent 是 Spring Boot 版本与基础插件的唯一上游；source root 不应各自再声明 Boot parent。 | 静态证据，不证明尚未提交变更会如何发布。 |
 | `EVD-002` | Static repository | `egon-cola-archetypes/source-projects/egon-cola-source-{light,service,web}/pom.xml` | 原生 source root 重复声明 `spring-cloud-dependencies`、`spring-cloud-alibaba-dependencies`、ShardingSphere、Springdoc、commons-lang3，且 light/service/web 依赖 Dubbo/Nacos。 | 原生 archetype 的外部技术栈耦合和版本漂移已被直接证明。 | 仅覆盖当前 source POM。 |
 | `EVD-003` | Static repository | `egon-cola-archetypes/source-projects/egon-cola-source-{light-open,service-open,web-open}/pom.xml` | `-open` 使用 Spring Cloud/Alibaba、Nacos；service-open/web-open 还使用 Dubbo、gRPC、Protobuf、ShardingSphere；各自维护版本。 | `-open` 外部体系可以保留，但版本归属应从 source root 下沉到 archetype/open 依赖治理层。 | 不证明所有生成项目都已实际启动。 |
-| `EVD-004` | Static repository | `egon-cola-components/egon-cola-components-bom/pom.xml:64-159` | Components BOM 管理 Common、ID、MyBatis-Plus、Dynamic Thread Pool、RPC starter、RPC DDC adapter 等组件。 | 组件版本应通过 BOM 继承，source POM 不再逐个管理版本。 | 静态 BOM 内容。 |
-| `EVD-005` | Static repository | `egon-cola-xingyuan/pom.xml:91-116` | Platforms parent 管理 Springdoc BOM、DDC starter、DDC HTTP registration starter。 | 原生 API Doc/DDC 应依赖平台 starter，而不是直接绑定外部 Springdoc/Nacos。 | 平台 parent 不是生成项目的直接 parent。 |
-| `EVD-006` | Static repository | `egon-cola-components/egon-cola-component-rpc/`、`egon-cola-xingyuan/egon-cola-tianshu/` | 存在 `egon-cola-component-rpc-starter`、`egon-cola-component-rpc-tianshu-adapter`、`egon-cola-tianshu-starter`、`egon-cola-tianshu-http-registration-starter`。 | 具备替换原生 Dubbo/Nacos DDC/RPC wiring 的仓库能力候选。 | 仅证明模块和符号存在，不证明目标接线已完成。 |
+| `EVD-004` | Static repository | `egon-cola-components/egon-cola-components-bom/pom.xml:64-159` | Components BOM 管理 Common、ID、MyBatis-Plus、Dynamic Thread Pool、RPC starter、RPC Tianshu adapter 等组件。 | 组件版本应通过 BOM 继承，source POM 不再逐个管理版本。 | 静态 BOM 内容。 |
+| `EVD-005` | Static repository | `egon-cola-xingyuan/pom.xml:91-116` | Platforms parent 管理 Springdoc BOM、Tianshu starter、Tianshu HTTP registration starter。 | 原生 API Doc/Tianshu 应依赖平台 starter，而不是直接绑定外部 Springdoc/Nacos。 | 平台 parent 不是生成项目的直接 parent。 |
+| `EVD-006` | Static repository | `egon-cola-components/egon-cola-component-rpc/`、`egon-cola-xingyuan/egon-cola-tianshu/` | 存在 `egon-cola-component-rpc-starter`、`egon-cola-component-rpc-tianshu-adapter`、`egon-cola-tianshu-starter`、`egon-cola-tianshu-http-registration-starter`。 | 具备替换原生 Dubbo/Nacos Tianshu/RPC wiring 的仓库能力候选。 | 仅证明模块和符号存在，不证明目标接线已完成。 |
 | `EVD-007` | Static repository | `scripts/generate_archetypes.sh:430-580` | 生成器复制 source POM、替换 group/artifact/version/package，并生成 `.generated` reactor；当前主要处理源码 sentinel 与路径清理。 | parent 规范化必须成为生成器的显式步骤，不能依赖 source 相对路径。 | 生成行为需改造后再验证。 |
 | `EVD-008` | Static repository | `egon-cola-archetypes/definitions/*/archetype.properties` | 七个定义映射到七个 source root，分别声明 root 或多模块 topology。 | 每个 archetype 必须共享同一 parent/BOM 规则且保持现有 topology。 | 不证明 generated 资源当前与 source 完全一致。 |
 | `EVD-009` | Static repository | 原生源码 `@EnableDubbo`、`@DubboService`、`@DubboReference`、Nacos 配置、Triple 测试与 Compose；`-open` 同类符号及 `GrpcEvaluationQueryClient` | 原生项目仍有外部 RPC/注册中心痕迹；`-open` 有明确外部 Triple/gRPC 使用。 | 原生迁移不是简单删依赖，必须同步源码、配置、测试、Compose、verifier；`-open` 不应被误改。 | 静态调用链证据，未运行应用。 |
@@ -58,9 +58,9 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 
 目标 gap 是依赖管理层、架构能力层和生成层三者一致：
 
-1. `light/service/web` 只携带被源码实际使用的 Egon components/platforms 与基础 Spring Boot 能力。
+1. `light/service/web` 只携带被源码实际使用的 Egon components/xingyuan 与基础 Spring Boot 能力。
 2. `light-open/service-open/web-open` 保留外部体系，但不因 `-open` 而删除 Common/ID/MyBatis/DTP 等已被源码使用的 COLA 组件。
-3. Agent 保持 Spring AI/Google ADK/Agent Flow，不能因为“所有 archetype 共用 BOM”而自动引入 DDC/RPC/Nacos/ShardingSphere。
+3. Agent 保持 Spring AI/Google ADK/Agent Flow，不能因为“所有 archetype 共用 BOM”而自动引入 Tianshu/RPC/Nacos/ShardingSphere。
 4. 版本只在正确的 owner POM/BOM 出现，generated POM 使用发布坐标而不是仓库相对路径；native facade 具有可被 Egon RPC validator 接受的 Protobuf unary 合约。
 
 ### 2.4 Evidence and current-chain map
@@ -69,7 +69,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | --- | --- | --- | --- | --- | --- |
 | Source parent resolution | source root POM -> child module POM -> dependency/plugin management | Maven model | 当前无 parent；各 root 自持版本 | source reactor、生成器 | `source-projects/egon-cola-source-*/pom.xml` |
 | 原生 RPC/注册 | starter `@EnableDubbo` -> `@DubboService`/`@DubboReference` -> Nacos/Dubbo runtime | provider/consumer metadata、配置 | Dubbo、Nacos | light/service/web、测试、Compose | `rg '@(EnableDubbo|DubboService|DubboReference)'` |
-| 原生 DDC/API Doc 目标 | source POM -> Egon component/platform starter -> auto-configuration | DDC registration/config、OpenAPI metadata | Egon COLA components/platforms | 原生生成项目 | `egon-cola-components-bom/pom.xml`、`egon-cola-xingyuan/pom.xml` |
+| 原生 Tianshu/API Doc 目标 | source POM -> Egon component/xingyuan starter -> auto-configuration | Tianshu registration/config、OpenAPI metadata | Egon COLA components/xingyuan | 原生生成项目 | `egon-cola-components-bom/pom.xml`、`egon-cola-xingyuan/pom.xml` |
 | `-open` 外部 RPC | Triple provider/client -> Dubbo annotation/generated Triple -> external registry/config | RPC request/response、group/version | Dubbo Triple、gRPC/Protobuf | service-open/web-open | `*open*/adapter`、`GrpcEvaluationQueryClient` |
 | Archetype generation | definition manifest -> `create-from-project` -> `normalize_generated_product` -> `.generated` reactor | generated POM/resources/manifests | Maven Archetype plugin | seven definition modules、IT verifier | `scripts/generate_archetypes.sh` |
 
@@ -80,7 +80,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 - 统一根、archetype、source、generated 的 parent/BOM 责任。
 - 将 `egon-cola-components-bom` 引入 archetype 层，覆盖 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 等跨 archetype 组件版本。
 - 将 ShardingSphere 版本集中到 archetype 层；commons-lang3 不再由 archetype 管理版本。
-- 原生 `light/service/web` 采用 Egon COLA 原生 DDC、RPC、API Doc 能力，移除无用的 Dubbo/Nacos/Spring Cloud/Alibaba/Springdoc 直连。
+- 原生 `light/service/web` 采用 Egon COLA 原生 Tianshu、RPC、API Doc 能力，移除无用的 Dubbo/Nacos/Spring Cloud/Alibaba/Springdoc 直连。
 - `-open` 保留外部 Spring Cloud/Alibaba、Nacos、Dubbo/Triple、gRPC/Protobuf、外部 ShardingSphere/Springdoc 能力，并继续使用源码需要的 COLA 基础组件。
 - Agent 只保留 Spring AI、Google ADK、Agent Flow 及源码使用的基础组件。
 - 让生成器、generated parent、source parent、verifier、配置与测试对同一技术栈边界负责。
@@ -90,7 +90,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 - 不在本 Spec 中实现 POM、源码、配置、测试或生成产物。
 - 不重写 `-open` 的外部 RPC 协议、Triple IDL、gRPC/Protobuf 合约。
 - 不改变业务 HTTP 路由、DTO/VO、数据库 schema、Flyway 历史迁移或业务语义。
-- 不把 Agent 改造成 DDC/RPC archetype，也不为“所有 archetype 统一”而引入无消费者依赖。
+- 不把 Agent 改造成 Tianshu/RPC archetype，也不为“所有 archetype 统一”而引入无消费者依赖。
 - 不启动应用、Nacos、数据库、Compose 或外部基础设施；运行时连接性留给实施后的验证。
 
 ### 3.3 Change Surface and Design Depth
@@ -101,11 +101,11 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | Archetype parent/BOM | Affected | `egon-cola-archetypes/pom.xml` | 新增 components BOM、平台版本与 ShardingSphere owner | 完整依赖职责设计 | `§7, §8, §13, §14` |
 | 七个 source root POM | Affected | `source-projects/egon-cola-source-*/pom.xml` | parent、dependencyManagement、直接依赖和 profile 边界调整 | 完整矩阵与删除/保留规则 | `§7, §8, §13, §14` |
 | Source child module POM | Affected | `source-projects/egon-cola-source-*/*/pom.xml` | 继承既有 root，移除组件显式版本；native adapter/infrastructure/starter 同步替换 transport/API Doc 依赖 | 精确文件归属和分阶段依赖切换 | `§7, §8, §14, §16` |
-| Native RPC/DDC/API Doc source/config/test | Affected | 原生 source Java/resources/test/compose | 从 Dubbo/Nacos/Springdoc 直连迁移到 Egon 能力；业务契约保持 | 目标协作、失败语义、验证 | `§7, §9, §14, §15` |
+| Native RPC/Tianshu/API Doc source/config/test | Affected | 原生 source Java/resources/test/compose | 从 Dubbo/Nacos/Springdoc 直连迁移到 Egon 能力；业务契约保持 | 目标协作、失败语义、验证 | `§7, §9, §14, §15` |
 | `-open` RPC/Cloud/config/test | Context-only | `*-open*/` Dubbo/Triple/gRPC/Nacos 文件 | 外部体系保持，版本归属集中 | 明确保留边界与回归检查 | `§7, §16` |
 | Shared native facade contracts | Affected | `egon-cola-archetypes/egon-cola-{organization,evaluation}-facade`、light `facade/rpc` | 新增 31 个 unary 协议操作和 Java 接口、MapStruct/BaseConverter；既有业务签名保持 | §7.4/§9/§10 完整合约及转换 | `§7, §8, §9, §10, §14, §16` |
 | Components utility version owner | Affected | `egon-cola-components/pom.xml`、`egon-cola-components-bom/pom.xml` | Components BOM 导出 Core 的 Commons Lang 3.20.0；root 使用 Boot 同名 property 做全局版本桥接并检查二者相等；archetype 不自持版本 | 导出管理项、版本兼容、effective model 测试 | `§7, §8, §14, §16` |
-| Agent runtime | Affected | `source-agent/pom.xml`、Agent modules | 无 DDC/RPC/Nacos/ShardingSphere；保留 AI/ADK/Agent Flow | 依赖必要性与 verifier | `§7, §8, §14` |
+| Agent runtime | Affected | `source-agent/pom.xml`、Agent modules | 无 Tianshu/RPC/Nacos/ShardingSphere；保留 AI/ADK/Agent Flow | 依赖必要性与 verifier | `§7, §8, §14` |
 | Generated resource POM | Affected | `scripts/generate_archetypes.sh`, `.generated` | parent 使用发布坐标，禁止仓库相对路径 | 生成器规则和 deterministic check | `§7, §8, §14, §16` |
 | Definitions/metadata/verifier | Affected | `egon-cola-archetypes/definitions/**` | verifier 反映 native/open/agent 依赖边界 | 目标文件、静态 gate | `§8, §14` |
 | Public business HTTP API | Unchanged | archetype adapters/controllers | 路由、JSON、错误模型不变 | 只记录边界和回归验证 | `§9` |
@@ -116,14 +116,14 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 
 | ID | Atomic requirement | Priority | Observable acceptance criteria | Source |
 | --- | --- | --- | --- | --- |
-| `REQ-001` | 原生 `light/service/web` 使用 Egon COLA 原生 DDC/RPC/API Doc 能力 | Must | source/generated POM 无原生 Dubbo/Nacos/Spring Cloud/Alibaba/Springdoc 直连；目标 starter 来自 components/platforms | 用户确认的原生能力边界 |
+| `REQ-001` | 原生 `light/service/web` 使用 Egon COLA 原生 Tianshu/RPC/API Doc 能力 | Must | source/generated POM 无原生 Dubbo/Nacos/Spring Cloud/Alibaba/Springdoc 直连；目标 starter 来自 components/xingyuan | 用户确认的原生能力边界 |
 | `REQ-002` | `-open` 保留外部 Spring 体系 | Must | `-open` 保留 Cloud/Alibaba、Nacos、Dubbo/Triple、外部 gRPC/Protobuf、外部 Springdoc/ShardingSphere 的源码和依赖 | 用户确认“`-open` 可以保留” |
-| `REQ-003` | Agent 不引入无用 DDC/RPC/Nacos/Dubbo/ShardingSphere | Must | Agent 的 dependency tree、配置、verifier 均无这些能力；Spring AI/ADK/Agent Flow 可解析 | 用户需求与源码能力边界 |
+| `REQ-003` | Agent 不引入无用 Tianshu/RPC/Nacos/Dubbo/ShardingSphere | Must | Agent 的 dependency tree、配置、verifier 均无这些能力；Spring AI/ADK/Agent Flow 可解析 | 用户需求与源码能力边界 |
 | `REQ-004` | Components BOM 负责组件版本 | Must | 每个 archetype source root 通过 `egon-cola-components-bom` 获取 Common/ID/MyBatis/DTP/RPC 等版本，不逐个写版本 | 用户关于 components BOM 的确认 |
 | `REQ-005` | ShardingSphere 版本集中在 archetype 层 | Must | source root 不再声明 `${shardingsphere.version}`；需要的模块无显式版本，版本由 archetype parent 管理 | 用户原始迁移请求 |
 | `REQ-006` | commons-lang3 不由 archetype 版本管理 | Must | 删除 `commons-lang3.version` 与直接版本；Common Core 提供传递依赖，源码有真实使用时只声明无版本依赖 | 用户原始迁移请求 |
 | `REQ-007` | Spring Boot parent 继承链可解析 | Must | root、source root、generated root 在干净 Maven 本地仓库中按发布坐标解析；generated POM 不依赖仓库相对路径 | parent 迁移目标 |
-| `REQ-008` | 原生 RPC/DDC 迁移同步源码、配置、测试、Compose、verifier | Must | `rg` 不再命中原生 Dubbo/Nacos 残留；native verifier 检查 Egon starter/config/test | 当前静态证据 EVD-009 |
+| `REQ-008` | 原生 RPC/Tianshu 迁移同步源码、配置、测试、Compose、verifier | Must | `rg` 不再命中原生 Dubbo/Nacos 残留；native verifier 检查 Egon starter/config/test | 当前静态证据 EVD-009 |
 | `REQ-009` | `-open` 源码所需 COLA 基础组件不因外部化而删除 | Must | `EgonModel`、`EgonColaServiceImpl`、`LongIdGenerator`、DTP、`BaseConverter` 的依赖仍可解析 | 当前源码消费者证据 |
 | `REQ-010` | 生成脚本维持 topology、变量替换、原子发布和确定性 | Must | `generate`/`check`、generated reactor、七个 verifier 通过；source parent sentinel 不泄漏 | 既有生成 Spec 与脚本 |
 | `REQ-011` | native facade 迁移为 Egon RPC 可验证的 Protobuf unary contract | Must | native facade 有对应 `.proto`、生成 gRPC 类型、`@EgonRpcService(grpcClass=...)`/`@EgonRpcMethod`；`RpcContractValidator` 和 provider/consumer tests 通过 | 用户确认“非 open 迁移到 egon-cola-rpc，允许新增 protobuf” |
@@ -132,11 +132,11 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 
 | Scenario | Actor/trigger | Preconditions | Main path | Alternative/failure path | Data/state change | Observable result | Requirements |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Native source compile | Archetype maintainer runs source reactor | 本地/远程仓库含目标 parent/BOM | Maven 解析 root -> source parent -> components/platforms BOM -> modules | 缺失发布 parent 或 BOM 时 fail fast，不能回退到仓库相对路径 | 仅 `target` 构建产物 | native source compile/test succeeds | `REQ-001, REQ-004, REQ-007` |
-| Native runtime wiring scan | Maintainer runs static search/verifier | native source/config/test 已按目标修改 | verifier 检查 native starter、DDC properties、RPC provider/consumer、API Doc starter | 命中 Dubbo/Nacos/Spring Cloud 残留时失败并列出文件 | 无持久化变化 | 明确指出技术栈边界违规 | `REQ-001, REQ-008` |
+| Native source compile | Archetype maintainer runs source reactor | 本地/远程仓库含目标 parent/BOM | Maven 解析 root -> source parent -> components/xingyuan BOM -> modules | 缺失发布 parent 或 BOM 时 fail fast，不能回退到仓库相对路径 | 仅 `target` 构建产物 | native source compile/test succeeds | `REQ-001, REQ-004, REQ-007` |
+| Native runtime wiring scan | Maintainer runs static search/verifier | native source/config/test 已按目标修改 | verifier 检查 native starter、Tianshu properties、RPC provider/consumer、API Doc starter | 命中 Dubbo/Nacos/Spring Cloud 残留时失败并列出文件 | 无持久化变化 | 明确指出技术栈边界违规 | `REQ-001, REQ-008` |
 | Native RPC contract validation | Maintainer runs native contract tests | native `.proto` and generated gRPC classes are available | provider/consumer adapters invoke unary methods and `RpcContractValidator` checks `grpcClass`/method descriptors | descriptor mismatch, non-unary method, or DTO mapping drift fails before release | generated contract/test artifacts only | native facade transport is Egon RPC-compatible without changing business DTO semantics | `REQ-001, REQ-008, REQ-011` |
 | Open source compatibility | Maintainer builds `-open` family | external BOMs and coordinates available | resolve Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC/Protobuf plus required COLA components | external artifact unavailable 时构建失败，不能偷偷切 native | 无业务状态变化 | `-open` compile/tests preserve contracts | `REQ-002, REQ-009` |
-| Agent minimal dependency | Maintainer builds agent | Spring AI/ADK/Agent Flow BOM available | resolve agent modules and platform OpenAPI starter | accidental DDC/RPC/Nacos/ShardingSphere hit fails verifier | 无业务状态变化 | dependency tree contains only needed stack | `REQ-003` |
+| Agent minimal dependency | Maintainer builds agent | Spring AI/ADK/Agent Flow BOM available | resolve agent modules and xingyuan OpenAPI starter | accidental Tianshu/RPC/Nacos/ShardingSphere hit fails verifier | 无业务状态变化 | dependency tree contains only needed stack | `REQ-003` |
 | Generated project creation | Archetype consumer runs Maven archetype generate | published archetype and aggregation parent available | definition -> generated resources -> project POM with `<relativePath/>` | source-local relative parent or sentinel remains -> generation gate fails | generated files only | generated project can resolve from repository | `REQ-007, REQ-010` |
 | Duplicate/retry generation | CI runs `generate` then `check` concurrently/repeatedly | existing `.generated` set | lock/staging/atomic publish then hash comparison | lock conflict, interrupted staging, hash drift -> cleanup and fail | `.generated` replacement is atomic | deterministic, no partial set | `REQ-010` |
 
@@ -149,7 +149,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | `ACTOR-001` | Archetype maintainer | 维护依赖边界、版本 owner 和源码模板 | Git/Maven/scripts | 仓库维护权限 | 用户请求、POM、脚本 |
 | `ACTOR-002` | Archetype consumer | 生成并构建目标项目 | Maven Archetype CLI | 用户项目仓库 | `definitions/*`、generated reactor |
 | `ACTOR-003` | CI/release verifier | 检查 generated、依赖和架构约束 | Maven/Shell/Groovy | CI workspace | `scripts/test-*`、`verify.groovy` |
-| `ACTOR-004` | Native runtime | 提供 Egon DDC/RPC/OpenAPI 能力 | Spring Boot auto-configuration | 服务实例身份 | components/platforms starter |
+| `ACTOR-004` | Native runtime | 提供 Egon Tianshu/RPC/OpenAPI 能力 | Spring Boot auto-configuration | 服务实例身份 | components/xingyuan starter |
 | `ACTOR-005` | Open external runtime | 提供 Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC 能力 | Spring Boot/external registry | 外部基础设施配置 | `*-open` 源码与 POM |
 
 #### 4.2.2 Use-case artifact
@@ -158,7 +158,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `UC-001` | 生成可独立解析的 Native archetype | `ACTOR-001` | Maven Central/local repository、`ACTOR-003` | 提交 source/POM 变更 | parent/BOM 版本已确定 | native project 使用 COLA 原生能力且构建可解析 | 依赖缺失、外部技术栈残留、生成 sentinel -> gate fail | 生成物可被消费者使用 | `REQ-001, REQ-004, REQ-007, REQ-008` | `RPC-001`、generated POM | `TEST-001..004` |
 | `UC-002` | 生成保留外部能力的 Open archetype | `ACTOR-002` | Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC | 选择 `*-open` | 外部 BOM/registry 配置存在 | 外部体系与 COLA 基础组件共同解析 | 外部 artifact/IDL 缺失 -> 明确失败 | open contract/配置不变 | `REQ-002, REQ-009` | `RPC-002`（context-only） | `TEST-005..006` |
-| `UC-003` | 维护 Agent 最小依赖集 | `ACTOR-001` | Spring AI、Google ADK、Agent Flow | Agent archetype 构建 | AI/ADK BOM 已发布 | agent 无 DDC/RPC/Nacos/ShardingSphere 冗余 | 依赖误引入 -> verifier fail | agent stack remains minimal | `REQ-003` | None | `TEST-007` |
+| `UC-003` | 维护 Agent 最小依赖集 | `ACTOR-001` | Spring AI、Google ADK、Agent Flow | Agent archetype 构建 | AI/ADK BOM 已发布 | agent 无 Tianshu/RPC/Nacos/ShardingSphere 冗余 | 依赖误引入 -> verifier fail | agent stack remains minimal | `REQ-003` | None | `TEST-007` |
 | `UC-004` | 发布并校验 generated archetype reactor | `ACTOR-003` | Maven Archetype plugin、source definitions | release pipeline | source reactor 和生成资源已通过 | 七个 archetype topology/hash/verifier 通过 | staging/lock/hash error -> 原子回滚 | 无半成品 generated set | `REQ-010` | generated reactor | `TEST-008..010` |
 
 ## 5. Constraints, Assumptions, and Decisions
@@ -167,7 +167,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 
 - 用户在当前会话确认“补齐spec后，逐步实现、验证、提交”。本次先修订本 Spec 和关联 Plan，再按七个 Step 顺序执行；修订和各 Step 均采用路径限定提交。运行时启动与发布仍不授权。
 - `-open` 可以保留外部 Spring 体系；非 `-open` 的原生 archetype 不引入用不上的 Nacos、Dubbo、Spring Cloud/Alibaba。
-- 原生 DDC、RPC、API Doc 必须优先复用 `egon-cola-components` 与 `egon-cola-xingyuan` 的现有能力。
+- 原生 Tianshu、RPC、API Doc 必须优先复用 `egon-cola-components` 与 `egon-cola-xingyuan` 的现有能力。
 - 所有 source root 保持当前 package/topology/业务接口/数据库语义，迁移只扩大到使依赖边界一致所需的源码、配置、测试、Compose 与 verifier。
 - 不修改已有 Flyway migration；本任务无 schema 变更。
 
@@ -184,10 +184,10 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 
 | ID | Decision | Decision owner | Evidence and rationale | Requirements |
 | --- | --- | --- | --- | --- |
-| `DEC-001` | 根 POM 管理全局依赖；`egon-cola-archetypes` 继承根聚合 parent 并管理 archetype 具体依赖；source/generated archetype parent 继承已发布的 `egon-cola-archetypes-parent`。 | 用户/维护者 | 用户确认根负责全局、archetypes/platforms/components 负责具体管理；当前 `egon-cola-archetypes/pom.xml` 已继承 aggregation parent。 | `REQ-004, REQ-007` |
+| `DEC-001` | 根 POM 管理全局依赖；`egon-cola-archetypes` 继承根聚合 parent 并管理 archetype 具体依赖；source/generated archetype parent 继承已发布的 `egon-cola-archetypes-parent`。 | 用户/维护者 | 用户确认根负责全局、archetypes/xingyuan/components 负责具体管理；当前 `egon-cola-archetypes/pom.xml` 已继承 aggregation parent。 | `REQ-004, REQ-007` |
 | `DEC-002` | Components BOM 在 archetype 层统一导入；Common/ID/MyBatis/DTP/RPC 等组件不在每个 source root 单独管理版本。 | 用户/维护者 | `egon-cola-components-bom` 已管理目标组件。 | `REQ-004, REQ-009` |
 | `DEC-003` | ShardingSphere 的版本 owner 放在 archetype 层；commons-lang3 的版本 owner 不在 archetype，Common Core 负责传递版本。 | 用户/维护者 | 用户明确要求；当前 source root 重复声明。 | `REQ-005, REQ-006` |
-| `DEC-004` | 原生 `light/service/web` 使用 Egon DDC/RPC/API Doc，并新增 Protobuf unary 合约迁移到 `egon-cola-rpc`；`-open` 保持外部 Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC/Protobuf；Agent 维持 AI/ADK/Agent Flow。 | 用户/维护者 | 用户确认 `-open` 可保留且 native 采用 A；Egon RPC validator 的 `grpcClass`/Protobuf 约束已核对。 | `REQ-001, REQ-002, REQ-003, REQ-011` |
+| `DEC-004` | 原生 `light/service/web` 使用 Egon Tianshu/RPC/API Doc，并新增 Protobuf unary 合约迁移到 `egon-cola-rpc`；`-open` 保持外部 Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC/Protobuf；Agent 维持 AI/ADK/Agent Flow。 | 用户/维护者 | 用户确认 `-open` 可保留且 native 采用 A；Egon RPC validator 的 `grpcClass`/Protobuf 约束已核对。 | `REQ-001, REQ-002, REQ-003, REQ-011` |
 | `DEC-005` | 生成器负责把 source POM 的 parent 规范化为发布坐标，并保持 generated topology/hash/atomic publish。 | 维护者 | `scripts/generate_archetypes.sh` 当前集中负责 POM 复制和 `.generated` 发布。 | `REQ-007, REQ-010` |
 
 ### 5.4 Open major decisions
@@ -202,9 +202,9 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | Framework | Spring Boot 3.5.16 | root parent/property | Boot parent 只保留在 aggregation root 的发布继承链。 |
 | Dependency build | Maven multi-module + Maven Archetype | root modules、archetype packaging、`scripts/generate_archetypes.sh` | parent/BOM 必须可被 source 与 generated 独立解析。 |
 | Component versioning | `egon-cola-components-bom` | `egon-cola-components/egon-cola-components-bom/pom.xml` | Common/ID/MyBatis/DTP/RPC 版本不得在各 archetype 漂移。 |
-| Platform capability | DDC/OpenAPI starters | `egon-cola-xingyuan/pom.xml` 与 platform module tree | native 依赖平台 starter，不直接复制外部基础设施。 |
+| Platform capability | Tianshu/OpenAPI starters | `egon-cola-xingyuan/pom.xml` 与 xingyuan module tree | native 依赖平台 starter，不直接复制外部基础设施。 |
 | Persistence | MyBatis-Plus、ShardingSphere、Flyway（部分 native） | source POM 与 migration trees | 本 Spec 不改表和 migration；只移动版本管理。 |
-| RPC/config | native Egon RPC/DDC；open external Dubbo/Nacos/Triple | components/platforms 与 source usages | profile 边界必须通过依赖、配置和 verifier 同时表达。 |
+| RPC/config | native Egon RPC/Tianshu；open external Dubbo/Nacos/Triple | components/xingyuan 与 source usages | profile 边界必须通过依赖、配置和 verifier 同时表达。 |
 | Tests | JUnit/Spring tests、Groovy archetype verifier、Shell generation tests | definitions `verify.groovy`、`scripts/test-*` | 先静态/构建/生成验证，运行时验证留实施后。 |
 
 ### 6.1 Java architecture profile and capability baseline
@@ -215,7 +215,7 @@ archetype 是用户生成新项目的依赖与运行时基线。原生 archetype
 | Egon-COLA Service | `egon-cola-archetype-service`, `top.egon.cola.archetype.source.service` | common/domain/application/infrastructure/adapter/starter | 当前 Dubbo/Nacos/ShardingSphere 重复管理 | 保留模块边界，移依赖 owner |
 | Egon-COLA Web | `egon-cola-archetype-web`, `top.egon.cola.archetype.source.web` | same service topology plus web contracts | 当前外部 Cloud/Nacos/Springdoc | 保留模块边界，native 使用平台 API Doc |
 | Egon-COLA Open variants | `*-open` definitions and `top.egon.cola.archetype.source.*open` | open verifier、Triple/gRPC tests | 外部体系是明确变体，不是偏差 | 保留外部 transport/config |
-| Egon-COLA Agent | `egon-cola-archetype-agent` | AI source topology and Agent verifier | 不属于 DDC/RPC archetype | 保留 AI/ADK/Agent Flow，拒绝无用基础设施 |
+| Egon-COLA Agent | `egon-cola-archetype-agent` | AI source topology and Agent verifier | 不属于 Tianshu/RPC archetype | 保留 AI/ADK/Agent Flow，拒绝无用基础设施 |
 
 Reuse/capability ledger:
 
@@ -223,10 +223,10 @@ Reuse/capability ledger:
 | --- | --- | --- | --- | --- | --- |
 | Common/MyBatis-Plus/ID/DTP | Spring/JDK + Boot | existing starters | `egon-cola-components-bom` managed components | None | Reuse BOM-managed components |
 | Native RPC | Spring context only | None sufficient | `egon-cola-component-rpc-starter`, `egon-cola-component-rpc-tianshu-adapter` | Adapter/provider mapping to be implemented | Add/keep native components |
-| Native DDC registration | Spring lifecycle/Actuator | None sufficient | `egon-cola-tianshu-http-registration-starter` | None proven | Add for native services that register HTTP |
-| Native API Doc | Spring MVC/WebFlux | external Springdoc is not native boundary | `yuheng-starter-openapi[-webmvc|-webflux]` | Exact per profile web stack checked in implementation | Reuse platform starter |
+| Native Tianshu registration | Spring lifecycle/Actuator | None sufficient | `egon-cola-tianshu-http-registration-starter` | None proven | Add for native services that register HTTP |
+| Native API Doc | Spring MVC/WebFlux | external Springdoc is not native boundary | `yuheng-starter-openapi[-webmvc|-webflux]` | Exact per profile web stack checked in implementation | Reuse xingyuan starter |
 | Open Cloud/Nacos/Dubbo | External ecosystem | Spring Cloud/Alibaba/Dubbo starters | Not replaceable in open profile | User explicitly preserves | Keep only in `-open` |
-| Agent workflow | Spring AI/Google ADK | Spring AI starters | Agent Flow component | None proven | Keep; no DDC/RPC |
+| Agent workflow | Spring AI/Google ADK | Spring AI starters | Agent Flow component | None proven | Keep; no Tianshu/RPC |
 | ShardingSphere | external library | none | archetype-level dependencyManagement | None | Centralize version, retain actual modules |
 | commons-lang3 | Apache Commons | transitive through Common Core | `egon-cola-component-common-core` | None proven | Remove archetype version ownership |
 
@@ -240,7 +240,7 @@ Reuse/capability ledger:
 | Rule 4 | Yes | source services use Spring-managed components | Changed business/config beans use existing named bean and constructor-injection conventions | native starter/config classes | context wiring test/static scan | PASS |
 | Rule 5 | Yes | commons-lang3 is approved utility but version is transitive | no new utility library; use Common Core-provided commons-lang3 | affected POMs only | dependency tree/import scan | PASS |
 | Rule 6 | Yes | public JSON/API Doc contracts remain unchanged | preserve Jackson/OpenAPI wire semantics; only starter owner changes | controllers/DTOs unchanged | API regression and generated docs check | PASS |
-| Rule 7 | Yes | profile config files exist in source projects | native/open profile keys stay structurally aligned where the same runtime concern exists | `application-*.yml`, DDC/RPC keys | key parity check | PASS |
+| Rule 7 | Yes | profile config files exist in source projects | native/open profile keys stay structurally aligned where the same runtime concern exists | `application-*.yml`, Tianshu/RPC keys | key parity check | PASS |
 | Rule 9 | Yes | 原 RPC Java DTO 与 Egon Protobuf/descriptor 不兼容，跨项目消费合约 | 使用 Adapter 隔离协议转换；框架 factory 负责 proxy/strategy，generator 保留 Pipeline | native provider/client、MapStruct/BaseConverter、既有 RPC factories | 31 operation contract/provider/consumer、错误与上下文测试 | PASS |
 | Rule 10 | Yes | Light ScheduleCourseDTO 的 LocalDateTime；evaluation DTO 的 Instant | ISO_LOCAL_DATE_TIME / ISO_INSTANT 无损转字符串，保留纳秒、null 和 local/UTC 意义；不得 java.util.Date | transport converter | 时间与空值往返测试 | PASS |
 | Rule 11 | Yes | exact COLA archetype trees and generated verifiers exist | preserve selected Light/Service/Web/Open/Agent profiles; no hybrid `biz.*` tree | source/generated trees | verifier and architecture tests | PASS |
@@ -254,10 +254,10 @@ Reuse/capability ledger:
 | Archetype-level components BOM import | Expand | `REQ-004` | Keep seven root-local versions | duplicates drift and violate user ownership decision | one parent import, lower local duplication | Add |
 | Archetype-level ShardingSphere management | Move | `REQ-005` | Keep root-local property | repeated version owner and inconsistent updates | one version owner, no runtime call | Move |
 | Direct commons-lang3 version | Remove | `REQ-006` | Keep explicit version | Common Core already supplies approved version | removes duplicate override; dependency remains transitive | Remove |
-| Native RPC/DDC starter wiring | Add/Replace | `REQ-001, REQ-008` | Keep Dubbo/Nacos in native | violates native profile and user’s DDC/RPC requirement | changes runtime wiring/config/test surface | Replace |
-| Native platform OpenAPI starter | Add/Replace | `REQ-001` | Keep direct Springdoc | native API Doc must come from platform capability | starter auto-config boundary | Replace |
+| Native RPC/Tianshu starter wiring | Add/Replace | `REQ-001, REQ-008` | Keep Dubbo/Nacos in native | violates native profile and user’s Tianshu/RPC requirement | changes runtime wiring/config/test surface | Replace |
+| Native xingyuan OpenAPI starter | Add/Replace | `REQ-001` | Keep direct Springdoc | native API Doc must come from xingyuan capability | starter auto-config boundary | Replace |
 | Open external BOM/starter set | Keep, relocate version owner | `REQ-002` | Remove external stack | breaks declared `-open` use cases | preserves external calls/config | Keep |
-| Agent DDC/RPC dependencies | Remove | `REQ-003` | Share all native dependencies | no source consumer; increases footprint | fewer artifacts/config states | Remove |
+| Agent Tianshu/RPC dependencies | Remove | `REQ-003` | Share all native dependencies | no source consumer; increases footprint | fewer artifacts/config states | Remove |
 | Generator parent normalization | Expand | `REQ-007, REQ-010` | Copy source POM unchanged | generated project cannot resolve repository-local parent | one deterministic rewrite stage | Add |
 
 Critical-path comparison:
@@ -265,7 +265,7 @@ Critical-path comparison:
 | Path | Network calls | Client states | Server contracts/state | Failure and TOCTOU points | Additional user/business value |
 | --- | --- | --- | --- | --- | --- |
 | Direct POM-only baseline | 0 | none | Maven model only | compile/runtime missing class or config | insufficient; leaves native Dubbo/Nacos usages |
-| Selected dependency + wiring migration | build-time 0; runtime uses selected native or open registry | native DDC/RPC registration states; open external states | profile-specific auto-config and existing business contracts | parent resolution, starter wiring, registry timeout, stale config; explicit verifier gates | satisfies profile boundary while preserving contracts |
+| Selected dependency + wiring migration | build-time 0; runtime uses selected native or open registry | native Tianshu/RPC registration states; open external states | profile-specific auto-config and existing business contracts | parent resolution, starter wiring, registry timeout, stale config; explicit verifier gates | satisfies profile boundary while preserving contracts |
 
 ### 7.1 System Architecture Design
 
@@ -278,7 +278,7 @@ flowchart LR
     ArchBOM --> Platforms[egon-cola-xingyuan starters]
     ArchBOM --> Sharding[ShardingSphere version owner]
     Source --> Native[light/service/web]
-    Native --> NativeRPC[COLA RPC + DDC]
+    Native --> NativeRPC[COLA RPC + Tianshu]
     Native --> NativeDoc[COLA OpenAPI starter]
     Source --> Open[-open variants]
     Open --> Cloud[Spring Cloud/Alibaba + Nacos]
@@ -293,16 +293,16 @@ flowchart LR
 | Module/component | Capability and data owned | Inputs/outputs | Allowed dependencies | Forbidden responsibility | Requirements |
 | --- | --- | --- | --- | --- | --- |
 | Root aggregation parent | Boot/JDK/common plugin baseline | Maven model | Spring Boot, shared release plugins | profile-specific runtime dependency | `REQ-007` |
-| Archetype parent | archetype-level version ownership | BOMs/properties | components BOM, platform version, ShardingSphere, open version properties | business source code | `REQ-004..006` |
-| Native source root | native generated project contract | native starter/config | COLA components/platforms + Boot | external Cloud/Nacos/Dubbo | `REQ-001` |
+| Archetype parent | archetype-level version ownership | BOMs/properties | components BOM, xingyuan version, ShardingSphere, open version properties | business source code | `REQ-004..006` |
+| Native source root | native generated project contract | native starter/config | COLA components/xingyuan + Boot | external Cloud/Nacos/Dubbo | `REQ-001` |
 | Open source root | external Spring project contract | external config/IDL | external Cloud/Alibaba/Nacos/Dubbo/gRPC/Protobuf + required COLA basics | silently switching to native transport | `REQ-002, REQ-009` |
-| Agent source root | AI workflow contract | AI/ADK config | Spring AI, Google ADK, Agent Flow, API Doc as needed | DDC/RPC/Nacos/ShardingSphere | `REQ-003` |
+| Agent source root | AI workflow contract | AI/ADK config | Spring AI, Google ADK, Agent Flow, API Doc as needed | Tianshu/RPC/Nacos/ShardingSphere | `REQ-003` |
 | Generator | source-to-archetype transformation | source POM/tree | shell/Maven Archetype | changing business source semantics | `REQ-007, REQ-010` |
 | Verifier | acceptance evidence | generated project | Maven/Groovy/Shell | starting external infrastructure | `REQ-008, REQ-010` |
 
 ### 7.2 High-Level Design
 
-依赖解析顺序为：发布的 aggregation parent -> archetype parent -> components/platforms/open BOMs -> source root dependency declarations -> child modules。source root 只声明“需要什么”，不声明由上游 owner 已确定的组件版本。Native/Open/Agent 的选择由 source root 和 definition family 决定，不由传递依赖猜测。
+依赖解析顺序为：发布的 aggregation parent -> archetype parent -> components/xingyuan/open BOMs -> source root dependency declarations -> child modules。source root 只声明“需要什么”，不声明由上游 owner 已确定的组件版本。Native/Open/Agent 的选择由 source root 和 definition family 决定，不由传递依赖猜测。
 
 ```mermaid
 flowchart TD
@@ -310,12 +310,12 @@ flowchart TD
     Classify --> Native[Native: light/service/web]
     Classify --> Open[Open: *-open]
     Classify --> Agent[Agent]
-    Native --> NativeDeps[Components BOM + native DDC/RPC/OpenAPI]
+    Native --> NativeDeps[Components BOM + native Tianshu/RPC/OpenAPI]
     Open --> OpenDeps[Cloud/Alibaba/Nacos/Dubbo/Triple/gRPC + required COLA basics]
     Agent --> AgentDeps[Spring AI + ADK + Agent Flow]
     NativeDeps --> StaticScan{无外部体系残留?}
     OpenDeps --> OpenScan{外部合约/IDL/配置保留?}
-    AgentDeps --> AgentScan{无无用 DDC/RPC/Nacos/ShardingSphere?}
+    AgentDeps --> AgentScan{无无用 Tianshu/RPC/Nacos/ShardingSphere?}
     StaticScan -->|否| Fail([阻断])
     OpenScan -->|否| Fail
     AgentScan -->|否| Fail
@@ -329,7 +329,7 @@ flowchart TD
 | --- | --- | --- | --- | --- | --- | --- |
 | Parent resolution | source/generated independent | published aggregation parent + empty relativePath | fail before compile if unavailable | requires publish/install order | `help:effective-pom`, clean reactor | `REQ-007` |
 | Component version drift | one owner | archetype import of components BOM | unresolved artifact fails; no local override | parent coupling increases intentionally | effective POM/dependency tree | `REQ-004` |
-| Native infrastructure | no external accidental stack | COLA RPC/DDC/OpenAPI starters | registration/config failure is explicit | requires source wiring migration | static scan + focused context test | `REQ-001, REQ-008` |
+| Native infrastructure | no external accidental stack | COLA RPC/Tianshu/OpenAPI starters | registration/config failure is explicit | requires source wiring migration | static scan + focused context test | `REQ-001, REQ-008` |
 | Open compatibility | retain external stack | open-only BOMs/starter declarations | external unavailability fails transparently | two profiles to maintain | open compile/Triple tests | `REQ-002` |
 | Agent minimalism | no unrelated infra | only AI/ADK/Agent Flow | dependency gate fails on forbidden artifact | less shared convenience | dependency allowlist | `REQ-003` |
 
@@ -337,7 +337,7 @@ flowchart TD
 
 | Concern/use case | Required behavior | Selected mechanism | Failure/degradation behavior | Trade-off | Verification | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| Dependency ownership | each version has one owner | root for Boot/release, archetype for components/platforms/ShardingSphere/open profile | duplicate or unresolved version fails model/gate | explicit parent coupling | effective POM and dependency tree | `REQ-004..007` |
+| Dependency ownership | each version has one owner | root for Boot/release, archetype for components/xingyuan/ShardingSphere/open profile | duplicate or unresolved version fails model/gate | explicit parent coupling | effective POM and dependency tree | `REQ-004..007` |
 | Profile purity | native/open/agent do not cross-import infrastructure | family-specific POM plus verifier allowlist | forbidden artifact/symbol fails before release | more family assertions | static scan and generated IT | `REQ-001..003, REQ-008` |
 | Generated reproducibility | same source yields same generated tree | existing staging/lock/hash plus parent normalization | hash/topology drift discards staging | one extra normalization stage | generator `check` | `REQ-007, REQ-010` |
 
@@ -349,8 +349,8 @@ flowchart TD
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Maven -> aggregation parent | `top.egon:egon-cola-aggregation-parent` | group/artifact/version -> effective model | none | unresolved parent stops build | `REQ-007` |
 | 2 | Source root -> archetype parent | parent POM | source model -> inherited dependency/plugin management | none | wrong relativePath or version stops model build | `REQ-007` |
-| 3 | Archetype parent -> components/platforms | BOM/starter coordinates | needs -> managed version | none | missing managed version is compile/model failure | `REQ-004` |
-| 4 | Native starter -> COLA RPC/DDC/OpenAPI | existing facade/config/provider symbols | current contracts -> native adapters | runtime registration/config state | timeout/failure is surfaced and testable | `REQ-001, REQ-008` |
+| 3 | Archetype parent -> components/xingyuan | BOM/starter coordinates | needs -> managed version | none | missing managed version is compile/model failure | `REQ-004` |
+| 4 | Native starter -> COLA RPC/Tianshu/OpenAPI | existing facade/config/provider symbols | current contracts -> native adapters | runtime registration/config state | timeout/failure is surfaced and testable | `REQ-001, REQ-008` |
 | 5 | Open starter -> external ecosystem | existing Dubbo/Nacos/Triple/gRPC symbols | external contracts unchanged | external registry/config state | external failure remains open profile behavior | `REQ-002` |
 | 6 | Generator -> generated POM | `normalize_generated_product`, new parent normalization step | source parent -> release parent with `<relativePath/>` | generated tree/hash | sentinel/local path causes gate failure | `REQ-007, REQ-010` |
 | 7 | Verifier -> generated project | Groovy/Shell/Maven checks | generated files/dependency markers -> pass/fail | no runtime state | any profile mismatch blocks release | `REQ-008, REQ-010` |
@@ -392,7 +392,7 @@ sequenceDiagram
 | --- | --- | --- | --- | --- | --- | --- |
 | Generated set publication | generator process | existing `.generated.lock` + staging/atomic move | second run waits/fails according to existing lock; repeated run must hash equal | atomic move to `.generated` | previous set restored on interrupted publish | `REQ-010 / TEST-008` |
 | Parent/BOM version ownership | POM model | Maven effective model, no runtime transaction | duplicate local version is a policy violation | effective POM generation | build/verifier fail | `REQ-004..007 / TEST-001` |
-| Native registration/config | native runtime starter | component/platform lifecycle and existing retry state | duplicate registration follows native runtime contract; no custom second registry | starter reports registered/failed state | timeout/failure observable; no silent fallback to Nacos | `REQ-001, REQ-008 / TEST-004` |
+| Native registration/config | native runtime starter | component/xingyuan lifecycle and existing retry state | duplicate registration follows native runtime contract; no custom second registry | starter reports registered/failed state | timeout/failure observable; no silent fallback to Nacos | `REQ-001, REQ-008 / TEST-004` |
 | Open registry/config | external runtime | existing Dubbo/Nacos configuration | preserve current group/version and external retry semantics | external runtime state | open profile reports external failure | `REQ-002 / TEST-005` |
 
 No relational transaction, schema migration, or business idempotency is introduced by this Spec.
@@ -403,7 +403,7 @@ No relational transaction, schema migration, or business idempotency is introduc
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Parent artifact missing | Maven model resolution | stop before compile | no build state committed | rerun after install/publish | build error | release maintainer | `TEST-001` |
 | Forbidden native dependency remains | dependency/static scan | verifier fails | source unchanged | fix POM/source/config; rerun | gate report | archetype maintainer | `TEST-002` |
-| Native DDC/RPC registration timeout | starter health/log/exception | follow native component retry/fail state | no custom fallback | bounded retry per existing starter | runtime startup failure/health signal | service operator | `TEST-004`, post-implementation runtime check |
+| Native Tianshu/RPC registration timeout | starter health/log/exception | follow native component retry/fail state | no custom fallback | bounded retry per existing starter | runtime startup failure/health signal | service operator | `TEST-004`, post-implementation runtime check |
 | Open Nacos/Dubbo unavailable | existing external client/provider error | preserve open behavior | external state unknown; no native fallback | existing open retry/config | open integration test failure | open project operator | `TEST-005` |
 | Generated normalization failure | shell exit/hash/topology check | discard staging, restore previous set | previous `.generated` remains visible | rerun after source correction | generation command failure | maintainer/CI | `TEST-008..010` |
 
@@ -412,7 +412,7 @@ No relational transaction, schema migration, or business idempotency is introduc
 | Signal/runbook | Emitting owner and point | Fields/dimensions | Sensitive-data rule | Success/failure threshold | Alert/dashboard/operator action | Verification boundary |
 | --- | --- | --- | --- | --- | --- | --- |
 | Maven resolution log | Maven/CI | project, parent/BOM coordinate, failure | no secrets | any unresolved parent/BOM fails gate | inspect repository/version order | static/CI |
-| Native DDC/RPC health | native starter | profile, service identity, registration state, latency | omit credentials/config values | failed/timeout state visible | operator checks DDC/RPC endpoint | runtime after implementation |
+| Native Tianshu/RPC health | native starter | profile, service identity, registration state, latency | omit credentials/config values | failed/timeout state visible | operator checks Tianshu/RPC endpoint | runtime after implementation |
 | Open registry health | open starter/Dubbo/Nacos | registry address label, group/version, state | mask credentials | preserve current health/error signal | operator checks external infra | runtime after implementation |
 | Generation manifest/hash | generator | target artifact, hash, source manifest | no secrets | hash mismatch fails `check` | regenerate and compare | Shell test |
 | Forbidden dependency gate | verifier | family, artifactId, path | no secrets | any forbidden marker fails | update source/config/verifier together | static test |
@@ -421,7 +421,7 @@ No relational transaction, schema migration, or business idempotency is introduc
 
 | Conclusion | Repository/user evidence | Constraint or requirement | Design decision | Consequence and trade-off | Verification and acceptance evidence |
 | --- | --- | --- | --- | --- | --- |
-| Native archetypes must not carry external registry/RPC | `EVD-002`, `EVD-009` plus user’s native requirement | `REQ-001, REQ-008` | replace native Dubbo/Nacos wiring with COLA RPC/DDC and platform OpenAPI | requires source/config/test/Compose migration; reduces accidental infrastructure coupling | native dependency allowlist, source scan, context tests, generated verifier |
+| Native archetypes must not carry external registry/RPC | `EVD-002`, `EVD-009` plus user’s native requirement | `REQ-001, REQ-008` | replace native Dubbo/Nacos wiring with COLA RPC/Tianshu and xingyuan OpenAPI | requires source/config/test/Compose migration; reduces accidental infrastructure coupling | native dependency allowlist, source scan, context tests, generated verifier |
 | Components versions belong at archetype layer | `EVD-004`, repeated source POM declarations | `REQ-004, REQ-009` | import components BOM once and remove root-local versions | stronger parent coupling but one update point | effective POM and dependency tree across seven roots |
 | `-open` retains external stack while reusing COLA basics | `EVD-003`, `EVD-010`, open source symbols | `REQ-002, REQ-009` | separate open external dependency set from native set; retain Common/ID/MyBatis/DTP | two explicit profiles instead of one ambiguous hybrid | open compile, Triple/gRPC tests, forbidden native-only scan |
 | Generated parent must use publication coordinates | `EVD-007`, generated reactor design | `REQ-007, REQ-010` | generator normalizes source parent and emits empty relativePath | extra deterministic rewrite step | generated POM inspection, clean repository build, hash check |
@@ -435,11 +435,11 @@ No relational transaction, schema migration, or business idempotency is introduc
 - `commons-lang3:3.20.0` 从现有 components parent 管理项移至 Components BOM；components parent 导入该 BOM，删除重复 property/管理项。Core 仍实际提供传递依赖。当前 Boot 3.5.16 的 BOM 声明 3.17.0，必须通过有效模型证明未被降级。source 原 3.18.0 向既有 Core 3.20.0 对齐是明确的版本收敛，非新增工具库。
 - Maven 实测修正：Boot parent 的继承管理优先于 child 的 BOM import，即使移除 root 的重复 Boot BOM import，最小模型仍解析为 3.17.0。因此 root 全局 defaults 需声明 `commons-lang3.version=3.20.0` 作为 Boot 的属性桥接；Components BOM 继续导出同值，静态门禁强制二者一致，七个 effective POM 必须实际得到 3.20.0。这个必要的全局兼容桥接不能放进 archetype/source，也不新增 utility dependency；原“只导入 BOM 即可覆盖 Boot”的实现推断由本条修正。
 - archetypes parent 管 ShardingSphere 5.5.3、Cloud 2025.0.3、Alibaba 2025.0.0.0、Dubbo 3.3.6、Open gRPC 1.73.0/Protobuf 3.25.8 的版本。native codegen/runtime 使用现有 RPC 的 gRPC 1.75.0/Protobuf 4.32.0，使用独立 `native.grpc.version` / `native.protobuf.version` 属性，不得把 Open wire 栈升级为 native 版本。Open root 仅保留必要的管理选择，具体版本来自 parent。
-- Agent 保持现有 Spring AI 1.1.8/ADK/Agent Flow 和直接 Springdoc；不换成传递引入 DDC 的 platform OpenAPI starter。Agent 的第三方 gRPC（如 ADK 使用）不等同于被禁止的 Egon RPC。
+- Agent 保持现有 Spring AI 1.1.8/ADK/Agent Flow 和直接 Springdoc；不换成传递引入 Tianshu 的 xingyuan OpenAPI starter。Agent 的第三方 gRPC（如 ADK 使用）不等同于被禁止的 Egon RPC。
 - 版本升级脚本必须同步七个 source root 新增的 parent 版本，保持 internal project `0.1.0-SNAPSHOT` 与 `.generated` 不变，并保留失败回滚。
 - Step 1 只收敛 owner 和 parent；native Dubbo/Nacos 实际依赖与代码在 Step 3/4 各自完整切换。不得先删运行时依赖导致 Step 2 无法编译旧 provider。
 
-根 Boot parent 的资源过滤默认值由 root 显式补齐：库模块继续支持 Maven `${...}` 版本资源过滤，确保 RPC/DDC runtime version 被替换；archetype parent 显式保留 `useDefaultDelimiters=false`，避免提前替换 Spring/Velocity 模板变量。既有 launch.args 的 `@...@` 过滤保持。
+根 Boot parent 的资源过滤默认值由 root 显式补齐：库模块继续支持 Maven `${...}` 版本资源过滤，确保 RPC/Tianshu runtime version 被替换；archetype parent 显式保留 `useDefaultDelimiters=false`，避免提前替换 Spring/Velocity 模板变量。既有 launch.args 的 `@...@` 过滤保持。
 
 #### 7.4.2 Contract ownership and representation
 
@@ -464,19 +464,19 @@ Java Record/DTO 的字段名、值、顺序、nullable 意义是权威；proto �
 - 新手写状态载体只有必要的查询/配置/context records；现有 Response/SingleResponse 不改。protoc 生成类由 compiler 管理，不手工添加 Lombok。Light 的 RPC-only validation group 仅补齐受影响 DTO 约束，不修改 HTTP 默认 group；语义与现有 domain/application 校验一致。标量 ID 使用小型 `RpcIdQuery` / `RpcSchoolClassQuery` record 的 Jakarta constraints。
 - provider 先对 Protobuf 字段转换后的请求用 `ValidationUtils` 校验，再委托既有业务 facade；现有 application/domain/DAO 调用链及其校验保持。Organization/evaluation 使用现有 DTO 默认约束。所有实际新增 handoff、缺失字段、非法 ID、空字符串、纳秒时间和错误结果都有 focused tests。非法 Protobuf 参数使用现有 `RpcProviderExceptionMapper` SPI 映射 INVALID_ARGUMENT；业务错误保留 envelope code，传输错误仍是 gRPC/Egon 错误。
 - provider 同时声明 `@EgonRpcProvider` 与显式 `@Component("...")`；既有无 value 的 `@EgonRpcProvider` 不承载 bean 名称。业务类 `@Slf4j`、`@RequiredArgsConstructor`、final dependency 与逐字段 `@Qualifier` 必须齐全；现有 lombok.config 已复制 Qualifier。
-- **Consumer 注入修正**：当前 `EgonRpcReferenceBeanPostProcessor` 只在实例构造后写字段，不能把 `@EgonRpcReference` 直接放在必填 final 构造参数上。使用现有 `RpcContractValidator`、`RpcReferenceDefinition`、`RpcReferenceStrategyFactory`、`RpcConsumerProxyFactory` 在 named `@Bean` 中创建 DIRECT proxy，再以 final + Qualifier 构造注入 client。target 使用 typed properties 的 bizCode/appCode、当前 process env、既有 group/version；timeout 不超过 consumer default ceiling、retries=0、FAIL_CLOSED，strategy 的关闭交给现有 factory。此方案不改 RPC 组件 API，不新增通用 factory，不绕过 DDC discovery。
+- **Consumer 注入修正**：当前 `EgonRpcReferenceBeanPostProcessor` 只在实例构造后写字段，不能把 `@EgonRpcReference` 直接放在必填 final 构造参数上。使用现有 `RpcContractValidator`、`RpcReferenceDefinition`、`RpcReferenceStrategyFactory`、`RpcConsumerProxyFactory` 在 named `@Bean` 中创建 DIRECT proxy，再以 final + Qualifier 构造注入 client。target 使用 typed properties 的 bizCode/appCode、当前 process env、既有 group/version；timeout 不超过 consumer default ceiling、retries=0、FAIL_CLOSED，strategy 的关闭交给现有 factory。此方案不改 RPC 组件 API，不新增通用 factory，不绕过 Tianshu discovery。
 - `NativeOrganizationDirectoryClient` / `NativeEvaluationQueryClient` 替换原 Dubbo 类及 tests；Domain port、返回 record 不变。新增本地 MapStruct/BaseConverter 只负责 facade DTO -> 既有 domain record；错误分类沿用现有 FailureMapper，Egon timeout/unavailable/invalid-contract 分别映射原 TIMEOUT/UNAVAILABLE/CONTRACT_INCOMPATIBLE。
 - Web `OrganizationFacadeSupport` 的四个 metadata（idempotency-key、x-actor-id、x-actor-roles、x-trace-id）通过现有 gRPC ServerInterceptor 扩展点和 Context record 传递；当前已有组织 request context 优先，默认值、幂等键和 finally 清理保持，不把 context 丢失当成 SYSTEM 成功的迁移结果。测试覆盖 header 传递、已有 context、异常清理和调用间隔离。
 
 #### 7.4.4 Native configuration, documentation and deployment
 
-实际 prefix 为 `egon.cola.component.rpc`、`egon.cola.component.ddc`、`egon.cola.component.ddc.rpc`、`egon.cola.component.ddc.registry.http`、`egon.cola.component.gateway.openapi`；旧稿 `egon.rpc.*`/`egon.ddc.*` 不是可绑定配置，全部替换。三个 native 工程当前都有 MVC starter，使用 platform `gateway-starter-openapi-webmvc`。保留现有 OpenAPI Info 和 `/v3/api-docs` 路由；平台管理 Springdoc 传递实现，不在 native 直接声明或 import org.springdoc。
+实际 prefix 为 `egon.cola.component.rpc`、`egon.cola.component.tianshu`、`egon.cola.component.tianshu.rpc`、`egon.cola.component.tianshu.registry.http`、`egon.cola.component.yuheng.openapi`；旧稿 `egon.rpc.*`/`egon.tianshu.*` 不是可绑定配置，全部替换。三个 native 工程当前都有 MVC starter，使用 xingyuan `yuheng-starter-openapi-webmvc`。保留现有 OpenAPI Info 和 `/v3/api-docs` 路由；平台管理 Springdoc 传递实现，不在 native 直接声明或 import org.springdoc。
 
-平台 OpenAPI webmvc 会带入 Security。为保持现有业务 HTTP 访问语义，应用明确提供 named security chain，保留原业务路径访问与 CSRF 行为；OpenAPI 治理默认不自动启用，需要启用时按平台既有 JWT/document-scope 合同配置，测试使用 fake decoder，不请求真实 IdP。不得因为引入 starter 让全部业务接口意外变成 401。
+平台 OpenAPI webmvc 会带入 Security。为保持现有业务 HTTP 访问语义，应用明确提供 named security chain，保留原业务路径访问与 CSRF 行为；OpenAPI 治理默认不自动启用，需要启用时按平台既有 JWT/document-scope 合同配置，测试使用 fake decoder，不请求真实 Tianquan-Shoubing。不得因为引入 starter 让全部业务接口意外变成 401。
 
-native bootstrap 文件中的 application name 必须迁移到 application.yml；Cloud bootstrap 不再加载后不能丢失应用身份。Nacos 的 bootstrap*.yml 从 native 删除，并把仍有效的基础属性迁移至四个 application profile。每个新增/移除基础设施 key 在 base/dev/test/prod 完整对齐；test 关闭 RPC server、DDC registry/config/HTTP-registration 和远程客户端，使用已有 fake ports/H2，不监听真实服务。dev/prod 的 DDC target/credentials/TLS 使用显式环境变量；缺失配置按既有 starter fail fast，不能改回 Nacos。
+native bootstrap 文件中的 application name 必须迁移到 application.yml；Cloud bootstrap 不再加载后不能丢失应用身份。Nacos 的 bootstrap*.yml 从 native 删除，并把仍有效的基础属性迁移至四个 application profile。每个新增/移除基础设施 key 在 base/dev/test/prod 完整对齐；test 关闭 RPC server、Tianshu registry/config/HTTP-registration 和远程客户端，使用已有 fake ports/H2，不监听真实服务。dev/prod 的 Tianshu target/credentials/TLS 使用显式环境变量；缺失配置按既有 starter fail fast，不能改回 Nacos。
 
-18 份 native Compose、6 份 env 样例和相关 README 同步移除 Nacos service/volume/depends_on、Dubbo port/env，保留数据库/Redis/MQ及已有数据卷。DDC 是部署方提供的现有外部服务，本次不添加/启动 DDC 容器或捏造发布镜像；Compose 传入真实 starter 对应变量。
+18 份 native Compose、6 份 env 样例和相关 README 同步移除 Nacos service/volume/depends_on、Dubbo port/env，保留数据库/Redis/MQ及已有数据卷。Tianshu 是部署方提供的现有外部服务，本次不添加/启动 Tianshu 容器或捏造发布镜像；Compose 传入真实 starter 对应变量。
 
 用户于本次执行中确认修复配置解密的遗漏范围：三个 native `ConfigDecryptEnvironmentPostProcessor` 的执行顺序改为 Spring Boot `ConfigDataEnvironmentPostProcessor.ORDER + 1`。保留 AES-GCM、密钥来源/优先级、占位符覆盖、property source 优先级和密钥清零；旧的自动 bootstrap 文件测试迁移为显式 `spring.config.import` 文件测试，既有 Config Data/configtree/缺失密钥等测试全部保留。Light 两个文件归 Step 3，Service/Web 四个文件归 Step 4；不修改 `-open` 对应实现。
 
@@ -546,10 +546,10 @@ GENERATED egon-cola-archetypes/.generated/**（不提交）
 | Operation | Path/package | Symbols | Responsibility | Dependencies | Requirements |
 | --- | --- | --- | --- | --- | --- |
 | Modify | `pom.xml` | aggregation parent/properties | retain Boot parent and shared versions/plugins | Boot | `REQ-007` |
-| Modify | `egon-cola-archetypes/pom.xml` | dependencyManagement/properties | own components BOM, platform starter versions, ShardingSphere, open-only version set | components/platforms/external | `REQ-004..006` |
+| Modify | `egon-cola-archetypes/pom.xml` | dependencyManagement/properties | own components BOM, xingyuan starter versions, ShardingSphere, open-only version set | components/xingyuan/external | `REQ-004..006` |
 | Modify | seven source root POMs | parent/dependencyManagement/dependencies | declare profile need without duplicate version ownership | archetype parent | all REQ |
-| Modify | native starter/config packages | `@EnableDubbo` replacements, native providers/clients, DDC config | use Egon RPC/DDC/OpenAPI | native components/platforms | `REQ-001, REQ-008` |
-| Create/Modify | native/shared `src/main/proto`、Java RPC interface、MapStruct converter and facade adapters | `.proto`, `@EgonRpcService`, `@EgonRpcMethod`, generated gRPC bindings | expose unary Protobuf contract and map to existing DTO facade | Egon RPC starter/DDC adapter | `REQ-011` |
+| Modify | native starter/config packages | `@EnableDubbo` replacements, native providers/clients, Tianshu config | use Egon RPC/Tianshu/OpenAPI | native components/xingyuan | `REQ-001, REQ-008` |
+| Create/Modify | native/shared `src/main/proto`、Java RPC interface、MapStruct converter and facade adapters | `.proto`, `@EgonRpcService`, `@EgonRpcMethod`, generated gRPC bindings | expose unary Protobuf contract and map to existing DTO facade | Egon RPC starter/Tianshu adapter | `REQ-011` |
 | Modify | native `src/test` and Compose | integration/static tests | prove no external stack and native wiring | test/runtime fixtures | `REQ-008` |
 | Keep/Modify | open RPC/Cloud packages | Dubbo/Triple/gRPC/Nacos symbols | preserve external contracts and only adjust version inheritance | open dependencies + COLA basics | `REQ-002, REQ-009` |
 | Modify | Agent POM/verifier | AI/ADK/Agent Flow dependencies | remove unrelated infrastructure | Spring AI/ADK/Agent Flow | `REQ-003` |
@@ -613,7 +613,7 @@ Public HTTP APIs are `Unchanged`: no route, request, response, error, or OpenAPI
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `CourseRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `CourseFacade.createCourse` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -638,7 +638,7 @@ Owner 为 light 合约模块；接口 `CourseRpcService.createCourse(CreateCours
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.2 RPC-002 — light Course.GetCourse
 
@@ -651,7 +651,7 @@ Owner 为 light 合约模块；接口 `CourseRpcService.createCourse(CreateCours
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `CourseRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `CourseFacade.getCourse` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -676,7 +676,7 @@ Owner 为 light 合约模块；接口 `CourseRpcService.getCourse(GetCourseRpcRe
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.3 RPC-003 — light SchoolClass.CreateSchoolClass
 
@@ -689,7 +689,7 @@ Owner 为 light 合约模块；接口 `CourseRpcService.getCourse(GetCourseRpcRe
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `SchoolClassRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `SchoolClassFacade.createSchoolClass` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -714,7 +714,7 @@ Owner 为 light 合约模块；接口 `SchoolClassRpcService.createSchoolClass(C
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.4 RPC-004 — light SchoolClass.ScheduleCourse
 
@@ -727,7 +727,7 @@ Owner 为 light 合约模块；接口 `SchoolClassRpcService.createSchoolClass(C
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `SchoolClassRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `SchoolClassFacade.scheduleCourse` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -752,7 +752,7 @@ Owner 为 light 合约模块；接口 `SchoolClassRpcService.scheduleCourse(Sche
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.5 RPC-005 — light SchoolClass.GetSchoolClass
 
@@ -765,7 +765,7 @@ Owner 为 light 合约模块；接口 `SchoolClassRpcService.scheduleCourse(Sche
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `SchoolClassRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `SchoolClassFacade.getSchoolClass` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -790,7 +790,7 @@ Owner 为 light 合约模块；接口 `SchoolClassRpcService.getSchoolClass(GetS
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.6 RPC-006 — light User.CreateUser
 
@@ -803,7 +803,7 @@ Owner 为 light 合约模块；接口 `SchoolClassRpcService.getSchoolClass(GetS
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `UserRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `UserFacade.createUser` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -828,7 +828,7 @@ Owner 为 light 合约模块；接口 `UserRpcService.createUser(CreateUserRpcRe
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.7 RPC-007 — light User.AssignRole
 
@@ -841,7 +841,7 @@ Owner 为 light 合约模块；接口 `UserRpcService.createUser(CreateUserRpcRe
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `UserRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `UserFacade.assignRole` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -866,7 +866,7 @@ Owner 为 light 合约模块；接口 `UserRpcService.assignRole(AssignRoleRpcRe
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.8 RPC-008 — light User.GetUser
 
@@ -879,7 +879,7 @@ Owner 为 light 合约模块；接口 `UserRpcService.assignRole(AssignRoleRpcRe
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `UserRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `UserFacade.getUser` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -904,7 +904,7 @@ Owner 为 light 合约模块；接口 `UserRpcService.getUser(GetUserRpcRequest)
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.9 RPC-009 — light Permission.GrantPermission
 
@@ -917,7 +917,7 @@ Owner 为 light 合约模块；接口 `UserRpcService.getUser(GetUserRpcRequest)
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `PermissionRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `PermissionFacade.grantPermission` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -942,7 +942,7 @@ Owner 为 light 合约模块；接口 `PermissionRpcService.grantPermission(Gran
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.10 RPC-010 — light Permission.GetUserPermissions
 
@@ -955,7 +955,7 @@ Owner 为 light 合约模块；接口 `PermissionRpcService.grantPermission(Gran
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `PermissionListRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `PermissionFacade.getUserPermissions` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -980,7 +980,7 @@ Owner 为 light 合约模块；接口 `PermissionRpcService.getUserPermissions(G
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.11 RPC-011 — organization User.CreateUser
 
@@ -993,7 +993,7 @@ Owner 为 light 合约模块；接口 `PermissionRpcService.getUserPermissions(G
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `UserRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `UserFacade.createUser` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1018,7 +1018,7 @@ Owner 为 organization 合约模块；接口 `UserRpcService.createUser(CreateUs
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.12 RPC-012 — organization User.GetUser
 
@@ -1031,7 +1031,7 @@ Owner 为 organization 合约模块；接口 `UserRpcService.createUser(CreateUs
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `UserRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `UserFacade.getUser` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1056,7 +1056,7 @@ Owner 为 organization 合约模块；接口 `UserRpcService.getUser(GetUserRpcR
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.13 RPC-013 — organization Role.AssignRole
 
@@ -1069,7 +1069,7 @@ Owner 为 organization 合约模块；接口 `UserRpcService.getUser(GetUserRpcR
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `RpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `RoleFacade.assignRole` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1094,7 +1094,7 @@ Owner 为 organization 合约模块；接口 `RoleRpcService.assignRole(AssignRo
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.14 RPC-014 — organization Permission.GrantPermission
 
@@ -1107,7 +1107,7 @@ Owner 为 organization 合约模块；接口 `RoleRpcService.assignRole(AssignRo
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `RpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `PermissionFacade.grantPermission` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1132,7 +1132,7 @@ Owner 为 organization 合约模块；接口 `PermissionRpcService.grantPermissi
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.15 RPC-015 — organization Permission.GetPermissionTree
 
@@ -1145,7 +1145,7 @@ Owner 为 organization 合约模块；接口 `PermissionRpcService.grantPermissi
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `PermissionTreeRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `PermissionFacade.getPermissionTree` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1170,7 +1170,7 @@ Owner 为 organization 合约模块；接口 `PermissionRpcService.getPermission
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.16 RPC-016 — organization Grade.CreateGrade
 
@@ -1183,7 +1183,7 @@ Owner 为 organization 合约模块；接口 `PermissionRpcService.getPermission
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `GradeRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `GradeFacade.createGrade` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1208,7 +1208,7 @@ Owner 为 organization 合约模块；接口 `GradeRpcService.createGrade(Create
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.17 RPC-017 — organization Grade.GetGrade
 
@@ -1221,7 +1221,7 @@ Owner 为 organization 合约模块；接口 `GradeRpcService.createGrade(Create
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `GradeRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `GradeFacade.getGrade` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1246,7 +1246,7 @@ Owner 为 organization 合约模块；接口 `GradeRpcService.getGrade(GetGradeR
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.18 RPC-018 — organization SchoolClass.CreateSchoolClass
 
@@ -1259,7 +1259,7 @@ Owner 为 organization 合约模块；接口 `GradeRpcService.getGrade(GetGradeR
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `SchoolClassRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `SchoolClassFacade.createSchoolClass` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1284,7 +1284,7 @@ Owner 为 organization 合约模块；接口 `SchoolClassRpcService.createSchool
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.19 RPC-019 — organization SchoolClass.GetSchoolClass
 
@@ -1297,7 +1297,7 @@ Owner 为 organization 合约模块；接口 `SchoolClassRpcService.createSchool
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `SchoolClassRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `SchoolClassFacade.getSchoolClass` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1322,7 +1322,7 @@ Owner 为 organization 合约模块；接口 `SchoolClassRpcService.getSchoolCla
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.20 RPC-020 — organization SchoolClass.AssignUser
 
@@ -1335,7 +1335,7 @@ Owner 为 organization 合约模块；接口 `SchoolClassRpcService.getSchoolCla
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `RpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `SchoolClassFacade.assignUser` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1360,7 +1360,7 @@ Owner 为 organization 合约模块；接口 `SchoolClassRpcService.assignUser(A
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.21 RPC-021 — evaluation Course.CreateCourse
 
@@ -1373,7 +1373,7 @@ Owner 为 organization 合约模块；接口 `SchoolClassRpcService.assignUser(A
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `CourseRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `CourseFacade.create` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1398,7 +1398,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.createCourse(Create
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.22 RPC-022 — evaluation Course.ScheduleCourse
 
@@ -1411,7 +1411,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.createCourse(Create
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `CourseScheduleRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `CourseFacade.scheduleCourse` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1436,7 +1436,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.scheduleCourse(Sche
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.23 RPC-023 — evaluation Course.GetCourse
 
@@ -1449,7 +1449,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.scheduleCourse(Sche
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `CourseRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `CourseFacade.getCourse` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1474,7 +1474,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.getCourse(GetCourse
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.24 RPC-024 — evaluation Course.PageCourses
 
@@ -1487,7 +1487,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.getCourse(GetCourse
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `PageCourseRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `CourseFacade.pageCourses` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1512,7 +1512,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.pageCourses(PageCou
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.25 RPC-025 — evaluation Exam.CreateExam
 
@@ -1525,7 +1525,7 @@ Owner 为 evaluation 合约模块；接口 `CourseRpcService.pageCourses(PageCou
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `ExamRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ExamFacade.createExam` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1550,7 +1550,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.createExam(CreateExam
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.26 RPC-026 — evaluation Exam.AttachPaper
 
@@ -1563,7 +1563,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.createExam(CreateExam
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `ExamPaperRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ExamFacade.attachPaper` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1588,7 +1588,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.attachPaper(AttachExa
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.27 RPC-027 — evaluation Exam.PublishExam
 
@@ -1601,7 +1601,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.attachPaper(AttachExa
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `ExamRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ExamFacade.publishExam` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1626,7 +1626,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.publishExam(PublishEx
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.28 RPC-028 — evaluation Exam.GetExam
 
@@ -1639,7 +1639,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.publishExam(PublishEx
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `ExamRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ExamFacade.getExam` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1664,7 +1664,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.getExam(GetExamRpcReq
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.29 RPC-029 — evaluation Score.RecordScore
 
@@ -1677,7 +1677,7 @@ Owner 为 evaluation 合约模块；接口 `ExamRpcService.getExam(GetExamRpcReq
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `ScoreRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ScoreFacade.recordScore` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1702,7 +1702,7 @@ Owner 为 evaluation 合约模块；接口 `ScoreRpcService.recordScore(RecordSc
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.30 RPC-030 — evaluation Score.GetScore
 
@@ -1715,7 +1715,7 @@ Owner 为 evaluation 合约模块；接口 `ScoreRpcService.recordScore(RecordSc
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `ScoreRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ScoreFacade.getScore` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1740,7 +1740,7 @@ Owner 为 evaluation 合约模块；接口 `ScoreRpcService.getScore(GetScoreRpc
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 #### 9.2.31 RPC-031 — evaluation Score.PageScores
 
@@ -1753,7 +1753,7 @@ Owner 为 evaluation 合约模块；接口 `ScoreRpcService.getScore(GetScoreRpc
 | Parameter ownership and derivation | 业务参数来源于原 facade DTO；service identity 来自 native 配置 |
 | Direct/no-new-interface alternative | Java DTO 直连不能满足 RpcContractValidator 的 Protobuf unary 要求 |
 | Caller use of result | 直接消费 `PageScoreRpcResponse` 对应业务结果，无 fetch-then-forward |
-| Round trips and failure points | 仍一次 RPC；DDC/timeout/transport 错误可见，不新增业务状态 |
+| Round trips and failure points | 仍一次 RPC；Tianshu/timeout/transport 错误可见，不新增业务状态 |
 | Verdict | Add for REQ-001/008/011；保留 `ScoreFacade.pageScores` 签名与业务职责 |
 
 ##### Identity and purpose
@@ -1778,11 +1778,11 @@ Owner 为 evaluation 合约模块；接口 `ScoreRpcService.pageScores(PageScore
 
 ##### Compatibility and verification
 
-业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 DDC/TLS/部署互通由用户运行时验收。
+业务字段和方法不改；这是新的 native v1 wire，不承诺与旧 Dubbo wire 互通。验证包括 NativeRpcContractTest/NativeOrganizationRpcContractTest/NativeEvaluationRpcContractTest 的对应操作、mapper 往返、native provider 测试以及实际存在的 Service/Web consumer 路径；Open proto/hash 保持不变。真实 Tianshu/TLS/部署互通由用户运行时验收。
 
 ## 10. POJO and Data Model Design
 
-The dependency migration does not add business PO/BO/DTO/VO/Entity types. Existing facade request/response types, `EgonModel`, `EgonColaServiceImpl`, `LongIdGenerator`, and `BaseConverter` consumers remain in their current modules. Native DDC/RPC configuration carriers are implementation-local and must use existing record/config-property conventions; no parallel business model is justified.
+The dependency migration does not add business PO/BO/DTO/VO/Entity types. Existing facade request/response types, `EgonModel`, `EgonColaServiceImpl`, `LongIdGenerator`, and `BaseConverter` consumers remain in their current modules. Native Tianshu/RPC configuration carriers are implementation-local and must use existing record/config-property conventions; no parallel business model is justified.
 
 ### 10.1 POJO role classification and class necessity
 
@@ -1790,7 +1790,7 @@ The dependency migration does not add business PO/BO/DTO/VO/Entity types. Existi
 | --- | --- | --- | --- | --- | --- |
 | Existing facade request/response types | Request/Response | facade contract and callers | public/internal contract unchanged | existing converter | `REQ-001, REQ-002` |
 | Existing `EgonModel`/`EgonColaServiceImpl` | framework/business base | open/native service modules | retained because source consumers prove lifecycle use | existing framework | `REQ-009` |
-| Native DDC/RPC properties (if changed) | configuration record/properties | starter/config boundary | required only for binding native properties; not business DTO | direct binding | `REQ-001` |
+| Native Tianshu/RPC properties (if changed) | configuration record/properties | starter/config boundary | required only for binding native properties; not business DTO | direct binding | `REQ-001` |
 
 ### 10.2 Persistence objects, ORM entities, and business data objects
 
@@ -1839,7 +1839,7 @@ Keep current COLA base classes and composition. Do not add a `BaseService`, tran
 
 ### 10.6 State transitions and lifecycle
 
-Only infrastructure state changes: native DDC/RPC registration/config lifecycle follows the existing starter states; open external runtime lifecycle remains unchanged. Business entity transitions are out of scope.
+Only infrastructure state changes: native Tianshu/RPC registration/config lifecycle follows the existing starter states; open external runtime lifecycle remains unchanged. Business entity transitions are out of scope.
 
 ### 10.7 Relational model consistency
 
@@ -1872,7 +1872,7 @@ Adapter 用于 DTO/Protobuf 及 domain port/RPC 转换；既有 RpcReferenceStra
 - Version ownership is information hiding: source roots declare need, archetype/root owners declare versions.
 - YAGNI is enforced by the native/open/agent matrix; a capability without a source consumer is removed.
 - Open profile compatibility is preserved by keeping external contracts and required COLA basics.
-- Composition and existing platform/component reuse are preferred over new inheritance or infrastructure layers.
+- Composition and existing xingyuan/component reuse are preferred over new inheritance or infrastructure layers.
 
 ## 14. Test Design
 
@@ -1883,7 +1883,7 @@ Adapter 用于 DTO/Protobuf 及 domain port/RPC 转换；既有 RpcReferenceStra
 ### 14.2 Integration, contract, persistence, component, and end-to-end tests
 
 - Source-root Maven model/effective-POM checks for all seven roots.
-- Native context tests for COLA RPC/DDC/OpenAPI starter wiring and absence of Dubbo/Nacos beans.
+- Native context tests for COLA RPC/Tianshu/OpenAPI starter wiring and absence of Dubbo/Nacos beans.
 - Open compile and existing Dubbo Triple/gRPC integration tests remain selected.
 - Agent compile/dependency allowlist check.
 - Generated archetype basic IT and all existing Groovy verifier assertions updated per family.
@@ -1895,12 +1895,12 @@ Adapter 用于 DTO/Protobuf 及 domain port/RPC 转换；既有 RpcReferenceStra
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `TEST-001` | Model/compile | seven source roots | effective POM with clean local/repository parent | parent and BOM resolve; no source-local relative parent | Maven model | `mvn help:effective-pom`, source reactor | `REQ-004, REQ-007` |
 | `TEST-002` | Static | native POM/source/config | forbidden artifact/symbol scan | no Dubbo/Nacos/Cloud/Alibaba/Springdoc direct marker in native | rg/verifier | family scripts | `REQ-001, REQ-008` |
-| `TEST-003` | Dependency | native roots | dependency tree | components/platforms starters present; commons-lang3 version not locally overridden | Maven dependency tree | targeted `dependency:tree` | `REQ-004..006` |
-| `TEST-004` | Component/context | native starter | provider/consumer/DDC properties | native beans/config bind; failure is explicit | test context/fake endpoint | native tests | `REQ-001, REQ-008` |
+| `TEST-003` | Dependency | native roots | dependency tree | components/xingyuan starters present; commons-lang3 version not locally overridden | Maven dependency tree | targeted `dependency:tree` | `REQ-004..006` |
+| `TEST-004` | Component/context | native starter | provider/consumer/Tianshu properties | native beans/config bind; failure is explicit | test context/fake endpoint | native tests | `REQ-001, REQ-008` |
 | `TEST-011` | Contract | native facade RPC adapters | generated Protobuf unary request/response plus Egon RPC annotations | `RpcContractValidator` accepts each `@EgonRpcService(grpcClass=...)` and `@EgonRpcMethod`; provider/consumer mapping preserves existing facade DTO semantics | generated gRPC test fixture and adapter fake | native RPC contract tests | `REQ-001, REQ-008, REQ-011` |
 | `TEST-005` | Integration | service-open/web-open | existing Triple/gRPC contract | provider/client methods and group/version unchanged | existing test fixture | open RPC tests | `REQ-002, REQ-009` |
 | `TEST-006` | Compile | all open roots | external Cloud/Nacos/Springdoc/ShardingSphere dependencies | external stack resolves with centralized versions | Maven repository | open source reactor | `REQ-002` |
-| `TEST-007` | Dependency | agent | forbidden infrastructure scan | no DDC/RPC/Nacos/Dubbo/ShardingSphere | allowlist | Agent verifier | `REQ-003` |
+| `TEST-007` | Dependency | agent | forbidden infrastructure scan | no Tianshu/RPC/Nacos/Dubbo/ShardingSphere | allowlist | Agent verifier | `REQ-003` |
 | `TEST-008` | Generator | seven definitions | `generate` | topology, paths, source sentinel removal pass | temp workspace | `scripts/test-generate-archetypes.sh` | `REQ-010` |
 | `TEST-009` | Determinism | `.generated` | `check` after generate | hashes and manifests unchanged | generated tree | generator check | `REQ-010` |
 | `TEST-010` | Release IT | generated reactor | Maven archetype basic tests | all seven verifiers and generated parent checks pass | generated projects | archetype Maven/Groovy IT | `REQ-007, REQ-010` |
@@ -1925,7 +1925,7 @@ Preserve business package topology, public HTTP routes, request/response/error J
 ### Migration/adoption
 
 1. Introduce/confirm archetype parent dependency management and source parent coordinates.
-2. Move components BOM, platform versions, ShardingSphere and open-only version properties to their owners.
+2. Move components BOM, xingyuan versions, ShardingSphere and open-only version properties to their owners.
 3. Update native source POMs and then native Java/config/test/Compose/verifier wiring.
 4. Update open source POM inheritance only; retain external source/config/tests and COLA basics.
 5. Remove Agent forbidden dependencies and update its verifier.
@@ -1945,7 +1945,7 @@ Rollback is a path-limited Git revert of the dependency/source/verifier step tha
 | Option | New elements and interactions | Advantages | Disadvantages/risks | Repository fit | Decision and rationale |
 | --- | --- | --- | --- | --- | --- |
 | A — keep each source root self-contained | seven parent/BOM/version sets | local POM appears independent | drift, duplicate versions, native/open coupling remains | poor; contradicts user request and BOM evidence | Rejected |
-| B — one universal dependency set for all archetypes | common Cloud/Nacos/Dubbo/DDC/RPC set | fewer conditional POMs | Agent and native carry unused infrastructure; `-open` boundary lost | poor | Rejected |
+| B — one universal dependency set for all archetypes | common Cloud/Nacos/Dubbo/Tianshu/RPC set | fewer conditional POMs | Agent and native carry unused infrastructure; `-open` boundary lost | poor | Rejected |
 | C — archetype owner + explicit Native/Open/Agent profiles | parent/BOM owner plus family-specific dependencies and verifier | smallest design satisfying all confirmed requirements; clear ownership | two runtime ecosystems and more gates | strong; matches repository topology | Selected |
 | D — move all versions to root aggregation parent | root owns every external/library version | one global version file | archetype parent loses ownership; root becomes coupled to optional open stack | partial | Rejected; keep root for shared Boot/release only |
 
@@ -1966,7 +1966,7 @@ Rollback is a path-limited Git revert of the dependency/source/verifier step tha
 | --- | --- | --- | --- | --- | --- | --- |
 | `REQ-001` | `UC-001` | native POM/wiring `§7, §8, §9, §14, §15` | public HTTP API unchanged | `RPC-001..031`; business models/DB/UI unchanged | `TEST-002, TEST-004, TEST-010` | no native external markers; native starter/context gates |
 | `REQ-002` | `UC-002` | open dependency guard `§7, §8, §14, §16` | open contract retained | Open existing transport unchanged | `TEST-005, TEST-006` | open POM/Triple/gRPC compile and tests |
-| `REQ-003` | `UC-003` | Agent POM/verifier `§7, §8, §14` | no DDC/RPC/API runtime redesign | no new model/DB/UI | `TEST-007` | forbidden dependency allowlist passes |
+| `REQ-003` | `UC-003` | Agent POM/verifier `§7, §8, §14` | no Tianshu/RPC/API runtime redesign | no new model/DB/UI | `TEST-007` | forbidden dependency allowlist passes |
 | `REQ-004` | `UC-001` | BOM ownership `§6, §7, §8, §13` | child module topology unchanged | components only | `TEST-001, TEST-003` | effective POM shows BOM-managed versions |
 | `REQ-005` | `UC-001/002` | ShardingSphere owner `§7, §8, §14` | schema/Flyway unchanged | DB unchanged | `TEST-003, TEST-006` | no root-local version; actual artifacts resolve |
 | `REQ-006` | `UC-001/003` | commons ownership `§7, §14` | utility behavior unchanged | no model change | `TEST-003` | no archetype version override; Common Core transitive path |
@@ -1980,7 +1980,7 @@ Rollback is a path-limited Git revert of the dependency/source/verifier step tha
 
 ### 20.1 Original-request fidelity
 
-已覆盖 Spring Boot parent 归属、Spring Cloud/Alibaba 仅保留于 `-open`、Components BOM、ShardingSphere、commons-lang3、native DDC/RPC/API Doc、Agent 最小依赖、源码配置测试 Compose verifier 联动，以及“不改动 `-open` 外部能力”的确认。
+已覆盖 Spring Boot parent 归属、Spring Cloud/Alibaba 仅保留于 `-open`、Components BOM、ShardingSphere、commons-lang3、native Tianshu/RPC/API Doc、Agent 最小依赖、源码配置测试 Compose verifier 联动，以及“不改动 `-open` 外部能力”的确认。
 
 ### 20.2 Repository and technical fidelity
 
@@ -1999,7 +1999,7 @@ Rollback is a path-limited Git revert of the dependency/source/verifier step tha
 | Check ID | Applicability | Status | Evidence | Finding | Required action/exception |
 | --- | --- | --- | --- | --- | --- |
 | `MC-ARCH-001` | Applicable | PASS | §6.1 exact Light/Service/Web/Open/Agent profiles and existing topology | no hybrid architecture introduced | None |
-| `MC-REUSE-001` | Applicable | PASS | §6.1 reuse ledger and components/platforms paths | existing Egon capabilities are reused before external additions | None |
+| `MC-REUSE-001` | Applicable | PASS | §6.1 reuse ledger and components/xingyuan paths | existing Egon capabilities are reused before external additions | None |
 | `MC-DEP-001` | Applicable | PASS | §3.3, §6.1, §7.0 dependency owner matrix | no Spring Cloud/Springdoc duplication in native target; open-only external set explicit | None |
 | `MC-NAME-001` | Applicable | PASS | §10 semantic type inventory | no new ambiguous carrier names | None |
 | `MC-VALID-001` | Applicable | PASS | §6.2 Rule 2 and §9 RPC boundary | existing validation preserved; no new unverified validator | None |

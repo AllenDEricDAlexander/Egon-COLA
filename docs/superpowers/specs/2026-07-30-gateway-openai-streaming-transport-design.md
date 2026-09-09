@@ -1,4 +1,4 @@
-# GWS-03A Gateway OpenAI 兼容流式传输能力 Spec
+# GWS-03A Yuheng OpenAI 兼容流式传输能力 Spec
 
 版本：v2
 
@@ -9,12 +9,12 @@
 
 父文档：
 
-- `2026-07-24-gateway-component-design.md`
-- `2026-07-25-gateway-engine-http-core-design.md`
+- `2026-07-24-yuheng-component-design.md`
+- `2026-07-25-yuheng-biz-gateway-http-core-design.md`
 
 实施计划：
 
-- `../plans/2026-07-30-gateway-openai-streaming-transport-parallel.md`
+- `../plans/2026-07-30-yuheng-openai-streaming-transport-parallel.md`
 
 主模块：
 
@@ -155,13 +155,13 @@ gRPC Streaming。
 官方协议资料确认：
 
 - Responses 流式返回使用 Server-Sent Events：
-  [OpenAI Responses streaming](https://platform.openai.com/docs/api-reference/responses-streaming?lang=python)；
+  [OpenAI Responses streaming](https://xingyuan.openai.com/docs/api-reference/responses-streaming?lang=python)；
 - 音频接口同时存在 `multipart/form-data` 上传、音频文件内容返回和 SSE 音频事件：
-  [OpenAI Audio API](https://platform.openai.com/docs/api-reference/audio/voice-consent-list?lang=curl)；
+  [OpenAI Audio API](https://xingyuan.openai.com/docs/api-reference/audio/voice-consent-list?lang=curl)；
 - Files API 使用文件上传，且文件规模明显大于当前 2 MiB 聚合上限：
-  [OpenAI Files API](https://platform.openai.com/docs/api-reference/files?lang=ruby)；
+  [OpenAI Files API](https://xingyuan.openai.com/docs/api-reference/files?lang=ruby)；
 - Realtime 能通过 WebSocket 承载文本、图像和音频输入输出：
-  [OpenAI Realtime API](https://platform.openai.com/docs/api-reference/realtime?lang=javascript)、
+  [OpenAI Realtime API](https://xingyuan.openai.com/docs/api-reference/realtime?lang=javascript)、
   [GPT-Realtime model](https://developers.openai.com/api/docs/models/gpt-realtime)。
 
 由此得到的网关设计约束是：根据 Route、HTTP Method、Path、Upgrade 和响应 Header
@@ -230,11 +230,11 @@ gRPC Streaming。
 | 模式方案 | 做法 | 优点 | 问题 | 结论 |
 |---|---|---|---|---|
 | A. Remote Proxy + 责任链 + Strategy + Adapter + Policy + 响应式 Decorator | 保留旧 Filter Chain，在 Invocation 阶段选择传输实现，并用窄 Facade/Observer 协调 | 与当前工程模式一致，变化点清楚，HTTP/WS 可分别测试 | 需要明确模式边界和 DataBuffer 所有权 | 推荐 |
-| B. 所有能力都做成 Gateway Filter | SSE、Multipart、Timeout、WebSocket 都加入 Chain | 表面上统一 | WebSocket 是双向长连接，Body Operator 是逐 Buffer 生命周期，均不适合单次前向 Chain；容易重复订阅 | 不采用 |
+| B. 所有能力都做成 Yuheng Filter | SSE、Multipart、Timeout、WebSocket 都加入 Chain | 表面上统一 | WebSocket 是双向长连接，Body Operator 是逐 Buffer 生命周期，均不适合单次前向 Chain；容易重复订阅 | 不采用 |
 | C. `AbstractProxyHandler` Template Method | 抽象父类固定 normalize、route、invoke、writeResponse 步骤 | 可以共享部分代码 | HTTP、SSE 和 WS 的返回契约、提交点与取消路径不同，子类会大量 override；形成脆弱父类 | 不采用 |
 
 总体职责采用 Remote Proxy Pattern：客户端仍使用 OpenAI 兼容 HTTP/WebSocket
-Contract，Gateway 只代表远端 Provider 承载并转发该 Contract，不成为目标业务能力的
+Contract，Yuheng 只代表远端 Provider 承载并转发该 Contract，不成为目标业务能力的
 实现者。这一模式直接约束网关不得解释模型、Prompt、Token 或 Tool Call。
 
 当前 `DefaultGatewayHttpDataPlaneHandler` 已超过一千行。继续在同一方法中用
@@ -264,7 +264,7 @@ CORS
 
 1. Transport Policy Resolution 和 Strategy Dispatch 发生在 `INVOCATION` 阶段；
 2. SSE Flush、DataBuffer Size Limit、Stream Idle 等逐 Buffer 行为不得注册为
-   Gateway Filter，避免 Chain 被每个 Buffer 重复执行；
+   Yuheng Filter，避免 Chain 被每个 Buffer 重复执行；
 3. WebSocket Frame 不重新进入 Authentication/Governance Chain；
 4. HTTP 与 WebSocket 必须经过同一个 Route Exposure、Security 和 Governance
    入口，不能由 WebSocket 旁路；
@@ -415,7 +415,7 @@ source
 
 新增窄 `GatewayTransportDispatcher`，作为 Listener 与传输实现之间的 Facade：
 
-1. 接收已建立的 Gateway Exchange 和 Effective Transport Policy；
+1. 接收已建立的 Yuheng Exchange 和 Effective Transport Policy；
 2. HTTP 分支委托 `GatewayHttpProxyStrategy`；
 3. WebSocket 分支委托 `GatewayWebSocketProxy`；
 4. 统一连接取消、Observation 终止和错误提交边界；
@@ -494,7 +494,7 @@ Body Log Tap 是受 Policy 控制的有界 Observer，不是请求处理器。
 
 ```mermaid
 flowchart LR
-    L["Reactor Netty Listener"] --> C["Existing Gateway Filter Chain<br/>CORS / Security / Governance"]
+    L["Reactor Netty Listener"] --> C["Existing Yuheng Filter Chain<br/>CORS / Security / Governance"]
     C --> D["GatewayTransportDispatcher<br/>Facade"]
     RC["Rule Compiler / Activation"] --> R["GatewayRouteProfileResolver<br/>Policy Object"]
     R --> EP["EffectiveGatewayTransportPolicy"]
@@ -584,7 +584,7 @@ Reactor Netty Listener
 
 1. Route 匹配只使用 Host、Method、Path、Access Zone 和 Upgrade，不读取 Body；
 2. Security、Governance、Provider Discovery、Tracing 和审计入口继续复用；
-3. OpenAI Profile 不能创建新的 Provider 发现方式，Provider 地址仍只来自现有 DDC
+3. OpenAI Profile 不能创建新的 Provider 发现方式，Provider 地址仍只来自现有 Tianshu
    Provider Instance；
 4. `GatewayProtocol` 仍只有 `HTTP` 与 `RPC`，不增加 `OPENAI`；
 5. WebSocket 是 HTTP Route 的 Transport Protocol，不是新的业务协议；
@@ -857,7 +857,7 @@ Malformed Header 不能透传。
    WebSocket Handshake；
 3. 根据 Provider Instance 的 `secure` 属性选择 `ws` 或 `wss`；
 4. 保留原 Path 和 Query，不读取其中的模型业务含义；
-5. 上游协商失败且客户端尚未升级时，返回现有 Gateway HTTP 错误模型；
+5. 上游协商失败且客户端尚未升级时，返回现有 Yuheng HTTP 错误模型；
 6. 上游 101 已收到或客户端 101 已提交后，绝不切换 Provider 或重试。
 
 ### 11.2 Frame
@@ -1045,12 +1045,12 @@ Admin 数据兼容：
 
 | 场景 | 下游未提交 | 下游已提交 |
 |---|---|---|
-| 请求体超限 | 413 `GATEWAY_REQUEST_BODY_TOO_LARGE` | 取消上传并关闭连接 |
-| Connect 失败 | 502 `GATEWAY_UPSTREAM_CONNECT_FAILED` | 不适用 |
-| Connect Timeout | 504 `GATEWAY_UPSTREAM_CONNECT_TIMEOUT` | 不适用 |
-| Response Header Timeout | 504 `GATEWAY_UPSTREAM_HEADER_TIMEOUT` | 不适用 |
-| Stream Idle Timeout | 504 `GATEWAY_STREAM_IDLE_TIMEOUT` | 关闭流，不追加 JSON |
-| Total Timeout | 504 `GATEWAY_TOTAL_TIMEOUT` | 关闭流，不追加 JSON |
+| 请求体超限 | 413 `YUHENG_REQUEST_BODY_TOO_LARGE` | 取消上传并关闭连接 |
+| Connect 失败 | 502 `YUHENG_UPSTREAM_CONNECT_FAILED` | 不适用 |
+| Connect Timeout | 504 `YUHENG_UPSTREAM_CONNECT_TIMEOUT` | 不适用 |
+| Response Header Timeout | 504 `YUHENG_UPSTREAM_HEADER_TIMEOUT` | 不适用 |
+| Stream Idle Timeout | 504 `YUHENG_STREAM_IDLE_TIMEOUT` | 关闭流，不追加 JSON |
+| Total Timeout | 504 `YUHENG_TOTAL_TIMEOUT` | 关闭流，不追加 JSON |
 | 上游流错误 | 502 通用上游错误 | 关闭流并记录 |
 | WebSocket 握手失败 | HTTP 错误，不返回 101 | 不适用 |
 | WebSocket Frame 超限 | 不适用 | Close 1009 |
@@ -1123,7 +1123,7 @@ OpenAI Body。
 - WebSocket 无 Frame；
 - Ping/Pong 持续存在时 Idle Timer 被重置。
 
-同时验证未提交时返回 Gateway Error、已提交时只关闭传输。
+同时验证未提交时返回 Yuheng Error、已提交时只关闭传输。
 
 ### 19.7 重试
 
@@ -1180,11 +1180,11 @@ npm run build
 
 后三条命令在
 `egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web`
-执行。最终还需运行 Gateway 父 Reactor 测试，确保 contract、core、engine、admin、
+执行。最终还需运行 Yuheng 父 Reactor 测试，确保 contract、core、engine、admin、
 starter、provider-runtime 和 test modules 的回归闭合。
 
 这些验证只能证明源码与本机组件测试结果，不能替代真实 OpenAI、真实外网 TLS、
-多进程 DDC/Redis/PostgreSQL/Kafka 拓扑或生产外层代理的验证。
+多进程 Tianshu/Redis/PostgreSQL/Kafka 拓扑或生产外层代理的验证。
 
 ## 20. 最小文件改造面
 
@@ -1229,7 +1229,7 @@ Trace、LKG Rule 和 RPC 实现，不做无关重构。
 3. SSE、Multipart、Binary、Decorator Pipeline、Timeout、Cancellation 与 Commit Guard；
 4. Dedicated WebSocket Proxy 和 WebSocket Adapter；
 5. Admin Web Route 表单；
-6. Gateway 全量回归与文档收口。
+6. Yuheng 全量回归与文档收口。
 
 不得在实施中启动项目常驻服务。组件测试自行管理临时端口和测试 Provider。
 
@@ -1263,10 +1263,10 @@ Timeout、Retry、Admin、兼容和无 Migration 决策在 v2 中均未改变。
 
 用户已确认以下设计模式决策，实施 Plan 必须逐项遵守：
 
-1. 认可 Remote Proxy 是总体职责模式，Gateway 只承载远端 Contract，不成为模型、
+1. 认可 Remote Proxy 是总体职责模式，Yuheng 只承载远端 Contract，不成为模型、
    Prompt、Token 或 Tool Call 的实现者；
 2. 认可复用现有 Chain of Responsibility，只在 Invocation 阶段分派传输，不把逐
-   DataBuffer 或 WebSocket Frame 处理做成 Gateway Filter；
+   DataBuffer 或 WebSocket Frame 处理做成 Yuheng Filter；
 3. 认可 Strategy 只用于可替换的 Aggregated/Streaming HTTP 路径，WebSocket 使用
    独立 Proxy，不强行实现 HTTP Strategy；
 4. 认可 `HttpUpstreamAdapter`/`WebSocketUpstreamAdapter` 隔离 Reactor Netty，

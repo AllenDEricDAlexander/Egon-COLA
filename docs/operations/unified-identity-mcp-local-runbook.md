@@ -1,27 +1,27 @@
-# 统一身份与 Gateway MCP 本地联调 Runbook
+# 统一身份与 Yuheng MCP 本地联调 Runbook
 
-本文说明如何在开发机上启动、验证和停止 IdP、RBAC3、DDC、Gateway 与完整 MCP 联调拓扑。脚本复用本机 PostgreSQL 和 Redis，不使用容器，不删除已有数据库、密钥或验收证据。
+本文说明如何在开发机上启动、验证和停止 Tianquan-Shoubing、Tianquan-Jianshen、Tianshu、Yuheng 与完整 MCP 联调拓扑。脚本复用本机 PostgreSQL 和 Redis，不使用容器，不删除已有数据库、密钥或验收证据。
 
 ## 拓扑与端口
 
 | 组件                | 地址                                         | 用途                                    |
 |-------------------|--------------------------------------------|---------------------------------------|
-| IdP Admin Web     | `http://127.0.0.1:18121`                   | 统一登录入口和 IdP 管理界面                      |
-| RBAC3 Admin Web   | `http://127.0.0.1:18131`                   | RBAC3 管理界面                            |
-| Gateway Admin Web | `http://127.0.0.1:18141`                   | 经 Gateway JWT Cookie 保护的 Gateway 管理界面 |
-| DDC Admin Web     | `http://127.0.0.1:18152`                   | DDC 管理界面                              |
-| IdP               | `http://127.0.0.1:18120`                   | OAuth/OIDC、USER AT/RT 签发与 RT 有效状态     |
-| RBAC3 Admin       | `http://127.0.0.1:18130`                   | 下游授权快照与角色激活                           |
-| Gateway Admin     | `http://127.0.0.1:18140`                   | Gateway/MCP 控制面                       |
-| DDC Admin         | `http://127.0.0.1:18150`                   | 配置、注册发现和发布通知                          |
-| Gateway MCP A     | `http://127.0.0.1:18180/mcp/unified-local` | Stable、RC 和 Legacy 公共入口               |
-| Gateway MCP B     | `http://127.0.0.1:18184/mcp/unified-local` | 双节点会话与任务恢复验证入口                        |
+| Tianquan-Shoubing Admin Web     | `http://127.0.0.1:18121`                   | 统一登录入口和 Tianquan-Shoubing 管理界面                      |
+| Tianquan-Jianshen Admin Web   | `http://127.0.0.1:18131`                   | Tianquan-Jianshen 管理界面                            |
+| Yuheng Admin Web | `http://127.0.0.1:18141`                   | 经 Yuheng JWT Cookie 保护的 Yuheng 管理界面 |
+| Tianshu Admin Web     | `http://127.0.0.1:18152`                   | Tianshu 管理界面                              |
+| Tianquan-Shoubing               | `http://127.0.0.1:18120`                   | OAuth/OIDC、USER AT/RT 签发与 RT 有效状态     |
+| Tianquan-Jianshen Admin       | `http://127.0.0.1:18130`                   | 下游授权快照与角色激活                           |
+| Yuheng Admin     | `http://127.0.0.1:18140`                   | Yuheng/MCP 控制面                       |
+| Tianshu Admin         | `http://127.0.0.1:18150`                   | 配置、注册发现和发布通知                          |
+| Yuheng MCP A     | `http://127.0.0.1:18180/mcp/unified-local` | Stable、RC 和 Legacy 公共入口               |
+| Yuheng MCP B     | `http://127.0.0.1:18184/mcp/unified-local` | 双节点会话与任务恢复验证入口                        |
 | Mock Backend      | `http://127.0.0.1:18160`                   | 统一身份 HTTP 验证夹具                        |
 | MCP Provider      | `http://127.0.0.1:18161`                   | 本地 Operation 调用夹具                     |
 | Remote MCP        | `http://127.0.0.1:18151`                   | Stable/RC 远端联邦夹具                      |
 
-Gateway 只执行 USER JWT 合法性、过期恢复等基础身份校验，并在保护业务 Route 上执行外围 RBAC3 权限判断；业务系统继续使用 IdP
-Starter 本地校验同一个 USER AT，再从 RBAC3 拉取与缓存当前用户的授权快照。普通业务请求不会携带 Refresh Token。
+Yuheng 只执行 USER JWT 合法性、过期恢复等基础身份校验，并在保护业务 Route 上执行外围 Tianquan-Jianshen 权限判断；业务系统继续使用 Tianquan-Shoubing
+Starter 本地校验同一个 USER AT，再从 Tianquan-Jianshen 拉取与缓存当前用户的授权快照。普通业务请求不会携带 Refresh Token。
 
 ## 前置条件
 
@@ -40,7 +40,7 @@ Starter 本地校验同一个 USER AT，再从 RBAC3 拉取与缓存当前用户
 scripts/unified-xingyuan/start-local-stack.sh
 ```
 
-首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、IdP 用户引导、RBAC3 多租户角色初始化、DDC 应用与注册初始化，以及 Gateway HTTP/MCP 统一发布。本地 MCP Tool 由 Provider 的 `@GatewayInterfaceGroup` 和 `@GatewayOperation` 注解投影，脚本只协调 Server、Remote MCP 和其他控制面能力，不创建本地 Tool 或 disabled Route 锚点。
+首次执行会完成 Maven 打包、Admin Web 构建、数据库初始化、Tianquan-Shoubing 用户引导、Tianquan-Jianshen 多租户角色初始化、Tianshu 应用与注册初始化，以及 Yuheng HTTP/MCP 统一发布。本地 MCP Tool 由 Provider 的 `@GatewayInterfaceGroup` 和 `@GatewayOperation` 注解投影，脚本只协调 Server、Remote MCP 和其他控制面能力，不创建本地 Tool 或 disabled Route 锚点。
 
 需要验证交付给开发者的原生命令时，先执行一次：
 
@@ -48,7 +48,7 @@ scripts/unified-xingyuan/start-local-stack.sh
 scripts/unified-xingyuan/prepare-local-stack.sh
 ```
 
-准备流程会初始化同一完整拓扑并停止所有受管进程。随后从仓库根目录分别运行五个后端；JAR 会自动读取 `target/local-unified-platform/env/*.properties`：
+准备流程会初始化同一完整拓扑并停止所有受管进程。随后从仓库根目录分别运行五个后端；JAR 会自动读取 `target/local-unified-xingyuan/env/*.properties`：
 
 ```bash
 java -jar egon-cola-xingyuan/egon-cola-tianshu/egon-cola-tianshu-admin/target/egon-cola-tianshu-admin-exec.jar
@@ -66,12 +66,12 @@ npm run dev
 
 准备流程会在四个 Admin Web 目录生成受管的 `.env.local`，把真实数值型默认租户 ID 注入 `VITE_DEFAULT_TENANT_ID`；因此无参数启动不会再把租户代码 `default` 错当成租户 ID。
 
-直接启动顺序为 DDC、IdP、RBAC3、Gateway Admin、Gateway Engine；等待后端 Readiness 为 `200` 后再启动 Web。首次数据库初始化必须经过准备流程，不能只启动空库上的 JAR。
+直接启动顺序为 Tianshu、Tianquan-Shoubing、Tianquan-Jianshen、Yuheng Admin、Yuheng Engine；等待后端 Readiness 为 `200` 后再启动 Web。首次数据库初始化必须经过准备流程，不能只启动空库上的 JAR。
 
 只在已确认可执行 JAR 和 Web 构建均为最新时，才可跳过构建：
 
 ```bash
-UNIFIED_PLATFORM_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
+UNIFIED_XINGYUAN_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
 ```
 
 ## 状态与日志
@@ -80,26 +80,26 @@ UNIFIED_PLATFORM_SKIP_BUILD=true scripts/unified-xingyuan/start-local-stack.sh
 scripts/unified-xingyuan/status-local-stack.sh
 ```
 
-状态必须显示 13 个受管进程均为 `running`，健康码均为 `200`。运行时目录为 `target/local-unified-platform/`：
+状态必须显示 13 个受管进程均为 `running`，健康码均为 `200`。运行时目录为 `target/local-unified-xingyuan/`：
 
-- PID：`target/local-unified-platform/pids/`
-- 日志：`target/local-unified-platform/logs/`
-- 脱敏验收证据：`target/local-unified-platform/evidence/verification-summary.json`
-- QA 密钥：`target/local-unified-platform/secrets/`，目录权限为 `0700`，文件权限为 `0600`
+- PID：`target/local-unified-xingyuan/pids/`
+- 日志：`target/local-unified-xingyuan/logs/`
+- 脱敏验收证据：`target/local-unified-xingyuan/evidence/verification-summary.json`
+- QA 密钥：`target/local-unified-xingyuan/secrets/`，目录权限为 `0700`，文件权限为 `0600`
 
 脚本和日志不会输出访问令牌、服务凭据或明文密码。
 
 ## 登录 Admin Web
 
-打开 `http://127.0.0.1:18141`，通过 Gateway 公共登录 Route 登录：
+打开 `http://127.0.0.1:18141`，通过 Yuheng 公共登录 Route 登录：
 
 - 用户名：`alice`
-- 密码文件：`target/local-unified-platform/secrets/idp-admin.password`
+- 密码文件：`target/local-unified-xingyuan/secrets/tianquan-shoubing-admin.password`
 
 在本机终端读取密码（仅用于密码登录，不代表建立服务端 Session）：
 
 ```bash
-sed -n '1p' target/local-unified-platform/secrets/idp-admin.password
+sed -n '1p' target/local-unified-xingyuan/secrets/tianquan-shoubing-admin.password
 ```
 
 不要把密码复制到文档、Issue、聊天记录或 Git 提交中。默认租户与 `tenant-b` 已初始化，用于多租户隔离验证。
@@ -112,17 +112,17 @@ scripts/unified-xingyuan/verify-local-stack.sh
 
 验收覆盖：
 
-- Gateway Cookie 登录、固定五分钟 USER AT、稳定不轮换 RT，以及 Logout/强制退出后删除 RT；旧 AT 只保留到原 `exp`，RT
+- Yuheng Cookie 登录、固定五分钟 USER AT、稳定不轮换 RT，以及 Logout/强制退出后删除 RT；旧 AT 只保留到原 `exp`，RT
   刷新失败后必须重新登录；
-- RBAC3 角色激活、授权撤销传播及原 JWT 下的权限恢复；
-- DDC 注册、配置中断时 LKG 连续服务和恢复；
+- Tianquan-Jianshen 角色激活、授权撤销传播及原 JWT 下的权限恢复；
+- Tianshu 注册、配置中断时 LKG 连续服务和恢复；
 - 注解托管的 MCP Operation 不依赖 Route，并在两个 Engine 上进入同一发布；
 - Stable、RC、Legacy SSE，以及 Tools、Resources、Templates、Prompts、Completion、Apps、订阅；
 - Engine A 创建会话/任务、Engine B 读取会话/任务；
 - 本地 Operation、远端 MCP 联邦、熔断开启与恢复；
 - PostgreSQL 持久任务和 Redis 跨节点会话/事件流。
 
-验收会短暂中断并恢复 DDC、Remote MCP 和 RBAC3 权限；不会创建、删除或恢复用于 MCP 占位的草稿路由。`trap` 会在成功或失败时尽力恢复现场。若终端被强制杀死，重新执行启动脚本即可协调完整拓扑。
+验收会短暂中断并恢复 Tianshu、Remote MCP 和 Tianquan-Jianshen 权限；不会创建、删除或恢复用于 MCP 占位的草稿路由。`trap` 会在成功或失败时尽力恢复现场。若终端被强制杀死，重新执行启动脚本即可协调完整拓扑。
 
 运行 MCP 官方 conformance：
 
@@ -130,15 +130,15 @@ scripts/unified-xingyuan/verify-local-stack.sh
 egon-cola-xingyuan/egon-cola-yuheng/deployment/scripts/run-mcp-conformance.sh \
   http://127.0.0.1:18151/conformance/stable \
   http://127.0.0.1:18151/conformance/rc \
-  target/local-unified-platform/evidence/mcp-conformance
+  target/local-unified-xingyuan/evidence/mcp-conformance
 ```
 
 脚本使用同一 Remote MCP 进程内隔离的
 `/conformance/stable` 与 `/conformance/rc` 场景服务器，分别运行固定版本的
 Stable Active Suite 和 RC Draft Suite。它们只提供官方 CLI 约定的诊断能力；
-Gateway 实际远端联邦仍使用 `/remote/stable` 与 `/remote/rc`，两类夹具互不混用。
+Yuheng 实际远端联邦仍使用 `/remote/stable` 与 `/remote/rc`，两类夹具互不混用。
 验收结果写入
-`target/local-unified-platform/evidence/mcp-conformance/{stable,rc}/`。
+`target/local-unified-xingyuan/evidence/mcp-conformance/{stable,rc}/`。
 
 ## 停止
 
@@ -150,9 +150,9 @@ scripts/unified-xingyuan/stop-local-stack.sh
 
 ## 常见排查
 
-- 某组件 `health=000`：查看 `target/local-unified-platform/logs/<component>.log`，然后重新执行启动脚本。
-- IdP 登录失败：确认用户名是 `alice`，密码来自当前运行时目录的限制文件；不要使用旧运行时目录中的副本。浏览器身份只由 Gateway
-  Cookie 携带，不要向前端注入 USER AT/RT，也不要把 IdP 内部端口作为浏览器 API 地址。
-- 授权更新短暂未生效：本地 Gateway Engine 授权缓存 TTL 为 1 秒，先等待状态轮询；持续失败时检查 RBAC3 与两个 Engine 日志。
+- 某组件 `health=000`：查看 `target/local-unified-xingyuan/logs/<component>.log`，然后重新执行启动脚本。
+- Tianquan-Shoubing 登录失败：确认用户名是 `alice`，密码来自当前运行时目录的限制文件；不要使用旧运行时目录中的副本。浏览器身份只由 Yuheng
+  Cookie 携带，不要向前端注入 USER AT/RT，也不要把 Tianquan-Shoubing 内部端口作为浏览器 API 地址。
+- 授权更新短暂未生效：本地 Yuheng Engine 授权缓存 TTL 为 1 秒，先等待状态轮询；持续失败时检查 Tianquan-Jianshen 与两个 Engine 日志。
 - Remote MCP 调用失败：确认 `mcp-remote` 健康；深度验收会主动触发熔断，恢复后等待约 4 秒。
-- 发布失败：检查 Gateway Admin 日志和草稿校验响应；无效发布不得替换当前 LKG。
+- 发布失败：检查 Yuheng Admin 日志和草稿校验响应；无效发布不得替换当前 LKG。

@@ -1040,7 +1040,7 @@ public class DtpManifestController {
                 .permissions(List.of(
                         permission("dtp:apps:read", "View dynamic thread pool applications"),
                         permission("dtp:executors:read", "View dynamic thread pool executors"),
-                        permission("dtp:executors:resize", "Resize platform thread pools"),
+                        permission("dtp:executors:resize", "Resize xingyuan thread pools"),
                         permission("dtp:executors:virtual-limit", "Update virtual thread concurrency limit"),
                         permission("dtp:events:read", "View dynamic thread pool audit events")
                 ))
