@@ -221,7 +221,7 @@ assert_contains "${identity_script}" \
   'wait_gateway_catalog_for_app' \
   'Yuheng startup must wait for every real provider catalog'
 assert_contains "${identity_script}" \
-  'wait_gateway_openapi_sync_for_app platform yuheng-admin' \
+  'wait_gateway_openapi_sync_for_app xingyuan yuheng-admin' \
   'Admin catalog refresh must wait for the current executable build to become valid'
 assert_contains "${identity_script}" \
   'publish_gateway_routes' \
