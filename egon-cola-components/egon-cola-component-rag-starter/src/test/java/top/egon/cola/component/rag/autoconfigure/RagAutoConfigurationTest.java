@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
+import top.egon.cola.component.rag.support.FakeEmbeddingModel;
+import top.egon.cola.component.rag.support.FakeVectorStore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -34,7 +36,7 @@ class RagAutoConfigurationTest {
 
     @Test
     void creates_rag_beans_when_enabled_with_required_keys() {
-        runner.withPropertyValues(enabledKeySet())
+        runner.withUserConfiguration(MatchingHostBeans.class).withPropertyValues(enabledKeySet())
                 .run(context -> assertThat(context).hasNotFailed()
                         .hasBean("ragProperties")
                         .hasBean("ragClock"));
@@ -53,7 +55,7 @@ class RagAutoConfigurationTest {
     void fails_when_dimensions_missing() {
         runner.withPropertyValues(
                         "egon.cola.component.rag.enabled=true",
-                        "egon.cola.component.rag.vector-store-bean-name=ragVectorStore",
+                        "egon.cola.component.rag.vector-store-bean-name=hostVectorStore",
                         "egon.cola.component.rag.embedding-models.openai-small.embedding-model-bean-name=ragEmbeddingModel")
                 .run(context -> assertThat(context).hasFailed());
     }
@@ -63,7 +65,7 @@ class RagAutoConfigurationTest {
         runner.withPropertyValues(
                         "egon.cola.component.rag.enabled=true",
                         "egon.cola.component.rag.dimensions=1536",
-                        "egon.cola.component.rag.vector-store-bean-name=ragVectorStore")
+                        "egon.cola.component.rag.vector-store-bean-name=hostVectorStore")
                 .run(context -> assertThat(context).hasFailed());
     }
 
@@ -85,11 +87,86 @@ class RagAutoConfigurationTest {
                         .getFailure().hasStackTraceContaining("missing-model"));
     }
 
+    @Test
+    void resolves_registry_and_vector_store_when_host_beans_present() {
+        runner.withUserConfiguration(MatchingHostBeans.class)
+                .withPropertyValues(enabledKeySet())
+                .run(context -> assertThat(context).hasNotFailed()
+                        .hasBean("ragVectorStore")
+                        .hasBean("ragEmbeddingModelRegistry"));
+    }
+
+    @Test
+    void fails_when_vector_store_bean_name_unresolved() {
+        List<String> keys = new ArrayList<>(List.of(enabledKeySet()));
+        keys.set(2, "egon.cola.component.rag.vector-store-bean-name=missingVectorStore");
+        runner.withUserConfiguration(MatchingHostBeans.class)
+                .withPropertyValues(keys.toArray(String[]::new))
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasStackTraceContaining("missingVectorStore"));
+    }
+
+    @Test
+    void fails_when_embedding_model_bean_name_unresolved() {
+        List<String> keys = new ArrayList<>(List.of(enabledKeySet()));
+        keys.set(3, "egon.cola.component.rag.embedding-models.openai-small.embedding-model-bean-name=missingModel");
+        runner.withUserConfiguration(MatchingHostBeans.class)
+                .withPropertyValues(keys.toArray(String[]::new))
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasStackTraceContaining("missingModel"));
+    }
+
+    @Test
+    void fails_when_two_logical_models_share_one_embedding_bean() {
+        List<String> keys = new ArrayList<>(List.of(enabledKeySet()));
+        keys.add("egon.cola.component.rag.embedding-models.bge-large.embedding-model-bean-name=ragEmbeddingModel");
+        runner.withUserConfiguration(MatchingHostBeans.class)
+                .withPropertyValues(keys.toArray(String[]::new))
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasStackTraceContaining("ragEmbeddingModel"));
+    }
+
+    @Test
+    void fails_when_embedding_dimensions_mismatch() {
+        runner.withUserConfiguration(MismatchedHostBeans.class)
+                .withPropertyValues(enabledKeySet())
+                .run(context -> assertThat(context).hasFailed()
+                        .getFailure().hasStackTraceContaining("768"));
+    }
+
+    @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+    static class MatchingHostBeans {
+
+        @org.springframework.context.annotation.Bean(name = "hostVectorStore")
+        FakeVectorStore ragVectorStore() {
+            return new FakeVectorStore();
+        }
+
+        @org.springframework.context.annotation.Bean(name = "ragEmbeddingModel")
+        FakeEmbeddingModel ragEmbeddingModel() {
+            return new FakeEmbeddingModel(1536);
+        }
+    }
+
+    @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+    static class MismatchedHostBeans {
+
+        @org.springframework.context.annotation.Bean(name = "hostVectorStore")
+        FakeVectorStore ragVectorStore() {
+            return new FakeVectorStore();
+        }
+
+        @org.springframework.context.annotation.Bean(name = "ragEmbeddingModel")
+        FakeEmbeddingModel ragEmbeddingModel() {
+            return new FakeEmbeddingModel(768);
+        }
+    }
+
     private static String[] enabledKeySet() {
         return new String[]{
                 "egon.cola.component.rag.enabled=true",
                 "egon.cola.component.rag.dimensions=1536",
-                "egon.cola.component.rag.vector-store-bean-name=ragVectorStore",
+                "egon.cola.component.rag.vector-store-bean-name=hostVectorStore",
                 "egon.cola.component.rag.embedding-models.openai-small.embedding-model-bean-name=ragEmbeddingModel"
         };
     }

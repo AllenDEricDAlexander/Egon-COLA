@@ -21,7 +21,7 @@ class RagPropertiesBindingTest {
 
     @Test
     void applies_documented_defaults() {
-        runner.withPropertyValues(enabledKeySet()).run(context -> {
+        runner.withUserConfiguration(HostBeans.class).withPropertyValues(enabledKeySet()).run(context -> {
             RagProperties properties = context.getBean("ragProperties", RagProperties.class);
             assertThat(properties.storage().type()).isEqualTo(RagDocumentStorageTypeEnum.LOCAL);
             assertThat(properties.storage().local().root()).isEqualTo(RagStorageProperties.DEFAULT_LOCAL_ROOT);
@@ -29,7 +29,7 @@ class RagPropertiesBindingTest {
             assertThat(properties.retrieval().maxTopK()).isEqualTo(RagRetrievalProperties.DEFAULT_MAX_TOP_K);
             assertThat(properties.validation().probeOnStartup()).isFalse();
             assertThat(properties.defaultEmbeddingModel()).isEqualTo("openai-small");
-            assertThat(properties.vectorStoreBeanName()).isEqualTo("ragVectorStore");
+            assertThat(properties.vectorStoreBeanName()).isEqualTo("hostVectorStore");
         });
     }
 
@@ -75,6 +75,20 @@ class RagPropertiesBindingTest {
         assertThat(properties.defaultEmbeddingModel()).isNull();
     }
 
+    @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+    static class HostBeans {
+
+        @org.springframework.context.annotation.Bean(name = "hostVectorStore")
+        top.egon.cola.component.rag.support.FakeVectorStore hostVectorStore() {
+            return new top.egon.cola.component.rag.support.FakeVectorStore();
+        }
+
+        @org.springframework.context.annotation.Bean(name = "ragEmbeddingModel")
+        top.egon.cola.component.rag.support.FakeEmbeddingModel ragEmbeddingModel() {
+            return new top.egon.cola.component.rag.support.FakeEmbeddingModel(1536);
+        }
+    }
+
     private static Map<String, RagEmbeddingModelProperties> modelsOf(String key, String beanName) {
         Map<String, RagEmbeddingModelProperties> models = new LinkedHashMap<>();
         models.put(key, new RagEmbeddingModelProperties(beanName));
@@ -94,7 +108,7 @@ class RagPropertiesBindingTest {
         return new String[]{
                 "egon.cola.component.rag.enabled=true",
                 "egon.cola.component.rag.dimensions=1536",
-                "egon.cola.component.rag.vector-store-bean-name=ragVectorStore",
+                "egon.cola.component.rag.vector-store-bean-name=hostVectorStore",
                 "egon.cola.component.rag.embedding-models.openai-small.embedding-model-bean-name=ragEmbeddingModel"
         };
     }

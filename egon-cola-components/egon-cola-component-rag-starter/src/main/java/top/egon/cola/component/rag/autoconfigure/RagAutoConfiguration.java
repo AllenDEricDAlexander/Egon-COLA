@@ -2,6 +2,8 @@ package top.egon.cola.component.rag.autoconfigure;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -12,9 +14,11 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.handler.NoUnboundElementsBindHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.exception.RagConfigurationException;
 
 import java.time.Clock;
+import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,5 +54,32 @@ public class RagAutoConfiguration {
                     .collect(Collectors.joining("; ")));
         }
         return properties;
+    }
+
+    /**
+     * Publishes the host's configured vector store under a stable internal name.
+     *
+     * <p>The host bean name is a configuration value, so it cannot be referenced by a compile-time
+     * {@code @Qualifier}; resolving it once here keeps every consumer free of bean-name lookups and
+     * keeps the component working when the host registers several {@code VectorStore} beans.
+     */
+    @Bean(name = "ragVectorStore")
+    @ConditionalOnMissingBean(name = "ragVectorStore")
+    public VectorStore ragVectorStore(ListableBeanFactory beanFactory,
+                                      @Qualifier("ragProperties") RagProperties properties) {
+        String beanName = properties.vectorStoreBeanName();
+        if (!beanFactory.containsBean(beanName)) {
+            throw new RagConfigurationException("vector store bean '" + beanName
+                    + "' is not present; known VectorStore beans: "
+                    + Arrays.toString(beanFactory.getBeanNamesForType(VectorStore.class)));
+        }
+        return beanFactory.getBean(beanName, VectorStore.class);
+    }
+
+    @Bean(name = "ragEmbeddingModelRegistry")
+    @ConditionalOnMissingBean(name = "ragEmbeddingModelRegistry")
+    public RagEmbeddingModelRegistry ragEmbeddingModelRegistry(@Qualifier("ragProperties") RagProperties properties,
+                                                               ListableBeanFactory beanFactory) {
+        return new RagEmbeddingModelRegistry(properties, beanFactory);
     }
 }
