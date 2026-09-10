@@ -419,12 +419,12 @@ assertEquals(PROFILE_KEYS, yamlKeys(Path.of("egon-cola-source-agent-starter/src/
 
 #### File 3 — `MODIFY definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`
 
-- Purpose: 让生成产物可以包含 Flyway、MyBatis 与 `db/migration` 资源，并新增对应断言。
-- Symbols: `forbiddenDependencies`、`missing("${prefix}-infrastructure/src/main/resources/db")`、forbiddenToken 列表与新增断言。
+- Purpose: 让生成产物可以包含 Flyway、MyBatis 与 `db/migration` 资源。
+- Symbols: `forbiddenDependencies`、`missing("${prefix}-infrastructure/src/main/resources/db")`、forbiddenToken 列表。
 - Repository evidence: 第 78-80 行的禁项、第 129 行的 `missing(db)`、第 193 行的 token 列表。
 - Dependencies and consumers: 生成项目 `clean verify` 时执行。
 - Why now: 同 File 1。
-- Contract/signature changes: 移除 `flyway-core`、`mybatis-plus-spring-boot3-starter`、`flyway` token 与 `missing(db)`；新增迁移文件存在性、依赖存在性与 `BOOT-INF/lib` 运行时库断言。
+- Contract/signature changes: **只做放开**——移除 `flyway-core`、`mybatis-plus-spring-boot3-starter`、`flyway` token 与 `missing(db)`。新增断言按"谁创建产物谁加断言"的原则放到后续 Step（依赖断言在 Step 2、迁移文件断言在 Step 3），否则 Step 1 之后生成 IT 会因为断言指向尚不存在的产物而变红，中间态不再可用。
 - Input/output and state mapping: 无。
 - Error and edge behavior: 断言失败即阻止发布，保持 fail-closed。
 - Standards impact: `MC-ARCH-001`、`MC-DEP-001`、`MC-SCOPE-001`、`MC-TEST-001`。
@@ -438,18 +438,7 @@ def forbiddenDependencies = [
     "spring-boot-starter-graphql", "egon-cola-organization-facade", "egon-cola-evaluation-facade"
 ]
 
-file("${prefix}-infrastructure/src/main/resources/db/migration/V20260910_001__create_knowledge_schema.sql")
-file("${prefix}-infrastructure/src/main/resources/db/migration/V20260910_002__create_transactional_outbox_schema.sql")
-
-assert dependencyIds(poms.infrastructure).contains("egon-cola-component-rag-starter")
-assert dependencyIds(poms.infrastructure).contains("egon-cola-component-transactional-outbox-starter")
-assert dependencyIds(poms.infrastructure).contains("spring-ai-pgvector-store")
-assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
-
-["egon-cola-component-rag-starter-", "egon-cola-component-transactional-outbox-starter-",
- "spring-ai-pgvector-store-", "mybatis-plus-"].each { required ->
-    assert agentLibraries.any { it.startsWith(required) }: "Missing RAG runtime library ${required}"
-}
+// 迁移文件与依赖的存在性断言分别由 Step 3 与 Step 2 加入；本 Step 只放开禁项。
 
 ["spring-boot-starter-data-jpa", "jakarta.persistence", "jparepository", "redis", "graphql", "dubbo", "fastjson"].each { forbiddenToken ->
     assert !generatedSourceText.contains(forbiddenToken)
@@ -457,7 +446,7 @@ assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-p
 ```
 
 - Verification contribution: `TEST-002`。
-- After this file: 生成侧放开与新增断言就位。
+- After this file: 生成侧放开就位；新增断言留待其产物出现的 Step。
 
 #### File 4 — `MODIFY definitions/egon-cola-archetype-agent/src/main/resources/META-INF/maven/archetype-metadata.xml`
 
@@ -493,7 +482,7 @@ assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-p
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
 - Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install` 然后 `./scripts/generate_archetypes.sh generate && ./scripts/check_archetypes.sh` 然后 `./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Pgenerated-archetypes clean verify`
-- Expected result: 三条命令均退出码 0；源码项目与七个生成产物的 verifier 全部通过。
+- Expected result: 三条命令均退出码 0；源码项目与七个生成产物的 verifier 全部通过（本 Step 只放开禁项，不新增指向未创建产物的断言，因此中间态保持全绿）。
 - Failure returns to: File 3（断言与实现不一致）或 File 4（文件集路径）。
 - Completion criteria: `REQ-017`-`REQ-019` 的放开部分有证据；其余禁项仍生效。
 - Rollback: 回退本 Step 四个文件。
@@ -793,6 +782,8 @@ agent:
 - Rollback: 回退四个文件；表尚未在任何环境创建。
 - Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeSchemaMigrationTest.java`; `...-infrastructure/src/main/resources/db/migration/V20260910_001__create_knowledge_schema.sql`; `...-infrastructure/src/main/resources/db/migration/V20260910_002__create_transactional_outbox_schema.sql`; `...-starter/src/main/resources/{application.yml,application-dev.yml,application-test.yml,application-prod.yml}`
 - Commit: `feat(agent-archetype): create the knowledge schema and configuration`
+
+在实施期修正：本 Step 同时补上 Step 1 尚未加入的 `verify.groovy` 迁移文件断言与 `BOOT-INF/lib` 运行时库断言中依赖迁移的部分；依赖存在性断言在 Step 2 加入。
 
 ### Step 4 — domain：knowledge 领域词汇与端口
 
