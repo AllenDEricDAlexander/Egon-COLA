@@ -44,8 +44,8 @@ class Rbac3FlywayPostgresqlIT {
                     .schemas(schema)
                     .table("flyway_schema_history_rbac3")
                     .target(Integer.toString(BASELINE_VERSION))
-                    .initSql("SET tianquan-jianshen.bootstrap.tenant_ids = '1001,1002'; "
-                            + "SET tianquan-jianshen.bootstrap.identity_sub = '9001'")
+                    .initSql("SET rbac3.bootstrap.tenant_ids = '1001,1002'; "
+                            + "SET rbac3.bootstrap.identity_sub = '9001'")
                     .locations("classpath:db/migration")
                     .load();
 
