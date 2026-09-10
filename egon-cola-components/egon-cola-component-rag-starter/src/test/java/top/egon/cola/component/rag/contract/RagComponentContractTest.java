@@ -2,6 +2,7 @@ package top.egon.cola.component.rag.contract;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -25,6 +26,8 @@ class RagComponentContractTest {
 
     private static final Path MAIN_JAVA = Path.of("src/main/java/top/egon/cola/component/rag");
 
+    private static final Path TEST_JAVA = Path.of("src/test/java/top/egon/cola/component/rag");
+
     private static final Path POM = Path.of("pom.xml");
 
     @Test
@@ -37,20 +40,24 @@ class RagComponentContractTest {
     }
 
     @Test
-    void documents_every_main_package() throws IOException {
-        Set<String> packagesWithoutDocumentation = new TreeSet<>();
-        try (Stream<Path> directories = Files.walk(MAIN_JAVA)) {
+    void documents_every_package_in_both_source_sets() throws IOException {
+        Set<String> undocumented = new TreeSet<>();
+        collectUndocumented(MAIN_JAVA, "main", undocumented);
+        collectUndocumented(TEST_JAVA, "test", undocumented);
+
+        assertThat(undocumented).isEmpty();
+    }
+
+    private static void collectUndocumented(Path root, String sourceSet, Set<String> undocumented) throws IOException {
+        try (Stream<Path> directories = Files.walk(root)) {
             directories.filter(Files::isDirectory).forEach(directory -> {
-                boolean hasJava = directory.toFile().list((dir, name) -> name.endsWith(".java")) != null
-                        && Stream.of(directory.toFile().listFiles((dir, name) -> name.endsWith(".java")))
-                        .findAny().isPresent();
+                File[] javaFiles = directory.toFile().listFiles((dir, name) -> name.endsWith(".java"));
+                boolean hasJava = javaFiles != null && javaFiles.length > 0;
                 if (hasJava && !Files.exists(directory.resolve("package-info.java"))) {
-                    packagesWithoutDocumentation.add(MAIN_JAVA.relativize(directory).toString());
+                    undocumented.add(sourceSet + ":" + root.relativize(directory));
                 }
             });
         }
-
-        assertThat(packagesWithoutDocumentation).isEmpty();
     }
 
     @Test
