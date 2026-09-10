@@ -1619,6 +1619,36 @@ public class KnowledgeDocumentManageImpl implements KnowledgeDocumentManage {
 - Commit paths: `...-application/src/test/java/.../application/knowledge/KnowledgeManageTest.java`; `.../application/knowledge/command/*.java`; `.../application/knowledge/config/{KnowledgeRuntimeProperties,KnowledgeApplicationConfiguration}.java`; `.../application/knowledge/service/KnowledgeQaCapacityService.java`; `.../application/knowledge/manage/{KnowledgeBaseManage,KnowledgeDocumentManage,KnowledgeQaManage}.java`; `.../application/knowledge/manage/impl/{KnowledgeBaseManageImpl,KnowledgeDocumentManageImpl,KnowledgeQaManageImpl}.java`
 - Commit: `feat(agent-archetype): add the knowledge use cases`
 
+在实施期修正（事务边界的落点与两个协作者）：plan File 6 把 `@Transactional` 直接写在 `KnowledgeDocumentManageImpl#upload` 上并注入 `TransactionalOutbox`。实际实现另建两个协作者 Bean——`service/KnowledgeIngestQueueService`（`storeAndEnqueue(document, traceId)`：insert 文档行 + 入队，同一事务；`resetAndEnqueue(documentId, traceId) → boolean`：把"终态重置为 PENDING"与入队放进同一事务，返回 `false` 表达 CAS 失败）与 `service/KnowledgeRemovalService`（`deleteStoredFile` 尽力而为、`removeDocument`、`removeBase` 各自成事务）。原因有二：`@Transactional` 由代理施加，用例自调用自身的注解方法不产生新事务，而组件契约要求 `enqueue` 处于活跃事务中；文件落盘与文本解析留在事务外，避免事务跨越慢 IO（plan File 6 的"文件写入与抽取在事务外"保持不变）。`KnowledgeRemovalService` 的级联删除按"先删存储文件与向量、后删数据库行"排列，使失败时留下的是可见的、可重试的孤儿而非不可见的残留。
+
+在实施期修正（共享的通道常量回改 Step 7 已提交文件）：`common/knowledge/KnowledgeIngestChannel` 承载通道名 `rag-ingest`、信封版本 `"1"` 与三个载荷字段名（`schemaVersion`、`documentId`、`tenantId`）。生产者是本 Step 的 application 用例、消费者是 Step 7 已提交的 infrastructure handler，两者互不可见，字面量各写一份会在改名后只以"投递失败"的形式暴露。故 `KnowledgeIngestDeliveryHandler` 改为引用同一常量（`CHANNEL` 与两个字段名改引用、私有 `SCHEMA_VERSION` 常量删除），行为与载荷形状不变——本 Step 因此修改 Step 7 已提交的文件，且该文件不在 plan 的 Commit paths 之内。
+
+在实施期修正（载荷断言）：plan File 1 的伪代码用 `verify(transactionalOutbox).enqueue(argThat(payload -> payload.contains("rag-ingest")))`；实际载荷里不含通道名（通道在信封上），断言改为按 `KnowledgeIngestChannel` 的字段名比对整个 payload 映射 `{schemaVersion:"1", documentId, tenantId}`（`tenantId` 由 `REQ-026`/`DEC-013` 补入，见 Step 7 记述）。
+
+在实施期修正（命令载体与分页）：`UploadKnowledgeDocumentCommand.content` 是 `byte[]` 而非 plan 的流——原文件要先落存储、再解析一次，流只能读一次；`upload` 在两次读取之前按 `maxUploadBytes` 限长，缓冲因此有界。分页返回用仓库既有的 `PageResultRecord`（Step 5 已记为偏差），命令一律带 `@NotBlank` 的 `traceId` 以支撑 Spec B `§9.2` 的错误体关联。plan 未列而本 Step 一并落地的域载体：`KnowledgeQaEvent`/`KnowledgeQaEventTypeEnum`/`KnowledgeRetrievedChunkBO`/`KnowledgeAnswerTaskBO`/`KnowledgeAnswerGateway`/`KnowledgeAnswerRunService` 与 `KnowledgeVectorGateway#deleteDocument`（原因见 Step 4/6 的记述：Spec B 行 549 与 `AgentArchitectureTest` 的门禁冲突，用户已批准"加 domain 端口"方案）；`KnowledgeQaStageEnum` 未新建，事件阶段由 `KnowledgeQaEventTypeEnum` 表达。
+
+在实施期修正（`@Validated` 不落在 Manage 实现上）：plan File 6 要求实现类带 `@Validated`。实际实现改为"接口方法参数 `@Valid` + 实现内显式 `ValidationUtils.validate(...)`"：两者并存时方法级校验异常由容器抛出，绕过实现里把违规映射为 `KnowledgeApplicationException(KNOWLEDGE_VALIDATION_ERROR)` 的分支，规范要求的错误码与字段表将不可达。校验仍在边界完成，`Rule 2` 的实现方式不变。
+
+在实施期修正（提取路由前置检查，`TEST-010`）：Spec B `TEST-010` 要求"无可用提取器 → 400 `KNOWLEDGE_EXTRACTOR_MISSING`，且存储与仓储不被调用"，故 `upload` 在 `storeOriginal` 之前新增 `requireExtractor`：用组件导出的具名 Bean `ragDocumentExtractorRegistry` 按同一 `mimeType`/`fileName` 询问，命中结果与 `RagExtractionService` 的判定一致，只是提前到"尚未写入任何东西"之前；`extract` 中原用于捕获 `RagExtractorMissingException` 的分支因此不可达而被删除（避免 `801c85949` 已修过的"不可达分支"缺陷类）。
+
+在实施期修正（失败补偿与"无部分持久化"）：解析失败 → 补偿删除已写入的原文件 → 500 `KNOWLEDGE_INTERNAL_ERROR`；行/消息事务失败 → 同一次补偿删除 → 500（Spec B "无部分持久化"）；基座级联删除失败 → 500 `KNOWLEDGE_INTERNAL_ERROR` 且状态未变。三处都落在实现里。补偿删除自身失败不覆盖原始失败：`KnowledgeRemovalService.deleteStoredFile` 捕获存储异常并记 `outcome=ORPHANED reason=<异常类名>`；Spec B 行 633 的"补偿记录"实体在规范中没有定义，实现只落日志（**留待审计**：规范未定义的补偿记录载体）。
+
+在实施期修正（阈值后置过滤，留待审计）：冻结的域端口 `KnowledgeVectorGateway#retrieve` 不带阈值参数，用例在组件返回后按 `similarityThreshold` 后置过滤（`score == null` 仅在阈值 ≤ 0 时通过）；问答路径取 `ACCEPT_EVERY_SCORE = 0.0`（`API-012` 无阈值参数），`topK` 为 null 时传 0 让组件的默认值（8）生效。**留待审计**：后置过滤与组件的 top-K 截断相互作用，"先截断、后过滤导致结果不足 topK"是规范未定义的行为。
+
+在实施期修正（`KNOWLEDGE_MODEL_NOT_REGISTERED` 的时机）：plan 未含建库时的模型注册校验，`API-011`/`API-012` 的错误表也没有该码。实现按"检索时才可能失败"处理：`KnowledgeQaManageImpl` 把 `RagModelNotRegisteredException` 映射为 `KNOWLEDGE_MODEL_NOT_REGISTERED`，其余 `RagException` 映射为 503 `KNOWLEDGE_DEPENDENCY_UNAVAILABLE`；流建立之后才发生的失败由网关以流内 `knowledge.failed` 表达（`API-012` 的语义：建立前 503、建立后流内终态）。**留待审计**（错误表缺口）。
+
+在实施期修正（容量许可只归还一次）：plan File 4 的伪代码把 `Lease` 写成裸 record，每次 `close()` 都会 `release()`，重复关闭会把并发上限悄悄抬高。实现改为 `AtomicBoolean` 守卫的 `close()`；`KnowledgeQaManageImpl.ManagedRunService#cancel()` 与之配套，用同一个 `terminal` 标志与 `cancelled` 标志保证"终态事件已释放"与"取消释放"只发生一次。
+
+在实施期修正（尚未消费的配置键）：`agent.knowledge.runtime.qa-max-duration` 已绑定并在 `KnowledgeRuntimeProperties` 的紧凑构造器里校验，但用例层不设超时；按计划由 Step 11 的 SSE 发射器消费。**留待 Step 11**。
+
+在实施期修正（基座删除的并发缺口，留待审计）：`KnowledgeBaseManageImpl#delete` 先守卫"无在途文档"再级联删除，但 `KnowledgeBaseRepository#softDelete` 返回 `void`，无法在数据库侧对"守卫与删除之间新插入的文档"做 CAS，该窗口留给最终审计（`softDelete` 的形态是 Step 5 的既有偏差）。
+
+在实施期修正（组件的联合过滤写法）：`FilterExpressionBuilder.Op` 只提供 `build()`，`eq/and` 都在 `FilterExpressionBuilder` 上，故 `RagKnowledgeVectorGateway#deleteDocument` 的"文档键 ∧ 集合键"必须写成 `filters.and(filters.eq(DOCUMENT_ID, …), filters.eq(COLLECTION_ID, …)).build()`；组件自身的删除只用单条件，没有可照抄的联合写法。集合条件不是装饰：它保证一个基座的标识符不会触及另一个基座的分块。
+
+在实施期修正（测试与离线假件）：plan File 1 列 4 个方法，实际 19 个——四个 plan 命名方法保留，其余覆盖路由前置检查、大小上限、解析补偿、重新入队的两条路径、文档与基座级联删除、不可变字段拒绝、检索的阈值与未知分数、问答的许可生命周期与流建立前的 503。假件全部手写（`DeepResearchManageImplTest` 的风格），不用 Mockito；`RoutingExtractionService` 复刻组件的路由语义。`application/pom.xml` 另新增三条依赖：组件 rag starter、组件 outbox starter（用例直接引用它们的类型）与 `spring-tx`（`@Transactional` 的来源）——前两条是 plan 的"依赖登记"Step 未列的使用点。starter 的 `DeepResearchApplicationTest#FakeAgentDependencies` 另补五个假件（`knowledgeRagVectorStore`、`ragDocumentStorage`、`ragExtractionService`、`ragDocumentExtractorRegistry`、`transactionalOutbox`）：离线 profile 关了 rag 与 outbox，本 Step 的用例依赖必须由假件补齐（Step 6/7 为同类依赖已留痕）。
+
+- Commit paths 补充：除 plan 列出的文件外，本次提交还含 `...-application/pom.xml`、`...-application/src/main/java/.../application/knowledge/{exception,service}/*.java`、`...-application/src/main/java/.../application/knowledge/package-info.java` 及六个子包的 `package-info.java`、`...-application/src/test/java/.../application/knowledge/package-info.java`、`...-common/src/main/java/.../common/error/KnowledgeErrorCodeEnum.java`、`...-common/src/main/java/.../common/knowledge/KnowledgeIngestChannel.java`、domain 的 `KnowledgeAnswerGateway`/`KnowledgeAnswerTaskBO`/`KnowledgeQaEvent`/`KnowledgeQaEventTypeEnum`/`KnowledgeRetrievalBO`/`KnowledgeRetrievedChunkBO`/`knowledge/service/*` 与 `KnowledgeVectorGateway#deleteDocument`、infrastructure 的 `KnowledgeAnswerChatModelGateway` 与 `RagKnowledgeVectorGateway#deleteDocument`、以及 `KnowledgeIngestDeliveryHandler` 对共享通道常量的改引用。
+
 ### Step 9 — adapter：知识库接口
 
 - Requirements: `REQ-002`, `REQ-023`

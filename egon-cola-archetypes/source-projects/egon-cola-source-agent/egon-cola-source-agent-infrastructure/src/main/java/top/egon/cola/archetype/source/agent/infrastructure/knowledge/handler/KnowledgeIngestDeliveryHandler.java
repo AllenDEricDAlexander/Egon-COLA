@@ -13,6 +13,7 @@ import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeChun
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeDocumentBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeBaseRepository;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeDocumentRepository;
+import top.egon.cola.archetype.source.agent.common.knowledge.KnowledgeIngestChannel;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.metadata.KnowledgeVectorMetadata;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
@@ -54,10 +55,7 @@ import java.util.Optional;
 public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
 
     /** Channel this handler owns, registered by name with the outbox registry. */
-    public static final String CHANNEL = "rag-ingest";
-
-    /** Envelope version of the payload this handler understands. */
-    private static final String SCHEMA_VERSION = "1";
+    public static final String CHANNEL = KnowledgeIngestChannel.NAME;
 
     private static final String CONTENT_MISSING = "KNOWLEDGE_CONTENT_MISSING";
 
@@ -242,11 +240,12 @@ public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
         } catch (JsonProcessingException invalid) {
             throw new IllegalArgumentException("the ingest payload is not valid JSON", invalid);
         }
-        JsonNode version = message.path("schemaVersion");
-        if (!version.isTextual() || !SCHEMA_VERSION.equals(version.asText())) {
+        JsonNode version = message.path(KnowledgeIngestChannel.SCHEMA_VERSION_FIELD);
+        if (!version.isTextual() || !KnowledgeIngestChannel.SCHEMA_VERSION.equals(version.asText())) {
             throw new IllegalArgumentException("unsupported ingest payload schema version");
         }
-        return new IngestTask(requiredLong(message, "documentId"), requiredLong(message, "tenantId"));
+        return new IngestTask(requiredLong(message, KnowledgeIngestChannel.DOCUMENT_ID_FIELD),
+                requiredLong(message, KnowledgeIngestChannel.TENANT_ID_FIELD));
     }
 
     private static long requiredLong(JsonNode message, String field) {

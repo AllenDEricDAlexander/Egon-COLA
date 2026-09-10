@@ -2,6 +2,8 @@ package top.egon.cola.archetype.source.agent.infrastructure.knowledge.gateway;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.vectorstore.VectorStore;
+import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeVectorGateway;
@@ -9,6 +11,8 @@ import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeChun
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.metadata.KnowledgeVectorMetadata;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.rag.api.RagRetrievalService;
+import top.egon.cola.component.rag.exception.RagVectorStoreException;
+import top.egon.cola.component.rag.metadata.RagMetadataKeys;
 import top.egon.cola.component.rag.model.RagRetrievalQuery;
 import top.egon.cola.component.rag.model.RagRetrievedChunkBO;
 
@@ -35,6 +39,9 @@ public class RagKnowledgeVectorGateway implements KnowledgeVectorGateway {
 
     private final @Qualifier("ragRetrievalService") RagRetrievalService ragRetrievalService;
 
+    /** The store the component resolves by name, shared with the ingestion path it writes through. */
+    private final @Qualifier("knowledgeRagVectorStore") VectorStore vectorStore;
+
     private final EgonColaTenantIdProvider tenantIdProvider;
 
     @Override
@@ -54,6 +61,25 @@ public class RagKnowledgeVectorGateway implements KnowledgeVectorGateway {
                 collectionId, logicalModelName, query, topK, 0.0, scopedAttributes));
         log.debug("retrieved {} chunk(s) of collection {} for the current tenant", retrieved.size(), collectionId);
         return retrieved.stream().map(RagKnowledgeVectorGateway::toChunkBO).toList();
+    }
+
+    @Override
+    public void deleteDocument(String collectionId, String documentId) {
+        Objects.requireNonNull(collectionId, "collectionId must not be null");
+        Objects.requireNonNull(documentId, "documentId must not be null");
+        try {
+            // The component exposes no delete API, so this deletes the way its own re-ingest does:
+            // by the reserved document key every chunk carries. The collection is matched as well, so
+            // one base's identifier can never reach another base's chunks.
+            FilterExpressionBuilder filters = new FilterExpressionBuilder();
+            vectorStore.delete(filters.and(
+                    filters.eq(RagMetadataKeys.DOCUMENT_ID, documentId),
+                    filters.eq(RagMetadataKeys.COLLECTION_ID, collectionId)).build());
+        } catch (RuntimeException failure) {
+            throw new RagVectorStoreException("failed to delete the chunks of document " + documentId, failure);
+        }
+        log.info("knowledge chunks deleted knowledgeBaseId={} documentId={} outcome=DELETED",
+                collectionId, documentId);
     }
 
     /** Maps one retrieved chunk into the domain vocabulary, refusing a chunk without a document id. */

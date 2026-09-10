@@ -21,4 +21,12 @@ public interface KnowledgeVectorGateway {
      */
     List<KnowledgeChunkBO> retrieve(String collectionId, String logicalModelName, String query,
                                     int topK, Map<String, String> attributes);
+
+    /**
+     * Removes every chunk of one document, so a deleted document can never be retrieved again.
+     *
+     * <p>Idempotent: a document with no chunks left is a success, which is what lets the delete use
+     * case run for a document whose ingestion never succeeded.
+     */
+    void deleteDocument(String collectionId, String documentId);
 }

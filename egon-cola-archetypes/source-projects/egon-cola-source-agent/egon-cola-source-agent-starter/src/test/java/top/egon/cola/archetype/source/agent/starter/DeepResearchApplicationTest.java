@@ -4,14 +4,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.tool.ToolCallback;
 import org.springframework.ai.tool.definition.ToolDefinition;
+import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import top.egon.cola.component.agentflow.api.AgentFlowService;
+import top.egon.cola.component.outbox.api.TransactionalOutbox;
+import top.egon.cola.component.rag.api.RagExtractionService;
 import top.egon.cola.component.rag.api.RagIngestionService;
 import top.egon.cola.component.rag.api.RagRetrievalService;
+import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
+import top.egon.cola.component.rag.storage.RagDocumentStorage;
+
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -60,6 +67,49 @@ class DeepResearchApplicationTest {
         @Bean(name = "ragIngestionService")
         RagIngestionService ragIngestionService() {
             return mock(RagIngestionService.class);
+        }
+
+        /**
+         * The store the knowledge gateway deletes chunks through, published in every other profile
+         * by the vector store configuration the same disabled flag turns off.
+         */
+        @Bean(name = "knowledgeRagVectorStore")
+        VectorStore knowledgeRagVectorStore() {
+            return mock(VectorStore.class);
+        }
+
+        /**
+         * The document storage the knowledge use cases write and remove originals through; the local
+         * filesystem implementation is assembled by the component, which this profile disables.
+         */
+        @Bean(name = "ragDocumentStorage")
+        RagDocumentStorage ragDocumentStorage() {
+            return mock(RagDocumentStorage.class);
+        }
+
+        /** The extractor the upload path parses through; the component owns the real one. */
+        @Bean(name = "ragExtractionService")
+        RagExtractionService ragExtractionService() {
+            return mock(RagExtractionService.class);
+        }
+
+        /**
+         * The routing the upload path checks before it writes anything. A real registry without
+         * extractors says the truth for this profile: no format is routable while RAG is off.
+         */
+        @Bean(name = "ragDocumentExtractorRegistry")
+        RagDocumentExtractorRegistry ragDocumentExtractorRegistry() {
+            return new RagDocumentExtractorRegistry(List.of());
+        }
+
+        /**
+         * The outbox the ingest use case announces through. Its enqueue is a no-op here: the
+         * transaction guard it needs belongs to the component's own datasource wiring, which this
+         * profile turns off.
+         */
+        @Bean(name = "transactionalOutbox")
+        TransactionalOutbox transactionalOutbox() {
+            return mock(TransactionalOutbox.class);
         }
 
         @Bean(name = "deepResearchSearchTools")
