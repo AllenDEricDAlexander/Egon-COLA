@@ -21,7 +21,7 @@
 | Supersedes | `None` |
 | Depends On | [Egon-COLA RAG 引擎组件设计](2026-09-10-11-34-egon-cola-component-rag-starter.md) `§7, §8, §9, §10, §16`；`egon-cola-component-transactional-outbox-starter` README 的 `PostgreSQL Migration` 与 `Direct API Example` 两节 |
 | Related Specs | [`egon-cola-components` 架构](../../../egon-cola-components/egon-cola-components-architecture.md) `§5, §11, §13.1`；[Agent Flow 扁平化组件设计](2026-09-04-09-34-agent-flow-component.md) `§7, §9` |
-| Related Plans | `None` |
+| Related Plans | [Agent Archetype 知识库实施计划](../plan/2026-09-10-14-35-agent-archetype-knowledge-rag-implementation.md) |
 
 ## 1. Summary
 
