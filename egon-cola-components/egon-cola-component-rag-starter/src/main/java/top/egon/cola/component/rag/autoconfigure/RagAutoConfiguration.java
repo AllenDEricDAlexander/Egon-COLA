@@ -16,6 +16,7 @@ import org.springframework.boot.context.properties.bind.handler.NoUnboundElement
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.rag.api.RagExtractionService;
+import top.egon.cola.component.rag.api.RagIngestionService;
 import top.egon.cola.component.rag.chunk.MarkdownHeadingRagChunkingStrategy;
 import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
@@ -25,6 +26,7 @@ import top.egon.cola.component.rag.chunk.TokenRagChunkingStrategy;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
+import top.egon.cola.component.rag.execution.RagIngestionServiceImpl;
 import top.egon.cola.component.rag.extract.MarkdownRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PdfRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PlainTextRagDocumentExtractor;
@@ -175,5 +177,16 @@ public class RagAutoConfiguration {
     @ConditionalOnMissingBean(name = "ragChunkIdFactory")
     public RagChunkIdFactory ragChunkIdFactory() {
         return new RagChunkIdFactory();
+    }
+
+    @Bean(name = "ragIngestionService")
+    @ConditionalOnMissingBean(name = "ragIngestionService")
+    public RagIngestionService ragIngestionService(
+            @Qualifier("ragEmbeddingModelRegistry") RagEmbeddingModelRegistry modelRegistry,
+            @Qualifier("ragChunkingStrategyFactory") RagChunkingStrategyFactory chunkingStrategyFactory,
+            @Qualifier("ragChunkIdFactory") RagChunkIdFactory chunkIdFactory,
+            @Qualifier("ragVectorStore") VectorStore vectorStore,
+            @Qualifier("ragClock") Clock clock) {
+        return new RagIngestionServiceImpl(modelRegistry, chunkingStrategyFactory, chunkIdFactory, vectorStore, clock);
     }
 }
