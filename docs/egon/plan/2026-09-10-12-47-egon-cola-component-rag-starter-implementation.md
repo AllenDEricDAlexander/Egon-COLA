@@ -4,9 +4,9 @@
 | --- | --- |
 | Document | `docs/egon/plan/2026-09-10-12-47-egon-cola-component-rag-starter-implementation.md` |
 | Template Version | `4` |
-| Status | `Ready` |
+| Status | `Implemented` |
 | Created | `2026-09-10 12:47 CST` |
-| Updated | `2026-09-10 12:47 CST` |
+| Updated | `2026-09-10 14:20 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-components` 下新增 `egon-cola-component-rag-starter` 单模块，以及 components 父 POM 与 BOM 的登记变更 |
@@ -3688,8 +3688,11 @@ Spec A 的简洁性与必要性审计已在 `§4.5` 完成，未发现 fetch-the
 
 ### 12.6 Final verdict
 
-`PASS — Ready for user review`
+`PASS — Implementation conforms to the effective Specs`（实施后回填）
 
-本 Plan 内部完整、无未决占位符，全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`。这不代表用户已批准实施；实施前需要用户显式批准本 Plan。
+十二个 Step 全部实施并提交，模块 `clean verify` 99 个测试全绿，components Reactor 回归通过。
+实施期发现五处需要记录的偏离，全部写在 `§11`：其中三处是计划里的机械性顺序问题，一处是
+Spec A `§10.4` 的泛型参数与散文描述不一致，一处是本 Plan 自己预期过的 `RagEmbeddingException`
+契约差异。逐项对照见交付报告。
 
 本 Plan 未修改任何生产或测试代码、未执行迁移、未启动应用、未连接模型或数据库，也未声称任何运行期验证。`§8` 与 `§7` 中的全部命令都是**将来的执行指令**，不是已执行的证据。
