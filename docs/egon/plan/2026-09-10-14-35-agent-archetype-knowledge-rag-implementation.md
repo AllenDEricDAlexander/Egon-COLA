@@ -2363,3 +2363,1601 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 本 Plan 内部完整、无未决占位符，全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`。`BLOCK-003` 已关闭：组件侧不可达的异常已删除，本 Plan 的错误映射已同步。
 
 本 Plan 未修改任何生产或测试代码、未执行迁移、未启动应用，也未声称任何运行期验证。
+
+---
+
+## 13. 附录：Spec B §9.2 接口契约逐字摘录
+
+> 本附录由两个只读子代理从 Spec B `docs/egon/spec/2026-09-10-11-51-agent-archetype-knowledge-rag.md` 的第 809–2388 行（`§9.2.1`–`§9.2.12`，共 12 个接口）逐字摘出，目的是让 `§7` 的每个 Step 能在同一份文件里读到它即将实现的确切契约，并作为 `§10.5` 实施期修正的判据来源。
+>
+> 摘录约定：每段以其在 Spec B 中的行号区间 `[L<起>-<止>]` 开头；收录各接口的定位与用途、身份与所有权、请求参数与请求体字段表、成功响应字段表与 jsonc、完整失败表、编号处理步骤，以及排序/分页/幂等/事务/顺序等段落；未收录前端页面实现、注解与测试小节。除把运输过程中产生的 HTML 实体还原为字面字符（`&gt;`→`>`、`&lt;`→`<`、`&amp;`→`&`）外，未做任何改写、删节、摘要或压缩——包括子代理重复引用的行号段在内，均按返回原样保留。
+>
+> 冲突时以 Spec B 原文为准；本附录不构成新的契约来源，只做定位。文末 `OBSERVATIONS` 是子代理的观察，**不是 spec 原文**。
+
+### 13.1 API-001 – API-006（逐字摘录）
+
+[L811]
+#### 9.2.1 API-001 — 建知识库
+
+[L813-823]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员建立一个可供后续上传与检索的知识库，并选定其嵌入模型与分块策略 |
+| Parameter ownership and derivation | 名称、描述、逻辑模型名与分块策略由管理员拥有；标识、审计字段、初始状态与时间戳由服务端派生 |
+| Direct/no-new-interface alternative | 复用研究域端点或在首次上传时隐式建库。前者语义不符；后者把"选模型"这一不可变更的决策藏在副作用里，无法在错误时给出明确契约 |
+| Caller use of result | 管理员据返回的标识进入文档管理；结果不被原样转发给另一个端点 |
+| Round trips and failure points | 一次 RTT；失败点为校验、逻辑模型未注册、名称重复与写库失败 |
+| Verdict | `Add`，覆盖 `REQ-002` 与 `REQ-009` |
+
+[L825-834]
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 创建型 Command，拥有 `knowledge_base` 的权威写入 |
+| Resource/task semantics | `POST /api/v1/knowledge-bases` 在集合下创建从属资源，返回其表示 |
+| Read/write and side effects | 校验逻辑模型已注册后写入一行；无事件、无外部调用 |
+| Consistency and idempotency | 单表插入在一个本地事务内；`(tenant_scope, code)` 唯一约束兜底重复；非幂等，重复提交返回 409 |
+| Why this style | 资源语义清晰、无独立任务语义，无需 GraphQL 或任务资源 |
+
+[L836-845]
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 建立一个知识库；由 adapter 拥有，由知识库管理员调用 |
+| Protocol and endpoint | `HTTP POST /api/v1/knowledge-bases` |
+| Content type/version | 请求与响应 `application/json`；版本 v1 在路径中 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户与用户身份 |
+| Timeout/retry/rate limit | 无独立超时；无独立限流；服务端不重试 |
+| Idempotency/concurrency | 非幂等；并发同名创建由唯一约束拒绝其中一个 |
+
+[L847-874]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填、非空 | 无 | 常量时间比较 | 服务凭据 | `demo-key`（仅测试） | 既有过滤器 |
+| `X-Trace-Id` | Header | String | 可选 | 服务端生成 | trim；1-128；`[A-Za-z0-9._:-]+` | 请求关联标识 | `4e9d6938` | 既有过滤器 |
+| `code` | Body | String | 必填、非空 | 无 | trim 后 2-64；`[A-Za-z0-9._-]+` | 稳定业务键 | `product-docs` | 管理员 |
+| `name` | Body | String | 必填、非空 | 无 | trim 后 1-128 | 展示名称 | `产品文档库` | 管理员 |
+| `description` | Body | String | 可选、允许缺省 | `null` | trim 后 0-512 | 描述 | `内部产品手册` | 管理员 |
+| `embeddingModel` | Body | String | 必填、非空 | 无 | 必须存在于逻辑模型注册表 | 逻辑嵌入模型名 | `openai-small` | 管理员 |
+| `chunkStrategy` | Body | String enum | 必填 | 无 | `TOKEN` / `MARKDOWN_HEADING` / `RECURSIVE` | 分块策略 | `TOKEN` | 管理员 |
+| `chunkConfig` | Body | Object | 必填、非空 | 无 | 按策略校验；`maxTokensPerChunk` 32-4096；`overlapTokens` 0 至 `maxTokensPerChunk-1`；`minChunkChars` 0-4096；`headingLevels` 仅 `MARKDOWN_HEADING` 可用 | 分块参数 | 见下 | 管理员 |
+
+```jsonc
+{
+  "code": "product-docs", // 必填。稳定业务键，trim 后 2-64 位，仅允许字母、数字、点、下划线与连字符；创建后不可修改，重复返回 409。
+  "name": "产品文档库", // 必填。展示名称，trim 后 1-128 字符。
+  "description": "内部产品手册", // 可选。缺省为 null；trim 后最长 512 字符。
+  "embeddingModel": "openai-small", // 必填。逻辑嵌入模型名，必须已在本部署注册；创建后不可修改。
+  "chunkStrategy": "TOKEN", // 必填。分块策略枚举，取值 TOKEN、MARKDOWN_HEADING 或 RECURSIVE；创建后不可修改。
+  "chunkConfig": { // 必填。分块参数对象，字段集合必须与 chunkStrategy 匹配；创建后不可修改。
+    "maxTokensPerChunk": 512, // 必填。单分块 token 上限，范围 32-4096。
+    "overlapTokens": 64, // 可选。相邻分块重叠 token 数，缺省 0；必须严格小于 maxTokensPerChunk。
+    "minChunkChars": 1, // 可选。丢弃短于该字符数的分块，缺省 1；范围 0-4096。
+    "headingLevels": [1, 2, 3] // 可选。仅 MARKDOWN_HEADING 允许非空，取值 1-6 且不重复；其它策略传入非空值返回 400。
+  }
+}
+```
+
+[L876-906]
+##### Success response
+
+HTTP `200 OK`。
+
+```jsonc
+{
+  "knowledgeBaseId": "kb-01J5K9", // 服务端生成的知识库标识；后续所有路径参数使用它。
+  "code": "product-docs", // 回显业务键，创建后不可修改。
+  "name": "产品文档库", // 当前展示名称。
+  "description": "内部产品手册", // 当前描述；无描述时为 null。
+  "embeddingModel": "openai-small", // 已冻结的逻辑嵌入模型名。
+  "chunkStrategy": "TOKEN", // 已冻结的分块策略。
+  "chunkConfig": { // 已冻结的分块参数。
+    "maxTokensPerChunk": 512, // 单分块 token 上限。
+    "overlapTokens": 64, // 相邻分块重叠 token 数。
+    "minChunkChars": 1 // 最短分块字符数。
+  },
+  "documentCount": 0, // 当前未删除文档数；新建时为 0。
+  "status": "ACTIVE", // 知识库状态；当前只有 ACTIVE 与 DELETED，DELETED 不再对查询可见。
+  "createdAt": "2026-09-10T03:51:00.000Z", // 创建时间，UTC Instant，毫秒精度。
+  "traceId": "4e9d6938" // 与响应头一致的关联标识。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `knowledgeBaseId` | String | 必填、非空 | 服务端生成 | 稳定标识 | 路径参数与列表行键 |
+| `embeddingModel` | String | 必填、非空 | 注册表中的逻辑名 | 冻结配置 | 展示；不可编辑 |
+| `documentCount` | int | 必填 | ≥ 0 | 未删除文档计数 | 列表与详情展示 |
+| `status` | String enum | 必填 | `ACTIVE` / `DELETED` | 生命周期 | 决定是否可上传 |
+| `createdAt` | RFC 3339 UTC | 必填 | 毫秒精度 | 服务端 `agentClock` | 展示 |
+
+[L908-927]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 字段校验失败 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 标红字段 |
+| 逻辑模型未注册 | 400 | `KNOWLEDGE_MODEL_NOT_REGISTERED` | 既有错误体 | 修正后 | 展示可用模型列表 |
+| 分块参数与策略不匹配 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 标红字段 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED`（复用） | 既有错误体 + `WWW-Authenticate: ApiKey` | 修正凭据后 | 提示重新配置 key |
+| 业务键已存在 | 409 | `KNOWLEDGE_BASE_CODE_CONFLICT` | 既有错误体 | 换名后 | 提示更换业务键 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体（无堆栈） | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_BASE_CODE_CONFLICT", // 稳定机器码；前端据此分支，不解析 message。
+  "message": "knowledge base code already exists", // 面向调用方的安全摘要。
+  "traceId": "4e9d6938", // 与响应头一致的关联标识。
+  "timestamp": "2026-09-10T03:51:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 非字段错误时为空对象；字段错误时为 字段名 -> 消息列表。
+}
+```
+
+[L929-938]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 `X-Research-Api-Key`；缺失时请求不会进入控制器。
+2. 校验顺序：字段约束与规范化 -> 逻辑模型在注册表中存在 -> 分块参数与所选策略匹配 -> 业务键唯一。
+3. 服务端派生 `knowledgeBaseId`、初始 `status=ACTIVE`、审计字段与 `createdAt`；请求不得提供这些字段。
+4. 一次本地事务插入一行；无外部调用、无事件、无缓存。
+5. 重复业务键由唯一约束拒绝，映射为 409；并发同名创建只有一个成功。
+6. 一旦创建成功，`embeddingModel`、`chunkStrategy` 与 `chunkConfig` 即为冻结；`API-004` 不接受它们的修改，客户端不可提供。
+7. 调用方成功后应使用返回的 `knowledgeBaseId` 进入文档管理；失败时按 `code` 分支，`fieldErrors` 用于定位字段，不要解析 `message` 文本。
+8. 本接口不产生异步工作；上传不会在此时发生，也不会有任何摄取任务被创建。
+
+[L833]
+| Consistency and idempotency | 单表插入在一个本地事务内；`(tenant_scope, code)` 唯一约束兜底重复；非幂等，重复提交返回 409 |
+
+[L845]
+| Idempotency/concurrency | 非幂等；并发同名创建由唯一约束拒绝其中一个 |
+
+[L934]
+4. 一次本地事务插入一行；无外部调用、无事件、无缓存。
+
+[L811]
+#### 9.2.1 API-001 — 建知识库
+
+[L964]
+#### 9.2.2 API-002 — 知识库分页列表
+
+[L966-976]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员在多个知识库之间浏览、选择并翻页；这是独立于任何命令的展示目标 |
+| Parameter ownership and derivation | 分页与筛选由调用方拥有；总数与页元数据由服务端派生 |
+| Direct/no-new-interface alternative | 让调用方缓存创建时的返回值。不足：无跨会话持久、无并发变更可见性、无翻页，且管理员可能并非创建者 |
+| Caller use of result | 展示列表并选择其中一个进入详情或文档管理 |
+| Round trips and failure points | 每页一次 RTT；失败点为分页参数越界与查询失败 |
+| Verdict | `Add`，覆盖 `REQ-002` |
+
+[L978-987]
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Query` |
+| CQRS role | 只读查询，拥有零业务写入 |
+| Resource/task semantics | `GET /api/v1/knowledge-bases` 返回集合的一页 |
+| Read/write and side effects | 只读 `knowledge_base`；无审计以外的副作用 |
+| Consistency and idempotency | 读已提交；页间可能出现并发新增或删除（见 `§9.2.2` 消费方逻辑） |
+| Why this style | 集合浏览是标准 HTTP 资源查询；无需游标或独立读模型 |
+
+[L989-998]
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 分页浏览未删除的知识库；由 adapter 拥有，由管理员调用 |
+| Protocol and endpoint | `HTTP GET /api/v1/knowledge-bases` |
+| Content type/version | `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置 |
+| Idempotency/concurrency | 只读且幂等；并发变更可能影响后续页 |
+
+[L1000-1008]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `page` | Query | int | 可选 | `1` | ≥ 1 | 页码（1 基准） | `1` | 调用方 |
+| `size` | Query | int | 可选 | `20` | 1-100 | 每页条数 | `20` | 调用方 |
+| `keyword` | Query | String | 可选 | 无 | trim 后 0-64；对 `code` 与 `name` 做包含匹配 | 关键字 | `docs` | 调用方 |
+| `embeddingModel` | Query | String | 可选 | 无 | 已注册逻辑名 | 按模型筛选 | `openai-small` | 调用方 |
+
+[L1010-1040]
+##### Success response
+
+HTTP `200 OK`。空结果返回空数组而非 `null`；排序为 `createdAt DESC, knowledgeBaseId DESC`，保证稳定分页。
+
+```jsonc
+{
+  "items": [ // 必填。当前页数据；无匹配时为空数组，不为 null。
+    {
+      "knowledgeBaseId": "kb-01J5K9", // 稳定标识，用于详情与文档路径。
+      "code": "product-docs", // 业务键。
+      "name": "产品文档库", // 展示名称。
+      "embeddingModel": "openai-small", // 已冻结的逻辑模型名。
+      "documentCount": 12, // 未删除文档数。
+      "status": "ACTIVE", // 生命周期状态。
+      "createdAt": "2026-09-10T03:51:00.000Z", // 创建时间，UTC Instant。
+      "updatedAt": "2026-09-10T04:10:00.000Z" // 最后更新时间，用于展示与缓存失效判断。
+    }
+  ],
+  "page": 1, // 当前页码，1 基准。
+  "size": 20, // 生效的每页条数。
+  "totalElements": 1, // 满足筛选条件的总行数。
+  "totalPages": 1, // 由 totalElements 与 size 派生。
+  "hasNext": false // 是否存在下一页。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `items[].documentCount` | int | 必填 | ≥ 0 | 聚合计数 | 列表展示 |
+| `totalPages` | int | 必填 | ≥ 0 | 派生 | 分页控件 |
+| `hasNext` | boolean | 必填 | — | 派生 | 下一页按钮 |
+
+[L1042-1060]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 分页参数越界或类型错误 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 重置分页控件 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_VALIDATION_ERROR", // 稳定机器码。
+  "message": "validation failed", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T03:51:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": { // 字段名 -> 消息列表；本接口只可能出现 page 或 size。
+    "size": ["must be between 1 and 100"] // 越界消息。
+  }
+}
+```
+
+[L1062-1071]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key。
+2. 校验顺序：分页与筛选参数约束 -> 逻辑模型名（若提供）已注册。
+3. 查询只返回 `is_deleted = false` 的行；`keyword` 按 `code` 与 `name` 做包含匹配。
+4. 排序固定为 `created_at DESC, id DESC`，`id` 是确定性次序打破者；`totalElements` 与 `items` 在同一查询快照内。
+5. 无持久化写入、无缓存、无外部调用。
+6. 页间并发新增可能使后续页出现重复或遗漏条目；本契约不承诺快照一致性，前端应整表刷新而非增量拼接。
+7. 前端应保持筛选状态与页码同步到查询参数，便于分享与返回；空结果展示空态而非错误。
+8. `size` 上限 100；超出直接 400，服务端不静默截断。
+
+[L986]
+| Consistency and idempotency | 读已提交；页间可能出现并发新增或删除（见 `§9.2.2` 消费方逻辑） |
+
+[L998]
+| Idempotency/concurrency | 只读且幂等；并发变更可能影响后续页 |
+
+[L1012]
+HTTP `200 OK`。空结果返回空数组而非 `null`；排序为 `createdAt DESC, knowledgeBaseId DESC`，保证稳定分页。
+
+[L1067-1069]
+4. 排序固定为 `created_at DESC, id DESC`，`id` 是确定性次序打破者；`totalElements` 与 `items` 在同一查询快照内。
+5. 无持久化写入、无缓存、无外部调用。
+6. 页间并发新增可能使后续页出现重复或遗漏条目；本契约不承诺快照一致性，前端应整表刷新而非增量拼接。
+
+[L1071]
+8. `size` 上限 100；超出直接 400，服务端不静默截断。
+
+[L964]
+#### 9.2.2 API-002 — 知识库分页列表
+
+[L1095]
+#### 9.2.3 API-003 — 知识库详情
+
+[L1097-1107]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理页面需要完整配置（含不可改的模型与分块参数）与文档计数；列表为避免膨胀不返回 `chunkConfig` |
+| Parameter ownership and derivation | 标识来自路径；全部字段由服务端派生 |
+| Direct/no-new-interface alternative | 让列表返回全部字段。不足：列表会携带大对象并放大分页成本，而详情只在打开一个知识库时需要 |
+| Caller use of result | 展示配置、判断是否可上传、作为删除前的确认依据 |
+| Round trips and failure points | 打开详情一次 RTT；失败点为不存在与查询失败 |
+| Verdict | `Add`，覆盖 `REQ-002` |
+
+[L1109-1118]
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Query` |
+| CQRS role | 只读查询 |
+| Resource/task semantics | `GET /api/v1/knowledge-bases/{knowledgeBaseId}` 读取单个资源表示 |
+| Read/write and side effects | 只读 |
+| Consistency and idempotency | 读已提交；重复读取结果一致（除计数随上传变化） |
+| Why this style | 单资源读取是标准 HTTP 语义 |
+
+[L1120-1129]
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 读取一个知识库的完整配置与计数；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP GET /api/v1/knowledge-bases/{knowledgeBaseId}` |
+| Content type/version | `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置 |
+| Idempotency/concurrency | 只读且幂等 |
+
+[L1131-1136]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 知识库标识 | `kb-01J5K9` | 上游接口 |
+
+[L1138-1167]
+##### Success response
+
+HTTP `200 OK`；响应体与 `API-001` 的成功响应同形（同一 VO），其中 `chunkConfig` 按创建时的策略返回对应字段集合。
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `chunkConfig` | Object | 必填、非空 | 字段集合随 `chunkStrategy` 变化 | 冻结参数 | 展示；当 `chunkStrategy=MARKDOWN_HEADING` 时含 `headingLevels` |
+| `documentCount` | int | 必填 | ≥ 0 | 未删除文档计数 | 判断是否为空库 |
+
+```jsonc
+{
+  "knowledgeBaseId": "kb-01J5K9", // 稳定标识。
+  "code": "product-docs", // 业务键。
+  "name": "产品文档库", // 展示名称。
+  "description": "内部产品手册", // 描述；无则为 null。
+  "embeddingModel": "openai-small", // 冻结的逻辑模型名。
+  "chunkStrategy": "MARKDOWN_HEADING", // 冻结的策略；决定 chunkConfig 的字段集合。
+  "chunkConfig": { // 冻结的分块参数。
+    "maxTokensPerChunk": 512, // 单分块 token 上限。
+    "overlapTokens": 64, // 相邻重叠 token 数。
+    "minChunkChars": 1, // 最短分块字符数。
+    "headingLevels": [1, 2, 3] // 仅 MARKDOWN_HEADING 返回；参与切分的标题层级。
+  },
+  "documentCount": 12, // 未删除文档数。
+  "status": "ACTIVE", // 生命周期状态。
+  "createdAt": "2026-09-10T03:51:00.000Z", // 创建时间。
+  "updatedAt": "2026-09-10T04:10:00.000Z", // 最后更新时间。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+[L1169-1186]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 标识格式非法 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 | 修正后 | 返回列表 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 返回列表并提示已删除 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_BASE_NOT_FOUND", // 稳定机器码；已删除与不存在共用同一码，不泄露存在性差异。
+  "message": "knowledge base not found", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T03:51:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误，恒为空对象。
+}
+```
+
+[L1188-1197]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；标识来自路径。
+2. 校验顺序：路径标识格式 -> 资源存在且未删除。
+3. 查询单行并按 `chunkStrategy` 组装 `chunkConfig` 的字段子集；不同策略返回的字段不同，前端必须按策略渲染。
+4. `documentCount` 由未删除文档计数派生，与文档列表接口在同一筛选条件下口径一致。
+5. 无写入、无缓存、无外部调用。
+6. 已删除与不存在返回同一个 404，不区分存在性。
+7. 前端在详情页进入时拉取本接口；上传完成后应重新拉取以刷新 `documentCount`。
+8. 若页面已在编辑名称，需在保存前用本接口的 `updatedAt` 做提示性校验，避免覆盖他人修改（服务端不做乐观锁）。
+
+[L1117]
+| Consistency and idempotency | 读已提交；重复读取结果一致（除计数随上传变化） |
+
+[L1129]
+| Idempotency/concurrency | 只读且幂等 |
+
+[L1193]
+3. 查询单行并按 `chunkStrategy` 组装 `chunkConfig` 的字段子集；不同策略返回的字段不同，前端必须按策略渲染。
+
+[L1197]
+8. 若页面已在编辑名称，需在保存前用本接口的 `updatedAt` 做提示性校验，避免覆盖他人修改（服务端不做乐观锁）。
+
+[L1095]
+#### 9.2.3 API-003 — 知识库详情
+
+[L1220]
+#### 9.2.4 API-004 — 改知识库名称与描述
+
+[L1222-1232]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员修正展示名称与描述；这是唯一允许变更的字段集合 |
+| Parameter ownership and derivation | 新名称与描述由管理员拥有；`updatedAt` 与审计字段由服务端派生 |
+| Direct/no-new-interface alternative | 无直接替代；创建后改名是真实且不可省略的管理动作 |
+| Caller use of result | 更新本地展示并刷新详情 |
+| Round trips and failure points | 一次 RTT；失败点为校验、不存在与写库失败；不涉及的配置字段被显式拒绝 |
+| Verdict | `Add`，覆盖 `REQ-002` |
+
+[L1234-1243]
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 状态变更 Command；只允许改可变字段 |
+| Resource/task semantics | `PUT` 是对已知 URI 的完整替换语义；本接口的"完整表示"就是 `name` 与 `description` 两个可写字段，其余字段为只读 |
+| Read/write and side effects | 更新一行；无事件、无外部调用 |
+| Consistency and idempotency | 单行更新在本地事务内；相同请求重复提交结果一致，视为幂等 |
+| Why this style | 可写字段集合固定且小，`PUT` 语义成立；用 `PATCH` 会引入缺席/空值歧义 |
+
+[L1245-1254]
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 修改知识库的展示名称与描述；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP PUT /api/v1/knowledge-bases/{knowledgeBaseId}` |
+| Content type/version | `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置 |
+| Idempotency/concurrency | 幂等；并发写以后提交者为准，无乐观锁 |
+
+[L1256-1272]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 知识库标识 | `kb-01J5K9` | 上游接口 |
+| `name` | Body | String | 必填、非空 | 无 | trim 后 1-128 | 新名称 | `产品文档库（内网）` | 管理员 |
+| `description` | Body | String | 可选、允许 `null` | `null` | trim 后 0-512；显式 `null` 表示清空 | 新描述 | `内网产品手册` | 管理员 |
+
+```jsonc
+{
+  "name": "产品文档库（内网）", // 必填。新展示名称，trim 后 1-128 字符。
+  "description": "内网产品手册" // 可选。显式 null 表示清空描述；缺省时也按清空处理（PUT 完整替换语义）。
+}
+```
+
+请求体中出现 `embeddingModel`、`chunkStrategy`、`chunkConfig`、`code` 或任何其它字段时返回 400；这些字段在创建后不可修改，静默忽略会让调用方误以为修改生效。
+
+[L1274-1301]
+##### Success response
+
+HTTP `200 OK`，返回与 `API-003` 同形的完整知识库表示（含更新后的 `name`、`description` 与 `updatedAt`）。
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `updatedAt` | RFC 3339 UTC | 必填 | 毫秒精度 | 本次更新的提交时间 | 刷新展示 |
+
+```jsonc
+{
+  "knowledgeBaseId": "kb-01J5K9", // 稳定标识。
+  "code": "product-docs", // 业务键，本次未变。
+  "name": "产品文档库（内网）", // 更新后的名称。
+  "description": "内网产品手册", // 更新后的描述；清空时为 null。
+  "embeddingModel": "openai-small", // 冻结字段，未变。
+  "chunkStrategy": "TOKEN", // 冻结字段，未变。
+  "chunkConfig": { // 冻结字段，未变。
+    "maxTokensPerChunk": 512, // 单分块 token 上限。
+    "overlapTokens": 64, // 相邻重叠 token 数。
+    "minChunkChars": 1 // 最短分块字符数。
+  },
+  "documentCount": 12, // 未删除文档数。
+  "status": "ACTIVE", // 生命周期状态。
+  "createdAt": "2026-09-10T03:51:00.000Z", // 创建时间。
+  "updatedAt": "2026-09-10T05:02:00.000Z", // 本次更新的提交时间。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+[L1303-1323]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 字段校验失败 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 标红字段 |
+| 提交了不可修改字段 | 400 | `KNOWLEDGE_IMMUTABLE_FIELD` | 既有错误体 + `fieldErrors` | 修正后 | 移除该字段并提示 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_IMMUTABLE_FIELD", // 稳定机器码；表示请求含创建后不可修改的字段。
+  "message": "immutable field cannot be updated", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:02:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": { // 字段名 -> 消息列表。
+    "embeddingModel": ["immutable after creation"] // 被拒绝的字段与原因。
+  }
+}
+```
+
+[L1325-1334]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；标识来自路径。
+2. 校验顺序：标识格式 -> 字段约束 -> 不可修改字段探测 -> 资源存在且未删除。
+3. 不可修改字段的探测必须在写库之前完成，且不能依赖序列化层静默丢弃字段（本接口关闭未知字段忽略）。
+4. 更新单行的 `name`、`description`、`updated_at` 与 `update_user_id`；其余列不变。
+5. 无事件、无缓存失效、无外部调用；向量与文档不受影响。
+6. 重复提交同一请求结果一致，视为幂等；并发修改后提交者覆盖先前提交，服务端不做乐观锁并在文档中说明。
+7. 前端应以服务端返回的完整表示刷新本地状态，而不是仅本地改写 `name`。
+8. 描述字段的"缺省"与"显式 `null`"在本接口都表示清空（`PUT` 完整替换语义），前端必须发送明确的意图。
+
+[L1242]
+| Consistency and idempotency | 单行更新在本地事务内；相同请求重复提交结果一致，视为幂等 |
+
+[L1254]
+| Idempotency/concurrency | 幂等；并发写以后提交者为准，无乐观锁 |
+
+[L1330]
+4. 更新单行的 `name`、`description`、`updated_at` 与 `update_user_id`；其余列不变。
+
+[L1332]
+6. 重复提交同一请求结果一致，视为幂等；并发修改后提交者覆盖先前提交，服务端不做乐观锁并在文档中说明。
+
+[L1220]
+#### 9.2.4 API-004 — 改知识库名称与描述
+
+[L1357]
+#### 9.2.5 API-005 — 删知识库
+
+[L1359-1369]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员彻底撤销一个知识库，包括其文件、文本与向量；这是不可逆的独立目标 |
+| Parameter ownership and derivation | 标识来自路径；级联范围由服务端按归属关系派生 |
+| Direct/no-new-interface alternative | 无；没有替代的撤销路径 |
+| Caller use of result | 从列表移除并返回列表页 |
+| Round trips and failure points | 一次 RTT；失败点为不存在与存在处理中文档 |
+| Verdict | `Add`，覆盖 `REQ-002` |
+
+[L1371-1380]
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 删除型 Command，拥有级联删除的权威 |
+| Resource/task semantics | `DELETE` 删除该资源及其从属数据；语义上幂等 |
+| Read/write and side effects | 删除本地文件、删除向量分块、软删知识库行与文档行 |
+| Consistency and idempotency | 级联在一个本地事务内对数据库生效；文件与向量的删除在事务内完成，失败则整体回滚 |
+| Why this style | 标准资源删除语义；无需任务资源 |
+
+[L1382-1391]
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 删除知识库及其全部从属数据；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP DELETE /api/v1/knowledge-bases/{knowledgeBaseId}` |
+| Content type/version | 无请求体；成功无响应体 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 大知识库的级联删除可能耗时；由容器超时与文档说明约束 |
+| Idempotency/concurrency | 已删除再删返回 404；并发删除只有一个成功 |
+
+[L1393-1399]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 知识库标识 | `kb-01J5K9` | 上游接口 |
+| Body | Body | — | 无 | 无 | 请求体必须为空 | 不适用 | 无 | 不适用 |
+
+[L1401-1407]
+##### Success response
+
+HTTP `204 No Content`，无响应体。
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| Body | — | 无 | — | `204` 无内容 | 前端据状态码判定成功 |
+
+[L1409-1427]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 标识格式非法 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 | 修正后 | 返回列表 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 从本地列表移除 |
+| 仍有处理中的文档 | 409 | `KNOWLEDGE_BASE_BUSY` | 既有错误体 | 稍后重试 | 提示等待处理完成 |
+| 级联删除失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示；状态未变 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_BASE_BUSY", // 稳定机器码；表示仍有非终态文档。
+  "message": "knowledge base still has documents in progress", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:20:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误。
+}
+```
+
+[L1429-1438]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；请求体必须为空。
+2. 校验顺序：标识格式 -> 资源存在且未删除 -> 不存在非终态文档。
+3. 若存在处理中的文档，返回 409 并要求调用方先等待其进入终态；服务端不会自动取消正在执行的 outbox 投递。
+4. 级联顺序：逐个文档删除本地文件与向量分块，然后软删文档行；最后软删知识库行。全部在一个本地事务内对数据库生效。
+5. 文件删除发生在事务内会导致长事务；因此实现必须先收集待删标识，再在事务内执行数据库软删，文件删除失败时以补偿记录处理并在响应前完成。
+6. 重复删除返回 404；并发删除只有一个成功，另一个得到 404。
+7. 前端必须在删除前要求显式确认，不得把删除做成一次点击；成功后可返回列表并整表刷新。
+8. 删除不产生任何异步任务，也不提供撤销；文档与向量在成功响应后不可恢复。
+
+[L1379]
+| Consistency and idempotency | 级联在一个本地事务内对数据库生效；文件与向量的删除在事务内完成，失败则整体回滚 |
+
+[L1391]
+| Idempotency/concurrency | 已删除再删返回 404；并发删除只有一个成功 |
+
+[L1434-1436]
+4. 级联顺序：逐个文档删除本地文件与向量分块，然后软删文档行；最后软删知识库行。全部在一个本地事务内对数据库生效。
+5. 文件删除发生在事务内会导致长事务；因此实现必须先收集待删标识，再在事务内执行数据库软删，文件删除失败时以补偿记录处理并在响应前完成。
+6. 重复删除返回 404；并发删除只有一个成功，另一个得到 404。
+
+[L1438]
+8. 删除不产生任何异步任务，也不提供撤销；文档与向量在成功响应后不可恢复。
+
+[L1357]
+#### 9.2.5 API-005 — 删知识库
+
+[L1460]
+#### 9.2.6 API-006 — 上传文档
+
+[L1462-1472]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员把一份文件交给知识库处理；这是全部知识库能力的入口目标 |
+| Parameter ownership and derivation | 文件与目标知识库由管理员拥有；文档标识、状态、分块数、存储标识与任务记录由服务端派生；`embeddingModel` 与分块参数由知识库派生，不接受请求覆盖 |
+| Direct/no-new-interface alternative | 无；没有替代的文档入口 |
+| Caller use of result | 用返回的文档标识轮询 `API-008` 直到终态；结果不被转发给另一个命令 |
+| Round trips and failure points | 一次 multipart RTT，随后由后台执行嵌入；失败点为校验、无抽取器、存储失败与事务失败 |
+| Verdict | `Add`，覆盖 `REQ-003`, `REQ-004`, `REQ-007` |
+
+[L1474-1483]
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 任务型 Command：它启动一条异步处理链并立即返回 |
+| Resource/task semantics | `POST /api/v1/knowledge-bases/{knowledgeBaseId}/documents` 创建从属文档资源，同时入队一条后台任务 |
+| Read/write and side effects | 写入本地文件、`knowledge_document` 行与 outbox 行；不直接调用模型 |
+| Consistency and idempotency | 文档行与 outbox 行在同一本地事务内；文件在事务之外；非幂等，同一文件重复上传产生两个文档 |
+| Why this style | 嵌入耗时不可预测，同步会超时；`202` + 状态轮询是最小且诚实的表达 |
+
+[L1485-1494]
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 上传一份文件并启动其摄取；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP POST /api/v1/knowledge-bases/{knowledgeBaseId}/documents` |
+| Content type/version | 请求 `multipart/form-data`；响应 `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立超时；服务端不重试上传；重复上传是新文档 |
+| Idempotency/concurrency | 非幂等；并发上传互不影响 |
+
+[L1496-1505]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 目标知识库 | `kb-01J5K9` | 上游接口 |
+| `file` | Multipart | File | 必填、非空 | 无 | 非空；≤ 20MB；MIME 或扩展名须被某个已注册抽取器支持 | 待处理文件 | `report.pdf` | 管理员 |
+| `displayName` | Multipart | String | 可选 | 原始文件名 | trim 后 1-255 | 展示名 | `2026 手册` | 管理员 |
+
+请求体为 multipart，不使用 JSON 形状；无 JSON 请求体注释块。
+
+[L1507-1532]
+##### Success response
+
+HTTP `202 Accepted`。
+
+```jsonc
+{
+  "documentId": "doc-01J5K9", // 服务端生成的文档标识；用于详情、重新处理与删除。
+  "knowledgeBaseId": "kb-01J5K9", // 所属知识库标识。
+  "displayName": "report.pdf", // 展示名；未提供时取原始文件名。
+  "fileName": "report.pdf", // 原始文件名，用于诊断与重新解析。
+  "mimeType": "application/pdf", // 实际识别的内容类型；未知时为 null。
+  "sizeBytes": 182734, // 文件字节数。
+  "status": "PENDING", // 处理状态；上传后固定为 PENDING，随后由后台推进。
+  "chunkCount": 0, // 已写入的分块数；未完成时为 0。
+  "errorCode": null, // 失败时的稳定错误码；非失败状态为 null。
+  "errorMessage": null, // 失败时的安全摘要；非失败状态为 null。
+  "createdAt": "2026-09-10T05:30:00.000Z", // 上传时间，UTC Instant。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `status` | String enum | 必填 | `PENDING`/`PROCESSING`/`SUCCEEDED`/`FAILED`/`DEAD` | 文档状态机 | 轮询与展示 |
+| `chunkCount` | int | 必填 | ≥ 0 | 成功写入的分块数 | 展示 |
+| `errorCode` | String | 失败时必填，否则 `null` | 稳定机器码，不含供应商细节 | 失败原因 | 展示与重试决策 |
+
+[L1534-1556]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| multipart 缺 `file` 或字段非法 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 标红字段 |
+| 无可用抽取器 | 400 | `KNOWLEDGE_EXTRACTOR_MISSING` | 既有错误体 | 换格式或引入依赖 | 展示已支持格式 |
+| 文件超过大小上限 | 413 | `KNOWLEDGE_FILE_TOO_LARGE` | 既有错误体 | 否 | 提示上限 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 知识库不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| 文档数达到上限 | 429 | `KNOWLEDGE_CAPACITY_EXHAUSTED` | 既有错误体 + `Retry-After` | 稍后重试 | 提示清理旧文档 |
+| 存储或摄取前置失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示；无部分持久化 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_EXTRACTOR_MISSING", // 稳定机器码；表示该格式当前无可用抽取器。
+  "message": "no document extractor available for the uploaded format", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:30:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": { // 字段名 -> 消息列表。
+    "file": ["registered mime types: text/plain, text/markdown, application/json"] // 已注册能力，用于引导调用方换格式或引入依赖。
+  }
+}
+```
+
+[L1558-1567]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key 与 multipart 请求；`file` 必填。
+2. 校验顺序：知识库存在且未删除 -> 文档数未达上限 -> 文件大小与字段约束 -> 抽取路由命中。
+3. 服务端先把文件写入 `RagDocumentStorage`，再调用 `RagExtractionService#extract` 取得文本与结构元数据；这两步都在数据库事务之外。
+4. 随后在**一个本地事务内**插入 `knowledge_document` 行（含 `content` 文本）并入队一条 `channel=rag-ingest` 的 outbox 记录；该事务是"文档存在即会被处理"的保证。
+5. 事务失败时补偿删除已写入的文件；补偿失败时记录孤儿文件告警但不改变响应语义。
+6. 返回 `202` 与 `PENDING` 状态；嵌入由后台 outbox 投递异步完成，调用方应轮询 `API-008`。
+7. 前端应禁用重复提交按钮直至拿到响应，并在拿到 `documentId` 后以指数退避轮询详情直到终态；不要在轮询期间阻塞其它操作。
+8. 重复上传同一文件会产生两个独立文档并各自计费嵌入；本接口不做内容去重，也不接受客户端提供 `embeddingModel` 或分块参数覆盖知识库配置。
+
+[L1482]
+| Consistency and idempotency | 文档行与 outbox 行在同一本地事务内；文件在事务之外；非幂等，同一文件重复上传产生两个文档 |
+
+[L1494]
+| Idempotency/concurrency | 非幂等；并发上传互不影响 |
+
+[L1563-1564]
+4. 随后在**一个本地事务内**插入 `knowledge_document` 行（含 `content` 文本）并入队一条 `channel=rag-ingest` 的 outbox 记录；该事务是"文档存在即会被处理"的保证。
+5. 事务失败时补偿删除已写入的文件；补偿失败时记录孤儿文件告警但不改变响应语义。
+
+[L1567]
+8. 重复上传同一文件会产生两个独立文档并各自计费嵌入；本接口不做内容去重，也不接受客户端提供 `embeddingModel` 或分块参数覆盖知识库配置。
+
+### 13.2 API-007 – API-012（逐字摘录）
+
+[L1591-1591]
+#### 9.2.7 API-007 — 文档分页列表
+
+[L1593-1625]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员在一个知识库内浏览文档并观察各自状态与失败 |
+| Parameter ownership and derivation | 筛选与分页由调用方拥有；计数由服务端派生 |
+| Direct/no-new-interface alternative | 复用知识库详情中的 `documentCount`。不足：无法逐条查看状态、失败原因与标识 |
+| Caller use of result | 展示列表、定位失败文档并触发重新处理 |
+| Round trips and failure points | 每页一次 RTT |
+| Verdict | `Add`，覆盖 `REQ-003`, `REQ-005` |
+
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Query` |
+| CQRS role | 只读查询；状态由后台任务写入，本接口不修改 |
+| Resource/task semantics | `GET` 返回知识库下文档集合的一页 |
+| Read/write and side effects | 只读 `knowledge_document` |
+| Consistency and idempotency | 读已提交；状态可能被后台并发推进 |
+| Why this style | 标准从属集合查询 |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 分页浏览某知识库下未删除的文档；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP GET /api/v1/knowledge-bases/{knowledgeBaseId}/documents` |
+| Content type/version | `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置 |
+| Idempotency/concurrency | 只读且幂等 |
+
+[L1627-1636]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 所属知识库 | `kb-01J5K9` | 上游接口 |
+| `page` | Query | int | 可选 | `1` | ≥ 1 | 页码（1 基准） | `1` | 调用方 |
+| `size` | Query | int | 可选 | `20` | 1-100 | 每页条数 | `20` | 调用方 |
+| `status` | Query | String enum | 可选 | 无 | `PENDING`/`PROCESSING`/`SUCCEEDED`/`FAILED`/`DEAD` | 按状态筛选 | `FAILED` | 调用方 |
+| `keyword` | Query | String | 可选 | 无 | trim 后 0-64；对 `display_name` 做包含匹配 | 文件名关键字 | `report` | 调用方 |
+
+[L1638-1668]
+##### Success response
+
+HTTP `200 OK`；排序 `created_at DESC, id DESC`。
+
+```jsonc
+{
+  "items": [ // 必填。当前页文档；无匹配时为空数组。
+    {
+      "documentId": "doc-01J5K9", // 文档标识。
+      "displayName": "report.pdf", // 展示名。
+      "mimeType": "application/pdf", // 内容类型；未知时为 null。
+      "sizeBytes": 182734, // 文件字节数。
+      "status": "SUCCEEDED", // 处理状态。
+      "chunkCount": 42, // 已写入的分块数；未成功时为 0。
+      "errorCode": null, // 失败时的稳定错误码；否则为 null。
+      "createdAt": "2026-09-10T05:30:00.000Z", // 上传时间。
+      "updatedAt": "2026-09-10T05:32:00.000Z" // 最近一次状态变更时间。
+    }
+  ],
+  "page": 1, // 当前页码，1 基准。
+  "size": 20, // 生效的每页条数。
+  "totalElements": 1, // 满足筛选条件的总行数。
+  "totalPages": 1, // 派生页数。
+  "hasNext": false // 是否存在下一页。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `items[].status` | String enum | 必填 | 五值状态机 | 处理进度 | 决定是否轮询或展示重试按钮 |
+| `items[].errorCode` | String | 失败时为稳定码，否则 `null` | 不含供应商细节 | 失败原因 | 展示与重试决策 |
+
+[L1670-1689]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 参数越界或枚举非法 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 重置筛选 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 知识库不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_VALIDATION_ERROR", // 稳定机器码。
+  "message": "validation failed", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:35:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": { // 字段名 -> 消息列表。
+    "status": ["unsupported status value"] // 非法枚举值。
+  }
+}
+```
+
+[L1691-1700]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key。
+2. 校验顺序：知识库存在且未删除 -> 分页与筛选约束。
+3. 只返回 `knowledge_base_id` 匹配且 `is_deleted = false` 的行；`status` 与 `keyword` 为可选筛选。
+4. 排序固定为 `created_at DESC, id DESC`；`totalElements` 与 `items` 在同一查询快照内。
+5. 无写入、无缓存、无外部调用。
+6. 状态可能在两次轮询之间被后台推进；前端应以最近一次响应为准，不合并历史状态。
+7. 前端在存在 `PENDING` 或 `PROCESSING` 条目时应启用轮询（建议 2 秒起并以指数退避到 30 秒上限），全部进入终态后停止轮询。
+8. 失败条目应展示 `errorCode` 对应的可读文案与"重新处理"入口，而不是展示原始异常文本。
+
+[L1640-1640]
+HTTP `200 OK`；排序 `created_at DESC, id DESC`。
+
+[L1718-1718]
+- 兼容：筛选参数、排序规则与分页语义在本版冻结；后续新增筛选参数必须是可选的，且不得改变 `created_at DESC, id DESC` 的排序与 1 基准分页。
+
+[L1722-1722]
+- 边界回归：知识库不存在时返回 404 而不是空数组，该行为必须由 `TEST-015` 固定，避免调用方把"库不存在"误判为"还没有文档"。
+
+[L1724-1724]
+#### 9.2.8 API-008 — 文档详情
+
+[L1726-1758]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 轮询单个文档直到终态；这是上传后唯一的进度观察入口，也是失败诊断入口 |
+| Parameter ownership and derivation | 标识来自路径；全部字段由服务端派生 |
+| Direct/no-new-interface alternative | 让列表承担轮询。不足：轮询一个文档却拉整页数据，且 `content` 长度等诊断信息不属于列表 |
+| Caller use of result | 判断终态、展示失败原因、决定是否触发重新处理 |
+| Round trips and failure points | 每次轮询一次 RTT |
+| Verdict | `Add`，覆盖 `REQ-003`, `REQ-005` |
+
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Query` |
+| CQRS role | 只读查询 |
+| Resource/task semantics | `GET` 读取单个文档表示 |
+| Read/write and side effects | 只读 |
+| Consistency and idempotency | 读已提交；状态可能被后台并发推进 |
+| Why this style | 单资源读取；轮询是 `202` 语义的自然配套 |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 读取单个文档的状态与诊断信息；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP GET /api/v1/knowledge-documents/{documentId}` |
+| Content type/version | `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 轮询由调用方控制；服务端不限制轮询频率但记录指标 |
+| Idempotency/concurrency | 只读且幂等 |
+
+[L1760-1765]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `documentId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 文档标识 | `doc-01J5K9` | 上游接口 |
+
+[L1767-1795]
+##### Success response
+
+HTTP `200 OK`。响应体为 `API-006` 的文档表示加上诊断字段。
+
+```jsonc
+{
+  "documentId": "doc-01J5K9", // 文档标识。
+  "knowledgeBaseId": "kb-01J5K9", // 所属知识库标识。
+  "displayName": "report.pdf", // 展示名。
+  "fileName": "report.pdf", // 原始文件名。
+  "mimeType": "application/pdf", // 内容类型；未知时为 null。
+  "sizeBytes": 182734, // 文件字节数。
+  "status": "FAILED", // 处理状态。
+  "chunkCount": 0, // 已写入的分块数；失败时为 0。
+  "errorCode": "KNOWLEDGE_EMBEDDING_FAILED", // 失败时的稳定错误码；否则为 null。
+  "errorMessage": "embedding provider call failed", // 失败时的安全摘要；不含供应商原文；否则为 null。
+  "attemptCount": 3, // 已消耗的投递尝试次数，用于判断是否接近耗尽。
+  "contentChars": 128400, // 已持久化原文文本的字符数；用于确认文本确实已落库。
+  "createdAt": "2026-09-10T05:30:00.000Z", // 上传时间。
+  "updatedAt": "2026-09-10T05:41:00.000Z", // 最近一次状态变更时间。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `attemptCount` | int | 必填 | ≥ 0 | outbox 的尝试次数 | 判断是否接近死信 |
+| `contentChars` | int | 必填 | ≥ 0 | `content` 的字符数，不返回文本本身 | 确认文本已落库而不传输内容 |
+| `errorMessage` | String | 失败时非空，否则 `null` | 安全摘要，不含供应商报文 | 失败原因 | 展示；不可解析为分支依据 |
+
+[L1797-1814]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 标识格式非法 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 | 修正后 | 返回列表 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 不存在或已删除 | 404 | `KNOWLEDGE_DOCUMENT_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_DOCUMENT_NOT_FOUND", // 稳定机器码；已删除与不存在共用。
+  "message": "knowledge document not found", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:41:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误。
+}
+```
+
+[L1816-1825]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；标识来自路径。
+2. 校验顺序：标识格式 -> 文档存在且未删除。
+3. 查询单行；`contentChars` 由持久化文本的长度派生，响应**不返回文本本身**，避免把大字段放进轮询路径。
+4. 无写入、无缓存、无外部调用。
+5. 状态与 `attemptCount` 由后台投递更新；轮询方看到的是已提交状态。
+6. 终态为 `SUCCEEDED`、`FAILED` 与 `DEAD`；前两者可停止轮询，`DEAD` 需要人工介入。
+7. 前端应在终态到达时停止轮询并刷新列表；`FAILED` 展示可重试入口，`DEAD` 展示需要人工处理的提示。
+8. `errorMessage` 仅供展示，前端不得据其文本分支；分支一律使用 `errorCode`。
+
+[L1843-1843]
+- 兼容：响应字段只增；`contentChars` 的语义（字符数而非字节数）在本版冻结。
+
+[L1847-1847]
+#### 9.2.9 API-009 — 重新处理文档
+
+[L1849-1881]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员对失败或已死信的文档重新启动处理；组件不提供 replay API（`EVD-017`），因此该目标必须由本项目实现 |
+| Parameter ownership and derivation | 标识来自路径；是否允许重新处理由服务端按当前状态判定 |
+| Direct/no-new-interface alternative | 要求管理员删除并重新上传。不足：会丢失 `documentId`、重新传输文件、并可能因客户端已无原文件而失败 |
+| Caller use of result | 得到新的状态并重新开始轮询 |
+| Round trips and failure points | 一次 RTT；失败点为不存在与状态不允许 |
+| Verdict | `Add`，覆盖 `REQ-003`, `REQ-006` |
+
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 任务型 Command：再次入队一条后台任务 |
+| Resource/task semantics | `POST /api/v1/knowledge-documents/{documentId}/reingest` 是对文档的从属动作资源 |
+| Read/write and side effects | 写一条 outbox 行并把文档状态重置为待处理；不重新上传、不重新解析 |
+| Consistency and idempotency | 单条插入在一个本地事务内；每次调用产生一条新任务记录，非幂等 |
+| Why this style | 重新处理是一次有副作用的业务动作，不是资源状态替换；用从属动作资源表达比 `PATCH status` 更诚实 |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 从已持久化文本重新执行切块与嵌入；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP POST /api/v1/knowledge-documents/{documentId}/reingest` |
+| Content type/version | 无请求体；响应 `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置；重复调用会被状态检查拒绝 |
+| Idempotency/concurrency | 非幂等；文档处于非终态时返回 409 |
+
+[L1883-1889]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `documentId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 文档标识 | `doc-01J5K9` | 上游接口 |
+| Body | Body | — | 无 | 无 | 请求体必须为空 | 不适用 | 无 | 不适用 |
+
+[L1891-1918]
+##### Success response
+
+HTTP `202 Accepted`，返回与 `API-008` 同形的文档表示，其中 `status` 回到 `PENDING`、`errorCode` 与 `errorMessage` 清空、`attemptCount` 重置为 0。
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `status` | String enum | 必填 | 本接口固定返回 `PENDING` | 已重新入队 | 恢复轮询 |
+| `attemptCount` | int | 必填 | 本接口固定返回 `0` | 新任务的尝试计数 | 展示 |
+
+```jsonc
+{
+  "documentId": "doc-01J5K9", // 文档标识。
+  "knowledgeBaseId": "kb-01J5K9", // 所属知识库标识。
+  "displayName": "report.pdf", // 展示名。
+  "fileName": "report.pdf", // 原始文件名。
+  "mimeType": "application/pdf", // 内容类型。
+  "sizeBytes": 182734, // 文件字节数。
+  "status": "PENDING", // 已重新入队，等待后台领取。
+  "chunkCount": 0, // 重新处理前的分块数已作废，重置为 0。
+  "errorCode": null, // 已清空。
+  "errorMessage": null, // 已清空。
+  "attemptCount": 0, // 新任务的尝试计数。
+  "contentChars": 128400, // 复用的已持久化文本字符数；证明未重新解析。
+  "createdAt": "2026-09-10T05:30:00.000Z", // 原始上传时间，不变。
+  "updatedAt": "2026-09-10T05:45:00.000Z", // 本次重新入队时间。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+[L1920-1939]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 请求体非空 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 | 修正后 | 移除请求体 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 不存在或已删除 | 404 | `KNOWLEDGE_DOCUMENT_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| 文档处于非终态 | 409 | `KNOWLEDGE_DOCUMENT_BUSY` | 既有错误体 | 等待后 | 提示正在处理中 |
+| 原文文本缺失 | 409 | `KNOWLEDGE_CONTENT_MISSING` | 既有错误体 | 否 | 提示删除后重新上传 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_DOCUMENT_BUSY", // 稳定机器码；表示文档仍在处理中。
+  "message": "knowledge document is still being processed", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:45:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误。
+}
+```
+
+[L1941-1950]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；请求体必须为空。
+2. 校验顺序：标识格式 -> 文档存在且未删除 -> 当前状态为终态 -> 持久化文本非空。
+3. 服务端**不重新调用抽取**：handler 会从 `knowledge_document.content` 直接重建 `ExtractedDocumentBO`，因此本接口不会重新上传、下载或解析原文件。
+4. 单条事务内插入一条 `channel=rag-ingest` 的 outbox 记录，并把文档状态重置为 `PENDING`、清空 `errorCode`/`errorMessage`、重置尝试计数。
+5. 已存在的分块不在此处删除；摄取流程会按 `documentId` 先删后写，因此重跑得到相同分块 id 集合。
+6. 文档处于非终态时返回 409，避免同一文档出现两条并发活跃任务。
+7. 前端在收到 `202` 后应重新开始轮询详情；重复点击应被禁用直至拿到响应。
+8. `KNOWLEDGE_CONTENT_MISSING` 表示历史数据缺少文本（例如从更早版本升级），此时唯一恢复路径是删除并重新上传，前端应给出该指引。
+
+[L1968-1968]
+- 兼容：动作资源的路径与 `202` 语义在本版冻结。
+
+[L1972-1972]
+#### 9.2.10 API-010 — 删文档
+
+[L1974-2006]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员移除一份文档并确保其内容不再被检索到 |
+| Parameter ownership and derivation | 标识来自路径；级联范围由服务端派生 |
+| Direct/no-new-interface alternative | 无；删除是基础管理动作 |
+| Caller use of result | 从列表移除并刷新计数 |
+| Round trips and failure points | 一次 RTT |
+| Verdict | `Add`，覆盖 `REQ-003` |
+
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 删除型 Command |
+| Resource/task semantics | `DELETE` 删除该文档及其从属数据 |
+| Read/write and side effects | 删除本地文件、删除向量分块、软删文档行 |
+| Consistency and idempotency | 数据库变更在一个本地事务内；已删除再删返回 404 |
+| Why this style | 标准资源删除语义 |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 删除一份文档及其文件与向量；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP DELETE /api/v1/knowledge-documents/{documentId}` |
+| Content type/version | 无请求体；成功无响应体 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置 |
+| Idempotency/concurrency | 已删除再删返回 404；处理中的文档允许删除并同时使其任务失效 |
+
+[L2008-2014]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `documentId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 文档标识 | `doc-01J5K9` | 上游接口 |
+| Body | Body | — | 无 | 无 | 请求体必须为空 | 不适用 | 无 | 不适用 |
+
+[L2016-2022]
+##### Success response
+
+HTTP `204 No Content`，无响应体。
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| Body | — | 无 | — | `204` 无内容 | 前端据状态码判定成功 |
+
+[L2024-2041]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 标识格式非法 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 | 修正后 | 返回列表 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 不存在或已删除 | 404 | `KNOWLEDGE_DOCUMENT_NOT_FOUND` | 既有错误体 | 否 | 从本地列表移除 |
+| 级联删除失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示；状态未变 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_DOCUMENT_NOT_FOUND", // 稳定机器码。
+  "message": "knowledge document not found", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:50:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误。
+}
+```
+
+[L2043-2052]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；请求体必须为空。
+2. 校验顺序：标识格式 -> 文档存在且未删除。
+3. 事务内先删除该文档在向量表中的全部分块（按 `documentId` 过滤），再软删文档行；本地文件删除在同一路径中执行，删除失败时以补偿记录处理。
+4. 删除后该文档的分块不再可能被检索命中，这是本接口的核心保证。
+5. 若该文档仍有活跃的 outbox 任务，任务执行时发现记录不存在将视为成功，不产生失败重试。
+6. 重复删除返回 404；并发删除只有一个成功。
+7. 前端必须要求显式确认后再提交；成功后刷新列表与知识库详情的 `documentCount`。
+8. 删除不可撤销；已删除文档的文件与向量在成功响应后不可恢复。
+
+[L2048-2048]
+4. 删除后该文档的分块不再可能被检索命中，这是本接口的核心保证。
+
+[L2050-2050]
+6. 重复删除返回 404；并发删除只有一个成功。
+
+[L2070-2070]
+- 兼容：路径、`204` 状态码与级联范围在本版冻结；后续不得把删除改成异步（那会迫使调用方轮询一个不存在的状态资源）。
+
+[L2074-2074]
+- 并发回归：并发删除同一文档时只有一个返回 `204`，另一个返回 `404`；该行为由 `TEST-016` 固定。
+
+[L2076-2076]
+#### 9.2.11 API-011 — 检索调试
+
+[L2078-2110]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 管理员判断一次查询的召回片段、分位与分数，用于分辨"检索没召回到"与"模型没答好"；这是独立于问答的展示目标，且不产生模型计费 |
+| Parameter ownership and derivation | 查询文本与条数由调用方拥有；强制过滤条件与逻辑模型由知识库派生，不接受覆盖 |
+| Direct/no-new-interface alternative | 只用 `API-012` 问答。不足：问答会调用模型并计费，且只暴露被答案引用的片段，无法看到低分片段与分数分布 |
+| Caller use of result | 展示片段与分数用于人工判断 |
+| Round trips and failure points | 一次 RTT；失败点为参数越界与知识库不存在 |
+| Verdict | `Add`，覆盖 `REQ-011` |
+
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Query` |
+| CQRS role | 只读查询，拥有零业务写入与零模型调用 |
+| Resource/task semantics | `POST` 承载结构化查询条件；无状态变更 |
+| Read/write and side effects | 只读向量表；无审计以外的副作用 |
+| Consistency and idempotency | 读已提交；相同请求在数据未变时结果一致 |
+| Why this style | 查询条件含数组与数值，放在请求体比查询串更清晰；`POST` 用于非幂等的疑虑不成立，因为本接口无副作用 |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 检索知识库内的相关分块并返回分数；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP POST /api/v1/knowledge-bases/{knowledgeBaseId}/retrieve` |
+| Content type/version | 请求与响应 `application/json`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 无独立设置；服务端不重试 |
+| Idempotency/concurrency | 只读且幂等 |
+
+[L2112-2128]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 目标知识库 | `kb-01J5K9` | 上游接口 |
+| `query` | Body | String | 必填、非空 | 无 | trim 后 1-2000 | 查询文本 | `如何配置超时` | 管理员 |
+| `topK` | Body | int | 可选 | `rag.retrieval.default-top-k`（8） | 1 到 `rag.retrieval.max-top-k` | 返回条数上限 | `8` | 管理员 |
+| `similarityThreshold` | Body | number | 可选 | `0.0` | 0.0-1.0 | 相似度下限 | `0.7` | 管理员 |
+
+```jsonc
+{
+  "query": "如何配置超时", // 必填。查询文本，trim 后 1-2000 字符。
+  "topK": 8, // 可选。返回条数上限，缺省取组件配置的默认值；越界返回 400。
+  "similarityThreshold": 0.7 // 可选。相似度下限，缺省 0.0 表示接受全部；越界返回 400。
+}
+```
+
+[L2130-2155]
+##### Success response
+
+HTTP `200 OK`。按相似度降序；无命中返回空数组。
+
+```jsonc
+{
+  "items": [ // 必填。命中片段；无命中时为空数组。
+    {
+      "documentId": "doc-01J5K9", // 片段所属文档标识，可用于跳转详情。
+      "chunkIndex": 7, // 文档内分块序号，从 0 开始。
+      "score": 0.83, // 相似度分数；底层可能返回 null，此时该字段为 null。
+      "content": "超时通过 max-duration 配置，默认 PT5M……", // 命中片段文本，用于人工判断召回质量。
+      "displayName": "report.pdf" // 片段所属文档的展示名，避免调用方二次查询。
+    }
+  ],
+  "query": "如何配置超时", // 回显规范化后的查询文本。
+  "embeddingModel": "openai-small", // 本次检索使用的逻辑模型名，由知识库派生。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `items[].score` | number | 可空 | 由底层向量库返回 | 相似度 | 展示与排序依据 |
+| `items[].content` | String | 必填、非空 | 片段文本 | 召回内容 | 人工判断 |
+| `embeddingModel` | String | 必填、非空 | 知识库冻结的逻辑名 | 说明本次检索用的是哪个模型 | 展示 |
+
+[L2157-2175]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 查询文本空或过长、`topK`/阈值越界 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 标红字段 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 知识库不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| 向量库不可用 | 503 | `KNOWLEDGE_DEPENDENCY_UNAVAILABLE` | 既有错误体 | 是 | 稍后重试 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_DEPENDENCY_UNAVAILABLE", // 稳定机器码；表示向量库或检索依赖不可用。
+  "message": "knowledge retrieval dependency is unavailable", // 安全摘要；不含连接串或供应商细节。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T05:55:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误。
+}
+```
+
+[L2177-2186]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须携带有效 API Key；标识来自路径。
+2. 校验顺序：知识库存在且未删除 -> 字段约束 -> `topK` 与阈值范围。
+3. 逻辑模型与集合过滤由服务端从知识库配置派生并强制注入；请求不得提供 `embeddingModel`、`collectionId` 或任何元数据过滤条件。
+4. 调用 RAG 组件的检索服务；该调用只读向量表，不调用嵌入或对话模型（查询文本的向量化由组件的嵌入模型完成，属于检索的必要步骤但不产生对话计费）。
+5. 无持久化写入、无缓存。
+6. 无命中返回空数组而非 404；依赖不可用返回 503 而不是空结果，避免把故障误判为"没有相关内容"。
+7. 前端应允许调整 `topK` 与阈值并对比结果，用于判断分块配置是否合理；本接口不提供分块预览（`DEC-007`）。
+8. 展示 `score` 时应说明它是相似度而非概率，且不同模型之间不可比较。
+
+[L2132-2132]
+HTTP `200 OK`。按相似度降序；无命中返回空数组。
+
+[L2205-2205]
+- 兼容：请求与响应字段只增；`score` 的可空性属于稳定契约。
+
+[L2209-2209]
+#### 9.2.12 API-012 — 知识库问答
+
+[L2211-2243]
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 调用方就知识库内容提问并获得带引用的增量回答；这是与研究域并列的独立业务目标 |
+| Parameter ownership and derivation | 问题文本由调用方拥有；引用、模型与过滤条件由服务端派生 |
+| Direct/no-new-interface alternative | 复用研究域的 `POST /api/v1/deep-research/runs`。不足：其事件语义是研究报告、流程是固定多智能体工作流、且会启动昂贵的多路研究，与"基于知识库回答一个问题"完全不是同一件事 |
+| Caller use of result | 增量展示答案与引用；结果不被转发给另一个接口 |
+| Round trips and failure points | 一次 SSE 连接；失败点为校验、容量饱和、检索失败与生成失败 |
+| Verdict | `Add`，覆盖 `REQ-012`, `REQ-022` |
+
+##### API style and CQRS semantics
+
+| Concern | Decision/evidence |
+| --- | --- |
+| Protocol style | `REST Command` |
+| CQRS role | 任务型 Command：启动一次有外部计费副作用的生成，并以流返回结果 |
+| Resource/task semantics | `POST /api/v1/knowledge-bases/{knowledgeBaseId}/chat` 是对知识库的从属动作；无持久资源 |
+| Read/write and side effects | 只读向量表；调用对话模型；无数据库写入 |
+| Consistency and idempotency | 非幂等：每次请求新建一次生成并重新计费；无会话与恢复 |
+| Why this style | 增量输出需要流式传输；仓库既有的 SSE 先例（`EVD-012`, `EVD-013` 所在模块）使 MVC `SseEmitter` 是直接可行的选择 |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 基于知识库检索结果生成回答并以 SSE 增量返回；由 adapter 拥有 |
+| Protocol and endpoint | `HTTP POST /api/v1/knowledge-bases/{knowledgeBaseId}/chat` |
+| Content type/version | 请求 `application/json`；响应 `text/event-stream`；v1 |
+| Auth/permission/tenant | `X-Research-Api-Key`；无租户 |
+| Timeout/retry/rate limit | 独立并发上限（默认 4）；饱和返回 429 + `Retry-After: 5`；服务端不自动重试 |
+| Idempotency/concurrency | 非幂等；并发请求各自独立，除容量外互不影响 |
+
+[L2245-2260]
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `X-Research-Api-Key` | Header | String | 必填 | 无 | 常量时间比较 | 服务凭据 | `demo-key` | 既有过滤器 |
+| `Accept` | Header | String | 约定要求 | 无 | 必须允许 `text/event-stream` | 响应协商 | `text/event-stream` | 调用方 |
+| `knowledgeBaseId` | Path | String | 必填、非空 | 无 | `[A-Za-z0-9._-]{1,64}` | 目标知识库 | `kb-01J5K9` | 上游接口 |
+| `question` | Body | String | 必填、非空 | 无 | trim 后 1-2000；拒绝控制字符 | 用户问题 | `超时怎么配置？` | 调用方 |
+| `topK` | Body | int | 可选 | `rag.retrieval.default-top-k`（8） | 1 到 `rag.retrieval.max-top-k` | 引用条数上限 | `8` | 调用方 |
+
+```jsonc
+{
+  "question": "超时怎么配置？", // 必填。用户问题，trim 后 1-2000 字符；控制字符被拒绝。
+  "topK": 8 // 可选。检索引用条数上限，缺省取组件默认值；越界返回 400。
+}
+```
+
+[L2262-2315]
+##### Success response
+
+HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<sequence>`，`sequence` 从 1 严格递增；每个 `data` 是单行 UTF-8 JSON。服务不实现 `Last-Event-ID` 恢复。
+
+| Event | When | Required data | Terminal |
+| --- | --- | --- | --- |
+| `knowledge.started` | 检索完成、生成开始前 | answerId, sequence, type, retrievals[], occurredAt, traceId | No |
+| `knowledge.progress` | 生成增量 | answerId, sequence, type, delta, occurredAt | No |
+| `knowledge.completed` | 生成结束 | answerId, sequence, type, answer, retrievals[], occurredAt, traceId | Yes |
+| `knowledge.failed` | 200 之后发生安全失败 | answerId, sequence, type, code, message, retryable, occurredAt, traceId | Yes |
+
+```jsonc
+{
+  "answerId": "qa-01J5K9", // 服务端生成的本次问答标识，仅在流内有效。
+  "sequence": 1, // 流内严格递增事件序号，从 1 开始。
+  "type": "STARTED", // 事件类型；STARTED、PROGRESS、COMPLETED 或 FAILED。
+  "retrievals": [ // STARTED 与 COMPLETED 携带；本次检索使用的引用。
+    {
+      "documentId": "doc-01J5K9", // 引用所属文档标识。
+      "chunkIndex": 7, // 文档内分块序号。
+      "displayName": "report.pdf", // 文档展示名，便于展示来源。
+      "score": 0.83 // 相似度分数；可能为 null。
+    }
+  ],
+  "occurredAt": "2026-09-10T06:00:00.000Z", // 事件产生时间，UTC Instant。
+  "traceId": "4e9d6938" // 与响应头一致的关联标识。
+}
+```
+
+```jsonc
+{
+  "answerId": "qa-01J5K9", // 与 started/progress 相同的问答标识。
+  "sequence": 12, // 最后一个事件序号。
+  "type": "COMPLETED", // 唯一成功终态。
+  "answer": "超时通过 max-duration 配置……", // 基于检索引用生成的回答文本；不是事实保证。
+  "retrievals": [ // 与 started 相同的引用集合，便于调用方只消费终态。
+    {
+      "documentId": "doc-01J5K9", // 引用所属文档标识。
+      "chunkIndex": 7, // 文档内分块序号。
+      "displayName": "report.pdf", // 文档展示名。
+      "score": 0.83 // 相似度分数；可能为 null。
+    }
+  ],
+  "occurredAt": "2026-09-10T06:01:12.000Z", // 完成时间。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+| Field path | Type/format | Required/null/default | Validation/enum/precision | Meaning and source | Frontend use |
+| --- | --- | --- | --- | --- | --- |
+| `data.retrievals` | Array | `STARTED`/`COMPLETED` 必填，可为空数组 | 每条含 documentId、chunkIndex、displayName、score | 引用来源 | 展示出处 |
+| `data.delta` | String | `PROGRESS` 必填 | 有界安全文本 | 增量回答 | 追加展示 |
+| `data.answer` | String | `COMPLETED` 必填 | 长度由模型决定；按不可信内容渲染 | 最终回答 | 替换增量展示 |
+| `data.code`/`message`/`retryable` | 标量 | `FAILED` 必填 | 稳定安全映射 | 失败原因 | 错误展示与重试决策 |
+
+[L2317-2351]
+##### Error responses
+
+| Condition | HTTP status | Business code | Response shape | Retryable | Frontend handling |
+| --- | --- | --- | --- | --- | --- |
+| 问题空或过长、`topK` 越界 | 400 | `KNOWLEDGE_VALIDATION_ERROR` | 既有错误体 + `fieldErrors` | 修正后 | 标红字段 |
+| API Key 缺失或错误 | 401 | `RESEARCH_UNAUTHORIZED` | 既有错误体 | 修正凭据后 | 提示配置 key |
+| 知识库不存在或已删除 | 404 | `KNOWLEDGE_BASE_NOT_FOUND` | 既有错误体 | 否 | 返回列表 |
+| `Accept` 不接受事件流 | 406 | `KNOWLEDGE_NOT_ACCEPTABLE` | 既有错误体 | 否 | 设置 `Accept` |
+| 并发容量饱和 | 429 | `KNOWLEDGE_CAPACITY_EXHAUSTED` | 既有错误体 + `Retry-After: 5` | 是 | 按 `Retry-After` 重试 |
+| 流建立前的依赖不可用 | 503 | `KNOWLEDGE_DEPENDENCY_UNAVAILABLE` | 既有错误体 | 是 | 稍后重试 |
+| 流建立后的检索或生成失败 | 流内 `knowledge.failed` | 稳定失败码 | 事件 JSON | 由 `retryable` 字段决定 | 展示失败并允许新建请求 |
+| 未预期失败 | 500 | `KNOWLEDGE_INTERNAL_ERROR` | 既有错误体 | 携带 traceId 上报 | 通用错误提示 |
+
+```jsonc
+{
+  "code": "KNOWLEDGE_CAPACITY_EXHAUSTED", // 稳定机器码；表示本机并发问答已达上限。
+  "message": "knowledge qa capacity is exhausted", // 安全摘要。
+  "traceId": "4e9d6938", // 关联标识。
+  "timestamp": "2026-09-10T06:05:00.000Z", // 服务端 UTC Instant。
+  "fieldErrors": {} // 本接口无字段错误。
+}
+```
+
+```jsonc
+{
+  "answerId": "qa-01J5K9", // 已建立流的问答标识。
+  "sequence": 9, // 唯一终态事件的序号。
+  "type": "FAILED", // 失败终态。
+  "code": "KNOWLEDGE_DEPENDENCY_UNAVAILABLE", // 稳定失败码；不暴露供应商错误。
+  "message": "knowledge qa dependency failed", // 安全摘要。
+  "retryable": true, // 客户端可决定是否新建请求；服务端不自动重试。
+  "occurredAt": "2026-09-10T06:05:30.000Z", // 失败时间。
+  "traceId": "4e9d6938" // 关联标识。
+}
+```
+
+[L2353-2362]
+##### Interface logic for frontend and consumers
+
+1. 调用方必须逐个消费 SSE 事件，不把 HTTP 200 当业务完成；必须设置 `Accept: text/event-stream`。
+2. 校验顺序：知识库存在且未删除 -> 媒体协商 -> 字段约束 -> 容量许可获取。任一失败都在建立流之前以普通 HTTP 错误返回。
+3. 取得许可后创建流，随即执行一次检索；引用集合写入 `knowledge.started`，因此即使后续生成失败，调用方也已知晓"本来会引用哪些片段"。
+4. 生成阶段把模型增量映射为 `knowledge.progress`；完整回答在 `knowledge.completed` 中一次性给出，调用方应以它为准而不是拼接增量。
+5. 无数据库写入、无会话、无缓存；许可与订阅在终态或断连时释放一次。
+6. 容量饱和在建立流之前返回 429；流内失败返回一个 `knowledge.failed` 并结束，EOF 前没有终态事件视为未知失败。
+7. 前端应禁用重复提交直至拿到首个事件，增量展示时按不可信内容渲染并禁用原始 HTML；收到终态后关闭连接并提示可新建请求重试。
+8. 客户端断连会取消下游并释放许可；服务端不保证已产生的增量会被回放，重连等于一次新的计费请求。
+
+[L2264-2264]
+HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<sequence>`，`sequence` 从 1 严格递增；每个 `data` 是单行 UTF-8 JSON。服务不实现 `Last-Event-ID` 恢复。
+
+[L2360-2360]
+6. 容量饱和在建立流之前返回 429；流内失败返回一个 `knowledge.failed` 并结束，EOF 前没有终态事件视为未知失败。
+
+[L2362-2362]
+8. 客户端断连会取消下游并释放许可；服务端不保证已产生的增量会被回放，重连等于一次新的计费请求。
+
+[L2382-2382]
+- 兼容：事件名、字段与终态语义在本版冻结；新增事件类型需要显式版本决策。
+
+### 13.3 OBSERVATIONS（子代理观察，非 spec 原文）
+
+以下两段是摘录子代理在阅读时标注的疑点，**不是 Spec B 的文本**；保留在此是因为它们直接决定 `§7` 各 Step 在歧义处的取值理由，以及最终 Spec 一致性审计的候选清单。
+
+#### 13.3.1 针对 API-001 – API-006
+
+- 六节的成功响应字段表都只列"非显然"字段（如 API-002 只列 3 行、API-003 只列 2 行），jsonc 中出现的 `code`、`name`、`description`、`chunkStrategy`、`chunkConfig`、`traceId` 等字段在字段表中从未定义类型/约束/来源。
+- API-001 的请求参数表定义了 `X-Trace-Id` 头，API-002 至 API-006 的参数表均未列出该头，但多个响应体返回 `traceId`，且文档称其"与响应头一致"——响应头的定义在本段缺失。
+- 除 API-001 的 401 行提到 `WWW-Authenticate: ApiKey`、API-006 的 429 行提到 `Retry-After` 外，本段没有任何响应头表；`Retry-After` 的单位（秒/HTTP date）与 `ETag`/条件请求完全未出现。
+- `knowledgeBaseId` 的生成规则（示例 `kb-01J5K9`）未定义，而路径校验正则为 `[A-Za-z0-9._-]{1,64}`，实现者需自行推断前缀与单调性要求。
+- 排序口径不一致：API-002 正文用字段名 `createdAt DESC, knowledgeBaseId DESC`，步骤 4 改用数据库列名 `created_at DESC, id DESC`，二者映射关系需实现者推断。
+- API-002 步骤 2 要求校验 `embeddingModel` 已注册，但错误示例注释称 `fieldErrors` 只可能出现 `page` 或 `size`，`embeddingModel` 非法时的状态码与错误码未定义。
+- API-002 用 `is_deleted = false`、API-003 用"资源存在且未删除"，而 API-001 定义状态枚举为 `ACTIVE`/`DELETED`，`is_deleted` 与 `status` 是否同一标志未说明。
+- 多张错误表以"既有错误体"指代响应形状，但 `KNOWLEDGE_VALIDATION_ERROR`、`KNOWLEDGE_MODEL_NOT_REGISTERED`、`KNOWLEDGE_FILE_TOO_LARGE`、`KNOWLEDGE_CAPACITY_EXHAUSTED` 的具体错误体示例在本段均未给出。
+- API-005 步骤 3 提到"outbox 投递"、步骤 5 提到"补偿记录"，但补偿记录的实体、字段、存储位置在本段没有任何定义。
+- API-005 声明 DELETE"语义上幂等"，同时又规定重复删除返回 404，二者对幂等的定义存在冲突；API-004 声明幂等但"并发写以后提交者为准"。
+- API-006 的 `errorCode` 规定"失败时必填"，但 202 响应示例恒为 `null`，且同步失败（400/413/429/500）走 HTTP 错误码——失败错误码在哪一层返回未明示。
+- API-006 步骤 2 提到"文档数未达上限"并映射 429，但上限的具体数值来源、计数口径（含非终态文档与否）未定义。
+- API-004 请求参数表未列 `code`，但正文与错误示例把 `code` 归入"不可修改字段"；前端无法从表中得知该拒绝清单的完整成员。
+- API-003 步骤 4 提到"与文档列表接口在同一筛选条件下口径一致"，但文档列表接口的筛选条件不在本段（且未给出接口号）。
+- API-001 的 `(tenant_scope, code)` 唯一约束引用了租户列，而同一接口的鉴权行明确"无租户"，两者关系需要实现者猜测。
+- API-001 步骤 6 以 `API-004` 这种编号形式引用其他接口，而本文件章节标题使用 `9.2.4 API-004`，引用格式不统一易误读。
+
+#### 13.3.2 针对 API-007 – API-012
+
+- API-007 响应只有 `items[].status` 与 `items[].errorCode` 两行字段级说明，其余字段（`documentId`/`displayName`/`mimeType`/`sizeBytes`/`chunkCount`/`createdAt`/`updatedAt`/`page`/`size`/`totalElements`/`totalPages`/`hasNext`）的类型与约束只能从 jsonc 注释推断。
+- API-011/API-012 请求字段表 Location 写 `Body`，但 jsonc 是顶层平铺对象；包装类型 `RetrieveKnowledgeRequest`（L2201）与 `AskKnowledgeBaseRequest`（L2378）是否存在、字段命名是否一致需实现方猜测。
+- API-012 没有 `knowledge.progress` 的 jsonc 示例，`delta` 之外是否携带 `retrievals`/`traceId` 无契约。
+- API-012 错误表中"流建立后的检索或生成失败"的 HTTP status 列不是数字而是"流内 `knowledge.failed`"，流内失败是否仍以 HTTP 200 结束未明确。
+- `knowledge.failed` 的 `code` 取值集合与 `retryable` 判定规则未定义，仅有一个示例值 `KNOWLEDGE_DEPENDENCY_UNAVAILABLE`。
+- 文档 `errorCode`（API-007/008/009）的稳定码集合未枚举，仅在示例中出现 `KNOWLEDGE_EMBEDDING_FAILED`。
+- `rag.retrieval.max-top-k` 只给出来源名，未给出具体数值；`rag.retrieval.default-top-k` 也只以"（8）"形式出现。
+- 429 的 `Retry-After: 5` 未说明单位是秒还是 HTTP-date；单位对客户端退避实现是关键。
+- L2287 声称 `traceId` "与响应头一致"，但六个接口的任何请求/响应头表都没有定义 `traceId` 响应头。
+- "既有错误体"在本节范围内没有字段表，`code`/`message`/`traceId`/`timestamp`/`fieldErrors` 的必填性只能从示例推断。
+- 未定义 `WWW-Authenticate`（401）与 `Cache-Control`（SSE）头；401 是否附带 challenge 不可知。
+- API-012 `Accept` 行的 Required 列写"约定要求"，缺失 `Accept` 时返回 406 还是 200 未明确。
+- API-010 身份表说处理中文档允许删除并"同时使其任务失效"（L2006），而步骤 5（L2049）说任务执行时发现记录不存在视为成功；"失效"的具体机制未定义。
+- API-009 步骤 5 称重跑得到相同分块 id 集合，但未定义分块 id 与 `chunkIndex` 的稳定性契约，而 API-011/012 又把 `chunkIndex` 作为引用字段暴露。
+- `answerId`（`qa-` 前缀）、`documentId`（`doc-` 前缀）、`knowledgeBaseId`（`kb-` 前缀）的生成规则与路径正则 `[A-Za-z0-9._-]{1,64}` 的关系未说明。
+
+### 13.4 摘录的边界
+
+本附录覆盖 `§9.2` 的 12 个接口契约；Spec B 中与实施同样相关但未收录于此的部分（`§9.1` 的接口清单与编号规则、`§9.3` 的消费方/前端页面细节、`§10` 的类清单与状态表、`§13` 的 Manual Check 清单）仍以 Spec B 原文为准，`§7` 各 Step 的引用行号已直接指向 Spec B。
