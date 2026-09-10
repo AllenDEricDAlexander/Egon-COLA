@@ -14,11 +14,18 @@ import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.handler.NoUnboundElementsBindHandler;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import top.egon.cola.component.rag.api.RagExtractionService;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
+import top.egon.cola.component.rag.extract.MarkdownRagDocumentExtractor;
+import top.egon.cola.component.rag.extract.PlainTextRagDocumentExtractor;
+import top.egon.cola.component.rag.extract.RagDocumentExtractor;
+import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
 
 import java.time.Clock;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -81,5 +88,35 @@ public class RagAutoConfiguration {
     public RagEmbeddingModelRegistry ragEmbeddingModelRegistry(@Qualifier("ragProperties") RagProperties properties,
                                                                ListableBeanFactory beanFactory) {
         return new RagEmbeddingModelRegistry(properties, beanFactory);
+    }
+
+    @Bean(name = "plainTextRagDocumentExtractor")
+    @ConditionalOnMissingBean(PlainTextRagDocumentExtractor.class)
+    public PlainTextRagDocumentExtractor plainTextRagDocumentExtractor() {
+        return new PlainTextRagDocumentExtractor();
+    }
+
+    @Bean(name = "markdownRagDocumentExtractor")
+    @ConditionalOnMissingBean(MarkdownRagDocumentExtractor.class)
+    public MarkdownRagDocumentExtractor markdownRagDocumentExtractor() {
+        return new MarkdownRagDocumentExtractor();
+    }
+
+    /**
+     * Collects the built-in extractors together with any extractor the host registers. A host bean
+     * can therefore replace a built-in implementation outright by declaring one of the same type.
+     */
+    @Bean(name = "ragDocumentExtractorRegistry")
+    @ConditionalOnMissingBean(name = "ragDocumentExtractorRegistry")
+    public RagDocumentExtractorRegistry ragDocumentExtractorRegistry(List<RagDocumentExtractor> extractors) {
+        return new RagDocumentExtractorRegistry(extractors);
+    }
+
+    @Bean(name = "ragExtractionService")
+    @ConditionalOnMissingBean(name = "ragExtractionService")
+    public RagExtractionService ragExtractionService(
+            @Qualifier("ragDocumentExtractorRegistry") RagDocumentExtractorRegistry extractorRegistry,
+            @Qualifier("ragClock") Clock clock) {
+        return new RagExtractionServiceImpl(extractorRegistry, clock);
     }
 }
