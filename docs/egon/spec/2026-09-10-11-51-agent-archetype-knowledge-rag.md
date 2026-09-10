@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 首个带数据库的 Agent 生成项目、跨两份已接受规范（Agent Archetype、RAG 组件）的合同修订、异步摄取与 outbox 至少一次投递的幂等设计、pgvector 表结构与维度的单一来源、原型禁项测试与 archetype 打包清单的同步变更、SSE 问答与容量边界、原文与抽取文本的双重持久化 |
 | Created | `2026-09-10 11:51 CST` |
-| Updated | `2026-09-10 12:13 CST` |
+| Updated | `2026-09-10 12:28 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-archetypes/source-projects/egon-cola-source-agent` 新增 `knowledge` 业务域；`definitions/egon-cola-archetype-agent` 的元数据与验证器同步修订 |
@@ -154,8 +154,8 @@ outbox 驱动的异步切块嵌入、基于 pgvector 的检索，以及一个 SS
 | `REQ-011` | 提供检索调试接口，返回片段与分数且不调用模型 | Must | 接口返回有序片段、分数与文档标识；不产生任何模型调用与持久化写入 | 管理需要；`EVD-019` `INTERNAL-002` |
 | `REQ-012` | 提供知识库问答接口，流式返回 | Must | 单个 SSE 流返回 started/progress/completed 或 failed 之一并终止；事件包含检索引用 | 用户选择的方案 B |
 | `REQ-013` | 全部新接口复用现有服务 API Key 保护，不引入第二套鉴权 | Must | 缺失或错误 key 时返回既有 401 错误体；不新增鉴权配置或安全依赖；接口不接受任何租户请求头 | `EVD-012`；用户"复用同一个 key" |
-| `REQ-025` | 两张业务表保留租户列并由本版写入固定租户；所有读写以显式租户参数作用域；租户参与唯一键 | Must | `knowledge_base` 与 `knowledge_document` 的 `tenant_id` 非空且取配置的默认租户；业务键唯一性为租户内唯一；所有查询带租户等值前导条件；同一业务键在不同租户下可以共存 | 用户"表上面字段先加上"；`EVD-022` |
-| `REQ-026` | 摄取任务在 outbox 载荷中携带租户，由 handler 显式恢复，不依赖 MDC | Must | 上传时写入载荷的 `tenantId` 与文档行一致；handler 在无 MDC 的投递线程中用载荷中的租户完成读取与写入；同一文档的租户不会因异步而改变或丢失 | 用户要求租户字段就位；`EVD-010` 的 MDC 租户通道在异步线程不可用 |
+| `REQ-025` | 两张业务表保留租户列，租户经 MDC 通道由 MyBatis Plus 租户拦截器自动作用域，业务代码不传租户参数 | Must | `tenant_id` 非空且取当前 MDC 租户（本版为配置的默认租户）；业务键唯一性为租户内唯一；拦截器对两张表生效且生成 SQL 含租户条件；同一业务键在不同租户下可以共存；Service/DAO 签名中不出现租户参数 | 用户"表上面字段先加上"与"走 MDC 不走显式参数"；`EVD-010` |
+| `REQ-026` | 摄取任务在 outbox 载荷中携带租户，handler 在投递线程内重建并在结束后清理 MDC 租户上下文 | Must | 载荷的 `tenantId` 与文档行一致；handler 在无调用方 MDC 的投递线程内设置该租户，`finally` 中清理；投递期间的全部数据访问落在正确租户；同一文档的租户不因异步而改变或丢失 | 用户选择 MDC 通道；MDC 不跨线程，必须由载荷补齐线程边界 |
 | `REQ-027` | 向量元数据携带租户并在检索时强制过滤 | Must | 每个分块的向量元数据含 `tenantId`；检索的过滤表达式恒含该条件；跨租户检索不返回对方分块 | `REQ-009` 的延伸；`EVD-022` 为将来租户隔离预留 |
 | `REQ-014` | 全部新接口复用既有错误体与 trace 约定 | Must | 错误响应使用 `DeepResearchErrorResponse` 等价形状并带 `X-Trace-Id`；不新增并行包装 | `EVD-013` |
 | `REQ-015` | PostgreSQL 通过 Flyway 管理，迁移位于 infrastructure 模块并被 archetype 正确打包 | Must | 存在两条迁移文件（知识库表、outbox 表）；生成的 archetype 项目包含同样的文件 | `EVD-006`, `EVD-007` |
@@ -284,8 +284,8 @@ flowchart LR
 | `ASM-003` | 原文件在本地存储下的相对路径为 `<root>/<knowledgeBaseId>/<documentId>/<sanitizedFileName>` | `EVD-019` 的 `RagDocumentStorage` 契约把标识交给实现；组件已自带本地实现 | 由组件实现决定，本项目不重复实现 | 若需自定义布局则要提供自己的存储 Bean |
 | `ASM-004` | 上传大小上限取 20MB、单知识库文档数上限取 10,000、问答并发上限取 4 | Agent Archetype Spec 的容量默认值风格 | 配置默认值可改 | 生成项目的默认容量不符合预期 |
 | `ASM-005` | 文档状态枚举取 `PENDING/PROCESSING/SUCCEEDED/FAILED/DEAD`，与 outbox 状态一对一映射 | `EVD-016` 的状态域 | 枚举只增不改 | 映射需要增加取值 |
-| `ASM-006` | MyBatis Plus 的 `tenant-id.ignored-tables` 用于把 knowledge 表排除出 MDC 驱动的租户拦截，租户改由显式参数供给 | `EVD-010` 的配置元数据键；`REQ-025` 要求租户是显式作用域而非环境状态 | 配置项可改，无 schema 影响 | 若排除配置无效，租户条件会被叠加两次或取到空值，需在实施时调整 |
-| `ASM-007` | 本版的默认租户标识取 `0`，由配置键 `agent.knowledge.tenant.default-id` 供给，并被 `REQ-025` 强制写入 | `EgonModel.tenantId` 是 `Long`；`EVD-022` 的外部租户也是数值标识 | 配置默认值可改，回填成本低 | 若将来约定的默认租户不是 0，需要一次数据迁移 |
+| `ASM-006` | MyBatis Plus 的租户拦截器对两张 knowledge 表**生效**（不使用 `tenant-id.ignored-tables` 排除），并从 `tenant-id.mdc-key` 指定的 MDC 键取租户 | `EVD-010` 的配置元数据键与 `EgonColaMdcTenantIdProvider`；用户"走 MDC 不走显式参数" | 配置项可改，无 schema 影响 | 若拦截器实际不填充 `tenant_id`，需要改由基类或填充器写入，属实现细节调整 |
+| `ASM-007` | 本版的默认租户标识取 `0`，由配置键 `agent.knowledge.tenant.default-id` 供给，并由一个请求过滤器写入 MDC（与既有 `ResearchTraceFilter` 写 trace 的方式一致） | `EgonModel.tenantId` 是 `Long`；`EVD-022` 的外部租户也是数值标识；既有模块已有 MDC 过滤器先例 | 配置默认值可改，回填成本低 | 若将来约定的默认租户不是 0，需要一次数据迁移 |
 | `ASM-008` | 向量元数据的租户键名取 `tenantId`，与组件保留键（`collectionId`、`documentId`、`chunkIndex`、`embeddingModel`、`contentHash`）并列但不冲突 | 组件保留键集合是可枚举的固定集合；`tenantId` 不在其中，因此作为业务属性传递 | 键名可改，重嵌入即可 | 若组件将来把 `tenantId` 纳入保留键，需要改用组件的原生能力 |
 
 ### 5.3 Resolved decisions
@@ -302,9 +302,10 @@ flowchart LR
 | `DEC-008` | 修订两份测试与验证器的禁项，只放开 `flyway` 与 `mybatis`，其余禁项全部保留 | User + Spec | `EVD-003`-`EVD-005` 的现状会阻止任何持久化；`redis` 仍可禁止因为 outbox 不需要它 | `REQ-017` |
 | `DEC-009` | 为 infrastructure 模块新增资源文件集并包含 `**/*.sql` | Spec | `EVD-006` 表明不加则迁移不会进入生成项目 | `REQ-015`, `REQ-018` |
 | `DEC-010` | 文档删除采用软删行 + 硬删存储对象与向量分块 | Spec | 与 `EgonModel` 的 `isDeleted` 约定一致，同时保证检索不会召回已删文档 | `REQ-003` |
-| `DEC-011` | 租户列与显式租户参数在本版落地，租户来源与鉴权推迟 | User | 用户 2026-09-10 12:13 "暂时先不考虑从哪来，表上面字段先加上"；`EVD-023` | `REQ-025`-`REQ-027` |
-| `DEC-012` | 租户由显式参数而非 MDC 环境状态供给 | Spec | `EVD-010` 的 MDC 通道在 outbox 投递线程不可用；显式参数使异步路径天然正确，且不需要在 handler 中重建环境 | `REQ-025`, `REQ-026` |
-| `DEC-013` | 本版不引入租户解析端口或统一身份依赖，默认租户来自单一配置键 | Spec | 用户明确推迟来源；引入只有一个实现的端口属投机抽象，而入口处的替换成本只有一行 | `REQ-025` |
+| `DEC-011` | 租户列在本版落地，租户来源与鉴权推迟 | User | 用户 2026-09-10 12:13 "暂时先不考虑从哪来，表上面字段先加上"；`EVD-023` | `REQ-025`-`REQ-027` |
+| `DEC-012` | 租户走 MDC 通道，由 MyBatis Plus 租户拦截器自动作用域，业务代码不传租户参数 | User | 用户 2026-09-10 12:25 "走 MDC 不走显式参数"。这与组件的默认通道一致，使 Service/DAO 签名保持干净，且查询条件由框架统一生成，不会因漏写而串租户 | `REQ-025` |
+| `DEC-013` | 异步摄取由 outbox 载荷携带租户，handler 在投递线程内重建 MDC 并在 `finally` 清理 | Spec | MDC 不跨线程：outbox 投递线程没有任何调用方的 MDC 上下文。载荷传租户是补齐线程边界所必需的数据，与 `DEC-012` 的通道选择不冲突——线程内仍然只认 MDC | `REQ-026` |
+| `DEC-015` | 本版不引入租户解析端口或统一身份依赖，默认租户来自单一配置键并由请求过滤器写入 MDC | Spec | 用户明确推迟来源；引入只有一个实现的端口属投机抽象，而过滤器的替换成本只有一处 | `REQ-025` |
 | `DEC-014` | 租户概念不扩展到 `research` 域 | User + Spec | 用户只要求"表上面字段先加上"；`research` 无持久化表，改动它会把本 Spec 扩大为身份模型重构 | `REQ-024` |
 
 ### 5.4 Open major decisions
@@ -522,7 +523,7 @@ flowchart TD
 | 问答流（`UC-005`） | 有界、可取消、不阻塞研究 | 独立容量限额 + SSE + 断连取消 | 饱和 429；依赖失败 failed；断连释放 | 无历史与多轮 | `TEST-020`-`TEST-024` | `REQ-012`, `REQ-022` |
 | 生成与发布（`UC-007`） | 迁移随 archetype 一起生成 | metadata 文件集 + verifier 断言 | 缺文件即验证失败并阻止发布 | 需同步维护打包清单 | `TEST-025`-`TEST-030` | `REQ-015`, `REQ-018`-`REQ-021` |
 | 安全（全部） | 无匿名访问、无内容泄露 | 既有常量时间 API Key 过滤器覆盖全部路径 | 401 且不泄露 key | 无细粒度授权 | `TEST-027`, `TEST-029` | `REQ-013`, `REQ-014` |
-| 租户作用域（`UC-001`-`UC-005`） | 每行、每查询、每分块都带租户，且不依赖环境状态 | 显式租户参数 + 租户内唯一键 + 向量元数据 `tenantId` 强制过滤；默认租户来自单一配置键 | 本版租户恒为默认值，因此不构成隔离边界；解析失败或配置缺失时启动失败 | 增加一列、一次索引前缀与一次过滤条件；换来源时只改入口一行 | `TEST-032`-`TEST-034` | `REQ-025`-`REQ-027` |
+| 租户作用域（`UC-001`-`UC-005`） | 每行、每查询、每分块都带租户，业务代码不感知租户 | MDC 通道 + MyBatis Plus 租户拦截器自动注入条件 + 租户内唯一键 + 向量元数据 `tenantId` 强制过滤；默认租户来自单一配置键并由请求过滤器写入 MDC | 本版租户恒为默认值，因此不构成隔离边界；配置缺失时启动失败；异步线程缺 MDC 时由载荷补齐，补齐失败则投递失败而非以空租户执行 | 增加一列、一次索引前缀与一次过滤条件；查询代码零改动；换来源时只改过滤器一处 | `TEST-032`-`TEST-035` | `REQ-025`-`REQ-027` |
 
 ### 7.3 Detailed Design
 
@@ -531,21 +532,22 @@ flowchart TD
 | Step | Caller -> callee | Contract/symbol | Input/output mapping | State/data effect | Failure behavior | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Filter -> Controller | 既有 API Key 过滤器 | Header -> 请求上下文 | 只写 MDC trace | 401 且不进入控制器 | `REQ-013` |
-| 2 | Controller -> Converter | `KnowledgeCommandConverter#toTarget` | Request -> Command，并由 Controller 附加来自配置的租户 | 无 | 校验 400；租户配置缺失 -> 启动失败 | `REQ-014`, `REQ-025` |
-| 3 | Controller -> `KnowledgeBaseManage` | `create(Command)` | Command -> `KnowledgeBaseBO` | 新增 `knowledge_base` 行 | 业务键冲突 409 | `REQ-002` |
-| 4 | Controller -> `KnowledgeDocumentManage` | `upload(Command)` | multipart -> `KnowledgeDocumentBO` | 文件 + 文档行 + outbox 行 | 见 `§7.3.4` | `REQ-003`, `REQ-004`, `REQ-007` |
-| 5 | `KnowledgeDocumentManage` -> `RagDocumentStorage` | `store(...)` | 字节流 -> 存储标识 | 宿主文件系统新增文件 | 失败 -> 中止且不写行 | `REQ-007` |
-| 6 | `KnowledgeDocumentManage` -> `RagExtractionService` | `extract(RagExtractionCommand)` | 字节流 -> `ExtractedDocumentBO` | 无 | 无匹配/解析失败 -> 中止并删文件 | `REQ-006`, `REQ-007` |
-| 7 | `KnowledgeDocumentManage` -> `KnowledgeDocumentDAO` | `insert(PO)` | 文档 PO -> 行 | `knowledge_document` 新增 | 失败 -> 事务回滚且删文件 | `REQ-004` |
-| 8 | `KnowledgeDocumentManage` -> `TransactionalOutbox` | `enqueue(channel=rag-ingest)` | 载荷 -> outbox 行 | 同一事务内新增 outbox 行 | 失败 -> 事务回滚 | `REQ-004` |
-| 9 | Outbox poller -> `KnowledgeIngestDeliveryHandler` | `handle(DeliveryContext)` | 载荷（含 `tenantId` 与 `documentId`）-> 执行结果 | 无 | 抛出 -> 重试/死信 | `REQ-005`, `REQ-026` |
-| 10 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 按载荷中的租户与文档标识读取 | 载荷 -> 行 | 无 | 记录不存在 -> 视为成功（幂等）；租户不匹配 -> 同样视为不可见 | `REQ-006`, `REQ-026` |
-| 11 | `KnowledgeIngestDeliveryHandler` -> `RagIngestionService` | `ingest(RagIngestionCommand)` | 重建文档 -> `RagIngestionResult` | 向量表按文档重建 | 失败 -> 由 outbox 重试 | `REQ-006`, `REQ-009` |
-| 12 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 回写状态 | 结果 -> 状态与分块数 | `knowledge_document` 更新 | 更新失败 -> 本次投递失败并重试 | `REQ-005` |
-| 13 | Controller -> `KnowledgeQaManage` | `ask(Command, Observer)` | 问题 -> SSE 事件 | 无持久化 | 见 `§7.3.4` | `REQ-012` |
-| 14 | `KnowledgeQaManage` -> `RagRetrievalService` | `retrieve(Query)` | 文本 -> 片段 | 只读 | 失败 -> failed 事件 | `REQ-011`, `REQ-012` |
-| 15 | `KnowledgeQaManage` -> `ChatModel` | 既有点名模型 Bean | 提示词 -> 增量文本 | 无 | 失败 -> failed 事件 | `REQ-012` |
-| 16 | 删除路径 -> 存储/向量/DAO | `delete` 组合 | 标识 -> 无 | 文件、向量分块、行被清除 | 任一失败 -> 事务回滚并保留行 | `REQ-002`, `REQ-003` |
+| 2 | 请求过滤器 -> MDC -> 后续所有数据访问 | 租户 MDC 过滤器写入 `tenant-id.mdc-key` 指定的键 | 配置默认租户 -> MDC | 请求线程内全程可见；请求结束时清理 | 租户配置缺失 -> 启动失败 | `REQ-025` |
+| 3 | Controller -> Converter | `KnowledgeCommandConverter#toTarget` | Request -> Command（不含租户字段） | 无 | 校验 400 | `REQ-014`, `REQ-025` |
+| 4 | Controller -> `KnowledgeBaseManage` | `create(Command)` | Command -> `KnowledgeBaseBO` | 新增 `knowledge_base` 行 | 业务键冲突 409 | `REQ-002` |
+| 5 | Controller -> `KnowledgeDocumentManage` | `upload(Command)` | multipart -> `KnowledgeDocumentBO` | 文件 + 文档行 + outbox 行 | 见 `§7.3.4` | `REQ-003`, `REQ-004`, `REQ-007` |
+| 6 | `KnowledgeDocumentManage` -> `RagDocumentStorage` | `store(...)` | 字节流 -> 存储标识 | 宿主文件系统新增文件 | 失败 -> 中止且不写行 | `REQ-007` |
+| 7 | `KnowledgeDocumentManage` -> `RagExtractionService` | `extract(RagExtractionCommand)` | 字节流 -> `ExtractedDocumentBO` | 无 | 无匹配/解析失败 -> 中止并删文件 | `REQ-006`, `REQ-007` |
+| 8 | `KnowledgeDocumentManage` -> `KnowledgeDocumentDAO` | `insert(PO)` | 文档 PO -> 行 | `knowledge_document` 新增 | 失败 -> 事务回滚且删文件 | `REQ-004` |
+| 9 | `KnowledgeDocumentManage` -> `TransactionalOutbox` | `enqueue(channel=rag-ingest)` | 载荷 -> outbox 行 | 同一事务内新增 outbox 行 | 失败 -> 事务回滚 | `REQ-004` |
+| 10 | Outbox poller -> `KnowledgeIngestDeliveryHandler` | `handle(DeliveryContext)` | 载荷（含 `tenantId` 与 `documentId`）-> 执行结果 | 无 | 抛出 -> 重试/死信 | `REQ-005`, `REQ-026` |
+| 11 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 按载荷中的租户与文档标识读取 | 载荷 -> 行 | 无 | 记录不存在 -> 视为成功（幂等）；租户不匹配 -> 同样视为不可见 | `REQ-006`, `REQ-026` |
+| 12 | `KnowledgeIngestDeliveryHandler` -> `RagIngestionService` | `ingest(RagIngestionCommand)` | 重建文档 -> `RagIngestionResult` | 向量表按文档重建 | 失败 -> 由 outbox 重试 | `REQ-006`, `REQ-009` |
+| 13 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 回写状态 | 结果 -> 状态与分块数 | `knowledge_document` 更新 | 更新失败 -> 本次投递失败并重试 | `REQ-005` |
+| 14 | Controller -> `KnowledgeQaManage` | `ask(Command, Observer)` | 问题 -> SSE 事件 | 无持久化 | 见 `§7.3.4` | `REQ-012` |
+| 15 | `KnowledgeQaManage` -> `RagRetrievalService` | `retrieve(Query)` | 文本 -> 片段 | 只读 | 失败 -> failed 事件 | `REQ-011`, `REQ-012` |
+| 16 | `KnowledgeQaManage` -> `ChatModel` | 既有点名模型 Bean | 提示词 -> 增量文本 | 无 | 失败 -> failed 事件 | `REQ-012` |
+| 17 | 删除路径 -> 存储/向量/DAO | `delete` 组合 | 标识 -> 无 | 文件、向量分块、行被清除 | 任一失败 -> 事务回滚并保留行 | `REQ-002`, `REQ-003` |
 
 #### 7.3.2 Critical-path Mermaid swimlane
 
@@ -614,7 +616,7 @@ sequenceDiagram
 | 问答容量 | `KnowledgeQaCapacityService`，进程内 | 公平 `Semaphore`，不排队 | 第 N+1 个请求立即 429 | 进程内即时 | 许可在终态与断连时释放一次 | `REQ-022` / `TEST-022`, `TEST-023` |
 | 问答流终态 | `KnowledgeQaManageImpl` | 原子终态标记 | completed/failed/cancelled 只有一个胜者 | 首个终态生效 | 重复终态被丢弃 | `REQ-012` / `TEST-021` |
 | 软删与检索 | 本项目写 `is_deleted`；向量分块在删除事务内硬删 | 行软删 + 分块硬删 | 已删文档的残留分块由删除路径保证清除 | 提交后不可检索 | 分块删除失败 -> 整体回滚 | `REQ-003` / `TEST-016` |
-| 租户作用域 | 显式参数，由调用入口的配置供给；不依赖 MDC 或线程上下文 | 请求路径由参数传递；异步路径由 outbox 载荷传递 | 并发请求各自携带自己的租户，互不污染；投递线程不会读到别人的租户 | 行写入时以列值固定；查询以租户为等值前导条件 | 租户配置缺失 -> 启动失败；载荷缺租户 -> 投递失败并重试 | `REQ-025`, `REQ-026` / `TEST-032`, `TEST-033` |
+| 租户作用域 | MDC，由请求过滤器写入；异步线程由投递 handler 从载荷重建 | MyBatis Plus 租户拦截器读取 MDC 并自动注入等值条件与写入值 | 线程池复用下 MDC 必须清理：过滤器在请求结束、handler 在 `finally` 中清理，否则租户会泄漏到下一个任务 | 条件由框架生成，业务代码零改动 | 租户配置缺失 -> 启动失败；载荷缺租户 -> 投递失败并重试，绝不以空租户执行 | `REQ-025`, `REQ-026` / `TEST-032`, `TEST-033`, `TEST-035` |
 | 向量租户过滤 | 组件强制注入的过滤表达式 | 与 `collectionId`、`embeddingModel` 并列的第三项强制条件 | 调用方无法省略或覆盖 | 检索时即时生效 | 过滤构造失败 -> 抛出而非返回未过滤结果 | `REQ-027` / `TEST-034` |
 
 #### 7.3.4 Failure semantics, recovery, and reconciliation
@@ -658,7 +660,7 @@ sequenceDiagram
 | 摄取必须异步且至少一次 | 用户选择方案 C；`EVD-016`, `EVD-017` | `REQ-004`, `REQ-005` | 复用事务性 outbox，表由本项目创建 | 获得持久重试、死信与跨重启恢复；代价是多一张表与一个轮询 worker，且重跑会重新计费嵌入 | `TEST-013`, `TEST-014`, `TEST-017` |
 | 抽取与嵌入必须分两段并以落库文本为界 | 用户"原始文本入库、不重复解析"；`EVD-019` | `REQ-006`, `REQ-007` | 上传时抽取并落库，handler 从 `content` 重建文档 | 重跑不重新解析、不重新上传；代价是上传路径比纯写库多一次解析，且文本占用数据库空间 | `TEST-009`, `TEST-013` |
 | 向量表交给 `PgVectorStore` 自建 | 用户选择方案 A；`EVD-018` | `REQ-010` | `initializeSchema=true`，Flyway 不建该表 | 维度只有一处来源，不复制 Spring AI 内部 DDL；代价是该表不在 Flyway 版本管理内，且需要 `vector` 扩展权限 | `TEST-026` |
-| 租户必须是显式参数而非环境状态 | `EVD-010` 的 MDC 租户通道；`EVD-023` 用户只要求先加字段 | `REQ-025`, `REQ-026` | 租户由调用入口的配置供给并沿参数与 outbox 载荷传递；不使用 MDC 驱动租户拦截 | 异步路径天然正确，将来换租户来源只改入口一行；代价是每个查询都必须显式带上租户，遗漏会由测试而非框架捕获 | `TEST-032`, `TEST-033` |
+| 租户走 MDC 通道但必须跨线程补齐 | `EVD-010` 的 MDC 租户通道与 `EgonColaMdcTenantIdProvider`；用户 2026-09-10 12:25 "走 MDC 不走显式参数" | `REQ-025`, `REQ-026` | 线程内统一读取 MDC 由拦截器自动作用域；outbox 载荷携带租户，handler 在投递线程内重建 MDC 并在 `finally` 清理 | 查询代码零改动、不会因漏写条件而串租户；代价是引入了 MDC 生命周期约束（必须清理）与一条跨线程的载荷字段 | `TEST-032`, `TEST-033`, `TEST-035` |
 
 ## 8. Package Structure and Code File Tree
 
@@ -729,6 +731,7 @@ egon-cola-archetypes/source-projects/egon-cola-source-agent/
 │   └── src/main/java/.../adapter/knowledge/
 │       ├── controller/{KnowledgeBaseController,KnowledgeDocumentController,
 │       │              KnowledgeQaController}.java       # CREATE
+│       ├── filter/KnowledgeTenantMdcFilter.java         # CREATE（写 MDC 租户键，finally 清理）
 │       ├── converter/{KnowledgeCommandConverter,KnowledgeVoConverter,
 │       │              KnowledgeEventConverter}.java     # CREATE
 │       ├── dto/{CreateKnowledgeBaseRequest,UpdateKnowledgeBaseRequest,
@@ -761,6 +764,7 @@ egon-cola-archetypes/definitions/egon-cola-archetype-agent/
 | Create | `infrastructure/knowledge/repo/{po,dao,converter}` | PO、DAO、Converter | 持久化与映射 | MyBatis Plus、`common-core` `BaseConverter` | `REQ-002`, `REQ-003` |
 | Create | `infrastructure/src/main/resources/db/migration/*.sql` | 两条迁移 | 创建 knowledge 表与 outbox 表，创建 `vector` 扩展 | Flyway | `REQ-015`, `REQ-016` |
 | Create | `adapter/knowledge/{controller,converter,dto,vo}` | Controller、Converter、Request、VO | REST/SSE 契约与边界映射 | `application`、Web、springdoc | `REQ-011`-`REQ-014` |
+| Create | `adapter/knowledge/filter` | `KnowledgeTenantMdcFilter` | 请求开始时把配置的默认租户写入 `tenant-id.mdc-key`，请求结束时在 `finally` 清理 | `application`、Servlet | `REQ-025` |
 | Modify | `starter/src/main/resources/application*.yml` | 配置键 | 四 profile 同构新增数据源、Flyway、RAG、outbox、MyBatis Plus 键 | 无 | `REQ-008`, `REQ-010` |
 | Modify | `definitions/.../archetype-metadata.xml` | infrastructure 模块文件集 | 打包 `src/main/resources/**`（含 `**/*.sql`） | 生成器 | `REQ-018` |
 | Modify | `definitions/.../verify.groovy` | 断言 | 放开禁项；新增依赖、迁移与运行时库断言 | 生成器 | `REQ-017`, `REQ-019` |
@@ -782,7 +786,7 @@ External API impact: **Affected**。新增 12 个 REST/SSE 操作，全部复用
 | GraphQL source of truth | `N/A` — 无 SDL、无 resolver、无消费者，且 `EVD-003` 禁止 `spring-boot-starter-graphql` |
 | Springdoc/OpenAPI compatibility | 沿用既有 `springdoc-openapi-starter-webmvc-api` 2.8.17（`EVD-001` 的 agent POM 已在 adapter/starter 声明），Spring Boot 3.5.16 MVC，OAS 3.0 生成 |
 | Legacy Swagger/Springfox status | 不存在；`EVD-003` 的禁项与既有 agent 契约测试均未使用 Springfox，本项目继续只用 `io.swagger.v3.oas.annotations.*` |
-| Security and documentation exposure | 复用 `ResearchApiKeyFilter`（路径无关，`EVD-012`）与 `X-Research-Api-Key`；**接口不接受任何租户请求头，也不做租户鉴权**——租户在服务端由配置供给并只作用于数据行与向量过滤，本版不构成隔离边界（`REQ-013`, `RISK-009`）；文档与 UI 由既有 `DEEP_RESEARCH_DOCS_ENABLED` 控制（prod 默认关闭，`EVD-014`） |
+| Security and documentation exposure | 复用 `ResearchApiKeyFilter`（路径无关，`EVD-012`）与 `X-Research-Api-Key`；**接口不接受任何租户请求头，也不做租户鉴权**——租户在服务端由配置写入 MDC 并只作用于数据行与向量过滤，业务代码与接口都不感知它，本版不构成隔离边界（`REQ-013`, `RISK-009`）；文档与 UI 由既有 `DEEP_RESEARCH_DOCS_ENABLED` 控制（prod 默认关闭，`EVD-014`） |
 | Contract publication and drift gate | 运行时 `/v3/api-docs` 生成不入库；`KnowledgeOpenApiTest` 断言新增 operation 的 path、operationId、媒体类型、security、状态码与 schema，并断言研究域 operation 未变 |
 
 ### 9.1 Interface Inventory
@@ -2461,7 +2465,7 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 | `KnowledgeDocumentBO.chunkCount` | `int` | 必填 | ≥ 0 | `KnowledgeDocumentPO.chunkCount` | `REQ-005` |
 | `KnowledgeDocumentBO.attemptCount` | `int` | 必填 | ≥ 0 | `KnowledgeDocumentPO.attemptCount` | `REQ-005` |
 | `KnowledgeChunkBO.score` | `Double` | 可空 | 由组件返回，可能为 `null` | 组件检索结果 | `REQ-011` |
-| `KnowledgeRuntimeProperties.tenantDefaultId` | `Long` | 可选，缺省 `0` | 非负；启用组件时必填（有默认值） | 配置键 `agent.knowledge.tenant.default-id` | `REQ-025` |
+| `KnowledgeRuntimeProperties.tenantDefaultId` | `Long` | 可选，缺省 `0` | 非负；启用组件时必填（有默认值）；由租户 MDC 过滤器在请求开始时写入 MDC，`tenant-id.mdc-key` 需与之对齐 | 配置键 `agent.knowledge.tenant.default-id` | `REQ-025` |
 | `KnowledgeRuntimeProperties.qaMaxConcurrent` | `int` | 可选，缺省 4 | 1-32 | 配置 | `REQ-022` |
 | `KnowledgeRuntimeProperties.maxUploadBytes` | `long` | 可选，缺省 20MB | > 0 | 配置 | `REQ-003` |
 | `KnowledgeRuntimeProperties.maxDocumentsPerBase` | `int` | 可选，缺省 10000 | ≥ 1 | 配置 | `REQ-003` |
@@ -2545,7 +2549,7 @@ PO 与 POJO 字段到表列的映射见 `§11.2` 的列设计表；`KnowledgeBas
 - **Owner/writer**：knowledge 域；唯一写入者是 `KnowledgeBaseManageImpl` 经由 `KnowledgeBaseDAO`；`KnowledgeBasePO` 的审计列由 `EgonColaMetaObjectHandler` 填充（`EVD-010`）。
 - **Readers**：知识库详情与列表查询、上传路径读取配置、摄取 handler 与检索路径读取模型与集合标识。
 - **Lifecycle**：创建后仅 `name`/`description` 可变；`API-005` 执行软删。软删后对所有查询不可见。
-- **Tenant/security**：本表**使用**租户列。`tenant_id` 由基类提供，本版由配置的默认租户（`ASM-007`）显式写入，并且是业务键唯一性的一部分。租户**不来自 MDC**：本表通过 `ASM-006` 的 `tenant-id.ignored-tables` 排除出 MyBatis Plus 的 MDC 驱动租户拦截，由应用层的显式租户参数保证作用域（`DEC-012`）。本版租户恒为默认值，因此**不是安全隔离边界**。
+- **Tenant/security**：本表**使用**租户列。`tenant_id` 由基类提供，由 MyBatis Plus 的租户拦截器从 MDC（`ASM-006`）自动填充，并且是业务键唯一性的一部分。MDC 的值来自请求过滤器写入的默认租户（`ASM-007`、`DEC-015`）；异步路径由投递 handler 从 outbox 载荷重建 MDC（`DEC-013`）。本版租户恒为默认值，因此**不是安全隔离边界**。**业务代码不传也不读租户参数**（`DEC-012`）。
 - **Capacity**：单部署预期数量为百量级；无分片与归档需求。
 - **Evidence boundary**：源码证明结构与访问路径；行数、分布与查询计划需运行期证据。
 
@@ -2600,7 +2604,7 @@ ORDER BY created_at DESC, id DESC
 LIMIT :size OFFSET :offset;
 ```
 
-`tenant_id` 是**最左等值前导条件**，其后是 `is_deleted = false`，再后是排序键，`id` 是确定性次序打破者。`keyword` 的 `ILIKE` 包含匹配无法走索引，因此该索引只服务"无关键字"的默认路径；带关键字的分页在全表扫描下仍受百量级数据规模约束。**不为 `keyword` 建索引**，因为包含匹配的 trigram 索引在百量级数据上没有收益。
+`tenant_id` 是**最左等值前导条件**，其后是 `is_deleted = false`，再后是排序键，`id` 是确定性次序打破者。这一行**由 MyBatis Plus 的租户拦截器自动注入**（`DEC-012`），应用代码里不存在它——手工 SQL 中没有租户谓词，这正是 `TEST-032` 要断言"生成 SQL 确实含该条件"的理由。`keyword` 的 `ILIKE` 包含匹配无法走索引，因此该索引只服务"无关键字"的默认路径；带关键字的分页在全表扫描下仍受百量级数据规模约束。**不为 `keyword` 建索引**，因为包含匹配的 trigram 索引在百量级数据上没有收益。
 
 ##### Access patterns and SQL shape
 
@@ -2700,7 +2704,7 @@ ORDER BY created_at DESC, id DESC
 LIMIT :size OFFSET :offset;
 ```
 
-`tenant_id` 与 `knowledge_base_id` 是最左等值前导列，随后是排序键；该索引同时服务"按知识库统计未删除文档数"的计数查询。`keyword` 与 `status` 为可选筛选：`status` 可继续使用该索引的等值前缀之外的选择性不高的路径，`keyword` 的包含匹配不走索引——在单知识库万级行以内可接受，**不为它们单独建索引**。
+`tenant_id` 与 `knowledge_base_id` 是最左等值前导列，随后是排序键；该索引同时服务"按知识库统计未删除文档数"的计数查询。同样地，`tenant_id` 由租户拦截器自动注入，应用代码只写 `knowledge_base_id` 之后的谓词。`keyword` 与 `status` 为可选筛选：`status` 可继续使用该索引的等值前缀之外的选择性不高的路径，`keyword` 的包含匹配不走索引——在单知识库万级行以内可接受，**不为它们单独建索引**。
 
 ##### Access patterns and SQL shape
 
@@ -3045,8 +3049,9 @@ erDiagram
 | `TEST-029` | Contract | 日志与源码扫描 | 执行上传、摄取、检索、问答与错误路径 | 日志不含文档文本、问题原文、回答内容、向量或密钥；命名后缀符合规则；无 `java.util.Date` | 日志捕获 + 源码扫描 | JUnit 5 | `REQ-014`, 规则 1/10 |
 | `TEST-030` | Contract | 四个 `application*.yml` | 对比键集合 | 新增键在四个文件中同构；既有 12 个受检键集合不变 | 无 | JUnit 5 | Rule 7 |
 | `TEST-031` | Contract | 生成项目 `verify.groovy` | 修订后的断言 | 迁移文件、RAG/outbox/pgvector/mybatis 依赖与运行时库存在；禁项保持；`clean verify` 通过 | 生成的项目 | Maven + Groovy | `REQ-019`-`REQ-021` |
-| `TEST-032` | Integration | 两张业务表 + 数据源 | 建库与上传后读取原始行；同一业务键在两个不同租户下创建 | `tenant_id` 非空且等于配置的默认租户；同一业务键在不同租户下可以共存；所有查询接口的生成 SQL 含租户等值条件 | PostgreSQL 测试替身 | `SpringBootTest` + 语句检查 | `REQ-025` |
-| `TEST-033` | Unit | `KnowledgeIngestDeliveryHandler` | 载荷含租户与不含租户；投递线程无 MDC | 含租户时按该租户读取与回写；缺租户时投递失败并进入重试而非使用空值 | fake 仓储 + fake outbox 上下文 | JUnit 5 | `REQ-026` |
+| `TEST-032` | Integration | 两张业务表 + 数据源 + 租户拦截器 | 建库与上传后读取原始行；同一业务键在两个不同 MDC 租户下创建；检查生成 SQL | `tenant_id` 非空且等于 MDC 租户；同一业务键在不同租户下可以共存；**每条生成 SQL 都含由拦截器注入的租户等值条件**；Service/DAO 签名中无租户参数 | PostgreSQL 测试替身 + MyBatis 语句拦截 | `SpringBootTest` | `REQ-025` |
+| `TEST-035` | Unit | 租户 MDC 过滤器与 `KnowledgeIngestDeliveryHandler` | 同一线程连续执行两个不同租户的请求；投递 handler 抛异常退出 | 请求结束与 handler 的 `finally` 都清空 MDC 租户键；第二个任务不会读到第一个任务的租户；异常路径同样清理 | 无 | JUnit 5 | `REQ-025`, `REQ-026` |
+| `TEST-033` | Unit | `KnowledgeIngestDeliveryHandler` | 载荷含租户与不含租户；投递线程起始无 MDC | 含租户时先写入 MDC 再访问数据，且投递结束后 MDC 已被清理；缺租户时投递立即失败并进入重试，**不以空租户访问数据库** | fake 仓储 + fake outbox 上下文 | JUnit 5 | `REQ-026` |
 | `TEST-034` | Unit | `RagKnowledgeVectorGateway` | 构造检索请求并检查传给组件的过滤条件；两个租户各有分块 | 过滤条件恒含 `tenantId`；跨租户检索不返回对方分块；调用方无法省略该条件 | fake 检索服务记录参数 | JUnit 5 | `REQ-027` |
 
 ## 15. Non-functional and Cross-cutting Design
@@ -3061,8 +3066,9 @@ erDiagram
 | 可观测性 | 摄取、上传、问答可诊断 | `§7.3.5` 的日志与既有 outbox 指标 | 指标缺失不影响功能 | `TEST-029` |
 | 一致性 | 变更可见性与删除语义明确 | 上传事务、条件状态回写、软删 + 分块硬删 | 见 `§7.3.3`、`§7.3.4` | `TEST-009`-`TEST-017` |
 | 无身份体系的后果 | `create_user_id`/`update_user_id` 在无 MDC 用户时为空 | `EgonModel` 的审计列由 `EgonColaMetaObjectHandler` 填充；本项目无用户身份（`EVD-021`） | 审计列可空，不影响功能 | `TEST-026` |
-| 租户语义 | `tenant_id` 非空并由本版写入固定默认租户；所有读写带租户作用域；租户随 outbox 载荷传递 | 显式租户参数 + `ASM-007` 的配置默认值 + `tenant-id.ignored-tables` 把两张表排除出 MDC 驱动的租户拦截 | 租户配置缺失 -> 启动失败；载荷缺租户 -> 投递失败并重试；**本版租户恒为默认值，因此不是安全隔离边界，这一点必须在 README 明说** | `TEST-032`, `TEST-033` |
-| 租户来源演进 | 换来源只改调用入口读取租户的那一行，不改 schema、不改查询、不改载荷结构 | 租户是显式参数而非环境状态（`DEC-012`），因此没有需要清理的隐式通道 | 若将来接入统一身份后仍有人依赖 MDC，会出现两套租户来源；README 需声明唯一来源 | `TEST-032` |
+| 租户语义 | `tenant_id` 非空并由拦截器从 MDC 自动填充；所有查询由拦截器自动注入租户条件；业务代码零租户参数 | MDC 通道（`DEC-012`）+ 配置默认值经请求过滤器写入 MDC（`DEC-015`）+ 租户内唯一键 + 向量元数据 `tenantId` 强制过滤 | 租户配置缺失 -> 启动失败；异步线程载荷缺租户 -> 投递失败并重试；**本版租户恒为默认值，因此不是安全隔离边界，这一点必须在 README 明说** | `TEST-032`, `TEST-033` |
+| MDC 生命周期 | 请求结束与投递结束都必须清空租户键，避免线程池复用导致串租户 | 过滤器 `finally` + handler `finally`；`MDC.clear()` 而非只清本键，因为线程可能被跨组件复用 | 清理遗漏会让下一个任务继承上一个租户；这是 MDC 方案唯一的硬风险，由 `TEST-035` 断言两条路径都清理 | `TEST-035` |
+| 租户来源演进 | 换来源只改写入 MDC 的那一处，不改 schema、不改查询、不改载荷结构 | 租户在本线程内仍然只认 MDC（`DEC-012`），替换点是过滤器而非散落的调用 | 若将来接入统一身份后有人绕过过滤器另设 MDC，会出现两套来源；README 需声明 MDC 租户键的**唯一写入者** | `TEST-032`, `TEST-035` |
 | 可访问性 | `N/A` | 无前端（`§12`） | 无 | `§12` 证据 |
 | 可维护性 | 门禁与打包清单同步 | `§16` 的修订清单 | 漏改任一处会导致构建或生成失败，属于 fail-closed | `TEST-001`-`TEST-003`, `TEST-025`, `TEST-031` |
 
@@ -3081,7 +3087,7 @@ erDiagram
 
 **数据库迁移**：两条新迁移，全部是创建操作，无历史数据、无回填、无 `NOT NULL` 收紧。向量表不在迁移内，由应用首次启动创建（`REQ-010`）。已存在的数据库需要先具备创建扩展的权限。
 
-**租户列的可演进性**：两张业务表的 `tenant_id` 在首次迁移中即建为 `NOT NULL DEFAULT 0`，并作为业务键与查询索引的最左前缀。因此后续接入真实租户时，**不需要** `NOT NULL` 收紧、不需要重建索引结构、不需要改查询形状——只需要把入口处的默认租户替换为真实租户，并对已有数据做一次按归属的租户回填（回填会让唯一键的部分索引重新校验，需在低峰执行）。这是选择"先加字段"而不是"以后再加"的直接收益。
+**租户列的可演进性**：两张业务表的 `tenant_id` 在首次迁移中即建为 `NOT NULL DEFAULT 0`，并作为业务键与查询索引的最左前缀。因此后续接入真实租户时，**不需要** `NOT NULL` 收紧、不需要重建索引结构、不需要改查询形状、也不需要改任何 Service/DAO 签名——只需要把写入 MDC 的那一处从"配置默认值"换成"从身份解析"，并对已有数据做一次按归属的租户回填（回填会让唯一键的部分索引重新校验，需在低峰执行）。这是选择"先加字段"而不是"以后再加"的直接收益。
 
 **门禁与打包清单修订清单**（缺一不可，任一遗漏都会 fail-closed）：
 
@@ -3121,14 +3127,15 @@ erDiagram
 | F — 在 C 之上用 Spring JDBC 取代 MyBatis Plus | 直接使用 `JdbcTemplate` | 依赖最少、无租户/审计拦截器的未知行为 | 偏离仓库所有带数据库 archetype 的惯例；手写映射与分页；失去 `EgonModel` 的审计与软删契约 | 与 `EVD-008`-`EVD-010` 的惯例冲突 | `Reject` — 用户已选择 MyBatis Plus |
 | G — 在 C 之上实现完整的多租户身份（接入统一身份、租户鉴权与隔离） | OAuth2 Resource Server、issuer/audience/JWKS 配置、资源注册、`research` 域同步改造 | 真正的 SaaS 形态 | 变更面从"加一个业务域"扩大为"重构整个生成项目的身份模型"；用户明确表示先不考虑来源 | 与 `EVD-023` 的用户决定冲突；接入路径已有既有体系（`EVD-022`） | `Reject`（本版）— 推迟到后续 Spec，本 Spec 只预埋列与参数 |
 | H — 在 C 之上只加 `tenant_id` 列但不进入查询作用域 | 只改 DDL | 改动最小 | 将来接入时必须同时改 DDL、索引、唯一键与每一个查询，等于把本版省下的工作推迟并放大 | 与 `REQ-025` 冲突 | `Reject` — "先加字段"应当加到位，否则不是预留而是负债 |
-| I — 用 MDC 驱动租户拦截器（沿用组件的默认通道）而不走显式参数 | 只在入口设置 MDC | 与组件默认行为一致，查询代码更少 | outbox 投递线程无 MDC，异步路径必然出错或写错租户（`EVD-010`）；这是硬缺陷而非风格取舍 | 与本项目已证明的失败模式冲突 | `Reject`（`DEC-012`） |
+| I — 用 MDC 驱动租户拦截器并让 outbox 载荷携带租户以补齐线程边界 | 一个请求过滤器写 MDC；outbox 载荷加一个 `tenantId`；handler 设置并清理 MDC | 与组件默认行为一致；Service/DAO 签名零租户参数；租户条件由框架统一生成，不会漏写 | MDC 不跨线程，因此仍需要一条跨线程的载荷字段（这不是参数传递，是线程边界的数据补齐）；引入 MDC 生命周期约束，清理遗漏会串租户 | 与 `EgonColaMdcTenantIdProvider` 的既有设计一致 | `Selected`（`DEC-012`, `DEC-013`） |
 
 ## 18. Risks and Open Questions
 
 | ID | Risk/question | Probability | Impact | Mitigation or decision owner | Status |
 | --- | --- | --- | --- | --- | --- |
 | `RISK-001` | Spring AI 版本线：仓库管理 `1.1.8`，而 `PgVectorStore` 的表结构与默认值核对于本地 `1.1.2` | Medium | 向量表 DDL 或 builder 方法在 `1.1.8` 上不同，导致启动或写入失败 | 实施前用 `1.1.8` 复核 `EVD-018`；差异只影响基础设施装配，不影响 `REQ-*` | Open |
-| `RISK-002` | MyBatis Plus 的租户拦截器行为未从源码验证；`tenant-id.ignored-tables` 的实际效果需实测 | Medium | 拦截器若仍对两张表注入以 MDC 为源的租户条件，会与显式租户叠加或取到空值，导致查不到数据或写入被拒 | `TEST-032` 在完整读写路径上断言实际生效的租户条件；若排除无效，则在实施时改用固定租户写入 MDC 或关闭拦截器的既有开关 | Open |
+| `RISK-002` | MyBatis Plus 的租户拦截器行为未从源码验证：它是否在插入时自动填充 `tenant_id`、`tenant-id.mdc-key` 的默认键名、以及 MDC 无值时的行为都需要实测 | Medium | 若插入时不自动填充，`tenant_id` 会取数据库默认 `0` 而非 MDC 值（本版恰好等价，但接入真实租户后会写错）；若查询时 MDC 无值，可能生成 `tenant_id IS NULL` 而查不到数据 | `TEST-032` 在完整读写路径上通过语句拦截断言注入的租户条件与写入值；`TEST-033` 覆盖 MDC 缺失的投递路径；实测不符时按 `EgonColaMetaObjectHandler` 的既有实现调整填充方式 | Open |
+| `RISK-011` | MDC 泄漏：请求线程与投递线程都来自线程池，清理遗漏会让下一个任务继承上一个租户 | Medium | 跨租户串数据，且因为本版租户恒为默认值而**在接入真实租户前不可见**——一旦接入就会立刻显形 | 过滤器与 handler 都在 `finally` 中清理；`TEST-035` 断言两条路径在正常与异常退出后都清空；README 声明 MDC 租户键的唯一写入者 | Open |
 | `RISK-009` | 本版租户恒为默认值，`REQ-025`-`REQ-027` 提供的是**机制预埋而非生效的隔离边界** | High | 若被误读为"已经多租户"，接入真实租户前上线会产生跨租户可见 | README 与组件架构文档必须显式声明这一点；`§9.0` 的安全小节已记录"接口不接受租户请求头"；接入真实租户需要新的 Spec | Open |
 | `RISK-010` | 将来接入统一身份时需要对已有知识库与文档做租户回填 | Medium | 回填会触发唯一键与索引的重新校验，大表上可能长时间持锁 | 回填方案与分批策略属于后续 Spec；本版把 `tenant_id` 建成非空默认值正是为了让回填只涉及数据不涉及 DDL | Open |
 | `RISK-003` | 本地文件存储在多实例部署下不可共享 | Medium | 多实例时取回原文件失败；删除可能漏删其它实例写入的文件 | 文档明确限制；多实例必须切换到共享存储；`RagDocumentStorage` 已是扩展点 | Open |
@@ -3166,8 +3173,8 @@ erDiagram
 | `REQ-022` | `UC-005` | `§7.2.2`, `§15` | 研究域容量语义不变 | `KnowledgeQaCapacityService` | `TEST-022`, `TEST-023` | 饱和 429 且不与研究互斥 |
 | `REQ-023` | 全部 | `§14` | — | 全部测试 | 全部 `TEST-*` | `clean verify` 无需外部服务 |
 | `REQ-024` | `UC-002` 研究域 | `§16` | 研究域为 `Unchanged` | 既有接口与事件 | `TEST-028` | 既有研究测试不改动即通过 |
-| `REQ-025` | `UC-001`, `UC-002` | `§11.2.1`, `§11.2.2`, `§7.3.3`, `§10.3` | 租户来源推迟（`EVD-023`） | 两张表的 `tenant_id`；`uk_knowledge_base_tenant_code`；`KnowledgeRuntimeProperties.tenantDefaultId` | `TEST-032` | 列非空且为默认租户；同业务键跨租户可共存；查询含租户等值条件 |
-| `REQ-026` | `UC-002`, `UC-006` | `§7.3.1`, `§11.2.3`, `§7.3.3` | outbox 组件契约不变 | 载荷 `tenantId`；handler 显式恢复 | `TEST-033` | 投递线程无 MDC 时仍按正确租户读写 |
+| `REQ-025` | `UC-001`, `UC-002` | `§11.2.1`, `§11.2.2`, `§7.3.3`, `§10.3`, `§15` | 租户来源推迟（`EVD-023`） | 两张表的 `tenant_id`；`uk_knowledge_base_tenant_code`；`KnowledgeRuntimeProperties.tenantDefaultId`；租户 MDC 过滤器 | `TEST-032`, `TEST-035` | 列非空且为 MDC 租户；同业务键跨租户可共存；生成 SQL 含拦截器注入的租户条件；Service/DAO 无租户参数 |
+| `REQ-026` | `UC-002`, `UC-006` | `§7.3.1`, `§11.2.3`, `§7.3.3`, `§15` | outbox 组件契约不变 | 载荷 `tenantId`；handler 重建并清理 MDC | `TEST-033`, `TEST-035` | 投递线程起始无 MDC 时仍按正确租户读写，且结束后已清理 |
 | `REQ-027` | `UC-004`, `UC-005` | `§9.2.11`, `§11.2.4` | 组件的强制过滤为依赖 | `metadata->>'tenantId'`；`RagKnowledgeVectorGateway` | `TEST-034` | 过滤恒含租户；跨租户不串结果 |
 
 ## 20. Review and Acceptance
@@ -3250,6 +3257,7 @@ erDiagram
 
 1. 起草时发现 `INTERNAL-001` 把抽取与嵌入焊死，Spec A 已在 `2026-09-10 11:47 CST` 显式修订（`21e77965e`）；本 Spec 依赖修订后的版本。
 2. `MC-MODEL-001` 曾因用户规则 3 的构造器签名冲突阻塞，用户于 `2026-09-10 12:13 CST` 批准仓库既有 PO 约定作为该项目 PO 的显式例外，阻塞解除。
-3. 用户在同一次决定中提出"agent 也有租户的概念，我要做 SaaS agent 和 rag 服务的"，随后明确"暂时先不考虑从哪来，表上面字段先加上"。据此本 Spec 增加 `REQ-025`-`REQ-027`，把租户列建成非空并进入唯一键与查询作用域，租户随 outbox 载荷传递，向量元数据携带租户并在检索时强制过滤；**租户来源、鉴权与跨服务联动不在本版范围**，`RISK-009` 记录"本版不构成隔离边界"这一必须公开声明的限制。
+3. 用户在同一次决定中提出"agent 也有租户的概念，我要做 SaaS agent 和 rag 服务的"，随后明确"暂时先不考虑从哪来，表上面字段先加上"。据此本 Spec 增加 `REQ-025`-`REQ-027`，把租户列建成非空并进入唯一键与查询作用域，向量元数据携带租户并在检索时强制过滤；**租户来源、鉴权与跨服务联动不在本版范围**，`RISK-009` 记录"本版不构成隔离边界"这一必须公开声明的限制。
+4. 用户随后明确"走 MDC 不走显式参数"（`2026-09-10 12:25 CST`），据此把 `DEC-012` 从"显式租户参数"反转为"MDC 通道 + 租户拦截器自动作用域"，业务代码不再携带任何租户参数。原方案中"租户随 outbox 载荷传递"这一条**保留**（`DEC-013`）：MDC 不跨线程，载荷字段是补齐线程边界所必需的数据，与通道选择不冲突。新增 `TEST-035` 断言两条 MDC 写入路径都会清理，`RISK-011` 记录 MDC 泄漏的风险。
 
 本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。这不代表用户已接受；接受状态需要用户显式批准。
