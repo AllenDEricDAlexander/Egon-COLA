@@ -1,3 +1,39 @@
+spring:
+  datasource:
+    url: ${AGENT_DB_URL}
+    username: ${AGENT_DB_USERNAME}
+    password: ${AGENT_DB_PASSWORD}
+  flyway:
+    enabled: ${AGENT_FLYWAY_ENABLED:true}
+    locations: classpath:db/migration
+
+egon:
+  cola:
+    component:
+      rag:
+        enabled: true
+        dimensions: 1536
+        vector-store-bean-name: knowledgeRagVectorStore
+        embedding-models:
+          openai-compatible:
+            embedding-model-bean-name: knowledgeEmbeddingModel
+        default-embedding-model: openai-compatible
+        storage:
+          type: LOCAL
+          local:
+            root: ${AGENT_RAG_STORAGE_ROOT:./data/rag-documents}
+        retrieval:
+          default-top-k: 8
+          max-top-k: 50
+        validation:
+          probe-on-startup: false
+      transactional-outbox:
+        enabled: true
+      mybatis-plus:
+        tenant-id:
+          # 知识域租户走 MDC：拦截器对两张业务表自动注入租户条件（DEC-012、ASM-006），业务代码不写租户参数。
+          ignored-tables: []
+
 agent:
   deep-research:
     runtime:
@@ -19,6 +55,14 @@ agent:
         sse-endpoint: ${DEEP_RESEARCH_MCP_SSE_ENDPOINT}
         api-key: ${DEEP_RESEARCH_MCP_API_KEY}
         request-timeout: ${DEEP_RESEARCH_MCP_REQUEST_TIMEOUT:PT15S}
+  knowledge:
+    tenant:
+      default-id: ${AGENT_KNOWLEDGE_TENANT_ID:0}
+    runtime:
+      qa-max-concurrent: ${AGENT_KNOWLEDGE_QA_MAX_CONCURRENT:4}
+      max-upload-bytes: ${AGENT_KNOWLEDGE_MAX_UPLOAD_BYTES:20971520}
+      max-documents-per-base: ${AGENT_KNOWLEDGE_MAX_DOCUMENTS_PER_BASE:10000}
+      qa-max-duration: ${AGENT_KNOWLEDGE_QA_MAX_DURATION:PT2M}
 
 spring.ai.openai:
   base-url: ${DEEP_RESEARCH_MODEL_BASE_URL}

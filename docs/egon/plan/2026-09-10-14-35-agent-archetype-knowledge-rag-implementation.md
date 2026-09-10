@@ -608,6 +608,10 @@ def forbiddenDependencies = [
 - Commit paths: `egon-cola-source-agent-domain/pom.xml`; `egon-cola-source-agent-infrastructure/pom.xml`; `definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`（根 POM 与 application/adapter/starter 三份 POM 预期无变化，不进入提交）
 - Commit: `build(agent-archetype): add knowledge persistence and rag dependencies`
 
+在实施期修正（方言插件）：infrastructure 另需 `org.flywaydb:flyway-database-postgresql`，与 `flyway-core` 成对声明，版本由 Boot BOM 管理。Flyway 10 起数据库支持按方言拆包，`flyway-core:11.15.0` 的 jar 内不含任何 PostgreSQL `DatabaseType`（只有 `PgpassFileReader`），缺该插件时 PostgreSQL 迁移在启动期报 `Unsupported Database`；仓库内 `egon-cola-source-light` 与 `egon-cola-source-service` 两个 PostgreSQL 源码项目也是成对声明。Spec B `§11`/`§16` 的依赖清单未列该坐标，属清单遗漏。
+
+实施期前置修正（共享组件）：依赖一挂上 classpath，全部上下文测试即在 `EgonColaMybatisPlusAutoConfiguration` 上失败。该组件的 `egonColaModelValidationUtils` 与 `egonColaMetaObjectHandler` 按类型注入 `ValidationUtils` 与 `java.time.Clock`，而 agent-flow 组件提供 `agentFlowValidationUtils`/`agentFlowClock`、本项目提供 `agentValidationUtils`/`agentClock`，双双构成 `NoUniqueBeanDefinitionException`——即该组件与 agent-flow 无法共存，而 Spec B 正要求二者同时存在。已在组件侧修复（提交 `0ad56b21b`）：`ValidationUtils` 改为具名解析（与 agent-flow 组件的写法一致），`Clock` 改经 `ObjectProvider` 取唯一（或 `@Primary`）候选、多候选时退回 `systemUTC`，保持"宿主时钟可覆盖"的既有语义；组件模块 49 个测试通过（新增 3 个多 Bean 回归用例）。该修复是 Step 2 起所有上下文测试的前提，不属于本项目 six-module 的源码改动。
+
 ### Step 3 — 迁移与四 profile 配置
 
 - Requirements: `REQ-010`, `REQ-015`, `REQ-016`, `REQ-023`, `REQ-025`
@@ -763,7 +767,7 @@ egon:
         enabled: true
       mybatis-plus:
         tenant-id:
-          ignored-tables: knowledge_base,knowledge_document
+          ignored-tables: []   # 实施期修正：知识表必须留在拦截器作用域内（见下方租户作用域修正）
 agent:
   knowledge:
     tenant: { default-id: 0 }
@@ -779,10 +783,14 @@ agent:
 - Failure returns to: File 2（DDL 与测试断言不符）、File 4（键不一致）。
 - Completion criteria: `REQ-015`、`REQ-016`、`REQ-025` 的列与键部分有证据。
 - Rollback: 回退四个文件；表尚未在任何环境创建。
-- Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeSchemaMigrationTest.java`; `...-infrastructure/src/main/resources/db/migration/V20260910_001__create_knowledge_schema.sql`; `...-infrastructure/src/main/resources/db/migration/V20260910_002__create_transactional_outbox_schema.sql`; `...-starter/src/main/resources/{application.yml,application-dev.yml,application-test.yml,application-prod.yml}`
+- Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeSchemaMigrationTest.java`; `...-infrastructure/src/main/resources/db/migration/V20260910_001__create_knowledge_schema.sql`; `...-infrastructure/src/main/resources/db/migration/V20260910_002__create_transactional_outbox_schema.sql`; `...-starter/src/main/resources/{application.yml,application-dev.yml,application-test.yml,application-prod.yml}`；实施期增补：`...-starter/pom.xml`（H2 测试替身）与 `definitions/.../verify.groovy`（迁移文件与 `BOOT-INF/lib` 断言）
 - Commit: `feat(agent-archetype): create the knowledge schema and configuration`
 
 在实施期修正：本 Step 同时补上 Step 1 尚未加入的 `verify.groovy` 迁移文件断言与 `BOOT-INF/lib` 运行时库断言中依赖迁移的部分；依赖存在性断言在 Step 2 加入。
+
+在实施期修正（租户作用域）：本 Step 原伪代码把两张 knowledge 表写进 `tenant-id.ignored-tables`，取自 Spec B `EVD-010` 的"排除出 MDC 驱动的租户拦截，改用显式租户参数"。该句是 Spec B 反转前的陈旧文字：Spec B 的 `§20.6`（第 3261 行）记录了用户 2026-09-10 12:25 "走 MDC 不走显式参数"的澄清，`DEC-012` 据此反转为"MDC 通道 + 租户拦截器自动作用域，业务代码不传租户参数"，随后 `ASM-006` 明确要求拦截器"对两张 knowledge 表**生效**（不使用 `tenant-id.ignored-tables` 排除）"，`§11.2.1` 的索引理由也写明租户谓词"由 MyBatis Plus 的租户拦截器自动注入（`DEC-012`），应用代码里不存在它"，本 Plan 的 Step 5 同样要求"查询不写租户谓词（拦截器注入）"。因此四 profile 一律取 `ignored-tables: []`（与仓库内 light/light-open/web-open/service-open 四个源码项目一致）；被排除在拦截器外反而会让 `scopes_every_query_by_tenant()` 失去实现基础。**待办（用户侧）**：`EVD-010` 的该句需按 `DEC-012` 改写，属 Spec B 自身的修订，不在本 Plan 的提交范围内。
+
+在实施期修正（离线数据源）：Step 2 的依赖一落地，缺少连接串就让 `DeepResearchApplicationTest` 等三个上下文测试变红，而数据源要到本 Step 才配置。为使 Step 2 与 Step 3 作为同一个绿灯单元收口，`...-starter/pom.xml` 新增 `com.h2database:h2`（`test` 作用域，版本由 Boot BOM 管理，dev/prod 仍因缺连接串而启动失败），`application-test.yml` 以 `jdbc:h2:mem:agent_knowledge;MODE=PostgreSQL` 顶替真实库，并在该 profile 关闭 Flyway、RAG 与 outbox。实测 H2 无法执行 `create extension if not exists vector`、`jsonb`、部分索引与 `lower(...)` 表达式索引，故离线环境不能真实建表：Spec B `TEST-026`/`TEST-032` 中"运行真实迁移并观察建表/维度"的部分不可离线验证，迁移契约改由 `KnowledgeSchemaMigrationTest` 的文本断言守住，真实建表与维度校验留待有 PostgreSQL 的运行期验收。因此本 Step 的提交路径另含 `...-starter/pom.xml`（H2 替身）与 `verify.groovy`（迁移文件与 `BOOT-INF/lib` 断言）。
 
 ### Step 4 — domain：knowledge 领域词汇与端口
 

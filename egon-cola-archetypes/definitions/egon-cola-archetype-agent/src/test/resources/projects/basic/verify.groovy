@@ -110,7 +110,10 @@ new java.util.jar.JarFile(agentArchive).withCloseable { archive ->
         if (entry.name.startsWith("BOOT-INF/lib/")) agentLibraries << entry.name.substring("BOOT-INF/lib/".length())
     }
 }
-["egon-cola-component-agent-flow-starter-", "spring-ai-openai-", "spring-ai-mcp-", "google-adk-"].each { required ->
+["egon-cola-component-agent-flow-starter-", "spring-ai-openai-", "spring-ai-mcp-", "google-adk-",
+ "egon-cola-component-common-mybatis-plus-spring-boot-starter-", "mybatis-plus-spring-boot3-starter-",
+ "egon-cola-component-rag-starter-", "egon-cola-component-transactional-outbox-starter-",
+ "spring-ai-pgvector-store-", "flyway-core-", "flyway-database-postgresql-", "postgresql-"].each { required ->
     assert agentLibraries.any { it.startsWith(required) }: "Missing Agent runtime library ${required}"
 }
 ["egon-cola-component-rpc-", "egon-cola-tianshu", "nacos-", "dubbo-",
@@ -141,6 +144,18 @@ missing("${prefix}-client")
 missing("${prefix}-app")
 missing("${prefix}-facade")
 missing("${prefix}-adapter/src/main/resources/graphql")
+
+// 迁移必须随生成产物交付；向量表由 PgVectorStore 以 initializeSchema 自建，不进入 Flyway 版本管理。
+def knowledgeMigrations = [
+    "${prefix}-infrastructure/src/main/resources/db/migration/V20260910_001__create_knowledge_schema.sql",
+    "${prefix}-infrastructure/src/main/resources/db/migration/V20260910_002__create_transactional_outbox_schema.sql"
+]
+knowledgeMigrations.each { file(it) }
+assert file(knowledgeMigrations[0]).getText("UTF-8").contains("create extension if not exists vector")
+knowledgeMigrations.each { migration ->
+    assert !file(migration).getText("UTF-8").toLowerCase().contains("vector_store"):
+            "vector_store must stay outside Flyway version control (${migration})"
+}
 
 def runtimeSources = modules.collectMany { sourceFiles("${prefix}-${it}/src/main/java") }
 def runtimeText = runtimeSources.collect { it.getText("UTF-8") }.join("\n")

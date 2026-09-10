@@ -1,3 +1,42 @@
+# 离线测试 profile：H2 以 PostgreSQL 方言顶替真实库，Flyway 与依赖真实 DDL 的组件一并关闭。
+# `create extension vector`、`jsonb`、部分索引与 `lower(...)` 表达式索引只在真实 PostgreSQL 上可执行，
+# 因此本 profile 不校验迁移，迁移契约由 KnowledgeSchemaMigrationTest 以文本断言守住。
+spring:
+  datasource:
+    url: jdbc:h2:mem:agent_knowledge;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ''
+  flyway:
+    enabled: false
+    locations: classpath:db/migration
+
+egon:
+  cola:
+    component:
+      rag:
+        enabled: false
+        dimensions: 1536
+        vector-store-bean-name: knowledgeRagVectorStore
+        embedding-models:
+          openai-compatible:
+            embedding-model-bean-name: knowledgeEmbeddingModel
+        default-embedding-model: openai-compatible
+        storage:
+          type: LOCAL
+          local:
+            root: ./target/rag-documents
+        retrieval:
+          default-top-k: 8
+          max-top-k: 50
+        validation:
+          probe-on-startup: false
+      transactional-outbox:
+        enabled: false
+      mybatis-plus:
+        tenant-id:
+          # 知识域租户走 MDC：拦截器对两张业务表自动注入租户条件（DEC-012、ASM-006），业务代码不写租户参数。
+          ignored-tables: []
+
 agent:
   deep-research:
     runtime:
@@ -19,6 +58,14 @@ agent:
         sse-endpoint: /sse
         api-key: test-mcp-key
         request-timeout: PT15S
+  knowledge:
+    tenant:
+      default-id: 0
+    runtime:
+      qa-max-concurrent: 4
+      max-upload-bytes: 20971520
+      max-documents-per-base: 10000
+      qa-max-duration: PT2M
 
 spring.ai.openai:
   base-url: http://test.invalid
