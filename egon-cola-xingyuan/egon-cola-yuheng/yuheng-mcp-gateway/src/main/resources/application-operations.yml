@@ -40,49 +40,50 @@ management:
 egon:
   cola:
     platform:
-      tianquan-shoubing:
-        enabled: ${TIANSHU_ENABLED:true}
-        register-filter: false
-        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-        resource-server-id: ${YUHENG_MCP_ENGINE_RESOURCE_SERVER_ID:}
-        resource-uri: ${YUHENG_MCP_ENGINE_RESOURCE_URI:}
-        yuheng:
-          enabled: ${TIANQUAN_SHOUBING_YUHENG_ENABLED:true}
+      tianquan:
+        shoubing:
+          enabled: ${TIANSHU_ENABLED:true}
+          register-filter: false
           issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
           jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-          tianquan-shoubing-refresh-uri: ${TIANQUAN_SHOUBING_REFRESH_URI:http://127.0.0.1:18120/oauth2/token}
-          access-token-cookie-name: ${TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME:__Host-egon_user_at}
-          refresh-token-cookie-name: ${TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME:__Host-egon_user_rt}
-          refresh-status-resource-uri: ${TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI:https://api.egon.internal/local/permission/tianquan-shoubing}
-          refresh-status-scopes: ${TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES:tianquan-shoubing:refresh-token:validate}
-          trusted-origins: ${TIANQUAN_SHOUBING_YUHENG_TRUSTED_ORIGINS:}
-          user-state-key-prefix: "identity:v1:user:"
+          resource-server-id: ${YUHENG_MCP_ENGINE_RESOURCE_SERVER_ID:}
+          resource-uri: ${YUHENG_MCP_ENGINE_RESOURCE_URI:}
+          yuheng:
+            enabled: ${TIANQUAN_SHOUBING_YUHENG_ENABLED:true}
+            issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+            jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+            tianquan-shoubing-refresh-uri: ${TIANQUAN_SHOUBING_REFRESH_URI:http://127.0.0.1:18120/oauth2/token}
+            access-token-cookie-name: ${TIANQUAN_SHOUBING_ACCESS_TOKEN_COOKIE_NAME:__Host-egon_user_at}
+            refresh-token-cookie-name: ${TIANQUAN_SHOUBING_REFRESH_TOKEN_COOKIE_NAME:__Host-egon_user_rt}
+            refresh-status-resource-uri: ${TIANQUAN_SHOUBING_REFRESH_STATUS_RESOURCE_URI:https://api.egon.internal/local/permission/tianquan-shoubing}
+            refresh-status-scopes: ${TIANQUAN_SHOUBING_REFRESH_STATUS_SCOPES:tianquan-shoubing:refresh-token:validate}
+            trusted-origins: ${TIANQUAN_SHOUBING_YUHENG_TRUSTED_ORIGINS:}
+            user-state-key-prefix: "identity:v1:user:"
+            runtime:
+              redis-enabled: true
+              redis-address: ${TIANQUAN_SHOUBING_REDIS_ADDRESS:redis://127.0.0.1:6379}
+              database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
+              password-file: ${TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE:}
+              timeout: ${TIANQUAN_SHOUBING_REDIS_TIMEOUT:2s}
+        jianshen:
+          enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}
+          register-filter: false
+          system-code: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SYSTEM_CODE:mock-backend}
           runtime:
-            redis-enabled: true
-            redis-address: ${TIANQUAN_SHOUBING_REDIS_ADDRESS:redis://127.0.0.1:6379}
-            database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
-            password-file: ${TIANQUAN_SHOUBING_REDIS_PASSWORD_FILE:}
-            timeout: ${TIANQUAN_SHOUBING_REDIS_TIMEOUT:2s}
-      tianquan-jianshen:
-        enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}
-        register-filter: false
-        system-code: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SYSTEM_CODE:mock-backend}
-        runtime:
-          redis-enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}
-          redis-address: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_ADDRESS:redis://127.0.0.1:6379}
-          database: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_DATABASE:0}
-          password-file: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_PASSWORD_FILE:}
-        authorization:
-          endpoint: ${YUHENG_MCP_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:}
-        yuheng:
-          enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED:true}
-          runtime:
-            redis-enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED:true}
-            redis-address: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_ADDRESS:redis://127.0.0.1:6379}
-            database: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_DATABASE:8}
-            password-file: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_PASSWORD_FILE:}
-            timeout: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_TIMEOUT:2s}
+            redis-enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_ENABLED:false}
+            redis-address: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_DATABASE:0}
+            password-file: ${YUHENG_MCP_TIANQUAN_JIANSHEN_REDIS_PASSWORD_FILE:}
+          authorization:
+            endpoint: ${YUHENG_MCP_TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:}
+          yuheng:
+            enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED:true}
+            runtime:
+              redis-enabled: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_ENABLED:true}
+              redis-address: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_ADDRESS:redis://127.0.0.1:6379}
+              database: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_DATABASE:8}
+              password-file: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_PASSWORD_FILE:}
+              timeout: ${YUHENG_MCP_TIANQUAN_JIANSHEN_SCOPE_REDIS_TIMEOUT:2s}
     component:
       rpc:
         tls:

@@ -44,10 +44,11 @@ springdoc:
 egon:
   cola:
     platform:
-      tianquan-shoubing:
-        service-client:
-          app-id: ${YUHENG_TEST_TIANSHU_APP_ID:yuheng-test-webflux-http-provider}
-          registration-id: ${YUHENG_TEST_TIANSHU_REGISTRATION_ID:yuheng-test-webflux-http-provider}
+      tianquan:
+        shoubing:
+          service-client:
+            app-id: ${YUHENG_TEST_TIANSHU_APP_ID:yuheng-test-webflux-http-provider}
+            registration-id: ${YUHENG_TEST_TIANSHU_REGISTRATION_ID:yuheng-test-webflux-http-provider}
     component:
       id:
         enabled: false

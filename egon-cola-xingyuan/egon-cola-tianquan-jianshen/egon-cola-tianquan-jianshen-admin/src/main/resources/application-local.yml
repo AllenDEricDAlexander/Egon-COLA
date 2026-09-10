@@ -27,21 +27,22 @@ management:
           include: readinessState,ping
 
 egon.cola.platform:
-  tianquan-shoubing:
-    issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-    jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-    resource-server-id: ${TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID:permission-tianquan-jianshen-local}
-    resource-uri: ${TIANQUAN_JIANSHEN_RESOURCE_URI:https://api.egon.internal/local/permission/tianquan-jianshen}
-  tianquan-jianshen:
-    runtime:
-      redis-address: ${TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
-      password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
-    authorization:
-      endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
-      service-token:
-        enabled: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED:false}
-        resource-uri: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
-        scopes: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
+  tianquan:
+    shoubing:
+      issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+      jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+      resource-server-id: ${TIANQUAN_JIANSHEN_RESOURCE_SERVER_ID:permission-tianquan-jianshen-local}
+      resource-uri: ${TIANQUAN_JIANSHEN_RESOURCE_URI:https://api.egon.internal/local/permission/tianquan-jianshen}
+    jianshen:
+      runtime:
+        redis-address: ${TIANQUAN_JIANSHEN_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+        password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
+      authorization:
+        endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+        service-token:
+          enabled: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_ENABLED:false}
+          resource-uri: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_RESOURCE_URI:}
+          scopes: ${TIANQUAN_JIANSHEN_AUTHORIZATION_SERVICE_TOKEN_SCOPES:}
 
 egon:
   tianquan-jianshen:

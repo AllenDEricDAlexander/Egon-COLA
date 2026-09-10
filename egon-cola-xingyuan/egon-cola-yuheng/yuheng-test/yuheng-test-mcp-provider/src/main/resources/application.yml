@@ -40,24 +40,25 @@ springdoc:
 egon:
   cola:
     platform:
-      tianquan-shoubing:
-        enabled: ${TIANSHU_ENABLED:false}
-        register-filter: false
-        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-        resource-server-id: ${MCP_PROVIDER_RESOURCE_SERVER_ID:}
-        resource-uri: ${MCP_PROVIDER_RESOURCE_URI:}
-      tianquan-jianshen:
-        enabled: true
-        register-filter: false
-        system-code: mock-backend
-        runtime:
-          redis-enabled: true
-          redis-address: ${MCP_PROVIDER_REDIS_ADDRESS:redis://127.0.0.1:6379}
-          database: ${MCP_PROVIDER_REDIS_DATABASE:8}
-          password-file: ${MCP_PROVIDER_REDIS_PASSWORD_FILE:}
-        authorization:
-          endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+      tianquan:
+        shoubing:
+          enabled: ${TIANSHU_ENABLED:false}
+          register-filter: false
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          resource-server-id: ${MCP_PROVIDER_RESOURCE_SERVER_ID:}
+          resource-uri: ${MCP_PROVIDER_RESOURCE_URI:}
+        jianshen:
+          enabled: true
+          register-filter: false
+          system-code: mock-backend
+          runtime:
+            redis-enabled: true
+            redis-address: ${MCP_PROVIDER_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${MCP_PROVIDER_REDIS_DATABASE:8}
+            password-file: ${MCP_PROVIDER_REDIS_PASSWORD_FILE:}
+          authorization:
+            endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
     component:
       id:
         enabled: false

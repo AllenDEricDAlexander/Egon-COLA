@@ -11,15 +11,16 @@ spring:
       database: ${TIANQUAN_SHOUBING_REDIS_DATABASE:0}
 
 egon.cola.platform:
-  tianquan-shoubing:
-    issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-    jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-  tianquan-jianshen:
-    runtime:
-      redis-address: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
-      password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
-    authorization:
-      endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+  tianquan:
+    shoubing:
+      issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+      jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+    jianshen:
+      runtime:
+        redis-address: ${TIANQUAN_SHOUBING_AUTHORIZATION_REDIS_ADDRESS:redis://127.0.0.1:6379}
+        password-file: ${UNIFIED_IDENTITY_REDIS_PASSWORD_FILE:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/secrets/redis.password}
+      authorization:
+        endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
 
 egon:
   tianquan-shoubing:

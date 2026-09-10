@@ -40,23 +40,24 @@ springdoc:
 egon:
   cola:
     platform:
-      tianquan-shoubing:
-        enabled: true
-        register-filter: false
-        issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
-        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
-        resource-server-id: ${MOCK_BACKEND_RESOURCE_SERVER_ID:identity-mock-backend-local}
-        resource-uri: ${MOCK_BACKEND_RESOURCE_URI:https://api.egon.internal/local/identity/mock-backend}
-      tianquan-jianshen:
-        enabled: true
-        register-filter: false
-        system-code: mock-backend
-        runtime:
-          redis-enabled: true
-          redis-address: ${MOCK_BACKEND_REDIS_ADDRESS:redis://127.0.0.1:6379}
-          database: ${MOCK_BACKEND_REDIS_DATABASE:0}
-        authorization:
-          endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
+      tianquan:
+        shoubing:
+          enabled: true
+          register-filter: false
+          issuer: ${TIANQUAN_SHOUBING_OAUTH_ISSUER:http://127.0.0.1:18120}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:http://127.0.0.1:18120/oauth2/jwks}
+          resource-server-id: ${MOCK_BACKEND_RESOURCE_SERVER_ID:identity-mock-backend-local}
+          resource-uri: ${MOCK_BACKEND_RESOURCE_URI:https://api.egon.internal/local/identity/mock-backend}
+        jianshen:
+          enabled: true
+          register-filter: false
+          system-code: mock-backend
+          runtime:
+            redis-enabled: true
+            redis-address: ${MOCK_BACKEND_REDIS_ADDRESS:redis://127.0.0.1:6379}
+            database: ${MOCK_BACKEND_REDIS_DATABASE:0}
+          authorization:
+            endpoint: ${TIANQUAN_JIANSHEN_AUTHORIZATION_ENDPOINT:http://127.0.0.1:18130}
     component:
       id:
         enabled: false
