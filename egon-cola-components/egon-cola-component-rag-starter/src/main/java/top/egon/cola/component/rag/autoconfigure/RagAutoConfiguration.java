@@ -16,6 +16,12 @@ import org.springframework.boot.context.properties.bind.handler.NoUnboundElement
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.rag.api.RagExtractionService;
+import top.egon.cola.component.rag.chunk.MarkdownHeadingRagChunkingStrategy;
+import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
+import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
+import top.egon.cola.component.rag.chunk.RagChunkingStrategyFactory;
+import top.egon.cola.component.rag.chunk.RecursiveRagChunkingStrategy;
+import top.egon.cola.component.rag.chunk.TokenRagChunkingStrategy;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
@@ -139,5 +145,35 @@ public class RagAutoConfiguration {
             @Qualifier("ragDocumentExtractorRegistry") RagDocumentExtractorRegistry extractorRegistry,
             @Qualifier("ragClock") Clock clock) {
         return new RagExtractionServiceImpl(extractorRegistry, clock);
+    }
+
+    @Bean(name = "tokenRagChunkingStrategy")
+    @ConditionalOnMissingBean(TokenRagChunkingStrategy.class)
+    public RagChunkingStrategy tokenRagChunkingStrategy() {
+        return new TokenRagChunkingStrategy();
+    }
+
+    @Bean(name = "markdownHeadingRagChunkingStrategy")
+    @ConditionalOnMissingBean(MarkdownHeadingRagChunkingStrategy.class)
+    public RagChunkingStrategy markdownHeadingRagChunkingStrategy() {
+        return new MarkdownHeadingRagChunkingStrategy();
+    }
+
+    @Bean(name = "recursiveRagChunkingStrategy")
+    @ConditionalOnMissingBean(RecursiveRagChunkingStrategy.class)
+    public RagChunkingStrategy recursiveRagChunkingStrategy() {
+        return new RecursiveRagChunkingStrategy();
+    }
+
+    @Bean(name = "ragChunkingStrategyFactory")
+    @ConditionalOnMissingBean(name = "ragChunkingStrategyFactory")
+    public RagChunkingStrategyFactory ragChunkingStrategyFactory(List<RagChunkingStrategy> strategies) {
+        return new RagChunkingStrategyFactory(strategies);
+    }
+
+    @Bean(name = "ragChunkIdFactory")
+    @ConditionalOnMissingBean(name = "ragChunkIdFactory")
+    public RagChunkIdFactory ragChunkIdFactory() {
+        return new RagChunkIdFactory();
     }
 }
