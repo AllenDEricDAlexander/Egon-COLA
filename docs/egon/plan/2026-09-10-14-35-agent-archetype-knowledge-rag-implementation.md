@@ -580,33 +580,32 @@ def forbiddenDependencies = [
 
 #### File 4 — `MODIFY egon-cola-source-agent-application/pom.xml` 与 `egon-cola-source-agent-adapter/pom.xml` 与 `egon-cola-source-agent-starter/pom.xml`
 
-- Purpose: 补齐数据源与 JDBC 能力到 starter，adapter 保持无新增。
-- Symbols: starter 新增 `spring-boot-starter-jdbc`。
-- Repository evidence: `spring-ai-pgvector-store` 传递 `spring-jdbc` 但不含 starter；MyBatis Plus starter 提供的自动配置需要 DataSource。
-- Dependencies and consumers: Flyway 与 MyBatis Plus 的自动配置。
+- Purpose: 确认三份 POM 均无需新增；数据源能力由 MyBatis Plus 组件传递，不显式声明 `spring-boot-starter-jdbc`。
+- Symbols: application、adapter、starter 三份 POM 均无变化。
+- Repository evidence: `mybatis-plus-spring-boot3-starter:3.5.17` 的 POM 以 `compile` scope 声明 `spring-boot-starter-jdbc`，DataSource 自动配置随之生效；Spec `§6.1` 明确 `spring-boot-starter-jdbc` 被 `EVD-003` 禁止、关系型持久化选择 `egon-cola-component-common-mybatis-plus-spring-boot-starter`；`egon-cola-archetypes/source-projects` 下无任何 POM 声明该坐标。
+- Dependencies and consumers: Flyway 与 MyBatis Plus 的自动配置经由传递依赖获得 DataSource。
 - Why now: 与前三份同批。
-- Contract/signature changes: starter 新增一条依赖；application 与 adapter 无变化（若无需新增则不改）。
+- Contract/signature changes: 无。
 - Input/output and state mapping: 无。
-- Error and edge behavior: 缺 DataSource 则 MyBatis Plus 自动配置不生效、Flyway 不执行。
+- Error and edge behavior: 若显式声明 `spring-boot-starter-jdbc`，`AgentArchitectureTest` 的 `EVD-003` 断言与 Spec 决策会立即冲突。
 - Standards impact: `MC-DEP-001`。
 - Literal rule enforcement: `Rule 11`。
 - Implementation pseudocode:
 
 ```xml
-<!-- starter/pom.xml -->
-<dependency><groupId>org.springframework.boot</groupId><artifactId>spring-boot-starter-jdbc</artifactId></dependency>
+<!-- 三份 POM 均无变化：jdbc 能力由 mybatis-plus 组件传递，且被 EVD-003 禁止显式声明 -->
 ```
 
-- Verification contribution: 上下文启动与迁移执行。
+- Verification contribution: 依赖解析与 `AgentArchitectureTest` 的禁项断言仍通过。
 - After this file: Step 2 完成。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install`
-- Expected result: 退出码 0；六模块构建通过。
-- Failure returns to: File 2-4 的坐标或 scope。
+- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install`；全反应堆命令受 `egon-cola-source-light` 的 `NativeRpcConfigurationTest` 预先存在的红灯（`c7f09dd5a` 的 `tianquan.shoubing` 前缀与 yml 的 `tianquan-shoubing` 键不一致，与本 Step 无关）阻塞，实施期以 `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml clean install` 作为等价门禁，并在 Step 记录中标注偏差。
+- Expected result: 退出码 0；六模块构建通过；`verify.groovy` 新增的四条依赖存在性断言在生成 IT 中通过。
+- Failure returns to: File 2-3 的坐标或 scope。
 - Completion criteria: 依赖可解析且构建通过；`research` 域未改动。
-- Rollback: 回退三份模块 POM。
-- Commit paths: `egon-cola-source-agent/pom.xml`; `egon-cola-source-agent-domain/pom.xml`; `egon-cola-source-agent-infrastructure/pom.xml`; `egon-cola-source-agent-application/pom.xml`
+- Rollback: 回退本 Step 的 POM 与 `verify.groovy` 断言。
+- Commit paths: `egon-cola-source-agent-domain/pom.xml`; `egon-cola-source-agent-infrastructure/pom.xml`; `definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`（根 POM 与 application/adapter/starter 三份 POM 预期无变化，不进入提交）
 - Commit: `build(agent-archetype): add knowledge persistence and rag dependencies`
 
 ### Step 3 — 迁移与四 profile 配置
