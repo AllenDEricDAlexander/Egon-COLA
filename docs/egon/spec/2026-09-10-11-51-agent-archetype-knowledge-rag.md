@@ -4,12 +4,12 @@
 | --- | --- |
 | Document | `docs/egon/spec/2026-09-10-11-51-agent-archetype-knowledge-rag.md` |
 | Template Version | `7` |
-| Status | `Draft` |
+| Status | `Review` |
 | Type | `Feature` |
 | Complexity | `Complex` |
 | Complexity Drivers | 首个带数据库的 Agent 生成项目、跨两份已接受规范（Agent Archetype、RAG 组件）的合同修订、异步摄取与 outbox 至少一次投递的幂等设计、pgvector 表结构与维度的单一来源、原型禁项测试与 archetype 打包清单的同步变更、SSE 问答与容量边界、原文与抽取文本的双重持久化 |
 | Created | `2026-09-10 11:51 CST` |
-| Updated | `2026-09-10 11:51 CST` |
+| Updated | `2026-09-10 12:13 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-archetypes/source-projects/egon-cola-source-agent` 新增 `knowledge` 业务域；`definitions/egon-cola-archetype-agent` 的元数据与验证器同步修订 |
@@ -55,7 +55,7 @@ outbox 驱动的异步切块嵌入、基于 pgvector 的检索，以及一个 SS
 | `EVD-007` | Static repository | `source-projects/egon-cola-source-web/egon-cola-source-web-infrastructure/src/main/resources/db/migration/sharding/...` | 非 open 的 source 项目用 Flyway，迁移放在 `-infrastructure/src/main/resources/db/migration/`，命名为 `V<yyyyMMdd>_<NNN>__snake_case.sql`，`B` 前缀用于 baseline | 承载模块与命名风格有直接先例 | 静态路径 |
 | `EVD-008` | Static repository | `source-web-domain/pom.xml`、`source-service-domain/pom.xml` | `top.egon:egon-cola-component-common-mybatis-plus-spring-boot-starter` 无版本声明地加在 **domain** 模块 | 本项目同样的依赖落位有先例 | 静态 POM |
 | `EVD-009` | Static repository | `source-web-infrastructure/.../infrastructure/{user,teaching}/repo/{po,dao,converter}/` | PO 位于 `infrastructure/<域>/repo/po/*PO.java`，DAO 位于 `.../repo/dao/*DAO.java`，转换器位于 `.../repo/converter/*POConverter.java` | knowledge 的持久化类落位直接照此 | 静态路径 |
-| `EVD-010` | External artifact | `egon-cola-component-common-mybatis-plus-spring-boot-starter:5.4.0` 的 `javap` 与配置元数据 | `EgonModel<M>` 提供 `id`、`tenantId`、`createUserId`、`createTime`(Instant)、`updateUserId`、`updateTime`(Instant)、`isDeleted`；`EgonColaMapper<T>` 继承 `BaseMapper<T>`；配置前缀 `egon.cola.component.mybatis-plus`，键含 `enabled`、`meta-fill.enabled`、`pagination.*`、`tenant-id.ignored-tables`、`tenant-id.mdc-key` | 审计/租户/软删列由基类提供，不必也不应重复声明；本项目无租户概念，需用 `tenant-id.ignored-tables` 把 knowledge 表排除 | 5.4.0 的类与元数据；租户拦截器的运行期行为未从源码验证 |
+| `EVD-010` | External artifact | `egon-cola-component-common-mybatis-plus-spring-boot-starter:5.4.0` 的 `javap` 与配置元数据 | `EgonModel<M>` 提供 `id`、`tenantId`、`createUserId`、`createTime`(Instant)、`updateUserId`、`updateTime`(Instant)、`isDeleted`；`EgonColaMapper<T>` 继承 `BaseMapper<T>`；配置前缀 `egon.cola.component.mybatis-plus`，键含 `enabled`、`meta-fill.enabled`、`pagination.*`、`tenant-id.ignored-tables`、`tenant-id.mdc-key` | 审计/租户/软删列由基类提供，不必也不应重复声明；本项目本版**写入并强制租户列但不由身份解析租户**，因此用 `tenant-id.ignored-tables` 把 knowledge 表排除出 MDC 驱动的租户拦截，改用显式租户参数 | 5.4.0 的类与元数据；租户拦截器的运行期行为未从源码验证 |
 | `EVD-011` | Static repository | `source-web-infrastructure/.../repo/po/RolePO.java` | PO 用例：`@Data @NoArgsConstructor @AllArgsConstructor @Builder @Accessors(chain = true) @TableName("roles") extends EgonModel<RolePO>`，业务字段用 `@TableField` | 仓库既有的 PO 注解组合与用户规则 3 的完整基线不同，见 `§6.2` 与 `MC-MODEL-001` | 静态源码 |
 | `EVD-012` | Static repository | `...-adapter/.../filter/ResearchApiKeyFilter.java` | `@Component("researchApiKeyFilter")` + `@Order(HIGHEST_PRECEDENCE + 1)` 的 `OncePerRequestFilter`，未限定 URL 模式，因此覆盖全部请求；使用常量时间比较；失败响应为 `DeepResearchErrorResponse` 且带 `WWW-Authenticate: ApiKey` | 新增的 knowledge 接口**自动被现有过滤器保护**，无需改安全配置 | 静态源码；过滤器注册路径未运行验证 |
 | `EVD-013` | Static repository | `...-adapter/.../handler/DeepResearchErrorResponse.java` | 稳定错误体：`code`、`message`、`traceId`、`timestamp`(Instant)、`fieldErrors`，`@JsonInclude(NON_NULL)` | knowledge 接口直接复用该错误体，不新建并行包装 | 静态源码 |
@@ -67,6 +67,9 @@ outbox 驱动的异步切块嵌入、基于 pgvector 的检索，以及一个 SS
 | `EVD-019` | Accepted Spec | [RAG 引擎组件设计](2026-09-10-11-34-egon-cola-component-rag-starter.md) `§9.1`、`§9.2.1`、`§9.2.7` | 组件暴露三个服务：`RagExtractionService#extract`、`RagIngestionService#ingest`、`RagRetrievalService#retrieve`；`RagIngestionCommand` 携带 `ExtractedDocumentBO`；`RagDocumentStorage` 提供本地实现 | 本项目的摄取链路直接按两段式组合这三个服务 | 已接受但未实现 |
 | `EVD-020` | User decision | 2026-09-10 会话 | 引擎用组件、管理留在 archetype、不需要前端、原文入库不重复解析、同维度多模型、存储可切换、持久化用 MyBatis Plus、向量表由 `PgVectorStore` 自建 | 关闭归属、持久化技术与向量表所有权 | 只适用于本 Spec 范围 |
 | `EVD-021` | User decision | 2026-09-04 已接受 Spec `§4.1`、`§5.3` | Agent Archetype 采用单 API Key、无租户、无用户身份、进程内并发上限、无 durable state | knowledge 接口沿用同一身份模型；容量与幂等语义必须与该 Spec 协调 | 只适用于 agent family |
+
+| `EVD-022` | Static repository | `IdpPrincipal#tenantId`、`ServiceAccessTokenClaims`、`ServiceIdentityPrincipal`；`docs/egon/spec/2026-08-21-07-51-idp-oauth-client-tenant-ownership.md` | 仓库已有完整租户身份：SERVICE Access Token 携带 `TENANT`/`PLATFORM` claim，身份主体暴露 `tenantId`；Tianquan-Shoubing 持有 tenant 主数据与 `identitySub <-> tenant` membership；RBAC3 按 `tenant_id` 分区 | 目标产品的租户来源有既成体系可选；本版不接入，但列与参数形态必须与之兼容（租户为数值标识、非字符串命名空间） | 静态源码与已接受 Spec；本项目未运行其任何链路 |
+| `EVD-023` | User decision | 2026-09-10 12:13 | "租户暂时先不考虑从哪来，表上面字段先加上，后面再考虑和别的服务联动"；同次确认 `MC-MODEL-001` 按仓库既有 PO 约定处理 | 租户列与显式租户参数在本版落地，租户解析与鉴权推迟；`research` 域不变 | 只适用于本 Spec 范围 |
 
 ### 2.3 Problem statement and gap
 
@@ -104,7 +107,9 @@ outbox 驱动的异步切块嵌入、基于 pgvector 的检索，以及一个 SS
 - 不修改 `egon-cola-component-rag-starter`（其能力缺口已在 2026-09-10 11:47 CST 的修订中关闭）。
 - 不提供前端页面、路由、组件或静态资源。
 - 不提供分块预览接口：组件刻意不暴露分块枚举能力（`VectorStore` 无列举 API），新增该能力需要新的组件 Spec。
-- 不提供知识库级或文档级的权限模型、租户隔离、共享与配额；沿用单一服务 API Key（`EVD-021`）。
+- 不提供知识库级或文档级的权限模型、共享与配额；沿用单一服务 API Key（`EVD-021`）。
+- **不解析租户身份、不做租户鉴权与授权、不接统一身份**：租户列与显式租户参数在本版落地并由固定配置值供给，租户来源、跨服务联动与基于租户的授权留待后续 Spec（`EVD-023`）。因此本版不构成租户隔离的安全边界。
+- 不把租户概念扩展到 `research` 域；该域没有持久化表，保持单 API Key 语义不变（`REQ-024`）。
 - 不提供问答会话持久化、历史查询、多轮记忆、反馈或评分。
 - 不提供重排、混合检索、查询改写、多模态或图检索。
 - 不提供对象存储实现；本地文件系统是多实例不可共享的已知限制。
@@ -148,7 +153,10 @@ outbox 驱动的异步切块嵌入、基于 pgvector 的检索，以及一个 SS
 | `REQ-010` | 向量表由 `PgVectorStore` 创建，Flyway 只管理扩展与业务表 | Must | Flyway 迁移不含 `vector_store` 建表语句；应用首次启动后向量表存在且维度等于配置 | 用户选择的向量表方案 A；`EVD-018` |
 | `REQ-011` | 提供检索调试接口，返回片段与分数且不调用模型 | Must | 接口返回有序片段、分数与文档标识；不产生任何模型调用与持久化写入 | 管理需要；`EVD-019` `INTERNAL-002` |
 | `REQ-012` | 提供知识库问答接口，流式返回 | Must | 单个 SSE 流返回 started/progress/completed 或 failed 之一并终止；事件包含检索引用 | 用户选择的方案 B |
-| `REQ-013` | 全部新接口复用现有服务 API Key 保护，不引入第二套鉴权 | Must | 缺失或错误 key 时返回既有 401 错误体；不新增鉴权配置或安全依赖 | `EVD-012`；用户"复用同一个 key" |
+| `REQ-013` | 全部新接口复用现有服务 API Key 保护，不引入第二套鉴权 | Must | 缺失或错误 key 时返回既有 401 错误体；不新增鉴权配置或安全依赖；接口不接受任何租户请求头 | `EVD-012`；用户"复用同一个 key" |
+| `REQ-025` | 两张业务表保留租户列并由本版写入固定租户；所有读写以显式租户参数作用域；租户参与唯一键 | Must | `knowledge_base` 与 `knowledge_document` 的 `tenant_id` 非空且取配置的默认租户；业务键唯一性为租户内唯一；所有查询带租户等值前导条件；同一业务键在不同租户下可以共存 | 用户"表上面字段先加上"；`EVD-022` |
+| `REQ-026` | 摄取任务在 outbox 载荷中携带租户，由 handler 显式恢复，不依赖 MDC | Must | 上传时写入载荷的 `tenantId` 与文档行一致；handler 在无 MDC 的投递线程中用载荷中的租户完成读取与写入；同一文档的租户不会因异步而改变或丢失 | 用户要求租户字段就位；`EVD-010` 的 MDC 租户通道在异步线程不可用 |
+| `REQ-027` | 向量元数据携带租户并在检索时强制过滤 | Must | 每个分块的向量元数据含 `tenantId`；检索的过滤表达式恒含该条件；跨租户检索不返回对方分块 | `REQ-009` 的延伸；`EVD-022` 为将来租户隔离预留 |
 | `REQ-014` | 全部新接口复用既有错误体与 trace 约定 | Must | 错误响应使用 `DeepResearchErrorResponse` 等价形状并带 `X-Trace-Id`；不新增并行包装 | `EVD-013` |
 | `REQ-015` | PostgreSQL 通过 Flyway 管理，迁移位于 infrastructure 模块并被 archetype 正确打包 | Must | 存在两条迁移文件（知识库表、outbox 表）；生成的 archetype 项目包含同样的文件 | `EVD-006`, `EVD-007` |
 | `REQ-016` | outbox 表由本项目复制并重编号创建，组件不建表 | Must | 迁移中存在 `egon_cola_outbox_message` 建表语句；启动期 schema 校验通过 | `EVD-016`, `EVD-017` |
@@ -173,6 +181,9 @@ outbox 驱动的异步切块嵌入、基于 pgvector 的检索，以及一个 SS
 | 摄取成功 | outbox poller 领取任务 | 文档行存在且文本已落库 | 从 `content` 重建文档 -> 切块 -> 删旧分块 -> 嵌入 -> 写入 -> 状态置 SUCCEEDED | 无 | 向量表新增分块；文档状态与分块数更新 | 文档详情显示成功与分块数 | `REQ-005`, `REQ-006` |
 | 嵌入失败重试 | outbox 重试 | 首次嵌入失败 | 再次领取 -> **不重新解析** -> 重新嵌入 | 重试用尽 -> 状态 DEAD | 向量表按文档重建；状态变化 | 文档详情显示失败原因 | `REQ-006` |
 | 跨模型隔离 | 两个知识库各用不同逻辑模型 | 两模型维度相同 | 各自检索只返回本方分块 | 若过滤缺失则测试失败 | 无 | 无跨模型结果 | `REQ-009` |
+| 租户作用域写入 | API client 建库与上传 | 租户配置已提供 | 行以配置租户写入；业务键唯一性按租户判定 | 租户配置缺失 -> 启动失败 | 行带固定租户列值 | 同一业务键在另一租户下可再次创建 | `REQ-025` |
+| 租户随异步传递 | outbox 投递 | 上传已写入含租户的载荷 | handler 从载荷恢复租户并完成读取与写入 | 载荷缺租户 -> 投递失败并进入重试/死信 | 文档状态与租户均被正确回写 | 不存在"租户丢失"或写错租户 | `REQ-026` |
+| 跨租户检索隔离 | 两个租户各建知识库并写入 | 两租户都有分块 | 各自检索只返回本方分块 | 若过滤缺失则测试失败 | 无 | 无跨租户结果 | `REQ-027` |
 | 维度不一致 | 应用启动 | 某模型 `dimensions()` 与配置不符 | 启动失败 | 无 | 无 | 启动异常指明模型与维度 | `REQ-009` |
 | 重新处理 | API client 触发 reingest | 文档处于终态 | 再入队一条 outbox 记录 | 文档处于处理中 -> 409 | 新增 outbox 行；状态回到待处理 | 返回 202 | `REQ-003`, `REQ-006` |
 | 删文档 | API client 删除文档 | 文档存在 | 删存储对象 -> 删向量分块 -> 软删行 | 存储或向量删除失败 -> 事务回滚并保留行 | 行、文件、分块均清除 | 204 | `REQ-003` |
@@ -273,7 +284,9 @@ flowchart LR
 | `ASM-003` | 原文件在本地存储下的相对路径为 `<root>/<knowledgeBaseId>/<documentId>/<sanitizedFileName>` | `EVD-019` 的 `RagDocumentStorage` 契约把标识交给实现；组件已自带本地实现 | 由组件实现决定，本项目不重复实现 | 若需自定义布局则要提供自己的存储 Bean |
 | `ASM-004` | 上传大小上限取 20MB、单知识库文档数上限取 10,000、问答并发上限取 4 | Agent Archetype Spec 的容量默认值风格 | 配置默认值可改 | 生成项目的默认容量不符合预期 |
 | `ASM-005` | 文档状态枚举取 `PENDING/PROCESSING/SUCCEEDED/FAILED/DEAD`，与 outbox 状态一对一映射 | `EVD-016` 的状态域 | 枚举只增不改 | 映射需要增加取值 |
-| `ASM-006` | MyBatis Plus 的 `tenant-id.ignored-tables` 用于排除 knowledge 表 | `EVD-010` 的配置元数据键 | 配置项可改，无 schema 影响 | 租户拦截器行为需在实施时验证 |
+| `ASM-006` | MyBatis Plus 的 `tenant-id.ignored-tables` 用于把 knowledge 表排除出 MDC 驱动的租户拦截，租户改由显式参数供给 | `EVD-010` 的配置元数据键；`REQ-025` 要求租户是显式作用域而非环境状态 | 配置项可改，无 schema 影响 | 若排除配置无效，租户条件会被叠加两次或取到空值，需在实施时调整 |
+| `ASM-007` | 本版的默认租户标识取 `0`，由配置键 `agent.knowledge.tenant.default-id` 供给，并被 `REQ-025` 强制写入 | `EgonModel.tenantId` 是 `Long`；`EVD-022` 的外部租户也是数值标识 | 配置默认值可改，回填成本低 | 若将来约定的默认租户不是 0，需要一次数据迁移 |
+| `ASM-008` | 向量元数据的租户键名取 `tenantId`，与组件保留键（`collectionId`、`documentId`、`chunkIndex`、`embeddingModel`、`contentHash`）并列但不冲突 | 组件保留键集合是可枚举的固定集合；`tenantId` 不在其中，因此作为业务属性传递 | 键名可改，重嵌入即可 | 若组件将来把 `tenantId` 纳入保留键，需要改用组件的原生能力 |
 
 ### 5.3 Resolved decisions
 
@@ -289,6 +302,10 @@ flowchart LR
 | `DEC-008` | 修订两份测试与验证器的禁项，只放开 `flyway` 与 `mybatis`，其余禁项全部保留 | User + Spec | `EVD-003`-`EVD-005` 的现状会阻止任何持久化；`redis` 仍可禁止因为 outbox 不需要它 | `REQ-017` |
 | `DEC-009` | 为 infrastructure 模块新增资源文件集并包含 `**/*.sql` | Spec | `EVD-006` 表明不加则迁移不会进入生成项目 | `REQ-015`, `REQ-018` |
 | `DEC-010` | 文档删除采用软删行 + 硬删存储对象与向量分块 | Spec | 与 `EgonModel` 的 `isDeleted` 约定一致，同时保证检索不会召回已删文档 | `REQ-003` |
+| `DEC-011` | 租户列与显式租户参数在本版落地，租户来源与鉴权推迟 | User | 用户 2026-09-10 12:13 "暂时先不考虑从哪来，表上面字段先加上"；`EVD-023` | `REQ-025`-`REQ-027` |
+| `DEC-012` | 租户由显式参数而非 MDC 环境状态供给 | Spec | `EVD-010` 的 MDC 通道在 outbox 投递线程不可用；显式参数使异步路径天然正确，且不需要在 handler 中重建环境 | `REQ-025`, `REQ-026` |
+| `DEC-013` | 本版不引入租户解析端口或统一身份依赖，默认租户来自单一配置键 | Spec | 用户明确推迟来源；引入只有一个实现的端口属投机抽象，而入口处的替换成本只有一行 | `REQ-025` |
+| `DEC-014` | 租户概念不扩展到 `research` 域 | User + Spec | 用户只要求"表上面字段先加上"；`research` 无持久化表，改动它会把本 Spec 扩大为身份模型重构 | `REQ-024` |
 
 ### 5.4 Open major decisions
 
@@ -329,7 +346,7 @@ flowchart LR
 | --- | --- | --- | --- | --- | --- | --- |
 | Rule 1 | Yes | `EVD-009`, `EVD-019` 的既有命名 | 新增类型带语义后缀：`*Controller`、`*Manage`、`*ServiceImpl`、`*PO`、`*DAO`、`*Converter`、`*Request`、`*VO`、`*BO`、`*Command`、`*Query`、`*Enum`、`*Exception`、`*Properties`、`*Configuration`、`*Handler`；不使用 `Data`/`Info`/`Param`/`Bean` | `§10.1` 与 `§8.2` | `TEST-029` 命名扫描 | PASS |
 | Rule 2 | Yes | `EVD-013` 的既有边界校验风格 | 每个层间交接都有 Jakarta 注解与 `@Valid` 级联：`Request -> Command`、`Command -> Manage`、`Manage -> Gateway`、`Manage -> DAO`；复用输入类型使用校验分组；手工校验复用 `ValidationUtils`；无电话号码字段故 libphonenumber `N/A` | `§9` 各 Request/Command；`§10.3.1` | `TEST-005`, `TEST-010`, `TEST-015` | PASS |
-| Rule 3 | Yes | `EVD-011` 的 PO 组合；`common-core` `BaseConverter` | 简单载体用 `record` 并在紧凑构造器规范化；跨层转换用 MapStructPlus `@Mapper` 并 `extends BaseConverter<S,T>`；不可变非 record 对象用 `@Value`；**复杂对象（PO）的完整 Lombok 基线与用户规则的字面要求存在构造器签名冲突，见本行状态** | `§10.1`, `§10.4` | `TEST-008`, `TEST-012` | **BLOCKED** |
+| Rule 3 | Yes | `EVD-011` 的 PO 组合；`common-core` `BaseConverter` | 简单载体用 `record` 并在紧凑构造器规范化；跨层转换用 MapStructPlus `@Mapper` 并 `extends BaseConverter<S,T>`；不可变非 record 对象用 `@Value`；**复杂对象（PO）的完整 Lombok 基线与用户规则的字面要求存在构造器签名冲突；用户已批准仓库既有 PO 约定作为显式例外，见 §6.2.1** | `§10.1`, `§10.4` | `TEST-008`, `TEST-012` | PASS（含已批准的例外） |
 | Rule 4 | Yes | `EVD-013` 的 Bean 命名与构造器注入 | 每个具体行为类 `@Slf4j`；Spring Bean 显式命名（`@Service("knowledgeBaseManage")` 等）；依赖为 final 字段 + `@RequiredArgsConstructor` + 每字段 `@Qualifier`；`lombok.config` 沿用既有复制规则 | `§7.3.1`、`§9` 实现类 | `TEST-029` 静态检查 | PASS |
 | Rule 5 | Yes | `EVD-001` 的既有工具使用 | 只用 JDK 与既有依赖；不新增 `*Utils`；不引入 `commons-*` 新坐标；Tika 由 RAG 组件的可选依赖提供 | 全部新实现类 | `TEST-029` 依赖与 import 扫描 | PASS |
 | Rule 6 | Yes | `EVD-013` 的 Jackson 用法 | 对外 Request/VO 使用 Spring Boot Jackson；`@JsonInclude(NON_NULL)`；枚举与 `Instant` 显式声明 wire 语义；错误体复用既有记录；不引入第二个 JSON 库 | `§9` 各 Request/VO/错误体 | `TEST-021`, `TEST-022` | PASS |
@@ -356,7 +373,7 @@ knowledge 的 PO 没有任何 `final` 或 `@NonNull` 字段（`id`、`tenantId`�
 public class KnowledgeBasePO extends EgonModel<KnowledgeBasePO> { /* 业务字段 */ }
 ```
 
-本 Spec 请求用户批准该仓库既有 PO 约定作为规则 3 的显式例外。在获批之前，`MC-MODEL-001` 保持 `BLOCKED`，本 Spec 的最终结论为 `BLOCKED — User decision required`。
+用户于 `2026-09-10 12:13 CST` 批准该仓库既有 PO 约定作为规则 3 对本项目 PO 的显式例外。例外只覆盖继承 `EgonModel` 的持久化对象；其余简单载体仍然全部使用 `record`，因此规则 3 对非 PO 载体的要求未被削弱。
 
 ## 7. Architecture Design
 
@@ -505,6 +522,7 @@ flowchart TD
 | 问答流（`UC-005`） | 有界、可取消、不阻塞研究 | 独立容量限额 + SSE + 断连取消 | 饱和 429；依赖失败 failed；断连释放 | 无历史与多轮 | `TEST-020`-`TEST-024` | `REQ-012`, `REQ-022` |
 | 生成与发布（`UC-007`） | 迁移随 archetype 一起生成 | metadata 文件集 + verifier 断言 | 缺文件即验证失败并阻止发布 | 需同步维护打包清单 | `TEST-025`-`TEST-030` | `REQ-015`, `REQ-018`-`REQ-021` |
 | 安全（全部） | 无匿名访问、无内容泄露 | 既有常量时间 API Key 过滤器覆盖全部路径 | 401 且不泄露 key | 无细粒度授权 | `TEST-027`, `TEST-029` | `REQ-013`, `REQ-014` |
+| 租户作用域（`UC-001`-`UC-005`） | 每行、每查询、每分块都带租户，且不依赖环境状态 | 显式租户参数 + 租户内唯一键 + 向量元数据 `tenantId` 强制过滤；默认租户来自单一配置键 | 本版租户恒为默认值，因此不构成隔离边界；解析失败或配置缺失时启动失败 | 增加一列、一次索引前缀与一次过滤条件；换来源时只改入口一行 | `TEST-032`-`TEST-034` | `REQ-025`-`REQ-027` |
 
 ### 7.3 Detailed Design
 
@@ -513,15 +531,15 @@ flowchart TD
 | Step | Caller -> callee | Contract/symbol | Input/output mapping | State/data effect | Failure behavior | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Filter -> Controller | 既有 API Key 过滤器 | Header -> 请求上下文 | 只写 MDC trace | 401 且不进入控制器 | `REQ-013` |
-| 2 | Controller -> Converter | `KnowledgeCommandConverter#toTarget` | Request -> Command | 无 | 校验 400 | `REQ-014` |
+| 2 | Controller -> Converter | `KnowledgeCommandConverter#toTarget` | Request -> Command，并由 Controller 附加来自配置的租户 | 无 | 校验 400；租户配置缺失 -> 启动失败 | `REQ-014`, `REQ-025` |
 | 3 | Controller -> `KnowledgeBaseManage` | `create(Command)` | Command -> `KnowledgeBaseBO` | 新增 `knowledge_base` 行 | 业务键冲突 409 | `REQ-002` |
 | 4 | Controller -> `KnowledgeDocumentManage` | `upload(Command)` | multipart -> `KnowledgeDocumentBO` | 文件 + 文档行 + outbox 行 | 见 `§7.3.4` | `REQ-003`, `REQ-004`, `REQ-007` |
 | 5 | `KnowledgeDocumentManage` -> `RagDocumentStorage` | `store(...)` | 字节流 -> 存储标识 | 宿主文件系统新增文件 | 失败 -> 中止且不写行 | `REQ-007` |
 | 6 | `KnowledgeDocumentManage` -> `RagExtractionService` | `extract(RagExtractionCommand)` | 字节流 -> `ExtractedDocumentBO` | 无 | 无匹配/解析失败 -> 中止并删文件 | `REQ-006`, `REQ-007` |
 | 7 | `KnowledgeDocumentManage` -> `KnowledgeDocumentDAO` | `insert(PO)` | 文档 PO -> 行 | `knowledge_document` 新增 | 失败 -> 事务回滚且删文件 | `REQ-004` |
 | 8 | `KnowledgeDocumentManage` -> `TransactionalOutbox` | `enqueue(channel=rag-ingest)` | 载荷 -> outbox 行 | 同一事务内新增 outbox 行 | 失败 -> 事务回滚 | `REQ-004` |
-| 9 | Outbox poller -> `KnowledgeIngestDeliveryHandler` | `handle(DeliveryContext)` | 载荷 -> 执行结果 | 无 | 抛出 -> 重试/死信 | `REQ-005` |
-| 10 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 读取文档 | documentId -> 行 | 无 | 记录不存在 -> 视为成功（幂等） | `REQ-006` |
+| 9 | Outbox poller -> `KnowledgeIngestDeliveryHandler` | `handle(DeliveryContext)` | 载荷（含 `tenantId` 与 `documentId`）-> 执行结果 | 无 | 抛出 -> 重试/死信 | `REQ-005`, `REQ-026` |
+| 10 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 按载荷中的租户与文档标识读取 | 载荷 -> 行 | 无 | 记录不存在 -> 视为成功（幂等）；租户不匹配 -> 同样视为不可见 | `REQ-006`, `REQ-026` |
 | 11 | `KnowledgeIngestDeliveryHandler` -> `RagIngestionService` | `ingest(RagIngestionCommand)` | 重建文档 -> `RagIngestionResult` | 向量表按文档重建 | 失败 -> 由 outbox 重试 | `REQ-006`, `REQ-009` |
 | 12 | `KnowledgeIngestDeliveryHandler` -> `KnowledgeDocumentDAO` | 回写状态 | 结果 -> 状态与分块数 | `knowledge_document` 更新 | 更新失败 -> 本次投递失败并重试 | `REQ-005` |
 | 13 | Controller -> `KnowledgeQaManage` | `ask(Command, Observer)` | 问题 -> SSE 事件 | 无持久化 | 见 `§7.3.4` | `REQ-012` |
@@ -596,6 +614,8 @@ sequenceDiagram
 | 问答容量 | `KnowledgeQaCapacityService`，进程内 | 公平 `Semaphore`，不排队 | 第 N+1 个请求立即 429 | 进程内即时 | 许可在终态与断连时释放一次 | `REQ-022` / `TEST-022`, `TEST-023` |
 | 问答流终态 | `KnowledgeQaManageImpl` | 原子终态标记 | completed/failed/cancelled 只有一个胜者 | 首个终态生效 | 重复终态被丢弃 | `REQ-012` / `TEST-021` |
 | 软删与检索 | 本项目写 `is_deleted`；向量分块在删除事务内硬删 | 行软删 + 分块硬删 | 已删文档的残留分块由删除路径保证清除 | 提交后不可检索 | 分块删除失败 -> 整体回滚 | `REQ-003` / `TEST-016` |
+| 租户作用域 | 显式参数，由调用入口的配置供给；不依赖 MDC 或线程上下文 | 请求路径由参数传递；异步路径由 outbox 载荷传递 | 并发请求各自携带自己的租户，互不污染；投递线程不会读到别人的租户 | 行写入时以列值固定；查询以租户为等值前导条件 | 租户配置缺失 -> 启动失败；载荷缺租户 -> 投递失败并重试 | `REQ-025`, `REQ-026` / `TEST-032`, `TEST-033` |
+| 向量租户过滤 | 组件强制注入的过滤表达式 | 与 `collectionId`、`embeddingModel` 并列的第三项强制条件 | 调用方无法省略或覆盖 | 检索时即时生效 | 过滤构造失败 -> 抛出而非返回未过滤结果 | `REQ-027` / `TEST-034` |
 
 #### 7.3.4 Failure semantics, recovery, and reconciliation
 
@@ -638,6 +658,7 @@ sequenceDiagram
 | 摄取必须异步且至少一次 | 用户选择方案 C；`EVD-016`, `EVD-017` | `REQ-004`, `REQ-005` | 复用事务性 outbox，表由本项目创建 | 获得持久重试、死信与跨重启恢复；代价是多一张表与一个轮询 worker，且重跑会重新计费嵌入 | `TEST-013`, `TEST-014`, `TEST-017` |
 | 抽取与嵌入必须分两段并以落库文本为界 | 用户"原始文本入库、不重复解析"；`EVD-019` | `REQ-006`, `REQ-007` | 上传时抽取并落库，handler 从 `content` 重建文档 | 重跑不重新解析、不重新上传；代价是上传路径比纯写库多一次解析，且文本占用数据库空间 | `TEST-009`, `TEST-013` |
 | 向量表交给 `PgVectorStore` 自建 | 用户选择方案 A；`EVD-018` | `REQ-010` | `initializeSchema=true`，Flyway 不建该表 | 维度只有一处来源，不复制 Spring AI 内部 DDL；代价是该表不在 Flyway 版本管理内，且需要 `vector` 扩展权限 | `TEST-026` |
+| 租户必须是显式参数而非环境状态 | `EVD-010` 的 MDC 租户通道；`EVD-023` 用户只要求先加字段 | `REQ-025`, `REQ-026` | 租户由调用入口的配置供给并沿参数与 outbox 载荷传递；不使用 MDC 驱动租户拦截 | 异步路径天然正确，将来换租户来源只改入口一行；代价是每个查询都必须显式带上租户，遗漏会由测试而非框架捕获 | `TEST-032`, `TEST-033` |
 
 ## 8. Package Structure and Code File Tree
 
@@ -761,7 +782,7 @@ External API impact: **Affected**。新增 12 个 REST/SSE 操作，全部复用
 | GraphQL source of truth | `N/A` — 无 SDL、无 resolver、无消费者，且 `EVD-003` 禁止 `spring-boot-starter-graphql` |
 | Springdoc/OpenAPI compatibility | 沿用既有 `springdoc-openapi-starter-webmvc-api` 2.8.17（`EVD-001` 的 agent POM 已在 adapter/starter 声明），Spring Boot 3.5.16 MVC，OAS 3.0 生成 |
 | Legacy Swagger/Springfox status | 不存在；`EVD-003` 的禁项与既有 agent 契约测试均未使用 Springfox，本项目继续只用 `io.swagger.v3.oas.annotations.*` |
-| Security and documentation exposure | 复用 `ResearchApiKeyFilter`（路径无关，`EVD-012`）与 `X-Research-Api-Key`；无租户；文档与 UI 由既有 `DEEP_RESEARCH_DOCS_ENABLED` 控制（prod 默认关闭，`EVD-014`） |
+| Security and documentation exposure | 复用 `ResearchApiKeyFilter`（路径无关，`EVD-012`）与 `X-Research-Api-Key`；**接口不接受任何租户请求头，也不做租户鉴权**——租户在服务端由配置供给并只作用于数据行与向量过滤，本版不构成隔离边界（`REQ-013`, `RISK-009`）；文档与 UI 由既有 `DEEP_RESEARCH_DOCS_ENABLED` 控制（prod 默认关闭，`EVD-014`） |
 | Contract publication and drift gate | 运行时 `/v3/api-docs` 生成不入库；`KnowledgeOpenApiTest` 断言新增 operation 的 path、operationId、媒体类型、security、状态码与 schema，并断言研究域 operation 未变 |
 
 ### 9.1 Interface Inventory
@@ -2425,11 +2446,13 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 
 | Model.field | Type | Required/null/default | Validation and semantics | Source/mapping | Requirements |
 | --- | --- | --- | --- | --- | --- |
+| `KnowledgeBaseBO.tenantId` | `Long` | 必填、非空 | 非负；本版取配置的默认租户 | `KnowledgeBasePO.tenantId` | `REQ-025` |
 | `KnowledgeBaseBO.knowledgeBaseId` | `Long` | 必填、非空 | 正数；对应 `EgonModel.id` | `KnowledgeBasePO.id` | `REQ-002` |
 | `KnowledgeBaseBO.code` | `String` | 必填、非空 | 2-64；`[A-Za-z0-9._-]+`；不可变 | `KnowledgeBasePO.code` | `REQ-002` |
 | `KnowledgeBaseBO.embeddingModel` | `String` | 必填、非空 | 逻辑名，必须在注册表中 | `KnowledgeBasePO.embeddingModel` | `REQ-009` |
 | `KnowledgeBaseBO.chunkStrategy` | `ChunkingStrategyEnum` | 必填、非空 | 枚举；不可变 | `KnowledgeBasePO.chunkStrategy` | `REQ-006` |
 | `KnowledgeBaseBO.chunkConfig` | `RagChunkingConfig`（组件类型） | 必填、非空 | 由组件 `chunk/` 的配置载体表达 | `KnowledgeBasePO.chunkConfig`（jsonb） | `REQ-006` |
+| `KnowledgeDocumentBO.tenantId` | `Long` | 必填、非空 | 非负；必须等于其知识库的租户 | `KnowledgeDocumentPO.tenantId` | `REQ-025` |
 | `KnowledgeDocumentBO.documentId` | `Long` | 必填、非空 | 正数 | `KnowledgeDocumentPO.id` | `REQ-003` |
 | `KnowledgeDocumentBO.knowledgeBaseId` | `Long` | 必填、非空 | 正数；外键语义 | `KnowledgeDocumentPO.knowledgeBaseId` | `REQ-003` |
 | `KnowledgeDocumentBO.content` | `String` | 上传成功后必填、非空 | 抽取文本；可很长的文本列 | `KnowledgeDocumentPO.content` | `REQ-007` |
@@ -2438,6 +2461,7 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 | `KnowledgeDocumentBO.chunkCount` | `int` | 必填 | ≥ 0 | `KnowledgeDocumentPO.chunkCount` | `REQ-005` |
 | `KnowledgeDocumentBO.attemptCount` | `int` | 必填 | ≥ 0 | `KnowledgeDocumentPO.attemptCount` | `REQ-005` |
 | `KnowledgeChunkBO.score` | `Double` | 可空 | 由组件返回，可能为 `null` | 组件检索结果 | `REQ-011` |
+| `KnowledgeRuntimeProperties.tenantDefaultId` | `Long` | 可选，缺省 `0` | 非负；启用组件时必填（有默认值） | 配置键 `agent.knowledge.tenant.default-id` | `REQ-025` |
 | `KnowledgeRuntimeProperties.qaMaxConcurrent` | `int` | 可选，缺省 4 | 1-32 | 配置 | `REQ-022` |
 | `KnowledgeRuntimeProperties.maxUploadBytes` | `long` | 可选，缺省 20MB | > 0 | 配置 | `REQ-003` |
 | `KnowledgeRuntimeProperties.maxDocumentsPerBase` | `int` | 可选，缺省 10000 | ≥ 1 | 配置 | `REQ-003` |
@@ -2454,7 +2478,7 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 | `AskKnowledgeBaseRequest` 等 Request | `record` | 紧凑构造器：trim | Jakarta 注解；`@NotNull`/`@Size`/`@DecimalMin` 等 | 字符串 trim | 无 | `TEST-020`, `TEST-021` |
 | `KnowledgeBaseVO` 等 VO | `record` | 紧凑构造器：不可变集合 | 组件内部构造，无 Jakarta 注解 | `@JsonInclude(NON_NULL)` | 无 | `TEST-021` |
 
-`Rule 3` 对 PO 的完整基线请求见 `§6.2.1`，在获批前 `MC-MODEL-001` 为 `BLOCKED`。
+`Rule 3` 对 PO 的例外请求见 `§6.2.1`，已由用户于 2026-09-10 12:13 批准。
 
 ### 10.4 Object flow and mapping relationships
 
@@ -2521,7 +2545,7 @@ PO 与 POJO 字段到表列的映射见 `§11.2` 的列设计表；`KnowledgeBas
 - **Owner/writer**：knowledge 域；唯一写入者是 `KnowledgeBaseManageImpl` 经由 `KnowledgeBaseDAO`；`KnowledgeBasePO` 的审计列由 `EgonColaMetaObjectHandler` 填充（`EVD-010`）。
 - **Readers**：知识库详情与列表查询、上传路径读取配置、摄取 handler 与检索路径读取模型与集合标识。
 - **Lifecycle**：创建后仅 `name`/`description` 可变；`API-005` 执行软删。软删后对所有查询不可见。
-- **Tenant/security**：本项目无租户，`tenant_id` 由基类提供但保持为空，并通过 `ASM-006` 的 `tenant-id.ignored-tables` 排除租户拦截。
+- **Tenant/security**：本表**使用**租户列。`tenant_id` 由基类提供，本版由配置的默认租户（`ASM-007`）显式写入，并且是业务键唯一性的一部分。租户**不来自 MDC**：本表通过 `ASM-006` 的 `tenant-id.ignored-tables` 排除出 MyBatis Plus 的 MDC 驱动租户拦截，由应用层的显式租户参数保证作用域（`DEC-012`）。本版租户恒为默认值，因此**不是安全隔离边界**。
 - **Capacity**：单部署预期数量为百量级；无分片与归档需求。
 - **Evidence boundary**：源码证明结构与访问路径；行数、分布与查询计划需运行期证据。
 
@@ -2530,7 +2554,7 @@ PO 与 POJO 字段到表列的映射见 `§11.2` 的列设计表；`KnowledgeBas
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id` | `bigint` | 64-bit | No | 无 | 主键生成策略（`EgonModel`） | PK | 内部标识 | `KnowledgeBasePO.id` | `1001` |
-| `tenant_id` | `bigint` | 64-bit | Yes | 无 | 无 | 无 | 基类提供；本项目不使用 | `KnowledgeBasePO.tenantId` | `NULL` |
+| `tenant_id` | `bigint` | 64-bit | No | `0` | 无（由应用显式写入） | 参与 `uk_knowledge_base_tenant_code` | 租户作用域；本版取配置的默认租户 | `KnowledgeBasePO.tenantId` | `0` |
 | `create_user_id` | `varchar(64)` | 64 | Yes | 无 | 由审计填充器按 MDC 赋值；无身份时为空 | 无 | 创建人 | `KnowledgeBasePO.createUserId` | `NULL` |
 | `create_time` | `timestamp with time zone` | 微秒 | No | 无 | 由审计填充器写入 | 无 | 创建时刻 | `KnowledgeBasePO.createTime` | `2026-09-10T03:51:00Z` |
 | `update_user_id` | `varchar(64)` | 64 | Yes | 无 | 同上 | 无 | 最后修改人 | `KnowledgeBasePO.updateUserId` | `NULL` |
@@ -2551,7 +2575,7 @@ PO 与 POJO 字段到表列的映射见 `§11.2` 的列设计表；`KnowledgeBas
 | Key/relationship | Definition | Business rule | Delete/update behavior | Enforcement and evidence |
 | --- | --- | --- | --- | --- |
 | Primary key | `pk_knowledge_base(id)` | 稳定内部标识 | 不可更新 | 数据库主键 |
-| Business key | `uk_knowledge_base_code(lower(code)) WHERE is_deleted = false` | 业务键在未删除行内唯一 | 不可更新 | 唯一索引；冲突映射为 409 |
+| Business key | `uk_knowledge_base_tenant_code(tenant_id, lower(code)) WHERE is_deleted = false` | 业务键在同一租户的未删除行内唯一；不同租户可同名 | 不可更新 | 唯一索引；冲突映射为 409 |
 | Documents | `knowledge_base.id -> knowledge_document.knowledge_base_id` 一对多 | 知识库拥有其文档 | 应用级联软删；不使用数据库外键 | 应用强制（与既有仓库不含外键的风格一致，`EVD-007`） |
 
 ##### Index inventory and per-index justification
@@ -2559,8 +2583,8 @@ PO 与 POJO 字段到表列的映射见 `§11.2` 的列设计表；`KnowledgeBas
 | Index | Type/unique | Ordered columns/expressions | Predicate/include | Query and operation | Cardinality/selectivity | Sort/coverage role | Write/storage cost | Decision |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `pk_knowledge_base` | btree unique | `(id)` | None | 详情与上传路径按 id 读取 | 高度选择性 | 主键查找 | 既有必需 | Add |
-| `uk_knowledge_base_code` | btree unique | `(lower(code))` | `WHERE is_deleted = false` | 建库唯一性校验与冲突检测 | 预期近唯一 | 唯一性查找，非排序 | 每次插入一次检查 | Add |
-| `idx_knowledge_base_created` | btree | `(created_at DESC, id DESC)` | `WHERE is_deleted = false` | `API-002` 的分页与排序 | 与行数同阶；排序由索引提供 | 提供稳定排序，避免全表排序 | 每次插入一次写放大 | Add |
+| `uk_knowledge_base_tenant_code` | btree unique | `(tenant_id, lower(code))` | `WHERE is_deleted = false` | 建库唯一性校验与冲突检测 | 预期租户内近唯一 | 唯一性查找，非排序 | 每次插入一次检查 | Add |
+| `idx_knowledge_base_tenant_created` | btree | `(tenant_id, created_at DESC, id DESC)` | `WHERE is_deleted = false` | `API-002` 的分页与排序 | 单租户内选择性；租户是等值前导列 | 提供稳定排序，避免全表排序 | 每次插入一次写放大 | Add |
 
 `API-002` 的查询形状（文档用途，实际 SQL 由 MyBatis Plus 生成）：
 
@@ -2568,14 +2592,15 @@ PO 与 POJO 字段到表列的映射见 `§11.2` 的列设计表；`KnowledgeBas
 -- 文档用途，非生产 SQL；实际实现使用 MyBatis Plus 的条件构造器。
 SELECT id, code, name, embedding_model, status, created_at, updated_at
 FROM knowledge_base
-WHERE is_deleted = false
+WHERE tenant_id = :tenantId
+  AND is_deleted = false
   AND (:keyword IS NULL OR code ILIKE '%' || :keyword || '%' OR name ILIKE '%' || :keyword || '%')
   AND (:embeddingModel IS NULL OR embedding_model = :embeddingModel)
 ORDER BY created_at DESC, id DESC
 LIMIT :size OFFSET :offset;
 ```
 
-`is_deleted = false` 是等值前导条件，`created_at DESC, id DESC` 是排序键，`id` 是确定性次序打破者。`keyword` 的 `ILIKE` 包含匹配无法走索引，因此该索引只服务"无关键字"的默认路径；带关键字的分页在全表扫描下仍受百量级数据规模约束。**不为 `keyword` 建索引**，因为包含匹配的 trigram 索引在百量级数据上没有收益。
+`tenant_id` 是**最左等值前导条件**，其后是 `is_deleted = false`，再后是排序键，`id` 是确定性次序打破者。`keyword` 的 `ILIKE` 包含匹配无法走索引，因此该索引只服务"无关键字"的默认路径；带关键字的分页在全表扫描下仍受百量级数据规模约束。**不为 `keyword` 建索引**，因为包含匹配的 trigram 索引在百量级数据上没有收益。
 
 ##### Access patterns and SQL shape
 
@@ -2613,8 +2638,8 @@ LIMIT :size OFFSET :offset;
 - **Owner/writer**：`KnowledgeDocumentManageImpl`（插入、软删、重新入队）与 `KnowledgeIngestDeliveryHandler`（状态回写）。
 - **Readers**：文档列表与详情、摄取 handler（读取 `content` 重建文档）、删除路径。
 - **Lifecycle**：上传时插入 `PENDING`；随摄取推进至 `SUCCEEDED`/`FAILED`/`DEAD`；软删后不可见。`content` 一经写入不再变更。
-- **Tenant/security**：同 `knowledge_base`。
-- **Capacity**：单知识库默认上限 10,000（`ASM-004`）；`content` 是主要空间占用，20MB 上限对应文本通常远小于文件本身。
+- **Tenant/security**：同 `knowledge_base`——使用租户列、租户来自显式参数而非 MDC、本版恒为默认值因而不是隔离边界。
+- **Capacity**：单知识库默认上限 10,000（`ASM-004`）；`content` 是主要空间占用，20MB 上限对应文本通常远小于文件本身。文档数上限按租户与知识库两级判定。
 - **Evidence boundary**：同 `knowledge_base`。
 
 ##### Complete column design
@@ -2622,7 +2647,7 @@ LIMIT :size OFFSET :offset;
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id` | `bigint` | 64-bit | No | 无 | 主键生成策略 | PK | 内部标识 | `KnowledgeDocumentPO.id` | `2001` |
-| `tenant_id` | `bigint` | 64-bit | Yes | 无 | 无 | 无 | 基类提供；本项目不使用 | `KnowledgeDocumentPO.tenantId` | `NULL` |
+| `tenant_id` | `bigint` | 64-bit | No | `0` | 无（由应用显式写入） | 参与 `idx_knowledge_document_tenant_base_created` | 租户作用域；必须等于所属知识库的租户 | `KnowledgeDocumentPO.tenantId` | `0` |
 | `create_user_id` | `varchar(64)` | 64 | Yes | 无 | 审计填充 | 无 | 创建人 | `KnowledgeDocumentPO.createUserId` | `NULL` |
 | `create_time` | `timestamp with time zone` | 微秒 | No | 无 | 审计填充 | 无 | 上传时刻 | `KnowledgeDocumentPO.createTime` | `2026-09-10T05:30:00Z` |
 | `update_user_id` | `varchar(64)` | 64 | Yes | 无 | 审计填充 | 无 | 最后修改人 | `KnowledgeDocumentPO.updateUserId` | `NULL` |
@@ -2658,7 +2683,7 @@ LIMIT :size OFFSET :offset;
 | Index | Type/unique | Ordered columns/expressions | Predicate/include | Query and operation | Cardinality/selectivity | Sort/coverage role | Write/storage cost | Decision |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `pk_knowledge_document` | btree unique | `(id)` | None | 详情、重新处理、删除、handler 读取 | 高度选择性 | 主键查找 | 既有必需 | Add |
-| `idx_knowledge_document_base_created` | btree | `(knowledge_base_id, created_at DESC, id DESC)` | `WHERE is_deleted = false` | `API-007` 的分页与排序；删除路径按知识库收集文档 | 单知识库内选择性高 | 提供稳定排序并支持按知识库定位 | 每次插入一次写放大 | Add |
+| `idx_knowledge_document_tenant_base_created` | btree | `(tenant_id, knowledge_base_id, created_at DESC, id DESC)` | `WHERE is_deleted = false` | `API-007` 的分页与排序；删除路径按知识库收集文档 | 单租户单知识库内选择性高 | 提供稳定排序并支持按租户与知识库定位 | 每次插入一次写放大 | Add |
 
 `API-007` 的查询形状（文档用途）：
 
@@ -2666,7 +2691,8 @@ LIMIT :size OFFSET :offset;
 -- 文档用途，非生产 SQL；实际实现使用 MyBatis Plus 的条件构造器。
 SELECT id, display_name, mime_type, size_bytes, status, chunk_count, error_code, created_at, updated_at
 FROM knowledge_document
-WHERE knowledge_base_id = :knowledgeBaseId
+WHERE tenant_id = :tenantId
+  AND knowledge_base_id = :knowledgeBaseId
   AND is_deleted = false
   AND (:status IS NULL OR status = :status)
   AND (:keyword IS NULL OR display_name ILIKE '%' || :keyword || '%')
@@ -2674,7 +2700,7 @@ ORDER BY created_at DESC, id DESC
 LIMIT :size OFFSET :offset;
 ```
 
-`knowledge_base_id` 是等值前导列，随后是排序键；该索引同时服务"按知识库统计未删除文档数"的计数查询。`keyword` 与 `status` 为可选筛选：`status` 可继续使用该索引的等值前缀之外的选择性不高的路径，`keyword` 的包含匹配不走索引——在单知识库万级行以内可接受，**不为它们单独建索引**。
+`tenant_id` 与 `knowledge_base_id` 是最左等值前导列，随后是排序键；该索引同时服务"按知识库统计未删除文档数"的计数查询。`keyword` 与 `status` 为可选筛选：`status` 可继续使用该索引的等值前缀之外的选择性不高的路径，`keyword` 的包含匹配不走索引——在单知识库万级行以内可接受，**不为它们单独建索引**。
 
 ##### Access patterns and SQL shape
 
@@ -2813,7 +2839,7 @@ CREATE TABLE IF NOT EXISTS public.vector_store (
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `id` | `uuid` | 16 字节 | No | `uuid_generate_v4()` | 默认值生成；实际写入由组件显式提供 | PK | 分块标识，等于 `documentId + ":" + chunkIndex` 的确定性派生值 | 组件写入 | `3f1c…` |
 | `content` | `text` | 无限制 | Yes | 无 | 无 | 无 | 分块文本 | 组件写入 | `超时通过 max-duration 配置……` |
-| `metadata` | `json` | — | Yes | 无 | 无 | 无（列类型为 `json`，写入时强制 `::jsonb` 转换） | 保留元数据与业务属性 | 组件写入 | `{"collectionId":"1001","documentId":"2001","chunkIndex":7,"embeddingModel":"openai-small"}` |
+| `metadata` | `json` | — | Yes | 无 | 无 | 无（列类型为 `json`，写入时强制 `::jsonb` 转换） | 组件保留元数据与业务属性（含 `tenantId`） | 组件写入保留键；本项目经业务属性传入 `tenantId` | `{"collectionId":"1001","documentId":"2001","chunkIndex":7,"embeddingModel":"openai-small","tenantId":"0"}` |
 | `embedding` | `vector(n)` | `n = rag.dimensions`（默认 1536） | Yes | 无 | 无 | 无 | 分块向量 | 组件写入 | `[0.01,-0.02,…]` |
 
 列语义补充：`id` 的确定性派生是**幂等重跑的基础**（`REQ-006`），组件在写入前按 `metadata->>'documentId'` 删除既有分块，因此重跑不会累积重复行。`metadata` 中的 `collectionId`、`documentId`、`chunkIndex`、`embeddingModel`、`contentHash` 由组件强制写入，业务属性只能追加不能覆盖。`embedding` 的维度与 Bean 的 `dimensions` 配置必须一致，否则写入失败——这是 `REQ-009` 的机制来源。
@@ -2826,6 +2852,7 @@ CREATE TABLE IF NOT EXISTS public.vector_store (
 | Document reference | `metadata->>'documentId'` 逻辑引用 `knowledge_document.id` | 分块必须属于一个文档 | 文档删除时应用按该键删除其全部分块 | 应用强制；组件按 `documentId` 过滤删除 |
 | Collection reference | `metadata->>'collectionId'` 逻辑引用 `knowledge_base.id` | 分块必须属于一个知识库 | 知识库删除时逐个文档删除 | 应用强制；组件在检索时强制过滤该键 |
 | Embedding model | `metadata->>'embeddingModel'` | 分块必须由声明的逻辑模型产生 | 不可更新；换模型等价于重建 | 应用强制；组件在写入与检索两侧强制该键 |
+| Tenant | `metadata->>'tenantId'` | 分块必须属于其文档的租户 | 随文档删除而删除 | 应用强制；本项目在写入时作为业务属性传入，在检索时作为业务过滤条件强制叠加（`REQ-027`）。**本版该值恒为默认租户**，是隔离机制的预埋而非当前生效的边界 |
 
 以上关系全部由应用与组件强制，**不存在数据库外键**——`metadata` 是 `json` 列，无法建立外键；这与本项目其它表不含外键的风格一致（`EVD-007`）。孤儿分块的清理路径是：文档删除与知识库删除都会按 `documentId` 删除分块；若删除中途失败，整个数据库事务回滚，不会留下"行已删而分块仍在"的状态。
 
@@ -2844,7 +2871,7 @@ CREATE TABLE IF NOT EXISTS public.vector_store (
 | --- | --- | --- | --- | --- | --- | --- |
 | 写入分块 | `RagIngestionService` → `VectorStore#add` | `INSERT ... ON CONFLICT (id) DO UPDATE` | 批量，受组件 `maxDocumentBatchSize` 上限约束 | `vector_store_pkey` | 单语句；无显式事务 | 失败向上抛出；重跑按文档重建 |
 | 删除文档分块 | `RagIngestionService` → `VectorStore#delete(Filter.Expression)` | `metadata->>'documentId' = ?` | 该文档全部分块 | 无专用索引 | 单语句 | 失败时不写入；重跑自愈 |
-| 相似度检索 | `RagRetrievalService` → `VectorStore#similaritySearch` | `metadata->>'collectionId' = ? AND metadata->>'embeddingModel' = ?` 加可选的业务属性等值条件，按距离升序，`LIMIT topK` | 0 到 topK | `spring_ai_vector_index` | 只读 | 依赖失败向上抛出，不返回降级结果 |
+| 相似度检索 | `RagRetrievalService` → `VectorStore#similaritySearch` | 组件强制注入 `metadata->>'collectionId' = ? AND metadata->>'embeddingModel' = ?`；本项目再强制叠加 `metadata->>'tenantId' = ?`；随后是可选业务属性等值条件；按距离升序，`LIMIT topK` | 0 到 topK | `spring_ai_vector_index` | 只读 | 依赖失败向上抛出，不返回降级结果；过滤构造失败同样抛出，绝不返回未过滤结果 |
 
 ##### Migration and historical-data handling
 
@@ -2880,7 +2907,8 @@ erDiagram
 
     KNOWLEDGE_BASE {
         bigint id PK "internal identity"
-        varchar code UK "business key, unique among non-deleted rows"
+        bigint tenant_id "tenant scope, part of the business key; fixed default in this version"
+        varchar code UK "business key, unique per tenant among non-deleted rows"
         varchar name "display name"
         varchar embedding_model "frozen logical embedding model"
         varchar chunk_strategy "frozen chunking strategy"
@@ -2891,6 +2919,7 @@ erDiagram
 
     KNOWLEDGE_DOCUMENT {
         bigint id PK "internal identity"
+        bigint tenant_id "tenant scope, must equal the owning knowledge base tenant"
         bigint knowledge_base_id FK "owning knowledge base, application-enforced"
         varchar display_name "display name"
         varchar storage_type "LOCAL"
@@ -2917,7 +2946,7 @@ erDiagram
 - `KNOWLEDGE_BASE -> KNOWLEDGE_DOCUMENT` 是**应用强制**的一对多，不是数据库外键（与既有 source 项目不含外键的风格一致，`EVD-007`）；知识库软删时应用级联软删其文档。
 - `KNOWLEDGE_DOCUMENT` 与 `OUTBOX_MESSAGE` **没有数据库关系**：任务通过 `payload.documentId` 逻辑关联；文档被软删后残留的任务在 handler 中发现记录不可见时会视为成功，不产生失败重试。
 - `KNOWLEDGE_DOCUMENT` 与 `VECTOR_STORE` 的关系体现在向量表中由组件强制写入的 `documentId` 元数据键上；分块 id 由 `documentId + ":" + chunkIndex` 派生，因此该关系是确定性的而无需外键。
-- 三张表的 `tenant_id`、审计列与 `is_deleted`（除 outbox 外）来自 `EgonModel`，语义一致。
+- 三张表的 `tenant_id`、审计列与 `is_deleted`（除 outbox 外）来自 `EgonModel`，语义一致。两张业务表的 `tenant_id` 非空且本版恒为默认租户；它与 `VECTOR_STORE` 的 `metadata->>'tenantId'` 是同一租户的两个副本，写入时由同一次调用同时提供。
 
 ## 12. Frontend Page Design
 
@@ -3016,6 +3045,9 @@ erDiagram
 | `TEST-029` | Contract | 日志与源码扫描 | 执行上传、摄取、检索、问答与错误路径 | 日志不含文档文本、问题原文、回答内容、向量或密钥；命名后缀符合规则；无 `java.util.Date` | 日志捕获 + 源码扫描 | JUnit 5 | `REQ-014`, 规则 1/10 |
 | `TEST-030` | Contract | 四个 `application*.yml` | 对比键集合 | 新增键在四个文件中同构；既有 12 个受检键集合不变 | 无 | JUnit 5 | Rule 7 |
 | `TEST-031` | Contract | 生成项目 `verify.groovy` | 修订后的断言 | 迁移文件、RAG/outbox/pgvector/mybatis 依赖与运行时库存在；禁项保持；`clean verify` 通过 | 生成的项目 | Maven + Groovy | `REQ-019`-`REQ-021` |
+| `TEST-032` | Integration | 两张业务表 + 数据源 | 建库与上传后读取原始行；同一业务键在两个不同租户下创建 | `tenant_id` 非空且等于配置的默认租户；同一业务键在不同租户下可以共存；所有查询接口的生成 SQL 含租户等值条件 | PostgreSQL 测试替身 | `SpringBootTest` + 语句检查 | `REQ-025` |
+| `TEST-033` | Unit | `KnowledgeIngestDeliveryHandler` | 载荷含租户与不含租户；投递线程无 MDC | 含租户时按该租户读取与回写；缺租户时投递失败并进入重试而非使用空值 | fake 仓储 + fake outbox 上下文 | JUnit 5 | `REQ-026` |
+| `TEST-034` | Unit | `RagKnowledgeVectorGateway` | 构造检索请求并检查传给组件的过滤条件；两个租户各有分块 | 过滤条件恒含 `tenantId`；跨租户检索不返回对方分块；调用方无法省略该条件 | fake 检索服务记录参数 | JUnit 5 | `REQ-027` |
 
 ## 15. Non-functional and Cross-cutting Design
 
@@ -3029,7 +3061,8 @@ erDiagram
 | 可观测性 | 摄取、上传、问答可诊断 | `§7.3.5` 的日志与既有 outbox 指标 | 指标缺失不影响功能 | `TEST-029` |
 | 一致性 | 变更可见性与删除语义明确 | 上传事务、条件状态回写、软删 + 分块硬删 | 见 `§7.3.3`、`§7.3.4` | `TEST-009`-`TEST-017` |
 | 无身份体系的后果 | `create_user_id`/`update_user_id` 在无 MDC 用户时为空 | `EgonModel` 的审计列由 `EgonColaMetaObjectHandler` 填充；本项目无用户身份（`EVD-021`） | 审计列可空，不影响功能 | `TEST-026` |
-| 租户语义 | `tenant_id` 不使用 | `ASM-006` 的 `tenant-id.ignored-tables` 排除两张业务表 | 若排除配置无效，需在实施时调整 | `TEST-026` |
+| 租户语义 | `tenant_id` 非空并由本版写入固定默认租户；所有读写带租户作用域；租户随 outbox 载荷传递 | 显式租户参数 + `ASM-007` 的配置默认值 + `tenant-id.ignored-tables` 把两张表排除出 MDC 驱动的租户拦截 | 租户配置缺失 -> 启动失败；载荷缺租户 -> 投递失败并重试；**本版租户恒为默认值，因此不是安全隔离边界，这一点必须在 README 明说** | `TEST-032`, `TEST-033` |
+| 租户来源演进 | 换来源只改调用入口读取租户的那一行，不改 schema、不改查询、不改载荷结构 | 租户是显式参数而非环境状态（`DEC-012`），因此没有需要清理的隐式通道 | 若将来接入统一身份后仍有人依赖 MDC，会出现两套租户来源；README 需声明唯一来源 | `TEST-032` |
 | 可访问性 | `N/A` | 无前端（`§12`） | 无 | `§12` 证据 |
 | 可维护性 | 门禁与打包清单同步 | `§16` 的修订清单 | 漏改任一处会导致构建或生成失败，属于 fail-closed | `TEST-001`-`TEST-003`, `TEST-025`, `TEST-031` |
 
@@ -3047,6 +3080,8 @@ erDiagram
 | 生成项目的既有 consumer | 既有六模块与包结构不变，因此既有 consumer 的定制方式不受影响 |
 
 **数据库迁移**：两条新迁移，全部是创建操作，无历史数据、无回填、无 `NOT NULL` 收紧。向量表不在迁移内，由应用首次启动创建（`REQ-010`）。已存在的数据库需要先具备创建扩展的权限。
+
+**租户列的可演进性**：两张业务表的 `tenant_id` 在首次迁移中即建为 `NOT NULL DEFAULT 0`，并作为业务键与查询索引的最左前缀。因此后续接入真实租户时，**不需要** `NOT NULL` 收紧、不需要重建索引结构、不需要改查询形状——只需要把入口处的默认租户替换为真实租户，并对已有数据做一次按归属的租户回填（回填会让唯一键的部分索引重新校验，需在低峰执行）。这是选择"先加字段"而不是"以后再加"的直接收益。
 
 **门禁与打包清单修订清单**（缺一不可，任一遗漏都会 fail-closed）：
 
@@ -3084,18 +3119,23 @@ erDiagram
 | D — 在 C 之上由 Flyway 手写向量表 | 多一条迁移与一份长期维护的 DDL 副本 | 表结构完全版本化 | 维度出现两个来源；Spring AI 升级时无提醒地漂移 | 与用户选择冲突 | `Reject`（`DEC-004`） |
 | E — 在 C 之上提供分块预览 | 多一个端点与一次从 `content` 重新切分 | 管理员可核对切分质量 | 需要组件暴露分块能力或让本项目直读向量表；用户已选择不支持在线改分块配置，价值进一步降低 | 与 `EVD-019` 的组件边界冲突 | `Reject`（`DEC-007`） |
 | F — 在 C 之上用 Spring JDBC 取代 MyBatis Plus | 直接使用 `JdbcTemplate` | 依赖最少、无租户/审计拦截器的未知行为 | 偏离仓库所有带数据库 archetype 的惯例；手写映射与分页；失去 `EgonModel` 的审计与软删契约 | 与 `EVD-008`-`EVD-010` 的惯例冲突 | `Reject` — 用户已选择 MyBatis Plus |
+| G — 在 C 之上实现完整的多租户身份（接入统一身份、租户鉴权与隔离） | OAuth2 Resource Server、issuer/audience/JWKS 配置、资源注册、`research` 域同步改造 | 真正的 SaaS 形态 | 变更面从"加一个业务域"扩大为"重构整个生成项目的身份模型"；用户明确表示先不考虑来源 | 与 `EVD-023` 的用户决定冲突；接入路径已有既有体系（`EVD-022`） | `Reject`（本版）— 推迟到后续 Spec，本 Spec 只预埋列与参数 |
+| H — 在 C 之上只加 `tenant_id` 列但不进入查询作用域 | 只改 DDL | 改动最小 | 将来接入时必须同时改 DDL、索引、唯一键与每一个查询，等于把本版省下的工作推迟并放大 | 与 `REQ-025` 冲突 | `Reject` — "先加字段"应当加到位，否则不是预留而是负债 |
+| I — 用 MDC 驱动租户拦截器（沿用组件的默认通道）而不走显式参数 | 只在入口设置 MDC | 与组件默认行为一致，查询代码更少 | outbox 投递线程无 MDC，异步路径必然出错或写错租户（`EVD-010`）；这是硬缺陷而非风格取舍 | 与本项目已证明的失败模式冲突 | `Reject`（`DEC-012`） |
 
 ## 18. Risks and Open Questions
 
 | ID | Risk/question | Probability | Impact | Mitigation or decision owner | Status |
 | --- | --- | --- | --- | --- | --- |
 | `RISK-001` | Spring AI 版本线：仓库管理 `1.1.8`，而 `PgVectorStore` 的表结构与默认值核对于本地 `1.1.2` | Medium | 向量表 DDL 或 builder 方法在 `1.1.8` 上不同，导致启动或写入失败 | 实施前用 `1.1.8` 复核 `EVD-018`；差异只影响基础设施装配，不影响 `REQ-*` | Open |
-| `RISK-002` | MyBatis Plus 的租户拦截器在无租户应用中行为未从源码验证；`tenant-id.ignored-tables` 的实际效果需实测 | Medium | 查询被注入 `tenant_id` 条件导致查不到数据，或写入被拒绝 | `TEST-026` 覆盖装配与一次完整读写；若配置无效则在实施时改用固定租户或禁用拦截器的既有开关 | Open |
+| `RISK-002` | MyBatis Plus 的租户拦截器行为未从源码验证；`tenant-id.ignored-tables` 的实际效果需实测 | Medium | 拦截器若仍对两张表注入以 MDC 为源的租户条件，会与显式租户叠加或取到空值，导致查不到数据或写入被拒 | `TEST-032` 在完整读写路径上断言实际生效的租户条件；若排除无效，则在实施时改用固定租户写入 MDC 或关闭拦截器的既有开关 | Open |
+| `RISK-009` | 本版租户恒为默认值，`REQ-025`-`REQ-027` 提供的是**机制预埋而非生效的隔离边界** | High | 若被误读为"已经多租户"，接入真实租户前上线会产生跨租户可见 | README 与组件架构文档必须显式声明这一点；`§9.0` 的安全小节已记录"接口不接受租户请求头"；接入真实租户需要新的 Spec | Open |
+| `RISK-010` | 将来接入统一身份时需要对已有知识库与文档做租户回填 | Medium | 回填会触发唯一键与索引的重新校验，大表上可能长时间持锁 | 回填方案与分批策略属于后续 Spec；本版把 `tenant_id` 建成非空默认值正是为了让回填只涉及数据不涉及 DDL | Open |
 | `RISK-003` | 本地文件存储在多实例部署下不可共享 | Medium | 多实例时取回原文件失败；删除可能漏删其它实例写入的文件 | 文档明确限制；多实例必须切换到共享存储；`RagDocumentStorage` 已是扩展点 | Open |
 | `RISK-004` | 上传路径在事务外写文件、事务内写行；补偿删除失败会留下孤儿文件 | Medium | 存储空间缓慢泄漏 | `TEST-011` 覆盖补偿调用；记录孤儿文件告警指标并在 README 给出清理指引 | Open |
 | `RISK-005` | 删库级联在大知识库上耗时长，可能触及请求超时 | Low | 管理操作体验差，可能中途失败 | 删除前检查非终态文档并返回 409；文档说明大库删除的预期耗时；`TEST-007` 覆盖拒绝路径 | Open |
 | `RISK-006` | 生成项目的 archetype 打包清单只有 starter 有 resources 文件集；新增 infrastructure 文件集后需确认生成器不会重复或遗漏 | Medium | 迁移文件缺失或重复 | `TEST-025` 与 `TEST-031` 在生成产物上断言迁移文件恰好存在；生成器保持动态发现 | Open |
-| `RISK-007` | `MC-MODEL-001` 的 PO 注解基线例外未获批 | High | 规则 3 的字面要求无法满足，本 Spec 结论保持 `BLOCKED` | 用户裁决：批准仓库既有 PO 约定作为例外，或要求为 PO 补足完整基线（后者会引入构造器签名重复，需要另一套构造方案） | Open |
+| `RISK-007` | PO 注解基线的例外被后续 Spec 或评审者推翻 | Low | 需要为 PO 另找满足完整基线的构造方案，可能影响所有继承 `EgonModel` 的持久化对象 | 例外已由用户批准并记录在 `§6.2.1`；若将来推翻，影响面是整个 archetype family 而非本 Spec 独有 | Closed |
 | `RISK-008` | 问答的容量上限与 research 的容量上限相互独立，两个用例同时高负载时总资源占用可能超出预期 | Low | 模型调用并发高于运维预期 | 两个上限都在配置中显式声明并在 README 给出合计并发建议；`TEST-022` 覆盖问答上限 | Open |
 
 ## 19. Traceability Matrix
@@ -3114,7 +3154,7 @@ erDiagram
 | `REQ-010` | `UC-007` | `§11.1`, `§11.2` | 组件拥有向量表 | `PgVectorStore` Bean | `TEST-026` | 迁移不含向量表；启动后表存在 |
 | `REQ-011` | `UC-004` | `§9.2.11` | — | `API-011` | `TEST-018` | 返回片段与分数且不调用对话模型 |
 | `REQ-012` | `UC-005` | `§9.2.12` | 研究域 SSE 契约不变 | `API-012` | `TEST-020`, `TEST-023`, `TEST-024` | 事件有序、终态唯一、断连释放 |
-| `REQ-013` | 全部 | `§7.1.2`, `§9.0` | 既有过滤器与配置不变 | 全部 `API-*` | `TEST-027` | 无 key 一律 401 |
+| `REQ-013` | 全部 | `§7.1.2`, `§9.0` | 既有过滤器与配置不变 | 全部 `API-*` | `TEST-027` | 无 key 一律 401；接口不接受租户请求头 |
 | `REQ-014` | 全部 | `§9.2.x` 的错误小节 | 既有错误体复用 | 全部 `API-*` | `TEST-021`, `TEST-027` | 错误体形状与 trace 一致 |
 | `REQ-015` | `UC-007` | `§11.2.1`, `§11.2.2` | — | 迁移文件 | `TEST-025`, `TEST-026` | 两条迁移存在且被生成 |
 | `REQ-016` | `UC-007` | `§11.2.3` | 组件 DDL 不变 | outbox 迁移 | `TEST-026` | 表结构与组件期望一致 |
@@ -3126,6 +3166,9 @@ erDiagram
 | `REQ-022` | `UC-005` | `§7.2.2`, `§15` | 研究域容量语义不变 | `KnowledgeQaCapacityService` | `TEST-022`, `TEST-023` | 饱和 429 且不与研究互斥 |
 | `REQ-023` | 全部 | `§14` | — | 全部测试 | 全部 `TEST-*` | `clean verify` 无需外部服务 |
 | `REQ-024` | `UC-002` 研究域 | `§16` | 研究域为 `Unchanged` | 既有接口与事件 | `TEST-028` | 既有研究测试不改动即通过 |
+| `REQ-025` | `UC-001`, `UC-002` | `§11.2.1`, `§11.2.2`, `§7.3.3`, `§10.3` | 租户来源推迟（`EVD-023`） | 两张表的 `tenant_id`；`uk_knowledge_base_tenant_code`；`KnowledgeRuntimeProperties.tenantDefaultId` | `TEST-032` | 列非空且为默认租户；同业务键跨租户可共存；查询含租户等值条件 |
+| `REQ-026` | `UC-002`, `UC-006` | `§7.3.1`, `§11.2.3`, `§7.3.3` | outbox 组件契约不变 | 载荷 `tenantId`；handler 显式恢复 | `TEST-033` | 投递线程无 MDC 时仍按正确租户读写 |
+| `REQ-027` | `UC-004`, `UC-005` | `§9.2.11`, `§11.2.4` | 组件的强制过滤为依赖 | `metadata->>'tenantId'`；`RagKnowledgeVectorGateway` | `TEST-034` | 过滤恒含租户；跨租户不串结果 |
 
 ## 20. Review and Acceptance
 
@@ -3140,6 +3183,8 @@ erDiagram
 - 用户要求"同一维度不同模型" -> `REQ-009`、`§9.2.11`、`§7.2.2`。
 - 用户确认"持久化用 MyBatis Plus"与"向量表由 `PgVectorStore` 自建" -> `DEC-004`、`DEC-005`、`§11`。
 - 用户此前选择的"完整异步（方案 C）" -> `REQ-004`、`REQ-005`。
+- 用户 2026-09-10 12:13 "agent 也有租户的概念，我要做 SaaS agent 和 rag 服务的" + "租户暂时先不考虑从哪来，表上面字段先加上" -> `REQ-025`-`REQ-027`、`DEC-011`-`DEC-013`、`§11.2` 的租户列与索引、`§16` 的租户列可演进性小节。
+- 用户同次确认 `MC-MODEL-001` 按仓库既有 PO 约定处理 -> `§6.2.1`、`MC-MODEL-001` 的例外。
 
 无请求被弱化；被排除的能力全部写入 `§3.2` 并在 `§7.0` 与 `§17` 给出 `Remove`/`Reject` 裁决与理由。
 
@@ -3160,7 +3205,9 @@ erDiagram
 - `§11.3` 的 ER 图覆盖 `§11.1` 的全部表，基数为实际语义（应用强制），并与 `§11.2` 的键与约束一致。
 - `§14.3` 的 31 个测试在 `§19` 均有需求映射；每个 `REQ-*` 至少映射一个测试。
 - `§16` 的门禁修订清单与 `§3.3` 的对应 `Affected` 行一致。
-- 复杂场景深度：`§2.4` 有 6 条证据/调用链行，`§4.1` 有 20 条实质不同的场景行，`§7.2.2` 有 8 条质量/约束行，`§7.3.6` 有 4 条不同决策类的结论链，均满足最低要求。
+- 复杂场景深度：`§2.4` 有 6 条证据/调用链行，`§4.1` 有 23 条实质不同的场景行，`§7.2.2` 有 9 条质量/约束行，`§7.3.6` 有 5 条不同决策类的结论链，均满足最低要求。
+
+租户一致性核对：`tenant_id` 在 `§10.3`（BO 字段）、`§11.2.1`/`§11.2.2`（列与索引）、`§7.3.3`（作用域与传递）、`§4.1`（场景）、`§19`（追溯）中的语义一致——非空、参与唯一键、作为查询等值前导列、随 outbox 载荷传递、本版恒为默认值。`§9` 的接口契约中**不出现**租户字段，与"接口不接受租户请求头"（`REQ-013`）一致。
 
 ### 20.4 Relationship and effective-design review
 
@@ -3168,6 +3215,8 @@ erDiagram
 - `Depends On` 指向已接受的 RAG 组件 Spec（其 `§9` 的三个服务入口与 `§16` 的兼容规则是本设计的前提）与 outbox 组件的 README 契约。
 - `Supersedes` 为 `None`；本 Spec 不完整替换任何既有规范。
 - 未修改任何已接受文档的规范内容；`Amends` 中的目标段落将在实施计划中得到正式修订。
+- 租户相关的新增**不构成**对 Agent Archetype Spec `DEC-005`（"单 API Key、无 tenant/user identity"）的修订：本版仍然没有租户身份解析与租户鉴权，只是在数据模型上预留了租户列并建立了显式租户作用域。该 Spec 的 `DEC-005` 继续有效，直到后续接入统一身份的 Spec 显式修订它。
+- 本 Spec 的租户预埋与 `EVD-022` 的既有租户体系兼容：租户标识为数值（与 `IdpPrincipal#tenantId` 同型），因此将来接入时不需要改列类型或改索引结构。
 
 ### 20.5 Blocking Manual Check
 
@@ -3178,7 +3227,7 @@ erDiagram
 | `MC-DEP-001` | Applicable | PASS | `§6.1` 与 `§16` | 新增依赖全部来自既有 BOM 管理且各有证明的缺口；未引入第二个 JSON、文档或 API 框架 | None |
 | `MC-NAME-001` | Applicable | PASS | `§10.1` | 新增类型带 `Controller`/`Manage`/`Service`/`PO`/`DAO`/`Converter`/`Request`/`VO`/`BO`/`Command`/`Enum`/`Exception`/`Properties`/`Handler`/`Gateway` 后缀；无 `Data`/`Info`/`Param`/`Bean` | None |
 | `MC-VALID-001` | Applicable | PASS | `§9.2.x` 的请求小节与 `§10.3.1` | 每个层间交接（Request -> Command -> Manage -> Gateway/DAO）都有 Jakarta 注解与 `@Valid` 级联；手工校验复用 `ValidationUtils`；无电话字段故 libphonenumber `N/A` | None |
-| `MC-MODEL-001` | Applicable | BLOCKED | `EVD-011`, `§6.2.1` | 用户规则 3 的完整 Lombok 基线在 PO 上会产生重复的构造器签名（`@RequiredArgsConstructor` 与 `@NoArgsConstructor` 同为无参）；仓库既有 PO 约定省略 `@RequiredArgsConstructor` | 请用户裁决：批准仓库既有 PO 约定作为规则 3 的显式例外，或要求另一套满足完整基线的构造方案 |
+| `MC-MODEL-001` | Applicable | PASS | `EVD-011`, `EVD-023`, `§6.2.1` | 用户规则 3 的完整 Lombok 基线在 PO 上会产生重复的构造器签名（`@RequiredArgsConstructor` 与 `@NoArgsConstructor` 同为无参）。用户于 2026-09-10 12:13 批准仓库既有 PO 约定作为规则 3 对本项目 PO 的显式例外；简单载体仍全部使用 `record`，因此例外只覆盖继承 `EgonModel` 的持久化对象 | None |
 | `MC-CONVERT-001` | Applicable | PASS | `§10.4` | 五个转换器全部使用 MapStructPlus `@Mapper` 并 `extends BaseConverter<S,T>`；无 `BeanUtils`、反射或 JSON 往返 | None |
 | `MC-LOG-001` | Applicable | PASS | `§7.3.5`, `§15` | 每个具体行为类使用 `@Slf4j`；日志字段白名单明确；`TEST-029` 断言零内容泄露 | None |
 | `MC-BEAN-001` | Applicable | PASS | `EVD-010`, `§7.1.2` | Spring Bean 显式命名；构造器注入 + `@RequiredArgsConstructor` + `@Qualifier`；`lombok.config` 沿用既有复制规则 | None |
@@ -3189,17 +3238,18 @@ erDiagram
 | `MC-PATTERN-001` | Applicable | PASS | `§13.1`, `§13.2` | 端口与适配器、策略（组件侧与 outbox 侧）、工厂、显式状态机与观察者各有真实变化点；本项目内的业务逻辑是编排型，未硬编码分派 | None |
 | `MC-SCOPE-001` | Applicable | PASS | `§3.3`, `§16` | 变更限于 agent source 与 definition；`research`、其它 family、平台与前端标为 `Unchanged`/`N/A` 且不含目标设计 | None |
 | `MC-TEST-001` | Applicable | PASS | `§14.3`, `§19` | 31 个测试覆盖变更行为与最小回归；含 OpenAPI 断言、门禁断言与生成产物断言 | None |
-| `MC-BLOCKER-001` | Applicable | BLOCKED | 本表与 `§18` | `MC-MODEL-001` 因用户规则 3 的构造器签名冲突而阻塞，且 `API-GATE-*` 全部为 `PASS`/`N/A` | 需用户对 `MC-MODEL-001` 作出例外或替代方案裁决后方可解除 |
+| `MC-BLOCKER-001` | Applicable | PASS | 本表与 `§18` | 无 `FAIL`、`BLOCKED` 或 `UNKNOWN`；`MC-MODEL-001` 的例外已由用户于 2026-09-10 12:13 批准；`API-GATE-001` 至 `API-GATE-009` 全部为 `PASS` 或协议缺席 `N/A` | None |
 
 ### 20.6 Final verdict
 
-`BLOCKED — User decision required`
+`PASS — Ready for user review`
 
-阻塞项只有一条：`MC-MODEL-001`。用户规则 3 要求的完整 Lombok 基线（含 `@RequiredArgsConstructor`）作用在继承 `EgonModel` 的 PO 上时，会与 `@NoArgsConstructor` 生成相同的无参构造器签名——这是规则自身指明的"生成构造器签名重复"冲突，规则文本要求此时必须获取用户的显式例外。
+本 Spec 内部完整、无未决占位符，全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`，`API-GATE-001` 至 `API-GATE-009` 全部为 `PASS` 或协议缺席 `N/A`。
 
-裁决选项：
+修订历史（非静默改写）：
 
-1. **批准仓库既有 PO 约定**（`@Data`、`@NoArgsConstructor`、`@AllArgsConstructor`、`@Builder`、`@Accessors(chain = true)`、`@TableName`）作为规则 3 对本项目 PO 的例外。这与 `EVD-011` 及其它六个 archetype family 的现状一致。
-2. **要求满足完整基线**：需要为 PO 引入至少一个 `final` 字段以外的构造方案（例如把无参构造器改为受保护并由 MyBatis 反射实例化），但需要先验证 MyBatis Plus 的实例化路径接受该可见性，属于需要额外验证的变更。
+1. 起草时发现 `INTERNAL-001` 把抽取与嵌入焊死，Spec A 已在 `2026-09-10 11:47 CST` 显式修订（`21e77965e`）；本 Spec 依赖修订后的版本。
+2. `MC-MODEL-001` 曾因用户规则 3 的构造器签名冲突阻塞，用户于 `2026-09-10 12:13 CST` 批准仓库既有 PO 约定作为该项目 PO 的显式例外，阻塞解除。
+3. 用户在同一次决定中提出"agent 也有租户的概念，我要做 SaaS agent 和 rag 服务的"，随后明确"暂时先不考虑从哪来，表上面字段先加上"。据此本 Spec 增加 `REQ-025`-`REQ-027`，把租户列建成非空并进入唯一键与查询作用域，租户随 outbox 载荷传递，向量元数据携带租户并在检索时强制过滤；**租户来源、鉴权与跨服务联动不在本版范围**，`RISK-009` 记录"本版不构成隔离边界"这一必须公开声明的限制。
 
-其余全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`，`API-GATE-001` 至 `API-GATE-009` 全部为 `PASS` 或协议缺席 `N/A`。本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。
+本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。这不代表用户已接受；接受状态需要用户显式批准。
