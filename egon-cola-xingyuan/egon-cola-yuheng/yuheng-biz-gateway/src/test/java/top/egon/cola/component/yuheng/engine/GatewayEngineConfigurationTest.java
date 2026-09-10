@@ -450,7 +450,9 @@ class GatewayEngineConfigurationTest {
         context.register(configurationType);
         context.addBeanFactoryPostProcessor(beanFactory -> {
             for (String beanName : beanFactory.getBeanDefinitionNames()) {
-                if ((beanName.startsWith("yuheng") || beanName.startsWith("apiRpcGateway"))
+                // Engine bean names stay gateway*: the rename wave moved packages and
+                // properties to yuheng, not the bean names this filter has to strip.
+                if ((beanName.startsWith("gateway") || beanName.startsWith("apiRpcGateway"))
                         && !beanName.equals("gatewayRateLimitRedissonClient")
                         && !beanName.equals("gatewayEngineConfiguration")
                         && !beanName.contains("GatewayEngineConfiguration")
