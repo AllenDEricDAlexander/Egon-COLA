@@ -20,6 +20,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.apache.ibatis.reflection.MetaObject;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
@@ -27,6 +28,7 @@ import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfi
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardInnerInterceptor;
 
+import java.time.Clock;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -105,6 +107,34 @@ class EgonColaMybatisPlusAutoConfigurationTest {
                     assertThat(context.getStartupFailure().toString())
                             .contains("MYBATIS_PLUS_INTERCEPTOR_ORDER_INVALID");
                 });
+    }
+
+    @Test
+    void consumerValidationUtilsBeansDoNotBreakModelValidationWiring() {
+        ValidationUtils foreign = new ValidationUtils(VALIDATOR_FACTORY.getValidator());
+        runner(true)
+                .withBean("agentFlowValidationUtils", ValidationUtils.class, () -> foreign)
+                .withBean("agentValidationUtils", ValidationUtils.class, () -> foreign)
+                .run(context -> assertThat(context).hasNotFailed()
+                        .hasBean("egonColaValidationUtils")
+                        .hasBean("egonColaModelValidationUtils"));
+    }
+
+    @Test
+    void consumerClocksDoNotBreakMetaFillWiring() {
+        runner(true)
+                .withBean("agentClock", Clock.class, Clock::systemUTC)
+                .withBean("agentFlowClock", Clock.class, Clock::systemUTC)
+                .run(context -> assertThat(context).hasNotFailed()
+                        .hasBean("egonColaMetaObjectHandler"));
+    }
+
+    @Test
+    void singleConsumerClockBacksOffTheDefaultClock() {
+        runner(true)
+                .withBean("agentClock", Clock.class, Clock::systemUTC)
+                .run(context -> assertThat(context).hasNotFailed()
+                        .doesNotHaveBean("egonColaMybatisPlusClock"));
     }
 
     @Test

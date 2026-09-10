@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerIntercept
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import jakarta.validation.Validator;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -71,8 +72,9 @@ public class EgonColaMybatisPlusAutoConfiguration {
     }
 
     @Bean
+    // 宿主可能同时引入其他也提供 ValidationUtils 的组件（如 agent-flow），按类型注入会歧义，故具名解析。
     public EgonColaModelValidationUtils egonColaModelValidationUtils(
-            ValidationUtils validationUtils,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils,
             EgonColaTenantIdProvider tenantIdProvider) {
         return new EgonColaModelValidationUtils(validationUtils, tenantIdProvider);
     }
@@ -87,11 +89,14 @@ public class EgonColaMybatisPlusAutoConfiguration {
     @ConditionalOnMissingBean(com.baomidou.mybatisplus.core.handlers.MetaObjectHandler.class)
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".meta-fill",
             name = "enabled", havingValue = "true", matchIfMissing = true)
+    // 宿主可能有多个具名 Clock（如 agentClock 与 agentFlowClock），按类型注入会歧义；
+    // 唯一（或 @Primary）时沿用宿主时钟，否则退回 systemUTC，保持“宿主可覆盖”的既有语义。
     public EgonColaMetaObjectHandler egonColaMetaObjectHandler(
             EgonColaTenantIdProvider tenantIdProvider,
             EgonColaUserIdProvider userIdProvider,
-            Clock clock) {
-        return new EgonColaMetaObjectHandler(tenantIdProvider, userIdProvider, clock);
+            ObjectProvider<Clock> clockProvider) {
+        return new EgonColaMetaObjectHandler(tenantIdProvider, userIdProvider,
+                clockProvider.getIfUnique(Clock::systemUTC));
     }
 
     @Bean
