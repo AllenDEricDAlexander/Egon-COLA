@@ -4197,3 +4197,81 @@ Expected file src/main/java/it/pkg/domain/user/yuheng/UserQueryGateway.java. Exp
 - Commit: `0013afdf0 fix(archetypes): nest the tianquan.shoubing prefix and restore the light gateway path`
 - Commit paths: 12 个 `src/main/resources/application*.yml`（light / service / web）; `definitions/egon-cola-archetype-{light,service,web}/src/test/resources/projects/basic/verify.groovy`
 - 本 plan 的 §15 与 §14 的相应修订单独提交（`docs(plan): record the tianquan.shoubing drift fix`），不夹带任何其他改动。
+
+## 16. 后续独立修复（二）：rename 波的字面量误伤与 xingyuan 平台配置契约漂移
+
+§15 处理的是 archetype 侧的 `tianquan-shoubing` 键漂移；本章记录同一轮 rename 波（`0e5cadc12` / `c7f09dd5a` / `07f495535`）在**组件**与**xingyuan 平台**两侧的残留。16.1 已修复并验证；16.2 起为已定位、方向待决策的部分。
+
+### 16.1 已修复：`egon-cola-components` 的三处既有红灯
+
+§15.4 记录时反应堆止步于 `egon-cola-component-rpc-starter` 的两个用例；改用 `-Dmaven.test.failure.ignore=true` 全量枚举后，`egon-cola-components` 共三处失败，同一根因：`c7f09dd5a` 把字面量 `gateway` 当作"平台标识"做机械替换，误伤了**指代 Java 标识符**的字符串。
+
+| 用例 | 症状 | 判定依据 | 修复 |
+|---|---|---|---|
+| `RpcReferenceDefinitionResolverTest.rejectsConsistentHashWithoutNamedResolver` | `getDeclaredField("yuheng")` 抛 `NoSuchFieldException` | `Holder` fixture 的字段仍叫 `gateway`（`RpcReferenceMode.GATEWAY` 的网关照引用，与平台命名无关） | 期望值改回 `"gateway"` |
+| `RpcProviderMetadataMergerTest.leavesAdapterSpecificMetadataValidationOutsideRpcCore` | `containsExactly` 顺序失配 | `RpcProviderMetadataMerger.merge()` 返回 `unmodifiableMap(new TreeMap<>())`，键按自然序排列；改名改变了用例内键名，因而改变了期望顺序 | 期望改为字典序 |
+| `DdcRpcRequestSignerTest.signsTheApprovedFiveLineCanonicalRequestWithoutTrailingLf` | 固定摘要常量过期 | 同一用例上一行断言的 canonical 串在 JVM 之外用 `hmac`/`hashlib` 独立重算得 `2ddd5f21…`，与实现一致、与旧常量不一致 | 常量更新为独立算得的值 |
+
+验证：`./mvnw -B -ntp -f egon-cola-components/pom.xml clean verify` **退出码 0**，全部模块 SUCCESS（四个 rpc 模块此前被上游失败 masked 为 SKIPPED）。三个文件均为测试改动，生产代码零修改。
+
+> 复跑提示：`clean test` 下 `egon-cola-component-bytecode-agent` 的 `BytecodeReleaseShapeTest.publishesOnePremainOnlyShadedAgent` 会因 shaded agent jar 只在 `package` 阶段产出而假红；`clean verify` 无此现象，不作为缺陷。
+
+### 16.2 xingyuan 侧：配置契约已改、Java 侧未收口
+
+`egon-cola-xingyuan` 在 HEAD 上有 15 个失败测试类（29 个用例，清单见 16.3）。根因是同一个：`c7f09dd5a`（"rename external API and runtime identifiers"）把**运行期/部署契约**从 `idp`/`rbac3` + `gateway` 改成 `tianquan.shoubing`/`tianquan.jianshen` + `yuheng`，而 **Java 侧**没有同步，两个层次在交界处全部对不上。
+
+契约侧（已改，`yuheng`）：
+
+| 位置 | 内容 |
+|---|---|
+| `yuheng-biz-gateway` / `yuheng-mcp-gateway` / `yuheng-admin` 的 `application*.yml` | 平台组件块下的 `yuheng:` 子块（`egon.cola.platform.tianquan-shoubing.yuheng.*`、`…tianquan-jianshen.yuheng.*`） |
+| `yuheng-mcp-gateway/…/McpGatewayEngineConfiguration.java:521` | `@Value("${egon.cola.platform.tianquan.shoubing.yuheng.issuer:…}")` |
+| `…shoubing…/runtime/IdpGatewayRedissonConfiguration.java:27` | `@ConditionalOnProperty(prefix = "…shoubing.yuheng.runtime")` |
+| `…shoubing…/autoconfigure/IdpGatewayAdapterProperties.java:281,303,312` | 校验失败消息 `…shoubing.yuheng.<field> is required` |
+| 两个 `META-INF/spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports` | `…{shoubing,jianshen}.yuheng.autoconfigure.*GatewayAdapterAutoConfiguration` |
+| `yuheng-mcp-gateway/src/main/resources/application.yml:137` | `mcp-engine.yuheng-group-code:` |
+| 本地栈脚本 `scripts/unified-identity-local.sh`、`scripts/unified-xingyuan/start-local-stack.sh` | 写入点分键（运维代码，非字符串扫改的产物） |
+
+Java 侧（未改，`gateway`）：包 `top.egon.cola.platform.tianquan.{shoubing,jianshen}.gateway.{autoconfigure,runtime,security}`；两个适配器的 `@ConfigurationProperties("…{shoubing,jianshen}.gateway")` 与 `@ConditionalOnProperty(prefix = "…{shoubing,jianshen}.gateway", name = "enabled")`；`McpGatewayEngineProperties` 的记录组件 `gatewayGroupCode`；模块名 `egon-cola-tianquan-*-gateway-adapter` 与类名 `*GatewayAdapterAutoConfiguration`。
+
+由此暴露两个**互相独立**的缺陷：
+
+**D1 —— 应用 YAML 的单段连字符键（无争议）**：wave 把 YAML 的 `idp:` / `rbac3:`（单段键，与该轮之前的 `egon.cola.platform.idp` / `…rbac3` 前缀正好对齐）改写成 `tianquan-shoubing:` / `tianquan-jianshen:`，而 Java 前缀改成了**两段** `…tianquan.shoubing`。按 §15.2 已实证的绑定规则（`-` 不是层级分隔符），这些键全部不参与绑定。两处独立证据：
+
+- `GatewayEngineRbac3ConfigurationTest` 读 `application.yml` 断言 `egon.cola.platform.tianquan.jianshen.enabled`，实得 `null`——用例早已把这个漂移照出来。
+- `HttpProviderContractTest`（7 个用例）上下文启动失败：`IllegalStateException: egon.cola.platform.tianquan.shoubing.service-client.app-id and registration-id are required`，而 `yuheng-test-http-provider/src/main/resources/application.yml:50` 正是在单段键下写了这两个值（该应用没有 `spring.config.import` 兜底，故离线必红）。
+
+**D2 —— 适配器命名空间 `gateway` ↔ `yuheng`（需决策）**：上层两张表给出两个自洽但方向相反的重命名层次。注意 wave 对环境变量名（`IDP_*` → `TIANQUAN_SHOUBING_*`、`GATEWAY_RBAC3_SCOPE_ENABLED` → `YUHENG_TIANQUAN_JIANSHEN_SCOPE_ENABLED`）、YAML 键与本地栈脚本的改动是**有意的部署契约迁移**，因此"契约侧为准、补 Java 侧"（方向 A）与"契约侧回退到 `gateway`"（方向 B）成本与语义完全不同：
+
+| 方向 | 改动面 | 结果 |
+|---|---|---|
+| A：完成 `yuheng` 化（推荐） | 两个适配器模块的包与目录、四处绑定注解前缀、`McpGatewayEngineProperties.gatewayGroupCode`、imports/测试/YAML 保持不变 | 三层一致于 `yuheng`；部署契约不回退；包移动涉及生产代码 |
+| B：回退到 `gateway` | imports FQN、两个 `*AdapterAutoConfigurationTest` 的属性键、上面两张表的全部契约侧位置、`McpGatewayEngineProperties` 的键 | 三层一致于 `gateway`；生产代码零结构改动，但等于撤销 wave 的部署契约迁移（含环境变量名与脚本） |
+
+### 16.3 失败清单（15 个类 / 29 个用例）
+
+| 测试类 | 失败/总数 | 归属 | 当前判定 |
+|---|---|---|---|
+| `IdpAdapterRuntimeClasspathTest`（`yuheng-biz-gateway`） | 1/1 | D2 | imports FQN 指向不存在的包（`…yuheng.autoconfigure`），而类仍在 `…gateway.autoconfigure` |
+| `IdpGatewayAdapterAutoConfigurationTest` | 1/4 | D2 | 属性键 `…shoubing.yuheng.*` 与类前缀 `…shoubing.gateway` 对不上，`enabled` 不生效 |
+| `Rbac3GatewayAdapterAutoConfigurationTest` | 1/2 | D2 | 同上（`…jianshen.yuheng.enabled`） |
+| `GatewayEngineRbac3ConfigurationTest`（`yuheng-mcp-gateway`） | 1/1 | D1 | 断言 `application.yml` 的 `…tianquan.jianshen.enabled`，实得 `null`（YAML 是单段键） |
+| `McpGatewayEnginePropertiesTest` | 1/4 | D2 | `yuheng-group-code` 在 `ignoreUnknownFields=false` 下与记录组件 `gatewayGroupCode` 不匹配 |
+| `McpGatewayEngineContextTest` | 1/5 | D2 | 同上绑定失败的传播 |
+| `GatewayEngineConfigurationTest` | 4/16 | 待定位 | `No qualifying bean of type 'io.micrometer.observation.ObservationRegistry'`（`GatewayRuntimeConfiguration.gatewayTelemetry`） |
+| `GatewayRuleWireCompatibilityTest` | 1/3 | 摘要类 | 固定线上格式/摘要常量过期（同 16.1 第三行） |
+| `Rbac3MigrationContractTest` | 2/17 | 待定位 | fresh baseline SQL 与期望不一致 |
+| `GatewayDdcConfigurationTest` | 1/5 | 待定位 | 生产配置断言 |
+| `DdcYamlConfigValidatorTest` | 1/5 | 待定位 | 期望消息含 `reserved`，实得"exceeds the UTF-8 limit of 64 bytes"（用例输入被改名后变长，先撞上长度校验） |
+| `DdcPublishTaskQueryServiceTest` | 1/1 | 待定位 | `page` 为 `null`（桩或实现变更） |
+| `DdcMetadataPagingRepositoryTest` | 1/1 | 待定位 | 分页仓储断言 |
+| `HttpProviderContractTest`（`yuheng-test-http-provider`） | 7/7 | D1 | 上下文启动失败（见上） |
+| `WebFluxHttpProviderContractTest`（`yuheng-test-webflux-http-provider`） | 5/5 | D1 | 同上 |
+
+### 16.4 边界与提交
+
+- 运行期验证（启动平台应用、真实 Redis/PostgreSQL、本地统一栈）**未执行**，也不在本次范围内；`scripts/unified-*-local.sh` 生成的点分配置文件与上述 D1 修复在语义上互补（前者是本地栈的注入路径，后者是应用自身 YAML 的绑定路径）。
+- 本 plan 只记录诊断与决策项；16.2 的收口（D1/D2）属平台侧独立改动，待用户选定方向后另开改动与提交。
+
+- Commit（16.1）: `22e3cb7eb test(rpc): restore the expectations the xingyuan rename wave rewrote`
+- Commit paths（16.1）: `egon-cola-component-rpc-starter` 的两个测试类、`egon-cola-component-rpc-tianshu-adapter` 的一个测试类
