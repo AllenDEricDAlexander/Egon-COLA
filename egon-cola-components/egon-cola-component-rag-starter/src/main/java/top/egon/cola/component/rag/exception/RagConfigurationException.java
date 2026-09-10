@@ -6,4 +6,8 @@ public class RagConfigurationException extends RagException {
     public RagConfigurationException(String safeMessage) {
         super("RAG_CONFIGURATION", safeMessage);
     }
+
+    public RagConfigurationException(String safeMessage, Throwable cause) {
+        super("RAG_CONFIGURATION", safeMessage, cause);
+    }
 }

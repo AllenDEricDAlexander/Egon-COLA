@@ -29,12 +29,16 @@ import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
 import top.egon.cola.component.rag.execution.RagIngestionServiceImpl;
 import top.egon.cola.component.rag.execution.RagRetrievalServiceImpl;
+import top.egon.cola.component.rag.execution.RagVectorStoreProbe;
 import top.egon.cola.component.rag.extract.MarkdownRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PdfRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PlainTextRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.RagDocumentExtractor;
 import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
 import top.egon.cola.component.rag.extract.TikaRagDocumentExtractor;
+import top.egon.cola.component.rag.storage.LocalFileSystemRagDocumentStorage;
+import top.egon.cola.component.rag.storage.RagDocumentStorage;
+import top.egon.cola.component.rag.storage.RagStorageTypeGuard;
 
 import java.time.Clock;
 import java.util.Arrays;
@@ -190,6 +194,42 @@ public class RagAutoConfiguration {
             @Qualifier("ragVectorStore") VectorStore vectorStore,
             @Qualifier("ragClock") Clock clock) {
         return new RagIngestionServiceImpl(modelRegistry, chunkingStrategyFactory, chunkIdFactory, vectorStore, clock);
+    }
+
+    /**
+     * The built-in storage is a default, not a requirement: a host bean of the same type replaces
+     * it outright, and {@link RagStorageTypeGuard} still checks that the configuration agrees.
+     */
+    @Bean(name = "ragDocumentStorage")
+    @ConditionalOnMissingBean(RagDocumentStorage.class)
+    public RagDocumentStorage ragDocumentStorage(@Qualifier("ragProperties") RagProperties properties,
+                                                 @Qualifier("ragClock") Clock clock) {
+        return new LocalFileSystemRagDocumentStorage(properties.storage().local(), clock);
+    }
+
+    @Bean(name = "ragStorageTypeGuard")
+    @ConditionalOnMissingBean(name = "ragStorageTypeGuard")
+    public RagStorageTypeGuard ragStorageTypeGuard(@Qualifier("ragProperties") RagProperties properties,
+                                                   @Qualifier("ragDocumentStorage") RagDocumentStorage storage) {
+        return new RagStorageTypeGuard(properties.storage(), storage);
+    }
+
+    /**
+     * Runs the round trip only when the operator asked for it. The bean exists either way so the
+     * property is honoured without a conditional branch elsewhere.
+     */
+    @Bean(name = "ragVectorStoreProbe")
+    @ConditionalOnMissingBean(name = "ragVectorStoreProbe")
+    public RagVectorStoreProbe ragVectorStoreProbe(@Qualifier("ragVectorStore") VectorStore vectorStore,
+                                                   @Qualifier("ragClock") Clock clock,
+                                                   @Qualifier("ragProperties") RagProperties properties,
+                                                   @Qualifier("ragEmbeddingModelRegistry")
+                                                   RagEmbeddingModelRegistry modelRegistry) {
+        RagVectorStoreProbe probe = new RagVectorStoreProbe(vectorStore, clock);
+        if (properties.validation().probeOnStartup()) {
+            probe.validate(modelRegistry);
+        }
+        return probe;
     }
 
     @Bean(name = "ragRetrievalService")
