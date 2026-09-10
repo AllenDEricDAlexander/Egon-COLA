@@ -63,6 +63,7 @@
         <module>egon-cola-component-method-extension</module>
         <module>egon-cola-component-transactional-outbox-starter</module>
         <module>egon-cola-component-bytecode</module>
+        <module>egon-cola-component-rag-starter</module>
     </modules>
 
     <properties>
@@ -77,6 +78,7 @@
         <sqlite.jdbc.version>3.50.3.0</sqlite.jdbc.version>
         <resilience4j.version>2.2.0</resilience4j.version>
         <guava.version>33.6.0-jre</guava.version>
+        <mapstruct.version>1.6.3</mapstruct.version>
         <commons.collections4.version>4.5.0</commons.collections4.version>
         <commons.io.version>2.22.0</commons.io.version>
         <commons.text.version>1.15.0</commons.text.version>
@@ -142,6 +144,11 @@
                 <groupId>com.google.adk</groupId>
                 <artifactId>google-adk-spring-ai</artifactId>
                 <version>${google-adk.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.mapstruct</groupId>
+                <artifactId>mapstruct</artifactId>
+                <version>${mapstruct.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.baomidou</groupId>
