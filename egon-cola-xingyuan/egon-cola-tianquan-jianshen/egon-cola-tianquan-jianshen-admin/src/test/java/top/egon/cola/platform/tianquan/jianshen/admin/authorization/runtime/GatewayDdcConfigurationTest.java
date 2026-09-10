@@ -75,7 +75,7 @@ class GatewayDdcConfigurationTest {
         assertThat(production.getProperty("egon.cola.component.tianshu.biz-code"))
                 .isEqualTo("${TIANQUAN_JIANSHEN_RESOURCE_BIZ_CODE:permission}");
         assertThat(production.getProperty("egon.cola.component.tianshu.app-code"))
-                .isEqualTo("${TIANQUAN_JIANSHEN_RESOURCE_APP_CODE:rbac3}");
+                .isEqualTo("${TIANQUAN_JIANSHEN_RESOURCE_APP_CODE:tianquan-jianshen}");
         assertThat(production.getProperty("egon.cola.component.tianshu.env"))
                 .isEqualTo("${DEPLOYMENT_ENV}");
         assertThat(production.getProperty("egon.cola.component.tianshu.namespace"))
