@@ -2327,6 +2327,28 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 - Commit paths: `...-starter/src/test/java/.../starter/KnowledgeContractTest.java`; `...-starter/src/test/java/.../starter/KnowledgeConfigParityTest.java`; `...-starter/src/test/java/.../starter/KnowledgeOpenApiTest.java`; `definitions/egon-cola-archetype-agent/architecture-docs/agent-multi-module-architecture.md`; `egon-cola-source-agent/{README.md,README.zh-CN.md}`
 - Commit: `test(agent-archetype): gate the knowledge contracts and update the docs`
 
+在实施期修正（`$.paths.length()` 是路径数不是操作数）：File 3 伪代码断言 13，实际为 8——`/v3/api-docs` 把同一路径上的 `post`/`get`/`put`/`delete` 收进一个 path 对象，13 是操作数（12 个 knowledge + 1 个 research）。断言因此拆成两段：`$.paths.length() = 8` 钉住表面规模，12 个 knowledge 操作逐个按"路径 + 方法"断言 `operationId`——改名、掉方法、丢路径都会失败，比单一计数更能说明问题。
+
+在实施期修正（配置键比对的粒度与范围）：既有 `AgentSourceContractTest#yamlKeys` 只比较白名单里的**叶子键名**（研究域那 12 个），四个文件因此"看起来"集合相等；File 2 要的是**完整点分路径**，而这个粒度上"四个文件同集合"不成立——`application.yml` 合法地多出 `spring.application.name`、`spring.config.import`、`spring.servlet.multipart.*`，profile 文件也各自持有数据源、Flyway 与供应商键而不必回写 base。落地为两条属性：三个 profile 文件互为同一集合（完整路径），且每个 profile 键路径都出现在 base 中。`keyPaths(...)` 用缩进栈把 `key:` 行还原成点分路径，避免把 `spring:` 之下不同层级的同名叶子混为一谈。
+
+在实施期修正（包文档门禁的强度）：`documents_every_new_package()` 除"存在 `package-info.java`"外还要求其中 javadoc 非空白——存在性已由 `AgentSourceContractTest#documents_every_populated_java_package_and_keeps_profile_key_sets_equal` 覆盖（它遍历 main 与 test 两个源集），本门禁补的是"有内容"，防止空壳文件骗过前者。
+
+在实施期修正（问答错误体在文档里也必须是 JSON）：写 File 3 的断言时用临时探针 dump 了 chat 操作，发现六个错误响应只声明 schema，于是继承操作的 `produces`，在文档里被渲染为 `text/event-stream`——据此生成的客户端会拿流解析器读 JSON 错误体。修正：`KnowledgeQaController` 的六个 `@ApiResponse` 显式 `mediaType = application/json`，并把 `406`/`429` 的 `content['application/json'].schema.$ref` 写进断言。该文件不在 plan 的 Commit paths 之内。
+
+在实施期修正（`@Hidden` 不是这份文档的守卫）：兜底映射带 `@Hidden`，注释里一度写成"它使该映射不出现在文档中"。A/B 探针（带/不带注解各 dump 一次 chat 操作）得到的两份 JSON **逐字节相同**：springdoc 把同一"路径 + 方法"的两个处理器合并为一个操作，流式的那个胜出。`@Hidden` 表达的是意图，文档规模由第一段的断言钉住；测试 javadoc 已按事实改写，探针与 dump 已删除。
+
+在实施期修正（静态门禁的变异验证）：File 1 的三条扫描门禁各人为种过一次违规——新增 `KnowledgeChunkData` 类、日志标签写成 `text={}`、服务方法加 `Long tenantId` 形参——每次都恰好是对应那一条测试失败并打印违规路径与 token，随后回退并确认工作树干净。这三条断言不是"从未红过"的正则。
+
+在实施期修正（starter 测试规模）：本 Step 新增 10 个测试（契约 5、配置 2、OpenAPI 3），starter 模块从 10 升到 20；第一条门禁命令的 surefire 汇总为 136 个测试（common 0、domain 6、application 22、infrastructure 32、adapter 56、starter 20），零失败零错误。
+
+在实施期修正（文档改写的落点）：File 4 除删除"无数据库/无迁移"表述外，重写了依赖与运行时归属小节——点出 RAG、transactional-outbox、MyBatis-Plus 三个组件，并写明向量表由 Bean 创建、故不可能与组件校验过的嵌入模型维度不一致。两份 README 同步新增四节：知识库接口（12 操作表 + `Accept`/406 + "请求不能指定集合、模型或租户"这两条 schema 表达不出的行为）、摄取状态机（Spec B §10.6 的迁移表）、知识库配置（键 → 环境变量 → 含义，含 `spring.servlet.multipart` 三键）、以及四条运维前提（`CREATE EXTENSION vector` 权限、向量表归属、租户不构成隔离边界、问答与研究共用 Key 但容量池独立）；环境合同与校验节里"不访问数据库/不跑 Flyway"的旧表述一并删除。
+
+在实施期修正（生成器校验脚本的过期断言，由第三条门禁发现）：`.../src/test/resources/projects/basic/verify.groovy` 第 195 行仍断言 `readme.contains("no database")`——那是 knowledge 域之前的事实。第三条门禁第一次运行即在 `egon-cola-archetype-agent` 的 IT 上失败并打印 README 全文；这正是该门禁存在的意义。修正：断言取反（`!readme.contains("no database")`）并改为钉住新的事实——两份 README 都必须写出问答端点、`PostgreSQL` 与 `CREATE EXTENSION vector`，从而把"中英同步"也变成可执行条件。该文件不在 plan 的 Commit paths 之内，但它是 Step 1 打包清单的组成部分，故与本次一并提交。
+
+在实施期修正（第三条门禁的残留红灯与本 plan 无关）：修正后重跑，`egon-cola-archetype-agent` 的 IT 通过（生成项目的六个模块与 `verify.groovy` 全绿），反应堆继续前进并在 `egon-cola-archetype-light` 上以非零码停下——`NativeRpcConfigurationTest` 有两个既有失败（`egon.cola.platform.tianquan.shoubing.enabled` 读不到、整个前缀 bind 不上）。根因不在本次改动：light 的四个 YAML 把它写成单段键 `tianquan-shoubing:`，而组件 `IdpStarterProperties` 的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")` 需要嵌套层级，Spring 的宽松绑定不把 `-` 当层级分隔符。该漂移在 HEAD 上即存在（`git log` 显示 light 的 YAML 与测试最后同出于 `07f495535`），与 knowledge 域无关，按"不夹带无关改动"的约束未在此修复，留待单独处理。
+
+- Commit paths 补充：除 plan 列出的六个文件外，本次提交还含 `...-adapter/knowledge/controller/KnowledgeQaController.java`（六个错误响应显式声明 JSON 内容类型）与 `definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`（README 断言更新）。
+
 ## 8. Test, Validation, and Quality Gates
 
 | Gate/order | Working directory | Command or method | Scope | Expected result | Failure returns to | Requirements/runtime boundary |

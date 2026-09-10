@@ -130,17 +130,23 @@ public class KnowledgeQaController {
                     content = @Content(mediaType = MediaType.TEXT_EVENT_STREAM_VALUE,
                             schema = @Schema(implementation = KnowledgeQaEventVO.class))),
             @ApiResponse(responseCode = "400", description = "Validation failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "401", description = "API key failure",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "404", description = "The knowledge base does not exist",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "406", description = "The client cannot accept an event stream",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "429", description = "Every answer slot is in use",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class))),
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = DeepResearchErrorResponse.class))),
             @ApiResponse(responseCode = "503", description = "The vector store or the embedding endpoint is unavailable",
-                    content = @Content(schema = @Schema(implementation = DeepResearchErrorResponse.class)))
+                    content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,
+                            schema = @Schema(implementation = DeepResearchErrorResponse.class)))
     })
     public SseEmitter chatWithKnowledgeBase(
             @PathVariable("knowledgeBaseId")

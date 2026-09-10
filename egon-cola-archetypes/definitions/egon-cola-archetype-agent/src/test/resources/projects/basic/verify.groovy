@@ -192,7 +192,15 @@ def readme = file("README.md").text
 assert readme.contains("Deep Research")
 assert readme.contains("POST /api/v1/deep-research/runs")
 assert readme.contains("clean verify")
-assert readme.contains("no database")
+assert !readme.contains("no database"): "knowledge 域有自己的库表，README 不得再声称没有数据库"
+// 两份 README 必须同步写出持久面：操作清单里的问答端点、数据库类型与向量扩展前提。
+def requiredReadmeTokens = ["POST /api/v1/knowledge-bases/{knowledgeBaseId}/chat", "PostgreSQL", "CREATE EXTENSION vector"]
+["README.md", "README.zh-CN.md"].each { readmeName ->
+    def text = file(readmeName).text
+    requiredReadmeTokens.each { token ->
+        assert text.contains(token): "Missing ${token} in ${readmeName}"
+    }
+}
 assert file("README.zh-CN.md").text.contains("Deep Research")
 
 def reports = []
