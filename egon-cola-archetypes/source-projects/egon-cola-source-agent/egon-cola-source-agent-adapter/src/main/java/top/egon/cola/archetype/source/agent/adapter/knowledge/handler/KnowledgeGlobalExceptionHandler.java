@@ -12,8 +12,10 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.validation.FieldError;
 import org.springframework.validation.method.ParameterValidationResult;
 import org.springframework.web.HttpMediaTypeNotAcceptableException;
 import org.springframework.web.HttpMediaTypeNotSupportedException;
@@ -79,14 +81,23 @@ public class KnowledgeGlobalExceptionHandler {
     /**
      * Controller parameter validation, which is what rejects a malformed path identifier or a page
      * size outside its range before the request reaches a use case.
+     *
+     * <p>Method validation also runs over a validated request body whenever the handler method
+     * carries any parameter constraint of its own, and it reports a rejected body as one rejected
+     * parameter. Such an error still names the property the caller sent, which is the vocabulary the
+     * contract publishes, so it is preferred over the parameter name; a rejected simple value has no
+     * property of its own and is reported under the wire name of the parameter that carried it.
      */
     @ExceptionHandler(HandlerMethodValidationException.class)
     public ResponseEntity<DeepResearchErrorResponse> handleParameterValidation(
             HandlerMethodValidationException failure, HttpServletRequest request) {
         Map<String, List<String>> fields = new LinkedHashMap<>();
         for (ParameterValidationResult result : failure.getParameterValidationResults()) {
-            String field = fieldName(result.getMethodParameter());
+            String parameter = fieldName(result.getMethodParameter());
             for (MessageSourceResolvable error : result.getResolvableErrors()) {
+                String field = error instanceof FieldError fieldError && !fieldError.getField().isBlank()
+                        ? fieldError.getField()
+                        : parameter;
                 fields.computeIfAbsent(field, key -> new ArrayList<>())
                         .add(messageOf(error.getDefaultMessage()));
             }
@@ -132,10 +143,6 @@ public class KnowledgeGlobalExceptionHandler {
     }
 
     /**
-     * Last resort for this domain. Only the failure class is logged: a component message can carry an
-     * endpoint, a key or a fragment of a document.
-     */
-    /**
      * The container refusing a multipart body above its own threshold.
      *
      * <p>The use case owns the published limit and answers first for everything up to it; this mapping
@@ -158,6 +165,10 @@ public class KnowledgeGlobalExceptionHandler {
         return response(KnowledgeErrorCodeEnum.KNOWLEDGE_VALIDATION_ERROR, null, Map.of(), request);
     }
 
+    /**
+     * Last resort for this domain. Only the failure class is logged: a component message can carry an
+     * endpoint, a key or a fragment of a document.
+     */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<DeepResearchErrorResponse> handleUnexpected(
             Exception failure, HttpServletRequest request) {
@@ -172,6 +183,15 @@ public class KnowledgeGlobalExceptionHandler {
         return response(code, traceId, fieldErrors, request, status(code));
     }
 
+    /**
+     * Every knowledge failure is answered with the published JSON body, whatever the caller declared
+     * it accepts.
+     *
+     * <p>The content type is set rather than negotiated: an answer endpoint that can only take an
+     * event stream — which is exactly what the contract asks a caller of it to declare — would
+     * otherwise be told its failure has no writable representation, and the failure decided before the
+     * stream opened would be lost as a container error instead of the published code.
+     */
     private ResponseEntity<DeepResearchErrorResponse> response(KnowledgeErrorCodeEnum code, String traceId,
                                                                Map<String, List<String>> fieldErrors,
                                                                HttpServletRequest request, HttpStatus status) {
@@ -179,6 +199,7 @@ public class KnowledgeGlobalExceptionHandler {
         DeepResearchErrorResponse body = new DeepResearchErrorResponse(code.code(), code.safeMessage(),
                 effectiveTrace, clock.instant(), fieldErrors);
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(status)
+                .contentType(MediaType.APPLICATION_JSON)
                 .header(ResearchTraceFilter.TRACE_HEADER, effectiveTrace);
         if (code == KnowledgeErrorCodeEnum.KNOWLEDGE_CAPACITY_EXHAUSTED) {
             // The published contract promises the caller a moment to wait before retrying.

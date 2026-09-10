@@ -33,7 +33,7 @@ public record KnowledgeQaEvent(
             throw new IllegalArgumentException("qa event identity values are invalid");
         }
         retrievals = retrievals == null ? List.of() : List.copyOf(retrievals);
-        delta = optional(delta);
+        delta = optionalVerbatim(delta);
         answer = optional(answer);
         errorMessage = optional(errorMessage);
         traceId = optional(traceId);
@@ -121,6 +121,16 @@ public record KnowledgeQaEvent(
         }
         String normalized = value.trim();
         return normalized.isEmpty() ? null : normalized;
+    }
+
+    /**
+     * Keeps an optional increment exactly as it was produced.
+     *
+     * <p>A blank increment is no increment and is dropped, but a non-blank one is not normalized: the
+     * client appends it to the previous one, so its boundary whitespace belongs to the text.
+     */
+    private static String optionalVerbatim(String value) {
+        return value == null || value.isBlank() ? null : value;
     }
 
     private static void require(boolean condition, String message) {
