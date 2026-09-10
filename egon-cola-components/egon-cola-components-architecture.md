@@ -725,6 +725,45 @@ egon-cola-component-agent-flow-starter/
 
 该 starter 的输入是宿主具名 `ChatModel` 与组件配置，输出是内部 Java `AgentFlowService` 和 ADK `Event`/`Flowable<Event>`。它只提供本地能力边界：不提供 provider、HTTP、MCP、database、UI、凭据管理、持久化 Session 或远程恢复。宿主负责 provider 连接和认证上下文；Agent Flow 采用 Google ADK 0.7.0、Spring AI 1.1.8，在 Java 21 / Spring Boot 3.5.16 线上验证。
 
+
+---
+
+### 8.2 RAG 扁平 starter
+
+`egon-cola-component-rag-starter` 与 Agent Flow 采用同一个经过批准的 flat component profile 例外：不拆分
+`domain`、`application`、`infrastructure` 或 `adapter` 包，不增加 admin、test 子模块，配置、抽取、切分、
+嵌入、检索、存储扩展点和自动配置都收敛在单一 starter 中：
+
+```text
+egon-cola-component-rag-starter/
+├── README.md / README.zh-CN.md
+├── lombok.config
+├── pom.xml
+└── src/
+    ├── main/java/top/egon/cola/component/rag/
+    │   ├── api/            # RagExtractionService、RagIngestionService、RagRetrievalService
+    │   ├── autoconfigure/  # 严格 Properties、AutoConfiguration、可选指标与探针
+    │   ├── chunk/          # RagChunkingStrategy、枚举、工厂、分块 id 工厂
+    │   ├── converter/      # 分块与向量文档的双向映射
+    │   ├── embed/          # 逻辑嵌入模型注册表与描述符
+    │   ├── exception/      # 稳定失败类型
+    │   ├── execution/      # 抽取、摄取、检索实现与可选探针
+    │   ├── extract/        # RagDocumentExtractor、优先级注册表与内置抽取器
+    │   ├── metadata/       # 保留向量元数据键与规则
+    │   ├── model/          # Command、Query、Result、BO 与 DTO 载体
+    │   └── storage/        # RagDocumentStorage、类型枚举与本地实现
+    └── main/resources/META-INF/
+        ├── spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports
+        └── spring-configuration-metadata.json   # 构建期生成，不入库
+```
+
+该 starter 的输入是宿主的具名 `EmbeddingModel` 与 `VectorStore`，输出是三个内部 Java 服务入口。它只提供
+本地能力边界：不提供 provider、HTTP、schema、database、UI、凭据管理、调度或持久化。宿主负责供应商连接、
+向量表结构与异步编排；RAG 采用 Spring AI 1.1.8，在 Java 21 / Spring Boot 3.5.16 线上验证。
+
+与 Agent Flow 的关键差异在于**引擎不创建自己的依赖**：Agent Flow 由宿主提供 `ChatModel`，RAG 同样由宿主
+提供嵌入模型与向量库，因此组件的编译期依赖只到 Spring AI 的抽象类库，不含任何向量库实现。
+
 ---
 
 ## 9. 有 admin 组件结构示例
