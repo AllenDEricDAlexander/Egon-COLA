@@ -79,7 +79,7 @@
                     <includes><include>**/*.java</include></includes>
                 </fileSet>
                 <!-- knowledge 域的 Flyway 迁移：没有这个文件集，.sql 不会进入生成产物 -->
-                <fileSet filtered="true" packaged="true" encoding="UTF-8">
+                <fileSet filtered="true" encoding="UTF-8">
                     <directory>src/main/resources</directory>
                     <includes>
                         <include>**/*.sql</include>
