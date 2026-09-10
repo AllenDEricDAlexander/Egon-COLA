@@ -184,8 +184,10 @@ class GatewayRuleWireCompatibilityTest {
 
         assertNull(engineSnapshot.content().routes().getFirst()
                 .transportPolicy());
+        // Re-pinned for the gateway-to-yuheng rename: restoring the three renamed
+        // literals above reproduces the previous digest, so only the rename moved it.
         assertEquals(
-                "6c7dd1dd00823a68b978f1d1c696a013ca34af9922b246e24a0d20ffa4092518",
+                "110b8cc5f6821e338736c0f558bbd310e9bfbb8fcee6645445a1c4dd8df8eb59",
                 engineSnapshot.ruleContentSha256()
         );
         engineCodec.verify(engineSnapshot);
