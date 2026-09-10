@@ -2398,7 +2398,7 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 | `REQ-022` | Spec B `§7.2.2` | Step 8, 11 | `KnowledgeQaControllerTest` | 饱和 429 且不与研究互斥 |
 | `REQ-023` | Spec B `§4` | 全部 Step | 全部测试 | `clean verify` 无需外部服务 |
 | `REQ-024` | Spec B `§4` | Step 12 | 既有研究测试 | 不改动即通过 |
-| `REQ-025` | Spec B `§11.2.1` | Step 3, 5, 11 | `KnowledgeTenantScopeTest` | 列非空；生成 SQL 含租户条件；签名无租户参数 |
+| `REQ-025` | Spec B `§11.2.1` | Step 3, 5, 11 | `KnowledgeRepositoryTest`、`KnowledgeSchemaMigrationTest`、`KnowledgeContractTest` | 列非空；生成 SQL 含租户条件；签名无租户参数；同键跨租户共存（见 `§14.3` F3） |
 | `REQ-026` | Spec B `§7.3.1` | Step 7 | `KnowledgeIngestDeliveryHandlerTest` | 投递线程无 MDC 时仍按正确租户读写 |
 | `REQ-027` | Spec B `§11.2.4` | Step 6, 11 | `KnowledgeVectorConfigurationTest` | 过滤恒含租户 |
 
@@ -2406,7 +2406,7 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 
 | ID | Risk or decision | Impacted Steps/files | Evidence | Owner | Status/action |
 | --- | --- | --- | --- | --- | --- |
-| `BLOCK-001` | MyBatis Plus 租户拦截器的实际行为未从源码验证：插入时是否自动填 `tenant_id`、`tenant-id.mdc-key` 的默认键名、MDC 无值时的行为 | Step 3, 5, 11 | Spec B `RISK-002`；组件配置元数据 | 实施者 | Closed — 处置已定：`KnowledgeTenantScopeTest` 在完整读写路径上通过语句拦截断言注入的条件与写入值；不符时按 `EgonColaMetaObjectHandler` 的既有实现调整 |
+| `BLOCK-001` | MyBatis Plus 租户拦截器的实际行为未从源码验证：插入时是否自动填 `tenant_id`、`tenant-id.mdc-key` 的默认键名、MDC 无值时的行为 | Step 3, 5, 11 | Spec B `RISK-002`；组件配置元数据 | 实施者 | Closed — 已按处置执行：`KnowledgeRepositoryTest#scopes_every_query_by_tenant` 在完整读写路径上通过语句拦截断言注入的条件，`#lets_two_tenants_own_the_same_business_key` 断言插入行的 `tenant_id` 由拦截器按 MDC 写入；与 `EgonColaMetaObjectHandler` 的既有实现一致（见 `§14.3` F1） |
 | `BLOCK-002` | Spring AI `1.1.8` 的 `PgVectorStore` builder 方法名与本地核对的 `1.1.2` 可能不同 | Step 6 | 组件 Plan 的 `RISK-001` | 实施者 | Closed — 处置已定：实施 Step 6 前用 `1.1.8` 复核 builder 方法签名 |
 | `BLOCK-003` | 组件侧 `RagEmbeddingException` 的处置 | Step 7 | 组件交付报告 → 用户 2026-09-10 15:10 选择按推荐修订 | 用户 | Closed — 已按推荐处置：该异常不可达，已从组件删除，Spec A 出第二次显式修订；`RagVectorStoreException` 覆盖嵌入失败。本 Plan 的 Step 7 错误映射**已同步修改**，全部 `REQ-*` 不变 |
 | `RISK-001` | 全套生成回归需要先安装 components 与 source-projects，且 components Reactor 有既有的 xingyuan 循环依赖 | Step 1, 12 | 组件实施期的基线观察 | 实施者 | Closed — 处置已定：按 `README.md` Quick Start 从根 Reactor 构建，或在已安装的本地仓库上跑 |
@@ -4065,3 +4065,65 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 ### 13.4 摘录的边界
 
 本附录覆盖 `§9.2` 的 12 个接口契约；Spec B 中与实施同样相关但未收录于此的部分（`§9.1` 的接口清单与编号规则、`§9.3` 的消费方/前端页面细节、`§10` 的类清单与状态表、`§13` 的 Manual Check 清单）仍以 Spec B 原文为准，`§7` 各 Step 的引用行号已直接指向 Spec B。
+
+## 14. 实施后 Spec 一致性审计（Step 12 之后）
+
+> 本节是全部 Step 提交后的最终审计：对 Spec B 的 27 条 `REQ-*` 逐条核对证据，记录发现与仍然敞开的边界。审计只读取已提交的产物并在最终工作树上重跑门禁。
+
+### 14.1 审计基线与证据
+
+- 代码基线：`e507d401e`（Step 12 提交），外加本次审计为 `REQ-025` 补的 `KnowledgeRepositoryTest#lets_two_tenants_own_the_same_business_key`。
+- 门禁（均在最终工作树上重跑，命令同 `§8`）：
+  - 源码门禁退出码 0：137 个测试（domain 6、application 22、infrastructure 33、adapter 56、starter 20），零失败零错误；`bytecode-architecture:check-reactor` 报 `total=0`。
+  - `generate_archetypes.sh generate` 退出码 0；`check_archetypes.sh` 退出码 0（"generated set is deterministic and matches current workspace"）。
+  - `-Pgenerated-archetypes clean verify` 在 agent 段全绿——生成项目的 12 个测试类全过（含 `it.pkg.infrastructure.knowledge.KnowledgeRepositoryTest` 的 6 个），`verify.groovy` 输出 "Agent archetype verifier: six-module Deep Research contract passed" 与 "Published parent and agent runtime boundaries passed"；随后反应堆在 `egon-cola-archetype-light` 处以退出码 1 停下（既有漂移，见 14.3 F4）。
+- 静态证据：`git diff 23ccba7b4..HEAD -- '*research*'` 为空——研究域自基线起零改动。
+
+### 14.2 逐条结论
+
+| REQ | 结论 | 证据（类/方法或命令） |
+| --- | --- | --- |
+| `REQ-001` | PASS | 六模块与两个业务根不变；`AgentArchitectureTest`；`check-reactor` `total=0` |
+| `REQ-002` | PASS | `KnowledgeBaseControllerTest`（13）；删除级联见 `KnowledgeManageTest`、`KnowledgeRepositoryTest#filters_soft_deleted_rows` |
+| `REQ-003` | PASS | `KnowledgeDocumentControllerTest`（18）；上传/重处理 `ResponseEntity.accepted()` = 202，删除 `noContent()` = 204 |
+| `REQ-004` | PASS | `KnowledgeManageTest`（文档行与 outbox 行同事务） |
+| `REQ-005` | PASS | 状态枚举与 outbox 一一映射：`KnowledgeDomainTest#keeps_document_status_transitions_legal`、`KnowledgeIngestDeliveryHandlerTest` |
+| `REQ-006` | PASS | 全仓只有上传路径注入 `RagExtractionService`；`KnowledgeIngestDeliveryHandlerTest#rebuilds_the_document_without_reparsing` 断言投递命令携带库内文本与分块配置 |
+| `REQ-007` | PASS | `KnowledgeRepositoryTest` 断言 `knowledge_document.content` 落库；原文件经 `RagDocumentStorage` 保存 |
+| `REQ-008` | PASS | `KnowledgeVectorConfigurationTest#exposes_named_embedding_model_and_vector_store` |
+| `REQ-009` | PASS | 同维度多模型与隔离见 `KnowledgeVectorConfigurationTest`；`fails_when_dimensions_mismatch` 覆盖启动失败 |
+| `REQ-010` | PASS | 两条迁移均不含 `vector_store`（grep 复核）；`creates_the_vector_table_with_the_configured_dimensions` |
+| `REQ-011` | PASS | `KnowledgeQaControllerTest#retrieves_without_calling_the_chat_model`、`returns_an_empty_result_when_nothing_matches` |
+| `REQ-012` | PASS | `emits_started_progress_completed_in_order`、`emits_one_failed_on_dependency_failure`、`releases_the_permit_on_disconnect` |
+| `REQ-013` | PASS | 三个控制器测试均断言 401 + `WWW-Authenticate: ApiKey`；`ResearchApiKeyFilterTest` |
+| `REQ-014` | PASS | `KnowledgeOpenApiTest`（12 操作、错误体 schema、`X-Trace-Id` 头） |
+| `REQ-015` | PASS | 两条迁移存在且 `verify.groovy` 断言生成产物包含它们 |
+| `REQ-016` | PASS | 迁移含 `egon_cola_outbox_message` 建表；`KnowledgeSchemaMigrationTest` |
+| `REQ-017` | PASS | 修订后源码 `clean verify` 退出码 0；禁项断言仍在 `AgentSourceContractTest` |
+| `REQ-018` | PASS | `verify.groovy` 的迁移存在性与 `vector_store` 缺席断言 |
+| `REQ-019` | PASS | `verify.groovy` 的依赖与 `BOOT-INF/lib` 断言（RAG/outbox/pgvector/flyway/mybatis） |
+| `REQ-020` | PASS | 架构文档与两份 README 已更新并与生成结果一致（本 Step 提交） |
+| `REQ-021` | PASS | 生成项目在门禁三中 `clean verify` 通过且无 source sentinel |
+| `REQ-022` | PASS | `KnowledgeQaControllerTest#returns_429_when_saturated`；容量池独立于研究域 |
+| `REQ-023` | PASS | test profile：H2 内存库、Flyway 关闭、供应商 URL 为 `test.invalid`、fake `ChatModel`/`ToolCallback` |
+| `REQ-024` | PASS | `git diff <base>..HEAD -- '*research*'` 为空 |
+| `REQ-025` | PASS | 列 `tenant_id not null` 与唯一索引 `(tenant_id, lower(code))`（`KnowledgeSchemaMigrationTest#indexes_the_tenant_scoped_access_paths`）；语句级租户条件（`KnowledgeRepositoryTest#scopes_every_query_by_tenant`）；签名无租户参数（`KnowledgeContractTest#signs_no_tenant_parameter_in_services`）；同键跨租户共存（本次审计新增，见 14.3 F3） |
+| `REQ-026` | PASS | `KnowledgeIngestDeliveryHandlerTest#restores_and_clears_the_tenant_mdc`、`clears_the_tenant_mdc_when_the_delivery_throws`、`fails_without_touching_the_database_when_the_payload_has_no_tenant` |
+| `REQ-027` | PASS | `KnowledgeVectorConfigurationTest#forces_the_tenant_filter`；投递命令的向量元数据带租户（`KnowledgeIngestDeliveryHandlerTest`） |
+
+### 14.3 审计发现
+
+- **F1（已修正，文档）**：`§10` 矩阵的 `REQ-025` 行与 `§11` 的 `BLOCK-001` 行点名 `KnowledgeTenantScopeTest`，该类从未创建（仅存在于本 plan）；租户证据实际落在 `KnowledgeRepositoryTest`、`KnowledgeSchemaMigrationTest` 与 `KnowledgeContractTest` 三处。两行已按实际证据改写。
+- **F2（Spec 侧不一致，需在 Spec 修订时处理）**：Spec B `§4.1` 场景矩阵"建库成功"写"返回 201"，而同一文档 `§9.2.1`（API-001）写 `HTTP 200 OK`。按 `§9.0` 的协议治理与 plan `§2.1` 的"逐接口契约优先"，实现取 API-001 的 200，`KnowledgeOpenApiTest` 与控制器测试均按此断言。这不是实现偏差，是 Spec 内部需要收敛的一处措辞。
+- **F3（本次审计补齐的证据）**：`REQ-025` 的判据"同一业务键在不同租户下可以共存"此前只有结构证据（迁移里的 `(tenant_id, lower(code))` 唯一索引）。H2 投影按既有决定不复制该表达式索引，因此新增的 `lets_two_tenants_own_the_same_business_key` 断言的是**跨租户共存的可见性**：同一 `code` 在两个租户下各写一行、第二行的 `tenant_id` 等于其写入时所处的 MDC 租户、且各自只读到自己那一行。该测试经变异验证（把第二次写入前的 `useTenant` 改成租户 A → 断言以 `expected: "22"` 失败），随后回退。租户内的唯一性仍由迁移断言把守。
+- **F4（本 plan 之外，未处理）**：门禁三在 `egon-cola-archetype-light` 上的既有红灯——该 archetype 的四个 YAML 把组件前缀写成单段键 `tianquan-shoubing:`，而 `IdpStarterProperties` 的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")` 需要嵌套层级。与 knowledge 域无关，按"不夹带无关改动"未在此修复，详见 Step 12 的修正笔记。
+
+### 14.4 未执行项与边界
+
+- 运行期验证（PostgreSQL + `vector` 扩展、真实嵌入与对话供应商、上传—轮询—检索—问答的人工链路）**未执行**，`§8` 已声明"本 Plan 不声称已执行"；该验证由用户在受控环境完成。
+- `TEST-026` 与 `TEST-032` 依赖真实 PostgreSQL 语义（扩展创建与向量表维度），在离线 H2 下无法执行——这是 `REQ-023` 离线约束的直接后果，不是遗漏。
+- 生成回归的完整漏斗仍以 `egon-cola-archetype-light` 的既有红灯收尾（F4），因此门禁三的退出码在当前分支上不可能为 0；agent 段本身已全绿。
+
+### 14.5 结论
+
+Spec B 的 27 条 `REQ-*` 全部有可执行或静态证据，无未覆盖的 Must 要求；发现的四项中两项已就地修正（F1 文档、F3 证据），F2 属 Spec 侧措辞需在 Spec 修订时收敛，F4 是本 plan 之外的既有漂移。审计未发现实现引入了 Spec B 之外的行为、契约、字段、schema 或依赖。

@@ -105,6 +105,30 @@ class KnowledgeRepositoryTest {
     }
 
     @Test
+    void lets_two_tenants_own_the_same_business_key() {
+        contextRunner.run(context -> {
+            JdbcTemplate jdbc = new JdbcTemplate(context.getBean(DataSource.class));
+            KnowledgeBaseRepository repository = context.getBean(KnowledgeBaseRepository.class);
+
+            useTenant(TENANT_A);
+            KnowledgeBaseBO first = repository.insert(base("product-docs", TENANT_A));
+            useTenant(TENANT_B);
+            KnowledgeBaseBO second = repository.insert(base("product-docs", TENANT_B));
+
+            // The business key is unique inside a tenant, not across tenants: the same code names
+            // one base per tenant, and the tenant that owns the second row is the one the write ran
+            // under, not a column the caller passed.
+            assertThat(second.knowledgeBaseId()).isNotEqualTo(first.knowledgeBaseId());
+            assertThat(column(jdbc, "knowledge_base", "tenant_id", second.knowledgeBaseId()))
+                    .isEqualTo(String.valueOf(TENANT_B));
+
+            assertThat(repository.page(0, 20, null, null))
+                    .extracting(KnowledgeBaseBO::knowledgeBaseId)
+                    .containsExactly(second.knowledgeBaseId());
+        });
+    }
+
+    @Test
     void filters_soft_deleted_rows() {
         contextRunner.run(context -> {
             JdbcTemplate jdbc = new JdbcTemplate(context.getBean(DataSource.class));
@@ -269,6 +293,12 @@ class KnowledgeRepositoryTest {
     private static void useTenant(long tenantId) {
         MDC.put("tenantId", Long.toString(tenantId));
         MDC.put("userId", "alice");
+    }
+
+    /** The smallest valid base: the case only cares about its code and the tenant it is written under. */
+    private static KnowledgeBaseBO base(String code, long tenantId) {
+        return KnowledgeBaseBO.create(code, code, null, "openai-small", ChunkingStrategyEnum.TOKEN,
+                new KnowledgeChunkConfigBO(512, 64, 1, List.of()), tenantId);
     }
 
     private static String column(JdbcTemplate jdbc, String table, String column, long id) {
