@@ -21,7 +21,7 @@
 | Supersedes | `None` |
 | Depends On | [`egon-cola-components/egon-cola-components-architecture.md`](../../../egon-cola-components/egon-cola-components-architecture.md) `§5, §8.1, §11, §13.1`（组件 Starter 扁平形态与 BOM 契约） |
 | Related Specs | [Agent Flow 扁平化组件设计](2026-09-04-09-34-agent-flow-component.md) `§5.1, §7, §9`（Rule 11 组件库例外与宿主提供 Bean 的先例）；[Agent Deep Research Archetype 设计](2026-09-04-16-32-agent-deep-research-archetype.md) `§7`（宿主拥有供应商配置与工具装配的先例） |
-| Related Plans | `None` |
+| Related Plans | [RAG 引擎组件实施计划](../plan/2026-09-10-12-47-egon-cola-component-rag-starter-implementation.md) |
 
 ## 1. Summary
 
