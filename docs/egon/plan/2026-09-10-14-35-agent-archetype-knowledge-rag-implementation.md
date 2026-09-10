@@ -1953,6 +1953,22 @@ public class KnowledgeDocumentController {
 - Commit paths: `...-adapter/src/test/java/.../adapter/knowledge/KnowledgeDocumentControllerTest.java`; `.../adapter/knowledge/vo/KnowledgeDocumentVO.java`; `.../adapter/knowledge/converter/KnowledgeDocumentVoConverter.java`; `.../adapter/knowledge/controller/KnowledgeDocumentController.java`
 - Commit: `feat(agent-archetype): expose the knowledge document api`
 
+在实施期修正（表单字段不是 part）：plan 的 File 4 伪代码把 `displayName` 绑成 `@RequestPart(value = "displayName", required = false) String`。Spring 的 `RequestPartMethodArgumentResolver` 对非文件参数不做请求参数回退——`resolveName` 只在 part 与 `MultipartFile`/`Part` 家族之间查找，找不到就返回 `null`（`required = false` 时静默丢弃），因此这样绑定会永远得到 `null`，契约里的展示名会被无声忽略（测试先以此失败）。实现改为 `@RequestParam(name = "displayName", required = false)`：真正的 multipart 文本字段在容器层就是请求参数，这正是它与 MockMvc 的 `.param(...)` 同形的依据。文件仍用 `@RequestPart`。
+
+在实施期修正（上传边界自己校验 part）：File 4 伪代码只说"转换 + 调用"。缺 `file`、空文件或无名文件若交给容器/用例，得到的是容器错误或约束违例文案；契约给 API-006 的行是"multipart 缺 `file` 或字段非法 → 400 `KNOWLEDGE_VALIDATION_ERROR` + `fieldErrors`"。故两个 part 都按 `required = false` 绑定，在控制器里逐项检查并用 `KnowledgeApplicationException.onField` 报出 `fieldErrors.file` 或 `fieldErrors.displayName`（展示名按契约"trim 后 1-255"，空白即非法而不是回落成文件名）。读 part 失败的 `IOException` 是本服务端的失败，报 500 `KNOWLEDGE_INTERNAL_ERROR`。文件大小与抽取路由仍在用例里（`max-upload-bytes`、`RagExtractorMissingException`），边界不拥有这两条规则。
+
+在实施期修正（容器级 multipart 阈值与延迟解析）：契约允许 20MB 的上传，而 Spring Boot 默认的 `spring.servlet.multipart.max-file-size` 是 1MB——默认值下合规上传会先被容器拒掉。新增三个 `application.yml` 键：`max-file-size: 25MB`、`max-request-size: 26MB`、`resolve-lazily: true`。前两者只作滥用防线并高于契约上限，判定权仍归 `agent.knowledge.runtime.max-upload-bytes`（20MB ≤ 文件 ≤ 25MB 由用例给出契约里的 413）。`resolve-lazily` 是必需的：`DispatcherServlet.checkMultipart` 在处理器映射之前同步执行，立即解析的超限异常发生在"处理器未知"的时刻——按包限定的 knowledge advice 此时不被选中，响应会落到不限定的 research 处理器上变成 `RESEARCH_INTERNAL_ERROR`/500；延迟解析把异常挪到参数解析时，处理器已知，本域 advice 才可能渲染契约的 413。为此 `KnowledgeGlobalExceptionHandler` 补两个映射：`MaxUploadSizeExceededException` → 413 `KNOWLEDGE_FILE_TOO_LARGE`（`fieldErrors.file`）、`MultipartException` → 400 `KNOWLEDGE_VALIDATION_ERROR`。该文件与 `application.yml` 均不在 plan 的 Commit paths 之内；容器行为的最终确认需要一次真实上传（运行期由用户执行）。
+
+在实施期修正（文档 VO 的反向映射无法成立）：`BaseConverter<S,T>` 两个方向都要有，而 `KnowledgeDocumentVO` 按契约**不带** `content`、`contentHash`、`storageType`、`storageKey`（§9.2.8 明说"不返回文本本身"，正文只以 `contentChars` 出现）。由 VO 重建的 `KnowledgeDocumentBO` 必须为内容指纹与存储位置编造取值，且构造器会拒绝空指纹；Step 9 的 `WIRE_TENANT_ID` 式常量在此没有对应物。故 `toSource` 手写并抛 `UnsupportedOperationException`：宁可让"表示不含正文"这件事在编译期之外仍然响亮，也不落一个看起来可持久化、实际什么都没描述的载体。方向始终是 BO → VO。
+
+在实施期修正（一个文档 VO 服务三个接口，字段是超集）：`KnowledgeDocumentVO` 同时服务 API-006、API-008、API-009（契约明说 008 是 006 的表示加诊断字段、009 与 008 同形）。因此上传响应也带 `attemptCount`/`contentChars`，列表行也带 `fileName`/`knowledgeBaseId`/`errorMessage`——都是超集而非冲突（Step 9 已记同一取舍）。因为 `@JsonInclude(NON_NULL)`，契约示例里的 `"errorCode": null` 渲染为字段缺席而不是显式 `null`（Step 9 的 `description` 同理）。列表分页外壳沿用 `PageResultRecord`，与 spec 的 `items/page/size/totalElements/totalPages/hasNext` 字段名不同（既有偏差，Step 5 已记）。
+
+在实施期修正（reingest 的空请求体与标识解析）：API-009 的参数表要求"请求体必须为空"并给了 400 行，故 `@RequestBody(required = false) String` 读入后非空白即报 `fieldErrors.body`；API-010 同样声明空请求体，但其错误表没有对应行、也没有既定错误码，故删除端点不检查（容器会忽略 DELETE 的请求体）。标识解析沿用 Step 9 的形状，但抽出 `field` 参数：同一控制器同时解析 `knowledgeBaseId` 与 `documentId`，字段名必须如实出现在 `fieldErrors` 里（契约把非数字标识定为 400 而不是 404）。两个控制器各持一份私有 `identifier(...)`：`MC-UTIL-001` 禁止新增 `*Utils`，复制的是 12 行边界规则；Step 11 出现第三个控制器时重新评估是否值得提为共享类型。
+
+在实施期修正（`KnowledgeDocumentControllerTest` 的规模）：plan 列 4 个方法名，实际 18 个——四个保留，其余覆盖默认展示名、缺文件/空文件/空白展示名、知识库不存在、容器级与用例级两种 413、列表外壳与筛选透传、非法状态筛选、分页范围、非法标识、重处理成功与繁忙、重处理带体、删除后 404、无 API Key 的 401。用例同样是手写假件，不使用 Mockito。
+
+- Commit paths 补充：除 plan 列出的四个文件外，本次提交还含 `.../adapter/knowledge/handler/KnowledgeGlobalExceptionHandler.java`（补两个 multipart 映射）与 `...-starter/src/main/resources/application.yml`（新增 `spring.servlet.multipart` 三键）。四个新文件都落在 Step 9 已建并已带 `package-info.java` 的包里，故本次没有新增包文档。
+
 ### Step 11 — adapter：检索、问答与租户作用域
 
 - Requirements: `REQ-011`, `REQ-012`, `REQ-013`, `REQ-014`, `REQ-022`, `REQ-025`, `REQ-027`

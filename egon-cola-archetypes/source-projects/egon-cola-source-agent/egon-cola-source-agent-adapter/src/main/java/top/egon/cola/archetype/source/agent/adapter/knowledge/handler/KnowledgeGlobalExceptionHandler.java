@@ -24,6 +24,8 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.HandlerMethodValidationException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.multipart.MultipartException;
 import top.egon.cola.archetype.source.agent.adapter.filter.ResearchTraceFilter;
 import top.egon.cola.archetype.source.agent.adapter.handler.DeepResearchErrorResponse;
 import top.egon.cola.archetype.source.agent.application.knowledge.exception.KnowledgeApplicationException;
@@ -133,6 +135,29 @@ public class KnowledgeGlobalExceptionHandler {
      * Last resort for this domain. Only the failure class is logged: a component message can carry an
      * endpoint, a key or a fragment of a document.
      */
+    /**
+     * The container refusing a multipart body above its own threshold.
+     *
+     * <p>The use case owns the published limit and answers first for everything up to it; this mapping
+     * only covers a body that is larger still, so that such an upload is still the contract's size
+     * failure instead of an unexpected one. It reaches this advice only because the multipart request
+     * is resolved lazily — an eagerly parsed one fails before a handler is known, and no knowledge
+     * scoped advice can be selected for it.
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<DeepResearchErrorResponse> handleUploadTooLarge(
+            MaxUploadSizeExceededException failure, HttpServletRequest request) {
+        return response(KnowledgeErrorCodeEnum.KNOWLEDGE_FILE_TOO_LARGE, null,
+                Map.of("file", List.of("the upload exceeds the size limit")), request);
+    }
+
+    /** A multipart body the container could not read at all, which is a malformed request. */
+    @ExceptionHandler(MultipartException.class)
+    public ResponseEntity<DeepResearchErrorResponse> handleMultipart(
+            MultipartException failure, HttpServletRequest request) {
+        return response(KnowledgeErrorCodeEnum.KNOWLEDGE_VALIDATION_ERROR, null, Map.of(), request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<DeepResearchErrorResponse> handleUnexpected(
             Exception failure, HttpServletRequest request) {

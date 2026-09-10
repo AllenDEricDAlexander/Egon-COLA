@@ -3,6 +3,15 @@ spring:
     name: deep-research-agent
   config:
     import: optional:classpath:agent/deep-research-flow.yml
+  servlet:
+    multipart:
+      # 上传上限（20MB）的判定权在 agent.knowledge.runtime.max-upload-bytes：到它为止由用例回答
+      # 契约里的 413。容器阈值只作为滥用防线，必须高于该上限，否则合规的上传会在到达用例前被容器拒绝。
+      max-file-size: ${AGENT_MULTIPART_MAX_FILE_SIZE:25MB}
+      max-request-size: ${AGENT_MULTIPART_MAX_REQUEST_SIZE:26MB}
+      # 延迟解析让容器的超限异常在参数解析时抛出：此时处理器已知，知识域的 advice 才能把它渲染成
+      # 契约里的 413；立即解析会在处理器映射之前失败，任何按包限定的 advice 都无法被选中。
+      resolve-lazily: true
   datasource:
     url: ${AGENT_DB_URL:}
     username: ${AGENT_DB_USERNAME:}
