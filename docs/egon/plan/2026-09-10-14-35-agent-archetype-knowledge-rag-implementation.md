@@ -4271,7 +4271,65 @@ Java 侧（未改，`gateway`）：包 `top.egon.cola.platform.tianquan.{shoubin
 ### 16.4 边界与提交
 
 - 运行期验证（启动平台应用、真实 Redis/PostgreSQL、本地统一栈）**未执行**，也不在本次范围内；`scripts/unified-*-local.sh` 生成的点分配置文件与上述 D1 修复在语义上互补（前者是本地栈的注入路径，后者是应用自身 YAML 的绑定路径）。
-- 本 plan 只记录诊断与决策项；16.2 的收口（D1/D2）属平台侧独立改动，待用户选定方向后另开改动与提交。
+- 本 plan 只记录诊断与决策项；16.2 的收口（D1/D2）属平台侧独立改动。用户已选定方向 A，执行结果见 16.5，16.3 表中剩余项的定位见 16.6，整体验证见 16.7。
 
 - Commit（16.1）: `22e3cb7eb test(rpc): restore the expectations the xingyuan rename wave rewrote`
 - Commit paths（16.1）: `egon-cola-component-rpc-starter` 的两个测试类、`egon-cola-component-rpc-tianshu-adapter` 的一个测试类
+
+### 16.5 方向 A 执行结果（D1 + D2 收口）
+
+按"契约侧为准、补 Java 侧"收口，改动落在生产代码与 YAML：
+
+| 缺陷 | 改动面 | 提交 |
+|---|---|---|
+| D1 | 16 个 `application*.yml` 的平台组件块由单段连字符键（`tianquan-shoubing:` / `tianquan-jianshen:`）拆成嵌套两段（`tianquan:` → `shoubing:` / `jianshen:`，其下再 `yuheng:`），对齐 `egon.cola.platform.tianquan.{shoubing,jianshen}[.yuheng].*`。现状证据：`yuheng-biz-gateway/src/main/resources/application.yml:40-63` | `c64e2fecf` |
+| D2 | 两个适配器模块的包目录 `…{shoubing,jianshen}.gateway.{autoconfigure,runtime,security}` → `…yuheng.*`（含 `package-info.java`）、四处 `@ConfigurationProperties` / `@ConditionalOnProperty` 前缀、`McpGatewayEngineProperties.gatewayGroupCode` → `yuhengGroupCode`，以及随包移动的 imports、测试与两处架构守卫常量 | `f82f6603a` |
+
+**在实施期修正（refresh-uri 绑定缺口）**：wave 把 YAML 与测试的键改成 `tianquan-shoubing-refresh-uri`，Java 属性仍叫 `idpRefreshUri`。由于 wave 之后 `…gateway` 前缀匹配不到任何键，**适配器在修复前一直处于静默禁用态**，该缺口因此被掩盖；D2 恢复前缀后 `validate()` 首次真正执行，shoubing 适配器 13 个用例中 1 个报 `IllegalStateException: …shoubing.yuheng.tianquanShoubingRefreshUri is required`。属性、访问器与两处调用点随之改名（`IdpGatewayAdapterProperties.java:162-168`、`IdpGatewayAdapterAutoConfiguration.java:223,255`）。故 D2 是**恢复 wave 之前的激活语义**，不是行为变更。
+
+**D1 的连带修复**：`GatewayAdminApplicationConfigurationTest` 断言的三个扁平连字符键路径在 D1 之后失效，随 D1 改为嵌套形式（`a1e65073a`）。
+
+**D2 的连带误伤**：`c7f09dd5a` 把 `GatewayEngineConfigurationTest` 的 bean 过滤谓词翻成 `startsWith("yuheng")`，而引擎 bean 名仍是 `gateway*`，豁免分支匹配不上，4 个用例报 `No qualifying bean of type 'ObservationRegistry'`。谓词恢复 `startsWith("gateway")`（`389034fc3`）。
+
+**架构守卫的维护风险（记录，非缺陷）**：`ContractDependencyBoundaryTest:23` 与 `StarterBoundaryTest:16` 都以"包名前缀字符串"形式把适配器包列入禁止引用清单。两者随 D2 在同一提交内改指到 `…jianshen/yuheng/` 与 `…jianshen.yuheng`——即守卫的覆盖范围**只与其常量字面量同寿**：包被改名而常量未同步时，守卫会照常通过、不再保护任何东西，且不会报警。这两处当前正确，但后续任何再次改名都必须把守卫常量列入改动清单。
+
+**未触动项（有意为之）**：
+
+- 私有连字符树 `egon.tianquan-shoubing.*` / `egon.tianquan-jianshen.*`：Java 前缀与 `@Value` 字符串两侧自洽（如 `Rbac3DevelopmentBootstrap.java:24,39`、`Rbac3RuntimeRedissonConfiguration.java:28,51`），无需改动，也不属本次契约。
+- `…shoubing.yuheng.user-state-key-prefix`（4 个 YAML，如 `yuheng-biz-gateway/src/main/resources/application.yml:57`）：`IdpGatewayAdapterProperties` 是全裸的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing.yuheng")`，既无该字段也未设 `ignoreUnknownFields = false`，该键**不参与绑定且被静默忽略**。属既有冗余键，是否清理另议（清理会改变 YAML 面，超出本次收口）。
+- `integration-test`：不属本次范围。
+
+### 16.6 16.3 表中"待定位"项的定位与处置
+
+16.3 的 15 个类中，D1/D2 覆盖 9 个；余下 6 个同属 wave 的字面量误伤，但机制各不相同，已逐个实证并修复：
+
+| 测试类 | 症状 | 根因（已实证） | 处置 |
+|---|---|---|---|
+| `DdcPublishTaskQueryServiceTest` | `page` 为 `null` | 输入 `" gateway "`（带空格）不等于 sed 的精确 token `"gateway"`，而两条期望已改为 `yuheng`；`page()` 只做 trim，桩永不匹配，Mockito 返回 `null` | 输入改 `" yuheng "`（`c0dc3f3c3`） |
+| `DdcMetadataPagingRepositoryTest` | `appPage` 期望 1 行、实得 0 行（第 97 行） | 关键字 `"gate"` 是 `gateway` 的中缀、不等于 token，故未被改名；数据与期望已改 `yuheng`，`like '%gate%'` 落空（同用例第 90 行的绑定页关键字是精确 token，已被正确改名故通过） | 关键字改 `"yuheng"`（`c0dc3f3c3`） |
+| `DdcYamlConfigValidatorTest` | 期望消息含 `reserved`，实得 `exceeds the UTF-8 limit of 64 bytes` | fixture `ddc` → `tianshu` 使文档由 63 字节增至 67 字节，先撞上长度校验，保留键校验未执行 | 改写为 flow mapping（`tianshu: {enabled: false}`，61 字节），键路径不变（`2a9aad75d`） |
+| `GatewayDdcConfigurationTest` | 期望 `${…:rbac3}`，实得 `${…:tianquan-jianshen}` | `application.yml` 四处默认值已统一为 `tianquan-jianshen`（自洽），期望侧未跟 | 期望改为 `tianquan-jianshen`（`c2fb09a1d`） |
+| `Rbac3MigrationContractTest`（2 例） | 期望 SQL 含 `tianquan-jianshen.bootstrap.tenant_ids` / `identity_sub` | 不可变迁移（`B14__create_current_rbac3_schema.sql:1714,1716`、`V10__seed_builtin_roles_and_permissions.sql:199,201`）读的是 `rbac3.bootstrap.*`；wave 只改了消费方（断言与 IT 的 `initSql`） | 断言回退为 `rbac3.bootstrap.*`（`bb57cb26b`） |
+| `GatewayRuleWireCompatibilityTest` | 摘要常量过期 | 被哈希的 canonical 内容含 `yuheng-live` / `api.yuheng.test`；**还原实验**：把该用例内三个字面量改回 wave 前取值后，旧常量 `6c7dd1dd…` 精确复现 → 偏差完全由改名解释，canonicalizer 未被改动 | 常量重锚为 `110b8cc5…` 并加注重锚依据（`35a338c1d`） |
+
+同源潜在缺陷（本轮一并处置，但**未能运行期验证**）：`Rbac3FlywayPostgresqlIT` 的 `initSql` 同样把会话变量写成 `tianquan-jianshen.bootstrap.*`，而迁移读 `rbac3.bootstrap.*`；该 IT 由 `TIANQUAN_JIANSHEN_IT_POSTGRES_*` 环境变量门控，本机不满足条件、长期跳过，故未进 16.3 清单。处置同 `Rbac3MigrationContractTest`（回退为 `rbac3.bootstrap.*`），依据是不可变迁移定义的名字，属文本级可验证、运行期未验证。
+
+### 16.7 验证与提交
+
+`./mvnw -B -ntp -f egon-cola-xingyuan/pom.xml clean verify`：**退出码 0**，40 个模块全部 SUCCESS，30 个模块产出测试汇总，合计 **1279 个用例，0 失败 / 0 错误 / 0 跳过**。16.3 清单中的 15 个类逐一转绿：`Rbac3MigrationContractTest` 17、`GatewayEngineConfigurationTest` 16、`HttpProviderContractTest` 7、`WebFluxHttpProviderContractTest` 5、`GatewayDdcConfigurationTest` 5、`McpGatewayEngineContextTest` 5、`DdcYamlConfigValidatorTest` 5、`McpGatewayEnginePropertiesTest` 4、`IdpGatewayAdapterAutoConfigurationTest` 4、`GatewayRuleWireCompatibilityTest` 3、`Rbac3GatewayAdapterAutoConfigurationTest` 2，以及 `GatewayEngineRbac3ConfigurationTest` / `IdpAdapterRuntimeClasspathTest` / `DdcPublishTaskQueryServiceTest` / `DdcMetadataPagingRepositoryTest` 各 1。
+
+- Commit（16.5）: `c64e2fecf fix(xingyuan): nest the platform identity keys the rename flattened`
+- Commit（16.5）: `f82f6603a fix(xingyuan): complete the yuheng rename in the gateway adapters`
+- Commit（16.5）: `389034fc3 fix(yuheng): keep the rate-limit test filter stripping the gateway beans`
+- Commit（16.5）: `a1e65073a fix(yuheng): read the admin identity defaults from the nested platform keys`
+- Commit（16.6）: `c0dc3f3c3 fix(tianshu): restore the app-code inputs the rename wave skipped`
+- Commit（16.6）: `2a9aad75d fix(tianshu): keep the reserved-key fixture inside the 64-byte gate`
+- Commit（16.6）: `bb57cb26b fix(jianshen): align the bootstrap setting names with the migrations`
+- Commit（16.6）: `c2fb09a1d fix(jianshen): follow the production app-code default in the admin yml`
+- Commit（16.6）: `35a338c1d test(yuheng): re-pin the rule-content digest for the rename`
+- Commit paths（16.5）: 16 个 `application*.yml`；两个 `*-gateway-adapter` 模块的包目录与 `package-info.java`、`McpGatewayEngineProperties.java`、`McpGatewayEngineConfiguration.java`、`ContractDependencyBoundaryTest.java`、`StarterBoundaryTest.java`、`GatewayEngineConfigurationTest.java`、`GatewayAdminApplicationConfigurationTest.java`
+- Commit paths（16.6）: `egon-cola-tianshu-admin` 三个测试类、`egon-cola-tianquan-jianshen-admin` 三个测试类、`yuheng-test-suite` 一个测试类
+
+> 边界：16.4 的运行期边界仍然有效。上述验证均为离线 JVM 级（`clean verify`），**未**启动平台应用、Redis/PostgreSQL 与本地统一栈；`Rbac3FlywayPostgresqlIT` 及任何真实 IdP/DDC 交互仍未运行。
+
+> 复跑提示：本次改动仅测试与 YAML，无 `-am` 需求；但跨模块类路径检查（如 `IdpAdapterRuntimeClasspathTest`）必须带 `-am`，否则 `-pl` 会从 `~/.m2` 取到 wave 之前的旧适配器 jar，产生假的 `ClassNotFoundException`。
