@@ -35,11 +35,17 @@ public record CreateKnowledgeBaseCommand(
         traceId = normalize(traceId);
     }
 
-    /** The chunking parameters as they arrive, before the domain bounds are applied. */
+    /**
+     * The chunking parameters as they arrive, before the domain bounds are applied.
+     *
+     * <p>{@code minChunkChars} accepts the published range including zero: the domain reads a
+     * non-positive value as "no minimum beyond one character", so rejecting zero here would refuse a
+     * request the contract defines.
+     */
     public record ChunkingConfigCommand(
             @Min(32) @Max(4096) int maxTokensPerChunk,
             @Min(0) int overlapTokens,
-            @Min(1) @Max(4096) int minChunkChars,
+            @Min(0) @Max(4096) int minChunkChars,
             List<@Min(1) @Max(6) Integer> headingLevels) {
 
         public ChunkingConfigCommand {

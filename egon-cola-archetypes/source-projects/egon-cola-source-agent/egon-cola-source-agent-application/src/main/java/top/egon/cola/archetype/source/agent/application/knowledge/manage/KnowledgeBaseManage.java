@@ -22,6 +22,14 @@ public interface KnowledgeBaseManage {
 
     KnowledgeBaseBO update(@Valid UpdateKnowledgeBaseCommand command);
 
+    /**
+     * Undeleted document count of one base, which the published representations carry beside it.
+     *
+     * <p>The count is requested per base rather than derived from a listing, so a caller renders the
+     * same number whether it asked for one base or a page of them.
+     */
+    long documentCount(Long knowledgeBaseId);
+
     /** Removes the base, its documents, their stored originals and their chunks. */
     void delete(Long knowledgeBaseId);
 }

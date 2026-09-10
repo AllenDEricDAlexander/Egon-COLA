@@ -1806,6 +1806,24 @@ public class KnowledgeBaseController {
 - Commit paths: `...-adapter/src/test/java/.../adapter/knowledge/KnowledgeBaseControllerTest.java`; `.../adapter/knowledge/dto/{CreateKnowledgeBaseRequest,UpdateKnowledgeBaseRequest}.java`; `.../adapter/knowledge/vo/KnowledgeBaseVO.java`; `.../adapter/knowledge/converter/{KnowledgeCommandConverter,KnowledgeVoConverter}.java`; `.../adapter/knowledge/controller/KnowledgeBaseController.java`
 - Commit: `feat(agent-archetype): expose the knowledge base api`
 
+在实施期修正（未知字段的拒绝必须落在类型上）：Spec B 行 1329 要求"探测不可依赖序列化层静默丢弃字段"，行 1349 给 `UpdateKnowledgeBaseRequest` 定的验证是"序列化与 400 断言"。类级 `@JsonIgnoreProperties(ignoreUnknown = false)` 做不到这件事——"未知属性是否抛错"由 mapper 的 `FAIL_ON_UNKNOWN_PROPERTIES` 特性决定，Spring Boot 的应用 mapper 与 standalone MockMvc 的 mapper 都默认关闭它，故该注解只表达意图。两个 Request 因此各带一个 `StdDeserializer`（白名单 + 逐字段类型检查），Edit 体复用 Create 体的解析入口（两者字段集完全相同），与仓库既有的同类解法一致（`StartDeepResearchRequest.Deserializer` 处理的正是同一问题；research 的 400 断言也靠它而不是注解）。契约的第二个后果：显式 `null` 与缺省在 `name`/`description` 上同义（`PUT` 整替换），在四个探针上也同义（都表示"未提供"）。
+
+在实施期修正（知识边界自己的错误处理器）：`ExceptionHandlerExceptionResolver` 按 `@Order` 取第一个"适用且有匹配方法"的 advice，而不受限的 `DeepResearchGlobalExceptionHandler` 不能被知识域复用——它对 `MethodArgumentNotValidException`、`Exception` 等共有异常只认 research 的错误码。故新增 `adapter/knowledge/handler/KnowledgeGlobalExceptionHandler`：`@RestControllerAdvice(name = "knowledgeGlobalExceptionHandler", basePackages = "…adapter.knowledge")` + `@Order(Ordered.HIGHEST_PRECEDENCE)`，把 `KnowledgeErrorCodeEnum` 映射到 Spec B `§9.2` 的状态码（400/404/406/409/413/429/503/500），`KNOWLEDGE_CAPACITY_EXHAUSTED` 附 `Retry-After: 5`，错误体复用既有 `DeepResearchErrorResponse`（`REQ-014` 的"复用既有错误体"）。plan 未列该文件；顺序限定是必需的，否则知识端点的非法请求体会落到 research 的处理器上并渲染成 `RESEARCH_*` 错误码。
+
+在实施期修正（`documentCount` 端口方法）：`KnowledgeBaseVO` 的 `documentCount` 既不在 `KnowledgeBaseBO` 上，adapter 也够不到仓储（不得依赖 infrastructure）。实现改为在 `KnowledgeBaseManage` 上新增 `long documentCount(Long)`，由 `KnowledgeBaseManageImpl` 用既有 `KnowledgeDocumentRepository#countByKnowledgeBaseId` 实现，控制器把它交给 VO 转换器。该文件不在 plan 的 Commit paths 之内。列表因此按行逐个计数（页大小上限 100，N+1 有界）；规范没有批量计数的端口，**留待审计**。建库与更新也走同一条渲染路径，故新库返回 `documentCount=0` 而不是省略该字段——同一 VO 的同一个字段在任何响应里都同义。
+
+在实施期修正（`minChunkChars` 的下界）：plan 的 File 2 伪代码与 Step 8 的 `CreateKnowledgeBaseCommand.ChunkingConfigCommand` 把它定成 `@Min(1)`，Spec B `§9.2.1` 的字段表给的是 0–4096（域在 `KnowledgeChunkConfigBO` 里把 ≤0 归一为 1）。故命令载体放宽为 `@Min(0)`，与请求载体一致：否则 0（契约允许）会被边界拒绝成 400。
+
+在实施期修正（分页外壳与 spec 的列表字段名不同）：`API-002` 的响应在 spec 里形如 `{items, page, size, totalElements, totalPages, hasNext}`，实现用的是组件既有的 `PageResultRecord`（`{success, code, status, message, records, page{total, pageNo, pageSize, pages, hasNext, hasPrevious}, traceId, timestamp}`，Step 5 已记同一偏差）。列表行复用 `KnowledgeBaseVO`（plan 的 File 3 只定义一个 VO），因此列表行比 spec 的列表字段表多出 `description`/`chunkConfig`/`embeddingModel` 等字段——是超集，不是冲突。**留待审计**（列表外壳与字段名）。
+
+在实施期修正（`traceId`、标识类型与单一 VO）：`KnowledgeBaseVO` 带 `traceId`（Spec B 的成功响应字段表列了它，plan 的 File 3 伪代码漏了），值取 `ResearchTraceFilter` 的请求属性（同一过滤器已把它写进响应头与 MDC）。标识在实现里是 `Long`（`EgonModel.id` 的 bigint），而 Spec B 把 `knowledgeBaseId` 声明为 `String` 且示例是 `kb-01J5K9`：接口输出数字、路径也只接受能表示正数的数字标识，能通过路径模式但不能表示正数的 token（如 `kb-01J5K9`）按 400 `KNOWLEDGE_VALIDATION_ERROR` 的 `fieldErrors.knowledgeBaseId` 拒绝，而不是用 404 谎称资源不存在。**留待审计**（声明类型与示例）。
+
+在实施期修正（查询参数校验与字段名）：页面参数用 Spring 6.1+ 的内建方法校验（`@RequestParam` 上的 `@Min`/`@Max`/`@Size`，无需在控制器类上加 `@Validated`），失败是 `HandlerMethodValidationException`；处理器从 `getParameterValidationResults()` 取每个参数的 `getResolvableErrors()`，字段名优先取 `@PathVariable`/`@RequestParam` 的显式名字（`MethodParameter#getParameterName` 依赖编译期 `-parameters`，不作为唯一依据）。处理器另映射 `MethodArgumentTypeMismatchException`（查询参数类型不符 → 400）与不支持的媒体类型（415），避免它们落到 `Exception` 兜底变成 500。
+
+在实施期修正（`KnowledgeBaseControllerTest` 的规模）：plan 列 4 个方法名，实际 13 个——四个保留，其余覆盖列表外壳、详情、可编辑字段与冻结配置的分离、不可定义字段的 400、字段约束的 400、分页范围、格式非法的标识、基座繁忙的 409、删除后的 204 与随后 404、无 API Key 的 401（带 `WWW-Authenticate: ApiKey`）。用例是手写假件（`KnowledgeManageTest` 与研究测试的风格），不使用 Mockito；组装用 `standaloneSetup` + `LocalValidatorFactoryBean` + 两个既有过滤器。
+
+- Commit paths 补充：除 plan 列出的文件外，本次提交还含 `...-adapter/src/main/java/.../adapter/knowledge/{package-info.java,dto/package-info.java,vo/package-info.java,converter/package-info.java,controller/package-info.java}`、`.../adapter/knowledge/handler/{KnowledgeGlobalExceptionHandler,package-info}.java`、`...-adapter/src/test/java/.../adapter/knowledge/package-info.java`、以及 application 的 `.../knowledge/manage/KnowledgeBaseManage.java`、`.../knowledge/manage/impl/KnowledgeBaseManageImpl.java`、`.../knowledge/command/CreateKnowledgeBaseCommand.java`。
+
 ### Step 10 — adapter：文档接口
 
 - Requirements: `REQ-003`, `REQ-005`, `REQ-007`, `REQ-023`

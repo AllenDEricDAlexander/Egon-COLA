@@ -104,6 +104,13 @@ public class KnowledgeBaseManageImpl implements KnowledgeBaseManage {
     }
 
     @Override
+    public long documentCount(Long knowledgeBaseId) {
+        Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null");
+        required(knowledgeBaseId, null);
+        return documentRepository.countByKnowledgeBaseId(knowledgeBaseId);
+    }
+
+    @Override
     public void delete(Long knowledgeBaseId) {
         Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null");
         required(knowledgeBaseId, null);
