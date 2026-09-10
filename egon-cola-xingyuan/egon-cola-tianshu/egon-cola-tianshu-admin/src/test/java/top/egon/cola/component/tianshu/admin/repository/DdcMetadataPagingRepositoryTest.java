@@ -76,7 +76,7 @@ class DdcMetadataPagingRepositoryTest {
                 "infra",
                 "default",
                 "prod",
-                "gate",
+                "yuheng",
                 PageRequest.of(0, 10, Sort.by("bizCode", "appCode", "id").ascending()));
         Page<DdcEnvEntity> disabledNamespacePage = envRepository.search(
                 "infra",

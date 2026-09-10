@@ -35,7 +35,7 @@ class DdcPublishTaskQueryServiceTest {
         DdcPublishTaskQueryRequest request = new DdcPublishTaskQueryRequest();
         request.setBizCode(" infra ");
         request.setEnv(" prod ");
-        request.setAppCode(" gateway ");
+        request.setAppCode(" yuheng ");
         request.setStatus(" FAILED ");
         request.setChangeId(" 019 ");
 
