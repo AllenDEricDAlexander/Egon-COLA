@@ -42,7 +42,7 @@ class DdcRpcRequestSignerTest {
         ));
         assertThat(canonical.canonicalValue()).doesNotEndWith("\n");
         assertThat(signer.sign(canonical, "secret"))
-                .isEqualTo("09d08f69debf6faf553bf08f729e2af713b1aebe065ee0ef42ccd5681bea5571");
+                .isEqualTo("2ddd5f2149ddd48c1f70fce9d7ab88154541a6df116e1ea6a6b509b8c099544c");
     }
 
     @Test

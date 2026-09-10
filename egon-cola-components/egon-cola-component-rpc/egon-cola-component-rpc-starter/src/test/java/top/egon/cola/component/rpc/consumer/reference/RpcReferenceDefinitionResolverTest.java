@@ -62,7 +62,7 @@ class RpcReferenceDefinitionResolverTest {
                 new RpcProcessIdentity("consumer", "test", "127.0.0.1", 1, "i-1"));
 
         assertThatThrownBy(() -> definitions.resolve(
-                Holder.class.getDeclaredField("yuheng"), descriptor))
+                Holder.class.getDeclaredField("gateway"), descriptor))
                 .isInstanceOfSatisfying(EgonRpcException.class, error -> {
                     assertThat(error.getCode()).isEqualTo(EgonRpcErrorCode.RPC_INVALID_CONTRACT);
                     assertThat(error.getMessage()).contains("bean");

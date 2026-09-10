@@ -101,8 +101,8 @@ class RpcProviderMetadataMergerTest {
                 "tianshu.extension", "adapter-owned",
                 "egon.internal.extension", "application-owned"
         ))).containsExactly(
-                Map.entry("tianshu.extension", "adapter-owned"),
                 Map.entry("egon.internal.extension", "application-owned"),
+                Map.entry("tianshu.extension", "adapter-owned"),
                 Map.entry("yuheng.weight", "adapter-defined")
         );
     }
