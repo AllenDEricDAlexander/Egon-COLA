@@ -1,6 +1,5 @@
 package top.egon.cola.component.agentflow.autoconfigure;
 
-import com.google.adk.runner.InMemoryRunner;
 import jakarta.validation.Validator;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.ListableBeanFactory;
@@ -13,7 +12,6 @@ import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
 import org.springframework.boot.context.properties.bind.handler.NoUnboundElementsBindHandler;
 import org.springframework.context.annotation.Bean;
-import top.egon.cola.component.agentflow.api.AgentFlowService;
 import top.egon.cola.component.agentflow.config.AgentFlowConfigValidator;
 import top.egon.cola.component.agentflow.execution.AgentFlowSessionExecutionGuard;
 import top.egon.cola.component.agentflow.execution.DefaultAgentFlowService;
@@ -33,7 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/** Wires the flat Agent Flow starter only when the host explicitly enables it. */
+/**
+ * Wires the flat Agent Flow starter only when the host explicitly enables it.
+ */
 @AutoConfiguration
 @ConditionalOnProperty(
         prefix = "egon.cola.component.agent-flow",
@@ -51,8 +51,8 @@ public class AgentFlowAutoConfiguration {
     @Bean(name = "agentFlowProperties")
     @ConditionalOnMissingBean(name = "agentFlowProperties")
     public AgentFlowProperties agentFlowProperties(org.springframework.core.env.Environment environment) {
-            return Binder.get(environment).bindOrCreate(
-                    "egon.cola.component.agent-flow",
+        return Binder.get(environment).bindOrCreate(
+                "egon.cola.component.agent-flow",
                 Bindable.of(AgentFlowProperties.class),
                 new NoUnboundElementsBindHandler(BindHandler.DEFAULT));
     }
