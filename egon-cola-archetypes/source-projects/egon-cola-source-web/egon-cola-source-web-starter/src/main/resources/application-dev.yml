@@ -112,13 +112,14 @@ egon:
           enabled: ${OPENAPI_GOVERNANCE_ENABLED:false}
           publish-to-tianshu: ${OPENAPI_PUBLISH_TO_TIANSHU:false}
     platform:
-      tianquan-shoubing:
-        enabled: ${TIANQUAN_SHOUBING_ENABLED:true}
-        register-filter: false
-        issuer: ${TIANQUAN_SHOUBING_ISSUER:}
-        jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:}
-        resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID:}
-        resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
-        service-client:
-          app-id: ${TIANQUAN_SHOUBING_SERVICE_APP_ID:}
-          registration-id: tianshuregistration
+      tianquan:
+        shoubing:
+          enabled: ${TIANQUAN_SHOUBING_ENABLED:true}
+          register-filter: false
+          issuer: ${TIANQUAN_SHOUBING_ISSUER:}
+          jwk-set-uri: ${TIANQUAN_SHOUBING_JWK_SET_URI:}
+          resource-server-id: ${TIANQUAN_SHOUBING_RESOURCE_SERVER_ID:}
+          resource-uri: ${TIANQUAN_SHOUBING_RESOURCE_URI:}
+          service-client:
+            app-id: ${TIANQUAN_SHOUBING_SERVICE_APP_ID:}
+            registration-id: tianshuregistration

@@ -765,7 +765,7 @@ assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
     "UserEventPublisher"
 ].each { serviceName ->
     def path = serviceName in ["UserCachePort", "UserQueryGateway", "UserEventPublisher"] ?
-            (serviceName == "UserCachePort" ? "client" : serviceName == "UserQueryGateway" ? "yuheng" : "event") : "service"
+            (serviceName == "UserCachePort" ? "client" : serviceName == "UserQueryGateway" ? "gateway" : "event") : "service"
     assertFile("src/main/java/it/pkg/domain/user/${path}/${serviceName}.java")
 }
 assertFile("src/test/java/it/pkg/domain/user/aggregates/UserAggregateTest.java")
@@ -1345,10 +1345,12 @@ assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-
 }
 ['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
     def config = new File(generatedProjectDir, 'src/main/resources/' + profile).text
-    ['rpc:', 'tianshu:', 'provider:', 'consumer:', 'registry:', 'yuheng:', 'openapi:', 'tianquan-shoubing:'].each { token ->
+    ['rpc:', 'tianshu:', 'provider:', 'consumer:', 'registry:', 'yuheng:', 'openapi:', 'tianquan:', 'shoubing:'].each { token ->
         assert config.contains(token): "Missing native configuration ${token} in ${profile}"
     }
     assert !config.contains('DUBBO_') && !config.contains('NACOS_')
+    // The component prefix is egon.cola.platform.tianquan.shoubing; '-' is not a hierarchy separator.
+    assert !config.contains('tianquan-shoubing:'): "tianquan-shoubing must nest as tianquan.shoubing in ${profile}"
 }
 def nativeJava = []
 generatedProjectDir.traverse(type: FileType.FILES) { candidate ->

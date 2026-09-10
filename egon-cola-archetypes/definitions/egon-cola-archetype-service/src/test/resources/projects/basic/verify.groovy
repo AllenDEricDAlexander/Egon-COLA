@@ -1171,10 +1171,12 @@ assert !releasedLibraries.any { it.startsWith('dubbo-') || it.startsWith('nacos-
 }
 ['application.yml', 'application-dev.yml', 'application-test.yml', 'application-prod.yml'].each { profile ->
     def config = new File(projectDir, 'student-management-evaluation-starter/src/main/resources/' + profile).text
-    ['rpc:', 'tianshu:', 'provider:', 'consumer:', 'registry:', 'yuheng:', 'openapi:', 'tianquan-shoubing:'].each { token ->
+    ['rpc:', 'tianshu:', 'provider:', 'consumer:', 'registry:', 'yuheng:', 'openapi:', 'tianquan:', 'shoubing:'].each { token ->
         assert config.contains(token): "Missing native configuration ${token} in ${profile}"
     }
     assert !config.contains('DUBBO_') && !config.contains('NACOS_')
+    // The component prefix is egon.cola.platform.tianquan.shoubing; '-' is not a hierarchy separator.
+    assert !config.contains('tianquan-shoubing:'): "tianquan-shoubing must nest as tianquan.shoubing in ${profile}"
 }
 def nativeJava = []
 projectDir.traverse(type: FileType.FILES) { candidate ->
