@@ -1,0 +1,142 @@
+package top.egon.cola.platform.tianquan.shoubing.yuheng.security;
+
+import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
+import top.egon.cola.component.yuheng.core.context.GatewayPrincipal;
+import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
+import top.egon.cola.component.yuheng.core.security.GatewayIdentityMapper;
+import top.egon.cola.component.yuheng.core.security.TrustedIdentity;
+
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Set;
+
+/**
+ * 把已验证且不可变的身份字段映射为固定的后端可信请求头。
+ * 映射前要求主体已经认证且租户存在，并只输出已验证的主体、租户、令牌标识及
+ * SERVICE 机器身份属性；用户资料与权限不会透传。
+ *
+ * <p>Maps only verified immutable identity fields into fixed trusted downstream headers. The
+ * principal must be authenticated. USER principals are deliberately rejected; SERVICE mappings
+ * emit subject, an optional tenant (PLATFORM tokens omit it), token and verified machine
+ * attributes. User profile data and authorities are not propagated.</p>
+ */
+public final class IdpTrustedIdentityMapper implements GatewayIdentityMapper {
+
+    /**
+     * Gateway 策略引用本身份映射器时使用的稳定标识。
+     *
+     * <p>Stable identifier used by Gateway policy to select this identity mapper.</p>
+     */
+    public static final String MAPPER_ID = "tianquan-shoubing-identity";
+
+    /**
+     * 创建固定 Tianquan-Shoubing 可信身份映射器。
+     *
+     * <p>Creates the fixed Tianquan-Shoubing trusted-identity mapper.</p>
+     */
+    public IdpTrustedIdentityMapper() {
+    }
+
+    /**
+     * 返回身份映射器稳定标识。
+     *
+     * <p>Returns the stable identity-mapper identifier.</p>
+     *
+     * @return {@value #MAPPER_ID}
+     */
+    @Override
+    public String mapperId() {
+        return MAPPER_ID;
+    }
+
+    /**
+     * 返回本映射器支持的 Gateway 协议。
+     *
+     * <p>Returns the Gateway protocols supported by this mapper.</p>
+     *
+     * @return HTTP 与 RPC 协议集合；HTTP and RPC protocol set
+     */
+    @Override
+    public Set<GatewayProtocol> supportedProtocols() {
+        return Set.of(GatewayProtocol.HTTP, GatewayProtocol.RPC);
+    }
+
+    /**
+     * 将已认证 Gateway 主体转换为发往 HTTP 后端的可信身份头。
+     *
+     * <p>Converts an authenticated Gateway principal into trusted identity headers for an HTTP
+     * backend.</p>
+     *
+     * @param context 当前 Gateway 认证上下文；current Gateway authentication context
+     * @return 包含固定 Tianquan-Shoubing 身份头的可信身份；trusted identity containing fixed Tianquan-Shoubing headers
+     * @throws IllegalArgumentException 当主体未认证、租户缺失或必需声明缺失时；when the
+     *                                  principal is unauthenticated, the tenant is absent, or a
+     *                                  required claim is missing
+     */
+    @Override
+    public TrustedIdentity map(GatewayAuthContext context) {
+        GatewayPrincipal principal = context.principal();
+        if (!principal.authenticated()) {
+            throw new IllegalArgumentException(
+                    "authenticated Tianquan-Shoubing principal is required"
+            );
+        }
+        if ("USER".equals(principal.principalType())) {
+            throw new IllegalArgumentException(
+                    "USER identity headers are not trusted downstream input");
+        }
+        Map<String, String> attributes = principal.attributes();
+        Map<String, String> headers = new LinkedHashMap<>();
+        headers.put("X-Egon-Principal-Type", principal.principalType());
+        headers.put("X-Egon-Identity-Sub", principal.principalId());
+        if (principal.tenantId() != null) {
+            headers.put("X-Egon-Tenant-Id", principal.tenantId());
+        }
+        headers.put("X-Egon-Token-Id", required(
+                attributes, "tianquan-shoubing.token-id"));
+        if ("SERVICE".equals(principal.principalType())) {
+            headers.put("X-Egon-Client-Id", required(
+                    attributes, "tianquan-shoubing.client-id"));
+            headers.put("X-Egon-Resource-Uri", required(
+                    attributes, "tianquan-shoubing.resource-uri"));
+            headers.put("X-Egon-Resource-Version", required(
+                    attributes, "tianquan-shoubing.resource-version"));
+            headers.put("X-Egon-Source-Biz", required(
+                    attributes, "tianquan-shoubing.source-biz"));
+            headers.put("X-Egon-Source-App", required(
+                    attributes, "tianquan-shoubing.source-app"));
+            headers.put("X-Egon-Source-Env", required(
+                    attributes, "tianquan-shoubing.source-env"));
+            headers.put("X-Egon-Service-Scopes", required(
+                    attributes, "tianquan-shoubing.service-scopes"));
+            headers.put("X-Egon-Credential-Id", required(
+                    attributes, "tianquan-shoubing.credential-id"));
+        } else {
+            throw new IllegalArgumentException("unsupported Tianquan-Shoubing principal type");
+        }
+        Map<String, String> rpcMetadata = new LinkedHashMap<>();
+        headers.forEach((name, value) -> rpcMetadata.put(
+                "egon-yuheng-" + name.substring("X-Egon-".length())
+                        .toLowerCase(java.util.Locale.ROOT), value));
+        return new TrustedIdentity(headers, rpcMetadata);
+    }
+
+    /**
+     * 读取映射所必需的已验证属性。
+     *
+     * <p>Reads a verified attribute required by the mapping.</p>
+     *
+     * @param values 已验证主体属性；verified principal attributes
+     * @param name 属性名称；attribute name
+     * @return 非空属性值；non-blank attribute value
+     * @throws IllegalArgumentException 当属性缺失或为空时；when the attribute is absent or blank
+     */
+    private String required(Map<String, String> values, String name) {
+        String value = values.get(name);
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(
+                    "missing verified claim " + name);
+        }
+        return value;
+    }
+}

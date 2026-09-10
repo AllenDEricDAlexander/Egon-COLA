@@ -20,7 +20,7 @@ class ContractDependencyBoundaryTest {
             "top/egon/cola/platform/tianquan/jianshen/core/",
             "top/egon/cola/platform/tianquan/jianshen/starter/",
             "top/egon/cola/platform/tianquan/jianshen/admin/",
-            "top/egon/cola/platform/tianquan/jianshen/gateway/"
+            "top/egon/cola/platform/tianquan/jianshen/yuheng/"
     );
 
     @Test

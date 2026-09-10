@@ -13,7 +13,7 @@ class StarterBoundaryTest {
 
     private static final List<String> FORBIDDEN_SOURCE_REFERENCES = List.of(
             "top.egon.cola.platform.tianquan.jianshen.admin",
-            "top.egon.cola.platform.tianquan.jianshen.gateway",
+            "top.egon.cola.platform.tianquan.jianshen.yuheng",
             "jakarta.persistence",
             "javax.sql",
             "java.sql",

@@ -29,7 +29,7 @@ import java.util.List;
 @Validated
 @ConfigurationProperties(prefix = "egon.cola.component.yuheng.mcp-engine", ignoreUnknownFields = false)
 public record McpGatewayEngineProperties(
-        @NotBlank @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_-]{0,63}") String gatewayGroupCode,
+        @NotBlank @Pattern(regexp = "[A-Za-z0-9][A-Za-z0-9_-]{0,63}") String yuhengGroupCode,
         @NotBlank @Size(max = 128) String env,
         @NotBlank @Size(max = 128) String namespace,
         @NotBlank @Size(max = 128) String nodeId,
@@ -42,7 +42,7 @@ public record McpGatewayEngineProperties(
 ) {
 
     public McpGatewayEngineProperties {
-        gatewayGroupCode = gatewayGroupCode == null ? null : gatewayGroupCode.trim();
+        yuhengGroupCode = yuhengGroupCode == null ? null : yuhengGroupCode.trim();
         env = env == null ? null : env.trim();
         namespace = namespace == null ? null : namespace.trim();
         nodeId = nodeId == null ? null : nodeId.trim();

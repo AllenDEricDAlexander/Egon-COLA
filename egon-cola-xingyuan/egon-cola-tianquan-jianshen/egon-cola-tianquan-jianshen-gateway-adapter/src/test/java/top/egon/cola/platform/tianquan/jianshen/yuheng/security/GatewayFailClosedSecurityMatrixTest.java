@@ -1,0 +1,66 @@
+package top.egon.cola.platform.tianquan.jianshen.yuheng.security;
+
+import org.junit.jupiter.api.Test;
+import reactor.core.publisher.Mono;
+import top.egon.cola.component.yuheng.contract.protocol.AccessZone;
+import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
+import top.egon.cola.component.yuheng.core.context.GatewayPrincipal;
+import top.egon.cola.component.yuheng.core.security.AuthorizationDecision;
+import top.egon.cola.component.yuheng.core.security.GatewayAuthContext;
+import top.egon.cola.component.yuheng.core.security.SecurityDecision;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Set;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+class GatewayFailClosedSecurityMatrixTest {
+
+    private static final Instant NOW = Instant.parse("2026-07-30T08:00:00Z");
+
+    @Test
+    void scopeRuntimeFailuresNeverBecomeAuthorizationAllow() {
+        var providers = List.of(
+                new Rbac3BizAppScopeAuthorizationProvider(
+                        ignored -> {
+                            throw new IllegalStateException("redis lost");
+                        }),
+                new Rbac3BizAppScopeAuthorizationProvider(
+                        ignored -> {
+                            throw new IllegalArgumentException("scope malformed");
+                        }));
+
+        for (Rbac3BizAppScopeAuthorizationProvider provider : providers) {
+            var decision = Mono.from(provider.authorize(context())).block();
+            assertEquals(SecurityDecision.ERROR, decision.decision());
+            assertEquals("TIANQUAN_JIANSHEN_SCOPE_RUNTIME_UNAVAILABLE",
+                    decision.reason());
+        }
+    }
+
+    @Test
+    void preservesBusinessAndApplicationDenials() {
+        var denials = List.of(
+                AuthorizationDecision.deny("TIANQUAN_JIANSHEN_BUSINESS_SCOPE_DENIED"),
+                AuthorizationDecision.deny("TIANQUAN_JIANSHEN_APPLICATION_SCOPE_DENIED"));
+
+        for (AuthorizationDecision denial : denials) {
+            var provider = new Rbac3BizAppScopeAuthorizationProvider(
+                    ignored -> denial);
+
+            assertEquals(denial,
+                    Mono.from(provider.authorize(context())).block());
+        }
+    }
+
+    private static GatewayAuthContext context() {
+        return new GatewayAuthContext(
+                AccessZone.PUBLIC, GatewayProtocol.HTTP, "operation", "route",
+                "policy", "/payments", "POST", Set.of("bearer"),
+                new GatewayPrincipal(
+                        "user", "USER", "tenant", null, true, java.util.Map.of()),
+                "127.0.0.1", "trace", "request", NOW.plusSeconds(5),
+                "release");
+    }
+}

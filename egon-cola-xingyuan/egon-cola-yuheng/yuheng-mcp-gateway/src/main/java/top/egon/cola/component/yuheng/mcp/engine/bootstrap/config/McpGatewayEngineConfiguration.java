@@ -248,7 +248,7 @@ public class McpGatewayEngineConfiguration {
     public GatewayRuleLkgRepository gatewayRuleLkgRepository(
             McpGatewayEngineProperties properties) {
         return new GatewayRuleLkgRepository(
-                Path.of(properties.dataDirectory()), properties.gatewayGroupCode());
+                Path.of(properties.dataDirectory()), properties.yuhengGroupCode());
     }
 
     /**
