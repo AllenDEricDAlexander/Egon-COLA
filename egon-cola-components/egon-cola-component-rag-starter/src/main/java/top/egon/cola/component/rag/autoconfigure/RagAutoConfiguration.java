@@ -6,6 +6,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.bind.BindHandler;
@@ -19,9 +20,11 @@ import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
 import top.egon.cola.component.rag.extract.MarkdownRagDocumentExtractor;
+import top.egon.cola.component.rag.extract.PdfRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PlainTextRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.RagDocumentExtractor;
 import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
+import top.egon.cola.component.rag.extract.TikaRagDocumentExtractor;
 
 import java.time.Clock;
 import java.util.Arrays;
@@ -100,6 +103,24 @@ public class RagAutoConfiguration {
     @ConditionalOnMissingBean(MarkdownRagDocumentExtractor.class)
     public MarkdownRagDocumentExtractor markdownRagDocumentExtractor() {
         return new MarkdownRagDocumentExtractor();
+    }
+
+    /**
+     * PDF support arrives only when the optional reader artifact is present; the return type is the
+     * SPI so Spring never has to load an extractor whose backing library might be absent.
+     */
+    @Bean(name = "pdfRagDocumentExtractor")
+    @ConditionalOnClass(name = "org.springframework.ai.reader.pdf.PagePdfDocumentReader")
+    @ConditionalOnMissingBean(name = "pdfRagDocumentExtractor")
+    public RagDocumentExtractor pdfRagDocumentExtractor() {
+        return new PdfRagDocumentExtractor();
+    }
+
+    @Bean(name = "tikaRagDocumentExtractor")
+    @ConditionalOnClass(name = "org.springframework.ai.reader.tika.TikaDocumentReader")
+    @ConditionalOnMissingBean(name = "tikaRagDocumentExtractor")
+    public RagDocumentExtractor tikaRagDocumentExtractor() {
+        return new TikaRagDocumentExtractor();
     }
 
     /**
