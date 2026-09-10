@@ -22,6 +22,32 @@
             <artifactId>egon-cola-component-agent-flow-starter</artifactId>
         </dependency>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-rag-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-transactional-outbox-starter</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-pgvector-store</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-core</artifactId>
+        </dependency>
+        <!-- Flyway 10 起数据库支持按方言拆包；缺这个插件时 PostgreSQL 迁移在启动期报 Unsupported Database。 -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-mcp</artifactId>
         </dependency>

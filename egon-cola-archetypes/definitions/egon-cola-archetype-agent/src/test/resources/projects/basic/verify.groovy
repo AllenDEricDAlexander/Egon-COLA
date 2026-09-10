@@ -75,6 +75,18 @@ assert dependencyIds(poms.starter).contains("${prefix}-adapter".toString())
 assert dependencyIds(poms.starter).contains("${prefix}-infrastructure".toString())
 assert dependencyIds(poms.starter).contains("spring-ai-openai")
 
+// knowledge 域的持久化、RAG、outbox 与向量依赖必须落到对应模块；starter 不直接声明 JDBC starter（`EVD-003`）。
+assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert dependencyIds(poms.infrastructure).contains("egon-cola-component-rag-starter")
+assert dependencyIds(poms.infrastructure).contains("egon-cola-component-transactional-outbox-starter")
+assert dependencyIds(poms.infrastructure).contains("spring-ai-pgvector-store")
+assert dependencyIds(poms.infrastructure).contains("flyway-core")
+assert dependencyIds(poms.infrastructure).contains("postgresql")
+modules.each { module ->
+    assert !dependencyIds(poms[module]).contains("spring-boot-starter-jdbc"):
+            "spring-boot-starter-jdbc must stay forbidden in ${module} (EVD-003)"
+}
+
 // flyway-core 与 mybatis-plus-spring-boot3-starter 是 knowledge 域的持久化依赖，
 // 已由 Spec 2026-09-10-11-51 的 Amends 放开；其余禁项保持不变。
 def forbiddenDependencies = [
