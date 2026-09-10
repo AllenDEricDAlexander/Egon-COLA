@@ -6,6 +6,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import top.egon.cola.component.rag.autoconfigure.RagEmbeddingModelProperties;
+import top.egon.cola.component.rag.autoconfigure.NoopRagMetricsRecorder;
 import top.egon.cola.component.rag.autoconfigure.RagProperties;
 import top.egon.cola.component.rag.autoconfigure.RagRetrievalProperties;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
@@ -119,7 +120,8 @@ class RagRetrievalServiceImplTest {
                 null, retrieval, null);
         RagEmbeddingModelRegistry registry = new RagEmbeddingModelRegistry(properties,
                 new StaticListableBeanFactory(Map.of("ragEmbeddingModel", new FakeEmbeddingModel(DIMENSIONS))));
-        return new RagRetrievalServiceImpl(registry, vectorStore, properties, Clock.systemUTC());
+        return new RagRetrievalServiceImpl(registry, vectorStore, properties, Clock.systemUTC(),
+                new NoopRagMetricsRecorder());
     }
 
     private void seed(String collectionId, String model, String documentId, int chunkIndex) {

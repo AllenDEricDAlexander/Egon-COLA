@@ -8,6 +8,7 @@ import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.Filter;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import top.egon.cola.component.rag.api.RagRetrievalService;
+import top.egon.cola.component.rag.autoconfigure.RagMetricsRecorder;
 import top.egon.cola.component.rag.autoconfigure.RagProperties;
 import top.egon.cola.component.rag.converter.RagChunkConverter;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelDescriptorBO;
@@ -43,6 +44,8 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
 
     private final Clock clock;
 
+    private final RagMetricsRecorder metricsRecorder;
+
     @Override
     public List<RagRetrievedChunkBO> retrieve(RagRetrievalQuery query) {
         Instant startedAt = clock.instant();
@@ -76,6 +79,8 @@ public class RagRetrievalServiceImpl implements RagRetrievalService {
         log.info("rag retrieval finished: collection={}, model={}, topK={}, hits={}, durationMs={}, result=SUCCESS",
                 query.collectionId(), descriptor.logicalName(), topK, results.size(),
                 Duration.between(startedAt, clock.instant()).toMillis());
+        metricsRecorder.recordRetrieval(descriptor.logicalName(), "SUCCESS",
+                Duration.between(startedAt, clock.instant()), results.size());
         return results;
     }
 

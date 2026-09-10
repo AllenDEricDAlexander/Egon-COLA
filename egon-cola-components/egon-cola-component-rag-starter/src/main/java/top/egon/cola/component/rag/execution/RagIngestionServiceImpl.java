@@ -6,6 +6,7 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
 import top.egon.cola.component.rag.api.RagIngestionService;
+import top.egon.cola.component.rag.autoconfigure.RagMetricsRecorder;
 import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategyFactory;
@@ -49,6 +50,8 @@ public class RagIngestionServiceImpl implements RagIngestionService {
 
     private final Clock clock;
 
+    private final RagMetricsRecorder metricsRecorder;
+
     @Override
     public RagIngestionResult ingest(RagIngestionCommand command) {
         Instant startedAt = clock.instant();
@@ -75,6 +78,8 @@ public class RagIngestionServiceImpl implements RagIngestionService {
         Duration elapsed = Duration.between(startedAt, clock.instant());
         log.info("rag ingestion finished: collection={}, document={}, chunks={}, durationMs={}, result=SUCCESS",
                 command.collectionId(), command.documentId(), chunks.size(), elapsed.toMillis());
+        metricsRecorder.recordIngestion(descriptor.logicalName(), command.chunkingConfig().strategy().name(),
+                "SUCCESS", elapsed, chunks.size());
         return new RagIngestionResult(command.collectionId(), command.documentId(), descriptor.logicalName(),
                 descriptor.dimensions(), chunks.size(), elapsed);
     }

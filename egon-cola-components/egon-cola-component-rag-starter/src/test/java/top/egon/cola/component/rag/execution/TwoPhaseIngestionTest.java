@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import top.egon.cola.component.rag.autoconfigure.RagEmbeddingModelProperties;
+import top.egon.cola.component.rag.autoconfigure.NoopRagMetricsRecorder;
 import top.egon.cola.component.rag.autoconfigure.RagProperties;
 import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
@@ -66,7 +67,8 @@ class TwoPhaseIngestionTest {
                 new StaticListableBeanFactory(Map.of("ragEmbeddingModel", new FakeEmbeddingModel(DIMENSIONS))));
         RagChunkingStrategyFactory factory = new RagChunkingStrategyFactory(
                 List.of((RagChunkingStrategy) new TokenRagChunkingStrategy()));
-        return new RagIngestionServiceImpl(registry, factory, new RagChunkIdFactory(), vectorStore, Clock.systemUTC());
+        return new RagIngestionServiceImpl(registry, factory, new RagChunkIdFactory(), vectorStore,
+                Clock.systemUTC(), new NoopRagMetricsRecorder());
     }
 
     private static RagIngestionCommand command(ExtractedDocumentBO document) {

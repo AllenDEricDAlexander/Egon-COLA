@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.ai.document.Document;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import top.egon.cola.component.rag.autoconfigure.RagEmbeddingModelProperties;
+import top.egon.cola.component.rag.autoconfigure.NoopRagMetricsRecorder;
 import top.egon.cola.component.rag.autoconfigure.RagProperties;
 import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
@@ -144,7 +145,8 @@ class RagIngestionServiceImplTest {
         RagEmbeddingModelRegistry registry = new RagEmbeddingModelRegistry(properties, beanFactory);
         RagChunkingStrategyFactory factory = new RagChunkingStrategyFactory(
                 List.of((RagChunkingStrategy) new TokenRagChunkingStrategy()));
-        return new RagIngestionServiceImpl(registry, factory, new RagChunkIdFactory(), vectorStore, clock);
+        return new RagIngestionServiceImpl(registry, factory, new RagChunkIdFactory(), vectorStore, clock,
+                new NoopRagMetricsRecorder());
     }
 
     private static RagIngestionCommand command(Map<String, String> attributes) {

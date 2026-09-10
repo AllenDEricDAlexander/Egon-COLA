@@ -2,8 +2,10 @@ package top.egon.cola.component.rag.autoconfigure;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validator;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -56,6 +58,19 @@ import java.util.stream.Collectors;
 @ConditionalOnProperty(prefix = "egon.cola.component.rag", name = "enabled",
         havingValue = "true", matchIfMissing = false)
 public class RagAutoConfiguration {
+
+    /**
+     * The metrics seam. Micrometer is an optional dependency, so a host without it gets a recorder
+     * that does nothing rather than a start-up failure.
+     */
+    @Bean(name = "ragMetricsRecorder")
+    @ConditionalOnMissingBean(name = "ragMetricsRecorder")
+    public RagMetricsRecorder ragMetricsRecorder(ObjectProvider<MeterRegistry> meterRegistryProvider) {
+        MeterRegistry meterRegistry = meterRegistryProvider.getIfAvailable();
+        return meterRegistry == null
+                ? new NoopRagMetricsRecorder()
+                : new MicrometerRagMetricsRecorder(meterRegistry);
+    }
 
     @Bean(name = "ragClock")
     @ConditionalOnMissingBean(name = "ragClock")
@@ -192,8 +207,10 @@ public class RagAutoConfiguration {
             @Qualifier("ragChunkingStrategyFactory") RagChunkingStrategyFactory chunkingStrategyFactory,
             @Qualifier("ragChunkIdFactory") RagChunkIdFactory chunkIdFactory,
             @Qualifier("ragVectorStore") VectorStore vectorStore,
-            @Qualifier("ragClock") Clock clock) {
-        return new RagIngestionServiceImpl(modelRegistry, chunkingStrategyFactory, chunkIdFactory, vectorStore, clock);
+            @Qualifier("ragClock") Clock clock,
+            @Qualifier("ragMetricsRecorder") RagMetricsRecorder metricsRecorder) {
+        return new RagIngestionServiceImpl(modelRegistry, chunkingStrategyFactory, chunkIdFactory, vectorStore,
+                clock, metricsRecorder);
     }
 
     /**
@@ -238,7 +255,8 @@ public class RagAutoConfiguration {
             @Qualifier("ragEmbeddingModelRegistry") RagEmbeddingModelRegistry modelRegistry,
             @Qualifier("ragVectorStore") VectorStore vectorStore,
             @Qualifier("ragProperties") RagProperties properties,
-            @Qualifier("ragClock") Clock clock) {
-        return new RagRetrievalServiceImpl(modelRegistry, vectorStore, properties, clock);
+            @Qualifier("ragClock") Clock clock,
+            @Qualifier("ragMetricsRecorder") RagMetricsRecorder metricsRecorder) {
+        return new RagRetrievalServiceImpl(modelRegistry, vectorStore, properties, clock, metricsRecorder);
     }
 }
