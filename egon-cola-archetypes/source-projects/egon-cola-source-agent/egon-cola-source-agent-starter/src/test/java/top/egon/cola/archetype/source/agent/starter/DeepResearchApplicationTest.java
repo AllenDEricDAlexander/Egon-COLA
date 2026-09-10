@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import top.egon.cola.component.agentflow.api.AgentFlowService;
+import top.egon.cola.component.rag.api.RagIngestionService;
 import top.egon.cola.component.rag.api.RagRetrievalService;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -50,6 +51,15 @@ class DeepResearchApplicationTest {
         @Bean(name = "ragRetrievalService")
         RagRetrievalService ragRetrievalService() {
             return mock(RagRetrievalService.class);
+        }
+
+        /**
+         * The same profile turns off the transactional outbox, which owns the ingest handler's
+         * ingestion dependency; the real component assembles it in every other profile.
+         */
+        @Bean(name = "ragIngestionService")
+        RagIngestionService ragIngestionService() {
+            return mock(RagIngestionService.class);
         }
 
         @Bean(name = "deepResearchSearchTools")

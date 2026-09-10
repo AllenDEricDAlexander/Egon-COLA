@@ -1409,6 +1409,26 @@ public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
 - Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeIngestDeliveryHandlerTest.java`; `.../infrastructure/knowledge/handler/KnowledgeIngestDeliveryHandler.java`
 - Commit: `feat(agent-archetype): ingest documents through the transactional outbox`
 
+在实施期修正（载荷契约与解析）：Spec B 行 2753 的载荷样例只有 `schemaVersion` 与 `documentId`，`tenantId` 由本 Step 依 `REQ-026`/`DEC-013` 补入——写方是 Step 8 的上传用例，读方是本 handler。实际形状为 `{"schemaVersion":"1","documentId":2001,"tenantId":42}`：`schemaVersion` 必须是文本 `"1"`（数字或缺失即 `IllegalArgumentException`），`documentId`/`tenantId` 同时接受 JSON 整数与数字串；解析在设置 MDC 之前完成，载荷缺租户时"投递失败而非以空租户执行"（Spec B 行 185、619、`TEST-033`），`finally` 只负责清理。
+
+在实施期修正（失败即抛出）：Spec B 行 543 定调"抛出 -> 重试/死信"，故 handler 在写明文档状态后原样抛出异常（`RagException` 直接抛、其余不变），不在此处返回 `retryableFailure`——outbox 因此按组件分类器记录 `OUTBOX_DELIVERY_EXCEPTION` + 异常类名，而文档行上落的是本项目的稳定码，两处码各司其职。`markSucceeded` 自身失败也走同一路径：本次投递失败并重试（Spec B 行 546），摄取幂等（组件先删旧分块）使重试安全。
+
+在实施期修正（文档错误码只用规范已有码）：plan 的 File 2 伪代码只给"调用摄取、回写状态"，未给码表。实际映射为 `RAG_VECTOR_STORE -> KNOWLEDGE_EMBEDDING_FAILED`（行 1781/2672 的样例码；组件把嵌入调用放在向量存储内，外部无法区分二者，`RagIngestionService` 的 javadoc 亦如此说明）、`RAG_MODEL_NOT_REGISTERED -> KNOWLEDGE_MODEL_NOT_REGISTERED`（行 913）、`RAG_VALIDATION -> KNOWLEDGE_VALIDATION_ERROR`（行 912）、原文缺失 -> `KNOWLEDGE_CONTENT_MISSING`（行 1928）、知识库已删 -> `KNOWLEDGE_BASE_NOT_FOUND`（行 1175）、其余 -> `KNOWLEDGE_INTERNAL_ERROR`（行 917）。未分类异常的 `errorMessage` 写固定文案而非原始异常文本：`errorCode`/`errorMessage` 会随 `API-008` 渲染给客户端（行 1532、1668）。组件异常的 `safeMessage()` 按契约本就不含正文、向量与供应商报文，故可直接落库。
+
+在实施期修正（知识库已删属终局）：plan 的边界只列了"记录不可见视为成功／文本缺失抛失败"，未覆盖"文档可见但其知识库已不在"。若按"视为不可见"返回成功，文档会永远停在 `PROCESSING`（后续尝试的 `markProcessing` 只能从 `PENDING` 出发，`resetForReingest` 又只接受终态），故实现取 `markDead` + `permanentFailure`：重试不会让知识库回来，直接了结消息，文档落到可观测、可"重新处理"的终态。
+
+在实施期修正（摄取属性携带租户）：Spec B 行 2953 要求业务行与 `VECTOR_STORE.metadata->>'tenantId'` 由同一次调用同时提供，检索网关的强制过滤也读该键（Step 6），故 `RagIngestionCommand.attributes` 写入 `{tenantId: document.tenantId()}`——值取自读到的行而非载荷，两者本由租户拦截器保证一致。`tenantId` 不是组件的保留键（`ASM-008`），因此该键可写入。
+
+在实施期修正（一次投递一条日志）：计时起点在 `deliver` 内、MDC 设置之后取一次，成功与失败两条日志都带 `elapsedMs`；成功行给 `documentId、knowledgeBaseId、logicalModelName、chunkCount、attemptCount、outcome、elapsedMs`，失败行给同一组字段加 `code`（Spec B 行 650 的字段表）；跳过路径没有分块数，记为 `outcome=SKIPPED reason=…`。日志文案用英文 `key=value` 结构，与既有 infrastructure 日志一致，且不含正文、分块与向量。
+
+在实施期修正（分块配置重建的落点）：《13.1》的模式表给出两个落点（`KnowledgeBasePOConverter` 内的具名工厂方法，或 `KnowledgeIngestionFactory`）。`POConverter` 在 Step 5 已负责 PO↔BO 的持久化转换，域 BO → 组件 `RagChunkingConfigDTO` 的映射故落在 handler 的具名私有工厂方法 `chunkingConfig(KnowledgeBaseBO)` 与 `assemble(...)`，不新建类型（Rule 9：本项目不新增模式与载体）。
+
+在实施期修正（测试与离线假件）：plan 列 4 个方法，实际 11 个——补上三条组件码到项目码的映射、未分类异常的固定文案、载荷版本不符、抛异常路径的 MDC 清理、原文缺失、知识库已删，以及"他租户/已删除记录"与"已被接管"两条跳过路径。测试用 `new EgonColaMybatisPlusProperties()` 取默认 MDC 键，不写死 `tenantId` 字面量（Step 12 的 `signs_no_tenant_parameter_in_services()` 会把 `tenantId, `／`tenantId)` 当作租户参数签名）。`handler/package-info.java` 为包文档门禁所需；`DeepResearchApplicationTest` 的 `FakeAgentDependencies` 另补 `ragIngestionService` 假件（与 Step 6 的 `ragRetrievalService` 同理：离线 profile 关了 rag 与 outbox，handler 的组件依赖必须由假件补齐）。
+
+在实施期修正（留给最终审计的规范缺口）：Spec B §10.6 的状态机没有 `PROCESSING -> PROCESSING` 行，也没有崩溃恢复行。投递在 `markProcessing` 成功之后、终态写入之前死掉（进程被杀、库不可用）会把文档留在 `PROCESSING`；后续尝试因守卫失败而按"已被接管"返回成功，`resetForReingest` 又只接受终态，该文档即无法通过 API 恢复。本 Step 依规范的守卫实现，不在 Step 7 内改动 Step 4/5 已提交的 domain 与仓储语义；该缺口连同 `TEST-026`/`TEST-032` 的离线不可行性一并留给最终审计与规格修订决定。
+
+- Commit paths 补充：除 plan 列出的两个文件外，本次提交还含 `.../infrastructure/knowledge/handler/package-info.java` 与 `...-starter/src/test/java/.../starter/DeepResearchApplicationTest.java`（`ragIngestionService` 假件）。
+
 ### Step 8 — application：用例
 
 - Requirements: `REQ-002`, `REQ-003`, `REQ-005`, `REQ-008`, `REQ-022`, `REQ-023`
