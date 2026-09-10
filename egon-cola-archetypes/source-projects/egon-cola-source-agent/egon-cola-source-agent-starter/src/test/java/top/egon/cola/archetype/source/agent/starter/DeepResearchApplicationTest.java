@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import top.egon.cola.component.agentflow.api.AgentFlowService;
+import top.egon.cola.component.rag.api.RagRetrievalService;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -40,6 +41,15 @@ class DeepResearchApplicationTest {
         @Bean(name = "deepResearchChatModel")
         ChatModel deepResearchChatModel() {
             return mock(ChatModel.class);
+        }
+
+        /**
+         * The {@code test} profile turns the rag component off, so the knowledge gateway's
+         * retrieval dependency is faked here; the real component assembles it in every other profile.
+         */
+        @Bean(name = "ragRetrievalService")
+        RagRetrievalService ragRetrievalService() {
+            return mock(RagRetrievalService.class);
         }
 
         @Bean(name = "deepResearchSearchTools")

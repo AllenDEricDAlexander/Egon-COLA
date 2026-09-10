@@ -59,6 +59,11 @@ agent:
         api-key: test-mcp-key
         request-timeout: PT15S
   knowledge:
+    embedding:
+      # 离线测试不装配嵌入模型（rag 组件在本 profile 关闭），此处占位以保持四份 profile 的键集合一致。
+      base-url: http://test.invalid
+      api-key: test-embedding-key
+      model-name: text-embedding-ada-002
     tenant:
       default-id: 0
     runtime:

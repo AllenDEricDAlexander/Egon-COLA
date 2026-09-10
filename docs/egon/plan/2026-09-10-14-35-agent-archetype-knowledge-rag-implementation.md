@@ -1312,6 +1312,20 @@ public class RagKnowledgeVectorGateway implements KnowledgeVectorGateway {
 - Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeVectorConfigurationTest.java`; `.../infrastructure/knowledge/config/KnowledgeEmbeddingConfiguration.java`; `.../infrastructure/knowledge/config/KnowledgeVectorConfiguration.java`; `.../infrastructure/knowledge/gateway/RagKnowledgeVectorGateway.java`
 - Commit: `feat(agent-archetype): wire the embedding model and vector store`
 
+在实施期修正（嵌入模型的构造入口）：plan File 2 假定宿主已从自动配置拿到 `OpenAiEmbeddingModel`，但 starter 的 classpath 上没有 `spring-ai-autoconfigure-model-openai`，`spring.ai.openai.*` 键始终是惰性的（research 域也是手工构造模型）。因此 infrastructure 另建两个类：`KnowledgeEmbeddingProperties`（`@Validated` 记录，前缀 `agent.knowledge.embedding`，`ignoreUnknownFields = false`，`base-url`/`api-key`/`model-name` 三键 `@NotBlank`，紧凑构造器 trim；不设 `dimensions` 分量）与 `KnowledgeEmbeddingConfiguration`（`@ConditionalOnProperty(egon.cola.component.rag.enabled=true)` + `@Bean("knowledgeEmbeddingModel")` + `@ConditionalOnMissingBean`）。模型按 `new OpenAiEmbeddingModel(api, MetadataMode.NONE, options)` 构造——`1.1.8` 只有构造器没有 builder，`MetadataMode.NONE` 避免把正文当元数据外发。infrastructure 的 POM 相应新增 `org.springframework.ai:spring-ai-openai`（版本由 Boot BOM 管理）。
+
+在实施期修正（向量宽度只有一个来源）：plan File 3 伪代码写成 `KnowledgeRuntimeProperties.dimensions()`，但该类是 application 层 `agent.knowledge.runtime` 的宿主属性（Step 8），既无 `dimensions` 分量，也不能被 infrastructure 引用。改为 `@Qualifier("ragProperties") RagProperties.dimensions()`：宽度只由 `egon.cola.component.rag.dimensions` 一处给出，组件在启动期还会拿它与模型自报维度对账。
+
+在实施期修正（租户键与异常边界）：plan File 4 伪代码引用 `RagMetadataKeys.TENANT_ID_METADATA_KEY`，但组件的保留键只有 collectionId/documentId/chunkIndex/logicalModelName/contentHash——按 `ASM-008`，`tenantId` 是业务属性而非保留键，故新增 `KnowledgeVectorMetadata.TENANT_ID`（`infrastructure.knowledge.metadata` 包）承载该常量。同一伪代码要求"组件异常映射为 `KnowledgeApplicationException`"，而该类属 application 层（Spec B 行 2429），infrastructure 不能引用；网关原样上抛组件异常，映射留给 Step 8 的用例边界（`KnowledgeQaManageImpl`）。网关另为每个检索拷贝调用方属性再强制覆写租户键，保证调用方无法绕过租户作用域。
+
+在实施期修正（离线测试装配）：`fails_when_dimensions_mismatch` 必须同时注册两个配置类——只注册 `KnowledgeEmbeddingConfiguration` 时先失败的是"具名向量存储不存在"，断言 `1536` 会落空。测试用被 mock 的 `JdbcTemplate` 驱动真实 `PgVectorStore`（init 期只执行 DDL，可以离线跑），断言语句含 `CREATE EXTENSION IF NOT EXISTS vector` 与 `CREATE TABLE IF NOT EXISTS public.vector_store … embedding vector(1536)`；用内存 `RecordingVectorStore` 承接检索路径，断言强制过滤式同时含 `tenantId`、`42`、`1001`、`openai-compatible`；模型名取框架内置维度表里已有条目的 `text-embedding-ada-002`，使 `dimensions()` 不必访问网络。共 4 个测试方法（plan 写 3 个），另加 `config`/`gateway`/`metadata` 三个 `package-info.java`。
+
+在实施期修正（离线 profile 的组件侧假件）：`test` profile 关掉 rag 组件后，具名依赖 `ragRetrievalService` 不存在，网关会让 starter 的三个上下文测试全部失败（`NoSuchBeanDefinitionException`）。按既有 `FakeAgentDependencies` 的写法在 `DeepResearchApplicationTest` 内补一个 `ragRetrievalService` 假件（与 `deepResearchChatModel` 同类：外部依赖在离线 profile 里为假件，其余 profile 由组件装配真实件）。Step 8 的三个 `@Service` 还要注入 `ragDocumentStorage`、`ragExtractionService`、`transactionalOutbox`，同样需要在离线 profile 补假件，否则上下文起不来——已记入 Step 8 的实施前提。
+
+在实施期修正（配置键）：四份 profile 新增 `agent.knowledge.embedding.{base-url,api-key,model-name}`：`application.yml` 用 `${VAR:}` 留空、dev/prod 用 `${VAR}` 无默认值（缺失即启动失败，fail-closed）、test 用哑值占位；四份键集合同构，Step 12 的 `KnowledgeConfigParityTest` 可直接全量比对。切记 Step 8 的 `KnowledgeRuntimeProperties` 绑定 `agent.knowledge` 时不要开启 `ignoreUnknownFields = false`（或须显式声明 `embedding` 子块），否则严格绑定会把这三个键判为未知键。
+
+- Commit paths 补充：`...-infrastructure/src/main/java/.../infrastructure/knowledge/config/KnowledgeEmbeddingProperties.java`; `.../infrastructure/knowledge/config/package-info.java`; `.../infrastructure/knowledge/gateway/package-info.java`; `.../infrastructure/knowledge/metadata/{KnowledgeVectorMetadata,package-info}.java`; `...-infrastructure/pom.xml`; `...-starter/src/main/resources/{application.yml,application-dev.yml,application-test.yml,application-prod.yml}`; `...-starter/src/test/java/.../starter/DeepResearchApplicationTest.java`
+
 ### Step 7 — outbox 异步摄取与租户恢复
 
 - Requirements: `REQ-004`, `REQ-005`, `REQ-006`, `REQ-007`, `REQ-016`, `REQ-023`, `REQ-026`

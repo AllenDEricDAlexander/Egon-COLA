@@ -56,6 +56,11 @@ agent:
         api-key: ${DEEP_RESEARCH_MCP_API_KEY}
         request-timeout: ${DEEP_RESEARCH_MCP_REQUEST_TIMEOUT:PT15S}
   knowledge:
+    embedding:
+      # 嵌入模型的供应商端点、凭据与模型名；向量维度只由 egon.cola.component.rag.dimensions 一处给出。
+      base-url: ${AGENT_KNOWLEDGE_EMBEDDING_BASE_URL}
+      api-key: ${AGENT_KNOWLEDGE_EMBEDDING_API_KEY}
+      model-name: ${AGENT_KNOWLEDGE_EMBEDDING_MODEL}
     tenant:
       default-id: ${AGENT_KNOWLEDGE_TENANT_ID:0}
     runtime:

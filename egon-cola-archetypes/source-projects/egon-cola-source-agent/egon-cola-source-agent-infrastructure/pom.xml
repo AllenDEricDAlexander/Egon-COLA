@@ -33,6 +33,11 @@
             <groupId>org.springframework.ai</groupId>
             <artifactId>spring-ai-pgvector-store</artifactId>
         </dependency>
+        <!-- 知识域的嵌入模型与 pgvector 存储都由本模块装配（Spec B §7.1.2），因此 OpenAI-compatible 客户端在此。 -->
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-openai</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
