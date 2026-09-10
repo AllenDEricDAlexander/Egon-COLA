@@ -35,7 +35,7 @@ class AgentSourceContractTest {
         assertTrue(Files.exists(SOURCE.resolve(
                 "egon-cola-source-agent-starter/src/main/resources/agent/deep-research-flow.yml")));
         assertFalse(allSourceText().contains("egon-cola-source-web"));
-        assertFalse(allSourceText().matches("(?s).*\\b(fastjson|flyway|mybatis|redis|graphql|dubbo)\\b.*"));
+        assertFalse(allSourceText().matches("(?s).*\\b(fastjson|redis|graphql|dubbo)\\b.*"));
         assertFalse(allSourceText().contains("BEGIN GENERATED"));
     }
 

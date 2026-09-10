@@ -67,13 +67,23 @@ class AgentArchitectureTest {
                     .filter(path -> path.toString().endsWith(".xml") || path.toString().endsWith(".java"))
                     .forEach(path -> {
                         String content = read(path);
+                        // flyway 与 mybatis 是 knowledge 域的持久化依赖，已由 Spec 2026-09-10-11-51 的 Amends 放开；
+                        // 其余禁项保持不变。
                         for (String forbidden : List.of("spring-boot-starter-jdbc", "spring-boot-starter-data-redis",
                                 "spring-boot-starter-amqp", "spring-boot-starter-graphql", "dubbo-spring-boot-starter",
-                                "flyway", "mybatis", "shardingsphere", "egon-cola-source-web")) {
+                                "shardingsphere", "egon-cola-source-web")) {
                             assertFalse(content.toLowerCase().contains(forbidden), path + " contains " + forbidden);
                         }
                     });
         }
+    }
+
+    @Test
+    void keeps_knowledge_dependency_direction() throws IOException {
+        assertFalse(read(modulePom("adapter")).contains(moduleName("infrastructure")),
+                "adapter must not depend on infrastructure");
+        assertFalse(read(modulePom("application")).contains(moduleName("infrastructure")),
+                "application must not depend on infrastructure");
     }
 
     private static void assertDirectInternalDependency(Path pom, String artifactId) throws IOException {

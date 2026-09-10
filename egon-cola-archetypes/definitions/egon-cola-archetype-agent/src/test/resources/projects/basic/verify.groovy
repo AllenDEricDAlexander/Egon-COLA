@@ -75,8 +75,10 @@ assert dependencyIds(poms.starter).contains("${prefix}-adapter".toString())
 assert dependencyIds(poms.starter).contains("${prefix}-infrastructure".toString())
 assert dependencyIds(poms.starter).contains("spring-ai-openai")
 
+// flyway-core 与 mybatis-plus-spring-boot3-starter 是 knowledge 域的持久化依赖，
+// 已由 Spec 2026-09-10-11-51 的 Amends 放开；其余禁项保持不变。
 def forbiddenDependencies = [
-    "spring-boot-starter-data-jpa", "flyway-core", "mybatis-plus-spring-boot3-starter",
+    "spring-boot-starter-data-jpa",
     "spring-boot-starter-data-redis", "spring-boot-starter-amqp", "dubbo-spring-boot-starter",
     "spring-boot-starter-graphql", "egon-cola-organization-facade", "egon-cola-evaluation-facade"
 ]
@@ -126,7 +128,6 @@ requiredFiles.each { file(it) }
 missing("${prefix}-client")
 missing("${prefix}-app")
 missing("${prefix}-facade")
-missing("${prefix}-infrastructure/src/main/resources/db")
 missing("${prefix}-adapter/src/main/resources/graphql")
 
 def runtimeSources = modules.collectMany { sourceFiles("${prefix}-${it}/src/main/java") }
@@ -190,7 +191,7 @@ def generatedSourceText = sourceBoundaryFiles.collect { it.text }.join("\n").toL
 ["top.egon.internal.archetype.source", "egon-cola-source-agent", "0.1.0-snapshot"].each { forbiddenToken ->
     assert !generatedSourceText.contains(forbiddenToken): "Generated project leaked source sentinel ${forbiddenToken}"
 }
-["spring-boot-starter-data-jpa", "jakarta.persistence", "jparepository", "flyway", "redis", "graphql", "dubbo", "fastjson"].each { forbiddenToken ->
+["spring-boot-starter-data-jpa", "jakarta.persistence", "jparepository", "redis", "graphql", "dubbo", "fastjson"].each { forbiddenToken ->
     assert !generatedSourceText.contains(forbiddenToken): "Generated project leaked forbidden token ${forbiddenToken}"
 }
 
