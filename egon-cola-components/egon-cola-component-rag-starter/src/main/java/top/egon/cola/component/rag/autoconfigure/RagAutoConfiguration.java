@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.rag.api.RagExtractionService;
 import top.egon.cola.component.rag.api.RagIngestionService;
+import top.egon.cola.component.rag.api.RagRetrievalService;
 import top.egon.cola.component.rag.chunk.MarkdownHeadingRagChunkingStrategy;
 import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
@@ -27,6 +28,7 @@ import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
 import top.egon.cola.component.rag.execution.RagIngestionServiceImpl;
+import top.egon.cola.component.rag.execution.RagRetrievalServiceImpl;
 import top.egon.cola.component.rag.extract.MarkdownRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PdfRagDocumentExtractor;
 import top.egon.cola.component.rag.extract.PlainTextRagDocumentExtractor;
@@ -188,5 +190,15 @@ public class RagAutoConfiguration {
             @Qualifier("ragVectorStore") VectorStore vectorStore,
             @Qualifier("ragClock") Clock clock) {
         return new RagIngestionServiceImpl(modelRegistry, chunkingStrategyFactory, chunkIdFactory, vectorStore, clock);
+    }
+
+    @Bean(name = "ragRetrievalService")
+    @ConditionalOnMissingBean(name = "ragRetrievalService")
+    public RagRetrievalService ragRetrievalService(
+            @Qualifier("ragEmbeddingModelRegistry") RagEmbeddingModelRegistry modelRegistry,
+            @Qualifier("ragVectorStore") VectorStore vectorStore,
+            @Qualifier("ragProperties") RagProperties properties,
+            @Qualifier("ragClock") Clock clock) {
+        return new RagRetrievalServiceImpl(modelRegistry, vectorStore, properties, clock);
     }
 }

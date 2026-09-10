@@ -101,22 +101,20 @@ public class FakeVectorStore implements VectorStore {
         return switch (expression.type()) {
             case AND -> matches(asExpression(expression.left()), document)
                     && matches(asExpression(expression.right()), document);
-            case EQ -> valueOf(expression.left()).equals(metadataValue(expression.right(), document));
+            case EQ -> {
+                // EQ is (key, value); anything else cannot be evaluated by this double.
+                if (!(expression.left() instanceof Filter.Key key)
+                        || !(expression.right() instanceof Filter.Value value)) {
+                    yield true;
+                }
+                Object actual = document.getMetadata().get(key.key());
+                yield actual != null && String.valueOf(actual).equals(String.valueOf(value.value()));
+            }
             default -> true;
         };
     }
 
     private static Filter.Expression asExpression(Filter.Operand operand) {
         return operand instanceof Filter.Expression expression ? expression : null;
-    }
-
-    private static String valueOf(Filter.Operand operand) {
-        return operand == null ? null : operand.toString();
-    }
-
-    private static String metadataValue(Filter.Operand operand, Document document) {
-        String key = valueOf(operand);
-        Object value = document.getMetadata().get(key);
-        return value == null ? null : String.valueOf(value);
     }
 }
