@@ -227,11 +227,10 @@ egon-cola-archetypes/source-projects/egon-cola-source-agent/
 │   ├── pom.xml                                                      # MODIFY
 │   └── src/main/java/.../domain/knowledge/
 │       ├── model/{KnowledgeBaseBO,KnowledgeDocumentBO,KnowledgeChunkBO,
-│       │          DocumentIngestStatusEnum,KnowledgeBaseStatusEnum,
-│       │          KnowledgeChunkingStrategyEnum}.java                # CREATE
+│       │          KnowledgeChunkConfigBO,DocumentIngestStatusEnum,
+│       │          KnowledgeBaseStatusEnum,ChunkingStrategyEnum}.java # CREATE
 │       ├── gateway/KnowledgeVectorGateway.java                       # CREATE
 │       ├── repository/{KnowledgeBaseRepository,KnowledgeDocumentRepository}.java  # CREATE
-│       ├── service/KnowledgeIngestService.java                       # CREATE
 │       └── package-info.java                                         # CREATE
 ├── egon-cola-source-agent-application/
 │   ├── pom.xml                                                      # MODIFY
@@ -788,7 +787,7 @@ agent:
 
 在实施期修正：本 Step 同时补上 Step 1 尚未加入的 `verify.groovy` 迁移文件断言与 `BOOT-INF/lib` 运行时库断言中依赖迁移的部分；依赖存在性断言在 Step 2 加入。
 
-在实施期修正（租户作用域）：本 Step 原伪代码把两张 knowledge 表写进 `tenant-id.ignored-tables`，取自 Spec B `EVD-010` 的"排除出 MDC 驱动的租户拦截，改用显式租户参数"。该句是 Spec B 反转前的陈旧文字：Spec B 的 `§20.6`（第 3261 行）记录了用户 2026-09-10 12:25 "走 MDC 不走显式参数"的澄清，`DEC-012` 据此反转为"MDC 通道 + 租户拦截器自动作用域，业务代码不传租户参数"，随后 `ASM-006` 明确要求拦截器"对两张 knowledge 表**生效**（不使用 `tenant-id.ignored-tables` 排除）"，`§11.2.1` 的索引理由也写明租户谓词"由 MyBatis Plus 的租户拦截器自动注入（`DEC-012`），应用代码里不存在它"，本 Plan 的 Step 5 同样要求"查询不写租户谓词（拦截器注入）"。因此四 profile 一律取 `ignored-tables: []`（与仓库内 light/light-open/web-open/service-open 四个源码项目一致）；被排除在拦截器外反而会让 `scopes_every_query_by_tenant()` 失去实现基础。**待办（用户侧）**：`EVD-010` 的该句需按 `DEC-012` 改写，属 Spec B 自身的修订，不在本 Plan 的提交范围内。
+在实施期修正（租户作用域）：本 Step 原伪代码把两张 knowledge 表写进 `tenant-id.ignored-tables`，取自 Spec B `EVD-010` 的"排除出 MDC 驱动的租户拦截，改用显式租户参数"。该句是 Spec B 反转前的陈旧文字：Spec B 的 `§20.6`（第 3261 行）记录了用户 2026-09-10 12:25 "走 MDC 不走显式参数"的澄清，`DEC-012` 据此反转为"MDC 通道 + 租户拦截器自动作用域，业务代码不传租户参数"，随后 `ASM-006` 明确要求拦截器"对两张 knowledge 表**生效**（不使用 `tenant-id.ignored-tables` 排除）"，`§11.2.1` 的索引理由也写明租户谓词"由 MyBatis Plus 的租户拦截器自动注入（`DEC-012`），应用代码里不存在它"，本 Plan 的 Step 5 同样要求"查询不写租户谓词（拦截器注入）"。因此四 profile 一律取 `ignored-tables: []`（与仓库内 light/light-open/web-open/service-open 四个源码项目一致）；被排除在拦截器外反而会让 `scopes_every_query_by_tenant()` 失去实现基础。**待办（用户侧）**：Spec B 里同属反转前陈旧文字的还有第 58 行（`EVD-010` 证据行的"排除……改用显式租户参数"）、第 111 行（"租户列与显式租户参数在本版落地"）、第 2645 行（`§11.2.2` 的"租户来自显式参数而非 MDC"）与第 3225 行（"建立了显式租户作用域"）；它们需按 `DEC-012`/`REQ-025` 改写，属 Spec B 自身的修订，不在本 Plan 的提交范围内。
 
 在实施期修正（离线数据源）：Step 2 的依赖一落地，缺少连接串就让 `DeepResearchApplicationTest` 等三个上下文测试变红，而数据源要到本 Step 才配置。为使 Step 2 与 Step 3 作为同一个绿灯单元收口，`...-starter/pom.xml` 新增 `com.h2database:h2`（`test` 作用域，版本由 Boot BOM 管理，dev/prod 仍因缺连接串而启动失败），`application-test.yml` 以 `jdbc:h2:mem:agent_knowledge;MODE=PostgreSQL` 顶替真实库，并在该 profile 关闭 Flyway、RAG 与 outbox。实测 H2 无法执行 `create extension if not exists vector`、`jsonb`、部分索引与 `lower(...)` 表达式索引，故离线环境不能真实建表：Spec B `TEST-026`/`TEST-032` 中"运行真实迁移并观察建表/维度"的部分不可离线验证，迁移契约改由 `KnowledgeSchemaMigrationTest` 的文本断言守住，真实建表与维度校验留待有 PostgreSQL 的运行期验收。因此本 Step 的提交路径另含 `...-starter/pom.xml`（H2 替身）与 `verify.groovy`（迁移文件与 `BOOT-INF/lib` 断言）。
 
@@ -832,33 +831,39 @@ agent:
 - Verification contribution: `TEST-006`。
 - After this file: 编译失败（域类型缺失）。
 
-#### File 2 — `CREATE .../domain/knowledge/model/{KnowledgeBaseBO,KnowledgeDocumentBO,KnowledgeChunkBO}.java`
+#### File 2 — `CREATE .../domain/knowledge/model/{KnowledgeBaseBO,KnowledgeDocumentBO,KnowledgeChunkBO,KnowledgeChunkConfigBO}.java`
 
 - Purpose: 领域载体，含冻结配置与状态机入口。
-- Symbols: 三个 record 与紧凑构造器。
+- Symbols: 四个 record 与紧凑构造器。
 - Repository evidence: `DeepResearchTaskBO` 的 record 写法。
 - Dependencies and consumers: application 与 infrastructure。
 - Why now: 全部下游的类型前提。
 - Contract/signature changes: 新增公开载体；**不携带审计列**（属 PO）。
 - Input/output and state mapping: 字段见 Spec B `§10.3`。
-- Error and edge behavior: 空白标识、负计数与未知枚举抛 `KnowledgeApplicationException`。
+- Error and edge behavior: 空白标识、负计数与越界参数抛 `IllegalArgumentException`；非法状态迁移由 `canTransitionTo` 返回 `false` 表达（见下方实施期修正）。
 - Standards impact: `MC-NAME-001`（`BO` 后缀）、`MC-MODEL-001`（record + 紧凑构造器）、`MC-SCOPE-001`。
 - Literal rule enforcement: `Rule 1`、`Rule 3`、`Rule 10`（`Instant` 时间字段）、`Rule 11`。
 - Implementation pseudocode:
 
 ```java
-public record KnowledgeBaseBO(Long id, Long tenantId, String code, String name, String description,
-                              String embeddingModel, KnowledgeChunkingStrategyEnum chunkStrategy,
-                              RagChunkingConfigBO chunkConfig, KnowledgeBaseStatusEnum status,
-                              Instant createdAt, Instant updatedAt) {
-    public KnowledgeBaseBO { /* trim、非空与状态校验 */ }
+public record KnowledgeBaseBO(Long knowledgeBaseId, Long tenantId, String code, String name,
+                              String description, String embeddingModel,
+                              ChunkingStrategyEnum chunkStrategy, KnowledgeChunkConfigBO chunkConfig,
+                              KnowledgeBaseStatusEnum status, Instant createdAt, Instant updatedAt) {
+    public KnowledgeBaseBO { /* trim、非空、范围与策略—参数配合校验 */ }
+    public static KnowledgeBaseBO create(String code, String name, String description,
+                                         String embeddingModel, ChunkingStrategyEnum chunkStrategy,
+                                         KnowledgeChunkConfigBO chunkConfig, Long tenantId) { /* 未落库形态 */ }
 }
+
+public record KnowledgeChunkConfigBO(int maxTokensPerChunk, int overlapTokens, int minChunkChars,
+                                     List<Integer> headingLevels) { /* 仅参数，不含策略 */ }
 ```
 
 - Verification contribution: `TEST-006`。
 - After this file: 载体就绪。
 
-#### File 3 — `CREATE .../domain/knowledge/model/{DocumentIngestStatusEnum,KnowledgeBaseStatusEnum,KnowledgeChunkingStrategyEnum}.java`
+#### File 3 — `CREATE .../domain/knowledge/model/{DocumentIngestStatusEnum,KnowledgeBaseStatusEnum,ChunkingStrategyEnum}.java`
 
 - Purpose: 关闭的取值集合，取代字符串状态与策略分派。
 - Symbols: 三个枚举，文档状态含 `canTransitionTo`。
@@ -924,36 +929,54 @@ public interface KnowledgeVectorGateway {
 ```java
 public interface KnowledgeBaseRepository {
     KnowledgeBaseBO insert(KnowledgeBaseBO knowledgeBase);
-    Optional<KnowledgeBaseBO> findById(Long id);
+    Optional<KnowledgeBaseBO> findById(Long knowledgeBaseId);
     List<KnowledgeBaseBO> page(int offset, int size, String keyword, String embeddingModel);
     long count(String keyword, String embeddingModel);
-    void updateNameAndDescription(Long id, String name, String description);
-    void softDelete(Long id);
+    void updateNameAndDescription(Long knowledgeBaseId, String name, String description);
+    void softDelete(Long knowledgeBaseId);
+}
+
+public interface KnowledgeDocumentRepository {
+    KnowledgeDocumentBO insert(KnowledgeDocumentBO document);
+    Optional<KnowledgeDocumentBO> findById(Long documentId);
+    List<KnowledgeDocumentBO> findByIds(Collection<Long> documentIds);      // 引用解析 displayName
+    List<KnowledgeDocumentBO> page(Long knowledgeBaseId, int offset, int size,
+                                   DocumentIngestStatusEnum status, String keyword);
+    long count(Long knowledgeBaseId, DocumentIngestStatusEnum status, String keyword);
+    long countByKnowledgeBaseId(Long knowledgeBaseId);
+    boolean markProcessing(Long documentId, int attemptCount);               // PENDING -> PROCESSING
+    boolean markSucceeded(Long documentId, int chunkCount);                  // PROCESSING -> SUCCEEDED
+    boolean markRetryPending(Long documentId, int attemptCount, String errorCode, String errorMessage);
+    boolean markDead(Long documentId, String errorCode, String errorMessage); // PROCESSING -> DEAD
+    boolean resetForReingest(Long documentId);                               // 终态 -> PENDING
+    void softDelete(Long documentId);
+    void softDeleteByKnowledgeBaseId(Long knowledgeBaseId);
 }
 ```
 
 - Verification contribution: `TEST-007`。
 - After this file: 仓储契约就绪。
 
-#### File 6 — `CREATE .../domain/knowledge/service/KnowledgeIngestService.java` 与 `.../domain/knowledge/package-info.java`
+#### File 6 — `CREATE .../domain/knowledge/package-info.java` 与各子包 `package-info.java`
 
-- Purpose: 摄取契约与包文档。
-- Symbols: `KnowledgeIngestService#ingestDocument(Long documentId)`。
-- Repository evidence: `DeepResearchRunService` 的领域服务写法。
-- Dependencies and consumers: 由 handler 消费。
+- Purpose: 包文档（`AgentSourceContractTest` 要求每个含 `.java` 的目录都有 `package-info.java`，含测试源集）。
+- Symbols: `domain/knowledge`、`model`、`gateway`、`repository` 与测试包各一份。
+- Repository evidence: `domain/research` 各包的 `package-info.java`。
+- Dependencies and consumers: 无。
 - Why now: 与端口同批。
-- Contract/signature changes: 新增领域服务契约。
-- Input/output and state mapping: 文档标识 → 无返回。
-- Error and edge behavior: 记录不可见时静默返回（幂等）。
+- Contract/signature changes: 无。
+- Input/output and state mapping: 无。
+- Error and edge behavior: 缺文件则契约测试失败。
 - Standards impact: `MC-NAME-001`、`MC-SCOPE-001`。
 - Literal rule enforcement: `Rule 1`、`Rule 11`。
 - Implementation pseudocode:
 
 ```java
-public interface KnowledgeIngestService { void ingestDocument(Long documentId); }
+/** Domain-owned knowledge base vocabulary and ports. */
+package top.egon.cola.archetype.source.agent.domain.knowledge;
 ```
 
-- Verification contribution: `TEST-009`。
+- Verification contribution: `TEST-006`。
 - After this file: Step 4 全部文件就位。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
@@ -962,8 +985,17 @@ public interface KnowledgeIngestService { void ingestDocument(Long documentId); 
 - Failure returns to: File 2/3 的校验或 File 4/5 的包位置。
 - Completion criteria: `REQ-001` 与 `REQ-006` 的领域部分有证据。
 - Rollback: 回退 domain 的 knowledge 子树。
-- Commit paths: `...-domain/src/test/java/.../domain/knowledge/KnowledgeDomainTest.java`; `.../domain/knowledge/model/{KnowledgeBaseBO,KnowledgeDocumentBO,KnowledgeChunkBO}.java`; `.../domain/knowledge/model/{DocumentIngestStatusEnum,KnowledgeBaseStatusEnum,KnowledgeChunkingStrategyEnum}.java`; `.../domain/knowledge/gateway/KnowledgeVectorGateway.java`; `.../domain/knowledge/repository/{KnowledgeBaseRepository,KnowledgeDocumentRepository}.java`; `.../domain/knowledge/service/KnowledgeIngestService.java`
+- Commit paths: `...-domain/src/test/java/.../domain/knowledge/{KnowledgeDomainTest,package-info}.java`; `.../domain/knowledge/model/{KnowledgeBaseBO,KnowledgeDocumentBO,KnowledgeChunkBO,KnowledgeChunkConfigBO,DocumentIngestStatusEnum,KnowledgeBaseStatusEnum,ChunkingStrategyEnum,package-info}.java`; `.../domain/knowledge/gateway/{KnowledgeVectorGateway,package-info}.java`; `.../domain/knowledge/repository/{KnowledgeBaseRepository,KnowledgeDocumentRepository,package-info}.java`; `.../domain/knowledge/package-info.java`
 - Commit: `feat(agent-archetype): add the knowledge domain model and ports`
+
+在实施期修正（领域载体与词汇）：
+
+- **枚举命名按 Spec B**：计划原写 `KnowledgeChunkingStrategyEnum`，Spec B `§8.2` 目标树、`§10.1` 与 `§10.3` 字段表都写 `ChunkingStrategyEnum`，实现取后者；计划中 Step 8/9 的引用已一并改名，语义不变。
+- **`chunkConfig` 用领域自有载体**：计划原写 `RagChunkingConfigBO`，组件里没有这个类型（组件是 `RagChunkingConfigDTO`，内含 `strategy`）。实现改为领域自有的 `KnowledgeChunkConfigBO`，只承载参数（`maxTokensPerChunk`、`overlapTokens`、`minChunkChars`、`headingLevels`），不含策略。理由：Spec B `§8.3` 规定 domain 的依赖只有 `common` 与 Jakarta Validation，本 Step 也不改 domain POM；把组件载体放进 domain 会把 `rag-starter`（连同 Spring AI）拉进 domain 的编译类路径，与 `EVD-002` 的意图相反。策略与参数的配合规则（`headingLevels` 仅 `MARKDOWN_HEADING` 可用）由 `KnowledgeBaseBO` 的紧凑构造器校验，组件边界上的 `RagChunkingConfigDTO` 由 Step 6/7 的适配器组装。
+- **不创建 `KnowledgeIngestService`**：计划 File 6 原要求该领域服务端口，但计划 Step 7 的 handler 实际直接注入组件的 `RagIngestionService`（handler 本身即适配器），该端口既无实现者也无调用方；Spec B `§10.1` 的领域服务契约是问答流的观察者（`§2976`），归属 Step 11。按 `MC-MODEL-001` 的必要性审计，本 Step 不引入空端口。
+- **BO 标识字段名按 Spec B `§10.3`**：`KnowledgeBaseBO.knowledgeBaseId`、`KnowledgeDocumentBO.documentId`（计划伪代码写 `id`），`BO → VO` 因此可按名直连映射。
+- **非法迁移的表达**：计划 File 1 写「非法迁移抛 `KnowledgeApplicationException`」，但该异常属 application 层（Spec B `§10.1`），domain 不依赖 application；domain 侧以 `DocumentIngestStatusEnum#canTransitionTo` 返回 `false` 表达非法迁移，409 映射留给 Step 8 的用例。
+- **仓储端口的增补**：`KnowledgeDocumentRepository` 增加 `findByIds`（检索结果的 `displayName` 需要按文档标识批量解析，Spec B `§9.2.11` 明示「避免调用方二次查询」）与 `countByKnowledgeBaseId`（知识库详情的 `documentCount` 与单库容量判定）；状态回写按 Spec B `§10.6` 的每一行给出显式方法并以「影响 0 或 1 行」的布尔返回表达并发保护（Spec B `§11.2.2`）。
 
 ### Step 5 — infrastructure：持久化
 
@@ -1407,7 +1439,7 @@ public record CreateKnowledgeBaseCommand(@NotBlank @Pattern(regexp = "[A-Za-z0-9
                                          @NotBlank @Size(max = 128) String name,
                                          @Size(max = 512) String description,
                                          @NotBlank String embeddingModel,
-                                         @NotNull KnowledgeChunkingStrategyEnum chunkStrategy,
+                                         @NotNull ChunkingStrategyEnum chunkStrategy,
                                          @NotNull @Valid ChunkingConfigCommand chunkConfig) { }
 ```
 
@@ -1598,7 +1630,7 @@ public record CreateKnowledgeBaseRequest(@NotBlank @Pattern(regexp = "[A-Za-z0-9
                                          @NotBlank @Size(max = 128) String name,
                                          @Size(max = 512) String description,
                                          @NotBlank String embeddingModel,
-                                         @NotNull KnowledgeChunkingStrategyEnum chunkStrategy,
+                                         @NotNull ChunkingStrategyEnum chunkStrategy,
                                          @NotNull @Valid ChunkingConfigRequest chunkConfig) { }
 ```
 
@@ -1623,7 +1655,7 @@ public record CreateKnowledgeBaseRequest(@NotBlank @Pattern(regexp = "[A-Za-z0-9
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(name = "KnowledgeBaseVO")
 public record KnowledgeBaseVO(Long knowledgeBaseId, String code, String name, String description,
-                              String embeddingModel, KnowledgeChunkingStrategyEnum chunkStrategy,
+                              String embeddingModel, ChunkingStrategyEnum chunkStrategy,
                               Map<String, Object> chunkConfig, long documentCount, String status,
                               Instant createdAt, Instant updatedAt) { }
 ```
