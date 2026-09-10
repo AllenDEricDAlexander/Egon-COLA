@@ -4,12 +4,12 @@
 | --- | --- |
 | Document | `docs/egon/spec/2026-09-10-11-51-agent-archetype-knowledge-rag.md` |
 | Template Version | `7` |
-| Status | `Review` |
+| Status | `Accepted` |
 | Type | `Feature` |
 | Complexity | `Complex` |
 | Complexity Drivers | 首个带数据库的 Agent 生成项目、跨两份已接受规范（Agent Archetype、RAG 组件）的合同修订、异步摄取与 outbox 至少一次投递的幂等设计、pgvector 表结构与维度的单一来源、原型禁项测试与 archetype 打包清单的同步变更、SSE 问答与容量边界、原文与抽取文本的双重持久化 |
 | Created | `2026-09-10 11:51 CST` |
-| Updated | `2026-09-10 12:28 CST` |
+| Updated | `2026-09-10 12:47 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-archetypes/source-projects/egon-cola-source-agent` 新增 `knowledge` 业务域；`definitions/egon-cola-archetype-agent` 的元数据与验证器同步修订 |
@@ -3260,4 +3260,6 @@ erDiagram
 3. 用户在同一次决定中提出"agent 也有租户的概念，我要做 SaaS agent 和 rag 服务的"，随后明确"暂时先不考虑从哪来，表上面字段先加上"。据此本 Spec 增加 `REQ-025`-`REQ-027`，把租户列建成非空并进入唯一键与查询作用域，向量元数据携带租户并在检索时强制过滤；**租户来源、鉴权与跨服务联动不在本版范围**，`RISK-009` 记录"本版不构成隔离边界"这一必须公开声明的限制。
 4. 用户随后明确"走 MDC 不走显式参数"（`2026-09-10 12:25 CST`），据此把 `DEC-012` 从"显式租户参数"反转为"MDC 通道 + 租户拦截器自动作用域"，业务代码不再携带任何租户参数。原方案中"租户随 outbox 载荷传递"这一条**保留**（`DEC-013`）：MDC 不跨线程，载荷字段是补齐线程边界所必需的数据，与通道选择不冲突。新增 `TEST-035` 断言两条 MDC 写入路径都会清理，`RISK-011` 记录 MDC 泄漏的风险。
 
-本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。这不代表用户已接受；接受状态需要用户显式批准。
+状态于 `2026-09-10 12:33 CST` 由 `Review` 置为 `Accepted`：用户在该时间点确认接受本 Spec 并同意转入实现计划。
+
+本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。
