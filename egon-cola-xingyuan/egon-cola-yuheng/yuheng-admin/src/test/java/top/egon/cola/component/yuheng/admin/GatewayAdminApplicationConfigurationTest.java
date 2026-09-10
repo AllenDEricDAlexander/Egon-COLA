@@ -87,11 +87,11 @@ class GatewayAdminApplicationConfigurationTest {
         Properties properties = loader.getObject();
 
         assertEquals("${YUHENG_ADMIN_RESOURCE_SERVER_ID}", properties
-                .getProperty("egon.cola.platform.tianquan-shoubing.resource-server-id"));
+                .getProperty("egon.cola.platform.tianquan.shoubing.resource-server-id"));
         assertEquals("${YUHENG_ADMIN_RESOURCE_URI}", properties
-                .getProperty("egon.cola.platform.tianquan-shoubing.resource-uri"));
+                .getProperty("egon.cola.platform.tianquan.shoubing.resource-uri"));
         assertThat(properties.stringPropertyNames())
-                .noneMatch(key -> key.startsWith("egon.cola.platform.tianquan-shoubing.admission."));
+                .noneMatch(key -> key.startsWith("egon.cola.platform.tianquan.shoubing.admission."));
         assertEquals("${YUHENG_ADMIN_RESOURCE_BIZ_CODE:xingyuan}", properties
                 .getProperty("egon.cola.component.tianshu.biz-code"));
         assertEquals("${DEPLOYMENT_ENV}", properties
