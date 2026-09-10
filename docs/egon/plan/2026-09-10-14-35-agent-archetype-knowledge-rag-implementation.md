@@ -1152,8 +1152,20 @@ public class KnowledgeBaseRepositoryImpl implements KnowledgeBaseRepository {
 - Failure returns to: File 3（映射）、File 5（排序或软删条件）。
 - Completion criteria: `REQ-002`、`REQ-003`、`REQ-025` 的持久化部分有证据。
 - Rollback: 回退 infrastructure 的 repo 与 service 子树。
-- Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeRepositoryTest.java`; `.../infrastructure/knowledge/repo/po/{KnowledgeBasePO,KnowledgeDocumentPO}.java`; `.../infrastructure/knowledge/repo/converter/{KnowledgeBasePOConverter,KnowledgeDocumentPOConverter}.java`; `.../infrastructure/knowledge/repo/dao/{KnowledgeBaseDAO,KnowledgeDocumentDAO}.java`; `.../infrastructure/knowledge/service/{KnowledgeBaseRepositoryImpl,KnowledgeDocumentRepositoryImpl}.java`
+- Commit paths: `...-infrastructure/src/test/java/.../infrastructure/knowledge/KnowledgeRepositoryTest.java`; `.../infrastructure/knowledge/repo/po/{KnowledgeBasePO,KnowledgeDocumentPO}.java`; `.../infrastructure/knowledge/repo/converter/{KnowledgeBasePOConverter,KnowledgeDocumentPOConverter}.java`; `.../infrastructure/knowledge/repo/dao/{KnowledgeBaseDAO,KnowledgeDocumentDAO}.java`; `.../infrastructure/knowledge/service/{KnowledgeBaseRepositoryImpl,KnowledgeDocumentRepositoryImpl}.java`；实施期增补：`...-infrastructure/pom.xml`（H2 `test` 作用域）、`...-infrastructure/knowledge/repo/po/JsonbStringTypeHandler.java`、`...-starter/DeepResearchApplication.java`（`@MapperScan`）
 - Commit: `feat(agent-archetype): persist knowledge bases and documents`
+
+在实施期修正（DAO 形态）：Spec B 第 2596 行已定调"文档用途，非生产 SQL；实际实现使用 MyBatis Plus 的条件构造器"，故本 Step 的 File 4 伪代码中的手写 SQL 不落地：两个 DAO 只是 `EgonColaMapper<PO>` 的裸扩展，列表/计数/软删/条件更新全部由 `LambdaQueryWrapper`/`LambdaUpdateWrapper` 组装，排序恒为 `create_time desc, id desc`，窗口由 `.last("limit ? offset ?")` 渲染并在入参处守卫（负 offset / 非正 size 抛 `IllegalArgumentException`）。
+
+在实施期修正（jsonb 写入）：迁移里的 `chunk_config` 是 `jsonb`，且迁移文件不可改，pgjdbc 默认按 `varchar` 发送会报类型不匹配，故新增 `JsonbStringTypeHandler`（`setObject(index, value, Types.OTHER)`）承载 BO 与 jsonb 文本的互转；这也符合 Spec B §11.2 对转换器与类型处理的分工。
+
+在实施期修正（状态写入的整行前提）：`EgonColaModelValidationInterceptor` 对 update/insert 校验的是完整持久化行（`id`、`tenantId`、`createTime`、`createUserId`、`isDeleted` 必须非空），只带变更列的"部分实体"会被拒。故状态迁移实现为读改写：`selectById` → 状态前置校验 → `carrierOf(current)` 复制五个持久化列 → `update(change, ...)` 并把期望状态留在 WHERE 里作为 CAS；`error_code`/`error_message` 用 `FieldStrategy.ALWAYS`，否则默认的 `NOT_NULL` 策略会让"清空上一次失败原因"永远无法落库。`resetForReingest` 的终态集合由 `DocumentIngestStatusEnum::isTerminal` 派生，不手写字面量。
+
+在实施期修正（离线可证的模糊匹配）：Spec B 的说明性 SQL 用 `ILIKE`，H2 不支持，故实现改用 `lower(col) like ?`（大小写不敏感语义等价，参数绑定而非拼接）；`TEST-026`/`TEST-032` 中依赖真实 PostgreSQL 的部分（`vector` 扩展、jsonb 与表达式索引的真实建表、维度校验）离线不可执行，已在本 Step 与 Step 3 的记述中留痕，留待有 PostgreSQL 的运行期验收。
+
+在实施期修正（宿主扫描）：infrastructure 的 `...knowledge.repo.dao` 不在 starter 自动扫描的基础包内，Step 5 的仓储 Bean 一经组件扫描就因缺 `KnowledgeBaseDAO` 而让 starter 的三个上下文测试变红，故 `DeepResearchApplication` 按 service archetype 的先例增补 `@MapperScan(basePackages = "...knowledge.repo.dao")`——这是计划文件树未列出的实施期增补，随本 Step 提交。
+
+本 Step 实际交付 6 个 `package-info.java`（`knowledge`、`knowledge/repo`、`knowledge/repo/po`、`knowledge/repo/converter`、`knowledge/repo/dao`、`knowledge/service`）与 5 个测试方法（多出的是租户隔离、软删可见性与 CAS 失败路径），均按 `AgentSourceContractTest` 的包文档规约与 CSS 边界的证据要求扩展。
 
 ### Step 6 — infrastructure：向量与嵌入装配
 
