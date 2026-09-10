@@ -6,7 +6,7 @@
 | Template Version | `4` |
 | Status | `Review` |
 | Created | `2026-09-10 14:35 CST` |
-| Updated | `2026-09-10 14:35 CST` |
+| Updated | `2026-09-10 15:10 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-archetypes/source-projects/egon-cola-source-agent` 新增 `knowledge` 业务域与全部持久化、装配、接口；`definitions/egon-cola-archetype-agent` 的门禁与打包清单同步修订 |
@@ -2228,10 +2228,10 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 | --- | --- | --- | --- | --- | --- |
 | `BLOCK-001` | MyBatis Plus 租户拦截器的实际行为未从源码验证：插入时是否自动填 `tenant_id`、`tenant-id.mdc-key` 的默认键名、MDC 无值时的行为 | Step 3, 5, 11 | Spec B `RISK-002`；组件配置元数据 | 实施者 | Closed — 处置已定：`KnowledgeTenantScopeTest` 在完整读写路径上通过语句拦截断言注入的条件与写入值；不符时按 `EgonColaMetaObjectHandler` 的既有实现调整 |
 | `BLOCK-002` | Spring AI `1.1.8` 的 `PgVectorStore` builder 方法名与本地核对的 `1.1.2` 可能不同 | Step 6 | 组件 Plan 的 `RISK-001` | 实施者 | Closed — 处置已定：实施 Step 6 前用 `1.1.8` 复核 builder 方法签名 |
-| `BLOCK-003` | 本 Plan 依赖组件已实施（提交 `139c75772`）；若组件 Spec 的 `RagEmbeddingException` 差异被修订，本 Plan 的 Step 7 错误映射需要同步 | Step 7 | 组件交付报告 | 用户 | Closed — 处置已定：本 Plan 按组件的当前实现（`RagEmbeddingException` 在摄取路径不可达）编写；若用户选择修订组件，Step 7 的错误映射随该修订同步调整，不改变任何 `REQ-*` |
+| `BLOCK-003` | 组件侧 `RagEmbeddingException` 的处置 | Step 7 | 组件交付报告 → 用户 2026-09-10 15:10 选择按推荐修订 | 用户 | Closed — 已按推荐处置：该异常不可达，已从组件删除，Spec A 出第二次显式修订；`RagVectorStoreException` 覆盖嵌入失败。本 Plan 的 Step 7 错误映射**已同步修改**，全部 `REQ-*` 不变 |
 | `RISK-001` | 全套生成回归需要先安装 components 与 source-projects，且 components Reactor 有既有的 xingyuan 循环依赖 | Step 1, 12 | 组件实施期的基线观察 | 实施者 | Closed — 处置已定：按 `README.md` Quick Start 从根 Reactor 构建，或在已安装的本地仓库上跑 |
 
-`BLOCK-003` 是本 Plan 唯一的开放项：它不阻塞 Step 1-6，但 Step 7 的错误映射取决于组件那边的判定。若用户选择修订组件，Step 7 需要相应调整；若保持现状，本 Plan 可按原文执行。
+`BLOCK-003` 已按推荐关闭：组件删除了不可达的 `RagEmbeddingException`，`RagVectorStoreException` 覆盖嵌入失败；本 Plan 的 Step 7 错误映射已同步为 `RagVectorStoreException`，全部 `REQ-*` 不变。本 Plan 无开放项。
 
 ## 12. Review and Acceptance
 
@@ -2284,6 +2284,6 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 
 `PASS — Ready for user review`
 
-本 Plan 内部完整、无未决占位符，全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`。`BLOCK-003` 是一个开放的用户决策（组件侧 `RagEmbeddingException` 的处置），它不阻塞 Step 1-6，但若用户选择修订组件，Step 7 的错误映射需同步。
+本 Plan 内部完整、无未决占位符，全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`。`BLOCK-003` 已关闭：组件侧不可达的异常已删除，本 Plan 的错误映射已同步。
 
 本 Plan 未修改任何生产或测试代码、未执行迁移、未启动应用，也未声称任何运行期验证。

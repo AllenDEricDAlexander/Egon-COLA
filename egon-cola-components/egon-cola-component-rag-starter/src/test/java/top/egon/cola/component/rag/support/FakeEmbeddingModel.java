@@ -5,14 +5,13 @@ import org.springframework.ai.embedding.Embedding;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.ai.embedding.EmbeddingRequest;
 import org.springframework.ai.embedding.EmbeddingResponse;
-import top.egon.cola.component.rag.exception.RagEmbeddingException;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Offline {@link EmbeddingModel} with a configurable dimension count, deterministic vectors and a
- * failure hook. No provider, endpoint or key is involved.
+ * Offline {@link EmbeddingModel} with a configurable dimension count and deterministic vectors.
+ * No provider, endpoint or key is involved.
  */
 public class FakeEmbeddingModel implements EmbeddingModel {
 
@@ -20,17 +19,11 @@ public class FakeEmbeddingModel implements EmbeddingModel {
 
     private final List<String> embeddedTexts = new ArrayList<>();
 
-    private boolean failOnEmbed;
-
     public FakeEmbeddingModel(int dimensions) {
         if (dimensions <= 0) {
             throw new IllegalArgumentException("dimensions must be positive");
         }
         this.dimensions = dimensions;
-    }
-
-    public void failOnEmbed() {
-        this.failOnEmbed = true;
     }
 
     public int invocationCount() {
@@ -77,9 +70,6 @@ public class FakeEmbeddingModel implements EmbeddingModel {
     }
 
     private void record(String text) {
-        if (failOnEmbed) {
-            throw new RagEmbeddingException("simulated embedding failure");
-        }
         embeddedTexts.add(text);
     }
 

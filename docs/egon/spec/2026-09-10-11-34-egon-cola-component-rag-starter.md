@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 新增组件发布面（父 POM、BOM、模块登记）、四类扩展点 SPI 的策略/工厂选型、与 Spring AI 1.1.8 三方契约耦合、同一维度多嵌入模型共享向量表的隔离正确性、官方类库缺少"列举文档"能力的边界、可选依赖的 fail-closed 装配、文档内容与向量的日志安全、启动期校验的网络成本取舍 |
 | Created | `2026-09-10 11:34 CST` |
-| Updated | `2026-09-10 11:47 CST` |
+| Updated | `2026-09-10 15:10 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-components` 下新增 `egon-cola-component-rag-starter` 单模块组件，以及父 POM 与 BOM 的登记变更 |
@@ -473,7 +473,7 @@ flowchart TD
     HM -- 合法 --> I[按 documentId 删除既有向量]
     I -- 失败 --> X7([抛 RagVectorStoreException, 不写入])
     I -- 成功 --> J[批量嵌入]
-    J -- 失败 --> X8([抛 RagEmbeddingException])
+    J -- 失败 --> X8([抛 RagVectorStoreException])
     J -- 成功 --> K[写入向量表]
     K -- 失败 --> X9([抛 RagVectorStoreException])
     K -- 成功 --> L([返回 RagIngestionResult])
@@ -509,7 +509,7 @@ flowchart TD
 | 10 | `RagIngestionService` -> `RagMetadataKeys` | 合并结构元数据与业务属性 | 两个属性 Map -> 受控集合 | 无 | 任一来源含保留 key -> `RagValidationException` | `REQ-011`, `REQ-020` |
 | 11 | `RagIngestionService` -> `RagChunkConverter` | `toTarget(RagChunkBO)` | 分块 -> `Document`（含受控元数据） | 无 | 映射缺失字段在编译期失败（`unmappedTargetPolicy=ERROR`） | `REQ-011` |
 | 12 | `RagIngestionService` -> `VectorStore` | `delete(Filter.Expression)` | 文档过滤表达式 -> 删除 | 宿主向量表删除该文档既有分块 | 失败 -> 抛出且不写入 | `REQ-010` |
-| 13 | `RagIngestionService` -> `EmbeddingModel` | Spring AI 抽象 | 文本列表 -> 向量 | 无 | 失败 -> 抛出 `RagEmbeddingException`，不写入 | `REQ-009` |
+| 13 | `RagIngestionService` -> `VectorStore` | `add(List<Document>)` | 分块向量 -> 写入；嵌入由宿主向量库内部完成 | 无 | 失败（含嵌入失败）-> 抛出 `RagVectorStoreException`，不写入 | `REQ-009` |
 | 14 | `RagIngestionService` -> `VectorStore` | `add(List<Document>)` | 分块向量 -> 写入 | 宿主向量表新增该文档分块 | 失败 -> 抛出 `RagVectorStoreException` | `REQ-009` |
 | 15 | 宿主 -> `RagRetrievalService` | `retrieve(RagRetrievalQuery)` | 查询 -> 带分片段 | 只读 | 参数越界 -> `RagValidationException`；无命中 -> 空列表 | `REQ-007` |
 | 16 | `RagRetrievalService` -> `VectorStore` | `similaritySearch(SearchRequest)` | 强制注入的过滤 + topK + 阈值 -> 带分 `Document` | 无 | 依赖失败 -> `RagVectorStoreException` | `REQ-007` |
@@ -571,7 +571,7 @@ sequenceDiagram
                 S->>M: embed(texts)
                 alt 嵌入失败
                     M-->>S: 异常
-                    S-->>H: RagEmbeddingException
+                    S-->>H: RagVectorStoreException
                 else 嵌入成功
                     S->>V: add(List<Document>)
                     alt 写入失败
@@ -611,7 +611,7 @@ sequenceDiagram
 | 结构元数据与业务属性含保留 key | 合并时校验失败 | 抛 `RagValidationException` | 无写入 | 修正属性来源后可重试 | 确定异常，指明冲突 key | 宿主业务服务 | `TEST-006` |
 | 分块参数非法 | 策略内校验 | 抛 `RagValidationException` | 无写入 | 修正集合的分块配置后重跑 | 确定异常 | 宿主业务服务 | `TEST-005` |
 | 预删除失败 | `VectorStore.delete` 抛出 | 抛 `RagVectorStoreException`，不进入嵌入与写入 | 既有分块保持不变 | 可安全重跑；不自动重试 | 确定异常 | 宿主业务服务（调度与重试由宿主或 outbox 承担） | `TEST-010` |
-| 嵌入失败 | `EmbeddingModel` 抛出 | 抛 `RagEmbeddingException` | 该文档此前分块已被删除，当前无分块 | 可安全重跑（`REQ-009`）；宿主决定重试与成本 | 确定异常，不含供应商原始报文 | 宿主业务服务 | `TEST-007`, `TEST-018` |
+| 嵌入失败 | 向量库内部的嵌入调用抛出 | 抛 `RagVectorStoreException` | 该文档此前分块已被删除，当前无分块 | 可安全重跑（`REQ-009`）；宿主决定重试与成本 | 确定异常，不含供应商原始报文 | 宿主业务服务 | `TEST-007`, `TEST-018` |
 | 写入失败 | `VectorStore.add` 抛出 | 抛 `RagVectorStoreException` | 可能残留本次部分已写入分块 | 重跑时预删除会清理残留，故可安全重跑 | 确定异常 | 宿主业务服务 | `TEST-010` |
 | 本地存储写入失败 | 目录不可写或改名失败 | 抛 `RagStorageException` | 临时文件可能残留；目标路径无半截文件 | 修正权限后重跑；临时文件命名可识别 | 确定异常 | 宿主业务服务 | `TEST-020` |
 | 探针失败（仅开启时） | 写入或检索或删除任一步抛出 | 上下文刷新中止 | 可能残留一条探针记录 | 清理后重启；保留集合标识固定可定位 | 启动失败，异常指明模型与失败阶段 | 应用开发者 | `TEST-018` |
@@ -749,7 +749,6 @@ egon-cola-components/
         │   │       ├── RagExtractionException.java
         │   │       ├── RagChunkingException.java
         │   │       ├── RagModelNotRegisteredException.java
-        │   │       ├── RagEmbeddingException.java
         │   │       ├── RagVectorStoreException.java
         │   │       ├── RagStorageException.java
         │   │       └── package-info.java
@@ -876,7 +875,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | 分块参数非法 | 策略校验后拒绝 | `RagValidationException` | 抛出异常 | 修正后重试 | 修正分块配置 |
 | 属性含保留 key | 合并元数据时拒绝 | `RagValidationException`（消息指明冲突 key） | 抛出异常 | 修正后重试 | 修正属性来源 |
 | 预删除失败 | 不进入嵌入与写入 | `RagVectorStoreException` | 抛出异常 | 可安全重试 | 按宿主重试策略处理 |
-| 嵌入失败 | 不写入 | `RagEmbeddingException` | 抛出异常 | 可安全重试 | 按宿主重试策略处理；注意嵌入计费 |
+| 嵌入失败 | 不写入 | `RagVectorStoreException`（嵌入由宿主向量库内部完成） | 抛出异常 | 可安全重试 | 按宿主重试策略处理；注意嵌入计费 |
 | 写入失败 | 可能残留部分分块 | `RagVectorStoreException` | 抛出异常 | 可安全重试（预删除会清理） | 按宿主重试策略处理 |
 | 存储扩展点失败（宿主另行调用时） | 不影响摄取自身语义 | `RagStorageException` | 抛出异常 | 修正后重试 | 修正目录权限或存储实现 |
 
@@ -1382,7 +1381,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | `autoconfigure/RagProperties` | Properties（配置载体） | 组件 `autoconfigure`；Spring 绑定 | 按 Rule 7 要求使用类型化配置载体并集中校验 | 无 | `REQ-002` |
 | `autoconfigure/RagEmbeddingModelProperties` / `RagStorageProperties` / `RagRetrievalProperties` / `RagValidationProperties` | Properties（配置载体） | 组件 `autoconfigure`；嵌套配置 | 把长键层次拆成可独立校验的嵌套 record，避免单类承载十余个不相关键 | 无 | `REQ-002`, `REQ-006`, `REQ-012`, `REQ-018` |
 | `chunk/RagChunkingStrategyEnum` / `storage/RagDocumentStorageTypeEnum` | Enum（枚举） | 组件；配置绑定与工厂选择 | 取代字符串分派，是 `REQ-005` 与 `DEC-006` 的落点 | 无 | `REQ-005`, `REQ-012` |
-| `exception/RagException` 与其 10 个子类 | Exception（行为类型） | 组件各层；宿主捕获 | 失败必须可区分、可诊断且不泄露供应商细节 | 无 | `REQ-004`, `REQ-015` |
+| `exception/RagException` 与其 9 个子类 | Exception（行为类型） | 组件各层；宿主捕获 | 失败必须可区分、可诊断且不泄露供应商细节 | 无 | `REQ-004`, `REQ-015` |
 
 不创建的类型及理由：不创建 `RagDocumentBO`（文档元数据由宿主持久化，组件无文档生命周期状态）；不创建 `RagCollectionBO`（集合只是标识，无组件侧状态）；不创建 `RagChunkEntity`/`RagChunkPO`（无持久化）；不创建 `RagChunkVO`（组件无展示层）；不创建 `RagIngestionRequest`/`Response`（无协议边界）；不创建 `RagChunkDTO`（分块不跨进程）。
 
@@ -1764,5 +1763,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 状态于 `2026-09-10 11:43 CST` 由 `Review` 置为 `Accepted`：用户在该时间点对评审意见（探针默认关闭、`DEC-011` 与 `DEC-012` 关闭、MapStruct 引入、表格格式）逐项确认并指示继续。
 
 随后在 `2026-09-10 11:47 CST` 发生一次**显式修订**（非静默改写）：起草 Spec B 时发现 `INTERNAL-001` 把文本抽取与切块嵌入焊死在一个方法里，导致消费方无法取得抽取文本去满足"原始文本也要存到数据库中"的要求，也无法实现"先落库、后嵌入"的两段式。用户明确确认按推荐修订，因此本 Spec 新增 `REQ-019`、`REQ-020` 与 `INTERNAL-007`（`§9.2.7`），并把 `RagIngestionCommand` 的载荷从 `InputStream` 改为 `ExtractedDocumentBO`（`§9.2.1`、`§10.3`）。除此之外的既有设计、`REQ-001`-`REQ-018` 与全部决策保持不变。`INTERNAL-*` 编号只追加不重排。
+
+**2026-09-10 15:10 CST 第二次显式修订**：实施后审计发现 `RagEmbeddingException` 不可达。Spec 起草时假定组件会自行调用 `EmbeddingModel#embed`，但 Spring AI 的 `VectorStore` 只接受 `add(List<Document>)`，嵌入在向量库内部完成，组件没有任何代码路径能抛出该类。一个永远抛不出来的公开异常会误导调用方，因此在组件尚未有消费方时删除它；`§9.2.1` 的错误契约改为由 `RagVectorStoreException` 覆盖嵌入失败，异常子类由 10 个减为 9 个。其余设计与全部 `REQ-*` 不变。
 
 本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。

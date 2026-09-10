@@ -4,9 +4,9 @@
 | --- | --- |
 | Document | `docs/egon/plan/2026-09-10-12-47-egon-cola-component-rag-starter-implementation.md` |
 | Template Version | `4` |
-| Status | `Implemented` |
+| Status | `Completed` |
 | Created | `2026-09-10 12:47 CST` |
-| Updated | `2026-09-10 14:20 CST` |
+| Updated | `2026-09-10 15:10 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-components` 下新增 `egon-cola-component-rag-starter` 单模块，以及 components 父 POM 与 BOM 的登记变更 |
@@ -262,7 +262,7 @@ egon-cola-components/
         │   │   └── exception/{RagException,RagConfigurationException,RagValidationException,
         │   │                  RagExtractorMissingException,RagExtractorConflictException,
         │   │                  RagExtractionException,RagChunkingException,RagModelNotRegisteredException,
-        │   │                  RagEmbeddingException,RagVectorStoreException,RagStorageException,
+        │   │                  RagVectorStoreException,RagStorageException,
         │   │                  package-info}.java                  # CREATE
         │   └── resources/META-INF/
         │       ├── spring/org.springframework.boot.autoconfigure.AutoConfiguration.imports                # CREATE
@@ -719,7 +719,6 @@ class RagPropertiesBindingTest {
 | `RagExtractionException` | `(String safeMessage, Throwable cause)` |
 | `RagChunkingException` | `(String safeMessage, Throwable cause)` |
 | `RagModelNotRegisteredException` | `(String safeMessage)` |
-| `RagEmbeddingException` | `(String safeMessage, Throwable cause)` |
 | `RagVectorStoreException` | `(String safeMessage, Throwable cause)` |
 | `RagStorageException` | `(String safeMessage, Throwable cause)` |
 
@@ -2476,7 +2475,6 @@ public interface RagIngestionService {
      * @return 写入的分块数与本次调用统计
      * @throws RagValidationException 字段约束或属性保留键失败
      * @throws RagModelNotRegisteredException 逻辑模型未注册
-     * @throws RagEmbeddingException 嵌入调用失败
      * @throws RagVectorStoreException 预删除或写入失败
      */
     RagIngestionResult ingest(@Valid RagIngestionCommand command);
@@ -2495,7 +2493,7 @@ public interface RagIngestionService {
 - Why now: RED 契约已由 File 2 固定。
 - Contract/signature changes: 实现 `RagIngestionService`。
 - Input/output and state mapping: 命令 → `registry.resolve(logicalModelName)` → `factory.resolve(strategy)` → `strategy.split` → `idFactory.create` 逐分块 → 业务属性覆盖结构属性 → `metadata = RagMetadataKeys.toDocumentMetadata(...)` → `converter.toDocument(...)` → `vectorStore.delete(Expression)` → `vectorStore.add(documents)` → 结果。**注意：查询与写入都不经过模型调用之外的外部系统。**
-- Error and edge behavior: 删除失败抛 `RagVectorStoreException` 且不调用 `add`；嵌入失败抛 `RagEmbeddingException`；写入失败抛 `RagVectorStoreException`（可能残留部分分块，重跑自愈）；属性校验失败在调用向量库之前抛出。
+- Error and edge behavior: 删除失败抛 `RagVectorStoreException` 且不调用 `add`；写入失败（含向量库内部的嵌入失败）抛 `RagVectorStoreException`（可能残留部分分块，重跑自愈）；属性校验失败在调用向量库之前抛出。
 - Standards impact: `MC-BEAN-001`、`MC-VALID-001`、`MC-CONVERT-001`、`MC-LOG-001`（`@Slf4j`，只记标识、逻辑模型名、策略、分块数、耗时与结果）、`MC-TIME-001`、`MC-PATTERN-001`、`MC-UTIL-001`、`MC-SCOPE-001`、`MC-TEST-001`。
 - Literal rule enforcement: `Rule 1`、`Rule 2`、`Rule 3`（经转换器，不手工构造 `Document` 的字段映射）、`Rule 4`、`Rule 5`、`Rule 9`、`Rule 10`、`Rule 11`。
 - Implementation pseudocode:
@@ -2568,7 +2566,7 @@ public class RagIngestionServiceImpl implements RagIngestionService {
 ```java
 @Test void skips_write_when_embedding_fails() {
     model.failOnEmbed();
-    assertThatThrownBy(() -> service.ingest(command(...))).isInstanceOf(RagEmbeddingException.class);
+    assertThatThrownBy(() -> service.ingest(command(...))).isInstanceOf(RagVectorStoreException.class);
     assertThat(vectorStore.addedDocuments()).isEmpty();
 }
 
@@ -3618,6 +3616,7 @@ meterRegistryProvider.ifAvailable(registry -> {
 | `BLOCK-001` | 父 POM 是否需要登记 `mapstruct-plus` | Step 1 File 1 | `common-core` 声明了 `mapstruct-plus.version=1.5.1`，但 Spec A `DEC-007` 只要求 MapStruct；本 Plan 的转换器只用 `org.mapstruct` | 实现者 | Closed — 处置已定：若实施时确认不需要，只登记 `mapstruct` 一条并在实施记录中说明；不影响任何 `REQ-*`，由 Step 1 的构建门验证 |
 | `BLOCK-002` | `spring-ai-*` 的 `1.1.8` 与本地核对的 `1.1.2` 可能存在 artifact 或签名差异 | Step 1 File 3、Step 5 File 2/3、Step 6 File 8 | Spec A `RISK-001`；本地仓库为 `1.1.2` | 实现者 | Closed — 处置已定：实施前用 `1.1.8` 复核 `TokenTextSplitter`、`VectorStore`、`SearchRequest`、`Document` 与两个解析器读取器的类名与签名；差异只影响组件内部装配 |
 | `BLOCK-003` | `BaseConverter` 的契约方法签名与本组件需要的"带额外界参"的映射不完全一致 | Step 7 File 5 | Spec A `§10.4` 说明 `Document` 的 `id` 与元数据不由 `RagChunkBO` 携带 | 实现者 | Closed — 处置已定：本 Plan 采用"实现 `BaseConverter` 并提供 `toDocument(source, chunkId, metadata)` 重载"的方式；若实施时发现与 `BaseConverter` 的抽象不符，按 Spec A `§10.4` 的替代路径处理并在实施记录中说明 |
+| `BLOCK-004` | 实施后审计发现 `RagEmbeddingException` 不可达（Spring AI 的 `VectorStore` 只接受 `add(List<Document>)`，嵌入在向量库内部完成，组件无代码路径抛出它） | Step 2、Step 7 | 组件交付报告；用户 2026-09-10 15:10 选择按推荐处理 | User | Closed — 已删除该类，Spec A 出第二次显式修订，`RagVectorStoreException` 覆盖嵌入失败；本 Plan 的相关描述已同步 |
 | `RISK-001` | Micrometer 缺席时的指标跳过需要 `ObjectProvider` 或空实现 | Step 11 File 3 | outbox 组件用 `NoopOutboxMetrics` 双实现先例 | 实现者 | Closed — 处置已定：优先采用与 outbox 一致的"空实现"方式，若 `ObjectProvider` 更简洁则改用之；两者都满足 `REQ-015` 与本 Plan 的断言 |
 | `RISK-002` | `RagDocumentStorage#open` 在本地实现中按"目录内首个文件"读取 | Step 9 File 6 | Spec A `ASM-003` 只约束路径布局，未约束读取方式 | 实现者 | Closed — 处置已定：若宿主可能在同目录放多个文件，改为按 `storageKey` 精确读取；`TEST-020` 的往返用例会暴露该假设 |
 
@@ -3688,9 +3687,11 @@ Spec A 的简洁性与必要性审计已在 `§4.5` 完成，未发现 fetch-the
 
 ### 12.6 Final verdict
 
-`PASS — Implementation conforms to the effective Specs`（实施后回填）
+`PASS — Ready for user review`（实施后回填）
 
-十二个 Step 全部实施并提交，模块 `clean verify` 99 个测试全绿，components Reactor 回归通过。
+十二个 Step 全部实施并提交，模块 `clean verify` 全绿，components Reactor 回归通过。
+
+实施后审计发现一处契约缺陷并已纠正：`RagEmbeddingException` 不可达，已删除并由 `RagVectorStoreException` 覆盖嵌入失败；这是针对本 Plan 的纠正提交，Spec A 相应出第二次显式修订。
 实施期发现五处需要记录的偏离，全部写在 `§11`：其中三处是计划里的机械性顺序问题，一处是
 Spec A `§10.4` 的泛型参数与散文描述不一致，一处是本 Plan 自己预期过的 `RagEmbeddingException`
 契约差异。逐项对照见交付报告。

@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 首个带数据库的 Agent 生成项目、跨两份已接受规范（Agent Archetype、RAG 组件）的合同修订、异步摄取与 outbox 至少一次投递的幂等设计、pgvector 表结构与维度的单一来源、原型禁项测试与 archetype 打包清单的同步变更、SSE 问答与容量边界、原文与抽取文本的双重持久化 |
 | Created | `2026-09-10 11:51 CST` |
-| Updated | `2026-09-10 12:47 CST` |
+| Updated | `2026-09-10 15:10 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-archetypes/source-projects/egon-cola-source-agent` 新增 `knowledge` 业务域；`definitions/egon-cola-archetype-agent` 的元数据与验证器同步修订 |
@@ -597,7 +597,7 @@ sequenceDiagram
         G->>V: delete(documentId) 然后 add(chunks)
         H->>D: status=SUCCEEDED, chunkCount
     else 嵌入失败
-        G-->>H: RagEmbeddingException
+        G-->>H: RagVectorStoreException
         H-->>P: 抛出
         P->>O: RETRY_WAIT 或 DEAD
         H->>D: status=FAILED 或 DEAD
@@ -631,7 +631,7 @@ sequenceDiagram
 | 原文件存储失败 | 存储实现抛错 | 中止，不写行 | 无持久化副作用 | 修正后重试 | 500 错误体 | API client | `TEST-011` |
 | 文档行或 outbox 行写入失败 | 数据库异常 | 事务回滚 + 补偿删除文件 | 两行都不存在 | 修正后重试 | 500 错误体 | API client | `TEST-012` |
 | 补偿删除失败 | 删除抛错 | 已完成，记录孤儿文件告警 | 无行，文件残留 | 运维清理；不自动重试 | 500 错误体 | 运维 | `TEST-011` |
-| 嵌入失败 | 组件抛 `RagEmbeddingException` | handler 抛出 | 该文档此前分块已删除 | outbox 自动重试至耗尽 | 文档状态 FAILED/DEAD | 系统（自动）/运维（DEAD 后人工再入队） | `TEST-013`, `TEST-014` |
+| 嵌入失败 | 组件抛 `RagVectorStoreException`（嵌入在宿主向量库内部完成） | handler 抛出 | 该文档此前分块已删除 | outbox 自动重试至耗尽 | 文档状态 FAILED/DEAD | 系统（自动）/运维（DEAD 后人工再入队） | `TEST-013`, `TEST-014` |
 | 向量写入失败 | 组件抛 `RagVectorStoreException` | handler 抛出 | 可能残留部分分块 | 重试时按文档重建 | 同上 | 同上 | `TEST-013` |
 | 重试耗尽 | outbox 置 `DEAD` | 记录死信 | 文档状态 DEAD 且带失败码 | 需人工触发 `API-009` | 文档详情显示失败 | 运维 + API client | `TEST-017` |
 | 删除时仍有处理中的文档 | 状态查询非终态计数 | 拒绝删库 | 无 | 等待后重试 | 409 错误体 | API client | `TEST-007` |
