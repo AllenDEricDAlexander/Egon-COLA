@@ -9,7 +9,7 @@
 | Complexity | `Complex` |
 | Complexity Drivers | 新增组件发布面（父 POM、BOM、模块登记）、四类扩展点 SPI 的策略/工厂选型、与 Spring AI 1.1.8 三方契约耦合、同一维度多嵌入模型共享向量表的隔离正确性、官方类库缺少"列举文档"能力的边界、可选依赖的 fail-closed 装配、文档内容与向量的日志安全、启动期校验的网络成本取舍 |
 | Created | `2026-09-10 11:34 CST` |
-| Updated | `2026-09-10 11:43 CST` |
+| Updated | `2026-09-10 11:47 CST` |
 | Owner | `User` |
 | Repository | `Egon-COLA` |
 | Scope | `egon-cola-components` 下新增 `egon-cola-component-rag-starter` 单模块组件，以及父 POM 与 BOM 的登记变更 |
@@ -28,6 +28,8 @@
 仓库当前完全没有 RAG 能力：不存在向量库、嵌入模型、文档切分、知识库或语义检索的任何代码，`spring-ai-*vector-store*` 类库也未被任何 POM 引用。本设计在
 `egon-cola-components` 下新增单模块 Spring Boot Starter `egon-cola-component-rag-starter`，只承载 **RAG 引擎机制**：
 文本抽取、切分、嵌入与写入、相似度检索、元数据规范、四类扩展点、自动配置与严格绑定属性。
+
+组件把**文本抽取**与**切块嵌入**拆成两条可组合的公开能力（`RagExtractionService` 与 `RagIngestionService`），而不是焊死在一个方法里。消费方通常需要先把抽取结果持久化（例如把原文文本写入自己的文档表），再独立触发嵌入；拆开后同一份文档只解析一次，且消费方可以在两次调用之间做自己的落库与状态管理。`RagIngestionCommand` 因此携带已抽取的 `ExtractedDocumentBO`，不再携带原始字节流。
 
 组件不创建 `EmbeddingModel`，也不创建 `VectorStore`。宿主应用提供具名 Bean，组件通过配置按名字解析，因此组件不持有任何模型供应商地址、密钥或向量库实现依赖——这与
 `egon-cola-component-agent-flow-starter` 要求宿主提供具名 `ChatModel` 的边界完全同构。组件的编译期依赖只到 Spring AI 的抽象类库
@@ -87,7 +89,8 @@ Egon-COLA 应用按需引入并自行决定业务语义。
 | 当前：任何 RAG 需求 | 不存在 | 无 | 无 | 无 | `EVD-016` |
 | 当前：宿主消费组件 | `AutoConfiguration.imports -> @AutoConfiguration -> @ConditionalOnProperty -> @Bean` | Spring `ApplicationContext` | Spring Boot | 引入 Starter 的业务应用 | `EVD-004`, `EVD-005` |
 | 当前：宿主提供模型 | `apps -> named Spring Bean -> 组件按 Bean 名注入` | Bean 定义 | 宿主管理的供应商与凭据 | Agent Flow Starter | `EVD-005` |
-| 目标：摄取 | `宿主 -> RagIngestionService -> Extractor -> ChunkingStrategy -> EmbeddingModel -> VectorStore` | 宿主持有的存储与表；组件持有派生分块 | Spring AI 抽象 | 宿主应用 | `EVD-011`, `EVD-012` |
+| 目标：抽取 | `宿主 -> RagExtractionService -> RagDocumentExtractorRegistry -> 抽取器实现` | 无持久化；返回文本与结构元数据 | 可选解析器（pdf/tika） | 宿主应用 | `EVD-010`, `EVD-012` |
+| 目标：摄取 | `宿主 -> RagIngestionService -> ChunkingStrategy -> EmbeddingModel -> VectorStore` | 宿主持有的向量表；组件持有派生分块 | Spring AI 抽象 | 宿主应用 | `EVD-011`, `EVD-012` |
 | 目标：检索 | `宿主 -> RagRetrievalService -> SearchRequest(强制过滤) -> VectorStore -> 带分片段` | 向量表只读 | Spring AI 抽象 | 宿主应用 | `EVD-011`, `EVD-012` |
 
 ## 3. Goals and Non-goals
@@ -96,6 +99,7 @@ Egon-COLA 应用按需引入并自行决定业务语义。
 
 - 新增可被 Egon-COLA 业务应用按需引入的 `egon-cola-component-rag-starter`，默认关闭、显式启用。
 - 提供四类扩展点：文档读取、分块算法、向量模型、文件存储；每类都有固定的扩展方式与失败语义。
+- 把文本抽取与切块嵌入拆成两条可组合的公开能力，使消费方可以先持久化抽取结果再触发嵌入，且同一文档只解析一次。
 - 宿主通过具名 Bean 提供 `EmbeddingModel` 与 `VectorStore`；组件不持有供应商地址、密钥或向量库实现依赖。
 - 提供确定性的分块身份规则使摄取可幂等重跑，弥补官方 `VectorStore` 无法列举文档的能力缺口。
 - 在同一维度、多个嵌入模型共享一张向量表的形态下，从机制上排除跨模型串结果。
@@ -154,6 +158,8 @@ Egon-COLA 应用按需引入并自行决定业务语义。
 | `REQ-016` | 组件进入 components 父 Reactor 与 BOM，且不导出 Spring AI / Tika 三方坐标 | Must | 父 POM 模块清单含新模块；BOM 只新增一条 `top.egon` 依赖；引入方可不带版本使用 | `EVD-008`, `EVD-009` |
 | `REQ-017` | 所有验证离线、确定性，不启动真实模型、向量库、数据库、网络或 Docker | Must | 测试使用 fake `EmbeddingModel` 与 fake `VectorStore`；`mvn verify` 不需要任何凭据或外部服务 | 用户边界；`EVD-005` 先例 |
 | `REQ-018` | 维度一致性探针存在但默认关闭，并在 README 明确其网络与计费含义 | Must | 默认配置下启动不产生任何模型调用；开启后执行一次写入—检索—删除往返，任一环节失败即启动失败 | 用户要求"启动期探针"；成本与可用性取舍 |
+| `REQ-019` | 文本抽取是独立公开能力，与切块嵌入分离；`RagIngestionCommand` 只接受已抽取的文档，不再接受原始字节流 | Must | 调用 `extract` 得到 `ExtractedDocumentBO`；把该对象交给 `ingest` 可以在不重新解析的前提下完成切块与嵌入；同一文档在一次端到端流程中只被解析一次 | 用户要求"原始文本也要存到数据库中"与"不要重新获取的时候再切分"；Spec B 消费方需要先落库文本 |
+| `REQ-020` | 结构元数据与业务属性在写入向量前合并，业务属性在同名 key 上优先，保留 key 一律拒绝 | Must | 抽取器提供的 `attributes` 与命令提供的 `attributes` 合并后写入；同名时命令值生效；任一来源包含保留 key 时抛 `RagValidationException` | `REQ-011` 的延伸；避免两个来源的元数据静默互相覆盖 |
 
 ### 4.1 Scenario matrix
 
@@ -163,10 +169,12 @@ Egon-COLA 应用按需引入并自行决定业务语义。
 | 启用且配置合法 | 应用启动 | 必填配置齐全、Bean 名可解析、维度一致 | 绑定属性 -> 校验 -> 注册扩展点 -> 发布只读服务 | 无 | 进程内注册表 | 服务可用，日志记录启用模型与维度 | `REQ-002`, `REQ-003`, `REQ-008` |
 | 配置非法 | 应用启动 | 缺必填项、默认模型不在注册表、维度不符 | 校验失败 -> 启动中止 | 无 | 无 | 确定的启动异常，指明具体键或模型 | `REQ-002`, `REQ-006`, `REQ-008` |
 | Bean 名无法解析 | 应用启动 | 写了 `vector-store-bean-name` 但容器中不存在 | 解析失败 -> 启动中止 | 无 | 无 | 异常包含期望 Bean 名与已存在的候选类型 | `REQ-003` |
-| 正常抽取 | 宿主调用摄取 | 已注册匹配的抽取器 | 按 MIME/文件名路由 -> 抽取文本与元数据 | 无 | 无 | 返回抽取结果与元数据 | `REQ-004` |
-| 无匹配抽取器 | 宿主调用摄取 | 格式未被任何实现支持 | 路由失败 -> 抛出确定异常 | 不产生分块、不调用模型 | 无 | 异常列出已注册的 MIME 能力 | `REQ-004`, `REQ-013` |
-| 抽取器歧义 | 宿主调用摄取 | 多个实现同时 `supports` | 按显式优先级择一并记录所选实现名 | 优先级相同时启动期即失败 | 无 | 结果确定且可追溯 | `REQ-004` |
-| 正常摄取 | 宿主调用摄取 | 模型可用、向量表可写 | 抽取 -> 切分 -> 按文档删旧分块 -> 批量嵌入 -> 写入 -> 返回统计 | 无 | 向量表按文档重建 | 返回分块数与嵌入模型 | `REQ-009`, `REQ-010` |
+| 正常抽取 | 宿主调用抽取 | 已注册匹配的抽取器 | 按 MIME/文件名路由 -> 抽取文本与结构元数据 | 无 | 无 | 返回 `ExtractedDocumentBO` | `REQ-004`, `REQ-019` |
+| 无匹配抽取器 | 宿主调用抽取 | 格式未被任何实现支持 | 路由失败 -> 抛出确定异常 | 不产生分块、不调用模型 | 无 | 异常列出已注册的 MIME 能力 | `REQ-004`, `REQ-013` |
+| 抽取器歧义 | 宿主调用抽取 | 多个实现同时 `supports` | 按显式优先级择一并记录所选实现名 | 优先级相同时启动期即失败 | 无 | 结果确定且可追溯 | `REQ-004` |
+| 正常摄取 | 宿主调用摄取 | 已有抽取结果、模型可用、向量表可写 | 切分 -> 按文档删旧分块 -> 批量嵌入 -> 写入 -> 返回统计 | 无 | 向量表按文档重建 | 返回分块数与嵌入模型 | `REQ-009`, `REQ-010` |
+| 两段式组合 | 宿主先抽取并落库，后触发嵌入 | 抽取结果已持久化 | `extract` -> 宿主持久化文本 -> `ingest` 使用同一 `ExtractedDocumentBO` | 嵌入阶段失败时重复 `ingest` 不重新解析 | 宿主持久化文本；向量表按文档重建 | 同一文档只解析一次 | `REQ-019`, `REQ-009` |
+| 元数据合并冲突 | 宿主提交与抽取器同名的属性 | 两侧非保留 key 重名 | 业务属性覆盖结构属性 | 任一来源含保留 key 则拒绝 | 无 | 写入向量的元数据集合确定 | `REQ-020` |
 | 摄取重跑 | 宿主重试同一文档 | 文档内容与配置未变 | 先删除既有分块 -> 重建 -> 写入 | 无 | 分块 id 集合不变 | 不产生重复分块，结果确定 | `REQ-009`, `REQ-010` |
 | 嵌入失败 | 宿主调用摄取 | 模型调用抛错 | 删除已完成的分块 -> 向上抛出 | 宿主决定是否重试；组件不自动重试 | 该文档分块为空 | 确定异常，不含模型原始报文 | `REQ-010`, `REQ-015` |
 | 模型维度不符 | 应用启动 | `EmbeddingModel.dimensions()` 与配置不等 | 启动中止 | 无 | 无 | 异常指明模型名、期望维度与实际维度 | `REQ-008` |
@@ -230,7 +238,7 @@ flowchart LR
 | ID | Use case/goal | Primary actor | Supporting actors/systems | Trigger | Preconditions | Main success outcome | Alternatives/failures | Postconditions | Requirements | Interfaces/pages | Tests |
 | ---------- | ------------------------ | --------------- | -------------------------------- | ---------------- | ---------------------------------------- | ------------------------------------------ | ---------------------------------------------------------- | --------------------------- | ------------------------------------- | ------------------------- | --------------------------- |
 | `UC-001` | 装配并启用 RAG 引擎 | `ACTOR-001` | `ACTOR-005`, `ACTOR-006` | 应用启动 | 配置齐全、Bean 存在、维度一致 | 只读服务与注册表发布，组件可用 | 配置缺失/Bean 名不可解析/维度不符 -> 启动失败 | 成功：服务可用；失败：上下文不启动 | `REQ-002`, `REQ-003`, `REQ-006`, `REQ-008` | `INTERNAL-006` | `TEST-011`-`TEST-015` |
-| `UC-002` | 摄取文档为分块向量 | `ACTOR-002` | `ACTOR-005`, `ACTOR-006` | 宿主提交文档与集合 | 集合与模型已注册、有匹配抽取器 | 文档被切分为分块并写入向量表，返回统计 | 无抽取器/切分配置非法/嵌入失败/写入失败 -> 确定异常且不残留重复分块 | 成功：分块可检索；失败：该文档无分块 | `REQ-004`, `REQ-005`, `REQ-009`-`REQ-011` | `INTERNAL-001` | `TEST-004`-`TEST-010` |
+| `UC-002` | 把上传文档变成可检索分块 | `ACTOR-002` | `ACTOR-005`, `ACTOR-006` | 宿主提交文档字节流与集合 | 集合与模型已注册、有匹配抽取器 | 先抽取为文本（宿主可持久化），再切分并写入向量表，返回统计 | 无抽取器/文档不可解析/切分配置非法/嵌入失败/写入失败 -> 确定异常且不残留重复分块 | 成功：文本已落库且分块可检索；失败：该文档无分块 | `REQ-004`, `REQ-005`, `REQ-009`-`REQ-011`, `REQ-019`, `REQ-020` | `INTERNAL-007`, `INTERNAL-001` | `TEST-004`-`TEST-010`, `TEST-025`, `TEST-026` |
 | `UC-003` | 检索集合内分块 | `ACTOR-002` | `ACTOR-006` | 宿主提交查询文本 | 集合与模型已注册、参数在范围内 | 返回按相似度排序且只属于目标集合与模型的分块 | 无命中 -> 空列表；参数越界 -> 确定异常 | 无持久化副作用 | `REQ-007`, `REQ-011` | `INTERNAL-002` | `TEST-016`-`TEST-019` |
 | `UC-004` | 扩展文档读取/分块/存储 | `ACTOR-003` | Spring 容器 | 宿主注册自定义实现 | 实现满足 SPI 契约、优先级无冲突 | 自定义实现被路由命中或替换默认实现 | 优先级冲突/重复策略枚举值 -> 启动失败 | 注册表内容变化 | `REQ-004`, `REQ-005`, `REQ-012` | `INTERNAL-003`-`INTERNAL-005` | `TEST-001`-`TEST-003`, `TEST-020` |
 | `UC-005` | 诊断与关闭组件 | `ACTOR-004`, `ACTOR-007` | `ApplicationContext` | 启动失败、运行观察、构建发布 | 组件已启用或构建中 | 从安全日志与指标获知状态；Reactor 与 BOM 正确产出新组件 | 校验失败信息不足/ 发布面遗漏新组件 -> 视为缺陷 | 无残留资源 | `REQ-015`, `REQ-016` | `INTERNAL-006` | `TEST-021`, `TEST-022` |
@@ -318,7 +326,7 @@ flowchart LR
 | Literal rule | Affected? | Repository evidence | Exact design decision | Files/types/interfaces | Validation/test evidence | Status/blocker |
 | -------------- | ----------- | ------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- | ---------------- |
 | Rule 1 | Yes | `EVD-002`、`EVD-005`、`EVD-006` 的命名规则；`§10.1` 完整清单 | 全部新增类型带语义后缀：`*Service`/`*Strategy`/`*Factory`/`*Registry`/`*Extractor`/`*Converter`/`*Exception`/`*Enum`/`*BO`/`*Command`/`*Query`/`*Result`/`*DTO`/`*Properties`/`*AutoConfiguration`；不使用 `Data`/`Info`/`Param`/`Bean` | `§10.1` 与 `§8.2` 精确类型 | `TEST-021` 命名清单静态扫描 | PASS |
-| Rule 2 | Yes | 组件内部调用边界：宿主 -> 服务；服务 -> SPI；配置绑定 + 手工校验 | `spring-boot-starter-validation` + Jakarta 注解置于 `RagIngestionCommand`/`RagRetrievalQuery`/`RagChunkingConfigDTO` 与配置属性；服务方法用 `@Validated`；直接手工校验复用 `ValidationUtils`；组件无电话号码字段故 libphonenumber `N/A`；无 create/update 复用载体故不新增校验分组 | `INTERNAL-001`-`INTERNAL-006` | `TEST-002`, `TEST-005`, `TEST-012`, `TEST-016` | PASS |
+| Rule 2 | Yes | 组件内部调用边界：宿主 -> 服务；服务 -> SPI；配置绑定 + 手工校验 | `spring-boot-starter-validation` + Jakarta 注解置于 `RagExtractionCommand`/`RagIngestionCommand`/`RagRetrievalQuery`/`RagChunkingConfigDTO` 与配置属性；服务方法用 `@Validated`；直接手工校验复用 `ValidationUtils`；组件无电话号码字段故 libphonenumber `N/A`；无 create/update 复用载体故不新增校验分组 | `INTERNAL-001`-`INTERNAL-007` | `TEST-002`, `TEST-005`, `TEST-012`, `TEST-016` | PASS |
 | Rule 3 | Yes | `EVD-013` `BaseConverter`；`EVD-014` MapStruct 版本；`EVD-015` 转换器写法 | 简单载体全部使用 `record` 并在紧凑构造器规范化；"分块 -> `Document`" 是唯一跨边界转换，使用 `@Mapper(unmappedTargetPolicy=ERROR)` 接口 `extends BaseConverter<RagChunkBO, Document>` 并以 `Mappers.getMapper` 获取实例；不新增 `@Value` 不可变类与复杂 Lombok 类（组件内无复杂生命周期数据对象） | `RagChunkConverter` | 转换器编译期 + `TEST-008` 映射断言 | PASS |
 | Rule 4 | Yes | `EVD-003` `lombok.config`；`EVD-005` `@Bean(name=...)` 与构造器注入 | 每个具体行为类使用 `@Slf4j`；Spring Bean 通过 `@Bean(name="...")` 或 stereotype 值显式命名；依赖为 `final` 字段 + `@RequiredArgsConstructor`；每个依赖字段带 `@Qualifier`；`lombok.config` 复制 `Qualifier` 与 `Value` | `RagIngestionServiceImpl`/`RagRetrievalServiceImpl`/各 Strategy/Extractor/Registry/AutoConfiguration | 上下文装配测试 + `TEST-021` 静态检查 | PASS |
 | Rule 5 | Yes | 组件无既有工具类可复用；Rule 3 的转换由 MapStruct 承担 | 只使用 JDK（`java.nio`、`java.time`、`java.util`）；不新增 `*Utils`；不引入 `commons-*`/Guava；Tika 仅按 `REQ-013` 以 `optional` 引入且只用于文档内容识别 | 本地存储实现与抽取器实现 | 依赖与 import 扫描 `TEST-021` | PASS |
@@ -336,6 +344,7 @@ flowchart LR
 | ---------------------------------------- | -------- | ------------------------------------- | ------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------- | --------- |
 | 独立 `rag-starter` 组件 | New | `REQ-001`, `REQ-016` | 在消费方项目内各写一遍引擎 | 分块边界、过滤下推、维度一致性、部分失败恢复会被复制到每个项目并各自腐化 | 一个模块、父 POM 与 BOM 登记、一条发布面 | Add |
 | 宿主提供 `EmbeddingModel`/`VectorStore` Bean | New | `REQ-003` | 组件按配置创建 pgvector 与 OpenAI 客户端 | 组件将绑定具体向量库与供应商、需要保存地址与密钥，与 `EVD-005` 的宿主边界冲突 | 宿主需多写两个 Bean 定义 | Add |
+| `RagExtractionService` | New | `REQ-019` | 把抽取留在 `RagIngestionService` 内部 | 摄取结果对象要么携带整篇文本（污染写入口），要么不携带（消费方无法满足"原文入库"）；且无法表达"先落库、后嵌入"的两段式 | 一个公开接口、一个命令载体与一次显式编排；换取解析只发生一次 | Add |
 | `RagDocumentExtractor` SPI | New | `REQ-004`, `REQ-013` | 单一实现按扩展名 `if/else` | 用户明确要求支持 pdf/docx/excel 等多格式；格式集合会持续增长，`if/else` 无法闭合新增格式 | 一个接口、一个路由注册表、一组实现类及其优先级 | Add |
 | `RagChunkingStrategy` SPI + 枚举工厂 | New | `REQ-005` | 单一 `TokenTextSplitter` 直接调用 | 用户明确要求多种分块算法；且字符串分派已被仓库既有设计评审否定（`EVD-015`） | 一个接口、一个枚举、一个工厂、三个实现类 | Add |
 | `RagEmbeddingModelRegistry` | New | `REQ-006`, `REQ-008` | 单个 `rag.embedding-model-bean-name` | 用户明确要求支持多种向量模型且需要默认模型回退与维度自检 | 一段配置结构、一个注册表、启动期校验 | Add |
@@ -371,6 +380,7 @@ flowchart TB
 
     subgraph Comp["egon-cola-component-rag-starter"]
         Auto["RagAutoConfiguration + RagProperties"]
+        Extract["RagExtractionService"]
         Ingest["RagIngestionService"]
         Retrieve["RagRetrievalService"]
         ExReg["RagDocumentExtractorRegistry"]
@@ -388,19 +398,22 @@ flowchart TB
     Extender -->|"实现 SPI"| ExReg
     Extender -->|"实现 SPI"| ModelReg
     Extender -->|"实现 SPI"| Storage
+    Host -->|"INTERNAL-007"| Extract
     Host -->|"INTERNAL-001"| Ingest
     Host -->|"INTERNAL-002"| Retrieve
 
+    Auto -->|"发布"| Extract
     Auto -->|"发布"| Ingest
     Auto -->|"发布"| Retrieve
     Auto -->|"解析 Bean 名"| Model
     Auto -->|"解析 Bean 名"| Store
 
-    Ingest --> ExReg
+    Extract --> ExReg
+    Extract --> Opt
+    Extract -.->|"ExtractedDocumentBO"| Ingest
     Ingest --> ChunkFac
     Ingest --> ModelReg
     ChunkFac --> Opt
-    ExReg --> Opt
     Ingest --> Conv
     Ingest --> Storage
     Retrieve --> ModelReg
@@ -418,7 +431,8 @@ flowchart TB
 | ------------------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- | --------------------------------------------------------------- | --------------------------------------------------------------------------------------- | -------------------------- |
 | `RagAutoConfiguration` | 启用开关、属性绑定、Bean 解析、启动期校验、只读服务装配 | Spring `ApplicationContext` -> 组件 Bean | Spring Boot、`common-core`、`RagProperties`、各 SPI | 不含业务分支；不创建 `EmbeddingModel`/`VectorStore` | `REQ-002`, `REQ-003`, `REQ-008` |
 | `RagProperties` | 维度、Bean 名、模型注册表、默认模型、存储、检索、探针开关等配置的规范化与默认值 | 配置键 -> 不可变属性 | 无 | 不解析 Bean；不探测能力 | `REQ-002`, `REQ-006`, `REQ-018` |
-| `RagIngestionService` | 摄取编排：路由抽取、选择策略、删旧分块、嵌入、写入 | `RagIngestionCommand` -> `RagIngestionResult` | Extractor/Chunking/Model/Storage/Converter 契约 | 不保存原文到组件状态；不做重试与调度；不落库 | `REQ-004`, `REQ-005`, `REQ-009`, `REQ-010` |
+| `RagExtractionService` | 格式路由、优先级、歧义与缺失失败、调用抽取器、返回文本与结构元数据 | `RagExtractionCommand` -> `ExtractedDocumentBO` | `RagDocumentExtractor` SPI、可选解析器 | 不做切分、嵌入、存储或持久化；不记录文档内容 | `REQ-004`, `REQ-013`, `REQ-019` |
+| `RagIngestionService` | 摄取编排：选择策略、删旧分块、嵌入、写入；合并结构元数据与业务属性 | `RagIngestionCommand`（含已抽取文档）-> `RagIngestionResult` | Chunking/Model/Converter 契约、`RagMetadataKeys` | 不解析文档；不保存原文到组件状态；不做重试与调度；不落库 | `REQ-005`, `REQ-009`, `REQ-010`, `REQ-019`, `REQ-020` |
 | `RagRetrievalService` | 检索：强制过滤、相似度查询、结果映射 | `RagRetrievalQuery` -> `List<RagRetrievedChunkBO>` | `VectorStore` 抽象、模型注册表 | 不做重排、改写、缓存；不写任何状态 | `REQ-007` |
 | `RagDocumentExtractorRegistry` | 抽取器注册、优先级排序、`(mimeType, 文件名)` 路由、歧义与缺失失败 | 已注册实现 -> 选中的抽取器 | `RagDocumentExtractor` SPI | 不含格式特有逻辑 | `REQ-004`, `REQ-013` |
 | `RagChunkingStrategyFactory` | 枚举到策略实现的映射与缺失失败 | 策略枚举 -> 策略实现 | `RagChunkingStrategy` SPI | 不做字符串或反射分派 | `REQ-005` |
@@ -435,23 +449,31 @@ flowchart TB
 
 ```mermaid
 flowchart TD
-    A([宿主调用 ingest]) --> B{属性与命令校验通过?}
-    B -- 否 --> X1([抛 RagValidationException])
-    B -- 是 --> C{维度与配置一致?}
-    C -- 否 --> X2([启动期已失败; 运行期不会到达])
-    C -- 是 --> D[解析嵌入模型 Bean]
+    A([宿主调用 extract]) --> A1{命令校验通过?}
+    A1 -- 否 --> AX([抛 RagValidationException])
+    A1 -- 是 --> A2[路由抽取器]
+    A2 -- 无匹配 --> AX1([抛 RagExtractorMissingException])
+    A2 -- 歧义同优先级 --> AX2([抛 RagExtractorConflictException])
+    A2 -- 命中 --> A3[抽取文本与结构元数据]
+    A3 -- 解析失败 --> AX3([抛 RagExtractionException])
+    A3 -- 成功 --> A4([返回 ExtractedDocumentBO])
+
+    A4 -.->|"宿主可选：持久化文本"| Z([宿主持久化])
+    A4 --> B([宿主调用 ingest])
+
+    B --> B1{命令校验通过?}
+    B1 -- 否 --> X1([抛 RagValidationException])
+    B1 -- 是 --> D[解析嵌入模型 Bean]
     D -- 未注册 --> X3([抛 RagModelNotRegisteredException])
-    D -- 命中 --> E[路由抽取器]
-    E -- 无匹配 --> X4([抛 RagExtractorMissingException])
-    E -- 歧义同优先级 --> X5([抛 RagExtractorConflictException])
-    E -- 命中 --> F[抽取文本与元数据]
-    F --> G[按枚举选择分块策略]
+    D -- 命中 --> G[按枚举选择分块策略]
     G -- 未知枚举 --> X6([绑定期已失败])
     G -- 命中 --> H[切分为分块并生成确定性 id]
-    H --> I[按 documentId 删除既有向量]
+    H --> HM[合并结构元数据与业务属性]
+    HM -- 含保留 key --> X5([抛 RagValidationException])
+    HM -- 合法 --> I[按 documentId 删除既有向量]
     I -- 失败 --> X7([抛 RagVectorStoreException, 不写入])
     I -- 成功 --> J[批量嵌入]
-    J -- 失败 --> X8([删清理本次写入并抛 RagEmbeddingException])
+    J -- 失败 --> X8([抛 RagEmbeddingException])
     J -- 成功 --> K[写入向量表]
     K -- 失败 --> X9([抛 RagVectorStoreException])
     K -- 成功 --> L([返回 RagIngestionResult])
@@ -478,45 +500,69 @@ flowchart TD
 | 1 | `RagAutoConfiguration` -> `RagProperties` | 严格绑定 | 配置键 -> 规范化属性 | 进程内不可变属性 | 未知键或非法值 -> 启动失败 | `REQ-002` |
 | 2 | `RagAutoConfiguration` -> `RagEmbeddingModelRegistry` | `resolve(beanName)` + `dimensions()` | Bean 名 -> `EmbeddingModel` 与维度 | 只读注册表 | Bean 缺失或维度不符 -> 启动失败 | `REQ-003`, `REQ-008` |
 | 3 | `RagAutoConfiguration` -> `RagDocumentExtractorRegistry` | 收集 `List<RagDocumentExtractor>` | Bean 列表 -> 按优先级排序的注册表 | 只读注册表 | 同优先级重复 `supports` 能力 -> 启动失败 | `REQ-004` |
-| 4 | 宿主 -> `RagIngestionService` | `ingest(RagIngestionCommand)` | 命令 -> 结果 | 宿主向量表被按文档重建 | 校验失败 -> `RagValidationException` | `REQ-002`, `REQ-009` |
-| 5 | `RagIngestionService` -> `RagDocumentExtractorRegistry` | `route(mimeType, fileName)` | 格式 -> `ExtractedDocumentBO` | 无 | 无匹配 -> `RagExtractorMissingException`；歧义 -> `RagExtractorConflictException` | `REQ-004`, `REQ-013` |
-| 6 | `RagIngestionService` -> `RagChunkingStrategyFactory` | `resolve(strategy)` | `RagChunkingStrategyEnum` -> 策略实现 | 无 | 未注册 -> 启动期已失败，运行期为不可达断言 | `REQ-005` |
-| 7 | `RagIngestionService` -> `RagChunkIdFactory` | 确定性 id | `(documentId, chunkIndex)` -> id | 无 | 无 | `REQ-009` |
-| 8 | `RagIngestionService` -> `RagChunkConverter` | `toTarget(RagChunkBO)` | 分块 -> `Document`（含受控元数据） | 无 | 映射缺失字段在编译期失败（`unmappedTargetPolicy=ERROR`） | `REQ-011` |
-| 9 | `RagIngestionService` -> `VectorStore` | `delete(Filter.Expression)` | 文档过滤表达式 -> 删除 | 宿主向量表删除该文档既有分块 | 失败 -> 抛出且不写入 | `REQ-010` |
-| 10 | `RagIngestionService` -> `EmbeddingModel` | Spring AI 抽象 | 文本列表 -> 向量 | 无 | 失败 -> 抛出 `RagEmbeddingException`，不写入 | `REQ-009` |
-| 11 | `RagIngestionService` -> `VectorStore` | `add(List<Document>)` | 分块向量 -> 写入 | 宿主向量表新增该文档分块 | 失败 -> 抛出 `RagVectorStoreException` | `REQ-009` |
-| 12 | 宿主 -> `RagRetrievalService` | `retrieve(RagRetrievalQuery)` | 查询 -> 带分片段 | 只读 | 参数越界 -> `RagValidationException`；无命中 -> 空列表 | `REQ-007` |
-| 13 | `RagRetrievalService` -> `VectorStore` | `similaritySearch(SearchRequest)` | 强制注入的过滤 + topK + 阈值 -> 带分 `Document` | 无 | 依赖失败 -> `RagVectorStoreException` | `REQ-007` |
-| 14 | 宿主 -> `RagDocumentStorage` | `store`/`open`/`delete` | 字节流 <-> 存储标识 | 宿主文件系统 | 标识非法 -> `RagValidationException`；根目录不可写 -> `RagStorageException` | `REQ-012` |
+| 4 | 宿主 -> `RagExtractionService` | `extract(RagExtractionCommand)` | 命令 -> `ExtractedDocumentBO` | 无 | 校验失败 -> `RagValidationException` | `REQ-019` |
+| 5 | `RagExtractionService` -> `RagDocumentExtractorRegistry` | `route(mimeType, fileName)` | 格式 -> 选中的抽取器 | 无 | 无匹配 -> `RagExtractorMissingException`；歧义 -> `RagExtractorConflictException` | `REQ-004`, `REQ-013` |
+| 6 | `RagExtractionService` -> 抽取器实现 | `extract(content, mimeType, fileName)` | 字节流 -> 文本与结构元数据 | 无 | 解析失败 -> `RagExtractionException` | `REQ-004`, `REQ-019` |
+| 7 | 宿主 -> `RagIngestionService` | `ingest(RagIngestionCommand)` | 命令（含已抽取文档）-> 结果 | 宿主向量表被按文档重建 | 校验失败 -> `RagValidationException` | `REQ-002`, `REQ-009`, `REQ-019` |
+| 8 | `RagIngestionService` -> `RagChunkingStrategyFactory` | `resolve(strategy)` | `RagChunkingStrategyEnum` -> 策略实现 | 无 | 未注册 -> 启动期已失败，运行期为不可达断言 | `REQ-005` |
+| 9 | `RagIngestionService` -> `RagChunkIdFactory` | 确定性 id | `(documentId, chunkIndex)` -> id | 无 | 无 | `REQ-009` |
+| 10 | `RagIngestionService` -> `RagMetadataKeys` | 合并结构元数据与业务属性 | 两个属性 Map -> 受控集合 | 无 | 任一来源含保留 key -> `RagValidationException` | `REQ-011`, `REQ-020` |
+| 11 | `RagIngestionService` -> `RagChunkConverter` | `toTarget(RagChunkBO)` | 分块 -> `Document`（含受控元数据） | 无 | 映射缺失字段在编译期失败（`unmappedTargetPolicy=ERROR`） | `REQ-011` |
+| 12 | `RagIngestionService` -> `VectorStore` | `delete(Filter.Expression)` | 文档过滤表达式 -> 删除 | 宿主向量表删除该文档既有分块 | 失败 -> 抛出且不写入 | `REQ-010` |
+| 13 | `RagIngestionService` -> `EmbeddingModel` | Spring AI 抽象 | 文本列表 -> 向量 | 无 | 失败 -> 抛出 `RagEmbeddingException`，不写入 | `REQ-009` |
+| 14 | `RagIngestionService` -> `VectorStore` | `add(List<Document>)` | 分块向量 -> 写入 | 宿主向量表新增该文档分块 | 失败 -> 抛出 `RagVectorStoreException` | `REQ-009` |
+| 15 | 宿主 -> `RagRetrievalService` | `retrieve(RagRetrievalQuery)` | 查询 -> 带分片段 | 只读 | 参数越界 -> `RagValidationException`；无命中 -> 空列表 | `REQ-007` |
+| 16 | `RagRetrievalService` -> `VectorStore` | `similaritySearch(SearchRequest)` | 强制注入的过滤 + topK + 阈值 -> 带分 `Document` | 无 | 依赖失败 -> `RagVectorStoreException` | `REQ-007` |
+| 17 | 宿主 -> `RagDocumentStorage` | `store`/`open`/`delete` | 字节流 <-> 存储标识 | 宿主文件系统 | 标识非法 -> `RagValidationException`；根目录不可写 -> `RagStorageException` | `REQ-012` |
 
 #### 7.3.2 Critical-path Mermaid swimlane
 
 ```mermaid
 sequenceDiagram
     participant H as 宿主业务服务
-    participant S as RagIngestionService
+    participant E as RagExtractionService
     participant R as RagDocumentExtractorRegistry
+    participant S as RagIngestionService
     participant C as RagChunkingStrategyFactory
     participant K as RagChunkIdFactory
     participant M as EmbeddingModel Bean
     participant V as VectorStore Bean
 
-    H->>S: INTERNAL-001 ingest(command)
+    H->>E: INTERNAL-007 extract(command)
+    E->>E: 校验命令
+    alt 校验失败
+        E-->>H: RagValidationException
+    else 校验通过
+        E->>R: route(mimeType, fileName)
+        alt 无匹配或歧义
+            R-->>E: 确定异常
+            E-->>H: RagExtractorMissing/ConflictException
+        else 命中抽取器
+            R-->>E: 抽取器
+            E->>E: 抽取文本与结构元数据
+            alt 解析失败
+                E-->>H: RagExtractionException
+            else 成功
+                E-->>H: ExtractedDocumentBO
+            end
+        end
+    end
+
+    Note over H: 宿主可在此持久化文本（本组件不落库）
+
+    H->>S: INTERNAL-001 ingest(command with ExtractedDocumentBO)
     S->>S: 校验命令与属性
     alt 校验失败
         S-->>H: RagValidationException
     else 校验通过
-        S->>R: route(mimeType, fileName)
-        alt 无匹配或歧义
-            R-->>S: 确定异常
-            S-->>H: RagExtractorMissing/ConflictException
-        else 命中抽取器
-            R-->>S: ExtractedDocumentBO
-            S->>C: resolve(strategy)
-            C-->>S: 策略实现
-            S->>K: 生成确定性分块 id
-            K-->>S: 分块列表
+        S->>C: resolve(strategy)
+        C-->>S: 策略实现
+        S->>K: 生成确定性分块 id
+        K-->>S: 分块列表
+        S->>S: 合并结构元数据与业务属性
+        alt 含保留 key
+            S-->>H: RagValidationException
+        else 合法
             S->>V: delete(filter: documentId)
             alt 删除失败
                 V-->>S: 异常
@@ -561,6 +607,8 @@ sequenceDiagram
 | 模型维度与配置不符 | 启动期 `dimensions()` 比对 | 上下文刷新中止 | 无状态变更 | 修正 `rag.dimensions` 或更换模型后重启 | 启动失败，异常含模型名、期望与实际维度 | 应用开发者 | `TEST-015` |
 | 抽取器缺失 | `route` 返回空 | 抛 `RagExtractorMissingException` | 无写入 | 引入对应可选依赖或注册自定义抽取器；同参数重试无副作用 | 确定异常，含已注册 MIME 能力列表 | 应用开发者 | `TEST-004`, `TEST-019` |
 | 抽取器歧义 | 同优先级多实现命中 | 抛 `RagExtractorConflictException` | 无写入 | 调整实现优先级；启动期若可判定则提前失败 | 确定异常，含冲突实现名 | 应用开发者 | `TEST-001` |
+| 文档不可解析 | 抽取器抛 `RagExtractionException` | 原样向上传播 | 无写入 | 否；更换文档或引入更强的抽取实现 | 确定异常，含格式与实现名 | 应用开发者 | `TEST-019` |
+| 结构元数据与业务属性含保留 key | 合并时校验失败 | 抛 `RagValidationException` | 无写入 | 修正属性来源后可重试 | 确定异常，指明冲突 key | 宿主业务服务 | `TEST-006` |
 | 分块参数非法 | 策略内校验 | 抛 `RagValidationException` | 无写入 | 修正集合的分块配置后重跑 | 确定异常 | 宿主业务服务 | `TEST-005` |
 | 预删除失败 | `VectorStore.delete` 抛出 | 抛 `RagVectorStoreException`，不进入嵌入与写入 | 既有分块保持不变 | 可安全重跑；不自动重试 | 确定异常 | 宿主业务服务（调度与重试由宿主或 outbox 承担） | `TEST-010` |
 | 嵌入失败 | `EmbeddingModel` 抛出 | 抛 `RagEmbeddingException` | 该文档此前分块已被删除，当前无分块 | 可安全重跑（`REQ-009`）；宿主决定重试与成本 | 确定异常，不含供应商原始报文 | 宿主业务服务 | `TEST-007`, `TEST-018` |
@@ -576,7 +624,8 @@ sequenceDiagram
 | Signal/runbook | Emitting owner and point | Fields/dimensions | Sensitive-data rule | Success/failure threshold | Alert/dashboard/operator action | Verification boundary |
 | -------------------- | ---------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------- | ---------------------------------- | ------------------------------------------------ | ------------------------------------------ |
 | 启动日志 | `RagAutoConfiguration`，上下文刷新完成时 | 启用开关、模型逻辑名列表、默认模型、维度、向量库 Bean 名、注册的抽取器 MIME 能力与分块策略列表 | 不含地址、密钥、模型供应商 URL、任何文档内容 | 成功启用时恰好一条 | 启动失败时按异常键名与模型名定位 | 静态检查 + `TEST-012`-`TEST-015` |
-| 摄取日志 | `RagIngestionServiceImpl`，方法入口与终态 | collectionId、documentId、逻辑模型名、抽取器实现名、分块策略枚举、chunkCount、耗时、结果、异常类型 | 不含分块文本、原文、向量、元数据值、供应商报文 | 每次调用各一条开始与终态 | 失败率上升时按 documentId 排查 | `TEST-022` 日志捕获 |
+| 抽取日志 | `RagExtractionServiceImpl`，方法入口与终态 | 文件名、MIME、选中的抽取器实现名、文本长度、耗时、结果、异常类型 | 不含文档内容、结构元数据的值、供应商报文 | 每次调用各一条开始与终态 | 失败率上升时按抽取器与 MIME 排查 | `TEST-022` 日志捕获 |
+| 摄取日志 | `RagIngestionServiceImpl`，方法入口与终态 | collectionId、documentId、逻辑模型名、分块策略枚举、chunkCount、耗时、结果、异常类型 | 不含分块文本、原文、向量、元数据值、供应商报文 | 每次调用各一条开始与终态 | 失败率上升时按 documentId 排查 | `TEST-022` 日志捕获 |
 | 检索日志 | `RagRetrievalServiceImpl`，方法入口与终态 | collectionId、逻辑模型名、topK、命中数、耗时、结果、异常类型 | 不含查询文本原文、命中内容 | 每次调用各一条 | 命中数长期为零时排查集合与阈值 | `TEST-022` |
 | 存储日志 | 本地存储实现，写入与删除时 | collectionId、documentId、存储类型、耗时、结果 | 不含绝对路径以外的敏感信息，不含文件内容；不记录宿主凭据 | 每次操作一条 | 失败时检查目录权限 | `TEST-020` |
 | Micrometer 指标 | 摄取/检索服务，`micrometer-core` 存在时注册 | `rag.ingest`（计数、耗时、分块数分布）、`rag.retrieve`（计数、耗时、命中数分布）、标签仅限结果与逻辑模型名与策略枚举 | 标签不得含 collectionId、documentId 或内容 | 指标仅在 Micrometer 存在时注册；缺失时完全跳过 | 按结果标签观察失败率 | `TEST-023`；Micrometer 缺席时的跳过行为静态验证 |
@@ -593,6 +642,7 @@ sequenceDiagram
 | 同维度多模型共表时必须机制化隔离 | `EVD-011`（`VectorStore` 无列举能力，无法事后校正）、`EVD-018`（用户限制维度） | `REQ-007`, `REQ-008` | 写入强制注入 `embeddingModel`、检索强制注入 `embeddingModel` 与 `collectionId` 过滤，调用方无法覆盖；启动期校验维度一致 | 从机制上消除串结果；代价是过滤表达式成为组件内固定逻辑，宿主无法用同一 `VectorStore` 表达跨模型检索 | `TEST-016`, `TEST-017`（两模型同集合互不串） |
 | 分块必须可由确定性规则重建，不引入分块表 | `EVD-011`（无列举 API）、用户 2026-09-10 决定不引入分块表与映射表 | `REQ-009`, `REQ-010` | 分块 id 取 `documentId + ":" + chunkIndex`；摄取前按 `documentId` 预删除；重跑不产生重复分块 | 零额外表与迁移；代价是重跑需要重新计算嵌入并计入宿主成本，且无法在向量库之外保留分块快照 | `TEST-009`, `TEST-010` |
 | 四类扩展点必须用模式而非条件分支 | 用户要求"大量可扩展性设计"；`EVD-015` 的字符串 `switch` 参考实现被否 | `REQ-004`, `REQ-005`, `REQ-006`, `REQ-012` | 抽取器用 SPI + 优先级注册表；分块用枚举 + 工厂；模型用配置注册表；存储用 SPI + `@ConditionalOnMissingBean` 默认实现 | 新增格式/策略/模型/存储只需新增实现或配置；代价是组件内多一层注册与校验 | `TEST-001`-`TEST-004`, `TEST-014`, `TEST-020` |
+| 抽取必须与切块嵌入分离 | Spec B 消费方需要把抽取后的文本写入自己的文档表，而切入点无法从摄取结果中取得该文本 | `REQ-019` | 新增 `RagExtractionService`；`RagIngestionCommand` 只接受 `ExtractedDocumentBO` | 消费方可以先落库再嵌入、可以只重跑嵌入而不重新解析；代价是多一个公开接口和一次显式编排 | `TEST-025`（两段式组合）, `TEST-026`（同一文档只解析一次） |
 
 ## 8. Package Structure and Code File Tree
 
@@ -627,6 +677,7 @@ egon-cola-components/
         │   ├── java/top/egon/cola/component/rag/
         │   │   ├── package-info.java
         │   │   ├── api/
+        │   │   │   ├── RagExtractionService.java
         │   │   │   ├── RagIngestionService.java
         │   │   │   ├── RagRetrievalService.java
         │   │   │   └── package-info.java
@@ -666,6 +717,7 @@ egon-cola-components/
         │   │   │   ├── RagMetadataKeys.java
         │   │   │   └── package-info.java
         │   │   ├── model/
+        │   │   │   ├── RagExtractionCommand.java
         │   │   │   ├── RagIngestionCommand.java
         │   │   │   ├── RagIngestionResult.java
         │   │   │   ├── RagRetrievalQuery.java
@@ -675,6 +727,7 @@ egon-cola-components/
         │   │   │   ├── RagChunkingConfigDTO.java
         │   │   │   └── package-info.java
         │   │   ├── execution/
+        │   │   │   ├── RagExtractionServiceImpl.java
         │   │   │   ├── RagIngestionServiceImpl.java
         │   │   │   ├── RagRetrievalServiceImpl.java
         │   │   │   ├── RagVectorStoreProbe.java
@@ -718,8 +771,8 @@ egon-cola-components/
 | Modify | `egon-cola-components-bom/pom.xml` | `egon-cola-component-rag-starter` | 导出新组件，不导出三方 artifact | 父 POM 属性 | `REQ-016` |
 | Create | `egon-cola-component-rag-starter/pom.xml` | 模块 GAV 与依赖 | 声明抽象依赖与可选解析器依赖，打包 JAR | 父 POM、`common-core`、Spring Boot、Spring AI 抽象、Lombok、MapStruct | `REQ-003`, `REQ-013`, `REQ-014`, `REQ-016` |
 | Create | `…/rag/autoconfigure` | `RagAutoConfiguration`、`RagProperties`、`Rag*Properties` | 启用开关、严格绑定、Bean 解析、启动期校验、只读服务发布、资源关闭语义 | Spring Boot、`common-core`、各 SPI、执行实现 | `REQ-002`, `REQ-003`, `REQ-006`, `REQ-008`, `REQ-018` |
-| Create | `…/rag/api` | `RagIngestionService`、`RagRetrievalService` | 对外只读服务接口 | `model` | `REQ-009`, `REQ-007` |
-| Create | `…/rag/execution` | `RagIngestionServiceImpl`、`RagRetrievalServiceImpl`、`RagVectorStoreProbe` | 摄取与检索编排、强制过滤、可选探针 | SPI、model、converter、metadata、Spring AI 抽象 | `REQ-007`, `REQ-009`-`REQ_011`, `REQ-018` |
+| Create | `…/rag/api` | `RagExtractionService`、`RagIngestionService`、`RagRetrievalService` | 对外服务接口 | `model` | `REQ-007`, `REQ-009`, `REQ-019` |
+| Create | `…/rag/execution` | `RagExtractionServiceImpl`、`RagIngestionServiceImpl`、`RagRetrievalServiceImpl`、`RagVectorStoreProbe` | 抽取路由与编排、摄取与检索编排、强制过滤、可选探针 | SPI、model、converter、metadata、Spring AI 抽象 | `REQ-004`, `REQ-007`, `REQ-009`-`REQ-011`, `REQ-018`, `REQ-019` |
 | Create | `…/rag/extract` | `RagDocumentExtractor`、`RagDocumentExtractorRegistry` 与各实现 | 格式路由、优先级、歧义与缺失失败、可选解析器装配 | Spring AI 可选解析器 | `REQ-004`, `REQ-013` |
 | Create | `…/rag/chunk` | `RagChunkingStrategy`、枚举、工厂、三个策略、`RagChunkIdFactory` | 策略选择与切分、确定性 id | Spring AI `TokenTextSplitter`（`TOKEN` 策略内部） | `REQ-005`, `REQ-009` |
 | Create | `…/rag/embed` | `RagEmbeddingModelRegistry`、`RagEmbeddingModelDescriptorBO` | 逻辑名到模型的解析、默认回退、维度自检 | Spring AI `EmbeddingModel`、`RagProperties` | `REQ-003`, `REQ-006`, `REQ-008` |
@@ -738,7 +791,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 
 | ID | Change/necessity verdict | Name/purpose | Kind | API style/CQRS role | Consumer | Owner | Method + URL / GraphQL field / symbol / topic | Operation ID/schema source | Input | Output | Auth/tenant | Error model | Idempotency/version | Requirements |
 | ---------------- | ----------------------------------------------------------------------------------------------- | --------------------------- | ------------------ | --------------------- | ------------------------ | ------------- | ------------------------------------------------------------------------------------------ | ----------------------------- | -------------------------------------------- | ---------------------------------------- | ---------------------------- | ------------------------------------------------------------------------------ | ---------------------------------- | ------------------------------------------------- |
-| `INTERNAL-001` | New/Add — 引擎唯一写入口，直接替代是"每个宿主自写切分与嵌入" | 摄取一个文档为分块向量 | Java 服务 API | Command | 宿主业务服务 `ACTOR-002` | 组件 `execution` | `RagIngestionService#ingest(RagIngestionCommand)` | Java 类型 | `RagIngestionCommand` | `RagIngestionResult` | 无；`collectionId` 由宿主决定 | `RagException` 家族（8 个子类） | 幂等：确定性分块 id + 按文档预删除 | `REQ-004`, `REQ-005`, `REQ-009`-`REQ-011` |
+| `INTERNAL-001` | New/Add — 引擎唯一写入口，直接替代是"每个宿主自写切分与嵌入" | 把已抽取的文档切块并嵌入为向量 | Java 服务 API | Command | 宿主业务服务 `ACTOR-002` | 组件 `execution` | `RagIngestionService#ingest(RagIngestionCommand)` | Java 类型 | `RagIngestionCommand`（携带 `ExtractedDocumentBO`） | `RagIngestionResult` | 无；`collectionId` 由宿主决定 | `RagException` 家族 | 幂等：确定性分块 id + 按文档预删除 | `REQ-005`, `REQ-009`-`REQ-011`, `REQ-019`, `REQ-020` |
+| `INTERNAL-007` | New/Add — 抽取必须独立于嵌入，否则消费方无法在两者之间持久化原文 | 把字节流抽取为文本与结构元数据 | Java 服务 API | Command | 宿主业务服务 `ACTOR-002` | 组件 `execution` | `RagExtractionService#extract(RagExtractionCommand)` | Java 类型 | `RagExtractionCommand` | `ExtractedDocumentBO` | 无 | `RagValidationException`、`RagExtractorMissingException`、`RagExtractorConflictException`、`RagExtractionException` | 只读；并发安全；同一输入不保证逐字节一致（解析器行为） | `REQ-004`, `REQ-013`, `REQ-019` |
 | `INTERNAL-002` | New/Add — 引擎唯一读入口，直接替代是"宿主自行构造 SearchRequest" | 检索集合内分块 | Java 服务 API | Query | 宿主业务服务 `ACTOR-002` | 组件 `execution` | `RagRetrievalService#retrieve(RagRetrievalQuery)` | Java 类型 | `RagRetrievalQuery` | `List<RagRetrievedChunkBO>` | 无 | `RagValidationException`、`RagModelNotRegisteredException`、`RagVectorStoreException` | 只读；并发安全 | `REQ-007` |
 | `INTERNAL-003` | New/Keep — 可扩展点，直接替代是"固定扩展名分支" | 文档文本抽取 | Java SPI | 无 | 扩展实现者 `ACTOR-003` | 组件 `extract` | `RagDocumentExtractor#supports(String,String)` / `#extract(...)` / `#order()` | Java 类型 | 字节流 + MIME + 文件名 | `ExtractedDocumentBO` | 无 | `RagExtractorMissingException`（由注册表抛出） | 无状态；并发安全 | `REQ-004`, `REQ-013` |
 | `INTERNAL-004` | New/Keep — 可扩展点，直接替代是"TokenTextSplitter 直接调用" | 文本切分 | Java SPI | 无 | 扩展实现者 `ACTOR-003` | 组件 `chunk` | `RagChunkingStrategy#strategy()` / `#split(ExtractedDocumentBO, RagChunkingConfigDTO)` | Java 类型 | 抽取结果 + 分块配置 | `List<RagChunkBO>` | 无 | `RagValidationException`、`RagChunkingException` | 确定性：同输入同输出 | `REQ-005`, `REQ-009` |
@@ -765,7 +819,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 
 | Concern | Definition |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| Purpose/owner/consumer | 把单个文档转换为集合内的分块向量；由组件 `execution` 拥有；由宿主业务服务调用 |
+| Purpose/owner/consumer | 把一份**已抽取**的文档转换为集合内的分块向量；由组件 `execution` 拥有；由宿主业务服务调用 |
 | Protocol and endpoint | Java 方法 `top.egon.cola.component.rag.api.RagIngestionService#ingest(top.egon.cola.component.rag.model.RagIngestionCommand)` |
 | Content type/version | Java 类型契约；随组件版本演进，按 `§16` 的兼容规则 |
 | Auth/permission/tenant | 组件不做鉴权与租户隔离；`collectionId` 是宿主选定的隔离维度，组件据此写入并据此过滤 |
@@ -783,8 +837,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | `chunkingConfig` | 方法参数/record 字段 | `RagChunkingConfigDTO`（嵌套 record） | 必填、非空 | 无 | `@NotNull @Valid`；`strategy` 必须为 `RagChunkingStrategyEnum` 之一；策略专属参数由所选策略校验 | 分块策略与参数 | 见下方对象 | 宿主按集合配置 |
 | `fileName` | 方法参数/record 字段 | `String` | 可选、显式 `null` 允许 | `null` | trim；长度 0-255；仅用于抽取路由与元数据 | 原始文件名 | `report.pdf` | 宿主上传入口 |
 | `mimeType` | 方法参数/record 字段 | `String` | 可选、显式 `null` 允许 | `null` | 形如 `type/subtype`；不合法时按 `null` 处理 | 内容类型，参与抽取路由 | `application/pdf` | 宿主上传入口 |
-| `content` | 方法参数/record 字段 | `InputStream` | 必填、非空 | 无 | `@NotNull`；组件只读一次且不关闭调用方提供的流 | 文档字节流 | 上传流 | 宿主上传入口 |
-| `attributes` | 方法参数/record 字段 | `Map<String, String>` | 可选、缺省为空 Map | 空 Map | 不得包含 `RagMetadataKeys` 保留 key；key 非空且长度 ≤ 64；条目数 ≤ 32 | 业务自定义元数据，随分块写入向量 | `{"source":"manual"}` | 宿主业务上下文 |
+| `document` | 方法参数/record 字段 | `ExtractedDocumentBO` | 必填、非空 | 无 | `@NotNull @Valid`；由 `RagExtractionService#extract` 产生，也可由宿主从自己持久化的文本重建 | 已抽取的文本与结构元数据 | 见 `§9.2.3` | 宿主（通常来自先前的抽取调用） |
+| `attributes` | 方法参数/record 字段 | `Map<String, String>` | 可选、缺省为空 Map | 空 Map | 不得包含 `RagMetadataKeys` 保留 key；key 非空且长度 ≤ 64；条目数 ≤ 32；与 `document.attributes` 同名时本字段优先 | 业务自定义元数据，随分块写入向量 | `{"source":"manual"}` | 宿主业务上下文 |
 
 `RagChunkingConfigDTO` 的完整线形状（这是 Java 对象形状，不是 HTTP 请求体）：
 
@@ -819,10 +873,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | ----------------------------- | ---------------------- | -------------------------------------------- | ------ | -------------- | ------------------ |
 | 命令字段违反约束 | 校验后立即拒绝 | `RagValidationException` | 抛出异常 | 修正后重试 | 修正入参 |
 | 逻辑模型名未注册 | 解析注册表前拒绝 | `RagModelNotRegisteredException`（消息含可用逻辑名列表） | 抛出异常 | 修正后重试 | 修正集合配置或补充模型 |
-| 无匹配抽取器 | 抽取路由后拒绝 | `RagExtractorMissingException`（消息含已注册 MIME 能力） | 抛出异常 | 引入依赖或注册实现后可重试 | 引入可选依赖或注册自定义抽取器 |
-| 抽取器歧义 | 路由阶段拒绝 | `RagExtractorConflictException`（消息含冲突实现名） | 抛出异常 | 调整优先级后可重试 | 调整实现优先级 |
-| 文档不可解析（畸形、加密、超限） | 抽取实现抛出后原样传播 | `RagExtractionException`（消息含格式与实现名，不含内容） | 抛出异常 | 否 | 更换文档或引入更强的解析实现 |
 | 分块参数非法 | 策略校验后拒绝 | `RagValidationException` | 抛出异常 | 修正后重试 | 修正分块配置 |
+| 属性含保留 key | 合并元数据时拒绝 | `RagValidationException`（消息指明冲突 key） | 抛出异常 | 修正后重试 | 修正属性来源 |
 | 预删除失败 | 不进入嵌入与写入 | `RagVectorStoreException` | 抛出异常 | 可安全重试 | 按宿主重试策略处理 |
 | 嵌入失败 | 不写入 | `RagEmbeddingException` | 抛出异常 | 可安全重试 | 按宿主重试策略处理；注意嵌入计费 |
 | 写入失败 | 可能残留部分分块 | `RagVectorStoreException` | 抛出异常 | 可安全重试（预删除会清理） | 按宿主重试策略处理 |
@@ -833,12 +885,13 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 ##### Interface logic for frontend and consumers
 
 1. 调用方在业务事务之外调用；组件不参与、不开启也不要求任何关系型事务。
-2. 校验顺序固定为：命令字段约束 -> 逻辑模型解析 -> 维度一致性（启动期已保证，运行期只做断言）-> 抽取路由 -> 分块策略选择 -> 分块参数校验。
-3. 抽取得到文本与其结构元数据；切分按所选策略产出分块，分块 id 由 `documentId + ":" + chunkIndex` 确定性生成。
-4. 组件先按 `documentId` 过滤删除既有向量，再执行嵌入与写入；删除失败时不写入。
-5. 组件写入固定保留元数据键（`collectionId`、`documentId`、`chunkIndex`、`logicalModelName`、`contentHash`）与调用方提供的非保留属性；保留键不允许被覆盖。
-6. 任何阶段失败都抛出 `RagException` 子类；组件不自动重试、不做补偿写入；由于分块 id 确定且摄取先删除，调用方可以安全重试。
-7. 调用方应记录返回的 `chunkCount` 与 `logicalModelName`，并把重试、退避、死信与状态管理交给自身调度或既有 outbox 组件；组件不提供状态查询。
+2. 校验顺序固定为：命令字段约束 -> 逻辑模型解析 -> 维度一致性（启动期已保证，运行期只做断言）-> 分块策略选择 -> 分块参数校验 -> 属性合并校验。
+3. 命令携带的 `ExtractedDocumentBO` 的 `text` 被交给所选策略切分，分块 id 由 `documentId + ":" + chunkIndex` 确定性生成；本方法**不解析任何文档格式**。
+4. 组件把 `document.attributes`（结构元数据）与命令 `attributes`（业务属性）合并，业务属性在同名 key 上优先；任一来源含保留 key 时拒绝，不写入。
+5. 组件先按 `documentId` 过滤删除既有向量，再执行嵌入与写入；删除失败时不写入。
+6. 组件写入固定保留元数据键（`collectionId`、`documentId`、`chunkIndex`、`logicalModelName`、`contentHash`）与合并后的非保留属性；保留键不允许被覆盖。
+7. 任何阶段失败都抛出 `RagException` 子类；组件不自动重试、不做补偿写入；由于分块 id 确定且摄取先删除，调用方可以安全重试。
+8. 调用方应记录返回的 `chunkCount` 与 `logicalModelName`，并把重试、退避、死信与状态管理交给自身调度或既有 outbox 组件；组件不提供状态查询。典型的两段式用法是：先调用 `INTERNAL-007` 取得文本并写入自己的文档表，再调用本方法；重跑嵌入时复用已持久化的文本重建 `ExtractedDocumentBO`，不重新解析原文件。
 
 ##### Compatibility and verification
 
@@ -1232,6 +1285,82 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 - 兼容：新增配置键必须提供默认值或保持可选；`RagDocumentStorageTypeEnum` 与 `RagChunkingStrategyEnum` 只允许新增值。
 - 测试：`TEST-011`（默认关闭）、`TEST-012`（未知键与约束失败）、`TEST-013`（属性键集与默认值）、`TEST-014`（Bean 名解析失败与重复）、`TEST-015`（维度不一致）、`TEST-018`（探针开启与失败）、`TEST-023`（Bean 集合与指标注册）。
 
+#### 9.2.7 INTERNAL-007 — `RagExtractionService#extract`
+
+本节在第 2026-09-10 11:47 CST 修订中新增。`INTERNAL-*` 编号只追加不重排，以保持既有引用稳定。
+
+##### Necessity and interaction-cost decision
+
+| Concern | Decision |
+| --- | --- |
+| Change classification | `New` |
+| Independent consumer goal | 消费方把一份字节流变成可持久化的文本与结构元数据；这是消费方把"原文文本存进自己数据库"这一需求的唯一入口，也是"重跑嵌入时不必重新解析"的前提 |
+| Parameter ownership and derivation | 文件名、MIME 与字节流由消费方拥有（来自其上传入口）；选中哪个抽取器、文本如何结构化由组件与抽取器实现派生 |
+| Direct/no-new-interface alternative | 把抽取留在 `INTERNAL-001` 内部并让其返回值携带文本。不足：会把整篇文档文本塞进摄取结果对象，且无法表达"先落库、后嵌入"的两段式，消费方每次重跑嵌入都要重新解析原文件 |
+| Caller use of result | 消费方持久化 `text` 与 `attributes`，并可在之后用它重建 `ExtractedDocumentBO` 交给 `INTERNAL-001`；结果不被原样转发给另一个请求 |
+| Round trips and failure points | 一次调用一次路由与一次解析；失败点为命令校验、无匹配抽取器、抽取器歧义与解析失败 |
+| Verdict | `Add`，覆盖 `REQ-004`, `REQ-013`, `REQ-019` |
+
+##### Identity and purpose
+
+| Concern | Definition |
+| --- | --- |
+| Purpose/owner/consumer | 把文档字节流抽取为纯文本与结构元数据；由组件 `execution` 拥有；由宿主业务服务调用 |
+| Protocol and endpoint | Java 方法 `top.egon.cola.component.rag.api.RagExtractionService#extract(top.egon.cola.component.rag.model.RagExtractionCommand)` |
+| Content type/version | Java 类型契约；随组件版本演进，按 `§16` 的兼容规则 |
+| Auth/permission/tenant | 组件不做鉴权与租户隔离；抽取不涉及集合或租户概念 |
+| Timeout/retry/rate limit | 组件不设超时、不重试、不限流；大文件的解析时限由宿主控制 |
+| Idempotency/concurrency | 无副作用；同一输入的解析结果取决于所选抽取器实现，组件不承诺逐字节可重复 |
+| Sensitive data | 文档内容不进入日志与指标；组件不持久化文本，持久化是消费方职责 |
+
+##### Request parameters
+
+| Name | Location | Type/format | Required/null | Default | Validation/range/enum | Meaning | Example | Source |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `fileName` | 方法参数/record 字段 | `String` | 可选、显式 `null` 允许 | `null` | trim；长度 0-255；仅参与路由与结果回填 | 原始文件名 | `report.pdf` | 宿主上传入口 |
+| `mimeType` | 方法参数/record 字段 | `String` | 可选、显式 `null` 允许 | `null` | 形如 `type/subtype`；不合法时按 `null` 处理 | 内容类型，参与路由 | `application/pdf` | 宿主上传入口 |
+| `content` | 方法参数/record 字段 | `InputStream` | 必填、非空 | 无 | `@NotNull`；组件只读一次且不关闭调用方提供的流 | 文档字节流 | 上传流 | 宿主上传入口 |
+
+`fileName` 与 `mimeType` 可以同时为 `null`；此时路由完全依赖各实现 `supports` 对两个 `null` 的处理，无实现命中即抛 `RagExtractorMissingException`。
+
+##### Success response
+
+返回 `ExtractedDocumentBO`（完整字段见 `§9.2.3`）：
+
+| 字段 | 类型/格式 | 必填/可空/默认 | 校验/取值语义 | 含义与来源 | 使用方用途 |
+| --- | --- | --- | --- | --- | --- |
+| `text` | `String` | 必填、非空 | 非 `null`，可为空串 | 抽取后的纯文本 | 持久化；或重建 `ExtractedDocumentBO` 交给摄取 |
+| `title` | `String` | 可空 | 由抽取器提供 | 文档标题 | 展示与元数据 |
+| `mimeType` | `String` | 可空 | 抽取器实际识别的类型 | 内容类型 | 元数据 |
+| `attributes` | `Map<String,String>` | 必填、可为空 Map | 不含保留 key | 结构元数据（页数、作者等） | 与业务属性合并后写入向量 |
+
+##### Error responses
+
+| 触发条件 | 组件行为 | 错误类型 | 返回形状 | 可重试 | 调用方处理 |
+| --- | --- | --- | --- | --- | --- |
+| `content` 为 `null` | 校验后立即拒绝 | `RagValidationException` | 抛出异常 | 修正后重试 | 修正入参 |
+| 无匹配抽取器 | 路由后拒绝 | `RagExtractorMissingException`（消息含已注册 MIME 能力） | 抛出异常 | 引入依赖或注册实现后可重试 | 引入可选依赖或注册自定义抽取器 |
+| 抽取器歧义 | 路由阶段拒绝 | `RagExtractorConflictException`（消息含冲突实现名） | 抛出异常 | 调整优先级后可重试 | 调整实现优先级 |
+| 文档不可解析（畸形、加密、超限） | 抽取实现抛出后原样传播 | `RagExtractionException`（消息含格式与实现名，不含内容） | 抛出异常 | 否 | 更换文档或引入更强的解析实现 |
+| 抽取器返回含保留 key 的属性 | 返回前拒绝 | `RagValidationException`（消息指明冲突 key） | 抛出异常 | 修正实现后可重试 | 修正抽取器实现 |
+
+##### Interface logic for frontend and consumers
+
+1. 调用方在业务事务之外调用；组件不参与、不开启也不要求任何关系型事务。
+2. 校验顺序固定为：`content` 非空 -> `mimeType` 规范化 -> 路由 -> 调用抽取器 -> 结果属性校验。
+3. 组件通过 `RagDocumentExtractorRegistry` 按 `(mimeType, fileName)` 路由；无命中或同优先级歧义都抛确定异常，不回退到"返回空文本"。
+4. 命中实现后组件把字节流原样交给该实现，只读一次且不关闭流；抽取器负责解析、识别真实类型并返回结构元数据。
+5. 组件校验返回的 `attributes` 不含 `RagMetadataKeys` 保留键；含则拒绝而不是静默剥离。
+6. 组件不切分、不嵌入、不调用任何模型、不写任何存储；本方法是无网络副作用的纯解析（抽取器实现自身可能读取外部资源，但组件不发起调用）。
+7. 本节不承诺解析结果逐字节可重复：不同抽取器实现、不同版本可能产生不同的空白与换行。消费方若要"同一文档只解析一次"，应把首次结果持久化并在之后复用它。
+8. 典型用法：调用本方法 -> 把 `text` 与 `attributes` 写入自己的文档表 -> 用持久化的文本重建 `ExtractedDocumentBO` -> 调用 `INTERNAL-001`。重跑嵌入时从第 3 步开始，不重新解析原文件。
+
+##### Compatibility and verification
+
+- 消费方：本仓库当前无调用方；首个消费方为后续 Spec B 的 agent archetype，其知识库摄取链路依赖本接口把原文文本落库。
+- 兼容：`RagExtractionCommand` 新增字段必须可选或有默认值；`ExtractedDocumentBO` 新增字段必须可空或由组件填充；`RagDocumentExtractor#order()` 语义（数值小的优先）与歧义规则属于稳定契约。
+- 契约与安全测试：`TEST-001`（优先级与歧义）、`TEST-002`（`null` 输入路由）、`TEST-004`（无匹配失败）、`TEST-019`（可选解析器缺席）、`TEST-022`（日志不含内容）、`TEST-025`（两段式组合）、`TEST-026`（同一文档只解析一次）。
+
 ## 10. POJO and Data Model Design
 
 ### 10.1 POJO role classification and class necessity
@@ -1240,7 +1369,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 
 | Object/path | Selected role | Owner/boundary and consumers | Why a distinct class is necessary or reuse is safe | Mapping owner | Requirements |
 | ------------------------------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ------------------------------------- |
-| `model/RagIngestionCommand` | Command（写意图） | 组件 `model`；跨宿主到组件的摄取入口 | 请求边界需要独立载体承载约束与规范化；不能与结果或分块复用 | 无（宿主构造） | `REQ-004`, `REQ-005`, `REQ-009` |
+| `model/RagExtractionCommand` | Command（写意图） | 组件 `model`；跨宿主到组件的抽取入口 | 抽取边界需要独立载体承载字节流与格式提示；与摄取命令的字段完全不同 | 无（宿主构造） | `REQ-004`, `REQ-019` |
+| `model/RagIngestionCommand` | Command（写意图） | 组件 `model`；跨宿主到组件的摄取入口 | 请求边界需要独立载体承载约束与规范化；不能与结果或分块复用 | 无（宿主构造） | `REQ-005`, `REQ-009`, `REQ-019`, `REQ-020` |
 | `model/RagIngestionResult` | Result（行为结果） | 组件 `model`；摄取出口 | 语义与请求完全不同，且需独立演进 | 无（组件构造） | `REQ-009` |
 | `model/RagRetrievalQuery` | Query（读意图） | 组件 `model`；跨宿主到组件的检索入口 | 读意图边界需要独立约束集，与写意图不同 | 无（宿主构造） | `REQ-007` |
 | `model/RagRetrievedChunkBO` | BO（业务载体） | 组件 `model`；检索出口 | 需要暴露分数与结构元数据，与内部分块语义不同 | `RagChunkConverter.toSource` | `REQ-007` |
@@ -1280,8 +1410,11 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | `RagIngestionCommand.chunkingConfig` | `RagChunkingConfigDTO` | 必填、非空 | `@Valid` 级联 | 宿主按集合配置 | `REQ-005` |
 | `RagIngestionCommand.fileName` | `String` | 可选、允许 `null` | trim；0-255 | 宿主上传入口 | `REQ-004` |
 | `RagIngestionCommand.mimeType` | `String` | 可选、允许 `null` | 形如 `type/subtype`，否则按 `null` 处理 | 宿主上传入口 | `REQ-004` |
-| `RagIngestionCommand.content` | `InputStream` | 必填、非空 | 只读一次；不关闭 | 宿主上传入口 | `REQ-004` |
-| `RagIngestionCommand.attributes` | `Map<String,String>` | 可选，缺省空 Map | key 非空 ≤ 64 且非保留键；条目 ≤ 32 | 宿主业务上下文 | `REQ-011` |
+| `RagExtractionCommand.fileName` | `String` | 可选、允许 `null` | trim；0-255 | 宿主上传入口 | `REQ-019` |
+| `RagExtractionCommand.mimeType` | `String` | 可选、允许 `null` | 形如 `type/subtype`，否则按 `null` 处理 | 宿主上传入口 | `REQ-019` |
+| `RagExtractionCommand.content` | `InputStream` | 必填、非空 | 只读一次；不关闭 | 宿主上传入口 | `REQ-019` |
+| `RagIngestionCommand.document` | `ExtractedDocumentBO` | 必填、非空 | `@Valid` 级联 | 宿主从抽取结果或已持久化文本重建 | `REQ-019` |
+| `RagIngestionCommand.attributes` | `Map<String,String>` | 可选，缺省空 Map | key 非空 ≤ 64 且非保留键；条目 ≤ 32；与 `document.attributes` 同名时本字段优先 | 宿主业务上下文 | `REQ-011`, `REQ-020` |
 | `RagIngestionResult.chunkCount` | `int` | 必填 | ≥ 0 | 组件统计 | `REQ-009` |
 | `RagIngestionResult.elapsed` | `Duration` | 必填 | 非负；由 `ragClock` 计算 | 组件统计 | `REQ-015` |
 | `RagRetrievalQuery.query` | `String` | 必填、非空 | trim；1-2000 | 宿主业务输入 | `REQ-007` |
@@ -1315,7 +1448,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 
 | Type | Record / class / immutable class | Lombok annotations or compact constructor | Validation annotations/groups | Normalization | Framework/ORM reason | Tests |
 | ------------------------------------- | ---------------------------------- | ---------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- | ---------------------- | ------------------------ |
-| `RagIngestionCommand` | `record` | 紧凑构造器：trim 字符串；`attributes` 缺省空 Map；`fileName`/`mimeType` 保留 `null` | `@NotBlank`（`collectionId`/`documentId`/`logicalModelName`）、`@NotNull`（`chunkingConfig`/`content`）、`@Valid`（级联 `RagChunkingConfigDTO`）、`@Size`/`@Pattern`/`@Nullable` 按字段 | 头部/尾部空白 trim；`mimeType` 非法时置 `null`；`attributes` 不可变 `Map.copyOf` | 无 ORM | `TEST-002`, `TEST-005` |
+| `RagExtractionCommand` | `record` | 紧凑构造器：trim 字符串；`fileName`/`mimeType` 保留 `null` | `@NotNull`（`content`）、`@Size(max = 255)`（`fileName`） | 头部/尾部空白 trim；`mimeType` 非法时置 `null` | 无 ORM | `TEST-002`, `TEST-005` |
+| `RagIngestionCommand` | `record` | 紧凑构造器：trim 字符串；`attributes` 缺省空 Map | `@NotBlank`（`collectionId`/`documentId`/`logicalModelName`）、`@NotNull @Valid`（`chunkingConfig`/`document`）、`@Size`/`@Pattern`/`@Nullable` 按字段 | 头部/尾部空白 trim；`attributes` 不可变 `Map.copyOf` 并校验保留键 | 无 ORM | `TEST-002`, `TEST-005`, `TEST-006` |
 | `RagRetrievalQuery` | `record` | 紧凑构造器：trim 字符串；`topK` 缺省 0 表示"取配置默认"；`attributes` 缺省空 Map | `@NotBlank`（`collectionId`/`logicalModelName`/`query`）、`@Min`/`@Max` 或服务侧范围校验、`@DecimalMin`/`@DecimalMax` 于阈值 | 字符串 trim；`attributes` 不可变 `Map.copyOf` | 无 ORM | `TEST-005`, `TEST-016` |
 | `RagChunkingConfigDTO` | `record` | 紧凑构造器：`overlapTokens` 缺省 0、`minChunkChars` 缺省 1、`headingLevels` 缺省 `[1,2,3]` 且去重后不可变 | `@NotNull`（`strategy`/`maxTokensPerChunk`）、`@Min`/`@Max`、`@Size(min=1,max=6)`；跨字段规则在紧凑构造器内校验并抛 `RagValidationException` | `headingLevels` 去重并稳定排序；非 `MARKDOWN_HEADING` 且传入非空 `headingLevels` 视为非法 | 无 ORM | `TEST-005` |
 | `RagIngestionResult` / `RagRetrievedChunkBO` / `RagChunkBO` / `ExtractedDocumentBO` / `RagEmbeddingModelDescriptorBO` / `RagStoredObjectBO` | `record` | 组件内部构造，无 Lombok 注解；只有 `ExtractedDocumentBO`、`RagRetrievedChunkBO` 的 `attributes` 在紧凑构造器做 `Map.copyOf` 与保留键校验 | 组件内部构造，约束由构造点保证；不重复声明 Jakarta 注解 | `attributes` 不可变副本；`score` 允许 `null` | 无 ORM | `TEST-006`, `TEST-016` |
@@ -1395,7 +1529,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | Factory | 策略枚举到实现的映射、Bean 名到 Bean 的解析、分块 id 的确定性构造 | `chunk/RagChunkingStrategyFactory`、`embed/RagEmbeddingModelRegistry`、`chunk/RagChunkIdFactory` | 把选择与构造集中到一处，避免调用方散布 `switch` 与 `new`；未知枚举在绑定期失败 | `EVD-005` 的 Bean 装配先例；`EVD-015` 的 `Mappers.getMapper` 工厂用法 |
 | Registry（Strategy 的注册侧） | 抽取器需要按优先级路由、嵌入模型需要按逻辑名解析并做唯一性校验 | `extract/RagDocumentExtractorRegistry`、`embed/RagEmbeddingModelRegistry` | 注册信息来自 Spring 容器且需要启动期校验（歧义、重复、缺失），散落在服务里会让失败延后到运行期 | 组件架构文档 `§5.1` 明确 starter 提供 "核心 SPI / Registry / Listener / Service" |
 | Adapter | 把组件内部的分块模型与 Spring AI 的 `Document` 契约解耦 | `converter/RagChunkConverter` | 直接让内部模型依赖三方对象会把版本升级成本扩散到全组件 | `EVD-013`-`EVD-015` 的 `BaseConverter` + MapStruct 契约 |
-| Facade | 把四类扩展点、注册表与转换器收敛为两个稳定服务入口 | `api/RagIngestionService`、`api/RagRetrievalService` | 让宿主依赖两个接口而非十余个内部类型，缩小兼容面 | `egon-cola-component-agent-flow-starter` 的 `AgentFlowService` 是同类先例 |
+| Facade | 把四类扩展点、注册表与转换器收敛为三个稳定服务入口 | `api/RagExtractionService`、`api/RagIngestionService`、`api/RagRetrievalService` | 让宿主依赖三个接口而非十余个内部类型，缩小兼容面；三个入口分别对应"解析""嵌入""检索"三个独立消费目标 | `egon-cola-component-agent-flow-starter` 的 `AgentFlowService` 是同类先例 |
 
 ### 13.2 Rejected patterns and simpler alternative
 
@@ -1426,7 +1560,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 
 ### 14.1 Unit tests
 
-单元测试直接实例化生产类型，使用 fake 协作者，不启动 Spring 上下文。覆盖：抽取器的 `supports` 与优先级、注册表路由与失败、三种切分策略的确定性与边界、分块 id 的确定性与不合法性、转换器双向映射与保留键处理、元数据校验、存储实现的路径规范化与原子改名、属性 record 的默认值与规范化、异常类型与消息安全。
+单元测试直接实例化生产类型，使用 fake 协作者，不启动 Spring 上下文。覆盖：抽取器的 `supports` 与优先级、注册表路由与失败、抽取服务的两段式组合与"同一文档只解析一次"、三种切分策略的确定性与边界、分块 id 的确定性与不合法性、转换器双向映射与保留键处理、结构元数据与业务属性的合并优先级、存储实现的路径规范化与原子改名、属性 record 的默认值与规范化、异常类型与消息安全。
 
 ### 14.2 Integration, contract, persistence, component, and end-to-end tests
 
@@ -1444,7 +1578,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | `TEST-003` | Unit | `RagChunkingStrategyFactory` | 三个枚举值分别解析；注册表缺少某枚举值时调用 | 三个内置策略均可解析；缺失时抛 `RagConfigurationException` 而非返回 `null` | 三个真实策略 + 空映射 stub | JUnit 5，`chunk/` | `REQ-005` |
 | `TEST-004` | Unit | `RagDocumentExtractorRegistry` | 注册表为空或无可匹配实现 | 抛 `RagExtractorMissingException`，消息含已注册 MIME 能力列表 | 空实现列表 | JUnit 5 | `REQ-004`, `REQ-013` |
 | `TEST-005` | Unit | `RagChunkingConfigDTO`、各策略、`RagRetrievalQuery` | `overlapTokens == maxTokensPerChunk`；`headingLevels` 用于非 `MARKDOWN_HEADING`；`topK` 越界；`similarityThreshold` 越界；空白字符串 | 全部抛 `RagValidationException` 并指明字段名；合法边界值通过 | 无 | JUnit 5 | `REQ-005`, `REQ-007` |
-| `TEST-006` | Unit | `RagIngestionServiceImpl` | 正常文档（fake 模型、fake 向量库） | 返回 `chunkCount` 等于分块数；`logicalModelName`、`dimensions`、`collectionId`、`documentId` 正确回显 | `FakeEmbeddingModel`、`FakeVectorStore` | JUnit 5，`execution/` | `REQ-009` |
+| `TEST-006` | Unit | `RagIngestionServiceImpl` | 已抽取文档（fake 模型、fake 向量库）；结构属性与业务属性同名；任一来源含保留 key | 返回 `chunkCount` 等于分块数且四个标识字段正确回显；同名时业务属性生效且合并结果无重复 key；含保留 key 时抛 `RagValidationException` 且未调用向量库 | `FakeEmbeddingModel`、`FakeVectorStore` | JUnit 5，`execution/` | `REQ-009`, `REQ-020` |
 | `TEST-007` | Unit | `RagIngestionServiceImpl` | fake 模型固定返回 1536 维向量 | `RagIngestionResult.dimensions == 1536`；`elapsed` 由注入的 `ragClock` 计算且非负 | 固定 `Clock` + `FakeEmbeddingModel` | JUnit 5 | `REQ-008`, Rule 10 |
 | `TEST-008` | Unit | `RagChunkConverter` | 分块与 `Document` 双向映射；元数据含保留键与非保留键 | `toTarget` 的 `id` 等于传入 chunkId、元数据含全部保留键；`toSource` 还原字段与 `attributes`；`score` 为空时保持 `null` | 无 | JUnit 5，`converter/` | `REQ-011` |
 | `TEST-009` | Unit | 三个切分策略 + `RagChunkIdFactory` | 同一 `ExtractedDocumentBO` 切分两次 | 两次分块序列的 `chunkIndex`、`content`、顺序完全一致；同一 `(documentId, chunkIndex)` 生成的 id 一致 | 固定输入文本 | JUnit 5 | `REQ-009` |
@@ -1463,6 +1597,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | `TEST-022` | Contract | 日志与指标捕获 | 对摄取、检索、存储、启动各执行一次包含敏感内容的调用 | 捕获的日志与指标标签中不出现文档内容、分块文本、向量、查询原文、供应商地址或密钥；指标标签只含结果与逻辑名与策略枚举 | `LogCaptor` 或 `ListAppender`；`SimpleMeterRegistry` | 各层测试 | `REQ-015` |
 | `TEST-023` | Component | 组件交付面 | 启用后检查 Bean 集合；Micrometer 缺席时启用 | `§9.2.6` 表格中的 Bean 名逐条存在；`microneter-core` 缺席时组件正常启用且不注册指标 | `ApplicationContextRunner`（`FilteredClassLoader`） | `autoconfigure/` | `REQ-016`, `REQ-003` |
 | `TEST-024` | Regression | `egon-cola-components` Reactor | 增加模块与 BOM 条目后执行组件父 Reactor 构建 | 新模块构建通过；既有 10 个模块的构建结果与导出面不变 | 无 | Maven Reactor | `REQ-016` |
+| `TEST-025` | Unit | `RagExtractionServiceImpl` + `RagIngestionServiceImpl` | 一个可计数解析次数的 stub 抽取器；依次调用 `extract` 与 `ingest`；再用抽取结果重建 `ExtractedDocumentBO` 二次调用 `ingest` | 端到端流程中抽取器只被调用一次；第二次 `ingest` 不触发任何解析；两次 `ingest` 得到相同的分块 id 集合 | stub `RagDocumentExtractor`（计数）、`FakeEmbeddingModel`、`FakeVectorStore` | JUnit 5，`execution/` | `REQ-019`, `REQ-009` |
+| `TEST-026` | Unit | `RagExtractionServiceImpl` | `fileName` 与 `mimeType` 同时为 `null`；抽取器返回含保留 key 的属性；抽取器抛 `RagExtractionException` | 前两者分别抛 `RagExtractorMissingException` 与 `RagValidationException`；第三种异常原样传播且消息不含文档内容 | stub 抽取器 + `ByteArrayInputStream` | JUnit 5，`execution/` | `REQ-004`, `REQ-019`, `REQ-015` |
 
 ## 15. Non-functional and Cross-cutting Design
 
@@ -1552,6 +1688,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 | `REQ-016` | `UC-005` | `§8.3`（父 POM 与 BOM） | 平台/xingyuan/archetypes 为 `Unchanged` | 父 POM 与 BOM 变更 | `TEST-024` | 新模块构建通过且 BOM 只新增一条、既有模块不变 |
 | `REQ-017` | `UC-005` | `§14` | — | 全部测试 | 全部 `TEST-*` | `mvn verify` 无需凭据与外部服务 |
 | `REQ-018` | `UC-001` | `§9.2.6`、`§9.2`（探针语义） | — | `RagVectorStoreProbe`；`RagValidationProperties` | `TEST-018` | 默认无模型调用与向量写入；开启时往返校验失败即启动失败 |
+| `REQ-019` | `UC-002`, `UC-004` | `§9.2.7`、`§9.2.1`、`§3.1` | — | `INTERNAL-007`；`RagExtractionService`；`RagExtractionCommand` | `TEST-025`, `TEST-026` | 抽取与嵌入可分别调用；端到端流程中同一文档只被解析一次 |
+| `REQ-020` | `UC-002` | `§9.2.1`、`§10.3.1` | — | `RagMetadataKeys`；`ExtractedDocumentBO.attributes`；`RagIngestionCommand.attributes` | `TEST-006` | 同名 key 由业务属性胜出；保留 key 一律拒绝 |
 
 ## 20. Review and Acceptance
 
@@ -1567,6 +1705,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 - 用户要求"暂时不允许不同维度，按同一维度不同模型设计" -> `REQ-007`、`REQ-008`、`DEC-004`。
 - 用户的 Rule 11 例外与 MapStruct 确认 -> `EVD-019`、`DEC-002`、`DEC-007`、`§6.1`。
 - 用户"大量可扩展性"要求 -> 四类扩展点、`§13.1` 的五个模式、`§13.3` 的内聚与开闭论述。
+- 用户在 2026-09-10 11:47 CST 确认按推荐修订本 Spec，把文本抽取拆为独立公开能力 -> `REQ-019`、`REQ-020`、`§9.2.7`、`§9.2.1`。
 
 无请求被弱化；被排除的能力全部写入 `§3.2` 并在 `§7.0` 给出 `Remove` 裁决与理由。
 
@@ -1585,7 +1724,7 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 - `§7.1.1`、`§7.2.1`、`§7.3.2` 三张图与 `§7.3.1` 的协作表、`§7.3.3` 的一致性表、`§7.3.4` 的失败表描述同一条关键路径与同一组失败语义。
 - `§8.2` 目标树中的每个新类型都在 `§8.3` 有责任行、在 `§10.1` 有角色与必要性判定、在 `§19` 有需求映射。
 - `§14.3` 的每个 `TEST-*` 至少在 `§19` 被一个 `REQ-*` 引用；每个 `REQ-*` 至少有一个 `TEST-*`。
-- 复杂场景深度：`§2.4` 有 5 条证据/调用链行，`§4.1` 有 21 条实质不同的场景行，`§7.2.2` 有 7 条质量/约束行，`§7.3.6` 有 5 条不同决策类的结论链，均超过最低要求。
+- 复杂场景深度：`§2.4` 有 6 条证据/调用链行，`§4.1` 有 23 条实质不同的场景行，`§7.2.2` 有 7 条质量/约束行，`§7.3.6` 有 6 条不同决策类的结论链，均超过最低要求。
 
 ### 20.4 Relationship and effective-design review
 
@@ -1622,4 +1761,8 @@ External API impact: **Not affected**。组件不提供 HTTP、RPC、GraphQL、�
 
 本 Spec 内部完整、无未决占位符且全部阻塞 Manual Check 为 `PASS` 或证据化 `N/A`。
 
-状态于 `2026-09-10 11:43 CST` 由 `Review` 置为 `Accepted`：用户在该时间点对评审意见（探针默认关闭、`DEC-011` 与 `DEC-012` 关闭、MapStruct 引入、表格格式）逐项确认并指示继续。本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。
+状态于 `2026-09-10 11:43 CST` 由 `Review` 置为 `Accepted`：用户在该时间点对评审意见（探针默认关闭、`DEC-011` 与 `DEC-012` 关闭、MapStruct 引入、表格格式）逐项确认并指示继续。
+
+随后在 `2026-09-10 11:47 CST` 发生一次**显式修订**（非静默改写）：起草 Spec B 时发现 `INTERNAL-001` 把文本抽取与切块嵌入焊死在一个方法里，导致消费方无法取得抽取文本去满足"原始文本也要存到数据库中"的要求，也无法实现"先落库、后嵌入"的两段式。用户明确确认按推荐修订，因此本 Spec 新增 `REQ-019`、`REQ-020` 与 `INTERNAL-007`（`§9.2.7`），并把 `RagIngestionCommand` 的载荷从 `InputStream` 改为 `ExtractedDocumentBO`（`§9.2.1`、`§10.3`）。除此之外的既有设计、`REQ-001`-`REQ-018` 与全部决策保持不变。`INTERNAL-*` 编号只追加不重排。
+
+本 Spec 未产生 Plan、未修改生产代码、未执行迁移、未启动应用，也未声称任何运行期验证。
