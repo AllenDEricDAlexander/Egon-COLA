@@ -599,7 +599,7 @@ def forbiddenDependencies = [
 - After this file: Step 2 完成。
 
 - Validation working directory: `/Users/mario/SelfProject/Egon-COLA`
-- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install`；全反应堆命令受 `egon-cola-source-light` 的 `NativeRpcConfigurationTest` 预先存在的红灯（`c7f09dd5a` 的 `tianquan.shoubing` 前缀与 yml 的 `tianquan-shoubing` 键不一致，与本 Step 无关）阻塞，实施期以 `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml clean install` 作为等价门禁，并在 Step 记录中标注偏差。
+- Verification command: `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install`；全反应堆命令受 `egon-cola-source-light` 的 `NativeRpcConfigurationTest` 预先存在的红灯（`c7f09dd5a` 的 `tianquan.shoubing` 前缀与 yml 的 `tianquan-shoubing` 键不一致，与本 Step 无关）阻塞，实施期以 `./mvnw -B -ntp -f egon-cola-archetypes/source-projects/egon-cola-source-agent/pom.xml clean install` 作为等价门禁，并在 Step 记录中标注偏差。该红灯的根因与修复见 §15；修复后 `egon-cola-source-light`、`-service`、`-web` 三个源码项目的完整反应堆各自以退出码 0 通过，但该全反应堆命令本身仍以退出码 1 停止——停止点已不在源码项目，而在 `egon-cola-components/egon-cola-component-rpc` 的两个既有失败用例上（与本次改动无关，见 §15.4 的"未修复"条目）。
 - Expected result: 退出码 0；六模块构建通过；`verify.groovy` 新增的四条依赖存在性断言在生成 IT 中通过。
 - Failure returns to: File 2-3 的坐标或 scope。
 - Completion criteria: 依赖可解析且构建通过；`research` 域未改动。
@@ -2345,7 +2345,7 @@ public SseEmitter chat(@PathVariable Long knowledgeBaseId, @Valid @RequestBody A
 
 在实施期修正（生成器校验脚本的过期断言，由第三条门禁发现）：`.../src/test/resources/projects/basic/verify.groovy` 第 195 行仍断言 `readme.contains("no database")`——那是 knowledge 域之前的事实。第三条门禁第一次运行即在 `egon-cola-archetype-agent` 的 IT 上失败并打印 README 全文；这正是该门禁存在的意义。修正：断言取反（`!readme.contains("no database")`）并改为钉住新的事实——两份 README 都必须写出问答端点、`PostgreSQL` 与 `CREATE EXTENSION vector`，从而把"中英同步"也变成可执行条件。该文件不在 plan 的 Commit paths 之内，但它是 Step 1 打包清单的组成部分，故与本次一并提交。
 
-在实施期修正（第三条门禁的残留红灯与本 plan 无关）：修正后重跑，`egon-cola-archetype-agent` 的 IT 通过（生成项目的六个模块与 `verify.groovy` 全绿），反应堆继续前进并在 `egon-cola-archetype-light` 上以非零码停下——`NativeRpcConfigurationTest` 有两个既有失败（`egon.cola.platform.tianquan.shoubing.enabled` 读不到、整个前缀 bind 不上）。根因不在本次改动：light 的四个 YAML 把它写成单段键 `tianquan-shoubing:`，而组件 `IdpStarterProperties` 的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")` 需要嵌套层级，Spring 的宽松绑定不把 `-` 当层级分隔符。该漂移在 HEAD 上即存在（`git log` 显示 light 的 YAML 与测试最后同出于 `07f495535`），与 knowledge 域无关，按"不夹带无关改动"的约束未在此修复，留待单独处理。
+在实施期修正（第三条门禁的残留红灯与本 plan 无关）：修正后重跑，`egon-cola-archetype-agent` 的 IT 通过（生成项目的六个模块与 `verify.groovy` 全绿），反应堆继续前进并在 `egon-cola-archetype-light` 上以非零码停下——`NativeRpcConfigurationTest` 有两个既有失败（`egon.cola.platform.tianquan.shoubing.enabled` 读不到、整个前缀 bind 不上）。根因不在本次改动：light 的四个 YAML 把它写成单段键 `tianquan-shoubing:`，而组件 `IdpStarterProperties` 的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")` 需要嵌套层级，Spring 的宽松绑定不把 `-` 当层级分隔符。该漂移在 HEAD 上即存在（`git log` 显示 light 的 YAML 与测试最后同出于 `07f495535`），与 knowledge 域无关，按"不夹带无关改动"的约束未在此修复，留待单独处理。**审计后已作为独立改动修复**：三处源码项目（light/service/web）的 12 个 YAML 与对应的三个 `verify.groovy` 守卫见 §15。
 
 - Commit paths 补充：除 plan 列出的六个文件外，本次提交还含 `...-adapter/knowledge/controller/KnowledgeQaController.java`（六个错误响应显式声明 JSON 内容类型）与 `definitions/egon-cola-archetype-agent/src/test/resources/projects/basic/verify.groovy`（README 断言更新）。
 
@@ -4076,7 +4076,7 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 - 门禁（均在最终工作树上重跑，命令同 `§8`）：
   - 源码门禁退出码 0：137 个测试（domain 6、application 22、infrastructure 33、adapter 56、starter 20），零失败零错误；`bytecode-architecture:check-reactor` 报 `total=0`。
   - `generate_archetypes.sh generate` 退出码 0；`check_archetypes.sh` 退出码 0（"generated set is deterministic and matches current workspace"）。
-  - `-Pgenerated-archetypes clean verify` 在 agent 段全绿——生成项目的 12 个测试类全过（含 `it.pkg.infrastructure.knowledge.KnowledgeRepositoryTest` 的 6 个），`verify.groovy` 输出 "Agent archetype verifier: six-module Deep Research contract passed" 与 "Published parent and agent runtime boundaries passed"；随后反应堆在 `egon-cola-archetype-light` 处以退出码 1 停下（既有漂移，见 14.3 F4）。
+  - `-Pgenerated-archetypes clean verify` 在 agent 段全绿——生成项目的 12 个测试类全过（含 `it.pkg.infrastructure.knowledge.KnowledgeRepositoryTest` 的 6 个），`verify.groovy` 输出 "Agent archetype verifier: six-module Deep Research contract passed" 与 "Published parent and agent runtime boundaries passed"；随后反应堆在 `egon-cola-archetype-light` 处以退出码 1 停下（既有漂移，见 14.3 F4）。该条记录的是审计当次的运行结果；漂移已作为独立改动修复，修复后同一门禁以退出码 0 通过（见 §15）。
 - 静态证据：`git diff 23ccba7b4..HEAD -- '*research*'` 为空——研究域自基线起零改动。
 
 ### 14.2 逐条结论
@@ -4114,16 +4114,86 @@ HTTP `200 OK`，`Content-Type: text/event-stream`。`id` 固定为 `<answerId>:<
 ### 14.3 审计发现
 
 - **F1（已修正，文档）**：`§10` 矩阵的 `REQ-025` 行与 `§11` 的 `BLOCK-001` 行点名 `KnowledgeTenantScopeTest`，该类从未创建（仅存在于本 plan）；租户证据实际落在 `KnowledgeRepositoryTest`、`KnowledgeSchemaMigrationTest` 与 `KnowledgeContractTest` 三处。两行已按实际证据改写。
-- **F2（Spec 侧不一致，需在 Spec 修订时处理）**：Spec B `§4.1` 场景矩阵"建库成功"写"返回 201"，而同一文档 `§9.2.1`（API-001）写 `HTTP 200 OK`。按 `§9.0` 的协议治理与 plan `§2.1` 的"逐接口契约优先"，实现取 API-001 的 200，`KnowledgeOpenApiTest` 与控制器测试均按此断言。这不是实现偏差，是 Spec 内部需要收敛的一处措辞。
+- **F2（已修正，Spec 侧）**：Spec B `§4.1` 场景矩阵"建库成功"写"返回 201"，而同一文档 `§9.2.1`（API-001）写 `HTTP 200 OK`。按 `§9.0` 的协议治理与 plan `§2.1` 的"逐接口契约优先"，实现取 API-001 的 200，`KnowledgeOpenApiTest` 与控制器测试均按此断言。这不是实现偏差，是 Spec 内部需要收敛的一处措辞。**审计后已在 Spec 修订中收敛**：`§4.1` 改为"返回 200"，与同一修订中的租户措辞收敛一并记录于 Spec B `§20.6` 的修订历史第 5、6 条（提交 `cb7a1cf1c`）。
 - **F3（本次审计补齐的证据）**：`REQ-025` 的判据"同一业务键在不同租户下可以共存"此前只有结构证据（迁移里的 `(tenant_id, lower(code))` 唯一索引）。H2 投影按既有决定不复制该表达式索引，因此新增的 `lets_two_tenants_own_the_same_business_key` 断言的是**跨租户共存的可见性**：同一 `code` 在两个租户下各写一行、第二行的 `tenant_id` 等于其写入时所处的 MDC 租户、且各自只读到自己那一行。该测试经变异验证（把第二次写入前的 `useTenant` 改成租户 A → 断言以 `expected: "22"` 失败），随后回退。租户内的唯一性仍由迁移断言把守。
-- **F4（本 plan 之外，未处理）**：门禁三在 `egon-cola-archetype-light` 上的既有红灯——该 archetype 的四个 YAML 把组件前缀写成单段键 `tianquan-shoubing:`，而 `IdpStarterProperties` 的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")` 需要嵌套层级。与 knowledge 域无关，按"不夹带无关改动"未在此修复，详见 Step 12 的修正笔记。
+- **F4（已修正，plan 之外，后续提交 `0013afdf0`）**：门禁三在 `egon-cola-archetype-light` 上的既有红灯——该 archetype 的四个 YAML 把组件前缀写成单段键 `tianquan-shoubing:`，而 `IdpStarterProperties` 的 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")` 需要嵌套层级。与 knowledge 域无关，按"不夹带无关改动"未在实现 Step 中夹带，作为独立改动另行修复，详见 §15。
 
 ### 14.4 未执行项与边界
 
 - 运行期验证（PostgreSQL + `vector` 扩展、真实嵌入与对话供应商、上传—轮询—检索—问答的人工链路）**未执行**，`§8` 已声明"本 Plan 不声称已执行"；该验证由用户在受控环境完成。
 - `TEST-026` 与 `TEST-032` 依赖真实 PostgreSQL 语义（扩展创建与向量表维度），在离线 H2 下无法执行——这是 `REQ-023` 离线约束的直接后果，不是遗漏。
-- 生成回归的完整漏斗仍以 `egon-cola-archetype-light` 的既有红灯收尾（F4），因此门禁三的退出码在当前分支上不可能为 0；agent 段本身已全绿。
+- 生成回归的完整漏斗在审计时仍以 `egon-cola-archetype-light` 的既有红灯收尾（F4），因此**审计当时**门禁三的退出码在该分支上不可能为 0；agent 段本身已全绿。F4 已作为独立改动修复（§15），修复后门禁三整条反应堆退出码为 0。
 
 ### 14.5 结论
 
-Spec B 的 27 条 `REQ-*` 全部有可执行或静态证据，无未覆盖的 Must 要求；发现的四项中两项已就地修正（F1 文档、F3 证据），F2 属 Spec 侧措辞需在 Spec 修订时收敛，F4 是本 plan 之外的既有漂移。审计未发现实现引入了 Spec B 之外的行为、契约、字段、schema 或依赖。
+Spec B 的 27 条 `REQ-*` 全部有可执行或静态证据，无未覆盖的 Must 要求；发现的四项中两项已在实现期就地修正（F1 文档、F3 证据），F2 已随 Spec 修订收敛（提交 `cb7a1cf1c`），F4 是本 plan 之外的既有漂移，已作为独立改动修复（§15，提交 `0013afdf0`）。审计未发现实现引入了 Spec B 之外的行为、契约、字段、schema 或依赖。
+
+## 15. 后续独立修复：`tianquan-shoubing` 配置键漂移（审计发现 F4）
+
+### 15.1 现象
+
+门禁三（`./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Pgenerated-archetypes clean verify`）在 `egon-cola-archetype-agent` 段全绿后，于 `egon-cola-archetype-light` 段以非零码停下；`egon-cola-source-light` 的 `NativeRpcConfigurationTest` 两个用例失败：
+
+- `native_properties_are_present_in_every_profile`：`egon.cola.platform.tianquan.shoubing.enabled` 读出 `null`，期望 `"false"`。
+- `native_properties_bind_to_the_actual_component_prefixes`：`binder.bind("egon.cola.platform.tianquan.shoubing", IdpStarterProperties.class).get()` 抛 `java.util.NoSuchElementException: No value bound`。
+
+该漂移在审计基线（本 plan 的 Step 12）上即存在，与 knowledge 域无关。
+
+### 15.2 根因（已实证）
+
+light/service/web 三处源码项目的 YAML 把组件前缀写成**单段键** `tianquan-shoubing:`，而组件 `IdpStarterProperties` 的注解是 `@ConfigurationProperties("egon.cola.platform.tianquan.shoubing")`（**两段**）。Spring Boot 的宽松绑定不做 `-` 到层级的转换：`ConfigurationPropertyName` 逐元素比较，`tianquan.shoubing`（2 个元素）与 `tianquan-shoubing`（1 个元素）不相等。实证即上面那条 `bind(...)` 抛出的 `No value bound`——键存在于 YAML 中，但从不参与绑定；`@ConditionalOnProperty(prefix = "egon.cola.platform.tianquan.shoubing", name = "enabled", havingValue = "true")` 也因此恒为不满足，整段配置被静默忽略。
+
+判定"哪一侧是错的"依据（组件与平台侧证据一致，故 YAML 错、测试对）：
+
+- 组件自身的 `@ConfigurationProperties` 前缀与 `IdpStarterAutoConfiguration` 的 `@ConditionalOnProperty` 均为点分两段。
+- 组件 Spec `docs/egon/spec/2026-08-21-07-51-idp-oauth-client-tenant-ownership.md:1449` 使用同一前缀。
+- 平台自身的运行期取值来自 `env/tianquan-shoubing.properties`，由 `scripts/unified-identity-local.sh:327,330` 与 `scripts/unified-xingyuan/start-local-stack.sh:324,326` 以**点分键**写入（`egon.cola.platform.tianquan.shoubing.service-client.app-id` 等）并经 `spring.config.import: optional:file:…` 导入。
+
+### 15.3 影响面（超出最初的 light-only 判断）
+
+同一段配置块在 light、service、web 三处**逐字相同**地存在，因此只修 light 会把门禁三的红灯原样推到下一个 archetype；本次一并修复三者：
+
+| 项目 | 文件（`src/main/resources/`） |
+|---|---|
+| `egon-cola-source-light` | `application.yml`、`application-dev.yml`、`application-test.yml`、`application-prod.yml` |
+| `egon-cola-source-service`（`-starter` 模块） | 同上四份 |
+| `egon-cola-source-web`（`-starter` 模块） | 同上四份 |
+
+改动是把 `tianquan-shoubing:` 拆成 `tianquan:` / `shoubing:` 两级，其子键整体缩进 +2；键值、注释与 `${...}` 环境占位符一字未改（12 文件共 132 增 / 120 删）。
+
+**未纳入本次改动（仅报告）**：平台自身的应用（`egon-cola-tianquan-*-admin`、`yuheng`、`tianshu`）的 YAML 同样是单段键形式，但它们的有效取值来自上面那份生成的点分配置文件，故这些块属**潜在死配置**而非当前缺陷；是否清理留待用户决定。
+
+### 15.4 回归守卫与验证
+
+三个 archetype 定义（light/service/web）的 `verify.groovy` 各加一条守卫：断言四份 YAML 中分别存在 `tianquan:` 与 `shoubing:`，且**不再**存在 `tianquan-shoubing:`；不通过则生成项目的 IT 直接失败，防止漂移回归。
+
+验证记录（均在本修复的最终工作树上执行，命令见 plan `§8`）：
+
+- **门禁一（三个源码项目的完整反应堆 `clean verify`）**：`egon-cola-source-light` 退出码 0（207 个测试）、`egon-cola-source-service` 退出码 0（26 个）、`egon-cola-source-web` 退出码 0（31 个），零失败零错误；修复前 light 的 `NativeRpcConfigurationTest` 有两个用例失败。
+- **门禁二**：`./scripts/generate_archetypes.sh generate` 退出码 0（"generated set published atomically"）；`./scripts/check_archetypes.sh` 退出码 0（"generated set is deterministic and matches current workspace"）。
+- **门禁三**：`./mvnw -B -ntp -f egon-cola-archetypes/pom.xml -Pgenerated-archetypes clean verify` **退出码 0**，10 个模块全部 SUCCESS——agent 34.3s、light 30.7s、light-open 20.1s、service 33.2s、service-open 51.1s、web 40.7s、web-open 44.7s（另含 parent、两个 facade 与聚合器），七个 archetype 的 `verify.groovy` 后置脚本全部执行完毕。这是该门禁自审计基线以来第一次全绿。
+- **定位用复跑**（不作为门禁）：以 `-pl` 逐模块复跑七个 archetype 的 IT，全部 SUCCESS。
+- **未修复（已报告，范围之外）**：`source-projects/pom.xml` 的全反应堆（该聚合器含 `../../egon-cola-components` 与 `../../egon-cola-xingyuan`）仍以退出码 1 结束，停在 `egon-cola-components/egon-cola-component-rpc-starter` 的两个既有失败用例：`RpcReferenceDefinitionResolverTest.rejectsConsistentHashWithoutNamedResolver`（测试取 `Holder` 的字段 `yuheng`，而 fixture 里的字段名是 `gateway`——与 15.5 同一类机械改名残留）与 `RpcProviderMetadataMergerTest.leavesAdapterSpecificMetadataValidationOutsideRpcCore`（`containsExactly` 断言的顺序依赖 `Map.of(...)` 的迭代顺序，改名后期望顺序失配）。两者可由独立命令稳定复现（`-Dtest=…`），相关文件在本次改动中零修改，属 HEAD 上的既有问题；不在本次修复范围，留给用户决定。
+
+### 15.5 同源的第二处缺陷：light 验证脚本的包路径期望
+
+修好绑定后，`egon-cola-archetype-light` 的 IT 第一次走到"生成项目构建成功、后置脚本开始执行"这一步，随即在 `verify.groovy` 更早的一行失败：
+
+```
+Archetype IT 'basic' failed: post build script failure: java.lang.AssertionError:
+Expected file src/main/java/it/pkg/domain/user/yuheng/UserQueryGateway.java. Expression: file.isFile()
+```
+
+该断言期望生成项目把 `UserQueryGateway` 放在 `domain/user/yuheng/`，而实际路径是 `domain/user/gateway/`——源码项目、`archetype-resources`、生成项目三处一致，且**全仓库不存在任何名为 `yuheng` 的 Java 包目录**（`find -type d -name yuheng` 无结果）。`git log -S` 显示期望值由 `07f495535`（与本次绑定漂移同一个提交）单方面把该三元表达式的 `"gateway"` 改成 `"yuheng"`，而同一提交并未移动或重命名任何 Java 文件（`*UserQueryGateway.java` 的最后一次路径变更仍是 `f31eb9475`）。对照该提交对 service/web 两个验证脚本的改动：它们只改了配置 token 列表，包路径映射原样保留——即 `"yuheng"` 是那轮机械改名（`gateway:` → `yuheng:` 配置键）误伤到包路径字符串的副产物，而不是有意的包重命名。
+
+判定：验证脚本是错的一侧，改回 `gateway`（一行）。该缺陷此前一直被 15.1 的构建失败遮挡——生成项目的构建先失败，后置脚本根本没机会执行——所以它和绑定漂移是同一提交引入、同一轮修复才暴露的两处独立问题。改动仅涉及验证脚本，无生产代码影响。
+
+### 15.6 运行期后果（提示）
+
+修复后 `dev`/`prod` 的 `enabled: ${TIANQUAN_SHOUBING_ENABLED:true}` 才真正生效：本地未提供 `TIANQUAN_SHOUBING_*` 时，启动会因 `properties.validate()` 以 `IllegalStateException: egon.cola.platform.tianquan.shoubing.issuer is required` **快速失败**，而不是像修复前那样静默忽略整段配置。部署路径不变（compose 文件与 README 的环境变量样例已覆盖）。
+
+### 15.7 提交
+
+- Commit: `0013afdf0 fix(archetypes): nest the tianquan.shoubing prefix and restore the light gateway path`
+- Commit paths: 12 个 `src/main/resources/application*.yml`（light / service / web）; `definitions/egon-cola-archetype-{light,service,web}/src/test/resources/projects/basic/verify.groovy`
+- 本 plan 的 §15 与 §14 的相应修订单独提交（`docs(plan): record the tianquan.shoubing drift fix`），不夹带任何其他改动。
