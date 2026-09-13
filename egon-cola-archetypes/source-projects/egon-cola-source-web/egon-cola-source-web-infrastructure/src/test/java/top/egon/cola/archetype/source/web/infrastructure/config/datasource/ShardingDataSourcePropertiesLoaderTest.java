@@ -2,6 +2,11 @@ package top.egon.cola.archetype.source.web.infrastructure.config.datasource;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -9,6 +14,16 @@ import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.StandardEnvironment;
 
 class ShardingDataSourcePropertiesLoaderTest {
+    private ValidatorFactory factory;
+    private ValidationUtils validation;
+
+    @BeforeEach void prepare() {
+        factory = Validation.buildDefaultValidatorFactory();
+        validation = new ValidationUtils(factory.getValidator());
+    }
+
+    @AfterEach void close() { factory.close(); }
+
 
     @Test
     void shouldBindOnlyTheTopologySelectedByMode() {
@@ -23,18 +38,20 @@ class ShardingDataSourcePropertiesLoaderTest {
         values.put("app.sharding.physical-data-sources[0].role", "PRIMARY");
         values.put(
                 "app.sharding.physical-data-sources[0].driver-class-name",
-                "org.h2.Driver");
+                "org.postgresql.Driver");
         values.put(
                 "app.sharding.physical-data-sources[0].jdbc-url",
-                "jdbc:h2:mem:master-data");
+                "jdbc:postgresql://localhost:5432/master");
         values.put("app.sharding.physical-data-sources[0].username", "sa");
         values.put("app.sharding.physical-data-sources[0].password", "");
         values.put(
-                "app.sharding.flyway.targets[0].data-source-name",
+                "app.sharding.ddl.targets[0].data-source-name",
                 "master_data");
         values.put(
-                "app.sharding.flyway.targets[0].locations[0]",
-                "classpath:db/migration/sharding/master-data");
+                "app.sharding.ddl.targets[0].manifest",
+                "classpath:db/egon-mp/manifest.json");
+        values.put("app.sharding.ddl.targets[0].schema", "public");
+        values.put("app.sharding.ddl.targets[0].role", "MASTER_DATA");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].jdbc-url",
                 "${MISSING_READWRITE_URL}");
@@ -43,7 +60,7 @@ class ShardingDataSourcePropertiesLoaderTest {
                 new MapPropertySource("test", values));
 
         ShardingDataSourceProperties properties =
-                new ShardingDataSourcePropertiesLoader(environment)
+                new ShardingDataSourcePropertiesLoader(environment, validation)
                         .load(new DataSourceModeProperties(
                                 DataSourceModeProperties.DataSourceMode.SHARDING));
 
@@ -78,10 +95,10 @@ class ShardingDataSourcePropertiesLoaderTest {
                 "PRIMARY");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].driver-class-name",
-                "org.h2.Driver");
+                "org.postgresql.Driver");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].jdbc-url",
-                "jdbc:h2:mem:master-data-primary");
+                "jdbc:postgresql://localhost:5432/master_primary");
         values.put(
                 "app.sharding-readwrite.physical-data-sources[0].username",
                 "sa");
@@ -89,17 +106,19 @@ class ShardingDataSourcePropertiesLoaderTest {
                 "app.sharding-readwrite.physical-data-sources[0].password",
                 "");
         values.put(
-                "app.sharding-readwrite.flyway.targets[0].data-source-name",
+                "app.sharding-readwrite.ddl.targets[0].data-source-name",
                 "master_data_primary");
         values.put(
-                "app.sharding-readwrite.flyway.targets[0].locations[0]",
-                "classpath:db/migration/sharding/master-data");
+                "app.sharding-readwrite.ddl.targets[0].manifest",
+                "classpath:db/egon-mp/manifest.json");
+        values.put("app.sharding-readwrite.ddl.targets[0].schema", "public");
+        values.put("app.sharding-readwrite.ddl.targets[0].role", "MASTER_DATA");
         StandardEnvironment environment = new StandardEnvironment();
         environment.getPropertySources().addFirst(
                 new MapPropertySource("test", values));
 
         ShardingDataSourceProperties properties =
-                new ShardingDataSourcePropertiesLoader(environment)
+                new ShardingDataSourcePropertiesLoader(environment, validation)
                         .load(new DataSourceModeProperties(
                                 DataSourceModeProperties.DataSourceMode
                                         .SHARDING_READWRITE));

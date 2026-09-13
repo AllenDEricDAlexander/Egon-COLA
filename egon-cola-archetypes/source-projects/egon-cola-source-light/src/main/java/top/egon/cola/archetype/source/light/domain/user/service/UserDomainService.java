@@ -3,18 +3,18 @@ package top.egon.cola.archetype.source.light.domain.user.service;
 import top.egon.cola.archetype.source.light.domain.user.aggregates.UserAggregate;
 import top.egon.cola.archetype.source.light.domain.user.entities.User;
 import top.egon.cola.archetype.source.light.domain.user.vos.UserId;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.util.Optional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning user domain service contract. */
-public interface UserDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
+public interface UserDomainService {
     User createUser(String externalId, String name, String email);
 
-    User save(User user);
+    User save( @Valid @NotNull User user);
 
-    Optional<User> findById(UserId userId);
+    Optional<User> findById( @Valid @NotNull UserId userId);
 
-    void saveRoles(UserAggregate aggregate);
+    void saveRoles( @Valid @NotNull UserAggregate aggregate);
 }

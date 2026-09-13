@@ -9,6 +9,7 @@ import java.util.List;
 
 /** MyBatis mapper for courses. */
 @Mapper
+/** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface CourseDAO extends EgonColaMapper<CoursePO> {
     List<CoursePO> selectByCourseCode(@Param("courseCode") String courseCode);
 }

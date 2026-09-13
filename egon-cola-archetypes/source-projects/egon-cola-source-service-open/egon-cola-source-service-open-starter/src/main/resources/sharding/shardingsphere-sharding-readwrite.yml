@@ -25,14 +25,11 @@ rules:
       round_robin:
         type: ROUND_ROBIN
 
+  - !SINGLE
+    tables:
+      - master_data.${EVALUATION_SHARDING_SCHEMA:public}.evaluation_course
   - !SHARDING
     tables:
-      evaluation_course:
-        actualDataNodes: master_data.evaluation_course
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
       evaluation_course_schedule:
         actualDataNodes: shard_$->{0..1}.evaluation_course_schedule_$->{0..1}
         databaseStrategy:
@@ -90,7 +87,7 @@ rules:
             - sharding_key_required_auditor
           allowHintDisable: false
     bindingTables:
-      - evaluation_exam,evaluation_exam_paper,evaluation_score
+      - "evaluation_exam,evaluation_exam_paper,evaluation_score"
     shardingAlgorithms:
       tenant_long_database_bucket:
         type: CLASS_BASED
@@ -114,5 +111,8 @@ rules:
       sharding_key_required_auditor:
         type: DML_SHARDING_CONDITIONS
 
+transaction:
+  defaultType: LOCAL
+
 props:
-  sql-show: ${SHARDING_SQL_SHOW:false}
+  sql-show: false

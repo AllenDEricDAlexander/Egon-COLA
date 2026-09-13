@@ -32,12 +32,12 @@ class EgonModelTest {
         TestBusinessModel model = TestBusinessModel.builder()
                 .title("title")
                 .payload("payload")
-                .version(3L)
                 .build();
 
         assertEquals("title", model.getTitle());
         assertEquals("payload", model.getPayload());
-        assertEquals(3L, model.getVersion());
+        assertEquals(null, model.getVersion());
+        model.setVersion(3L);
 
         model.setId(101L);
         model.setTenantId(9L);
@@ -45,14 +45,14 @@ class EgonModelTest {
         model.setCreateTime(NOW);
         model.setUpdateUserId("updater");
         model.setUpdateTime(NOW);
-        model.setIsDeleted(false);
+        model.setDeletedAt(null);
         assertEquals(101L, model.getId());
         assertEquals(9L, model.getTenantId());
         assertEquals("creator", model.getCreateUserId());
         assertEquals(NOW, model.getCreateTime());
         assertEquals("updater", model.getUpdateUserId());
         assertEquals(NOW, model.getUpdateTime());
-        assertFalse(model.getIsDeleted());
+        assertEquals(null, model.getDeletedAt());
 
         Object builder = TestBusinessModel.builder();
         assertThrows(NoSuchMethodException.class,
@@ -130,7 +130,7 @@ class EgonModelTest {
         model.setCreateTime(NOW.minusSeconds(1));
         model.setUpdateUserId("forged-update");
         model.setUpdateTime(NOW.minusSeconds(1));
-        model.setIsDeleted(true);
+        model.setDeletedAt(java.time.LocalDateTime.of(2026, 1, 1, 0, 0));
 
         handler.insertFill(SystemMetaObject.forObject(model));
 
@@ -140,13 +140,13 @@ class EgonModelTest {
         assertEquals(NOW, model.getCreateTime());
         assertEquals("operator-7", model.getUpdateUserId());
         assertEquals(NOW, model.getUpdateTime());
-        assertFalse(model.getIsDeleted());
+        assertEquals(null, model.getDeletedAt());
         assertEquals(1, tenant.reads());
         assertEquals(1, user.reads());
     }
 
     @Test
-    void updateFillRefreshesOnlyTenantAndUpdateAuditFields() {
+    void updateFillPreservesIdentityAndVersionWhileRefreshingUpdateAudit() {
         TestTenantIdProvider tenant = new TestTenantIdProvider();
         tenant.set(0L);
         TestUserIdProvider user = new TestUserIdProvider();
@@ -156,22 +156,24 @@ class EgonModelTest {
         TestBusinessModel model = new TestBusinessModel().businessValues("title", "payload");
         Instant createdAt = NOW.minusSeconds(10);
         model.setId(99L);
-        model.setTenantId(42L);
+        model.setTenantId(0L);
+        model.setVersion(3L);
         model.setCreateUserId("creator");
         model.setCreateTime(createdAt);
         model.setUpdateUserId("old-operator");
         model.setUpdateTime(createdAt);
-        model.setIsDeleted(true);
+        model.setDeletedAt(java.time.LocalDateTime.of(2026, 1, 1, 0, 0));
 
         handler.updateFill(SystemMetaObject.forObject(model));
 
         assertEquals(99L, model.getId());
         assertEquals(0L, model.getTenantId());
+        assertEquals(3L, model.getVersion());
         assertEquals("creator", model.getCreateUserId());
         assertEquals(createdAt, model.getCreateTime());
         assertEquals("operator-0", model.getUpdateUserId());
         assertEquals(NOW, model.getUpdateTime());
-        assertTrue(model.getIsDeleted());
+        assertEquals(java.time.LocalDateTime.of(2026, 1, 1, 0, 0), model.getDeletedAt());
         assertEquals(1, tenant.reads());
         assertEquals(1, user.reads());
     }
@@ -207,6 +209,38 @@ class EgonModelTest {
                     new TestBusinessModel().businessValues("title", "payload")));
             return null;
         });
+    }
+
+    @Test
+    void optionalFillHooksCannotOverrideCommonFields() {
+        TestTenantIdProvider tenant = new TestTenantIdProvider();
+        tenant.set(1L);
+        TestUserIdProvider user = new TestUserIdProvider();
+        user.set("user");
+        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(tenant, user, Clock.systemUTC()) {
+            @Override
+            protected void afterInsertFill(MetaObject object) { object.setValue("tenantId", 99L); }
+        };
+        assertContextFailure("TECHNICAL_FIELD_OVERRIDE_FORBIDDEN", () -> {
+            handler.insertFill(SystemMetaObject.forObject(new TestBusinessModel().businessValues("title", null)));
+            return null;
+        });
+    }
+
+    @Test
+    void updatesRejectTenantChangesInsteadOfReplacingTheirIdentity() {
+        TestTenantIdProvider tenant = new TestTenantIdProvider();
+        tenant.set(1L);
+        TestUserIdProvider user = new TestUserIdProvider();
+        user.set("user");
+        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(tenant, user, Clock.systemUTC());
+        TestBusinessModel model = new TestBusinessModel().businessValues("title", null);
+        model.setTenantId(99L);
+        assertContextFailure("TENANT_CONTEXT_MISMATCH", () -> {
+            handler.updateFill(SystemMetaObject.forObject(model));
+            return null;
+        });
+        assertEquals(99L, model.getTenantId());
     }
 
     private static void assertContextFailure(String code, ThrowingSupplier<?> action) {

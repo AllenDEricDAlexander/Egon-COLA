@@ -39,7 +39,7 @@ class WebArchitectureTest {
                 .reduce("", String::concat);
         assertTrue(source.contains("extends EgonModel<"));
         assertTrue(source.contains("extends EgonColaMapper<"));
-        assertTrue(source.contains("extends EgonColaServiceImpl<"));
+        assertFalse(source.contains("extends EgonColaServiceImpl<"));
         assertFalse(source.contains("JpaRepository"));
         assertFalse(source.contains("repo.mapper"));
         assertEquals(8, javaFiles.stream()

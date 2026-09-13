@@ -1,644 +1,414 @@
 package top.egon.cola.archetype.source.web.infrastructure.config.datasource;
 
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.shardingsphere.driver.yaml.YamlJDBCConfiguration;
+import org.apache.shardingsphere.infra.algorithm.core.yaml.YamlAlgorithmConfiguration;
+import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
+import org.apache.shardingsphere.sharding.yaml.config.YamlShardingRuleConfiguration;
+import org.apache.shardingsphere.sharding.yaml.config.rule.YamlTableRuleConfiguration;
+import org.apache.shardingsphere.single.yaml.config.YamlSingleRuleConfiguration;
+import org.apache.shardingsphere.broadcast.yaml.config.YamlBroadcastRuleConfiguration;
+import org.apache.shardingsphere.readwritesplitting.yaml.config.YamlReadwriteSplittingRuleConfiguration;
+import org.apache.shardingsphere.transaction.yaml.config.YamlTransactionRuleConfiguration;
+import org.springframework.beans.factory.annotation.Qualifier;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.common.mybatis.ddl.EgonColaDdlTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
+
+import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Properties;
 import java.util.Set;
-import java.util.regex.Matcher;
+import java.util.TreeMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Validates that physical groups, stable routing and Flyway targets describe one topology.
- */
+/** Validates one typed SS policy, then verifies physical metadata before logical datasource creation. */
+@Slf4j
+@RequiredArgsConstructor
 public final class ShardingTopologyValidator {
+    private static final long SEED = 0x9e3779b97f4a7c15L;
+    private static final Pattern RANGE = Pattern.compile("\\$->\\{(\\d+)\\.\\.(\\d+)}");
+    @Qualifier("egonColaValidationUtils")
+    private final ValidationUtils validation;
 
-    private static final Pattern INLINE_RANGE =
-            Pattern.compile("^(.*)\\$->\\{(\\d+)\\.\\.(\\d+)}$");
-
-    public void validate(ShardingDataSourceProperties properties, byte[] yaml) {
-        if (properties == null || properties.routing() == null) {
-            throw new IllegalArgumentException("sharding routing properties must not be null");
-        }
-        ShardingNodeMap nodeMap = parseNodeMap(properties.routing());
-        Set<String> expectedLogicalNames = new LinkedHashSet<>();
-        expectedLogicalNames.add("master_data");
-        nodeMap.nodes().values().stream()
-                .map(ShardingNodeMap.PhysicalNode::database)
-                .forEach(expectedLogicalNames::add);
-
-        Map<String, List<ShardingDataSourceProperties.PhysicalDataSourceProperties>>
-                sourcesByLogicalName = properties.physicalDataSources().stream()
-                        .collect(Collectors.groupingBy(
-                                ShardingDataSourceProperties.PhysicalDataSourceProperties
-                                        ::logicalName,
-                                LinkedHashMap::new,
-                                Collectors.toList()));
-        if (!sourcesByLogicalName.keySet().equals(expectedLogicalNames)) {
-            Set<String> difference = new LinkedHashSet<>(expectedLogicalNames);
-            difference.removeAll(sourcesByLogicalName.keySet());
-            if (difference.isEmpty()) {
-                difference.addAll(sourcesByLogicalName.keySet());
-                difference.removeAll(expectedLogicalNames);
-            }
-            throw new IllegalArgumentException(
-                    "physical logical groups do not match routing topology: " + difference);
-        }
-
-        Set<String> primaryNames = validateRoles(sourcesByLogicalName);
-        validateFlywayTargets(properties.flyway(), properties.physicalDataSources(), primaryNames);
-        validateRuleRouting(properties.routing(), nodeMap, sourcesByLogicalName, yaml);
-    }
-
-    private static ShardingNodeMap parseNodeMap(
-            ShardingDataSourceProperties.ShardingRoutingProperties routing) {
-        Properties values = new Properties();
-        values.setProperty("node-count", Integer.toString(routing.nodeCount()));
-        if (routing.nodeMap() != null) {
-            values.setProperty("node-map", routing.nodeMap());
-        }
-        return ShardingNodeMap.parse(values);
-    }
-
-    private static Set<String> validateRoles(
-            Map<String, List<ShardingDataSourceProperties.PhysicalDataSourceProperties>>
-                    sourcesByLogicalName) {
-        Set<String> physicalNames = new HashSet<>();
-        Set<String> primaryNames = new LinkedHashSet<>();
-        sourcesByLogicalName.forEach((logicalName, sources) -> {
-            long primaryCount = sources.stream()
-                    .filter(source -> source.role()
-                            == ShardingDataSourceProperties.DataSourceRole.PRIMARY)
-                    .count();
-            if (primaryCount != 1) {
-                throw new IllegalArgumentException(
-                        "logical group " + logicalName + " must have exactly one primary");
-            }
-            for (ShardingDataSourceProperties.PhysicalDataSourceProperties source : sources) {
-                if (!physicalNames.add(source.name())) {
-                    throw new IllegalArgumentException(
-                            "duplicate physical data source name: " + source.name());
-                }
-                if (source.role() == ShardingDataSourceProperties.DataSourceRole.PRIMARY) {
-                    primaryNames.add(source.name());
-                }
-            }
+    public TopologyBO validate(ShardingDataSourceProperties properties, byte[] yaml) {
+        validation.validate(properties);
+        if (yaml == null || yaml.length == 0) { throw new IllegalArgumentException("SHARDING_YAML_REQUIRED"); }
+        YamlJDBCConfiguration configuration = YamlEngine.unmarshal(new String(yaml, StandardCharsets.UTF_8), YamlJDBCConfiguration.class);
+        if (!configuration.getDataSources().isEmpty()) { throw new IllegalArgumentException("PHYSICAL_DATASOURCES_MUST_HAVE_ONE_OWNER"); }
+        if (configuration.getTransaction() == null) { configuration.setTransaction(new YamlTransactionRuleConfiguration()); }
+        if (!"LOCAL".equals(configuration.getTransaction().getDefaultType())) { throw new IllegalArgumentException("LOCAL_TRANSACTION_REQUIRED"); }
+        ShardingNodeMap legacy = ShardingNodeMap.parse(routing(properties.routing()));
+        Map<String, List<ShardingDataSourceProperties.PhysicalDataSourceProperties>> groups = properties.physicalDataSources().stream()
+                .collect(Collectors.groupingBy(ShardingDataSourceProperties.PhysicalDataSourceProperties::logicalName, TreeMap::new, Collectors.toList()));
+        Map<String, ShardingDataSourceProperties.PhysicalDataSourceProperties> sources = new LinkedHashMap<>();
+        properties.physicalDataSources().forEach(source -> {
+            if (sources.put(source.name(), source) != null) { throw new IllegalArgumentException("DUPLICATE_PHYSICAL_DATASOURCE"); }
         });
-        return primaryNames;
-    }
-
-    private static void validateFlywayTargets(
-            ShardingDataSourceProperties.ShardingFlywayProperties flyway,
-            List<ShardingDataSourceProperties.PhysicalDataSourceProperties> dataSources,
-            Set<String> primaryNames) {
-        if (flyway == null) {
-            throw new IllegalArgumentException("Flyway targets must not be null");
-        }
-        Map<String, ShardingDataSourceProperties.PhysicalDataSourceProperties> byName =
-                dataSources.stream().collect(Collectors.toMap(
-                        ShardingDataSourceProperties.PhysicalDataSourceProperties::name,
-                        source -> source));
-        Set<String> targetNames = new LinkedHashSet<>();
-        for (ShardingDataSourceProperties.FlywayTargetProperties target : flyway.targets()) {
-            if (target == null
-                    || target.dataSourceName() == null
-                    || target.dataSourceName().isBlank()) {
-                throw new IllegalArgumentException("Flyway target name must not be blank");
-            }
-            if (!targetNames.add(target.dataSourceName())) {
-                throw new IllegalArgumentException(
-                        "duplicate Flyway target: " + target.dataSourceName());
-            }
-            ShardingDataSourceProperties.PhysicalDataSourceProperties source =
-                    byName.get(target.dataSourceName());
-            if (source == null) {
-                throw new IllegalArgumentException(
-                        "Flyway target is not a physical data source: "
-                                + target.dataSourceName());
-            }
-            if (source.role() != ShardingDataSourceProperties.DataSourceRole.PRIMARY) {
-                throw new IllegalArgumentException(
-                        "Flyway target must not reference a replica: "
-                                + target.dataSourceName());
-            }
-            if (target.locations().isEmpty()
-                    || target.locations().stream()
-                            .anyMatch(location -> location == null || location.isBlank())) {
-                throw new IllegalArgumentException(
-                        "Flyway target locations must not be empty: "
-                                + target.dataSourceName());
-            }
-        }
-        if (!targetNames.equals(primaryNames)) {
-            Set<String> missing = new LinkedHashSet<>(primaryNames);
-            missing.removeAll(targetNames);
-            throw new IllegalArgumentException(
-                    "every primary must have exactly one Flyway target: " + missing);
-        }
-    }
-
-    private static void validateRuleRouting(
-            ShardingDataSourceProperties.ShardingRoutingProperties routing,
-            ShardingNodeMap nodeMap,
-            Map<String, List<ShardingDataSourceProperties.PhysicalDataSourceProperties>>
-                    sourcesByLogicalName,
-            byte[] yaml) {
-        if (yaml == null || yaml.length == 0) {
-            throw new IllegalArgumentException("ShardingSphere rule content must not be empty");
-        }
-        String content = new String(yaml, StandardCharsets.UTF_8);
-        if (content.contains("!SINGLE") || content.contains("defaultDataSource")) {
-            throw new IllegalArgumentException(
-                    "!SINGLE and defaultDataSource are not allowed; use none strategies");
-        }
-        String shardingRule = uniqueRuleSection(content, "!SHARDING");
-        requireTwice(shardingRule, "node-count", routing.nodeCount());
-        requireTwice(shardingRule, "node-map", routing.nodeMap());
-        validateDataSourceRules(content, sourcesByLogicalName);
-        validateActualDataNodes(shardingRule, nodeMap);
-    }
-
-    private static String uniqueRuleSection(String content, String ruleName) {
-        List<String> lines = content.lines().toList();
-        List<Integer> starts = new java.util.ArrayList<>();
-        for (int index = 0; index < lines.size(); index++) {
-            if (lines.get(index).strip().equals("- " + ruleName)) {
-                starts.add(index);
-            }
-        }
-        if (starts.size() != 1) {
-            throw new IllegalArgumentException(
-                    "ShardingSphere rule must contain exactly one " + ruleName);
-        }
-        int start = starts.getFirst();
-        int markerIndent = indentation(lines.get(start));
-        int end = lines.size();
-        for (int index = start + 1; index < lines.size(); index++) {
-            String line = lines.get(index);
-            String value = line.strip();
-            if (!value.isEmpty()
-                    && indentation(line) <= markerIndent
-                    && (value.startsWith("- !") || !line.startsWith(" "))) {
-                end = index;
-                break;
-            }
-        }
-        return String.join("\n", lines.subList(start, end));
-    }
-
-    private static void validateDataSourceRules(
-            String content,
-            Map<String, List<ShardingDataSourceProperties.PhysicalDataSourceProperties>>
-                    sourcesByLogicalName) {
-        if (!content.contains("- !READWRITE_SPLITTING")) {
-            sourcesByLogicalName.forEach((logicalName, sources) -> {
-                if (sources.size() != 1
-                        || sources.getFirst().role()
-                                != ShardingDataSourceProperties.DataSourceRole.PRIMARY
-                        || !logicalName.equals(sources.getFirst().name())) {
-                    throw new IllegalArgumentException(
-                            "primary-only rules must reference one same-name primary: "
-                                    + logicalName);
-                }
-            });
-            return;
-        }
-
-        Map<String, ReadwriteGroup> groups = parseReadwriteGroups(content);
-        if (!groups.keySet().equals(sourcesByLogicalName.keySet())) {
-            throw new IllegalArgumentException(
-                    "readwrite groups do not match physical logical groups");
-        }
-        sourcesByLogicalName.forEach((logicalName, sources) -> {
-            String primary = sources.stream()
-                    .filter(source -> source.role()
-                            == ShardingDataSourceProperties.DataSourceRole.PRIMARY)
-                    .map(ShardingDataSourceProperties.PhysicalDataSourceProperties::name)
-                    .findFirst()
-                    .orElseThrow();
-            Set<String> replicas = sources.stream()
-                    .filter(source -> source.role()
-                            == ShardingDataSourceProperties.DataSourceRole.REPLICA)
-                    .map(ShardingDataSourceProperties.PhysicalDataSourceProperties::name)
-                    .collect(Collectors.toCollection(LinkedHashSet::new));
-            ReadwriteGroup group = groups.get(logicalName);
-            if (!primary.equals(group.writer())) {
-                throw new IllegalArgumentException(
-                        "readwrite group write data source must be its configured primary: "
-                                + logicalName);
-            }
-            if (replicas.isEmpty() || !replicas.equals(group.readers())) {
-                throw new IllegalArgumentException(
-                        "readwrite group read data sources must match configured replicas: "
-                                + logicalName);
-            }
-            if (!"PRIMARY".equals(group.transactionalReadQueryStrategy())) {
-                throw new IllegalArgumentException(
-                        "transactional read query strategy must be PRIMARY: " + logicalName);
-            }
+        Set<String> primaries = new HashSet<>();
+        groups.forEach((name, members) -> {
+            var primary = members.stream().filter(source -> source.role() == ShardingDataSourceProperties.DataSourceRole.PRIMARY).toList();
+            if (primary.size() != 1) { throw new IllegalArgumentException("EXACTLY_ONE_PRIMARY_REQUIRED"); }
+            primaries.add(primary.getFirst().name());
         });
+        Map<String, String> schemas = new TreeMap<>();
+        Set<String> targets = new HashSet<>();
+        for (var target : properties.ddl().targets()) {
+            var source = sources.get(target.dataSourceName());
+            if (source == null || source.role() != ShardingDataSourceProperties.DataSourceRole.PRIMARY || !targets.add(source.name())) {
+                throw new IllegalArgumentException("DDL_TARGET_MUST_BE_UNIQUE_PRIMARY");
+            }
+            if (!target.manifest().startsWith("classpath:") || target.manifest().contains("..")) { throw new IllegalArgumentException("CLASSPATH_MANIFEST_REQUIRED"); }
+            schemas.put(source.logicalName(), target.schema());
+        }
+        if (!targets.equals(primaries)) { throw new IllegalArgumentException("DDL_PRIMARY_COVERAGE_REQUIRED"); }
+        Map<String, EgonColaRoutingProfileBO> profiles = new TreeMap<>();
+        List<YamlShardingRuleConfiguration> shardings = new ArrayList<>();
+        YamlReadwriteSplittingRuleConfiguration readwrite = null;
+        Set<String> broadcast = new LinkedHashSet<>();
+        for (var rule : configuration.getRules()) {
+            if (rule instanceof YamlSingleRuleConfiguration single) {
+                if (single.getDefaultDataSource() != null && !single.getDefaultDataSource().isBlank()) { throw new IllegalArgumentException("SINGLE_DEFAULT_FORBIDDEN"); }
+                for (String table : single.getTables()) {
+                    String[] parts = table.split("\\.");
+                    if (parts.length != 3 || table.contains("*")) { throw new IllegalArgumentException("SINGLE_GROUP_SCHEMA_TABLE_REQUIRED"); }
+                    EgonColaPhysicalTargetBO node = new EgonColaPhysicalTargetBO(parts[0], parts[1], parts[2]);
+                    validateNode(node, schemas);
+                    put(profiles, simple(parts[2], EgonColaRoutingProfileBO.TableKindEnum.SINGLE, List.of(node)));
+                }
+            } else if (rule instanceof YamlBroadcastRuleConfiguration copies) {
+                for (String table : copies.getTables()) {
+                    List<EgonColaPhysicalTargetBO> nodes = schemas.entrySet().stream()
+                            .map(entry -> new EgonColaPhysicalTargetBO(entry.getKey(), entry.getValue(), table)).toList();
+                    put(profiles, simple(table, EgonColaRoutingProfileBO.TableKindEnum.BROADCAST_READ_ONLY, nodes));
+                    broadcast.add(table);
+                }
+            } else if (rule instanceof YamlShardingRuleConfiguration sharding) {
+                // YAML retains numeric scalars, while the ShardingSphere SPI reads string properties.
+                sharding.getShardingAlgorithms().values().forEach(algorithm -> {
+                    Properties normalized = new Properties();
+                    algorithm.getProps().forEach((key, value) -> normalized.setProperty(key.toString(), value.toString()));
+                    algorithm.setProps(normalized);
+                });
+                shardings.add(sharding);
+            } else if (rule instanceof YamlReadwriteSplittingRuleConfiguration splitting) {
+                if (readwrite != null) { throw new IllegalArgumentException("DUPLICATE_READWRITE_RULE"); }
+                readwrite = splitting;
+            } else { throw new IllegalArgumentException("UNSUPPORTED_SHARDING_RULE"); }
+        }
+        if (shardings.size() > 1) { throw new IllegalArgumentException("DUPLICATE_SHARDING_RULE"); }
+        String readwriteFingerprint = validateReadwrite(groups, readwrite);
+        for (YamlShardingRuleConfiguration sharding : shardings) { addSharding(sharding, legacy, schemas, profiles); }
+        if (profiles.isEmpty()) { throw new IllegalArgumentException("LOGICAL_TABLES_REQUIRED"); }
+        Set<String> actual = new HashSet<>();
+        for (var profile : profiles.values()) for (var nodes : profile.actualNodes().values()) for (var node : nodes) {
+            if (!actual.add(node.group() + '.' + node.schema() + '.' + node.table())) { throw new IllegalArgumentException("PHYSICAL_TABLE_RULE_OVERLAP"); }
+        }
+        String physical = sources.values().stream().map(source -> source.name() + ':' + source.logicalName() + ':' + source.role()).sorted().collect(Collectors.joining("|"));
+        String fingerprint = digest("ss-policy-v1|" + profiles + '|' + legacy + '|' + physical + '|' + readwriteFingerprint);
+        return new TopologyBO(YamlEngine.marshal(configuration).getBytes(StandardCharsets.UTF_8), profiles, legacy, schemas, broadcast, fingerprint);
     }
 
-    private static Map<String, ReadwriteGroup> parseReadwriteGroups(String content) {
-        int start = content.indexOf("    dataSourceGroups:");
-        int end = content.indexOf("\n    loadBalancers:", start);
-        if (start < 0 || end < 0) {
-            throw new IllegalArgumentException(
-                    "READWRITE_SPLITTING must define dataSourceGroups and loadBalancers");
+    private void addSharding(YamlShardingRuleConfiguration rule, ShardingNodeMap legacy, Map<String, String> schemas,
+                             Map<String, EgonColaRoutingProfileBO> profiles) {
+        if (!rule.getAutoTables().isEmpty() || rule.getDefaultDatabaseStrategy() != null || rule.getDefaultTableStrategy() != null
+                || rule.getDefaultKeyGenerateStrategy() != null || !rule.getKeyGenerators().isEmpty()) {
+            throw new IllegalArgumentException("EXPLICIT_ROUTING_AND_APPLICATION_IDS_REQUIRED");
         }
-
-        Map<String, ReadwriteGroupBuilder> builders = new LinkedHashMap<>();
-        ReadwriteGroupBuilder current = null;
-        boolean readingReplicas = false;
-        for (String line : content.substring(start, end).lines().toList()) {
-            String value = line.strip();
-            int indentation = line.length() - line.stripLeading().length();
-            if (indentation == 6 && value.endsWith(":")) {
-                String groupName = value.substring(0, value.length() - 1);
-                current = new ReadwriteGroupBuilder(groupName);
-                if (builders.put(groupName, current) != null) {
-                    throw new IllegalArgumentException(
-                            "duplicate readwrite group: " + groupName);
-                }
-                readingReplicas = false;
-            } else if (current != null && indentation == 8) {
-                readingReplicas = false;
-                if (value.startsWith("writeDataSourceName:")) {
-                    current.writer = scalar(value);
-                } else if (value.equals("readDataSourceNames:")) {
-                    readingReplicas = true;
-                } else if (value.startsWith("transactionalReadQueryStrategy:")) {
-                    current.transactionalReadQueryStrategy = scalar(value);
-                }
-            } else if (current != null
-                    && readingReplicas
-                    && indentation == 10
-                    && value.startsWith("- ")) {
-                String replica = value.substring(2).trim();
-                if (!current.readers.add(replica)) {
-                    throw new IllegalArgumentException(
-                            "duplicate read data source: " + replica);
-                }
+        Map<String, String> bindings = new HashMap<>();
+        for (String group : rule.getBindingTables()) {
+            List<String> tables = List.of(group.split(",")).stream().map(String::trim).sorted().toList();
+            String key = "binding_" + digest(String.join(",", tables)).substring(0, 16);
+            for (String table : tables) {
+                if (bindings.put(table, key) != null || !rule.getTables().containsKey(table)) { throw new IllegalArgumentException("INVALID_BINDING_TABLE_GROUP"); }
             }
         }
-        return builders.values().stream().collect(Collectors.toMap(
-                builder -> builder.name,
-                ReadwriteGroupBuilder::build,
-                (left, right) -> left,
-                LinkedHashMap::new));
+        Map<String, YamlAlgorithmConfiguration> algorithms = new LinkedHashMap<>();
+        Set<String> referenced = new HashSet<>();
+        for (var entry : rule.getTables().entrySet()) {
+            String table = entry.getKey();
+            YamlTableRuleConfiguration configured = entry.getValue();
+            if (configured.getKeyGenerateStrategy() != null || configured.getDatabaseStrategy() == null
+                    || configured.getDatabaseStrategy().getStandard() == null || configured.getTableStrategy() == null) {
+                throw new IllegalArgumentException("EXPLICIT_TENANT_STRATEGY_REQUIRED");
+            }
+            var database = configured.getDatabaseStrategy().getStandard();
+            if (!"tenant_id".equals(database.getShardingColumn())) { throw new IllegalArgumentException("TENANT_DATABASE_KEY_REQUIRED"); }
+            var db = algorithm(rule, database.getShardingAlgorithmName(), referenced);
+            List<EgonColaPhysicalTargetBO> nodes = expand(configured.getActualDataNodes(), schemas);
+            configured.setActualDataNodes(nodes.stream().map(node -> node.group() + '.' + node.schema() + '.' + node.table()).collect(Collectors.joining(",")));
+            if (configured.getTableStrategy().getStandard() != null) {
+                var strategy = configured.getTableStrategy().getStandard();
+                var tableAlgorithm = algorithm(rule, strategy.getShardingAlgorithmName(), referenced);
+                if (!"tenant_id".equals(strategy.getShardingColumn()) || !legacyAlgorithm(db, "database", legacy)
+                        || !legacyAlgorithm(tableAlgorithm, "table", legacy)) { throw new IllegalArgumentException("LEGACY_ROUTING_POLICY_MISMATCH"); }
+                Set<EgonColaPhysicalTargetBO> expected = legacy.nodes().values().stream().map(node ->
+                        new EgonColaPhysicalTargetBO(node.database(), schemas.get(node.database()), table + '_' + node.tableSuffix())).collect(Collectors.toSet());
+                if (!expected.equals(new HashSet<>(nodes))) { throw new IllegalArgumentException("ACTUAL_NODES_MISMATCH"); }
+                put(profiles, new EgonColaRoutingProfileBO(table, EgonColaRoutingProfileBO.TableKindEnum.TENANT_LEGACY,
+                        "legacy-v1", 1, 1, Map.of(), null, null, SEED,
+                        Map.of(new EgonColaRoutingProfileBO.PartitionKeyBO(0, 0), nodes), 1, bindings.get(table)));
+                algorithms.put(database.getShardingAlgorithmName(), db);
+                algorithms.put(strategy.getShardingAlgorithmName(), tableAlgorithm);
+            } else if (configured.getTableStrategy().getComplex() != null) {
+                var strategy = configured.getTableStrategy().getComplex();
+                var tableAlgorithm = algorithm(rule, strategy.getShardingAlgorithmName(), referenced);
+                if (!TenantDatabaseShardingAlgorithm.class.getName().equals(db.getProps().getProperty("algorithmClassName"))
+                        || !TenantBusinessTableShardingAlgorithm.class.getName().equals(tableAlgorithm.getProps().getProperty("algorithmClassName"))
+                        || !"STANDARD".equals(db.getProps().getProperty("strategy")) || !"COMPLEX".equals(tableAlgorithm.getProps().getProperty("strategy"))) {
+                    throw new IllegalArgumentException("TWO_LEVEL_ALGORITHM_REQUIRED");
+                }
+                for (String key : List.of("algorithm-version", "tenant-slot-count", "tenant-slot-map")) {
+                    if (!Objects.equals(db.getProps().getProperty(key), tableAlgorithm.getProps().getProperty(key))) {
+                        throw new IllegalArgumentException("TWO_LEVEL_POLICY_MISMATCH");
+                    }
+                }
+                String secondary = tableAlgorithm.getProps().getProperty("secondary-column");
+                Set<String> columns = List.of(strategy.getShardingColumns().split(",")).stream().map(String::trim).collect(Collectors.toSet());
+                if (!columns.equals(Set.of("tenant_id", secondary))) { throw new IllegalArgumentException("SECONDARY_COLUMN_MISMATCH"); }
+                Properties complete = new Properties();
+                complete.putAll(tableAlgorithm.getProps());
+                complete.setProperty("logical-table", table);
+                complete.setProperty("actual-data-nodes", nodes.stream().map(node -> node.group() + '.' + node.schema() + '.' + node.table()).collect(Collectors.joining(",")));
+                if (bindings.containsKey(table)) { complete.setProperty("binding-group", bindings.get(table)); }
+                EgonColaRoutingProfileBO profile = validation.validate(ShardingWriteTargetResolver.profile(complete));
+                put(profiles, profile);
+                // SS constructs unmanaged SPI objects. Enrich per-table algorithm copies from this same typed rule.
+                String dbName = database.getShardingAlgorithmName() + "__" + table;
+                String tableName = strategy.getShardingAlgorithmName() + "__" + table;
+                algorithms.put(dbName, copyAlgorithm(complete, TenantDatabaseShardingAlgorithm.class.getName(), "STANDARD"));
+                algorithms.put(tableName, copyAlgorithm(complete, TenantBusinessTableShardingAlgorithm.class.getName(), "COMPLEX"));
+                database.setShardingAlgorithmName(dbName);
+                strategy.setShardingAlgorithmName(tableName);
+            } else { throw new IllegalArgumentException("UNSUPPORTED_TABLE_STRATEGY"); }
+        }
+        if (!referenced.equals(rule.getShardingAlgorithms().keySet())) { throw new IllegalArgumentException("UNUSED_SHARDING_ALGORITHM"); }
+        rule.setShardingAlgorithms(algorithms);
+        for (String binding : new HashSet<>(bindings.values())) {
+            List<EgonColaRoutingProfileBO> members = profiles.values().stream().filter(profile -> binding.equals(profile.bindingGroup())).toList();
+            EgonColaRoutingProfileBO first = members.getFirst();
+            if (members.stream().anyMatch(profile -> profile.kind() != first.kind() || profile.tenantSlotCount() != first.tenantSlotCount()
+                    || profile.secondaryBucketCount() != first.secondaryBucketCount() || !profile.tenantSlotMap().equals(first.tenantSlotMap())
+                    || !Objects.equals(profile.rootKeyName(), first.rootKeyName()) || !profile.algorithmVersion().equals(first.algorithmVersion())
+                    || profile.secondarySeed() != first.secondarySeed())) { throw new IllegalArgumentException("BINDING_POLICY_MISMATCH"); }
+        }
     }
 
-    private static String scalar(String line) {
-        int separator = line.indexOf(':');
-        String value = separator < 0 ? "" : line.substring(separator + 1).trim();
-        if (value.isEmpty()) {
-            throw new IllegalArgumentException("rule scalar value must not be blank: " + line);
-        }
+    private static YamlAlgorithmConfiguration algorithm(YamlShardingRuleConfiguration rule, String name, Set<String> referenced) {
+        YamlAlgorithmConfiguration value = rule.getShardingAlgorithms().get(name);
+        if (value == null || !"CLASS_BASED".equals(value.getType())) { throw new IllegalArgumentException("CLASS_BASED_ALGORITHM_REQUIRED"); }
+        referenced.add(name);
         return value;
     }
 
-    private static void validateActualDataNodes(String shardingRule, ShardingNodeMap nodeMap) {
-        Set<String> expectedDatabases = nodeMap.nodes().values().stream()
-                .map(ShardingNodeMap.PhysicalNode::database)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        Set<Integer> expectedTableSuffixes = nodeMap.nodes().values().stream()
-                .map(ShardingNodeMap.PhysicalNode::tableSuffix)
-                .collect(Collectors.toCollection(LinkedHashSet::new));
-        Map<String, TableRule> tableRules = parseShardingTableRules(shardingRule);
-        boolean shardedTablePresent = false;
-        for (Map.Entry<String, TableRule> entry : tableRules.entrySet()) {
-            String logicalTable = entry.getKey();
-            TableRule tableRule = entry.getValue();
-            String expression = tableRule.actualDataNodes();
-            String[] segments = splitActualDataNode(expression);
-
-            if (segments[0].equals("master_data")) {
-                if (!segments[1].equals(logicalTable)) {
-                    throw new IllegalArgumentException(
-                            "master-data physical table must match logical table: "
-                                    + logicalTable);
-                }
-                if (tableRule.databaseStrategy() != Strategy.NONE
-                        || tableRule.tableStrategy() != Strategy.NONE) {
-                    throw new IllegalArgumentException(
-                            "master-data table must use databaseStrategy.none and "
-                                    + "tableStrategy.none: " + logicalTable);
-                }
-                if (tableRule.shardingAuditRequired()) {
-                    throw new IllegalArgumentException(
-                            "master-data none table must not require sharding audit: "
-                                    + logicalTable);
-                }
-                continue;
-            }
-
-            shardedTablePresent = true;
-            if (!expectedDatabases.equals(expandNames(segments[0]))
-                    || !expectedTableSuffixes.equals(expandNumericSuffixes(segments[1]))) {
-                throw new IllegalArgumentException(
-                        "actualDataNodes do not match stable node map: " + expression);
-            }
-            if (!logicalTable.equals(physicalTableBaseName(segments[1]))) {
-                throw new IllegalArgumentException(
-                        "actualDataNodes physical table must match logical table: "
-                                + logicalTable);
-            }
-            if (tableRule.databaseStrategy() != Strategy.STANDARD
-                    || tableRule.tableStrategy() != Strategy.STANDARD) {
-                throw new IllegalArgumentException(
-                        "sharded table must use standard database and table strategies: "
-                                + logicalTable);
-            }
-            if (!tableRule.shardingAuditRequired()) {
-                throw new IllegalArgumentException(
-                        "sharded table must declare DML sharding audit: " + logicalTable);
-            }
-            if (tableRule.hintDisableAllowed()) {
-                throw new IllegalArgumentException(
-                        "sharded table allowHintDisable must be false: " + logicalTable);
-            }
-        }
-        if (shardedTablePresent) {
-            validateDmlAuditor(shardingRule);
-        }
+    private static YamlAlgorithmConfiguration copyAlgorithm(Properties source, String type, String strategy) {
+        YamlAlgorithmConfiguration result = new YamlAlgorithmConfiguration();
+        result.setType("CLASS_BASED");
+        Properties props = new Properties();
+        props.putAll(source);
+        props.setProperty("algorithmClassName", type);
+        props.setProperty("strategy", strategy);
+        result.setProps(props);
+        return result;
     }
 
-    private static Map<String, TableRule> parseShardingTableRules(String shardingRule) {
-        Map<String, List<String>> blocks = new LinkedHashMap<>();
-        List<String> currentBlock = null;
-        boolean insideTables = false;
-        for (String line : shardingRule.lines().toList()) {
-            String value = line.strip();
-            int indentation = indentation(line);
-            if (indentation == 4 && value.equals("tables:")) {
-                insideTables = true;
-                continue;
-            }
-            if (insideTables && indentation <= 4 && !value.isEmpty()) {
-                break;
-            }
-            if (insideTables && indentation == 6 && value.endsWith(":")) {
-                String table = value.substring(0, value.length() - 1);
-                if (!table.matches("[a-zA-Z0-9_]+") || blocks.containsKey(table)) {
-                    throw new IllegalArgumentException(
-                            "invalid or duplicate SHARDING logical table: " + table);
-                }
-                currentBlock = new java.util.ArrayList<>();
-                blocks.put(table, currentBlock);
-            } else if (insideTables && currentBlock != null) {
-                currentBlock.add(line);
-            }
-        }
-        if (blocks.isEmpty()) {
-            throw new IllegalArgumentException(
-                    "SHARDING rules must define actualDataNodes by logical table");
-        }
-        return blocks.entrySet().stream().collect(Collectors.toMap(
-                Map.Entry::getKey,
-                entry -> parseTableRule(entry.getKey(), entry.getValue()),
-                (left, right) -> left,
-                LinkedHashMap::new));
+    private static boolean legacyAlgorithm(YamlAlgorithmConfiguration algorithm, String target, ShardingNodeMap expected) {
+        return LongTenantShardingAlgorithm.class.getName().equals(algorithm.getProps().getProperty("algorithmClassName"))
+                && "STANDARD".equals(algorithm.getProps().getProperty("strategy"))
+                && target.equals(algorithm.getProps().getProperty("target")) && expected.equals(ShardingNodeMap.parse(algorithm.getProps()));
     }
 
-    private static TableRule parseTableRule(String table, List<String> lines) {
-        List<String> actualDataNodes = lines.stream()
-                .map(String::strip)
-                .filter(line -> line.startsWith("actualDataNodes:"))
-                .map(ShardingTopologyValidator::scalar)
-                .toList();
-        if (actualDataNodes.size() != 1) {
-            throw new IllegalArgumentException(
-                    "SHARDING logical table must define one actualDataNodes: " + table);
+    private static String validateReadwrite(Map<String, List<ShardingDataSourceProperties.PhysicalDataSourceProperties>> groups,
+                                            YamlReadwriteSplittingRuleConfiguration readwrite) {
+        if (readwrite == null) {
+            groups.forEach((group, members) -> {
+                if (members.size() != 1 || members.getFirst().role() != ShardingDataSourceProperties.DataSourceRole.PRIMARY
+                        || !group.equals(members.getFirst().name())) { throw new IllegalArgumentException("PRIMARY_ONLY_GROUP_REQUIRED"); }
+            });
+            return "primary-only";
         }
-        Strategy databaseStrategy = parseStrategy(lines, "databaseStrategy", table);
-        Strategy tableStrategy = parseStrategy(lines, "tableStrategy", table);
-        boolean auditRequired = lines.stream()
-                .map(String::strip)
-                .anyMatch("- sharding_key_required_auditor"::equals);
-        List<String> allowHintDisable = lines.stream()
-                .map(String::strip)
-                .filter(line -> line.startsWith("allowHintDisable:"))
-                .map(ShardingTopologyValidator::scalar)
-                .toList();
-        if (auditRequired && allowHintDisable.size() != 1) {
-            throw new IllegalArgumentException(
-                    "sharded table audit must declare allowHintDisable: " + table);
-        }
-        if (allowHintDisable.size() > 1
-                || (!allowHintDisable.isEmpty()
-                        && !Set.of("true", "false").contains(allowHintDisable.getFirst()))) {
-            throw new IllegalArgumentException(
-                    "allowHintDisable must be one boolean: " + table);
-        }
-        boolean hintDisableAllowed = !allowHintDisable.isEmpty()
-                && Boolean.parseBoolean(allowHintDisable.getFirst());
-        return new TableRule(
-                actualDataNodes.getFirst(),
-                databaseStrategy,
-                tableStrategy,
-                auditRequired,
-                hintDisableAllowed);
-    }
-
-    private static Strategy parseStrategy(
-            List<String> lines,
-            String strategyName,
-            String table) {
-        for (int index = 0; index < lines.size(); index++) {
-            String line = lines.get(index);
-            if (indentation(line) == 8 && line.strip().equals(strategyName + ":")) {
-                for (int nested = index + 1; nested < lines.size(); nested++) {
-                    String nestedLine = lines.get(nested);
-                    if (nestedLine.isBlank()) {
-                        continue;
-                    }
-                    if (indentation(nestedLine) != 10) {
-                        break;
-                    }
-                    return switch (nestedLine.strip()) {
-                        case "none:" -> Strategy.NONE;
-                        case "standard:" -> Strategy.STANDARD;
-                        default -> throw new IllegalArgumentException(
-                                "unsupported " + strategyName + " for table " + table);
-                    };
-                }
+        if (!groups.keySet().equals(readwrite.getDataSourceGroups().keySet())) { throw new IllegalArgumentException("READWRITE_GROUPS_MISMATCH"); }
+        List<String> fingerprint = new ArrayList<>();
+        groups.forEach((name, sources) -> {
+            var rule = readwrite.getDataSourceGroups().get(name);
+            String writer = sources.stream().filter(source -> source.role() == ShardingDataSourceProperties.DataSourceRole.PRIMARY).findFirst().orElseThrow().name();
+            Set<String> readers = sources.stream().filter(source -> source.role() == ShardingDataSourceProperties.DataSourceRole.REPLICA)
+                    .map(ShardingDataSourceProperties.PhysicalDataSourceProperties::name).collect(Collectors.toSet());
+            var balancer = readwrite.getLoadBalancers().get(rule.getLoadBalancerName());
+            if (!writer.equals(rule.getWriteDataSourceName()) || readers.isEmpty() || !readers.equals(new HashSet<>(rule.getReadDataSourceNames()))
+                    || !"PRIMARY".equals(rule.getTransactionalReadQueryStrategy().toString()) || balancer == null || !"ROUND_ROBIN".equals(balancer.getType())) {
+                throw new IllegalArgumentException("READWRITE_PRIMARY_REPLICA_POLICY_INVALID");
             }
-        }
-        throw new IllegalArgumentException(
-                "table must declare " + strategyName + ": " + table);
+            fingerprint.add(name + '>' + writer + '>' + readers.stream().sorted().toList());
+        });
+        return fingerprint.stream().sorted().collect(Collectors.joining("|"));
     }
 
-    private static void validateDmlAuditor(String shardingRule) {
-        long auditorTypes = shardingRule.lines()
-                .map(String::strip)
-                .filter("type: DML_SHARDING_CONDITIONS"::equals)
-                .count();
-        if (!shardingRule.contains("sharding_key_required_auditor:")
-                || auditorTypes != 1) {
-            throw new IllegalArgumentException(
-                    "sharded tables require one DML_SHARDING_CONDITIONS auditor");
+    private static List<EgonColaPhysicalTargetBO> expand(String value, Map<String, String> schemas) {
+        if (value == null || value.isBlank()) { throw new IllegalArgumentException("ACTUAL_NODES_REQUIRED"); }
+        List<String> expanded = new ArrayList<>();
+        for (String item : value.split(",")) { expandRange(item.trim(), expanded); }
+        List<EgonColaPhysicalTargetBO> result = new ArrayList<>();
+        for (String item : expanded) {
+            String[] parts = item.split("\\.");
+            EgonColaPhysicalTargetBO node = parts.length == 2 ? new EgonColaPhysicalTargetBO(parts[0], schemas.get(parts[0]), parts[1])
+                    : parts.length == 3 ? new EgonColaPhysicalTargetBO(parts[0], parts[1], parts[2]) : null;
+            if (node == null) { throw new IllegalArgumentException("INVALID_ACTUAL_NODE"); }
+            validateNode(node, schemas);
+            result.add(node);
         }
+        if (new HashSet<>(result).size() != result.size()) { throw new IllegalArgumentException("DUPLICATE_ACTUAL_NODE"); }
+        return result.stream().sorted(Comparator.comparing(EgonColaPhysicalTargetBO::group).thenComparing(EgonColaPhysicalTargetBO::schema)
+                .thenComparing(EgonColaPhysicalTargetBO::table)).toList();
     }
 
-    private static String physicalTableBaseName(String expression) {
-        Matcher matcher = INLINE_RANGE.matcher(expression);
-        if (matcher.matches()) {
-            String prefix = matcher.group(1);
-            if (!prefix.endsWith("_")) {
-                throw new IllegalArgumentException(
-                        "actualDataNodes physical table range must use a numeric suffix: "
-                                + expression);
-            }
-            return prefix.substring(0, prefix.length() - 1);
+    private static void expandRange(String value, List<String> result) {
+        var range = RANGE.matcher(value);
+        if (!range.find()) {
+            if (value.contains("$") || value.contains("*")) { throw new IllegalArgumentException("UNSUPPORTED_INLINE_EXPRESSION"); }
+            result.add(value);
+            return;
         }
-        int separator = expression.lastIndexOf('_');
-        if (separator < 1
-                || separator == expression.length() - 1
-                || !expression.substring(separator + 1).matches("\\d+")) {
-            throw new IllegalArgumentException(
-                    "actualDataNodes table must end with a numeric suffix: " + expression);
-        }
-        return expression.substring(0, separator);
+        int from = Integer.parseInt(range.group(1));
+        int to = Integer.parseInt(range.group(2));
+        if (from > to || to - from > 4096 || result.size() > 4096) { throw new IllegalArgumentException("ACTUAL_NODE_LIMIT_EXCEEDED"); }
+        for (long index = from; index <= to; index++) { expandRange(value.substring(0, range.start()) + index + value.substring(range.end()), result); }
     }
 
-    private static Set<String> expandNames(String expression) {
-        Matcher matcher = INLINE_RANGE.matcher(expression);
-        if (!matcher.matches()) {
-            if (!expression.matches("[a-zA-Z0-9_]+")) {
-                throw new IllegalArgumentException(
-                        "unsupported actualDataNodes data source expression: " + expression);
-            }
-            return Set.of(expression);
-        }
-        int start = Integer.parseInt(matcher.group(2));
-        int end = Integer.parseInt(matcher.group(3));
-        if (start > end) {
-            throw new IllegalArgumentException(
-                    "actualDataNodes range must be ascending: " + expression);
-        }
-        Set<String> values = new LinkedHashSet<>();
-        for (int value = start; value <= end; value++) {
-            values.add(matcher.group(1) + value);
-        }
+    private static EgonColaRoutingProfileBO simple(String table, EgonColaRoutingProfileBO.TableKindEnum kind, List<EgonColaPhysicalTargetBO> nodes) {
+        return new EgonColaRoutingProfileBO(table, kind, "static-v1", 1, 1, Map.of(), null, null, SEED,
+                Map.of(new EgonColaRoutingProfileBO.PartitionKeyBO(0, 0), nodes), 1, null);
+    }
+
+    private static void put(Map<String, EgonColaRoutingProfileBO> profiles, EgonColaRoutingProfileBO profile) {
+        if (profiles.put(profile.logicalTable(), profile) != null) { throw new IllegalArgumentException("LOGICAL_TABLE_RULE_OVERLAP"); }
+    }
+
+    private static void validateNode(EgonColaPhysicalTargetBO node, Map<String, String> schemas) {
+        if (!Objects.equals(schemas.get(node.group()), node.schema())) { throw new IllegalArgumentException("ACTUAL_NODE_SCHEMA_OR_GROUP_MISMATCH"); }
+    }
+
+    static Properties routing(ShardingDataSourceProperties.ShardingRoutingProperties routing) {
+        Properties values = new Properties();
+        values.setProperty("node-count", Integer.toString(routing.nodeCount()));
+        values.setProperty("node-map", routing.nodeMap());
         return values;
     }
 
-    private static String[] splitActualDataNode(String expression) {
-        int braceDepth = 0;
-        int separator = -1;
-        for (int index = 0; index < expression.length(); index++) {
-            char current = expression.charAt(index);
-            if (current == '{') {
-                braceDepth++;
-            } else if (current == '}') {
-                braceDepth--;
-                if (braceDepth < 0) {
+    public void verifyReadiness(TopologyBO topology, ShardingDataSourceProperties properties, Map<String, DataSource> physical,
+                                List<EgonColaDdlTargetBO> targets, Duration timeout) {
+        Map<String, String> broadcastHashes = new HashMap<>();
+        for (var source : properties.physicalDataSources()) {
+            var target = targets.stream().filter(value -> properties.physicalDataSources().stream()
+                    .anyMatch(candidate -> candidate.name().equals(value.alias()) && candidate.logicalName().equals(source.logicalName()))).findFirst().orElseThrow();
+            Instant deadline = Instant.now().plus(timeout);
+            while (true) {
+                try {
+                    verifySource(topology, source, physical.get(source.name()), target, broadcastHashes);
                     break;
+                } catch (SQLException | IllegalStateException failure) {
+                    if (source.role() == ShardingDataSourceProperties.DataSourceRole.PRIMARY || !Instant.now().isBefore(deadline)) {
+                        throw new IllegalStateException("SHARDING_TOPOLOGY_NOT_READY: " + source.name(), failure);
+                    }
+                    try { Thread.sleep(100); }
+                    catch (InterruptedException interrupted) { Thread.currentThread().interrupt(); throw new IllegalStateException("TOPOLOGY_CHECK_INTERRUPTED", interrupted); }
                 }
-            } else if (current == '.' && braceDepth == 0) {
-                if (separator >= 0) {
-                    separator = -1;
-                    break;
+            }
+        }
+    }
+
+    private static void verifySource(TopologyBO topology, ShardingDataSourceProperties.PhysicalDataSourceProperties source,
+                                      DataSource dataSource, EgonColaDdlTargetBO target, Map<String, String> broadcastHashes) throws SQLException {
+        try (Connection connection = dataSource.getConnection()) {
+            if (!"PostgreSQL".equals(connection.getMetaData().getDatabaseProductName()) || !target.schema().equals(connection.getSchema())) {
+                throw new IllegalStateException("POSTGRESQL_SCHEMA_REQUIRED");
+            }
+            try (var statement = connection.createStatement(); var row = statement.executeQuery("SELECT pg_is_in_recovery(), current_setting('transaction_read_only')::boolean")) {
+                if (!row.next() || row.getBoolean(1) != (source.role() == ShardingDataSourceProperties.DataSourceRole.REPLICA)
+                        || row.getBoolean(2) != (source.role() == ShardingDataSourceProperties.DataSourceRole.REPLICA)) { throw new IllegalStateException("PHYSICAL_ROLE_MISMATCH"); }
+            }
+            var script = target.manifest().scripts().getLast();
+            try (var statement = connection.prepareStatement("SELECT checksum,route_fingerprint FROM \"" + target.schema()
+                    + "\".ddl_history WHERE type='SQL' AND version=? AND tenant_id=0")) {
+                statement.setString(1, script.version());
+                try (var rows = statement.executeQuery()) {
+                    if (!rows.next() || !script.sha256().equals(rows.getString(1)) || !topology.fingerprint().equals(rows.getString(2))) {
+                        throw new IllegalStateException("DDL_REPLICA_HISTORY_NOT_READY");
+                    }
                 }
-                separator = index;
+            }
+            Set<String> tables = topology.profiles().values().stream().flatMap(profile -> profile.actualNodes().values().stream())
+                    .flatMap(Collection::stream).filter(node -> node.group().equals(source.logicalName())).map(EgonColaPhysicalTargetBO::table).collect(Collectors.toSet());
+            for (String table : tables) {
+                try (ResultSet columns = connection.getMetaData().getColumns(connection.getCatalog(), target.schema(), table, "tenant_id")) {
+                    if (!columns.next() || columns.getInt("DATA_TYPE") != Types.BIGINT || columns.getInt("NULLABLE") != DatabaseMetaData.columnNoNulls) {
+                        throw new IllegalStateException("TENANT_COLUMN_METADATA_NOT_READY");
+                    }
+                }
+                if (topology.broadcastTables().contains(table)) {
+                    String hash = broadcastDigest(connection, target.schema(), table);
+                    String previous = broadcastHashes.putIfAbsent(table, hash);
+                    if (previous != null && !previous.equals(hash)) { throw new IllegalStateException("BROADCAST_CONTENT_MISMATCH"); }
+                }
             }
         }
-        if (braceDepth != 0 || separator <= 0 || separator == expression.length() - 1) {
-            throw new IllegalArgumentException(
-                    "actualDataNodes do not match stable node map: " + expression);
-        }
-        return new String[] {
-            expression.substring(0, separator), expression.substring(separator + 1)
-        };
     }
 
-    private static Set<Integer> expandNumericSuffixes(String expression) {
-        Matcher matcher = INLINE_RANGE.matcher(expression);
-        if (matcher.matches()) {
-            int start = Integer.parseInt(matcher.group(2));
-            int end = Integer.parseInt(matcher.group(3));
-            if (start > end) {
-                throw new IllegalArgumentException(
-                        "actualDataNodes table range must be ascending: " + expression);
+    private static String broadcastDigest(Connection connection, String schema, String table) throws SQLException {
+        StringBuilder canonical = new StringBuilder();
+        try (var statement = connection.createStatement(); var rows = statement.executeQuery("SELECT * FROM \"" + schema + "\".\"" + table + "\" ORDER BY tenant_id,id")) {
+            var metadata = rows.getMetaData();
+            while (rows.next()) {
+                for (int column = 1; column <= metadata.getColumnCount(); column++) {
+                    String name = metadata.getColumnName(column);
+                    if (Set.of("create_user_id", "create_time", "update_user_id", "update_time").contains(name)) { continue; }
+                    String value = "deleted_at".equals(name) ? Boolean.toString(rows.getObject(column) == null) : rows.getString(column);
+                    canonical.append(name.length()).append(':').append(name).append('=').append(value == null ? -1 : value.length()).append(':');
+                    if (value != null) { canonical.append(value); }
+                    canonical.append(';');
+                }
+                canonical.append('\n');
             }
-            Set<Integer> values = new LinkedHashSet<>();
-            for (int value = start; value <= end; value++) {
-                values.add(value);
-            }
-            return values;
         }
-        int separator = expression.lastIndexOf('_');
-        if (separator < 0 || separator == expression.length() - 1) {
-            throw new IllegalArgumentException(
-                    "actualDataNodes table must end with a numeric suffix: " + expression);
-        }
-        try {
-            return Set.of(Integer.parseInt(expression.substring(separator + 1)));
-        } catch (NumberFormatException failure) {
-            throw new IllegalArgumentException(
-                    "actualDataNodes table must end with a numeric suffix: " + expression);
-        }
+        return digest(canonical.toString());
     }
 
-    private static void requireTwice(String content, String name, Object expectedValue) {
-        String expected = name + ": " + expectedValue;
-        long occurrences = content.lines()
-                .map(String::strip)
-                .filter(expected::equals)
-                .count();
-        if (occurrences != 2) {
-            throw new IllegalArgumentException(
-                    "database and table algorithms must share routing property: " + expected);
+    private static String digest(String value) {
+        try { return HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(value.getBytes(StandardCharsets.UTF_8))); }
+        catch (NoSuchAlgorithmException failure) { throw new IllegalStateException("SHA256_REQUIRED", failure); }
+    }
+
+    public record TopologyBO(byte[] yaml, Map<String, EgonColaRoutingProfileBO> profiles, ShardingNodeMap legacy,
+                             Map<String, String> schemas, Set<String> broadcastTables, String fingerprint) {
+        public TopologyBO {
+            yaml = yaml.clone();
+            profiles = java.util.Collections.unmodifiableMap(new TreeMap<>(profiles));
+            schemas = Map.copyOf(schemas);
+            broadcastTables = Set.copyOf(broadcastTables);
         }
-    }
-
-    private static int indentation(String line) {
-        return line.length() - line.stripLeading().length();
-    }
-
-    private record TableRule(
-            String actualDataNodes,
-            Strategy databaseStrategy,
-            Strategy tableStrategy,
-            boolean shardingAuditRequired,
-            boolean hintDisableAllowed) {
-    }
-
-    private enum Strategy {
-        NONE,
-        STANDARD
-    }
-
-    private record ReadwriteGroup(
-            String writer,
-            Set<String> readers,
-            String transactionalReadQueryStrategy) {
-    }
-
-    private static final class ReadwriteGroupBuilder {
-
-        private final String name;
-        private final Set<String> readers = new LinkedHashSet<>();
-        private String writer;
-        private String transactionalReadQueryStrategy;
-
-        private ReadwriteGroupBuilder(String name) {
-            this.name = name;
-        }
-
-        private ReadwriteGroup build() {
-            if (writer == null || transactionalReadQueryStrategy == null) {
-                throw new IllegalArgumentException(
-                        "readwrite group is incomplete: " + name);
-            }
-            return new ReadwriteGroup(
-                    writer,
-                    Set.copyOf(readers),
-                    transactionalReadQueryStrategy);
-        }
+        @Override public byte[] yaml() { return yaml.clone(); }
     }
 }

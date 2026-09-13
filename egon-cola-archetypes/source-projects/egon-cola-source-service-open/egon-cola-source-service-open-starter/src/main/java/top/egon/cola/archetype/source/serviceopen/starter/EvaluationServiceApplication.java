@@ -26,7 +26,8 @@ public class EvaluationServiceApplication {
     @Bean
     @Profile("test")
     LongIdGenerator snowflakeIdGenerator() {
-        return () -> 2001L;
+        java.util.concurrent.atomic.AtomicLong values = new java.util.concurrent.atomic.AtomicLong(100000);
+        return values::incrementAndGet;
     }
 
     public static void main(String[] args) {

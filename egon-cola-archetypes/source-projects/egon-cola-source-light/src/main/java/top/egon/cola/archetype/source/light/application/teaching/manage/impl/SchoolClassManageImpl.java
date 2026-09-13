@@ -32,9 +32,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class SchoolClassManageImpl implements SchoolClassManage {
     @Qualifier("schoolClassDomainService")
-    private final SchoolClassDomainService<?> schoolClassDomainService;
+    private final SchoolClassDomainService schoolClassDomainService;
     @Qualifier("courseDomainService")
-    private final CourseDomainService<?> courseDomainService;
+    private final CourseDomainService courseDomainService;
     @Qualifier("teachingEventPublisher")
     private final TeachingEventPublisher teachingEventPublisher;
     @Qualifier("teachingApplicationValidator")

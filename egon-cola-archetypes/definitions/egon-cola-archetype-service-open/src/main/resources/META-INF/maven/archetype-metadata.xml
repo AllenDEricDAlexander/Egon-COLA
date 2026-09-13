@@ -105,6 +105,7 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>db/egon-mp/*.json</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
@@ -122,6 +123,8 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>
@@ -155,6 +158,8 @@
                         <include>**/*.yaml</include>
                         <include>**/*.properties</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>
@@ -183,6 +188,7 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>db/egon-mp/*.json</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
@@ -200,6 +206,8 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>
@@ -228,6 +236,7 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>db/egon-mp/*.json</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
@@ -245,6 +254,8 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>
@@ -274,6 +285,7 @@
                         <include>**/*.sql</include>
                         <include>**/*.md</include>
                         <include>.gitkeep</include>
+                        <include>db/egon-mp/*.json</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
@@ -291,6 +303,8 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>
@@ -319,6 +333,7 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>db/egon-mp/*.json</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
@@ -336,6 +351,8 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>
@@ -371,6 +388,7 @@
                         <include>**/*.sql</include>
                         <include>META-INF/**</include>
                         <include>.gitkeep</include>
+                        <include>db/egon-mp/*.json</include>
                     </includes>
                 </fileSet>
                 <fileSet filtered="true" packaged="true" encoding="UTF-8">
@@ -388,6 +406,8 @@
                         <include>**/*.properties</include>
                         <include>**/*.sql</include>
                         <include>.gitkeep</include>
+                        <include>mybatis/*.sql</include>
+                        <include>sharding/*.sql</include>
                     </includes>
                 </fileSet>
             </fileSets>

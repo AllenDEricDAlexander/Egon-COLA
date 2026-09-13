@@ -9,6 +9,7 @@ import java.util.List;
 
 /** MyBatis mapper for users. */
 @Mapper
+/** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface UserDAO extends EgonColaMapper<UserPO> {
     List<UserPO> selectByExternalId(@Param("externalId") String externalId);
 }

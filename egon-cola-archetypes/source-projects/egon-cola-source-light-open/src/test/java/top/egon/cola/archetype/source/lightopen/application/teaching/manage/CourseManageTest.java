@@ -16,7 +16,6 @@ import top.egon.cola.archetype.source.lightopen.domain.teaching.service.CourseDo
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseCode;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseSnapshot;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.ExternalCourse;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.CoursePO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,7 +33,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class CourseManageTest {
     private static final Long COURSE_ID = 1002L;
-    @Mock CourseDomainService<CoursePO> courseDomainService;
+    @Mock CourseDomainService courseDomainService;
     @Mock TeachingQueryGateway teachingQueryGateway;
     @Mock CourseCachePort courseCachePort;
     @Mock TeachingEventPublisher teachingEventPublisher;

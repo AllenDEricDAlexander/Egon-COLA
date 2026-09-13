@@ -35,8 +35,8 @@ import java.time.Instant;
 @Service("schoolClassManage")
 @RequiredArgsConstructor
 public class SchoolClassManageImpl implements SchoolClassManage {
-    private final SchoolClassDomainService<?> schoolClassDomainService;
-    private final UserDomainService<?> userDomainService;
+    private final SchoolClassDomainService schoolClassDomainService;
+    private final UserDomainService userDomainService;
     private final TeachingApplicationValidator validator;
     private final SchoolClassCachePort schoolClassCache;
     private final CommandIdempotencyPort idempotency;

@@ -96,6 +96,7 @@
         <include>**/*.xml</include>
         <include>**/*.graphqls</include>
         <include>META-INF/**</include>
+        <include>db/egon-mp/*.json</include>
       </includes>
     </fileSet>
     <fileSet filtered="true" encoding="UTF-8">
@@ -104,6 +105,8 @@
         <include>**/*.yml</include>
         <include>**/*.properties</include>
         <include>**/*.xml</include>
+        <include>mybatis/*.sql</include>
+        <include>sharding/*.sql</include>
       </includes>
     </fileSet>
     <fileSet filtered="true" encoding="UTF-8">

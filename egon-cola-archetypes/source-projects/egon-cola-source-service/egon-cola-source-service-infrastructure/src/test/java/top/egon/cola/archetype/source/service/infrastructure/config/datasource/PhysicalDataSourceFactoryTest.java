@@ -24,7 +24,7 @@ class PhysicalDataSourceFactoryTest {
                 HikariDataSource.class,
                 pool -> {
                     assertThat(pool.getPoolName()).isEqualTo("sharding-master_data");
-                    assertThat(pool.getJdbcUrl()).isEqualTo("jdbc:h2:mem:master_data");
+                    assertThat(pool.getJdbcUrl()).isEqualTo("jdbc:postgresql://localhost/master_data");
                 });
         factory.close(result.values());
     }
@@ -50,7 +50,7 @@ class PhysicalDataSourceFactoryTest {
                         "master_data",
                         "master_data",
                         ShardingDataSourceProperties.DataSourceRole.PRIMARY,
-                        "org.h2.Driver",
+                        "org.postgresql.Driver",
                         null,
                         "sa",
                         "top-secret");
@@ -69,8 +69,8 @@ class PhysicalDataSourceFactoryTest {
                 name,
                 logicalName,
                 ShardingDataSourceProperties.DataSourceRole.PRIMARY,
-                "org.h2.Driver",
-                "jdbc:h2:mem:" + name,
+                "org.postgresql.Driver",
+                "jdbc:postgresql://localhost/" + name,
                 "sa",
                 "secret");
     }
@@ -83,6 +83,6 @@ class PhysicalDataSourceFactoryTest {
                         4,
                         "0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1"),
                 dataSources,
-                new ShardingDataSourceProperties.ShardingFlywayProperties(List.of()));
+                new ShardingDataSourceProperties.ShardingDdlProperties(List.of()));
     }
 }

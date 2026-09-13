@@ -68,7 +68,11 @@ class KnowledgeRepositoryTest {
             .withConfiguration(AutoConfigurations.of(
                     EgonColaMybatisPlusAutoConfiguration.class,
                     MybatisPlusInnerInterceptorAutoConfiguration.class,
-                    MybatisPlusAutoConfiguration.class))
+                    MybatisPlusAutoConfiguration.class,
+                    org.springframework.boot.autoconfigure.jdbc.DataSourceTransactionManagerAutoConfiguration.class,
+                    org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration.class))
+            .withPropertyValues("mybatis-plus.mapper-locations=classpath*:mybatis/mapper/**/*.xml",
+                    "egon.cola.component.mybatis-plus.local-write-guard.allowed-root-statements.[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]=knowledge_base_id")
             .withUserConfiguration(KnowledgePersistenceConfiguration.class)
             .withBean(Validator.class, VALIDATOR_FACTORY::getValidator);
 
@@ -80,6 +84,37 @@ class KnowledgeRepositoryTest {
     @BeforeEach
     void clearCapturedSql() {
         EXECUTED_SQL.clear();
+    }
+
+    @Test
+    void invalidCommandsAreRejectedBeforeAnySql() {
+        contextRunner.run(context -> {
+            useTenant(TENANT_A);
+            EXECUTED_SQL.clear();
+            var bases = context.getBean(KnowledgeBaseRepository.class);
+            var documents = context.getBean(KnowledgeDocumentRepository.class);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> bases.updateNameAndDescription(BASE_A, " ", null))
+                    .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> documents.markProcessing(501L, -1))
+                    .isInstanceOf(jakarta.validation.ConstraintViolationException.class);
+            assertThat(EXECUTED_SQL).isEmpty();
+        });
+    }
+
+    @Test
+    void rejectsAStaleVersionEvenWhenTheExpectedStatusStillMatches() {
+        contextRunner.run(context -> {
+            JdbcTemplate jdbc = new JdbcTemplate(context.getBean(DataSource.class));
+            insertDocument(jdbc, 501L, TENANT_A, BASE_A, "version.txt", DocumentIngestStatusEnum.PROCESSING, false);
+            useTenant(TENANT_A);
+            KnowledgeDocumentDAO mapper = context.getBean(KnowledgeDocumentDAO.class);
+            var stale = mapper.selectActiveById(501L);
+            jdbc.update("UPDATE knowledge_document SET version = version + 1 WHERE id = 501");
+            stale.setStatus(DocumentIngestStatusEnum.SUCCEEDED.name());
+            assertThat(mapper.updateState(stale, List.of("PROCESSING"))).isZero();
+            assertThat(document(jdbc, 501L).status()).isEqualTo(DocumentIngestStatusEnum.PROCESSING);
+            assertThat(jdbc.queryForObject("SELECT version FROM knowledge_document WHERE id = 501", Long.class)).isEqualTo(1L);
+        });
     }
 
     @Test
@@ -134,7 +169,7 @@ class KnowledgeRepositoryTest {
             JdbcTemplate jdbc = new JdbcTemplate(context.getBean(DataSource.class));
             insertBase(jdbc, BASE_A, TENANT_A, "kept", "2026-01-01T00:00:00Z");
             insertBase(jdbc, BASE_B, TENANT_A, "dropped", "2026-01-02T00:00:00Z");
-            jdbc.update("update knowledge_base set is_deleted = true where id = ?", BASE_B);
+            jdbc.update("update knowledge_base set deleted_at = CURRENT_TIMESTAMP where id = ?", BASE_B);
             insertDocument(jdbc, 501L, TENANT_A, BASE_A, "kept.txt",
                     DocumentIngestStatusEnum.PENDING, false);
             insertDocument(jdbc, 502L, TENANT_A, BASE_A, "dropped.txt",
@@ -200,9 +235,9 @@ class KnowledgeRepositoryTest {
             // predicate and the requested window, in the documented order.
             assertThat(EXECUTED_SQL).isNotEmpty();
             assertThat(EXECUTED_SQL.get(0))
-                    .contains("is_deleted = 0")
+                    .contains("deleted_at IS NULL")
                     .contains("tenant_id = " + TENANT_A)
-                    .contains("ORDER BY create_time DESC, id DESC LIMIT 2 OFFSET 0");
+                    .contains("ORDER BY create_time DESC, id DESC LIMIT ? OFFSET ?");
             assertThat(EXECUTED_SQL)
                     .anySatisfy(sql -> assertThat(sql).contains("lower(display_name) LIKE ?"));
         });
@@ -307,7 +342,7 @@ class KnowledgeRepositoryTest {
     }
 
     private static boolean flag(JdbcTemplate jdbc, String table, long id) {
-        Boolean value = jdbc.queryForObject("select is_deleted from " + table + " where id = ?",
+        Boolean value = jdbc.queryForObject("select deleted_at IS NOT NULL from " + table + " where id = ?",
                 Boolean.class, id);
         return Boolean.TRUE.equals(value);
     }
@@ -316,9 +351,9 @@ class KnowledgeRepositoryTest {
                                    String createdAt) {
         Instant instant = Instant.parse(createdAt);
         jdbc.update("insert into knowledge_base (id, tenant_id, create_user_id, create_time, "
-                        + "update_user_id, update_time, is_deleted, code, name, description, "
+                        + "update_user_id, update_time, deleted_at, code, name, description, "
                         + "embedding_model, chunk_strategy, chunk_config, status) "
-                        + "values (?, ?, ?, ?, ?, ?, false, ?, ?, ?, ?, ?, ?, ?)",
+                        + "values (?, ?, ?, ?, ?, ?, null, ?, ?, ?, ?, ?, ?, ?)",
                 id, tenantId, "seed", Timestamp.from(instant), "seed", Timestamp.from(instant),
                 code, code, null, "openai-small", "TOKEN", "{\"maxTokensPerChunk\":512,"
                         + "\"overlapTokens\":64,\"minChunkChars\":1,\"headingLevels\":[]}", "ACTIVE");
@@ -329,17 +364,17 @@ class KnowledgeRepositoryTest {
                                        boolean deleted) {
         Instant instant = Instant.parse("2026-01-01T00:00:00Z");
         jdbc.update("insert into knowledge_document (id, tenant_id, create_user_id, create_time, "
-                        + "update_user_id, update_time, is_deleted, knowledge_base_id, display_name, "
+                        + "update_user_id, update_time, deleted_at, knowledge_base_id, display_name, "
                         + "file_name, mime_type, size_bytes, content_hash, storage_type, storage_key, "
                         + "content, status, chunk_count, attempt_count, error_code, error_message) "
                         + "values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, null, null)",
                 id, tenantId, "seed", Timestamp.from(instant), "seed", Timestamp.from(instant),
-                deleted, baseId, displayName, displayName, "text/plain", 12L, CONTENT_HASH, "LOCAL",
+                deleted ? Timestamp.from(instant) : null, baseId, displayName, displayName, "text/plain", 12L, CONTENT_HASH, "LOCAL",
                 "0/" + baseId + "/" + displayName, "抽取文本", status.name());
     }
 
     private static boolean deleted(JdbcTemplate jdbc, String table) {
-        Boolean deleted = jdbc.queryForObject("select min(cast(is_deleted as int)) = 1 from " + table,
+        Boolean deleted = jdbc.queryForObject("select count(*) = count(deleted_at) from " + table,
                 Boolean.class);
         return Boolean.TRUE.equals(deleted);
     }
@@ -360,11 +395,17 @@ class KnowledgeRepositoryTest {
     @MapperScan(basePackageClasses = KnowledgeBaseDAO.class)
     static class KnowledgePersistenceConfiguration {
 
+        @Bean("snowflakeIdGenerator")
+        top.egon.cola.component.common.id.generator.LongIdGenerator testIds() {
+            java.util.concurrent.atomic.AtomicLong values = new java.util.concurrent.atomic.AtomicLong(100000);
+            return values::incrementAndGet;
+        }
+
         @Bean
         DataSource dataSource() {
             JdbcDataSource dataSource = new JdbcDataSource();
             dataSource.setURL("jdbc:h2:mem:knowledge_" + System.nanoTime()
-                    + ";MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false");
+                    + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false");
             dataSource.setUser("sa");
             JdbcTemplate jdbc = new JdbcTemplate(dataSource);
             for (String statement : H2_SCHEMA) {
@@ -374,14 +415,22 @@ class KnowledgeRepositoryTest {
         }
 
         @Bean
-        KnowledgeBaseRepository knowledgeBaseRepository(KnowledgeBaseDAO knowledgeBaseDAO) {
-            return new KnowledgeBaseRepositoryImpl(knowledgeBaseDAO);
+        KnowledgeBaseRepository knowledgeBaseRepository(KnowledgeBaseDAO knowledgeBaseDAO, top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils models,
+                top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider tenant,
+                top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties properties,
+                top.egon.cola.component.common.core.validation.ValidationUtils validation) {
+            return new KnowledgeBaseRepositoryImpl(knowledgeBaseDAO, models, tenant, properties, validation);
         }
 
         @Bean
         KnowledgeDocumentRepository knowledgeDocumentRepository(
-                KnowledgeDocumentDAO knowledgeDocumentDAO) {
-            return new KnowledgeDocumentRepositoryImpl(knowledgeDocumentDAO);
+                KnowledgeDocumentDAO knowledgeDocumentDAO, top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils models,
+                top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider tenant,
+                top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties properties,
+                top.egon.cola.component.common.core.validation.ValidationUtils validation,
+                top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider user,
+                java.time.Clock clock) {
+            return new KnowledgeDocumentRepositoryImpl(knowledgeDocumentDAO, models, tenant, properties, validation, user, clock);
         }
     }
 
@@ -394,7 +443,7 @@ class KnowledgeRepositoryTest {
                     + "id bigint primary key, tenant_id bigint not null, create_user_id varchar(64), "
                     + "create_time timestamp with time zone not null, update_user_id varchar(64), "
                     + "update_time timestamp with time zone not null, "
-                    + "is_deleted boolean not null default false, code varchar(64) not null, "
+                    + "deleted_at timestamp, version bigint not null default 0, code varchar(64) not null, "
                     + "name varchar(128) not null, description varchar(512), "
                     + "embedding_model varchar(32) not null, chunk_strategy varchar(32) not null, "
                     + "chunk_config varchar(2048) not null, status varchar(16) not null)",
@@ -402,7 +451,7 @@ class KnowledgeRepositoryTest {
                     + "id bigint primary key, tenant_id bigint not null, create_user_id varchar(64), "
                     + "create_time timestamp with time zone not null, update_user_id varchar(64), "
                     + "update_time timestamp with time zone not null, "
-                    + "is_deleted boolean not null default false, "
+                    + "deleted_at timestamp, version bigint not null default 0, "
                     + "knowledge_base_id bigint not null, display_name varchar(255) not null, "
                     + "file_name varchar(255), mime_type varchar(128), size_bytes bigint not null, "
                     + "content_hash char(64) not null, storage_type varchar(16) not null, "

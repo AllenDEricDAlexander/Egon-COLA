@@ -10,6 +10,7 @@ import java.util.List;
 
 /** MyBatis mapper for permissions. */
 @Mapper
+/** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface PermissionDAO extends EgonColaMapper<PermissionPO> {
     List<PermissionPO> selectByCode(@Param("code") String code);
 

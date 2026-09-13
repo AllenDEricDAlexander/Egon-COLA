@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class UserManageImpl implements UserManage {
     @Qualifier("userDomainService")
-    private final UserDomainService<?> userDomainService;
+    private final UserDomainService userDomainService;
     @Qualifier("userQueryGateway")
     private final UserQueryGateway userQueryGateway;
     @Qualifier("userCachePort")

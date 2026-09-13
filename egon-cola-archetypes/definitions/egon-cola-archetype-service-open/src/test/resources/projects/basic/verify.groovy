@@ -70,7 +70,7 @@ def runtimeText = runtimeFiles.collect { it.getText("UTF-8") }.join("\n")
         "top.egon.cola.evaluation.facade",
         "egon-cola-component-bytecode-architecture"
         ,"mybatis-plus-spring-boot3-starter"
-        ,"BaseMapper"
+        ,"com.baomidou.mybatisplus.core.mapper.BaseMapper"
         ,"repo.mapper"
 ].each { token ->
     assert !runtimeText.contains(token): "Forbidden Service Open runtime token ${token}"
@@ -136,7 +136,9 @@ missing("student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/s
 def starterPom = file("student-management-evaluation-starter/pom.xml").text
 assert starterPom.contains("egon-cola-component-dynamic-thread-pool-starter")
 assert starterPom.contains("archunit-junit5")
-assert file("student-management-evaluation-domain/pom.xml").text
+assert !file("student-management-evaluation-domain/pom.xml").text
+        .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert file("student-management-evaluation-infrastructure/pom.xml").text
         .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
 assert file("student-management-evaluation-starter/src/main/resources/application.yml").text
         .contains("queue-capacity: \${ASYNC_QUEUE_CAPACITY:1000}")
@@ -215,8 +217,8 @@ def domainServiceSources = javaFiles.findAll { candidate ->
 }
 assert domainServiceSources.size() == 3
 domainServiceSources.each { candidate ->
-    assert candidate.text.contains("extends EgonColaIService<"):
-            "Domain service must extend EgonColaIService: ${candidate.name}"
+    assert !candidate.text.contains("EgonColaIService"):
+            "Domain service must expose a domain-only port: ${candidate.name}"
 }
 def infrastructureServiceSources = javaFiles.findAll { candidate ->
     def path = javaPath(candidate)
@@ -225,8 +227,8 @@ def infrastructureServiceSources = javaFiles.findAll { candidate ->
 }
 assert infrastructureServiceSources.size() == 3
 infrastructureServiceSources.each { candidate ->
-    assert candidate.text.contains("extends EgonColaServiceImpl<"):
-            "Infrastructure service must extend EgonColaServiceImpl: ${candidate.name}"
+    assert !candidate.text.contains("extends EgonColaServiceImpl<"):
+            "Infrastructure service must compose repositories: ${candidate.name}"
 }
 javaFiles.each { candidate ->
     assert !candidate.text.contains("extends BaseMapper<")
@@ -313,3 +315,31 @@ assert releasedLibraries.contains('dubbo-3.3.6.jar')
 
 println 'Published parent and service-open runtime boundaries passed'
 true
+
+// Repository/CQRS and managed PostgreSQL initialization must survive project generation.
+def repositoryContractFiles = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    def resourcePath = projectDir.canonicalFile.toPath().relativize(candidate.canonicalFile.toPath()).toString().replace(File.separator, "/")
+    if (!resourcePath.startsWith("target/") && !resourcePath.contains("/target/")) { repositoryContractFiles << candidate }
+}
+def repositoryImplementations = repositoryContractFiles.findAll {
+    it.path.replace('\\', '/').contains('/src/main/java/') && it.name.endsWith('Repository.java')
+}
+assert repositoryImplementations.size() == 5: 'Expected concrete persistence repositories'
+repositoryImplementations.each { assert it.text.contains('extends EgonColaRepository<') }
+def repositoryManifests = repositoryContractFiles.findAll { it.name == 'repository-manifest.json' }
+assert repositoryManifests.size() == 1
+def repositoryManifest = new groovy.json.JsonSlurper().parse(repositoryManifests.first())
+assert repositoryManifest.family == 'service-open'
+assert repositoryManifest.scripts.size() == 1
+def initializationSql = new File(repositoryManifests.first().parentFile, 'V20260913_001__initialize_repository_schema.sql')
+assert initializationSql.isFile()
+assert repositoryManifest.scripts.first().sha256 == java.security.MessageDigest.getInstance('SHA-256').digest(initializationSql.bytes).encodeHex().toString()
+assert initializationSql.text.contains('deleted_at') && initializationSql.text.contains('version BIGINT NOT NULL DEFAULT 0')
+repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main/resources/mybatis/mapper/') && it.name.endsWith('DAO.xml') }.each {
+    assert it.text.contains('selectActiveById') && it.text.contains('selectActiveByIds')
+    assert it.text.contains('deleteVersionedById') && it.text.contains('MP_OPTLOCK_VERSION_ORIGINAL')
+    assert !it.text.contains('is_deleted')
+}
+
+return true

@@ -97,6 +97,14 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-single-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
+            <artifactId>shardingsphere-broadcast-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-infra-data-source-pool-hikari</artifactId>
         </dependency>
         <dependency>
@@ -162,15 +170,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.flywaydb</groupId>
-            <artifactId>flyway-database-postgresql</artifactId>
-            <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
@@ -390,38 +389,6 @@
                 <run.profile>prod</run.profile>
                 <run.jvm-args>-Xms1g -Xmx2g -XX:+ExitOnOutOfMemoryError</run.jvm-args>
             </properties>
-        </profile>
-        <profile>
-            <id>postgres-flyway-verify</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.flywaydb</groupId>
-                        <artifactId>flyway-maven-plugin</artifactId>
-                        <version>${flyway.version}</version>
-                        <configuration>
-                            <url>${env.POSTGRES_VERIFY_URL}</url>
-                            <user>${env.POSTGRES_VERIFY_USER}</user>
-                            <password>${env.POSTGRES_VERIFY_PASSWORD}</password>
-                            <locations>
-                                <location>filesystem:${project.basedir}/src/main/resources/db/migration</location>
-                            </locations>
-                        </configuration>
-                        <dependencies>
-                            <dependency>
-                                <groupId>org.flywaydb</groupId>
-                                <artifactId>flyway-database-postgresql</artifactId>
-                                <version>${flyway.version}</version>
-                            </dependency>
-                            <dependency>
-                                <groupId>org.postgresql</groupId>
-                                <artifactId>postgresql</artifactId>
-                                <version>${postgresql.version}</version>
-                            </dependency>
-                        </dependencies>
-                    </plugin>
-                </plugins>
-            </build>
         </profile>
     </profiles>
 </project>

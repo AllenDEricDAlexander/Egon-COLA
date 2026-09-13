@@ -5,45 +5,32 @@ import top.egon.cola.archetype.source.lightopen.domain.teaching.enums.CourseStat
 import top.egon.cola.archetype.source.lightopen.domain.teaching.service.CourseDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.teaching.vos.CourseCode;
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.converter.CoursePOConverter;
-import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.dao.CourseDAO;
+import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.CourseRepository;
 import top.egon.cola.archetype.source.lightopen.infrastructure.teaching.repo.po.CoursePO;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
-import top.egon.cola.component.common.mybatis.extension.EgonColaServiceImpl;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 
 import java.util.Optional;
 
-/** MyBatis-Plus implementation of the course domain service. */
+/** Business rules and orchestration for the course domain service. */
 @Slf4j
+@Validated
 @Service("courseDomainService")
 @RequiredArgsConstructor
 public class CourseDomainServiceImpl
-        extends EgonColaServiceImpl<CourseDAO, CoursePO>
-        implements CourseDomainService<CoursePO> {
+        implements CourseDomainService {
 
-    @Qualifier("courseDAO")
-    private final CourseDAO courseDAO;
+    @Qualifier("courseRepository")
+    private final CourseRepository courseRepository;
     @Qualifier("coursePOConverterImpl")
     private final CoursePOConverter converter;
     @Qualifier("snowflakeIdGenerator")
     private final LongIdGenerator idGenerator;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
-    private final EgonColaMybatisPlusProperties properties;
 
     @Override
     public Course createCourse(CourseCode code, String name) {
@@ -51,21 +38,26 @@ public class CourseDomainServiceImpl
     }
 
     @Override
+    @Transactional
     public Course save(Course course) {
         CoursePO po = converter.toTarget(course);
-        po.setId(course.id());
-        courseDAO.insert(po);
+        CoursePO current = po.getId() == null ? null : courseRepository.getById(po.getId());
+        if (current != null) { converter.updateMetadata(po, current); }
+        boolean written = current == null ? courseRepository.save(po) : courseRepository.updateById(po);
+        if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
+
         return converter.toSource(po);
     }
 
     @Override
     public Optional<Course> findById(Long courseId) {
-        return Optional.ofNullable(courseDAO.selectById(courseId)).map(converter::toSource);
+        return Optional.ofNullable(courseRepository.getById(courseId)).map(converter::toSource);
     }
 
     @Override
     public Optional<Course> findByCode(CourseCode courseCode) {
-        return courseDAO.selectByCourseCode(courseCode.value()).stream()
+        return courseRepository.selectByCourseCode(courseCode.value()).stream()
                 .findFirst().map(converter::toSource);
     }
+
 }

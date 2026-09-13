@@ -12,4 +12,9 @@ import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
  */
 @Mapper
 public interface KnowledgeDocumentDAO extends EgonColaMapper<KnowledgeDocumentPO> {
+    java.util.List<KnowledgeDocumentPO> selectFilteredPage(@org.apache.ibatis.annotations.Param("baseId") Long baseId, @org.apache.ibatis.annotations.Param("offset") int offset, @org.apache.ibatis.annotations.Param("size") int size, @org.apache.ibatis.annotations.Param("status") String status, @org.apache.ibatis.annotations.Param("keyword") String keyword);
+    long countFiltered(@org.apache.ibatis.annotations.Param("baseId") Long baseId, @org.apache.ibatis.annotations.Param("status") String status, @org.apache.ibatis.annotations.Param("keyword") String keyword);
+    long countByKnowledgeBaseId(@org.apache.ibatis.annotations.Param("baseId") Long baseId);
+    int updateState(@org.apache.ibatis.annotations.Param("et") KnowledgeDocumentPO entity, @org.apache.ibatis.annotations.Param("expectedStatuses") java.util.List<String> expectedStatuses);
+    int softDeleteByKnowledgeBaseId(@org.apache.ibatis.annotations.Param("baseId") Long baseId, @org.apache.ibatis.annotations.Param("userId") String userId, @org.apache.ibatis.annotations.Param("updateTime") java.time.Instant updateTime);
 }

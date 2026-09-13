@@ -26,3 +26,17 @@ app:
         jdbc-url: ${ORGANIZATION_SHARDING_SHARD_1_URL}
         username: ${ORGANIZATION_SHARDING_USERNAME}
         password: "${ORGANIZATION_SHARDING_PASSWORD:}"
+    ddl:
+      targets:
+        - data-source-name: master_data
+          schema: ${ORGANIZATION_SHARDING_SCHEMA:public}
+          role: MASTER_DATA
+          manifest: classpath:db/egon-mp/repository-manifest.json
+        - data-source-name: shard_0
+          schema: ${ORGANIZATION_SHARDING_SCHEMA:public}
+          role: SHARD
+          manifest: classpath:db/egon-mp/repository-manifest.json
+        - data-source-name: shard_1
+          schema: ${ORGANIZATION_SHARDING_SCHEMA:public}
+          role: SHARD
+          manifest: classpath:db/egon-mp/repository-manifest.json

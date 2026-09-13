@@ -177,7 +177,9 @@ assert assertFile("student-management-evaluation-infrastructure/pom.xml").text.c
 assert assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert assertFile("student-management-evaluation-common/pom.xml").text
         .contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
-assert assertFile("student-management-evaluation-domain/pom.xml").text
+assert !assertFile("student-management-evaluation-domain/pom.xml").text
+        .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert assertFile("student-management-evaluation-infrastructure/pom.xml").text
         .contains("<artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>")
 assert !rootPomText.contains("<artifactId>mybatis-plus-spring-boot3-starter</artifactId>")
 [
@@ -320,7 +322,7 @@ assert serviceApplication.contains("LongIdGenerator")
 assert serviceApplication.contains("@MapperScan")
 assert serviceApplication.contains("infrastructure.course.repo.dao")
 assert serviceApplication.contains("infrastructure.exam.repo.dao")
-assert serviceApplication.contains("exclude = FlywayAutoConfiguration.class")
+assert !serviceApplication.contains("FlywayAutoConfiguration")
 assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
 
@@ -377,7 +379,7 @@ modules.each { module ->
         assert !("spring-boot-starter-amqp" in artifacts)
     }
     if (module == "infrastructure") {
-        assert "flyway-database-postgresql" in artifacts
+        assert !("flyway-database-postgresql" in artifacts)
         assert '${organization-facade.artifact-id}' in artifacts
         assert !('${evaluation-facade.artifact-id}' in artifacts)
         assert "egon-cola-component-rpc-starter" in artifacts
@@ -431,7 +433,6 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ExamRepositoryTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ExamPaperRepositoryTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ScoreRepositoryTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/migration/EvaluationMigrationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisherTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
@@ -648,7 +649,7 @@ assertLoggingContract(
         "student-management-evaluation-starter/src/main/resources/application.yml")
 def testYaml = assertFile(
         "student-management-evaluation-starter/src/main/resources/application-test.yml").text
-assert testYaml.contains("database-name: PUBLIC")
+assert testYaml.contains("database-name: student_management_test")
 assert !testYaml.contains("DATABASE_TO_LOWER")
 assert applicationYaml.contains("default: dev")
 assert applicationYaml.contains("shutdown: graceful")
@@ -696,24 +697,24 @@ assert serviceShardingApplication.contains('node-count: ${EVALUATION_SHARDING_NO
 assert serviceShardingApplication.contains(
         'node-map: ${EVALUATION_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
 assert serviceShardingApplication.contains("EVALUATION_SHARDING_MASTER_DATA_URL")
-assert serviceShardingApplication.contains("classpath:db/migration/sharding/master-data")
-assert serviceShardingApplication.contains("classpath:db/migration/sharding/shard")
+assert serviceShardingApplication.contains("classpath:db/egon-mp/repository-manifest.json")
+assert serviceShardingApplication.contains("role: SHARD")
 def serviceShardingRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding.yml").text
 assert serviceShardingRule.contains(
         '${app.sharding.database-name:${EVALUATION_SHARDING_DATABASE_NAME:evaluation}}')
 assert serviceShardingRule.contains("shardingColumn: tenant_id")
 assert serviceShardingRule.contains("evaluation_exam,evaluation_exam_paper,evaluation_score")
-assert serviceShardingRule.contains("actualDataNodes: master_data.evaluation_course")
+assert serviceShardingRule.contains('master_data.${EVALUATION_SHARDING_SCHEMA:public}.evaluation_course')
 assert serviceShardingRule.contains("LongTenantShardingAlgorithm")
 assert !serviceShardingRule.contains("UuidV7BucketShardingAlgorithm")
 assert !serviceShardingRule.contains(".public.")
 assert !serviceShardingRule.contains("proxy-frontend-database-protocol-type")
-assert serviceShardingRule.count("none:") == 2
+assert serviceShardingRule.count("none:") == 0
 assert serviceShardingRule.count("auditStrategy:") == 4
 assert serviceShardingRule.count("allowHintDisable: false") == 4
 assert serviceShardingRule.contains("DML_SHARDING_CONDITIONS")
-assert !serviceShardingRule.contains("!SINGLE")
+assert serviceShardingRule.contains("!SINGLE")
 def serviceReadwriteRule = assertFile(
         "student-management-evaluation-starter/src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
 assert serviceReadwriteRule.contains(
@@ -727,17 +728,17 @@ assert serviceReadwriteRule.contains("master_data_replica_0")
 assert serviceReadwriteRule.count("auditStrategy:") == 4
 assert !serviceReadwriteRule.contains(".public.")
 assert !serviceReadwriteRule.contains("proxy-frontend-database-protocol-type")
-assert !serviceReadwriteRule.contains("!SINGLE")
+assert serviceReadwriteRule.contains("!SINGLE")
 [
     "student-management-evaluation-application/src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/DataSourceModeProperties.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigrator.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingWriteTargetResolver.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourceBootstrapper.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoader.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/ShardingNodeMap.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithm.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/PostgreSqlSchemaInitializationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ReadwriteRoutingIntegrationTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithmTest.java",
@@ -781,30 +782,9 @@ assert readme.contains("Organization Facade client is an unused infrastructure f
     "infrastructure/exam/service/impl",
     "adapter/exam/mq"
 ].each { assert readme.contains(it) }
-[
-    "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
-    "APP_DATASOURCE_MODE=SHARDING_READWRITE",
-    "evaluation_course_schedule",
-    "tenant_id",
-    "physical primary",
-    "positive `Long`",
-    "VyyyyMMdd_NNN__description.sql",
-    "DML_SHARDING_CONDITIONS",
-    "from `N` to `2N`",
-    "local to one physical database",
-    "no online migration, dual-write,"
-].each { assert readme.contains(it) }
+["EgonColaRepository", "SHARDING_READWRITE", "tenant_id", "mix64-v1", "LOCAL", "REBUILD_REQUIRED", "repository-manifest.json"].each { assert readme.contains(it) }
 def serviceReadmeZh = assertFile("README.zh-CN.md").text
-[
-    "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
-    "tenant_id",
-    "正数 `Long`",
-    "VyyyyMMdd_NNN__description.sql",
-    "DML_SHARDING_CONDITIONS",
-    "调整为 `2N`",
-    "事务只允许覆盖一个物理库",
-    "不提供在线迁移、双写、CDC 或自动搬数"
-].each { assert serviceReadmeZh.contains(it) }
+["EgonColaRepository", "SHARDING_READWRITE", "tenant_id", "mix64-v1", "LOCAL", "REBUILD_REQUIRED", "repository-manifest.json"].each { assert serviceReadmeZh.contains(it) }
 assert readme.contains("service-only")
 assert !readme.contains("facade/api")
 assert !readme.contains("application/manage/course")
@@ -1056,8 +1036,8 @@ def domainServiceSources = javaFiles.findAll { file ->
 }
 assert domainServiceSources.size() == 3
 domainServiceSources.each { file ->
-    assert file.text.contains("extends EgonColaIService<"):
-            "Domain service must extend EgonColaIService: ${file.name}"
+    assert !file.text.contains("EgonColaIService"):
+            "Domain service must expose a domain-only port: ${file.name}"
 }
 def infrastructureServiceSources = javaFiles.findAll { file ->
     def path = javaPath(file)
@@ -1066,8 +1046,8 @@ def infrastructureServiceSources = javaFiles.findAll { file ->
 }
 assert infrastructureServiceSources.size() == 3
 infrastructureServiceSources.each { file ->
-    assert file.text.contains("extends EgonColaServiceImpl<"):
-            "Infrastructure service must extend EgonColaServiceImpl: ${file.name}"
+    assert !file.text.contains("extends EgonColaServiceImpl<"):
+            "Infrastructure service must compose repositories: ${file.name}"
 }
 
 [
@@ -1215,4 +1195,31 @@ projectDir.traverse(type: FileType.FILES) { candidate ->
 }
 
 println 'Published parent and service runtime boundaries passed'
+
+// Repository/CQRS and managed PostgreSQL initialization must survive project generation.
+def repositoryContractFiles = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    def resourcePath = projectDir.canonicalFile.toPath().relativize(candidate.canonicalFile.toPath()).toString().replace(File.separator, "/")
+    if (!resourcePath.startsWith("target/") && !resourcePath.contains("/target/")) { repositoryContractFiles << candidate }
+}
+def repositoryImplementations = repositoryContractFiles.findAll {
+    it.path.replace('\\', '/').contains('/src/main/java/') && it.name.endsWith('Repository.java')
+}
+assert repositoryImplementations.size() == 5: 'Expected concrete persistence repositories'
+repositoryImplementations.each { assert it.text.contains('extends EgonColaRepository<') }
+def repositoryManifests = repositoryContractFiles.findAll { it.name == 'repository-manifest.json' }
+assert repositoryManifests.size() == 1
+def repositoryManifest = new groovy.json.JsonSlurper().parse(repositoryManifests.first())
+assert repositoryManifest.family == 'service'
+assert repositoryManifest.scripts.size() == 1
+def initializationSql = new File(repositoryManifests.first().parentFile, 'V20260913_001__initialize_repository_schema.sql')
+assert initializationSql.isFile()
+assert repositoryManifest.scripts.first().sha256 == java.security.MessageDigest.getInstance('SHA-256').digest(initializationSql.bytes).encodeHex().toString()
+assert initializationSql.text.contains('deleted_at') && initializationSql.text.contains('version BIGINT NOT NULL DEFAULT 0')
+repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main/resources/mybatis/mapper/') && it.name.endsWith('DAO.xml') }.each {
+    assert it.text.contains('selectActiveById') && it.text.contains('selectActiveByIds')
+    assert it.text.contains('deleteVersionedById') && it.text.contains('MP_OPTLOCK_VERSION_ORIGINAL')
+    assert !it.text.contains('is_deleted')
+}
+
 return true

@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
-class OrganizationFlowTest {
+class OrganizationFlowTest extends top.egon.cola.archetype.source.web.support.PersistenceTestSupport {
 
     @Autowired
     private MockMvc mockMvc;

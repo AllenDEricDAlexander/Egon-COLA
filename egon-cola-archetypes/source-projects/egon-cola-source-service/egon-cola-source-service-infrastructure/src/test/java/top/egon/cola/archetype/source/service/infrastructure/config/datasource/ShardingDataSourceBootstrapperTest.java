@@ -1,94 +1,67 @@
 package top.egon.cola.archetype.source.service.infrastructure.config.datasource;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.inOrder;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-import javax.sql.DataSource;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import org.mockito.InOrder;
-import org.springframework.boot.autoconfigure.flyway.FlywayProperties;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
+
+import javax.sql.DataSource;
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class ShardingDataSourceBootstrapperTest {
-
     @Test
-    void shouldCreateLogicalDataSourceAfterValidationAndMigrationUsingSameMap() {
-        PhysicalDataSourceFactory physicalFactory = mock(PhysicalDataSourceFactory.class);
-        ShardingYamlLoader loader = mock(ShardingYamlLoader.class);
-        ShardingTopologyValidator validator = mock(ShardingTopologyValidator.class);
-        PhysicalDataSourceFlywayMigrator migrator =
-                mock(PhysicalDataSourceFlywayMigrator.class);
-        Map<String, DataSource> physical = new LinkedHashMap<>();
-        physical.put("master_data", mock(DataSource.class));
-        byte[] yaml = "rules".getBytes();
-        DataSource logical = mock(DataSource.class);
-        when(physicalFactory.create(any())).thenReturn(physical);
-        when(loader.load(any())).thenReturn(yaml);
-        ShardingDataSourceBootstrapper.LogicalDataSourceFactory logicalFactory =
-                (dataSources, yamlBytes) -> {
-                    assertThat(dataSources).isSameAs(physical);
-                    assertThat(yamlBytes).isSameAs(yaml);
-                    return logical;
-                };
-        ShardingDataSourceBootstrapper bootstrapper = new ShardingDataSourceBootstrapper(
-                physicalFactory,
-                loader,
-                validator,
-                migrator,
-                logicalFactory);
-        ShardingDataSourceProperties properties =
-                ShardingTopologyValidatorTest.validProperties();
-        FlywayProperties flywayProperties = new FlywayProperties();
-
-        DataSource result = bootstrapper.createDataSource(properties, flywayProperties);
-
-        assertThat(result).isSameAs(logical);
-        InOrder order = inOrder(loader, validator, migrator);
-        order.verify(loader).load(properties.config());
+    void createsLogicalDatasourceOnlyAfterDdlAndReadinessUsingTheSamePolicy() throws Exception {
+        var properties = ShardingTopologyValidatorTest.validProperties();
+        var yaml = ShardingTopologyValidatorTest.yaml(false);
+        var topology = ShardingTopologyValidatorTest.validated(properties, yaml);
+        var pools = mock(PhysicalDataSourceFactory.class);
+        var loader = mock(ShardingYamlLoader.class);
+        var validator = mock(ShardingTopologyValidator.class);
+        var ddl = mock(EgonColaPostgreDdlRunner.class);
+        var logical = mock(ShardingDataSourceBootstrapper.LogicalDataSourceFactory.class);
+        Map<String, DataSource> physical = Map.of("master_data", mock(DataSource.class), "shard_0", mock(DataSource.class), "shard_1", mock(DataSource.class));
+        when(pools.create(properties)).thenReturn(physical);
+        when(loader.load(properties.config())).thenReturn(yaml);
+        when(validator.validate(properties, yaml)).thenReturn(topology);
+        DataSource expected = mock(DataSource.class);
+        when(logical.create(eq(physical), any())).thenReturn(expected);
+        var policy = new EgonColaMybatisPlusProperties();
+        policy.getDdl().setEnabled(true);
+        var bootstrapper = new ShardingDataSourceBootstrapper(pools, loader, validator, ddl, new ObjectMapper(), policy, logical);
+        assertThat(bootstrapper.createDataSource(properties)).isSameAs(expected);
+        var order = inOrder(validator, ddl, logical);
         order.verify(validator).validate(properties, yaml);
-        order.verify(migrator)
-                .migrate(physical, properties.flyway().targets(), flywayProperties);
-        verify(physicalFactory, never()).close(any());
+        order.verify(ddl).run(argThat(targets -> targets.size() == 3 && targets.stream().allMatch(target -> target.routeFingerprint().equals(topology.fingerprint()))));
+        order.verify(validator).verifyReadiness(eq(topology), eq(properties), eq(physical), any(), eq(policy.getDdl().getTopologyReadyTimeout()));
+        order.verify(logical).create(eq(physical), any());
+        verify(pools, never()).close(any());
+        assertThat(bootstrapper.profiles()).isSameAs(topology.profiles());
     }
 
     @Test
-    void shouldCloseEveryPhysicalPoolAndSkipLogicalCreationWhenMigrationFails() {
-        PhysicalDataSourceFactory physicalFactory = mock(PhysicalDataSourceFactory.class);
-        ShardingYamlLoader loader = mock(ShardingYamlLoader.class);
-        ShardingTopologyValidator validator = mock(ShardingTopologyValidator.class);
-        PhysicalDataSourceFlywayMigrator migrator =
-                mock(PhysicalDataSourceFlywayMigrator.class);
-        Map<String, DataSource> physical = Map.of("master_data", mock(DataSource.class));
-        when(physicalFactory.create(any())).thenReturn(physical);
-        when(loader.load(any())).thenReturn(new byte[0]);
-        org.mockito.Mockito.doThrow(new IllegalStateException("migration failed"))
-                .when(migrator)
-                .migrate(any(), any(), any());
-        boolean[] logicalFactoryCalled = {false};
-        ShardingDataSourceBootstrapper bootstrapper = new ShardingDataSourceBootstrapper(
-                physicalFactory,
-                loader,
-                validator,
-                migrator,
-                (dataSources, yaml) -> {
-                    logicalFactoryCalled[0] = true;
-                    return mock(DataSource.class);
-                });
-
-        assertThatThrownBy(() -> bootstrapper.createDataSource(
-                        ShardingTopologyValidatorTest.validProperties(),
-                        new FlywayProperties()))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("migration failed");
-
-        assertThat(logicalFactoryCalled[0]).isFalse();
-        verify(physicalFactory).close(physical.values());
+    void failedDdlClosesPoolsAndPreventsLogicalDatasourceCreation() throws Exception {
+        var properties = ShardingTopologyValidatorTest.validProperties();
+        var yaml = ShardingTopologyValidatorTest.yaml(false);
+        var topology = ShardingTopologyValidatorTest.validated(properties, yaml);
+        var pools = mock(PhysicalDataSourceFactory.class);
+        var loader = mock(ShardingYamlLoader.class);
+        var validator = mock(ShardingTopologyValidator.class);
+        var ddl = mock(EgonColaPostgreDdlRunner.class);
+        var logical = mock(ShardingDataSourceBootstrapper.LogicalDataSourceFactory.class);
+        Map<String, DataSource> physical = Map.of("master_data", mock(DataSource.class), "shard_0", mock(DataSource.class), "shard_1", mock(DataSource.class));
+        when(pools.create(properties)).thenReturn(physical);
+        when(loader.load(properties.config())).thenReturn(yaml);
+        when(validator.validate(properties, yaml)).thenReturn(topology);
+        when(ddl.run(any())).thenThrow(new IllegalStateException("DDL_FAILED"));
+        var policy = new EgonColaMybatisPlusProperties();
+        policy.getDdl().setEnabled(true);
+        var bootstrapper = new ShardingDataSourceBootstrapper(pools, loader, validator, ddl, new ObjectMapper(), policy, logical);
+        assertThatThrownBy(() -> bootstrapper.createDataSource(properties)).hasMessage("DDL_FAILED");
+        verify(pools).close(physical.values());
+        verifyNoInteractions(logical);
+        assertThat(bootstrapper.profiles()).isEmpty();
     }
 }

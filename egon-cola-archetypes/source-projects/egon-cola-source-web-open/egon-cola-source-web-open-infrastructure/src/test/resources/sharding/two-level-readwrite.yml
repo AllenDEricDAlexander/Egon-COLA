@@ -1,0 +1,98 @@
+databaseName: routing_contract
+rules:
+  - !READWRITE_SPLITTING
+    dataSourceGroups:
+      master_data:
+        writeDataSourceName: master_data_primary
+        readDataSourceNames: [master_data_replica_0]
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+      shard_0:
+        writeDataSourceName: shard_0_primary
+        readDataSourceNames: [shard_0_replica_0]
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+      shard_1:
+        writeDataSourceName: shard_1_primary
+        readDataSourceNames: [shard_1_replica_0]
+        transactionalReadQueryStrategy: PRIMARY
+        loadBalancerName: round_robin
+    loadBalancers:
+      round_robin:
+        type: ROUND_ROBIN
+  - !SINGLE
+    tables: [master_data.public.routing_metadata]
+  - !BROADCAST
+    tables: [routing_dictionary]
+  - !SHARDING
+    tables:
+      routing_order:
+        actualDataNodes: shard_0.routing_order_t0_b0,shard_0.routing_order_t0_b1,shard_1.routing_order_t1_b0,shard_1.routing_order_t1_b1,shard_0.routing_order_t2_b0,shard_0.routing_order_t2_b1,shard_1.routing_order_t3_b0,shard_1.routing_order_t3_b1
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: two_level_database
+        tableStrategy:
+          complex:
+            shardingColumns: tenant_id,id
+            shardingAlgorithmName: two_level_order_table
+        auditStrategy:
+          auditorNames: [sharding_key_required_auditor]
+          allowHintDisable: false
+      routing_order_item:
+        actualDataNodes: shard_0.routing_order_item_t0_b0,shard_0.routing_order_item_t0_b1,shard_1.routing_order_item_t1_b0,shard_1.routing_order_item_t1_b1,shard_0.routing_order_item_t2_b0,shard_0.routing_order_item_t2_b1,shard_1.routing_order_item_t3_b0,shard_1.routing_order_item_t3_b1
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: two_level_database
+        tableStrategy:
+          complex:
+            shardingColumns: tenant_id,order_id
+            shardingAlgorithmName: two_level_item_table
+        auditStrategy:
+          auditorNames: [sharding_key_required_auditor]
+          allowHintDisable: false
+    bindingTables: ["routing_order,routing_order_item"]
+    shardingAlgorithms:
+      two_level_database:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.archetype.source.webopen.infrastructure.config.datasource.TenantDatabaseShardingAlgorithm
+          algorithm-version: mix64-v1
+          tenant-slot-count: 4
+          tenant-slot-map: "0=shard_0,1=shard_1,2=shard_0,3=shard_1"
+      two_level_order_table:
+        type: CLASS_BASED
+        props:
+          strategy: COMPLEX
+          algorithmClassName: top.egon.cola.archetype.source.webopen.infrastructure.config.datasource.TenantBusinessTableShardingAlgorithm
+          algorithm-version: mix64-v1
+          tenant-slot-count: 4
+          tenant-slot-map: "0=shard_0,1=shard_1,2=shard_0,3=shard_1"
+          secondary-bucket-count: 2
+          secondary-column: id
+          root-key-name: order
+          secondary-seed: "0x9e3779b97f4a7c15"
+          max-read-fanout-tables: 2
+      two_level_item_table:
+        type: CLASS_BASED
+        props:
+          strategy: COMPLEX
+          algorithmClassName: top.egon.cola.archetype.source.webopen.infrastructure.config.datasource.TenantBusinessTableShardingAlgorithm
+          algorithm-version: mix64-v1
+          tenant-slot-count: 4
+          tenant-slot-map: "0=shard_0,1=shard_1,2=shard_0,3=shard_1"
+          secondary-bucket-count: 2
+          secondary-column: order_id
+          root-key-name: order
+          secondary-seed: "0x9e3779b97f4a7c15"
+          max-read-fanout-tables: 2
+    auditors:
+      sharding_key_required_auditor:
+        type: DML_SHARDING_CONDITIONS
+transaction:
+  defaultType: LOCAL
+props:
+  sql-show: false
+  check-table-metadata-enabled: true

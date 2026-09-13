@@ -10,16 +10,30 @@
         <result column="create_time" property="createTime"/>
         <result column="update_user_id" property="updateUserId"/>
         <result column="update_time" property="updateTime"/>
-        <result column="is_deleted" property="isDeleted"/>
+        <result column="deleted_at" property="deletedAt"/>
+        <result column="version" property="version"/>
         <result column="code" property="code"/>
         <result column="name" property="name"/>
         <result column="credit" property="credit"/>
         <result column="status" property="status"/>
     </resultMap>
     <select id="selectByCode" resultMap="CourseResultMap">
-        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
                code, name, credit, status
         FROM evaluation_course
-        WHERE code = #{code} AND is_deleted = FALSE
+        WHERE code = #{code} AND deleted_at IS NULL
     </select>
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.serviceopen.infrastructure.course.repo.po.CoursePO">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, code, name, credit, status FROM evaluation_course WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.serviceopen.infrastructure.course.repo.po.CoursePO">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, code, name, credit, status FROM evaluation_course WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE evaluation_course SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime}, version = version + 1
+        WHERE id = #{et.id} AND version = #{MP_OPTLOCK_VERSION_ORIGINAL} AND deleted_at IS NULL
+    </update>
+    <select id="selectActivePage" resultType="top.egon.cola.archetype.source.serviceopen.infrastructure.course.repo.po.CoursePO">SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, code, name, credit, status FROM evaluation_course WHERE deleted_at IS NULL ORDER BY create_time DESC, id ASC</select>
 </mapper>

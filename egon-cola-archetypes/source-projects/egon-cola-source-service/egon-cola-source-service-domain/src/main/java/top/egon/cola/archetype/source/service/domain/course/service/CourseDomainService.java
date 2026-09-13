@@ -8,32 +8,28 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import top.egon.cola.archetype.source.service.domain.common.Page;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-public interface CourseDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
+public interface CourseDomainService {
 
-    Course createCourse(CourseCode code, String name, int credit);
+    Course createCourse( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull CourseCode code, String name, int credit);
 
-    Course save(Course course);
+    Course save( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Course course);
 
-    Optional<Course> findById(CourseId courseId);
+    Optional<Course> findById( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull CourseId courseId);
 
-    Optional<Course> findByCode(CourseCode courseCode);
+    Optional<Course> findByCode( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull CourseCode courseCode);
 
     Page<Course> findPage(int currentPage, int pageSize);
 
-    boolean existsByCode(CourseCode courseCode);
+    boolean existsByCode( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull CourseCode courseCode);
 
-    CourseSchedule scheduleCourse(
-            Course course,
+    CourseSchedule scheduleCourse( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Course course,
             Long classId,
             Instant startsAt,
             Instant endsAt,
             List<CourseSchedule> overlaps);
 
-    CourseSchedule saveSchedule(CourseSchedule schedule);
+    CourseSchedule saveSchedule( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull CourseSchedule schedule);
 
-    List<CourseSchedule> findOverlapping(
-            CourseId courseId, Long classId, Instant startsAt, Instant endsAt);
+    List<CourseSchedule> findOverlapping( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull CourseId courseId, Long classId, Instant startsAt, Instant endsAt);
 }

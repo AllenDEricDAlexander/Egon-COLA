@@ -1,44 +1,16 @@
 databaseName: ${app.sharding.database-name:${LIGHT_SHARDING_DATABASE_NAME:student_management}}
 
 rules:
+  - !SINGLE
+    tables:
+      - master_data.${LIGHT_SHARDING_SCHEMA:public}.users
+      - master_data.${LIGHT_SHARDING_SCHEMA:public}.roles
+      - master_data.${LIGHT_SHARDING_SCHEMA:public}.permissions
+      - master_data.${LIGHT_SHARDING_SCHEMA:public}.user_roles
+      - master_data.${LIGHT_SHARDING_SCHEMA:public}.role_permissions
+      - master_data.${LIGHT_SHARDING_SCHEMA:public}.courses
   - !SHARDING
     tables:
-      users:
-        actualDataNodes: master_data.users
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
-      roles:
-        actualDataNodes: master_data.roles
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
-      permissions:
-        actualDataNodes: master_data.permissions
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
-      user_roles:
-        actualDataNodes: master_data.user_roles
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
-      role_permissions:
-        actualDataNodes: master_data.role_permissions
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
-      courses:
-        actualDataNodes: master_data.courses
-        databaseStrategy:
-          none:
-        tableStrategy:
-          none:
       school_classes:
         actualDataNodes: shard_$->{0..1}.school_classes_$->{0..1}
         databaseStrategy:
@@ -68,7 +40,7 @@ rules:
             - sharding_key_required_auditor
           allowHintDisable: false
     bindingTables:
-      - school_classes,class_course_schedules
+      - "school_classes,class_course_schedules"
     shardingAlgorithms:
       tenant_long_database_bucket:
         type: CLASS_BASED
@@ -90,5 +62,8 @@ rules:
       sharding_key_required_auditor:
         type: DML_SHARDING_CONDITIONS
 
+transaction:
+  defaultType: LOCAL
+
 props:
-  sql-show: ${SHARDING_SQL_SHOW:false}
+  sql-show: false

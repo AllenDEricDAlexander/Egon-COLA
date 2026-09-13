@@ -4,19 +4,19 @@ import top.egon.cola.archetype.source.lightopen.domain.user.aggregates.RolePermi
 import top.egon.cola.archetype.source.lightopen.domain.user.entities.Permission;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.util.List;
 import java.util.Optional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning permission domain service contract. */
-public interface PermissionDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    Optional<Permission> findByCode(PermissionCode permissionCode);
+public interface PermissionDomainService {
+    Optional<Permission> findByCode( @Valid @NotNull PermissionCode permissionCode);
 
-    Permission save(Permission permission);
+    Permission save( @Valid @NotNull Permission permission);
 
-    List<Permission> findByUserId(UserId userId);
+    List<Permission> findByUserId( @Valid @NotNull UserId userId);
 
-    RolePermissionAggregate grantPermission(RolePermissionAggregate role, Permission permission);
+    RolePermissionAggregate grantPermission( @Valid @NotNull RolePermissionAggregate role, @Valid @NotNull Permission permission);
 }

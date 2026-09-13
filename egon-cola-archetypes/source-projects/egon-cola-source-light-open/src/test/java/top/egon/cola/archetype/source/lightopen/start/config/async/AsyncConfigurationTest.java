@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
                 "spring.cloud.nacos.discovery.enabled=false",
                 "spring.cloud.nacos.config.enabled=false"
         })
-class AsyncConfigurationTest {
+class AsyncConfigurationTest extends top.egon.cola.archetype.source.lightopen.support.PersistenceTestSupport {
 
     @Autowired
     @Qualifier("applicationTaskExecutor")

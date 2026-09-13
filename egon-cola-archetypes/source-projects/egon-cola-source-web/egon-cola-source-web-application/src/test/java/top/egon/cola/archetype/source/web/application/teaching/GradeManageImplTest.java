@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GradeManageImplTest {
-    @Mock GradeDomainService<?> gradeDomainService;
+    @Mock GradeDomainService gradeDomainService;
     @Mock GradeCachePort gradeCache;
     @Mock CommandIdempotencyPort idempotency;
     @Mock OrganizationEventPublisher eventPublisher;

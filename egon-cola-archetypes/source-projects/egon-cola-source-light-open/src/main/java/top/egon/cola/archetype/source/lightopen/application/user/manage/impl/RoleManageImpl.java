@@ -30,9 +30,9 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class RoleManageImpl implements RoleManage {
     @Qualifier("roleDomainService")
-    private final RoleDomainService<?> roleDomainService;
+    private final RoleDomainService roleDomainService;
     @Qualifier("userDomainService")
-    private final UserDomainService<?> userDomainService;
+    private final UserDomainService userDomainService;
     @Qualifier("userCachePort")
     private final UserCachePort userCachePort;
     @Qualifier("userEventPublisher")

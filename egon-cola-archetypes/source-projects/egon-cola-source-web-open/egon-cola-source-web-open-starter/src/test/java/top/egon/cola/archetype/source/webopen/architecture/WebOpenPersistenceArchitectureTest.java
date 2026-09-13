@@ -37,7 +37,7 @@ class WebOpenPersistenceArchitectureTest {
                 .reduce("", String::concat);
         assertTrue(source.contains("extends EgonModel<"));
         assertTrue(source.contains("extends EgonColaMapper<"));
-        assertTrue(source.contains("extends EgonColaServiceImpl<"));
+        assertFalse(source.contains("extends EgonColaServiceImpl<"));
         assertFalse(source.contains("extends BaseMapper<"));
         assertFalse(source.contains("repo.mapper"));
         assertFalse(source.contains("JpaRepository"));

@@ -470,7 +470,6 @@ assertEgonColaBom(pomXml)
     "spring-boot-starter-data-redis",
     "spring-boot-starter-aop",
     "yuheng-starter-openapi-webmvc",
-    "flyway-database-postgresql",
     "spring-boot-starter-test",
     "spring-graphql-test"
 ].each { artifactId ->
@@ -527,15 +526,16 @@ def lombokConfig = assertFile("lombok.config").text
 
 assertRuntimeConfigFiles("src/main/resources")
 
-assert assertFile("src/main/resources/application-test.yml").text.contains(
-        'password: "${LIGHT_SHARDING_PASSWORD:}"')
+def testDatasourceYaml = assertFile("src/main/resources/application-test.yml").text
+assert testDatasourceYaml.contains("jdbc-url: jdbc:postgresql://localhost:5432/light_test_master_data")
+assert testDatasourceYaml.contains("password: test")
 assertMissing("src/test/resources/application-jpa-test.yml")
 assertMissing("src/test/java/it/pkg/infrastructure/JpaTestApplication.java")
 assertFile("src/test/java/it/pkg/architecture/LightPersistenceArchitectureTest.java")
 assert !assertFile("src/main/resources/application-test.yml").text.contains('ENC(')
 
 def testConfig = assertFile("src/main/resources/application-test.yml").text
-assert testConfig.contains("database-name: PUBLIC")
+assert testConfig.contains("database-name: student_management_test")
 assert !testConfig.contains("DATABASE_TO_LOWER")
 assert testConfig.contains("rabbitmq:\n      enabled: false")
 assert testConfig.contains("redis:\n      enabled: false")
@@ -725,8 +725,8 @@ assert lightShardingApplication.contains('node-count: ${LIGHT_SHARDING_NODE_COUN
 assert lightShardingApplication.contains(
         'node-map: ${LIGHT_SHARDING_NODE_MAP:0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1}')
 [
-    "classpath:db/migration/sharding/master-data",
-    "classpath:db/migration/sharding/shard"
+    "classpath:db/egon-mp/repository-manifest.json",
+    "role: SHARD"
 ].each { assert lightShardingApplication.contains(it) }
 def lightShardingRule = assertFile(
         "src/main/resources/sharding/shardingsphere-sharding.yml").text
@@ -735,13 +735,13 @@ assert lightShardingRule.contains(
 assert lightShardingRule.contains("shardingColumn: tenant_id")
 assert lightShardingRule.contains("shardingColumn: tenant_id")
 assert lightShardingRule.contains("school_classes,class_course_schedules")
-assert lightShardingRule.contains("actualDataNodes: master_data.users")
+assert lightShardingRule.contains('master_data.${LIGHT_SHARDING_SCHEMA:public}.users')
 assert !lightShardingRule.contains(".public.")
 assert !lightShardingRule.contains("proxy-frontend-database-protocol-type")
-assert lightShardingRule.count("none:") == 12
+assert lightShardingRule.count("none:") == 0
 assert lightShardingRule.contains("type: DML_SHARDING_CONDITIONS")
 assert lightShardingRule.contains("allowHintDisable: false")
-assert !lightShardingRule.contains("!SINGLE")
+assert lightShardingRule.contains("!SINGLE")
 assert !lightShardingRule.contains("defaultDataSource")
 def lightReadwriteRule = assertFile(
         "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml").text
@@ -753,7 +753,7 @@ assert lightReadwriteRule.contains("master_data_replica_0")
 assert lightReadwriteRule.contains("type: DML_SHARDING_CONDITIONS")
 assert !lightReadwriteRule.contains(".public.")
 assert !lightReadwriteRule.contains("proxy-frontend-database-protocol-type")
-assert !lightReadwriteRule.contains("!SINGLE")
+assert lightReadwriteRule.contains("!SINGLE")
 
 assertFile("src/main/java/it/pkg/domain/user/aggregates/UserAggregate.java")
 [
@@ -885,7 +885,7 @@ migrationFiles.each { migration ->
     "DataSourceModeProperties",
     "ShardingNodeMap",
     "LongTenantShardingAlgorithm",
-    "PhysicalDataSourceFlywayMigrator",
+    "ShardingWriteTargetResolver",
     "ShardingDataSourceBootstrapper",
     "ShardingDataSourcePropertiesLoader",
     "ShardingTopologyValidator",
@@ -896,7 +896,7 @@ migrationFiles.each { migration ->
 [
     "src/test/java/it/pkg/application/transaction/LocalTransactionBoundaryTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/DataSourceModePropertiesTest.java",
-    "src/test/java/it/pkg/infrastructure/config/datasource/PhysicalDataSourceFlywayMigratorTest.java",
+    "src/test/java/it/pkg/infrastructure/config/datasource/PostgreSqlSchemaInitializationTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ShardingDataSourcePropertiesLoaderTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/ShardingTopologyValidatorTest.java",
     "src/test/java/it/pkg/infrastructure/config/datasource/LongTenantShardingAlgorithmTest.java",
@@ -935,11 +935,8 @@ assertMissing("src/main/java/it/pkg/infrastructure/user/repo/jpa")
 assertMissing("src/main/java/it/pkg/infrastructure/user/repo/impl")
 assertMissing("src/main/java/it/pkg/infrastructure/teaching/repo/jpa")
 assertMissing("src/main/java/it/pkg/infrastructure/teaching/repo/impl")
-assert pom.contains("<id>postgres-flyway-verify</id>")
-assert pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
-assert pom.contains('${env.POSTGRES_VERIFY_URL}')
-assert pom.contains('${env.POSTGRES_VERIFY_USER}')
-assert pom.contains('${env.POSTGRES_VERIFY_PASSWORD}')
+assert !pom.contains("<id>postgres-flyway-verify</id>")
+assert !pom.contains("<artifactId>flyway-maven-plugin</artifactId>")
 
 [
     "user/service/impl/UserDomainServiceImpl",
@@ -1218,36 +1215,9 @@ assert readme.contains("Domain-First Structure")
 assert readme.contains("Primary Workflows")
 assert readme.contains("RABBITMQ_ENABLED=true")
 assert readme.contains("ConfigCipherCli")
-[
-    "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
-    "APP_DATASOURCE_MODE=SHARDING_READWRITE",
-    "school_classes",
-    "school_class_id",
-    "tenant_id",
-    "Flyway",
-    "primary targets",
-    "positive `Long`",
-    "VyyyyMMdd_NNN__description.sql",
-    "2N rule",
-    "databaseStrategy.none",
-    "DML_SHARDING_CONDITIONS",
-    "local to one physical database",
-    "no historical data",
-    "no online migration"
-].each { assert readme.contains(it) }
+["EgonColaRepository", "SHARDING_READWRITE", "tenant_id", "mix64-v1", "LOCAL", "REBUILD_REQUIRED", "repository-manifest.json"].each { assert readme.contains(it) }
 def lightReadmeZh = assertFile("README.zh-CN.md").text
-[
-    "SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING",
-    "school_class_id",
-    "正数 `Long`",
-    "tenant_id",
-    "VyyyyMMdd_NNN__description.sql",
-    "容量按 2N 法扩展",
-    "databaseStrategy.none",
-    "DML_SHARDING_CONDITIONS",
-    "事务只允许覆盖一个物理库",
-    "没有历史数据"
-].each { assert lightReadmeZh.contains(it) }
+["EgonColaRepository", "SHARDING_READWRITE", "tenant_id", "mix64-v1", "LOCAL", "REBUILD_REQUIRED", "repository-manifest.json"].each { assert lightReadmeZh.contains(it) }
 assert !readme.contains("计费")
 assert !readme.contains("Charge")
 
@@ -1390,3 +1360,31 @@ generatedProjectDir.traverse(type: FileType.FILES) { candidate ->
 
 println 'Published parent and light runtime boundaries passed'
 true
+
+// Repository/CQRS and managed PostgreSQL initialization must survive project generation.
+def repositoryContractFiles = []
+generatedProjectDir.traverse(type: FileType.FILES) { candidate ->
+    def resourcePath = generatedProjectDir.canonicalFile.toPath().relativize(candidate.canonicalFile.toPath()).toString().replace(File.separator, "/")
+    if (!resourcePath.startsWith("target/") && !resourcePath.contains("/target/")) { repositoryContractFiles << candidate }
+}
+def repositoryImplementations = repositoryContractFiles.findAll {
+    it.path.replace('\\', '/').contains('/src/main/java/') && it.name.endsWith('Repository.java')
+}
+assert repositoryImplementations.size() == 8: 'Expected concrete persistence repositories'
+repositoryImplementations.each { assert it.text.contains('extends EgonColaRepository<') }
+def repositoryManifests = repositoryContractFiles.findAll { it.name == 'repository-manifest.json' }
+assert repositoryManifests.size() == 1
+def repositoryManifest = new groovy.json.JsonSlurper().parse(repositoryManifests.first())
+assert repositoryManifest.family == 'light'
+assert repositoryManifest.scripts.size() == 1
+def initializationSql = new File(repositoryManifests.first().parentFile, 'V20260913_001__initialize_repository_schema.sql')
+assert initializationSql.isFile()
+assert repositoryManifest.scripts.first().sha256 == java.security.MessageDigest.getInstance('SHA-256').digest(initializationSql.bytes).encodeHex().toString()
+assert initializationSql.text.contains('deleted_at') && initializationSql.text.contains('version BIGINT NOT NULL DEFAULT 0')
+repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main/resources/mybatis/mapper/') && it.name.endsWith('DAO.xml') }.each {
+    assert it.text.contains('selectActiveById') && it.text.contains('selectActiveByIds')
+    assert it.text.contains('deleteVersionedById') && it.text.contains('MP_OPTLOCK_VERSION_ORIGINAL')
+    assert !it.text.contains('is_deleted')
+}
+
+return true

@@ -12,7 +12,7 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** Locks the knowledge schema contract: two migrations, the vector table stays outside Flyway. */
+/** Locks the knowledge schema contract: the immutable migrations and their forward correction, the vector table stays outside Flyway. */
 class KnowledgeSchemaMigrationTest {
 
     private static final Path MIGRATION_ROOT = Path.of("src/main/resources/db/migration");
@@ -21,7 +21,7 @@ class KnowledgeSchemaMigrationTest {
 
     @Test
     void declares_the_knowledge_and_outbox_migrations() throws IOException {
-        assertThat(migrationFiles()).containsExactly(KNOWLEDGE_SCHEMA, OUTBOX_SCHEMA);
+        assertThat(migrationFiles()).containsExactly(KNOWLEDGE_SCHEMA, OUTBOX_SCHEMA, "V20260913_001__egon_model_repository.sql");
     }
 
     @Test

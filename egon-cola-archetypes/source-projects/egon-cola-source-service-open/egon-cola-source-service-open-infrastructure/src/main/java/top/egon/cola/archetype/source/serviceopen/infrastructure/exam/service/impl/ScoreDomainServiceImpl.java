@@ -10,45 +10,31 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.validators.ScoreDo
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ScoreValue;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ScoreConverter;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.dao.ScoreDAO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.ScoreRepository;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ScorePO;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
-import top.egon.cola.component.common.mybatis.extension.EgonColaServiceImpl;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 
 import java.util.Optional;
 
 @Slf4j
+@Validated
 @Service("scoreDomainService")
 @RequiredArgsConstructor
 public class ScoreDomainServiceImpl
-        extends EgonColaServiceImpl<ScoreDAO, ScorePO>
-        implements ScoreDomainService<ScorePO> {
+        implements ScoreDomainService {
 
-    @Qualifier("scoreDAO")
-    private final ScoreDAO scoreDAO;
+    @Qualifier("scoreRepository")
+    private final ScoreRepository scoreRepository;
     @Qualifier("scoreConverterImpl")
     private final ScoreConverter scoreConverter;
     @Qualifier("snowflakeIdGenerator")
     private final LongIdGenerator idGenerator;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
-    private final EgonColaMybatisPlusProperties properties;
 
     private final ScoreDomainValidator validator = new ScoreDomainValidator();
 
@@ -62,34 +48,39 @@ public class ScoreDomainServiceImpl
     }
 
     @Override
+    @Transactional
     public Score save(Score score) {
         ScorePO po = scoreConverter.toTarget(score);
-        po.setId(score.getId());
-        super.save(po);
+        ScorePO current = po.getId() == null ? null : scoreRepository.getById(po.getId());
+        if (current != null) { scoreConverter.updateMetadata(po, current); }
+        boolean written = current == null ? scoreRepository.save(po) : scoreRepository.updateById(po);
+        if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
+
         return scoreConverter.toSource(po);
     }
 
     @Override
     public Optional<Score> findByExamIdAndId(ExamId examId, Long scoreId) {
-        return Optional.ofNullable(scoreDAO.selectByExamIdAndId(examId.value(), scoreId))
+        return Optional.ofNullable(scoreRepository.selectByExamIdAndId(examId.value(), scoreId))
                 .map(scoreConverter::toSource);
     }
 
     @Override
     public boolean existsByExamIdAndStudentId(ExamId examId, Long studentId) {
-        return scoreDAO.countByExamIdAndStudentId(examId.value(), studentId) > 0;
+        return scoreRepository.countByExamIdAndStudentId(examId.value(), studentId) > 0;
     }
 
     @Override
     public Page<Score> findPageByExamId(ExamId examId, int currentPage, int pageSize) {
         int normalizedPage = Math.max(currentPage, 1);
         int offset = (normalizedPage - 1) * pageSize;
+        long total = scoreRepository.countByExamId(examId.value());
         return Page.of(
-                scoreDAO.selectPageByExamId(examId.value(), pageSize, offset).stream()
+                scoreRepository.selectPageByExamId(examId.value(), pageSize, offset).stream()
                         .map(scoreConverter::toSource).toList(),
                 currentPage,
-                (int) Math.ceil((double) scoreDAO.countByExamId(examId.value()) / pageSize),
+                (int) Math.ceil((double) total / pageSize),
                 pageSize,
-                scoreDAO.countByExamId(examId.value()));
+                total);
     }
 }

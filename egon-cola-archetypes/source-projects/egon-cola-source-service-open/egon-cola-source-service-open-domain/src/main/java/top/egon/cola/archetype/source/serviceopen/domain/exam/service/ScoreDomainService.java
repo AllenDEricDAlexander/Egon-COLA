@@ -6,18 +6,14 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.Score;
 import top.egon.cola.archetype.source.serviceopen.domain.common.Page;
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import java.util.Optional;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-public interface ScoreDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    Score recordScore(
-            Exam exam,
-            ExamPaper paper,
+public interface ScoreDomainService {
+    Score recordScore( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Exam exam, @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamPaper paper,
             Long studentId,
             int points,
             boolean duplicate);
-    Score save(Score score);
-    Optional<Score> findByExamIdAndId(ExamId examId, Long scoreId);
-    boolean existsByExamIdAndStudentId(ExamId examId, Long studentId);
-    Page<Score> findPageByExamId(ExamId examId, int currentPage, int pageSize);
+    Score save( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Score score);
+    Optional<Score> findByExamIdAndId( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamId examId, Long scoreId);
+    boolean existsByExamIdAndStudentId( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamId examId, Long studentId);
+    Page<Score> findPageByExamId( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamId examId, int currentPage, int pageSize);
 }

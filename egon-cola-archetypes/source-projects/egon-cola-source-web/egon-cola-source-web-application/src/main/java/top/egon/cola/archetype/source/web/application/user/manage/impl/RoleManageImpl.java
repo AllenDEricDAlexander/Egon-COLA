@@ -28,7 +28,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class RoleManageImpl implements RoleManage {
 
-    private final UserDomainService<?> userDomainService;
+    private final UserDomainService userDomainService;
     private final UserApplicationValidator validator;
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;

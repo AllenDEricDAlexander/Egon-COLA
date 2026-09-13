@@ -17,8 +17,6 @@ import top.egon.cola.archetype.source.lightopen.domain.user.service.PermissionDo
 import top.egon.cola.archetype.source.lightopen.domain.user.service.RoleDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.RoleCode;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.PermissionPO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.RolePO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,8 +34,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PermissionManageTest {
-    @Mock PermissionDomainService<PermissionPO> permissionDomainService;
-    @Mock RoleDomainService<RolePO> roleDomainService;
+    @Mock PermissionDomainService permissionDomainService;
+    @Mock RoleDomainService roleDomainService;
     @Mock UserEventPublisher userEventPublisher;
     @Mock UserApplicationValidator applicationValidator;
     @Mock UserApplicationConvertor convertor;
@@ -78,9 +76,9 @@ class PermissionManageTest {
         Permission permission = permission(PermissionStatus.ACTIVE);
         when(permissionDomainService.findByUserId(any())).thenReturn(List.of(permission));
         List<PermissionDetailResult> result = manage.getByUser(new GetUserPermissionsQuery(1001L));
-        assertEquals(List.of(new PermissionDetailResult("course:read", "Read courses")), result);
+        assertEquals(List.of(new PermissionDetailResult("course:read", "Read light_courses")), result);
     }
 
     private Role role(RoleStatus status) { return new Role(new RoleCode("teacher"), "Teacher", status); }
-    private Permission permission(PermissionStatus status) { return new Permission(new PermissionCode("course:read"), "Read courses", status); }
+    private Permission permission(PermissionStatus status) { return new Permission(new PermissionCode("course:read"), "Read light_courses", status); }
 }

@@ -13,4 +13,7 @@ import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
  */
 @Mapper
 public interface KnowledgeBaseDAO extends EgonColaMapper<KnowledgeBasePO> {
+    java.util.List<KnowledgeBasePO> selectFilteredPage(@org.apache.ibatis.annotations.Param("offset") int offset, @org.apache.ibatis.annotations.Param("size") int size, @org.apache.ibatis.annotations.Param("keyword") String keyword, @org.apache.ibatis.annotations.Param("embeddingModel") String embeddingModel);
+    long countFiltered(@org.apache.ibatis.annotations.Param("keyword") String keyword, @org.apache.ibatis.annotations.Param("embeddingModel") String embeddingModel);
+    int updateNameAndDescription(@org.apache.ibatis.annotations.Param("et") KnowledgeBasePO entity);
 }

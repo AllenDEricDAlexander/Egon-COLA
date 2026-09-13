@@ -5,8 +5,8 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 
 @SpringBootApplication(
@@ -18,10 +18,11 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
 })
 public class StudentManagementApplication {
 
-    @Bean
+    @Bean("snowflakeIdGenerator")
     @Profile("test")
     LongIdGenerator snowflakeIdGenerator() {
-        return () -> 2001L;
+        java.util.concurrent.atomic.AtomicLong values = new java.util.concurrent.atomic.AtomicLong(100000);
+        return values::incrementAndGet;
     }
 
     public static void main(String[] args) {

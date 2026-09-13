@@ -34,8 +34,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PermissionManageImplTest {
-    @Mock UserDomainService<?> userDomainService;
-    @Mock PermissionDomainService<?> permissionDomainService;
+    @Mock UserDomainService userDomainService;
+    @Mock PermissionDomainService permissionDomainService;
     @Mock CommandIdempotencyPort idempotency;
     @Mock OrganizationEventPublisher eventPublisher;
 

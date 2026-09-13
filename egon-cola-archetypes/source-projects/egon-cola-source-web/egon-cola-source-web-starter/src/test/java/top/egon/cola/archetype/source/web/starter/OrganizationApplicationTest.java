@@ -18,7 +18,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
-class OrganizationApplicationTest {
+class OrganizationApplicationTest extends top.egon.cola.archetype.source.web.support.PersistenceTestSupport {
 
     @Autowired
     private ApplicationContext context;

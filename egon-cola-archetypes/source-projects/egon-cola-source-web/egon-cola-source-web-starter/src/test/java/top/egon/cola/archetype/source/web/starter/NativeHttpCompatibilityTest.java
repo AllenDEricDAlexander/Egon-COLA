@@ -19,7 +19,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @AutoConfigureMockMvc
 @SpringBootTest(classes = OrganizationApplication.class)
-class NativeHttpCompatibilityTest {
+class NativeHttpCompatibilityTest extends top.egon.cola.archetype.source.web.support.PersistenceTestSupport {
     @Autowired
     private MockMvc mockMvc;
     @MockitoBean

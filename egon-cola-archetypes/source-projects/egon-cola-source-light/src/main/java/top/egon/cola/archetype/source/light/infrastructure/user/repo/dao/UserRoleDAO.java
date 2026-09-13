@@ -9,6 +9,7 @@ import java.util.List;
 
 /** MyBatis mapper for user-role links. */
 @Mapper
+/** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface UserRoleDAO extends EgonColaMapper<UserRolePO> {
     List<UserRolePO> selectByUserId(@Param("userId") Long userId);
 }

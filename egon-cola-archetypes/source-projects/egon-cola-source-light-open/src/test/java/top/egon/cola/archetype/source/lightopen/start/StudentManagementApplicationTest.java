@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
                 "dubbo.protocol.port=-1",
                 "dubbo.application.qos-enable=false"
         })
-class StudentManagementApplicationTest {
+class StudentManagementApplicationTest extends top.egon.cola.archetype.source.lightopen.support.PersistenceTestSupport {
     @Test
     void contextLoads() {
     }

@@ -9,6 +9,7 @@ import java.util.List;
 
 /** MyBatis mapper for roles. */
 @Mapper
+/** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface RoleDAO extends EgonColaMapper<RolePO> {
     List<RolePO> selectByCode(@Param("code") String code);
 }

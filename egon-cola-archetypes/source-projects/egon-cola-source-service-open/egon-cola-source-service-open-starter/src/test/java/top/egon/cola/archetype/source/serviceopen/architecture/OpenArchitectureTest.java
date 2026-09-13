@@ -102,7 +102,8 @@ class OpenArchitectureTest {
                 .reduce("", String::concat);
         assertTrue(source.contains("extends EgonModel<"));
         assertTrue(source.contains("extends EgonColaMapper<"));
-        assertTrue(source.contains("extends EgonColaServiceImpl<"));
+        assertFalse(source.contains("extends EgonColaServiceImpl<"));
+        assertEquals(5, javaFiles.stream().filter(path -> path.getFileName().toString().endsWith("Repository.java")).count());
         assertFalse(source.contains("extends BaseMapper<"));
         assertFalse(source.contains("repo.mapper"));
         assertEquals(5, javaFiles.stream()

@@ -16,12 +16,30 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {"dubbo.protocol.port=-1", "dubbo.application.qos-enable=false"})
-class EvaluationExternalFreeContextTest {
+class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.serviceopen.support.PersistenceTestSupport {
 
     @Autowired private ApplicationContext context;
+    @Autowired private org.springframework.transaction.PlatformTransactionManager transactionManager;
+    @Autowired private top.egon.cola.archetype.source.serviceopen.domain.course.service.CourseDomainService courseDomainService;
+    @Autowired private top.egon.cola.archetype.source.serviceopen.infrastructure.course.repo.CourseRepository courses;
     @Autowired private Environment environment;
     @Autowired private OrganizationDirectoryPort organizationDirectory;
     @Autowired private DtpTaskDecorator dtpTaskDecorator;
+
+    @Test
+    void savingAnExistingDomainCourseUpdatesWithItsLoadedVersion() {
+        try (var tenant = org.slf4j.MDC.putCloseable("tenantId", "41");
+             var user = org.slf4j.MDC.putCloseable("userId", "service-test")) {
+            new org.springframework.transaction.support.TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                var course = courseDomainService.createCourse(new top.egon.cola.archetype.source.serviceopen.domain.course.vos.CourseCode("UPDATE_TEST"), "Before", 2);
+                course = courseDomainService.save(course);
+                course.setName("After");
+                courseDomainService.save(course);
+                assertThat(courses.getById(course.getId()).getName()).isEqualTo("After");
+                assertThat(courses.getById(course.getId()).getVersion()).isEqualTo(1L);
+            });
+        }
+    }
 
     @Test
     void shouldAssembleWithoutExternalInfrastructure() {

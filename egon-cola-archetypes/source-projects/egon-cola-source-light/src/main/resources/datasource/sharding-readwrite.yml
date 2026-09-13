@@ -44,14 +44,17 @@ app:
         jdbc-url: ${LIGHT_SHARD_1_REPLICA_0_URL}
         username: ${LIGHT_SHARD_1_REPLICA_0_USERNAME}
         password: "${LIGHT_SHARD_1_REPLICA_0_PASSWORD:}"
-    flyway:
+    ddl:
       targets:
         - data-source-name: master_data_primary
-          locations:
-            - classpath:db/migration/sharding/master-data
+          schema: ${LIGHT_SHARDING_SCHEMA:public}
+          role: MASTER_DATA
+          manifest: classpath:db/egon-mp/repository-manifest.json
         - data-source-name: shard_0_primary
-          locations:
-            - classpath:db/migration/sharding/shard
+          schema: ${LIGHT_SHARDING_SCHEMA:public}
+          role: SHARD
+          manifest: classpath:db/egon-mp/repository-manifest.json
         - data-source-name: shard_1_primary
-          locations:
-            - classpath:db/migration/sharding/shard
+          schema: ${LIGHT_SHARDING_SCHEMA:public}
+          role: SHARD
+          manifest: classpath:db/egon-mp/repository-manifest.json

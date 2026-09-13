@@ -27,7 +27,7 @@ import top.egon.cola.component.common.mybatis.support.TestBusinessDTO;
 import top.egon.cola.component.common.mybatis.support.TestBusinessPO;
 import top.egon.cola.component.common.mybatis.support.TestBusinessConverters;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
-import top.egon.cola.component.common.mybatis.support.TestBusinessService;
+import top.egon.cola.component.common.mybatis.support.TestBusinessRepository;
 import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
 import top.egon.cola.component.common.mybatis.support.TestUserIdProvider;
 
@@ -83,7 +83,7 @@ class EgonColaModelValidationIntegrationTest {
         model.setTenantId(7L);
         model.setCreateUserId("creator");
         model.setUpdateUserId("updater");
-        model.setIsDeleted(true);
+        model.setDeletedAt(java.time.LocalDateTime.of(2026, 1, 1, 0, 0));
 
         assertThat(po.getTitle()).isEqualTo("title");
         assertThat(model.getTitle()).isEqualTo("title");
@@ -128,7 +128,7 @@ class EgonColaModelValidationIntegrationTest {
                 .run(context -> {
                     TestTenantIdProvider tenant = context.getBean(TestTenantIdProvider.class);
                     TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
-                    TestBusinessService service = context.getBean(TestBusinessService.class);
+                    TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
                     tenant.set(61L);
                     user.set("validator-user");
                     assertThatThrownBy(() -> service.save(

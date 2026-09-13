@@ -1,213 +1,55 @@
-# Egon COLA Common MyBatis-Plus Spring Boot Starter
+# MyBatis-Plus Repository Starter
 
-这个按需引入的 Starter 基于官方 mybatis-plus-spring-boot3-starter 与 mybatis-plus-jsqlparser，版本固定为 3.5.16，提供 Egon COLA 仓储层统一能力：
+本组件使用 MyBatis-Plus 3.5.16，为 PostgreSQL 提供模型约束、Repository 命令、显式 SQL 查询、MybatisBatch、租户/版本保护及受管 DDL 运行器。业务层保持 `Controller → Service → Repository → Mapper`；在现有 COLA 项目中，Application/Domain Service 保留业务职责，Repository 位于 infrastructure。
 
-- EgonModel<M> ActiveRecord 实体基类和七个公共持久化字段；
-- 零声明方法的 EgonColaMapper<T>；
-- 显式重写并增强官方 57 个方法的 EgonColaIService<T> / EgonColaServiceImpl<M,T>；
-- TenantID Guard、BlockAttack、TenantLine、乐观锁、分页有序链；
-- 权威审计填充，以及一个 MyBatis 参数/结果 Model 校验拦截器；
-- 默认 MDC Provider，并为未来 SecurityContext Provider 保留替换点。
+## 模型与主键
 
-Starter 不拥有业务表、Flyway 迁移、分库分表拓扑、HTTP 接口和业务 Service；这些由采用方负责。
+业务 PO 继承 `EgonModel<PO>`，配置 `@TableName`；不要重复声明技术字段。
 
-## 引入
+| Java 字段 | SQL 列 | 类型与语义 |
+| --- | --- | --- |
+| id | id | Long / BIGINT，继承强制 `@TableId(type=ASSIGN_ID)` |
+| tenantId | tenant_id | Long / BIGINT NOT NULL |
+| createUserId / updateUserId | create_user_id / update_user_id | String，来自当前用户上下文 |
+| createTime / updateTime | create_time / update_time | Instant，UTC、微秒精度 |
+| deletedAt | deleted_at | LocalDateTime / timestamp(6)，未删除 NULL |
+| version | version | Long / BIGINT NOT NULL，插入 0，更新与软删递增 |
 
-先导入 Components BOM，再声明具体 Starter：
+逻辑删除使用 `@TableLogic` 与 `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`。主键适配器 `EgonColaIdentifierGenerator` 委托现有具名 `snowflakeIdGenerator`，不重新实现分布式算法。实例必须配置唯一 `EGON_ID_MACHINE_ID`；计数器只用于隔离测试。`@KeySequence` 与该 ASSIGN_ID 合同冲突，启动校验拒绝组合。
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-components-bom</artifactId>
-                <version>the-bom-version</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long 分片键。技术字段统一由 MetaObjectHandler 填充，扩展钩子只允许处理业务字段。SQL Injector 不承担元数据填充职责。
 
-    <dependencies>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
-        </dependency>
-    </dependencies>
+## Repository 与 CQRS
 
-应用需要提供 DataSource、Jakarta Validator（正常的 Boot Validation 自动配置即可）和 Mapper 扫描。Starter 通过 AutoConfiguration.imports 发现，不需要组件扫描。
+技术接口为 `EgonColaIRepository<T>`（扩展官方 `IRepository`），实现基类为 `EgonColaRepository<M,T>`。业务 Domain Service 不继承技术 CRUD 接口，也不携带 PO 泛型。具体 Repository 使用具名 Bean、Lombok 构造注入，并提供 mapper/modelValidationUtils/tenantIdProvider/properties 四个 getter；参考脚手架中的具体实现。
 
-## Model、Mapper 和技术 Service
+- 命令使用 save、带版本的 updateById/removeById、受保护的批量 API；调用方检查影响行数。
+- 业务 Query 使用命名 Mapper XML。每个 Mapper 都需提供 `selectActiveById`、`selectActiveByIds`、`deleteVersionedById`。
+- ActiveRecord 不可用。QueryChain、lambdaQuery 等链式查询及通用 Query Wrapper 入口快速拒绝；不要使用 `.last()` 拼接 SQL。
+- 自定义 UPDATE 中 MP 乐观锁插件会先增加实体版本，WHERE 必须绑定 `#{MP_OPTLOCK_VERSION_ORIGINAL}`。同时保留 `deleted_at IS NULL`、租户以及业务期望状态。
+- 更新前从调用方或同一事务加载的行保留 id、tenant、create metadata、version。零行冲突不得当作成功。
+- MybatisBatch 必须在相同 DataSource 的真实 Spring 事务内运行；空集合不发 SQL，重复/非法 ID 提前拒绝。默认分块 1000，总集合上限 10000，失败标记 rollback-only。
 
-所有持久化实体继承 EgonModel：
+只在明确需要批量/特殊 SQL 的场景使用 Mapper 扩展。没有新增平台 SQL Injector。字段 TypeHandler 用于 JSONB、数组等真实类型差异；Agent 的 JSONB 使用字段专用 handler，不覆盖全局 String handler。持久化枚举需唯一 `@EnumValue`，对外枚举值需匹配 `@JsonValue`/Jackson 合同，启动时校验。
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Accessors(chain = true)
-    @TableName("order_record")
-    public class OrderPO extends EgonModel<OrderPO> {
-        @NotBlank
-        @TableField("title")
-        private String title;
-        // 这里只放业务字段
-    }
+## SQL 与事务保护
 
-`@Builder` 只暴露 `OrderPO` 自身声明的业务字段。继承的 `id`、tenant、审计和逻辑删除字段不进入 builder：读取时由 MyBatis JavaBean 映射，写入时由 ASSIGN_ID、可信 tenant/user Provider 和 MetaFill 负责。`EgonModel` 与具体 PO 禁止使用 `@SuperBuilder`，因为 MyBatis-Plus 的 `Model<M>` 没有 Lombok `ModelBuilder` 父类合同。PO 不是 Spring 注入 Bean，也不能使用 `@RequiredArgsConstructor`。
+原始 SQL Guard 在执行前验证正 ID 范围；TenantLine 后再次验证最终 SQL 的租户、active、版本和审计条件。全表更新/删除拦截、乐观锁、PG 分页与 LOCAL 写目标保护统一装配。动态表名默认关闭，只接受显式白名单映射。
 
-EgonModel 精确定义以下字段：
+LOCAL Guard 跨 SqlSessionFactory 检查事务目标。一个事务可写同一物理组的多表，跨组写入拒绝并标记回滚；XA/BASE 不启用。精确 root-key 批量语句必须通过 `local-write-guard.allowed-root-statements` 注册完整 statementId 和列名；不接受普通业务以任意 Wrapper 绕过 ID/版本保护。
 
-| Java 属性 | 物理列 | 类型 | 职责 |
-|---|---|---|---|
-| id | id | Long | MP ASSIGN_ID，审计 Handler 不生成 |
-| tenantId | tenant_id | Long | 当前租户/分片键 |
-| createUserId | create_user_id | String | insert 审计身份 |
-| createTime | create_time | Instant | insert 审计时间 |
-| updateUserId | update_user_id | String | insert/update 审计身份 |
-| updateTime | update_time | Instant | insert/update 审计时间 |
-| isDeleted | is_deleted | Boolean | MP TableLogic，活动值 0、逻辑删除值 1 |
+分页上限 500。`dev` 才允许数据变动记录与 IllegalSQL；原始 recorder logger 必须为 `'OFF'`，安全摘要使用 `top.egon.cola.component.common.mybatis.change-summary`。同时启用 dev/prod 会被拒绝。
 
-六个非 ID 字段通过 Persisted 校验组持久时必须非空。业务子类可以使用 NotBlank 等 Jakarta 简单约束；跨记录、状态、权限、远程规则仍放在业务 Service。
+## 受管 DDL 与 ShardingSphere
 
-消费者按官方方式声明 Mapper 和技术 Service：
+`EgonColaPostgreDdlRunner` 接受显式物理 PRIMARY、schema、role 和 SHA-256 manifest。先执行 schema advisory lock，再校验空/受管历史与脚本前缀；SQL 和 ddl_history 在同一连接、同一事务提交。未知提交结果用新连接核实，不直接重放。非空未受管库、校验和漂移、路由指纹变化需要人工处理；没有自动 DROP/repair/历史导入。
 
-    @Mapper
-    public interface OrderDAO extends EgonColaMapper<OrderPO> {
-    }
+不要把 `EgonColaDdlTargetBO` 注册为默认 MP IDdl Bean，也不要混用 MP 默认 DdlApplicationRunner。Common 不依赖 ShardingSphere；宿主负责“物理池 → 校验拓扑 → 受管 DDL → 主从就绪 → 逻辑数据源”的启动顺序。
 
-    public interface OrderDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    }
+六个业务脚手架由该运行器接管，旧 B/V/manual SQL 原样归档。Agent 继续保留 Flyway，仅新增一条空知识表修订；Outbox 和向量表保持现有组件所有权。
 
-    @Slf4j
-    @Service("orderDomainService")
-    @RequiredArgsConstructor
-    public class OrderDomainServiceImpl
-            extends EgonColaServiceImpl<OrderDAO, OrderPO>
-            implements OrderDomainService<OrderPO> {
-        @Qualifier("egonColaModelValidationUtils")
-        @Getter(AccessLevel.PROTECTED)
-        private final EgonColaModelValidationUtils modelValidationUtils;
-        @Qualifier("egonColaMdcTenantIdProvider")
-        @Getter(AccessLevel.PROTECTED)
-        private final EgonColaTenantIdProvider tenantIdProvider;
-        @Qualifier("egonColaMybatisPlusProperties")
-        @Getter(AccessLevel.PROTECTED)
-        private final EgonColaMybatisPlusProperties properties;
-    }
+## 配置与验证
 
-EgonColaMapper 不声明租户查询方法，也不提供自定义 SQL Injector；官方 BaseMapper 语句就是正常 CRUD 的完整表面。EgonColaIService / EgonColaServiceImpl 保留官方 57 个方法形状（list/count/id/Optional/map/obj/page/chain/batch 等），在内部增加上下文、参数、Model、分页、Wrapper 和事务保护。
+核心配置位于 `egon.cola.component.mybatis-plus`；源脚手架四个 profile 给出完整配置。Common 的 `ddl.enabled` 默认 false，六个脚手架显式启用，Agent 显式关闭。主键配置位于 `egon.cola.component.id`。
 
-## TenantID 与审计上下文
-
-默认适配器读取 SLF4J MDC：
-
-    MDC.put("tenantId", "11");
-    MDC.put("userId", "operator-11");
-
-tenantId 可以是任意非空 Long，零、负数都有效。缺少或无法解析的文本在 JDBC 前失败；userId 必须是非空白字符串。每次操作按当前线程解析，不在静态状态中缓存。
-
-消费者可以提供一个 EgonColaTenantIdProvider 或 EgonColaUserIdProvider Bean 替换 MDC 默认实现，这正是未来接入 SecurityContext 的扩展点。
-
-EgonColaMetaObjectHandler 具有权威填充语义：
-
-- insert 覆盖 tenantId、createUserId、createTime、updateUserId、updateTime、isDeleted=false；
-- update 覆盖 tenantId、updateUserId、updateTime；
-- update 不改变 id、创建审计字段和 isDeleted；
-- insert 的两个时间使用同一次 Clock.instant()。
-
-自定义 Handler 必须继承 EgonColaMetaObjectHandler；公共填充方法是 final，只能通过 protected 后置钩子补充其他技术字段。无关的 MetaObjectHandler 会触发启动合同失败。
-
-## 隔离与 SQL 安全
-
-Starter 启用时的有序链为：
-
-1. EgonColaTenantIdGuardInnerInterceptor（100）
-2. BlockAttackInnerInterceptor（200，可配置）
-3. TenantLineInnerInterceptor（300）
-4. OptimisticLockerInnerInterceptor（400，可配置）
-5. PaginationInnerInterceptor（500，可配置）
-
-Guard 校验显式 tenant_id 条件，拒绝空值/不一致值，拒绝调用方修改 tenant_id 或 is_deleted，无法安全解析的 SQL 直接失败。配置的全局表才可以精确忽略 TenantLine。TenantLine 为官方 SELECT/INSERT/UPDATE/DELETE 追加当前非空 tenant_id。
-
-AR、EgonColaIService、EgonColaMapper、Wrapper、链式 Wrapper 和直接 Mapper 语句都经过同一条链。Service 的空或无条件写 Wrapper 在 SQL 前失败；官方逻辑删除 SQL 可以修改 is_deleted，普通业务 Wrapper 不可以。
-
-Starter 从不声明 ISqlInjector Bean，官方 MP 默认 Injector 继续提供标准语句。
-
-## 配置
-
-    egon:
-      cola:
-        component:
-          mybatis-plus:
-            enabled: true
-            tenant-id:
-              mdc-key: tenantId
-              ignored-tables: []
-            audit:
-              user-id-mdc-key: userId
-            pagination:
-              enabled: true
-              max-page-size: 500
-              overflow: false
-            batch:
-              default-size: 1000
-              max-chunk-size: 1000
-              max-collection-size: 10000
-            block-attack:
-              enabled: true
-            optimistic-locker:
-              enabled: true
-            meta-fill:
-              enabled: true
-
-enabled=false 关闭完整 Egon COLA 链。即使关闭分页 SQL 拦截器，Service 仍会校验页参数。Starter 会校验最终 outer interceptor 的成员和顺序，缺少隔离、填充或 Model 校验能力时启动失败，而不是静默降级。
-
-## 分层校验与转换
-
-    Controller DTO（@Valid）
-            -> BaseConverter<DTO, PO>
-    业务 Service PO（Jakarta 字段规则 + 复杂规则）
-            -> BaseConverter<PO, Model>
-    仓储 Model（EgonModel + 业务约束 + tenant/persisted 分组）
-            -> MP fill 后的 MyBatis ParameterHandler
-    数据库行 -> MyBatis ResultSetHandler -> loaded Model 校验
-
-common-core 提供对象、属性、候选值和 group 的实例化 ValidationUtils。Starter 的 EgonColaModelValidationUtils 负责 INSERT、UPDATE、DELETE、QUERY、LOADED 分组及 tenant 一致性。EgonColaModelValidationInterceptor 会递归校验参数/结果中的 Model、集合、数组、Map、分页和 Wrapper 实体，并防止循环引用。
-
-Converter 必须显式映射业务字段，不能把 id、tenantId、创建/更新时间、用户 ID 或 isDeleted 从 DTO/PO 复制到 Model；这些字段属于仓储填充和数据库结果边界。
-
-## 采用方表结构与迁移
-
-映射 EgonModel 的每张采用方表都需要七个公共列为非空持久状态，并补充业务列：
-
-    id BIGINT PRIMARY KEY,
-    tenant_id BIGINT NOT NULL,
-    create_user_id VARCHAR(128) NOT NULL,
-    create_time TIMESTAMP NOT NULL,
-    update_user_id VARCHAR(128) NOT NULL,
-    update_time TIMESTAMP NOT NULL,
-    is_deleted BOOLEAN NOT NULL
-
-请按查询负载为 tenant_id 与 is_deleted 建索引。已有数据必须先回填并验证，再部署继承 EgonModel 的实体；Starter 不创建或修改生产表。迁移、回填、回滚和历史数据清理由采用方按自身规范执行。
-
-## 限制与失败行为
-
-- 页大小必须在 1..max-page-size（默认上限 500）；
-- batch chunk 与集合上限可配置，并在首条 JDBC 前校验；
-- batch 方法具有事务语义，入口捕获一个 tenant 快照；上下文变化或数据库失败会整体回滚；
-- 上下文缺失、显式租户不一致、Model 无效、不安全 Wrapper、受保护列修改和不支持 SQL 都 fail closed；
-- 旧版本号更新保持官方 false/零行结果；
-- 违反持久化或业务约束的历史行在结果返回前失败，不返回半合法 Model。
-
-## 验证边界
-
-模块测试使用嵌入式 H2，不启动应用服务器或外部数据库：
-
-    ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-      -pl egon-cola-component-common-mybatis-plus-spring-boot-starter -am test
-
-测试覆盖公开 API、自动配置、官方默认语句、tenant SQL、逻辑删除、填充、校验、AR、事务、转换边界和线程隔离；不等同于采用方真实数据库方言、生产索引、SecurityContext 映射、DataSource 路由或在线分库分表拓扑证明。
-
-## 关闭与回滚
-
-不使用 Egon COLA 链时移除具体 Starter，或设置 egon.cola.component.mybatis-plus.enabled=false。采用方应先独立回滚表结构/数据，再移除依赖；在所有相关 Model 移除前保留公共列。平台回滚按实现提交的逆序进行，采用方迁移与平台依赖回滚分别负责。
+CPU/Mock/H2 用例参考官方 MyBatis-Plus 测试的真实 Mapper/插件调用方式。它们不证明 PG DDL、复制、分片实际落点或性能。真实 PG/SS 测试默认禁用：使用专用测试库并显式设置 `egon.pg.routing=true` 或 `egon.pg.readwrite=true` 后手动执行；SQL 性能需在真实数据分布上以 EXPLAIN 验收。

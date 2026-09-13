@@ -25,8 +25,9 @@ import java.util.concurrent.atomic.AtomicLong;
 public class OrganizationApplication {
 
     @Bean
-    LongIdGenerator longIdGenerator() {
-        AtomicLong sequence = new AtomicLong(2000L);
+    @org.springframework.context.annotation.Profile("test")
+    LongIdGenerator snowflakeIdGenerator() {
+        AtomicLong sequence = new AtomicLong(100000L);
         return sequence::incrementAndGet;
     }
 

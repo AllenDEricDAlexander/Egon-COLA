@@ -14,7 +14,7 @@ import org.springframework.test.context.ActiveProfiles;
                 "egon.cola.component.rpc.enabled=false",
                 "egon.cola.component.tianshu.enabled=false"
         })
-class StudentManagementApplicationTest {
+class StudentManagementApplicationTest extends top.egon.cola.archetype.source.light.support.PersistenceTestSupport {
     @Test
     void contextLoads() {
     }

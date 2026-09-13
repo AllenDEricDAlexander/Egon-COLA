@@ -27,8 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ExamManageImpl implements ExamManage {
 
-    private final CourseDomainService<?> courseDomainService;
-    private final ExamDomainService<?> examDomainService;
+    private final CourseDomainService courseDomainService;
+    private final ExamDomainService examDomainService;
     private final ExamEventPublisher examEventPublisher;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;

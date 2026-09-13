@@ -6,15 +6,13 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.entities.ExamPaper
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import java.time.Instant;
 import java.util.Optional;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
-public interface ExamDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    Exam createExam(Course course, String title, Instant startsAt, Instant endsAt);
-    ExamPaper attachPaper(Exam exam, String title, int totalPoints);
-    Exam publishExam(Exam exam, ExamPaper paper);
-    Exam save(Exam exam);
-    Optional<Exam> findById(ExamId examId);
-    ExamPaper savePaper(ExamPaper paper);
-    Optional<ExamPaper> findPaperByExamId(ExamId examId);
+public interface ExamDomainService {
+    Exam createExam( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Course course, String title, Instant startsAt, Instant endsAt);
+    ExamPaper attachPaper( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Exam exam, String title, int totalPoints);
+    Exam publishExam( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Exam exam, @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamPaper paper);
+    Exam save( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Exam exam);
+    Optional<Exam> findById( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamId examId);
+    ExamPaper savePaper( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamPaper paper);
+    Optional<ExamPaper> findPaperByExamId( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull ExamId examId);
 }

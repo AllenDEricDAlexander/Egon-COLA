@@ -98,70 +98,13 @@ Domain Service 接口位于 `domain.<business>.service`，实现位于 `infrastr
 
 ## 持久化与集成
 
-持久化统一使用 `egon-cola-component-common-mybatis-plus-spring-boot-starter` 提供的 MyBatis-Plus。Domain service 接口继承 `EgonColaIService`，infrastructure service 实现继承 `EgonColaServiceImpl`，DAO 继承 `EgonColaMapper`，所有 PO 继承 `EgonModel` 并添加 MyBatis-Plus 表注解。Flyway 负责 H2/PostgreSQL schema。RabbitMQ、Redis、GraphQL、COLA native unary RPC、platform OpenAPI、AOP 监控、请求上下文过滤器和外部 HTTP client 都包含可运行的实现。
+持久化使用 Common MP Repository 与显式 Mapper XML；Domain Service 不依赖技术 CRUD 类型。
 
 `dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、Redis、RabbitMQ、COLA RPC 和外部 HTTP 集成。
 
 Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 H2、内存 adapter 和确定性 stub，并关闭 RabbitMQ、Redis、COLA RPC registry 和外部 HTTP 调用。
 
 `prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 通过 `RABBITMQ_ENABLED=true`、`REDIS_ENABLED=true`、`EXTERNAL_HTTP_ENABLED=true`、`TIANSHU_RPC_TARGET=host:19090`、`TIANSHU_ENABLED=true`、`TIANSHU_REGISTRY_ENABLED=true` 和 `RPC_ENABLED=true` 等环境变量配置真实 adapter。消息代理凭据使用 Spring 自身的变量名 `SPRING_RABBITMQ_HOST`、`SPRING_RABBITMQ_PORT`、`SPRING_RABBITMQ_USERNAME`、`SPRING_RABBITMQ_PASSWORD`，而 `RABBITMQ_ENABLED` 与 `RABBITMQ_LISTENER_AUTO_STARTUP` 是应用自身的开关。
-
-## 分片、读写分离与 Flyway
-
-生成应用始终使用 ShardingSphere 逻辑数据源，支持两种路由模式：
-
-```bash
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING ./mvnw spring-boot:run
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw spring-boot:run
-```
-
-环境 profile 只使用 `dev`、`test`、`prod`。`APP_DATASOURCE_MODE` 可取
-`SHARDING`（默认）或 `SHARDING_READWRITE`。两种模式都先逐个对物理 primary
-执行 Flyway，再创建逻辑 `DataSource`；逻辑数据源和 replica 永远不是 Flyway
-target。读写分离模式下，普通查询走 replica，写操作走 primary，事务内查询固定走
-primary。
-
-表拓扑如下：
-
-- `master_data` 上的主数据表：`users`、`roles`、`permissions`、`user_roles`、
-  `role_permissions`、`courses`。这些表在 `!SHARDING` 中显式配置
-  `databaseStrategy.none` 与 `tableStrategy.none`，不使用 `!SINGLE`，也不存在
-  应用级单数据源模式。
-- SHARDING 表：`school_classes` 和 `class_course_schedules` 都按正数 Long
-  `tenant_id` 分库分表。两者是 binding tables；同一租户的班级和排课共置在
-  同一个物理库和表后缀，`school_class_id` 仍是排课关联键。
-  `DML_SHARDING_CONDITIONS` 会拒绝未携带分片条件的更新或删除，且禁止 hint 绕过。
-
-仅分片模式配置 `LIGHT_SHARDING_MASTER_DATA_URL`、`LIGHT_SHARDING_SHARD_0_URL`、
-`LIGHT_SHARDING_SHARD_1_URL`、`LIGHT_SHARDING_USERNAME`、
-`LIGHT_SHARDING_PASSWORD`，并可选配置 `LIGHT_SHARDING_DRIVER_CLASS_NAME`。
-读写分离模式分别为 `LIGHT_MASTER_DATA_PRIMARY`、`LIGHT_MASTER_DATA_REPLICA_0`、
-`LIGHT_SHARD_0_PRIMARY`、`LIGHT_SHARD_0_REPLICA_0`、
-`LIGHT_SHARD_1_PRIMARY`、`LIGHT_SHARD_1_REPLICA_0` 配置 URL、用户名和密码；
-例如 `LIGHT_SHARD_0_PRIMARY_URL`、`LIGHT_SHARD_0_PRIMARY_USERNAME`、
-`LIGHT_SHARD_0_PRIMARY_PASSWORD`。
-
-Flyway 使用 `db/migration/sharding/master-data` 和
-`db/migration/sharding/shard` 两个 location，在逻辑数据源创建前按名称串行迁移
-已配置的物理 primary。replica 必须是 primary 的数据库级复制节点，永远不能配置
-为 Flyway target。Spring Boot Flyway 自动配置被排除，避免任何 migration 误刷逻辑
-数据源；设置 `FLYWAY_ENABLED=false` 时跳过物理 migration。
-
-应用生成的代理主键统一使用正数 `Long`，租户上下文中的 `tenant_id` 也使用正数
-`Long`，并作为数据库和表的分片键。迁移文件名必须符合
-`VyyyyMMdd_NNN__description.sql`：日期使用文件创建日期，`NNN` 是当日三位序列号。
-每个 SQL 文件开头必须依次包含 `变更内容`、`影响范围` 和 `兼容性说明` 三项注释。
-
-数据库数、每库物理表数和总物理节点数都必须是 2 的幂。初始映射为
-`2 库 × 每库 2 表 = 4 节点`，由 `LIGHT_SHARDING_NODE_COUNT`（默认 `4`）与
-`LIGHT_SHARDING_NODE_MAP`（默认 `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`）承载，
-逻辑库名由 `LIGHT_SHARDING_DATABASE_NAME` 指定。容量按 2N 法扩展：每次只将一个维度从 `N` 调整为
-`2N`，并整体发布完整的 `node-count` 与 `node-map`。当前是尚未执行过迁移的新脚手架，
-没有历史数据，也不提供在线迁移、双写、CDC 或自动搬数机制。
-
-事务只允许覆盖一个物理库，聚合操作必须使用同一个分片根键。跨分片流程通过
-业务幂等、显式状态、事件、对账和补偿解决；项目不引入 XA、BASE、Seata 或
-其他分布式事务协调器。
 
 ## 命令
 
@@ -234,3 +177,19 @@ printf '%s' 'plain-text' | EGON_CONFIG_DECRYPT_KEY='replace-with-32-byte-secret-
 Tianshu Provider 和 HTTP 注册还需获取带 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token。填写 `.env` 样例中的 `TIANQUAN_SHOUBING_*` 字段，并配置 Spring OAuth2 Client 的 `tianshuregistration` registration/provider，使用 `client_credentials`、`client_secret_basic`、client ID/secret 和 token URI。Compose 已映射标准 Spring 环境变量；直接 Java 启动时，请通过外部配置提供 `spring.security.oauth2.client.registration.tianshuregistration` 及 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。app ID、resource server ID/URI、registration resource URI 必须与部署方的 Tianquan-Shoubing/Tianshu 保持一致。Tianquan-Shoubing 的 Servlet filter 自动注册关闭，以保留业务 HTTP 行为；显式启用后，平台文档安全链仍负责文档权限。
 
 排除默认 Redisson 自动配置，由 Tianshu 管理显式配置的 Redis client；业务 Redis 保持 Spring 原有 connection factory。关闭 Tianshu 的测试环境不会因此自动建立 Redis 连接。
+
+## Repository、CQRS 与 PostgreSQL
+
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
+
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+
+算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
+
+初始化由 `ShardingDataSourceBootstrapper` 调用 Common 受管 DDL runner，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+
+读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
+
+每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
+
+默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。

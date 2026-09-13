@@ -4,18 +4,18 @@ import top.egon.cola.archetype.source.light.domain.user.aggregates.RolePermissio
 import top.egon.cola.archetype.source.light.domain.user.aggregates.UserAggregate;
 import top.egon.cola.archetype.source.light.domain.user.entities.Role;
 import top.egon.cola.archetype.source.light.domain.user.vos.RoleCode;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.util.Optional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning role domain service contract. */
-public interface RoleDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    Optional<Role> findByCode(RoleCode roleCode);
+public interface RoleDomainService {
+    Optional<Role> findByCode( @Valid @NotNull RoleCode roleCode);
 
-    Role save(Role role);
+    Role save( @Valid @NotNull Role role);
 
-    void savePermissions(RolePermissionAggregate aggregate);
+    void savePermissions( @Valid @NotNull RolePermissionAggregate aggregate);
 
-    UserAggregate assignRole(UserAggregate user, Role role);
+    UserAggregate assignRole( @Valid @NotNull UserAggregate user, @Valid @NotNull Role role);
 }

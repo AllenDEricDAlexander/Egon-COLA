@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "dubbo.protocol.port=-1",
                 "dubbo.application.qos-enable=false"
         })
-class RuntimeConfigurationTest {
+class RuntimeConfigurationTest extends top.egon.cola.archetype.source.lightopen.support.PersistenceTestSupport {
     @Autowired
     private MockMvc mockMvc;
 

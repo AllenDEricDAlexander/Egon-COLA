@@ -26,8 +26,8 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class ScoreManageImpl implements ScoreManage {
 
-    private final ExamDomainService<?> examDomainService;
-    private final ScoreDomainService<?> scoreDomainService;
+    private final ExamDomainService examDomainService;
+    private final ScoreDomainService scoreDomainService;
     private final ExamEventPublisher examEventPublisher;
     private final ExamApplicationConverter converter;
     private final ExamApplicationValidator validator;

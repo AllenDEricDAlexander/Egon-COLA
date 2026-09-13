@@ -104,83 +104,13 @@ The same Application use cases serve HTTP, GraphQL, COLA RPC, and RabbitMQ entry
 
 ## Persistence And Integrations
 
-MyBatis-Plus through `egon-cola-component-common-mybatis-plus-spring-boot-starter` is the persistence implementation. Domain service interfaces extend `EgonColaIService`; infrastructure service implementations extend `EgonColaServiceImpl`; DAOs extend `EgonColaMapper`; and every PO extends `EgonModel` with MyBatis-Plus table annotations. Flyway owns the H2/PostgreSQL schema. RabbitMQ, Redis, GraphQL, COLA native unary RPC, platform OpenAPI, AOP monitoring, request-context filters, and external HTTP clients are included with exercised implementations.
+Persistence uses Common MP repositories and explicit Mapper XML; domain service ports do not inherit technical CRUD types.
 
 `dev` is the default profile for workstation development and `feature/*` branch verification. It uses environment-backed PostgreSQL, Redis, RabbitMQ, COLA RPC, and external HTTP integrations.
 
 `test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2, in-memory adapters, and deterministic stubs; RabbitMQ, Redis, COLA RPC registry access, and external HTTP calls are disabled.
 
 `prod` is reserved for runtime builds and deployments from `main`. Configure `dev` and `prod` through environment variables such as `RABBITMQ_ENABLED=true`, `REDIS_ENABLED=true`, `EXTERNAL_HTTP_ENABLED=true`, `TIANSHU_RPC_TARGET=host:19090`, `TIANSHU_ENABLED=true`, `TIANSHU_REGISTRY_ENABLED=true`, and `RPC_ENABLED=true`. Broker credentials use Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, and `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are application switches.
-
-## Sharding, Read/Write Splitting, And Flyway
-
-The generated application always uses a ShardingSphere logical data source and
-supports two routing modes:
-
-```bash
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING ./mvnw spring-boot:run
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE ./mvnw spring-boot:run
-```
-
-Environment profiles are limited to `dev`, `test`, and `prod`.
-`APP_DATASOURCE_MODE` accepts `SHARDING` (the default) or
-`SHARDING_READWRITE`. Both modes run Flyway against every configured physical
-primary before creating the logical `DataSource`; the logical data source and
-replicas are never Flyway targets. Read/write mode routes ordinary reads to
-replicas, writes to primaries, and transaction-bound reads to primaries.
-
-The table topology is:
-
-- Master-data tables on `master_data`: `users`, `roles`, `permissions`,
-  `user_roles`, `role_permissions`, and `courses`. They remain unsharded through
-  explicit `databaseStrategy.none` and `tableStrategy.none` rules inside
-  `!SHARDING`; `!SINGLE` and an application-wide single-data-source mode are not
-  used.
-- SHARDING tables: `school_classes` and `class_course_schedules`, both sharded by
-  the positive `tenant_id` Long. They are binding tables; a tenant's class and
-  schedules are colocated in one database and table suffix while
-  `school_class_id` remains the schedule relation key. `DML_SHARDING_CONDITIONS`
-  rejects updates or deletes that omit a sharding condition, and hint bypass is
-  disabled.
-
-For primary-only sharding, configure `LIGHT_SHARDING_MASTER_DATA_URL`,
-`LIGHT_SHARDING_SHARD_0_URL`, `LIGHT_SHARDING_SHARD_1_URL`,
-`LIGHT_SHARDING_USERNAME`, `LIGHT_SHARDING_PASSWORD`, and optionally
-`LIGHT_SHARDING_DRIVER_CLASS_NAME`. Read/write splitting uses URL, username, and
-password triples for `LIGHT_MASTER_DATA_PRIMARY`, `LIGHT_MASTER_DATA_REPLICA_0`,
-`LIGHT_SHARD_0_PRIMARY`, `LIGHT_SHARD_0_REPLICA_0`,
-`LIGHT_SHARD_1_PRIMARY`, and `LIGHT_SHARD_1_REPLICA_0`; for example,
-`LIGHT_SHARD_0_PRIMARY_URL`, `LIGHT_SHARD_0_PRIMARY_USERNAME`, and
-`LIGHT_SHARD_0_PRIMARY_PASSWORD`.
-
-Flyway uses `db/migration/sharding/master-data` and
-`db/migration/sharding/shard`. It runs serially against configured physical
-primary targets before the logical data source is created. Replicas must be
-database-level copies of their primaries and are never Flyway targets. Spring
-Boot Flyway auto-configuration is excluded so no migration can accidentally run
-through the logical data source. `FLYWAY_ENABLED=false` skips physical migrations.
-
-Application-generated surrogate keys use positive `Long` values. Tenant routing
-also uses the positive `Long` `tenant_id` context, which is the database/table
-sharding key. Migration names must follow `VyyyyMMdd_NNN__description.sql`, where
-the date is the creation date and `NNN` is a three-digit daily sequence. Every SQL
-file starts with these three comments: `变更内容`, `影响范围`, and `兼容性说明`.
-
-Database count, table count per database, and total physical-node count must all
-be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`, held in
-`LIGHT_SHARDING_NODE_COUNT` (default `4`) and `LIGHT_SHARDING_NODE_MAP` (default
-`0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`); `LIGHT_SHARDING_DATABASE_NAME`
-names the logical database. Capacity is expanded by the 2N rule: change one
-dimension from `N` to `2N` at a time and publish the complete `node-count` and
-`node-map` together. This unused scaffold
-contains no historical data and intentionally provides no online migration,
-dual-write, CDC, or automatic data movement mechanism.
-
-Transactions are local to one physical database only. Keep every aggregate
-operation on the same sharding root key. Cross-shard workflows must use business
-idempotency, explicit state transitions, events, reconciliation, and
-compensation; no XA, BASE, Seata, or other distributed transaction coordinator
-is included.
 
 ## Commands
 
@@ -260,3 +190,19 @@ Production enables RPC and Tianshu mTLS: supply certificate-chain, private-key a
 Tianshu provider and HTTP registration additionally obtain an Tianquan-Shoubing SERVICE token with `tianshu:registration:write`. Fill the `TIANQUAN_SHOUBING_*` entries in the environment sample and configure Spring OAuth2 Client registration/provider `tianshuregistration` (`client_credentials`, `client_secret_basic`, client ID/secret and token URI). Compose maps those values to Spring's standard environment variables. For a direct Java launch, supply the equivalent `spring.security.oauth2.client.registration.tianshuregistration` and `spring.security.oauth2.client.provider.tianshuregistration.token-uri` properties through external configuration. The referenced app ID, resource server ID/URI and registration resource URI must match the existing Tianquan-Shoubing/Tianshu deployment. Tianquan-Shoubing's automatic Servlet filter is disabled to preserve current business HTTP access. The optional OpenAPI security chain still governs documents when explicitly enabled.
 
 The stock Redisson auto-configuration is excluded; Tianshu owns its explicitly configured Redis client, while existing business Redis configuration remains on Spring's original connection factory. This prevents a disabled Tianshu/test profile from silently creating a Redis connection.
+
+## Repository, CQRS and PostgreSQL
+
+This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
+
+`APP_DATASOURCE_MODE` supports `SHARDING` and `SHARDING_READWRITE` with LOCAL transactions. Single tables use explicit `!SINGLE group.schema.table`; broadcast tables are read-only. Default legacy tenant routing retains its old addresses. The optional `src/test/resources/sharding/two-level-readwrite.yml` example lives in infrastructure for multi-module projects. It hashes tenant_id into a tenant slot, then a business root ID into a bucket; order.id and item.order_id share the same root policy and physical group.
+
+mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
+
+`ShardingDataSourceBootstrapper` invokes Common's managed DDL runner on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+
+PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
+
+Set a unique `EGON_ID_MACHINE_ID` for each runtime; production uses the existing Common Snowflake generator. Profiles retain matching MP keys, diagnostics are dev-only and the raw recorder logger is OFF. Dynamic table names require explicit mappings. MybatisBatch runs inside the caller's transaction.
+
+Default tests use isolated H2 and controlled dependencies. Physical routing tests require `-Degon.pg.routing=true` and `EGON_TEST_PG_URL`; read/write tests require `-Degon.pg.readwrite=true`, `EGON_TEST_PG_PRIMARY_URL` and `EGON_TEST_PG_REPLICA_URL`, plus dedicated `EGON_TEST_PG_USER/PASSWORD`. They create/clean only their UUID schemas and do not start databases. Real PG/SS, migration and EXPLAIN acceptance remains manual; a skip is not a pass.

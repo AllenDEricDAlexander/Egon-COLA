@@ -2,7 +2,6 @@ package top.egon.cola.archetype.source.webopen.starter;
 
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -25,7 +24,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         properties = "spring.profiles.active=test")
 @ContextConfiguration(initializers = OrganizationManualSchemaTestSupport.Initializer.class)
 @AutoConfigureMockMvc
-class OrganizationFlowTest {
+class OrganizationFlowTest extends top.egon.cola.archetype.source.webopen.support.PersistenceTestSupport {
 
     @Autowired
     private MockMvc mockMvc;
@@ -33,17 +32,6 @@ class OrganizationFlowTest {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    @BeforeEach
-    void prepareManualTestSchema() {
-        jdbcTemplate.update("delete from role_permissions");
-        jdbcTemplate.update("delete from user_roles");
-        jdbcTemplate.update("delete from permissions");
-        jdbcTemplate.update("delete from roles");
-        jdbcTemplate.update("insert into roles(id, code, name, status, created_at) values (?, ?, ?, ?, CURRENT_TIMESTAMP)",
-            2001L, "STUDENT", "Student", "ACTIVE");
-        jdbcTemplate.update("insert into permissions(id, code, name, type, status, created_at) values (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
-            3001L, "CLASS_READ", "Read school class", "API", "ACTIVE");
-    }
 
     @Test
     void completesUserAndTeachingFlowThroughRealHttpBoundary() throws Exception {

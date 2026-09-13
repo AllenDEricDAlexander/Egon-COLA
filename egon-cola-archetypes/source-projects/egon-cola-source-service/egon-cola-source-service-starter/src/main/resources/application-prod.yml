@@ -2,12 +2,6 @@ spring:
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
-  flyway:
-    enabled: ${FLYWAY_ENABLED:true}
-    validate-migration-naming: true
-    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
-    validate-on-migrate: true
-    clean-disabled: true
 app:
   integrations:
     organization:
@@ -29,6 +23,46 @@ management:
 egon:
   cola:
     component:
+      id:
+        enabled: true
+        machine-id: ${EGON_ID_MACHINE_ID}
+        max-clock-backward: PT0.005S
+      mybatis-plus:
+        enabled: true
+        tenant-id:
+          mdc-key: tenantId
+          ignored-tables: []
+        audit:
+          user-id-mdc-key: userId
+        pagination:
+          enabled: true
+          max-page-size: 500
+          overflow: false
+        batch:
+          default-size: 1000
+          max-chunk-size: 1000
+          max-collection-size: 10000
+        block-attack:
+          enabled: true
+        optimistic-locker:
+          enabled: true
+        meta-fill:
+          enabled: true
+        dynamic-table-name:
+          enabled: false
+          tables: {}
+        data-change-recorder:
+          enabled: false
+        illegal-sql:
+          enabled: false
+        ddl:
+          enabled: true
+          lock-timeout: PT30S
+          statement-timeout: PT300S
+          topology-ready-timeout: PT60S
+        local-write-guard:
+          enabled: true
+          allowed-root-statements: {}
       rpc:
         enabled: ${RPC_ENABLED:true}
         identity:
@@ -109,3 +143,8 @@ egon:
           service-client:
             app-id: ${TIANQUAN_SHOUBING_SERVICE_APP_ID:}
             registration-id: tianshuregistration
+
+logging:
+  level:
+    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
+    top.egon.cola.component.common.mybatis.change-summary: INFO

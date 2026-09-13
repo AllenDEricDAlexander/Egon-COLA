@@ -16,8 +16,6 @@ import top.egon.cola.archetype.source.lightopen.domain.user.service.RoleDomainSe
 import top.egon.cola.archetype.source.lightopen.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.RolePO;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.UserPO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -34,8 +32,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RoleManageTest {
-    @Mock RoleDomainService<RolePO> roleDomainService;
-    @Mock UserDomainService<UserPO> userDomainService;
+    @Mock RoleDomainService roleDomainService;
+    @Mock UserDomainService userDomainService;
     @Mock UserCachePort userCachePort;
     @Mock UserEventPublisher userEventPublisher;
     @Mock UserApplicationValidator applicationValidator;

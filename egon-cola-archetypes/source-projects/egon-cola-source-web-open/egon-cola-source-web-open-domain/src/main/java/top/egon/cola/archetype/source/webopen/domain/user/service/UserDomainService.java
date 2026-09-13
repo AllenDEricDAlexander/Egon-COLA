@@ -4,21 +4,19 @@ import top.egon.cola.archetype.source.webopen.domain.user.entities.Role;
 import top.egon.cola.archetype.source.webopen.domain.user.entities.User;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.util.Optional;
 
-public interface UserDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    User create(UserId userId, String name, String email);
+public interface UserDomainService {
+    User create( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull UserId userId, String name, String email);
 
-    User save(User user);
+    User save( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull User user);
 
-    Optional<User> findById(UserId userId);
+    Optional<User> findById( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull UserId userId);
 
     boolean existsByEmail(String normalizedEmail);
 
-    Optional<Role> findRoleByCode(RoleCode code);
+    Optional<Role> findRoleByCode( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull RoleCode code);
 
-    Role saveRole(Role role);
+    Role saveRole( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Role role);
 }

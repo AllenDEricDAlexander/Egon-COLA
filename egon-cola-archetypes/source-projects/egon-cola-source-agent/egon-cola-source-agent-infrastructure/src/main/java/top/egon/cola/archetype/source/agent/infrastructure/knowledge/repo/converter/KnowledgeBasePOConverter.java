@@ -3,6 +3,9 @@ package top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.conve
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.mapstruct.Mapper;
+import org.mapstruct.BeanMapping;
+import org.mapstruct.Builder;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 import org.mapstruct.factory.Mappers;
@@ -41,6 +44,15 @@ public interface KnowledgeBasePOConverter extends BaseConverter<KnowledgeBasePO,
     KnowledgeBaseBO toTarget(KnowledgeBasePO source);
 
     @Override
+    @BeanMapping(builder = @Builder(disableBuilder = true))
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "tenantId", ignore = true)
+    @Mapping(target = "createUserId", ignore = true)
+    @Mapping(target = "createTime", ignore = true)
+    @Mapping(target = "updateUserId", ignore = true)
+    @Mapping(target = "updateTime", ignore = true)
+    @Mapping(target = "deletedAt", ignore = true)
+    @Mapping(target = "version", ignore = true)
     @Mapping(target = "code", source = "code")
     @Mapping(target = "name", source = "name")
     @Mapping(target = "description", source = "description")
@@ -74,4 +86,11 @@ public interface KnowledgeBasePOConverter extends BaseConverter<KnowledgeBasePO,
             throw new IllegalArgumentException("chunkConfig cannot be rendered as json", failure);
         }
     }
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "id", source = "id")
+    @Mapping(target = "tenantId", source = "tenantId")
+    @Mapping(target = "createUserId", source = "createUserId")
+    @Mapping(target = "createTime", source = "createTime")
+    @Mapping(target = "version", source = "version")
+    void updateMetadata(@MappingTarget KnowledgeBasePO target, KnowledgeBasePO source);
 }

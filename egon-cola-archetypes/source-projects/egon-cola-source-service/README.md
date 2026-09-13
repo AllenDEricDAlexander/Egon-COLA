@@ -45,12 +45,7 @@ credentials in the existing environment/secrets mechanism, never in `run.*` prop
 
 ## Module Ownership
 
-- `egon-cola-source-service-common`: stable errors, constants, enums, and identifier utilities.
-- `egon-cola-source-service-domain`: entities, aggregates, value objects, generic `EgonColaIService` contracts, event ports, and the consumer-owned Organization directory port. It depends on the Common MyBatis-Plus starter only for the shared service/model contract; it contains no DAO, PO, persistence, MQ, Facade, or COLA RPC implementation.
-- `egon-cola-source-service-application`: commands, queries, use-case managers, application validation, and result models.
-- `egon-cola-source-service-infrastructure`: MyBatis-Plus `*PO`/`*DAO` persistence, generic domain-service implementations, Flyway migrations, RabbitMQ/local publisher implementations, and the `top.egon:egon-cola-organization-facade` anti-corruption adapter.
-- `egon-cola-source-service-adapter`: COLA RPC providers for `top.egon:egon-cola-evaluation-facade`, facade conversion, validation, exception translation, and the score-command MQ consumer.
-- `egon-cola-source-service-starter`: Spring Boot assembly, profiles, management configuration, and architecture/context tests.
+Persistence uses Common MP repositories and explicit Mapper XML; domain service ports do not inherit technical CRUD types.
 
 ## Domain-first package layout
 
@@ -66,6 +61,7 @@ adapter/exam/mq
 ```
 
 This remains service-only: business traffic enters through COLA native unary RPC or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
+The contract dependencies remain `top.egon:egon-cola-evaluation-facade` for the local Evaluation contract and `top.egon:egon-cola-organization-facade` for the external Organization client.
 
 The allowed internal dependency graph is:
 
@@ -102,72 +98,6 @@ The Organization Facade client is an unused infrastructure foundation; no curren
 - Organization Facade: `ORGANIZATION_FACADE_ENABLED`, `ORGANIZATION_FACADE_GROUP`, `ORGANIZATION_FACADE_SERVICE_VERSION`.
 - RabbitMQ: connection settings bind through Spring's own names — `SPRING_RABBITMQ_HOST`, `SPRING_RABBITMQ_PORT`, `SPRING_RABBITMQ_USERNAME`, `SPRING_RABBITMQ_PASSWORD` — while `RABBITMQ_ENABLED` and `RABBITMQ_LISTENER_AUTO_STARTUP` are this application's own switches.
 - Configuration decryption: `EGON_CONFIG_DECRYPT_KEY`, `EGON_CONFIG_DECRYPT_KEY_FILE`, or the documented config-tree secret source.
-
-## Sharding, Read/Write Splitting, And Flyway
-
-The generated application always uses a ShardingSphere logical data source and
-supports two routing modes:
-
-```bash
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING bash ./mvnw -pl egon-cola-source-service-starter spring-boot:run
-SPRING_PROFILES_ACTIVE=dev APP_DATASOURCE_MODE=SHARDING_READWRITE bash ./mvnw -pl egon-cola-source-service-starter spring-boot:run
-```
-
-Environment profiles are limited to `dev`, `test`, and `prod`.
-`APP_DATASOURCE_MODE` accepts `SHARDING` (the default) or
-`SHARDING_READWRITE`. Both modes migrate each configured physical primary
-before creating the logical `DataSource`; replicas and the logical data source
-are never Flyway targets. Read/write mode sends ordinary reads to replicas,
-writes to primaries, and transaction-bound reads to primaries. Bundled Compose
-does not emulate replicas and defaults to `SHARDING`.
-
-The table topology is:
-
-- Master table `evaluation_course` stays on `master_data` through explicit
-  `databaseStrategy.none` and `tableStrategy.none` rules inside
-  `!SHARDING.tables`. Neither `!SINGLE` nor an application-wide single data
-  source mode is used.
-- `evaluation_course_schedule`, `evaluation_exam`, `evaluation_exam_paper`, and
-  `evaluation_score` are sharded by positive `tenant_id` for both database and
-  table selection. One tenant therefore uses one stable physical database/table
-  slot for the whole evaluation family.
-- All four sharded tables enable `DML_SHARDING_CONDITIONS`; DML without a
-  sharding condition is rejected and `allowHintDisable=false` prevents bypass.
-
-Primary-only sharding uses `EVALUATION_SHARDING_MASTER_DATA_URL`,
-`EVALUATION_SHARDING_SHARD_0_URL`, `EVALUATION_SHARDING_SHARD_1_URL`,
-`EVALUATION_SHARDING_USERNAME`, `EVALUATION_SHARDING_PASSWORD`, and optionally
-`EVALUATION_SHARDING_DRIVER_CLASS_NAME`. Read/write splitting uses URL,
-username, and password triples for `EVALUATION_MASTER_DATA_PRIMARY`,
-`EVALUATION_MASTER_DATA_REPLICA_0`, `EVALUATION_SHARD_0_PRIMARY`,
-`EVALUATION_SHARD_0_REPLICA_0`, `EVALUATION_SHARD_1_PRIMARY`, and
-`EVALUATION_SHARD_1_REPLICA_0`.
-
-Flyway uses only `db/migration/sharding/master-data` and
-`db/migration/sharding/shard`. It runs serially against physical primaries
-before the logical data source is created. Spring Boot Flyway auto-configuration
-is excluded, so replicas and the logical data source are never migrated.
-`FLYWAY_ENABLED=false` skips physical migrations.
-
-Application-generated surrogate keys use positive `Long` values supplied by the
-Common ID starter. Migration files follow `VyyyyMMdd_NNN__description.sql` and begin with
-`变更内容`, `影响范围`, and `兼容性说明` comments.
-
-Database count, table count per database, and total physical-node count must all
-be powers of two. The initial map is `2 databases × 2 tables = 4 nodes`, held in
-`EVALUATION_SHARDING_NODE_COUNT` (default `4`) and `EVALUATION_SHARDING_NODE_MAP`
-(default `0=shard_0:0,1=shard_0:1,2=shard_1:0,3=shard_1:1`);
-`EVALUATION_SHARDING_DATABASE_NAME` names the logical database.
-Capacity follows the 2N rule: change one dimension from `N` to `2N` at a time
-and publish the complete `node-count` and `node-map` together. This unused
-scaffold has no historical data and provides no online migration, dual-write,
-CDC, or automatic data movement mechanism.
-
-Transactions are local to one physical database only. An exam, its paper, and
-scores must use the same `examId`; schedules retain their `courseId`.
-Cross-shard workflows use business idempotency, explicit states, events,
-reconciliation, and compensation. No XA, BASE, Seata, or other distributed
-transaction coordinator is included.
 
 ## Verification And Packaging
 
@@ -240,3 +170,19 @@ Supply existing Tianshu RPC/Redis endpoints, registration resource URI, separate
 The platform OpenAPI MVC starter preserves business HTTP access. Document governance is disabled by default. Enabling it requires the platform document identity, published groups, JWT decoder and `yuheng.openapi.read` scope; published handlers also require explicit `@Operation(operationId = "...")` metadata. Tianquan-Shoubing Servlet filter auto-registration is disabled. HTTP registration follows the effective `server.port`.
 
 The `test` profile disables RPC provider/consumer, Tianshu config/registry/Redis, HTTP registration and remote query clients, retaining H2 and local stubs. Stock Redisson auto-configuration is excluded; Tianshu creates only its explicitly configured Redis client. Existing PostgreSQL, Redis, RabbitMQ and their data volumes remain. Configuration decryption runs after Spring Boot Config Data; explicit imports/configtree replace retired bootstrap loading while encryption and key rules remain unchanged. Static, module and in-process RPC tests do not establish live Tianshu/Tianquan-Shoubing, mTLS or container interoperability.
+
+## Repository, CQRS and PostgreSQL
+
+This archetype uses MyBatis-Plus 3.5.16. Business service ports retain domain semantics; concrete repositories extend `EgonColaRepository` and mappers extend `EgonColaMapper`. Queries use explicit XML. `EgonModel` owns id, tenantId, creation/update actors and times, `LocalDateTime deletedAt` and `Long version`: NULL is active, deletion writes a UTC timestamp and increments the version. AR/QueryChain are disabled; technical filling is mandatory.
+
+`APP_DATASOURCE_MODE` supports `SHARDING` and `SHARDING_READWRITE` with LOCAL transactions. Single tables use explicit `!SINGLE group.schema.table`; broadcast tables are read-only. Default legacy tenant routing retains its old addresses. The optional `src/test/resources/sharding/two-level-readwrite.yml` example lives in infrastructure for multi-module projects. It hashes tenant_id into a tenant slot, then a business root ID into a bucket; order.id and item.order_id share the same root policy and physical group.
+
+mix64-v1 is fixed. T/B are powers of two up to 1024, with product at most 4096. Balanced databases also require a balanced slot map and tenant workload. There is no automatic redistribution. Query fanout is bounded; commands require exact keys. Changing topology requires matching DDL and a deliberate data migration/rebuild; the test example is not a drop-in production schema.
+
+`ShardingDataSourceBootstrapper` invokes Common's managed DDL runner on physical PRIMARY targets using `db/egon-mp/V20260913_001__initialize_repository_schema.sql` and `repository-manifest.json`. Empty schemas initialize once; managed schemas verify checksums, prefix and route fingerprint. Non-empty unmanaged schemas fail with REBUILD_REQUIRED. Old B/V/manual SQL remains unchanged as an archive and is no longer the runtime entry point.
+
+PostgreSQL owns replication. Ordinary reads use ROUND_ROBIN replicas; transaction/locking/strong reads use PRIMARY. No replica provisioning or promotion is implemented. Business, single and broadcast tables carry tenant_id. Cross-group LOCAL writes are rejected and mark rollback-only.
+
+Set a unique `EGON_ID_MACHINE_ID` for each runtime; production uses the existing Common Snowflake generator. Profiles retain matching MP keys, diagnostics are dev-only and the raw recorder logger is OFF. Dynamic table names require explicit mappings. MybatisBatch runs inside the caller's transaction.
+
+Default tests use isolated H2 and controlled dependencies. Physical routing tests require `-Degon.pg.routing=true` and `EGON_TEST_PG_URL`; read/write tests require `-Degon.pg.readwrite=true`, `EGON_TEST_PG_PRIMARY_URL` and `EGON_TEST_PG_REPLICA_URL`, plus dedicated `EGON_TEST_PG_USER/PASSWORD`. They create/clean only their UUID schemas and do not start databases. Real PG/SS, migration and EXPLAIN acceptance remains manual; a skip is not a pass.

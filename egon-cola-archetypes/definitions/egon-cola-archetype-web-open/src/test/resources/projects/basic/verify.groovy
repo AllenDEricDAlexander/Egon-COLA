@@ -97,7 +97,8 @@ expectedFiles.each { file(it) }
 def poms = [:]
 modules.each { module -> poms[module] = new XmlSlurper(false, false).parse(file("${prefix}-${module}/pom.xml")) }
 def dependencyIds = { pom -> pom.dependencies.dependency.artifactId*.text() as Set }
-assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert !dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert dependencyIds(poms.infrastructure).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
 assert dependencyIds(poms.infrastructure).contains("${prefix}-domain".toString())
 assert !dependencyIds(poms.infrastructure).contains("spring-boot-starter-data-jpa")
 assert !dependencyIds(poms.infrastructure).contains("mybatis-plus-spring-boot3-starter")
@@ -144,8 +145,8 @@ def domainServices = javaSources.findAll {
 }
 assert domainServices.size() == 4
 domainServices.each { service ->
-    assert service.text.contains("extends EgonColaIService<"):
-            "Domain service must extend EgonColaIService: ${relativePath(service)}"
+    assert !service.text.contains("EgonColaIService"):
+            "Domain service must expose a domain-only port: ${relativePath(service)}"
 }
 def serviceImpls = javaSources.findAll {
     def path = relativePath(it)
@@ -153,8 +154,8 @@ def serviceImpls = javaSources.findAll {
 }
 assert serviceImpls.size() == 4
 serviceImpls.each { implementation ->
-    assert implementation.text.contains("extends EgonColaServiceImpl<"):
-            "Infrastructure service must extend EgonColaServiceImpl: ${relativePath(implementation)}"
+    assert !implementation.text.contains("extends EgonColaServiceImpl<"):
+            "Infrastructure service must compose repositories: ${relativePath(implementation)}"
     assert implementation.text.contains("@RequiredArgsConstructor")
 }
 
@@ -228,7 +229,7 @@ assert readme.contains("MyBatis-Plus")
 assert readme.contains("Gateway")
 assert readme.contains("tenant_id")
 assert readme.contains("Long")
-assert readme.contains("db/manual/postgresql")
+assert readme.contains("db/egon-mp")
 assert !readme.contains("spring-boot-starter-data-jpa")
 assert !readme.contains("UUIDv7")
 assert file("README.zh-CN.md").text.contains("MyBatis-Plus")
@@ -286,7 +287,7 @@ def livingText = livingArchitectureDoc.text
 assert livingText.contains("EgonColaMapper")
 assert livingText.contains("EgonModel")
 assert livingText.contains("tenant_id")
-assert !livingText.contains("BaseMapper")
+assert !livingText.contains("com.baomidou.mybatisplus.core.mapper.BaseMapper")
 assert !livingText.contains("grade_id` 路由")
 assert !livingText.contains("JpaRepository")
 assert !livingText.contains("UuidV7")
@@ -369,3 +370,31 @@ assert releasedLibraries.contains('springdoc-openapi-starter-webmvc-ui-2.8.17.ja
 
 println 'Published parent and web-open runtime boundaries passed'
 true
+
+// Repository/CQRS and managed PostgreSQL initialization must survive project generation.
+def repositoryContractFiles = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    def resourcePath = projectDir.canonicalFile.toPath().relativize(candidate.canonicalFile.toPath()).toString().replace(File.separator, "/")
+    if (!resourcePath.startsWith("target/") && !resourcePath.contains("/target/")) { repositoryContractFiles << candidate }
+}
+def repositoryImplementations = repositoryContractFiles.findAll {
+    it.path.replace('\\', '/').contains('/src/main/java/') && it.name.endsWith('Repository.java')
+}
+assert repositoryImplementations.size() == 8: 'Expected concrete persistence repositories'
+repositoryImplementations.each { assert it.text.contains('extends EgonColaRepository<') }
+def repositoryManifests = repositoryContractFiles.findAll { it.name == 'repository-manifest.json' }
+assert repositoryManifests.size() == 1
+def repositoryManifest = new groovy.json.JsonSlurper().parse(repositoryManifests.first())
+assert repositoryManifest.family == 'web-open'
+assert repositoryManifest.scripts.size() == 1
+def initializationSql = new File(repositoryManifests.first().parentFile, 'V20260913_001__initialize_repository_schema.sql')
+assert initializationSql.isFile()
+assert repositoryManifest.scripts.first().sha256 == java.security.MessageDigest.getInstance('SHA-256').digest(initializationSql.bytes).encodeHex().toString()
+assert initializationSql.text.contains('deleted_at') && initializationSql.text.contains('version BIGINT NOT NULL DEFAULT 0')
+repositoryContractFiles.findAll { it.path.replace('\\', '/').contains('/src/main/resources/mybatis/mapper/') && it.name.endsWith('DAO.xml') }.each {
+    assert it.text.contains('selectActiveById') && it.text.contains('selectActiveByIds')
+    assert it.text.contains('deleteVersionedById') && it.text.contains('MP_OPTLOCK_VERSION_ORIGINAL')
+    assert !it.text.contains('is_deleted')
+}
+
+return true

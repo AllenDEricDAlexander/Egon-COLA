@@ -23,7 +23,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
 import top.egon.cola.component.common.mybatis.support.TestBusinessMapper;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
-import top.egon.cola.component.common.mybatis.support.TestBusinessService;
+import top.egon.cola.component.common.mybatis.support.TestBusinessRepository;
 import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
 import top.egon.cola.component.common.mybatis.support.TestUserIdProvider;
 
@@ -66,7 +66,7 @@ class EgonColaTenantIdSqlIntegrationTest {
         contextRunner.run(context -> {
             TestTenantIdProvider tenant = context.getBean(TestTenantIdProvider.class);
             TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
-            TestBusinessService service = context.getBean(TestBusinessService.class);
+            TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
             tenant.set(11L);
             user.set("alice");
             TestBusinessModel first = new TestBusinessModel()
@@ -97,7 +97,7 @@ class EgonColaTenantIdSqlIntegrationTest {
         contextRunner.run(context -> {
             TestTenantIdProvider tenant = context.getBean(TestTenantIdProvider.class);
             TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
-            TestBusinessService service = context.getBean(TestBusinessService.class);
+            TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
             tenant.set(11L);
             user.set("alice");
             TestBusinessModel model = new TestBusinessModel().businessValues("delete-me", null);
@@ -106,7 +106,7 @@ class EgonColaTenantIdSqlIntegrationTest {
             assertThat(service.getById(model.getId())).isNull();
             assertThatThrownBy(() -> service.update(new UpdateWrapper<TestBusinessModel>()
                     .set("title", "wide")))
-                    .hasMessageContaining("BUSINESS_PREDICATE_REQUIRED");
+                    .hasMessageContaining("UNSCOPED_WRITE_FORBIDDEN");
         });
     }
 
@@ -116,7 +116,7 @@ class EgonColaTenantIdSqlIntegrationTest {
             TestTenantIdProvider tenant = context.getBean(TestTenantIdProvider.class);
             TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
             TestBusinessMapper mapper = context.getBean(TestBusinessMapper.class);
-            TestBusinessService service = context.getBean(TestBusinessService.class);
+            TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
             tenant.set(11L);
             user.set("alice");
             assertThat(service.save(new TestBusinessModel().businessValues("same", null))).isTrue();
@@ -134,15 +134,15 @@ class EgonColaTenantIdSqlIntegrationTest {
             TestTenantIdProvider tenant = context.getBean(TestTenantIdProvider.class);
             TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
             TestBusinessMapper mapper = context.getBean(TestBusinessMapper.class);
-            TestBusinessService service = context.getBean(TestBusinessService.class);
+            TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
             tenant.set(11L);
             user.set("alice");
             TestBusinessModel model = new TestBusinessModel().businessValues("guarded", null);
             assertThat(service.save(model)).isTrue();
             assertThatThrownBy(() -> mapper.forbiddenTenantMutation(model.getId(), 22L))
                     .hasMessageContaining("TENANT_COLUMN_MUTATION_FORBIDDEN");
-            assertThatThrownBy(() -> mapper.forbiddenLogicDeleteMutation(model.getId(), true))
-                    .hasMessageContaining("LOGIC_DELETE_COLUMN_MUTATION_FORBIDDEN");
+            model.setDeletedAt(java.time.LocalDateTime.of(2026, 1, 1, 0, 0));
+            assertThatThrownBy(() -> service.updateById(model)).hasMessageContaining("deletedAt");
             assertThatThrownBy(() -> mapper.unsupportedStatement())
                     .hasMessageContaining("SQL_SHAPE_UNSUPPORTED");
         });
@@ -167,7 +167,7 @@ class EgonColaTenantIdSqlIntegrationTest {
         contextRunner.run(context -> {
             TestTenantIdProvider tenant = context.getBean(TestTenantIdProvider.class);
             TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
-            TestBusinessService service = context.getBean(TestBusinessService.class);
+            TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
             tenant.set(11L);
             user.set("alice");
             TestBusinessModel model = new TestBusinessModel().businessValues("versioned", null);
@@ -176,7 +176,7 @@ class EgonColaTenantIdSqlIntegrationTest {
             TestBusinessModel loaded = service.getById(model.getId());
             loaded.setTitle("versioned-updated");
             assertThat(service.updateById(loaded)).isTrue();
-            assertThat(loaded.getVersion()).isEqualTo(2L);
+            assertThat(loaded.getVersion()).isEqualTo(1L);
 
             new JdbcTemplate(context.getBean(DataSource.class))
                     .update("update test_business_record set title = '' where id = ?", model.getId());
@@ -192,19 +192,30 @@ class EgonColaTenantIdSqlIntegrationTest {
         DataSource dataSource() throws Exception {
             JdbcDataSource dataSource = new JdbcDataSource();
             dataSource.setURL("jdbc:h2:mem:testdb_" + System.nanoTime()
-                    + ";MODE=MySQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false");
+                    + ";MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false");
             dataSource.setUser("sa");
             new ResourceDatabasePopulator(new ClassPathResource("schema.sql"))
                     .execute(dataSource);
             return dataSource;
         }
 
-        @Bean
-        TestBusinessService testBusinessService(
+        @Bean("snowflakeIdGenerator")
+        top.egon.cola.component.common.id.generator.LongIdGenerator snowflakeIdGenerator() {
+            return new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0);
+        }
+
+        @Bean("testMapperXmlCustomizer")
+        com.baomidou.mybatisplus.autoconfigure.MybatisPlusPropertiesCustomizer testMapperXmlCustomizer() {
+            return properties -> properties.setMapperLocations(new String[]{"classpath*:mybatis/*.xml"});
+        }
+
+        @Bean("testBusinessRepository")
+        TestBusinessRepository testBusinessRepository(
+                TestBusinessMapper mapper,
                 top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils validation,
                 top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider tenant,
                 top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties properties) {
-            return new TestBusinessService(validation, tenant, properties);
+            return new TestBusinessRepository(mapper, validation, tenant, properties);
         }
     }
 }

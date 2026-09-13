@@ -29,7 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class CourseManageImpl implements CourseManage {
     @Qualifier("courseDomainService")
-    private final CourseDomainService<?> courseDomainService;
+    private final CourseDomainService courseDomainService;
     @Qualifier("teachingQueryGateway")
     private final TeachingQueryGateway teachingQueryGateway;
     @Qualifier("courseCachePort")

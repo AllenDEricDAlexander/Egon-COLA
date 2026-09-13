@@ -31,7 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
 @ContextConfiguration(initializers = OrganizationManualSchemaTestSupport.Initializer.class)
-class OrganizationRollbackTest {
+class OrganizationRollbackTest extends top.egon.cola.archetype.source.webopen.support.PersistenceTestSupport {
 
     @Autowired private GradeManage gradeManage;
     @Autowired private SchoolClassManage schoolClassManage;
@@ -62,9 +62,9 @@ class OrganizationRollbackTest {
                 new CreateSchoolClassCommand("class-" + suffix, "Rollback Class", gradeCode));
         Long disabledUserId = idGenerator.nextLongId();
         jdbcTemplate.update(
-                "insert into users(id, name, email, status, created_at) values (?, ?, ?, ?, ?)",
+                "insert into users(id, name, email, status, create_time, tenant_id) values (?, ?, ?, ?, ?, ?)",
                 disabledUserId, "Disabled User", disabledUserId + "@example.com", "DISABLED",
-                Timestamp.from(Instant.now()));
+                Timestamp.from(Instant.now()), 1L);
 
         localPublisher.clear();
         schoolClassCache.clearObservations();

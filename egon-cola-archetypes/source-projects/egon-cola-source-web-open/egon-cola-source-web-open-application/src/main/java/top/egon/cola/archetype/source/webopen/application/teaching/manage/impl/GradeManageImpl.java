@@ -27,7 +27,7 @@ import java.time.Instant;
 @Service("gradeManage")
 @RequiredArgsConstructor
 public class GradeManageImpl implements GradeManage {
-    private final GradeDomainService<?> gradeDomainService;
+    private final GradeDomainService gradeDomainService;
     private final TeachingApplicationValidator validator;
     private final GradeCachePort gradeCache;
     private final CommandIdempotencyPort idempotency;

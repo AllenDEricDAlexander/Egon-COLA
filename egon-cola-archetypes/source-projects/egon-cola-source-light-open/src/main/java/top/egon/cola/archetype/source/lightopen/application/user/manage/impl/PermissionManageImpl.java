@@ -34,9 +34,9 @@ import java.util.List;
 @Slf4j
 public class PermissionManageImpl implements PermissionManage {
     @Qualifier("permissionDomainService")
-    private final PermissionDomainService<?> permissionDomainService;
+    private final PermissionDomainService permissionDomainService;
     @Qualifier("roleDomainService")
-    private final RoleDomainService<?> roleDomainService;
+    private final RoleDomainService roleDomainService;
     @Qualifier("userEventPublisher")
     private final UserEventPublisher userEventPublisher;
     @Qualifier("userApplicationValidator")

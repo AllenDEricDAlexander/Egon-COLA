@@ -114,8 +114,25 @@ egon:
           enabled: true
         meta-fill:
           enabled: true
+        dynamic-table-name:
+          enabled: false
+          tables: {}
+        data-change-recorder:
+          enabled: false
+        illegal-sql:
+          enabled: false
+        ddl:
+          enabled: true
+          lock-timeout: PT30S
+          statement-timeout: PT300S
+          topology-ready-timeout: PT60S
+        local-write-guard:
+          enabled: true
+          allowed-root-statements: {}
       id:
+        enabled: true
         machine-id: ${EGON_ID_MACHINE_ID}
+        max-clock-backward: PT0.005S
       dtp:
         enabled: ${DTP_ENABLED:true}
         app-name: ${DTP_APP_NAME:${spring.application.name}}
@@ -139,6 +156,8 @@ logging:
     rpc: org.apache.dubbo,io.grpc
     messaging: org.springframework.kafka,org.springframework.amqp
   level:
+    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
+    top.egon.cola.component.common.mybatis.change-summary: INFO
     root: info
     web-stack: info
     persistence: warn

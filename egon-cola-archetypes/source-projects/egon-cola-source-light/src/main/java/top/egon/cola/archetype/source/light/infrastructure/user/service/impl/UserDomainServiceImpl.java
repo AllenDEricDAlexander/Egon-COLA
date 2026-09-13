@@ -6,50 +6,36 @@ import top.egon.cola.archetype.source.light.domain.user.enums.UserStatus;
 import top.egon.cola.archetype.source.light.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.light.domain.user.vos.UserId;
 import top.egon.cola.archetype.source.light.infrastructure.user.repo.converter.UserPOConverter;
-import top.egon.cola.archetype.source.light.infrastructure.user.repo.dao.UserDAO;
-import top.egon.cola.archetype.source.light.infrastructure.user.repo.dao.UserRoleDAO;
+import top.egon.cola.archetype.source.light.infrastructure.user.repo.UserRepository;
+import top.egon.cola.archetype.source.light.infrastructure.user.repo.UserRoleRepository;
 import top.egon.cola.archetype.source.light.infrastructure.user.repo.po.UserPO;
 import top.egon.cola.archetype.source.light.infrastructure.user.repo.po.UserRolePO;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
-import top.egon.cola.component.common.mybatis.extension.EgonColaServiceImpl;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 
 import java.util.Optional;
 
-/** MyBatis-Plus implementation of the user domain service. */
+/** Business rules and orchestration for the user domain service. */
 @Slf4j
+@Validated
 @Service("userDomainService")
 @RequiredArgsConstructor
 public class UserDomainServiceImpl
-        extends EgonColaServiceImpl<UserDAO, UserPO>
-        implements UserDomainService<UserPO> {
+        implements UserDomainService {
 
-    @Qualifier("userDAO")
-    private final UserDAO userDAO;
-    @Qualifier("userRoleDAO")
-    private final UserRoleDAO userRoleDAO;
+    @Qualifier("userRepository")
+    private final UserRepository userRepository;
+    @Qualifier("userRoleRepository")
+    private final UserRoleRepository userRoleRepository;
     @Qualifier("userPOConverterImpl")
     private final UserPOConverter converter;
     @Qualifier("snowflakeIdGenerator")
     private final LongIdGenerator idGenerator;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
-    private final EgonColaMybatisPlusProperties properties;
 
     @Override
     public User createUser(String externalId, String name, String email) {
@@ -61,22 +47,28 @@ public class UserDomainServiceImpl
     @Transactional
     public User save(User user) {
         UserPO po = converter.toTarget(user);
-        po.setId(user.id().value());
-        userDAO.insert(po);
+        UserPO current = po.getId() == null ? null : userRepository.getById(po.getId());
+        if (current != null) { converter.updateMetadata(po, current); }
+        boolean written = current == null ? userRepository.save(po) : userRepository.updateById(po);
+        if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
+
         return converter.toSource(po);
     }
 
     @Override
     public Optional<User> findById(UserId userId) {
-        return Optional.ofNullable(userDAO.selectById(userId.value())).map(converter::toSource);
+        return Optional.ofNullable(userRepository.getById(userId.value())).map(converter::toSource);
     }
 
     @Override
     @Transactional
     public void saveRoles(UserAggregate aggregate) {
-        aggregate.roles().forEach(roleCode -> userRoleDAO.insert(UserRolePO.builder()
+        aggregate.roles().forEach(roleCode -> {
+            if (!userRoleRepository.save(UserRolePO.builder()
                 .userId(aggregate.user().id().value())
                 .roleCode(roleCode.value())
-                .build()));
+                .build())) { throw new IllegalStateException("INSERT_AFFECTED_ZERO_ROWS"); }
+        });
     }
+
 }

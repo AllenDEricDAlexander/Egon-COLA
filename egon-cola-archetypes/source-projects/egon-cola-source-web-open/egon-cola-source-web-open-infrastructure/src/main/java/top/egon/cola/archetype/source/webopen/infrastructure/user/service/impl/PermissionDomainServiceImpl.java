@@ -6,50 +6,37 @@ import top.egon.cola.archetype.source.webopen.domain.user.service.PermissionDoma
 import top.egon.cola.archetype.source.webopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.converter.PermissionPOConverter;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.dao.PermissionDAO;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.dao.RolePermissionDAO;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.dao.UserRoleDAO;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.PermissionRepository;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.RolePermissionRepository;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.UserRoleRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.PermissionPO;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.RolePermissionPO;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.UserRolePO;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
-import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
-import top.egon.cola.component.common.mybatis.extension.EgonColaServiceImpl;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
+@Validated
 @Service("permissionDomainService")
 @RequiredArgsConstructor
 public class PermissionDomainServiceImpl
-        extends EgonColaServiceImpl<PermissionDAO, PermissionPO>
-        implements PermissionDomainService<PermissionPO> {
+        implements PermissionDomainService {
 
-    @Qualifier("permissionDAO")
-    private final PermissionDAO permissionDAO;
-    @Qualifier("userRoleDAO")
-    private final UserRoleDAO userRoleDAO;
-    @Qualifier("rolePermissionDAO")
-    private final RolePermissionDAO rolePermissionDAO;
-    @Qualifier("permissionPOConverter")
+    @Qualifier("permissionRepository")
+    private final PermissionRepository permissionRepository;
+    @Qualifier("userRoleRepository")
+    private final UserRoleRepository userRoleRepository;
+    @Qualifier("rolePermissionRepository")
+    private final RolePermissionRepository rolePermissionRepository;
+    @Qualifier("permissionPOConverterImpl")
     private final PermissionPOConverter converter;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
-    private final EgonColaMybatisPlusProperties properties;
 
     @Override
     public void grant(RolePermissionAggregate aggregate, Permission permission) {
@@ -58,35 +45,36 @@ public class PermissionDomainServiceImpl
 
     @Override
     public Optional<Permission> findByCode(PermissionCode code) {
-        return Optional.ofNullable(permissionDAO.selectByCode(code.value())).map(converter::toSource);
+        return Optional.ofNullable(permissionRepository.selectByCode(code.value())).map(converter::toSource);
     }
 
     @Override
     public List<Permission> findByUserId(UserId userId) {
-        List<Long> roleIds = userRoleDAO.selectByUserId(userId.value()).stream()
+        List<Long> roleIds = userRoleRepository.selectByUserId(userId.value()).stream()
                 .map(UserRolePO::getRoleId).distinct().toList();
         if (roleIds.isEmpty()) {
             return List.of();
         }
-        List<Long> permissionIds = rolePermissionDAO.selectByRoleIds(roleIds).stream()
+        List<Long> permissionIds = rolePermissionRepository.selectByRoleIds(roleIds).stream()
                 .map(RolePermissionPO::getPermissionId).distinct().toList();
         if (permissionIds.isEmpty()) {
             return List.of();
         }
-        return permissionDAO.selectPermissionsByIds(permissionIds).stream()
+        return permissionRepository.selectPermissionsByIds(permissionIds).stream()
                 .map(converter::toSource).toList();
     }
 
     @Override
+    @Transactional
     public Permission save(Permission permission) {
         PermissionPO po = converter.toTarget(permission);
-        PermissionPO existing = permissionDAO.selectById(po.getId());
+        PermissionPO existing = permissionRepository.getById(po.getId());
         boolean saved;
         if (existing == null) {
-            saved = permissionDAO.insert(po) == 1;
+            saved = permissionRepository.save(po);
         } else {
-            copyMetadata(existing, po);
-            saved = permissionDAO.updateById(po) == 1;
+            converter.updateMetadata(po, existing);
+            saved = permissionRepository.updateById(po);
         }
         if (!saved) {
             throw new IllegalStateException("save permission affected zero rows");
@@ -94,12 +82,4 @@ public class PermissionDomainServiceImpl
         return converter.toSource(po);
     }
 
-    private static void copyMetadata(PermissionPO source, PermissionPO target) {
-        target.setTenantId(source.getTenantId());
-        target.setCreateUserId(source.getCreateUserId());
-        target.setCreateTime(source.getCreateTime());
-        target.setUpdateUserId(source.getUpdateUserId());
-        target.setUpdateTime(source.getUpdateTime());
-        target.setIsDeleted(source.getIsDeleted());
-    }
 }

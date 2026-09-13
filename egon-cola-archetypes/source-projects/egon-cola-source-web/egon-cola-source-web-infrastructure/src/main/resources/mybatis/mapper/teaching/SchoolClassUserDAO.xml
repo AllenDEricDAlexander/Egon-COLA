@@ -8,19 +8,32 @@
         <result column="create_time" property="createTime"/>
         <result column="update_user_id" property="updateUserId"/>
         <result column="update_time" property="updateTime"/>
-        <result column="is_deleted" property="isDeleted"/>
+        <result column="deleted_at" property="deletedAt"/>
+        <result column="version" property="version"/>
         <result column="grade_id" property="gradeId"/>
         <result column="user_id" property="userId"/>
         <result column="school_class_id" property="schoolClassId"/>
     </resultMap>
     <select id="selectByGradeIdAndSchoolClassId" resultMap="SchoolClassUserResultMap">
-        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
                grade_id, user_id, school_class_id FROM school_class_users
-        WHERE grade_id = #{gradeId} AND school_class_id = #{schoolClassId}
+        WHERE deleted_at IS NULL AND grade_id = #{gradeId} AND school_class_id = #{schoolClassId}
         ORDER BY user_id ASC, id ASC
     </select>
     <select id="countByGradeIdAndSchoolClassIdAndUserId" resultType="long">
         SELECT COUNT(*) FROM school_class_users
-        WHERE grade_id = #{gradeId} AND school_class_id = #{schoolClassId} AND user_id = #{userId}
+        WHERE deleted_at IS NULL AND grade_id = #{gradeId} AND school_class_id = #{schoolClassId} AND user_id = #{userId}
     </select>
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassUserPO">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, grade_id, school_class_id FROM school_class_users WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.web.infrastructure.teaching.repo.po.SchoolClassUserPO">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, grade_id, school_class_id FROM school_class_users WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE school_class_users SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime}, version = version + 1
+        WHERE id = #{et.id} AND version = #{MP_OPTLOCK_VERSION_ORIGINAL} AND deleted_at IS NULL
+    </update>
 </mapper>

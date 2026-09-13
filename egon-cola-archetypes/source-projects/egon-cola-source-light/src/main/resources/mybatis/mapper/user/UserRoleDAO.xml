@@ -4,12 +4,24 @@
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="top.egon.cola.archetype.source.light.infrastructure.user.repo.dao.UserRoleDAO">
     <sql id="userRoleColumns">
-        id, tenant_id, create_user_id, create_time, update_user_id, update_time, is_deleted,
+        id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version,
         user_id, role_code
     </sql>
     <select id="selectByUserId" resultType="top.egon.cola.archetype.source.light.infrastructure.user.repo.po.UserRolePO">
         SELECT <include refid="userRoleColumns"/> FROM user_roles
-        WHERE user_id = #{userId}
+        WHERE deleted_at IS NULL AND user_id = #{userId}
         ORDER BY id
     </select>
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.light.infrastructure.user.repo.po.UserRolePO">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, role_code FROM user_roles WHERE id=#{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.light.infrastructure.user.repo.po.UserRolePO">
+        SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, role_code FROM user_roles WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE user_roles SET deleted_at=(CURRENT_TIMESTAMP AT TIME ZONE 'UTC'), version=version+1,
+            update_user_id=#{et.updateUserId}, update_time=#{et.updateTime}
+        WHERE id=#{et.id} AND tenant_id=#{et.tenantId} AND deleted_at IS NULL AND version=#{MP_OPTLOCK_VERSION_ORIGINAL}
+    </update>
 </mapper>

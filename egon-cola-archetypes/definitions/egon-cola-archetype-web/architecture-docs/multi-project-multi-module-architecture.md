@@ -34,7 +34,7 @@ canonical Facade 不反向依赖任何生成模块。
 ### 2.1 common
 
 common 提供工程内的异常、常量和通用工具；Common MP Starter 由 domain 依赖并
-向所有下游提供 `EgonModel`、`EgonColaIService`、`EgonColaServiceImpl`、
+技术持久化能力仅由 infrastructure 使用：`EgonModel`、`EgonColaIRepository`、`EgonColaRepository`、
 `EgonColaMapper`、租户线、审计填充、逻辑删除、乐观锁和校验能力。模板不复制这些
 基础类，也不在模块内声明独立的 MyBatis-Plus 版本。
 
@@ -44,10 +44,8 @@ domain 只表达领域实体、聚合、值对象、枚举、事件、校验器�
 接口位于 `domain/<业务域>/service`，使用泛型形式：
 
 ```java
-public interface UserDomainService<P extends EgonModel<P>>
-        extends EgonColaIService<P> {
-    // 领域语义方法
-}
+public interface UserDomainService { User save(User user); }
+// Infrastructure: DomainServiceImpl -> UserRepository -> UserDAO (explicit XML)
 ```
 
 domain 不声明 DAO、PO 或技术实现；服务实现不放在 domain。domain 可以依赖
@@ -76,7 +74,7 @@ infrastructure/<domain>
 ```
 
 每一个 `*DomainServiceImpl` 都在 Infrastructure 实现对应的 domain service，
-继承 `EgonColaServiceImpl<DAO, PO>`，通过 DAO 完成 CRUD 和领域语义查询。DAO
+组合具体 Repository，Repository 继承 `EgonColaRepository<DAO, PO>`，通过 DAO 执行明确 SQL。DAO
 继承 `EgonColaMapper<PO>`，XML 位于
 `src/main/resources/mybatis/mapper/{user,teaching}`，namespace 必须精确指向
 DAO。PO 必须继承 `EgonModel<PO>`，使用 MyBatis-Plus 的 `@TableName`、
@@ -121,8 +119,8 @@ DAO，使用 `@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class
 调用方覆盖值；请求结束必须清理 MDC。
 
 每张表都包含 EgonModel 技术字段：`id`、`tenant_id`、`create_user_id`、
-`create_time`、`update_user_id`、`update_time`、`is_deleted`。逻辑删除值为 `0/1`，
-所有业务唯一约束都带 `tenant_id` 和 `is_deleted`。
+`create_time`、`update_user_id`、`update_time`、`deleted_at` / `version`。活动值为 NULL，删除写 UTC 时间戳并递增版本，
+所有业务唯一约束都带 `tenant_id` 和 `deleted_at` / `version`。
 
 ## 4. ShardingSphere 路由
 
@@ -141,26 +139,10 @@ tenant_long_table_bucket    -> LongTenantShardingAlgorithm(target=table)
 不回退到广播或猜测路由。读写分离配置只改变 primary/replica 拓扑，不改变租户
 路由键。
 
-## 5. Flyway 与 SQL 迁移
-
-legacy Web 模板继续由 Infrastructure 在物理 primary 创建逻辑数据源前执行
-Flyway。Spring Boot Flyway 自动配置被排除；replica 和逻辑数据源永不作为
-Flyway target。迁移目录仅有：
-
-```text
-db/migration/sharding/master-data
-db/migration/sharding/shard
-```
-
-既有 `V20260726_001`、`V20260726_002` 不得修改；本次各独立 location 只新增一个
-版本：`V20260825_003`（master-data）和 `V20260825_004`（shard）。新增迁移先做
-未知历史数据 preflight，不能在 SQL 内猜测旧身份与租户；空脚手架和明确种子才可
-自动映射。所有迁移文件开头必须依次包含 `变更内容`、`影响范围`、`兼容性说明`。
-
 ## 6. 运行与验证边界
 
 `dev`、`test`、`prod` 三个 profile 的核心配置键保持一致。`test` 使用 H2
-PostgreSQL 兼容模式、嵌入式 ShardingSphere、Flyway SQL、Common MP Mapper XML
+PostgreSQL 兼容模式、typed ShardingSphere 合同、受管 DDL 资源、Common MP Mapper XML
 和本地替身；生成项目验证只证明编译、架构规则、H2/SQL 合同、路由和迁移静态
 合同，不证明真实 PostgreSQL、Redis、RabbitMQ、Tianshu 服务发现、Tianquan-Shoubing 认证或生产
 拓扑。
@@ -176,12 +158,20 @@ JPA/Hibernate 依赖和源码、八个 `EgonModel` PO、八个 `EgonColaMapper` 
 Infrastructure ServiceImpl、四个 domain Service 契约、八份 DAO XML、Long/tenant
 迁移和四份 ShardingSphere 配置。验证期间不启动应用、不连接外部基础设施。
 
-## Dependency and runtime ownership
 
-Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
 
-This native family uses Egon RPC unary Protobuf contracts (gRPC 1.75.0 / Protobuf 4.32.0), the RPC Tianshu adapter, Tianshu configuration and HTTP registration, and the platform OpenAPI MVC starter. Runtime configuration lives in `application.yml` plus the dev/test/prod files; imported configuration uses Spring Boot Config Data. Supply the Tianshu endpoints, HMAC credentials, TLS material and Tianquan-Shoubing SERVICE client settings described in the generated README. Test profiles disable external integration lifecycles.
+## Repository、CQRS 与 PostgreSQL
 
-Web exposes ten Organization operations through `top.egon:egon-cola-organization-facade` and consumes Evaluation through `top.egon:egon-cola-evaluation-facade`. Existing business facade DTOs, HTTP/GraphQL/MQ behavior and database contracts are retained.
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
 
-Platform API document governance is opt-in. Controllers need explicit, unique `@Operation(operationId = ...)` values before enabling that catalog; existing business endpoints remain accessible with the default configuration. Live Tianshu/Tianquan-Shoubing/TLS discovery, cross-process RPC and production rollout require operator acceptance.
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+
+算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
+
+初始化由 `ShardingDataSourceBootstrapper` 调用 Common 受管 DDL runner，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+
+读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
+
+每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
+
+默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。

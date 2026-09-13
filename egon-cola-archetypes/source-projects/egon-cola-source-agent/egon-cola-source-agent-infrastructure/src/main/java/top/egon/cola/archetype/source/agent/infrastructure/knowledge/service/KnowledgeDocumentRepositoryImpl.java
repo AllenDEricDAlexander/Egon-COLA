@@ -1,221 +1,182 @@
 package top.egon.cola.archetype.source.agent.infrastructure.knowledge.service;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import lombok.AccessLevel;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.archetype.source.agent.domain.knowledge.model.DocumentIngestStatusEnum;
-import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeDocumentBO;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
+import top.egon.cola.archetype.source.agent.domain.knowledge.model.*;
 import top.egon.cola.archetype.source.agent.domain.knowledge.repository.KnowledgeDocumentRepository;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.converter.KnowledgeDocumentPOConverter;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.KnowledgeDocumentPO;
-
-import java.util.Arrays;
-import java.util.Collection;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import java.util.List;
-import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Consumer;
+import java.util.Objects;
 
-/**
- * MyBatis-Plus implementation of the document port.
- *
- * <p>Each status write carries the status it expects to leave in its condition, so a delivery
- * attempt that lost the document to a concurrent reprocess reports {@code false} instead of
- * overwriting the newer state. The tenant scope and the soft-delete filter are injected by the
- * interceptor chain, never written here.
- */
+/** Explicit query SQL and versioned commands for the existing knowledge domain port. */
 @Slf4j
+@Validated
 @Repository("knowledgeDocumentRepository")
 @RequiredArgsConstructor
-public class KnowledgeDocumentRepositoryImpl implements KnowledgeDocumentRepository {
+public class KnowledgeDocumentRepositoryImpl extends EgonColaRepository<KnowledgeDocumentDAO, KnowledgeDocumentPO> implements KnowledgeDocumentRepository {
+    @Getter
+    @Qualifier("knowledgeDocumentDAO")
+    private final KnowledgeDocumentDAO baseMapper;
+    @Getter(AccessLevel.PROTECTED)
+    @Qualifier("egonColaModelValidationUtils")
+    private final EgonColaModelValidationUtils modelValidationUtils;
+    @Getter(AccessLevel.PROTECTED)
+    @Qualifier("egonColaMdcTenantIdProvider")
+    private final EgonColaTenantIdProvider tenantIdProvider;
+    @Getter(AccessLevel.PROTECTED)
+    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
+    private final EgonColaMybatisPlusProperties properties;
+    @Qualifier("egonColaValidationUtils")
+    private final ValidationUtils validation;
+    @Qualifier("egonColaMdcUserIdProvider")
+    private final top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider userIdProvider;
+    @Qualifier("agentClock")
+    private final java.time.Clock clock;
 
-    /** The statuses a reprocess may leave, derived from the domain state machine. */
-    private static final List<String> TERMINAL_STATUSES = Arrays.stream(DocumentIngestStatusEnum.values())
-            .filter(DocumentIngestStatusEnum::isTerminal)
-            .map(Enum::name)
-            .toList();
-
-    private final @Qualifier("knowledgeDocumentDAO") KnowledgeDocumentDAO knowledgeDocumentDAO;
+    private static final List<String> TERMINAL_STATUSES = java.util.Arrays.stream(DocumentIngestStatusEnum.values())
+            .filter(DocumentIngestStatusEnum::isTerminal).map(Enum::name).toList();
 
     @Override
     public KnowledgeDocumentBO insert(KnowledgeDocumentBO document) {
-        Objects.requireNonNull(document, "document must not be null");
+        validation.validate(Objects.requireNonNull(document, "document"));
         KnowledgeDocumentPO stored = KnowledgeDocumentPOConverter.INSTANCE.toSource(document);
-        knowledgeDocumentDAO.insert(stored);
-        log.debug("stored document {} of knowledge base {}", stored.getId(), stored.getKnowledgeBaseId());
+        if (!save(stored)) { throw new IllegalStateException("INSERT_AFFECTED_ZERO_ROWS"); }
         return KnowledgeDocumentPOConverter.INSTANCE.toTarget(stored);
     }
 
     @Override
     public Optional<KnowledgeDocumentBO> findById(Long documentId) {
-        Objects.requireNonNull(documentId, "documentId must not be null");
-        return Optional.ofNullable(knowledgeDocumentDAO.selectById(documentId))
-                .map(KnowledgeDocumentPOConverter.INSTANCE::toTarget);
+        return Optional.ofNullable(getById(documentId)).map(KnowledgeDocumentPOConverter.INSTANCE::toTarget);
     }
 
     @Override
-    public List<KnowledgeDocumentBO> findByIds(Collection<Long> documentIds) {
-        Objects.requireNonNull(documentIds, "documentIds must not be null");
-        if (documentIds.isEmpty()) {
-            return List.of();
-        }
-        return KnowledgeDocumentPOConverter.INSTANCE.toTargetList(knowledgeDocumentDAO.selectList(
-                Wrappers.<KnowledgeDocumentPO>lambdaQuery()
-                        .in(KnowledgeDocumentPO::getId, documentIds)
-                        .orderByDesc(KnowledgeDocumentPO::getCreateTime, KnowledgeDocumentPO::getId)));
+    public List<KnowledgeDocumentBO> findByIds(java.util.Collection<Long> documentIds) {
+        validation.validate(new IdsQuery(documentIds));
+        if (documentIds.isEmpty()) { return List.of(); }
+        return KnowledgeDocumentPOConverter.INSTANCE.toTargetList(baseMapper.selectActiveByIds(documentIds));
     }
 
     @Override
-    public List<KnowledgeDocumentBO> page(Long knowledgeBaseId, int offset, int size,
-                                          DocumentIngestStatusEnum status, String keyword) {
-        return KnowledgeDocumentPOConverter.INSTANCE.toTargetList(knowledgeDocumentDAO.selectList(
-                filtered(knowledgeBaseId, status, keyword)
-                        .orderByDesc(KnowledgeDocumentPO::getCreateTime, KnowledgeDocumentPO::getId)
-                        .last(window(offset, size))));
+    public List<KnowledgeDocumentBO> page(Long knowledgeBaseId, int offset, int size, DocumentIngestStatusEnum status, String keyword) {
+        validation.validate(new RootCommand(knowledgeBaseId));
+        validatePage(offset, size);
+        return KnowledgeDocumentPOConverter.INSTANCE.toTargetList(baseMapper.selectFilteredPage(knowledgeBaseId, offset, size,
+                status == null ? null : status.name(), pattern(keyword)));
     }
 
     @Override
     public long count(Long knowledgeBaseId, DocumentIngestStatusEnum status, String keyword) {
-        return knowledgeDocumentDAO.selectCount(filtered(knowledgeBaseId, status, keyword));
+        validation.validate(new RootCommand(knowledgeBaseId));
+        return baseMapper.countFiltered(knowledgeBaseId, status == null ? null : status.name(), pattern(keyword));
     }
 
     @Override
     public long countByKnowledgeBaseId(Long knowledgeBaseId) {
-        Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null");
-        return knowledgeDocumentDAO.selectCount(Wrappers.<KnowledgeDocumentPO>lambdaQuery()
-                .eq(KnowledgeDocumentPO::getKnowledgeBaseId, knowledgeBaseId));
+        validation.validate(new RootCommand(knowledgeBaseId));
+        return baseMapper.countByKnowledgeBaseId(knowledgeBaseId);
     }
 
     @Override
+    @Transactional
     public boolean markProcessing(Long documentId, int attemptCount) {
-        return writeTransition(documentId, DocumentIngestStatusEnum.PENDING, change -> change
-                .setStatus(DocumentIngestStatusEnum.PROCESSING.name())
-                .setAttemptCount(attemptCount)
-                .setErrorCode(null)
-                .setErrorMessage(null));
+        validation.validate(new CountCommand(attemptCount));
+        return writeTransition(documentId, DocumentIngestStatusEnum.PENDING,
+                change -> change.setStatus(DocumentIngestStatusEnum.PROCESSING.name()).setAttemptCount(attemptCount).setErrorCode(null).setErrorMessage(null));
     }
 
     @Override
+    @Transactional
     public boolean markSucceeded(Long documentId, int chunkCount) {
-        return writeTransition(documentId, DocumentIngestStatusEnum.PROCESSING, change -> change
-                .setStatus(DocumentIngestStatusEnum.SUCCEEDED.name())
-                .setChunkCount(chunkCount));
+        validation.validate(new CountCommand(chunkCount));
+        return writeTransition(documentId, DocumentIngestStatusEnum.PROCESSING,
+                change -> change.setStatus(DocumentIngestStatusEnum.SUCCEEDED.name()).setChunkCount(chunkCount));
     }
 
     @Override
-    public boolean markRetryPending(Long documentId, int attemptCount, String errorCode,
-                                    String errorMessage) {
-        return writeTransition(documentId, DocumentIngestStatusEnum.PROCESSING, change -> change
-                .setStatus(DocumentIngestStatusEnum.PENDING.name())
-                .setAttemptCount(attemptCount)
-                .setErrorCode(errorCode)
-                .setErrorMessage(errorMessage));
+    @Transactional
+    public boolean markRetryPending(Long documentId, int attemptCount, String errorCode, String errorMessage) {
+        validation.validate(new ErrorCommand(errorCode, errorMessage));
+        validation.validate(new CountCommand(attemptCount));
+        return writeTransition(documentId, DocumentIngestStatusEnum.PROCESSING,
+                change -> change.setStatus(DocumentIngestStatusEnum.PENDING.name()).setAttemptCount(attemptCount).setErrorCode(errorCode).setErrorMessage(errorMessage));
     }
 
     @Override
+    @Transactional
     public boolean markDead(Long documentId, String errorCode, String errorMessage) {
-        return writeTransition(documentId, DocumentIngestStatusEnum.PROCESSING, change -> change
-                .setStatus(DocumentIngestStatusEnum.DEAD.name())
-                .setErrorCode(errorCode)
-                .setErrorMessage(errorMessage));
+        validation.validate(new ErrorCommand(errorCode, errorMessage));
+        return writeTransition(documentId, DocumentIngestStatusEnum.PROCESSING,
+                change -> change.setStatus(DocumentIngestStatusEnum.DEAD.name()).setErrorCode(errorCode).setErrorMessage(errorMessage));
     }
 
     @Override
+    @Transactional
     public boolean resetForReingest(Long documentId) {
-        Objects.requireNonNull(documentId, "documentId must not be null");
-        KnowledgeDocumentPO current = knowledgeDocumentDAO.selectById(documentId);
-        if (current == null || !TERMINAL_STATUSES.contains(current.getStatus())) {
-            log.debug("document {} was not left in a terminal status, nothing reset", documentId);
-            return false;
-        }
-        KnowledgeDocumentPO change = carrierOf(current)
-                .setStatus(DocumentIngestStatusEnum.PENDING.name())
-                .setChunkCount(0)
-                .setAttemptCount(0)
-                .setErrorCode(null)
-                .setErrorMessage(null);
-        return knowledgeDocumentDAO.update(change, Wrappers.<KnowledgeDocumentPO>lambdaUpdate()
-                .eq(KnowledgeDocumentPO::getId, documentId)
-                .in(KnowledgeDocumentPO::getStatus, TERMINAL_STATUSES)) > 0;
+        KnowledgeDocumentPO current = getById(documentId);
+        if (current == null || !TERMINAL_STATUSES.contains(current.getStatus())) { return false; }
+        KnowledgeDocumentPO change = carrierOf(current).setStatus(DocumentIngestStatusEnum.PENDING.name())
+                .setChunkCount(0).setAttemptCount(0).setErrorCode(null).setErrorMessage(null);
+        modelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
+        return baseMapper.updateState(change, TERMINAL_STATUSES) == 1;
     }
 
     @Override
-    public void softDelete(Long documentId) {
-        Objects.requireNonNull(documentId, "documentId must not be null");
-        log.debug("soft deleted document {}, {} row(s) affected",
-                documentId, knowledgeDocumentDAO.deleteById(documentId));
-    }
+    @Transactional
+    public void softDelete(Long documentId) { removeById(documentId); }
 
     @Override
+    @Transactional
     public void softDeleteByKnowledgeBaseId(Long knowledgeBaseId) {
-        Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null");
-        int deleted = knowledgeDocumentDAO.delete(Wrappers.<KnowledgeDocumentPO>lambdaQuery()
-                .eq(KnowledgeDocumentPO::getKnowledgeBaseId, knowledgeBaseId));
-        log.debug("soft deleted the documents of knowledge base {}, {} row(s) affected",
-                knowledgeBaseId, deleted);
+        validation.validate(new RootCommand(knowledgeBaseId));
+        String userId = userIdProvider.currentUserId();
+        if (userId == null || userId.isBlank()) { throw new IllegalStateException("USER_CONTEXT_MISSING"); }
+        baseMapper.softDeleteByKnowledgeBaseId(knowledgeBaseId, userId, clock.instant().truncatedTo(java.time.temporal.ChronoUnit.MICROS));
     }
 
-    /**
-     * Applies one status move: the row is read for the columns the persistence model requires, then
-     * written under the status it must still stand in, so an attempt that lost the document to a
-     * concurrent transition changes nothing.
-     */
-    private boolean writeTransition(Long documentId, DocumentIngestStatusEnum expected,
-                                    Consumer<KnowledgeDocumentPO> transition) {
-        Objects.requireNonNull(documentId, "documentId must not be null");
-        KnowledgeDocumentPO current = knowledgeDocumentDAO.selectById(documentId);
-        if (current == null || !expected.name().equals(current.getStatus())) {
-            log.debug("document {} no longer stands in {}, nothing written", documentId, expected);
-            return false;
-        }
+    private boolean writeTransition(Long documentId, DocumentIngestStatusEnum expected, java.util.function.Consumer<KnowledgeDocumentPO> transition) {
+        KnowledgeDocumentPO current = getById(documentId);
+        if (current == null || !expected.name().equals(current.getStatus())) { return false; }
         KnowledgeDocumentPO change = carrierOf(current);
         transition.accept(change);
-        return knowledgeDocumentDAO.update(change,
-                Wrappers.<KnowledgeDocumentPO>lambdaUpdate()
-                        .eq(KnowledgeDocumentPO::getId, documentId)
-                        .eq(KnowledgeDocumentPO::getStatus, expected.name())) > 0;
+        modelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
+        return baseMapper.updateState(change, List.of(expected.name())) == 1;
     }
 
-    /** A status write carries only the columns it changes, on top of the loaded row. */
     private static KnowledgeDocumentPO carrierOf(KnowledgeDocumentPO current) {
         KnowledgeDocumentPO change = new KnowledgeDocumentPO();
-        change.setId(current.getId());
-        change.setTenantId(current.getTenantId());
-        change.setCreateUserId(current.getCreateUserId());
-        change.setCreateTime(current.getCreateTime());
-        change.setIsDeleted(current.getIsDeleted());
+        KnowledgeDocumentPOConverter.INSTANCE.updateMetadata(change, current);
         return change;
     }
 
-    /** Optional filters of the list query; the tenant predicate is injected by the interceptor. */
-    private static LambdaQueryWrapper<KnowledgeDocumentPO> filtered(Long knowledgeBaseId,
-                                                                    DocumentIngestStatusEnum status,
-                                                                    String keyword) {
-        Objects.requireNonNull(knowledgeBaseId, "knowledgeBaseId must not be null");
-        LambdaQueryWrapper<KnowledgeDocumentPO> filters = Wrappers.lambdaQuery();
-        filters.eq(KnowledgeDocumentPO::getKnowledgeBaseId, knowledgeBaseId);
-        if (status != null) {
-            filters.eq(KnowledgeDocumentPO::getStatus, status.name());
-        }
-        if (keyword != null && !keyword.isBlank()) {
-            String pattern = "%" + keyword.trim() + "%";
-            filters.apply("lower(display_name) like {0}", pattern);
-        }
-        return filters;
+    private record CountCommand(@jakarta.validation.constraints.PositiveOrZero int count) { }
+    private record ErrorCommand(@jakarta.validation.constraints.Size(max = 64) String code,
+                                @jakarta.validation.constraints.Size(max = 512) String message) { }
+    private record RootCommand(@jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long id) { }
+    private record IdsQuery(@jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Size(max = 10000)
+                           java.util.Collection<@jakarta.validation.constraints.NotNull @jakarta.validation.constraints.Positive Long> ids) { }
+
+    private void validatePage(int offset, int size) {
+        validation.validate(new PageQuery(offset, size));
+        if (size > properties.getPagination().getMaxPageSize()) { throw new IllegalArgumentException("PAGE_SIZE_LIMIT_EXCEEDED"); }
     }
 
-    /** Guards the requested window and renders it as the row window of the statement. */
-    private static String window(int offset, int size) {
-        if (offset < 0) {
-            throw new IllegalArgumentException("offset must not be negative");
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("size must be positive");
-        }
-        return "limit " + size + " offset " + offset;
-    }
+    private record PageQuery(@jakarta.validation.constraints.PositiveOrZero int offset,
+                             @jakarta.validation.constraints.Min(1) @jakarta.validation.constraints.Max(500) int size) { }
+
+    private static String pattern(String keyword) { return keyword == null || keyword.isBlank() ? null : "%" + keyword.trim() + "%"; }
 }

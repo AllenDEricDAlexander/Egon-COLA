@@ -16,7 +16,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
 @AutoConfigureMockMvc
-class OpenApiContractTest {
+class OpenApiContractTest extends top.egon.cola.archetype.source.webopen.support.PersistenceTestSupport {
 
     @Autowired
     private MockMvc mockMvc;

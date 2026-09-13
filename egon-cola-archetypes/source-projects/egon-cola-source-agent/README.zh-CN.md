@@ -142,3 +142,11 @@ curl --fail-with-body --no-buffer \
 ```
 
 生成的 family 由仓库 archetype 脚本独立验证。该 source project 不包含缓存、消息中间件、RPC、GraphQL endpoint 或 UI；其唯一持久面是 knowledge 的库表、迁移与 outbox 队列。
+
+## 知识库 Repository 迁移
+
+知识库查询统一为绑定参数的 Mapper XML。更新同时限制租户、活动状态、期望版本与入库状态；`deleted_at` 使用可空 UTC LocalDateTime，`version` 从 0 递增。JSONB 保留字段专用 handler。
+
+Agent 继续使用 Flyway。新增 `V20260913_001__egon_model_repository.sql` 要求两张知识表为空，移除 identity 默认值、替换逻辑删除索引并添加新字段；原 V001/V002 保持不变。Outbox 与向量表继续由原组件管理。Common DDL 在 Agent 中关闭，只登记知识库根键批量软删的完整语句 ID。
+
+生产配置 `EGON_ID_MACHINE_ID`。默认 H2/fake-model 测试不执行 PostgreSQL 迁移或向量集成，需在专用数据库上手动验收。

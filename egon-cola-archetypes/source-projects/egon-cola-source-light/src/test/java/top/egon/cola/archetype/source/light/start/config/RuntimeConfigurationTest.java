@@ -27,7 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
                 "egon.cola.component.rpc.enabled=false",
                 "egon.cola.component.tianshu.enabled=false"
         })
-class RuntimeConfigurationTest {
+class RuntimeConfigurationTest extends top.egon.cola.archetype.source.light.support.PersistenceTestSupport {
     @Autowired
     private MockMvc mockMvc;
 

@@ -30,7 +30,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RoleManageImplTest {
-    @Mock UserDomainService<?> userDomainService;
+    @Mock UserDomainService userDomainService;
     @Mock UserCachePort userCache;
     @Mock CommandIdempotencyPort idempotency;
     @Mock OrganizationEventPublisher eventPublisher;

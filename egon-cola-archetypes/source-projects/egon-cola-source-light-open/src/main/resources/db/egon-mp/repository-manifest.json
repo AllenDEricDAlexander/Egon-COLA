@@ -1,0 +1,10 @@
+{
+  "family": "light-open",
+  "scripts": [
+    {
+      "version": "20260913_001",
+      "path": "db/egon-mp/V20260913_001__initialize_repository_schema.sql",
+      "sha256": "3e10f8c487e692c38e81ac652d1f8cee7f5ca65f0552cea944a858bbb158b777"
+    }
+  ]
+}

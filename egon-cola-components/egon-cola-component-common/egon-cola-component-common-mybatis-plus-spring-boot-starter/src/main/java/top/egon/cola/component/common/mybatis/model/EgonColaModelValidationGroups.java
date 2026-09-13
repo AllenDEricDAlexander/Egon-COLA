@@ -11,9 +11,11 @@ public final class EgonColaModelValidationGroups {
     public interface Insert {
     }
 
+    /** Requires an existing id and caller-supplied expected version. */
     public interface Update {
     }
 
+    /** Logical deletion retains optimistic locking and never restores an inactive row. */
     public interface Delete {
     }
 

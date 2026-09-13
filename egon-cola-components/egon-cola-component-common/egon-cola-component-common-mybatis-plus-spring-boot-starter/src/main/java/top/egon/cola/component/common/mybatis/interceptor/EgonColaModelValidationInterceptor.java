@@ -1,6 +1,9 @@
 package top.egon.cola.component.common.mybatis.interceptor;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -22,7 +25,6 @@ import java.sql.Statement;
 import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 
@@ -37,14 +39,12 @@ import java.util.Set;
         @Signature(type = ResultSetHandler.class, method = "handleResultSets",
                 args = {Statement.class})
 })
+@Slf4j
+@RequiredArgsConstructor
 public final class EgonColaModelValidationInterceptor implements Interceptor {
 
+    @Qualifier("egonColaModelValidationUtils")
     private final EgonColaModelValidationUtils modelValidationUtils;
-
-    public EgonColaModelValidationInterceptor(EgonColaModelValidationUtils modelValidationUtils) {
-        this.modelValidationUtils = Objects.requireNonNull(modelValidationUtils,
-                "modelValidationUtils must not be null");
-    }
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -96,10 +96,6 @@ public final class EgonColaModelValidationInterceptor implements Interceptor {
             return;
         }
         if (value instanceof EgonModel<?> model) {
-            if (operation == EgonColaModelValidationGroups.Operation.DELETE
-                    && isIdentifierOnly(model)) {
-                return;
-            }
             validateModel(model, operation);
             return;
         }
@@ -155,12 +151,6 @@ public final class EgonColaModelValidationInterceptor implements Interceptor {
         return null;
     }
 
-    private static boolean isIdentifierOnly(EgonModel<?> model) {
-        return model.getCreateUserId() == null
-                && model.getCreateTime() == null
-                && model.getIsDeleted() == null;
-    }
-
     private static EgonColaModelValidationGroups.Operation operation(SqlCommandType commandType) {
         return switch (commandType) {
             case INSERT -> EgonColaModelValidationGroups.Operation.INSERT;
@@ -177,7 +167,7 @@ public final class EgonColaModelValidationInterceptor implements Interceptor {
         String id = mappedStatement.getId();
         if (id != null) {
             String normalized = id.toLowerCase(java.util.Locale.ROOT);
-            if (normalized.contains("deletebyid") || normalized.endsWith(".delete")) {
+            if (normalized.contains("deletebyid") || normalized.endsWith(".deleteversionedbyid") || normalized.endsWith(".delete")) {
                 return EgonColaModelValidationGroups.Operation.DELETE;
             }
         }

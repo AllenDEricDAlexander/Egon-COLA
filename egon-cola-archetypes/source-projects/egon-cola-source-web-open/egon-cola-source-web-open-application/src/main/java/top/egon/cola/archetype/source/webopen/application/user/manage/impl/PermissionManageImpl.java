@@ -31,8 +31,8 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class PermissionManageImpl implements PermissionManage {
 
-    private final UserDomainService<?> userDomainService;
-    private final PermissionDomainService<?> permissionDomainService;
+    private final UserDomainService userDomainService;
+    private final PermissionDomainService permissionDomainService;
     private final UserApplicationValidator validator;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;

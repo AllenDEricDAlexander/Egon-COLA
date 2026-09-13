@@ -38,7 +38,16 @@ class LightPersistenceArchitectureTest {
         assertFalse(source.contains("repo.mapper"));
         assertTrue(source.contains("extends EgonModel<"));
         assertTrue(source.contains("extends EgonColaMapper<"));
-        assertTrue(source.contains("extends EgonColaServiceImpl<"));
+        assertFalse(source.contains("EgonColaIService"));
+        assertFalse(source.contains("EgonColaServiceImpl"));
+        assertTrue(source.contains("extends EgonColaRepository<"));
+        assertEquals(8, count(javaFiles, "Repository.java"));
+        for (Path file : javaFiles) {
+            if (file.toString().contains("service/impl") && file.toString().endsWith("DomainServiceImpl.java")) {
+                assertFalse(read(file).contains("repo.dao"), "Business Service must compose repositories: " + file);
+                assertFalse(read(file).contains("extends EgonCola"));
+            }
+        }
 
         assertEquals(8, count(javaFiles, "PO.java"));
         assertEquals(8, count(javaFiles, "DAO.java"));
@@ -55,6 +64,9 @@ class LightPersistenceArchitectureTest {
         assertTrue(readwrite.contains("shardingColumn: tenant_id"));
         assertFalse(sharding.contains("UuidV7BucketShardingAlgorithm"));
         assertFalse(readwrite.contains("UuidV7BucketShardingAlgorithm"));
+        assertTrue(sharding.contains("!SINGLE"));
+        assertTrue(readwrite.contains("!SINGLE"));
+        assertTrue(readwrite.contains("defaultType: LOCAL"));
     }
 
     private static long count(List<Path> paths, String suffix) {

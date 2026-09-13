@@ -66,7 +66,7 @@ CourseController
 
 ### 4.3 MyBatis-Plus 与手工 SQL
 
-生成项目通过 Egon COLA Common MP starter 使用 MyBatis-Plus；domain service interface 继承 EgonColaIService，infrastructure ServiceImpl 继承 EgonColaServiceImpl，DAO 继承 EgonColaMapper，PO 继承 EgonModel；不使用 Spring Data JPA。应用启动不会创建或更新表结构，`spring.sql.init.mode` 固定为 `never`。DBA 必须按顺序对每个物理 PostgreSQL 目标手工执行：
+生成项目通过 Egon COLA Common MP starter 使用 MyBatis-Plus；domain service interface 继承 EgonColaIRepository，infrastructure ServiceImpl 继承 EgonColaRepository，DAO 继承 EgonColaMapper，PO 继承 EgonModel；不使用 Spring Data JPA。应用启动不会创建或更新表结构，`spring.sql.init.mode` 固定为 `never`。DBA 必须按顺序对每个物理 PostgreSQL 目标手工执行：
 
 ```text
 db/manual/postgresql/master-data/001__create_light_master_data_schema.sql
@@ -92,10 +92,22 @@ Springdoc 提供 `/v3/api-docs` 和 `/swagger-ui.html`。Gateway、鉴权入口�
 ./mvnw -B -ntp -DskipTests package
 ```
 
-`verify` 覆盖编译、测试、OpenAPI smoke、ArchUnit、DAO/manual-SQL 合同和 archetype verifier。它证明生成树的静态及测试 profile 合同，不证明真实 Nacos 3、Redis、PostgreSQL、RabbitMQ、外部 HTTP 或生产路由拓扑；这些由运维在执行手工 SQL、配置环境并部署后单独验收。
+`verify` 覆盖编译、测试、OpenAPI smoke、ArchUnit、DAO/manual-SQL 合同和 archetype verifier。它证明生成树的静态及测试 profile 合同，不证明真实 Nacos 3、Redis、PostgreSQL、RabbitMQ、外部 HTTP 或生产路由拓扑；这些由运维在手动验收 PG DDL、配置环境并部署后单独验收。
 
-## Dependency and runtime ownership
 
-Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` at a concrete version with an empty `relativePath`. The parent imports the Components BOM, manages Common dependencies and ShardingSphere 5.5.3, and keeps Commons Lang at 3.20.0. Consumer modules inherit their own project root. Install the matching parent/BOM and required artifacts locally before validating an unpublished release; a local install does not publish artifacts.
 
-Open retains its existing Spring Cloud/Nacos stack and consumed Common Core/ID/MyBatis Plus/Dynamic Thread Pool components. Light Open retains Springdoc and has no Dubbo business contract.
+## Repository、CQRS 与 PostgreSQL
+
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
+
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+
+算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
+
+初始化由 `ShardingDataSourceBootstrapper` 调用 Common 受管 DDL runner，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+
+读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
+
+每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
+
+默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。

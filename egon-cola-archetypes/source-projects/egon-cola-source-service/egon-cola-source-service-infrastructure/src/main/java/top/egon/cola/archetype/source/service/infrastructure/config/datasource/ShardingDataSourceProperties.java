@@ -1,64 +1,52 @@
 package top.egon.cola.archetype.source.service.infrastructure.config.datasource;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import top.egon.cola.component.common.mybatis.ddl.EgonColaDdlTargetBO;
+
 import java.util.List;
 
-/**
- * Physical topology, stable routing and Flyway targets for sharding mode.
- */
+/** Physical topology, immutable routing addresses and explicitly owned PostgreSQL DDL targets. */
 public record ShardingDataSourceProperties(
-        String config,
-        ShardingRoutingProperties routing,
-        List<PhysicalDataSourceProperties> physicalDataSources,
-        ShardingFlywayProperties flyway) {
+        @NotBlank String config,
+        @NotNull @Valid ShardingRoutingProperties routing,
+        @NotEmpty List<@NotNull @Valid PhysicalDataSourceProperties> physicalDataSources,
+        @NotNull @Valid ShardingDdlProperties ddl) {
 
     public ShardingDataSourceProperties {
-        physicalDataSources = physicalDataSources == null
-                ? List.of()
-                : List.copyOf(physicalDataSources);
-        flyway = flyway == null ? new ShardingFlywayProperties(List.of()) : flyway;
+        physicalDataSources = physicalDataSources == null ? List.of() : List.copyOf(physicalDataSources);
+        ddl = ddl == null ? new ShardingDdlProperties(List.of()) : ddl;
     }
 
-    public enum DataSourceRole {
-        PRIMARY,
-        REPLICA
-    }
+    public enum DataSourceRole { PRIMARY, REPLICA }
 
     public record PhysicalDataSourceProperties(
-            String name,
-            String logicalName,
-            DataSourceRole role,
-            String driverClassName,
-            String jdbcUrl,
-            String username,
-            String password) {
-
+            @NotBlank @Pattern(regexp = "[a-zA-Z_][a-zA-Z0-9_-]*") String name,
+            @NotBlank @Pattern(regexp = "[a-zA-Z_][a-zA-Z0-9_-]*") String logicalName,
+            @NotNull DataSourceRole role,
+            @NotBlank @Pattern(regexp = "org\\.postgresql\\.Driver") String driverClassName,
+            @NotBlank @Pattern(regexp = "jdbc:postgresql:.*") String jdbcUrl,
+            @NotBlank String username,
+            @NotNull String password) {
         @Override
         public String toString() {
-            return "PhysicalDataSourceProperties[name=%s, logicalName=%s, role=%s, "
-                    + "driverClassName=%s, jdbcUrl=<redacted>, username=<redacted>, "
-                    + "password=<redacted>]"
-                            .formatted(name, logicalName, role, driverClassName);
+            return "PhysicalDataSourceProperties[name=" + name + ", logicalName=" + logicalName + ", role=" + role + ", connection=<redacted>]";
         }
     }
 
-    public record ShardingRoutingProperties(
-            int nodeCount,
-            String nodeMap) {
-    }
+    public record ShardingRoutingProperties(@Min(2) int nodeCount, @NotBlank String nodeMap) {}
 
-    public record FlywayTargetProperties(
-            String dataSourceName,
-            List<String> locations) {
+    public record DdlTargetProperties(
+            @NotBlank String dataSourceName,
+            @NotBlank @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}") String schema,
+            @NotNull EgonColaDdlTargetBO.RoleEnum role,
+            @NotBlank String manifest) {}
 
-        public FlywayTargetProperties {
-            locations = locations == null ? List.of() : List.copyOf(locations);
-        }
-    }
-
-    public record ShardingFlywayProperties(List<FlywayTargetProperties> targets) {
-
-        public ShardingFlywayProperties {
-            targets = targets == null ? List.of() : List.copyOf(targets);
-        }
+    public record ShardingDdlProperties(@NotEmpty List<@NotNull @Valid DdlTargetProperties> targets) {
+        public ShardingDdlProperties { targets = targets == null ? List.of() : List.copyOf(targets); }
     }
 }

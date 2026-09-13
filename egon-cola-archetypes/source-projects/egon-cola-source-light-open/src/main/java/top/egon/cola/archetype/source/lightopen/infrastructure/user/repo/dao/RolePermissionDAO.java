@@ -10,6 +10,7 @@ import java.util.List;
 
 /** MyBatis mapper for role-permission links. */
 @Mapper
+/** Shared active reads and versioned deletion are bound by this DAO XML. */
 public interface RolePermissionDAO extends EgonColaMapper<RolePermissionPO> {
     List<RolePermissionPO> selectByRoleCodeIn(@Param("roleCodes") Collection<String> roleCodes);
 }

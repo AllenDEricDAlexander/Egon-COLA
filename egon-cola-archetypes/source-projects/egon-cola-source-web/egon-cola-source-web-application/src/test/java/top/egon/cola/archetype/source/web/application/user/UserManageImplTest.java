@@ -29,7 +29,7 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserManageImplTest {
-    @Mock private UserDomainService<?> userDomainService;
+    @Mock private UserDomainService userDomainService;
     @Mock private UserCachePort userCache;
     @Mock private CommandIdempotencyPort idempotency;
     @Mock private OrganizationEventPublisher eventPublisher;

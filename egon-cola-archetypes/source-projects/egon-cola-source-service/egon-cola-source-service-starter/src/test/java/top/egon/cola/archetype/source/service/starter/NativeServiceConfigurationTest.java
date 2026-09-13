@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = EvaluationServiceApplication.class, webEnvironment = SpringBootTest.WebEnvironment.NONE)
-class NativeServiceConfigurationTest {
+class NativeServiceConfigurationTest extends top.egon.cola.archetype.source.service.support.PersistenceTestSupport {
     @Autowired
     private ApplicationContext context;
     @Autowired

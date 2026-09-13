@@ -28,7 +28,7 @@ import java.time.Instant;
 @RequiredArgsConstructor
 public class UserManageImpl implements UserManage {
 
-    private final UserDomainService<?> userDomainService;
+    private final UserDomainService userDomainService;
     private final UserApplicationValidator validator;
     private final UserAssembler assembler;
     private final UserCachePort userCache;

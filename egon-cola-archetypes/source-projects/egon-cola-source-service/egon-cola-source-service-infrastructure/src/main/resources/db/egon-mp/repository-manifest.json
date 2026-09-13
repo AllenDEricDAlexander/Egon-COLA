@@ -1,0 +1,10 @@
+{
+  "family": "service",
+  "scripts": [
+    {
+      "version": "20260913_001",
+      "path": "db/egon-mp/V20260913_001__initialize_repository_schema.sql",
+      "sha256": "384296c05cfc5e1f590e60107916c4dd2233796bdb277831586e93c4c61f191b"
+    }
+  ]
+}

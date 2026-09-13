@@ -4,18 +4,16 @@ import top.egon.cola.archetype.source.web.domain.user.aggregates.RolePermissionA
 import top.egon.cola.archetype.source.web.domain.user.entities.Permission;
 import top.egon.cola.archetype.source.web.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.util.List;
 import java.util.Optional;
 
-public interface PermissionDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    void grant(RolePermissionAggregate aggregate, Permission permission);
+public interface PermissionDomainService {
+    void grant( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull RolePermissionAggregate aggregate, @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Permission permission);
 
-    Optional<Permission> findByCode(PermissionCode code);
+    Optional<Permission> findByCode( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull PermissionCode code);
 
-    List<Permission> findByUserId(UserId userId);
+    List<Permission> findByUserId( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull UserId userId);
 
-    Permission save(Permission permission);
+    Permission save( @jakarta.validation.Valid @jakarta.validation.constraints.NotNull Permission permission);
 }

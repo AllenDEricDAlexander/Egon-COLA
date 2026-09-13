@@ -44,7 +44,8 @@ class EvaluationPersistenceArchitectureTest {
         assertFalse(source.contains("UuidV7"));
         assertTrue(source.contains("extends EgonModel<"));
         assertTrue(source.contains("extends EgonColaMapper<"));
-        assertTrue(source.contains("extends EgonColaServiceImpl<"));
+        assertFalse(source.contains("extends EgonColaServiceImpl<"));
+        assertEquals(5, count(files, "Repository.java"));
         assertEquals(5, count(files, "PO.java"));
         assertEquals(5, count(files, "DAO.java"));
         assertEquals(3, count(files, "DomainServiceImpl.java"));

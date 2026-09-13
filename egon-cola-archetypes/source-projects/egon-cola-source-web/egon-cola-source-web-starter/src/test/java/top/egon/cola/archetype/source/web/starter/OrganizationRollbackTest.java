@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest(
         classes = OrganizationApplication.class,
         properties = "spring.profiles.active=test")
-class OrganizationRollbackTest {
+class OrganizationRollbackTest extends top.egon.cola.archetype.source.web.support.PersistenceTestSupport {
 
     @Autowired private GradeManage gradeManage;
     @Autowired private SchoolClassManage schoolClassManage;

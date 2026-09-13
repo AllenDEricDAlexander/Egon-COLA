@@ -10,6 +10,10 @@ spring:
 egon:
   cola:
     component:
+      id:
+        enabled: true
+        machine-id: ${EGON_ID_MACHINE_ID}
+        max-clock-backward: PT0.005S
       rag:
         enabled: true
         dimensions: 1536
@@ -30,10 +34,42 @@ egon:
       transactional-outbox:
         enabled: true
       mybatis-plus:
+        enabled: true
         tenant-id:
-          # 知识域租户走 MDC：拦截器对两张业务表自动注入租户条件（DEC-012、ASM-006），业务代码不写租户参数。
+          mdc-key: tenantId
           ignored-tables: []
-
+        audit:
+          user-id-mdc-key: userId
+        pagination:
+          enabled: true
+          max-page-size: 500
+          overflow: false
+        batch:
+          default-size: 1000
+          max-chunk-size: 1000
+          max-collection-size: 10000
+        block-attack:
+          enabled: true
+        optimistic-locker:
+          enabled: true
+        meta-fill:
+          enabled: true
+        dynamic-table-name:
+          enabled: false
+          tables: {}
+        data-change-recorder:
+          enabled: false
+        illegal-sql:
+          enabled: false
+        ddl:
+          enabled: false
+          lock-timeout: PT30S
+          statement-timeout: PT300S
+          topology-ready-timeout: PT60S
+        local-write-guard:
+          enabled: true
+          allowed-root-statements:
+            "[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]": knowledge_base_id
 agent:
   deep-research:
     runtime:
@@ -77,3 +113,11 @@ spring.ai.openai:
 springdoc:
   api-docs.enabled: false
   swagger-ui.enabled: false
+
+logging:
+  level:
+    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
+    top.egon.cola.component.common.mybatis.change-summary: INFO
+
+mybatis-plus:
+  mapper-locations: classpath*:mybatis/mapper/**/*.xml

@@ -148,3 +148,11 @@ Run the source checks without starting a service:
 ```
 
 The generated family is validated separately by the repository archetype scripts. The source project contains no cache, message broker, RPC, GraphQL endpoint, or UI; its only durable surface is the knowledge schema with its migrations and the outbox queue.
+
+## Knowledge Repository migration
+
+Knowledge queries now use bound Mapper XML. Updates enforce tenant, active row, expected version and expected ingest status. `deleted_at` is a nullable UTC LocalDateTime and `version` starts at zero. The field-specific JSONB handler is retained.
+
+Agent keeps Flyway. `V20260913_001__egon_model_repository.sql` requires both knowledge tables to be empty, drops their identity defaults, replaces old logic-delete indexes and adds the new columns. V001/V002 remain unchanged. Outbox/vector schema ownership is unchanged. Common DDL is disabled here; only the exact knowledge-base-root bulk-delete statement is registered.
+
+Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run PostgreSQL migrations or vector integrations; perform those checks manually on a dedicated database.

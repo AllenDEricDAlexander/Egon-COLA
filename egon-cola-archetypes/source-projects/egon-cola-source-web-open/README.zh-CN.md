@@ -22,7 +22,7 @@ egon-cola-source-web-open-starter
 
 技术矩阵为 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba
 2025.0.0.0、Dubbo 3.3.6、Nacos 3.0.3（Compose 镜像）、gRPC 1.73.0、Protobuf 3.x、
-MyBatis-Plus 3.5.17、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 Egon
+MyBatis-Plus 3.5.16、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 Egon
 组件只有 Common core/ID 与 Dynamic Thread Pool starter。
 
 项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter、UUID 业务主键，
@@ -33,18 +33,11 @@ MyBatis-Plus 3.5.17、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 
 业务 ID 统一为 `Long`，由 Common Snowflake `LongIdGenerator` 生成。每个运行实例必须
 设置唯一 `EGON_ID_MACHINE_ID`；test profile 使用机器号 `0`。
 
-持久化使用 MyBatis-Plus Mapper XML 与 ShardingSphere 5.5.3，支持 `SHARDING` 与
-`SHARDING_READWRITE`。`spring.sql.init.mode=never`，表结构由 DBA 手工执行：
+旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
 
-```text
-student-management-organization-infrastructure/src/main/resources/db/manual/postgresql/
-├── README.md
-├── master-data/001__create_organization_master_data_schema.sql
-└── shard/002__create_organization_sharded_schema.sql
-```
+旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
 
-应用不会创建或迁移表。执行 SQL 前备份每个物理 primary，失败即停止；回退使用备份
-恢复或评审通过的前向 SQL。
+旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
 
 
 以下六个文件是唯一 wire contract，并会复制到生成项目：
@@ -130,3 +123,19 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9080
 并非参数文件所在目录；部署建议使用绝对 `file:` 路径，Windows 路径使用正斜杠。
 额外文件补充 `application.yml` 和选中的 `application-{profile}.yml`，不替换默认配置位置；
 要求文件必须存在时去掉 `optional:`。密码和密钥继续通过现有环境变量/secrets 注入，不写入 `run.*`。
+
+## Repository、CQRS 与 PostgreSQL
+
+本脚手架使用 MyBatis-Plus 3.5.16：Domain Service 保留业务语义，具体 Repository 继承 `EgonColaRepository`，Mapper 继承 `EgonColaMapper`；查询全部使用显式 XML。PO 继承 `EgonModel` 的 id、tenantId、创建/更新用户与时间、`LocalDateTime deletedAt`、`Long version`。活动行是 NULL，软删写 UTC 时间戳并递增版本。AR/QueryChain 不启用，技术元数据强制填充；枚举与字段 handler 遵循 Common 合同。
+
+`APP_DATASOURCE_MODE` 支持 `SHARDING` 与 `SHARDING_READWRITE`，事务类型为 LOCAL。单表使用明确的 `!SINGLE group.schema.table`；广播表只读。默认 legacy tenant 路由保持原地址。可选两级模板见 `src/test/resources/sharding/two-level-readwrite.yml`（多模块项目在 infrastructure 中）：先按 tenant_id 散列到 tenant slot，再按业务根 ID 散列到 bucket。订单与明细分别使用 id/order_id 共享同一根语义；同租户固定在一个物理组。
+
+算法固定为 mix64-v1，T/B 是不超过 1024 的二次幂，乘积不超过 4096。库间均衡还依赖均衡 slot map 和租户负载；没有自动重分布。Query 缺次级键/范围查询受 fanout 上限约束，Command 必须有精确键。修改分布配置需配套新建表/迁移设计，不能直接套用测试模板到已有业务库。
+
+初始化由 `ShardingDataSourceBootstrapper` 调用 Common 受管 DDL runner，仅对物理 PRIMARY 执行 `db/egon-mp/V20260913_001__initialize_repository_schema.sql` 与 `repository-manifest.json`。空库首次初始化；受管库验证 checksum/前缀/路由指纹；非空未受管库报 REBUILD_REQUIRED。旧 B/V/manual SQL 原样保留作档案，不再作为本脚手架运行入口。
+
+读写分离使用 PostgreSQL 自身复制，普通读走 ROUND_ROBIN 副本，事务读/锁定读/强制主库读走 PRIMARY；不自动创建副本或故障选主。单表、广播表及业务物理表均携带 tenant_id。跨物理组写入会拒绝并标记回滚。
+
+每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
+
+默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。

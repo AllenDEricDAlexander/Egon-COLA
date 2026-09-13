@@ -28,8 +28,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SchoolClassManageImplTest {
-    @Mock SchoolClassDomainService<?> schoolClassDomainService;
-    @Mock UserDomainService<?> userDomainService;
+    @Mock SchoolClassDomainService schoolClassDomainService;
+    @Mock UserDomainService userDomainService;
     @Mock SchoolClassCachePort schoolClassCache;
     @Mock CommandIdempotencyPort idempotency;
     @Mock OrganizationEventPublisher eventPublisher;

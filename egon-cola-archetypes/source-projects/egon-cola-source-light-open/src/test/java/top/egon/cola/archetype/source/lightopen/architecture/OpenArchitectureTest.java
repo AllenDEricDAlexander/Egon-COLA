@@ -35,7 +35,8 @@ class OpenArchitectureTest {
         assertFalse(source.contains("repo.mapper"));
         assertTrue(source.contains("extends EgonModel<"));
         assertTrue(source.contains("extends EgonColaMapper<"));
-        assertTrue(source.contains("extends EgonColaServiceImpl<"));
+        assertFalse(source.contains("extends EgonColaServiceImpl<"));
+        assertEquals(8, count(javaFiles, "Repository.java"));
 
         assertEquals(8, count(javaFiles, "PO.java"));
         assertEquals(8, count(javaFiles, "DAO.java"));
@@ -49,7 +50,8 @@ class OpenArchitectureTest {
                 "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml"));
         assertTrue(sharding.contains("shardingColumn: tenant_id"));
         assertTrue(readwrite.contains("shardingColumn: tenant_id"));
-        assertTrue(sharding.contains("light_users:"));
+        assertTrue(sharding.contains("!SINGLE"));
+        assertTrue(sharding.contains("defaultType: LOCAL"));
         assertTrue(sharding.contains("light_school_classes:"));
         assertFalse(sharding.contains("SnowflakeLongShardingAlgorithm"));
         assertFalse(readwrite.contains("SnowflakeLongShardingAlgorithm"));

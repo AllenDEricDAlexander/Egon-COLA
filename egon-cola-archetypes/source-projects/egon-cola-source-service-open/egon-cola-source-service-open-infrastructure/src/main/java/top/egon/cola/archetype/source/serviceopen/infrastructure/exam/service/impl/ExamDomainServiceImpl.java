@@ -11,53 +11,38 @@ import top.egon.cola.archetype.source.serviceopen.domain.exam.validators.ExamDom
 import top.egon.cola.archetype.source.serviceopen.domain.exam.vos.ExamId;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ExamConverter;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.converter.ExamPaperConverter;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.dao.ExamDAO;
-import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.dao.ExamPaperDAO;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.ExamRepository;
+import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.ExamPaperRepository;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ExamPO;
 import top.egon.cola.archetype.source.serviceopen.infrastructure.exam.repo.po.ExamPaperPO;
-import lombok.AccessLevel;
-import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
-import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
-import top.egon.cola.component.common.mybatis.extension.EgonColaServiceImpl;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 
 import java.util.List;
 import java.util.Optional;
 
 @Slf4j
+@Validated
 @Service("examDomainService")
 @RequiredArgsConstructor
 public class ExamDomainServiceImpl
-        extends EgonColaServiceImpl<ExamDAO, ExamPO>
-        implements ExamDomainService<ExamPO> {
+        implements ExamDomainService {
 
-    @Qualifier("examDAO")
-    private final ExamDAO examDAO;
-    @Qualifier("examPaperDAO")
-    private final ExamPaperDAO examPaperDAO;
+    @Qualifier("examRepository")
+    private final ExamRepository examRepository;
+    @Qualifier("examPaperRepository")
+    private final ExamPaperRepository examPaperRepository;
     @Qualifier("examConverterImpl")
     private final ExamConverter examConverter;
     @Qualifier("examPaperConverterImpl")
     private final ExamPaperConverter examPaperConverter;
     @Qualifier("snowflakeIdGenerator")
     private final LongIdGenerator idGenerator;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
-    private final EgonColaMybatisPlusProperties properties;
 
     private final ExamDomainValidator validator = new ExamDomainValidator();
 
@@ -90,38 +75,38 @@ public class ExamDomainServiceImpl
     }
 
     @Override
+    @Transactional
     public Exam save(Exam exam) {
         ExamPO po = examConverter.toTarget(exam);
-        po.setId(exam.getId().value());
-        super.save(po);
+        ExamPO current = po.getId() == null ? null : examRepository.getById(po.getId());
+        if (current != null) { examConverter.updateMetadata(po, current); }
+        boolean written = current == null ? examRepository.save(po) : examRepository.updateById(po);
+        if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
+
         return examConverter.toSource(po);
     }
 
     @Override
     public Optional<Exam> findById(ExamId examId) {
-        return Optional.ofNullable(super.getById(examId.value())).map(examConverter::toSource);
+        return Optional.ofNullable(examRepository.getById(examId.value())).map(examConverter::toSource);
     }
 
     @Override
+    @Transactional
     public ExamPaper savePaper(ExamPaper paper) {
         ExamPaperPO po = examPaperConverter.toTarget(paper);
-        po.setId(paper.getId());
-        insertCompanion(examPaperDAO, po);
+        ExamPaperPO current = po.getId() == null ? null : examPaperRepository.getById(po.getId());
+        if (current != null) { examPaperConverter.updateMetadata(po, current); }
+        boolean written = current == null ? examPaperRepository.save(po) : examPaperRepository.updateById(po);
+        if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
+
         return examPaperConverter.toSource(po);
     }
 
     @Override
     public Optional<ExamPaper> findPaperByExamId(ExamId examId) {
-        return Optional.ofNullable(examPaperDAO.selectByExamId(examId.value()))
+        return Optional.ofNullable(examPaperRepository.selectByExamId(examId.value()))
                 .map(examPaperConverter::toSource);
     }
 
-    private <M extends top.egon.cola.component.common.mybatis.model.EgonModel<M>> void insertCompanion(
-            EgonColaMapper<M> dao, M model) {
-        if (tenantIdProvider.currentTenantId() == null) {
-            throw new IllegalStateException("TENANT_CONTEXT_MISSING");
-        }
-        modelValidationUtils.validateBusiness(model, EgonColaModelValidationGroups.Operation.INSERT);
-        dao.insert(model);
-    }
 }

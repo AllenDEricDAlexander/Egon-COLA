@@ -16,7 +16,6 @@ import top.egon.cola.archetype.source.lightopen.domain.user.service.UserDomainSe
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.ExternalUser;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserId;
 import top.egon.cola.archetype.source.lightopen.domain.user.vos.UserSnapshot;
-import top.egon.cola.archetype.source.lightopen.infrastructure.user.repo.po.UserPO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -35,7 +34,7 @@ import static org.mockito.Mockito.when;
 class UserManageTest {
     private static final Long USER_ID = 1001L;
 
-    @Mock UserDomainService<UserPO> userDomainService;
+    @Mock UserDomainService userDomainService;
     @Mock UserQueryGateway userQueryGateway;
     @Mock UserCachePort userCachePort;
     @Mock UserEventPublisher userEventPublisher;

@@ -6,21 +6,20 @@ import top.egon.cola.archetype.source.light.domain.teaching.entities.SchoolClass
 import top.egon.cola.archetype.source.light.domain.teaching.vos.CourseSchedule;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.light.domain.teaching.vos.Semester;
-import top.egon.cola.component.common.mybatis.extension.EgonColaIService;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.util.Optional;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /** Persistence-owning school-class domain service contract. */
-public interface SchoolClassDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    SchoolClass createSchoolClass(String name, Semester semester);
+public interface SchoolClassDomainService {
+    SchoolClass createSchoolClass(String name, @Valid @NotNull Semester semester);
 
-    SchoolClass save(SchoolClass schoolClass);
+    SchoolClass save( @Valid @NotNull SchoolClass schoolClass);
 
-    Optional<SchoolClassAggregate> findAggregateById(SchoolClassId schoolClassId);
+    Optional<SchoolClassAggregate> findAggregateById( @Valid @NotNull SchoolClassId schoolClassId);
 
-    void saveAggregate(SchoolClassAggregate aggregate);
+    void saveAggregate( @Valid @NotNull SchoolClassAggregate aggregate);
 
-    SchoolClassAggregate schedule(
-            SchoolClassAggregate schoolClass, Course course, CourseSchedule schedule);
+    SchoolClassAggregate schedule( @Valid @NotNull SchoolClassAggregate schoolClass, @Valid @NotNull Course course, @Valid @NotNull CourseSchedule schedule);
 }

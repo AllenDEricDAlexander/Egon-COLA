@@ -14,7 +14,7 @@
     <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
     <packaging>jar</packaging>
     <name>egon-cola-component-common-mybatis-plus-spring-boot-starter</name>
-    <description>MyBatis-Plus ActiveRecord, mapper, service, tenant isolation, and repository validation for Egon COLA.</description>
+    <description>MyBatis-Plus repositories, CQRS SQL, tenant isolation, PostgreSQL DDL, and guarded LOCAL transactions for Egon COLA.</description>
 
     <dependencies>
         <dependency>
@@ -28,6 +28,11 @@
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-id-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>
@@ -66,6 +71,11 @@
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
             <scope>test</scope>
         </dependency>
     </dependencies>

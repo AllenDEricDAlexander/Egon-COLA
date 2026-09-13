@@ -1,6 +1,35 @@
 package top.egon.cola.component.common.mybatis.autoconfigure;
 
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties;
+import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.DynamicTableNameInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
+import org.springframework.context.annotation.Profile;
+import org.springframework.core.env.Environment;
+import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
+import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
+import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
+import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor;
+import java.util.Map;
+import java.util.List;
+import java.util.HexFormat;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusInnerInterceptorAutoConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
@@ -33,7 +62,8 @@ import java.time.Clock;
 /**
  * Opt-in-by-property (enabled by default) common MyBatis-Plus runtime chain.
  */
-@AutoConfiguration(before = {
+@Slf4j
+@AutoConfiguration(after = IdGeneratorAutoConfiguration.class, before = {
         MybatisPlusAutoConfiguration.class,
         MybatisPlusInnerInterceptorAutoConfiguration.class
 })
@@ -42,27 +72,27 @@ import java.time.Clock;
         name = "enabled", havingValue = "true", matchIfMissing = true)
 public class EgonColaMybatisPlusAutoConfiguration {
 
-    @Bean
+    @Bean("egonColaMybatisPlusClock")
     @ConditionalOnMissingBean(Clock.class)
     public Clock egonColaMybatisPlusClock() {
         return Clock.systemUTC();
     }
 
-    @Bean
+    @Bean("egonColaMdcTenantIdProvider")
     @ConditionalOnMissingBean(EgonColaTenantIdProvider.class)
     public EgonColaTenantIdProvider egonColaMdcTenantIdProvider(
             EgonColaMybatisPlusProperties properties) {
         return new EgonColaMdcTenantIdProvider(properties);
     }
 
-    @Bean
+    @Bean("egonColaMdcUserIdProvider")
     @ConditionalOnMissingBean(EgonColaUserIdProvider.class)
     public EgonColaUserIdProvider egonColaMdcUserIdProvider(
             EgonColaMybatisPlusProperties properties) {
         return new EgonColaMdcUserIdProvider(properties);
     }
 
-    @Bean
+    @Bean("egonColaValidationUtils")
     public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validatorProvider) {
         Validator validator = validatorProvider.getIfAvailable();
         if (validator == null) {
@@ -71,7 +101,7 @@ public class EgonColaMybatisPlusAutoConfiguration {
         return new ValidationUtils(validator);
     }
 
-    @Bean
+    @Bean("egonColaModelValidationUtils")
     // 宿主可能同时引入其他也提供 ValidationUtils 的组件（如 agent-flow），按类型注入会歧义，故具名解析。
     public EgonColaModelValidationUtils egonColaModelValidationUtils(
             @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils,
@@ -79,13 +109,13 @@ public class EgonColaMybatisPlusAutoConfiguration {
         return new EgonColaModelValidationUtils(validationUtils, tenantIdProvider);
     }
 
-    @Bean
+    @Bean("egonColaModelValidationInterceptor")
     public EgonColaModelValidationInterceptor egonColaModelValidationInterceptor(
             EgonColaModelValidationUtils modelValidationUtils) {
         return new EgonColaModelValidationInterceptor(modelValidationUtils);
     }
 
-    @Bean
+    @Bean("egonColaMetaObjectHandler")
     @ConditionalOnMissingBean(com.baomidou.mybatisplus.core.handlers.MetaObjectHandler.class)
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".meta-fill",
             name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -99,15 +129,16 @@ public class EgonColaMybatisPlusAutoConfiguration {
                 clockProvider.getIfUnique(Clock::systemUTC));
     }
 
-    @Bean
+    @Bean("egonColaTenantIdGuardInnerInterceptor")
     @Order(100)
     public EgonColaTenantIdGuardInnerInterceptor egonColaTenantIdGuardInnerInterceptor(
             EgonColaTenantIdProvider tenantIdProvider,
+            EgonColaUserIdProvider userIdProvider,
             EgonColaMybatisPlusProperties properties) {
-        return new EgonColaTenantIdGuardInnerInterceptor(tenantIdProvider, properties);
+        return new EgonColaTenantIdGuardInnerInterceptor(tenantIdProvider, userIdProvider, properties);
     }
 
-    @Bean
+    @Bean("egonColaBlockAttackInnerInterceptor")
     @Order(200)
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".block-attack",
             name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -115,7 +146,7 @@ public class EgonColaMybatisPlusAutoConfiguration {
         return new BlockAttackInnerInterceptor();
     }
 
-    @Bean
+    @Bean("egonColaTenantLineInnerInterceptor")
     @Order(300)
     public TenantLineInnerInterceptor egonColaTenantLineInnerInterceptor(
             EgonColaTenantIdProvider tenantIdProvider,
@@ -124,7 +155,7 @@ public class EgonColaMybatisPlusAutoConfiguration {
         return new TenantLineInnerInterceptor(handler);
     }
 
-    @Bean
+    @Bean("egonColaOptimisticLockerInnerInterceptor")
     @Order(400)
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".optimistic-locker",
             name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -132,25 +163,127 @@ public class EgonColaMybatisPlusAutoConfiguration {
         return new OptimisticLockerInnerInterceptor();
     }
 
-    @Bean
+    @Bean("egonColaPaginationInnerInterceptor")
     @Order(500)
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".pagination",
             name = "enabled", havingValue = "true", matchIfMissing = true)
     public PaginationInnerInterceptor egonColaPaginationInnerInterceptor(
             EgonColaMybatisPlusProperties properties) {
-        PaginationInnerInterceptor interceptor = new PaginationInnerInterceptor();
+        PaginationInnerInterceptor interceptor = new PaginationInnerInterceptor(DbType.POSTGRE_SQL);
         interceptor.setOverflow(properties.getPagination().isOverflow());
         interceptor.setMaxLimit((long) properties.getPagination().getMaxPageSize());
         return interceptor;
     }
 
-    @Bean
+    @Bean("egonColaIdentifierGenerator")
+    @ConditionalOnMissingBean(IdentifierGenerator.class)
+    public EgonColaIdentifierGenerator egonColaIdentifierGenerator(ObjectProvider<LongIdGenerator> generators,
+                                                                   ConfigurableListableBeanFactory beans) {
+        List<LongIdGenerator> available = generators.orderedStream().toList();
+        if (available.isEmpty() || !beans.containsBean("snowflakeIdGenerator")) {
+            throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_MISSING");
+        }
+        if (available.size() != 1) { throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_AMBIGUOUS"); }
+        return new EgonColaIdentifierGenerator(beans.getBean("snowflakeIdGenerator", LongIdGenerator.class));
+    }
+
+    @Bean("egonColaTwoLevelRouteStrategy")
+    public EgonColaTwoLevelRouteStrategy egonColaTwoLevelRouteStrategy(@Qualifier("egonColaValidationUtils") ValidationUtils validation) {
+        return new EgonColaTwoLevelRouteStrategy(validation);
+    }
+
+    @Bean("egonColaRoutingProfiles")
+    @ConditionalOnMissingBean(name = "egonColaRoutingProfiles")
+    public Map<String, EgonColaRoutingProfileBO> egonColaRoutingProfiles() {
+        // Sharding hosts expose the immutable map produced from their one typed SS YAML policy.
+        return Map.of();
+    }
+
+    @Bean("egonColaWriteTargetResolver")
+    @ConditionalOnMissingBean(EgonColaWriteTargetResolver.class)
+    public EgonColaWriteTargetResolver egonColaWriteTargetResolver(@Qualifier("egonColaValidationUtils") ValidationUtils validation,
+                                                                  ObjectProvider<MybatisPlusProperties> mapperProperties,
+                                                                  EgonColaMybatisPlusProperties properties) {
+        MybatisPlusProperties mapper = mapperProperties.getIfAvailable();
+        String configuredSchema = mapper == null ? null : mapper.getGlobalConfig().getDbConfig().getSchema();
+        String schema = configuredSchema == null || configuredSchema.isBlank() ? "public" : configuredSchema;
+        return query -> {
+            validation.validate(query);
+            String table = properties.getDynamicTableName().isEnabled()
+                    ? properties.getDynamicTableName().getTables().getOrDefault(query.logicalTable(), query.logicalTable()) : query.logicalTable();
+            try {
+                String fingerprint = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
+                        .digest(("plain-v1|" + schema + '|' + table).getBytes(StandardCharsets.UTF_8)));
+                return new EgonColaRouteResult(List.of(new EgonColaPhysicalTargetBO("plain", schema, table)), fingerprint);
+            } catch (NoSuchAlgorithmException failure) {
+                throw new IllegalStateException("JDK must provide SHA-256", failure);
+            }
+        };
+    }
+
+    @Bean("egonColaPostgreDdlRunner")
+    public EgonColaPostgreDdlRunner egonColaPostgreDdlRunner(@Qualifier("egonColaValidationUtils") ValidationUtils validation,
+                                                            ObjectProvider<Clock> clocks, EgonColaMybatisPlusProperties properties) {
+        return new EgonColaPostgreDdlRunner(validation, new org.springframework.core.io.support.PathMatchingResourcePatternResolver(),
+                clocks.getIfUnique(Clock::systemUTC), properties.getDdl().getLockTimeout(), properties.getDdl().getStatementTimeout());
+    }
+
+    @Bean("egonColaOriginalSqlGuardInterceptor")
+    @Order(Integer.MAX_VALUE)
+    public EgonColaOriginalSqlGuardInterceptor egonColaOriginalSqlGuardInterceptor(EgonColaMybatisPlusProperties properties) {
+        return new EgonColaOriginalSqlGuardInterceptor(properties);
+    }
+
+    @Bean("egonColaLocalWriteGuardInnerInterceptor")
+    @Order(410)
+    public EgonColaLocalWriteGuardInnerInterceptor egonColaLocalWriteGuardInnerInterceptor(
+            EgonColaWriteTargetResolver resolver, EgonColaTenantIdGuardInnerInterceptor sqlGuard,
+            EgonColaTwoLevelRouteStrategy strategy,
+            @Qualifier("egonColaRoutingProfiles") Map<String, EgonColaRoutingProfileBO> profiles) {
+        return new EgonColaLocalWriteGuardInnerInterceptor(resolver, sqlGuard, strategy, profiles);
+    }
+
+    @Bean("egonColaDynamicTableNameInnerInterceptor")
+    @Order(250)
+    @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".dynamic-table-name", name = "enabled", havingValue = "true")
+    public DynamicTableNameInnerInterceptor egonColaDynamicTableNameInnerInterceptor(EgonColaMybatisPlusProperties properties) {
+        Map<String, String> tables = Map.copyOf(properties.getDynamicTableName().getTables());
+        return new DynamicTableNameInnerInterceptor((sql, table) -> tables.getOrDefault(table, table));
+    }
+
+    @Bean("egonColaDataChangeRecorderInnerInterceptor")
+    @Order(420)
+    @Profile("dev & !prod")
+    @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".data-change-recorder", name = "enabled", havingValue = "true")
+    public EgonColaDataChangeRecorderInnerInterceptor egonColaDataChangeRecorderInnerInterceptor() {
+        return new EgonColaDataChangeRecorderInnerInterceptor();
+    }
+
+    @Bean("egonColaIllegalSqlInnerInterceptor")
+    @Order(450)
+    @Profile("dev & !prod")
+    @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".illegal-sql", name = "enabled", havingValue = "true")
+    @SuppressWarnings("deprecation")
+    public IllegalSQLInnerInterceptor egonColaIllegalSqlInnerInterceptor() { return new IllegalSQLInnerInterceptor(); }
+
+    @Bean("mybatisPlusInterceptor")
+    @Order(0)
+    @ConditionalOnMissingBean(MybatisPlusInterceptor.class)
+    public MybatisPlusInterceptor mybatisPlusInterceptor(ObjectProvider<InnerInterceptor> interceptors) {
+        MybatisPlusInterceptor outer = new MybatisPlusInterceptor();
+        outer.setInterceptors(interceptors.orderedStream().toList());
+        return outer;
+    }
+
+    @Bean("egonColaMybatisPlusContractValidator")
     public EgonColaMybatisPlusContractValidator egonColaMybatisPlusContractValidator(
-            ObjectProvider<com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor> outerProvider,
+            ObjectProvider<MybatisPlusInterceptor> outerProvider,
             ObjectProvider<com.baomidou.mybatisplus.core.handlers.MetaObjectHandler> handlerProvider,
             ObjectProvider<EgonColaModelValidationInterceptor> validationProvider,
-            EgonColaMybatisPlusProperties properties) {
-        return new EgonColaMybatisPlusContractValidator(
-                outerProvider, handlerProvider, validationProvider, properties);
+            EgonColaMybatisPlusProperties properties, ConfigurableListableBeanFactory beanFactory, Environment environment,
+            @Qualifier("egonColaRoutingProfiles") Map<String, EgonColaRoutingProfileBO> profiles) {
+        // Providers intentionally aggregate every factory/handler; do not narrow them to @Primary.
+        return new EgonColaMybatisPlusContractValidator(outerProvider, handlerProvider, validationProvider, properties,
+                beanFactory, environment, profiles);
     }
 }

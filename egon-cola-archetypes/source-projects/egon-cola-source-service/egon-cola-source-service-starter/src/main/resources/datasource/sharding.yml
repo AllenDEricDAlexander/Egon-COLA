@@ -26,14 +26,17 @@ app:
         jdbc-url: ${EVALUATION_SHARDING_SHARD_1_URL}
         username: ${EVALUATION_SHARDING_USERNAME}
         password: "${EVALUATION_SHARDING_PASSWORD:}"
-    flyway:
+    ddl:
       targets:
         - data-source-name: master_data
-          locations:
-            - classpath:db/migration/sharding/master-data
+          schema: ${EVALUATION_SHARDING_SCHEMA:public}
+          role: MASTER_DATA
+          manifest: classpath:db/egon-mp/repository-manifest.json
         - data-source-name: shard_0
-          locations:
-            - classpath:db/migration/sharding/shard
+          schema: ${EVALUATION_SHARDING_SCHEMA:public}
+          role: SHARD
+          manifest: classpath:db/egon-mp/repository-manifest.json
         - data-source-name: shard_1
-          locations:
-            - classpath:db/migration/sharding/shard
+          schema: ${EVALUATION_SHARDING_SCHEMA:public}
+          role: SHARD
+          manifest: classpath:db/egon-mp/repository-manifest.json

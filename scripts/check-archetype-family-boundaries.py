@@ -2,6 +2,8 @@
 """Check Open/Agent declarations separately from optional resolved runtime trees."""
 
 import argparse
+import hashlib
+import json
 from pathlib import Path
 import re
 import sys
@@ -76,6 +78,40 @@ def runtime_coordinates(text):
         r"(?:^|\s)([\w.-]+):([\w.-]+):(jar|pom|war):[^\s]+", text, re.M)}
 
 
+def persistence_violations(root, family):
+    """Check the source-owned MP boundary without connecting to a database."""
+    failures = []
+    java = [path for path in root.rglob("*.java") if "/src/main/java/" in path.as_posix() and "/target/" not in path.as_posix()]
+    for path in java:
+        text = path.read_text()
+        if any(token in text for token in ("EgonColaIService", "EgonColaServiceImpl", "QueryChainWrapper", ".lambdaQuery(", ".query().")):
+            failures.append(f"{family}: obsolete persistence API in {path.name}")
+        if "/domain/" in path.as_posix() and "component.common.mybatis" in text:
+            failures.append(f"{family}: domain depends on MP in {path.name}")
+    if family == "agent":
+        migrations = [path.name for path in root.rglob("V20260913_001__egon_model_repository.sql") if "/target/" not in path.as_posix()]
+        if len(migrations) != 1:
+            failures.append("agent: expected exactly one forward model correction")
+        return failures
+    repositories = [path for path in java if path.name.endswith("Repository.java") and "extends EgonColaRepository<" in path.read_text()]
+    expected = 5 if family.startswith("service") else 8
+    if len(repositories) != expected:
+        failures.append(f"{family}: expected {expected} concrete repositories, found {len(repositories)}")
+    manifests = [path for path in root.rglob("repository-manifest.json") if "/target/" not in path.as_posix()]
+    if len(manifests) != 1:
+        failures.append(f"{family}: expected one managed DDL manifest")
+    else:
+        manifest = json.loads(manifests[0].read_text())
+        scripts = manifest.get("scripts", [])
+        if manifest.get("family") != family or len(scripts) != 1:
+            failures.append(f"{family}: incorrect initialization manifest")
+        for script in scripts:
+            resource = manifests[0].parents[2] / script["path"]
+            if not resource.is_file() or hashlib.sha256(resource.read_bytes()).hexdigest() != script["sha256"]:
+                failures.append(f"{family}: initialization checksum mismatch")
+    return failures
+
+
 def self_test():
     light = COMMON | EXTERNAL | {CORE, ("org.springdoc", "springdoc-openapi-starter-webmvc-ui")}
     assert not violations("light-open", light)
@@ -119,6 +155,9 @@ def main():
             text = (args.runtime_trees / (family + ".txt")).read_text()
             failures.extend(violations(family, runtime_coordinates(text), runtime=True))
         print(f"CHECK {family}: {len(coords)} declared runtime coordinates; managed BOMs excluded")
+    for family in ("light", "light-open", "service", "service-open", "web", "web-open", "agent"):
+        source = args.root / "egon-cola-archetypes/source-projects" / ("egon-cola-source-" + family)
+        failures.extend(persistence_violations(source, family))
     for failure in failures:
         print("ERROR: " + failure, file=sys.stderr)
     if failures:

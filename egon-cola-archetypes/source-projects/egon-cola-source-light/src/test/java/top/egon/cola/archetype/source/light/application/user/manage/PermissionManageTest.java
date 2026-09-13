@@ -17,8 +17,6 @@ import top.egon.cola.archetype.source.light.domain.user.service.PermissionDomain
 import top.egon.cola.archetype.source.light.domain.user.service.RoleDomainService;
 import top.egon.cola.archetype.source.light.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.light.domain.user.vos.RoleCode;
-import top.egon.cola.archetype.source.light.infrastructure.user.repo.po.PermissionPO;
-import top.egon.cola.archetype.source.light.infrastructure.user.repo.po.RolePO;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -36,8 +34,8 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PermissionManageTest {
-    @Mock PermissionDomainService<PermissionPO> permissionDomainService;
-    @Mock RoleDomainService<RolePO> roleDomainService;
+    @Mock PermissionDomainService permissionDomainService;
+    @Mock RoleDomainService roleDomainService;
     @Mock UserEventPublisher userEventPublisher;
     @Mock UserApplicationValidator applicationValidator;
     @Mock UserApplicationConvertor convertor;

@@ -16,7 +16,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.NONE,
         properties = {"dubbo.protocol.port=-1", "dubbo.application.qos-enable=false"})
-class EvaluationServiceApplicationTest {
+class EvaluationServiceApplicationTest extends top.egon.cola.archetype.source.serviceopen.support.PersistenceTestSupport {
 
     @Autowired
     @Qualifier("applicationTaskExecutor")

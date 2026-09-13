@@ -1,219 +1,55 @@
-# Egon COLA Common MyBatis-Plus Spring Boot Starter
+# MyBatis-Plus Repository Starter
 
-This opt-in Starter is built on the official MyBatis-Plus Boot 3 starter and JSqlParser artifacts, fixed at version 3.5.16. It provides the common repository contract for Egon COLA:
+MyBatis-Plus 3.5.16 integration for PostgreSQL: common models, guarded Repository commands, explicit query SQL, MybatisBatch, tenancy, optimistic locking and managed DDL. Keep `Controller → Service → Repository → Mapper`; COLA Application/Domain services retain business ownership and repositories live in infrastructure.
 
-- EgonModel<M> ActiveRecord entities with seven common persistence fields;
-- a zero-declaration EgonColaMapper<T> BaseMapper boundary;
-- EgonColaIService<T> and EgonColaServiceImpl<M,T> with all 57 official service methods explicitly redeclared and enhanced;
-- one ordered TenantID guard, BlockAttack, TenantLine, optimistic-lock, and pagination chain;
-- authoritative audit filling and one MyBatis parameter/result Model-validation interceptor;
-- MDC defaults replaceable by future SecurityContext-backed Providers.
+## Model contract
 
-The Starter owns no business table, Flyway migration, sharding topology, HTTP endpoint, or business Service. Consumer applications own those concerns.
+Extend `EgonModel<PO>` and declare `@TableName`. Do not shadow technical fields.
 
-## Install
+| Java field | SQL column | Contract |
+| --- | --- | --- |
+| id | id | Long/BIGINT; inherited mandatory `@TableId(type=ASSIGN_ID)` |
+| tenantId | tenant_id | Non-null Long/BIGINT |
+| createUserId / updateUserId | create_user_id / update_user_id | Current user context |
+| createTime / updateTime | create_time / update_time | Instant, UTC microseconds |
+| deletedAt | deleted_at | LocalDateTime/timestamp(6); NULL means active |
+| version | version | Long/BIGINT; insert 0, increment on update/delete |
 
-Import the Components BOM and declare the concrete Starter:
+`@TableLogic` uses `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`. `EgonColaIdentifierGenerator` delegates to the existing named `snowflakeIdGenerator`; configure a unique `EGON_ID_MACHINE_ID` per instance. Counters belong only in isolated tests. `@KeySequence` conflicts with this ASSIGN_ID contract and is rejected.
 
-    <dependencyManagement>
-        <dependencies>
-            <dependency>
-                <groupId>top.egon</groupId>
-                <artifactId>egon-cola-components-bom</artifactId>
-                <version>the-bom-version</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
-        </dependencies>
-    </dependencyManagement>
+Common accepts any non-null Long tenant; ShardingSphere hosts require positive Long sharding keys. The mandatory MetaObjectHandler owns technical fields. Extension hooks may fill business fields only.
 
-    <dependencies>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
-        </dependency>
-    </dependencies>
+## Repository and CQRS
 
-The application provides a DataSource, a Jakarta Validator, and Mapper scanning. AutoConfiguration.imports performs discovery; component scanning is not required.
+`EgonColaIRepository<T>` extends official `IRepository`; `EgonColaRepository<M,T>` supplies guarded operations. Business service ports expose domain types without PO generics or technical CRUD inheritance. Concrete named repositories use qualified Lombok constructor injection and provide mapper/modelValidationUtils/tenantIdProvider/properties getters.
 
-## Model, Mapper, and technical Service
+- Commands use save, versioned updateById/removeById and guarded batches; callers check affected rows.
+- Queries use named Mapper XML. Every mapper supplies `selectActiveById`, `selectActiveByIds`, `deleteVersionedById`.
+- ActiveRecord is unavailable. QueryChain/lambdaQuery and generic Query Wrapper entry points fail fast; do not concatenate `.last()` SQL.
+- For custom UPDATE, MP increments the entity version before execution: bind `#{MP_OPTLOCK_VERSION_ORIGINAL}` in WHERE, together with tenant, active and expected business state.
+- Preserve id, tenant, creation metadata and version from the caller or a row loaded in the same transaction. Zero affected rows are not successful updates.
+- MybatisBatch requires the same DataSource and an actual Spring transaction. Empty input emits no SQL; invalid/duplicate IDs fail early. Default chunk 1000, collection limit 10000; failures mark rollback-only.
 
-Every persistence entity extends EgonModel:
+No platform SQL Injector was added. Use mapper extensions for concrete non-generic SQL needs, and field handlers for real JSONB/array differences. Agent keeps its field-specific JSONB handler; the global String handler stays standard. Persisted enums require one `@EnumValue` and matching public `@JsonValue`/Jackson semantics, checked at startup.
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    @Accessors(chain = true)
-    @TableName("order_record")
-    public class OrderPO extends EgonModel<OrderPO> {
-        @NotBlank
-        @TableField("title")
-        private String title;
-        // business fields only
-    }
+## SQL guards and transactions
 
-`@Builder` is intentionally limited to fields declared by `OrderPO`. The inherited
-`id`, tenant, audit, and logical-delete fields are not builder inputs: MyBatis
-JavaBean mapping reads them, while ASSIGN_ID, the trusted tenant/user providers,
-and MetaFill own their persisted values. `EgonModel` and concrete POs must not use
-`@SuperBuilder`, because MyBatis-Plus `Model<M>` does not provide a Lombok
-`ModelBuilder` parent contract. POs are not Spring injection beans and must not use
-`@RequiredArgsConstructor`.
+The original SQL guard proves positive ID bounds before execution. Final SQL checks enforce tenancy, active rows, versions and audit fields after TenantLine. Block-attack, optimistic locking, PostgreSQL pagination and LOCAL write-target checks share one interceptor chain. Dynamic table names are disabled by default and require explicit mappings.
 
-EgonModel defines exactly these fields:
+LOCAL checks span SqlSessionFactory instances. Multi-table writes within one physical group are allowed; cross-group writes fail and mark rollback-only. XA/BASE are not enabled. Root-key bulk writes require the exact statement ID and column in `local-write-guard.allowed-root-statements`.
 
-| Java field | Physical column | Type | Responsibility |
-|---|---|---|---|
-| id | id | Long | MP ASSIGN_ID; never generated by the audit handler |
-| tenantId | tenant_id | Long | current tenant/sharding key |
-| createUserId | create_user_id | String | insert audit identity |
-| createTime | create_time | Instant | insert audit time |
-| updateUserId | update_user_id | String | insert/update audit identity |
-| updateTime | update_time | Instant | insert/update audit time |
-| isDeleted | is_deleted | Boolean | MP TableLogic, active value 0 and logical-delete value 1 |
+Page limit is 500. Data-change recording and IllegalSQL are permitted only in dev. Keep the raw recorder logger `'OFF'`; use the separate safe `top.egon.cola.component.common.mybatis.change-summary` topic. Mixed dev/prod activation is rejected.
 
-The six non-ID fields are persisted non-null through the Persisted validation group. Business subclasses add simple Jakarta constraints such as NotBlank; cross-record, stateful, permission, or remote rules stay in the business Service.
+## Managed DDL
 
-Consumer code uses the official Mapper and technical Service shape:
+`EgonColaPostgreDdlRunner` receives explicit physical PRIMARY/schema/role targets and SHA-256 manifests. Schema advisory locks, managed-prefix checks, script SQL and ddl_history run on one transaction connection. Unknown commit outcomes are checked through a new connection before any retry. Non-empty unmanaged schemas, checksum drift and route fingerprint changes require operator action; no automatic DROP, repair or history adoption exists.
 
-    @Mapper
-    public interface OrderDAO extends EgonColaMapper<OrderPO> {
-    }
+Do not register DDL target records as default MP IDdl beans or combine this runner with DdlApplicationRunner. Common has no ShardingSphere dependency. Hosts own pool creation, topology validation, DDL, primary/replica readiness and logical datasource construction.
 
-    public interface OrderDomainService<P extends EgonModel<P>> extends EgonColaIService<P> {
-    }
+Six business archetypes use this runner and retain old B/V/manual SQL unchanged as archives. Agent keeps Flyway and adds one empty-knowledge-table correction; Outbox/vector ownership is unchanged.
 
-    @Slf4j
-    @Service("orderDomainService")
-    @RequiredArgsConstructor
-    public class OrderDomainServiceImpl
-            extends EgonColaServiceImpl<OrderDAO, OrderPO>
-            implements OrderDomainService<OrderPO> {
-        @Qualifier("egonColaModelValidationUtils")
-        @Getter(AccessLevel.PROTECTED)
-        private final EgonColaModelValidationUtils modelValidationUtils;
-        @Qualifier("egonColaMdcTenantIdProvider")
-        @Getter(AccessLevel.PROTECTED)
-        private final EgonColaTenantIdProvider tenantIdProvider;
-        @Qualifier("egonColaMybatisPlusProperties")
-        @Getter(AccessLevel.PROTECTED)
-        private final EgonColaMybatisPlusProperties properties;
-    }
+## Configuration and proof
 
-EgonColaMapper deliberately declares no tenant-named methods and no custom SQL Injector. Official BaseMapper statements remain the complete normal CRUD surface. EgonColaIService and EgonColaServiceImpl preserve all official 57 method shapes, including list/count/id/optional/map/object/page/chain/batch methods, while adding context, argument, Model, page, wrapper, and transaction guards.
+Settings live under `egon.cola.component.mybatis-plus`; source profiles provide complete examples. Common defaults DDL to disabled, the six archetypes enable it, and Agent disables it. ID settings use `egon.cola.component.id`.
 
-## Tenant and audit context
-
-The default adapters read SLF4J MDC:
-
-    MDC.put("tenantId", "11");
-    MDC.put("userId", "operator-11");
-
-tenantId accepts any non-null Long, including zero and negative values. Missing or malformed text fails before JDBC. userId must be non-blank. Context is resolved per operation and is not cached in static state.
-
-Consumers can replace either narrow SPI with a single EgonColaTenantIdProvider or EgonColaUserIdProvider bean. This is the intended future SecurityContext adapter seam.
-
-EgonColaMetaObjectHandler is authoritative:
-
-- insert overwrites tenantId, createUserId, createTime, updateUserId, updateTime, and isDeleted=false;
-- update overwrites tenantId, updateUserId, and updateTime;
-- id, creation audit values, and isDeleted are not changed during update;
-- one Clock.instant() value is used for both insert timestamps.
-
-Custom handlers must extend EgonColaMetaObjectHandler; its public fill methods are final, while protected post-fill hooks can add other technical fields. An unrelated MetaObjectHandler fails the startup contract check.
-
-## Isolation and SQL safety
-
-When enabled, the ordered inner chain is:
-
-1. EgonColaTenantIdGuardInnerInterceptor (100)
-2. BlockAttackInnerInterceptor (200, configurable)
-3. TenantLineInnerInterceptor (300)
-4. OptimisticLockerInnerInterceptor (400, configurable)
-5. PaginationInnerInterceptor (500, configurable)
-
-The guard validates explicit tenant_id predicates, rejects null or mismatched tenant values, rejects caller mutation of tenant_id and is_deleted, and fails closed on unsupported SQL shapes. Exact configured global tables may be ignored. TenantLine adds the current non-null tenant_id to official SELECT/INSERT/UPDATE/DELETE statements.
-
-The same chain is reached from AR, EgonColaIService, EgonColaMapper, wrappers, chain wrappers, and direct Mapper statements. A null or empty Service write wrapper is rejected before SQL. Official logical-delete SQL is allowed to change is_deleted; an ordinary wrapper cannot do so.
-
-The Starter never declares an ISqlInjector bean. The official MP default Injector supplies standard statements.
-
-## Configuration
-
-    egon:
-      cola:
-        component:
-          mybatis-plus:
-            enabled: true
-            tenant-id:
-              mdc-key: tenantId
-              ignored-tables: []
-            audit:
-              user-id-mdc-key: userId
-            pagination:
-              enabled: true
-              max-page-size: 500
-              overflow: false
-            batch:
-              default-size: 1000
-              max-chunk-size: 1000
-              max-collection-size: 10000
-            block-attack:
-              enabled: true
-            optimistic-locker:
-              enabled: true
-            meta-fill:
-              enabled: true
-
-enabled=false disables the complete Egon COLA chain. Pagination still validates Service page arguments when its SQL interceptor is disabled. The Starter validates final outer-interceptor membership/order and fails startup rather than silently dropping isolation, fill, or Model validation.
-
-## Validation ownership and conversion
-
-    Controller DTO (@Valid)
-            -> BaseConverter<DTO, PO>
-    Business Service PO (Jakarta field rules + complex rules)
-            -> BaseConverter<PO, Model>
-    Repository Model (EgonModel + business constraints + tenant/persisted groups)
-            -> MyBatis ParameterHandler after MP fill
-    JDBC row -> MyBatis ResultSetHandler -> loaded Model validation
-
-common-core provides the instance-based ValidationUtils facade for object/property/value/group checks. The Starter adds EgonColaModelValidationUtils for INSERT, UPDATE, DELETE, QUERY, and LOADED operation groups and tenant equality. EgonColaModelValidationInterceptor recursively checks Models in parameters/results, including collections, arrays, maps, pages, and wrapper entities, with cycle protection.
-
-Converters map business fields explicitly. They must not copy id, tenantId, creation/update audit fields, user IDs, or isDeleted from DTO/PO input. Those values belong to the repository fill and database result boundary.
-
-## Consumer schema and migration
-
-Each consumer table mapped to EgonModel must provide the seven common columns as non-null persisted state, plus its business columns:
-
-    id BIGINT PRIMARY KEY,
-    tenant_id BIGINT NOT NULL,
-    create_user_id VARCHAR(128) NOT NULL,
-    create_time TIMESTAMP NOT NULL,
-    update_user_id VARCHAR(128) NOT NULL,
-    update_time TIMESTAMP NOT NULL,
-    is_deleted BOOLEAN NOT NULL
-
-Add tenant/deletion indexes appropriate to the consumer workload. Existing data must be backfilled and verified before deploying an entity that extends EgonModel; the Starter does not create or alter production tables. Use one consumer-owned migration per deployment convention, and rehearse rollback/backfill before enabling the Starter.
-
-## Limits and failure behavior
-
-- page size is 1..max-page-size, with default maximum 500;
-- batch chunk and collection limits are configurable and checked before the first JDBC call;
-- batch methods are transactional and capture one entry tenant snapshot; context change or database failure rolls the transaction back;
-- missing context, explicit tenant mismatch, invalid Model, unsafe wrapper, protected-column mutation, and unsupported SQL fail closed;
-- stale Version updates return the official false or zero-row result;
-- a legacy row that violates persisted or business constraints fails result validation instead of returning a partially valid Model.
-
-## Verification boundary
-
-The module tests use embedded H2 and never start an application server or external database:
-
-    ./mvnw -B -ntp -f egon-cola-components/pom.xml \
-      -pl egon-cola-component-common-mybatis-plus-spring-boot-starter -am test
-
-These tests prove the published API, auto-configuration, official default statements, tenant SQL, logic deletion, fill, validation, AR, transactions, conversion boundaries, and thread isolation. They do not prove a consumer SQL dialect, production indexes, SecurityContext wiring, DataSource routing, or live sharding topology.
-
-## Disable and rollback
-
-For an application that must not use the Egon COLA chain, remove the concrete Starter dependency or set egon.cola.component.mybatis-plus.enabled=false. Roll back consumer schema/data changes separately and preserve the common columns until all dependent Models are removed. Platform rollback is performed in reverse implementation-commit order after consumers are migrated away.
+Tests exercise actual Mapper/plugin paths following the official MP test style. CPU/Mock/H2 results do not prove PostgreSQL DDL, replication, physical placement or query performance. Explicit PG tests use dedicated databases and `egon.pg.routing=true` / `egon.pg.readwrite=true`; run them manually. Validate SQL plans with EXPLAIN on realistic data.

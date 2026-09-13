@@ -2,7 +2,6 @@ package top.egon.cola.component.common.mybatis.support;
 
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.annotation.Version;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -28,10 +27,6 @@ public class TestBusinessModel extends EgonModel<TestBusinessModel> {
 
     @TableField("payload")
     private String payload;
-
-    @Version
-    @TableField("version")
-    private Long version;
 
     public TestBusinessModel businessValues(String title, String payload) {
         this.title = title;

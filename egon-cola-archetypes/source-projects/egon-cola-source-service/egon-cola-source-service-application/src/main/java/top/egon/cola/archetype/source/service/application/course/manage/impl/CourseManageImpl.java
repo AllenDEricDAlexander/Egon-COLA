@@ -30,7 +30,7 @@ import org.springframework.validation.annotation.Validated;
 public class CourseManageImpl implements CourseManage {
 
     private final CourseEventPublisher courseEventPublisher;
-    private final CourseDomainService<?> courseDomainService;
+    private final CourseDomainService courseDomainService;
     private final CourseApplicationConverter converter;
     private final CourseApplicationValidator validator;
 

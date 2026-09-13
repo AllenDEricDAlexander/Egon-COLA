@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO">
+    <resultMap id="row" type="top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.KnowledgeDocumentPO" autoMapping="true">
+        <id column="id" property="id"/>
+    </resultMap>
+    <sql id="columns">id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, knowledge_base_id, display_name, file_name, mime_type, size_bytes, content_hash, storage_type, storage_key, content, status, chunk_count, attempt_count, error_code, error_message</sql>
+    <select id="selectActiveById" resultMap="row">
+        SELECT <include refid="columns"/> FROM knowledge_document WHERE id = #{id} AND deleted_at IS NULL
+    </select>
+    <select id="selectActiveByIds" resultMap="row">
+        SELECT <include refid="columns"/> FROM knowledge_document WHERE deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
+        ORDER BY create_time DESC, id DESC
+    </select>
+    <update id="deleteVersionedById">
+        UPDATE knowledge_document SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime}, version = version + 1
+        WHERE id = #{et.id} AND version = #{MP_OPTLOCK_VERSION_ORIGINAL} AND deleted_at IS NULL
+    </update>
+    <select id="selectFilteredPage" resultMap="row">
+        SELECT <include refid="columns"/> FROM knowledge_document WHERE knowledge_base_id = #{baseId} AND deleted_at IS NULL
+        <if test="status != null">AND status = #{status}</if>
+        <if test="keyword != null">AND lower(display_name) LIKE #{keyword}</if>
+        ORDER BY create_time DESC, id DESC LIMIT #{size} OFFSET #{offset}
+    </select>
+    <select id="countFiltered" resultType="long">
+        SELECT COUNT(*) FROM knowledge_document WHERE knowledge_base_id = #{baseId} AND deleted_at IS NULL
+        <if test="status != null">AND status = #{status}</if>
+        <if test="keyword != null">AND lower(display_name) LIKE #{keyword}</if>
+    </select>
+    <select id="countByKnowledgeBaseId" resultType="long">
+        SELECT COUNT(*) FROM knowledge_document WHERE knowledge_base_id = #{baseId} AND deleted_at IS NULL
+    </select>
+    <update id="updateState">
+        UPDATE knowledge_document SET status = #{et.status},
+            <if test="et.chunkCount != null">chunk_count = #{et.chunkCount},</if>
+            <if test="et.attemptCount != null">attempt_count = #{et.attemptCount},</if>
+            error_code = #{et.errorCode}, error_message = #{et.errorMessage},
+            update_user_id = #{et.updateUserId}, update_time = #{et.updateTime}, version = version + 1
+        WHERE id = #{et.id} AND version = #{MP_OPTLOCK_VERSION_ORIGINAL} AND deleted_at IS NULL AND status IN
+        <foreach collection="expectedStatuses" item="status" open="(" separator="," close=")">#{status}</foreach>
+    </update>
+    <update id="softDeleteByKnowledgeBaseId">
+        UPDATE knowledge_document SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
+            update_user_id = #{userId}, update_time = #{updateTime}, version = version + 1
+        WHERE knowledge_base_id = #{baseId} AND deleted_at IS NULL
+    </update>
+</mapper>

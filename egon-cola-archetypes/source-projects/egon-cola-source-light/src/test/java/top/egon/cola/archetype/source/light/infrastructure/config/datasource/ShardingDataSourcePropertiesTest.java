@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.source.MapConfigurationProper
 class ShardingDataSourcePropertiesTest {
 
     @Test
-    void shouldBindPhysicalDataSourcesRoutingAndFlywayTargets() {
+    void shouldBindPhysicalDataSourcesRoutingAndDdlTargets() {
         Map<String, Object> values = Map.ofEntries(
                 Map.entry("app.sharding.config", "classpath:sharding/rules.yml"),
                 Map.entry("app.sharding.routing.node-count", "4"),
@@ -23,18 +23,18 @@ class ShardingDataSourcePropertiesTest {
                 Map.entry("app.sharding.physical-data-sources[0].role", "PRIMARY"),
                 Map.entry(
                         "app.sharding.physical-data-sources[0].driver-class-name",
-                        "org.h2.Driver"),
+                        "org.postgresql.Driver"),
                 Map.entry(
                         "app.sharding.physical-data-sources[0].jdbc-url",
-                        "jdbc:h2:mem:master-data"),
+                        "jdbc:postgresql://localhost/master_data"),
                 Map.entry("app.sharding.physical-data-sources[0].username", "sa"),
                 Map.entry("app.sharding.physical-data-sources[0].password", "secret"),
                 Map.entry(
-                        "app.sharding.flyway.targets[0].data-source-name",
+                        "app.sharding.ddl.targets[0].data-source-name",
                         "master_data"),
-                Map.entry(
-                        "app.sharding.flyway.targets[0].locations[0]",
-                        "classpath:db/migration/sharding/master-data"));
+                Map.entry("app.sharding.ddl.targets[0].schema", "public"),
+                Map.entry("app.sharding.ddl.targets[0].role", "MASTER_DATA"),
+                Map.entry("app.sharding.ddl.targets[0].manifest", "classpath:db/egon-mp/repository-manifest.json"));
 
         ShardingDataSourceProperties properties = new Binder(
                         new MapConfigurationPropertySource(values))
@@ -50,8 +50,7 @@ class ShardingDataSourcePropertiesTest {
                             .isEqualTo(ShardingDataSourceProperties.DataSourceRole.PRIMARY);
                     assertThat(dataSource.toString()).doesNotContain("secret");
                 });
-        assertThat(properties.flyway().targets()).singleElement()
-                .satisfies(target -> assertThat(target.locations())
-                        .containsExactly("classpath:db/migration/sharding/master-data"));
+        assertThat(properties.ddl().targets()).singleElement()
+                .satisfies(target -> assertThat(target.schema()).isEqualTo("public"));
     }
 }
