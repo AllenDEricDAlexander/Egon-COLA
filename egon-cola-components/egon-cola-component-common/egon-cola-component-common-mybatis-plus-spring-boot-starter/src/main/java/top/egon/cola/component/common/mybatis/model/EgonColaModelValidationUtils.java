@@ -1,14 +1,15 @@
 package top.egon.cola.component.common.mybatis.model;
 
-import jakarta.validation.groups.Default;
 import com.baomidou.mybatisplus.annotation.TableField;
+import jakarta.validation.groups.Default;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import java.lang.reflect.Field;
-import java.util.Set;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+
+import java.lang.reflect.Field;
+import java.util.Set;
 
 
 /**

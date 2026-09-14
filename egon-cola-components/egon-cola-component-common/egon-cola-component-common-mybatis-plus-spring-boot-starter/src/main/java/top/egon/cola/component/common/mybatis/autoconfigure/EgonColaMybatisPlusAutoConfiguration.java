@@ -1,63 +1,63 @@
 package top.egon.cola.component.common.mybatis.autoconfigure;
 
-import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
-import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties;
 import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusInnerInterceptorAutoConfiguration;
+import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.DynamicTableNameInnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.context.annotation.Profile;
-import org.springframework.core.env.Environment;
-import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
-import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
-import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
-import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
-import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
-import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
-import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy;
-import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
-import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
-import top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor;
-import java.util.Map;
-import java.util.List;
-import java.util.HexFormat;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import com.baomidou.mybatisplus.autoconfigure.MybatisPlusInnerInterceptorAutoConfiguration;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.DynamicTableNameInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import jakarta.validation.Validator;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
+import org.springframework.core.env.Environment;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcUserIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdTenantLineHandler;
 import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
+import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
 import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
+import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardInnerInterceptor;
+import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
+import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy;
+import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
+import java.util.HexFormat;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Opt-in-by-property (enabled by default) common MyBatis-Plus runtime chain.
@@ -102,7 +102,7 @@ public class EgonColaMybatisPlusAutoConfiguration {
     }
 
     @Bean("egonColaModelValidationUtils")
-    // 宿主可能同时引入其他也提供 ValidationUtils 的组件（如 agent-flow），按类型注入会歧义，故具名解析。
+    // The host may also introduce other components that provide Validator Utils (such as agent flow), and injecting them by type can be ambiguous, so named parsing is necessary.
     public EgonColaModelValidationUtils egonColaModelValidationUtils(
             @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils,
             EgonColaTenantIdProvider tenantIdProvider) {
@@ -119,8 +119,8 @@ public class EgonColaMybatisPlusAutoConfiguration {
     @ConditionalOnMissingBean(com.baomidou.mybatisplus.core.handlers.MetaObjectHandler.class)
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".meta-fill",
             name = "enabled", havingValue = "true", matchIfMissing = true)
-    // 宿主可能有多个具名 Clock（如 agentClock 与 agentFlowClock），按类型注入会歧义；
-    // 唯一（或 @Primary）时沿用宿主时钟，否则退回 systemUTC，保持“宿主可覆盖”的既有语义。
+    // The host may have multiple named Clocks (such as agentClock and agentFlowClock), and injecting them by type can be ambiguous;
+    // When it is unique (or @ Primary), use the host clock. Otherwise, return to systemUTC and maintain the existing semantics of 'host can override'.
     public EgonColaMetaObjectHandler egonColaMetaObjectHandler(
             EgonColaTenantIdProvider tenantIdProvider,
             EgonColaUserIdProvider userIdProvider,
@@ -183,7 +183,9 @@ public class EgonColaMybatisPlusAutoConfiguration {
         if (available.isEmpty() || !beans.containsBean("snowflakeIdGenerator")) {
             throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_MISSING");
         }
-        if (available.size() != 1) { throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_AMBIGUOUS"); }
+        if (available.size() != 1) {
+            throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_AMBIGUOUS");
+        }
         return new EgonColaIdentifierGenerator(beans.getBean("snowflakeIdGenerator", LongIdGenerator.class));
     }
 
@@ -202,8 +204,8 @@ public class EgonColaMybatisPlusAutoConfiguration {
     @Bean("egonColaWriteTargetResolver")
     @ConditionalOnMissingBean(EgonColaWriteTargetResolver.class)
     public EgonColaWriteTargetResolver egonColaWriteTargetResolver(@Qualifier("egonColaValidationUtils") ValidationUtils validation,
-                                                                  ObjectProvider<MybatisPlusProperties> mapperProperties,
-                                                                  EgonColaMybatisPlusProperties properties) {
+                                                                   ObjectProvider<MybatisPlusProperties> mapperProperties,
+                                                                   EgonColaMybatisPlusProperties properties) {
         MybatisPlusProperties mapper = mapperProperties.getIfAvailable();
         String configuredSchema = mapper == null ? null : mapper.getGlobalConfig().getDbConfig().getSchema();
         String schema = configuredSchema == null || configuredSchema.isBlank() ? "public" : configuredSchema;
@@ -223,7 +225,7 @@ public class EgonColaMybatisPlusAutoConfiguration {
 
     @Bean("egonColaPostgreDdlRunner")
     public EgonColaPostgreDdlRunner egonColaPostgreDdlRunner(@Qualifier("egonColaValidationUtils") ValidationUtils validation,
-                                                            ObjectProvider<Clock> clocks, EgonColaMybatisPlusProperties properties) {
+                                                             ObjectProvider<Clock> clocks, EgonColaMybatisPlusProperties properties) {
         return new EgonColaPostgreDdlRunner(validation, new org.springframework.core.io.support.PathMatchingResourcePatternResolver(),
                 clocks.getIfUnique(Clock::systemUTC), properties.getDdl().getLockTimeout(), properties.getDdl().getStatementTimeout());
     }
@@ -264,7 +266,9 @@ public class EgonColaMybatisPlusAutoConfiguration {
     @Profile("dev & !prod")
     @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".illegal-sql", name = "enabled", havingValue = "true")
     @SuppressWarnings("deprecation")
-    public IllegalSQLInnerInterceptor egonColaIllegalSqlInnerInterceptor() { return new IllegalSQLInnerInterceptor(); }
+    public IllegalSQLInnerInterceptor egonColaIllegalSqlInnerInterceptor() {
+        return new IllegalSQLInnerInterceptor();
+    }
 
     @Bean("mybatisPlusInterceptor")
     @Order(0)

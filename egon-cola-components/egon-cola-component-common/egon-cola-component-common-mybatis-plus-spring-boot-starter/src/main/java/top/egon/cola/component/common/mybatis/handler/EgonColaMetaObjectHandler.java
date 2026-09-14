@@ -4,15 +4,15 @@ import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Qualifier;
-import java.time.temporal.ChronoUnit;
 import org.apache.ibatis.reflection.MetaObject;
+import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.time.Clock;
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 /**
  * Authoritative fill template for EgonModel technical fields.
@@ -26,6 +26,7 @@ public class EgonColaMetaObjectHandler implements MetaObjectHandler {
     @Getter
     @Qualifier("egonColaMdcUserIdProvider")
     private final EgonColaUserIdProvider userIdProvider;
+
     @Qualifier("egonColaMybatisPlusClock")
     private final Clock clock;
 

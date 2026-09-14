@@ -23,6 +23,7 @@ import java.time.LocalDateTime;
 /**
  * Common persistence fields for Egon COLA repositories; entities perform no persistence operations.
  * We did not choose to implement 'extends Model<M>' here, and abandoned the AR mode
+ *
  * @param <M> concrete self type retained for repository generic compatibility
  */
 @Data
@@ -33,10 +34,8 @@ import java.time.LocalDateTime;
 public abstract class EgonModel<M extends EgonModel<M>> {
 
     @TableId(value = "id", type = IdType.ASSIGN_ID)
-    @NotNull(groups = {EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class,
-            EgonColaModelValidationGroups.Delete.class})
-    @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class,
-            EgonColaModelValidationGroups.Update.class, EgonColaModelValidationGroups.Delete.class})
+    @NotNull(groups = {EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class, EgonColaModelValidationGroups.Delete.class})
+    @Positive(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class, EgonColaModelValidationGroups.Delete.class})
     private Long id;
 
     @TableField(value = "tenant_id", fill = FieldFill.INSERT_UPDATE, updateStrategy = FieldStrategy.NEVER)
@@ -66,9 +65,7 @@ public abstract class EgonModel<M extends EgonModel<M>> {
 
     @Version
     @TableField(value = "version", fill = FieldFill.INSERT)
-    @NotNull(groups = {EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class,
-            EgonColaModelValidationGroups.Delete.class})
-    @Min(value = 0, groups = {EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class,
-            EgonColaModelValidationGroups.Delete.class})
+    @NotNull(groups = {EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class, EgonColaModelValidationGroups.Delete.class})
+    @Min(value = 0, groups = {EgonColaModelValidationGroups.Persisted.class, EgonColaModelValidationGroups.Update.class, EgonColaModelValidationGroups.Delete.class})
     private Long version;
 }

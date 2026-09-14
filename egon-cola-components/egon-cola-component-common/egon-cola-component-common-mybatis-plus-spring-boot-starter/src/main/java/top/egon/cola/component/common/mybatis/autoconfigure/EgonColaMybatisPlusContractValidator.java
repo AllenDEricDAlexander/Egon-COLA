@@ -69,7 +69,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 
-/** Validates actual factory wiring and ORM metadata before the application accepts requests. */
+/**
+ * Validates actual factory wiring and ORM metadata before the application accepts requests.
+ */
 @Slf4j
 @RequiredArgsConstructor
 @SuppressWarnings("deprecation")
@@ -94,16 +96,22 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
     public void afterSingletonsInstantiated() {
         validateProperties();
         List<MybatisPlusInterceptor> outers = outerProvider.orderedStream().toList();
-        if (outers.isEmpty()) { throw failure("MYBATIS_PLUS_OUTER_INTERCEPTOR_MISSING"); }
+        if (outers.isEmpty()) {
+            throw failure("MYBATIS_PLUS_OUTER_INTERCEPTOR_MISSING");
+        }
         outers.forEach(outer -> validateInnerChain(outer.getInterceptors()));
         EgonColaModelValidationInterceptor validation = validationProvider.getIfAvailable();
-        if (validation == null) { throw failure("MODEL_VALIDATION_INTERCEPTOR_MISSING"); }
+        if (validation == null) {
+            throw failure("MODEL_VALIDATION_INTERCEPTOR_MISSING");
+        }
         List<MetaObjectHandler> handlers = handlerProvider.orderedStream().toList();
         if (handlers.isEmpty() || handlers.stream().anyMatch(handler -> !(handler instanceof EgonColaMetaObjectHandler))) {
             throw failure("META_OBJECT_HANDLER_CONTRACT_INVALID");
         }
         EgonColaIdentifierGenerator idGenerator = beanFactory.getBeanProvider(EgonColaIdentifierGenerator.class).getIfAvailable();
-        if (idGenerator == null) { throw failure("IDENTIFIER_GENERATOR_CONTRACT_INVALID"); }
+        if (idGenerator == null) {
+            throw failure("IDENTIFIER_GENERATOR_CONTRACT_INVALID");
+        }
         if (properties.getDdl().isEnabled() && (beanFactory.getBeanNamesForType(IDdl.class, false, false).length > 0
                 || beanFactory.getBeanNamesForType(com.baomidou.mybatisplus.autoconfigure.DdlApplicationRunner.class, false, false).length > 0)) {
             throw failure("DEFAULT_DDL_RUNNER_CONFLICT");
@@ -119,18 +127,28 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             }
             List<MybatisPlusInterceptor> factoryOuters = plugins.stream().filter(MybatisPlusInterceptor.class::isInstance)
                     .map(MybatisPlusInterceptor.class::cast).toList();
-            if (factoryOuters.size() != 1) { throw failure("FACTORY_INTERCEPTOR_CONTRACT_INVALID"); }
+            if (factoryOuters.size() != 1) {
+                throw failure("FACTORY_INTERCEPTOR_CONTRACT_INVALID");
+            }
             validateInnerChain(factoryOuters.getFirst().getInterceptors());
             var global = GlobalConfigUtils.getGlobalConfig(configuration);
-            if (global.getIdentifierGenerator() != idGenerator) { throw failure("FACTORY_IDENTIFIER_GENERATOR_INVALID"); }
-            if (!handlers.contains(global.getMetaObjectHandler())) { throw failure("FACTORY_META_HANDLER_INVALID"); }
+            if (global.getIdentifierGenerator() != idGenerator) {
+                throw failure("FACTORY_IDENTIFIER_GENERATOR_INVALID");
+            }
+            if (!handlers.contains(global.getMetaObjectHandler())) {
+                throw failure("FACTORY_META_HANDLER_INVALID");
+            }
             if (configuration.getTypeHandlerRegistry().getTypeHandler(String.class).getClass() != org.apache.ibatis.type.StringTypeHandler.class) {
                 throw failure("GLOBAL_STRING_TYPE_HANDLER_FORBIDDEN");
             }
             for (Class<?> mapper : configuration.getMapperRegistry().getMappers()) {
-                if (!BaseMapper.class.isAssignableFrom(mapper)) { continue; }
+                if (!BaseMapper.class.isAssignableFrom(mapper)) {
+                    continue;
+                }
                 Class<?>[] arguments = GenericTypeUtils.resolveTypeArguments(mapper, BaseMapper.class);
-                if (arguments == null || !EgonModel.class.isAssignableFrom(arguments[0])) { throw failure("EGON_MODEL_REQUIRED"); }
+                if (arguments == null || !EgonModel.class.isAssignableFrom(arguments[0])) {
+                    throw failure("EGON_MODEL_REQUIRED");
+                }
                 Class<?> model = arguments[0];
                 validateModel(model);
                 TableInfo table = TableInfoHelper.getTableInfo(model);
@@ -159,7 +177,9 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
     private void validateProperties() {
         boolean dev = environment.acceptsProfiles(Profiles.of("dev"));
         boolean prod = environment.acceptsProfiles(Profiles.of("prod"));
-        if (dev && prod) { throw failure("ENVIRONMENT_PROFILE_CONFLICT"); }
+        if (dev && prod) {
+            throw failure("ENVIRONMENT_PROFILE_CONFLICT");
+        }
         if (!dev && (properties.getDataChangeRecorder().isEnabled() || properties.getIllegalSql().isEnabled())) {
             throw failure("DEV_DIAGNOSTIC_PROFILE_REQUIRED");
         }
@@ -168,11 +188,15 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             throw failure("MANDATORY_GUARD_DISABLED");
         }
         if (properties.getPagination().getMaxPageSize() > 500 || properties.getPagination().getMaxPageSize() < 1
-                || properties.getPagination().isOverflow()) { throw failure("PAGINATION_POLICY_INVALID"); }
+                || properties.getPagination().isOverflow()) {
+            throw failure("PAGINATION_POLICY_INVALID");
+        }
         var batch = properties.getBatch();
         if (batch.getDefaultSize() < 1 || batch.getDefaultSize() > batch.getMaxChunkSize()
                 || batch.getMaxChunkSize() > 1000 || batch.getMaxChunkSize() > batch.getMaxCollectionSize()
-                || batch.getMaxCollectionSize() > 10000) { throw failure("BATCH_POLICY_INVALID"); }
+                || batch.getMaxCollectionSize() > 10000) {
+            throw failure("BATCH_POLICY_INVALID");
+        }
         for (Duration timeout : List.of(properties.getDdl().getLockTimeout(), properties.getDdl().getStatementTimeout(),
                 properties.getDdl().getTopologyReadyTimeout())) {
             if (timeout.isNegative() || timeout.isZero() || timeout.compareTo(Duration.ofMillis(Integer.MAX_VALUE)) > 0) {
@@ -180,7 +204,9 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             }
         }
         properties.getDynamicTableName().getTables().forEach((table, actual) -> {
-            if (!identifier(table) || !identifier(actual)) { throw failure("DYNAMIC_TABLE_IDENTIFIER_INVALID"); }
+            if (!identifier(table) || !identifier(actual)) {
+                throw failure("DYNAMIC_TABLE_IDENTIFIER_INVALID");
+            }
             if (profiles.containsKey(table) || profiles.values().stream().flatMap(profile -> profile.actualNodes().values().stream())
                     .flatMap(Collection::stream).anyMatch(target -> target.table().equals(actual))) {
                 throw failure("DYNAMIC_SHARDING_TABLE_CONFLICT");
@@ -194,30 +220,44 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         });
         if (properties.getDataChangeRecorder().isEnabled()) {
             var logging = LoggingSystem.get(getClass().getClassLoader()).getLoggerConfiguration(EgonColaDataChangeRecorderInnerInterceptor.class.getName());
-            if (logging == null || logging.getEffectiveLevel() != LogLevel.OFF) { throw failure("DATA_CHANGE_RAW_LOGGER_NOT_OFF"); }
+            if (logging == null || logging.getEffectiveLevel() != LogLevel.OFF) {
+                throw failure("DATA_CHANGE_RAW_LOGGER_NOT_OFF");
+            }
         }
     }
 
     private void validateInnerChain(List<InnerInterceptor> chain) {
         List<Class<? extends InnerInterceptor>> order = new ArrayList<>(List.of(EgonColaTenantIdGuardInnerInterceptor.class,
                 BlockAttackInnerInterceptor.class));
-        if (properties.getDynamicTableName().isEnabled()) { order.add(DynamicTableNameInnerInterceptor.class); }
+        if (properties.getDynamicTableName().isEnabled()) {
+            order.add(DynamicTableNameInnerInterceptor.class);
+        }
         order.add(TenantLineInnerInterceptor.class);
         order.add(OptimisticLockerInnerInterceptor.class);
         order.add(EgonColaLocalWriteGuardInnerInterceptor.class);
-        if (properties.getDataChangeRecorder().isEnabled()) { order.add(EgonColaDataChangeRecorderInnerInterceptor.class); }
-        if (properties.getIllegalSql().isEnabled()) { order.add(IllegalSQLInnerInterceptor.class); }
-        if (properties.getPagination().isEnabled()) { order.add(PaginationInnerInterceptor.class); }
+        if (properties.getDataChangeRecorder().isEnabled()) {
+            order.add(EgonColaDataChangeRecorderInnerInterceptor.class);
+        }
+        if (properties.getIllegalSql().isEnabled()) {
+            order.add(IllegalSQLInnerInterceptor.class);
+        }
+        if (properties.getPagination().isEnabled()) {
+            order.add(PaginationInnerInterceptor.class);
+        }
         int previous = -1;
         for (Class<? extends InnerInterceptor> type : order) {
             int found = -1;
             for (int index = 0; index < chain.size(); index++) {
                 if (type.isInstance(chain.get(index))) {
-                    if (found >= 0) { throw failure("MYBATIS_PLUS_INTERCEPTOR_ORDER_INVALID"); }
+                    if (found >= 0) {
+                        throw failure("MYBATIS_PLUS_INTERCEPTOR_ORDER_INVALID");
+                    }
                     found = index;
                 }
             }
-            if (found <= previous) { throw failure("MYBATIS_PLUS_INTERCEPTOR_ORDER_INVALID"); }
+            if (found <= previous) {
+                throw failure("MYBATIS_PLUS_INTERCEPTOR_ORDER_INVALID");
+            }
             previous = found;
         }
         if (!properties.getDataChangeRecorder().isEnabled() && chain.stream().anyMatch(DataChangeRecorderInnerInterceptor.class::isInstance)
@@ -234,7 +274,9 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             if (id.getType() != Long.class || id.getAnnotation(TableId.class).type() != IdType.ASSIGN_ID
                     || deleted.getType() != LocalDateTime.class || !"null".equals(deleted.getAnnotation(TableLogic.class).value())
                     || version.getType() != Long.class || version.getAnnotation(Version.class) == null
-                    || model.isAnnotationPresent(KeySequence.class)) { throw failure("MODEL_METADATA_INVALID"); }
+                    || model.isAnnotationPresent(KeySequence.class)) {
+                throw failure("MODEL_METADATA_INVALID");
+            }
             Set<String> names = Set.of("id", "tenantId", "createUserId", "createTime", "updateUserId", "updateTime", "deletedAt", "version");
             Set<String> columns = Set.of("id", "tenant_id", "create_user_id", "create_time", "update_user_id", "update_time", "deleted_at", "version");
             for (Class<?> current = model; current != EgonModel.class; current = current.getSuperclass()) {
@@ -249,35 +291,49 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             }
             TableInfo table = TableInfoHelper.getTableInfo(model);
             if (table == null || !"id".equals(table.getKeyColumn()) || table.getIdType() != IdType.ASSIGN_ID
-                    || !table.isWithLogicDelete() || !table.isWithVersion()) { throw failure("MODEL_METADATA_INVALID"); }
+                    || !table.isWithLogicDelete() || !table.isWithVersion()) {
+                throw failure("MODEL_METADATA_INVALID");
+            }
             Set<String> mapped = new HashSet<>();
             mapped.add(table.getKeyColumn());
             table.getFieldList().forEach(field -> mapped.add(field.getColumn()));
-            if (!mapped.containsAll(columns)) { throw failure("MODEL_METADATA_INVALID"); }
+            if (!mapped.containsAll(columns)) {
+                throw failure("MODEL_METADATA_INVALID");
+            }
             for (var field : table.getFieldList()) {
-                if (!columns.contains(field.getColumn())) { continue; }
+                if (!columns.contains(field.getColumn())) {
+                    continue;
+                }
                 FieldFill expected = Set.of("tenant_id", "update_user_id", "update_time").contains(field.getColumn())
                         ? FieldFill.INSERT_UPDATE : FieldFill.INSERT;
                 if (field.getField().getDeclaringClass() != EgonModel.class || field.getFieldFill() != expected) {
                     throw failure("MODEL_METADATA_INVALID");
                 }
                 if (Set.of("tenant_id", "create_user_id", "create_time", "deleted_at").contains(field.getColumn())
-                        && field.getUpdateStrategy() != FieldStrategy.NEVER) { throw failure("MODEL_METADATA_INVALID"); }
+                        && field.getUpdateStrategy() != FieldStrategy.NEVER) {
+                    throw failure("MODEL_METADATA_INVALID");
+                }
             }
             if (!"deleted_at".equals(table.getLogicDeleteFieldInfo().getColumn())
                     || !"null".equals(table.getLogicDeleteFieldInfo().getLogicNotDeleteValue())
                     || !"(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')".equals(table.getLogicDeleteFieldInfo().getLogicDeleteValue())
                     || !"version".equals(table.getVersionFieldInfo().getColumn())
-                    || table.getVersionFieldInfo().getPropertyType() != Long.class) { throw failure("MODEL_METADATA_INVALID"); }
+                    || table.getVersionFieldInfo().getPropertyType() != Long.class) {
+                throw failure("MODEL_METADATA_INVALID");
+            }
         } catch (NoSuchFieldException failure) {
             throw new EgonColaMybatisPlusConfigurationException("MODEL_METADATA_INVALID", failure);
         }
     }
 
     private static void validateEnumContract(Class<?> type, boolean external) {
-        if (!type.isEnum()) { return; }
+        if (!type.isEnum()) {
+            return;
+        }
         List<Field> codes = Arrays.stream(type.getDeclaredFields()).filter(field -> field.isAnnotationPresent(EnumValue.class)).toList();
-        if (codes.size() != 1) { throw failure("ENUM_VALUE_REQUIRED"); }
+        if (codes.size() != 1) {
+            throw failure("ENUM_VALUE_REQUIRED");
+        }
         Field code = codes.getFirst();
         code.setAccessible(true);
         List<AccessibleObject> json = new ArrayList<>();
@@ -285,17 +341,23 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                 && field.getAnnotation(JsonValue.class).value()).forEach(json::add);
         Arrays.stream(type.getDeclaredMethods()).filter(method -> method.isAnnotationPresent(JsonValue.class)
                 && method.getAnnotation(JsonValue.class).value()).forEach(json::add);
-        if (external && json.size() != 1) { throw failure("ENUM_JSON_VALUE_REQUIRED"); }
+        if (external && json.size() != 1) {
+            throw failure("ENUM_JSON_VALUE_REQUIRED");
+        }
         Set<Object> seen = new HashSet<>();
         try {
             for (Object constant : type.getEnumConstants()) {
                 Object value = code.get(constant);
-                if (value == null || !seen.add(value)) { throw failure("ENUM_CODE_INVALID"); }
+                if (value == null || !seen.add(value)) {
+                    throw failure("ENUM_CODE_INVALID");
+                }
                 if (external) {
                     AccessibleObject member = json.getFirst();
                     member.setAccessible(true);
                     Object exported = member instanceof Field field ? field.get(constant) : ((Method) member).invoke(constant);
-                    if (!Objects.equals(value, exported)) { throw failure("ENUM_JSON_CODE_MISMATCH"); }
+                    if (!Objects.equals(value, exported)) {
+                        throw failure("ENUM_JSON_CODE_MISMATCH");
+                    }
                 }
             }
         } catch (ReflectiveOperationException failure) {
@@ -304,7 +366,9 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
     }
 
     private void validateExternalEnums(Set<Class<?>> persistedEnums) {
-        if (persistedEnums.isEmpty()) { return; }
+        if (persistedEnums.isEmpty()) {
+            return;
+        }
         try {
             @SuppressWarnings("unchecked")
             Class<? extends Annotation> controller = (Class<? extends Annotation>) Class.forName("org.springframework.web.bind.annotation.RestController");
@@ -314,7 +378,9 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                 if (type != null && AnnotatedElementUtils.hasAnnotation(type, controller)) {
                     for (Method method : type.getMethods()) {
                         visitExternal(method.getGenericReturnType(), persistedEnums, visited);
-                        for (Type argument : method.getGenericParameterTypes()) { visitExternal(argument, persistedEnums, visited); }
+                        for (Type argument : method.getGenericParameterTypes()) {
+                            visitExternal(argument, persistedEnums, visited);
+                        }
                     }
                 }
             }
@@ -324,17 +390,31 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
     }
 
     private static void visitExternal(Type type, Set<Class<?>> persistedEnums, Set<Type> visited) {
-        if (!visited.add(type)) { return; }
+        if (!visited.add(type)) {
+            return;
+        }
         if (type instanceof ParameterizedType parameterized) {
-            for (Type argument : parameterized.getActualTypeArguments()) { visitExternal(argument, persistedEnums, visited); }
+            for (Type argument : parameterized.getActualTypeArguments()) {
+                visitExternal(argument, persistedEnums, visited);
+            }
             visitExternal(parameterized.getRawType(), persistedEnums, visited);
         } else if (type instanceof Class<?> candidate) {
-            if (persistedEnums.contains(candidate)) { validateEnumContract(candidate, true); return; }
-            if (candidate.isArray()) { visitExternal(candidate.getComponentType(), persistedEnums, visited); return; }
+            if (persistedEnums.contains(candidate)) {
+                validateEnumContract(candidate, true);
+                return;
+            }
+            if (candidate.isArray()) {
+                visitExternal(candidate.getComponentType(), persistedEnums, visited);
+                return;
+            }
             if (candidate.isPrimitive() || candidate.isEnum() || candidate.getName().startsWith("java.")
-                    || candidate.getName().startsWith("org.springframework.")) { return; }
+                    || candidate.getName().startsWith("org.springframework.")) {
+                return;
+            }
             for (Field field : candidate.getDeclaredFields()) {
-                if (!Modifier.isStatic(field.getModifiers())) { visitExternal(field.getGenericType(), persistedEnums, visited); }
+                if (!Modifier.isStatic(field.getModifiers())) {
+                    visitExternal(field.getGenericType(), persistedEnums, visited);
+                }
             }
         }
     }
@@ -344,6 +424,11 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         return table.substring(dot + 1).replace("\"", "").toLowerCase(Locale.ROOT);
     }
 
-    private static boolean identifier(String value) { return value != null && value.matches("[a-z_][a-z0-9_]{0,62}"); }
-    private static EgonColaMybatisPlusConfigurationException failure(String code) { return new EgonColaMybatisPlusConfigurationException(code); }
+    private static boolean identifier(String value) {
+        return value != null && value.matches("[a-z_][a-z0-9_]{0,62}");
+    }
+
+    private static EgonColaMybatisPlusConfigurationException failure(String code) {
+        return new EgonColaMybatisPlusConfigurationException(code);
+    }
 }
