@@ -7,14 +7,12 @@ import jakarta.validation.constraints.Pattern;
 import java.time.Duration;
 import java.util.Objects;
 
-/** One committed or previously verified version; this is not a distributed transaction receipt. */
-public record EgonColaDdlResult(
-        @NotBlank String alias,
-        @NotBlank String schema,
-        @NotBlank String version,
-        @NotBlank @Pattern(regexp = "[0-9a-f]{64}") String checksum,
-        @NotNull StatusEnum status,
-        @NotNull Duration elapsed) {
+/**
+ * One committed or previously verified version; this is not a distributed transaction receipt.
+ */
+public record EgonColaDdlResult(@NotBlank String alias, @NotBlank String schema, @NotBlank String version,
+                                @NotBlank @Pattern(regexp = "[0-9a-f]{64}") String checksum, @NotNull StatusEnum status,
+                                @NotNull Duration elapsed) {
 
     public EgonColaDdlResult {
         Objects.requireNonNull(status, "status");

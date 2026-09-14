@@ -56,8 +56,7 @@ import java.util.stream.Collectors;
  */
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
-public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends EgonModel<T>>
-        extends CrudRepository<M, T> implements EgonColaIRepository<T> {
+public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends EgonModel<T>> extends CrudRepository<M, T> implements EgonColaIRepository<T> {
 
     protected abstract EgonColaModelValidationUtils getModelValidationUtils();
 
@@ -75,7 +74,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     @Override
     public final boolean saveBatch(Collection<T> entityList, int batchSize) {
         Long snapshot = prepareBatch(entityList, batchSize, BatchOperation.INSERT);
-        if (entityList.isEmpty()) { return false; }
+        if (entityList.isEmpty()) {
+            return false;
+        }
         verifyTenantSnapshot(snapshot);
         executeMybatisBatch(entityList, batchSize, new MybatisBatch.Method<T>(getMapperClass()).insert());
         verifyTenantSnapshot(snapshot);
@@ -85,7 +86,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     @Override
     public final boolean saveOrUpdateBatch(Collection<T> entityList, int batchSize) {
         Long tenant = prepareBatch(entityList, batchSize, BatchOperation.UPSERT);
-        if (entityList.isEmpty()) { return false; }
+        if (entityList.isEmpty()) {
+            return false;
+        }
         ConnectionHolder transaction = requireTransaction(getSqlSessionFactory());
         try {
             List<Long> ids = entityList.stream().map(EgonModel::getId).filter(Objects::nonNull).toList();
@@ -145,7 +148,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     public final boolean removeByIds(Collection<?> list) {
         requireTenantId();
         requireCollection(list);
-        if (list.isEmpty()) { return false; }
+        if (list.isEmpty()) {
+            return false;
+        }
         Map<Long, T> supplied = new LinkedHashMap<>();
         for (Object item : list) {
             if (item instanceof EgonModel<?> model) {
@@ -161,7 +166,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         ConnectionHolder transaction = requireTransaction(getSqlSessionFactory());
         try {
             List<T> selected = listByIds(supplied.keySet());
-            if (selected.isEmpty()) { return false; }
+            if (selected.isEmpty()) {
+                return false;
+            }
             List<T> entities = selected.stream().map(row -> supplied.get(row.getId()) == null ? row : supplied.get(row.getId())).toList();
             BatchMethod<T> method = new BatchMethod<>(getMapperClass().getName() + ".deleteVersionedById", entity -> {
                 Map<String, Object> parameter = new HashMap<>();
@@ -207,7 +214,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     @Override
     public final boolean updateBatchById(Collection<T> entityList, int batchSize) {
         Long snapshot = prepareBatch(entityList, batchSize, BatchOperation.UPDATE);
-        if (entityList.isEmpty()) { return false; }
+        if (entityList.isEmpty()) {
+            return false;
+        }
         verifyTenantSnapshot(snapshot);
         executeMybatisBatch(entityList, batchSize, new MybatisBatch.Method<T>(getMapperClass()).updateById());
         verifyTenantSnapshot(snapshot);
@@ -236,7 +245,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     public final List<T> listByIds(Collection<? extends Serializable> idList) {
         requireTenantId();
         requireCollection(idList);
-        if (idList.isEmpty()) { return List.of(); }
+        if (idList.isEmpty()) {
+            return List.of();
+        }
         List<Serializable> ids = idList.stream().map(EgonColaRepository::requireSerializableId).distinct().toList();
         return validateLoadedList(getBaseMapper().selectActiveByIds(ids));
     }
@@ -340,8 +351,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     @Override
-    public final List<Map<String, Object>> listMaps(IPage<? extends Map<String, Object>> page,
-                                              Wrapper<T> queryWrapper) {
+    public final List<Map<String, Object>> listMaps(IPage<? extends Map<String, Object>> page, Wrapper<T> queryWrapper) {
         requireTenantId();
         return getBaseMapper().selectMaps(requireMapPage(page), normalizeQueryWrapper(queryWrapper));
     }
@@ -377,10 +387,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     public final <V> List<V> listObjs(Wrapper<T> queryWrapper, Function<? super Object, V> mapper) {
         requireTenantId();
         Objects.requireNonNull(mapper, "mapper must not be null");
-        return getBaseMapper().selectObjs(normalizeQueryWrapper(queryWrapper)).stream()
-                .filter(Objects::nonNull)
-                .map(mapper)
-                .collect(Collectors.toList());
+        return getBaseMapper().selectObjs(normalizeQueryWrapper(queryWrapper)).stream().filter(Objects::nonNull).map(mapper).collect(Collectors.toList());
     }
 
     @Override
@@ -399,8 +406,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
 
     @Override
     public final Class<T> getEntityClass() {
-        @SuppressWarnings("unchecked")
-        Class<T> type = (Class<T>) GenericTypeUtils.resolveTypeArguments(getClass(), EgonColaRepository.class)[1];
+        @SuppressWarnings("unchecked") Class<T> type = (Class<T>) GenericTypeUtils.resolveTypeArguments(getClass(), EgonColaRepository.class)[1];
         return type;
     }
 
@@ -468,8 +474,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
             if (entity.getId() != null && !ids.add(entity.getId())) {
                 throw new IllegalArgumentException("BATCH_DUPLICATE_ID");
             }
-            validateBusiness(entity, operation == BatchOperation.UPDATE
-                    ? EgonColaModelValidationGroups.Operation.UPDATE : EgonColaModelValidationGroups.Operation.INSERT);
+            validateBusiness(entity, operation == BatchOperation.UPDATE ? EgonColaModelValidationGroups.Operation.UPDATE : EgonColaModelValidationGroups.Operation.INSERT);
         }
         return snapshot;
     }
@@ -478,7 +483,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         requireCollection(entities);
         checkedBatchSize(batchSize);
         Objects.requireNonNull(method, "method");
-        if (entities.isEmpty()) { return List.of(); }
+        if (entities.isEmpty()) {
+            return List.of();
+        }
         SqlSessionFactory factory = getSqlSessionFactory();
         ConnectionHolder transaction = requireTransaction(factory);
         try {
@@ -500,9 +507,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
                 if (entity.getId() != null && !ids.add(entity.getId())) {
                     throw new IllegalArgumentException("BATCH_DUPLICATE_ID");
                 }
-                validateBusiness(entity, command == SqlCommandType.INSERT ? EgonColaModelValidationGroups.Operation.INSERT
-                        : method.getStatementId().endsWith(".deleteVersionedById") || command == SqlCommandType.DELETE
-                        ? EgonColaModelValidationGroups.Operation.DELETE : EgonColaModelValidationGroups.Operation.UPDATE);
+                validateBusiness(entity, command == SqlCommandType.INSERT ? EgonColaModelValidationGroups.Operation.INSERT : method.getStatementId().endsWith(".deleteVersionedById") || command == SqlCommandType.DELETE ? EgonColaModelValidationGroups.Operation.DELETE : EgonColaModelValidationGroups.Operation.UPDATE);
             }
             List<BatchResult> results = new MybatisBatch<T>(factory, entities, batchSize).execute(method);
             int processed = 0;
@@ -540,10 +545,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     private static ConnectionHolder requireTransaction(SqlSessionFactory factory) {
         var environment = factory.getConfiguration().getEnvironment();
         Object resource = TransactionSynchronizationManager.getResource(environment.getDataSource());
-        if (!(environment.getTransactionFactory() instanceof SpringManagedTransactionFactory)
-                || !TransactionSynchronizationManager.isActualTransactionActive()
-                || !TransactionSynchronizationManager.isSynchronizationActive()
-                || !(resource instanceof ConnectionHolder holder)) {
+        if (!(environment.getTransactionFactory() instanceof SpringManagedTransactionFactory) || !TransactionSynchronizationManager.isActualTransactionActive() || !TransactionSynchronizationManager.isSynchronizationActive() || !(resource instanceof ConnectionHolder holder)) {
             throw new IllegalStateException("BATCH_TRANSACTION_REQUIRED");
         }
         return holder;
@@ -551,16 +553,22 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
 
     private static String requireUserSnapshot(EgonColaMetaObjectHandler handler) {
         String user = handler.getUserIdProvider().currentUserId();
-        if (user == null || user.isBlank()) { throw new IllegalStateException("USER_CONTEXT_MISSING"); }
+        if (user == null || user.isBlank()) {
+            throw new IllegalStateException("USER_CONTEXT_MISSING");
+        }
         return user;
     }
 
     private void requireCollection(Collection<?> values) {
-        if (values == null) { throw new IllegalArgumentException("collection must not be null"); }
+        if (values == null) {
+            throw new IllegalArgumentException("collection must not be null");
+        }
         if (values.size() > requireProperties().getBatch().getMaxCollectionSize()) {
             throw new IllegalArgumentException("BATCH_COLLECTION_SIZE_INVALID");
         }
-        if (values.stream().anyMatch(Objects::isNull)) { throw new IllegalArgumentException("collection must not contain null"); }
+        if (values.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("collection must not contain null");
+        }
     }
 
     private T validateLoaded(T entity) {
@@ -573,13 +581,13 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     private static void requireDeleteFill(boolean useFill) {
-        if (!useFill) { throw new IllegalArgumentException("DELETE_AUDIT_FILL_REQUIRED"); }
+        if (!useFill) {
+            throw new IllegalArgumentException("DELETE_AUDIT_FILL_REQUIRED");
+        }
     }
 
     private enum BatchOperation {
-        INSERT,
-        UPDATE,
-        UPSERT
+        INSERT, UPDATE, UPSERT
     }
 
     private int checkedBatchSize(int batchSize) {
@@ -601,9 +609,10 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         Long current = requireTenantId();
         if (!snapshot.equals(current)) {
             if (TransactionSynchronizationManager.isActualTransactionActive()) {
-                Object resource = TransactionSynchronizationManager.getResource(getSqlSessionFactory().getConfiguration()
-                        .getEnvironment().getDataSource());
-                if (resource instanceof ConnectionHolder holder) { holder.setRollbackOnly(); }
+                Object resource = TransactionSynchronizationManager.getResource(getSqlSessionFactory().getConfiguration().getEnvironment().getDataSource());
+                if (resource instanceof ConnectionHolder holder) {
+                    holder.setRollbackOnly();
+                }
             }
             throw new IllegalStateException("TENANT_CONTEXT_MISMATCH");
         }
@@ -617,7 +626,9 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     private static Serializable requireSerializableId(Serializable id) {
-        if (!(id instanceof Long value) || value <= 0) { throw new IllegalArgumentException("ID_MUST_BE_POSITIVE_LONG"); }
+        if (!(id instanceof Long value) || value <= 0) {
+            throw new IllegalArgumentException("ID_MUST_BE_POSITIVE_LONG");
+        }
         return id;
     }
 
@@ -655,13 +666,11 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     private EgonColaModelValidationUtils requireModelValidationUtils() {
-        return Objects.requireNonNull(getModelValidationUtils(),
-                "modelValidationUtils must not be null");
+        return Objects.requireNonNull(getModelValidationUtils(), "modelValidationUtils must not be null");
     }
 
     private EgonColaTenantIdProvider requireTenantIdProvider() {
-        return Objects.requireNonNull(getTenantIdProvider(),
-                "tenantIdProvider must not be null");
+        return Objects.requireNonNull(getTenantIdProvider(), "tenantIdProvider must not be null");
     }
 
     private EgonColaMybatisPlusProperties requireProperties() {

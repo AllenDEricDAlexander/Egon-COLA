@@ -42,9 +42,7 @@ import java.util.regex.Pattern;
 public final class EgonColaPostgreDdlRunner {
 
     private static final int MAX_SCRIPT_BYTES = 10 * 1024 * 1024;
-    private static final Pattern NONTRANSACTIONAL = Pattern.compile(
-            "(?is)(?:^|;)\\s*(?:BEGIN|START\\s+TRANSACTION|COMMIT|ROLLBACK|ABORT|END|PREPARE\\s+TRANSACTION|VACUUM|DISCARD|"
-                    + "(?:CREATE|DROP)\\s+(?:DATABASE|TABLESPACE)|ALTER\\s+SYSTEM)\\b|\\bCONCURRENTLY\\b");
+    private static final Pattern NONTRANSACTIONAL = Pattern.compile("(?is)(?:^|;)\\s*(?:BEGIN|START\\s+TRANSACTION|COMMIT|ROLLBACK|ABORT|END|PREPARE\\s+TRANSACTION|VACUUM|DISCARD|" + "(?:CREATE|DROP)\\s+(?:DATABASE|TABLESPACE)|ALTER\\s+SYSTEM)\\b|\\bCONCURRENTLY\\b");
 
     @Qualifier("egonColaValidationUtils")
     private final ValidationUtils validationUtils;
@@ -63,14 +61,12 @@ public final class EgonColaPostgreDdlRunner {
         }
         requireTimeout(lockTimeout);
         requireTimeout(statementTimeout);
-        List<EgonColaDdlTargetBO> ordered = targets.stream().map(validationUtils::validate)
-                .sorted(Comparator.comparing(EgonColaDdlTargetBO::alias).thenComparing(EgonColaDdlTargetBO::schema)).toList();
+        List<EgonColaDdlTargetBO> ordered = targets.stream().<EgonColaDdlTargetBO>map(validationUtils::validate).sorted(Comparator.comparing(EgonColaDdlTargetBO::alias).thenComparing(EgonColaDdlTargetBO::schema)).toList();
         Map<ScriptBO, byte[]> scripts = loadScripts(ordered);
         Set<String> names = new HashSet<>();
         Map<javax.sql.DataSource, Set<String>> sources = new IdentityHashMap<>();
         for (EgonColaDdlTargetBO target : ordered) {
-            if (!names.add(target.alias() + '.' + target.schema())
-                    || !sources.computeIfAbsent(target.dataSource(), ignored -> new HashSet<>()).add(target.schema())) {
+            if (!names.add(target.alias() + '.' + target.schema()) || !sources.computeIfAbsent(target.dataSource(), ignored -> new HashSet<>()).add(target.schema())) {
                 throw new IllegalArgumentException("DUPLICATE_DDL_TARGET");
             }
         }
@@ -150,8 +146,7 @@ public final class EgonColaPostgreDdlRunner {
                         committed = true;
                         status = StatusEnum.APPLIED;
                     }
-                    results.add(validationUtils.validate(new EgonColaDdlResult(target.alias(), target.schema(),
-                            script.version(), script.sha256(), status, elapsed(start))));
+                    results.add(validationUtils.validate(new EgonColaDdlResult(target.alias(), target.schema(), script.version(), script.sha256(), status, elapsed(start))));
                 }
                 if (!committed) {
                     connection.rollback(); // Release a read-only verification lock without a fake migration commit.
@@ -159,9 +154,7 @@ public final class EgonColaPostgreDdlRunner {
                 return results;
             } catch (SQLException | RuntimeException failure) {
                 rollback(connection, failure);
-                throw new IllegalStateException("DDL_TARGET_FAILED: " + target.alias() + '/' + target.schema()
-                        + " script=" + path + " SQLState=" + sqlState(failure) + " reason="
-                        + (failure instanceof IllegalStateException ? failure.getMessage() : failure.getClass().getSimpleName()), failure);
+                throw new IllegalStateException("DDL_TARGET_FAILED: " + target.alias() + '/' + target.schema() + " script=" + path + " SQLState=" + sqlState(failure) + " reason=" + (failure instanceof IllegalStateException ? failure.getMessage() : failure.getClass().getSimpleName()), failure);
             }
         } catch (SQLException failure) {
             throw new IllegalStateException("DDL_CONNECTION_FAILED: " + target.alias() + " SQLState=" + failure.getSQLState(), failure);
@@ -172,8 +165,7 @@ public final class EgonColaPostgreDdlRunner {
         if (!"PostgreSQL".equals(connection.getMetaData().getDatabaseProductName())) {
             throw new IllegalStateException("POSTGRESQL_REQUIRED");
         }
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT current_schema(), pg_is_in_recovery(), current_setting('transaction_read_only')::boolean")) {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT current_schema(), pg_is_in_recovery(), current_setting('transaction_read_only')::boolean")) {
             statement.setQueryTimeout((int) Math.max(1, statementTimeout.toSeconds()));
             try (ResultSet row = statement.executeQuery()) {
                 if (!row.next() || !target.schema().equals(row.getString(1))) {
@@ -187,9 +179,7 @@ public final class EgonColaPostgreDdlRunner {
     }
 
     private void configureAndLock(Connection connection, EgonColaDdlTargetBO target) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT set_config('lock_timeout', ?, true), set_config('statement_timeout', ?, true), "
-                        + "set_config('egon_migration.role', ?, true), set_config('search_path', ?, true)")) {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT set_config('lock_timeout', ?, true), set_config('statement_timeout', ?, true), " + "set_config('egon_migration.role', ?, true), set_config('search_path', ?, true)")) {
             statement.setString(1, lockTimeout.toMillis() + "ms");
             statement.setString(2, statementTimeout.toMillis() + "ms");
             statement.setString(3, target.role().name());
@@ -204,9 +194,7 @@ public final class EgonColaPostgreDdlRunner {
 
     private int installedPrefix(Connection connection, EgonColaDdlTargetBO target) throws SQLException {
         List<String> relations = new ArrayList<>();
-        try (PreparedStatement statement = connection.prepareStatement(
-                "SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace "
-                        + "WHERE n.nspname=? AND c.relkind IN ('r','p','v','m','S','f') ORDER BY c.relname")) {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace " + "WHERE n.nspname=? AND c.relkind IN ('r','p','v','m','S','f') ORDER BY c.relname")) {
             statement.setString(1, target.schema());
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
@@ -221,16 +209,14 @@ public final class EgonColaPostgreDdlRunner {
             return 0;
         }
         int count = 0;
-        try (PreparedStatement statement = connection.prepareStatement("SELECT script,type,version,checksum,route_fingerprint,tenant_id FROM "
-                + target.getDdlGenerator().getDdlHistory() + " ORDER BY version")) {
+        try (PreparedStatement statement = connection.prepareStatement("SELECT script,type,version,checksum,route_fingerprint,tenant_id FROM " + target.getDdlGenerator().getDdlHistory() + " ORDER BY version")) {
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
                     if (count >= target.manifest().scripts().size()) {
                         throw new IllegalStateException("MANIFEST_PREFIX_MISMATCH");
                     }
                     ScriptBO script = target.manifest().scripts().get(count);
-                    if (!script.path().equals(rows.getString(1)) || !"SQL".equals(rows.getString(2))
-                            || !script.version().equals(rows.getString(3)) || rows.getLong(6) != 0) {
+                    if (!script.path().equals(rows.getString(1)) || !"SQL".equals(rows.getString(2)) || !script.version().equals(rows.getString(3)) || rows.getLong(6) != 0) {
                         throw new IllegalStateException("MANIFEST_PREFIX_MISMATCH");
                     }
                     if (!script.sha256().equals(rows.getString(4))) {
@@ -250,9 +236,7 @@ public final class EgonColaPostgreDdlRunner {
     }
 
     private void insertHistory(Connection connection, EgonColaDdlTargetBO target, ScriptBO script, Duration elapsed) throws SQLException {
-        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + target.getDdlGenerator().getDdlHistory()
-                + " (tenant_id,script,type,version,checksum,installed_on,execution_ms,route_fingerprint) "
-                + "VALUES (0,?,?,?,?,CURRENT_TIMESTAMP,?,?)")) {
+        try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + target.getDdlGenerator().getDdlHistory() + " (tenant_id,script,type,version,checksum,installed_on,execution_ms,route_fingerprint) " + "VALUES (0,?,?,?,?,CURRENT_TIMESTAMP,?,?)")) {
             statement.setString(1, script.path());
             statement.setString(2, "SQL");
             statement.setString(3, script.version());
@@ -328,12 +312,19 @@ public final class EgonColaPostgreDdlRunner {
             char current = sql.charAt(index);
             char next = index + 1 < sql.length() ? sql.charAt(index + 1) : 0;
             if (lineComment) {
-                if (current == '\n') { lineComment = false; }
+                if (current == '\n') {
+                    lineComment = false;
+                }
                 continue;
             }
             if (blockDepth > 0) {
-                if (current == '/' && next == '*') { blockDepth++; index++; }
-                else if (current == '*' && next == '/') { blockDepth--; index++; }
+                if (current == '/' && next == '*') {
+                    blockDepth++;
+                    index++;
+                } else if (current == '*' && next == '/') {
+                    blockDepth--;
+                    index++;
+                }
                 continue;
             }
             if (dollarQuote != null) {
@@ -345,16 +336,30 @@ public final class EgonColaPostgreDdlRunner {
             }
             if (quote != 0) {
                 if (current == quote) {
-                    if (next == quote) { index++; }
-                    else { quote = 0; }
+                    if (next == quote) {
+                        index++;
+                    } else {
+                        quote = 0;
+                    }
                 } else if (current == '\\' && quote == '\'' && next != 0) {
                     index++;
                 }
                 continue;
             }
-            if (current == '-' && next == '-') { lineComment = true; index++; continue; }
-            if (current == '/' && next == '*') { blockDepth = 1; index++; continue; }
-            if (current == '\'' || current == '"') { quote = current; continue; }
+            if (current == '-' && next == '-') {
+                lineComment = true;
+                index++;
+                continue;
+            }
+            if (current == '/' && next == '*') {
+                blockDepth = 1;
+                index++;
+                continue;
+            }
+            if (current == '\'' || current == '"') {
+                quote = current;
+                continue;
+            }
             if (current == '$' && (index == 0 || !isPostgreSqlIdentifierPart(sql.charAt(index - 1)))) {
                 int delimiterEnd = dollarDelimiterEnd(sql, index);
                 if (delimiterEnd >= 0) {
@@ -376,22 +381,31 @@ public final class EgonColaPostgreDdlRunner {
     }
 
     private static boolean containsSql(String statement) {
-        for (int index = 0; index < statement.length();) {
+        for (int index = 0; index < statement.length(); ) {
             char current = statement.charAt(index);
             char next = index + 1 < statement.length() ? statement.charAt(index + 1) : 0;
-            if (Character.isWhitespace(current) || current == ';') { index++; }
-            else if (current == '-' && next == '-') {
+            if (Character.isWhitespace(current) || current == ';') {
+                index++;
+            } else if (current == '-' && next == '-') {
                 int end = statement.indexOf('\n', index + 2);
                 index = end < 0 ? statement.length() : end + 1;
             } else if (current == '/' && next == '*') {
                 int depth = 1;
                 index += 2;
                 while (index < statement.length() && depth > 0) {
-                    if (statement.startsWith("/*", index)) { depth++; index += 2; }
-                    else if (statement.startsWith("*/", index)) { depth--; index += 2; }
-                    else { index++; }
+                    if (statement.startsWith("/*", index)) {
+                        depth++;
+                        index += 2;
+                    } else if (statement.startsWith("*/", index)) {
+                        depth--;
+                        index += 2;
+                    } else {
+                        index++;
+                    }
                 }
-            } else { return true; }
+            } else {
+                return true;
+            }
         }
         return false;
     }
@@ -407,12 +421,20 @@ public final class EgonColaPostgreDdlRunner {
 
     private static int dollarDelimiterEnd(String sql, int start) {
         int index = start + 1;
-        if (index < sql.length() && sql.charAt(index) == '$') { return index; }
-        if (index >= sql.length() || !isPostgreSqlIdentifierStart(sql.charAt(index))) { return -1; }
+        if (index < sql.length() && sql.charAt(index) == '$') {
+            return index;
+        }
+        if (index >= sql.length() || !isPostgreSqlIdentifierStart(sql.charAt(index))) {
+            return -1;
+        }
         for (index++; index < sql.length(); index++) {
             char current = sql.charAt(index);
-            if (current == '$') { return index; }
-            if (!isPostgreSqlIdentifierPart(current)) { return -1; }
+            if (current == '$') {
+                return index;
+            }
+            if (!isPostgreSqlIdentifierPart(current)) {
+                return -1;
+            }
         }
         return -1;
     }
@@ -427,14 +449,16 @@ public final class EgonColaPostgreDdlRunner {
 
     private static void addStatement(List<String> statements, String source) {
         String command = source.trim();
-        if (!command.isEmpty() && containsSql(command)) { statements.add(command); }
+        if (!command.isEmpty() && containsSql(command)) {
+            statements.add(command);
+        }
     }
 
     private static void verifyTransactionalScript(String sql) {
         // Mask quoted bodies and comments before looking for top-level transaction control. PostgreSQL
         // itself prohibits transaction control inside a DO body executed within our explicit transaction.
         StringBuilder code = new StringBuilder();
-        for (int i = 0; i < sql.length();) {
+        for (int i = 0; i < sql.length(); ) {
             char current = sql.charAt(i);
             if (sql.startsWith("--", i)) {
                 int end = sql.indexOf('\n', i + 2);
@@ -444,28 +468,45 @@ public final class EgonColaPostgreDdlRunner {
                 int depth = 1;
                 i += 2;
                 while (i < sql.length() && depth > 0) {
-                    if (sql.startsWith("/*", i)) { depth++; i += 2; }
-                    else if (sql.startsWith("*/", i)) { depth--; i += 2; }
-                    else { i++; }
+                    if (sql.startsWith("/*", i)) {
+                        depth++;
+                        i += 2;
+                    } else if (sql.startsWith("*/", i)) {
+                        depth--;
+                        i += 2;
+                    } else {
+                        i++;
+                    }
                 }
-                if (depth != 0) { throw new IllegalArgumentException("UNTERMINATED_SQL_COMMENT"); }
+                if (depth != 0) {
+                    throw new IllegalArgumentException("UNTERMINATED_SQL_COMMENT");
+                }
                 code.append(' ');
             } else if (current == '\'' || current == '"') {
                 char quote = current;
                 boolean closed = false;
                 for (i++; i < sql.length(); i++) {
                     if (sql.charAt(i) == quote) {
-                        if (i + 1 < sql.length() && sql.charAt(i + 1) == quote) { i++; }
-                        else { i++; closed = true; break; }
+                        if (i + 1 < sql.length() && sql.charAt(i + 1) == quote) {
+                            i++;
+                        } else {
+                            i++;
+                            closed = true;
+                            break;
+                        }
                     }
                 }
-                if (!closed) { throw new IllegalArgumentException("UNTERMINATED_SQL_LITERAL"); }
+                if (!closed) {
+                    throw new IllegalArgumentException("UNTERMINATED_SQL_LITERAL");
+                }
                 code.append(' ');
             } else if (current == '$' && sql.substring(i).matches("(?s)^\\$(?:[a-zA-Z_][a-zA-Z0-9_]*)?\\$.*")) {
                 int delimiterEnd = sql.indexOf('$', i + 1);
                 String delimiter = sql.substring(i, delimiterEnd + 1);
                 int end = sql.indexOf(delimiter, delimiterEnd + 1);
-                if (end < 0) { throw new IllegalArgumentException("UNTERMINATED_SQL_BODY"); }
+                if (end < 0) {
+                    throw new IllegalArgumentException("UNTERMINATED_SQL_BODY");
+                }
                 i = end + delimiter.length();
                 code.append(' ');
             } else {

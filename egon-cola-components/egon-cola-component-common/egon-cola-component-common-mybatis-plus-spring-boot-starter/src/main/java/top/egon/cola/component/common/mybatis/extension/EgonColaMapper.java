@@ -1,8 +1,9 @@
 package top.egon.cola.component.common.mybatis.extension;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
-import top.egon.cola.component.common.mybatis.model.EgonModel;
 import org.apache.ibatis.annotations.Param;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
+
 import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
@@ -14,6 +15,8 @@ import java.util.List;
  */
 public interface EgonColaMapper<T extends EgonModel<T>> extends BaseMapper<T> {
     T selectActiveById(@Param("id") Serializable id);
+
     List<T> selectActiveByIds(@Param("ids") Collection<? extends Serializable> ids);
+
     int deleteVersionedById(@Param("et") T entity);
 }

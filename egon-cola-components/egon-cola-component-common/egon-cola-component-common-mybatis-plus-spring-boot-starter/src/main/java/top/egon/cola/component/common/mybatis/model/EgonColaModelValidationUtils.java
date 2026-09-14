@@ -24,13 +24,12 @@ public final class EgonColaModelValidationUtils {
     @Qualifier("egonColaMdcTenantIdProvider")
     private final EgonColaTenantIdProvider tenantIdProvider;
 
-    public <M extends EgonModel<M>> M validateBusiness(
+    public <M extends EgonModel<M>> void validateBusiness(
             M model, EgonColaModelValidationGroups.Operation operation) {
         M checkedModel = requireModel(model);
         validateMetadataOwnership(checkedModel.getClass());
         EgonColaModelValidationGroups.Operation checkedOperation = requireOperation(operation);
         validationUtils.validate(checkedModel, Default.class, checkedOperation.group());
-        return checkedModel;
     }
 
     public <M extends EgonModel<M>> M validate(

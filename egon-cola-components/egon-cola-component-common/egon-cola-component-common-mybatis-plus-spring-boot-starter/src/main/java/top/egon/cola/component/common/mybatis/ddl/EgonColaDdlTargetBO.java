@@ -17,18 +17,14 @@ import java.util.function.Consumer;
 /**
  * Physical initialization target. An ordinary value, deliberately not an IDdl Spring bean.
  */
-public record EgonColaDdlTargetBO(
-        @NotBlank @Pattern(regexp = "[a-zA-Z_][a-zA-Z0-9_-]{0,62}") String alias,
-        @NotBlank @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}") String schema,
-        @NotNull RoleEnum role,
-        @JsonIgnore @NotNull DataSource dataSource,
-        @NotNull @Valid EgonColaDdlManifestBO manifest,
-        @NotBlank @Pattern(regexp = "[0-9a-f]{64}") String routeFingerprint) implements IDdl {
+public record EgonColaDdlTargetBO(@NotBlank @Pattern(regexp = "[a-zA-Z_][a-zA-Z0-9_-]{0,62}") String alias,
+                                  @NotBlank @Pattern(regexp = "[a-z_][a-z0-9_]{0,62}") String schema,
+                                  @NotNull RoleEnum role, @JsonIgnore @NotNull DataSource dataSource,
+                                  @NotNull @Valid EgonColaDdlManifestBO manifest,
+                                  @NotBlank @Pattern(regexp = "[0-9a-f]{64}") String routeFingerprint) implements IDdl {
 
     public EgonColaDdlTargetBO {
-        if (alias == null || !alias.matches("[a-zA-Z_][a-zA-Z0-9_-]{0,62}")
-                || schema == null || !schema.matches("[a-z_][a-z0-9_]{0,62}")
-                || routeFingerprint == null || !routeFingerprint.matches("[0-9a-f]{64}")) {
+        if (alias == null || !alias.matches("[a-zA-Z_][a-zA-Z0-9_-]{0,62}") || schema == null || !schema.matches("[a-z_][a-z0-9_]{0,62}") || routeFingerprint == null || !routeFingerprint.matches("[0-9a-f]{64}")) {
             throw new IllegalArgumentException("Invalid DDL target identifier or routing fingerprint");
         }
         Objects.requireNonNull(role, "role");
@@ -55,8 +51,7 @@ public record EgonColaDdlTargetBO(
 
     @Override
     public String toString() {
-        return "EgonColaDdlTargetBO[alias=" + alias + ", schema=" + schema + ", role=" + role
-                + ", family=" + manifest.family() + ", routeFingerprint=" + routeFingerprint + "]";
+        return "EgonColaDdlTargetBO[alias=" + alias + ", schema=" + schema + ", role=" + role + ", family=" + manifest.family() + ", routeFingerprint=" + routeFingerprint + "]";
     }
 
     public enum RoleEnum {

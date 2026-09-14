@@ -38,7 +38,6 @@ import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
 import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
-import top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
@@ -251,14 +250,6 @@ public class EgonColaMybatisPlusAutoConfiguration {
     public DynamicTableNameInnerInterceptor egonColaDynamicTableNameInnerInterceptor(EgonColaMybatisPlusProperties properties) {
         Map<String, String> tables = Map.copyOf(properties.getDynamicTableName().getTables());
         return new DynamicTableNameInnerInterceptor((sql, table) -> tables.getOrDefault(table, table));
-    }
-
-    @Bean("egonColaDataChangeRecorderInnerInterceptor")
-    @Order(420)
-    @Profile("dev & !prod")
-    @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".data-change-recorder", name = "enabled", havingValue = "true")
-    public EgonColaDataChangeRecorderInnerInterceptor egonColaDataChangeRecorderInnerInterceptor() {
-        return new EgonColaDataChangeRecorderInnerInterceptor();
     }
 
     @Bean("egonColaIllegalSqlInnerInterceptor")

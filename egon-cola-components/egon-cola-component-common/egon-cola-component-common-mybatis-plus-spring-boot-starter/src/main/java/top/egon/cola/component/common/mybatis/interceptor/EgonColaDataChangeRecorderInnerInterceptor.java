@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 /** Development-only prepare-time diagnostics; this is not a record of a committed transaction. */
 @Slf4j(topic = "top.egon.cola.component.common.mybatis.change-summary")
 @SuppressWarnings("deprecation")
+@Deprecated
 public final class EgonColaDataChangeRecorderInnerInterceptor extends DataChangeRecorderInnerInterceptor {
 
     @Override
