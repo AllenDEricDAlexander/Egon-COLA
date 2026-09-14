@@ -16,9 +16,9 @@ import java.util.stream.Collectors;
 /**
  * Shared PRIMARY-group derivation for table-kind strategies.
  */
-final class EgonColaShardingStrategyNodes {
+public final class EgonColaShardingStrategyNodes {
 
-    static final long SEED = 0x9e3779b97f4a7c15L;
+    public static final long SEED = 0x9e3779b97f4a7c15L;
 
     private EgonColaShardingStrategyNodes() {
     }
@@ -42,8 +42,8 @@ final class EgonColaShardingStrategyNodes {
         }
     }
 
-    static EgonColaRoutingProfileBO simple(String logicalTable, TableKindEnum kind,
-                                           List<EgonColaPhysicalTargetBO> nodes) {
+    public static EgonColaRoutingProfileBO simple(String logicalTable, TableKindEnum kind,
+                                                  List<EgonColaPhysicalTargetBO> nodes) {
         return new EgonColaRoutingProfileBO(
                 logicalTable,
                 kind,
