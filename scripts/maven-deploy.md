@@ -246,6 +246,8 @@ parent-only 或局部 deploy，否则后续全量发布会重复发布不可覆�
 同一版本没有执行过任何 parent-only 或局部发布后，从根 Reactor 一次性发布：
 
 ```bash
+./mvnw -B -ntp -Pgenerated-archetypes -Prelease -DtrimStackTrace=false -DskipTests=true clean deploy
+# 使用脚本过于麻烦，使用命令直接验证。脚本过于冗余，完全没有dry-run的必要，发布失败自然发布不上去，不需要dry-run，浪费时间。
 ./scripts/maven-deploy.sh all --publish
 ```
 

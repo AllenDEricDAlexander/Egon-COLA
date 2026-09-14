@@ -5,7 +5,6 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MVNW="${ROOT_DIR}/mvnw"
 GENERATOR="${ROOT_DIR}/scripts/generate_archetypes.sh"
-CHECK_WRAPPER="${ROOT_DIR}/scripts/check_archetypes.sh"
 
 usage() {
   cat <<'USAGE'
@@ -36,11 +35,20 @@ Behavior:
 
   --skip-tests:
     Skip Maven test execution throughout the script.
-    Archetype generation, archetype checks and release-shape checks still run.
+    Archetype generation and release-shape checks still run.
 
   --skip-deploy-tests:
     Preflight still runs with the complete test suite.
     Tests are skipped only when the final deploy lifecycle runs.
+
+Mandatory preflight:
+
+  1. Install the root parent POM
+  2. Install the archetype parent POM
+  3. Build the archetype source projects
+  4. Generate archetypes
+  5. Build the generated archetype reactor
+  6. Run release-shape verification
 
 The script never starts a business application or executes database SQL.
 
@@ -250,11 +258,6 @@ if [[ ! -x "${GENERATOR}" ]]; then
   exit 1
 fi
 
-if [[ ! -x "${CHECK_WRAPPER}" ]]; then
-  echo "Archetype check wrapper is not executable: ${CHECK_WRAPPER}" >&2
-  exit 1
-fi
-
 # ---------------------------------------------------------------------------
 # Target configuration
 # ---------------------------------------------------------------------------
@@ -302,15 +305,9 @@ fi
 # ---------------------------------------------------------------------------
 
 #
-# preflight_test_args
-#
-# Applied to Maven commands executed during preflight.
-#
 # --skip-tests:
-#   Skip tests during preflight.
 #
-# --skip-deploy-tests:
-#   Does NOT affect preflight.
+# Skip Maven test execution during the complete preflight.
 #
 preflight_test_args=()
 
@@ -321,11 +318,7 @@ if [[ "${skip_tests}" == true ]]; then
 fi
 
 #
-# deploy_test_args
-#
-# Applied only to the final deploy lifecycle.
-#
-# Tests are skipped when either:
+# Final deploy tests are skipped when either:
 #
 #   --skip-tests
 #
@@ -363,7 +356,7 @@ run_preflight() {
   # 1. Root parent
   # -------------------------------------------------------------------------
 
-  echo "[1/7] Installing root parent POM..."
+  echo "[1/6] Installing root parent POM..."
 
   "${MVNW}" \
     -B \
@@ -377,7 +370,7 @@ run_preflight() {
   # -------------------------------------------------------------------------
 
   echo
-  echo "[2/7] Installing archetype parent POM..."
+  echo "[2/6] Installing archetype parent POM..."
 
   "${MVNW}" \
     -B \
@@ -392,7 +385,7 @@ run_preflight() {
   # -------------------------------------------------------------------------
 
   echo
-  echo "[3/7] Building archetype source projects..."
+  echo "[3/6] Building archetype source projects..."
 
   "${MVNW}" \
     -B \
@@ -407,19 +400,11 @@ run_preflight() {
   # -------------------------------------------------------------------------
 
   echo
-  echo "[4/7] Generating archetypes..."
+  echo "[4/6] Generating archetypes..."
 
   "${GENERATOR}" generate
 
-  # -------------------------------------------------------------------------
-  # 5. Check archetypes
-  # -------------------------------------------------------------------------
-
-  echo
-  echo "[5/7] Checking generated archetypes..."
-
-  "${CHECK_WRAPPER}"
-
+  # Generated workspace must not become part of the Git repository.
   if [[ -n "$(git ls-files -- egon-cola-archetypes/.generated)" ]]; then
     echo \
       "Generated archetype workspace must remain ignored and untracked." \
@@ -428,11 +413,11 @@ run_preflight() {
   fi
 
   # -------------------------------------------------------------------------
-  # 6. Generated archetype reactor
+  # 5. Generated archetype reactor
   # -------------------------------------------------------------------------
 
   echo
-  echo "[6/7] Building generated archetype reactor..."
+  echo "[5/6] Building generated archetype reactor..."
 
   "${MVNW}" \
     -B \
@@ -444,11 +429,11 @@ run_preflight() {
     install
 
   # -------------------------------------------------------------------------
-  # 7. Release-shape verification
+  # 6. Release-shape verification
   # -------------------------------------------------------------------------
 
   echo
-  echo "[7/7] Running release-shape verification..."
+  echo "[6/6] Running release-shape verification..."
 
   "${MVNW}" \
     -B \

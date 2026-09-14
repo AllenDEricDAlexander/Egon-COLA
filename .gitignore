@@ -34,4 +34,5 @@ ${project.build.directory}
 .worktrees/
 .runtime/
 # Archetype two-stage derived workspace; rebuild with scripts/generate_archetypes.sh
+egon-cola-archetypes/.generated.*/
 egon-cola-archetypes/.generated/
