@@ -1,1 +1,2 @@
 top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration
+top.egon.cola.component.common.mybatis.autoconfigure.EgonColaShardingAutoConfiguration

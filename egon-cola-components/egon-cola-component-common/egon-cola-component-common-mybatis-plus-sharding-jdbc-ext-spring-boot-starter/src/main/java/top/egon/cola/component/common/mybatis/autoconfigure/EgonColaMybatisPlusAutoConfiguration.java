@@ -3,7 +3,6 @@ package top.egon.cola.component.common.mybatis.autoconfigure;
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusInnerInterceptorAutoConfiguration;
-import com.baomidou.mybatisplus.autoconfigure.MybatisPlusProperties;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
@@ -44,17 +43,11 @@ import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGua
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
-import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
-import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy;
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.time.Clock;
-import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 
@@ -191,35 +184,6 @@ public class EgonColaMybatisPlusAutoConfiguration {
     @Bean("egonColaTwoLevelRouteStrategy")
     public EgonColaTwoLevelRouteStrategy egonColaTwoLevelRouteStrategy(@Qualifier("egonColaValidationUtils") ValidationUtils validation) {
         return new EgonColaTwoLevelRouteStrategy(validation);
-    }
-
-    @Bean("egonColaRoutingProfiles")
-    @ConditionalOnMissingBean(name = "egonColaRoutingProfiles")
-    public Map<String, EgonColaRoutingProfileBO> egonColaRoutingProfiles() {
-        // Sharding hosts expose the immutable map produced from their one typed SS YAML policy.
-        return Map.of();
-    }
-
-    @Bean("egonColaWriteTargetResolver")
-    @ConditionalOnMissingBean(EgonColaWriteTargetResolver.class)
-    public EgonColaWriteTargetResolver egonColaWriteTargetResolver(@Qualifier("egonColaValidationUtils") ValidationUtils validation,
-                                                                   ObjectProvider<MybatisPlusProperties> mapperProperties,
-                                                                   EgonColaMybatisPlusProperties properties) {
-        MybatisPlusProperties mapper = mapperProperties.getIfAvailable();
-        String configuredSchema = mapper == null ? null : mapper.getGlobalConfig().getDbConfig().getSchema();
-        String schema = configuredSchema == null || configuredSchema.isBlank() ? "public" : configuredSchema;
-        return query -> {
-            validation.validate(query);
-            String table = properties.getDynamicTableName().isEnabled()
-                    ? properties.getDynamicTableName().getTables().getOrDefault(query.logicalTable(), query.logicalTable()) : query.logicalTable();
-            try {
-                String fingerprint = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                        .digest(("plain-v1|" + schema + '|' + table).getBytes(StandardCharsets.UTF_8)));
-                return new EgonColaRouteResult(List.of(new EgonColaPhysicalTargetBO("plain", schema, table)), fingerprint);
-            } catch (NoSuchAlgorithmException failure) {
-                throw new IllegalStateException("JDK must provide SHA-256", failure);
-            }
-        };
     }
 
     @Bean("egonColaPostgreDdlRunner")

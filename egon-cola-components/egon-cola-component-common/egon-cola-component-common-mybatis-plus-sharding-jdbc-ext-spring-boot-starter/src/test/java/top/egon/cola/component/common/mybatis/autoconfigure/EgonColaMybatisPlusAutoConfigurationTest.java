@@ -34,6 +34,7 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.Clock;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,7 +52,9 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     @Test
     void bootMetadataRegistersOnlyTheEgonColaAutoConfiguration() {
         assertThat(ImportCandidates.load(AutoConfiguration.class, getClass().getClassLoader()))
-                .contains(EgonColaMybatisPlusAutoConfiguration.class.getName());
+                .contains(
+                        EgonColaMybatisPlusAutoConfiguration.class.getName(),
+                        EgonColaShardingAutoConfiguration.class.getName());
     }
 
     @Test
@@ -192,6 +195,12 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     void missingOrAmbiguousDistributedIdGeneratorIsNotReplacedByAnMpDefault() {
         new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(EgonColaMybatisPlusAutoConfiguration.class))
                 .withUserConfiguration(SafeOuterConfiguration.class)
+                .withBean("egonColaRoutingProfiles", Map.class, Map::of)
+                .withBean("egonColaWriteTargetResolver",
+                        top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver.class,
+                        () -> query -> {
+                            throw new IllegalStateException("SHARDING_REQUIRED");
+                        })
                 .withBean(Validator.class, VALIDATOR_FACTORY::getValidator).run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasRootCauseMessage("ID_GENERATOR_BEAN_MISSING");
@@ -340,7 +349,14 @@ class EgonColaMybatisPlusAutoConfigurationTest {
 
     private ApplicationContextRunner runnerWithoutValidator() {
         return new ApplicationContextRunner()
+                .withAllowBeanDefinitionOverriding(true)
                 .withBean("snowflakeIdGenerator", LongIdGenerator.class, () -> () -> 1001L)
+                .withBean("egonColaRoutingProfiles", Map.class, Map::of)
+                .withBean("egonColaWriteTargetResolver",
+                        top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver.class,
+                        () -> query -> {
+                            throw new IllegalStateException("SHARDING_REQUIRED");
+                        })
                 .withConfiguration(AutoConfigurations.of(EgonColaMybatisPlusAutoConfiguration.class));
     }
 
