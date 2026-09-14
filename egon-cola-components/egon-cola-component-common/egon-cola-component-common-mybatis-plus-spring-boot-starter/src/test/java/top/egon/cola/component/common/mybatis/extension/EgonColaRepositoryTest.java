@@ -3,12 +3,19 @@ package top.egon.cola.component.common.mybatis.extension;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+import lombok.NoArgsConstructor;
+import lombok.experimental.Accessors;
+import lombok.experimental.SuperBuilder;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
+import top.egon.cola.component.common.mybatis.model.EgonModel;
 import top.egon.cola.component.common.mybatis.support.TestBusinessMapper;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
 import top.egon.cola.component.common.mybatis.support.TestBusinessRepository;
@@ -18,8 +25,14 @@ import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
-import static org.assertj.core.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 class EgonColaRepositoryTest {
 
@@ -40,7 +53,9 @@ class EgonColaRepositoryTest {
     }
 
     @AfterEach
-    void close() { validators.close(); }
+    void close() {
+        validators.close();
+    }
 
     @Test
     void saveAndUpdateValidateBeforeMapperCalls() {
@@ -111,9 +126,15 @@ class EgonColaRepositoryTest {
                     new EgonColaModelValidationUtils(new ValidationUtils(validators.getValidator()), tenant),
                     tenant, new EgonColaMybatisPlusProperties()) {
                 @Override
-                protected org.apache.ibatis.session.SqlSessionFactory getSqlSessionFactory() { return factory; }
+                protected org.apache.ibatis.session.SqlSessionFactory getSqlSessionFactory() {
+                    return factory;
+                }
+
                 @Override
-                public Class<TestBusinessMapper> getMapperClass() { return TestBusinessMapper.class; }
+                public Class<TestBusinessMapper> getMapperClass() {
+                    return TestBusinessMapper.class;
+                }
+
                 List<org.apache.ibatis.executor.BatchResult> execute(TestBusinessModel entity) {
                     return executeMybatisBatch(List.of(entity), 1, new com.baomidou.mybatisplus.core.batch.BatchMethod<>(id));
                 }
@@ -164,11 +185,23 @@ class EgonColaRepositoryTest {
     }
 
     // Deliberately malformed PO fixtures verify rejection before persistence.
-    static class ShadowModelPO extends top.egon.cola.component.common.mybatis.model.EgonModel<ShadowModelPO> {
+    @EqualsAndHashCode(callSuper = true)
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @SuperBuilder
+    static class ShadowModelPO extends EgonModel<ShadowModelPO> {
         private Long version;
     }
 
-    static class ShadowColumnPO extends top.egon.cola.component.common.mybatis.model.EgonModel<ShadowColumnPO> {
+    @EqualsAndHashCode(callSuper = true)
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @SuperBuilder
+    static class ShadowColumnPO extends EgonModel<ShadowColumnPO> {
         @com.baomidou.mybatisplus.annotation.TableField("tenant_id")
         private Long otherTenant;
     }
