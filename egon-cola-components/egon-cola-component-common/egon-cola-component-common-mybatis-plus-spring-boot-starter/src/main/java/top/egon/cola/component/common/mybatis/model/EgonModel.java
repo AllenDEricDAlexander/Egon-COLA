@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 
 /**
  * Common persistence fields for Egon COLA repositories; entities perform no persistence operations.
- *
+ * We did not choose to implement 'extends Model<M>' here, and abandoned the AR mode
  * @param <M> concrete self type retained for repository generic compatibility
  */
 @Data

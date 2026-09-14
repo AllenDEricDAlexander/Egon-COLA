@@ -1,50 +1,50 @@
 package top.egon.cola.component.common.mybatis.extension;
 
+import com.baomidou.mybatisplus.core.batch.BatchMethod;
+import com.baomidou.mybatisplus.core.batch.MybatisBatch;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.core.toolkit.Constants;
+import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.core.toolkit.reflect.GenericTypeUtils;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.kotlin.KtQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.kotlin.KtUpdateChainWrapper;
-import com.baomidou.mybatisplus.extension.repository.AbstractRepository;
-import com.baomidou.mybatisplus.core.batch.MybatisBatch;
-import com.baomidou.mybatisplus.core.batch.BatchMethod;
-import com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils;
-import com.baomidou.mybatisplus.core.toolkit.Constants;
-import com.baomidou.mybatisplus.core.toolkit.reflect.GenericTypeUtils;
+import com.baomidou.mybatisplus.extension.repository.CrudRepository;
+import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.BatchResult;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.springframework.jdbc.datasource.ConnectionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
-import lombok.extern.slf4j.Slf4j;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.Set;
-import java.sql.Statement;
-import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
 
 import java.io.Serializable;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -57,7 +57,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends EgonModel<T>>
-        extends AbstractRepository<M, T> implements EgonColaIRepository<T> {
+        extends CrudRepository<M, T> implements EgonColaIRepository<T> {
 
     protected abstract EgonColaModelValidationUtils getModelValidationUtils();
 
