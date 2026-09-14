@@ -52,21 +52,27 @@ class LightPersistenceArchitectureTest {
         assertEquals(8, count(javaFiles, "PO.java"));
         assertEquals(8, count(javaFiles, "DAO.java"));
         assertEquals(5, count(javaFiles, "DomainServiceImpl.java"));
+        assertFalse(source.contains("class ShardingDataSourceBootstrapper"));
+        assertFalse(source.contains("YamlShardingSphereDataSourceFactory"));
+        String pom = Files.readString(Path.of("pom.xml"), StandardCharsets.UTF_8);
+        assertTrue(pom.contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter"));
+        assertFalse(pom.contains("shardingsphere-jdbc"));
+        assertFalse(Files.exists(Path.of("src/main/resources/datasource/sharding.yml")));
+        assertFalse(Files.exists(Path.of("src/main/resources/sharding/shardingsphere-sharding.yml")));
+        assertTrue(Files.exists(Path.of("src/main/resources/egon-mybatis-plus-sharding.yml")));
     }
 
     @Test
     void generatedShardingConfigurationUsesTenantRouting() throws IOException {
-        String sharding = read(Path.of("src/main/resources/sharding/shardingsphere-sharding.yml"));
-        String readwrite = read(
-                Path.of("src/main/resources/sharding/shardingsphere-sharding-readwrite.yml"));
-
-        assertTrue(sharding.contains("shardingColumn: tenant_id"));
-        assertTrue(readwrite.contains("shardingColumn: tenant_id"));
+        String sharding = read(Path.of("src/main/resources/egon-mybatis-plus-sharding.yml"));
+        assertTrue(sharding.contains("mybatis-plus:"));
+        assertTrue(sharding.contains("sharding:"));
+        assertTrue(sharding.contains("STANDARD_TENANT_ID"));
+        assertTrue(sharding.contains("tenant_id"));
+        assertTrue(sharding.contains("type: SINGLE"));
+        assertTrue(sharding.contains("transaction-default-type: LOCAL"));
         assertFalse(sharding.contains("UuidV7BucketShardingAlgorithm"));
-        assertFalse(readwrite.contains("UuidV7BucketShardingAlgorithm"));
-        assertTrue(sharding.contains("!SINGLE"));
-        assertTrue(readwrite.contains("!SINGLE"));
-        assertTrue(readwrite.contains("defaultType: LOCAL"));
+        assertFalse(sharding.contains("datasource/sharding.yml"));
     }
 
     private static long count(List<Path> paths, String suffix) {
