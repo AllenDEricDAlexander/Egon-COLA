@@ -19,14 +19,33 @@ Targets:
 Options:
   --dry-run                         Run the mandatory preflight only (default)
   --publish                         Run the Maven deploy lifecycle
-  --skip-tests                      Add -DskipTests only to the final deploy after preflight
+
+  --skip-tests                      Skip Maven test execution in both preflight
+                                    and final deploy
+
+  --skip-deploy-tests               Run the complete preflight with tests, but
+                                    skip test execution during the final deploy
+
   -h, --help                        Show this help
 
-The script always runs the source install, archetype generation/check, full
-archetype integration tests, and a no-signature release-shape preflight before
-the optional final deploy. It never starts a business application or executes
-database SQL. A real publish is opt-in through --publish; Central production
-publishing is documented for the all target only.
+Behavior:
+
+  Default:
+    Run the complete mandatory preflight with tests.
+    No deploy is performed unless --publish is specified.
+
+  --skip-tests:
+    Skip Maven test execution throughout the script.
+    Archetype generation, archetype checks and release-shape checks still run.
+
+  --skip-deploy-tests:
+    Preflight still runs with the complete test suite.
+    Tests are skipped only when the final deploy lifecycle runs.
+
+The script never starts a business application or executes database SQL.
+
+A real publish is opt-in through --publish.
+Central production publishing is supported for the all target only.
 USAGE
 }
 
@@ -36,49 +55,190 @@ list_targets() {
     archetypes
 }
 
+# ---------------------------------------------------------------------------
+# Generated archetype definitions
+# ---------------------------------------------------------------------------
+
+definition_manifests() {
+  find egon-cola-archetypes/definitions \
+    -mindepth 2 \
+    -maxdepth 2 \
+    -type f \
+    -name archetype.properties \
+    -print | LC_ALL=C sort
+}
+
+# ---------------------------------------------------------------------------
+# Assert generated release artifacts
+# ---------------------------------------------------------------------------
+
+assert_generated_release_shape() {
+  local manifest
+  local target
+  local module_dir
+  local artifact_count=0
+  local actual_targets
+  local expected_targets
+
+  expected_targets=$'egon-cola-archetype-agent\negon-cola-archetype-light\negon-cola-archetype-light-open\negon-cola-archetype-service\negon-cola-archetype-service-open\negon-cola-archetype-web\negon-cola-archetype-web-open'
+
+  actual_targets="$(
+    while IFS= read -r manifest; do
+      [[ -n "${manifest}" ]] || continue
+
+      sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r'
+    done < <(definition_manifests) | LC_ALL=C sort
+  )"
+
+  if [[ "${actual_targets}" != "${expected_targets}" ]]; then
+    printf 'Expected exactly seven generated archetype targets, found:\n%s\n' \
+      "${actual_targets}" >&2
+    exit 1
+  fi
+
+  while IFS= read -r manifest; do
+    [[ -n "${manifest}" ]] || continue
+
+    target="$(
+      sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r'
+    )"
+
+    if [[ ! "${target}" =~ ^egon-cola-archetype-[A-Za-z0-9-]+$ ]]; then
+      echo "Invalid generated target in ${manifest}: ${target}" >&2
+      exit 1
+    fi
+
+    module_dir="egon-cola-archetypes/.generated/${target}"
+
+    if [[ ! -f "${module_dir}/pom.xml" ]]; then
+      echo "Generated archetype POM does not exist: ${module_dir}/pom.xml" >&2
+      exit 1
+    fi
+
+    if ! grep -Fq \
+      "<artifactId>${target}</artifactId>" \
+      "${module_dir}/pom.xml"; then
+      echo "Generated archetype POM has unexpected artifactId: ${target}" >&2
+      exit 1
+    fi
+
+    if [[ "$(
+      find "${module_dir}/target" \
+        -maxdepth 1 \
+        -type f \
+        -name "${target}-*.jar" \
+        ! -name '*-sources.jar' \
+        ! -name '*-javadoc.jar' |
+        wc -l |
+        tr -d ' '
+    )" -ne 1 ]]; then
+      echo "Expected exactly one main JAR for ${target}." >&2
+      exit 1
+    fi
+
+    if [[ "$(
+      find "${module_dir}/target" \
+        -maxdepth 1 \
+        -type f \
+        -name "${target}-*-sources.jar" |
+        wc -l |
+        tr -d ' '
+    )" -ne 1 ]]; then
+      echo "Expected exactly one sources JAR for ${target}." >&2
+      exit 1
+    fi
+
+    if [[ "$(
+      find "${module_dir}/target" \
+        -maxdepth 1 \
+        -type f \
+        -name "${target}-*-javadoc.jar" |
+        wc -l |
+        tr -d ' '
+    )" -ne 1 ]]; then
+      echo "Expected exactly one javadoc JAR for ${target}." >&2
+      exit 1
+    fi
+
+    artifact_count=$((artifact_count + 1))
+  done < <(definition_manifests)
+
+  if [[ "${artifact_count}" -ne 7 ]]; then
+    echo \
+      "Expected seven generated archetype artifacts, found ${artifact_count}." \
+      >&2
+    exit 1
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Arguments
+# ---------------------------------------------------------------------------
+
 target="all"
 mode="verify"
+
 skip_tests=false
+skip_deploy_tests=false
+
 target_set=false
 
 for argument in "$@"; do
   case "${argument}" in
+
     --dry-run)
       mode="verify"
       ;;
+
     --publish)
       mode="deploy"
       ;;
+
     --skip-tests)
       skip_tests=true
       ;;
+
+    --skip-deploy-tests)
+      skip_deploy_tests=true
+      ;;
+
     -h|--help)
       usage
       exit 0
       ;;
+
     list)
       if [[ "${target_set}" == true ]]; then
         echo "Target 'list' cannot be combined with another target." >&2
         exit 2
       fi
+
       list_targets
       exit 0
       ;;
+
     all|archetypes)
       if [[ "${target_set}" == true ]]; then
         echo "Only one Maven publish target may be selected." >&2
         exit 2
       fi
+
       target="${argument}"
       target_set=true
       ;;
+
     *)
       echo "Unsupported Maven publish target or option: ${argument}" >&2
+      echo >&2
       usage >&2
       exit 2
       ;;
   esac
 done
+
+# ---------------------------------------------------------------------------
+# Environment validation
+# ---------------------------------------------------------------------------
 
 if [[ ! -x "${MVNW}" ]]; then
   echo "Maven wrapper is not executable: ${MVNW}" >&2
@@ -95,92 +255,326 @@ if [[ ! -x "${CHECK_WRAPPER}" ]]; then
   exit 1
 fi
 
+# ---------------------------------------------------------------------------
+# Target configuration
+# ---------------------------------------------------------------------------
+
 project_args=()
+
 case "${target}" in
   all)
     project_args=(-f pom.xml)
     ;;
+
   archetypes)
-    project_args=(-f egon-cola-archetypes/pom.xml -Pgenerated-archetypes)
+    project_args=(
+      -f egon-cola-archetypes/pom.xml
+      -Pgenerated-archetypes
+    )
     ;;
 esac
 
 cd "${ROOT_DIR}"
 
-run_preflight() {
-  echo "Running mandatory source-to-archetype preflight..."
-  "${MVNW}" -B -ntp -N install
-  "${MVNW}" -B -ntp -N -f egon-cola-archetypes/pom.xml install
-  "${MVNW}" -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
-  "${GENERATOR}" generate
-  "${CHECK_WRAPPER}"
-  if [[ -n "$(git ls-files -- egon-cola-archetypes/.generated)" ]]; then
-    echo "Generated archetype workspace must remain ignored and untracked." >&2
-    exit 1
-  fi
-  "${MVNW}" -B -ntp -f egon-cola-archetypes/pom.xml \
-    -Pgenerated-archetypes clean install
-  "${MVNW}" -B -ntp -Pgenerated-archetypes -Prelease \
-    -Dgpg.skip=true clean verify
-  assert_generated_release_shape
-}
+# ---------------------------------------------------------------------------
+# Argument validation
+# ---------------------------------------------------------------------------
 
-definition_manifests() {
-  find egon-cola-archetypes/definitions -mindepth 2 -maxdepth 2 \
-    -type f -name archetype.properties -print | LC_ALL=C sort
-}
-
-assert_generated_release_shape() {
-  local manifest target module_dir artifact_count=0 actual_targets expected_targets
-  expected_targets=$'egon-cola-archetype-agent\negon-cola-archetype-light\negon-cola-archetype-light-open\negon-cola-archetype-service\negon-cola-archetype-service-open\negon-cola-archetype-web\negon-cola-archetype-web-open'
-  actual_targets="$(while IFS= read -r manifest; do
-    [[ -n "${manifest}" ]] || continue
-    sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r'
-  done < <(definition_manifests) | LC_ALL=C sort)"
-  [[ "${actual_targets}" == "${expected_targets}" ]] \
-    || { echo "Expected exactly seven generated archetype targets, found:\n${actual_targets}" >&2; exit 1; }
-  while IFS= read -r manifest; do
-    [[ -n "${manifest}" ]] || continue
-    target="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
-    [[ "${target}" =~ ^egon-cola-archetype-[A-Za-z0-9-]+$ ]] \
-      || { echo "Invalid generated target in ${manifest}: ${target}" >&2; exit 1; }
-    module_dir="egon-cola-archetypes/.generated/${target}"
-    test -f "${module_dir}/pom.xml"
-    grep -Fq "<artifactId>${target}</artifactId>" "${module_dir}/pom.xml"
-    test "$(find "${module_dir}/target" -maxdepth 1 -type f \
-      -name "${target}-*.jar" ! -name '*-sources.jar' ! -name '*-javadoc.jar' | wc -l | tr -d ' ')" -eq 1
-    test "$(find "${module_dir}/target" -maxdepth 1 -type f \
-      -name "${target}-*-sources.jar" | wc -l | tr -d ' ')" -eq 1
-    test "$(find "${module_dir}/target" -maxdepth 1 -type f \
-      -name "${target}-*-javadoc.jar" | wc -l | tr -d ' ')" -eq 1
-    artifact_count=$((artifact_count + 1))
-  done < <(definition_manifests)
-  [[ "${artifact_count}" -eq 7 ]] \
-    || { echo "Expected seven generated archetype artifacts, found ${artifact_count}." >&2; exit 1; }
-}
-
-echo "Maven target: ${target}"
-echo "Maven mode: ${mode}"
 if [[ "${mode}" == deploy && "${target}" != all ]]; then
-  echo "The --publish option only supports the all target; use archetypes for dry-run verification." >&2
+  echo \
+    "The --publish option only supports the all target; use archetypes for dry-run verification." \
+    >&2
   exit 2
 fi
 
-run_preflight
+if [[ "${skip_deploy_tests}" == true && "${mode}" != deploy ]]; then
+  echo \
+    "Note: --skip-deploy-tests has no effect without --publish."
+fi
 
-if [[ "${mode}" == deploy ]]; then
-  version="$("${MVNW}" -f pom.xml -q -N help:evaluate -Dexpression=project.version -DforceStdout)"
-  if [[ -z "${version}" || "${version}" == *-SNAPSHOT ]]; then
-    echo "Maven Central publish requires a non-SNAPSHOT project version; resolved '${version}'." >&2
+if [[ "${skip_tests}" == true && "${skip_deploy_tests}" == true ]]; then
+  echo \
+    "Note: --skip-tests already skips tests during deploy; --skip-deploy-tests is redundant."
+fi
+
+# ---------------------------------------------------------------------------
+# Maven test arguments
+# ---------------------------------------------------------------------------
+
+#
+# preflight_test_args
+#
+# Applied to Maven commands executed during preflight.
+#
+# --skip-tests:
+#   Skip tests during preflight.
+#
+# --skip-deploy-tests:
+#   Does NOT affect preflight.
+#
+preflight_test_args=()
+
+if [[ "${skip_tests}" == true ]]; then
+  preflight_test_args+=(
+    -DskipTests=true
+  )
+fi
+
+#
+# deploy_test_args
+#
+# Applied only to the final deploy lifecycle.
+#
+# Tests are skipped when either:
+#
+#   --skip-tests
+#
+# or:
+#
+#   --skip-deploy-tests
+#
+deploy_test_args=()
+
+if [[ "${skip_tests}" == true || "${skip_deploy_tests}" == true ]]; then
+  deploy_test_args+=(
+    -DskipTests=true
+  )
+fi
+
+# ---------------------------------------------------------------------------
+# Preflight
+# ---------------------------------------------------------------------------
+
+run_preflight() {
+  echo
+  echo "============================================================"
+  echo "Running mandatory source-to-archetype preflight"
+  echo "============================================================"
+
+  if [[ "${skip_tests}" == true ]]; then
+    echo "Preflight Maven tests: SKIPPED"
+  else
+    echo "Preflight Maven tests: ENABLED"
+  fi
+
+  echo
+
+  # -------------------------------------------------------------------------
+  # 1. Root parent
+  # -------------------------------------------------------------------------
+
+  echo "[1/7] Installing root parent POM..."
+
+  "${MVNW}" \
+    -B \
+    -ntp \
+    -N \
+    "${preflight_test_args[@]}" \
+    install
+
+  # -------------------------------------------------------------------------
+  # 2. Archetype parent
+  # -------------------------------------------------------------------------
+
+  echo
+  echo "[2/7] Installing archetype parent POM..."
+
+  "${MVNW}" \
+    -B \
+    -ntp \
+    -N \
+    -f egon-cola-archetypes/pom.xml \
+    "${preflight_test_args[@]}" \
+    install
+
+  # -------------------------------------------------------------------------
+  # 3. Source projects
+  # -------------------------------------------------------------------------
+
+  echo
+  echo "[3/7] Building archetype source projects..."
+
+  "${MVNW}" \
+    -B \
+    -ntp \
+    -f egon-cola-archetypes/source-projects/pom.xml \
+    "${preflight_test_args[@]}" \
+    clean \
+    install
+
+  # -------------------------------------------------------------------------
+  # 4. Generate archetypes
+  # -------------------------------------------------------------------------
+
+  echo
+  echo "[4/7] Generating archetypes..."
+
+  "${GENERATOR}" generate
+
+  # -------------------------------------------------------------------------
+  # 5. Check archetypes
+  # -------------------------------------------------------------------------
+
+  echo
+  echo "[5/7] Checking generated archetypes..."
+
+  "${CHECK_WRAPPER}"
+
+  if [[ -n "$(git ls-files -- egon-cola-archetypes/.generated)" ]]; then
+    echo \
+      "Generated archetype workspace must remain ignored and untracked." \
+      >&2
     exit 1
   fi
-  maven_args=(-B -ntp -Pgenerated-archetypes -Prelease -DtrimStackTrace=false)
-  if [[ "${skip_tests}" == true ]]; then
-    maven_args+=(-DskipTests)
+
+  # -------------------------------------------------------------------------
+  # 6. Generated archetype reactor
+  # -------------------------------------------------------------------------
+
+  echo
+  echo "[6/7] Building generated archetype reactor..."
+
+  "${MVNW}" \
+    -B \
+    -ntp \
+    -f egon-cola-archetypes/pom.xml \
+    -Pgenerated-archetypes \
+    "${preflight_test_args[@]}" \
+    clean \
+    install
+
+  # -------------------------------------------------------------------------
+  # 7. Release-shape verification
+  # -------------------------------------------------------------------------
+
+  echo
+  echo "[7/7] Running release-shape verification..."
+
+  "${MVNW}" \
+    -B \
+    -ntp \
+    -Pgenerated-archetypes \
+    -Prelease \
+    -Dgpg.skip=true \
+    "${preflight_test_args[@]}" \
+    clean \
+    verify
+
+  echo
+  echo "Verifying generated release artifacts..."
+
+  assert_generated_release_shape
+
+  echo
+  echo "============================================================"
+  echo "Mandatory preflight completed successfully"
+  echo "============================================================"
+}
+
+# ---------------------------------------------------------------------------
+# Execution summary
+# ---------------------------------------------------------------------------
+
+echo "Maven target: ${target}"
+echo "Maven mode: ${mode}"
+echo "Skip all Maven tests: ${skip_tests}"
+echo "Skip final deploy tests: ${skip_deploy_tests}"
+
+# ---------------------------------------------------------------------------
+# Run preflight
+# ---------------------------------------------------------------------------
+
+run_preflight
+
+# ---------------------------------------------------------------------------
+# Deploy
+# ---------------------------------------------------------------------------
+
+if [[ "${mode}" == deploy ]]; then
+
+  echo
+  echo "Resolving project version..."
+
+  version="$(
+    "${MVNW}" \
+      -f pom.xml \
+      -q \
+      -N \
+      help:evaluate \
+      -Dexpression=project.version \
+      -DforceStdout
+  )"
+
+  if [[ -z "${version}" || "${version}" == *-SNAPSHOT ]]; then
+    echo \
+      "Maven Central publish requires a non-SNAPSHOT project version; resolved '${version}'." \
+      >&2
+    exit 1
   fi
-  lifecycle=(clean deploy)
-  echo "Maven command: ./mvnw ${project_args[*]} ${maven_args[*]} ${lifecycle[*]}"
-  "${MVNW}" "${project_args[@]}" "${maven_args[@]}" "${lifecycle[@]}"
+
+  echo "Release version: ${version}"
+
+  # -------------------------------------------------------------------------
+  # Final Maven deploy arguments
+  # -------------------------------------------------------------------------
+
+  maven_args=(
+    -B
+    -ntp
+    -Pgenerated-archetypes
+    -Prelease
+    -DtrimStackTrace=false
+  )
+
+  maven_args+=(
+    "${deploy_test_args[@]}"
+  )
+
+  lifecycle=(
+    clean
+    deploy
+  )
+
+  echo
+  echo "============================================================"
+  echo "Starting Maven deploy"
+  echo "============================================================"
+
+  if [[ "${skip_tests}" == true ]]; then
+    echo "Preflight Maven tests: SKIPPED"
+    echo "Final deploy tests:    SKIPPED"
+
+  elif [[ "${skip_deploy_tests}" == true ]]; then
+    echo "Preflight Maven tests: PASSED"
+    echo "Final deploy tests:    SKIPPED"
+
+  else
+    echo "Preflight Maven tests: PASSED"
+    echo "Final deploy tests:    ENABLED"
+  fi
+
+  echo
+  printf 'Maven command: ./mvnw'
+
+  printf ' %q' "${project_args[@]}"
+  printf ' %q' "${maven_args[@]}"
+  printf ' %q' "${lifecycle[@]}"
+
+  printf '\n\n'
+
+  "${MVNW}" \
+    "${project_args[@]}" \
+    "${maven_args[@]}" \
+    "${lifecycle[@]}"
+
+  echo
+  echo "============================================================"
+  echo "Maven deploy completed successfully"
+  echo "============================================================"
+
 else
+
+  echo
   echo "Preflight completed; no Maven deploy was requested."
+
 fi
