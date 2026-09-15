@@ -1,14 +1,11 @@
 package top.egon.cola.component.common.id.uuid;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.id.generator.IdGenerator;
-import top.egon.cola.component.common.id.generator.UuidV7Generator;
 
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 @SuppressWarnings("removal")
 class UuidV7Test {
@@ -24,18 +21,6 @@ class UuidV7Test {
         assertEquals(2, uuid.variant());
         assertFalse(encodedMillis < before);
         assertFalse(encodedMillis > after);
-    }
-
-    @Test
-    void generatorReturnsUuidString() {
-        IdGenerator generator = new UuidV7Generator();
-
-        String first = generator.nextId();
-        String second = generator.nextId();
-
-        assertFalse(first.isBlank());
-        assertNotEquals(first, second);
-        assertEquals(36, first.length());
     }
 
     @Test

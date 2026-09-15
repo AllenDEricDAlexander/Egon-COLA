@@ -174,7 +174,7 @@ Confirm that the cluster supplies the pod-index label, that ordinals are not reu
 
 ## UUIDv7 Compatibility and Boundaries
 
-`UuidV7` and `UuidV7Generator` remain temporarily available in this Starter as pure-JDK RFC 9562 compatibility APIs. They are deprecated for removal and no longer depend on `uuid-creator`. The Starter never auto-configures UUIDv7 and Snowflake is the default database-key strategy.
+`UuidV7Generator` has been removed. Database primary keys use Snowflake via `LongIdGenerator`. `UuidV7` remains as a deprecated pure-JDK RFC 9562 helper for existing non-key consumers and is not auto-configured.
 
 Do not mechanically replace UUID values that are part of a UUIDv7 wire contract, a `VARCHAR(36)` schema, or UUID-specific sharding/validation. Migrate those consumers only with an explicit contract and data migration.
 

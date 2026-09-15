@@ -173,7 +173,7 @@ spec:
 
 ## UUIDv7 兼容和能力边界
 
-`UuidV7` 与 `UuidV7Generator` 暂时以纯 JDK RFC 9562 兼容 API 保留在本 Starter，已标记待删除，并且不再依赖 `uuid-creator`。Starter 不会自动装配 UUIDv7，默认数据库主键方案是 Snowflake。
+`UuidV7Generator` 已删除。数据库主键使用 Snowflake（`LongIdGenerator`）。`UuidV7` 仍作为已废弃的纯 JDK RFC 9562 工具类保留给存量非主键场景，Starter 不会自动装配它。
 
 对于 UUIDv7 线协议、`VARCHAR(36)` 字段或 UUID 专用分片/校验规则，不要机械替换为 long；只有在明确修改契约和迁移数据后才能迁移。
 
