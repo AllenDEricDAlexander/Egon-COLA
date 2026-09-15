@@ -25,6 +25,5 @@
         <module>egon-cola-component-common-data-desensitize-spring-boot-starter</module>
         <module>egon-cola-component-common-test</module>
         <module>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</module>
-        <module>egon-cola-component-common-mybatis-plus-spring-boot-starter</module>
     </modules>
 </project>

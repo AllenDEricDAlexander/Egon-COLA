@@ -454,8 +454,8 @@ def assertEgonColaBom = { pomModel ->
 }
 
 assert pomXml.properties.'java.version'.text() == "21"
-assert pom.contains("<artifactId>shardingsphere-jdbc</artifactId>")
-assert pom.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert !pom.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert !pom.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert pom.contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 [
     "lombok.version",
@@ -475,7 +475,7 @@ assertEgonColaBom(pomXml)
 ].each { artifactId ->
     assert pom.contains("<artifactId>${artifactId}</artifactId>")
 }
-assert pom.contains("<artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>")
+assert pom.contains("<artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>")
 assert !pom.contains("spring-boot-starter-data-jpa")
 assert !pom.contains("<artifactId>mybatis-plus-spring-boot-starter</artifactId>")
 assert pom.contains("<artifactId>egon-cola-component-common-core</artifactId>")

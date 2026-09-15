@@ -76,7 +76,7 @@ assert dependencyIds(poms.starter).contains("${prefix}-infrastructure".toString(
 assert dependencyIds(poms.starter).contains("spring-ai-openai")
 
 // knowledge 域的持久化、RAG、outbox 与向量依赖必须落到对应模块；starter 不直接声明 JDBC starter（`EVD-003`）。
-assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter")
 assert dependencyIds(poms.infrastructure).contains("egon-cola-component-rag-starter")
 assert dependencyIds(poms.infrastructure).contains("egon-cola-component-transactional-outbox-starter")
 assert dependencyIds(poms.infrastructure).contains("spring-ai-pgvector-store")
@@ -111,7 +111,7 @@ new java.util.jar.JarFile(agentArchive).withCloseable { archive ->
     }
 }
 ["egon-cola-component-agent-flow-starter-", "spring-ai-openai-", "spring-ai-mcp-", "google-adk-",
- "egon-cola-component-common-mybatis-plus-spring-boot-starter-", "mybatis-plus-spring-boot3-starter-",
+ "egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter-", "mybatis-plus-spring-boot3-starter-",
  "egon-cola-component-rag-starter-", "egon-cola-component-transactional-outbox-starter-",
  "spring-ai-pgvector-store-", "flyway-core-", "flyway-database-postgresql-", "postgresql-"].each { required ->
     assert agentLibraries.any { it.startsWith(required) }: "Missing Agent runtime library ${required}"

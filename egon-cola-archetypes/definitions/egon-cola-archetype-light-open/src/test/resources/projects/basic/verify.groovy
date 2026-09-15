@@ -60,7 +60,7 @@ assert rootPom.properties.'java.version'.text() == "21"
 assert rootPom.properties.'mybatis-plus.version'.isEmpty()
 [
         "egon-cola-component-common-core",
-        "egon-cola-component-common-mybatis-plus-spring-boot-starter",
+        "egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter",
         "egon-cola-component-common-id-starter",
         "egon-cola-component-dynamic-thread-pool-starter",
         "springdoc-openapi-starter-webmvc-ui",

@@ -85,7 +85,7 @@ different representation.
 
 ## Persistence and mapper safety
 
-Use `egon-cola-component-common-mybatis-plus-spring-boot-starter`. Domain service
+Use `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`. Domain service
 interfaces extend `EgonColaIService`; Infrastructure service implementations extend
 `EgonColaServiceImpl`, inject `repo.dao` DAOs, and use `repo/po` entities that extend
 `EgonModel`. DAOs extend `EgonColaMapper`, and explicit SQL lives under the generated

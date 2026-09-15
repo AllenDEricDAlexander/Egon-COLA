@@ -97,8 +97,8 @@ expectedFiles.each { file(it) }
 def poms = [:]
 modules.each { module -> poms[module] = new XmlSlurper(false, false).parse(file("${prefix}-${module}/pom.xml")) }
 def dependencyIds = { pom -> pom.dependencies.dependency.artifactId*.text() as Set }
-assert !dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
-assert dependencyIds(poms.infrastructure).contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+assert !dependencyIds(poms.domain).contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter")
+assert dependencyIds(poms.infrastructure).contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter")
 assert dependencyIds(poms.infrastructure).contains("${prefix}-domain".toString())
 assert !dependencyIds(poms.infrastructure).contains("spring-boot-starter-data-jpa")
 assert !dependencyIds(poms.infrastructure).contains("mybatis-plus-spring-boot3-starter")

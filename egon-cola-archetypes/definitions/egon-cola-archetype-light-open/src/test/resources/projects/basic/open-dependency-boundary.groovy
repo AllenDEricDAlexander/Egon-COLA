@@ -10,7 +10,7 @@ def verifyOpenDependencyBoundary = { File projectDir ->
     def dependencies = pom.dependencies.dependency.findAll { !(it.scope.text() in ['test', 'provided']) }
     def ids = dependencies.artifactId*.text() as Set
     ['egon-cola-component-common-core', 'egon-cola-component-common-id-starter',
-     'egon-cola-component-common-mybatis-plus-spring-boot-starter',
+     'egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter',
      'egon-cola-component-dynamic-thread-pool-starter', 'spring-cloud-starter-bootstrap',
      'spring-cloud-starter-alibaba-nacos-config', 'spring-cloud-starter-alibaba-nacos-discovery',
      'springdoc-openapi-starter-webmvc-ui'].each { required ->

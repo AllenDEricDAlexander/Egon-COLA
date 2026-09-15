@@ -173,14 +173,14 @@ def assertEgonColaBom = { pomModel ->
 }
 
 assert rootPom.properties.'java.version'.text() == "21"
-assert assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-jdbc</artifactId>")
-assert assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
+assert !assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-jdbc</artifactId>")
+assert !assertFile("student-management-evaluation-infrastructure/pom.xml").text.contains("<artifactId>shardingsphere-sharding-core</artifactId>")
 assert assertFile("student-management-evaluation-common/pom.xml").text
         .contains("<artifactId>egon-cola-component-common-id-starter</artifactId>")
 assert !assertFile("student-management-evaluation-domain/pom.xml").text
-        .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+        .contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter")
 assert assertFile("student-management-evaluation-infrastructure/pom.xml").text
-        .contains("<artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>")
+        .contains("<artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>")
 assert !rootPomText.contains("<artifactId>mybatis-plus-spring-boot3-starter</artifactId>")
 [
     "lombok.version",

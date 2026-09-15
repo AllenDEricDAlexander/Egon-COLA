@@ -14,7 +14,7 @@ NS = {"m": "http://maven.apache.org/POM/4.0.0"}
 FAMILIES = ("light-open", "service-open", "web-open", "agent")
 COMMON = {
     ("top.egon", "egon-cola-component-common-id-starter"),
-    ("top.egon", "egon-cola-component-common-mybatis-plus-spring-boot-starter"),
+    ("top.egon", "egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter"),
     ("top.egon", "egon-cola-component-dynamic-thread-pool-starter"),
 }
 EXTERNAL = {

@@ -13,7 +13,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 | Module | Description |
 |---|---|
 | `egon-cola-component-common-core` | `ResultCode`, common exceptions, converter contracts, POJO records, and tree construction |
-| `egon-cola-component-common-mybatis-plus-spring-boot-starter` | Opt-in MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`, zero-addition `EgonColaMapper`, enhanced 57-method service, TenantID isolation, audit fill, and repository validation |
+| `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | Opt-in MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`, zero-addition `EgonColaMapper`, enhanced 57-method service, TenantID isolation, audit fill, and repository validation |
 | `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, complete MDC capture, and local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
 | `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, deprecated UUIDv7 compatibility APIs, and Spring Boot auto-configuration; all tests live in this module |
@@ -127,7 +127,7 @@ Then include the specific modules you need:
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
-        <artifactId>egon-cola-component-common-mybatis-plus-spring-boot-starter</artifactId>
+        <artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>
     </dependency>
     <dependency>
         <groupId>top.egon</groupId>
@@ -285,7 +285,7 @@ For Snowflake layout, configuration, rollback behavior, Kubernetes machine-ID al
 
 ## MyBatis-Plus Starter
 
-The MyBatis-Plus capability is opt-in by dependency and enabled by default once the concrete Starter is present. It is documented in the [module guide](egon-cola-component-common-mybatis-plus-spring-boot-starter/README.md). The aggregate does not own consumer tables or migrations.
+The MyBatis-Plus capability is opt-in by dependency and enabled by default once the concrete Starter is present. It is documented in the [module guide](egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/README.md). The aggregate does not own consumer tables or migrations.
 
 ## Validation Command
 

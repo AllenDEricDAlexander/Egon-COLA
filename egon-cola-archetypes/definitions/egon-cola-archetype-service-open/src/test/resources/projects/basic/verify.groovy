@@ -137,9 +137,9 @@ def starterPom = file("student-management-evaluation-starter/pom.xml").text
 assert starterPom.contains("egon-cola-component-dynamic-thread-pool-starter")
 assert starterPom.contains("archunit-junit5")
 assert !file("student-management-evaluation-domain/pom.xml").text
-        .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+        .contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter")
 assert file("student-management-evaluation-infrastructure/pom.xml").text
-        .contains("egon-cola-component-common-mybatis-plus-spring-boot-starter")
+        .contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter")
 assert file("student-management-evaluation-starter/src/main/resources/application.yml").text
         .contains("queue-capacity: \${ASYNC_QUEUE_CAPACITY:1000}")
 assert file("student-management-evaluation-starter/src/main/resources/application.yml").text
