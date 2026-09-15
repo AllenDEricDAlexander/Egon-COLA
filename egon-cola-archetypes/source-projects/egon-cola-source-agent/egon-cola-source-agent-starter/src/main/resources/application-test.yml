@@ -73,6 +73,26 @@ egon:
           enabled: true
           allowed-root-statements:
             "[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]": knowledge_base_id
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: primary
+              logical-name: primary
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/agent_test
+              username: test
+              password: test
+          tables:
+            knowledge_base:
+              type: SINGLE
+              data-source: primary
+            knowledge_document:
+              type: SINGLE
+              data-source: primary
 agent:
   deep-research:
     runtime:

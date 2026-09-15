@@ -42,6 +42,49 @@ egon:
         local-write-guard:
           enabled: true
           allowed-root-statements: {}
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: master_data
+              logical-name: master_data
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/evaluation_open_test_master_data
+              username: test
+              password: test
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/evaluation_open_test_shard_0
+              username: test
+              password: test
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/evaluation_open_test_shard_1
+              username: test
+              password: test
+          tables:
+            evaluation_course:
+              type: SINGLE
+              data-source: master_data
+            evaluation_course_schedule:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            evaluation_exam:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            evaluation_exam_paper:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            evaluation_score:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
       id:
         enabled: true
         machine-id: 0
@@ -59,32 +102,6 @@ management:
       enabled: false
 
 app:
-  datasource:
-    mode: ${APP_DATASOURCE_MODE:SHARDING}
-  sharding:
-    database-name: student_management_test
-    physical-data-sources:
-      - name: master_data
-        logical-name: master_data
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/service_open_test_master_data
-        username: test
-        password: test
-      - name: shard_0
-        logical-name: shard_0
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/service_open_test_shard_0
-        username: test
-        password: test
-      - name: shard_1
-        logical-name: shard_1
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/service_open_test_shard_1
-        username: test
-        password: test
   integrations:
     organization:
       enabled: false

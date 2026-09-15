@@ -45,16 +45,25 @@ class OpenArchitectureTest {
 
     @Test
     void generatedShardingConfigurationUsesPositiveTenantRouting() throws IOException {
-        String sharding = read(Path.of("src/main/resources/sharding/shardingsphere-sharding.yml"));
-        String readwrite = read(Path.of(
-                "src/main/resources/sharding/shardingsphere-sharding-readwrite.yml"));
-        assertTrue(sharding.contains("shardingColumn: tenant_id"));
-        assertTrue(readwrite.contains("shardingColumn: tenant_id"));
-        assertTrue(sharding.contains("!SINGLE"));
-        assertTrue(sharding.contains("defaultType: LOCAL"));
+        Path sourceRoot = Path.of("src/main/java");
+        List<Path> javaFiles;
+        try (Stream<Path> paths = Files.walk(sourceRoot)) {
+            javaFiles = paths.filter(path -> path.toString().endsWith(".java")).toList();
+        }
+        String source = javaFiles.stream().map(OpenArchitectureTest::read).reduce("", String::concat);
+        assertFalse(source.contains("class ShardingDataSourceBootstrapper"));
+        assertFalse(source.contains("YamlShardingSphereDataSourceFactory"));
+        String pom = Files.readString(Path.of("pom.xml"), StandardCharsets.UTF_8);
+        assertTrue(pom.contains("egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter"));
+        assertFalse(pom.contains("shardingsphere-jdbc"));
+        assertFalse(Files.exists(Path.of("src/main/resources/datasource/sharding.yml")));
+        assertFalse(Files.exists(Path.of("src/main/resources/sharding/shardingsphere-sharding.yml")));
+        String sharding = read(Path.of("src/main/resources/egon-mybatis-plus-sharding.yml"));
+        assertTrue(sharding.contains("STANDARD_TENANT_ID"));
+        assertTrue(sharding.contains("type: SINGLE"));
+        assertTrue(sharding.contains("transaction-default-type: LOCAL"));
         assertTrue(sharding.contains("light_school_classes:"));
         assertFalse(sharding.contains("SnowflakeLongShardingAlgorithm"));
-        assertFalse(readwrite.contains("SnowflakeLongShardingAlgorithm"));
     }
 
     private static long count(List<Path> paths, String suffix) {

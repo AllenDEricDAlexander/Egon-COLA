@@ -3,8 +3,7 @@ spring:
     default: dev
   config:
     import:
-      - classpath:datasource/sharding.yml
-      - classpath:datasource/sharding-readwrite.yml
+      - classpath:egon-mybatis-plus-sharding.yml
       - optional:file:./config/application-secrets.yml
       - optional:configtree:/run/secrets/
   sql:
@@ -145,9 +144,50 @@ egon:
         local-write-guard:
           enabled: true
           allowed-root-statements: {}
+        sharding:
+          enabled: true
+          mode: ${APP_DATASOURCE_MODE:SHARDING}
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: master_data
+              logical-name: master_data
+              role: PRIMARY
+              driver-class-name: ${EVALUATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+              jdbc-url: ${EVALUATION_SHARDING_MASTER_DATA_URL}
+              username: ${EVALUATION_SHARDING_USERNAME}
+              password: "${EVALUATION_SHARDING_PASSWORD:}"
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: ${EVALUATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+              jdbc-url: ${EVALUATION_SHARDING_SHARD_0_URL}
+              username: ${EVALUATION_SHARDING_USERNAME}
+              password: "${EVALUATION_SHARDING_PASSWORD:}"
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: ${EVALUATION_SHARDING_DRIVER_CLASS_NAME:org.postgresql.Driver}
+              jdbc-url: ${EVALUATION_SHARDING_SHARD_1_URL}
+              username: ${EVALUATION_SHARDING_USERNAME}
+              password: "${EVALUATION_SHARDING_PASSWORD:}"
+          tables:
+            evaluation_course:
+              type: SINGLE
+              data-source: master_data
+            evaluation_course_schedule:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            evaluation_exam:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            evaluation_exam_paper:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            evaluation_score:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
 app:
-  datasource:
-    mode: ${APP_DATASOURCE_MODE:SHARDING}
   logging:
     instance-name: ${INSTANCE_ID:${HOSTNAME:local}}
     error-total-size-cap: ${LOG_ERROR_TOTAL_SIZE_CAP:2GB}

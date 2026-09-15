@@ -42,6 +42,58 @@ egon:
         local-write-guard:
           enabled: true
           allowed-root-statements: {}
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: master_data
+              logical-name: master_data
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/light_open_test_master_data
+              username: test
+              password: test
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/light_open_test_shard_0
+              username: test
+              password: test
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/light_open_test_shard_1
+              username: test
+              password: test
+          tables:
+            light_users:
+              type: SINGLE
+              data-source: master_data
+            light_roles:
+              type: SINGLE
+              data-source: master_data
+            light_permissions:
+              type: SINGLE
+              data-source: master_data
+            light_user_roles:
+              type: SINGLE
+              data-source: master_data
+            light_role_permissions:
+              type: SINGLE
+              data-source: master_data
+            light_courses:
+              type: SINGLE
+              data-source: master_data
+            light_school_classes:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            light_class_course_schedules:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
       id:
         enabled: true
         machine-id: 0
@@ -59,32 +111,6 @@ management:
       enabled: false
 
 app:
-  datasource:
-    mode: ${APP_DATASOURCE_MODE:SHARDING}
-  sharding:
-    database-name: student_management_test
-    physical-data-sources:
-      - name: master_data
-        logical-name: master_data
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/light_test_master_data
-        username: test
-        password: test
-      - name: shard_0
-        logical-name: shard_0
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/light_test_shard_0
-        username: test
-        password: test
-      - name: shard_1
-        logical-name: shard_1
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/light_test_shard_1
-        username: test
-        password: test
   integrations:
     rabbitmq:
       enabled: false

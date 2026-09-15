@@ -1,0 +1,24 @@
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: primary
+              logical-name: primary
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${AGENT_DB_URL:jdbc:postgresql://localhost:5432/agent}
+              username: ${AGENT_DB_USERNAME:sa}
+              password: "${AGENT_DB_PASSWORD:}"
+          tables:
+            knowledge_base:
+              type: SINGLE
+              data-source: primary
+            knowledge_document:
+              type: SINGLE
+              data-source: primary

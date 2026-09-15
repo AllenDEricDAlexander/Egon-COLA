@@ -1,6 +1,113 @@
-# MyBatis-Plus Repository Starter
+# MyBatis-Plus + ShardingSphere-JDBC Starter
 
-本组件使用 MyBatis-Plus 3.5.16，为 PostgreSQL 提供模型约束、Repository 命令、显式 SQL 查询、MybatisBatch、租户/版本保护及受管 DDL 运行器。业务层保持 `Controller → Service → Repository → Mapper`；在现有 COLA 项目中，Application/Domain Service 保留业务职责，Repository 位于 infrastructure。
+消费本 Starter 必须同时使用 PostgreSQL、MyBatis-Plus 与 ShardingSphere-JDBC。排除 `shardingsphere-jdbc` 不受支持，编译或启动必须失败。逻辑 `@Primary DataSource` 由一份 YAML（前缀 `egon.cola.component.mybatis-plus.sharding`）描述。`config-style: STRATEGY` 与 `config-style: NATIVE` 互斥。
+
+推荐 STRATEGY：订单/明细使用 `COMPLEX_TENANT_THEN_BUSINESS`（先 `tenant_id` 再 `order_id`）。默认事务 LOCAL；classpath 保留 XA，可设 `transaction-default-type: XA`。
+
+```yaml
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: master_data
+              logical-name: master_data
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/master_data
+              username: postgres
+              password: postgres
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_0
+              username: postgres
+              password: postgres
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_1
+              username: postgres
+              password: postgres
+          tables:
+            users:
+              type: SINGLE
+              data-source: master_data
+            dict_region:
+              type: BROADCAST
+            orders:
+              type: COMPLEX_TENANT_THEN_BUSINESS
+              sharding-column: tenant_id
+              table-columns: [tenant_id, order_id]
+              root-key-name: order_id
+            order_items:
+              type: COMPLEX_TENANT_THEN_BUSINESS
+              sharding-column: tenant_id
+              table-columns: [tenant_id, order_id]
+              root-key-name: order_id
+```
+
+NATIVE 逃生舱：`native-rules-resource` 指向一份 ShardingSphere rules 文件。同一 YAML 不得再声明 STRATEGY `tables`。
+
+```yaml
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: NATIVE
+          transaction-default-type: LOCAL
+          native-rules-resource: classpath:egon-ss-native.yml
+          data-sources:
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_0
+              username: postgres
+              password: postgres
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_1
+              username: postgres
+              password: postgres
+```
+
+```yaml
+# classpath:egon-ss-native.yml
+databaseName: egon
+rules:
+  - !SHARDING
+    tables:
+      orders:
+        actualDataNodes: shard_0.orders,shard_1.orders
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_db
+    shardingAlgorithms:
+      tenant_db:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.component.common.mybatis.sharding.algorithm.EgonColaLongTenantShardingAlgorithm
+  - !SINGLE
+    tables:
+      - master_data.users
+```
+
+本组件使用 MyBatis-Plus 3.5.16，为 PostgreSQL 提供模型约束、Repository 命令、显式 SQL 查询、MybatisBatch、租户/版本保护、分片拓扑及受管 DDL 运行器。业务层保持 `Controller → Service → Repository → Mapper`；在现有 COLA 项目中，Application/Domain Service 保留业务职责，Repository 位于 infrastructure。
 
 ## 模型与主键
 
@@ -44,7 +151,7 @@ LOCAL Guard 跨 SqlSessionFactory 检查事务目标。一个事务可写同一�
 
 `EgonColaPostgreDdlRunner` 接受显式物理 PRIMARY、schema、role 和 SHA-256 manifest。先执行 schema advisory lock，再校验空/受管历史与脚本前缀；SQL 和 ddl_history 在同一连接、同一事务提交。未知提交结果用新连接核实，不直接重放。非空未受管库、校验和漂移、路由指纹变化需要人工处理；没有自动 DROP/repair/历史导入。
 
-不要把 `EgonColaDdlTargetBO` 注册为默认 MP IDdl Bean，也不要混用 MP 默认 DdlApplicationRunner。Common 不依赖 ShardingSphere；宿主负责“物理池 → 校验拓扑 → 受管 DDL → 主从就绪 → 逻辑数据源”的启动顺序。
+不要把 `EgonColaDdlTargetBO` 注册为默认 MP IDdl Bean，也不要混用 MP 默认 DdlApplicationRunner。本 Starter 负责物理池、拓扑校验、TableInfo 维护、脚本 DDL 与逻辑数据源；应用不得再复制 `ShardingDataSourceBootstrapper`。
 
 六个业务脚手架由该运行器接管，旧 B/V/manual SQL 原样归档。Agent 继续保留 Flyway，仅新增一条空知识表修订；Outbox 和向量表保持现有组件所有权。
 

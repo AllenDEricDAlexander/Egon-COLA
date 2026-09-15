@@ -71,9 +71,13 @@ class AgentArchitectureTest {
                         // 其余禁项保持不变。
                         for (String forbidden : List.of("spring-boot-starter-jdbc", "spring-boot-starter-data-redis",
                                 "spring-boot-starter-amqp", "spring-boot-starter-graphql", "dubbo-spring-boot-starter",
-                                "shardingsphere", "egon-cola-source-web")) {
+                                "egon-cola-source-web")) {
                             assertFalse(content.toLowerCase().contains(forbidden), path + " contains " + forbidden);
                         }
+                        assertFalse(content.contains("ShardingDataSourceBootstrapper"),
+                                path + " rebuilt SS bootstrap");
+                        assertFalse(content.contains("YamlShardingSphereDataSourceFactory"),
+                                path + " created SS datasource locally");
                     });
         }
     }

@@ -56,6 +56,58 @@ egon:
         local-write-guard:
           enabled: true
           allowed-root-statements: {}
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: master_data
+              logical-name: master_data
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/organization_open_test_master_data
+              username: test
+              password: test
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/organization_open_test_shard_0
+              username: test
+              password: test
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/organization_open_test_shard_1
+              username: test
+              password: test
+          tables:
+            users:
+              type: SINGLE
+              data-source: master_data
+            roles:
+              type: SINGLE
+              data-source: master_data
+            permissions:
+              type: SINGLE
+              data-source: master_data
+            user_roles:
+              type: SINGLE
+              data-source: master_data
+            role_permissions:
+              type: SINGLE
+              data-source: master_data
+            grades:
+              type: SINGLE
+              data-source: master_data
+            school_classes:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
+            school_class_users:
+              type: STANDARD_TENANT_ID
+              sharding-column: tenant_id
       id:
         enabled: true
         machine-id: 0
@@ -83,32 +135,6 @@ organization:
     idempotency-ttl: PT24H
 
 app:
-  datasource:
-    mode: ${APP_DATASOURCE_MODE:SHARDING}
-  sharding:
-    database-name: student_management_test
-    physical-data-sources:
-      - name: master_data
-        logical-name: master_data
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/web_open_test_master_data
-        username: test
-        password: test
-      - name: shard_0
-        logical-name: shard_0
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/web_open_test_shard_0
-        username: test
-        password: test
-      - name: shard_1
-        logical-name: shard_1
-        role: PRIMARY
-        driver-class-name: org.postgresql.Driver
-        jdbc-url: jdbc:postgresql://localhost:5432/web_open_test_shard_1
-        username: test
-        password: test
 
 logging:
   level:

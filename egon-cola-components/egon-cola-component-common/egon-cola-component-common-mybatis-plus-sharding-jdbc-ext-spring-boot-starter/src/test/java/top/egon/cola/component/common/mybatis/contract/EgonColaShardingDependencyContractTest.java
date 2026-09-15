@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,5 +17,19 @@ class EgonColaShardingDependencyContractTest {
                 "<artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>");
         assertThat(pom).contains("<artifactId>shardingsphere-jdbc</artifactId>");
         assertThat(pom).doesNotContain("<artifactId>shardingsphere-transaction-xa-core</artifactId>");
+    }
+
+    @Test
+    void readme_documents_strategy_native_and_xa() throws Exception {
+        for (String readme : List.of("README.md", "README.zh-CN.md")) {
+            String text = Files.readString(Path.of(readme));
+            assertThat(text).contains("COMPLEX_TENANT_THEN_BUSINESS");
+            assertThat(text).contains("order_id");
+            assertThat(text).contains("config-style: NATIVE");
+            assertThat(text).contains("native-rules-resource");
+            assertThat(text).contains("!SHARDING");
+            assertThat(text).contains("transaction-default-type: XA");
+            assertThat(text).contains("shardingsphere-jdbc");
+        }
     }
 }

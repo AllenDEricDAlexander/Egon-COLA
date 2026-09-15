@@ -1,6 +1,113 @@
-# MyBatis-Plus Repository Starter
+# MyBatis-Plus + ShardingSphere-JDBC Starter
 
-MyBatis-Plus 3.5.16 integration for PostgreSQL: common models, guarded Repository commands, explicit query SQL, MybatisBatch, tenancy, optimistic locking and managed DDL. Keep `Controller → Service → Repository → Mapper`; COLA Application/Domain services retain business ownership and repositories live in infrastructure.
+Consuming this starter requires PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC. Excluding `shardingsphere-jdbc` is unsupported and must fail at compile or startup. The starter publishes the logical `@Primary DataSource` from one YAML file under `egon.cola.component.mybatis-plus.sharding`. `config-style: STRATEGY` and `config-style: NATIVE` are mutually exclusive.
+
+Recommended STRATEGY yaml uses `tenant_id` first, then a business root such as `order_id` for orders/order_items (`COMPLEX_TENANT_THEN_BUSINESS`). Default transaction type is LOCAL; XA remains on the classpath and can be selected with `transaction-default-type: XA`.
+
+```yaml
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: master_data
+              logical-name: master_data
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/master_data
+              username: postgres
+              password: postgres
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_0
+              username: postgres
+              password: postgres
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_1
+              username: postgres
+              password: postgres
+          tables:
+            users:
+              type: SINGLE
+              data-source: master_data
+            dict_region:
+              type: BROADCAST
+            orders:
+              type: COMPLEX_TENANT_THEN_BUSINESS
+              sharding-column: tenant_id
+              table-columns: [tenant_id, order_id]
+              root-key-name: order_id
+            order_items:
+              type: COMPLEX_TENANT_THEN_BUSINESS
+              sharding-column: tenant_id
+              table-columns: [tenant_id, order_id]
+              root-key-name: order_id
+```
+
+NATIVE escape hatch: point `native-rules-resource` at one ShardingSphere rules file. Do not declare STRATEGY `tables` in the same YAML.
+
+```yaml
+egon:
+  cola:
+    component:
+      mybatis-plus:
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: NATIVE
+          transaction-default-type: LOCAL
+          native-rules-resource: classpath:egon-ss-native.yml
+          data-sources:
+            - name: shard_0
+              logical-name: shard_0
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_0
+              username: postgres
+              password: postgres
+            - name: shard_1
+              logical-name: shard_1
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: jdbc:postgresql://localhost:5432/shard_1
+              username: postgres
+              password: postgres
+```
+
+```yaml
+# classpath:egon-ss-native.yml
+databaseName: egon
+rules:
+  - !SHARDING
+    tables:
+      orders:
+        actualDataNodes: shard_0.orders,shard_1.orders
+        databaseStrategy:
+          standard:
+            shardingColumn: tenant_id
+            shardingAlgorithmName: tenant_db
+    shardingAlgorithms:
+      tenant_db:
+        type: CLASS_BASED
+        props:
+          strategy: STANDARD
+          algorithmClassName: top.egon.cola.component.common.mybatis.sharding.algorithm.EgonColaLongTenantShardingAlgorithm
+  - !SINGLE
+    tables:
+      - master_data.users
+```
+
+MyBatis-Plus 3.5.16 integration for PostgreSQL: common models, guarded Repository commands, explicit query SQL, MybatisBatch, tenancy, optimistic locking, ShardingSphere topology and managed DDL. Keep `Controller → Service → Repository → Mapper`; COLA Application/Domain services retain business ownership and repositories live in infrastructure.
 
 ## Model contract
 
@@ -44,7 +151,7 @@ Page limit is 500. Data-change recording and IllegalSQL are permitted only in de
 
 `EgonColaPostgreDdlRunner` receives explicit physical PRIMARY/schema/role targets and SHA-256 manifests. Schema advisory locks, managed-prefix checks, script SQL and ddl_history run on one transaction connection. Unknown commit outcomes are checked through a new connection before any retry. Non-empty unmanaged schemas, checksum drift and route fingerprint changes require operator action; no automatic DROP, repair or history adoption exists.
 
-Do not register DDL target records as default MP IDdl beans or combine this runner with DdlApplicationRunner. Common has no ShardingSphere dependency. Hosts own pool creation, topology validation, DDL, primary/replica readiness and logical datasource construction.
+Do not register DDL target records as default MP IDdl beans or combine this runner with DdlApplicationRunner. This starter owns pool creation, topology validation, TableInfo schema maintenance, DDL scripts, and logical datasource construction. Applications must not rebuild local `ShardingDataSourceBootstrapper` copies.
 
 Six business archetypes use this runner and retain old B/V/manual SQL unchanged as archives. Agent keeps Flyway and adds one empty-knowledge-table correction; Outbox/vector ownership is unchanged.
 

@@ -2,7 +2,9 @@ spring:
   application:
     name: deep-research-agent
   config:
-    import: optional:classpath:agent/deep-research-flow.yml
+    import:
+      - optional:classpath:agent/deep-research-flow.yml
+      - classpath:egon-mybatis-plus-sharding.yml
   servlet:
     multipart:
       # 上传上限（20MB）的判定权在 agent.knowledge.runtime.max-upload-bytes：到它为止由用例回答
@@ -83,6 +85,26 @@ egon:
           enabled: true
           allowed-root-statements:
             "[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]": knowledge_base_id
+        sharding:
+          enabled: true
+          mode: SHARDING
+          config-style: STRATEGY
+          transaction-default-type: LOCAL
+          data-sources:
+            - name: primary
+              logical-name: primary
+              role: PRIMARY
+              driver-class-name: org.postgresql.Driver
+              jdbc-url: ${AGENT_DB_URL:jdbc:postgresql://localhost:5432/agent}
+              username: ${AGENT_DB_USERNAME:sa}
+              password: "${AGENT_DB_PASSWORD:}"
+          tables:
+            knowledge_base:
+              type: SINGLE
+              data-source: primary
+            knowledge_document:
+              type: SINGLE
+              data-source: primary
 agent:
   deep-research:
     runtime:
