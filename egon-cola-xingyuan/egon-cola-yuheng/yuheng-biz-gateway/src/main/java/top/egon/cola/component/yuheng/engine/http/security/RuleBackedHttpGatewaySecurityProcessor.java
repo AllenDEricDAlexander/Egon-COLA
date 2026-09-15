@@ -3,7 +3,7 @@ package top.egon.cola.component.yuheng.engine.http.security;
 import top.egon.cola.component.yuheng.runtime.http.domain.GatewayInboundHttpRequest;
 
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.contract.protocol.AccessZone;
 import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.yuheng.core.context.GatewayContext;
@@ -83,11 +83,14 @@ public final class RuleBackedHttpGatewaySecurityProcessor
      * @param clientAddressResolver 参数 客户端AddressResolver；parameter client address resolver。
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      */
-    public RuleBackedHttpGatewaySecurityProcessor(
-            GatewaySecurityChain chain,
+    private final LongIdGenerator idGenerator;
+
+    public RuleBackedHttpGatewaySecurityProcessor(GatewaySecurityChain chain,
             Supplier<ApiRpcGatewayCompiledRulesDTO> rules,
             TrustedClientAddressResolver clientAddressResolver,
-            String engineNodeId) {
+            String engineNodeId,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.chain = Objects.requireNonNull(chain, "chain");
         this.rules = Objects.requireNonNull(rules, "rules");
         this.clientAddressResolver = Objects.requireNonNull(
@@ -137,7 +140,7 @@ public final class RuleBackedHttpGatewaySecurityProcessor
             ));
         }
         GatewaySecurityPolicy policy = policies.getFirst();
-        String requestId = UuidV7.simpleString();
+        String requestId = idGenerator.nextId();
         Instant startedAt = Instant.now();
         Instant deadline = startedAt.plus(policy.providerTimeout());
         String remoteAddress = clientAddressResolver.resolve(

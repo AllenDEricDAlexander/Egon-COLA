@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.routing.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
@@ -296,8 +299,9 @@ class GatewayDraftServiceTest {
                 catalog,
                 idempotency,
                 audits,
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
         return new Fixture(service, store, idempotency);
     }
 

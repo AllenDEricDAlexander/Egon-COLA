@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.reporting.controller.scheduled;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
@@ -84,8 +87,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         audits,
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC)
-                );
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        new SnowflakeIdGenerator(0)
+                        );
 
         reconciler.reconcile();
 
@@ -136,8 +140,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         mock(TransactionTemplate.class),
-                        Clock.fixed(now, ZoneOffset.UTC)
-                );
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        new SnowflakeIdGenerator(0)
+                        );
 
         reconciler.reconcile();
 
@@ -199,8 +204,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC)
-                );
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        new SnowflakeIdGenerator(0)
+                        );
 
         reconciler.reconcile();
 
@@ -265,8 +271,9 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC)
-                );
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        new SnowflakeIdGenerator(0)
+                        );
 
         reconciler.reconcile();
 

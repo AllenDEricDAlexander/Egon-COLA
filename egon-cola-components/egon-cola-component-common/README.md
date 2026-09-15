@@ -16,7 +16,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 | `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | Opt-in MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`, zero-addition `EgonColaMapper`, enhanced 57-method service, TenantID isolation, audit fill, and repository validation |
 | `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, complete MDC capture, and local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
-| `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, deprecated `UuidV7` helper, and Spring Boot auto-configuration; all tests live in this module |
+| `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, and Spring Boot auto-configuration; all tests live in this module |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` metadata, shared masking strategies, Jackson response masking, Logback message conversion, and Spring Boot auto-configuration |
 | `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |
@@ -274,14 +274,14 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
-| `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator`; use deprecated `UuidV7` only for UUID compatibility contracts |
+| `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator` |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`, `Hmacs`, `Base64s`, `Hexes` |
 | `egon-cola-component-common-mask` | `egon-cola-component-common-data-desensitize-spring-boot-starter` |
 | `top.egon.cola.component.common.util.MaskingUtils`, `top.egon.cola.component.common.mask.Masking` | `@Sensitive`, `SensitiveStrategyRegistry`, or `SensitiveLogs.of` for scalar log arguments |
 
 The legacy aggregated `util` package, split `model/result/structure` packages, separate result factories, `BaseEntity`, and `AuditableModel` were intentionally removed.
 
-For Snowflake layout, configuration, rollback behavior, Kubernetes machine-ID allocation, and UUIDv7 migration boundaries, see the [common ID Starter README](egon-cola-component-common-id-starter/README.md).
+For Snowflake layout, configuration, rollback behavior, and Kubernetes machine-ID allocation, see the [common ID Starter README](egon-cola-component-common-id-starter/README.md).
 
 ## MyBatis-Plus Starter
 

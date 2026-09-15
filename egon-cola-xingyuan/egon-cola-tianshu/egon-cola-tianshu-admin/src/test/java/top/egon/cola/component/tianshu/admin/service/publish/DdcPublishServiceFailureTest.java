@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
@@ -46,6 +47,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 })
 class DdcPublishServiceFailureTest {
 
+    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
+
     @Autowired
     private DdcPublishService publishService;
 
@@ -56,7 +59,7 @@ class DdcPublishServiceFailureTest {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void transactionFailureCreatesFailedRecordAndThrows() {
         DdcPublishRequest request = new DdcPublishRequest();
-        request.setChangeId(UuidV7.simpleString());
+        request.setChangeId(IDS.nextId());
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
@@ -74,6 +77,11 @@ class DdcPublishServiceFailureTest {
 
     @TestConfiguration
     static class RedisTestConfig {
+
+        @Bean
+        LongIdGenerator longIdGenerator() {
+            return new SnowflakeIdGenerator(0);
+        }
 
         @Bean
         DdcRedisRepository ddcRedisRepository() {

@@ -4,15 +4,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 @DataJpaTest
-@Import(PublishFailureRecorder.class)
+@Import({PublishFailureRecorder.class, PublishFailureRecorderTest.IdConfig.class})
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
         "spring.datasource.url=jdbc:sqlite:file:ddc_failure_recorder_test?mode=memory&cache=shared",
@@ -40,5 +44,14 @@ class PublishFailureRecorderTest {
                     assertThat(task.getStatus()).isEqualTo(PublishStatus.FAILED.name());
                     assertThat(task.getErrorMessage()).isEqualTo("database failed");
                 });
+    }
+
+    @TestConfiguration
+    static class IdConfig {
+
+        @Bean
+        LongIdGenerator longIdGenerator() {
+            return new SnowflakeIdGenerator(0);
+        }
     }
 }

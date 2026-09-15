@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.engine.rpc.security;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import top.egon.cola.component.yuheng.engine.rpc.service.RpcMethodIndex;
 
 import top.egon.cola.component.yuheng.engine.rpc.domain.RuntimeRpcRoute;
@@ -208,8 +211,9 @@ class RuleBackedRpcGatewaySecurityProcessorTest {
         return new RuleBackedRpcGatewaySecurityProcessor(
                 chain,
                 this::rules,
-                "engine-1"
-        );
+                "engine-1",
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     private ApiRpcGatewayCompiledRulesDTO rules() {

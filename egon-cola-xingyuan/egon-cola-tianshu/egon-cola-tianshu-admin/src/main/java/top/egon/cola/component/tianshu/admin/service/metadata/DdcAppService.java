@@ -9,7 +9,7 @@ import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.BusinessException;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
@@ -34,11 +34,15 @@ public class DdcAppService {
 
     private final DdcNamespaceEnvAppBindingService bindingService;
 
+    private final LongIdGenerator idGenerator;
+
     public DdcAppService(DdcAppRepository appRepository,
                          DdcBizRepository bizRepository,
                          DdcNamespaceEnvAppBindingRepository bindingRepository,
                          DdcNamespaceEnvAppBindingService bindingService,
-                         DdcScopeGate scopeGate) {
+                         DdcScopeGate scopeGate,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.appRepository = appRepository;
         this.bizRepository = bizRepository;
         this.bindingRepository = bindingRepository;
@@ -116,7 +120,7 @@ public class DdcAppService {
     @Transactional
     public DdcAppEntity save(DdcAppEntity app) {
         LocalDateTime now = LocalDateTime.now();
-        app.setId(UuidV7.simpleString());
+        app.setId(idGenerator.nextId());
         app.setCreatedAt(now);
         if (app.getEnabled() == null) {
             app.setEnabled(true);

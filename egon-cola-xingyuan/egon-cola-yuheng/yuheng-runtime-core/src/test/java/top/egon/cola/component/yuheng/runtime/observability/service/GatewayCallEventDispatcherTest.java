@@ -43,7 +43,8 @@ class GatewayCallEventDispatcherTest {
                 GatewayTraceContext.fromHeaders(null, null, null),
                 "HTTP",
                 "PUBLIC",
-                "engine-1"
+                "engine-1",
+                new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0)
         );
         return observation.complete(
                 "COMPLETE",

@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -186,8 +189,9 @@ class GatewayRuleChunkGarbageCollectorTest {
                 client,
                 properties,
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                Duration.ofSeconds(30)
-        );
+                Duration.ofSeconds(30),
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     private DdcManagementConfig config(String content, long version) {

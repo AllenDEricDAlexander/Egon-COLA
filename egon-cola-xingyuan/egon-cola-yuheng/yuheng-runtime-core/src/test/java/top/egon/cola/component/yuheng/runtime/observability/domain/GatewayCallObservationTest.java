@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.runtime.observability.domain;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
@@ -22,8 +23,9 @@ class GatewayCallObservationTest {
                 "request-1",
                 "HTTP",
                 "PUBLIC",
-                "engine-1"
-        );
+                "engine-1",
+                new SnowflakeIdGenerator(0)
+                );
         observation.route(
                 "GET",
                 "/orders/{id}",

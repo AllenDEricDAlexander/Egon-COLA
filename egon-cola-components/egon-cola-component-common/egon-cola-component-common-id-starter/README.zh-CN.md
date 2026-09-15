@@ -171,13 +171,9 @@ spec:
 
 部署前应确认集群提供 pod-index label、滚动发布期间不会有两个存活 Pod 复用同一 ordinal，并保证其他工作负载不占用同一分配区间。普通 Deployment 的随机 Pod 名称不是稳定机器 ID，不应直接解析或哈希成机器 ID。
 
-## UUIDv7 兼容和能力边界
+## 能力边界
 
-`UuidV7Generator` 已删除。数据库主键使用 Snowflake（`LongIdGenerator`）。`UuidV7` 仍作为已废弃的纯 JDK RFC 9562 工具类保留给存量非主键场景，Starter 不会自动装配它。
-
-对于 UUIDv7 线协议、`VARCHAR(36)` 字段或 UUID 专用分片/校验规则，不要机械替换为 long；只有在明确修改契约和迁移数据后才能迁移。
-
-本组件不提供机器 ID 自动发现、Redis 租约、数据库号段、批量预取、持久化水位或网络协调。
+本 Starter 只通过 `LongIdGenerator` 生成 Snowflake ID，不再提供 UUIDv7。不提供机器 ID 自动发现、Redis 租约、数据库号段、批量预取、持久化水位或网络协调。
 
 ## 验证
 

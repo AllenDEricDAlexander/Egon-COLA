@@ -4,7 +4,7 @@ package top.egon.cola.component.yuheng.admin.group.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.group.domain.dto.GatewayGroupCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.group.domain.dto.GatewayGroupUpdateCommandDTO;
 import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
@@ -74,12 +74,14 @@ public class GatewayGroupService {
      * @param drafts 参数 drafts；parameter drafts。
      * @param audits 参数 audits；parameter audits。
      */
+        private final LongIdGenerator idGenerator;
+
     @Autowired
-    public GatewayGroupService(
-            GatewayGroupRepository groups,
+    public GatewayGroupService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
-            GatewayAuditLogRepository audits) {
-        this(groups, drafts, audits, Clock.systemUTC());
+            GatewayAuditLogRepository audits,
+            LongIdGenerator idGenerator) {
+        this(groups, drafts, audits, Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -92,11 +94,12 @@ public class GatewayGroupService {
      * @param audits 参数 audits；parameter audits。
      * @param clock 参数 clock；parameter clock。
      */
-    GatewayGroupService(
-            GatewayGroupRepository groups,
+    GatewayGroupService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
             GatewayAuditLogRepository audits,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.groups = groups;
         this.drafts = drafts;
         this.audits = audits;
@@ -119,7 +122,7 @@ public class GatewayGroupService {
             AdminActor actor,
             RequestAuditContext request) {
         Instant now = clock.instant();
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         GatewayGroupPO group = new GatewayGroupPO(
                 id,
                 command.gatewayGroupCode(),
@@ -311,7 +314,7 @@ public class GatewayGroupService {
             Map<String, Object> before,
             Map<String, Object> after) {
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

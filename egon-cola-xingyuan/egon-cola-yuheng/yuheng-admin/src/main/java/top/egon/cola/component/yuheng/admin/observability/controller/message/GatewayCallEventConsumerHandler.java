@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.observability.controller.message;
 
 
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.observability.domain.enums.GatewayCallEventConsumeResultEnum;
 import top.egon.cola.component.yuheng.admin.observability.service.GatewayCallEventIngestService;
 
@@ -52,10 +52,13 @@ public final class GatewayCallEventConsumerHandler {
      * @param ingestService 参数 ingest服务；parameter ingest service。
      * @param clock 参数 clock；parameter clock。
      */
-    public GatewayCallEventConsumerHandler(
-            GatewayCallEventCodec codec,
+    private final LongIdGenerator idGenerator;
+
+    public GatewayCallEventConsumerHandler(GatewayCallEventCodec codec,
             GatewayCallEventIngestService ingestService,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.codec = Objects.requireNonNull(codec, "codec");
         this.ingestService = Objects.requireNonNull(
                 ingestService,
@@ -122,7 +125,7 @@ public final class GatewayCallEventConsumerHandler {
                 : record.value();
         ingestService.poison(
                 new top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayConsumeFailurePO(
-                        UuidV7.simpleString(),
+                        idGenerator.nextId(),
                         record.topic(),
                         record.partition(),
                         record.offset(),

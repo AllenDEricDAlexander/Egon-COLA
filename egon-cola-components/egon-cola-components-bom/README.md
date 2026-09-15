@@ -24,7 +24,7 @@ After a business application imports the BOM through `dependencyManagement`, sub
 | `egon-cola-component-common-core` | Error statuses, exceptions, enum contracts, request/result models, and tree construction |
 | `egon-cola-component-common-trace` | Pure JDK + SLF4J `TraceContext`, MDC projection, W3C `traceparent` parsing, and local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Common-aggregated Spring Boot log correlation and trace propagation starter |
-| `egon-cola-component-common-id-starter` | Pure-JDK Snowflake contracts and algorithm, deprecated `UuidV7` helper, and Spring Boot auto-configuration for database `BIGINT` IDs |
+| `egon-cola-component-common-id-starter` | Pure-JDK Snowflake contracts and algorithm, and Spring Boot auto-configuration for database `BIGINT` IDs |
 | `egon-cola-component-common-crypto` | Digests, HMAC, Base64, and Hex |
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | Jackson response and Logback message desensitization through shared strategies |
 | `egon-cola-component-dynamic-thread-pool-starter` | Business-side dynamic thread-pool starter |

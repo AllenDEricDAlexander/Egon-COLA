@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.observability.controller.message;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
@@ -44,8 +47,9 @@ class GatewayCallEventConsumerHandlerTest {
                                 clock,
                                 Duration.ofDays(7)
                         ),
-                        clock
-                );
+                        clock,
+                        new SnowflakeIdGenerator(0)
+                        );
         byte[] payload = JsonMapper.builder()
                 .findAndAddModules()
                 .build()

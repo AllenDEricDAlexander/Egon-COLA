@@ -4,7 +4,7 @@ package top.egon.cola.component.yuheng.admin.routing.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
@@ -140,21 +140,21 @@ public class GatewayDraftService {
      * @param idempotency 参数 idempotency；parameter idempotency。
      * @param audits 参数 audits；parameter audits。
      */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public GatewayDraftService(
-            GatewayDraftJpaRepository drafts,
+    public GatewayDraftService(GatewayDraftJpaRepository drafts,
             GatewayDraftRepository store,
             GatewayCatalogRepository catalog,
             IdempotencyRepository idempotency,
-            GatewayAuditLogRepository audits) {
-        this(
-                drafts,
+            GatewayAuditLogRepository audits,
+            LongIdGenerator idGenerator) {
+        this(drafts,
                 store,
                 catalog,
                 idempotency,
                 audits,
-                Clock.systemUTC()
-        );
+                Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -169,13 +169,14 @@ public class GatewayDraftService {
      * @param audits 参数 audits；parameter audits。
      * @param clock 参数 clock；parameter clock。
      */
-    GatewayDraftService(
-            GatewayDraftJpaRepository drafts,
+    GatewayDraftService(GatewayDraftJpaRepository drafts,
             GatewayDraftRepository store,
             GatewayCatalogRepository catalog,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.drafts = drafts;
         this.store = store;
         this.catalog = catalog;
@@ -610,7 +611,7 @@ public class GatewayDraftService {
                 now.plus(Duration.ofDays(7))
         ));
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

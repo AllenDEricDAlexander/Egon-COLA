@@ -33,7 +33,10 @@ class RpcConsumerClientInterceptorTest {
         TraceContext state = TraceContext.root("request-1");
         AtomicReference<Metadata> observed = new AtomicReference<>();
         RpcConsumerClientInterceptor interceptor =
-                new RpcConsumerClientInterceptor(contract(), identity());
+                new RpcConsumerClientInterceptor(
+                        contract(),
+                        identity(),
+                        new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0));
         ClientCall<String, String> call = interceptor.interceptCall(
                 method(),
                 CallOptions.DEFAULT,

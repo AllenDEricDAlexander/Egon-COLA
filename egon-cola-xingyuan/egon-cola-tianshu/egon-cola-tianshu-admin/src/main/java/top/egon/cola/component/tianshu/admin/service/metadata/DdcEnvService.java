@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcEnvEntity;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
@@ -30,11 +30,15 @@ public class DdcEnvService {
 
     private final DdcNamespaceEnvAppBindingService bindingService;
 
+    private final LongIdGenerator idGenerator;
+
     public DdcEnvService(DdcEnvRepository envRepository,
                          DdcConfigItemRepository configItemRepository,
                          DdcNamespaceEnvAppBindingRepository bindingRepository,
                          DdcNamespaceEnvAppBindingService bindingService,
-                         DdcScopeGate scopeGate) {
+                         DdcScopeGate scopeGate,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.envRepository = envRepository;
         this.configItemRepository = configItemRepository;
         this.bindingRepository = bindingRepository;
@@ -87,7 +91,7 @@ public class DdcEnvService {
     @Transactional
     public DdcEnvEntity save(DdcEnvEntity env) {
         LocalDateTime now = LocalDateTime.now();
-        env.setId(UuidV7.simpleString());
+        env.setId(idGenerator.nextId());
         env.setCreatedAt(now);
         if (env.getEnabled() == null) {
             env.setEnabled(true);

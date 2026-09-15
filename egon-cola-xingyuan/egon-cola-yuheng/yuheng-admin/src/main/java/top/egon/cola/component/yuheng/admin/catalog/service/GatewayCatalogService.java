@@ -7,7 +7,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualDefinitionDTO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualMetadataDTO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualOperationDTO;
@@ -427,7 +426,7 @@ public class GatewayCatalogService {
                 value.externalAccessible()
         );
         return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 operation.id(),
                 version,
                 GatewayRuleCanonicalizer.sha256(bytes(digestMaterial)),
@@ -637,7 +636,7 @@ public class GatewayCatalogService {
             String action,
             Map<String, Object> after) {
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

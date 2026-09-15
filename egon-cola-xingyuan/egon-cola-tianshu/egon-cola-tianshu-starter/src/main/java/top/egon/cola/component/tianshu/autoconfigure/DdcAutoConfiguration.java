@@ -22,6 +22,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Role;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.service.binding.DdcBeanPostProcessor;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.redis.DdcRedisKeys;
@@ -378,10 +380,12 @@ public class DdcAutoConfiguration {
     @Bean
     public DdcInstanceIdentity ddcInstanceIdentity(
             DdcProperties properties,
-            ObjectProvider<DdcInstanceIdProvider> instanceIdProvider) {
+            ObjectProvider<DdcInstanceIdProvider> instanceIdProvider,
+            ObjectProvider<LongIdGenerator> idGenerator) {
         return new DdcInstanceIdentityFactory(
                 properties,
-                instanceIdProvider.getIfAvailable()
+                instanceIdProvider.getIfAvailable(),
+                idGenerator.getIfAvailable(() -> new SnowflakeIdGenerator(0))
         ).create();
     }
 

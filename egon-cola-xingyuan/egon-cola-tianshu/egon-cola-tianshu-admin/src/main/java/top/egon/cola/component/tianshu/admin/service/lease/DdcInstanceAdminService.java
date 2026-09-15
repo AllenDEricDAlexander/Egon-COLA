@@ -5,7 +5,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcInstanceEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.InstanceStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
@@ -27,8 +27,12 @@ public class DdcInstanceAdminService {
 
     private final DdcConfigLeaseService configLeaseService;
 
+    private final LongIdGenerator idGenerator;
+
     public DdcInstanceAdminService(DdcInstanceRepository instanceRepository,
-                                   DdcConfigLeaseService configLeaseService) {
+                                   DdcConfigLeaseService configLeaseService,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.instanceRepository = instanceRepository;
         this.configLeaseService = configLeaseService;
     }
@@ -116,7 +120,7 @@ public class DdcInstanceAdminService {
 
     private DdcInstanceEntity newInstance(DdcInstanceRegisterRequest request) {
         DdcInstanceEntity instance = new DdcInstanceEntity();
-        instance.setId(UuidV7.simpleString());
+        instance.setId(idGenerator.nextId());
         instance.setInstanceId(request.getInstanceId());
         instance.setCreatedAt(LocalDateTime.now());
         return instance;

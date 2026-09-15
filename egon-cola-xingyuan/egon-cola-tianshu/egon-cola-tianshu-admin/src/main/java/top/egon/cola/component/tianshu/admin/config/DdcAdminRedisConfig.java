@@ -18,6 +18,7 @@ import top.egon.cola.component.tianshu.admin.security.rpc.DdcNonceStore;
 import top.egon.cola.component.tianshu.admin.security.rpc.RedisDdcNonceStore;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.tianshu.admin.security.registration.IdpJwtDdcRegistrationCredentialVerifier;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcLeaseExpiryScanner;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcLeaseValidator;
@@ -116,11 +117,13 @@ public class DdcAdminRedisConfig {
     public DdcConfigLeaseService ddcConfigLeaseService(
             DdcConfigLeaseRedisRepository repository,
             DdcRegistrationCredentialVerifier registrationVerifier,
-            DdcAdminProperties properties) {
+            DdcAdminProperties properties,
+            LongIdGenerator idGenerator) {
         return new DdcConfigLeaseService(
                 repository,
                 new DdcLeaseValidator(properties),
-                registrationVerifier
+                registrationVerifier,
+                idGenerator
         );
     }
 
@@ -140,12 +143,14 @@ public class DdcAdminRedisConfig {
             DdcServiceRegistryRedisRepository repository,
             DdcAdminProperties properties,
             DdcScopeGate scopeGate,
-            DdcRegistrationCredentialVerifier registrationVerifier) {
+            DdcRegistrationCredentialVerifier registrationVerifier,
+            LongIdGenerator idGenerator) {
         return new DdcServiceRegistryService(
                 repository,
                 new DdcLeaseValidator(properties),
                 scopeGate,
-                registrationVerifier
+                registrationVerifier,
+                idGenerator
         );
     }
 

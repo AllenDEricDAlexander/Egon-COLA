@@ -22,6 +22,6 @@ class McpControlPlaneServiceConstructorTest {
         assertThat(constructors).singleElement()
                 .satisfies(constructor -> assertThat(
                         constructor.getParameterCount()
-                ).isEqualTo(13));
+                ).isEqualTo(14));
     }
 }

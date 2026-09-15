@@ -6,7 +6,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
@@ -199,9 +199,10 @@ public class GatewayReleaseService {
      * @param publications 参数 publications；parameter publications。
      * @param mcpContentFactory 参数 MCPContent工厂；parameter mcp content factory。
      */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public GatewayReleaseService(
-            GatewayGroupRepository groups,
+    public GatewayReleaseService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
             GatewayDraftService draftService,
             GatewayCatalogRepository catalog,
@@ -210,9 +211,9 @@ public class GatewayReleaseService {
             TransactionTemplate transactions,
             ObjectProvider<GatewayReleasePublicationCoordinator>
                     publications,
-            ObjectProvider<McpReleaseContentFactory> mcpContentFactory) {
-        this(
-                groups,
+            ObjectProvider<McpReleaseContentFactory> mcpContentFactory,
+            LongIdGenerator idGenerator) {
+        this(groups,
                 drafts,
                 draftService,
                 catalog,
@@ -221,8 +222,7 @@ public class GatewayReleaseService {
                 transactions,
                 publications.getIfAvailable(),
                 mcpContentFactory.getIfAvailable(),
-                Clock.systemUTC()
-        );
+                Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -240,8 +240,7 @@ public class GatewayReleaseService {
      * @param publications 参数 publications；parameter publications。
      * @param clock 参数 clock；parameter clock。
      */
-    GatewayReleaseService(
-            GatewayGroupRepository groups,
+    GatewayReleaseService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
             GatewayDraftService draftService,
             GatewayCatalogRepository catalog,
@@ -249,9 +248,9 @@ public class GatewayReleaseService {
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
             GatewayReleasePublicationCoordinator publications,
-            Clock clock) {
-        this(
-                groups,
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this(groups,
                 drafts,
                 draftService,
                 catalog,
@@ -260,8 +259,7 @@ public class GatewayReleaseService {
                 transactions,
                 publications,
                 null,
-                clock
-        );
+                clock, idGenerator);
     }
 
     /**
@@ -280,8 +278,7 @@ public class GatewayReleaseService {
      * @param mcpContentFactory 参数 MCPContent工厂；parameter mcp content factory。
      * @param clock 参数 clock；parameter clock。
      */
-    GatewayReleaseService(
-            GatewayGroupRepository groups,
+    GatewayReleaseService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
             GatewayDraftService draftService,
             GatewayCatalogRepository catalog,
@@ -290,7 +287,9 @@ public class GatewayReleaseService {
             TransactionTemplate transactions,
             GatewayReleasePublicationCoordinator publications,
             McpReleaseContentFactory mcpContentFactory,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.groups = groups;
         this.drafts = drafts;
         this.draftService = draftService;
@@ -513,7 +512,7 @@ public class GatewayReleaseService {
                     "draft validation failed: " + validation.errors()
             );
         }
-        String releaseId = UuidV7.simpleString();
+        String releaseId = idGenerator.nextId();
         GatewayRuleContent content = rollbackContent == null
                 ? content(group, draftService.get(gatewayGroupId))
                 : rollbackContent;
@@ -1032,7 +1031,7 @@ public class GatewayReleaseService {
             String action,
             long revision) {
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

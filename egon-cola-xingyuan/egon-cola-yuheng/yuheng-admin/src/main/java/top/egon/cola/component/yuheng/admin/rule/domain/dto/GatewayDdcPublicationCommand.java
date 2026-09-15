@@ -2,7 +2,7 @@ package top.egon.cola.component.yuheng.admin.rule.domain.dto;
 
 
 import java.time.Duration;
-import java.util.UUID;
+
 
 /**
  * 中文说明：{@code GatewayDdcPublicationCommand} 是不可变数据载体，位于当前 Gateway 模块的相关包中，负责网关DdcPublicationCommand相关的职责与边界。
@@ -114,7 +114,7 @@ public record GatewayDdcPublicationCommand(
             );
         }
         changeId = required(changeId, "changeId");
-        requireUuidV7(changeId);
+        requireSnowflakeChangeId(changeId);
         operator = required(operator, "operator");
         if (timeout == null || timeout.isZero() || timeout.isNegative()) {
             throw new IllegalArgumentException("timeout must be positive");
@@ -139,49 +139,14 @@ public record GatewayDdcPublicationCommand(
         return value.trim();
     }
 
-    /**
-     * 中文说明：执行 requireUuidV7 操作；该方法是 {@code GatewayDdcPublicationCommand} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the require uuid v7 operation; this method is the invocation entry point on {@code GatewayDdcPublicationCommand} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDdcPublicationCommand.requireUuidV7(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param value 参数 值；parameter value。
-     */
-    private static void requireUuidV7(String value) {
+    private static void requireSnowflakeChangeId(String value) {
         try {
-            UUID uuid = UUID.fromString(canonicalUuid(value));
-            if (uuid.version() != 7) {
-                throw new IllegalArgumentException(
-                        "changeId must be a UUIDv7"
-                );
-            }
-        } catch (IllegalArgumentException exception) {
-            if (exception.getMessage() != null
-                    && exception.getMessage().contains("UUIDv7")) {
-                throw exception;
-            }
+            Long.parseLong(value);
+        } catch (NumberFormatException exception) {
             throw new IllegalArgumentException(
-                    "changeId must be a UUIDv7",
+                    "changeId must be a Snowflake ID",
                     exception
             );
         }
-    }
-
-    /**
-     * 中文说明：执行 canonicalUuid 操作；该方法是 {@code GatewayDdcPublicationCommand} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
-     * English summary: Executes the canonical uuid operation; this method is the invocation entry point on {@code GatewayDdcPublicationCommand} and performs the corresponding runtime, management, or protocol work.
-     *
-     * 用法 / Usage: 调用方式 / Usage: {@code GatewayDdcPublicationCommand.canonicalUuid(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
-     * @param value 参数 值；parameter value。
-     * @return 返回 canonicalUuid 的处理结果；returns the result of the operation.
-     */
-    private static String canonicalUuid(String value) {
-        if (value.length() != 32) {
-            return value;
-        }
-        return value.substring(0, 8)
-                + "-" + value.substring(8, 12)
-                + "-" + value.substring(12, 16)
-                + "-" + value.substring(16, 20)
-                + "-" + value.substring(20);
     }
 }

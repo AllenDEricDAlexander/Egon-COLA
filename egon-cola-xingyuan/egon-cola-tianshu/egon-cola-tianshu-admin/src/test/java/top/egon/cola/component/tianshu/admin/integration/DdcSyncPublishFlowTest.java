@@ -14,7 +14,8 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
@@ -86,6 +87,8 @@ import static org.mockito.Mockito.when;
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcSyncPublishFlowTest {
+
+    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     @Autowired
     private DdcPublishService publishService;
@@ -307,7 +310,7 @@ class DdcSyncPublishFlowTest {
     private void saveConfig(String ignoredLabel) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(UuidV7.simpleString());
+        config.setId(IDS.nextId());
         config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
@@ -326,7 +329,7 @@ class DdcSyncPublishFlowTest {
     private DdcPublishRequest request(String value,
                                       long timeoutMs) {
         DdcPublishRequest request = new DdcPublishRequest();
-        request.setChangeId(UuidV7.simpleString());
+        request.setChangeId(IDS.nextId());
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
@@ -358,6 +361,11 @@ class DdcSyncPublishFlowTest {
 
     @TestConfiguration
     static class Dependencies {
+
+        @Bean
+        LongIdGenerator longIdGenerator() {
+            return new SnowflakeIdGenerator(0);
+        }
 
         @Bean
         DdcConfigLeaseService ddcConfigLeaseService() {

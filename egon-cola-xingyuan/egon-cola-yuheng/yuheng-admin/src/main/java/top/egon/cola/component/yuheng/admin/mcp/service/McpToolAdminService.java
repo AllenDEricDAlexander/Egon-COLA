@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpManagedToolOverrideMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteToolMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpToolMutationControlDTO;
@@ -178,9 +178,10 @@ public class McpToolAdminService {
      * @param audits 参数 audits；parameter audits。
      * @param objectMapper 参数 object映射器；parameter object mapper。
      */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public McpToolAdminService(
-            McpReleaseContentFactory contentFactory,
+    public McpToolAdminService(McpReleaseContentFactory contentFactory,
             McpValidationService validation,
             JdbcMcpManagedToolOverrideRepository managedOverrides,
             JdbcMcpRemoteToolDraftRepository remoteTools,
@@ -189,9 +190,9 @@ public class McpToolAdminService {
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
-            ObjectMapper objectMapper) {
-        this(
-                contentFactory,
+            ObjectMapper objectMapper,
+            LongIdGenerator idGenerator) {
+        this(contentFactory,
                 validation,
                 managedOverrides,
                 remoteTools,
@@ -201,8 +202,7 @@ public class McpToolAdminService {
                 idempotency,
                 audits,
                 objectMapper,
-                Clock.systemUTC()
-        );
+                Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -222,8 +222,7 @@ public class McpToolAdminService {
      * @param objectMapper 参数 object映射器；parameter object mapper。
      * @param clock 参数 clock；parameter clock。
      */
-    McpToolAdminService(
-            McpReleaseContentFactory contentFactory,
+    McpToolAdminService(McpReleaseContentFactory contentFactory,
             McpValidationService validation,
             JdbcMcpManagedToolOverrideRepository managedOverrides,
             JdbcMcpRemoteToolDraftRepository remoteTools,
@@ -233,7 +232,9 @@ public class McpToolAdminService {
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
             ObjectMapper objectMapper,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.contentFactory = contentFactory;
         this.validation = validation;
         this.managedOverrides = managedOverrides;
@@ -507,7 +508,7 @@ public class McpToolAdminService {
         if (replay != null) {
             return replay;
         }
-        String resourceId = id == null ? UuidV7.simpleString() : id;
+        String resourceId = id == null ? idGenerator.nextId() : id;
         requiredServerInGroup(command.serverId(), command.gatewayGroupId());
         requireRemoteMount(
                 command.remoteMountId(),
@@ -878,7 +879,7 @@ public class McpToolAdminService {
                 now.plus(Duration.ofDays(7))
         ));
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

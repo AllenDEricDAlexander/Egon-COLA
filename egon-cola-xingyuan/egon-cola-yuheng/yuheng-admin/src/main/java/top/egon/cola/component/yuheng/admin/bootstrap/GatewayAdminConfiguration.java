@@ -19,6 +19,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminOpenApiProperties;
@@ -307,7 +308,8 @@ public class GatewayAdminConfiguration {
             GatewayDdcRulePublisher publisher,
             GatewayAdminProperties properties,
             @Value("${yuheng.admin.tianshu.publish-timeout:PT30S}")
-            Duration timeout) {
+            Duration timeout,
+            LongIdGenerator idGenerator) {
         return new GatewayReleasePublicationCoordinator(
                 journal,
                 releases,
@@ -315,7 +317,8 @@ public class GatewayAdminConfiguration {
                 publisher,
                 Clock.systemUTC(),
                 timeout,
-                properties.getDdc()
+                properties.getDdc(),
+                idGenerator
         );
     }
 
@@ -424,11 +427,13 @@ public class GatewayAdminConfiguration {
     @Bean
     GatewayCallEventConsumerHandler gatewayCallEventConsumerHandler(
             GatewayCallEventCodec codec,
-            GatewayCallEventIngestService service) {
+            GatewayCallEventIngestService service,
+            LongIdGenerator idGenerator) {
         return new GatewayCallEventConsumerHandler(
                 codec,
                 service,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                idGenerator
         );
     }
 

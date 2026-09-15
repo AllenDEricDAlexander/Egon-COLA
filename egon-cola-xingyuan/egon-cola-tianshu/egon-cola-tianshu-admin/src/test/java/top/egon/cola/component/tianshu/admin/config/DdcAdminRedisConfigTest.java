@@ -7,6 +7,8 @@ import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
@@ -67,6 +69,11 @@ class DdcAdminRedisConfigTest {
         @Bean
         DdcScopeGate ddcScopeGate() {
             return mock(DdcScopeGate.class);
+        }
+
+        @Bean
+        LongIdGenerator longIdGenerator() {
+            return new SnowflakeIdGenerator(0);
         }
     }
 }

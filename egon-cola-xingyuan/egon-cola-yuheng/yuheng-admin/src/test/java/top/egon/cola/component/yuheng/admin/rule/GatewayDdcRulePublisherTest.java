@@ -2,7 +2,8 @@ package top.egon.cola.component.yuheng.admin.rule.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.yuheng.admin.rule.domain.dto.GatewayDdcPublicationCommand;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfig;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfigClientInstance;
@@ -31,12 +32,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayDdcRulePublisherTest {
 
+    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
+
     @Test
     void publishesExactlyOneFullyResolvedArtifact() {
         RecordingClient client = new RecordingClient();
         GatewayDdcRulePublisher publisher =
                 new GatewayDdcRulePublisher(client);
-        String changeId = UuidV7.string();
+        String changeId = IDS.nextId();
         GatewayDdcPublicationCommand command =
                 new GatewayDdcPublicationCommand(
                         "infra",
@@ -64,21 +67,20 @@ class GatewayDdcRulePublisherTest {
             assertThat(request.expectedVersion()).isEqualTo(1L);
             assertThat(request.timeoutMs()).isEqualTo(30_000L);
             assertThat(request.operator()).isEqualTo("admin");
-            assertThat(UUID.fromString(request.changeId()).version())
-                    .isEqualTo(7);
+            assertThat(request.changeId()).matches("\\d+");
         });
     }
 
     @Test
-    void rejectsIncompleteOrNonUuidV7Commands() {
-        assertThat(command(1L, UuidV7.simpleString()).changeId())
-                .hasSize(32);
-        assertThatThrownBy(() -> command(null, UuidV7.string()))
+    void rejectsIncompleteOrNonSnowflakeCommands() {
+        assertThat(command(1L, IDS.nextId()).changeId())
+                .matches("\\d+");
+        assertThatThrownBy(() -> command(null, IDS.nextId()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("expectedVersion");
         assertThatThrownBy(() -> command(1L, UUID.randomUUID().toString()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("UUIDv7");
+                .hasMessageContaining("Snowflake");
         assertThatThrownBy(() -> new GatewayDdcPublicationCommand(
                 " ",
                 "test",
@@ -86,7 +88,7 @@ class GatewayDdcRulePublisherTest {
                 "yuheng.rules.active",
                 "{}",
                 1L,
-                UuidV7.string(),
+                IDS.nextId(),
                 "admin",
                 Duration.ofSeconds(1)
         )).isInstanceOf(IllegalArgumentException.class)

@@ -1,5 +1,6 @@
 package top.egon.cola.component.yuheng.engine.bootstrap.config;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.engine.rule.domain.ApiRpcGatewayCompiledRulesDTO;
 import top.egon.cola.component.yuheng.runtime.http.service.ReactorNettyHttpUpstreamAdapter;
 import top.egon.cola.component.yuheng.engine.rpc.service.RpcMethodIndex;
@@ -469,7 +470,8 @@ public class GatewayEngineConfiguration {
             HttpRpcUpstreamAdapter httpRpcUpstream,
             PassiveHealthTracker passiveHealth,
             GatewayTelemetry telemetry,
-            GatewayTransportDispatcher transportDispatcher) {
+            GatewayTransportDispatcher transportDispatcher,
+            LongIdGenerator idGenerator) {
         GatewayEngineRuntimeProperties.Http http = properties.getHttp();
         var emptyRoutes = new HttpRouteCompiler().compile(List.of());
         var security = new RuleBackedHttpGatewaySecurityProcessor(
@@ -478,7 +480,8 @@ public class GatewayEngineConfiguration {
                 new TrustedClientAddressResolver(
                         properties.getSecurity().getTrustedProxyCidrs()
                 ),
-                properties.getNodeId()
+                properties.getNodeId(),
+                idGenerator
         );
         var handler = new DefaultGatewayHttpDataPlaneHandler(
                 new HttpRequestNormalizer(
@@ -555,11 +558,13 @@ public class GatewayEngineConfiguration {
             GatewayCallCompletionListener completionListener,
             GatewayTrafficGovernance trafficGovernance,
             PassiveHealthTracker passiveHealth,
-            GatewayTelemetry telemetry) {
+            GatewayTelemetry telemetry,
+            LongIdGenerator idGenerator) {
         var security = new RuleBackedRpcGatewaySecurityProcessor(
                 new GatewaySecurityChain(capabilities),
                 activation::active,
-                properties.getNodeId()
+                properties.getNodeId(),
+                idGenerator
         );
         var forwarder = new RpcGatewayForwarder(
                 providerSelector,
@@ -571,7 +576,8 @@ public class GatewayEngineConfiguration {
                 properties.getNodeId(),
                 trafficGovernance,
                 passiveHealth,
-                telemetry
+                telemetry,
+                idGenerator
         );
         return new RpcGatewayHandlerRegistry(
                 forwarder,

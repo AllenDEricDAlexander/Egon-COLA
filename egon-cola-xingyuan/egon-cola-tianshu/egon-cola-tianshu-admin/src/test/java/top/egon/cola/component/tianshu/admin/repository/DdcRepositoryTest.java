@@ -5,7 +5,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
 
 import java.time.LocalDateTime;
@@ -24,13 +25,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 class DdcRepositoryTest {
 
+    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
+
     @Autowired
     private DdcConfigItemRepository configItemRepository;
 
     @Test
     void savesAndFindsConfigItemByNaturalKey() {
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(UuidV7.simpleString());
+        entity.setId(IDS.nextId());
         entity.setBizCode("default");
         entity.setAppCode("demo");
         entity.setEnv("dev");

@@ -104,7 +104,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayAdminNotFoundException;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 
@@ -156,9 +156,12 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @param jdbc 参数 jdbc；parameter jdbc。
      * @param objectMapper 参数 object映射器；parameter object mapper。
      */
-    public JdbcGatewayCatalogRepository(
-            JdbcTemplate jdbc,
-            ObjectMapper objectMapper) {
+    private final LongIdGenerator idGenerator;
+
+    public JdbcGatewayCatalogRepository(JdbcTemplate jdbc,
+            ObjectMapper objectMapper,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
     }
@@ -241,7 +244,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
                 hierarchy,
                 now
         );
-        String interfaceGroupId = UuidV7.simpleString();
+        String interfaceGroupId = idGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_interface_group(
                     id, entity_domain_id, code, display_name, source_type,
@@ -707,7 +710,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
         if (!existing.isEmpty()) {
             return existing.getFirst();
         }
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_business_domain(
                     id, application_id, code, display_name, description,
@@ -740,7 +743,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
         if (!existing.isEmpty()) {
             return existing.getFirst();
         }
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_entity_domain(
                     id, business_domain_id, code, display_name, description,

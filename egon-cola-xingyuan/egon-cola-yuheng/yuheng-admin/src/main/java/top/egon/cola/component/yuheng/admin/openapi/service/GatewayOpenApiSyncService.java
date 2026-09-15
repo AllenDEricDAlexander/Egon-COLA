@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceInstance;
@@ -97,9 +97,10 @@ public class GatewayOpenApiSyncService {
     private final Clock clock;
 
     /** Creates the Spring-managed synchronization service. */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public GatewayOpenApiSyncService(
-            DdcManagementClient ddc,
+    public GatewayOpenApiSyncService(DdcManagementClient ddc,
             GatewayApplicationRepository applications,
             GatewayOpenApiSyncRepository syncStates,
             GatewayOpenApiSnapshotRepository snapshots,
@@ -109,9 +110,9 @@ public class GatewayOpenApiSyncService {
             GatewayAdminOpenApiProperties properties,
             @Qualifier("gatewayOpenApiObjectMapper")
             ObjectMapper objectMapper,
-            MeterRegistry meters) {
-        this(
-                ddc,
+            MeterRegistry meters,
+            LongIdGenerator idGenerator) {
+        this(ddc,
                 applications,
                 syncStates,
                 snapshots,
@@ -121,13 +122,12 @@ public class GatewayOpenApiSyncService {
                 properties,
                 objectMapper,
                 meters,
-                Clock.systemUTC()
-        );
+                Clock.systemUTC(),
+                idGenerator);
     }
 
     /** Constructor used by deterministic focused tests. */
-    public GatewayOpenApiSyncService(
-            DdcManagementClient ddc,
+    public GatewayOpenApiSyncService(DdcManagementClient ddc,
             GatewayApplicationRepository applications,
             GatewayOpenApiSyncRepository syncStates,
             GatewayOpenApiSnapshotRepository snapshots,
@@ -136,9 +136,9 @@ public class GatewayOpenApiSyncService {
             GatewayOpenApiAggregateCoordinator coordinator,
             GatewayAdminOpenApiProperties properties,
             MeterRegistry meters,
-            Clock clock) {
-        this(
-                ddc,
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this(ddc,
                 applications,
                 syncStates,
                 snapshots,
@@ -148,12 +148,10 @@ public class GatewayOpenApiSyncService {
                 properties,
                 new ObjectMapper(),
                 meters,
-                clock
-        );
+                clock, idGenerator);
     }
 
-    private GatewayOpenApiSyncService(
-            DdcManagementClient ddc,
+    private GatewayOpenApiSyncService(DdcManagementClient ddc,
             GatewayApplicationRepository applications,
             GatewayOpenApiSyncRepository syncStates,
             GatewayOpenApiSnapshotRepository snapshots,
@@ -163,7 +161,9 @@ public class GatewayOpenApiSyncService {
             GatewayAdminOpenApiProperties properties,
             ObjectMapper objectMapper,
             MeterRegistry meters,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.ddc = Objects.requireNonNull(ddc, "tianshu");
         this.applications = Objects.requireNonNull(
                 applications,
@@ -816,7 +816,7 @@ public class GatewayOpenApiSyncService {
             return;
         }
         syncStates.upsertDiscovered(new GatewayOpenApiSyncPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 context.application().getId(),
                 context.manifest().buildId(),
                 context.manifest().artifactVersion(),
@@ -936,7 +936,7 @@ public class GatewayOpenApiSyncService {
                     ? root.path("components").path("schemas").size()
                     : 0;
             GatewayOpenApiSnapshotPO snapshot = new GatewayOpenApiSnapshotPO(
-                    UuidV7.simpleString(),
+                    idGenerator.nextId(),
                     document.candidate().applicationId(),
                     null,
                     document.candidate().buildId(),

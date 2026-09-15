@@ -107,7 +107,6 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.id.uuid.UuidV7;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayDefinitionReportRepository;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReportResult;
@@ -404,7 +403,7 @@ public class JdbcGatewayDefinitionReportRepository
             );
             return existing.getFirst();
         }
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         jdbc.update(
                 "INSERT INTO "
                         + table
@@ -481,7 +480,7 @@ public class JdbcGatewayDefinitionReportRepository
             );
             return row.id();
         }
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_interface_group(
                     id, entity_domain_id, code, display_name, source_type,
@@ -714,7 +713,7 @@ public class JdbcGatewayDefinitionReportRepository
             GatewayDefinitionSourceTypeEnum sourceType,
             GatewayInterfaceDefinitionReport.Operation operation,
             Instant now) {
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_operation_definition(
                     id, operation_id, definition_set_id, definition_version,

@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.engine.http.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.runtime.http.service.GatewayHttpDataPlaneHandler;
 
 import top.egon.cola.component.yuheng.runtime.traffic.service.GatewayTrafficContext;
@@ -104,6 +106,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
      */
     private static final DefaultDataBufferFactory BUFFER_FACTORY =
             DefaultDataBufferFactory.sharedInstance;
+
+    private final LongIdGenerator idGenerator = new SnowflakeIdGenerator(0);
 
     /**
      * 中文说明：保存 normalizer 对应的状态、依赖或配置值；字段类型为 {@code HttpRequestNormalizer}，由 {@code DefaultGatewayHttpDataPlaneHandler} 在其生命周期内读取或更新。
@@ -1002,7 +1006,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 "HTTP",
                 accessZone.name(),
                 engineNodeId,
-                telemetry
+                telemetry,
+                idGenerator
         );
         observation.scope(engineEnv, engineNamespace);
         GatewayTraceContext trace = observation.trace();
@@ -1134,7 +1139,8 @@ public final class DefaultGatewayHttpDataPlaneHandler
                 "WEBSOCKET",
                 accessZone.name(),
                 engineNodeId,
-                telemetry
+                telemetry,
+                idGenerator
         );
         observation.scope(engineEnv, engineNamespace);
         GatewayTraceContext trace = observation.trace();

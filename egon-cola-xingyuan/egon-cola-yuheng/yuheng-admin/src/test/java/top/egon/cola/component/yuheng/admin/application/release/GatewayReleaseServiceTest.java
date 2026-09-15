@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.PlatformTransactionManager;
@@ -398,8 +401,9 @@ class GatewayReleaseServiceTest {
                 transactions(),
                 null,
                 mcpContentFactory,
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
         return new CreateFixture(service, releases);
     }
 
@@ -442,8 +446,9 @@ class GatewayReleaseServiceTest {
                 audits,
                 transactions(),
                 publications,
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
         return new Fixture(service, releases, drafts, draft);
     }
 

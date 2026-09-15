@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.engine.rpc.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import top.egon.cola.component.yuheng.runtime.security.domain.GatewaySecurityException;
 import top.egon.cola.component.yuheng.runtime.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.yuheng.runtime.rpc.domain.RawByteMarshaller;
@@ -70,8 +73,9 @@ class RpcGatewayServerTest {
                 },
                 channels,
                 Duration.ofSeconds(5),
-                1024
-        );
+                1024,
+                new SnowflakeIdGenerator(0)
+                );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
         registry.activate(new RpcMethodIndexCompiler().compile(
@@ -156,8 +160,9 @@ class RpcGatewayServerTest {
                 ),
                 channels,
                 Duration.ofSeconds(5),
-                1024
-        );
+                1024,
+                new SnowflakeIdGenerator(0)
+                );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
         registry.activate(new RpcMethodIndexCompiler().compile(
@@ -247,8 +252,9 @@ class RpcGatewayServerTest {
                 events::add,
                 "engine-1",
                 GatewayTrafficGovernance.noop(),
-                (runtimeIdentity, outcome) -> outcomes.add(outcome)
-        );
+                (runtimeIdentity, outcome) -> outcomes.add(outcome),
+                new SnowflakeIdGenerator(0)
+                );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
         registry.activate(new RpcMethodIndexCompiler().compile(
@@ -382,8 +388,9 @@ class RpcGatewayServerTest {
                         ),
                 events::add,
                 "engine-1",
-                retryGovernance()
-        );
+                retryGovernance(),
+                new SnowflakeIdGenerator(0)
+                );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
         registry.activate(new RpcMethodIndexCompiler().compile(
@@ -448,8 +455,9 @@ class RpcGatewayServerTest {
                                 top.egon.cola.component.yuheng.runtime.security.domain
                                         .GatewaySecurityException
                                         .authorizationDenied()
-                        )
-        );
+                        ),
+                        new SnowflakeIdGenerator(0)
+                        );
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
         registry.activate(new RpcMethodIndexCompiler().compile(

@@ -4,7 +4,7 @@ package top.egon.cola.component.yuheng.admin.application.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.GatewayApplicationCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.GatewayApplicationUpdateCommandDTO;
@@ -77,12 +77,14 @@ public class GatewayApplicationService {
      * @param audits 参数 audits；parameter audits。
      * @param scopes 参数 scopes；parameter scopes。
      */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public GatewayApplicationService(
-            GatewayApplicationRepository applications,
+    public GatewayApplicationService(GatewayApplicationRepository applications,
             GatewayAuditLogRepository audits,
-            GatewayScopeService scopes) {
-        this(applications, audits, scopes, Clock.systemUTC());
+            GatewayScopeService scopes,
+            LongIdGenerator idGenerator) {
+        this(applications, audits, scopes, Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -95,11 +97,12 @@ public class GatewayApplicationService {
      * @param scopes 参数 scopes；parameter scopes。
      * @param clock 参数 clock；parameter clock。
      */
-    GatewayApplicationService(
-            GatewayApplicationRepository applications,
+    GatewayApplicationService(GatewayApplicationRepository applications,
             GatewayAuditLogRepository audits,
             GatewayScopeService scopes,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.applications = applications;
         this.audits = audits;
         this.scopes = scopes;
@@ -143,7 +146,7 @@ public class GatewayApplicationService {
         }
         Instant now = clock.instant();
         GatewayApplicationPO application = new GatewayApplicationPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 scope.bizCode(),
                 scope.appCode(),
                 required(command.displayName(), "displayName"),
@@ -299,7 +302,7 @@ public class GatewayApplicationService {
             String action,
             Map<String, Object> after) {
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

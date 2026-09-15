@@ -30,6 +30,8 @@ import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.descriptor.RpcMethodDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
 import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
@@ -64,6 +66,7 @@ public class RpcConsumerProxyFactory {
     private final RpcInvocationExecutor executor;
     private final RpcLoadBalancers loadBalancers;
     private final ApplicationContext applicationContext;
+    private final LongIdGenerator invocationIds = new SnowflakeIdGenerator(0);
 
     /**
      * Compatibility constructor for programmatic direct clients. The client
@@ -346,7 +349,8 @@ public class RpcConsumerProxyFactory {
         List<ClientInterceptor> interceptors = new ArrayList<>();
         interceptors.add(new RpcConsumerClientInterceptor(
                 contract,
-                processIdentity
+                processIdentity,
+                invocationIds
         ));
         RpcClientInvocation context = new RpcClientInvocation(
                 contract,

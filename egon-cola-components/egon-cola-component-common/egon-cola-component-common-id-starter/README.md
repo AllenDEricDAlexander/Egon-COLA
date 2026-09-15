@@ -172,13 +172,9 @@ spec:
 
 Confirm that the cluster supplies the pod-index label, that ordinals are not reused by concurrently active pods during rollout, and that no other workload uses the same allocation range. An ordinary Deployment's random Pod name is not a stable machine ID and must not be hashed or parsed as one.
 
-## UUIDv7 Compatibility and Boundaries
+## Boundaries
 
-`UuidV7Generator` has been removed. Database primary keys use Snowflake via `LongIdGenerator`. `UuidV7` remains as a deprecated pure-JDK RFC 9562 helper for existing non-key consumers and is not auto-configured.
-
-Do not mechanically replace UUID values that are part of a UUIDv7 wire contract, a `VARCHAR(36)` schema, or UUID-specific sharding/validation. Migrate those consumers only with an explicit contract and data migration.
-
-This component intentionally does not provide automatic node discovery, Redis leases, database segments, batch prefetch, persistent watermarks, or network coordination.
+This Starter only generates Snowflake IDs via `LongIdGenerator`. It does not provide UUIDv7, automatic node discovery, Redis leases, database segments, batch prefetch, persistent watermarks, or network coordination.
 
 ## Validation
 

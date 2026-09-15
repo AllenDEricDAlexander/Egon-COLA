@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.engine.rpc.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import top.egon.cola.component.yuheng.runtime.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.yuheng.engine.rpc.service.RpcMethodIndex;
 
@@ -24,8 +27,9 @@ class RpcGatewayHandlerRegistryTest {
                         },
                         new RpcProviderChannelCache(Duration.ofMillis(10)),
                         Duration.ofSeconds(1),
-                        1024
-                ),
+                        1024,
+                        new SnowflakeIdGenerator(0)
+                        ),
                 rules::get
         );
         RpcMethodIndex replacement = new RpcMethodIndex(Map.of());

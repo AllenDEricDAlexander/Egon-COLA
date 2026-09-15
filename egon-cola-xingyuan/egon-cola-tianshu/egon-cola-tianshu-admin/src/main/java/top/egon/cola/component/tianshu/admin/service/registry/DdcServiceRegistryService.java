@@ -1,6 +1,6 @@
 package top.egon.cola.component.tianshu.admin.service.registry;
 
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
@@ -38,14 +38,15 @@ public class DdcServiceRegistryService {
     public DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                                      DdcLeaseValidator leaseValidator,
                                      DdcScopeGate scopeGate,
-                                     DdcRegistrationCredentialVerifier registrationVerifier) {
+                                     DdcRegistrationCredentialVerifier registrationVerifier,
+                                     LongIdGenerator idGenerator) {
         this(
                 repository,
                 leaseValidator,
                 scopeGate,
                 registrationVerifier,
                 Clock.systemUTC(),
-                UuidV7::simpleString
+                java.util.Objects.requireNonNull(idGenerator, "idGenerator")::nextId
         );
     }
 

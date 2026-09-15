@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcBizEntity;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
@@ -26,9 +26,13 @@ public class DdcBizService {
 
     private final DdcAppRepository appRepository;
 
+    private final LongIdGenerator idGenerator;
+
     public DdcBizService(DdcBizRepository bizRepository,
                          DdcAppRepository appRepository,
-                         DdcScopeGate scopeGate) {
+                         DdcScopeGate scopeGate,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.bizRepository = bizRepository;
         this.appRepository = appRepository;
         this.scopeGate = scopeGate;
@@ -75,7 +79,7 @@ public class DdcBizService {
     @Transactional
     public DdcBizEntity save(DdcBizEntity biz) {
         LocalDateTime now = LocalDateTime.now();
-        biz.setId(UuidV7.simpleString());
+        biz.setId(idGenerator.nextId());
         biz.setCreatedAt(now);
         if (biz.getEnabled() == null) {
             biz.setEnabled(true);

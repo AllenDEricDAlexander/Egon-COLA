@@ -16,7 +16,7 @@
 | `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | 按需启用的 MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`、零新增方法 `EgonColaMapper`、增强 57 方法 Service、TenantID 隔离、审计填充和仓储校验 |
 | `egon-cola-component-common-trace` | 纯 JDK + SLF4J Trace 核心、W3C `traceparent` 传播、完整 MDC 捕获和本地线程任务模板 |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 自动配置：Servlet、WebFlux、RestClient、WebClient 和 Reactor Context 投影 |
-| `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器、已废弃的 `UuidV7` 工具类和 Spring Boot 自动配置；全部测试位于本模块 |
+| `egon-cola-component-common-id-starter` | Snowflake 接口、纯 JDK 算法、解析器和 Spring Boot 自动配置；全部测试位于本模块 |
 | `egon-cola-component-common-crypto` | SHA-256、HMAC-SHA256、Base64、Hex 工具 |
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` 元数据、共享脱敏策略、Jackson 响应脱敏、Logback 消息转换和 Spring Boot 自动配置 |
 | `egon-cola-component-common-test` | 组件内部使用的源码依赖边界测试工具 |
@@ -271,14 +271,14 @@ List<TreeNode<Long, String>> roots = TreeBuilder.build(nodes);
 | `top.egon.cola.component.common.model.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.result.*` | `top.egon.cola.component.common.pojo.*` |
 | `top.egon.cola.component.common.structure.tree.*` | `top.egon.cola.component.common.pojo.*` |
-| `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator`；仅在 UUID 兼容契约中继续使用已废弃的 `UuidV7` |
+| `top.egon.cola.component.common.util.IdUtils` | `LongIdGenerator` / `SnowflakeIdGenerator` |
 | `top.egon.cola.component.common.util.CryptoUtils` | `Digests`、`Hmacs`、`Base64s`、`Hexes` |
 | `egon-cola-component-common-mask` | `egon-cola-component-common-data-desensitize-spring-boot-starter` |
 | `top.egon.cola.component.common.util.MaskingUtils`、`top.egon.cola.component.common.mask.Masking` | `@Sensitive`、`SensitiveStrategyRegistry`，或日志标量参数使用 `SensitiveLogs.of` |
 
 旧的 `util` 聚合包、拆分的 `model/result/structure` 包、独立结果工厂、`BaseEntity` 和 `AuditableModel` 已被有意移除。
 
-Snowflake 位布局、配置、时钟回拨、Kubernetes 机器 ID 分配和 UUIDv7 迁移边界见 [common ID Starter 中文文档](egon-cola-component-common-id-starter/README.zh-CN.md)。
+Snowflake 位布局、配置、时钟回拨和 Kubernetes 机器 ID 分配见 [common ID Starter 中文文档](egon-cola-component-common-id-starter/README.zh-CN.md)。
 
 ## MyBatis-Plus Starter
 

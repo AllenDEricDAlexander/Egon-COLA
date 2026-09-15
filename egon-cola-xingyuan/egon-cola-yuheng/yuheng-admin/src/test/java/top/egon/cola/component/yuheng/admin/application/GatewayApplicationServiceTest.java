@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.application.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -48,8 +51,9 @@ class GatewayApplicationServiceTest {
                 Clock.fixed(
                         Instant.parse("2026-08-01T00:00:00Z"),
                         ZoneOffset.UTC
-                )
-        );
+                ),
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     @Test
@@ -66,6 +70,10 @@ class GatewayApplicationServiceTest {
                 .withBean(
                         GatewayScopeService.class,
                         () -> mock(GatewayScopeService.class)
+                )
+                .withBean(
+                        LongIdGenerator.class,
+                        () -> new SnowflakeIdGenerator(0)
                 )
                 .withBean(GatewayApplicationService.class)
                 .run(context -> assertThat(context)

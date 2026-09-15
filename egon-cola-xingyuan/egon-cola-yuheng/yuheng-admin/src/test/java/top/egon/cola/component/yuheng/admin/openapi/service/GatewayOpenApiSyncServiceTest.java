@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.openapi.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
@@ -250,8 +253,9 @@ class GatewayOpenApiSyncServiceTest {
                 coordinator,
                 properties,
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
 
         int claimed = serviceUnderTest.reconcile();
         verify(ddc).getServiceKeys(any());
@@ -291,8 +295,9 @@ class GatewayOpenApiSyncServiceTest {
                 mock(GatewayOpenApiAggregateCoordinator.class),
                 new GatewayAdminOpenApiProperties(),
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
 
         assertThat(serviceUnderTest.reconcile()).isZero();
 
@@ -350,8 +355,9 @@ class GatewayOpenApiSyncServiceTest {
                 mock(GatewayOpenApiAggregateCoordinator.class),
                 new GatewayAdminOpenApiProperties(),
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
 
         serviceUnderTest.reconcile();
 
@@ -378,8 +384,9 @@ class GatewayOpenApiSyncServiceTest {
                 coordinator,
                 properties,
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     private GatewayOpenApiSyncCandidateDTO candidate(String group, String instanceId) {

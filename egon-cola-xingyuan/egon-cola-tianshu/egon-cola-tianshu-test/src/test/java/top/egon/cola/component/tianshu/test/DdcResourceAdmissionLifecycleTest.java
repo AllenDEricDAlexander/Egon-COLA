@@ -1,5 +1,8 @@
 package top.egon.cola.component.tianshu.test;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
@@ -89,7 +92,9 @@ class DdcResourceAdmissionLifecycleTest {
                 repository,
                 new DdcLeaseValidator(),
                 mock(DdcScopeGate.class),
-                verifier);
+                verifier,
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     private DdcServiceRegistration registration(

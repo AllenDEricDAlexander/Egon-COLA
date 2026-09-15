@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.routing.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
@@ -195,8 +198,9 @@ class GatewayDraftTransportWorkflowTest {
                 catalog,
                 idempotency,
                 audits,
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                         new GatewayDraftController(service)
                 )

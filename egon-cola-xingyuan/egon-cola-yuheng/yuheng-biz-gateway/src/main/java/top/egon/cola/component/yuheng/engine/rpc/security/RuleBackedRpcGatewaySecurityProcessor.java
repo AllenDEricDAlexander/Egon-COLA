@@ -5,7 +5,7 @@ import top.egon.cola.component.yuheng.engine.rpc.domain.RuntimeRpcRoute;
 import io.grpc.Deadline;
 import io.grpc.Metadata;
 import reactor.core.publisher.Mono;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.contract.protocol.AccessZone;
 import top.egon.cola.component.yuheng.contract.protocol.GatewayProtocol;
 import top.egon.cola.component.yuheng.core.context.GatewayContext;
@@ -77,10 +77,13 @@ public final class RuleBackedRpcGatewaySecurityProcessor
      * @param rules 参数 rules；parameter rules。
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      */
-    public RuleBackedRpcGatewaySecurityProcessor(
-            GatewaySecurityChain chain,
+    private final LongIdGenerator idGenerator;
+
+    public RuleBackedRpcGatewaySecurityProcessor(GatewaySecurityChain chain,
             Supplier<ApiRpcGatewayCompiledRulesDTO> rules,
-            String engineNodeId) {
+            String engineNodeId,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.chain = Objects.requireNonNull(chain, "chain");
         this.rules = Objects.requireNonNull(rules, "rules");
         if (engineNodeId == null || engineNodeId.isBlank()) {
@@ -128,7 +131,7 @@ public final class RuleBackedRpcGatewaySecurityProcessor
                 policy.providerTimeout(),
                 inboundDeadline
         ));
-        String requestId = UuidV7.simpleString();
+        String requestId = idGenerator.nextId();
         GatewayContext gatewayContext = new GatewayContext(
                 requestId,
                 traceId,

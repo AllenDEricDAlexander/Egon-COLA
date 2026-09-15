@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminDdcProperties;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
@@ -125,7 +128,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 ).containsExactly(SUCCESS, SUCCESS, FAILED, PLANNED, PLANNED, PLANNED);
         assertThat(journal.insertCount).isEqualTo(1);
         assertThat(journal.findAttempt("release-1", 1))
-                .allSatisfy(operation -> assertUuidV7(
+                .allSatisfy(operation -> assertSnowflakeId(
                         operation.changeId()
                 ));
     }
@@ -282,7 +285,8 @@ class GatewayReleasePublicationCoordinatorTest {
                         new GatewayDdcRulePublisher(client),
                         Clock.fixed(NOW, ZoneOffset.UTC),
                         Duration.ofSeconds(30),
-                new GatewayAdminDdcProperties()
+                new GatewayAdminDdcProperties(),
+                new SnowflakeIdGenerator(0)
                 );
 
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
@@ -386,7 +390,9 @@ class GatewayReleasePublicationCoordinatorTest {
         changed.setMcpAppCode("changed-mcp");
         var restarted = new GatewayReleasePublicationCoordinator(journal, mock(GatewayReleaseRepository.class),
                 client, new GatewayDdcRulePublisher(client), Clock.fixed(NOW, ZoneOffset.UTC),
-                Duration.ofSeconds(30), changed);
+                Duration.ofSeconds(30), changed,
+                new SnowflakeIdGenerator(0)
+                );
 
         assertThat(restarted.execute("release-inline", 1, compiled, "admin").successful()).isTrue();
         assertThat(client.publishRequests.getLast().changeId()).isEqualTo(originalChangeId);
@@ -462,8 +468,9 @@ class GatewayReleasePublicationCoordinatorTest {
                 new GatewayDdcRulePublisher(client),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 Duration.ofSeconds(30),
-                new GatewayAdminDdcProperties()
-        );
+                new GatewayAdminDdcProperties(),
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     private GatewayDdcYamlDocument yaml() {
@@ -557,15 +564,9 @@ class GatewayReleasePublicationCoordinatorTest {
         );
     }
 
-    private void assertUuidV7(String value) {
-        String canonical = value.length() == 32
-                ? value.substring(0, 8)
-                + "-" + value.substring(8, 12)
-                + "-" + value.substring(12, 16)
-                + "-" + value.substring(16, 20)
-                + "-" + value.substring(20)
-                : value;
-        assertThat(UUID.fromString(canonical).version()).isEqualTo(7);
+    private void assertSnowflakeId(String value) {
+        assertThat(value).matches("\\d+");
+        assertThat(Long.parseLong(value)).isPositive();
     }
 
     private static final class InMemoryPublicationStore

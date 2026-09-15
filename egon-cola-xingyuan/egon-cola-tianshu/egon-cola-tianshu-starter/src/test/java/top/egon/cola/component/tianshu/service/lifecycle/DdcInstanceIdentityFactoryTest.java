@@ -1,9 +1,8 @@
 package top.egon.cola.component.tianshu.service.lifecycle;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
-
-import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -16,8 +15,9 @@ class DdcInstanceIdentityFactoryTest {
 
         var identity = new DdcInstanceIdentityFactory(
                 properties,
-                () -> "custom-instance-1"
-        ).create();
+                () -> "custom-instance-1",
+                new SnowflakeIdGenerator(0)
+                ).create();
 
         assertThat(identity.instanceId()).isEqualTo("pod-uid-1");
         assertThat(identity.bizCode()).isEqualTo("retail");
@@ -27,25 +27,26 @@ class DdcInstanceIdentityFactoryTest {
     }
 
     @Test
-    void customProviderOverridesDefaultUuidV7() {
+    void customProviderOverridesDefaultSnowflake() {
         var identity = new DdcInstanceIdentityFactory(
                 properties(),
-                () -> "custom-instance-1"
-        ).create();
+                () -> "custom-instance-1",
+                new SnowflakeIdGenerator(0)
+                ).create();
 
         assertThat(identity.instanceId()).isEqualTo("custom-instance-1");
     }
 
     @Test
-    void defaultsToCompleteUuidV7() {
+    void defaultsToSnowflakeId() {
         var identity = new DdcInstanceIdentityFactory(
                 properties(),
-                null
-        ).create();
+                null,
+                new SnowflakeIdGenerator(0)
+                ).create();
 
-        UUID uuid = UUID.fromString(identity.instanceId());
-        assertThat(uuid.version()).isEqualTo(7);
-        assertThat(identity.instanceId()).hasSize(36);
+        assertThat(identity.instanceId()).matches("\\d+");
+        assertThat(Long.parseLong(identity.instanceId())).isPositive();
     }
 
     private DdcProperties properties() {

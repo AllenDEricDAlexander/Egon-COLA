@@ -7,7 +7,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
@@ -27,13 +27,14 @@ public class RpcConsumerClientInterceptor implements ClientInterceptor {
 
     public RpcConsumerClientInterceptor(
             RpcContractDescriptor contract,
-            RpcProcessIdentity processIdentity) {
+            RpcProcessIdentity processIdentity,
+            LongIdGenerator idGenerator) {
         this(
                 contract == null ? null : contract.serviceName(),
                 contract == null ? null : contract.group(),
                 contract == null ? null : contract.version(),
                 processIdentity,
-                UuidV7.simpleString()
+                java.util.Objects.requireNonNull(idGenerator, "idGenerator").nextId()
         );
     }
 
@@ -64,8 +65,7 @@ public class RpcConsumerClientInterceptor implements ClientInterceptor {
                 group,
                 version,
                 processIdentity,
-                invocationId
-        );
+                invocationId);
     }
 
     @Override

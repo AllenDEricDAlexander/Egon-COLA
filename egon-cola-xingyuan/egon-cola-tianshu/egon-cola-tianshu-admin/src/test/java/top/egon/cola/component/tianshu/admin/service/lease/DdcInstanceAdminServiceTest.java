@@ -1,5 +1,8 @@
 package top.egon.cola.component.tianshu.admin.service.lease;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.data.domain.PageImpl;
@@ -41,7 +44,9 @@ class DdcInstanceAdminServiceTest {
                 .thenReturn(new PageImpl<>(
                         List.of(instance), PageRequest.of(0, 10), 1));
         DdcInstanceAdminService service = new DdcInstanceAdminService(
-                repository, leaseService);
+                repository, leaseService,
+                new SnowflakeIdGenerator(0)
+                );
 
         var page = service.page(
                 "infra", "prod", "yuheng", new PageQuery(1, 10));
@@ -88,8 +93,9 @@ class DdcInstanceAdminServiceTest {
                     invocation.getArgument(0));
             DdcInstanceAdminService service = new DdcInstanceAdminService(
                     repository,
-                    leaseService
-            );
+                    leaseService,
+                    new SnowflakeIdGenerator(0)
+                    );
 
             service.register(request);
 

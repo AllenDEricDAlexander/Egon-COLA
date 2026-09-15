@@ -17,7 +17,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.Status;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 import top.egon.cola.component.yuheng.core.provider.ProviderInstance;
 import top.egon.cola.component.yuheng.runtime.provider.domain.ProviderSelectionHandle;
@@ -149,13 +149,14 @@ public final class RpcGatewayForwarder {
      * @param maximumTimeout 参数 maximum超时；parameter maximum timeout。
      * @param maxInboundMessageBytes 参数 maxInbound消息Bytes；parameter max inbound message bytes。
      */
-    public RpcGatewayForwarder(
-            ProviderSelector providerSelector,
+    private final LongIdGenerator idGenerator;
+
+    public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
-            int maxInboundMessageBytes) {
-        this(
-                providerSelector,
+            int maxInboundMessageBytes,
+            LongIdGenerator idGenerator) {
+        this(providerSelector,
                 channels,
                 maximumTimeout,
                 maxInboundMessageBytes,
@@ -165,8 +166,7 @@ public final class RpcGatewayForwarder {
                 ),
                 GatewayCallCompletionListener.noop(),
                 "unknown-engine",
-                GatewayTrafficGovernance.noop()
-        );
+                GatewayTrafficGovernance.noop(), idGenerator);
     }
 
     /**
@@ -180,22 +180,20 @@ public final class RpcGatewayForwarder {
      * @param maxInboundMessageBytes 参数 maxInbound消息Bytes；parameter max inbound message bytes。
      * @param securityProcessor 参数 安全Processor；parameter security processor。
      */
-    public RpcGatewayForwarder(
-            ProviderSelector providerSelector,
+    public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
             int maxInboundMessageBytes,
-            GatewayRpcSecurityProcessor securityProcessor) {
-        this(
-                providerSelector,
+            GatewayRpcSecurityProcessor securityProcessor,
+            LongIdGenerator idGenerator) {
+        this(providerSelector,
                 channels,
                 maximumTimeout,
                 maxInboundMessageBytes,
                 securityProcessor,
                 GatewayCallCompletionListener.noop(),
                 "unknown-engine",
-                GatewayTrafficGovernance.noop()
-        );
+                GatewayTrafficGovernance.noop(), idGenerator);
     }
 
     /**
@@ -211,24 +209,22 @@ public final class RpcGatewayForwarder {
      * @param completionListener 参数 补全监听器；parameter completion listener。
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      */
-    public RpcGatewayForwarder(
-            ProviderSelector providerSelector,
+    public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
             int maxInboundMessageBytes,
             GatewayRpcSecurityProcessor securityProcessor,
             GatewayCallCompletionListener completionListener,
-            String engineNodeId) {
-        this(
-                providerSelector,
+            String engineNodeId,
+            LongIdGenerator idGenerator) {
+        this(providerSelector,
                 channels,
                 maximumTimeout,
                 maxInboundMessageBytes,
                 securityProcessor,
                 completionListener,
                 engineNodeId,
-                GatewayTrafficGovernance.noop()
-        );
+                GatewayTrafficGovernance.noop(), idGenerator);
     }
 
     /**
@@ -245,17 +241,16 @@ public final class RpcGatewayForwarder {
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      * @param trafficGovernance 参数 流量Governance；parameter traffic governance。
      */
-    public RpcGatewayForwarder(
-            ProviderSelector providerSelector,
+    public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
             int maxInboundMessageBytes,
             GatewayRpcSecurityProcessor securityProcessor,
             GatewayCallCompletionListener completionListener,
             String engineNodeId,
-            GatewayTrafficGovernance trafficGovernance) {
-        this(
-                providerSelector,
+            GatewayTrafficGovernance trafficGovernance,
+            LongIdGenerator idGenerator) {
+        this(providerSelector,
                 channels,
                 maximumTimeout,
                 maxInboundMessageBytes,
@@ -263,8 +258,7 @@ public final class RpcGatewayForwarder {
                 completionListener,
                 engineNodeId,
                 trafficGovernance,
-                ProviderCallOutcomeRecorder.noop()
-        );
+                ProviderCallOutcomeRecorder.noop(), idGenerator);
     }
 
     /**
@@ -282,8 +276,7 @@ public final class RpcGatewayForwarder {
      * @param trafficGovernance 参数 流量Governance；parameter traffic governance。
      * @param outcomeRecorder 参数 outcomeRecorder；parameter outcome recorder。
      */
-    public RpcGatewayForwarder(
-            ProviderSelector providerSelector,
+    public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
             int maxInboundMessageBytes,
@@ -291,9 +284,9 @@ public final class RpcGatewayForwarder {
             GatewayCallCompletionListener completionListener,
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance,
-            ProviderCallOutcomeRecorder outcomeRecorder) {
-        this(
-                providerSelector,
+            ProviderCallOutcomeRecorder outcomeRecorder,
+            LongIdGenerator idGenerator) {
+        this(providerSelector,
                 channels,
                 maximumTimeout,
                 maxInboundMessageBytes,
@@ -302,8 +295,7 @@ public final class RpcGatewayForwarder {
                 engineNodeId,
                 trafficGovernance,
                 outcomeRecorder,
-                GatewayTelemetry.noop()
-        );
+                GatewayTelemetry.noop(), idGenerator);
     }
 
     /**
@@ -322,8 +314,7 @@ public final class RpcGatewayForwarder {
      * @param outcomeRecorder 参数 outcomeRecorder；parameter outcome recorder。
      * @param telemetry 参数 遥测；parameter telemetry。
      */
-    public RpcGatewayForwarder(
-            ProviderSelector providerSelector,
+    public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
             int maxInboundMessageBytes,
@@ -332,7 +323,9 @@ public final class RpcGatewayForwarder {
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance,
             ProviderCallOutcomeRecorder outcomeRecorder,
-            GatewayTelemetry telemetry) {
+            GatewayTelemetry telemetry,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.providerSelector = Objects.requireNonNull(
                 providerSelector,
                 "providerSelector"
@@ -386,7 +379,8 @@ public final class RpcGatewayForwarder {
                     "RPC",
                     "INTERNAL",
                     engineNodeId,
-                    telemetry
+                    telemetry,
+                    idGenerator
             );
             GatewayTraceContext trace = observation.trace();
             observation.route(
@@ -1423,7 +1417,7 @@ public final class RpcGatewayForwarder {
      */
     private String valueOrGenerated(String value) {
         return value == null || value.isBlank()
-                ? UuidV7.simpleString()
+                ? idGenerator.nextId()
                 : value;
     }
 

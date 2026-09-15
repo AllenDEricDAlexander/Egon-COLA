@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
@@ -41,7 +41,7 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-import java.util.UUID;
+
 
 @Service
 public class DdcPublishService {
@@ -88,41 +88,10 @@ public class DdcPublishService {
 
     private final Clock clock;
 
-    @Autowired
-    public DdcPublishService(
-            DdcConfigItemRepository configItemRepository,
-            DdcConfigVersionRepository versionRepository,
-            DdcPublishTaskRepository publishTaskRepository,
-            DdcPublishAckRepository publishAckRepository,
-            DdcOperationLogRepository operationLogRepository,
-            DdcPendingPublishDispatcher dispatcher,
-            DdcConfigLeaseService leaseService,
-            PublishResourceLockRegistry resourceRegistry,
-            PublishCompletionWaiterRegistry waiterRegistry,
-            DdcPublishStateTransitionService stateTransitions,
-            PublishFailureRecorder failureRecorder,
-            DdcAdminProperties properties,
-            PlatformTransactionManager transactionManager) {
-        this(
-                configItemRepository,
-                versionRepository,
-                publishTaskRepository,
-                publishAckRepository,
-                operationLogRepository,
-                dispatcher,
-                leaseService,
-                resourceRegistry,
-                waiterRegistry,
-                stateTransitions,
-                failureRecorder,
-                properties,
-                transactionManager,
-                Clock.systemUTC()
-        );
-    }
+    private final LongIdGenerator idGenerator;
 
-    DdcPublishService(
-            DdcConfigItemRepository configItemRepository,
+    @Autowired
+    public DdcPublishService(DdcConfigItemRepository configItemRepository,
             DdcConfigVersionRepository versionRepository,
             DdcPublishTaskRepository publishTaskRepository,
             DdcPublishAckRepository publishAckRepository,
@@ -135,7 +104,39 @@ public class DdcPublishService {
             PublishFailureRecorder failureRecorder,
             DdcAdminProperties properties,
             PlatformTransactionManager transactionManager,
-            Clock clock) {
+            LongIdGenerator idGenerator) {
+        this(configItemRepository,
+                versionRepository,
+                publishTaskRepository,
+                publishAckRepository,
+                operationLogRepository,
+                dispatcher,
+                leaseService,
+                resourceRegistry,
+                waiterRegistry,
+                stateTransitions,
+                failureRecorder,
+                properties,
+                transactionManager,
+                Clock.systemUTC(), idGenerator);
+    }
+
+    DdcPublishService(DdcConfigItemRepository configItemRepository,
+            DdcConfigVersionRepository versionRepository,
+            DdcPublishTaskRepository publishTaskRepository,
+            DdcPublishAckRepository publishAckRepository,
+            DdcOperationLogRepository operationLogRepository,
+            DdcPendingPublishDispatcher dispatcher,
+            DdcConfigLeaseService leaseService,
+            PublishResourceLockRegistry resourceRegistry,
+            PublishCompletionWaiterRegistry waiterRegistry,
+            DdcPublishStateTransitionService stateTransitions,
+            PublishFailureRecorder failureRecorder,
+            DdcAdminProperties properties,
+            PlatformTransactionManager transactionManager,
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.publishTaskRepository = publishTaskRepository;
@@ -486,7 +487,7 @@ public class DdcPublishService {
                                          String operator) {
         LocalDateTime now = now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(UuidV7.simpleString());
+        task.setId(idGenerator.nextId());
         task.setChangeId(request.getChangeId());
         task.setConfigId(config.getId());
         task.setBizCode(config.getBizCode());
@@ -514,7 +515,7 @@ public class DdcPublishService {
     private DdcPublishAckEntity newTarget(DdcPublishTaskEntity task,
                                           DdcPublishTarget target) {
         DdcPublishAckEntity ack = new DdcPublishAckEntity();
-        ack.setId(UuidV7.simpleString());
+        ack.setId(idGenerator.nextId());
         ack.setChangeId(task.getChangeId());
         ack.setInstanceId(target.instanceId());
         ack.setLeaseId(target.leaseId());
@@ -533,7 +534,7 @@ public class DdcPublishService {
                              String newContent,
                              String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(UuidV7.simpleString());
+        version.setId(idGenerator.nextId());
         version.setConfigId(config.getId());
         version.setBizCode(config.getBizCode());
         version.setAppCode(config.getAppCode());
@@ -555,7 +556,7 @@ public class DdcPublishService {
                                       String changeId,
                                       String operator) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
-        log.setId(UuidV7.simpleString());
+        log.setId(idGenerator.nextId());
         log.setBizCode(config.getBizCode());
         log.setAppCode(config.getAppCode());
         log.setEnv(config.getEnv());
@@ -572,7 +573,7 @@ public class DdcPublishService {
         if (request == null) {
             throw new DdcAdminException("publish request is required");
         }
-        requireUuidV7(request.getChangeId());
+        requireSnowflakeChangeId(request.getChangeId());
         requireText(request.getBizCode(), "bizCode");
         requireText(request.getEnv(), "env");
         requireText(request.getAppCode(), "appCode");
@@ -704,21 +705,12 @@ public class DdcPublishService {
         );
     }
 
-    private void requireUuidV7(String value) {
+    private void requireSnowflakeChangeId(String value) {
         requireText(value, "changeId");
         try {
-            String canonical = value.length() == 32
-                    ? value.substring(0, 8) + "-"
-                    + value.substring(8, 12) + "-"
-                    + value.substring(12, 16) + "-"
-                    + value.substring(16, 20) + "-"
-                    + value.substring(20)
-                    : value;
-            if (UUID.fromString(canonical).version() != 7) {
-                throw new IllegalArgumentException("not UUIDv7");
-            }
-        } catch (IllegalArgumentException exception) {
-            throw new DdcAdminException("changeId must be UUIDv7");
+            Long.parseLong(value);
+        } catch (NumberFormatException exception) {
+            throw new DdcAdminException("changeId must be a Snowflake ID");
         }
     }
 

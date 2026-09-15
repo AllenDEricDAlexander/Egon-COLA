@@ -15,7 +15,8 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
@@ -78,6 +79,8 @@ import static org.mockito.Mockito.when;
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishPreparationTest {
+
+    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     @Autowired
     private DdcPublishService publishService;
@@ -218,8 +221,8 @@ class DdcPublishPreparationTest {
         saveConfig("shared-admin-lock");
         LocalDateTime now = LocalDateTime.now();
         var active = new DdcPublishTaskEntity();
-        active.setId(UuidV7.simpleString());
-        active.setChangeId(UuidV7.simpleString());
+        active.setId(IDS.nextId());
+        active.setChangeId(IDS.nextId());
         active.setBizCode("default");
         active.setAppCode("shared-admin-lock");
         active.setEnv("dev");
@@ -387,7 +390,7 @@ class DdcPublishPreparationTest {
     private void saveConfig(String label) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(UuidV7.simpleString());
+        config.setId(IDS.nextId());
         config.setBizCode("default");
         config.setAppCode(label);
         config.setEnv("dev");
@@ -405,7 +408,7 @@ class DdcPublishPreparationTest {
 
     private DdcPublishRequest request(String label, String value) {
         DdcPublishRequest request = new DdcPublishRequest();
-        request.setChangeId(UuidV7.simpleString());
+        request.setChangeId(IDS.nextId());
         request.setBizCode("default");
         request.setAppCode(label);
         request.setEnv("dev");
@@ -441,6 +444,12 @@ class DdcPublishPreparationTest {
         @Bean
         DdcConfigLeaseService ddcConfigLeaseService() {
             return org.mockito.Mockito.mock(DdcConfigLeaseService.class);
+        }
+
+
+        @Bean
+        LongIdGenerator longIdGenerator() {
+            return new SnowflakeIdGenerator(0);
         }
 
         @Bean

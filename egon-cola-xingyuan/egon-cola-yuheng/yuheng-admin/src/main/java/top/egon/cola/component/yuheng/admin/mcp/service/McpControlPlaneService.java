@@ -4,7 +4,7 @@ package top.egon.cola.component.yuheng.admin.mcp.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpArtifactMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpArtifactUploadDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpCapabilityMutationDTO;
@@ -213,9 +213,10 @@ public class McpControlPlaneService {
      * @param contentFactory 参数 content工厂；parameter content factory。
      * @param validation 参数 validation；parameter validation。
      */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public McpControlPlaneService(
-            McpServerRepository servers,
+    public McpControlPlaneService(McpServerRepository servers,
             JdbcMcpCapabilityDraftRepository capabilities,
             JdbcMcpRemoteProviderRepository remote,
             JdbcMcpArtifactMetadataRepository artifacts,
@@ -227,9 +228,9 @@ public class McpControlPlaneService {
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
             McpReleaseContentFactory contentFactory,
-            McpValidationService validation) {
-        this(
-                servers,
+            McpValidationService validation,
+            LongIdGenerator idGenerator) {
+        this(servers,
                 capabilities,
                 remote,
                 artifacts,
@@ -242,8 +243,7 @@ public class McpControlPlaneService {
                 audits,
                 contentFactory,
                 validation,
-                Clock.systemUTC()
-        );
+                Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -266,8 +266,7 @@ public class McpControlPlaneService {
      * @param validation 参数 validation；parameter validation。
      * @param clock 参数 clock；parameter clock。
      */
-    McpControlPlaneService(
-            McpServerRepository servers,
+    McpControlPlaneService(McpServerRepository servers,
             JdbcMcpCapabilityDraftRepository capabilities,
             JdbcMcpRemoteProviderRepository remote,
             JdbcMcpArtifactMetadataRepository artifacts,
@@ -280,7 +279,9 @@ public class McpControlPlaneService {
             GatewayAuditLogRepository audits,
             McpReleaseContentFactory contentFactory,
             McpValidationService validation,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.servers = servers;
         this.capabilities = capabilities;
         this.remote = remote;
@@ -361,7 +362,7 @@ public class McpControlPlaneService {
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         servers.saveAndFlush(new McpServerPO(
                 id,
                 command.gatewayGroupId(),
@@ -558,7 +559,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             AdminActor actor,
             RequestAuditContext request) {
-        String resourceId = id == null ? UuidV7.simpleString() : id;
+        String resourceId = id == null ? idGenerator.nextId() : id;
         String digest = digest("PUT_" + kind, Map.of(
                 "id", resourceId,
                 "command", command
@@ -743,7 +744,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             AdminActor actor,
             RequestAuditContext request) {
-        String resourceId = id == null ? UuidV7.simpleString() : id;
+        String resourceId = id == null ? idGenerator.nextId() : id;
         String digest = digest("PUT_REMOTE_PROVIDER", Map.of(
                 "id", resourceId,
                 "command", command
@@ -899,7 +900,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             AdminActor actor,
             RequestAuditContext request) {
-        String resourceId = id == null ? UuidV7.simpleString() : id;
+        String resourceId = id == null ? idGenerator.nextId() : id;
         String digest = digest("PUT_REMOTE_MOUNT", Map.of(
                 "id", resourceId,
                 "command", command
@@ -1153,7 +1154,7 @@ public class McpControlPlaneService {
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
-        String id = UuidV7.simpleString();
+        String id = idGenerator.nextId();
         artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO(
                 id,
                 command.gatewayGroupId(),
@@ -1552,7 +1553,7 @@ public class McpControlPlaneService {
             Map<String, Object> summary,
             Instant now) {
         audits.save(new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",

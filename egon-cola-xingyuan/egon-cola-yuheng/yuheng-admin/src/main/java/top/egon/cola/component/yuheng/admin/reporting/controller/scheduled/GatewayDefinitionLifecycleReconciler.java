@@ -6,7 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
@@ -100,23 +100,23 @@ public class GatewayDefinitionLifecycleReconciler {
      * @param audits 参数 audits；parameter audits。
      * @param transactions 参数 transactions；parameter transactions。
      */
+    private final LongIdGenerator idGenerator;
+
     @Autowired
-    public GatewayDefinitionLifecycleReconciler(
-            ObjectProvider<DdcManagementClient> client,
+    public GatewayDefinitionLifecycleReconciler(ObjectProvider<DdcManagementClient> client,
             GatewayApplicationRepository applications,
             GatewayProjectionService projections,
             GatewayDefinitionLifecycleRepository lifecycle,
             GatewayAuditLogRepository audits,
-            TransactionTemplate transactions) {
-        this(
-                client.getIfAvailable(),
+            TransactionTemplate transactions,
+            LongIdGenerator idGenerator) {
+        this(client.getIfAvailable(),
                 applications,
                 projections,
                 lifecycle,
                 audits,
                 transactions,
-                Clock.systemUTC()
-        );
+                Clock.systemUTC(), idGenerator);
     }
 
     /**
@@ -132,14 +132,15 @@ public class GatewayDefinitionLifecycleReconciler {
      * @param transactions 参数 transactions；parameter transactions。
      * @param clock 参数 clock；parameter clock。
      */
-    GatewayDefinitionLifecycleReconciler(
-            DdcManagementClient client,
+    GatewayDefinitionLifecycleReconciler(DdcManagementClient client,
             GatewayApplicationRepository applications,
             GatewayProjectionService projections,
             GatewayDefinitionLifecycleRepository lifecycle,
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
-            Clock clock) {
+            Clock clock,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.client = client;
         this.applications = applications;
         this.projections = projections;
@@ -245,7 +246,7 @@ public class GatewayDefinitionLifecycleReconciler {
             top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO result,
             Instant now) {
         return new GatewayAuditLogPO(
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 "yuheng-definition-reconciler",
                 "SYSTEM",
                 "SCHEDULED_RECONCILER",

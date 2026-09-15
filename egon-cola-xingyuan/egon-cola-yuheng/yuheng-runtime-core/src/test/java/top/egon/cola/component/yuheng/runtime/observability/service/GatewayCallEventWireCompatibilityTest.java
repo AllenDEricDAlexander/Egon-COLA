@@ -5,6 +5,7 @@ import top.egon.cola.component.yuheng.runtime.observability.domain.GatewayCallOb
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
@@ -30,8 +31,9 @@ class GatewayCallEventWireCompatibilityTest {
                 "request-1",
                 "HTTP",
                 "PUBLIC",
-                "engine-1"
-        );
+                "engine-1",
+                new SnowflakeIdGenerator(0)
+                );
         observation.transport(
                 "HTTP_STREAMING",
                 "FIRST_BODY_BUFFER_SENT",

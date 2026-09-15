@@ -1,5 +1,8 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.PageImpl;
@@ -51,8 +54,9 @@ class DdcNamespaceEnvAppBindingServiceTest {
                 bindingRepository,
                 namespaceRepository,
                 appRepository,
-                envRepository
-        );
+                envRepository,
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     @Test

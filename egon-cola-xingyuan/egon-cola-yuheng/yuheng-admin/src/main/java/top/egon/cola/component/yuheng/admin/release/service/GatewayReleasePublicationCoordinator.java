@@ -1,7 +1,7 @@
 package top.egon.cola.component.yuheng.admin.release.service;
 
 
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.error.management.DdcManagementClientException;
 import top.egon.cola.component.tianshu.error.management.DdcManagementErrorCode;
@@ -132,14 +132,17 @@ public final class GatewayReleasePublicationCoordinator {
      * @param timeout 参数 超时；parameter timeout。
      * @param targetProperties 两个固定角色的目标配置；target configuration for both fixed roles。
      */
-    public GatewayReleasePublicationCoordinator(
-            GatewayReleasePublicationRepository journal,
+    private final LongIdGenerator idGenerator;
+
+    public GatewayReleasePublicationCoordinator(GatewayReleasePublicationRepository journal,
             GatewayReleaseRepository releases,
             DdcManagementClient client,
             GatewayDdcRulePublisher publisher,
             Clock clock,
             Duration timeout,
-            GatewayAdminDdcProperties targetProperties) {
+            GatewayAdminDdcProperties targetProperties,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.journal = Objects.requireNonNull(journal, "journal");
         this.releases = Objects.requireNonNull(releases, "releases");
         this.client = Objects.requireNonNull(client, "client");
@@ -637,7 +640,7 @@ public final class GatewayReleasePublicationCoordinator {
                     artifact.value(),
                     checksum(artifact.value()),
                     null,
-                    UuidV7.simpleString(),
+                    idGenerator.nextId(),
                     null,
                     PLANNED,
                     null,

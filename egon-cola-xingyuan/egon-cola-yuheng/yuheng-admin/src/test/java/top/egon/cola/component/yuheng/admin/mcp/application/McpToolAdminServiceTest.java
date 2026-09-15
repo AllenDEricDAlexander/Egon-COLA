@@ -1,5 +1,8 @@
 package top.egon.cola.component.yuheng.admin.mcp.service;
 
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -86,8 +89,9 @@ class McpToolAdminServiceTest {
                 idempotency,
                 mock(GatewayAuditLogRepository.class),
                 new ObjectMapper(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
-        );
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                new SnowflakeIdGenerator(0)
+                );
     }
 
     @Test

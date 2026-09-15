@@ -131,7 +131,8 @@ class DdcAppControllerTest {
                 bizRepository,
                 bindingRepository,
                 bindingService,
-                scopeGate
+                scopeGate,
+                new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0)
         );
         DdcAppEntity request = app("shared-app");
 

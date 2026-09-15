@@ -1,6 +1,6 @@
 package top.egon.cola.component.yuheng.runtime.observability.domain;
 
-import top.egon.cola.component.common.id.uuid.UuidV7;
+import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
@@ -243,22 +243,22 @@ public final class GatewayCallObservation {
      * @param accessZone 参数 accessZone；parameter access zone。
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      */
-    public GatewayCallObservation(
-            Clock clock,
+    private final LongIdGenerator idGenerator;
+
+    public GatewayCallObservation(Clock clock,
             GatewayTraceContext trace,
             String requestId,
             String protocol,
             String accessZone,
-            String engineNodeId) {
-        this(
-                clock,
+            String engineNodeId,
+            LongIdGenerator idGenerator) {
+        this(clock,
                 trace,
                 requestId,
                 protocol,
                 accessZone,
                 engineNodeId,
-                GatewayTelemetry.noop()
-        );
+                GatewayTelemetry.noop(), idGenerator);
     }
 
     /**
@@ -274,14 +274,15 @@ public final class GatewayCallObservation {
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      * @param gatewayTelemetry 参数 网关遥测；parameter gateway telemetry。
      */
-    public GatewayCallObservation(
-            Clock clock,
+    public GatewayCallObservation(Clock clock,
             GatewayTraceContext trace,
             String requestId,
             String protocol,
             String accessZone,
             String engineNodeId,
-            GatewayTelemetry gatewayTelemetry) {
+            GatewayTelemetry gatewayTelemetry,
+            LongIdGenerator idGenerator) {
+        this.idGenerator = idGenerator;
         this.clock = Objects.requireNonNull(clock, "clock");
         telemetry = Objects.requireNonNull(
                 gatewayTelemetry,
@@ -315,13 +316,15 @@ public final class GatewayCallObservation {
             GatewayTraceContext trace,
             String protocol,
             String accessZone,
-            String engineNodeId) {
+            String engineNodeId,
+            LongIdGenerator idGenerator) {
         return start(
                 trace,
                 protocol,
                 accessZone,
                 engineNodeId,
-                GatewayTelemetry.noop()
+                GatewayTelemetry.noop(),
+                idGenerator
         );
     }
 
@@ -342,7 +345,8 @@ public final class GatewayCallObservation {
             String protocol,
             String accessZone,
             String engineNodeId,
-            GatewayTelemetry telemetry) {
+            GatewayTelemetry telemetry,
+            LongIdGenerator idGenerator) {
         return new GatewayCallObservation(
                 Clock.systemUTC(),
                 trace,
@@ -350,7 +354,8 @@ public final class GatewayCallObservation {
                 protocol,
                 accessZone,
                 engineNodeId,
-                telemetry
+                telemetry,
+                idGenerator
         );
     }
 
@@ -586,7 +591,7 @@ public final class GatewayCallObservation {
         }
         return Optional.of(new GatewayCallEventV1(
                 "v1",
-                UuidV7.simpleString(),
+                idGenerator.nextId(),
                 occurredAt,
                 completedAt,
                 new GatewayCallEventV1.Trace(
