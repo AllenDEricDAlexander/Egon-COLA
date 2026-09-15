@@ -125,7 +125,7 @@ YAML 和复制的 CLASS_BASED 算法补上这一层，导致新 archetype 或外
 
 | ID        | Atomic requirement                                                    | Priority | Observable acceptance criteria                                                                                                                     | Source                                                     |
 |-----------|-----------------------------------------------------------------------|----------|----------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------|
-| `REQ-001` | 公共模块 artifact 更名为整合 MP 与 Sharding-JDBC 的 Starter                      | Must     | 新坐标可被 BOM 解析；旧坐标 relocation 指向新坐标；源码目录与 reactor 模块名一致                                                                                              | “应该是叫 …-mybatis-plus-…-jdbc-ext-springboot-starter”        |
+| `REQ-001` | 公共模块 artifact 更名为整合 MP 与 Sharding-JDBC 的 Starter                      | Must     | 新坐标可被 BOM 解析；旧坐标模块删除，消费者只引新坐标；源码目录与 reactor 模块名一致                                                                                                  | “应该是叫 …-mybatis-plus-…-jdbc-ext-springboot-starter”        |
 | `REQ-002` | Starter 编译期整合 MP 3.5.16 与 ShardingSphere-JDBC 5.5.3                   | Must     | Starter POM 含 `shardingsphere-jdbc` 及现网所需 sharding/single/broadcast/readwrite/parser/hikari/memory 模块；archetype 生产 POM 不再直接声明这些 artifact           | “在 starter 中把 mp 和 shardingjdbc 整合好”                       |
 | `REQ-003` | 外部应用只依赖该 Starter 即可获得逻辑 DataSource                                    | Must     | 无本地 bootstrap 类时，存在 `@Primary DataSource` 且类型为 SS 逻辑源；该 Bean 在缺少合法分片 YAML 时不得出现                                                                    | “外部只需要引入这个starter即可使用”                                     |
 | `REQ-004` | 六套 archetype 脚手架删除本地 SS 适配，改为消费 Starter                               | Must     | source-projects 与 generated 树不存在 `ShardingDataSourceBootstrapper` 等复制类型；verifier 禁止再引入                                                             | “不然现在不同的 archetype 还要单独适配”                                 |
@@ -252,7 +252,7 @@ Alternative and failure flows:
 
 | ID        | Inference                                                                    | Repository evidence          | Why locally reversible              | Impact if wrong     |
 |-----------|------------------------------------------------------------------------------|------------------------------|-------------------------------------|---------------------|
-| `ASM-002` | 旧 artifact 保留为一个 relocation POM，而不是立即删除                                      | BOM 已被六套与 Agent 引用           | 可改为直接删除并让所有消费者同 PR 切换               | 短暂双模块               |
+| `ASM-002` | 旧 artifact 立即删除，消费者只引新坐标                                                     | 脚手架与 Agent 已切新坐标             | 曾考虑 relocation 过渡                   | 无双模块                |
 | `ASM-003` | 配置前缀继续使用 `egon.cola.component.mybatis-plus`，分片挂 `...sharding`                | 现有 properties 前缀             | 键可再映射                               | archetype 文档示例需同步   |
 | `ASM-004` | TableInfo 扫描使用 MyBatis `Configuration` + Mapper/`@TableName` 类，不先创建 SS 逻辑 DS | MP TableInfoHelper 可在无连接下初始化 | 若必须活连接，维护器改用物理 DS 的临时 Configuration | 仅影响启动实现，不影响 YAML 合同 |
 
@@ -568,7 +568,6 @@ egon-cola-archetypes/source-projects/egon-cola-source-{light,light-open,service,
 ```text
 egon-cola-components/egon-cola-component-common/
 ├── pom.xml
-├── egon-cola-component-common-mybatis-plus-spring-boot-starter/          # MODIFY: relocation POM only
 └── egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter/
     ├── pom.xml
     ├── lombok.config
@@ -614,7 +613,7 @@ egon-cola-components/egon-cola-component-common/
 | Create    | `.../bootstrap/*`                                          | Bootstrapper 等                            | 物理池到逻辑 DS                       | SS factory、Maintainer、DDL runner | `REQ-003`                       |
 | Create    | `.../schema/EgonColaTableInfoSchemaMaintainer.java`        | Maintainer                                | 实际节点表结构增量                       | JDBC、TableInfo                   | `REQ-016`                       |
 | Create    | `.../autoconfigure/EgonColaShardingAutoConfiguration.java` | 强制装配                                      | 引入 Starter 就必须创建 SS 逻辑 DS；缺配置失败 | 上述                               | `REQ-003`, `REQ-019`, `REQ-022` |
-| Modify    | 旧模块 POM                                                    | relocation                                | 旧坐标指向新坐标                        | Maven                            | `REQ-001`                       |
+| Delete    | 旧模块 POM                                                    | 空 relocation 壳                            | 消费者只引新坐标                        | Maven                            | `REQ-001`                       |
 | Modify    | components BOM/父 POM                                       | 版本与模块                                     | 管理 SS 5.5.3 与新 artifact         | 现 BOM                            | `REQ-002`                       |
 | Delete    | 六套 `config/datasource` 复制类                                 | 原脚手架类型                                    | 职责已上收                           | 无                                | `REQ-004`                       |
 | Modify    | 六套 YAML/POM/verifier/README                                | 生成合同                                      | 一份配置、Starter 算法 FQCN            | 新 Starter                        | `REQ-004`, `REQ-008`, `REQ-020` |
