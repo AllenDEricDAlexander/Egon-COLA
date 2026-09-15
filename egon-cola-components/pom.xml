@@ -203,11 +203,6 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
-                <artifactId>shardingsphere-parser-sql-engine-mysql</artifactId>
-                <version>${shardingsphere.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.shardingsphere</groupId>
                 <artifactId>shardingsphere-parser-sql-engine-postgresql</artifactId>
                 <version>${shardingsphere.version}</version>
             </dependency>
