@@ -57,8 +57,6 @@ egon:
         dynamic-table-name:
           enabled: false
           tables: {}
-        data-change-recorder:
-          enabled: true
         illegal-sql:
           enabled: true
         ddl:
@@ -136,8 +134,6 @@ springdoc:
 
 logging:
   level:
-    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
-    top.egon.cola.component.common.mybatis.change-summary: DEBUG
 
 mybatis-plus:
   mapper-locations: classpath*:mybatis/mapper/**/*.xml

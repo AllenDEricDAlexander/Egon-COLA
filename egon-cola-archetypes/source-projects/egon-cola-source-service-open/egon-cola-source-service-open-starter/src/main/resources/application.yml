@@ -73,8 +73,6 @@ logging:
     rpc: org.apache.dubbo,io.grpc
     messaging: org.springframework.kafka,org.springframework.amqp
   level:
-    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
-    top.egon.cola.component.common.mybatis.change-summary: INFO
     root: info
     web-stack: info
     persistence: warn
@@ -132,8 +130,6 @@ egon:
         dynamic-table-name:
           enabled: false
           tables: {}
-        data-change-recorder:
-          enabled: false
         illegal-sql:
           enabled: false
         ddl:

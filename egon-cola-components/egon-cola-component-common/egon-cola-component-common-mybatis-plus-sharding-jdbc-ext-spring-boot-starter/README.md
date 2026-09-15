@@ -145,7 +145,7 @@ The original SQL guard proves positive ID bounds before execution. Final SQL che
 
 LOCAL checks span SqlSessionFactory instances. Multi-table writes within one physical group are allowed; cross-group writes fail and mark rollback-only. XA/BASE are not enabled. Root-key bulk writes require the exact statement ID and column in `local-write-guard.allowed-root-statements`.
 
-Page limit is 500. Data-change recording and IllegalSQL are permitted only in dev. Keep the raw recorder logger `'OFF'`; use the separate safe `top.egon.cola.component.common.mybatis.change-summary` topic. Mixed dev/prod activation is rejected.
+Page limit is 500. IllegalSQL is permitted only in `dev`. Mixed dev/prod activation is rejected.
 
 ## Managed DDL
 

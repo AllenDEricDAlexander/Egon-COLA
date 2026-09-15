@@ -38,8 +38,6 @@ organization:
 
 logging:
   level:
-    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
-    top.egon.cola.component.common.mybatis.change-summary: DEBUG
 
 egon:
   cola:
@@ -72,8 +70,6 @@ egon:
         dynamic-table-name:
           enabled: false
           tables: {}
-        data-change-recorder:
-          enabled: true
         illegal-sql:
           enabled: true
         ddl:

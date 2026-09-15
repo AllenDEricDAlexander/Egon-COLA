@@ -145,7 +145,7 @@ Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long �
 
 LOCAL Guard 跨 SqlSessionFactory 检查事务目标。一个事务可写同一物理组的多表，跨组写入拒绝并标记回滚；XA/BASE 不启用。精确 root-key 批量语句必须通过 `local-write-guard.allowed-root-statements` 注册完整 statementId 和列名；不接受普通业务以任意 Wrapper 绕过 ID/版本保护。
 
-分页上限 500。`dev` 才允许数据变动记录与 IllegalSQL；原始 recorder logger 必须为 `'OFF'`，安全摘要使用 `top.egon.cola.component.common.mybatis.change-summary`。同时启用 dev/prod 会被拒绝。
+分页上限 500。IllegalSQL 仅 `dev` 允许。同时启用 dev/prod 会被拒绝。
 
 ## 受管 DDL 与 ShardingSphere
 

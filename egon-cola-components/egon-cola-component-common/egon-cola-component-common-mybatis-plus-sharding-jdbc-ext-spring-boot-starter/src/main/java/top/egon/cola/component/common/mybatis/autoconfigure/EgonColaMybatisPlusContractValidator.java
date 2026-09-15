@@ -18,7 +18,6 @@ import com.baomidou.mybatisplus.core.toolkit.reflect.GenericTypeUtils;
 import com.baomidou.mybatisplus.extension.ddl.IDdl;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.DataChangeRecorderInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.DynamicTableNameInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
@@ -34,14 +33,11 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.SmartInitializingSingleton;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
-import org.springframework.boot.logging.LogLevel;
-import org.springframework.boot.logging.LoggingSystem;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.Profiles;
 import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
-import top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
@@ -180,7 +176,7 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         if (dev && prod) {
             throw failure("ENVIRONMENT_PROFILE_CONFLICT");
         }
-        if (!dev && (properties.getDataChangeRecorder().isEnabled() || properties.getIllegalSql().isEnabled())) {
+        if (!dev && properties.getIllegalSql().isEnabled()) {
             throw failure("DEV_DIAGNOSTIC_PROFILE_REQUIRED");
         }
         if (!properties.getMetaFill().isEnabled() || !properties.getLocalWriteGuard().isEnabled()
@@ -218,12 +214,6 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
                 throw failure("ROOT_STATEMENT_POLICY_INVALID");
             }
         });
-        if (properties.getDataChangeRecorder().isEnabled()) {
-            var logging = LoggingSystem.get(getClass().getClassLoader()).getLoggerConfiguration(EgonColaDataChangeRecorderInnerInterceptor.class.getName());
-            if (logging == null || logging.getEffectiveLevel() != LogLevel.OFF) {
-                throw failure("DATA_CHANGE_RAW_LOGGER_NOT_OFF");
-            }
-        }
     }
 
     private void validateInnerChain(List<InnerInterceptor> chain) {
@@ -235,9 +225,6 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         order.add(TenantLineInnerInterceptor.class);
         order.add(OptimisticLockerInnerInterceptor.class);
         order.add(EgonColaLocalWriteGuardInnerInterceptor.class);
-        if (properties.getDataChangeRecorder().isEnabled()) {
-            order.add(EgonColaDataChangeRecorderInnerInterceptor.class);
-        }
         if (properties.getIllegalSql().isEnabled()) {
             order.add(IllegalSQLInnerInterceptor.class);
         }
@@ -260,8 +247,7 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
             }
             previous = found;
         }
-        if (!properties.getDataChangeRecorder().isEnabled() && chain.stream().anyMatch(DataChangeRecorderInnerInterceptor.class::isInstance)
-                || !properties.getIllegalSql().isEnabled() && chain.stream().anyMatch(IllegalSQLInnerInterceptor.class::isInstance)) {
+        if (!properties.getIllegalSql().isEnabled() && chain.stream().anyMatch(IllegalSQLInnerInterceptor.class::isInstance)) {
             throw failure("DEV_DIAGNOSTIC_PROFILE_REQUIRED");
         }
     }

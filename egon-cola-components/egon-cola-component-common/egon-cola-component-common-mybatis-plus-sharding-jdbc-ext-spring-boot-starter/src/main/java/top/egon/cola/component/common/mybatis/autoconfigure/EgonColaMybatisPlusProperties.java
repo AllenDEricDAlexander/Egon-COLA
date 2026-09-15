@@ -67,9 +67,6 @@ public class EgonColaMybatisPlusProperties {
     private DynamicTableName dynamicTableName = new DynamicTableName();
     @Valid
     @NotNull
-    private Toggle dataChangeRecorder = new Toggle(false);
-    @Valid
-    @NotNull
     private Toggle illegalSql = new Toggle(false);
     @Valid
     @NotNull

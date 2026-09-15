@@ -182,10 +182,9 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     @Test
     void nonDevDoesNotInstallDiagnosticPluginsAndCannotEnableThem() {
         runner(true).withPropertyValues("spring.profiles.active=prod").run(context -> {
-            assertThat(context).doesNotHaveBean(com.baomidou.mybatisplus.extension.plugins.inner.DataChangeRecorderInnerInterceptor.class)
-                    .doesNotHaveBean(com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor.class);
+            assertThat(context).doesNotHaveBean(com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor.class);
         });
-        runner(true).withPropertyValues("spring.profiles.active=prod", "egon.cola.component.mybatis-plus.data-change-recorder.enabled=true")
+        runner(true).withPropertyValues("spring.profiles.active=prod", "egon.cola.component.mybatis-plus.illegal-sql.enabled=true")
                 .run(context -> {
                     assertThat(context).hasFailed();
                     assertThat(context.getStartupFailure()).hasMessage("DEV_DIAGNOSTIC_PROFILE_REQUIRED");
@@ -239,26 +238,10 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     }
 
     @Test
-    void devRecorderRequiresTheActualRawLoggerToBeOff() {
-        var raw = (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger(
-                top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor.class);
-        var previous = raw.getLevel();
-        try {
-            raw.setLevel(ch.qos.logback.classic.Level.INFO);
-            runner(true).withPropertyValues("spring.profiles.active=dev", "egon.cola.component.mybatis-plus.data-change-recorder.enabled=true")
-                    .run(context -> {
-                        assertThat(context).hasFailed();
-                        assertThat(context.getStartupFailure()).hasMessage("DATA_CHANGE_RAW_LOGGER_NOT_OFF");
-                    });
-            raw.setLevel(ch.qos.logback.classic.Level.OFF);
-            runner(true).withPropertyValues("spring.profiles.active=dev", "egon.cola.component.mybatis-plus.data-change-recorder.enabled=true",
-                            "egon.cola.component.mybatis-plus.illegal-sql.enabled=true")
-                    .run(context -> assertThat(context).hasNotFailed()
-                            .hasSingleBean(top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor.class)
-                            .hasSingleBean(com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor.class));
-        } finally {
-            raw.setLevel(previous);
-        }
+    void illegalSqlIsAvailableOnDev() {
+        runner(true).withPropertyValues("spring.profiles.active=dev", "egon.cola.component.mybatis-plus.illegal-sql.enabled=true")
+                .run(context -> assertThat(context).hasNotFailed()
+                        .hasSingleBean(com.baomidou.mybatisplus.extension.plugins.inner.IllegalSQLInnerInterceptor.class));
     }
 
     @Configuration(proxyBeanMethods = false)

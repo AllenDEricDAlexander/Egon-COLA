@@ -126,8 +126,6 @@ egon:
         dynamic-table-name:
           enabled: false
           tables: {}
-        data-change-recorder:
-          enabled: false
         illegal-sql:
           enabled: false
         ddl:
@@ -203,8 +201,6 @@ logging:
     persistence: org.mybatis,org.mybatis.spring,com.baomidou.mybatisplus,org.springframework.jdbc
     messaging: org.springframework.kafka,org.springframework.amqp
   level:
-    top.egon.cola.component.common.mybatis.interceptor.EgonColaDataChangeRecorderInnerInterceptor: 'OFF'
-    top.egon.cola.component.common.mybatis.change-summary: INFO
     root: info
     web-stack: info
     persistence: warn
