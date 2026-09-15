@@ -35,11 +35,11 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-single-core</artifactId>
+            <artifactId>shardingsphere-broadcast-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-broadcast-core</artifactId>
+            <artifactId>shardingsphere-readwrite-splitting-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
@@ -55,15 +55,7 @@
         </dependency>
         <dependency>
             <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-parser-sql-engine-sql92</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
             <artifactId>shardingsphere-parser-sql-engine-postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.shardingsphere</groupId>
-            <artifactId>shardingsphere-readwrite-splitting-core</artifactId>
         </dependency>
         <dependency>
             <groupId>top.egon</groupId>

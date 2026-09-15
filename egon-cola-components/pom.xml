@@ -173,12 +173,12 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
-                <artifactId>shardingsphere-single-core</artifactId>
+                <artifactId>shardingsphere-broadcast-core</artifactId>
                 <version>${shardingsphere.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
-                <artifactId>shardingsphere-broadcast-core</artifactId>
+                <artifactId>shardingsphere-readwrite-splitting-core</artifactId>
                 <version>${shardingsphere.version}</version>
             </dependency>
             <dependency>
@@ -198,17 +198,7 @@
             </dependency>
             <dependency>
                 <groupId>org.apache.shardingsphere</groupId>
-                <artifactId>shardingsphere-parser-sql-engine-sql92</artifactId>
-                <version>${shardingsphere.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.shardingsphere</groupId>
                 <artifactId>shardingsphere-parser-sql-engine-postgresql</artifactId>
-                <version>${shardingsphere.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.shardingsphere</groupId>
-                <artifactId>shardingsphere-readwrite-splitting-core</artifactId>
                 <version>${shardingsphere.version}</version>
             </dependency>
             <dependency>

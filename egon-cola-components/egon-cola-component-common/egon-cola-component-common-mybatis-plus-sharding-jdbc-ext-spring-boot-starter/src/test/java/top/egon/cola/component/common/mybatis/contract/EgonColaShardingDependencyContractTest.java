@@ -17,7 +17,9 @@ class EgonColaShardingDependencyContractTest {
                 "<artifactId>egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter</artifactId>");
         assertThat(pom).contains("<artifactId>shardingsphere-jdbc</artifactId>");
         assertThat(pom).contains("<artifactId>shardingsphere-parser-sql-engine-postgresql</artifactId>");
+        assertThat(pom).doesNotContain("<artifactId>shardingsphere-jdbc-core-spring-boot-starter</artifactId>");
         assertThat(pom).doesNotContain("<artifactId>shardingsphere-parser-sql-engine-mysql</artifactId>");
+        assertThat(pom).doesNotContain("<artifactId>shardingsphere-parser-sql-engine-sql92</artifactId>");
         assertThat(pom).doesNotContain("<artifactId>shardingsphere-transaction-xa-core</artifactId>");
         String parent = Files.readString(Path.of("..", "pom.xml"));
         assertThat(parent).doesNotContain(
