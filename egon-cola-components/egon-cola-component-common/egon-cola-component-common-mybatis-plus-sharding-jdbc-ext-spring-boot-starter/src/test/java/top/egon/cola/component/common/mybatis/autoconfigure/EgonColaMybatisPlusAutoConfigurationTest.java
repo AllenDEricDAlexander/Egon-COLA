@@ -13,6 +13,7 @@ import jakarta.validation.ValidatorFactory;
 import org.apache.ibatis.plugin.Interceptor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.context.annotation.ImportCandidates;
@@ -363,9 +364,9 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     @Configuration(proxyBeanMethods = false)
     static class SafeOuterConfiguration {
         @Bean
-        MybatisPlusInterceptor mybatisPlusInterceptor(List<InnerInterceptor> interceptors) {
+        MybatisPlusInterceptor mybatisPlusInterceptor(ObjectProvider<InnerInterceptor> interceptors) {
             MybatisPlusInterceptor interceptor = new MybatisPlusInterceptor();
-            interceptor.setInterceptors(interceptors);
+            interceptor.setInterceptors(interceptors.orderedStream().toList());
             return interceptor;
         }
     }

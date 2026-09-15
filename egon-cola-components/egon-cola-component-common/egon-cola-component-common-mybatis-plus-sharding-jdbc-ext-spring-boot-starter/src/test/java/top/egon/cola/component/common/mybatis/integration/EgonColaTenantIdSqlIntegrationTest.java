@@ -21,6 +21,10 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.jdbc.core.JdbcTemplate;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
+import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 import top.egon.cola.component.common.mybatis.support.TestBusinessMapper;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
 import top.egon.cola.component.common.mybatis.support.TestBusinessRepository;
@@ -32,6 +36,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -202,6 +207,18 @@ class EgonColaTenantIdSqlIntegrationTest {
         @Bean("snowflakeIdGenerator")
         top.egon.cola.component.common.id.generator.LongIdGenerator snowflakeIdGenerator() {
             return new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0);
+        }
+
+        @Bean("egonColaRoutingProfiles")
+        Map<String, EgonColaRoutingProfileBO> egonColaRoutingProfiles() {
+            return Map.of();
+        }
+
+        @Bean("egonColaWriteTargetResolver")
+        EgonColaWriteTargetResolver egonColaWriteTargetResolver() {
+            return query -> new EgonColaRouteResult(
+                    List.of(new EgonColaPhysicalTargetBO("primary", "public", query.logicalTable())),
+                    "a".repeat(64));
         }
 
         @Bean("testMapperXmlCustomizer")

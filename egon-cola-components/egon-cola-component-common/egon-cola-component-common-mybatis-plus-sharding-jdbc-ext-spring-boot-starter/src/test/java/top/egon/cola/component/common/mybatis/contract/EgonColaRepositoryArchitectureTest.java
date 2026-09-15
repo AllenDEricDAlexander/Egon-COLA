@@ -72,7 +72,7 @@ class EgonColaRepositoryArchitectureTest {
     void persistenceModelHasNoActiveRecordAndRepositoryHasNoCrudFieldInjection() throws Exception {
         assertEquals(Object.class, top.egon.cola.component.common.mybatis.model.EgonModel.class.getSuperclass());
         Class<?> implementation = Class.forName(IMPLEMENTATION);
-        assertEquals(com.baomidou.mybatisplus.extension.repository.AbstractRepository.class, implementation.getSuperclass());
+        assertEquals(com.baomidou.mybatisplus.extension.repository.CrudRepository.class, implementation.getSuperclass());
         Class<?> target = Class.forName(SERVICE);
         assertTrue(Arrays.asList(target.getInterfaces()).contains(com.baomidou.mybatisplus.extension.repository.IRepository.class));
         assertTrue(Arrays.stream(implementation.getDeclaredFields())
