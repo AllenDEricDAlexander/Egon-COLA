@@ -16,7 +16,7 @@ This directory is a `pom` aggregator, not a runtime JAR that business applicatio
 | `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` | Opt-in MyBatis-Plus 3.5.16 ActiveRecord `EgonModel`, zero-addition `EgonColaMapper`, enhanced 57-method service, TenantID isolation, audit fill, and repository validation |
 | `egon-cola-component-common-trace` | Pure JDK + SLF4J trace core, W3C `traceparent` propagation, complete MDC capture, and local-thread task templates |
 | `egon-cola-component-common-trace-spring-boot-starter` | Spring Boot 3 auto-configuration for Servlet, WebFlux, RestClient, WebClient, and Reactor context projection |
-| `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, parser, and Spring Boot auto-configuration; all tests live in this module |
+| `egon-cola-component-common-id-starter` | Snowflake interfaces, pure-JDK algorithm, and Spring Boot auto-configuration; all tests live in this module |
 | `egon-cola-component-common-crypto` | SHA-256, HMAC-SHA256, Base64, and Hex utilities |
 | `egon-cola-component-common-data-desensitize-spring-boot-starter` | `@Sensitive` metadata, shared masking strategies, Jackson response masking, Logback message conversion, and Spring Boot auto-configuration |
 | `egon-cola-component-common-test` | Source dependency boundary test utilities used internally by components |

@@ -120,20 +120,6 @@ Epoch 的那一毫秒从序列 `1` 开始；正常运行期间的每个毫秒仍
 
 同一个生成器实例线程安全、不重复，并在 CAS 成功的线性化点严格递增。机器 ID 正确分配且系统时间正常时，不同节点的 ID 全局唯一并按时间趋势有序；无中心协调条件下，不保证跨节点按照真实业务发生顺序全局严格递增。
 
-## 解析
-
-```java
-import top.egon.cola.component.common.id.snowflake.SnowflakeId;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdParser;
-
-SnowflakeId decoded = SnowflakeIdParser.parse(id);
-decoded.generatedAt();
-decoded.machineId();
-decoded.sequence();
-```
-
-解析器拒绝负数，并始终使用与生成器相同的固定 Epoch 和位布局。
-
 ## 时钟回拨策略
 
 - 回拨量不超过 `max-clock-backward` 时，通过短暂 park 和单调时钟截止时间等待系统时间追平。

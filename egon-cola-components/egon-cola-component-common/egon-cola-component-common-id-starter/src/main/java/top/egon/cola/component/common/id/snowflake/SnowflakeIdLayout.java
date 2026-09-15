@@ -43,4 +43,16 @@ final class SnowflakeIdLayout {
     static int stateSequence(long state) {
         return (int) (state & SEQUENCE_MASK);
     }
+
+    static long elapsedMillis(long id) {
+        return (id >>> ELAPSED_MILLIS_SHIFT) & ELAPSED_MILLIS_MASK;
+    }
+
+    static int machineId(long id) {
+        return (int) ((id >>> MACHINE_ID_SHIFT) & MACHINE_ID_MASK);
+    }
+
+    static int sequence(long id) {
+        return (int) (id & SEQUENCE_MASK);
+    }
 }

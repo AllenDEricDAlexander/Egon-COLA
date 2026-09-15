@@ -38,6 +38,19 @@ class SnowflakeIdGeneratorTest {
     private static final Duration WAIT_TIMEOUT = Duration.ofSeconds(3);
 
     @Test
+    void layoutComposesIdAndRoundTripsGeneratorState() {
+        long id = SnowflakeIdLayout.compose(123L, 17, 4095);
+        long state = SnowflakeIdLayout.packState(123L, 4095);
+
+        assertEquals((123L << 22) | (17L << 12) | 4095L, id);
+        assertEquals(123L, SnowflakeIdLayout.elapsedMillis(id));
+        assertEquals(17, SnowflakeIdLayout.machineId(id));
+        assertEquals(4095, SnowflakeIdLayout.sequence(id));
+        assertEquals(123L, SnowflakeIdLayout.stateElapsedMillis(state));
+        assertEquals(4095, SnowflakeIdLayout.stateSequence(state));
+    }
+
+    @Test
     void generatesStrictlyIncreasingIdsInOneInstance() {
         SnowflakeIdGenerator generator = generator(7, SnowflakeIdLayout.EPOCH_MILLIS + 100);
 
@@ -45,8 +58,8 @@ class SnowflakeIdGeneratorTest {
         long second = generator.nextLongId();
 
         assertTrue(second > first);
-        assertEquals(0, SnowflakeIdParser.parse(first).sequence());
-        assertEquals(1, SnowflakeIdParser.parse(second).sequence());
+        assertEquals(0, SnowflakeIdLayout.sequence(first));
+        assertEquals(1, SnowflakeIdLayout.sequence(second));
     }
 
     @ParameterizedTest
@@ -54,7 +67,7 @@ class SnowflakeIdGeneratorTest {
     void acceptsMachineIdBoundaries(long machineId) {
         SnowflakeIdGenerator generator = generator(machineId, SnowflakeIdLayout.EPOCH_MILLIS + 1);
 
-        assertEquals(machineId, SnowflakeIdParser.parse(generator.nextLongId()).machineId());
+        assertEquals(machineId, SnowflakeIdLayout.machineId(generator.nextLongId()));
     }
 
     @ParameterizedTest
@@ -88,8 +101,8 @@ class SnowflakeIdGeneratorTest {
         long second = secondGenerator.nextLongId();
 
         assertEquals(first, second);
-        assertEquals(17, SnowflakeIdParser.parse(first).machineId());
-        assertEquals(0, SnowflakeIdParser.parse(first).sequence());
+        assertEquals(17, SnowflakeIdLayout.machineId(first));
+        assertEquals(0, SnowflakeIdLayout.sequence(first));
     }
 
     @Test
@@ -97,17 +110,17 @@ class SnowflakeIdGeneratorTest {
         long id = generator(0, SnowflakeIdLayout.EPOCH_MILLIS).nextLongId();
 
         assertTrue(id > 0);
-        assertEquals(1, SnowflakeIdParser.parse(id).sequence());
+        assertEquals(1, SnowflakeIdLayout.sequence(id));
     }
 
     @Test
     void acceptsLastRepresentableMillisecond() {
         long lastTime = SnowflakeIdLayout.EPOCH_MILLIS + SnowflakeIdLayout.MAX_ELAPSED_MILLIS;
 
-        SnowflakeId parsed = SnowflakeIdParser.parse(generator(1023, lastTime).nextLongId());
+        long id = generator(1023, lastTime).nextLongId();
 
-        assertEquals(SnowflakeIdLayout.MAX_ELAPSED_MILLIS, parsed.elapsedMillis());
-        assertEquals(1023, parsed.machineId());
+        assertEquals(SnowflakeIdLayout.MAX_ELAPSED_MILLIS, SnowflakeIdLayout.elapsedMillis(id));
+        assertEquals(1023, SnowflakeIdLayout.machineId(id));
     }
 
     @Test
@@ -134,11 +147,10 @@ class SnowflakeIdGeneratorTest {
 
             for (int sequence = 0; sequence < 4_096; sequence++) {
                 long id = generator.nextLongId();
-                SnowflakeId parsed = SnowflakeIdParser.parse(id);
                 assertTrue(id > 0L);
-                assertEquals(TEST_TIME - SnowflakeIdLayout.EPOCH_MILLIS, parsed.elapsedMillis());
-                assertEquals(5, parsed.machineId());
-                assertEquals(sequence, parsed.sequence());
+                assertEquals(TEST_TIME - SnowflakeIdLayout.EPOCH_MILLIS, SnowflakeIdLayout.elapsedMillis(id));
+                assertEquals(5, SnowflakeIdLayout.machineId(id));
+                assertEquals(sequence, SnowflakeIdLayout.sequence(id));
                 if (sequence > 0) {
                     assertTrue(id > ids.get(sequence - 1));
                 }
@@ -163,10 +175,9 @@ class SnowflakeIdGeneratorTest {
             Long nextResult = pending.result().get();
             assertNotNull(nextResult);
             long nextId = nextResult;
-            SnowflakeId next = SnowflakeIdParser.parse(nextId);
             assertTrue(nextId > ids.get(ids.size() - 1));
-            assertEquals(TEST_TIME + 1L - SnowflakeIdLayout.EPOCH_MILLIS, next.elapsedMillis());
-            assertEquals(0, next.sequence());
+            assertEquals(TEST_TIME + 1L - SnowflakeIdLayout.EPOCH_MILLIS, SnowflakeIdLayout.elapsedMillis(nextId));
+            assertEquals(0, SnowflakeIdLayout.sequence(nextId));
         });
     }
 
@@ -195,7 +206,7 @@ class SnowflakeIdGeneratorTest {
             assertNotNull(secondResult);
             long second = secondResult;
             assertTrue(second > first);
-            assertEquals(1, SnowflakeIdParser.parse(second).sequence());
+            assertEquals(1, SnowflakeIdLayout.sequence(second));
         });
     }
 

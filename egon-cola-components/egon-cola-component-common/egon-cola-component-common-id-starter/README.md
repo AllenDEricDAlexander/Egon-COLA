@@ -121,20 +121,6 @@ operating millisecond retains the full 4,096-ID sequence capacity.
 
 One generator instance is thread-safe, duplicate-free, and strictly increasing at its successful CAS linearization point. Correctly configured nodes with normal clocks produce globally unique IDs that are ordered by time trend. Without central coordination, IDs from different nodes do not guarantee the strict global order of real business events.
 
-## Parsing
-
-```java
-import top.egon.cola.component.common.id.snowflake.SnowflakeId;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdParser;
-
-SnowflakeId decoded = SnowflakeIdParser.parse(id);
-decoded.generatedAt();
-decoded.machineId();
-decoded.sequence();
-```
-
-The parser rejects negative values and always uses the same fixed layout and epoch as the generator.
-
 ## Clock Rollback Policy
 
 - A rollback not larger than `max-clock-backward` is waited out using short parks and a bounded monotonic-time deadline.
