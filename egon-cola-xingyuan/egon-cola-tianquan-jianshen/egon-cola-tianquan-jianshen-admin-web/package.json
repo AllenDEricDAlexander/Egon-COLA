@@ -17,8 +17,8 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
-    "@egon-cola/xingyuan-admin-web-shared": "^0.2.0",
-    "@egon-cola/tianquan-jianshen-react-sdk": "0.1.0",
+    "@egon-cola/xingyuan-admin-web-shared": "npm:@egon-cola/admin-web-shared@^0.2.4",
+    "@egon-cola/tianquan-jianshen-react-sdk": "0.1.1",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
     "i18next": "^24.0.0",

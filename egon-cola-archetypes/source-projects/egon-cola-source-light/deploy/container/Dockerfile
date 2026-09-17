@@ -52,4 +52,4 @@ EXPOSE 8080 50051
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=5 \
     CMD curl --fail --silent --show-error http://127.0.0.1:8080/actuator/health/readiness || exit 1
 
-ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS org.springframework.boot.loader.launch.JarLauncher"]
+ENTRYPOINT ["sh", "-c", "exec java $JAVA_OPTS -XX:+UseZGC -XX:+ZGenerational -Xlog:gc*,safepoint:file=/app/logs/gc.log:time,uptime,level,tags:filecount=5,filesize=20M org.springframework.boot.loader.launch.JarLauncher"]

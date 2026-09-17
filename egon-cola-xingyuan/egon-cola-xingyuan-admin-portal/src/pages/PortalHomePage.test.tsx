@@ -36,7 +36,7 @@ beforeAll(async () => {
 describe('PortalHomePage', () => {
   it('renders the static xingyuan menu and keeps partial summary cards visible', async () => {
     renderHome({
-      tianquan-shoubing: async () => ({ status: 'READY', summary: '12 个身份' }),
+        'tianquan-shoubing': async () => ({status: 'READY', summary: '12 个身份'}),
       yuheng: async () => ({ status: 'TIMEOUT' }),
       tianshu: async () => ({ status: 'READY', summary: '8 个配置' }),
     })

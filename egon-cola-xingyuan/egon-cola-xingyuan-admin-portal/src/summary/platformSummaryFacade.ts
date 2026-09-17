@@ -1,10 +1,10 @@
-import type { PlatformKey } from '../manifest/types'
+import type {PlatformKey} from '../manifest/types'
 
 export const PLATFORM_KEYS: readonly PlatformKey[] = ['tianquan-shoubing', 'tianquan-jianshen', 'yuheng', 'tianshu']
 
 const platformLabels: Record<PlatformKey, string> = {
-  tianquan-shoubing: '身份与安全',
-  tianquan-jianshen: '权限治理',
+    'tianquan-shoubing': '身份与安全',
+    'tianquan-jianshen': '权限治理',
   yuheng: 'API 网关',
   tianshu: '配置中心',
 }

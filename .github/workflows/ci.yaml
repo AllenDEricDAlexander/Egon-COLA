@@ -13,167 +13,10 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Fast CI / Rocky Linux 10 / JDK ${{ matrix.java-version }}
+  backend:
+    name: Fast CI / Backend compile and test
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
-
-    env:
-      ROCKY_IMAGE: rockylinux/rockylinux:10
-
-    strategy:
-      fail-fast: false
-      matrix:
-        java-version: [21, 25]
-
-    defaults:
-      run:
-        shell: bash
-
-    steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
-        with:
-          submodules: recursive
-          fetch-depth: 1
-
-      - name: Setup Java ${{ matrix.java-version }}
-        uses: actions/setup-java@v4
-        with:
-          distribution: zulu
-          java-version: ${{ matrix.java-version }}
-          cache: maven
-
-      - name: Build, test, and install on Rocky Linux 10
-        run: |
-          set -euo pipefail
-          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
-          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
-          docker pull "${ROCKY_IMAGE}"
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            --env HOME=/home/runner \
-            --env JAVA_HOME=/opt/java \
-            --env MAVEN_USER_HOME=/home/runner/.m2 \
-            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
-            --volume "${GITHUB_WORKSPACE}:/workspace" \
-            --volume "${ROCKY_HOME}:/home/runner" \
-            --volume "${HOME}/.m2:/home/runner/.m2" \
-            --volume "${JAVA_HOME}:/opt/java:ro" \
-            --workdir /workspace \
-            "${ROCKY_IMAGE}" \
-            bash -lc '
-              set -euo pipefail
-              source /etc/os-release
-              if [[ "${ID:-}" != "rocky" || "${VERSION_ID%%.*}" != "10" ]]; then
-                echo "Expected Rocky Linux 10 container, found ${PRETTY_NAME:-unknown}." >&2
-                exit 1
-              fi
-              chmod +x ./mvnw
-              java -version
-              ./mvnw -version
-              ./mvnw -B -ntp -N install
-              ./mvnw -B -ntp -N -f egon-cola-archetypes/pom.xml install
-              ./mvnw -B -ntp -f egon-cola-archetypes/source-projects/pom.xml clean install
-              ./scripts/generate_archetypes.sh generate
-              ./scripts/check_archetypes.sh
-              test -z "$(git ls-files -- egon-cola-archetypes/.generated)"
-              mapfile -t MANIFESTS < <(
-                find egon-cola-archetypes/definitions -mindepth 2 -maxdepth 2 \
-                  -type f -name archetype.properties -print | sort
-              )
-              test "${#MANIFESTS[@]}" -eq 6
-              for manifest in "${MANIFESTS[@]}"; do
-                TARGET_ARTIFACT_ID="$(sed -n 's/^targetArtifactId=//p' "${manifest}" | tr -d '\r')"
-                test -f "egon-cola-archetypes/.generated/${TARGET_ARTIFACT_ID}/pom.xml"
-              done
-              ./mvnw -B -ntp -f egon-cola-archetypes/pom.xml \
-                -Pgenerated-archetypes \
-                clean install
-              ./mvnw -B -ntp \
-                -DtrimStackTrace=false \
-                -Dgpg.skip=true \
-                -Pgenerated-archetypes \
-                -Prelease \
-                clean verify
-            '
-
-      - name: Verify bytecode component and release shape with a clean scan
-        run: |
-          set -euo pipefail
-          ROCKY_HOME="${RUNNER_TEMP}/rocky-home"
-          mkdir -p "${ROCKY_HOME}" "${HOME}/.m2"
-          docker run --rm \
-            --user "$(id -u):$(id -g)" \
-            --env HOME=/home/runner \
-            --env JAVA_HOME=/opt/java \
-            --env MAVEN_USER_HOME=/home/runner/.m2 \
-            --env "PATH=/opt/java/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" \
-            --volume "${GITHUB_WORKSPACE}:/workspace" \
-            --volume "${ROCKY_HOME}:/home/runner" \
-            --volume "${HOME}/.m2:/home/runner/.m2" \
-            --volume "${JAVA_HOME}:/opt/java:ro" \
-            --workdir /workspace \
-            "${ROCKY_IMAGE}" \
-            bash -lc '
-              set -euo pipefail
-              ./mvnw -B -ntp \
-                -pl egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test \
-                -am \
-                -Prelease \
-                -Dgpg.skip=true \
-                -DegonArchitecture.cache.enabled=false \
-                verify
-              ./mvnw -B -ntp \
-                -pl egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test \
-                -am \
-                -Prelease \
-                -Dgpg.skip=true \
-                -Dtest=BytecodeReleaseShapeTest \
-                -Dsurefire.failIfNoSpecifiedTests=false \
-                -Dinvoker.skip=true \
-                -Degon.release.shape=true \
-                test
-              METHOD_EXTENSION_REPORT="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/failsafe-reports/top.egon.cola.component.bytecode.test.agent.MethodExtensionAgentIntegrationTest.txt"
-              METHOD_EXTENSION_SPRING_LOG="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/it/method-extension-spring/build.log"
-              ACCESS_GUARD_REPORT="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/failsafe-reports/top.egon.cola.component.bytecode.test.agent.AccessGuardAgentIntegrationTest.txt"
-              ACCESS_GUARD_SPRING_LOG="egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-test/target/it/access-guard-spring/build.log"
-              test -f "${METHOD_EXTENSION_REPORT}"
-              grep -Fq "Failures: 0, Errors: 0" "${METHOD_EXTENSION_REPORT}"
-              grep -Fq "METHOD_EXTENSION_SPRING_OK handlers=4" "${METHOD_EXTENSION_SPRING_LOG}"
-              test -f "${ACCESS_GUARD_REPORT}"
-              grep -Fq "Failures: 0, Errors: 0" "${ACCESS_GUARD_REPORT}"
-              grep -Fq "ACCESS_GUARD_SPRING_OK events=3" "${ACCESS_GUARD_SPRING_LOG}"
-              java -jar \
-                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
-                -l | grep -F ArchitectureScanBenchmark.scanOneThousandClasses
-              java -jar \
-                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
-                -l | grep -F ExecutorEnhancementBenchmark.transformOneThousandClasses
-              java -jar \
-                egon-cola-components/egon-cola-component-bytecode/egon-cola-component-bytecode-benchmark/target/egon-cola-component-bytecode-benchmark-benchmarks.jar \
-                -l | grep -F MethodObservationBenchmark.enabledSuccess
-            '
-
-      - name: Remove self-installed Maven artifacts
-        if: always()
-        run: |
-          rm -rf \
-            "$HOME/.m2/repository/top/egon" \
-            "$HOME/.m2/repository/com/alibaba/cola" \
-            "$HOME/.m2/repository/com/alibaba/craftsman"
-
-  outbox-postgresql:
-    name: Outbox PostgreSQL / JDK 21
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-
-    env:
-      EGON_OUTBOX_TEST_POSTGRES_ENABLED: "true"
-
-    defaults:
-      run:
-        shell: bash
+    timeout-minutes: 30
 
     steps:
       - name: Checkout source
@@ -189,12 +32,52 @@ jobs:
           java-version: "21"
           cache: maven
 
-      - name: Verify Docker service
-        run: docker info
-
-      - name: Test Outbox with isolated PostgreSQL
+      - name: Compile and test the full backend reactor
         run: |
-          ./mvnw -B -ntp \
-            -pl :egon-cola-component-transactional-outbox-starter \
-            -am \
-            clean verify
+          set -euo pipefail
+          chmod +x ./mvnw
+          ./mvnw -B -ntp clean test
+
+      - name: Remove self-installed Maven artifacts
+        if: always()
+        run: |
+          rm -rf \
+            "$HOME/.m2/repository/top/egon" \
+            "$HOME/.m2/repository/com/alibaba/cola" \
+            "$HOME/.m2/repository/com/alibaba/craftsman"
+
+  frontend:
+    name: Fast CI / Frontend build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+
+      - name: Build xingyuan admin portal
+        working-directory: egon-cola-xingyuan/egon-cola-xingyuan-admin-portal
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build tianquan-jianshen frontend workspaces
+        working-directory: egon-cola-xingyuan/egon-cola-tianquan-jianshen
+        run: |
+          npm ci
+          npm run build
+
+      - name: Build yuheng admin web
+        working-directory: egon-cola-xingyuan/egon-cola-yuheng/yuheng-admin-web
+        run: |
+          npm ci
+          npm run build

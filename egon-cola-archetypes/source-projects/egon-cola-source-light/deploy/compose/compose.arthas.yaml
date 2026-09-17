@@ -1,0 +1,49 @@
+# Opt-in Docker Compose override (v2.24.4+); always include at application creation.
+# Paths resolve relative to the FIRST compose file, deploy/compose/compose.docker*.yaml.
+services:
+  application:
+    # Arthas executes inside this JVM: keep its home/logs off the read-only rootfs.
+    environment:
+      JAVA_OPTS: "-XX:MaxRAMPercentage=75 -XX:+ExitOnOutOfMemoryError -Djava.security.egd=file:/dev/./urandom -Duser.home=/tmp"
+    # Replace production's private /tmp tmpfs with the shared tmpfs-backed volume.
+    tmpfs: !reset [ ]
+    volumes:
+      - arthas_tmp:/tmp
+
+  arthas:
+    profiles: [ diagnostics ]
+    image: ${ARTHAS_SIDECAR_IMAGE:-egon-cola-arthas-sidecar:4.3.5-jdk21}
+    build:
+      context: ../..
+      dockerfile: deploy/container/Dockerfile.arthas
+    user: "10001:10001"
+    pid: "service:application"
+    network_mode: "service:application"
+    depends_on:
+      application:
+        condition: service_started
+    read_only: true
+    cap_drop: [ ALL ]
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    cpus: "0.5"
+    restart: "no"
+    volumes:
+      - arthas_tmp:/tmp
+      - type: bind
+        source: ${ARTHAS_PASSWORD_HOST_FILE:-../secrets/arthas_password}
+        target: /run/secrets/arthas_password
+        read_only: true
+        bind:
+          create_host_path: false
+    # No ports: HTTP binds to the application's loopback; Telnet is disabled.
+
+volumes:
+  arthas_tmp:
+    driver: local
+    driver_opts:
+      type: tmpfs
+      device: tmpfs
+      o: "size=134217728,mode=1777"

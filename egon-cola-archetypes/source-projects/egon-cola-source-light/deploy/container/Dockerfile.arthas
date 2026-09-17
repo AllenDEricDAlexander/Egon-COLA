@@ -1,0 +1,78 @@
+# syntax=docker/dockerfile:1
+
+ARG ARTHAS_IMAGE=hengyunabc/arthas:4.3.5
+ARG DIAGNOSTIC_JAVA_IMAGE=eclipse-temurin:21-jdk-jammy
+
+FROM ${ARTHAS_IMAGE} AS arthas
+FROM ${DIAGNOSTIC_JAVA_IMAGE} AS diagnostics
+
+ARG APP_UID=10001
+ARG APP_GID=10001
+
+# Only the diagnostic image contains Arthas. The application image is unchanged.
+COPY --from=arthas /opt/arthas/ /opt/arthas/
+RUN groupadd --gid "${APP_GID}" app \
+    && useradd --uid "${APP_UID}" --gid "${APP_GID}" --no-create-home --shell /usr/sbin/nologin app
+
+COPY --chmod=0555 <<'SCRIPT' /usr/local/bin/attach-arthas
+#!/bin/sh
+set -eu
+umask 077
+
+fail() {
+    printf '%s\n' "$1" >&2
+    exit 64
+}
+
+# Do not allow inherited JVM options to alter the diagnostic bootstrap.
+[ -z "${JAVA_TOOL_OPTIONS:-}${JDK_JAVA_OPTIONS:-}${_JAVA_OPTIONS:-}" ] \
+    || fail 'JVM option injection is not supported by the diagnostic container.'
+password_file=/run/secrets/arthas_password
+[ -f "$password_file" ] && [ -r "$password_file" ] \
+    || fail 'A readable Arthas password file is required.'
+# A bounded single-line base64url secret avoids properties-file injection.
+size=$(wc -c < "$password_file")
+[ "$size" -ge 32 ] && [ "$size" -le 129 ] \
+    || fail 'Arthas password must contain 32-128 base64url characters.'
+password=$(cat "$password_file")
+case "$password" in
+    ''|*[!A-Za-z0-9_-]*) fail 'Arthas password must contain only base64url characters.' ;;
+esac
+[ "${#password}" -ge 32 ] && [ "${#password}" -le 128 ] \
+    || fail 'Arthas password must contain 32-128 base64url characters.'
+# Command substitution removes trailing newlines; accept at most one.
+[ "$size" -eq "${#password}" ] || [ "$size" -eq "$(( ${#password} + 1 ))" ] \
+    || fail 'Arthas password must be a single line.'
+
+kill -0 1 2>/dev/null || fail 'The application PID namespace is not accessible.'
+[ "$(stat -c %u /proc/1)" = "$(id -u)" ] \
+    || fail 'Diagnostic and application UIDs must match.'
+
+# /tmp is shared at the same path with the application, including the attach socket.
+home=$(mktemp -d /tmp/arthas.XXXXXXXX)
+cp -R /opt/arthas/. "$home/"
+chmod 0700 "$home"
+{
+    printf '%s\n' \
+        'arthas.config.overrideAll=true' \
+        'arthas.ip=127.0.0.1' \
+        'arthas.httpPort=8563' \
+        'arthas.telnetPort=-1' \
+        'arthas.username=arthas' \
+        'arthas.localConnectionNonAuth=false' \
+        'arthas.tunnelServer=' \
+        'arthas.statUrl='
+    printf 'arthas.password=%s\n' "$password"
+} > "$home/arthas.properties"
+chmod 0600 "$home/arthas.properties"
+unset password
+
+# The helper exits after attach; the agent continues inside the application JVM.
+# Keep its files until the application is stopped; never remove an active agent's home.
+exec java -Duser.home="$home" -jar "$home/arthas-boot.jar" \
+    --arthas-home "$home" --attach-only \
+    --target-ip 127.0.0.1 --telnet-port -1 --http-port 8563 1
+SCRIPT
+
+USER app
+ENTRYPOINT ["/usr/local/bin/attach-arthas"]

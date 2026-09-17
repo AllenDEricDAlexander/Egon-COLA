@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@ant-design/icons": "^6.3.2",
-    "@egon-cola/xingyuan-admin-web-shared": "file:../egon-cola-xingyuan-admin-web-shared",
+    "@egon-cola/xingyuan-admin-web-shared": "npm:@egon-cola/admin-web-shared@^0.2.4",
     "@tanstack/react-query": "^5.101.4",
     "antd": "^6.5.2",
     "i18next": "^24.0.0",

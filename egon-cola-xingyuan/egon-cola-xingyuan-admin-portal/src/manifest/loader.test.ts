@@ -1,5 +1,5 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
-import { loadManifest } from './loader'
+import {afterEach, describe, expect, it, vi} from 'vitest'
+import {loadManifest} from './loader'
 
 const manifest = (overrides: Record<string, unknown> = {}) => ({
   key: 'tianquan-shoubing',
@@ -43,7 +43,7 @@ describe('loadManifest', () => {
   it('selects a xingyuan entry and allows explicit local child origins', async () => {
     vi.stubEnv('VITE_PORTAL_ALLOW_LOCAL_CHILD_ORIGINS', 'true')
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(jsonResponse({
-      tianquan-shoubing: manifest(),
+        'tianquan-shoubing': manifest(),
       yuheng: manifest({
         key: 'yuheng',
         url: 'http://localhost:18141/',
