@@ -35,21 +35,27 @@ When a literal requirement cannot be satisfied because of a compiler conflict, f
 
 Create a complete inventory of every Java type added, renamed, or materially changed by the Spec.
 
-| Type category | Mandatory suffix examples | Required meaning |
-| --- | --- | --- |
-| Persistence carrier | `*PO` | Maps persisted fields/table records |
-| Business carrier | `*BO` | Carries Service/business calculation state |
-| View carrier | `*VO` | Carries presentation/output state |
-| Transfer carrier | `*DTO` | Cross-layer/service/integration transfer |
-| Read input | `*Query`, `*PageQuery` | Encapsulates read criteria |
-| Write input | `*Command` | Encapsulates state-changing intent |
-| Published fact | `*Event` | Represents an occurred fact |
-| Protocol boundary | `*Request`, `*Response`, `*PageResult` | Explicit HTTP/RPC boundary when used by the project |
-| Persistence identity object | `*Entity` | Only when established ORM/entity identity and lifecycle require it |
-| Access component | `*DAO` | Database access behavior, not a carrier |
-| Behavior type | `*Controller`, `*Service`, `*Repository`, `*Gateway`, `*Converter`, `*Validator`, `*Component`, `*Factory`, `*Strategy`, `*Exception`, `*Result`, `*Enum` | Exact behavior responsibility |
+| Type category               | Mandatory suffix examples                                                                                           | Required meaning                                                        |
+|-----------------------------|---------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------|
+| Persistence carrier         | `*PO`                                                                                                               | Maps persisted fields/table records                                     |
+| Business carrier            | `*BO`                                                                                                               | Carries Service/business calculation state                              |
+| View carrier                | `*VO`                                                                                                               | Carries presentation/output state                                       |
+| Transfer carrier            | `*DTO`                                                                                                              | Cross-layer/service/integration transfer                                |
+| Read input                  | `*Query`, `*PageQuery`                                                                                              | Encapsulates read criteria when a dedicated read object exists          |
+| Write input                 | `*Command`                                                                                                          | Encapsulates state-changing intent when a dedicated write object exists |
+| Published fact              | `*Event`                                                                                                            | Represents an occurred fact                                             |
+| Protocol/output result      | `*Result`, `*PageResult`                                                                                            | HTTP/RPC/service output; paged output uses `*PageResult`                |
+| Persistence identity object | `*Entity`                                                                                                           | Only when established ORM/entity identity and lifecycle require it      |
+| Mapper access               | `*DAO`, `*Mapper`                                                                                                   | Database SQL access, not a carrier                                      |
+| Anti-corruption access      | `*Repository`                                                                                                       | Service-facing persistence/ACL; replaces the former Gateway slot        |
+| Behavior type               | `*Controller`, `*Service`, `*Converter`, `*Validator`, `*Component`, `*Factory`, `*Strategy`, `*Exception`, `*Enum` | Exact behavior responsibility                                           |
 
-`UserData`, `UserInfo`, `UserParam`, `UserBean`, and suffixless ambiguous carriers fail the rule. Existing ambiguous types outside the change surface are not a broad-refactor mandate, but a newly created or materially changed type cannot inherit that ambiguity. Class-explosion prevention remains mandatory: a new suffix does not justify a duplicate object without a real boundary or lifecycle distinction.
+Inbound parameter types have no extra suffix requirement: do not add `*Request`. Output uses `*Result`, not `*Response`.
+Persistence and outbound isolation use `*Repository`, not `*Gateway`. `UserData`, `UserInfo`, `UserParam`, `UserBean`,
+and suffixless ambiguous carriers fail the rule. Existing ambiguous types outside the change surface are not a
+broad-refactor mandate, but a newly created or materially changed type cannot inherit that ambiguity. Class-explosion
+prevention remains mandatory: a new suffix does not justify a duplicate object without a real boundary or lifecycle
+distinction.
 
 The Spec must record: exact path, type name, role, suffix, source/target layer, mutability model, converter, validation group, and reuse-versus-new decision.
 
@@ -60,7 +66,7 @@ Validation is not Controller-only. Inventory every affected handoff, including a
 - HTTP/RPC/message/job input -> Controller/Adapter;
 - Controller/Adapter -> Service/Application;
 - Service/Application -> Domain Service/Component;
-- Service/Application -> DAO/Repository/Gateway command/query input;
+- Service/Application -> Repository command/query input;
 - event producer -> event consumer;
 - any non-Spring-proxied construction path entering the same business operation.
 
@@ -101,7 +107,11 @@ Any other utility dependency or new duplicate `*Utils` class is blocked. `common
 
 ## Rule 6 — Jackson-only external JSON contracts
 
-Use the Spring Boot managed Jackson stack. Every affected external-interaction DTO/VO/Request/Response/Command/Query/Event must have an explicit annotation decision for field names, inclusion/ignore, unknown fields, enum values, dates/times, polymorphism, sensitive fields, and compatibility. “No annotation needed” is acceptable only with field-by-field evidence that Jackson defaults exactly match the effective interface contract. Gson, Fastjson, mixed mappers, and serialization-based object conversion are prohibited.
+Use the Spring Boot managed Jackson stack. Every affected external-interaction DTO/VO/Result/Command/Query/Event must
+have an explicit annotation decision for field names, inclusion/ignore, unknown fields, enum values, dates/times,
+polymorphism, sensitive fields, and compatibility. “No annotation needed” is acceptable only with field-by-field
+evidence that Jackson defaults exactly match the effective interface contract. Gson, Fastjson, mixed mappers, and
+serialization-based object conversion are prohibited.
 
 ## Rule 7 — configuration-profile structural parity
 

@@ -35,21 +35,24 @@
 
 完整清单本 Spec 新增、重命名或实质修改的所有 Java 类型。
 
-| 类型 | 强制后缀示例 | 准确含义 |
-| --- | --- | --- |
-| 持久化载体 | `*PO` | 表/持久化字段映射 |
-| 业务载体 | `*BO` | Service 内业务计算状态 |
-| 展示载体 | `*VO` | 展示/输出状态 |
-| 传输载体 | `*DTO` | 跨层、服务或集成传输 |
-| 查询输入 | `*Query`、`*PageQuery` | 读取条件 |
-| 修改输入 | `*Command` | 状态修改意图 |
-| 已发生事实 | `*Event` | 已发生事件 |
-| 协议边界 | `*Request`、`*Response`、`*PageResult` | 项目采用的 HTTP/RPC 边界 |
-| 持久化身份对象 | `*Entity` | 只有既有 ORM 身份/生命周期明确时使用 |
-| 访问组件 | `*DAO` | 数据库访问行为，不是载体 |
-| 行为类型 | `*Controller`、`*Service`、`*Repository`、`*Gateway`、`*Converter`、`*Validator`、`*Component`、`*Factory`、`*Strategy`、`*Exception`、`*Result`、`*Enum` | 准确行为职责 |
+| 类型        | 强制后缀示例                                                                                                      | 准确含义                               |
+|-----------|-------------------------------------------------------------------------------------------------------------|------------------------------------|
+| 持久化载体     | `*PO`                                                                                                       | 表/持久化字段映射                          |
+| 业务载体      | `*BO`                                                                                                       | Service 内业务计算状态                    |
+| 展示载体      | `*VO`                                                                                                       | 展示/输出状态                            |
+| 传输载体      | `*DTO`                                                                                                      | 跨层、服务或集成传输                         |
+| 查询输入      | `*Query`、`*PageQuery`                                                                                       | 存在独立读取对象时的读取条件                     |
+| 修改输入      | `*Command`                                                                                                  | 存在独立写入对象时的状态修改意图                   |
+| 已发生事实     | `*Event`                                                                                                    | 已发生事件                              |
+| 协议/输出结果   | `*Result`、`*PageResult`                                                                                     | HTTP/RPC/服务输出；分页输出使用 `*PageResult` |
+| 持久化身份对象   | `*Entity`                                                                                                   | 只有既有 ORM 身份/生命周期明确时使用              |
+| Mapper 访问 | `*DAO`、`*Mapper`                                                                                            | 数据库 SQL 访问，不是载体                    |
+| 防腐访问      | `*Repository`                                                                                               | Service 面对的持久化/防腐层；替代原 Gateway 位置  |
+| 行为类型      | `*Controller`、`*Service`、`*Converter`、`*Validator`、`*Component`、`*Factory`、`*Strategy`、`*Exception`、`*Enum` | 准确行为职责                             |
 
-`UserData`、`UserInfo`、`UserParam`、`UserBean` 和无后缀含糊载体不合格。范围外旧命名不授权大重构，但新增或实质修改类型不能继承这种含糊。防止类爆炸仍是强制要求：没有真实边界/生命周期差异时，换一个后缀不能成为重复建类理由。
+入参没有额外后缀要求：不要增加 `*Request`。出参使用 `*Result`，不使用 `*Response`。持久化和出站隔离使用 `*Repository`，不使用
+`*Gateway`。`UserData`、`UserInfo`、`UserParam`、`UserBean`
+和无后缀含糊载体不合格。范围外旧命名不授权大重构，但新增或实质修改类型不能继承这种含糊。防止类爆炸仍是强制要求：没有真实边界/生命周期差异时，换一个后缀不能成为重复建类理由。
 
 Spec 必须记录准确路径、类型、职责、后缀、来源/目标层、可变性、Converter、Validation Group 和复用/新增决策。
 
@@ -60,7 +63,7 @@ Spec 必须记录准确路径、类型、职责、后缀、来源/目标层、�
 - HTTP/RPC/消息/Job 输入 -> Controller/Adapter；
 - Controller/Adapter -> Service/Application；
 - Service/Application -> Domain Service/Component；
-- Service/Application -> DAO/Repository/Gateway 的 Command/Query 输入；
+- Service/Application -> Repository 的 Command/Query 输入；
 - Event Producer -> Event Consumer；
 - 进入同一业务操作的非 Spring Proxy 构造路径。
 
@@ -92,7 +95,9 @@ Spec 必须核对适用 `lombok.config` 会把 `org.springframework.beans.factor
 
 ## 规则 6——外部 JSON 只用 Jackson
 
-使用 Spring Boot 管理的 Jackson。每个受影响外部 DTO/VO/Request/Response/Command/Query/Event 都要逐项决定字段名、Include/Ignore、Unknown Field、枚举、日期时间、多态、敏感字段和兼容注解。“不需要注解”只有在逐字段证明 Jackson 默认行为与有效接口契约完全相同时才成立。禁止 Gson、Fastjson、混合 Mapper 和序列化对象转换。
+使用 Spring Boot 管理的 Jackson。每个受影响外部 DTO/VO/Result/Command/Query/Event 都要逐项决定字段名、Include/Ignore、Unknown
+Field、枚举、日期时间、多态、敏感字段和兼容注解。“不需要注解”只有在逐字段证明 Jackson 默认行为与有效接口契约完全相同时才成立。禁止
+Gson、Fastjson、混合 Mapper 和序列化对象转换。
 
 ## 规则 7——多环境配置结构一致
 
