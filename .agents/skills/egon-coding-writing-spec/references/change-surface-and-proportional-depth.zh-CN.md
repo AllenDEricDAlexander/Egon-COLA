@@ -147,7 +147,7 @@ Verification: <聚焦回归/静态检查，或有证据的不需要>
 | Service 接口 | `Unchanged` | 方法签名和业务结果语义完全不变 | 引用符号和保持不变量 |
 | Service 实现 | `Context-only` | 已有方法委托 DAO，并依赖修正后的结果集 | 只写相关调用和预期结果语义 |
 | DAO/Mapper 查询 | `Affected` | Predicate/Join/Order/Page 逻辑变化 | 完整设计准确符号、SQL 形状、参数/空值规则、结果语义和失败 |
-| 数据库 Schema/关系 | `Unchanged` | 已有字段、约束和关系已经足够 | 引用相关 Migration/表/索引证据；没有 Migration 或 ER 重设计 |
+| 数据库 Schema/关系 | `Unchanged` | 已有字段、约束和关系已经足够 | 引用相关 DDL/表/索引证据；没有 Schema 变更或 ER 重设计 |
 | 测试 | `Affected` | 查询回归必须证明包含/排除、边界、顺序和已有调用方行为 | 定义聚焦 DAO/Mapper 测试，并按需增加最小 Service 回归 |
 | 前端 | `Unchanged` | 契约和可见状态不变 | 一条有证据的不变记录；不做页面/组件设计 |
 

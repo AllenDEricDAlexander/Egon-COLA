@@ -75,7 +75,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 16. 必须使用 `references/complex-scenario-analysis.zh-CN.md` 把 Spec 分类为 `Simple` 或 `Complex`。Complex Spec 在选择架构前必须完成证据图谱、场景矩阵、所有权/一致性分析、质量约束和“证据到决策”结论链；Simple Spec 不得为了形式套用重型分析。
 17. 第 7 章必须分为系统架构设计、概要设计和详细设计，但只描述受影响协作和证明边界所需的上下文。Complex Spec 必须包含架构 Mermaid Flowchart、独立的关键业务/控制 Flowchart，以及覆盖主要参与者/重要失败的 Mermaid 泳道图/Sequence Diagram；聚焦 Simple Spec 不得增加装饰性的全系统图。
 18. HTTP/RPC/事件/Job/内部 Service 契约为 `Affected` 时才读取 `references/interface-contract-design.zh-CN.md`。外部 REST 或 GraphQL API 为 `Affected` 时，还必须完整读取 `references/api-rest-cqrs-graphql-openapi.zh-CN.md`。一个原子 REST Method + URL、GraphQL Root Field Operation Contract 或其他协议操作分配一个接口 ID，禁止合并 CRUD 接口族，也禁止只把 `/graphql` 当成 Operation。清单和完整详情只覆盖发生变化的契约。每个外部 API 必须分类 REST/GraphQL 风格与 Query/Command/Subscription 角色，设计 OpenAPI 3 或 GraphQL Schema 文档，并关闭全部 `API-GATE-*`。已有接口只是 `Context-only` 或 `Unchanged` 时，只引用准确当前符号/路由和保持不变量，不复写完整入参/出参、注解或 SDL。
-19. Schema、数据语义、约束、索引、Migration、事务/锁行为或权威持久化所有权为 `Affected` 时才读取 `references/database-design.zh-CN.md`，且只清单和展开这些受影响数据库元素。DAO 查询单独变化时，可记录准确 SQL/访问路径和相关已有索引证据，不复写完整不变表或 ER 关系。
+19. Schema、数据语义、约束、索引、Schema 变更/DDL、分片、数据源拓扑、事务/锁行为或权威持久化所有权为 `Affected` 时才读取 `references/database-design.zh-CN.md`，且只清单和展开这些受影响数据库元素。DAO 查询单独变化时，可记录准确 SQL/访问路径和相关已有索引证据，不复写完整不变表或 ER 关系。
 20. 每份 Spec 都必须读取 `references/requirements-use-case-analysis.zh-CN.md`。需求分析必须识别真实参与者和稳定 `UC-*` 用例，写清触发、前置条件、主要结果、分支/失败、后置条件和追踪。可使用完整表格或 Mermaid `flowchart`；复杂或多参与者行为优先使用带系统边界的 Mermaid 视图。不能把 Controller 方法或架构调用链当作用例。
 21. 关系型数据模型、表、Key、约束或关系为 `Affected` 时，必须增加 Mermaid `erDiagram`，覆盖所有受影响清单表、直接相关邻表、真实基数、关系标签和重要 PK/FK/UK 字段，并映射准确物理表。DAO-only 查询或映射变更不得重画不变 ER 模型。
 22. 选择架构元素或分配接口 ID 前必须读取 `references/minimal-design-and-interface-necessity.zh-CN.md`。从复用现有/不新增元素的直接方案开始。每个新增或实质扩展的 API、RPC/事件、类、分层、表、缓存、Job、依赖或前端 Store/Provider，都必须证明当前需求无法由简单方案满足，并记录新增调用、状态、耦合、失败、迁移和运维成本。如果接口返回值只被原样复制到另一个请求，而目标端可以自行派生或校验，必须拒绝该“先查再转发”接口。
@@ -96,7 +96,7 @@ python3 <skill-root>/scripts/validate_skill_resources.py
 | 所有 Java 设计 | `references/user-mandated-java-rules.zh-CN.md` 和 `references/java-spring-egon-coding-standards.zh-CN.md`；传统形态还读取 `references/three-layer-architecture.zh-CN.md` 和 `references/pojo-modeling.zh-CN.md`，COLA 形态读取仓库中准确选中的 Archetype Tree/Verifier |
 | 任意 `Affected` HTTP/RPC/事件/Job/内部 Service 契约 | `references/interface-contract-design.zh-CN.md` |
 | 任意 `Affected` 外部 REST 或 GraphQL API | `references/interface-contract-design.zh-CN.md` 和 `references/api-rest-cqrs-graphql-openapi.zh-CN.md` |
-| 任意 `Affected` Schema/数据/约束/索引/Migration/事务/锁/持久化所有权表面 | `references/database-design.zh-CN.md` |
+| 任意 `Affected` Schema/数据/约束/索引/DDL/分片/数据源/拓扑/事务/锁/持久化所有权表面 | `references/database-design.zh-CN.md` |
 
 Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec 中，不能压缩成摘要：
 
@@ -113,7 +113,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 - 每个拟议元素必须相对现有/复用直接方案给出 `Add/Keep/Merge/Remove` 必要性结论；不能新增只用于查询调用方原样转发值或目标端可派生值的接口；
 - 每个受影响接口清单项必须包含全部逐接口子章节、真实协议身份、完整参数规则、成功与错误结果、有序调用方逻辑和验证；
 - 每个受影响外部 API 还必须包含协议/CQRS 决策、REST 资源/HTTP 语义或完整 GraphQL SDL/Operation/Resolver 语义、文档归属、安全/暴露、准确生成契约校验，以及九行已关闭 `API-GATE-*`；
-- 每个受影响数据库清单项必须包含全部逐表子章节、完整受影响字段表、绑定真实访问路径的逐索引论证、Migration/历史数据处理和一致性/恢复规则；
+- 每个受影响数据库清单项必须包含全部逐表子章节、完整受影响字段表、绑定真实访问路径的逐索引论证、STRATEGY 类型/分片键/2n 拓扑、受管 DDL/历史数据处理和一致性/恢复规则；
 - 每张受影响关系模型清单表必须出现在 Mermaid `erDiagram` 中，物理名称映射、关系与 Key 语义必须和详细设计一致；
 - `Affected` 区域只有在引用准确权威实现/契约并证明无需新决策时，才能用 `N/A`、“沿用现有”、“框架处理”、类名或链接代替细节；`Context-only`、`Unchanged` 和 `Not applicable` 必须使用各自的简洁写法。
 
@@ -220,7 +220,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 8. **分包结构与代码文件树**——展示准确受影响文件，以及定位它们所需的少量父级/上下文路径，写清操作、符号、职责和需求映射。DAO-only 任务不能输出完整 Controller/Service/DAO 树；`service.impl` 只有在范围内时才强调嵌套于 `service`。
 9. **接口定义**——只对新增、删除或实质变化的 HTTP/RPC/事件/内部契约做完整清单和逐项展开。不变边界只引用准确已有路由/符号、消费者和保持的入参/出参/错误/文档不变量，不能复写完整 JSON、注解或 SDL。每个受影响外部 API 都必须包含必要性结论；REST/GraphQL 与 Query/Command/Subscription 分类；准确 Operation 身份；完整入参规则和逐字段注释的成功/错误 `jsonc`；逻辑、安全、兼容、测试和消费者行为。REST 还必须包含资源/Method/Status/Header 语义、springdoc/OpenAPI 3 注解归属、显式 `operationId`、完整 Response/Security/Schema 和生成 OAS 校验。GraphQL 还必须包含完整受影响 SDL、具名 Operation/Variable/Selection、Resolver Mapping、Null/Partial Error、Batching/N+1/Cost、Field Security 和 Schema/`GraphQlTester` 校验。九行 `API-GATE-*` 全部是阻断项。
 10. **POJO 与数据模型设计**——只完整设计受影响/新增类型、字段、映射、生命周期或复用决策。不变模型只引用准确类型和保持不变量，不能盘点无关 PO/DTO/BO/Entity/VO。变化的关系型模型必须与 ER 图一致。
-11. **数据库设计**——只完整清单和展开受影响 Schema/数据/约束/索引/事务元素。关系型模型或关系变化时才绘制 Mermaid `erDiagram`。DAO 查询单独变化且 Schema 不变时，只记录准确查询/访问路径、相关字段/索引证据和保持 Schema 不变量，不复写整表或 ER 模型。
+11. **数据库设计**——只完整清单和展开受影响 Schema/数据/约束/索引/DDL/分片/事务元素。关系型模型或关系变化时才绘制 Mermaid `erDiagram`。DAO 查询单独变化且 Schema 不变时，只记录准确查询/访问路径、相关字段/索引证据和保持 Schema 不变量，不复写整表或 ER 模型。
 12. **前端页面设计**——只有前端行为受影响时才完整设计路由、组件、流程、映射和状态。已有但不受影响的前端写一条有证据的 `Unchanged`；仓库不存在前端才是 `N/A`。
 13. **设计模式与架构理念**——只针对受影响变化点和边界考虑模式、依赖方向、内聚、耦合、信息隐藏、SOLID、YAGNI、继承和组合，不能重述全部架构。
 14. **测试设计**——定义变化行为的聚焦测试，以及证明声明保持边界所需的最小 Caller/契约/Schema 回归；只有影响锥要求时才增加更高层测试。
@@ -262,7 +262,7 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 | 因另一个请求需要参数而新增接口 | 先判断参数所有权；在目标后端派生、复用当前路由/上下文/本地数据，或接受稳定业务 Key。只有已证明独立选择/发现/协商用例时才保留查询 |
 | 因模板章节多就选择更大的设计 | 执行支配规则；同样满足需求时选择契约、状态、依赖、调用和失败点更少的直接方案 |
 | 用响应类名或省略 JSON 代替响应结构 | 展示真实完整 `jsonc` 传输结构，每个字段添加行尾含义注释 |
-| 只列出表或索引，没有逐项设计 | 每张表和每个索引展开字段、语义、查询/访问证据、索引依据、Migration、锁、验证与回滚 |
+| 只列出表或索引，没有逐项设计 | 每张表和每个索引展开字段、语义、查询/访问证据、索引依据、分片类型、受管 DDL、锁、验证与回滚 |
 | 关系型数据没有 ER 图，或 ER 图遗漏清单表 | 增加 Mermaid `erDiagram`，包含物理名称映射、真实基数/标签和重要 PK/FK/UK 字段，并与每张表详情对齐 |
 | 复杂架构只画一张装饰图 | 分别提供与契约、数据、失败和依赖规则一致的架构图、关键流程图和泳道 Mermaid 图 |
 | 默认在每层都创建 PO/DO/Entity/BO/DTO/VO/Request/Response | 执行类必要性检验；语义完全相同且复用安全时复用，只保留有依据的边界类型 |
@@ -286,3 +286,9 @@ Complex Spec 必须显式执行四轮工作，并把分析结果保留在 Spec �
 ## Skill 维护
 
 修改本 skill 时，先运行逐字规则保留测试（`scripts/test_user_mandated_java_rules.py`）、资源完整性测试（`scripts/test_validate_skill_resources.py`）、变更面测试（`scripts/test_validate_spec_scope.py`）、Manual Check 测试（`scripts/test_validate_manual_checks.py`）、API 契约测试（`scripts/test_validate_api_contracts.py`）和预检（`scripts/validate_skill_resources.py`），再用 `references/acceptance-scenarios.md` 进行场景复核，并执行适用输出校验器。必须保持 `SKILL.md` 和所有 `*.zh-CN.md` 审核镜像与英文运行契约同步。逐字源区块发生变化、内置资源缺失、路径歧义/越界或本地 Markdown 链接失效时，本次修改都不能算完成。
+
+## Contributors
+
+- mario
+- claudecode
+- grok

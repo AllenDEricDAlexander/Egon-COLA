@@ -162,8 +162,9 @@
 - [ ] Every retained/added/changed/removed index names its exact ordered definition, real query/access path, selectivity/cardinality evidence, sort/coverage purpose, uniqueness semantics, overlap, and write/build/storage cost.
 - [ ] No speculative index lacks a query; no critical query lacks a credible index/access-path decision and verification plan.
 - [ ] Access patterns state caller, predicates/joins/order/page behavior, expected rows, transaction owner, locks/isolation, failure, and idempotency.
-- [ ] Migration design names the exact new version/path, historical-data/backfill sequence, compatibility window, locking/build risks, verification SQL, rollback limit, and forward-fix.
-- [ ] Existing immutable migrations remain unchanged, and source inspection is not presented as live-schema or execution-plan proof.
+- [ ] Schema-change design names the exact new classpath SQL path and manifest checksum, historical-data/backfill sequence, compatibility window, locking/build risks, verification SQL, rollback limit, and forward-fix.
+- [ ] Already-applied DDL scripts and checksums remain unchanged, and source inspection is not presented as live-schema or execution-plan proof.
+- [ ] Affected sharded tables name STRATEGY type, `tenant_id` first-level shard key, uniform 2n topology, mix64-v1, and LOCAL collocation; two-level sharding is not the default.
 
 ## Design-pattern and architecture review
 

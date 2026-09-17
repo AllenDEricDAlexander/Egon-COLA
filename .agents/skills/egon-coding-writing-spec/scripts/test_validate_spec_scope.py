@@ -41,7 +41,7 @@ class ChangeSurfaceValidationTest(unittest.TestCase):
                 "Boundary evidence only | §7 |",
                 "| Controller/API | Unchanged | `Controller#list` | Route and JSON unchanged | "
                 "Unchanged record | §9 |",
-                "| Database schema | Unchanged | `V001__schema.sql` | Columns and indexes unchanged | "
+                "| Database schema | Unchanged | `classpath:db/ddl/001_create_schema.sql` | Columns and indexes unchanged | "
                 "Schema invariant only | §11 |",
                 "| Frontend | Unchanged | `pages/List.tsx` | Visible behavior unchanged | "
                 "Unchanged record | §12 |",
@@ -147,7 +147,7 @@ No API, Service contract, schema, or frontend changes.
 | DAO/Mapper | Affected | `ReportMapper#page` | Query predicate changes | Full query design | §7, §8, §14 |
 | Service | Context-only | `ReportService#page` | Result contract is preserved | Boundary evidence only | §7 |
 | Controller/API | Unchanged | `ReportController#page` | Route and JSON stay identical | Unchanged record | §9 |
-| Database schema | Unchanged | `V001__report.sql` | Columns and relationships stay identical | Schema invariant only | §11 |
+| Database schema | Unchanged | `classpath:db/ddl/001_create_report.sql` | Columns and relationships stay identical | Schema invariant only | §11 |
 | Frontend | Unchanged | `ReportPage` | Visible states stay identical | Unchanged record | §12 |
 
 ## 4. Requirements and Acceptance Criteria

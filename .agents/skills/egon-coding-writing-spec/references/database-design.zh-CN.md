@@ -1,32 +1,92 @@
 # 逐表逐索引数据库设计
 
-> 本文件是 `references/database-design.md` 的全中文审核镜像。第 11 章把 Schema、数据语义、约束、索引、Migration、事务/锁行为或持久化所有权标记为 `Affected` 时必须读取，并使用仓库真实数据库方言、迁移框架、命名规范和访问技术。DAO 查询单独变化且数据库设计不变时，使用 `references/change-surface-and-proportional-depth.zh-CN.md` 的简洁 `Context-only`/`Unchanged` 写法，不能套用本文件的完整逐表模板。
+> 本文件是 `references/database-design.md` 的全中文审核镜像。第 11 章把 Schema、数据语义、约束、索引、Schema 变更/DDL、分片、数据源拓扑、事务/锁行为或持久化所有权标记为 `Affected` 时必须读取，并使用仓库真实数据库方言、受管 DDL Runner、命名规范和访问技术。DAO 查询单独变化且数据库设计不变时，使用 `references/change-surface-and-proportional-depth.zh-CN.md` 的简洁 `Context-only`/`Unchanged` 写法，不能套用本文件的完整逐表模板。
 
 ## 目录
 
+- [持久化、分片与受管 DDL](#持久化分片与受管-ddl)
 - [数据库范围与清单](#数据库范围与清单)
 - [必需 Mermaid 实体关系图](#必需-mermaid-实体关系图)
 - [每张表必需结构](#每张表必需结构)
 - [数据库编写顺序](#数据库编写顺序)
 - [完整逐表示例](#完整逐表示例)
-- [Migration 决策模式](#migration-决策模式)
+- [Schema 变更决策模式](#schema-变更决策模式)
 - [深度与一致性门禁](#深度与一致性门禁)
 - [数据库复核失败条件](#数据库复核失败条件)
 
+## 持久化、分片与受管 DDL
+
+第 11 章、数据源 YAML、分片拓扑或 Schema 变更为 `Affected` 时，必须基于已有 Starter `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`，配置前缀 `egon.cola.component.mybatis-plus.sharding`。Java/YAML 使用规范见 `references/java-spring-egon-coding-standards.zh-CN.md`。本节负责拓扑、表类型、分片键、算法、事务、方言和 DDL。
+
+### 方言
+
+- 生产配置使用 PostgreSQL：`org.postgresql.Driver` 和 `jdbc:postgresql:`。
+- H2 只作为 CI 测试证据。CPU/Mock/H2 结果不能证明 PostgreSQL DDL、复制、物理落点和查询性能。
+
+### 配置风格与模式
+
+`config-style: STRATEGY` 与 `config-style: NATIVE` 互斥。优先 STRATEGY。NATIVE 把 `native-rules-resource` 指向一份 ShardingSphere 规则文件，同一 YAML 不得再声明 STRATEGY `tables`。
+
+| 模式 | 含义 |
+| --- | --- |
+| `SHARDING` | 分片 PRIMARY 组，无副本 |
+| `SHARDING_READWRITE` | 每组一个 PRIMARY 加至少一个副本；事务/Command 读 PRIMARY；普通读 ROUND_ROBIN；DDL 只打 PRIMARY；副本不可用失败关闭，不自动升主 |
+
+数据源角色为 `PRIMARY` 和 `REPLICA`。
+
+### 逻辑表类型
+
+每张受影响表必须且只能选择一种 STRATEGY 类型。新增业务表默认 `STANDARD_TENANT_ID`。
+
+| 类型 | 职责 | 路由 |
+| --- | --- | --- |
+| `SINGLE` | 元数据/配置；一个物理节点 | `!SINGLE group.schema.table` |
+| `BROADCAST` | 只读字典，复制到每个 PRIMARY 组 | 禁止 Command 写入 |
+| `STANDARD_TENANT_ID` | 默认分片业务表 | 一级标准分片；库策略和表策略都使用 `tenant_id` |
+| `COMPLEX_TENANT_THEN_BUSINESS` | 可选的父子共置 | 先租户槽再业务根桶；只有已证明的共享根键能把相关写入留在同一个 LOCAL 组时才使用 |
+
+不得把二级分片写成默认。`COMPLEX_TENANT_THEN_BUSINESS` 必须有父子共置证据，例如订单头 `id` 与明细 `order_id` 共享同一根。
+
+### 分片键、算法与均匀分布
+
+- 每张表都有非空 `tenant_id` / `tenantId`（`bigint` / `Long`）。租户是一级分表。默认不做二级分片。
+- 分片键必须是正 `Long`。禁止对 `tenant_id` 做范围查询（`TENANT_RANGE_FORBIDDEN`）。
+- 算法使用 Starter 的 mix64-v1（`EgonColaLongTenantShardingAlgorithm` / `EgonColaTwoLevelRouteStrategy.mix64`）：租户槽 = `mix64(tenantId) % tenantSlotCount`。二级桶使用 `mix64(root ^ secondarySeed) % secondaryBucketCount`。
+- 分布式 ID 使用已有 Common ID `LongIdGenerator` Bean `snowflakeIdGenerator`（`@TableId(type=ASSIGN_ID)`，由 `EgonColaIdentifierGenerator` 委托）。持久化为 `BIGINT`；HTTP/GraphQL 文本边界使用 `nextId()` 十进制字符串。不得新增 UUID 或第二套 ID 算法。
+- Mix64 加上 2 的幂次槽位/表数量是均匀分布契约；不得自研 hash 或对原始 tenant ID 直接取模。
+
+### 统一 2n 拓扑
+
+一个系统只使用一种拓扑。每个分片业务表的库数量和物理表数量相同，且为 2 的幂（2n），例如 4 个库 × 32 张表。扩容和数据迁移才能一起移动。同一系统不得混用 2 库与 4 库，或 16 表与 32 表。
+
+`SINGLE` 元数据表留在一个命名节点。`BROADCAST` 表复制到每个 PRIMARY 组，不改变分片表的 2n 计数。
+
+### LOCAL 事务与共置
+
+默认 `transaction-default-type: LOCAL`。写入设计必须让同一业务事务中的全部分片键路由到同一个物理组。`EgonColaLocalWriteGuard` 会让跨组写入失败并标记 rollback-only。Classpath 保留 XA，但不是 Spec 默认；除非用户明确要求，不得选择 XA。
+
+### 受管 DDL
+
+Schema 变更使用 `EgonColaPostgreDdlRunner`、SHA-256 Manifest 和 `ddl_history`。Runner 接受显式物理 PRIMARY/schema/role 目标，先拿 schema advisory lock，再在同一连接、同一事务提交脚本 SQL 和 `ddl_history`。未知提交结果用新连接核实后再决定是否重试。
+
+- 一次数据库变更只新增下一个 classpath SQL 脚本和 Manifest 条目。不得修改、重命名、重排、格式化或 Repair 已应用脚本或其校验和。
+- 非空未受管 Schema、校验和漂移和路由指纹变化需要人工处理。没有自动 DROP、repair 或历史导入。
+- 不得把 DDL 目标注册为默认 MyBatis-Plus `IDdl` Bean，也不得与 `DdlApplicationRunner` 混用。
+
 ## 数据库范围与清单
 
-先说明数据库/Schema、所有者、迁移目录、当前版本序列、访问层，以及证据仅来自源码还是已经对真实 Schema 验证。
+先说明数据库/Schema、所有者、受管 DDL 目录、当前 `ddl_history` 序列、访问层、分片拓扑，以及证据仅来自源码还是已经对真实 Schema 验证。
 
-列出 Schema、数据语义、约束、索引、Migration、事务/锁行为或权威所有权发生变化的每张表：
+列出 Schema、数据语义、约束、索引、DDL、分片类型、事务/锁行为或权威所有权发生变化的每张表：
 
-| 表 | 已有/新增 | 用途与所有者 | 读写路径 | 变更 | Migration | 需求 |
+| 表 | 已有/新增 | 用途与所有者 | 读写路径 | 变更 | DDL 脚本 | 需求 |
 | --- | --- | --- | --- | --- | --- | --- |
 
 每张受影响清单表都必须有独立详细章节。只读/查询依赖且数据库设计不变时不能进入清单，只在第 11 章简洁记录准确表/字段/索引证据和保持不变量。没有数据库影响时保留第 11 章并写有证据的 `N/A`。
 
 ## 必需 Mermaid 实体关系图
 
-关系型模型、表结构、Key、约束或关系发生变化时，第 11 章必须包含 Mermaid `erDiagram`。只有索引、查询或事务变化时，可写 `Relational model change: No` 并给出准确证据，然后省略 ER 图。需要 ER 图时，它是结构总览，不能替代表清单、完整字段、约束、访问路径、索引、Migration 或事务分析。
+关系型模型、表结构、Key、约束或关系发生变化时，第 11 章必须包含 Mermaid `erDiagram`。只有索引、查询或事务变化时，可写 `Relational model change: No` 并给出准确证据，然后省略 ER 图。需要 ER 图时，它是结构总览，不能替代表清单、完整字段、约束、访问路径、索引、DDL 或事务分析。
 
 ER 图必须：
 
@@ -81,7 +141,7 @@ erDiagram
 
 ### 1. 用途、所有权与生命周期
 
-说明准确 Schema/表名、业务用途、所属模块、权威写入方、读取方、创建/更新/归档/删除生命周期、保留策略、租户分区、预期数据量/增长和敏感/审计分类。
+说明准确 Schema/表名、业务用途、所属模块、权威写入方、读取方、创建/更新/归档/删除生命周期、保留策略、租户分区、STRATEGY 表类型（`SINGLE` / `BROADCAST` / `STANDARD_TENANT_ID` / `COMPLEX_TENANT_THEN_BUSINESS`）、分片键、系统 2n 拓扑（库数量 × 物理表数量）、预期数据量/增长和敏感/审计分类。
 
 ### 2. 完整字段设计
 
@@ -119,7 +179,7 @@ erDiagram
 - 预期选择性/基数和数据量证据；
 - 是否覆盖查询、已有前缀索引是否冗余；
 - 写放大、存储、锁/构建时长，以及是否支持 Online/Concurrent 创建；
-- 验证方式，例如生成 SQL 检查、`EXPLAIN`、Migration 测试或代表性集成测试。
+- 验证方式，例如生成 SQL 检查、`EXPLAIN`、DDL/历史测试或代表性集成测试。
 
 没有明确查询的猜测性索引必须拒绝；关键查询没有可信访问路径也必须拒绝。
 
@@ -132,13 +192,13 @@ erDiagram
 
 按需说明分页稳定性、批量大小、N+1 风险、乐观/悲观锁、Upsert、重复处理和影响行数预期。
 
-### 6. Migration 与历史数据
+### 6. Schema 变更与历史数据
 
-遵循仓库规范。Flyway Migration 不可变时，一个数据库变更必须新增且只新增一个下一版本文件；不得修改、重命名、重排、格式化或 Repair 已有 Migration。
+遵循上文受管 DDL 契约。一次数据库变更必须新增且只新增一个下一份 classpath SQL 脚本和 SHA-256 Manifest 条目；不得修改、重命名、重排、格式化或 Repair 已应用脚本或其 `ddl_history` 校验和。
 
 说明：
 
-- 准确的新 Migration 路径/版本和方言；
+- 准确的新 classpath SQL 路径、SHA-256 Manifest 条目、方言和 PRIMARY 目标；
 - 按执行顺序编写 DDL/数据变更伪代码；
 - 发布前置条件和现有数据画像；
 - 默认值/回填/可空性调整顺序，以及批量/重启行为；
@@ -155,34 +215,34 @@ erDiagram
 
 从证据向外完成数据库设计，不能先想表名或索引名。
 
-1. **建立持久化基线**——识别数据库方言/版本、Schema、Migration 工具/路径/版本惯例、ORM/Mapper 技术、命名/类型惯例、事务管理器、软删除/租户/审计惯例，以及是否核对真实 Schema。
+1. **建立持久化基线**——识别数据库方言/版本、Schema、受管 DDL Runner/路径/`ddl_history` 惯例、ORM/Mapper 技术、分片模式/表类型/2n 拓扑、命名/类型惯例、事务管理器、软删除/租户/审计惯例，以及是否核对真实 Schema。
 2. **追踪数据所有权**——识别权威写入方、读取方、接口/模型字段、生命周期/状态变化、保留策略、预期数据量/增长和敏感/审计分类。
-3. **检查现有 DDL 与访问路径**——读取不可变 Migration/Schema、PO/Entity Mapping、Mapper/DAO SQL、生成查询方法、批处理、报表和已有索引/约束。源码定义与真实 Schema 可能不同，必须标注边界。
+3. **检查现有 DDL 与访问路径**——读取已应用 classpath SQL/`ddl_history`、PO/Entity Mapping、Mapper/DAO SQL、生成查询方法、批处理、报表和已有索引/约束。源码定义与真实 Schema 可能不同，必须标注边界。
 4. **判断 ER 是否适用**——关系型模型/关系变化时，把物理表映射到渲染安全 Entity，绘制真实基数和重要 PK/FK/UK 字段，再对齐强制方式、可选性、租户范围和生命周期；否则记录准确的不变模型证据，不能画装饰性 ER 图。
 5. **设计字段与约束**——使用原生类型，准确说明缺失、默认、精度、时间、枚举、租户、审计、身份、唯一、关系和兼容语义。
 6. **从查询设计索引**——先写真实查询形态，包括等值/范围/Join/排序/分组/分页；然后才选择或拒绝索引，并说明有序字段、选择性、覆盖、重叠和写入/构建成本。
-7. **设计 Migration 与运行时共存**——分析现有数据，安排 Expand/回填/验证/Contract 顺序，说明新旧应用兼容、锁时长、批次/重启、验证、回滚边界和 Forward Fix。
+7. **设计 Schema 变更与运行时共存**——分析现有数据，安排 Expand/回填/验证/Contract 顺序，说明新旧应用兼容、锁时长、批次/重启、验证、回滚边界和 Forward Fix。
 8. **交叉检查与测试**——把每个接口/模型字段映射到列或明确派生来源；对齐 ER 图、事务、错误、缓存/事件、前端行为、测试和追踪。
 
 选择 DDL 前先使用证据账本：
 
 | 关注点 | 仓库/运行时证据 | 已确认基线 | 设计影响 | 验证限制 |
 | --- | --- | --- | --- | --- |
-| 方言/版本 | 构建/配置/容器/Migration 语法 | PostgreSQL `<version>` | 使用原生时间/索引语法 | 配置为静态证据，真实版本未验证 |
-| 表定义 | Migration `V...__create_orders.sql` | `orders` 存在且字段已知 | 新增 Migration，绝不修改前置文件 | 未检查线上漂移 |
+| 方言/版本 | 构建/配置/容器/DDL 语法 | PostgreSQL `<version>` | 使用原生时间/索引语法 | 配置为静态证据，真实版本未验证 |
+| 表定义 | Classpath SQL `.../001_create_orders.sql` 与 `ddl_history` | `orders` 存在且字段已知 | 新增下一脚本和 Manifest 校验和，绝不修改已应用脚本 | 未检查线上漂移 |
 | 写路径 | `OrderServiceImpl#create` -> `OrderDao#insert` | 一个本地事务 | Service 继续承担事务 | 未测量运行时隔离级别 |
 | 查询路径 | `OrderDao#findPage` SQL | 租户/状态过滤 + 创建时间/ID 排序 | 索引必须匹配该顺序 | 代表数据 `EXPLAIN` 待验证 |
 
 ## 完整逐表示例
 
-本示例只说明文档深度，使用虚构的类 PostgreSQL 命名。必须替换为仓库真实方言、Schema、字段、约束、查询和 Migration 规范。
+本示例只说明文档深度，使用虚构的类 PostgreSQL 命名。必须替换为仓库真实方言、Schema、字段、约束、查询、分片类型和受管 DDL 规范。
 
 ### 示例表清单
 
-| 表 | 已有/新增 | 用途与所有者 | 读写路径 | 变更 | Migration | 需求 |
+| 表 | 已有/新增 | 用途与所有者 | 读写路径 | 变更 | DDL 脚本 | 需求 |
 | --- | --- | --- | --- | --- | --- | --- |
-| `biz.orders` | 已有 | Order 模块所有的权威订单头 | `OrderDao#insert`、`OrderDao#findById`、`OrderDao#findPage` | 增加幂等身份与乐观版本 | `classpath:db/V42__extend_orders_idempotency.sql` | `REQ-007`、`REQ-008` |
-| `biz.order_items` | 已有 | Order 模块所有的权威订单明细 | `OrderItemDao#batchInsert`、详情查询 | 读写关系验证；示例中无字段变更 | 只有约束/索引变化时使用同一 Migration，否则 `None` | `REQ-007` |
+| `biz.orders` | 已有 | Order 模块所有的权威订单头 | `OrderDao#insert`、`OrderDao#findById`、`OrderDao#findPage` | 增加幂等身份与乐观版本 | `classpath:db/ddl/042_extend_orders_idempotency.sql` | `REQ-007`、`REQ-008` |
+| `biz.order_items` | 已有 | Order 模块所有的权威订单明细 | `OrderItemDao#batchInsert`、详情查询 | 读写关系验证；示例中无字段变更 | 只有约束/索引变化时使用同一脚本，否则 `None` | `REQ-007` |
 
 ### 示例 ER 图与物理映射
 
@@ -230,6 +290,7 @@ erDiagram
 - **读取方**：创建重试查询、详情/列表、履约集成和仓库中明确找到的审计/报表 Job。
 - **生命周期**：只创建一次，状态只能按已定义转换修改；保留/审计义务期间不物理删除；归档遵循仓库现有策略。
 - **租户/安全**：全部业务 Key 和查询限定租户；跨租户 ID 返回仓库规定的不泄露结果。
+- **表类型/拓扑**：`STANDARD_TENANT_ID`；分片键 `tenant_id`；系统拓扑 4 个库 × 32 张表（示例 2n 布局）。`order_items` 使用相同类型和拓扑，使头与明细按 `tenant_id` 留在同一个 LOCAL 组。
 - **容量**：已验证时记录真实行数，否则只能用业务证据估算；说明日增长、保留、热数据窗口和最大租户，不能编造数字。
 - **证据边界**：源码检查只能证明预期 Schema/访问；行数、倾斜、膨胀和执行计划需要真实数据/运行时证据。
 
@@ -237,7 +298,7 @@ erDiagram
 
 | 字段 | 原生类型 | 长度/精度 | 可空 | 默认值 | 生成方式 | 主键/外键/唯一/Check | 含义 | 来源/映射 | 示例 |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `id` | `bigint` | 64 位 | 否 | 无 | 仓库 ID 生成器 | PK | 不可变内部订单 ID | `OrderPO.id` -> `data.orderId` | `810001` |
+| `id` | `bigint` | 64 位 | 否 | 无 | `snowflakeIdGenerator` / `LongIdGenerator` | PK | 不可变内部订单 ID | `OrderPO.id` -> `data.orderId` | `810001` |
 | `tenant_id` | `bigint` | 64 位 | 否 | 无 | 写入时安全上下文 | 纳入业务唯一和全部访问路径 | 所属租户，不能由请求 Body 提供 | `TenantContext` -> `OrderPO.tenantId` | `2001` |
 | `order_no` | `varchar(32)` | 32 字符 | 否 | 无 | 订单号生成器 | 租户内由 `uk_orders_tenant_order_no` 唯一 | 不可变用户可见订单号 | `OrderPO.orderNo` -> Response | `O202608170001` |
 | `customer_id` | `bigint` | 64 位 | 否 | 无 | 请求经租户校验后 | 仓库不使用 FK 时由应用保证引用 | 租户可见客户身份 | Request -> `OrderPO.customerId` | `12001` |
@@ -266,7 +327,7 @@ erDiagram
 | 业务键 | `(tenant_id, order_no)` | 订单号在租户内唯一 | 不可变 | 唯一索引/约束；冲突映射成已定义错误 |
 | 幂等键 | 非空活动 Key 的 `(tenant_id, idempotency_key)` | 每租户/Key 对应一次创建意图 | 保留/过期策略不能允许不安全重放 | Partial/Full 唯一方案取决于方言和兼容数据 |
 | 客户引用 | `(tenant_id, customer_id)` 逻辑关系 | 客户属于租户 | 订单保留不能级联删除 | 只有仓库规范和数据质量允许才用 FK，否则应用校验 + 审计 |
-| 明细 | `orders.id` -> `order_items.order_id` 一对多 | 头拥有明细生命周期 | 不得出现孤儿；删除/归档遵循策略 | 约束/Cascade 必须符合现有 Schema/Migration 证据 |
+| 明细 | `orders.id` -> `order_items.order_id` 一对多 | 头拥有明细生命周期 | 不得出现孤儿；删除/归档遵循策略 | 约束/Cascade 必须符合现有 Schema/DDL 证据 |
 
 #### 索引清单与逐项论证
 
@@ -304,11 +365,11 @@ LIMIT :limit;
 
 使用真实仓库行为说明批大小、明细插入策略、N+1、Count Query、Cursor/Page 稳定性、锁顺序、事务时长和影响行数断言。
 
-#### Migration 与历史数据处理
+#### Schema 变更与历史数据处理
 
 以下是示例 Expand-First 顺序，必须按仓库规范与数据画像调整：
 
-1. 确认下一不可变 Migration 版本，本次数据库变更只创建一个新文件；
+1. 确认下一 classpath SQL 路径和 SHA-256 Manifest 条目，本次数据库变更只创建一个新脚本；
 2. DDL 前分析重复/空候选值和已有索引重叠；
 3. 先增加可空字段或其他向后兼容结构；
 4. 发布写入新字段且能安全读取历史行的应用；
@@ -318,7 +379,7 @@ LIMIT :limit;
 8. 旧写入方全部退出且验证安全后，才强制 `NOT NULL` 或 Check；
 9. 只有后续单独批准的变更才 Contract/删除旧字段。
 
-真实 Spec 必须写出准确 Migration 路径、SQL/DDL 伪代码、发布前后验证 SQL 与预期值、来自证据的锁/构建风险、新旧应用矩阵、批任务所有者/重启标记、监控、回滚点和 Forward Fix。新增数据后即使 DDL 是 Additive，应用回滚也可能不安全，必须明确说明。
+真实 Spec 必须写出准确 classpath SQL 路径、Manifest 校验和、SQL/DDL 伪代码、发布前后验证 SQL 与预期值、来自证据的锁/构建风险、新旧应用矩阵、批任务所有者/重启标记、监控、回滚点和 Forward Fix。新增数据后即使 DDL 是 Additive，应用回滚也可能不安全，必须明确说明。
 
 #### 事务、一致性与恢复
 
@@ -329,32 +390,32 @@ LIMIT :limit;
 - 客户端未知结果通过同 Key 重试解决；只有仓库和范围确实包含外部副作用时才设计 Outbox/对账。
 - 审计/修复记录租户、订单、操作、稳定关联/幂等身份、旧/新状态、结果和操作人，不记录禁止的载荷原文。
 
-## Migration 决策模式
+## Schema 变更决策模式
 
 | 场景 | 安全设计方向 | 必需证据 | 常见不安全捷径 |
 | --- | --- | --- | --- |
 | 新代码读取新可空字段 | Expand Schema、兼容读取、再写入 | 新旧版本兼容和空值语义 | 在有数据表上立即 `NOT NULL` |
-| 新必填字段可从历史推导 | 可空/Additive -> 回填 -> 验证 -> 强制 | 确定性推导、批次重启、零非法查询 | 在 Migration 中一次无界 Update，不估算锁 |
+| 新必填字段可从历史推导 | 可空/Additive -> 回填 -> 验证 -> 强制 | 确定性推导、批次重启、零非法查询 | 在 DDL 脚本中一次无界 Update，不估算锁 |
 | 新唯一键 | 分析重复 -> 定义冲突规则 -> 修复 -> 创建唯一约束 | 重复数和所有者批准的合并/拒绝规则 | 直接加唯一并假设生产数据干净 |
 | 大索引 | 证明 Query -> 检查重叠 -> 方言支持时 Online/Concurrent Build | 数据量、方言、锁/构建行为、回滚 | 给每种可能过滤组合加索引 |
 | 破坏性类型/字段变更 | 通过兼容版本 Expand-and-Contract | 转换正确性、双读写或切换、回滚边界 | 旧代码仍运行时单版本 Rename/Drop |
-| 旧 Flyway Migration 错误 | 增加下一修正 Migration | 当前版本/Checksum 与前向转换 | 编辑或 Repair 已应用 Migration |
+| 已应用 DDL 脚本或校验和错误 | 增加下一修正脚本和 Manifest 条目 | 当前 `ddl_history` 校验和与前向转换 | 编辑或 Repair 已应用脚本 |
 
 ## 深度与一致性门禁
 
 接受一张表的详情前，确认：
 
-- 七个必需子章节按顺序存在，并写出准确 Schema/表名；
+- 七个必需子章节按顺序存在，并写出准确 Schema/表名、STRATEGY 类型、分片键和 2n 拓扑；
 - 关系型模型/关系变化时，第 11 章包含覆盖所有受影响清单表、准确物理名称映射、真实基数/关系标签和重要 PK/FK/UK 字段的 Mermaid `erDiagram`；否则写 `Relational model change: No` 和证据；
 - 受影响的已有字段和全部新增字段包含原生类型、精度/长度、可空、默认、生成、约束、含义、映射和示例；
 - 主键/业务键/外键关系说明所有权、可选、租户范围、更新/删除/孤儿行为和强制方式；
 - 每个索引包含准确 Query/调用者、有序 Key、选择性证据、排序/覆盖、重叠、写入/存储/构建/锁成本和验证；
 - 每条访问路径说明条件/Join/排序/分页、行数预期、索引/约束、锁/隔离、失败、幂等和影响行数语义；
-- Migration 包含数据画像、准确新版本/路径、有序 DDL/回填、批次/重启、新旧共存、锁、验证、回滚限制和 Forward Fix；
-- 事务/恢复与 Service 编排、API 错误/重试、缓存/事件、审计、测试和发布一致；
+- Schema 变更包含数据画像、准确新脚本路径和 Manifest 校验和、有序 DDL/回填、批次/重启、新旧共存、锁、验证、回滚限制和 Forward Fix；
+- LOCAL 写入按分片键共置在一个物理组；事务/恢复与 Service 编排、API 错误/重试、缓存/事件、审计、测试和发布一致；
 - 静态检查绝不能被描述为真实 Schema、数据分布、锁时长或执行计划结果。
 
-行数不能替代这些检查。基于已证明稳定表的只读查询可能文字较少；高数据量已填充表只改一个字段也可能需要大量 Migration 与兼容设计。
+行数不能替代这些检查。基于已证明稳定表的只读查询可能文字较少；高数据量已填充表只改一个字段也可能需要大量 Schema 变更与兼容设计。
 
 ## 数据库复核失败条件
 
@@ -365,6 +426,7 @@ LIMIT :limit;
 - 接口/模型字段无法映射到列或明确的非持久化来源；
 - 索引没有真实查询和字段顺序依据；
 - 唯一性、软删除、租户、时间、金额或 `NULL` 语义含糊；
-- 缺少 Migration、回填、兼容、锁或回滚设计；
-- 方案修改已有不可变 Migration；
+- 缺少 Schema 变更、回填、兼容、锁或回滚设计；
+- 方案修改已应用 DDL 脚本或校验和；
+- 把二级分片写成默认、拓扑不是统一 2n，或表缺少 `tenant_id`；
 - 把源码检查结果当成真实 Schema 或执行计划证明。

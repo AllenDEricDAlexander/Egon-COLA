@@ -147,7 +147,7 @@ Request: adjust one existing DAO query filter without changing the Controller, S
 | Service interface | `Unchanged` | Method signature and business result semantics remain identical | Cite symbol and preserved invariant |
 | Service implementation | `Context-only` | Existing method delegates to the DAO and requires the corrected result set | Show only the relevant call and expected result semantics |
 | DAO/Mapper query | `Affected` | Predicate/join/order/paging logic changes | Fully design exact symbol, SQL shape, parameter/null rules, result semantics, and failures |
-| Database schema/relationships | `Unchanged` | Existing columns, constraints, and relationships are sufficient | Cite relevant migration/table/index evidence; no migration or ER redesign |
+| Database schema/relationships | `Unchanged` | Existing columns, constraints, and relationships are sufficient | Cite relevant DDL/table/index evidence; no schema-change or ER redesign |
 | Tests | `Affected` | Query regression must prove inclusion/exclusion, boundaries, ordering, and existing caller behavior | Define focused DAO/Mapper tests and the smallest Service regression if needed |
 | Frontend | `Unchanged` | No contract or visible state changes | One evidence-backed unchanged record; no page/component design |
 

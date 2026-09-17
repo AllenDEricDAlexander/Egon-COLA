@@ -1,32 +1,92 @@
 # Per-table and Per-index Database Design
 
-Read this reference when Chapter 11 marks schema, data semantics, constraints, indexes, migrations, transaction/locking behavior, or persistence ownership as `Affected`. Use the repository's actual database dialect, migration framework, naming conventions, and access technology. For a DAO query-only change with unchanged database design, use the concise `Context-only`/`Unchanged` treatment from `references/change-surface-and-proportional-depth.md` instead of applying this full per-table template.
+Read this reference when Chapter 11 marks schema, data semantics, constraints, indexes, schema-change/DDL, sharding, datasource topology, transaction/locking behavior, or persistence ownership as `Affected`. Use the repository's actual database dialect, managed-DDL runner, naming conventions, and access technology. For a DAO query-only change with unchanged database design, use the concise `Context-only`/`Unchanged` treatment from `references/change-surface-and-proportional-depth.md` instead of applying this full per-table template.
 
 ## Contents
 
+- [Persistence, sharding, and managed DDL](#persistence-sharding-and-managed-ddl)
 - [Database scope and inventory](#database-scope-and-inventory)
 - [Required Mermaid entity-relationship diagram](#required-mermaid-entity-relationship-diagram)
 - [Required per-table subsection](#required-per-table-subsection)
 - [Database drafting sequence](#database-drafting-sequence)
 - [Complete per-table worked example](#complete-per-table-worked-example)
-- [Migration decision patterns](#migration-decision-patterns)
+- [Schema-change decision patterns](#schema-change-decision-patterns)
 - [Depth and consistency gate](#depth-and-consistency-gate)
 - [Database review failures](#database-review-failures)
 
+## Persistence, sharding, and managed DDL
+
+When Chapter 11, datasource YAML, sharding topology, or schema change is `Affected`, design against the existing starter `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` under `egon.cola.component.mybatis-plus.sharding`. Java/YAML consumption rules live in `references/java-spring-egon-coding-standards.md`. This section owns topology, table types, keys, algorithm, transactions, dialects, and DDL.
+
+### Dialects
+
+- Production properties use PostgreSQL: `org.postgresql.Driver` and `jdbc:postgresql:`.
+- H2 is CI-test evidence only. CPU/Mock/H2 results do not prove PostgreSQL DDL, replication, physical placement, or query performance.
+
+### Config styles and modes
+
+`config-style: STRATEGY` and `config-style: NATIVE` are mutually exclusive. Prefer STRATEGY. NATIVE points `native-rules-resource` at one ShardingSphere rules file and must not declare STRATEGY `tables` in the same YAML.
+
+| Mode | Meaning |
+| --- | --- |
+| `SHARDING` | Sharded PRIMARY groups, no replicas |
+| `SHARDING_READWRITE` | Each group one PRIMARY plus at least one replica; transaction/command reads PRIMARY; ordinary reads ROUND_ROBIN; DDL only on PRIMARY; replica failure fails closed with no auto-promotion |
+
+Data-source roles are `PRIMARY` and `REPLICA`.
+
+### Logic table types
+
+Every affected table is one STRATEGY type. Default new business tables to `STANDARD_TENANT_ID`.
+
+| Type | Role | Routing |
+| --- | --- | --- |
+| `SINGLE` | Metadata/config; one physical node | `!SINGLE group.schema.table` |
+| `BROADCAST` | Read-only dictionaries replicated to every PRIMARY group | Command writes are forbidden |
+| `STANDARD_TENANT_ID` | Default sharded business table | One-level standard sharding; database and table strategies both use `tenant_id` |
+| `COMPLEX_TENANT_THEN_BUSINESS` | Opt-in parent/child co-location | Tenant slot then business-root bucket; only when a proven shared root key keeps related writes in one LOCAL group |
+
+Do not present two-level sharding as the default. `COMPLEX_TENANT_THEN_BUSINESS` requires evidenced parent/child co-location, for example orders header `id` and items `order_id` sharing one root.
+
+### Sharding key, algorithm, and even distribution
+
+- Every table has a non-null `tenant_id` / `tenantId` (`bigint` / `Long`). Tenant is first-level table sharding. There is no default second-level shard.
+- Sharding keys are positive `Long`. Range queries on `tenant_id` are forbidden (`TENANT_RANGE_FORBIDDEN`).
+- Algorithm is the starter's mix64-v1 (`EgonColaLongTenantShardingAlgorithm` / `EgonColaTwoLevelRouteStrategy.mix64`): tenant slot = `mix64(tenantId) % tenantSlotCount`. Two-level secondary bucket uses `mix64(root ^ secondarySeed) % secondaryBucketCount`.
+- Distributed IDs use the existing Common ID `LongIdGenerator` bean `snowflakeIdGenerator` (`@TableId(type=ASSIGN_ID)` via `EgonColaIdentifierGenerator`). Persist `BIGINT`; HTTP/GraphQL text boundaries use the decimal string from `nextId()`. Do not add UUID or a second ID algorithm.
+- Mix64 plus a power-of-two slot/table count is the even-distribution contract; do not invent a custom hash or modulo of raw tenant IDs.
+
+### Uniform 2n topology
+
+One system uses one topology. Database count and per-table physical table count are the same for every sharded business table and are powers of two (2n), for example 4 databases × 32 tables. Reshard and data movement then migrate together. Do not mix 2-database and 4-database layouts, or 16-table and 32-table layouts, in the same system.
+
+`SINGLE` metadata tables stay on one named node. `BROADCAST` tables copy to every PRIMARY group and do not change the 2n counts of sharded tables.
+
+### LOCAL transactions and collocation
+
+Default `transaction-default-type: LOCAL`. Design writes so all shard keys in one business transaction route to the same physical group. `EgonColaLocalWriteGuard` fails cross-group writes and marks rollback-only. XA is on the classpath but is not the Spec default; do not select it unless the user explicitly requires it.
+
+### Managed DDL
+
+Schema change uses `EgonColaPostgreDdlRunner` with SHA-256 manifests and `ddl_history`. The runner takes explicit physical PRIMARY/schema/role targets, takes a schema advisory lock, and commits script SQL and `ddl_history` on one connection in one transaction. Unknown commit outcomes are checked on a new connection before any retry.
+
+- Add the next classpath SQL script and manifest entry for one schema change. Never edit, rename, reorder, reformat, or repair an already-applied script or its checksum.
+- Non-empty unmanaged schemas, checksum drift, and route-fingerprint changes require operator action. There is no automatic DROP, repair, or history adoption.
+- Do not register DDL targets as default MyBatis-Plus `IDdl` beans or combine this runner with `DdlApplicationRunner`.
+
 ## Database scope and inventory
 
-First identify the database/schema, ownership, migration locations, current version sequence, access layer, and whether the evidence is source-only or verified against a live schema.
+First identify the database/schema, ownership, managed-DDL locations, current `ddl_history` sequence, access layer, sharding topology, and whether the evidence is source-only or verified against a live schema.
 
-List every table whose schema, data semantics, constraints, indexes, migration, transaction/locking behavior, or authoritative ownership is affected:
+List every table whose schema, data semantics, constraints, indexes, DDL, sharding type, transaction/locking behavior, or authoritative ownership is affected:
 
-| Table | Existing/new | Purpose and owner | Read/write paths | Change | Migration | Requirements |
+| Table | Existing/new | Purpose and owner | Read/write paths | Change | DDL script | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
 
 Every affected inventory table must have a detailed subsection. A read-only/query-only dependency with unchanged database design is not an inventory item; cite the exact table/column/index evidence and preserved invariant in a concise Chapter 11 scope record. If no database is involved, keep Chapter 11 and write evidence-backed `N/A`.
 
 ## Required Mermaid entity-relationship diagram
 
-When the relational model, table structure, keys, constraints, or relationships are affected, Chapter 11 must contain a Mermaid `erDiagram`. Index-only, query-only, or transaction-only work may state `Relational model change: No` with exact evidence and omit the diagram. When required, the ER diagram is the structural overview; it does not replace the table inventory, complete column design, constraints, access paths, indexes, migration, or transaction analysis.
+When the relational model, table structure, keys, constraints, or relationships are affected, Chapter 11 must contain a Mermaid `erDiagram`. Index-only, query-only, or transaction-only work may state `Relational model change: No` with exact evidence and omit the diagram. When required, the ER diagram is the structural overview; it does not replace the table inventory, complete column design, constraints, access paths, indexes, DDL, or transaction analysis.
 
 The diagram must:
 
@@ -81,7 +141,7 @@ If relational persistence exists but its model/relationships are unchanged, stat
 
 ### 1. Purpose, ownership, and lifecycle
 
-State the exact schema/table name, business purpose, owning module, authoritative writer, readers, creation/update/archive/delete lifecycle, retention, tenant partitioning, expected row count/growth, and sensitive/audit classification.
+State the exact schema/table name, business purpose, owning module, authoritative writer, readers, creation/update/archive/delete lifecycle, retention, tenant partitioning, STRATEGY table type (`SINGLE` / `BROADCAST` / `STANDARD_TENANT_ID` / `COMPLEX_TENANT_THEN_BUSINESS`), shard key, system 2n topology (database count × physical table count), expected row count/growth, and sensitive/audit classification.
 
 ### 2. Complete column design
 
@@ -119,7 +179,7 @@ For each index state:
 - expected selectivity/cardinality and data-volume evidence;
 - whether it covers the query and whether an existing prefix index becomes redundant;
 - write amplification, storage, lock/build duration, and online/concurrent creation support;
-- planned verification such as generated SQL inspection, `EXPLAIN`, migration test, or representative integration test.
+- planned verification such as generated SQL inspection, `EXPLAIN`, DDL/history test, or representative integration test.
 
 Reject speculative indexes that have no identified query. Also reject a critical query whose access path remains unknown.
 
@@ -132,13 +192,13 @@ List reads/writes with exact caller and transaction owner:
 
 Include pagination stability, batch size, N+1 risk, optimistic/pessimistic locking, upsert behavior, duplicate handling, and affected-row expectations where applicable.
 
-### 6. Migration and historical data
+### 6. Schema change and historical data
 
-Follow repository policy. When Flyway migration files are immutable, add exactly one new next-version migration for one database change and never edit, rename, reorder, reformat, or repair an existing migration.
+Follow the managed-DDL contract above. Add exactly one new next classpath SQL script plus SHA-256 manifest entry for one database change; never edit, rename, reorder, reformat, or repair an already-applied script or its `ddl_history` checksum.
 
 Define:
 
-- exact new migration path/version and dialect;
+- exact new classpath SQL path, SHA-256 manifest entry, dialect, and PRIMARY targets;
 - DDL/data-change pseudocode in execution order;
 - preconditions and current-data profiling needed before rollout;
 - default/backfill/nullability sequence and batch/restart behavior;
@@ -155,34 +215,34 @@ Define transaction owner, isolation/locking, concurrent-write behavior, idempote
 
 Complete database design from evidence outward. Do not start by proposing a table or index name.
 
-1. **Establish the persistence baseline** — identify database dialect/version, schema, migration tool/path/version convention, ORM/mapper technology, naming/type conventions, transaction manager, soft-delete/tenant/audit conventions, and whether a live schema was verified.
+1. **Establish the persistence baseline** — identify database dialect/version, schema, managed-DDL runner/path/`ddl_history` convention, ORM/mapper technology, sharding mode/table types/2n topology, naming/type conventions, transaction manager, soft-delete/tenant/audit conventions, and whether a live schema was verified.
 2. **Trace data ownership** — identify authoritative writer, readers, interface/model fields, lifecycle/state transitions, retention, expected volume/growth, and sensitive/audit classification.
-3. **Inspect current DDL and access paths** — read immutable migrations or schema definitions, PO/Entity mappings, Mapper/DAO SQL, generated-query methods, batch jobs, reports, and existing indexes/constraints. Source definitions and a live schema may differ; label the boundary.
+3. **Inspect current DDL and access paths** — read already-applied classpath SQL/`ddl_history`, PO/Entity mappings, Mapper/DAO SQL, generated-query methods, batch jobs, reports, and existing indexes/constraints. Source definitions and a live schema may differ; label the boundary.
 4. **Decide ER applicability** — when the relational model/relationships change, map physical tables to renderer-safe entities, draw actual cardinalities and material PK/FK/UK fields, then reconcile enforcement, optionality, tenant scope, and lifecycle. Otherwise record the exact unchanged-model evidence and do not draw a decorative ER view.
 5. **Design columns and constraints** — use native types and state exact absence, default, precision, time, enum, tenant, audit, identity, uniqueness, relationship, and compatibility semantics.
 6. **Design from queries to indexes** — write the real query shape first, including equality/range/join/order/group/page behavior; only then select or reject an index and explain ordered keys, selectivity, coverage, overlap, and write/build cost.
-7. **Design migration and runtime coexistence** — profile existing data, order expand/backfill/validate/contract steps, define old/new application compatibility, lock duration, batching/restart, verification, rollback boundary, and forward fix.
+7. **Design schema change and runtime coexistence** — profile existing data, order expand/backfill/validate/contract steps, define old/new application compatibility, lock duration, batching/restart, verification, rollback boundary, and forward fix.
 8. **Cross-check and test** — map every interface/model field to a column or intentional derived source; align the ER diagram, transactions, errors, cache/events, frontend behavior, tests, and traceability.
 
 Use this evidence ledger before selecting DDL:
 
 | Concern | Repository/live evidence | Confirmed baseline | Design consequence | Verification limit |
 | --- | --- | --- | --- | --- |
-| Dialect/version | Build/config/container/migration syntax | PostgreSQL `<version>` | Use native timestamp/index syntax | Config is static; live version unverified |
-| Table definition | Migration `V...__create_orders.sql` | `orders` exists with named columns | Add a new migration; never edit predecessor | Live drift not checked |
+| Dialect/version | Build/config/container/DDL syntax | PostgreSQL `<version>` | Use native timestamp/index syntax | Config is static; live version unverified |
+| Table definition | Classpath SQL `.../001_create_orders.sql` and `ddl_history` | `orders` exists with named columns | Add the next script and manifest checksum; never edit an already-applied script | Live drift not checked |
 | Write path | `OrderServiceImpl#create` -> `OrderDao#insert` | One local transaction | Service remains transaction owner | Runtime isolation not measured |
 | Query path | `OrderDao#findPage` SQL | tenant/status filter + created/id sort | Index must support this order | `EXPLAIN` pending representative data |
 
 ## Complete per-table worked example
 
-This example demonstrates documentation depth only. It uses fictitious PostgreSQL-like names and must be replaced with the repository's actual dialect, schema, fields, constraints, queries, and migration policy.
+This example demonstrates documentation depth only. It uses fictitious PostgreSQL-like names and must be replaced with the repository's actual dialect, schema, fields, constraints, queries, sharding type, and managed-DDL policy.
 
 ### Example table inventory
 
-| Table | Existing/new | Purpose and owner | Read/write paths | Change | Migration | Requirements |
+| Table | Existing/new | Purpose and owner | Read/write paths | Change | DDL script | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| `biz.orders` | Existing | Authoritative order header owned by Order module | `OrderDao#insert`, `OrderDao#findById`, `OrderDao#findPage` | Add idempotency identity and optimistic version | `classpath:db/V42__extend_orders_idempotency.sql` | `REQ-007`, `REQ-008` |
-| `biz.order_items` | Existing | Authoritative order lines owned by Order module | `OrderItemDao#batchInsert`, detail query | Read/write relationship validation; no column change in this example | Same migration only if a constraint/index changes; otherwise `None` | `REQ-007` |
+| `biz.orders` | Existing | Authoritative order header owned by Order module | `OrderDao#insert`, `OrderDao#findById`, `OrderDao#findPage` | Add idempotency identity and optimistic version | `classpath:db/ddl/042_extend_orders_idempotency.sql` | `REQ-007`, `REQ-008` |
+| `biz.order_items` | Existing | Authoritative order lines owned by Order module | `OrderItemDao#batchInsert`, detail query | Read/write relationship validation; no column change in this example | Same script only if a constraint/index changes; otherwise `None` | `REQ-007` |
 
 ### Example ER diagram and physical mapping
 
@@ -230,6 +290,7 @@ This reference fully expands `biz.orders` to demonstrate the per-table structure
 - **Readers**: create retry lookup, detail/list queries, fulfillment integration, audit/report jobs explicitly found in the repository.
 - **Lifecycle**: created once, state changes only through documented transitions, no physical delete while retention/audit obligations apply; archive behavior must match current repository policy.
 - **Tenant/security**: every business key and query is tenant-scoped; cross-tenant IDs return the repository-defined non-disclosing outcome.
+- **Table type / topology**: `STANDARD_TENANT_ID`; shard key `tenant_id`; system topology 4 databases × 32 tables (example 2n layout). `order_items` uses the same type and topology so header and lines stay in one LOCAL group by `tenant_id`.
 - **Capacity**: record current row count if verified, otherwise estimate only from stated business evidence; state expected daily growth, retention, hot-window, and largest tenant. Do not invent figures.
 - **Evidence boundary**: source inspection proves intended schema/access; row counts, skew, bloat, and plans require live/profile evidence.
 
@@ -237,7 +298,7 @@ This reference fully expands `biz.orders` to demonstrate the per-table structure
 
 | Column | Native type | Length/precision | Null | Default | Generated | PK/FK/unique/check | Meaning | Source/mapping | Example |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `id` | `bigint` | 64-bit | No | None | Repository ID generator | PK | Immutable internal order ID | `OrderPO.id` -> `data.orderId` | `810001` |
+| `id` | `bigint` | 64-bit | No | None | `snowflakeIdGenerator` / `LongIdGenerator` | PK | Immutable internal order ID | `OrderPO.id` -> `data.orderId` | `810001` |
 | `tenant_id` | `bigint` | 64-bit | No | None | Security context at write | Included in business uniqueness and every access path | Owning tenant; never supplied by request body | `TenantContext` -> `OrderPO.tenantId` | `2001` |
 | `order_no` | `varchar(32)` | 32 chars | No | None | Order-number generator | Unique within tenant via `uk_orders_tenant_order_no` | Immutable user-visible order number | `OrderPO.orderNo` -> response | `O202608170001` |
 | `customer_id` | `bigint` | 64-bit | No | None | Request after tenant validation | Application-enforced reference unless repository policy uses FK | Tenant-visible customer identity | request -> `OrderPO.customerId` | `12001` |
@@ -266,7 +327,7 @@ Field semantics that must accompany the table:
 | Business key | `(tenant_id, order_no)` | Order number unique per tenant | Immutable | Unique index/constraint; duplicate maps to documented conflict |
 | Idempotency key | `(tenant_id, idempotency_key)` for non-null active keys | One create intent per tenant/key | Retention/expiry policy must not permit unsafe replay | Unique partial/full strategy depends on dialect and compatibility data |
 | Customer reference | `(tenant_id, customer_id)` logical relationship | Customer must belong to tenant | Order retention must not cascade-delete | Database FK only if repository policy and current data allow it; otherwise application validation plus audit |
-| Items | `orders.id` -> `order_items.order_id` one-to-many | Header owns line lifecycle | No orphan line; deletion/archive follows policy | Constraint/cascade choice must match existing schema and migration evidence |
+| Items | `orders.id` -> `order_items.order_id` one-to-many | Header owns line lifecycle | No orphan line; deletion/archive follows policy | Constraint/cascade choice must match existing schema and DDL evidence |
 
 #### Index inventory and per-index justification
 
@@ -304,11 +365,11 @@ LIMIT :limit;
 
 Address batch size, item insert strategy, N+1 avoidance, count query, cursor/page stability, lock order, transaction duration, and affected-row assertions using actual repository behavior.
 
-#### Migration and historical-data handling
+#### Schema change and historical-data handling
 
 Illustrative expand-first sequence; adapt to repository policy and data profile:
 
-1. confirm the next immutable migration version and create exactly one new file for this database change;
+1. confirm the next classpath SQL path and SHA-256 manifest entry and create exactly one new script for this database change;
 2. profile duplicate/null candidate values and existing index overlap before DDL;
 3. add nullable columns or otherwise backward-compatible structures first;
 4. deploy code that writes new fields while still reading legacy rows safely;
@@ -318,7 +379,7 @@ Illustrative expand-first sequence; adapt to repository policy and data profile:
 8. enforce `NOT NULL` or checks only after old writers are gone and verification proves safety;
 9. contract/remove legacy fields only in a later separately approved change when required.
 
-The real Spec must name the exact migration path, SQL/DDL pseudocode, pre/post verification queries and expected values, estimated lock/build risk from evidence, old/new application matrix, batch owner/restart marker, monitoring, rollback point, and forward-fix strategy. Application rollback after new writes may be unsafe even if the DDL remains additive; state this explicitly.
+The real Spec must name the exact classpath SQL path, manifest checksum, SQL/DDL pseudocode, pre/post verification queries and expected values, estimated lock/build risk from evidence, old/new application matrix, batch owner/restart marker, monitoring, rollback point, and forward-fix strategy. Application rollback after new writes may be unsafe even if the DDL remains additive; state this explicitly.
 
 #### Transaction, consistency, and recovery
 
@@ -329,32 +390,32 @@ The real Spec must name the exact migration path, SQL/DDL pseudocode, pre/post v
 - Unknown client outcomes are resolved by same-key retry; partial external side effects need an outbox/reconciliation design only when the repository and scope actually include them.
 - Audit and repair identify tenant, order, operation, stable correlation/idempotency identity, old/new state, result, and operator action without logging prohibited payload data.
 
-## Migration decision patterns
+## Schema-change decision patterns
 
 | Situation | Safe design direction | Required proof | Common unsafe shortcut |
 | --- | --- | --- | --- |
 | New nullable field read by new code | Expand schema, tolerant read, then write | Old/new version compatibility and null semantics | Marking `NOT NULL` immediately on populated table |
-| New required field with derivable history | Nullable/additive -> backfill -> validate -> enforce | Deterministic derivation, batch restart, zero-invalid query | One unbounded update inside migration without lock estimate |
+| New required field with derivable history | Nullable/additive -> backfill -> validate -> enforce | Deterministic derivation, batch restart, zero-invalid query | One unbounded update inside a DDL script without lock estimate |
 | New unique key | Profile duplicates -> define conflict rule -> remediate -> create unique constraint | Duplicate counts and owner-approved merge/reject rule | Adding uniqueness and hoping production data is clean |
 | Large index | Prove query -> inspect overlap -> choose online/concurrent build if supported | Data volume, dialect, lock/build behavior, rollback | Adding every plausible filter combination |
 | Destructive type/column change | Expand-and-contract across compatible releases | Conversion correctness, dual read/write or cutover, rollback boundary | Rename/drop in one release while old code runs |
-| Existing Flyway migration is wrong | Add the next corrective migration | Current version/checksum and forward transition | Editing or repairing an already-applied migration |
+| Already-applied DDL script or checksum is wrong | Add the next corrective script and manifest entry | Current `ddl_history` checksum and forward transition | Editing or repairing an already-applied script |
 
 ## Depth and consistency gate
 
 Before accepting a table detail, verify:
 
-- all seven required subsections exist in order and name the exact schema/table;
+- all seven required subsections exist in order and name the exact schema/table, STRATEGY type, shard key, and 2n topology;
 - when the relational model/relationships change, Chapter 11 contains one Mermaid `erDiagram` covering every affected inventory table, exact physical-name mapping, real cardinalities, relationship labels, and material PK/FK/UK attributes; otherwise it records `Relational model change: No` with evidence;
 - affected existing and all proposed columns include native type, precision/length, null, default, generation, constraints, meaning, mapping, and example;
 - primary/business/foreign relationships state ownership, optionality, tenant scope, update/delete/orphan behavior, and enforcement choice;
 - every index names an exact query/caller, ordered keys, selectivity evidence, sort/coverage role, overlap, write/storage/build/lock cost, and verification;
 - every access path states predicate/join/order/page, row expectation, index/constraint, lock/isolation, failure, idempotency, and affected-row semantics;
-- migration covers data profile, exact new version/path, ordered DDL/backfill, batching/restart, old/new coexistence, locks, validation, rollback limit, and forward fix;
-- transaction/recovery aligns with Service orchestration, API errors/retries, cache/events, audit, tests, and rollout;
+- schema change covers data profile, exact new script path and manifest checksum, ordered DDL/backfill, batching/restart, old/new coexistence, locks, validation, rollback limit, and forward fix;
+- LOCAL writes collocate by shard key in one physical group; transaction/recovery aligns with Service orchestration, API errors/retries, cache/events, audit, tests, and rollout;
 - static inspection is never presented as a live schema, data-distribution, lock-duration, or query-plan result.
 
-Line count is not a substitute. A read-only lookup against a proven stable table may need less prose; a one-column change on a populated high-volume table may require extensive migration and compatibility design.
+Line count is not a substitute. A read-only lookup against a proven stable table may need less prose; a one-column change on a populated high-volume table may require extensive schema-change and compatibility design.
 
 ## Database review failures
 
@@ -365,6 +426,7 @@ Return `REVISE` when any applies:
 - an interface/model field cannot be mapped to a column or intentional non-persistent source;
 - an index lacks a real query and column-order rationale;
 - uniqueness, soft-delete, tenant, time, money, or `NULL` semantics are ambiguous;
-- migration/backfill/compatibility/locking/rollback behavior is missing;
-- an existing immutable migration is proposed for modification;
+- schema-change/backfill/compatibility/locking/rollback behavior is missing;
+- an already-applied DDL script or checksum is proposed for modification;
+- two-level sharding is the default, topology is not uniform 2n, or a table lacks `tenant_id`;
 - source inspection is presented as proof of a live schema or query plan.

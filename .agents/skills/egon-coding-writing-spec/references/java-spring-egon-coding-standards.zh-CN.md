@@ -14,6 +14,7 @@
 - [Spring Bean、依赖注入与日志](#spring-bean依赖注入与日志)
 - [工具、JSON、时间与配置规则](#工具json时间与配置规则)
 - [业务建模与设计模式](#业务建模与设计模式)
+- [MyBatis-Plus 与 ShardingSphere-JDBC 使用规范](#mybatis-plus-与-shardingsphere-jdbc-使用规范)
 - [阻断型 Manual Check 目录](#阻断型-manual-check-目录)
 
 ## 优先级与触达代码边界
@@ -55,7 +56,8 @@
 - Egon-COLA Archetype/common core 中的 MapStructPlus 依赖与 Processor；
 - 生成项目边界/Application 模块中的 `spring-boot-starter-validation`；
 - Archetype `lombok.config` 中的 `lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier`；
-- `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` 家族和对应 Open 变体。
+- `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` 家族和对应 Open 变体；
+- PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC 持久化使用 `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`。拓扑、表类型、2n 布局、LOCAL 事务和受管 DDL 见 `references/database-design.zh-CN.md`。
 
 每次都必须在当前基线重新核实这些路径，不能因本参考提到某组件就假设目标项目已经可用。
 
@@ -152,6 +154,16 @@
 复杂业务不得堆积长 `if/else`、`switch`、类型判断和硬编码编排。识别真实变化维度、状态流转、规则组合、算法切换、责任链、对象创建和事件协作。
 
 受影响业务逻辑一旦判定为复杂，就必须使用合适设计模式。选择能够隔离已有变化/职责的 Strategy、Template Method、Factory、Chain of Responsibility、State、Specification、Domain Event 或其他仓库模式，并写清变化点、参与者、依赖方向、注册/选择机制、扩展步骤、失败和测试。复杂业务使用长 `if/else`、`switch`、类型/字符串分发、反射分发，或以“直接逻辑更简单”为由不使用模式，都不合格。Simple 逻辑保持直接实现，禁止制造仪式性模式类。
+
+## MyBatis-Plus 与 ShardingSphere-JDBC 使用规范
+
+持久化、分片或数据源 YAML 为 `Affected` 时，必须复用已有 Starter `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`。不得本地重建 `ShardingDataSourceBootstrapper`、第二套 Schema 变更 Runner 或自定义 ID 生成器。
+
+- YAML 位于 `egon.cola.component.mybatis-plus.sharding`。`config-style: STRATEGY` 与 `NATIVE` 互斥，优先 STRATEGY。模式为 `SHARDING` 和 `SHARDING_READWRITE`。多环境文件必须保持 Rule 7 的 Key 结构一致。
+- 生产驱动只允许 PostgreSQL。H2 只作为 CI 测试证据；CPU/Mock/H2 不能证明 PostgreSQL DDL、复制、物理落点或查询性能。
+- 持久化模型继承 `EgonModel<PO>`，声明 `@TableName` 和使用继承的 `@TableId(type=ASSIGN_ID)`。`tenantId` 必须非空。`EgonColaIdentifierGenerator` 委托给已命名 Bean `snowflakeIdGenerator`（`LongIdGenerator`）。持久化为 `BIGINT`；HTTP/GraphQL 文本边界使用 `nextId()` 十进制字符串。
+- 新增分片表默认 `STANDARD_TENANT_ID`。`SINGLE` 是单节点元数据；`BROADCAST` 只读。`COMPLEX_TENANT_THEN_BUSINESS` 仅在已证明父子共置时可选。拓扑、分片键、mix64-v1、2n 布局、LOCAL 共置、写守卫和受管 DDL（`EgonColaPostgreDdlRunner` / `ddl_history`）在 `references/database-design.zh-CN.md` 设计。
+- Repository 留在基础设施。Command 使用受守卫的 save/带版本 update；Query 使用具名 Mapper XML。不得启用 ActiveRecord、QueryChain 或通用 Query Wrapper 入口。
 
 ## 阻断型 Manual Check 目录
 

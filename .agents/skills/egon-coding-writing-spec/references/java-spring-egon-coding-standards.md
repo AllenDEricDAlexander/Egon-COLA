@@ -14,6 +14,7 @@ Read `references/user-mandated-java-rules.md` first, then this reference for eve
 - [Spring beans, injection, and logging](#spring-beans-injection-and-logging)
 - [Utility, JSON, time, and configuration rules](#utility-json-time-and-configuration-rules)
 - [Business modeling and design patterns](#business-modeling-and-design-patterns)
+- [MyBatis-Plus and ShardingSphere-JDBC usage](#mybatis-plus-and-shardingsphere-jdbc-usage)
 - [Blocking Manual Check catalog](#blocking-manual-check-catalog)
 
 ## Precedence and touched-code boundary
@@ -55,7 +56,8 @@ Repository evidence currently includes:
 - MapStructPlus dependencies and processors in Egon-COLA archetypes/common core;
 - `spring-boot-starter-validation` in the generated boundary/application modules;
 - `lombok.copyableAnnotations += org.springframework.beans.factory.annotation.Qualifier` in archetype `lombok.config` files;
-- the `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` families and their selected open variants.
+- the `egon-cola-archetypes/egon-cola-archetype-{light,service,web}` families and their selected open variants;
+- `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter` for PostgreSQL + MyBatis-Plus + ShardingSphere-JDBC persistence. Topology, table types, 2n layout, LOCAL transactions, and managed DDL live in `references/database-design.md`.
 
 Reverify these paths in the current baseline; do not assume a component is available merely because this reference names it.
 
@@ -154,6 +156,16 @@ Prefer typed `@ConfigurationProperties` over scattered `@Value`. When adding or 
 Do not accumulate complex business behavior in long `if/else`, `switch`, type checks, or hard-coded orchestration. Identify real variation dimensions, state transitions, rule combinations, algorithm choices, responsibility chains, object creation, and event collaboration.
 
 When affected business logic is classified complex, using an appropriate design pattern is mandatory. Select Strategy, Template Method, Factory, Chain of Responsibility, State, Specification, Domain Event, or another repository-supported pattern that isolates the evidenced variation/responsibility. Name the variation point, selected pattern, participants, dependency direction, registration/selection mechanism, extension procedure, failures, and tests. Long `if/else`, `switch`, type/string dispatch, reflection dispatch, or “direct logic is simpler” fails for complex business logic. Simple logic remains direct and must not be inflated into ceremonial patterns.
+
+## MyBatis-Plus and ShardingSphere-JDBC usage
+
+When persistence, sharding, or datasource YAML is `Affected`, consume the existing starter `egon-cola-component-common-mybatis-plus-sharding-jdbc-ext-spring-boot-starter`. Do not rebuild a local `ShardingDataSourceBootstrapper`, second schema-change runner, or custom ID generator.
+
+- YAML lives under `egon.cola.component.mybatis-plus.sharding`. `config-style: STRATEGY` and `NATIVE` are mutually exclusive; prefer STRATEGY. Modes are `SHARDING` and `SHARDING_READWRITE`. Keep Rule 7 profile-key parity across environment files.
+- Production drivers are PostgreSQL only. H2 is CI-test evidence; CPU/Mock/H2 does not prove PostgreSQL DDL, replication, physical placement, or query performance.
+- Persistence models extend `EgonModel<PO>` with `@TableName` and inherited `@TableId(type=ASSIGN_ID)`. `tenantId` is mandatory non-null. `EgonColaIdentifierGenerator` delegates to the named `snowflakeIdGenerator` (`LongIdGenerator`). Persist `BIGINT`; HTTP/GraphQL text boundaries use `nextId()` decimal strings.
+- Default new sharded tables to `STANDARD_TENANT_ID`. `SINGLE` is metadata on one node; `BROADCAST` is read-only. `COMPLEX_TENANT_THEN_BUSINESS` is opt-in parent/child co-location only. Topology, keys, mix64-v1, 2n layout, LOCAL collocation, write-guard, and managed DDL (`EgonColaPostgreDdlRunner` / `ddl_history`) are designed in `references/database-design.md`.
+- Repositories stay behind infrastructure. Commands use guarded save/versioned update; queries use named Mapper XML. Do not enable ActiveRecord, QueryChain, or generic Query Wrapper entry points.
 
 ## Blocking Manual Check catalog
 

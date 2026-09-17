@@ -628,13 +628,13 @@ When relational persistence applies, map persistence objects/ORM entities and re
 
 ## 11. Database Design
 
-When database schema, data semantics, constraints, indexes, migrations, transaction/locking behavior, or authoritative persistence ownership is `Affected`, read `references/database-design.md` and use the repository's actual dialect, migration mechanism, naming, and access layer. For a DAO query-only change with unchanged schema, remove §§11.1–11.3 and record the exact query/access path, relevant columns and existing index evidence, preserved schema/relationship invariant, and focused verification. If no database is relevant, write evidence-backed `N/A`.
+When database schema, data semantics, constraints, indexes, schema-change/DDL, sharding, datasource topology, transaction/locking behavior, or authoritative persistence ownership is `Affected`, read `references/database-design.md` and use the repository's actual dialect, managed-DDL runner, naming, and access layer. For a DAO query-only change with unchanged schema, remove §§11.1–11.3 and record the exact query/access path, relevant columns and existing index evidence, preserved schema/relationship invariant, and focused verification. If no database is relevant, write evidence-backed `N/A`.
 
 ### 11.1 Table Inventory
 
-| Table | Existing/new | Purpose and owner | Read/write paths | Change | Migration | Requirements |
+| Table | Existing/new | Purpose and owner | Read/write paths | Change | DDL script | Requirements |
 | --- | --- | --- | --- | --- | --- | --- |
-| `<schema.table>` | Existing / New | `<purpose/owner>` | `<DAO/mapper/query>` | Create / Alter / Read-only | `<new path or None>` | `REQ-001` |
+| `<schema.table>` | Existing / New | `<purpose/owner>` | `<DAO/mapper/query>` | Create / Alter / Read-only | `<new classpath SQL path or None>` | `REQ-001` |
 
 ### 11.2 Per-table Detailed Design
 
@@ -644,7 +644,7 @@ Repeat §11.2.x for every inventory table.
 
 ##### Purpose, ownership, and lifecycle
 
-Define owning module and authoritative writer, readers, lifecycle/retention, tenant partitioning, sensitive/audit classification, expected row count, and growth.
+Define owning module and authoritative writer, readers, lifecycle/retention, tenant partitioning, STRATEGY table type, shard key, 2n topology, sensitive/audit classification, expected row count, and growth.
 
 ##### Complete column design
 
@@ -669,9 +669,9 @@ For every index, explain its exact dialect definition, real filter/join/order/pa
 | Operation | Caller | Predicate/join/order | Expected rows | Index/constraint | Lock/isolation | Failure/idempotency |
 | --- | --- | --- | --- | --- | --- | --- |
 
-##### Migration and historical-data handling
+##### Schema change and historical-data handling
 
-Define the exact new migration path/version, ordered DDL/data pseudocode, data profiling, backfill/default/nullability sequence, batching/restart, compatibility window, index build/locking, verification SQL, rollback limits, and forward-fix. Never modify an existing immutable migration.
+Define the exact new classpath SQL path, SHA-256 manifest entry, ordered DDL/data pseudocode, data profiling, backfill/default/nullability sequence, batching/restart, compatibility window, index build/locking, verification SQL, rollback limits, and forward-fix. Never modify an already-applied DDL script or its `ddl_history` checksum.
 
 ##### Transaction, consistency, and recovery
 
