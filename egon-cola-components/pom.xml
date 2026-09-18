@@ -85,6 +85,7 @@
         <commons.text.version>1.15.0</commons.text.version>
         <commons.codec.version>1.18.0</commons.codec.version>
         <embedded.redis.version>0.7.3</embedded.redis.version>
+        <testcontainers.version>1.21.4</testcontainers.version>
         <jedis.version>5.1.0</jedis.version>
         <spring.test.dbunit.version>5.2.0</spring.test.dbunit.version>
         <dbunit.version>2.7.0</dbunit.version>
@@ -211,6 +212,21 @@
                         <artifactId>spring-boot-starter-actuator</artifactId>
                     </exclusion>
                 </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers</artifactId>
+                <version>${testcontainers.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>junit-jupiter</artifactId>
+                <version>${testcontainers.version}</version>
             </dependency>
             <dependency>
                 <groupId>org.xerial</groupId>
