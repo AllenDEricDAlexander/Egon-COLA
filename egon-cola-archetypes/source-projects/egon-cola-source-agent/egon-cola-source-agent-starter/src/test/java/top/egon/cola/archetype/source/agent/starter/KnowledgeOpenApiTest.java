@@ -35,7 +35,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Import(DeepResearchApplicationTest.FakeAgentDependencies.class)
-class KnowledgeOpenApiTest {
+class KnowledgeOpenApiTest extends PersistenceTestSupport {
 
     @Autowired
     private MockMvc mockMvc;

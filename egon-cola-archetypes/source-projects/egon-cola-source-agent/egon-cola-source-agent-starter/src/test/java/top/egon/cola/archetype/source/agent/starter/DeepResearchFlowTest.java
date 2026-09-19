@@ -17,7 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @SpringBootTest(classes = DeepResearchApplication.class)
 @ActiveProfiles("test")
 @Import(DeepResearchApplicationTest.FakeAgentDependencies.class)
-class DeepResearchFlowTest {
+class DeepResearchFlowTest extends PersistenceTestSupport {
 
     @Test
     void keeps_planner_parallel_research_and_writer_graph_in_declared_order(

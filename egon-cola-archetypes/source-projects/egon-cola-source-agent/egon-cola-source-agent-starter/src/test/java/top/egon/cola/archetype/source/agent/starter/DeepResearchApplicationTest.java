@@ -28,7 +28,7 @@ import static org.mockito.Mockito.mock;
 @SpringBootTest(classes = DeepResearchApplication.class)
 @ActiveProfiles("test")
 @Import(DeepResearchApplicationTest.FakeAgentDependencies.class)
-class DeepResearchApplicationTest {
+class DeepResearchApplicationTest extends PersistenceTestSupport {
 
     @Test
     void creates_named_test_model_tools_and_agent_flow_without_network_dependencies(

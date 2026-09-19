@@ -150,3 +150,7 @@ curl --fail-with-body --no-buffer \
 Agent 继续使用 Flyway。新增 `V20260913_001__egon_model_repository.sql` 要求两张知识表为空，移除 identity 默认值、替换逻辑删除索引并添加新字段；原 V001/V002 保持不变。Outbox 与向量表继续由原组件管理。Common DDL 在 Agent 中关闭，只登记知识库根键批量软删的完整语句 ID。
 
 生产配置 `EGON_ID_MACHINE_ID`。默认 H2/fake-model 测试不执行 PostgreSQL 迁移或向量集成，需在专用数据库上手动验收。
+
+## 二级缓存骨架（默认关闭）
+
+生成工程已内置 `egon-cola-component-common-cache-spring-boot-starter` 依赖与 `egon.cola.component.cache` 键块（`enabled: false`），不显式开启即运行行为零变化。启用两步：①装配 `RedissonClient` Bean——starter 绝不自建客户端，`enabled: true` 而客户端缺位时 fail-fast（按名优先、唯一兜底）；②置 `egon.cola.component.cache.enabled: true`。业务 Repository 继承 `EgonColaRepository` 后自行覆写 `EgonColaCachePort` 注入接缝。配置键、TTL 与 Redis 事件语义以组件文档为单一事实源：[cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。

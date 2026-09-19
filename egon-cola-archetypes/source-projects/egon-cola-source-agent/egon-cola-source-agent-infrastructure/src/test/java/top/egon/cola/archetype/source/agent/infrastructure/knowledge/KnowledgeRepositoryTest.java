@@ -401,6 +401,23 @@ class KnowledgeRepositoryTest {
             return values::incrementAndGet;
         }
 
+        @Bean("egonColaWriteTargetResolver")
+        top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver plainResolver() {
+            return query -> new top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult(
+                    java.util.List.of(new top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO(
+                            "test", "public", query.logicalTable())), "a".repeat(64));
+        }
+
+        @Bean("egonColaRoutingProfiles")
+        java.util.Map<String, top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO> isolatedProfiles() {
+            return java.util.Map.of();
+        }
+
+        @Bean("egonColaShardingRouteFingerprint")
+        String isolatedFingerprint() {
+            return "f".repeat(64);
+        }
+
         @Bean
         DataSource dataSource() {
             JdbcDataSource dataSource = new JdbcDataSource();

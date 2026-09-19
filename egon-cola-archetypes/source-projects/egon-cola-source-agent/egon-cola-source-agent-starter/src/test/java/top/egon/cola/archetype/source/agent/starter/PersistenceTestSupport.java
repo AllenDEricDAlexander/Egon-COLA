@@ -1,10 +1,8 @@
-package top.egon.cola.archetype.source.serviceopen.support;
+package top.egon.cola.archetype.source.agent.starter;
 
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.AfterEach;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.convention.TestBean;
@@ -20,7 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** Fast business tests use isolated logical tables; real PG/SS tests must not inherit this fixture. */
+/** Context tests keep the forced sharding contract off the real PG endpoints; production profiles must not inherit this fixture. */
 @TestPropertySource(properties = {"egon.cola.component.mybatis-plus.ddl.enabled=false", "spring.sql.init.mode=never",
         "egon.cola.component.id.machine-id=0"})
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
@@ -38,10 +36,9 @@ public abstract class PersistenceTestSupport {
 
     static DataSource isolatedDataSource() {
         JdbcDataSource source = new JdbcDataSource();
-        source.setURL("jdbc:h2:mem:service_" + UUID.randomUUID().toString().replace("-", "")
+        source.setURL("jdbc:h2:mem:agent_" + UUID.randomUUID().toString().replace("-", "")
                 + ";MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=false");
         source.setUser("sa");
-        new ResourceDatabasePopulator(new ClassPathResource("mybatis/h2-schema.sql")).execute(source);
         return source;
     }
 

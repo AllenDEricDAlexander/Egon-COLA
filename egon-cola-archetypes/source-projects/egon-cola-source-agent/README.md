@@ -156,3 +156,7 @@ Knowledge queries now use bound Mapper XML. Updates enforce tenant, active row, 
 Agent keeps Flyway. `V20260913_001__egon_model_repository.sql` requires both knowledge tables to be empty, drops their identity defaults, replaces old logic-delete indexes and adds the new columns. V001/V002 remain unchanged. Outbox/vector schema ownership is unchanged. Common DDL is disabled here; only the exact knowledge-base-root bulk-delete statement is registered.
 
 Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run PostgreSQL migrations or vector integrations; perform those checks manually on a dedicated database.
+
+## Two-level cache skeleton (disabled by default)
+
+The generated project already carries the `egon-cola-component-common-cache-spring-boot-starter` dependency and the `egon.cola.component.cache` key block with `enabled: false`, so runtime behavior is unchanged until you opt in. Enabling takes two steps: ① provide a `RedissonClient` bean — the starter never creates one and fails fast when `enabled: true` finds no client (by-name first, unique fallback); ② set `egon.cola.component.cache.enabled: true`. Business repositories wire the `EgonColaCachePort` injection seam themselves when they extend `EgonColaRepository`. Configuration keys, TTL and Redis event semantics are documented once in the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md).

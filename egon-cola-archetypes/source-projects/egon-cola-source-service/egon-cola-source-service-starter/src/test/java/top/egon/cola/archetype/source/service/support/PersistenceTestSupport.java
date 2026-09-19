@@ -12,9 +12,11 @@ import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
 import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 
 import javax.sql.DataSource;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -29,6 +31,10 @@ public abstract class PersistenceTestSupport {
     protected EgonColaWriteTargetResolver resolver;
     @TestBean(name = "snowflakeIdGenerator", methodName = "testIds", enforceOverride = true)
     protected LongIdGenerator idGenerator;
+    @TestBean(name = "egonColaRoutingProfiles", methodName = "isolatedProfiles", enforceOverride = true)
+    protected Map<String, EgonColaRoutingProfileBO> routingProfiles;
+    @TestBean(name = "egonColaShardingRouteFingerprint", methodName = "isolatedFingerprint", enforceOverride = true)
+    protected String routeFingerprint;
 
     static DataSource isolatedDataSource() {
         JdbcDataSource source = new JdbcDataSource();
@@ -41,6 +47,14 @@ public abstract class PersistenceTestSupport {
 
     static EgonColaWriteTargetResolver plainResolver() {
         return query -> new EgonColaRouteResult(List.of(new EgonColaPhysicalTargetBO("test", "public", query.logicalTable())), "a".repeat(64));
+    }
+
+    static Map<String, EgonColaRoutingProfileBO> isolatedProfiles() {
+        return Map.of();
+    }
+
+    static String isolatedFingerprint() {
+        return "f".repeat(64);
     }
 
     static LongIdGenerator testIds() {
