@@ -51,6 +51,7 @@
 
     <properties>
         <commons.lang3.version>3.20.0</commons.lang3.version>
+        <redisson.version>3.26.0</redisson.version>
         <central.server.id>central</central.server.id>
         <central.publishing.maven.plugin.version>0.11.0</central.publishing.maven.plugin.version>
         <maven.source.plugin.version>3.4.0</maven.source.plugin.version>
@@ -64,6 +65,16 @@
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>${commons.lang3.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson</artifactId>
+                <version>${redisson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson.version}</version>
             </dependency>
             <dependency>
                 <groupId>top.egon</groupId>
@@ -93,6 +104,11 @@
             <dependency>
                 <groupId>top.egon</groupId>
                 <artifactId>egon-cola-component-common-data-desensitize-spring-boot-starter</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.egon</groupId>
+                <artifactId>egon-cola-component-common-cache-spring-boot-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
