@@ -153,7 +153,8 @@ public class EgonColaTwoLevelCacheManager implements CacheManager {
         }
     }
 
-    private RTopic topic() {
+    /** 事件 topic 句柄懒建（订阅与发布共用同一 {@link StringCodec} 通道）。 */
+    public RTopic topic() {
         RTopic current = topic;
         if (current == null) {
             current = redissonClient.getTopic(properties.getRedis().getTopic(), StringCodec.INSTANCE);

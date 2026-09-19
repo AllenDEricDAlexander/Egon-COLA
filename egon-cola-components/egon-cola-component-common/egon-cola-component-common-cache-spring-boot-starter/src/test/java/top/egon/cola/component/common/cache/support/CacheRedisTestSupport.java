@@ -17,6 +17,7 @@ import org.testcontainers.utility.DockerImageName;
 import top.egon.cola.component.common.cache.autoconfigure.EgonColaCacheProperties;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -74,11 +75,15 @@ public abstract class CacheRedisTestSupport {
 
     /**
      * 默认键树 + 测试 keyPrefix，overrides 走与宿主一致的 Boot relaxed 绑定路径。
+     * 覆写键按前缀展开为绝对名——{@link MapConfigurationPropertySource} 按绝对键匹配。
      */
     protected static EgonColaCacheProperties props(Map<String, Object> overrides) {
         EgonColaCacheProperties defaults = new EgonColaCacheProperties();
         defaults.setKeyPrefix("egon:cola:cache:it");
-        Binder binder = new Binder(List.of(new MapConfigurationPropertySource(overrides)), null,
+        Map<String, Object> absolute = new LinkedHashMap<>();
+        overrides.forEach((key, value) ->
+                absolute.put("egon.cola.component.cache." + key, value));
+        Binder binder = new Binder(List.of(new MapConfigurationPropertySource(absolute)), null,
                 ApplicationConversionService.getSharedInstance());
         return binder.bind("egon.cola.component.cache", Bindable.ofInstance(defaults)).orElse(defaults);
     }
