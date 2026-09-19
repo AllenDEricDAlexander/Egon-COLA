@@ -139,6 +139,18 @@ Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long �
 
 只在明确需要批量/特殊 SQL 的场景使用 Mapper 扩展。没有新增平台 SQL Injector。字段 TypeHandler 用于 JSONB、数组等真实类型差异；Agent 的 JSONB 使用字段专用 handler，不覆盖全局 String handler。持久化枚举需唯一 `@EnumValue`，对外枚举值需匹配 `@JsonValue`/Jackson 合同，启动时校验。
 
+## 声明式缓存读
+
+`EgonColaRepository` 提供 `getByCache(Serializable id)` 与 `listByCache(Collection<? extends Serializable> ids)`。模板子类覆写两个 protected 挂点即可接入两级缓存 starter：`getCachePortProvider()`（返回 `ObjectProvider<EgonColaCachePort>`，以 `@Qualifier("egonColaCachePort")` 注入）与可选的 `cacheRegionName()`（默认实体简单名）。`getByCache` 与 `getById` 语义一致（缓存前置）；`listByCache` 与 `listByIds` 一致（逐键组装、去重保序、缺失剔除）。
+
+## 写路径透明失效
+
+每个成功的受控写通过端口注册提交后失效：携带 id 的写精确失效 `tenantId:id` 键；谓词形态的 `update(entity, wrapper)` 因影响面不可枚举而失效整个租户前缀 `tenantId:*`。注册先于提交，失效在 afterCommit 执行、事务回滚时丢弃（端口契约、键形状与错误码以 cache starter README 为单一事实源）。
+
+## 端口缺位零影响
+
+未覆写 `getCachePortProvider()`，或不存在 `egonColaCachePort` bean（starter 未引入或 `enabled=false`）时，全部读写方法与增强前逐字节一致：读路径不触端口，写路径不注册、零 Redis 交互。
+
 ## SQL 与事务保护
 
 原始 SQL Guard 在执行前验证正 ID 范围；TenantLine 后再次验证最终 SQL 的租户、active、版本和审计条件。全表更新/删除拦截、乐观锁、PG 分页与 LOCAL 写目标保护统一装配。动态表名默认关闭，只接受显式白名单映射。

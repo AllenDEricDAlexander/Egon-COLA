@@ -2,11 +2,15 @@ package top.egon.cola.component.common.mybatis.contract;
 
 import org.junit.jupiter.api.Test;
 
+import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -44,6 +48,10 @@ class EgonColaRepositoryArchitectureTest {
                         && !Modifier.isStatic(method.getModifiers()))
                 .map(MethodKeyBO::of)
                 .collect(Collectors.toSet());
+        // Spec §16 step ④: whitelist amendment for the declarative cached reads; exact equality below.
+        expected.addAll(Set.of(
+                MethodKeyBO.of(implementation.getMethod("getByCache", Serializable.class)),
+                MethodKeyBO.of(implementation.getMethod("listByCache", Collection.class))));
 
         assertEquals(expected, Arrays.stream(implementation.getDeclaredMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()) && !method.isSynthetic())
@@ -66,6 +74,41 @@ class EgonColaRepositoryArchitectureTest {
                             || line.contains("getOptByCurrentTenantIdAndId")
                             || line.contains("EgonColaSqlInjector")));
         }
+    }
+
+    @Test
+    void cacheImplementationTypesStayInvisibleToPersistenceAndCore() throws Exception {
+        List<Path> roots = new ArrayList<>(List.of(
+                Path.of("src/main/java"), Path.of("src/test/java")));
+        Path coreSources = Path.of("../egon-cola-component-common-core/src/main/java");
+        if (Files.isDirectory(coreSources)) {
+            roots.add(coreSources);
+        }
+        List<String> violations = new ArrayList<>();
+        for (Path root : roots) {
+            try (var files = Files.walk(root)) {
+                files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
+                    try {
+                        for (String line : Files.readAllLines(path)) {
+                            if (line.startsWith("import top.egon.cola.component.common.cache.")) {
+                                violations.add(path + " -> " + line.trim());
+                            }
+                        }
+                    } catch (Exception exception) {
+                        throw new IllegalStateException(exception);
+                    }
+                });
+            }
+        }
+        Path port = coreSources.resolve("top/egon/cola/component/common/core/cache/EgonColaCachePort.java");
+        if (Files.exists(port)) {
+            for (String line : Files.readAllLines(port)) {
+                if (line.startsWith("import ") && !line.startsWith("import java.")) {
+                    violations.add(port + " -> non-JDK import: " + line.trim());
+                }
+            }
+        }
+        assertTrue(violations.isEmpty(), () -> "CACHE_LAYERING_VIOLATION: " + violations);
     }
 
     @Test
