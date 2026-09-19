@@ -33,6 +33,9 @@ class BytecodeReleaseShapeTest {
 
     @Test
     void publishesOnePremainOnlyShadedAgent() throws Exception {
+        // The shaded agent JAR only exists from the package phase on; a bare `test` run cannot produce it.
+        assumeTrue(Boolean.getBoolean("egon.release.shape"),
+                "run with -Prelease -Degon.release.shape=true");
         Path target = agentJar.getParent();
         assertTrue(Files.isRegularFile(agentJar), "main Agent JAR is missing");
         try (var files = Files.list(target)) {
