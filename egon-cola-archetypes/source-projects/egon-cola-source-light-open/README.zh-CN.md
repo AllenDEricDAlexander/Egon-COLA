@@ -118,3 +118,7 @@ docker compose --env-file deploy/env/.env.example \
 每个实例配置唯一 `EGON_ID_MACHINE_ID`，生产使用现有 Common Snowflake。各 profile 保持同一 MP 配置键；dev 才开启诊断，原始 recorder logger 为 OFF。动态表名默认关闭，只接受明确映射；MybatisBatch 在调用方事务中执行。
 
 默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
+
+## 二级缓存骨架（默认关闭）
+
+生成工程已内置 `egon-cola-component-common-cache-spring-boot-starter` 依赖与 `egon.cola.component.cache` 键块（`enabled: false`），不显式开启即运行行为零变化。启用两步：①装配 `RedissonClient` Bean——starter 绝不自建客户端，`enabled: true` 而客户端缺位时 fail-fast（按名优先、唯一兜底）；②置 `egon.cola.component.cache.enabled: true`。`UserRepository` 已示范 `EgonColaCachePort` 端口注入：声明式缓存读直接调用 `getByCache`/`listByCache`，受控写方法提交后自动跨节点失效对应 `tenantId:id` 键（谓词更新失效租户前缀）。配置键、TTL 与 Redis 事件语义以组件文档为单一事实源：[cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
