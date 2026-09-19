@@ -6,6 +6,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
+import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -72,6 +73,31 @@ class EgonColaShardingAutoConfigurationTest {
                         .hasNotFailed()
                         .hasBean("dataSource")
                         .hasBean("egonColaRoutingProfiles"));
+    }
+
+    @Test
+    void forcedShardingDataSourceBacksBootPoolConfigurationOff() {
+        runner()
+                .withConfiguration(AutoConfigurations.of(DataSourceAutoConfiguration.class))
+                .withUserConfiguration(MockLogicalDataSourceConfiguration.class)
+                .withPropertyValues(
+                        "spring.datasource.url=jdbc:postgresql://localhost/ordering",
+                        "egon.cola.component.mybatis-plus.sharding.enabled=true",
+                        "egon.cola.component.mybatis-plus.sharding.mode=SHARDING",
+                        "egon.cola.component.mybatis-plus.sharding.config-style=STRATEGY",
+                        "egon.cola.component.mybatis-plus.sharding.transaction-default-type=LOCAL",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].name=master_data",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].logical-name=master_data",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].role=PRIMARY",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].driver-class-name=org.postgresql.Driver",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].jdbc-url=jdbc:postgresql://localhost/master_data",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].username=sa",
+                        "egon.cola.component.mybatis-plus.sharding.data-sources[0].password=secret",
+                        "egon.cola.component.mybatis-plus.sharding.tables.routing_metadata.type=SINGLE",
+                        "egon.cola.component.mybatis-plus.sharding.tables.routing_metadata.data-source=master_data")
+                .run(context -> assertThat(context)
+                        .hasNotFailed()
+                        .hasSingleBean(DataSource.class));
     }
 
     private static ApplicationContextRunner runner() {
