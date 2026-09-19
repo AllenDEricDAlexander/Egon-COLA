@@ -10,9 +10,11 @@ import lombok.AccessLevel;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.core.cache.EgonColaCachePort;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
@@ -42,6 +44,10 @@ public class UserRepository extends EgonColaRepository<UserDAO, UserPO> {
     @Getter(AccessLevel.PROTECTED)
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
+    // Field name is the mp-ext seam contract: lombok's getCachePortProvider() overrides EgonColaRepository's hook.
+    @Getter(AccessLevel.PROTECTED)
+    @Qualifier("egonColaCachePort")
+    private final ObjectProvider<EgonColaCachePort> cachePortProvider;
 
     public long countByEmail(@NotBlank String email) {
         return getBaseMapper().countByEmail(email);
