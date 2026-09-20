@@ -12,7 +12,7 @@ import top.egon.cola.component.agentflow.config.AgentConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentFlowConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentWorkflowConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentWorkflowTypeEnum;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 import top.egon.cola.component.agentflow.workflow.LoopAgentWorkflowBuilderStrategy;
 import top.egon.cola.component.agentflow.workflow.ParallelAgentWorkflowBuilderStrategy;
 import top.egon.cola.component.agentflow.workflow.SequentialAgentWorkflowBuilderStrategy;

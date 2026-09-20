@@ -1,4 +1,4 @@
-package top.egon.cola.component.agentflow.exception;
+package top.egon.cola.component.agentflow.common.exception;
 
 /** Raised when a requested flow is not present in the compiled registry. */
 public class AgentFlowNotFoundException extends AgentFlowException {

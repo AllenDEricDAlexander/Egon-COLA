@@ -150,6 +150,8 @@ configuration -> validation -> ADK graph compilation -> registry -> session exec
 
 It does not provide a provider integration, HTTP, MCP, database, UI, durable session store, or remote recovery protocol. The host owns those boundaries and supplies trusted `userId` values. Component logs contain only safe stage/outcome/error-type and event-count fields; they never record message content, instructions, credentials, `userId`, or `sessionId`. Provider/ADK debug logging must be reviewed or disabled in production because third-party observability may have broader content visibility.
 
+Component failures are raised from `top.egon.cola.component.agentflow.common.exception` and are rooted on the common `CommonException`, so `getCode()`, `getStatus()` and `isRetryable()` stay uniform across starters. The starter publishes the canonical `egonColaValidationUtils` bean only when the application does not already have it, and injects it into `AgentFlowConfigValidator`, which extends `BaseValidator` and keeps its own graph rules after the native field constraints.
+
 ## Upgrade and validation gate
 
 The tested compatibility line is Java 21 + Spring Boot 3.5.16 + Spring AI 1.1.8 + Google ADK 0.7.0. Any Spring AI or ADK upgrade requires re-running the focused tests, the runtime dependency tree check, and the Components reactor test. Do not add `google-adk-dev`, provider starters, Web, MCP, JDBC, or Flyway dependencies to this starter without a new specification.

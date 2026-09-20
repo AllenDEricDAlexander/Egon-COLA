@@ -1,4 +1,4 @@
-package top.egon.cola.component.agentflow.exception;
+package top.egon.cola.component.agentflow.common.exception;
 
 /** Raised when a flow session is absent at an operation boundary. */
 public class AgentFlowSessionNotFoundException extends AgentFlowException {

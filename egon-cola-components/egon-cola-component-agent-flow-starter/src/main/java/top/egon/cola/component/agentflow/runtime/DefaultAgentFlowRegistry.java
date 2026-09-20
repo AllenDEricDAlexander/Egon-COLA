@@ -3,8 +3,9 @@ package top.egon.cola.component.agentflow.runtime;
 import io.reactivex.rxjava3.core.Completable;
 import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.agentflow.api.AgentFlowDescriptorDTO;
-import top.egon.cola.component.agentflow.exception.AgentFlowException;
-import top.egon.cola.component.agentflow.exception.AgentFlowNotFoundException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowNotFoundException;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -18,10 +19,28 @@ import java.util.concurrent.atomic.AtomicReference;
 @Slf4j
 public class DefaultAgentFlowRegistry implements AgentFlowRegistry {
 
-    private enum State {
-        OPEN,
-        CLOSING,
-        CLOSED
+    private enum State implements EgonEnum {
+        OPEN(0, "OPEN"),
+        CLOSING(1, "CLOSING"),
+        CLOSED(2, "CLOSED");
+
+        private final int code;
+        private final String message;
+
+        State(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     private final Map<String, AgentFlowRuntimeBO> runtimes;

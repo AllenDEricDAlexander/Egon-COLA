@@ -5,7 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.agentflow.config.AgentWorkflowConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentWorkflowTypeEnum;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 
 import java.util.List;
 import java.util.Objects;

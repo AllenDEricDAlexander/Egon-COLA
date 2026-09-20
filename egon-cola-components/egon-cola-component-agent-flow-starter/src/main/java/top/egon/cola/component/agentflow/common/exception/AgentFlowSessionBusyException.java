@@ -1,4 +1,4 @@
-package top.egon.cola.component.agentflow.exception;
+package top.egon.cola.component.agentflow.common.exception;
 
 /** Raised when a flow session already owns an active execution lease. */
 public class AgentFlowSessionBusyException extends AgentFlowException {

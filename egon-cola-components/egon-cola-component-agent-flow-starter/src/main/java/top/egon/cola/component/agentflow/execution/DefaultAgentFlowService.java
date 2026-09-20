@@ -16,10 +16,10 @@ import top.egon.cola.component.agentflow.api.AgentFlowSessionCommand;
 import top.egon.cola.component.agentflow.api.AgentFlowSessionResult;
 import top.egon.cola.component.agentflow.autoconfigure.AgentFlowProperties;
 import top.egon.cola.component.agentflow.config.AgentFlowSessionValidationGroup;
-import top.egon.cola.component.agentflow.exception.AgentFlowException;
-import top.egon.cola.component.agentflow.exception.AgentFlowExecutionException;
-import top.egon.cola.component.agentflow.exception.AgentFlowExecutionTimeoutException;
-import top.egon.cola.component.agentflow.exception.AgentFlowSessionNotFoundException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowExecutionException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowExecutionTimeoutException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowSessionNotFoundException;
 import top.egon.cola.component.agentflow.runtime.AgentFlowRegistry;
 import top.egon.cola.component.agentflow.runtime.AgentFlowRuntimeBO;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
@@ -48,7 +48,7 @@ public class DefaultAgentFlowService implements AgentFlowService, AutoCloseable 
     @Qualifier("agentFlowProperties")
     private final AgentFlowProperties properties;
 
-    @Qualifier("agentFlowValidationUtils")
+    @Qualifier("egonColaValidationUtils")
     private final ValidationUtils validationUtils;
 
     @Qualifier("agentFlowClock")

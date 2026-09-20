@@ -1,12 +1,15 @@
 package top.egon.cola.component.agentflow.autoconfigure;
 
+import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.ListableBeanFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.bind.BindHandler;
 import org.springframework.boot.context.properties.bind.Bindable;
 import org.springframework.boot.context.properties.bind.Binder;
@@ -34,7 +37,11 @@ import java.util.Objects;
 /**
  * Wires the flat Agent Flow starter only when the host explicitly enables it.
  */
-@AutoConfiguration
+@AutoConfiguration(
+        after = ValidationAutoConfiguration.class,
+        // MyBatis-Plus publishes the same canonical facade unconditionally; run after it so this
+        // starter never registers a second bean under that name.
+        afterName = "top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration")
 @ConditionalOnProperty(
         prefix = "egon.cola.component.agent-flow",
         name = "enabled",
@@ -57,16 +64,19 @@ public class AgentFlowAutoConfiguration {
                 new NoUnboundElementsBindHandler(BindHandler.DEFAULT));
     }
 
-    @Bean(name = "agentFlowValidationUtils")
-    @ConditionalOnMissingBean(name = "agentFlowValidationUtils")
-    public ValidationUtils agentFlowValidationUtils(Validator validator) {
-        return new ValidationUtils(validator);
+    @Bean(name = "egonColaValidationUtils")
+    // The standalone starter cannot borrow the facade from MyBatis-Plus, so it publishes the canonical
+    // one itself, wrapping the Boot-managed Validator once instead of per request.
+    @ConditionalOnMissingBean(name = "egonColaValidationUtils")
+    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validators) {
+        return new ValidationUtils(validators.getIfAvailable(
+                () -> Validation.buildDefaultValidatorFactory().getValidator()));
     }
 
     @Bean(name = "agentFlowConfigValidator")
     @ConditionalOnMissingBean(name = "agentFlowConfigValidator")
     public AgentFlowConfigValidator agentFlowConfigValidator(
-            @Qualifier("agentFlowValidationUtils") ValidationUtils validationUtils) {
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils) {
         return new AgentFlowConfigValidator(validationUtils);
     }
 
@@ -157,7 +167,7 @@ public class AgentFlowAutoConfiguration {
             @Qualifier("agentFlowRegistry") AgentFlowRegistry registry,
             @Qualifier("agentFlowSessionExecutionGuard") AgentFlowSessionExecutionGuard guard,
             @Qualifier("agentFlowProperties") AgentFlowProperties properties,
-            @Qualifier("agentFlowValidationUtils") ValidationUtils validationUtils,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils,
             @Qualifier("agentFlowClock") Clock clock) {
         return new DefaultAgentFlowService(registry, guard, properties, validationUtils, clock);
     }

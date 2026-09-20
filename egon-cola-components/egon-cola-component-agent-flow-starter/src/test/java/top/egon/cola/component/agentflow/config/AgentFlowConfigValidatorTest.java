@@ -5,7 +5,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.agentflow.autoconfigure.AgentFlowProperties;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.time.Duration;

@@ -8,7 +8,7 @@ import io.reactivex.rxjava3.core.Flowable;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.agentflow.config.AgentWorkflowConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentWorkflowTypeEnum;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 
 import java.util.List;
 

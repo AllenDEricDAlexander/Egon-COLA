@@ -1,4 +1,4 @@
-package top.egon.cola.component.agentflow.exception;
+package top.egon.cola.component.agentflow.common.exception;
 
 /** Raised when an ADK execution fails after the session boundary has been accepted. */
 public class AgentFlowExecutionException extends AgentFlowException {

@@ -1,4 +1,4 @@
-package top.egon.cola.component.agentflow.exception;
+package top.egon.cola.component.agentflow.common.exception;
 
 /** Raised when a flow execution exceeds its configured total deadline. */
 public class AgentFlowExecutionTimeoutException extends AgentFlowException {

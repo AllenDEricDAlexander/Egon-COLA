@@ -12,7 +12,7 @@ import top.egon.cola.component.agentflow.config.AgentFlowConfigValidator;
 import top.egon.cola.component.agentflow.config.AgentWorkflowConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentWorkflowTypeEnum;
 import top.egon.cola.component.agentflow.autoconfigure.AgentFlowProperties;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 
 import java.time.Clock;
 import java.time.Duration;

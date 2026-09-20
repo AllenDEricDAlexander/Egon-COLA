@@ -1,4 +1,4 @@
-package top.egon.cola.component.agentflow.exception;
+package top.egon.cola.component.agentflow.common.exception;
 
 /** Safe configuration failure that identifies only the offending flow/node boundary. */
 public class AgentFlowConfigurationException extends AgentFlowException {

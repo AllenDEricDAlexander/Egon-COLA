@@ -10,7 +10,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.agentflow.config.AgentConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentFlowConfigDTO;
 import top.egon.cola.component.agentflow.config.AgentWorkflowConfigDTO;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 import top.egon.cola.component.agentflow.workflow.AgentWorkflowStrategyFactory;
 
 import java.util.HashMap;

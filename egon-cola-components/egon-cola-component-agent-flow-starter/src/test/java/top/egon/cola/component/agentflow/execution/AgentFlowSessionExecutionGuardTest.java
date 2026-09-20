@@ -1,8 +1,8 @@
 package top.egon.cola.component.agentflow.execution;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.agentflow.exception.AgentFlowException;
-import top.egon.cola.component.agentflow.exception.AgentFlowSessionBusyException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowSessionBusyException;
 
 import java.time.Duration;
 

@@ -4,7 +4,7 @@ import com.google.adk.models.BaseLlm;
 import com.google.adk.models.springai.SpringAI;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.chat.model.ChatModel;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 
 /** Creates the official Google ADK Spring AI adapter for a host-provided model. */
 @Slf4j

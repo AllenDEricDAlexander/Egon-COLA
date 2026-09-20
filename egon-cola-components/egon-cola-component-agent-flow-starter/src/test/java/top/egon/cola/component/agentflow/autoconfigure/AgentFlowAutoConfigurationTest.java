@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import top.egon.cola.component.agentflow.api.AgentFlowService;
 import top.egon.cola.component.agentflow.config.AgentFlowConfigValidator;
-import top.egon.cola.component.agentflow.exception.AgentFlowException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowException;
 import top.egon.cola.component.agentflow.execution.AgentFlowSessionExecutionGuard;
 import top.egon.cola.component.agentflow.runtime.AgentFlowRegistry;
 
@@ -121,7 +121,7 @@ class AgentFlowAutoConfigurationTest {
     private static final String[] AGENT_FLOW_BEAN_NAMES = {
             "agentFlowClock",
             "agentFlowProperties",
-            "agentFlowValidationUtils",
+            "egonColaValidationUtils",
             "agentFlowConfigValidator",
             "sequentialAgentWorkflowBuilderStrategy",
             "parallelAgentWorkflowBuilderStrategy",

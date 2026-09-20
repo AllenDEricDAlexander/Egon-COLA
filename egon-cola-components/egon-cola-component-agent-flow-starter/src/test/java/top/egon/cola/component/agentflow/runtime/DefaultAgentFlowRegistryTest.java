@@ -7,8 +7,8 @@ import com.google.adk.runner.InMemoryRunner;
 import io.reactivex.rxjava3.core.Completable;
 import io.reactivex.rxjava3.core.Flowable;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.agentflow.exception.AgentFlowException;
-import top.egon.cola.component.agentflow.exception.AgentFlowNotFoundException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowNotFoundException;
 
 import java.time.Duration;
 import java.time.Instant;

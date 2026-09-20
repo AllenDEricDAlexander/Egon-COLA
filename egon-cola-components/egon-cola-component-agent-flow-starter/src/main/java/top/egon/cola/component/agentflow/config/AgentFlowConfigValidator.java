@@ -5,7 +5,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.agentflow.autoconfigure.AgentFlowProperties;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.common.core.validation.BaseValidator;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.time.Duration;
@@ -22,7 +23,7 @@ import java.util.regex.Pattern;
 /** Validates field constraints and the single-root Agent Flow graph before ADK construction. */
 @RequiredArgsConstructor
 @Slf4j
-public class AgentFlowConfigValidator {
+public class AgentFlowConfigValidator extends BaseValidator {
 
     private static final Pattern ADK_NAME_PATTERN =
             Pattern.compile("^_?[a-zA-Z0-9]*([. _-][a-zA-Z0-9]+)*$");
@@ -31,14 +32,19 @@ public class AgentFlowConfigValidator {
     private static final int MAX_CHILDREN = 128;
     private static final int MAX_LOOP_ITERATIONS = 100;
 
-    @Qualifier("agentFlowValidationUtils")
+    @Qualifier("egonColaValidationUtils")
     private final ValidationUtils validationUtils;
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
 
     public AgentFlowProperties validate(AgentFlowProperties properties) {
         log.debug("Validating Agent Flow configuration enabled={} flowCount={}",
                 properties != null && properties.enabled(), properties == null ? 0 : properties.flows().size());
         try {
-            validationUtils.validate(properties);
+            validateBean(properties);
         } catch (ConstraintViolationException failure) {
             String property = failure.getConstraintViolations().stream()
                     .map(violation -> violation.getPropertyPath().toString())

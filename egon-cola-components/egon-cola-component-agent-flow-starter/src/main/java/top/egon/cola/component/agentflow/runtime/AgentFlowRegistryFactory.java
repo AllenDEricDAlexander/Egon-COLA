@@ -8,7 +8,7 @@ import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.agentflow.autoconfigure.AgentFlowProperties;
 import top.egon.cola.component.agentflow.config.AgentFlowConfigDTO;
-import top.egon.cola.component.agentflow.exception.AgentFlowConfigurationException;
+import top.egon.cola.component.agentflow.common.exception.AgentFlowConfigurationException;
 
 import java.time.Clock;
 import java.util.ArrayList;
