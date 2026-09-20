@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serial;
-import java.io.Serializable;
 
 /**
  * Common page query with safe page number and page size normalization.
@@ -21,7 +20,7 @@ import java.io.Serializable;
 public record PageQuery(
         @JsonProperty("pageNo") int pageNo,
         @JsonProperty("pageSize") int pageSize
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

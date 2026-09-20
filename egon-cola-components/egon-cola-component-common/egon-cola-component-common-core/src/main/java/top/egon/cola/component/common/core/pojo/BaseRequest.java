@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serial;
-import java.io.Serializable;
 
 /**
  * Base request record carrying optional operator metadata.
@@ -19,7 +18,7 @@ import java.io.Serializable;
 @JsonPropertyOrder({"operator"})
 public record BaseRequest(
         @JsonProperty("operator") OperatorContext operator
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

@@ -1,9 +1,13 @@
 package top.egon.cola.component.common.pojo;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.BasePojo;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 
+import java.io.Serializable;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 
 class PageQueryTest {
 
@@ -28,5 +32,11 @@ class PageQueryTest {
         PageQuery query = new PageQuery(1, 999);
 
         assertEquals(PageQuery.MAX_PAGE_SIZE, query.pageSize());
+    }
+
+    @Test
+    void pageQueryCarriesTheCommonCarrierContract() {
+        assertInstanceOf(BasePojo.class, new PageQuery(3, 20));
+        assertInstanceOf(Serializable.class, new PageQuery(3, 20));
     }
 }

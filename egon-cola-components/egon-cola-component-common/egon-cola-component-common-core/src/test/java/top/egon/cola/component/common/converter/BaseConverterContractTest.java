@@ -6,11 +6,14 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.component.common.core.converter.BaseConverter;
+import top.egon.cola.component.common.core.converter.BaseForwardConverter;
 
+import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 class BaseConverterContractTest {
 
@@ -25,12 +28,23 @@ class BaseConverterContractTest {
     }
 
     @Test
-    void defaultDateMappingUsesCommonDateTimePattern() {
-        BaseConverter<Category, CategoryDto> converter = new ManualCategoryConverter();
+    void legacyDateCodecIsRemovedSoProtocolTimeStaysOwnedByEachMapper() {
+        assertFalse(Arrays.stream(BaseConverter.class.getMethods())
+                .anyMatch(method -> "map".equals(method.getName())));
+        assertFalse(Arrays.stream(BaseConverter.class.getDeclaredMethods())
+                .anyMatch(method -> Date.class.equals(method.getReturnType())
+                        || Arrays.asList(method.getParameterTypes()).contains(Date.class)));
+    }
 
-        assertEquals("2026-07-08 10:00:00", converter.map(converter.map("2026-07-08 10:00:00")));
-        assertNull(converter.map("invalid"));
-        assertNull(converter.map((String) null));
+    @Test
+    void forwardProjectionContractStaysOneWay() {
+        BaseForwardConverter<Category, CategoryDto> projection = source -> new CategoryDto(source.id(), source.name());
+
+        assertEquals(new CategoryDto(4L, "music"), projection.toTarget(new Category(4L, "music")));
+        assertEquals(List.of(), projection.toTargetList(null));
+        assertEquals(List.of(new CategoryDto(4L, "music")), projection.toTargetList(List.of(new Category(4L, "music"))));
+        assertFalse(Arrays.stream(BaseForwardConverter.class.getMethods())
+                .anyMatch(method -> "toSource".equals(method.getName())));
     }
 
     @Test

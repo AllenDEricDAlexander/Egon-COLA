@@ -10,7 +10,6 @@ import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -41,7 +40,7 @@ public record PageResultRecord<T>(
         @JsonProperty("page") PageMetaRecord page,
         @JsonProperty("traceId") String traceId,
         @JsonProperty("timestamp") Long timestamp
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

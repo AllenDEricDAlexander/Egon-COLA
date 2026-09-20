@@ -12,7 +12,6 @@ import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.time.Instant;
 
 /**
@@ -38,7 +37,7 @@ public record ResultRecord<T>(
         @JsonProperty("data") @Schema(description = "业务返回数据；失败或无返回值时可为空") T data,
         @JsonProperty("traceId") @Schema(description = "请求链路追踪 ID，可用于关联服务日志") String traceId,
         @JsonProperty("timestamp") @Schema(description = "响应生成时间，Unix 毫秒时间戳") Long timestamp
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

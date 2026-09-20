@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serial;
-import java.io.Serializable;
 
 /**
  * Operator identity attached to commands, queries, or audit context.
@@ -23,7 +22,7 @@ public record OperatorContext(
         @JsonProperty("userId") String userId,
         @JsonProperty("userName") String userName,
         @JsonProperty("tenantId") String tenantId
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

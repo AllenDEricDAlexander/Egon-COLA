@@ -1,9 +1,14 @@
 package top.egon.cola.component.common.core.pojo;
 
+import java.io.Serial;
+
 /**
  * Options controlling tree construction.
  */
-public class TreeOptions {
+public class TreeOptions implements BasePojo {
+
+    @Serial
+    private static final long serialVersionUID = 1L;
 
     private boolean keepOrphansAsRoots = true;
 

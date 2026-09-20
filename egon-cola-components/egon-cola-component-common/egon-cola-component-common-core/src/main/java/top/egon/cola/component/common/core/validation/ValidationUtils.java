@@ -4,12 +4,14 @@ import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import jakarta.validation.Validator;
 import jakarta.validation.groups.Default;
+import top.egon.cola.component.common.core.exception.CommonException;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Supplier;
 
 /**
  * Stateless facade for manual Jakarta Bean Validation at an object boundary.
@@ -26,6 +28,24 @@ public final class ValidationUtils {
 
     public ValidationUtils(Validator validator) {
         this.validator = requireArgument(validator, "validator");
+    }
+
+    /**
+     * Shared presence guard for facade and adapter entry points.
+     *
+     * <p>The caller supplies the concrete common failure, so the original code, status and message
+     * stay intact instead of collapsing into a generic error.</p>
+     *
+     * @param value value that must be present
+     * @param failure supplier of the concrete common failure
+     * @param <T> value type
+     * @return the verified value
+     */
+    public static <T> T requireNotNull(T value, Supplier<? extends CommonException> failure) {
+        if (value == null) {
+            throw Objects.requireNonNull(failure, "failure supplier").get();
+        }
+        return value;
     }
 
     public <T> T validate(T target, Class<?>... groups) {

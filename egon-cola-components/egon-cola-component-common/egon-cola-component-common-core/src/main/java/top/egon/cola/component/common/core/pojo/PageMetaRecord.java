@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serial;
-import java.io.Serializable;
 
 /**
  * Pagination metadata shared by page response records.
@@ -29,7 +28,7 @@ public record PageMetaRecord(
         @JsonProperty("pages") long pages,
         @JsonProperty("hasNext") boolean hasNext,
         @JsonProperty("hasPrevious") boolean hasPrevious
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

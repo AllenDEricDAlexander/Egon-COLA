@@ -1,13 +1,20 @@
 package top.egon.cola.component.common.pojo;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.BasePojo;
 import top.egon.cola.component.common.core.pojo.TreeBuilder;
 import top.egon.cola.component.common.core.pojo.TreeNode;
 import top.egon.cola.component.common.core.pojo.TreeOptions;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -76,5 +83,33 @@ class TreeBuilderTest {
         options.setFailOnCycle(true);
 
         assertThrows(IllegalArgumentException.class, () -> TreeBuilder.build(List.of(a, b), options));
+    }
+
+    @Test
+    void treeCarriersCarryTheCommonCarrierContract() throws Exception {
+        TreeNode<Long, String> node = new TreeNode<>(1L, null, "root");
+        TreeOptions options = new TreeOptions().setFailOnCycle(true);
+
+        assertInstanceOf(BasePojo.class, node);
+        assertInstanceOf(BasePojo.class, options);
+        assertEquals(node, TreeBuilderTest.<TreeNode<Long, String>>deserialize(serialize(node)));
+        TreeOptions restoredOptions = TreeBuilderTest.<TreeOptions>deserialize(serialize(options));
+        assertTrue(restoredOptions.isFailOnCycle());
+        assertTrue(restoredOptions.isKeepOrphansAsRoots());
+    }
+
+    private static <T extends Serializable> byte[] serialize(T value) throws Exception {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        try (ObjectOutputStream output = new ObjectOutputStream(bytes)) {
+            output.writeObject(value);
+        }
+        return bytes.toByteArray();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T> T deserialize(byte[] bytes) throws Exception {
+        try (ObjectInputStream input = new ObjectInputStream(new ByteArrayInputStream(bytes))) {
+            return (T) input.readObject();
+        }
     }
 }

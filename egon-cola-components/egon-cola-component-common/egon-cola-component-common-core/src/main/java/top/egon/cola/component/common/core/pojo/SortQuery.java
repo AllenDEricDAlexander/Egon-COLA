@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.util.Locale;
 
 /**
@@ -22,7 +21,7 @@ import java.util.Locale;
 public record SortQuery(
         @JsonProperty("sortBy") String sortBy,
         @JsonProperty("sortDirection") String sortDirection
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

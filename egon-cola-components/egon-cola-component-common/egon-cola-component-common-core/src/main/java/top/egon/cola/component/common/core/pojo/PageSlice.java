@@ -7,7 +7,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 
 import java.io.Serial;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -25,7 +24,7 @@ import java.util.List;
 public record PageSlice<T>(
         @JsonProperty("records") List<T> records,
         @JsonProperty("hasNext") boolean hasNext
-) implements Serializable {
+) implements BasePojo {
 
     @Serial
     @JsonIgnore

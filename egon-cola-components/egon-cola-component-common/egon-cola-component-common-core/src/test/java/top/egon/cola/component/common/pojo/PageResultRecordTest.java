@@ -1,12 +1,15 @@
 package top.egon.cola.component.common.pojo;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.pojo.BasePojo;
 import top.egon.cola.component.common.core.pojo.PageResultRecord;
 
+import java.io.Serializable;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -43,5 +46,14 @@ class PageResultRecordTest {
         PageResultRecord<String> page = PageResultRecord.success(List.of("a"), 1, 1, 10);
 
         assertThrows(UnsupportedOperationException.class, () -> page.records().add("b"));
+    }
+
+    @Test
+    void pageResultRecordAndItsMetadataCarryTheCommonCarrierContract() {
+        PageResultRecord<String> page = PageResultRecord.success(List.of("a"), 1, 1, 10);
+
+        assertInstanceOf(BasePojo.class, page);
+        assertInstanceOf(BasePojo.class, page.page());
+        assertInstanceOf(Serializable.class, page);
     }
 }
