@@ -4,15 +4,22 @@ import top.egon.cola.component.bytecode.bridge.AgentBridgeStatus;
 import top.egon.cola.component.bytecode.bridge.BridgeCapability;
 import top.egon.cola.component.bytecode.bridge.BridgeProtocol;
 import top.egon.cola.component.bytecode.bridge.DispatcherRegistry;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-public final class BytecodeStartupValidator {
+import java.util.Objects;
 
+public final class BytecodeStartupValidator extends BaseValidator {
+
+    private final ValidationUtils validationUtils;
     private final Validation validation;
     private final AgentBridgeStatus agentStatus;
 
-    public BytecodeStartupValidator() {
+    public BytecodeStartupValidator(ValidationUtils validationUtils) {
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
         AgentBridgeStatus status = DispatcherRegistry.agentStatus();
         this.agentStatus = status;
+        validateBean(status);
         boolean agentAvailable = !"DISABLED".equals(status.state());
         boolean compatible = !agentAvailable || status.protocolMajor() == BridgeProtocol.MAJOR;
         this.validation = new Validation(
@@ -28,6 +35,11 @@ public final class BytecodeStartupValidator {
             throw new IllegalStateException(
                     "Bytecode Agent entered fatal state before Spring startup");
         }
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
     }
 
     public Validation validation() {

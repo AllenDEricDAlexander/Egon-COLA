@@ -24,6 +24,7 @@ import top.egon.cola.component.bytecode.core.architecture.LayerMapping;
 import top.egon.cola.component.bytecode.core.architecture.rule.BuiltInArchitectureRules;
 import top.egon.cola.component.bytecode.core.classfile.AsmClassMetadataReader;
 import top.egon.cola.component.bytecode.core.classfile.ClassMetadata;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -113,21 +114,35 @@ public class ArchitectureScanBenchmark {
     private record ClassFixture(String module, byte[] classBytes) {
     }
 
-    private enum ArchitectureClassLayer {
-        DOMAIN("domain", "domain"),
-        APPLICATION("application", "application"),
-        INFRASTRUCTURE("infrastructure", "infrastructure"),
-        ADAPTER("adapter", "adapter"),
-        FACADE("facade", "facade"),
-        STARTER("starter", "starter"),
-        COMMON("common", "common");
+    private enum ArchitectureClassLayer implements EgonEnum {
+        DOMAIN(0, "DOMAIN", "domain", "domain"),
+        APPLICATION(1, "APPLICATION", "application", "application"),
+        INFRASTRUCTURE(2, "INFRASTRUCTURE", "infrastructure", "infrastructure"),
+        ADAPTER(3, "ADAPTER", "adapter", "adapter"),
+        FACADE(4, "FACADE", "facade", "facade"),
+        STARTER(5, "STARTER", "starter", "starter"),
+        COMMON(6, "COMMON", "common", "common");
 
+        private final int code;
+        private final String message;
         private final String packageName;
         private final String moduleSuffix;
 
-        ArchitectureClassLayer(String packageName, String moduleSuffix) {
+        ArchitectureClassLayer(int code, String message, String packageName, String moduleSuffix) {
+            this.code = code;
+            this.message = message;
             this.packageName = packageName;
             this.moduleSuffix = moduleSuffix;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
         }
     }
 }

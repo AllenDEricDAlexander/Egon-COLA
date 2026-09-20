@@ -1,11 +1,15 @@
 package top.egon.cola.component.bytecode.starter;
 
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.bytecode.api.executor.ContextCarrier;
@@ -22,12 +26,13 @@ import top.egon.cola.component.bytecode.runtime.methodextension.MethodExtensionI
 import top.egon.cola.component.bytecode.runtime.observation.ObservationRuntime;
 import top.egon.cola.component.bytecode.starter.context.MdcContextCarrier;
 import top.egon.cola.component.bytecode.bridge.BytecodeRuntimeDispatcher;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.trace.TraceContext;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@AutoConfiguration
+@AutoConfiguration(after = ValidationAutoConfiguration.class)
 @EnableConfigurationProperties(BytecodeProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.component.bytecode",
@@ -37,10 +42,21 @@ import java.util.concurrent.TimeUnit;
 )
 public class BytecodeAutoConfiguration {
 
+    @Bean(name = "egonColaValidationUtils")
+    // The standalone starter cannot borrow the facade from MyBatis-Plus, so it publishes the canonical
+    // one itself, wrapping the Boot-managed Validator once instead of per request.
+    @ConditionalOnMissingBean(name = "egonColaValidationUtils")
+    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validators) {
+        return new ValidationUtils(validators.getIfAvailable(
+                () -> Validation.buildDefaultValidatorFactory().getValidator()));
+    }
+
     @Bean
     @ConditionalOnMissingBean
-    public BytecodeStartupValidator bytecodeStartupValidator() {
-        return new BytecodeStartupValidator();
+    public BytecodeStartupValidator bytecodeStartupValidator(
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
+    ) {
+        return new BytecodeStartupValidator(validationUtils);
     }
 
     @Bean

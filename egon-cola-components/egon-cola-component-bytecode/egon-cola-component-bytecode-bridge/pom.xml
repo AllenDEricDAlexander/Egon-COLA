@@ -12,4 +12,17 @@
     <artifactId>egon-cola-component-bytecode-bridge</artifactId>
     <name>egon-cola-component-bytecode-bridge</name>
     <description>JDK-only ClassLoader bridge for Egon COLA bytecode enhancements.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
 </project>

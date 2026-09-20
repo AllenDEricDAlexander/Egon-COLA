@@ -8,6 +8,7 @@ import top.egon.cola.component.bytecode.api.observation.ObservationEvent;
 import top.egon.cola.component.bytecode.api.observation.ObservationEventSink;
 import top.egon.cola.component.bytecode.api.observation.ObservationResult;
 import top.egon.cola.component.bytecode.starter.observation.ObservationMetadataValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.time.Duration;
 import java.util.Map;
@@ -21,8 +22,11 @@ public final class MicrometerObservationEventSink implements ObservationEventSin
     private final MeterRegistry registry;
     private final ObservationMetadataValidator metadataValidator;
 
-    public MicrometerObservationEventSink(MeterRegistry registry) {
-        this(registry, new ObservationMetadataValidator());
+    public MicrometerObservationEventSink(
+            MeterRegistry registry,
+            ValidationUtils validationUtils
+    ) {
+        this(registry, new ObservationMetadataValidator(validationUtils));
     }
 
     public MicrometerObservationEventSink(

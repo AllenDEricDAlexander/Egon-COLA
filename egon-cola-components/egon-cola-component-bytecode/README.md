@@ -22,6 +22,22 @@ The Maven plugin, test, and benchmark modules are repository tooling. Business
 applications consume the BOM-managed API/runtime/Agent/starter artifacts and use the
 plugin only in their build when architecture checks are required.
 
+## Contract Conventions
+
+Every handwritten enum in this component implements the common-core `EgonEnum` contract with
+fixed integer codes assigned in declaration order (`DISABLED=0` … `FAILED=4`, `EXTENDS=0` …
+`CONSTANT_POOL=20`), never derived from `ordinal()`, while the bridge protocol, Agent
+configuration, Maven rule configuration and JSON typing keep matching on the constant names.
+Because the public API is JDK-only, `egon-cola-component-bytecode-api` and
+`egon-cola-component-bytecode-bridge` declare `egon-cola-component-common-core` with all of its
+transitive dependencies excluded, and the shaded Agent JAR whitelists the single
+`top/egon/cola/component/common/core/enums/EgonEnum.class` entry instead of relocating a copy.
+
+The starter publishes the canonical `egonColaValidationUtils` facade once.
+`BytecodeStartupValidator` and `ObservationMetadataValidator` extend the common `BaseValidator`
+and run the native Jakarta constraints through it before their own protocol and tag relation
+checks, so a rejected observation payload never reaches the `MeterRegistry`.
+
 ## Runtime Agent Installation
 
 The runtime enhancement has two independently installed parts. Add the Spring starter to the application and pass the separately published shaded Agent JAR to the JVM before the application main class:

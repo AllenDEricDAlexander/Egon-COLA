@@ -2,9 +2,11 @@ package top.egon.cola.component.bytecode.starter.metrics;
 
 import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.bytecode.api.observation.ObservationEvent;
 import top.egon.cola.component.bytecode.api.observation.ObservationResult;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.util.Map;
 import java.util.Set;
@@ -16,10 +18,14 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class MicrometerObservationEventSinkTest {
 
+    private static final ValidationUtils VALIDATION_UTILS = new ValidationUtils(
+            Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void publishesDurationErrorsAndSlowCountsWithBoundedTags() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        MicrometerObservationEventSink sink = new MicrometerObservationEventSink(registry);
+        MicrometerObservationEventSink sink = new MicrometerObservationEventSink(
+                registry, VALIDATION_UTILS);
 
         sink.publish(event(ObservationResult.SUCCESS, "NONE", 5_000L, 10_000L));
         sink.publish(event(
@@ -41,7 +47,8 @@ class MicrometerObservationEventSinkTest {
     @Test
     void rejectsDynamicOrUnboundedStaticTags() {
         SimpleMeterRegistry registry = new SimpleMeterRegistry();
-        MicrometerObservationEventSink sink = new MicrometerObservationEventSink(registry);
+        MicrometerObservationEventSink sink = new MicrometerObservationEventSink(
+                registry, VALIDATION_UTILS);
         ObservationEvent invalid = new ObservationEvent(
                 1L, "sample.Service", "work", "()V", "APPLICATION",
                 10L, ObservationResult.SUCCESS, "NONE", "secret-trace", false,

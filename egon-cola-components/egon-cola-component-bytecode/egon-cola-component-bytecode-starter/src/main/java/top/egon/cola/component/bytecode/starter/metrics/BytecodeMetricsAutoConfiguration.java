@@ -1,6 +1,7 @@
 package top.egon.cola.component.bytecode.starter.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -10,6 +11,7 @@ import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.bytecode.starter.BytecodeProperties;
 import top.egon.cola.component.bytecode.starter.BytecodeStartupValidator;
 import top.egon.cola.component.bytecode.starter.observation.ObservationMetadataValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @AutoConfiguration
 @ConditionalOnClass(MeterRegistry.class)
@@ -34,8 +36,10 @@ public class BytecodeMetricsAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public ObservationMetadataValidator observationMetadataValidator() {
-        return new ObservationMetadataValidator();
+    public ObservationMetadataValidator observationMetadataValidator(
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
+    ) {
+        return new ObservationMetadataValidator(validationUtils);
     }
 
     @Bean

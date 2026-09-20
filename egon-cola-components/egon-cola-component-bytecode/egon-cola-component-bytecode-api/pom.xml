@@ -12,4 +12,17 @@
     <artifactId>egon-cola-component-bytecode-api</artifactId>
     <name>egon-cola-component-bytecode-api</name>
     <description>JDK-only public contracts for Egon COLA bytecode capabilities.</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-core</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+    </dependencies>
 </project>

@@ -1,10 +1,14 @@
 package top.egon.cola.component.bytecode.starter.observation;
 
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-public final class ObservationMetadataValidator {
+public final class ObservationMetadataValidator extends BaseValidator {
 
     private static final int MAXIMUM_TAGS = 8;
     private static final int MAXIMUM_VALUE_LENGTH = 128;
@@ -15,7 +19,19 @@ public final class ObservationMetadataValidator {
             "virtual_thread", "trace_id", "request_id", "thread",
             "method_descriptor");
 
+    private final ValidationUtils validationUtils;
+
+    public ObservationMetadataValidator(ValidationUtils validationUtils) {
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
+
     public void validate(Map<String, String> staticTags) {
+        validateBean(staticTags);
         if (staticTags.size() > MAXIMUM_TAGS) {
             throw new IllegalArgumentException(
                     "observation static tags must not exceed " + MAXIMUM_TAGS);
