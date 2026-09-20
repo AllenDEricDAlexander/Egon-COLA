@@ -16,7 +16,7 @@ import java.util.regex.Pattern;
  * @param occurredAt     发生时间（UTC）
  * @param cacheName      缓存区域名，{@code [A-Za-z0-9_.-]{1,100}}
  * @param operation      操作类型
- * @param keys           同租户键集合：EVICT/PUT 为精确键 {@code tenantId:id}，
+ * @param keys           同租户键集合：EVICT/PUT 为精确键 {@code tenantId:businessKey}，
  *                       PREFIX_EVICT 仅允许 glob {@code tenantId:*}
  */
 public record EgonColaCacheChangedEvent(int schemaVersion, String eventId, String originNodeId,
@@ -59,7 +59,7 @@ public record EgonColaCacheChangedEvent(int schemaVersion, String eventId, Strin
      */
     public static final class KeyGuard {
 
-        private static final Pattern EXACT = Pattern.compile("^\\d+:\\d+$");
+        private static final Pattern EXACT = Pattern.compile("^\\d+:[^*\\p{Cntrl}]+$");
         private static final Pattern GLOB = Pattern.compile("^\\d+:\\*$");
         private static final Pattern NAME = Pattern.compile("^[A-Za-z0-9_.-]{1,100}$");
 

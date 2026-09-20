@@ -2,14 +2,12 @@ package top.egon.cola.component.common.mybatis.contract;
 
 import org.junit.jupiter.api.Test;
 
-import java.io.Serializable;
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -48,11 +46,6 @@ class EgonColaRepositoryArchitectureTest {
                         && !Modifier.isStatic(method.getModifiers()))
                 .map(MethodKeyBO::of)
                 .collect(Collectors.toSet());
-        // Spec §16 step ④: whitelist amendment for the declarative cached reads; exact equality below.
-        expected.addAll(Set.of(
-                MethodKeyBO.of(implementation.getMethod("getByCache", Serializable.class)),
-                MethodKeyBO.of(implementation.getMethod("listByCache", Collection.class))));
-
         assertEquals(expected, Arrays.stream(implementation.getDeclaredMethods())
                 .filter(method -> Modifier.isPublic(method.getModifiers()) && !method.isSynthetic())
                 .map(MethodKeyBO::of)

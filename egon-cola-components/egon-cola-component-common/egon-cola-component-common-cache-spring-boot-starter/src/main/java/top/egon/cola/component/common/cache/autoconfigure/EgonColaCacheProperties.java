@@ -1,6 +1,7 @@
 package top.egon.cola.component.common.cache.autoconfigure;
 
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
@@ -10,6 +11,8 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
 
 import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * 两级缓存组件配置面，键树以主 Spec §16 为准；默认整体关闭（{@code enabled=false}），
@@ -32,6 +35,11 @@ public class EgonColaCacheProperties {
     private L1 l1 = new L1();
     @Valid
     private Ttl ttl = new Ttl();
+    /**
+     * 按区域覆写 TTL，未配置字段继承全局 ttl。
+     */
+    @Valid
+    private Map<String, RegionTtl> regions = new LinkedHashMap<>();
     @Valid
     private Batch batch = new Batch();
     @Valid
@@ -60,6 +68,28 @@ public class EgonColaCacheProperties {
         @DecimalMin("0.0")
         @DecimalMax("0.5")
         private double jitterRatio = 0.1;
+
+        @AssertTrue(message = "TTL must be at least one millisecond")
+        public boolean isDurationValid() {
+            return expire != null && expire.toMillis() > 0
+                    && nullExpire != null && nullExpire.toMillis() > 0;
+        }
+    }
+
+    @Data
+    public static class RegionTtl {
+
+        private Duration expire;
+        private Duration nullExpire;
+        @DecimalMin("0.0")
+        @DecimalMax("0.5")
+        private Double jitterRatio;
+
+        @AssertTrue(message = "region TTL must be at least one millisecond")
+        public boolean isDurationValid() {
+            return (expire == null || expire.toMillis() > 0)
+                    && (nullExpire == null || nullExpire.toMillis() > 0);
+        }
     }
 
     @Data

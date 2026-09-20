@@ -23,10 +23,8 @@ import org.apache.ibatis.executor.BatchResult;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.session.SqlSessionFactory;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.jdbc.datasource.ConnectionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import top.egon.cola.component.common.core.cache.EgonColaCachePort;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
@@ -37,13 +35,11 @@ import top.egon.cola.component.common.mybatis.model.EgonModel;
 import java.io.Serializable;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -68,28 +64,11 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
 
     protected abstract EgonColaMybatisPlusProperties getProperties();
 
-    /**
-     * 缓存端口挂点：默认 {@code null} 表示宿主未装配缓存端口 bean，全部读写路径直通基线逻辑；
-     * 模板子类可覆写本方法注入两级缓存 starter 的端口实现。
-     */
-    protected ObjectProvider<EgonColaCachePort> getCachePortProvider() {
-        return null;
-    }
-
-    /** 缓存区域名，默认实体类型简单名；模板子类可覆写以对齐宿主区域约定。 */
-    protected String cacheRegionName() {
-        return getEntityClass().getSimpleName();
-    }
-
     @Override
     public final boolean save(T entity) {
         requireTenantId();
         validateBusiness(entity, EgonColaModelValidationGroups.Operation.INSERT);
         boolean written = SqlHelper.retBool(getBaseMapper().insert(entity));
-        if (written) {
-            // Arrays.asList tolerates the not-yet-generated id; the null check happens at key assembly.
-            registerCacheEviction(Arrays.asList(entity.getId()), false);
-        }
         return written;
     }
 
@@ -102,7 +81,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         verifyTenantSnapshot(snapshot);
         executeMybatisBatch(entityList, batchSize, new MybatisBatch.Method<T>(getMapperClass()).insert());
         verifyTenantSnapshot(snapshot);
-        registerCacheEviction(entityList.stream().map(EgonModel::getId).toList(), false);
         return true;
     }
 
@@ -155,9 +133,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         validateBusiness(entity, EgonColaModelValidationGroups.Operation.DELETE);
         requireEntityId(entity);
         boolean written = SqlHelper.retBool(getBaseMapper().deleteVersionedById(entity));
-        if (written) {
-            registerCacheEviction(List.of(entity.getId()), false);
-        }
         return written;
     }
 
@@ -203,7 +178,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
                 return parameter;
             });
             executeMybatisBatch(entities, requireProperties().getBatch().getDefaultSize(), method);
-            registerCacheEviction(supplied.keySet(), false);
             return true;
         } catch (RuntimeException | Error failure) {
             transaction.setRollbackOnly();
@@ -223,9 +197,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         validateBusiness(entity, EgonColaModelValidationGroups.Operation.UPDATE);
         requireEntityId(entity);
         boolean written = SqlHelper.retBool(getBaseMapper().updateById(entity));
-        if (written) {
-            registerCacheEviction(List.of(entity.getId()), false);
-        }
         return written;
     }
 
@@ -241,10 +212,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         validateBusiness(entity, EgonColaModelValidationGroups.Operation.UPDATE);
         requireEntityId(entity);
         boolean written = SqlHelper.retBool(getBaseMapper().update(entity, checkedWrapper));
-        if (written) {
-            // The predicate-matched row set is not enumerable, so evict the whole tenant prefix.
-            registerCacheEviction(null, true);
-        }
         return written;
     }
 
@@ -257,7 +224,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         verifyTenantSnapshot(snapshot);
         executeMybatisBatch(entityList, batchSize, new MybatisBatch.Method<T>(getMapperClass()).updateById());
         verifyTenantSnapshot(snapshot);
-        registerCacheEviction(entityList.stream().map(EgonModel::getId).toList(), false);
         return true;
     }
 
@@ -279,22 +245,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         return Optional.ofNullable(getById(id));
     }
 
-    /**
-     * 声明式缓存单读：与 {@link #getById(Serializable)} 语义一致（缓存前置），键形状 {@code tenantId:id}；
-     * 缓存端口缺位时直通 {@code getById}。回源异常类型与 {@code getById} 完全一致。
-     */
-    @SuppressWarnings("unchecked")
-    public final T getByCache(Serializable id) {
-        requireTenantId();
-        requireSerializableId(id);
-        EgonColaCachePort port = cachePortOrNull();
-        if (port == null) {
-            return getById(id);
-        }
-        String key = requireTenantId() + ":" + id;
-        return (T) port.get(cacheRegionName(), key, () -> getById(id));
-    }
-
     @Override
     public final List<T> listByIds(Collection<? extends Serializable> idList) {
         requireTenantId();
@@ -304,29 +254,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         }
         List<Serializable> ids = idList.stream().map(EgonColaRepository::requireSerializableId).distinct().toList();
         return validateLoadedList(getBaseMapper().selectActiveByIds(ids));
-    }
-
-    /**
-     * 声明式缓存批读：与 {@link #listByIds(Collection)} 语义一致（逐键组装、去重保序、缺失剔除）；
-     * 缓存端口缺位时直通 {@code listByIds}。
-     */
-    @SuppressWarnings("unchecked")
-    public final List<T> listByCache(Collection<? extends Serializable> idList) {
-        requireTenantId();
-        requireCollection(idList);
-        if (idList.isEmpty()) {
-            return List.of();
-        }
-        EgonColaCachePort port = cachePortOrNull();
-        if (port == null) {
-            return listByIds(idList);
-        }
-        Long tenantId = requireTenantId();
-        List<String> keys = idList.stream().map(EgonColaRepository::requireSerializableId)
-                .distinct().map(id -> tenantId + ":" + id).toList();
-        return port.getAll(cacheRegionName(), keys,
-                k -> getById(Long.valueOf(k.substring(k.indexOf(':') + 1))))
-                .stream().filter(Objects::nonNull).map(v -> (T) v).toList();
     }
 
     @Override
@@ -752,26 +679,5 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
 
     private EgonColaMybatisPlusProperties requireProperties() {
         return Objects.requireNonNull(getProperties(), "properties must not be null");
-    }
-
-    private EgonColaCachePort cachePortOrNull() {
-        ObjectProvider<EgonColaCachePort> provider = getCachePortProvider();
-        return provider == null ? null : provider.getIfAvailable();
-    }
-
-    private void registerCacheEviction(Collection<? extends Serializable> ids, boolean prefixEvict) {
-        EgonColaCachePort port = cachePortOrNull();
-        if (port == null) {
-            return;
-        }
-        Long tenantId = requireTenantId();
-        List<String> exact = new ArrayList<>();
-        if (ids != null) {
-            for (Serializable id : new LinkedHashSet<>(ids)) {
-                exact.add(tenantId + ":" + requireSerializableId(id));
-            }
-        }
-        List<String> globs = prefixEvict ? List.of(tenantId + ":*") : List.of();
-        port.registerEvictionAfterCommit(cacheRegionName(), exact, globs);
     }
 }

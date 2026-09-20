@@ -81,6 +81,25 @@ class EgonColaCachePropertiesTest {
         assertRejected("egon.cola.component.cache.l1.max-size=0", "maxSize");
     }
 
+    @Test
+    void bindsPartialRegionTtlOverrides() {
+        contextRunner.withPropertyValues("egon.cola.component.cache.regions.users.expire=PT10S")
+                .run(context -> {
+                    var region = context.getBean(EgonColaCacheProperties.class).getRegions().get("users");
+                    assertThat(region.getExpire()).isEqualTo(Duration.ofSeconds(10));
+                    assertThat(region.getNullExpire()).isNull();
+                    assertThat(region.getJitterRatio()).isNull();
+                });
+    }
+
+    @Test
+    void rejectsNonPositiveTtlAndInvalidRegionJitter() {
+        assertRejected("egon.cola.component.cache.ttl.expire=PT0S", "durationValid");
+        assertRejected("egon.cola.component.cache.ttl.null-expire=PT-1S", "durationValid");
+        assertRejected("egon.cola.component.cache.regions.users.expire=PT0S", "durationValid");
+        assertRejected("egon.cola.component.cache.regions.users.jitter-ratio=0.6", "jitterRatio");
+    }
+
     private void assertRejected(String property, String violatedField) {
         contextRunner.withPropertyValues(property).run(context -> {
             assertThat(context).hasFailed();

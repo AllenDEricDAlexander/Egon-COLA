@@ -109,4 +109,8 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9081
 
 ## 二级缓存骨架（默认关闭）
 
-生成工程已内置 `egon-cola-component-common-cache-spring-boot-starter` 依赖与 `egon.cola.component.cache` 键块（`enabled: false`），不显式开启即运行行为零变化。启用两步：①装配 `RedissonClient` Bean——starter 绝不自建客户端，`enabled: true` 而客户端缺位时 fail-fast（按名优先、唯一兜底）；②置 `egon.cola.component.cache.enabled: true`。`CourseRepository` 已示范 `EgonColaCachePort` 端口注入：声明式缓存读直接调用 `getByCache`/`listByCache`，受控写方法提交后自动跨节点失效对应 `tenantId:id` 键（谓词更新失效租户前缀）。配置键、TTL 与 Redis 事件语义以组件文档为单一事实源：[cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。
+生成工程保留缓存 starter 依赖和默认 `enabled: false` 配置。启用时由宿主提供 `RedissonClient`，设置
+`egon.cola.component.cache.enabled=true`，并在配置类显式添加 `@EnableCaching`。mp-sd-ext 基类已移除缓存端口耦合，具体
+Repository 通过 `@CacheConfig`、`@Cacheable`、`@CacheEvict` 等注解声明策略；已有 Repository 示例使用 `findCachedById` /
+`updateCachedById`（Agent 按业务自行声明）。普通 CRUD
+不再隐式失效缓存，其他写入和删除入口也须声明失效。Key、条件、组合操作、事务与同步加载限制详见 [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)。

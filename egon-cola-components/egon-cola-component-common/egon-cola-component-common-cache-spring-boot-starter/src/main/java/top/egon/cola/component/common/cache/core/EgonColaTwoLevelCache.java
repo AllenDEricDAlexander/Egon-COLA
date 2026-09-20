@@ -14,7 +14,9 @@ import top.egon.cola.component.common.cache.model.EgonColaCacheNullValueBO;
 import java.time.Duration;
 import java.util.List;
 import java.util.Random;
-import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Callable;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +35,7 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
     private final EgonColaTwoLevelCacheManager manager;
     private final com.google.common.cache.Cache<String, L1Value> l1;
     private final Random random = new Random();
+    private final ConcurrentHashMap<String, CompletableFuture<Object>> loads = new ConcurrentHashMap<>();
 
     EgonColaTwoLevelCache(String name, EgonColaTwoLevelCacheManager manager) {
         super(true);
@@ -56,25 +59,63 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
     @Override
     public <T> T get(Object key, Callable<T> valueLoader) {
         String k = requireKey(key);
+        if (valueLoader == null) {
+            throw new IllegalArgumentException("CACHE_LOADER_REQUIRED");
+        }
+        // 事务内加载不能与其他事务共享未提交结果，也不能提前发布到缓存。
+        if (EgonColaTwoLevelCacheManager.inTransaction()) {
+            T value = callLoader(k, valueLoader);
+            put(k, value);
+            return value;
+        }
+        Object hit = lookup(k);
+        if (hit != null) {
+            return castValue(fromStoreValue(hit));
+        }
+        CompletableFuture<Object> pending = new CompletableFuture<>();
+        CompletableFuture<Object> existing = loads.putIfAbsent(k, pending);
+        if (existing != null) {
+            try {
+                return castValue(existing.join());
+            } catch (CompletionException ex) {
+                Throwable cause = ex.getCause();
+                throw new Cache.ValueRetrievalException(k, valueLoader,
+                        cause instanceof Cache.ValueRetrievalException retrieval ? retrieval.getCause() : cause);
+            }
+        }
+        try {
+            T value = loadWithLock(k, valueLoader);
+            pending.complete(value);
+            return value;
+        } catch (RuntimeException | Error ex) {
+            pending.completeExceptionally(ex);
+            throw ex;
+        } finally {
+            loads.remove(k, pending);
+        }
+    }
+
+    private <T> T loadWithLock(String k, Callable<T> valueLoader) {
         Object hit = lookup(k);
         if (hit != null) {
             return castValue(fromStoreValue(hit));
         }
         EgonColaCacheProperties.Lock lockConfig = manager.properties().getLock();
-        RLock lock = manager.lock(name, k);
+        RLock lock;
         boolean acquired;
         try {
+            lock = manager.lock(name, k);
             acquired = lock.tryLock(lockConfig.getWaitTime().toMillis(),
                     lockConfig.getLeaseTime().toMillis(), TimeUnit.MILLISECONDS);
         } catch (InterruptedException ex) {
             Thread.currentThread().interrupt();
-            return loadWithoutCaching(k, valueLoader);
+            return callLoader(k, valueLoader);
         } catch (RuntimeException ex) {
             log.warn("CACHE_L2_OPERATION_FAILED region={} op=LOCK_ACQUIRE", name, ex);
-            return loadWithoutCaching(k, valueLoader);
+            return callLoader(k, valueLoader);
         }
         if (!acquired) {
-            return loadWithoutCaching(k, valueLoader);
+            return callLoader(k, valueLoader);
         }
         try {
             Object recheck = lookup(k);
@@ -85,8 +126,12 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
             writeThrough(k, toStoreValue(value));
             return value;
         } finally {
-            if (lock.isHeldByCurrentThread()) {
-                lock.unlock();
+            try {
+                if (lock.isHeldByCurrentThread()) {
+                    lock.unlock();
+                }
+            } catch (RuntimeException ex) {
+                log.warn("CACHE_L2_OPERATION_FAILED region={} op=LOCK_RELEASE", name, ex);
             }
         }
     }
@@ -94,36 +139,51 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
     @Override
     public void put(Object key, Object value) {
         String k = requireKey(key);
-        writeThrough(k, toStoreValue(value));
+        Object stored = toStoreValue(value);
+        manager.afterCommit(() -> writeThrough(k, stored));
     }
 
     @Override
     public void evict(Object key) {
         String k = requireKey(key);
-        evictLocal(List.of(k));
-        manager.publish(name, EgonColaCacheChangedOperation.EVICT, List.of(k));
+        manager.afterCommit(() -> evictNow(k));
+    }
+
+    @Override
+    public boolean evictIfPresent(Object key) {
+        // Spring 用于 beforeInvocation=true，必须立即生效，不能延迟到提交后。
+        evictNow(requireKey(key));
+        return false;
+    }
+
+    private void evictNow(String key) {
+        evictLocal(List.of(key));
+        manager.publish(name, EgonColaCacheChangedOperation.EVICT, List.of(key));
     }
 
     @Override
     public void clear() {
-        l1.invalidateAll();
-        try {
-            RMapCache<String, Object> l2 = manager.l2(name);
-            Set<String> keys = l2.readAllKeySet();
-            int maxKeys = manager.properties().getBatch().getMaxKeys();
-            List<String> remaining = List.copyOf(keys);
-            for (int from = 0; from < remaining.size(); from += maxKeys) {
-                List<String> chunk = remaining.subList(from, Math.min(from + maxKeys, remaining.size()));
-                l2.fastRemove(chunk.toArray(String[]::new));
-            }
-        } catch (RuntimeException ex) {
-            log.warn("CACHE_L2_OPERATION_FAILED region={} op=CLEAR", name, ex);
-        }
+        String glob = manager.currentTenant() + ":*";
+        manager.afterCommit(() -> clearTenant(glob));
+    }
+
+    @Override
+    public boolean invalidate() {
+        clearTenant(manager.currentTenant() + ":*");
+        return false;
+    }
+
+    private void clearTenant(String glob) {
+        manager.applyLocalPrefixEviction(name, glob);
+        manager.publish(name, EgonColaCacheChangedOperation.PREFIX_EVICT, List.of(glob));
     }
 
     @Override
     protected Object lookup(Object key) {
         String k = requireKey(key);
+        if (EgonColaTwoLevelCacheManager.inTransaction()) {
+            return null;
+        }
         L1Value hit = l1.getIfPresent(k);
         if (hit != null) {
             if (hit.expireAtNanos() > System.nanoTime()) {
@@ -168,6 +228,7 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
     private Object fromL2(String k) {
         Object stored;
         long remainMillis;
+        long startedAt = System.nanoTime();
         try {
             RMapCache<String, Object> l2 = manager.l2(name);
             stored = l2.get(k);
@@ -179,10 +240,11 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
             log.warn("CACHE_L2_OPERATION_FAILED region={} op=LOOKUP", name, ex);
             return null;
         }
-        if (remainMillis <= 0) {
+        long deadline = startedAt + TimeUnit.MILLISECONDS.toNanos(remainMillis);
+        if (remainMillis <= 0 || deadline <= System.nanoTime()) {
             return null;
         }
-        l1.put(k, new L1Value(stored, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(remainMillis)));
+        l1.put(k, new L1Value(stored, deadline));
         return stored;
     }
 
@@ -199,12 +261,16 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
 
     private long ttlMillis(Object stored) {
         EgonColaCacheProperties.Ttl ttl = manager.properties().getTtl();
-        Duration base = stored instanceof EgonColaCacheNullValueBO ? ttl.getNullExpire() : ttl.getExpire();
-        return Jitter.jitteredMillis(base.toMillis(), ttl.getJitterRatio(), random);
-    }
-
-    private <T> T loadWithoutCaching(String k, Callable<T> valueLoader) {
-        return callLoader(k, valueLoader);
+        boolean nullValue = stored instanceof EgonColaCacheNullValueBO;
+        Duration base = nullValue ? ttl.getNullExpire() : ttl.getExpire();
+        double ratio = ttl.getJitterRatio();
+        EgonColaCacheProperties.RegionTtl region = manager.properties().getRegions().get(name);
+        if (region != null) {
+            Duration override = nullValue ? region.getNullExpire() : region.getExpire();
+            base = override == null ? base : override;
+            ratio = region.getJitterRatio() == null ? ratio : region.getJitterRatio();
+        }
+        return Jitter.jitteredMillis(base.toMillis(), ratio, random);
     }
 
     private <T> T callLoader(String k, Callable<T> valueLoader) {
@@ -220,11 +286,11 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
         return (T) value;
     }
 
-    private static String requireKey(Object key) {
+    private String requireKey(Object key) {
         if (!(key instanceof String k)) {
             throw new IllegalArgumentException("CACHE_KEY_TENANT_MISMATCH: " + key);
         }
-        KeyGuard.requireExactKey(k);
+        KeyGuard.requireTenant(k, Long.parseLong(manager.currentTenant()));
         return k;
     }
 

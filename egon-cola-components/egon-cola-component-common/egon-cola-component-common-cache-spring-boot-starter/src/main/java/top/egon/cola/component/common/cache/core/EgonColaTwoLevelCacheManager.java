@@ -4,6 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.redisson.api.RLock;
+import org.slf4j.MDC;
+import org.springframework.beans.factory.DisposableBean;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.redisson.api.RMapCache;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -33,7 +37,7 @@ import java.util.concurrent.ScheduledExecutorService;
  */
 @Slf4j
 @RequiredArgsConstructor
-public class EgonColaTwoLevelCacheManager implements CacheManager {
+public class EgonColaTwoLevelCacheManager implements CacheManager, DisposableBean {
 
     private static final ObjectMapper EVENT_MAPPER = EgonColaCacheCodecs.eventMapper();
 
@@ -64,7 +68,7 @@ public class EgonColaTwoLevelCacheManager implements CacheManager {
         return Set.copyOf(handles.keySet());
     }
 
-    public String originNodeId() {
+    public synchronized String originNodeId() {
         String current = originNodeId;
         if (current == null) {
             String configured = properties.getNodeId();
@@ -110,6 +114,12 @@ public class EgonColaTwoLevelCacheManager implements CacheManager {
         EgonColaTwoLevelCache handle = handles.get(cacheName);
         if (handle != null) {
             handle.evictLocal(keys);
+        } else {
+            try {
+                l2(cacheName).fastRemove(keys.toArray(String[]::new));
+            } catch (RuntimeException ex) {
+                log.warn("CACHE_L2_OPERATION_FAILED region={} op=EVICT", cacheName, ex);
+            }
         }
     }
 
@@ -130,9 +140,10 @@ public class EgonColaTwoLevelCacheManager implements CacheManager {
             handle.applyPrefixLocally(globKey);
         }
         String tenantPrefix = globKey.substring(0, globKey.indexOf(':') + 1);
-        RMapCache<String, Object> l2 = l2(cacheName);
+        RMapCache<String, Object> l2;
         List<String> doomed;
         try {
+            l2 = l2(cacheName);
             doomed = l2.readAllKeySet().stream()
                     .filter(key -> key.startsWith(tenantPrefix))
                     .toList();
@@ -151,6 +162,57 @@ public class EgonColaTwoLevelCacheManager implements CacheManager {
                         cacheName, chunk.size(), ex);
             }
         }
+    }
+
+    /**
+     * 远端事件仅清 L1，避免迟到的失效事件删除共享 L2 中更新后的值。
+     */
+    public void applyRemotePrefixEviction(String cacheName, String globKey) {
+        KeyGuard.requireGlob(globKey);
+        EgonColaTwoLevelCache handle = handles.get(cacheName);
+        if (handle != null) {
+            handle.applyPrefixLocally(globKey);
+        }
+    }
+
+    String currentTenant() {
+        String raw = MDC.get(properties.getTenantMdcKey());
+        if (raw == null || !raw.matches("[0-9]+")) {
+            throw new IllegalArgumentException("CACHE_KEY_TENANT_MISMATCH: tenant context missing or invalid");
+        }
+        try {
+            return Long.toString(Long.parseLong(raw));
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException("CACHE_KEY_TENANT_MISMATCH: tenant context invalid", ex);
+        }
+    }
+
+    static boolean inTransaction() {
+        return TransactionSynchronizationManager.isActualTransactionActive()
+                && TransactionSynchronizationManager.isSynchronizationActive();
+    }
+
+    /**
+     * 登记时已完成租户校验，回调直接使用快照，避免依赖提交阶段的 MDC。
+     */
+    void afterCommit(Runnable operation) {
+        if (inTransaction()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    operation.run();
+                }
+            });
+        } else {
+            operation.run();
+        }
+    }
+
+    @Override
+    public void destroy() {
+        scheduler.shutdownNow();
+        handles.clear();
+        l2Handles.clear();
     }
 
     /** 事件 topic 句柄懒建（订阅与发布共用同一 {@link StringCodec} 通道）。 */

@@ -81,20 +81,20 @@ class EgonColaCacheChangedListenerTest {
     }
 
     @Test
-    void evictAppliesDualLevelLocally() throws Exception {
+    void evictOnlyDropsRemoteL1() throws Exception {
         deliver(eventJson("node-b", "UserBO", EVICT, List.of("41:7")));
 
-        verify(manager, times(1)).applyLocalEviction("UserBO", List.of("41:7"));
-        verify(manager, never()).applyRemotePut(any(), any());
-        verify(manager, never()).applyLocalPrefixEviction(any(), any());
+        verify(manager, times(1)).applyRemotePut("UserBO", List.of("41:7"));
+        verify(manager, never()).applyLocalEviction(any(), any());
+        verify(manager, never()).applyRemotePrefixEviction(any(), any());
     }
 
     @Test
     void prefixEvictDispatchesPerGlobKey() throws Exception {
         deliver(eventJson("node-b", "UserBO", PREFIX_EVICT, List.of("41:*")));
 
-        verify(manager, times(1)).applyLocalPrefixEviction("UserBO", "41:*");
-        verify(manager, never()).applyLocalEviction(any(), any());
+        verify(manager, times(1)).applyRemotePrefixEviction("UserBO", "41:*");
+        verify(manager, never()).applyRemotePut(any(), any());
     }
 
     @Test
@@ -103,7 +103,7 @@ class EgonColaCacheChangedListenerTest {
 
         verify(manager, times(1)).applyRemotePut("UserBO", List.of("41:7"));
         verify(manager, never()).applyLocalEviction(any(), any());
-        verify(manager, never()).applyLocalPrefixEviction(any(), any());
+        verify(manager, never()).applyRemotePrefixEviction(any(), any());
     }
 
     @Test
@@ -112,7 +112,7 @@ class EgonColaCacheChangedListenerTest {
 
         verify(manager, never()).applyLocalEviction(any(), any());
         verify(manager, never()).applyRemotePut(any(), any());
-        verify(manager, never()).applyLocalPrefixEviction(any(), any());
+        verify(manager, never()).applyRemotePrefixEviction(any(), any());
     }
 
     @Test
@@ -120,7 +120,7 @@ class EgonColaCacheChangedListenerTest {
         deliver(eventJson("node-b", "UserBO", EVICT, List.of("41:7")));
         deliver(eventJson("node-b", "OrderBO", PUT, List.of("41:8")));
 
-        verify(manager, times(1)).applyLocalEviction("UserBO", List.of("41:7"));
+        verify(manager, times(1)).applyRemotePut("UserBO", List.of("41:7"));
         verify(manager, times(1)).applyRemotePut("OrderBO", List.of("41:8"));
     }
 
@@ -141,7 +141,7 @@ class EgonColaCacheChangedListenerTest {
 
         verify(manager, never()).applyLocalEviction(any(), any());
         verify(manager, never()).applyRemotePut(any(), any());
-        verify(manager, never()).applyLocalPrefixEviction(any(), any());
+        verify(manager, never()).applyRemotePrefixEviction(any(), any());
         assertThat(appender.list)
                 .filteredOn(event -> event.getLevel() == ch.qos.logback.classic.Level.ERROR)
                 .hasSize(bodies.size())
@@ -151,7 +151,7 @@ class EgonColaCacheChangedListenerTest {
 
     @Test
     void dispatchFailuresNeverEscapeRedissonThread() throws Exception {
-        doThrow(new RuntimeException("boom")).when(manager).applyLocalEviction(eq("UserBO"), any());
+        doThrow(new RuntimeException("boom")).when(manager).applyRemotePut(eq("UserBO"), any());
 
         assertThatCode(() -> deliver(eventJson("node-b", "UserBO", EVICT, List.of("41:7"))))
                 .doesNotThrowAnyException();

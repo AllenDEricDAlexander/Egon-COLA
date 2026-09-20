@@ -5,6 +5,7 @@ import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -18,7 +19,7 @@ import top.egon.cola.component.common.cache.port.EgonColaTwoLevelCachePort;
  * 两级缓存组件条件装配（REQ-001/REQ-020）：缺省关闭；宿主已有任意 {@link CacheManager}
  * 时整组让位；RedissonClient 绝不自建——按名优先、唯一兜底，两者皆空 fail-fast。
  */
-@AutoConfiguration
+@AutoConfiguration(before = CacheAutoConfiguration.class)
 @ConditionalOnProperty(prefix = "egon.cola.component.cache", name = "enabled", havingValue = "true")
 @ConditionalOnMissingBean(CacheManager.class)
 @EnableConfigurationProperties(EgonColaCacheProperties.class)

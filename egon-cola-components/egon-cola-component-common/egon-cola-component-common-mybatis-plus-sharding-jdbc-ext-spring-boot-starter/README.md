@@ -139,17 +139,19 @@ Common accepts any non-null Long tenant; ShardingSphere hosts require positive L
 
 No platform SQL Injector was added. Use mapper extensions for concrete non-generic SQL needs, and field handlers for real JSONB/array differences. Agent keeps its field-specific JSONB handler; the global String handler stays standard. Persisted enums require one `@EnumValue` and matching public `@JsonValue`/Jackson semantics, checked at startup.
 
-## Cached reads / 声明式缓存读
+## Annotation-based caching / 注解缓存
 
-`EgonColaRepository` exposes `getByCache(Serializable id)` and `listByCache(Collection<? extends Serializable> ids)`. A template subclass wires the two-level cache starter by overriding the protected hooks `getCachePortProvider()` (returns an `ObjectProvider<EgonColaCachePort>`, injected with `@Qualifier("egonColaCachePort")`) and, optionally, `cacheRegionName()` (defaults to the entity simple name). `getByCache` is semantically identical to `getById` with the cache in front; `listByCache` matches `listByIds` (per-key assembly, dedup keeping first-seen order, missing rows dropped).
+`EgonColaRepository` 仅负责持久化，已移除 `getByCache`、`listByCache`、`getCachePortProvider`、`cacheRegionName` 和 CRUD
+自动失效。
+具体 Repository 使用 Spring `@CacheConfig`、`@Cacheable`、`@CachePut`、`@CacheEvict`、`@Caching`；宿主显式启用
+`@EnableCaching`。
+注解应放在具体 Repository 的 public、非 final 业务方法上，由外部 Bean 通过代理调用，内部调用原有
+CRUD；基类的数据校验、租户和批量事务守卫保持不变。
+脚手架以 `findCachedById` / `updateCachedById` 示例展示此方式。所有影响缓存的写路径需要声明失效，普通 CRUD 不再自动失效。
+`@CachePut` 缓存返回值，不能用于返回 boolean 的更新方法并期望得到实体缓存。
 
-## Transparent eviction / 写路径透明失效
-
-Every guarded write that succeeds registers post-commit eviction through the port: id-bearing writes evict exact `tenantId:id` keys, and the predicate-shaped `update(entity, wrapper)` evicts the whole tenant prefix `tenantId:*` because its affected row set is not enumerable. Registration happens before commit; eviction runs at afterCommit and is discarded on rollback (see the cache starter README for the port contract, key shapes and error codes — that document is the single source of truth).
-
-## Zero-impact without port bean / 端口缺位零影响
-
-When `getCachePortProvider()` is not overridden, or no `egonColaCachePort` bean exists (starter absent or `enabled=false`), every read and write method behaves byte-for-byte as before this enhancement: reads bypass the port and writes perform no registration and no Redis interaction.
+Key、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作详见
+[缓存 starter 文档](../egon-cola-component-common-cache-spring-boot-starter/README.md)。
 
 ## SQL guards and transactions
 

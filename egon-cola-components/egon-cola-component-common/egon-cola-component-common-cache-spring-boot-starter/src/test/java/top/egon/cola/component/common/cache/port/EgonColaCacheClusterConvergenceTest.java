@@ -50,7 +50,7 @@ class EgonColaCacheClusterConvergenceTest extends CacheRedisTestSupport {
         try {
             body.run();
         } finally {
-            org.slf4j.MDC.remove("tenantId");
+            org.slf4j.MDC.put("tenantId", "42");
         }
     }
 
@@ -106,6 +106,7 @@ class EgonColaCacheClusterConvergenceTest extends CacheRedisTestSupport {
 
     @BeforeEach
     void wireTwoNodes() {
+        org.slf4j.MDC.put("tenantId", "42");
         clientA = newClient();
         clientB = newClient();
         propertiesA = props(Map.of("second-evict-delay", "PT0.1S",
@@ -123,6 +124,13 @@ class EgonColaCacheClusterConvergenceTest extends CacheRedisTestSupport {
 
     @AfterEach
     void stopListeners() {
+        org.slf4j.MDC.clear();
+        if (managerA != null) {
+            managerA.destroy();
+        }
+        if (managerB != null) {
+            managerB.destroy();
+        }
         // @BeforeEach 因 Docker 缺失 assumption 中断时字段仍为 null
         if (listenerA != null) {
             listenerA.stop();
@@ -183,7 +191,7 @@ class EgonColaCacheClusterConvergenceTest extends CacheRedisTestSupport {
         }
         Cache handleB = managerB.getCache(REGION);
         handleB.get("42:7", () -> "loader-must-not-run");
-        handleB.get("43:7", () -> "loader-must-not-run");
+        withTenant(43, () -> handleB.get("43:7", () -> "loader-must-not-run"));
         assertThat(hasL1(managerB, "42:7")).isTrue();
         assertThat(hasL1(managerB, "43:7")).isTrue();
 

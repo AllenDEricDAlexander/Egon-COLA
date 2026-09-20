@@ -159,4 +159,10 @@ Set `EGON_ID_MACHINE_ID` for production. Default H2/fake-model tests do not run 
 
 ## Two-level cache skeleton (disabled by default)
 
-The generated project already carries the `egon-cola-component-common-cache-spring-boot-starter` dependency and the `egon.cola.component.cache` key block with `enabled: false`, so runtime behavior is unchanged until you opt in. Enabling takes two steps: ① provide a `RedissonClient` bean — the starter never creates one and fails fast when `enabled: true` finds no client (by-name first, unique fallback); ② set `egon.cola.component.cache.enabled: true`. Business repositories wire the `EgonColaCachePort` injection seam themselves when they extend `EgonColaRepository`. Configuration keys, TTL and Redis event semantics are documented once in the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md).
+The generated project includes the cache starter with `enabled: false`. To enable it, provide a `RedissonClient`, set
+`egon.cola.component.cache.enabled=true`, and explicitly add `@EnableCaching` to a configuration class. The mp-sd-ext
+base repository no longer depends on a cache port: concrete repositories declare Spring Cache annotations. The
+repository examples use `findCachedById` / `updateCachedById` (Agent defines its own business methods). Ordinary CRUD no
+longer evicts implicitly; annotate every relevant write/delete path. See
+the [cache starter README](../../../egon-cola-components/egon-cola-component-common/egon-cola-component-common-cache-spring-boot-starter/README.md)
+for keys, conditions, combined operations, transactions and sync limitations.

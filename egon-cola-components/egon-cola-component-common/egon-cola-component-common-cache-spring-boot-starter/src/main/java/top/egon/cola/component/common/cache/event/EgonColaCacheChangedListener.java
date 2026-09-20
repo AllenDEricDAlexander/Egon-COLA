@@ -80,9 +80,9 @@ public class EgonColaCacheChangedListener implements SmartLifecycle {
 
         static void apply(EgonColaCacheChangedEvent event, EgonColaTwoLevelCacheManager target) {
             switch (event.operation()) {
-                case EVICT -> target.applyLocalEviction(event.cacheName(), event.keys());
+                case EVICT -> target.applyRemotePut(event.cacheName(), event.keys());
                 case PREFIX_EVICT -> event.keys()
-                        .forEach(glob -> target.applyLocalPrefixEviction(event.cacheName(), glob));
+                        .forEach(glob -> target.applyRemotePrefixEviction(event.cacheName(), glob));
                 case PUT -> target.applyRemotePut(event.cacheName(), event.keys());
             }
         }

@@ -97,6 +97,25 @@ class EgonColaCacheAutoConfigurationTest {
         });
     }
 
+    @org.springframework.context.annotation.Configuration(proxyBeanMethods = false)
+    @org.springframework.cache.annotation.EnableCaching
+    static class CachingConfiguration {
+    }
+
+    @Test
+    void winsBeforeBootDefaultCacheManagerWhenCachingIsEnabled() {
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(EgonColaCacheAutoConfiguration.class,
+                        org.springframework.boot.autoconfigure.cache.CacheAutoConfiguration.class))
+                .withUserConfiguration(CachingConfiguration.class)
+                .withPropertyValues("egon.cola.component.cache.enabled=true")
+                .withBean("redissonClient", RedissonClient.class, EgonColaCacheAutoConfigurationTest::stubClient)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(CacheManager.class);
+                    assertThat(context.getBean(CacheManager.class)).isInstanceOf(EgonColaTwoLevelCacheManager.class);
+                });
+    }
+
     @Test
     void enabledWithoutClientFailsFastWithMissingCode() {
         assertFailFastWithMissingClient(runner()

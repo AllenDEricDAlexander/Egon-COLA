@@ -2,6 +2,9 @@ package top.egon.cola.component.common.cache.core;
 
 import com.google.common.cache.Cache;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.AfterEach;
+import org.slf4j.MDC;
 import org.redisson.api.RedissonClient;
 import top.egon.cola.component.common.cache.model.EgonColaCacheNullValueBO;
 import top.egon.cola.component.common.cache.support.CacheRedisTestSupport;
@@ -23,6 +26,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EgonColaTwoLevelCacheTest extends CacheRedisTestSupport {
+
+    @BeforeEach
+    void tenantContext() {
+        MDC.put("tenantId", "41");
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        MDC.clear();
+        if (manager != null) {
+            manager.destroy();
+        }
+    }
 
     private static final String REGION = "UserBO";
 
@@ -133,11 +149,16 @@ class EgonColaTwoLevelCacheTest extends CacheRedisTestSupport {
             for (int i = 0; i < 8; i++) {
                 futures.add(pool.submit(() -> {
                     gate.await();
-                    return target.get("41:10", () -> {
-                        loads.incrementAndGet();
-                        Thread.sleep(50);
-                        return value;
-                    });
+                    MDC.put("tenantId", "41");
+                    try {
+                        return target.get("41:10", () -> {
+                            loads.incrementAndGet();
+                            Thread.sleep(50);
+                            return value;
+                        });
+                    } finally {
+                        MDC.clear();
+                    }
                 }));
             }
             gate.countDown();
