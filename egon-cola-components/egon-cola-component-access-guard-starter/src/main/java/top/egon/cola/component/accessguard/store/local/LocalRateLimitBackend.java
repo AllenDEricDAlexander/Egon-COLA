@@ -6,7 +6,7 @@ import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitAlgorithmSt
 import top.egon.cola.component.accessguard.store.RateLimitBackend;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Duration;
 import java.util.ArrayDeque;

@@ -4,7 +4,7 @@ import top.egon.cola.component.accessguard.api.GuardKey;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.plan.KeyConfig;
 import top.egon.cola.component.accessguard.key.GuardKeyPart;
-import top.egon.cola.component.accessguard.key.GuardKeyResolutionException;
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Parameter;

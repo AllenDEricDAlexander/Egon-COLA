@@ -10,6 +10,7 @@ import top.egon.cola.component.accessguard.execution.RejectionMode;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -46,9 +47,28 @@ public class AccessGuardProperties {
 
     private Map<String, Rule> rules = new LinkedHashMap<>();
 
-    public enum Storage {
-        LOCAL,
-        REDISSON
+    public enum Storage implements EgonEnum {
+        LOCAL(0, "LOCAL"),
+        REDISSON(1, "REDISSON");
+
+        private final int code;
+
+        private final String message;
+
+        Storage(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     @Getter

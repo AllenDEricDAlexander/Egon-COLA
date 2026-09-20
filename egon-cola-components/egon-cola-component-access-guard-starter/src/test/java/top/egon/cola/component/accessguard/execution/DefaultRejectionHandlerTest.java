@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.module.SimpleModule;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.GuardEntryType;
 import top.egon.cola.component.accessguard.core.GuardInvocation;

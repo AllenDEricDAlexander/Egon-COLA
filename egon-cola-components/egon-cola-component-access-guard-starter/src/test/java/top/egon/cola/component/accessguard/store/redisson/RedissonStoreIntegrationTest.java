@@ -18,7 +18,7 @@ import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.store.PenaltyKey;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 import top.egon.cola.component.accessguard.store.local.LocalRateLimitBackend;
 
 import java.time.Duration;

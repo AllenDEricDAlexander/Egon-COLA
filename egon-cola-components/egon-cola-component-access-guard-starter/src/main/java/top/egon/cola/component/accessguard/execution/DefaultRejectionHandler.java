@@ -1,6 +1,6 @@
 package top.egon.cola.component.accessguard.execution;
 
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.GuardInvocationKind;
 import top.egon.cola.component.accessguard.core.GuardOutcome;

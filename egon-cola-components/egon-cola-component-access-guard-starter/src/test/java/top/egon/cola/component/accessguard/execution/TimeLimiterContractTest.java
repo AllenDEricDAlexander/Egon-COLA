@@ -1,6 +1,8 @@
 package top.egon.cola.component.accessguard.execution;
 
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.accessguard.common.exception.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.common.exception.ExecutorRejectedException;
 import top.egon.cola.component.accessguard.core.GuardEntryType;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.GuardInvocationKind;

@@ -6,7 +6,7 @@ import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 import top.egon.cola.component.accessguard.store.local.LocalAllowListStore;
 
 import java.time.Clock;

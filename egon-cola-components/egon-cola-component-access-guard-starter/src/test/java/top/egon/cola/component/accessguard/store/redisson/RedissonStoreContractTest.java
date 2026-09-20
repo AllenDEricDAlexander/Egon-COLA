@@ -12,7 +12,7 @@ import top.egon.cola.component.accessguard.store.PenaltyKey;
 import top.egon.cola.component.accessguard.store.PenaltyState;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Duration;
 import java.util.Arrays;

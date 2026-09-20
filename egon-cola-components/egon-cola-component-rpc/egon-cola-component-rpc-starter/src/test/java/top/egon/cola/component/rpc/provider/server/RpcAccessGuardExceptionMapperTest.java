@@ -3,7 +3,7 @@ package top.egon.cola.component.rpc.provider.server;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.GuardOutcome;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;

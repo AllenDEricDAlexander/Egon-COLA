@@ -8,7 +8,7 @@ import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
 import top.egon.cola.component.accessguard.store.RateLimitRequest;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicReference;

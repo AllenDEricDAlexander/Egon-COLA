@@ -11,7 +11,7 @@ import top.egon.cola.component.rpc.provider.server.RpcAccessGuardExceptionMapper
 @AutoConfiguration(afterName =
         "top.egon.cola.component.accessguard.autoconfigure.AccessGuardAopAutoConfiguration")
 @ConditionalOnClass(name =
-        "top.egon.cola.component.accessguard.api.AccessGuardRejectedException")
+        "top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException")
 @ConditionalOnProperty(
         prefix = "egon.cola.component.rpc.provider",
         name = "enabled",

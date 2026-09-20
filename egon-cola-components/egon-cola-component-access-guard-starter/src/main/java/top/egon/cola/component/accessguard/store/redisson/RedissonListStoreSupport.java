@@ -3,7 +3,7 @@ package top.egon.cola.component.accessguard.store.redisson;
 import org.redisson.api.RScript;
 import org.redisson.api.RedissonClient;
 import org.redisson.client.codec.StringCodec;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Duration;
 import java.util.ArrayList;

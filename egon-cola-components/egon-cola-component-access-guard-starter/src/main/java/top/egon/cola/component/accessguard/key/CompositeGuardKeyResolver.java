@@ -1,5 +1,6 @@
 package top.egon.cola.component.accessguard.key;
 
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.plan.KeyConfig;
 import top.egon.cola.component.accessguard.key.contributor.GuardKeyContributor;

@@ -1,6 +1,7 @@
 package top.egon.cola.component.accessguard.core.plan;
 
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.time.Duration;
 import java.util.Objects;
@@ -70,10 +71,29 @@ public record AdmissionConfig(
         }
     }
 
-    public enum RateLimitAlgorithm {
-        TOKEN_BUCKET,
-        LEAKY_BUCKET,
-        SLIDING_WINDOW
+    public enum RateLimitAlgorithm implements EgonEnum {
+        TOKEN_BUCKET(0, "TOKEN_BUCKET"),
+        LEAKY_BUCKET(1, "LEAKY_BUCKET"),
+        SLIDING_WINDOW(2, "SLIDING_WINDOW");
+
+        private final int code;
+
+        private final String message;
+
+        RateLimitAlgorithm(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     private static String requireVersion(String value) {

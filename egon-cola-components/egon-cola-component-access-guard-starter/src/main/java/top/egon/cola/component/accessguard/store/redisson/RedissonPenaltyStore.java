@@ -6,7 +6,7 @@ import org.redisson.client.codec.StringCodec;
 import top.egon.cola.component.accessguard.store.PenaltyKey;
 import top.egon.cola.component.accessguard.store.PenaltyState;
 import top.egon.cola.component.accessguard.store.PenaltyStore;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Duration;
 import java.time.Instant;

@@ -2,6 +2,7 @@ package top.egon.cola.component.accessguard.api;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardEngine;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.GuardEntryType;
 import top.egon.cola.component.accessguard.core.GuardInvocationKind;
 import top.egon.cola.component.accessguard.core.GuardDecision;
@@ -75,7 +76,7 @@ class AccessGuardApiTest {
 
         AccessGuardRejectedException exception = new AccessGuardRejectedException(outcome);
 
-        assertThat(exception.code()).isEqualTo("ACCESS_GUARD_REJECTED");
+        assertThat(exception.getStatus()).isEqualTo("ACCESS_GUARD_REJECTED");
         assertThat(exception.outcome()).isSameAs(outcome);
         assertThat(exception.getMessage())
                 .contains("draw", "RATE_LIMITED", "THROWN")

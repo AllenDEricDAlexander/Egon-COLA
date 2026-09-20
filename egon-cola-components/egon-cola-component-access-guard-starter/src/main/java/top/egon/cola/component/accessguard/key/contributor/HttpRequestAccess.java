@@ -1,6 +1,6 @@
 package top.egon.cola.component.accessguard.key.contributor;
 
-import top.egon.cola.component.accessguard.key.GuardKeyResolutionException;
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;

@@ -1,7 +1,7 @@
 package top.egon.cola.component.accessguard.core;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.failure.DefaultFailurePolicyResolver;
 import top.egon.cola.component.accessguard.core.failure.FailurePolicyResolver;
 import top.egon.cola.component.accessguard.core.plan.AdmissionConfig;
@@ -15,7 +15,7 @@ import top.egon.cola.component.accessguard.execution.RejectionMode;
 import top.egon.cola.component.accessguard.execution.RejectionHandler;
 import top.egon.cola.component.accessguard.execution.RoutingTimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
-import top.egon.cola.component.accessguard.execution.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.common.exception.TimeLimitExceededException;
 import top.egon.cola.component.accessguard.execution.TimeLimiter;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.key.GuardKeyResolution;
@@ -32,7 +32,7 @@ import top.egon.cola.component.accessguard.policy.ratelimit.RateLimitPolicy;
 import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.store.PenaltyStore;
 import top.egon.cola.component.accessguard.store.RateLimitDecision;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.lang.reflect.Method;
 import java.time.Duration;

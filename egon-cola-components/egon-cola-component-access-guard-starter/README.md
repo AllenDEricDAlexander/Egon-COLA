@@ -207,7 +207,7 @@ egon.cola.component.access-guard.rules
 With `rejection.mode: THROW`, the starter throws:
 
 ```java
-top.egon.cola.component.accessguard.api.AccessGuardRejectedException
+top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException
 ```
 
 The exception contains a structured `GuardOutcome`:

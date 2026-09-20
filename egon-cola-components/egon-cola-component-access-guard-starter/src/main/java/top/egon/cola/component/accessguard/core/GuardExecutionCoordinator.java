@@ -1,11 +1,11 @@
 package top.egon.cola.component.accessguard.core;
 
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
-import top.egon.cola.component.accessguard.execution.ExecutorRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.ExecutorRejectedException;
 import top.egon.cola.component.accessguard.execution.RejectionHandler;
 import top.egon.cola.component.accessguard.execution.RejectionMode;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
-import top.egon.cola.component.accessguard.execution.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.common.exception.TimeLimitExceededException;
 import top.egon.cola.component.accessguard.execution.TimeLimiter;
 import top.egon.cola.component.accessguard.core.plan.ExecutionConfig;
 import top.egon.cola.component.accessguard.observability.GuardEventPublisher;

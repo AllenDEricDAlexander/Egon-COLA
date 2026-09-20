@@ -1,11 +1,14 @@
 package top.egon.cola.component.accessguard.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import top.egon.cola.component.accessguard.adapter.aop.GuardBindingResolver;
@@ -59,11 +62,16 @@ import top.egon.cola.component.accessguard.store.RateLimitBackend;
 import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
 import top.egon.cola.component.accessguard.store.local.LocalPenaltyStore;
 import top.egon.cola.component.accessguard.store.local.LocalRateLimitBackend;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.util.List;
 import java.util.Map;
 
-@AutoConfiguration
+@AutoConfiguration(
+        after = ValidationAutoConfiguration.class,
+        // MyBatis-Plus publishes the same canonical facade unconditionally; run after it so this
+        // starter never registers a second bean under that name.
+        afterName = "top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration")
 @EnableConfigurationProperties(AccessGuardProperties.class)
 @ConditionalOnProperty(
         prefix = AccessGuardProperties.PREFIX,
@@ -72,10 +80,20 @@ import java.util.Map;
         matchIfMissing = true)
 public class AccessGuardCoreAutoConfiguration {
 
+    @Bean(name = "egonColaValidationUtils")
+    // The standalone starter cannot borrow the facade from MyBatis-Plus, so it publishes the canonical
+    // one itself, wrapping the Boot-managed Validator once instead of per request.
+    @ConditionalOnMissingBean(name = "egonColaValidationUtils")
+    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validators) {
+        return new ValidationUtils(validators.getIfAvailable(
+                () -> Validation.buildDefaultValidatorFactory().getValidator()));
+    }
+
     @Bean
     @ConditionalOnMissingBean
-    public GuardPlanValidator accessGuardPlanValidator() {
-        return new GuardPlanValidator();
+    public GuardPlanValidator accessGuardPlanValidator(
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils) {
+        return new GuardPlanValidator(validationUtils);
     }
 
     @Bean
@@ -326,7 +344,8 @@ public class AccessGuardCoreAutoConfiguration {
             JsonRejectValueParser jsonParser,
             org.springframework.beans.factory.ListableBeanFactory beanFactory,
             ObjectProvider<AccessGuardStorageIntegration> storageIntegrations,
-            ObjectProvider<ReactiveGuardExecutor> reactiveExecutors
+            ObjectProvider<ReactiveGuardExecutor> reactiveExecutors,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
     ) {
         return new AccessGuardStartupValidator(
                 properties,
@@ -337,6 +356,7 @@ public class AccessGuardCoreAutoConfiguration {
                 jsonParser,
                 beanFactory,
                 storageIntegrations,
-                reactiveExecutors);
+                reactiveExecutors,
+                validationUtils);
     }
 }

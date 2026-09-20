@@ -9,7 +9,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.accessguard.api.AccessGuard;
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardAopAutoConfiguration;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardCoreAutoConfiguration;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardLocalStoreAutoConfiguration;

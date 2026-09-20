@@ -6,14 +6,28 @@ import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
 import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.lang.reflect.Executable;
 import java.lang.reflect.Method;
 import java.util.Objects;
 
-public final class GuardPlanValidator {
+public final class GuardPlanValidator extends BaseValidator {
+
+    private final ValidationUtils validationUtils;
+
+    public GuardPlanValidator(ValidationUtils validationUtils) {
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
 
     public void validate(GuardPlanSnapshot snapshot) {
+        validateBean(snapshot);
         GuardPlan plan = snapshot.plan();
         if (!snapshot.ruleId().equals(plan.id())) {
             throw new IllegalArgumentException("snapshot ruleId must match plan id");
@@ -74,8 +88,9 @@ public final class GuardPlanValidator {
     ) {
         Objects.requireNonNull(executable, "executable");
         Objects.requireNonNull(plan, "plan");
+        validateBean(plan);
         ExecutionConfig execution = plan.execution();
-        Method method = (Method) Objects.requireNonNull(executable, "executable");
+        Method method = (Method) executable;
         ExecutionConfig.RejectionConfig rejection = execution.rejection();
         if (rejection.mode() == RejectionMode.FALLBACK) {
             Objects.requireNonNull(fallbackCache, "fallbackCache")

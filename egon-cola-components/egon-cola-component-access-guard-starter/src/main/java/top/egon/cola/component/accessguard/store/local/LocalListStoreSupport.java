@@ -1,6 +1,6 @@
 package top.egon.cola.component.accessguard.store.local;
 
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Clock;
 import java.time.Duration;

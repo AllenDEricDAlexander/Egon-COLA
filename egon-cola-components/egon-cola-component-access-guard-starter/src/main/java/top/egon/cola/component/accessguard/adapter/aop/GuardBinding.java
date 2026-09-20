@@ -1,5 +1,7 @@
 package top.egon.cola.component.accessguard.adapter.aop;
 
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
 public record GuardBinding(String ruleId, String key, Kind kind) {
 
     public GuardBinding {
@@ -13,10 +15,29 @@ public record GuardBinding(String ruleId, String key, Kind kind) {
         }
     }
 
-    public enum Kind {
-        ACCESS,
-        ALLOW_LIST,
-        RATE_LIMIT,
-        TIME_LIMIT
+    public enum Kind implements EgonEnum {
+        ACCESS(0, "ACCESS"),
+        ALLOW_LIST(1, "ALLOW_LIST"),
+        RATE_LIMIT(2, "RATE_LIMIT"),
+        TIME_LIMIT(3, "TIME_LIMIT");
+
+        private final int code;
+
+        private final String message;
+
+        Kind(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 }

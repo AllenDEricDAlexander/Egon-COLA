@@ -3,6 +3,8 @@ package top.egon.cola.component.rpc.provider.server;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
@@ -14,10 +16,8 @@ public final class RpcAccessGuardExceptionMapper
 
     @Override
     public Optional<StatusRuntimeException> map(Throwable throwable) {
-        if (!(throwable instanceof top.egon.cola.component.accessguard.api
-                .AccessGuardRejectedException rejected)
-                || rejected.outcome().decision()
-                != top.egon.cola.component.accessguard.core.GuardDecision.RATE_LIMITED) {
+        if (!(throwable instanceof AccessGuardRejectedException rejected)
+                || rejected.outcome().decision() != GuardDecision.RATE_LIMITED) {
             return Optional.empty();
         }
         Metadata trailers = new Metadata();

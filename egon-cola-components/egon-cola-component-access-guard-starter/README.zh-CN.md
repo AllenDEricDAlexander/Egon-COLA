@@ -205,7 +205,7 @@ egon.cola.component.access-guard.rules
 当 `rejection.mode: THROW` 时，组件抛出：
 
 ```java
-top.egon.cola.component.accessguard.api.AccessGuardRejectedException
+top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException
 ```
 
 异常中包含结构化 `GuardOutcome`：

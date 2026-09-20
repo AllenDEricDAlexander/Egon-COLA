@@ -1,6 +1,7 @@
 package top.egon.cola.component.accessguard.execution;
 
 import top.egon.cola.component.accessguard.core.GuardOutcome;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
@@ -132,10 +133,29 @@ public final class FallbackMethodCache {
     record Binding(MethodHandle handle, ArgumentMode argumentMode, boolean staticMethod) {
     }
 
-    enum ArgumentMode {
-        ARGUMENTS,
-        ARGUMENTS_AND_OUTCOME,
-        NONE
+    enum ArgumentMode implements EgonEnum {
+        ARGUMENTS(0, "ARGUMENTS"),
+        ARGUMENTS_AND_OUTCOME(1, "ARGUMENTS_AND_OUTCOME"),
+        NONE(2, "NONE");
+
+        private final int code;
+
+        private final String message;
+
+        ArgumentMode(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     private record Candidate(Method method, ArgumentMode mode) {

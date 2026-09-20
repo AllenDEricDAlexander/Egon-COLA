@@ -1,11 +1,13 @@
 package top.egon.cola.component.accessguard.core.plan;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.accessguard.core.failure.FailurePolicy;
 import top.egon.cola.component.accessguard.execution.RejectionMode;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.time.Duration;
 import java.time.Instant;
@@ -20,6 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DefaultGuardPlanResolverTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void keepsLastValidSnapshotAfterInvalidNewerUpdate() {
@@ -72,7 +77,7 @@ class DefaultGuardPlanResolverTest {
     }
 
     private static DefaultGuardPlanResolver resolver(GuardPlanSource... sources) {
-        return new DefaultGuardPlanResolver(List.of(sources), new GuardPlanValidator());
+        return new DefaultGuardPlanResolver(List.of(sources), new GuardPlanValidator(VALIDATION_UTILS));
     }
 
     private static GuardPlanSnapshot snapshot(long version, GuardPlan plan) {

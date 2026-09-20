@@ -1,5 +1,6 @@
 package top.egon.cola.component.accessguard.key;
 
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;

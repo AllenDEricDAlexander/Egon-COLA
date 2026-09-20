@@ -2,6 +2,7 @@ package top.egon.cola.component.accessguard.key;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.accessguard.api.GuardKey;
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
 import top.egon.cola.component.accessguard.core.GuardEntryType;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.GuardInvocationKind;

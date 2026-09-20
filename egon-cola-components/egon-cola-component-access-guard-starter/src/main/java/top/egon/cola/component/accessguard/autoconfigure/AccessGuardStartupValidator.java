@@ -13,6 +13,8 @@ import top.egon.cola.component.accessguard.execution.FallbackMethodCache;
 import top.egon.cola.component.accessguard.execution.JsonRejectValueParser;
 import top.egon.cola.component.accessguard.store.AccessGuardStorageIntegration;
 import top.egon.cola.component.accessguard.execution.reactive.ReactiveGuardExecutor;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
@@ -21,7 +23,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 
-public final class AccessGuardStartupValidator implements SmartInitializingSingleton {
+public final class AccessGuardStartupValidator extends BaseValidator implements SmartInitializingSingleton {
 
     private final AccessGuardProperties properties;
     private final GuardPlanResolver planResolver;
@@ -32,6 +34,7 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
     private final ListableBeanFactory beanFactory;
     private final ObjectProvider<AccessGuardStorageIntegration> storageIntegrations;
     private final ObjectProvider<ReactiveGuardExecutor> reactiveExecutors;
+    private final ValidationUtils validationUtils;
 
     public AccessGuardStartupValidator(
             AccessGuardProperties properties,
@@ -42,7 +45,8 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
             JsonRejectValueParser jsonParser,
             ListableBeanFactory beanFactory,
             ObjectProvider<AccessGuardStorageIntegration> storageIntegrations,
-            ObjectProvider<ReactiveGuardExecutor> reactiveExecutors
+            ObjectProvider<ReactiveGuardExecutor> reactiveExecutors,
+            ValidationUtils validationUtils
     ) {
         this.properties = Objects.requireNonNull(properties, "properties");
         this.planResolver = Objects.requireNonNull(planResolver, "planResolver");
@@ -53,10 +57,17 @@ public final class AccessGuardStartupValidator implements SmartInitializingSingl
         this.beanFactory = Objects.requireNonNull(beanFactory, "beanFactory");
         this.storageIntegrations = Objects.requireNonNull(storageIntegrations, "storageIntegrations");
         this.reactiveExecutors = Objects.requireNonNull(reactiveExecutors, "reactiveExecutors");
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
     }
 
     @Override
     public void afterSingletonsInstantiated() {
+        validateBean(properties);
         if (!properties.getRules().isEmpty()
                 && (properties.getKey().getHmacSecret() == null
                 || properties.getKey().getHmacSecret().isBlank())) {

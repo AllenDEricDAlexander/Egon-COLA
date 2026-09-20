@@ -1,5 +1,7 @@
 package top.egon.cola.component.accessguard.key;
 
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
+
 public record GuardKeyPart(String name, String value, int order) {
 
     public GuardKeyPart {

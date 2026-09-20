@@ -14,14 +14,14 @@ import top.egon.cola.component.accessguard.execution.RejectionMode;
 import top.egon.cola.component.accessguard.execution.TimeLimitMode;
 import top.egon.cola.component.accessguard.execution.TimeLimiterType;
 import top.egon.cola.component.accessguard.key.GuardKeyResolution;
-import top.egon.cola.component.accessguard.key.GuardKeyResolutionException;
+import top.egon.cola.component.accessguard.common.exception.GuardKeyResolutionException;
 import top.egon.cola.component.accessguard.key.GuardKeyResolver;
 import top.egon.cola.component.accessguard.policy.GuardContext;
 import top.egon.cola.component.accessguard.policy.GuardPolicy;
 import top.egon.cola.component.accessguard.policy.GuardPolicyType;
 import top.egon.cola.component.accessguard.policy.PolicyResult;
 import top.egon.cola.component.accessguard.policy.penalty.PenaltyService;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Duration;
 import java.util.EnumMap;
@@ -221,7 +221,7 @@ public final class GuardAdmissionPipeline {
             long startedAt
     ) {
         String code = exception instanceof GuardKeyResolutionException keyException
-                ? keyException.code()
+                ? keyException.getStatus()
                 : "KEY_RESOLUTION_FAILED";
         GuardFailure failure = new GuardFailure("KEY", code);
         FailureResolution resolution = failurePolicyResolver.resolve(

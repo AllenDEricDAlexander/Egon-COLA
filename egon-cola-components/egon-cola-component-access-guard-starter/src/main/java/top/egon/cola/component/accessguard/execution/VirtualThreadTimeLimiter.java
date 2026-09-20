@@ -1,5 +1,8 @@
 package top.egon.cola.component.accessguard.execution;
 
+import top.egon.cola.component.accessguard.common.exception.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.common.exception.GuardOperationException;
+import top.egon.cola.component.accessguard.common.exception.ExecutorRejectedException;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.plan.ExecutionConfig;
 
@@ -67,13 +70,6 @@ public final class VirtualThreadTimeLimiter implements TimeLimiter, AutoCloseabl
         Objects.requireNonNull(config, "config");
         if (config.mode() != TimeLimitMode.ENFORCE || config.executor() != TimeLimiterType.VIRTUAL_THREAD) {
             throw new IllegalArgumentException("VIRTUAL_THREAD is valid only for ENFORCE");
-        }
-    }
-
-    private static final class GuardOperationException extends RuntimeException {
-
-        private GuardOperationException(Throwable cause) {
-            super(cause);
         }
     }
 }

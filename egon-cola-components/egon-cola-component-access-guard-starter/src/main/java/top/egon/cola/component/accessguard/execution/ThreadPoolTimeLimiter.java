@@ -1,5 +1,8 @@
 package top.egon.cola.component.accessguard.execution;
 
+import top.egon.cola.component.accessguard.common.exception.TimeLimitExceededException;
+import top.egon.cola.component.accessguard.common.exception.GuardOperationException;
+import top.egon.cola.component.accessguard.common.exception.ExecutorRejectedException;
 import top.egon.cola.component.accessguard.core.GuardInvocation;
 import top.egon.cola.component.accessguard.core.plan.ExecutionConfig;
 
@@ -98,12 +101,5 @@ public final class ThreadPoolTimeLimiter implements TimeLimiter, AutoCloseable {
         return throwable instanceof GuardOperationException operationException
                 ? operationException.getCause()
                 : throwable;
-    }
-
-    private static final class GuardOperationException extends RuntimeException {
-
-        private GuardOperationException(Throwable cause) {
-            super(cause);
-        }
     }
 }

@@ -3,7 +3,7 @@ package top.egon.cola.component.accessguard.execution.reactive;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SignalType;
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.core.GuardDecision;
 import top.egon.cola.component.accessguard.core.GuardEngine;
 import top.egon.cola.component.accessguard.core.GuardExecutionResult;

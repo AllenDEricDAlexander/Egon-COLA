@@ -2,7 +2,7 @@ package top.egon.cola.component.accessguard.store.local;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.accessguard.store.PenaltyKey;
-import top.egon.cola.component.accessguard.store.StoreOperationException;
+import top.egon.cola.component.accessguard.common.exception.StoreOperationException;
 
 import java.time.Clock;
 import java.time.Duration;

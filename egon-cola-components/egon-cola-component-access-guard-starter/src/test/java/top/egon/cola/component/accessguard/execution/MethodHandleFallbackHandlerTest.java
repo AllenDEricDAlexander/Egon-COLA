@@ -1,5 +1,6 @@
 package top.egon.cola.component.accessguard.execution;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import top.egon.cola.component.accessguard.core.GuardEntryType;
@@ -14,6 +15,7 @@ import top.egon.cola.component.accessguard.core.plan.GuardPlanValidator;
 import top.egon.cola.component.accessguard.core.plan.KeyConfig;
 import top.egon.cola.component.accessguard.core.plan.ObservabilityConfig;
 import top.egon.cola.component.accessguard.policy.allow.AllowListMode;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 import java.lang.invoke.MethodHandle;
 import java.lang.reflect.Method;
@@ -26,11 +28,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MethodHandleFallbackHandlerTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void validatesAndCachesArgumentsPlusOutcomeBeforeExecution() throws Throwable {
         Method original = Sample.class.getDeclaredMethod("draw", String.class);
         FallbackMethodCache cache = new FallbackMethodCache();
-        new GuardPlanValidator().validateExecution(
+        new GuardPlanValidator(VALIDATION_UTILS).validateExecution(
                 original,
                 plan(new ExecutionConfig.RejectionConfig(RejectionMode.FALLBACK, "drawFallback", "")),
                 cache,

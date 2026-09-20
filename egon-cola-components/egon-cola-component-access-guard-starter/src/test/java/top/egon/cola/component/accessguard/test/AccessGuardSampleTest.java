@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.accessguard.api.AccessGuard;
 import top.egon.cola.component.accessguard.api.AccessGuardClient;
-import top.egon.cola.component.accessguard.api.AccessGuardRejectedException;
+import top.egon.cola.component.accessguard.common.exception.AccessGuardRejectedException;
 import top.egon.cola.component.accessguard.api.GuardKey;
 import top.egon.cola.component.accessguard.api.GuardRequest;
 import top.egon.cola.component.accessguard.autoconfigure.AccessGuardAopAutoConfiguration;
