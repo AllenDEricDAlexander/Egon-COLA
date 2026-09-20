@@ -2,9 +2,9 @@ package top.egon.cola.component.rpc.consumer.generic;
 
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;

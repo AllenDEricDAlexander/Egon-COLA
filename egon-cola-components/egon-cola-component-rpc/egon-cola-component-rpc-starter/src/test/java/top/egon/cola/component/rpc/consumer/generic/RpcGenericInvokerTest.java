@@ -3,9 +3,13 @@ package top.egon.cola.component.rpc.consumer.generic;
 import com.google.protobuf.StringValue;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelPool;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
@@ -18,8 +22,6 @@ import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategy;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderMethodRegistry;
@@ -42,6 +44,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class RpcGenericInvokerTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private static final String SERVICE =
             "egon.rpc.fixture.v1.UnaryFixtureService";
@@ -116,7 +121,7 @@ class RpcGenericInvokerTest {
                 null
         ))
                 .isInstanceOf(EgonRpcException.class)
-                .satisfies(error -> assertThat(((EgonRpcException) error).getCode())
+                .satisfies(error -> assertThat(((EgonRpcException) error).getRpcErrorCode())
                         .isEqualTo(EgonRpcErrorCode.RPC_INVALID_REQUEST));
         assertThatThrownBy(() -> RpcGenericInvocation.gateway(
                 SERVICE,
@@ -220,7 +225,7 @@ class RpcGenericInvokerTest {
     }
 
     private RunningServer server() throws Exception {
-        RpcContractDescriptor contract = new RpcContractValidator().validate(
+        RpcContractDescriptor contract = new RpcContractValidator(VALIDATION_UTILS).validate(
                 RpcProviderTestFixtures.EchoContract.class
         );
         RpcProviderBinding binding = new RpcProviderBinding(

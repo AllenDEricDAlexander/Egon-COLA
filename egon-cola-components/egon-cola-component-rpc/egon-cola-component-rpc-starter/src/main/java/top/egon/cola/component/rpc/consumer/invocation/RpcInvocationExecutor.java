@@ -11,8 +11,8 @@ import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceContext;
 import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalancers;
 import top.egon.cola.component.rpc.consumer.lifecycle.RpcConsumerLifecycleCoordinator;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 
 import java.nio.charset.StandardCharsets;
@@ -328,9 +328,9 @@ public final class RpcInvocationExecutor {
                 return status.getStatus().getCode() == Status.Code.UNAVAILABLE;
             }
             if (cause instanceof EgonRpcException exception) {
-                return exception.getCode() == EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE
-                        || exception.getCode() == EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
-                        || exception.getCode() == EgonRpcErrorCode.RPC_RATE_LIMITED;
+                return exception.getRpcErrorCode() == EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE
+                        || exception.getRpcErrorCode() == EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
+                        || exception.getRpcErrorCode() == EgonRpcErrorCode.RPC_RATE_LIMITED;
             }
             return false;
         }
@@ -338,7 +338,7 @@ public final class RpcInvocationExecutor {
         private boolean isRateLimited(Throwable cause) {
             if (!(cause instanceof StatusRuntimeException status)) {
                 return cause instanceof EgonRpcException exception
-                        && exception.getCode() == EgonRpcErrorCode.RPC_RATE_LIMITED;
+                        && exception.getRpcErrorCode() == EgonRpcErrorCode.RPC_RATE_LIMITED;
             }
             Metadata trailers = status.getTrailers();
             return status.getStatus().getCode() == Status.Code.UNAVAILABLE

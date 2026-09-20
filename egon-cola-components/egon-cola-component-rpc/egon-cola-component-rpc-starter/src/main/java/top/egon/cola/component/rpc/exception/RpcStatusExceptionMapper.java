@@ -3,6 +3,8 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
 

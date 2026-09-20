@@ -1,12 +1,15 @@
 package top.egon.cola.component.rpc.consumer.proxy;
 
 import com.google.protobuf.StringValue;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.util.ClassUtils;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelPool;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
 import top.egon.cola.component.rpc.consumer.invocation.RpcInvocationExecutor;
@@ -19,7 +22,6 @@ import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategy;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
@@ -39,9 +41,12 @@ import static org.mockito.Mockito.when;
 
 public class RpcConsumerMethodInterceptorTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void createsCglibProxyAndDispatchesCompiledBlockingPlan() throws Exception {
-        RpcContractValidator validator = new RpcContractValidator();
+        RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
         RpcContractDescriptor contract = validator.validate(EchoContract.class);
         RpcInvocationExecutor executor = mock(RpcInvocationExecutor.class);
         when(executor.executeBlocking(
@@ -69,7 +74,7 @@ public class RpcConsumerMethodInterceptorTest {
 
     @Test
     void dispatchesAsyncPlanWithoutBlockingTheProxyCallback() {
-        RpcContractValidator validator = new RpcContractValidator();
+        RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
         RpcContractDescriptor contract = validator.validate(AsyncContract.class);
         RpcInvocationExecutor executor = mock(RpcInvocationExecutor.class);
         CompletableFuture<Object> response = CompletableFuture.completedFuture(
@@ -96,7 +101,7 @@ public class RpcConsumerMethodInterceptorTest {
 
     @Test
     void rejectsNullRequestBeforeExecutorAndKeepsObjectMethodsLocal() {
-        RpcContractValidator validator = new RpcContractValidator();
+        RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
         RpcContractDescriptor contract = validator.validate(EchoContract.class);
         RpcInvocationExecutor executor = mock(RpcInvocationExecutor.class);
         EchoContract proxy = factory(executor).create(
@@ -114,7 +119,7 @@ public class RpcConsumerMethodInterceptorTest {
 
     private RpcConsumerProxyFactory factory(RpcInvocationExecutor executor) {
         return new RpcConsumerProxyFactory(
-                new RpcContractValidator(),
+                new RpcContractValidator(VALIDATION_UTILS),
                 mock(RpcConsumerChannelPool.class),
                 executor,
                 new RpcProcessIdentity(

@@ -1,5 +1,7 @@
 package top.egon.cola.component.rpc.tianshu.autoconfigure;
 
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.redisson.api.RedissonClient;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -7,10 +9,12 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.api.client.DdcServiceRegistryClient;
 import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
@@ -42,9 +46,12 @@ import java.net.InetAddress;
  */
 @AutoConfiguration(
         after = {
+                ValidationAutoConfiguration.class,
                 DdcRedisAutoConfiguration.class,
                 IdpStarterAutoConfiguration.class
         },
+        afterName = "top.egon.cola.component.common.mybatis.autoconfigure"
+                + ".EgonColaMybatisPlusAutoConfiguration",
         before = {
                 DdcAutoConfiguration.class,
                 DdcRegistryAutoConfiguration.class,
@@ -57,6 +64,13 @@ import java.net.InetAddress;
         IdpStarterProperties.class
 })
 public class DdcRpcAutoConfiguration {
+
+    @Bean(name = "egonColaValidationUtils")
+    @ConditionalOnMissingBean(name = "egonColaValidationUtils")
+    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validators) {
+        return new ValidationUtils(validators.getIfAvailable(
+                () -> Validation.buildDefaultValidatorFactory().getValidator()));
+    }
 
     @Bean
     @ConditionalOnMissingBean

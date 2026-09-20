@@ -1,7 +1,7 @@
 package top.egon.cola.component.rpc.provider.binding;
 
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 
 import java.util.Collection;

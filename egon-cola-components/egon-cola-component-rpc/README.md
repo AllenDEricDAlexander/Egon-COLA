@@ -374,10 +374,17 @@ public interface EchoRpc {
 ```
 
 The generated Proto service name, `group`, and `version` form the service
-identity. The validator requires one request parameter, one Protobuf response,
+identity. `RpcContractValidator` extends the common-core `BaseValidator` and is
+published with the canonical `egonColaValidationUtils` facade bean, so the same
+Jakarta Validation engine backs every component. The validator requires one
+request parameter, one Protobuf response,
 an existing generated method with matching input/output descriptors, and unary
 non-streaming semantics. Overloaded Java method names are rejected. Invalid
-contracts fail with `RPC_INVALID_CONTRACT` during startup or proxy creation.
+contracts fail with `RPC_INVALID_CONTRACT`
+(`top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode`, a common-core
+`EgonEnum`) during startup or proxy creation, and the thrown
+`top.egon.cola.component.rpc.common.exception.EgonRpcException` carries that
+typed code through `getRpcErrorCode()`.
 
 ### 3. Expose a Provider
 
@@ -633,7 +640,10 @@ egon-cola-component-rpc/
 │       ├── contract/          # Descriptor, validation, catalog, and snapshots
 │       ├── consumer/          # Proxy, directories, channels, and interceptors
 │       ├── context/            # Process identity and invocation metadata
-│       ├── exception/          # Stable RPC exception and status mapping
+│       ├── common/
+│       │   ├── enums/          # Hand-written RPC enums on the common EgonEnum contract
+│       │   └── exception/      # Stable RPC exceptions on the common exception contract
+│       ├── exception/          # gRPC status-to-exception mapping
 │       └── provider/           # Binding, server, availability, and leases
 ├── egon-cola-component-rpc-tianshu-adapter/
 │   └── src/main/java/top/egon/cola/component/rpc/tianshu/
@@ -657,6 +667,14 @@ egon-cola-component-rpc/
   `protoc-gen-grpc-java` 1.75.0 are the repository compatibility baseline.
 - **Wire contract:** V1 accepts generated Protobuf `Message` request/response
   types and unary, non-streaming gRPC methods only.
+- **Exception and enum contract:** `EgonRpcException`,
+  `EgonRpcRejectedException`, and `EgonRpcErrorCode` live in
+  `top.egon.cola.component.rpc.common.exception` and
+  `top.egon.cola.component.rpc.common.enums`; the exception extends the
+  common-core `CommonException`, and the code enum implements `EgonEnum` with a
+  stable integer `getCode()` plus a `getMessage()` equal to the constant name.
+  `RpcStatusExceptionMapper` keeps its `top.egon.cola.component.rpc.exception`
+  package and its typed `EgonRpcException map(StatusRuntimeException)` return.
 - **Discovery contract:** Tianshu-backed discovery expects the current Tianshu registry
   service identities and lease model. A custom registry must implement the
   Starter ports rather than imitate Tianshu internals.

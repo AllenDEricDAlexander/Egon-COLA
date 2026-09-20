@@ -1,9 +1,11 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.util.ClassUtils;
 import org.springframework.test.util.ReflectionTestUtils;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
@@ -59,6 +61,9 @@ import java.util.stream.Collectors;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcRuntimeGovernanceTcpTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void typedAsyncGenericAndConcurrentCallsShareOneLoopbackChannel()
@@ -124,7 +129,7 @@ class RpcRuntimeGovernanceTcpTest {
                     consumerLifecycle,
                     new RpcStatusExceptionMapper());
             RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
-                    new RpcContractValidator(),
+                    new RpcContractValidator(VALIDATION_UTILS),
                     pool,
                     executor,
                     identity(),
@@ -246,7 +251,7 @@ class RpcRuntimeGovernanceTcpTest {
             RpcReferenceStrategyFactory strategyFactory,
             RpcConsumerProxyFactory proxyFactory,
             RpcLoadBalancers loadBalancers) {
-        RpcContractDescriptor descriptor = new RpcContractValidator()
+        RpcContractDescriptor descriptor = new RpcContractValidator(VALIDATION_UTILS)
                 .validate(contractType);
         RpcReferencePolicy policy = new RpcReferencePolicy(
                 3000,
@@ -299,7 +304,7 @@ class RpcRuntimeGovernanceTcpTest {
                 new RpcProviderAvailabilityRegistry();
         RpcProviderMethodRegistry methods = new RpcProviderBeanScanner(
                 context,
-                new RpcContractValidator()).scan();
+                new RpcContractValidator(VALIDATION_UTILS)).scan();
         RpcProcessIdentity identity = identity();
         return new RpcProviderLifecycle(
                 methods,

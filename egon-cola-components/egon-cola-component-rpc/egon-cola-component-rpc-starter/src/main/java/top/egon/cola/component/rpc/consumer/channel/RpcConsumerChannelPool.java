@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.consumer.channel;
 
 import io.grpc.ManagedChannel;
 import org.springframework.context.SmartLifecycle;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 
 import java.time.Duration;
 import java.util.Map;

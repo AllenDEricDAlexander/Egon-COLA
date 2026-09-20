@@ -1,5 +1,7 @@
 package top.egon.cola.component.rpc.provider.registration;
 
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
 import java.time.Instant;
 
 /**
@@ -25,11 +27,30 @@ public record RpcLeaseOperationResult(
      *
      * <p>Lease operation status.
      */
-    public enum Status {
-        RENEWED,
-        DELETED,
-        NOT_FOUND,
-        LEASE_MISMATCH
+    public enum Status implements EgonEnum {
+        RENEWED(0, "RENEWED"),
+        DELETED(1, "DELETED"),
+        NOT_FOUND(2, "NOT_FOUND"),
+        LEASE_MISMATCH(3, "LEASE_MISMATCH");
+
+        private final int code;
+
+        private final String message;
+
+        Status(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     /**

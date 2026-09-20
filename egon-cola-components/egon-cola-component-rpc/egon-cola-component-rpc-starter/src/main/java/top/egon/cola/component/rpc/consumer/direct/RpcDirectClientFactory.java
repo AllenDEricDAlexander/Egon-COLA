@@ -1,5 +1,7 @@
 package top.egon.cola.component.rpc.consumer.direct;
 
+import jakarta.validation.Validation;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInterceptorFactory;
 import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
@@ -16,6 +18,16 @@ import java.util.function.Function;
  */
 public final class RpcDirectClientFactory {
 
+    /**
+     * 非 Spring 入口的进程级门面：ValidatorFactory 只在这里绑定一次，
+     * 每次调用或每个请求都不得重新构建。
+     *
+     * <p>Process-wide facade for the non-Spring entry point; the ValidatorFactory
+     * is bound once here instead of per client or per request.
+     */
+    private static final ValidationUtils SHARED_VALIDATION_UTILS = new ValidationUtils(
+            Validation.buildDefaultValidatorFactory().getValidator());
+
     private final RpcContractValidator contractValidator;
 
     private final RpcStatusExceptionMapper statusMapper;
@@ -31,7 +43,7 @@ public final class RpcDirectClientFactory {
      */
     public RpcDirectClientFactory() {
         this(
-                new RpcContractValidator(),
+                new RpcContractValidator(SHARED_VALIDATION_UTILS),
                 new RpcStatusExceptionMapper(),
                 DirectRpcInvocationChannelProvider::new
         );

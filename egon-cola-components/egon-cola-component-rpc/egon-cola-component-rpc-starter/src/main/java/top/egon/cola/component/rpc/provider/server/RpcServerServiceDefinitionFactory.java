@@ -10,7 +10,7 @@ import io.grpc.stub.StreamObserver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
-import top.egon.cola.component.rpc.exception.EgonRpcRejectedException;
+import top.egon.cola.component.rpc.common.exception.EgonRpcRejectedException;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderMethodBinding;

@@ -1,9 +1,11 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.proxy.EgonRpcReferenceBeanPostProcessor;
@@ -35,6 +37,9 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcTcpCallTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -90,7 +95,7 @@ class RpcTcpCallTest {
             consumerGateway.start();
             RpcConsumerProxyFactory proxyFactory =
                     new RpcConsumerProxyFactory(
-                            new RpcContractValidator(),
+                            new RpcContractValidator(VALIDATION_UTILS),
                             new GatewayRpcInvocationChannelProvider(
                                     consumerGateway
                             ),
@@ -178,7 +183,7 @@ class RpcTcpCallTest {
         return new RpcProviderLifecycle(
                 new RpcProviderBeanScanner(
                         context,
-                        new RpcContractValidator()
+                        new RpcContractValidator(VALIDATION_UTILS)
                 ).scan(),
                 new RpcServerServiceDefinitionFactory(availability),
                 new RpcProviderServerFactory(),
@@ -202,7 +207,7 @@ class RpcTcpCallTest {
                 new GenericApplicationContext();
         context.registerBean(
                 EgonRpcReferenceBeanPostProcessor.class,
-                () -> new EgonRpcReferenceBeanPostProcessor(proxyFactory)
+                () -> new EgonRpcReferenceBeanPostProcessor(proxyFactory, VALIDATION_UTILS)
         );
         context.registerBean(EchoRpcTestClient.class);
         context.refresh();

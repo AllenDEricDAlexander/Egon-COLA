@@ -1,15 +1,17 @@
 package top.egon.cola.component.rpc.provider.binding;
 
 import com.google.protobuf.StringValue;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.support.RpcProviderTestFixtures;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
@@ -27,6 +29,9 @@ import static org.assertj.core.api.InstanceOfAssertFactories.type;
 
 class RpcProviderBeanScannerTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void shouldDiscoverOnlyAnnotatedProviderBean() {
         try (AnnotationConfigApplicationContext context =
@@ -43,7 +48,7 @@ class RpcProviderBeanScannerTest {
 
             RpcProviderMethodRegistry registry = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             ).scan();
 
             assertThat(registry.providers()).hasSize(1);
@@ -68,7 +73,7 @@ class RpcProviderBeanScannerTest {
 
             RpcProviderBeanScanner scanner = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             );
 
             assertThatThrownBy(scanner::scan)
@@ -88,7 +93,7 @@ class RpcProviderBeanScannerTest {
 
             RpcProviderMethodRegistry registry = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             ).scan();
 
             assertThat(registry.providers()).hasSize(1);
@@ -109,13 +114,13 @@ class RpcProviderBeanScannerTest {
 
             RpcProviderBeanScanner scanner = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             );
 
             assertThatThrownBy(scanner::scan)
                     .isInstanceOf(EgonRpcException.class)
                     .asInstanceOf(type(EgonRpcException.class))
-                    .satisfies(exception -> assertThat(exception.getCode())
+                    .satisfies(exception -> assertThat(exception.getRpcErrorCode())
                             .isEqualTo(EgonRpcErrorCode.RPC_INVALID_CONTRACT))
                     .satisfies(exception -> assertThat(exception.getMessage())
                             .contains(RpcProviderTestFixtures
@@ -136,7 +141,7 @@ class RpcProviderBeanScannerTest {
 
             RpcProviderBeanScanner scanner = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             );
 
             assertThatThrownBy(scanner::scan)
@@ -162,7 +167,7 @@ class RpcProviderBeanScannerTest {
 
             RpcProviderBeanScanner scanner = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             );
 
             assertThatThrownBy(scanner::scan)
@@ -198,7 +203,7 @@ class RpcProviderBeanScannerTest {
 
         RpcProviderMethodRegistry registry = new RpcProviderBeanScanner(
                 context,
-                new RpcContractValidator()
+                new RpcContractValidator(VALIDATION_UTILS)
         ).scan();
 
         RpcProviderBinding binding = registry.providers().getFirst();

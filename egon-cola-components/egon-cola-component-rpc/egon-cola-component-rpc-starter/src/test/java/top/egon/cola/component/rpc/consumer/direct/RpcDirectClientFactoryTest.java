@@ -13,8 +13,10 @@ import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.ServerCalls;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
@@ -36,6 +38,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcDirectClientFactoryTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private static final Metadata.Key<String> SIGNATURE =
             Metadata.Key.of("x-test-signature", Metadata.ASCII_STRING_MARSHALLER);
@@ -105,7 +110,7 @@ class RpcDirectClientFactoryTest {
         AtomicReference<DirectRpcInvocationChannelProvider> created =
                 new AtomicReference<>();
         RpcDirectClientFactory factory = new RpcDirectClientFactory(
-                new RpcContractValidator(),
+                new RpcContractValidator(VALIDATION_UTILS),
                 new RpcStatusExceptionMapper(),
                 settings -> {
                     DirectRpcInvocationChannelProvider provider =

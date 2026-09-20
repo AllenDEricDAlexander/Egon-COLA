@@ -2,7 +2,9 @@ package top.egon.cola.component.rpc.contract.snapshot;
 
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.StringValue;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
@@ -18,11 +20,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcContractSnapshotBuilderTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void buildsStableStandardDescriptorSetWithTransitiveDependencies()
             throws Exception {
         RpcContractDescriptor contract =
-                new RpcContractValidator().validate(SnapshotContract.class);
+                new RpcContractValidator(VALIDATION_UTILS).validate(SnapshotContract.class);
         RpcContractSnapshotBuilder builder = new RpcContractSnapshotBuilder();
 
         RpcContractSnapshot first = builder.build(contract);
@@ -58,7 +63,7 @@ class RpcContractSnapshotBuilderTest {
     @Test
     void snapshotDefensivelyCopiesBytesAndMethods() {
         RpcContractSnapshot snapshot = new RpcContractSnapshotBuilder().build(
-                new RpcContractValidator().validate(SnapshotContract.class)
+                new RpcContractValidator(VALIDATION_UTILS).validate(SnapshotContract.class)
         );
         byte[] bytes = snapshot.fileDescriptorSet();
         byte original = bytes[0];

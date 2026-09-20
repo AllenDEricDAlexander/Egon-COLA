@@ -1,6 +1,8 @@
 package top.egon.cola.component.rpc.test.consumer;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.consumer.proxy.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.gateway.GatewayRpcInvocationChannelProvider;
 import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
@@ -15,10 +17,13 @@ import static org.mockito.Mockito.mock;
 
 class EchoRpcClientContextTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void shouldInjectRpcProxyWithoutProviderAddress() {
         RpcConsumerProxyFactory proxyFactory = new RpcConsumerProxyFactory(
-                new RpcContractValidator(),
+                new RpcContractValidator(VALIDATION_UTILS),
                 new GatewayRpcInvocationChannelProvider(
                         mock(RpcConsumerGatewayManager.class)
                 ),
@@ -35,7 +40,7 @@ class EchoRpcClientContextTest {
         );
         EchoRpcClient client = new EchoRpcClient();
 
-        new EgonRpcReferenceBeanPostProcessor(proxyFactory)
+        new EgonRpcReferenceBeanPostProcessor(proxyFactory, VALIDATION_UTILS)
                 .postProcessBeforeInitialization(client, "echoRpcClient");
 
         assertThat(client.rpcProxy())

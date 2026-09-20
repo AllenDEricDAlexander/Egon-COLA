@@ -18,6 +18,11 @@
     <dependencies>
         <dependency>
             <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-rpc-starter</artifactId>
         </dependency>
         <dependency>
@@ -37,6 +42,10 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
         <dependency>
             <groupId>io.grpc</groupId>

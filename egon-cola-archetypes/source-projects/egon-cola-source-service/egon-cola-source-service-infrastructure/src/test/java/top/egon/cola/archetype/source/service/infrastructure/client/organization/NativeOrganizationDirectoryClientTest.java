@@ -7,8 +7,8 @@ import org.mapstruct.factory.Mappers;
 import jakarta.validation.Validation;
 import jakarta.validation.ConstraintViolationException;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
@@ -135,7 +135,8 @@ class NativeOrganizationDirectoryClientTest {
             return mock(contract.contractType());
         });
         var config = new NativeOrganizationRpcConfiguration(
-                new top.egon.cola.component.rpc.contract.validation.RpcContractValidator(), strategies, proxies,
+                new top.egon.cola.component.rpc.contract.validation.RpcContractValidator(validation),
+                strategies, proxies,
                 new top.egon.cola.component.rpc.context.identity.RpcProcessIdentity("consumer", "test", "localhost", 1L, "consumer-1"),
                 new NativeOrganizationRpcProperties("biz", "organization-app", "student-management-organization", "1.0", 5000),
                 new top.egon.cola.component.rpc.config.EgonRpcProperties(), validation);

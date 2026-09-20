@@ -3,6 +3,8 @@ package top.egon.cola.component.rpc.exception;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.context.invocation.RpcFailureStage;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 
@@ -38,7 +40,7 @@ class RpcStatusExceptionMapperTest {
                 Status.NOT_FOUND.asRuntimeException(trailers)
         );
 
-        assertThat(exception.getCode())
+        assertThat(exception.getRpcErrorCode())
                 .isEqualTo(EgonRpcErrorCode.RPC_METHOD_NOT_FOUND);
     }
 
@@ -51,10 +53,10 @@ class RpcStatusExceptionMapperTest {
 
         assertThat(mapper.map(
                 Status.UNAVAILABLE.asRuntimeException(providerTrailers)
-        ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE);
+        ).getRpcErrorCode()).isEqualTo(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE);
         assertThat(mapper.map(
                 Status.UNAVAILABLE.asRuntimeException(gatewayTrailers)
-        ).getCode()).isEqualTo(EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE);
+        ).getRpcErrorCode()).isEqualTo(EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE);
     }
 
     @Test
@@ -63,12 +65,12 @@ class RpcStatusExceptionMapperTest {
         RpcFailureStage.PROVIDER.put(trailers);
         trailers.put(RpcMetadataKeys.ERROR_TYPE, "rate-limit");
 
-        assertThat(mapper.map(Status.UNAVAILABLE.asRuntimeException(trailers)).getCode())
+        assertThat(mapper.map(Status.UNAVAILABLE.asRuntimeException(trailers)).getRpcErrorCode())
                 .isEqualTo(EgonRpcErrorCode.RPC_RATE_LIMITED);
     }
 
     private void assertCode(Status status, EgonRpcErrorCode expected) {
-        assertThat(mapper.map(status.asRuntimeException()).getCode())
+        assertThat(mapper.map(status.asRuntimeException()).getRpcErrorCode())
                 .isEqualTo(expected);
     }
 }

@@ -3,11 +3,11 @@ package top.egon.cola.component.rpc.consumer.provider;
 import io.grpc.ConnectivityState;
 import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -152,7 +152,7 @@ class RpcConsumerProviderManagerTest {
             ProviderRpcInvocationChannelProvider provider) {
         assertThatThrownBy(() -> provider.currentChannel(Set.of()))
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
+                        assertThat(exception.getRpcErrorCode()).isEqualTo(
                                 EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE));
     }
 
@@ -160,7 +160,7 @@ class RpcConsumerProviderManagerTest {
             org.assertj.core.api.ThrowableAssert.ThrowingCallable constructor) {
         assertThatThrownBy(constructor)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
+                        assertThat(exception.getRpcErrorCode()).isEqualTo(
                                 EgonRpcErrorCode.RPC_INVALID_CONTRACT));
     }
 

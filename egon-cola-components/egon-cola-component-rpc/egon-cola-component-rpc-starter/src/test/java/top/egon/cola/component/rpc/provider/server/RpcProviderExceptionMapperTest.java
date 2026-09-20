@@ -10,7 +10,9 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ClientCalls;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderBinding;
@@ -27,6 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcProviderExceptionMapperTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private static final Metadata.Key<String> DETAIL =
             Metadata.Key.of("x-test-detail", Metadata.ASCII_STRING_MARSHALLER);
@@ -69,7 +74,7 @@ class RpcProviderExceptionMapperTest {
 
     private StatusRuntimeException invoke(
             List<RpcProviderExceptionMapper> mappers) throws Exception {
-        RpcContractDescriptor contract = new RpcContractValidator().validate(
+        RpcContractDescriptor contract = new RpcContractValidator(VALIDATION_UTILS).validate(
                 RpcProviderTestFixtures.EchoContract.class
         );
         RpcProviderBinding binding = new RpcProviderBinding(

@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.consumer.channel;
 
 import io.grpc.ManagedChannel;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -119,7 +119,7 @@ class RpcConsumerChannelPoolTest {
         pool.close();
         assertThatThrownBy(() -> pool.acquire(endpoint()))
                 .isInstanceOf(EgonRpcException.class)
-                .satisfies(error -> assertThat(((EgonRpcException) error).getCode())
+                .satisfies(error -> assertThat(((EgonRpcException) error).getRpcErrorCode())
                         .isEqualTo(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE));
     }
 

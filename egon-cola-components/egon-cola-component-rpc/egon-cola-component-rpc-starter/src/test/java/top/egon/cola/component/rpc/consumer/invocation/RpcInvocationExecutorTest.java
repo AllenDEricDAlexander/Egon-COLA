@@ -7,6 +7,8 @@ import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.consumer.channel.RpcChannelLease;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelPool;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
@@ -15,8 +17,6 @@ import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalancers;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferencePolicy;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategy;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 
 import java.util.List;
@@ -79,7 +79,7 @@ class RpcInvocationExecutorTest {
         assertThatThrownBy(() -> new RpcInvocationExecutor(new RpcStatusExceptionMapper())
                 .executeBlocking(plan, StringValue.of("request")))
                 .isInstanceOf(EgonRpcException.class)
-                .satisfies(error -> assertThat(((EgonRpcException) error).getCode())
+                .satisfies(error -> assertThat(((EgonRpcException) error).getRpcErrorCode())
                         .isEqualTo(EgonRpcErrorCode.RPC_INTERNAL));
         verify(lease).close();
     }
@@ -150,7 +150,7 @@ class RpcInvocationExecutorTest {
         assertThatThrownBy(() -> new RpcInvocationExecutor(new RpcStatusExceptionMapper())
                 .executeBlocking(plan, StringValue.of("request")))
                 .isInstanceOfSatisfying(EgonRpcException.class, error ->
-                        assertThat(error.getCode()).isEqualTo(EgonRpcErrorCode.RPC_RATE_LIMITED));
+                        assertThat(error.getRpcErrorCode()).isEqualTo(EgonRpcErrorCode.RPC_RATE_LIMITED));
     }
 
     private static RpcInvocationPlan plan(

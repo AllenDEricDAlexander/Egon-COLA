@@ -8,8 +8,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 
 import java.time.Instant;
 import java.util.List;
@@ -76,7 +76,7 @@ class RpcConsumerGatewayManagerTest {
 
         assertThatThrownBy(manager::start)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
+                        assertThat(exception.getRpcErrorCode()).isEqualTo(
                                 EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
                         )
                 );
@@ -118,7 +118,7 @@ class RpcConsumerGatewayManagerTest {
 
         assertThatThrownBy(manager::start)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
+                        assertThat(exception.getRpcErrorCode()).isEqualTo(
                                 EgonRpcErrorCode.RPC_YUHENG_UNAVAILABLE
                         )
                 );

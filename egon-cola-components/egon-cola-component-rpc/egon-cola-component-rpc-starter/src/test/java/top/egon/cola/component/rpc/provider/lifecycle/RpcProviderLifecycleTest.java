@@ -13,15 +13,17 @@ import io.grpc.ServerInterceptor;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.stub.ClientCalls;
 import io.grpc.stub.ServerCalls;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.test.util.ReflectionTestUtils;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.provider.server.RpcProviderServerInterceptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderBeanScanner;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderMethodRegistry;
 import top.egon.cola.component.rpc.provider.metadata.RpcProviderMetadataMerger;
@@ -48,13 +50,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcProviderLifecycleTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void serverFactoryExecutesInterceptorsInDeclaredOrder() throws Exception {
         List<String> order = new ArrayList<>();
         @SuppressWarnings("unchecked")
         MethodDescriptor<Message, Message> method =
                 (MethodDescriptor<Message, Message>)
-                        (MethodDescriptor<?, ?>) new RpcContractValidator()
+                        (MethodDescriptor<?, ?>) new RpcContractValidator(VALIDATION_UTILS)
                                 .validate(
                                         RpcProviderTestFixtures.EchoContract.class
                                 )
@@ -329,7 +334,7 @@ class RpcProviderLifecycleTest {
             AnnotationConfigApplicationContext context) {
         return new RpcProviderBeanScanner(
                 context,
-                new RpcContractValidator()
+                new RpcContractValidator(VALIDATION_UTILS)
         ).scan();
     }
 

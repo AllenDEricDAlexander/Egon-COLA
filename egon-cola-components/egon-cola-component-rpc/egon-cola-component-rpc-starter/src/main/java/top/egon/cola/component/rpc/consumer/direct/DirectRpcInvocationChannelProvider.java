@@ -3,10 +3,10 @@ package top.egon.cola.component.rpc.consumer.direct;
 import io.grpc.ManagedChannel;
 import io.grpc.netty.shaded.io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.shaded.io.netty.channel.ChannelOption;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.config.RpcTransportSecurity;
 import top.egon.cola.component.rpc.consumer.channel.RpcInvocationChannelProvider;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.util.Set;
 import java.util.concurrent.TimeUnit;

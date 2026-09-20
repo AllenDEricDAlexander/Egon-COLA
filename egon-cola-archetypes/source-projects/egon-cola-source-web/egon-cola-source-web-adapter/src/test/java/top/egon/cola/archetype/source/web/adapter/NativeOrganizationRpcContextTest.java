@@ -50,6 +50,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class NativeOrganizationRpcContextTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
     @AfterEach
     void clearTestContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -133,7 +136,7 @@ class NativeOrganizationRpcContextTest {
             var converter = Mappers.getMapper(OrganizationRpcConverter.class);
             var provider = new UserRpcProvider(facade, mock(RoleFacade.class), mock(PermissionFacade.class),
                     converter, new ValidationUtils(validators.getValidator()));
-            var binding = new RpcProviderBinding(provider, new RpcContractValidator().validate(UserRpcService.class));
+            var binding = new RpcProviderBinding(provider, new RpcContractValidator(VALIDATION_UTILS).validate(UserRpcService.class));
             var registry = new RpcProviderMethodRegistry(List.of(binding));
             var availability = new RpcProviderAvailabilityRegistry();
             availability.available(binding.serviceIdentity());

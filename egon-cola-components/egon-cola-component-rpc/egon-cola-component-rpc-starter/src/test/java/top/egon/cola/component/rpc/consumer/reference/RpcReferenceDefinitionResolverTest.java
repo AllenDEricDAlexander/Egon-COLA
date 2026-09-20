@@ -1,18 +1,20 @@
 package top.egon.cola.component.rpc.consumer.reference;
 
 import com.google.protobuf.StringValue;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.loadbalance.RpcLoadBalanceKeyResolver;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.support.RpcProviderTestFixtures.EchoContract;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -22,8 +24,11 @@ import static org.mockito.Mockito.when;
 
 class RpcReferenceDefinitionResolverTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     private final RpcContractDescriptor descriptor =
-            new RpcContractValidator().validate(EchoContract.class);
+            new RpcContractValidator(VALIDATION_UTILS).validate(EchoContract.class);
 
     @Test
     void resolvesDirectIdentityAndCommonPolicyOnce() throws Exception {
@@ -64,7 +69,7 @@ class RpcReferenceDefinitionResolverTest {
         assertThatThrownBy(() -> definitions.resolve(
                 Holder.class.getDeclaredField("gateway"), descriptor))
                 .isInstanceOfSatisfying(EgonRpcException.class, error -> {
-                    assertThat(error.getCode()).isEqualTo(EgonRpcErrorCode.RPC_INVALID_CONTRACT);
+                    assertThat(error.getRpcErrorCode()).isEqualTo(EgonRpcErrorCode.RPC_INVALID_CONTRACT);
                     assertThat(error.getMessage()).contains("bean");
                     assertThat(error.getMessage()).doesNotContain("authorization");
                 });

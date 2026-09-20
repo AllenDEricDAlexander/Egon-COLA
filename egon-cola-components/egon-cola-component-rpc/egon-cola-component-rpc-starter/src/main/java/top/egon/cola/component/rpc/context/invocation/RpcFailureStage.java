@@ -1,21 +1,38 @@
 package top.egon.cola.component.rpc.context.invocation;
 
 import io.grpc.Metadata;
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 
-public enum RpcFailureStage {
+public enum RpcFailureStage implements EgonEnum {
 
-    GATEWAY("yuheng"),
+    GATEWAY(0, "GATEWAY", "yuheng"),
 
-    PROVIDER("provider");
+    PROVIDER(1, "PROVIDER", "provider");
+
+    private final int code;
+
+    private final String message;
 
     private final String wireValue;
 
-    RpcFailureStage(String wireValue) {
+    RpcFailureStage(int code, String message, String wireValue) {
+        this.code = code;
+        this.message = message;
         this.wireValue = wireValue;
+    }
+
+    @Override
+    public int getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return message;
     }
 
     public String wireValue() {

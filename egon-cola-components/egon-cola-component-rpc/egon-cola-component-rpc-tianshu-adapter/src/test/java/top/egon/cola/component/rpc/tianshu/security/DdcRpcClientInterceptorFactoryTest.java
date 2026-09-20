@@ -1,7 +1,9 @@
 package top.egon.cola.component.rpc.tianshu.security;
 
 import io.grpc.Metadata;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.consumer.interceptor.RpcClientInvocation;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
@@ -20,6 +22,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcRpcClientInterceptorFactoryTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void createsAllRequiredMetadataFromTheActualProtobufRequest()
@@ -103,7 +108,7 @@ class DdcRpcClientInterceptorFactoryTest {
 
     private RpcClientInvocation invocation(String javaMethodName)
             throws Exception {
-        RpcContractDescriptor contract = new RpcContractValidator()
+        RpcContractDescriptor contract = new RpcContractValidator(VALIDATION_UTILS)
                 .validate(DdcConfigRuntimeRpc.class);
         Method method = DdcConfigRuntimeRpc.class.getMethod(
                 javaMethodName,

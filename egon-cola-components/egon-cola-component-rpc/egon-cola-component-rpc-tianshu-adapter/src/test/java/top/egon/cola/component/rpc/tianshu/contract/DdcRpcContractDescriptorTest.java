@@ -1,7 +1,9 @@
 package top.egon.cola.component.rpc.tianshu.contract;
 
 import io.grpc.ServiceDescriptor;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.DdcConfigRuntimeServiceGrpc;
@@ -20,8 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class DdcRpcContractDescriptorTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     private final RpcContractValidator validator =
-            new RpcContractValidator();
+            new RpcContractValidator(VALIDATION_UTILS);
 
     @Test
     void javaContractsMatchGeneratedGrpcDescriptorsExactly() {

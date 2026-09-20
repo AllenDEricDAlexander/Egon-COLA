@@ -2,14 +2,16 @@ package top.egon.cola.component.rpc.contract.validation;
 
 import com.google.protobuf.Message;
 import io.grpc.MethodDescriptor.MethodType;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.contract.descriptor.GeneratedGrpcDescriptorResolver;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.descriptor.RpcMethodDescriptor;
 import top.egon.cola.component.rpc.consumer.invocation.RpcInvocationMode;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -24,23 +26,33 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CompletionStage;
 
-public class RpcContractValidator {
+public class RpcContractValidator extends BaseValidator {
 
     private final GeneratedGrpcDescriptorResolver descriptorResolver;
+
+    private final ValidationUtils validationUtils;
 
     private final ConcurrentMap<Class<?>, RpcContractDescriptor> cache =
             new ConcurrentHashMap<>();
 
-    public RpcContractValidator() {
-        this(new GeneratedGrpcDescriptorResolver());
+    public RpcContractValidator(ValidationUtils validationUtils) {
+        this(new GeneratedGrpcDescriptorResolver(), validationUtils);
     }
 
     public RpcContractValidator(
-            GeneratedGrpcDescriptorResolver descriptorResolver) {
+            GeneratedGrpcDescriptorResolver descriptorResolver,
+            ValidationUtils validationUtils) {
         this.descriptorResolver = descriptorResolver;
+        this.validationUtils = validationUtils;
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
     }
 
     public RpcContractDescriptor validate(Class<?> contractType) {
+        validateBean(contractType);
         RpcContractDescriptor cached = cache.get(contractType);
         if (cached != null) {
             return cached;
@@ -52,7 +64,7 @@ public class RpcContractValidator {
     }
 
     private RpcContractDescriptor validateUncached(Class<?> contractType) {
-        if (contractType == null || !contractType.isInterface()) {
+        if (!contractType.isInterface()) {
             throw invalid("RPC contract must be an interface");
         }
         EgonRpcService service =

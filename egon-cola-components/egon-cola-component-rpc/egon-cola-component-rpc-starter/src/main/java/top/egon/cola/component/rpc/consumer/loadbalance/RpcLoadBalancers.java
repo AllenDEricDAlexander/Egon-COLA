@@ -1,9 +1,9 @@
 package top.egon.cola.component.rpc.consumer.loadbalance;
 
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.lang.reflect.Method;
 import java.nio.ByteBuffer;

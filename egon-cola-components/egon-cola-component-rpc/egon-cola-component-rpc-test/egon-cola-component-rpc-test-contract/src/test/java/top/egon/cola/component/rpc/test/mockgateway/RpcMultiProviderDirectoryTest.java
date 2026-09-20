@@ -3,8 +3,10 @@ package top.egon.cola.component.rpc.test.mockgateway;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
@@ -32,6 +34,9 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcMultiProviderDirectoryTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -82,7 +87,7 @@ class RpcMultiProviderDirectoryTest {
             );
             consumerGateway.start();
             EchoRpc consumer = new RpcConsumerProxyFactory(
-                    new RpcContractValidator(),
+                    new RpcContractValidator(VALIDATION_UTILS),
                     new GatewayRpcInvocationChannelProvider(consumerGateway),
                     identity,
                     new RpcStatusExceptionMapper(),

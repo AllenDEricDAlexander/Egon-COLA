@@ -27,6 +27,9 @@ import top.egon.cola.archetype.source.service.adapter.exam.rpc.ScoreRpcProvider;
 import java.time.Instant;
 
 class NativeServiceRpcProviderTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
     private static final jakarta.validation.ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
     private final ValidationUtils validation = new ValidationUtils(VALIDATORS.getValidator());
     private final EvaluationRpcConverter converter = Mappers.getMapper(EvaluationRpcConverter.class);
@@ -42,7 +45,7 @@ class NativeServiceRpcProviderTest {
             assertThat(provider.getAnnotation(EgonRpcProvider.class)).isNotNull();
             assertThat(provider.getAnnotation(Component.class).value()).isNotBlank();
             for (Class<?> contract : provider.getInterfaces()) {
-                methods += new RpcContractValidator().validate(contract).methods().size();
+                methods += new RpcContractValidator(VALIDATION_UTILS).validate(contract).methods().size();
             }
         }
         assertThat(methods).isEqualTo(11);

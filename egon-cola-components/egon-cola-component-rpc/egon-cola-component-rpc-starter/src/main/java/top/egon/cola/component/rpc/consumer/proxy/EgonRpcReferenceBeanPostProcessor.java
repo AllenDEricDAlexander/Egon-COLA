@@ -3,6 +3,7 @@ package top.egon.cola.component.rpc.consumer.proxy;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.util.ReflectionUtils;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinitionResolver;
@@ -51,8 +52,9 @@ public class EgonRpcReferenceBeanPostProcessor implements BeanPostProcessor {
      * resolver/strategy constructor above.
      */
     public EgonRpcReferenceBeanPostProcessor(
-            RpcConsumerProxyFactory proxyFactory) {
-        this.contractValidator = new RpcContractValidator();
+            RpcConsumerProxyFactory proxyFactory,
+            ValidationUtils validationUtils) {
+        this.contractValidator = new RpcContractValidator(validationUtils);
         this.definitionResolver = null;
         this.strategyFactory = null;
         this.proxyFactory = java.util.Objects.requireNonNull(

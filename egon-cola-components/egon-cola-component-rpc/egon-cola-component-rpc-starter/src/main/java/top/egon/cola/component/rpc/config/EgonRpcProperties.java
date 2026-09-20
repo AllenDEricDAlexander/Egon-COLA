@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.config;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
 
 import java.util.LinkedHashMap;

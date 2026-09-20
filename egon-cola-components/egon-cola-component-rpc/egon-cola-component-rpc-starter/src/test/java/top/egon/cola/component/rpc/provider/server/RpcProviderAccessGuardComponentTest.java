@@ -10,6 +10,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.jackson.JacksonAutoConfiguration;
@@ -17,6 +18,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.accessguard.api.RateLimitGuard;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
@@ -37,6 +39,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcProviderAccessGuardComponentTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
@@ -72,7 +77,7 @@ class RpcProviderAccessGuardComponentTest {
             GuardedProvider provider = context.getBean(GuardedProvider.class);
             RpcProviderMethodRegistry registry = new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()).scan();
+                    new RpcContractValidator(VALIDATION_UTILS)).scan();
             RpcProviderAvailabilityRegistry availability =
                     new RpcProviderAvailabilityRegistry();
             registry.providers().forEach(binding ->
@@ -94,7 +99,7 @@ class RpcProviderAccessGuardComponentTest {
                                 "127.0.0.1", server.getPort())
                         .usePlaintext()
                         .build();
-                var method = new RpcContractValidator()
+                var method = new RpcContractValidator(VALIDATION_UTILS)
                         .validate(EchoContract.class)
                         .methods()
                         .getFirst()

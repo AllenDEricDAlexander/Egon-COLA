@@ -4,7 +4,7 @@ import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyFailure;
 import java.util.Locale;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 
 final class OrganizationClientFailureMapper {
 
@@ -19,12 +19,12 @@ final class OrganizationClientFailureMapper {
             return failure(category(code), code, facadeFailure);
         }
         if (failure instanceof EgonRpcException rpcFailure) {
-            ExternalDependencyFailure category = switch (rpcFailure.getCode()) {
+            ExternalDependencyFailure category = switch (rpcFailure.getRpcErrorCode()) {
                 case RPC_DEADLINE_EXCEEDED -> ExternalDependencyFailure.TIMEOUT;
                 case RPC_INVALID_CONTRACT, RPC_METHOD_NOT_FOUND -> ExternalDependencyFailure.CONTRACT_INCOMPATIBLE;
                 default -> ExternalDependencyFailure.UNAVAILABLE;
             };
-            return failure(category, rpcFailure.getCode().name(), rpcFailure);
+            return failure(category, rpcFailure.getRpcErrorCode().name(), rpcFailure);
         }
         return failure(ExternalDependencyFailure.SERVICE_FAILURE, "UNKNOWN", failure);
     }

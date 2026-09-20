@@ -2,8 +2,8 @@ package top.egon.cola.component.rpc.config;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderRegistrationMode;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
 
 import java.util.Arrays;
@@ -115,7 +115,7 @@ class EgonRpcPropertiesTest {
             EgonRpcProperties.Consumer consumer) {
         assertThatThrownBy(consumer::validateSharedSettings)
                 .isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                        assertThat(exception.getCode()).isEqualTo(
+                        assertThat(exception.getRpcErrorCode()).isEqualTo(
                                 EgonRpcErrorCode.RPC_INVALID_CONTRACT
                         ));
     }

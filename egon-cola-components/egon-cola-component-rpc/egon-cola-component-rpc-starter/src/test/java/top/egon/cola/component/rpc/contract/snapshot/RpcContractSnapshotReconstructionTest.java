@@ -3,7 +3,9 @@ package top.egon.cola.component.rpc.contract.snapshot;
 import com.google.protobuf.DescriptorProtos;
 import com.google.protobuf.Descriptors;
 import com.google.protobuf.StringValue;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
@@ -16,10 +18,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcContractSnapshotReconstructionTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     @Test
     void reconstructsEveryExportedMethodDescriptor() throws Exception {
         RpcContractSnapshot snapshot = new RpcContractSnapshotBuilder().build(
-                new RpcContractValidator().validate(ReconstructionContract.class)
+                new RpcContractValidator(VALIDATION_UTILS).validate(ReconstructionContract.class)
         );
         DescriptorProtos.FileDescriptorSet descriptorSet =
                 DescriptorProtos.FileDescriptorSet.parseFrom(

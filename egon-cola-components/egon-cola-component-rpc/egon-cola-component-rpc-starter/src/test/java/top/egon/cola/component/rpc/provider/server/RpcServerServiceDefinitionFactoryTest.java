@@ -12,7 +12,9 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.ClientCalls;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
@@ -35,7 +37,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcServerServiceDefinitionFactoryTest {
 
-    private final RpcContractValidator validator = new RpcContractValidator();
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
+    private final RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
 
     @Test
     void shouldKeepBlockingProviderPath() throws Exception {

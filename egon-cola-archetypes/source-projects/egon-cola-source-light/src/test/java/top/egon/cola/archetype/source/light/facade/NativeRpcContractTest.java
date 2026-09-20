@@ -1,9 +1,11 @@
 package top.egon.cola.archetype.source.light.facade;
 
 import io.grpc.MethodDescriptor.MethodType;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.util.Map;
 import java.util.Set;
@@ -16,6 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class NativeRpcContractTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     private static final Map<String, Set<String>> OPERATIONS = Map.of(
             "Course", Set.of("CreateCourse", "GetCourse"),
             "SchoolClass", Set.of("CreateSchoolClass", "ScheduleCourse", "GetSchoolClass"),
@@ -25,7 +30,7 @@ class NativeRpcContractTest {
 
     @Test
     void validatesEveryNativeOperation() {
-        RpcContractValidator validator = new RpcContractValidator();
+        RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
         OPERATIONS.forEach((service, methods) -> {
             Class<?> contract = assertDoesNotThrow(
                     () -> Class.forName("top.egon.cola.archetype.source.light.facade.rpc." + service + "RpcService"),
@@ -42,9 +47,9 @@ class NativeRpcContractTest {
     @Test
     void rejectsContractsWithoutNativeAnnotations() {
         assertThrows(EgonRpcException.class,
-                () -> new RpcContractValidator().validate(UnannotatedRpcService.class));
+                () -> new RpcContractValidator(VALIDATION_UTILS).validate(UnannotatedRpcService.class));
         assertThrows(EgonRpcException.class,
-                () -> new RpcContractValidator().validate(String.class));
+                () -> new RpcContractValidator(VALIDATION_UTILS).validate(String.class));
     }
 
     interface UnannotatedRpcService {
@@ -53,9 +58,10 @@ class NativeRpcContractTest {
 
     @Test
     void rejectsDescriptorMismatchAndOverloadedContracts() {
-        RpcContractValidator validator = new RpcContractValidator();
-        assertEquals(top.egon.cola.component.rpc.exception.EgonRpcErrorCode.RPC_INVALID_CONTRACT,
-                assertThrows(EgonRpcException.class, () -> validator.validate(MismatchedRpcService.class)).getCode());
+        RpcContractValidator validator = new RpcContractValidator(VALIDATION_UTILS);
+        assertEquals(top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode.RPC_INVALID_CONTRACT,
+                assertThrows(EgonRpcException.class, () -> validator.validate(MismatchedRpcService.class))
+                        .getRpcErrorCode());
         assertThrows(EgonRpcException.class, () -> validator.validate(OverloadedRpcService.class));
     }
 
@@ -65,7 +71,7 @@ class NativeRpcContractTest {
             Class<?> contract = Class.forName("top.egon.cola.archetype.source.light.facade.rpc." + service + "RpcService");
             var annotation = contract.getAnnotation(top.egon.cola.component.rpc.annotation.EgonRpcService.class);
             assertEquals(0, annotation.retries());
-            for (var descriptor : new RpcContractValidator().validate(contract).methods()) {
+            for (var descriptor : new RpcContractValidator(VALIDATION_UTILS).validate(contract).methods()) {
                 assertTrue(java.util.Arrays.stream(descriptor.javaMethod().getParameterAnnotations()[0])
                         .anyMatch(a -> a.annotationType() == jakarta.validation.constraints.NotNull.class));
                 boolean query = descriptor.methodName().startsWith("Get") || descriptor.methodName().startsWith("Page");

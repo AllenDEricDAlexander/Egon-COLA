@@ -4,8 +4,10 @@ import io.grpc.Context;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
@@ -14,8 +16,8 @@ import top.egon.cola.component.rpc.consumer.gateway.GatewayRpcInvocationChannelP
 import top.egon.cola.component.rpc.consumer.proxy.RpcConsumerProxyFactory;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLease;
 import top.egon.cola.component.rpc.provider.registration.RpcProviderLeaseIdentity;
@@ -38,6 +40,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class RpcTcpDeadlineTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -89,7 +94,7 @@ class RpcTcpDeadlineTest {
             );
             consumerGateway.start();
             EchoRpc proxy = new RpcConsumerProxyFactory(
-                    new RpcContractValidator(),
+                    new RpcContractValidator(VALIDATION_UTILS),
                     new GatewayRpcInvocationChannelProvider(consumerGateway),
                     identity,
                     new RpcStatusExceptionMapper(),
@@ -101,7 +106,7 @@ class RpcTcpDeadlineTest {
                             .setMessage("deadline")
                             .build()
             )).isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                    assertThat(exception.getCode()).isEqualTo(
+                    assertThat(exception.getRpcErrorCode()).isEqualTo(
                             EgonRpcErrorCode.RPC_DEADLINE_EXCEEDED
                     )
             );

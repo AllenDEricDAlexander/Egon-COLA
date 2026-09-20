@@ -1,10 +1,14 @@
 package top.egon.cola.component.rpc.consumer.proxy;
 
 import com.google.protobuf.StringValue;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinitionResolver;
@@ -14,8 +18,6 @@ import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategyFactor
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -27,6 +29,9 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class EgonRpcReferenceBeanPostProcessorTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void injectsGatewayReferenceThroughOneFixedGatewayStrategy() {
@@ -163,7 +168,7 @@ class EgonRpcReferenceBeanPostProcessorTest {
                 new MissingServiceReference(),
                 "missingServiceClient"
         )).isInstanceOfSatisfying(EgonRpcException.class, exception ->
-                assertThat(exception.getCode()).isEqualTo(
+                assertThat(exception.getRpcErrorCode()).isEqualTo(
                         EgonRpcErrorCode.RPC_INVALID_CONTRACT
                 ));
 
@@ -191,7 +196,7 @@ class EgonRpcReferenceBeanPostProcessorTest {
                 "proxy-1"
         );
         return new EgonRpcReferenceBeanPostProcessor(
-                new RpcContractValidator(),
+                new RpcContractValidator(VALIDATION_UTILS),
                 new RpcReferenceDefinitionResolver(properties, identity),
                 strategyFactory,
                 proxyFactory

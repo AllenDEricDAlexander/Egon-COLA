@@ -23,6 +23,9 @@ import top.egon.cola.archetype.source.web.adapter.user.rpc.UserRpcProvider;
 import top.egon.cola.archetype.source.web.adapter.teaching.rpc.SchoolClassRpcProvider;
 
 class NativeOrganizationRpcProviderTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
     private static final jakarta.validation.ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
     private final ValidationUtils validation = new ValidationUtils(VALIDATORS.getValidator());
     private final OrganizationRpcConverter converter = Mappers.getMapper(OrganizationRpcConverter.class);
@@ -40,7 +43,7 @@ class NativeOrganizationRpcProviderTest {
             assertThat(provider.getAnnotation(Component.class).value()).isNotBlank();
             for (Class<?> contract : provider.getInterfaces()) {
                 count++;
-                methods += new RpcContractValidator().validate(contract).methods().size();
+                methods += new RpcContractValidator(VALIDATION_UTILS).validate(contract).methods().size();
             }
         }
         assertThat(count).isEqualTo(5);

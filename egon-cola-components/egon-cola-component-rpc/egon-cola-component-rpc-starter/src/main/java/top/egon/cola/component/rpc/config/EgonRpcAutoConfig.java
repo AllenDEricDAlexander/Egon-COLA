@@ -1,15 +1,20 @@
 package top.egon.cola.component.rpc.config;
 
 import io.grpc.ServerInterceptor;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.env.Environment;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityFactory;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentityProvider;
@@ -51,7 +56,11 @@ import java.util.List;
 import java.time.Duration;
 import java.util.random.RandomGenerator;
 
-@AutoConfiguration
+@AutoConfiguration(
+        after = ValidationAutoConfiguration.class,
+        // MyBatis-Plus publishes the same canonical facade unconditionally; run after it so this
+        // starter never registers a second bean under that name.
+        afterName = "top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration")
 @EnableConfigurationProperties(EgonRpcProperties.class)
 @ConditionalOnProperty(
         prefix = "egon.cola.component.rpc",
@@ -60,10 +69,18 @@ import java.util.random.RandomGenerator;
 )
 public class EgonRpcAutoConfig {
 
+    @Bean(name = "egonColaValidationUtils")
+    @ConditionalOnMissingBean(name = "egonColaValidationUtils")
+    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validators) {
+        return new ValidationUtils(validators.getIfAvailable(
+                () -> Validation.buildDefaultValidatorFactory().getValidator()));
+    }
+
     @Bean
     @ConditionalOnMissingBean
-    public RpcContractValidator rpcContractValidator() {
-        return new RpcContractValidator();
+    public RpcContractValidator rpcContractValidator(
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils) {
+        return new RpcContractValidator(validationUtils);
     }
 
     @Bean

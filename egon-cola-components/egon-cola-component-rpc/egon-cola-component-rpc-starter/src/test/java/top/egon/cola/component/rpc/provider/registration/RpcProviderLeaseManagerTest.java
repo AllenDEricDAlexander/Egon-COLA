@@ -1,7 +1,9 @@
 package top.egon.cola.component.rpc.provider.registration;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
@@ -23,6 +25,9 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcProviderLeaseManagerTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void replacesLostLeaseBeforeRestoringAvailability() {
@@ -193,7 +198,7 @@ class RpcProviderLeaseManagerTest {
             context.refresh();
             return new RpcProviderBeanScanner(
                     context,
-                    new RpcContractValidator()
+                    new RpcContractValidator(VALIDATION_UTILS)
             ).scan().providers();
         }
     }

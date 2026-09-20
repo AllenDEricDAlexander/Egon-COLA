@@ -2,9 +2,9 @@ package top.egon.cola.component.rpc.consumer.loadbalance;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
+import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
+import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.consumer.channel.RpcEndpoint;
-import top.egon.cola.component.rpc.exception.EgonRpcErrorCode;
-import top.egon.cola.component.rpc.exception.EgonRpcException;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -31,7 +31,7 @@ class RpcLoadBalancersTest {
             if (algorithm == LoadBalance.INHERIT) {
                 assertThatThrownBy(() -> factory.loadBalancer(algorithm))
                         .isInstanceOf(EgonRpcException.class)
-                        .satisfies(error -> assertThat(((EgonRpcException) error).getCode())
+                        .satisfies(error -> assertThat(((EgonRpcException) error).getRpcErrorCode())
                                 .isEqualTo(EgonRpcErrorCode.RPC_INVALID_CONTRACT));
             } else {
                 assertThat(factory.loadBalancer(algorithm)).isNotNull();
@@ -138,7 +138,7 @@ class RpcLoadBalancersTest {
         RpcLoadBalancer hash = new RpcLoadBalancers().loadBalancer(LoadBalance.CONSISTENT_HASH);
         assertThatThrownBy(() -> hash.select(context))
                 .isInstanceOf(EgonRpcException.class)
-                .satisfies(error -> assertThat(((EgonRpcException) error).getCode())
+                .satisfies(error -> assertThat(((EgonRpcException) error).getRpcErrorCode())
                         .isEqualTo(EgonRpcErrorCode.RPC_INVALID_REQUEST));
     }
 

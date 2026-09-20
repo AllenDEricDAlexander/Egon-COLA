@@ -1,6 +1,8 @@
 package top.egon.cola.component.rpc.test.contract;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.test.contract.proto.EchoRequest;
 import top.egon.cola.component.rpc.test.contract.proto.EchoResponse;
@@ -9,6 +11,9 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EchoGeneratedContractTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void generatesMessagesAndGrpcDescriptorFromTheOnlyEchoProto() {
@@ -28,12 +33,12 @@ class EchoGeneratedContractTest {
                 .hasSize(1);
         String canonical = EchoServiceGrpc.getEchoMethod().getFullMethodName();
 
-        assertThat(new RpcContractValidator().validate(EchoRpc.class)
+        assertThat(new RpcContractValidator(VALIDATION_UTILS).validate(EchoRpc.class)
                 .methods())
                 .singleElement()
                 .extracting(method -> method.fullMethodName())
                 .isEqualTo(canonical);
-        assertThat(new RpcContractValidator().validate(AsyncEchoRpc.class)
+        assertThat(new RpcContractValidator(VALIDATION_UTILS).validate(AsyncEchoRpc.class)
                 .methods())
                 .singleElement()
                 .extracting(method -> method.fullMethodName())
