@@ -1,5 +1,6 @@
 package top.egon.cola.component.outbox.aop;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.framework.ProxyFactory;
@@ -7,11 +8,12 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionException;
 import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.annotation.TransactionalMessage;
 import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
-import top.egon.cola.component.outbox.exception.OutboxStorageException;
+import top.egon.cola.component.outbox.common.exception.OutboxStorageException;
 
 import java.util.Map;
 
@@ -24,6 +26,9 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class TransactionalMessageAopTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private final TransactionalOutbox outbox = mock(TransactionalOutbox.class);
     private final RecordingTransactionManager transactionManager =
@@ -39,7 +44,7 @@ class TransactionalMessageAopTest {
                 transactionManager,
                 "ordersTransactionManager",
                 new OutboxMessageExpressionResolver(),
-                new TransactionalMessageMethodValidator("ordersTransactionManager"),
+                new TransactionalMessageMethodValidator("ordersTransactionManager", VALIDATION_UTILS),
                 new TransactionalOutboxProperties()
         );
         ProxyFactory proxyFactory = new ProxyFactory(target);

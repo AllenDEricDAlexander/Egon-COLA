@@ -21,8 +21,8 @@ import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxAutoConfi
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
-import top.egon.cola.component.outbox.exception.OutboxMessageResolutionException;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
+import top.egon.cola.component.outbox.common.exception.OutboxMessageResolutionException;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 
 import javax.sql.DataSource;
 

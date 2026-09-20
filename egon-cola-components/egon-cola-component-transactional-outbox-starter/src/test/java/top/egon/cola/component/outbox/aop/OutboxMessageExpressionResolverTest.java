@@ -2,7 +2,7 @@ package top.egon.cola.component.outbox.aop;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.outbox.api.OutboxMessage;
-import top.egon.cola.component.outbox.exception.OutboxMessageResolutionException;
+import top.egon.cola.component.outbox.common.exception.OutboxMessageResolutionException;
 
 import java.lang.reflect.Method;
 import java.util.Map;

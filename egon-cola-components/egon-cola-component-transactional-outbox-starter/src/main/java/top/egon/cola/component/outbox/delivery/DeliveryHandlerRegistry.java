@@ -1,7 +1,7 @@
 package top.egon.cola.component.outbox.delivery;
 
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

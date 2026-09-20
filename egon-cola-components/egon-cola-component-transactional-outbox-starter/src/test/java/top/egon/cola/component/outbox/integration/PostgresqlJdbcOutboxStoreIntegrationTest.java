@@ -4,7 +4,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
-import top.egon.cola.component.outbox.exception.OutboxIdempotencyConflictException;
+import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
 import top.egon.cola.component.outbox.store.NewOutboxRecord;
 import top.egon.cola.component.outbox.store.OutboxRecord;
 import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;

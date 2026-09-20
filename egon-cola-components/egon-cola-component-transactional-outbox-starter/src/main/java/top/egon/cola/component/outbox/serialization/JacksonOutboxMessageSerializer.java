@@ -2,7 +2,7 @@ package top.egon.cola.component.outbox.serialization;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.egon.cola.component.outbox.exception.OutboxSerializationException;
+import top.egon.cola.component.outbox.common.exception.OutboxSerializationException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;

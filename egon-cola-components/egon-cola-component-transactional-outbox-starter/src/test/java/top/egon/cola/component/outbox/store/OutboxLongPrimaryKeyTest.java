@@ -11,7 +11,7 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.TransactionStatus;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
-import top.egon.cola.component.outbox.exception.OutboxIdempotencyConflictException;
+import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;

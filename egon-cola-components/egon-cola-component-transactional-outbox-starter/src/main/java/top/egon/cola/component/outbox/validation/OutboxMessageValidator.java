@@ -2,15 +2,18 @@ package top.egon.cola.component.outbox.validation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.api.OutboxMessage;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 import top.egon.cola.component.outbox.serialization.SerializedOutboxPayload;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 
-public class OutboxMessageValidator {
+public class OutboxMessageValidator extends BaseValidator {
 
     private static final Set<String> FORBIDDEN_HEADERS = Set.of(
             "authorization", "proxy-authorization", "cookie", "set-cookie",
@@ -21,23 +24,32 @@ public class OutboxMessageValidator {
     private final int maximumPayloadBytes;
     private final int maximumHeaderCount;
     private final int maximumSerializedHeaderBytes;
+    private final ValidationUtils validationUtils;
 
     public OutboxMessageValidator(
             ObjectMapper objectMapper,
             int maximumPayloadBytes,
             int maximumHeaderCount,
-            int maximumSerializedHeaderBytes
+            int maximumSerializedHeaderBytes,
+            ValidationUtils validationUtils
     ) {
         this.objectMapper = objectMapper;
         this.maximumPayloadBytes = maximumPayloadBytes;
         this.maximumHeaderCount = maximumHeaderCount;
         this.maximumSerializedHeaderBytes = maximumSerializedHeaderBytes;
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
     }
 
     public void validateEnvelope(OutboxMessage message) {
         if (message == null) {
             throw invalid("message");
         }
+        validateBean(message);
         validateOptional(message.messageId(), 64, "messageId");
         validateOptional(message.idempotencyKey(), 256, "idempotencyKey");
         validateRequired(message.channel(), 64, "channel");

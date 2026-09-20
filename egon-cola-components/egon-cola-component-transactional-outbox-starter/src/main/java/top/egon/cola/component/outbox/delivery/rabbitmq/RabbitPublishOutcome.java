@@ -1,14 +1,34 @@
 package top.egon.cola.component.outbox.delivery.rabbitmq;
 
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
 import java.util.Objects;
 
 public record RabbitPublishOutcome(Kind kind, String reason, Integer replyCode) {
 
-    public enum Kind {
-        ACK,
-        NACK,
-        TIMEOUT,
-        RETURNED
+    public enum Kind implements EgonEnum {
+        ACK(0, "ACK"),
+        NACK(1, "NACK"),
+        TIMEOUT(2, "TIMEOUT"),
+        RETURNED(3, "RETURNED");
+
+        private final int code;
+        private final String message;
+
+        Kind(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 
     public RabbitPublishOutcome {

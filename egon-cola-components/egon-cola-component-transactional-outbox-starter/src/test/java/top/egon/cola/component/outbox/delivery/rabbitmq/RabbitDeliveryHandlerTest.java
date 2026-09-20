@@ -8,7 +8,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.amqp.AmqpConnectException;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 
 import java.net.ConnectException;
 import java.time.Duration;

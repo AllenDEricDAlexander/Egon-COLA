@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.support.RootBeanDefinition;
 import org.springframework.transaction.PlatformTransactionManager;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 
 import javax.sql.DataSource;
 

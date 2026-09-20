@@ -1,6 +1,8 @@
 package top.egon.cola.component.outbox.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
+import jakarta.validation.Validator;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -9,6 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.annotation.Bean;
@@ -18,6 +21,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.scheduling.TaskScheduler;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.aop.OutboxMessageExpressionResolver;
 import top.egon.cola.component.outbox.aop.TransactionalMessageAop;
 import top.egon.cola.component.outbox.aop.TransactionalMessageMethodValidator;
@@ -35,7 +39,7 @@ import top.egon.cola.component.outbox.dispatch.OutboxDispatcher;
 import top.egon.cola.component.outbox.dispatch.OutboxPoller;
 import top.egon.cola.component.outbox.dispatch.OutboxWorkerIdentity;
 import top.egon.cola.component.outbox.event.OutboxCommittedEventListener;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.observability.OutboxMetrics;
 import top.egon.cola.component.outbox.retry.ExponentialJitterRetryPolicy;
@@ -54,7 +58,7 @@ import javax.sql.DataSource;
 import java.time.Clock;
 import java.util.List;
 
-@AutoConfiguration(afterName = {
+@AutoConfiguration(after = ValidationAutoConfiguration.class, afterName = {
         "org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration",
         "org.springframework.boot.autoconfigure.jdbc.JdbcTemplateAutoConfiguration",
         "org.springframework.boot.autoconfigure.transaction.TransactionAutoConfiguration"
@@ -70,10 +74,21 @@ import java.util.List;
 )
 public class TransactionalOutboxAutoConfiguration {
 
+    @Bean(name = "egonColaValidationUtils")
+    // The standalone starter cannot borrow the facade from MyBatis-Plus, so it publishes the canonical
+    // one itself, wrapping the Boot-managed Validator once instead of per request.
+    @ConditionalOnMissingBean(name = "egonColaValidationUtils")
+    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validators) {
+        return new ValidationUtils(validators.getIfAvailable(
+                () -> Validation.buildDefaultValidatorFactory().getValidator()));
+    }
+
     @Bean
     @ConditionalOnMissingBean
-    OutboxConfigurationValidator outboxConfigurationValidator() {
-        return new OutboxConfigurationValidator();
+    OutboxConfigurationValidator outboxConfigurationValidator(
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
+    ) {
+        return new OutboxConfigurationValidator(validationUtils);
     }
 
     @Bean
@@ -112,13 +127,15 @@ public class TransactionalOutboxAutoConfiguration {
     @ConditionalOnMissingBean
     OutboxMessageValidator outboxMessageValidator(
             ObjectProvider<ObjectMapper> objectMappers,
-            TransactionalOutboxProperties properties
+            TransactionalOutboxProperties properties,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
     ) {
         return new OutboxMessageValidator(
                 requireObjectMapper(objectMappers),
                 Math.toIntExact(properties.getPayload().getMaxBytes().toBytes()),
                 properties.getPayload().getMaxHeaderCount(),
-                Math.toIntExact(properties.getPayload().getMaxHeaderBytes().toBytes())
+                Math.toIntExact(properties.getPayload().getMaxHeaderBytes().toBytes()),
+                validationUtils
         );
     }
 
@@ -161,8 +178,11 @@ public class TransactionalOutboxAutoConfiguration {
             havingValue = "true",
             matchIfMissing = true
     )
-    OutboxSchemaValidator outboxSchemaValidator(OutboxStore store) {
-        return new OutboxSchemaValidator(store);
+    OutboxSchemaValidator outboxSchemaValidator(
+            OutboxStore store,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
+    ) {
+        return new OutboxSchemaValidator(store, validationUtils);
     }
 
     @Bean
@@ -362,10 +382,12 @@ public class TransactionalOutboxAutoConfiguration {
             matchIfMissing = true
     )
     TransactionalMessageMethodValidator transactionalMessageMethodValidator(
-            OutboxInfrastructure infrastructure
+            OutboxInfrastructure infrastructure,
+            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils
     ) {
         return new TransactionalMessageMethodValidator(
-                infrastructure.transactionManagerBeanName()
+                infrastructure.transactionManagerBeanName(),
+                validationUtils
         );
     }
 

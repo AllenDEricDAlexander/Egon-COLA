@@ -1,5 +1,6 @@
 package top.egon.cola.component.outbox.integration;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
@@ -7,18 +8,19 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.jdbc.datasource.DelegatingDataSource;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.api.UuidOutboxIdGenerator;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionMismatchException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionRequiredException;
 import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryHandlerRegistry;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.outbox.event.OutboxCommittedEvent;
-import top.egon.cola.component.outbox.exception.OutboxTransactionMismatchException;
-import top.egon.cola.component.outbox.exception.OutboxTransactionRequiredException;
 import top.egon.cola.component.outbox.observability.NoopOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.JacksonOutboxMessageSerializer;
 import top.egon.cola.component.outbox.store.OutboxStore;
@@ -39,6 +41,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTestSupport {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private final List<OutboxCommittedEvent> committedEvents = new ArrayList<>();
     private TransactionTemplate transactionTemplate;
@@ -143,7 +148,7 @@ class TransactionalOutboxTransactionIntegrationTest extends PostgresqlOutboxTest
     ) {
         TransactionalOutboxProperties properties = new TransactionalOutboxProperties();
         return new DefaultTransactionalOutbox(
-                new OutboxMessageValidator(objectMapper, 1_048_576, 64, 16_384),
+                new OutboxMessageValidator(objectMapper, 1_048_576, 64, 16_384, VALIDATION_UTILS),
                 new JacksonOutboxMessageSerializer(objectMapper),
                 new UuidOutboxIdGenerator(),
                 objectMapper,

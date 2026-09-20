@@ -1,10 +1,12 @@
 package top.egon.cola.component.outbox.aop;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 
 import java.lang.reflect.Method;
 import java.util.concurrent.CompletableFuture;
@@ -16,8 +18,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class TransactionalMessageMethodValidatorTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     private final TransactionalMessageMethodValidator validator =
-            new TransactionalMessageMethodValidator("ordersTransactionManager");
+            new TransactionalMessageMethodValidator("ordersTransactionManager", VALIDATION_UTILS);
 
     @Test
     void shouldAcceptPublicSynchronousRequiredBoundary() throws Exception {

@@ -1,8 +1,10 @@
 package top.egon.cola.component.outbox.api;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 import top.egon.cola.component.outbox.validation.OutboxMessageValidator;
 
 import java.time.Instant;
@@ -13,8 +15,11 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OutboxMessageTest {
 
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
     private final OutboxMessageValidator validator =
-            new OutboxMessageValidator(new ObjectMapper(), 1024 * 1024, 64, 16 * 1024);
+            new OutboxMessageValidator(new ObjectMapper(), 1024 * 1024, 64, 16 * 1024, VALIDATION_UTILS);
 
     @Test
     void shouldBuildImmutableMessageWithDefaults() {

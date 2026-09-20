@@ -1,9 +1,9 @@
 package top.egon.cola.component.outbox.transaction;
 
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import top.egon.cola.component.outbox.exception.OutboxTransactionMismatchException;
-import top.egon.cola.component.outbox.exception.OutboxTransactionRequiredException;
-import top.egon.cola.component.outbox.exception.OutboxTransactionSynchronizationException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionMismatchException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionRequiredException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionSynchronizationException;
 
 import javax.sql.DataSource;
 

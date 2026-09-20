@@ -1,9 +1,11 @@
 package top.egon.cola.component.outbox.integration;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.support.TransactionTemplate;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.api.UuidOutboxIdGenerator;
@@ -35,6 +37,9 @@ import java.util.concurrent.ConcurrentHashMap;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSupport {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private PostgresqlJdbcOutboxStore store;
     private final Map<String, DeliveryResult> results = new ConcurrentHashMap<>();
@@ -111,7 +116,7 @@ class PostgresqlOutboxRecoveryIntegrationTest extends PostgresqlOutboxTestSuppor
             throw new IllegalStateException("wake failed");
         };
         TransactionalOutbox outbox = new DefaultTransactionalOutbox(
-                new OutboxMessageValidator(objectMapper, 1_048_576, 64, 16_384),
+                new OutboxMessageValidator(objectMapper, 1_048_576, 64, 16_384, VALIDATION_UTILS),
                 new JacksonOutboxMessageSerializer(objectMapper),
                 new UuidOutboxIdGenerator(),
                 objectMapper,

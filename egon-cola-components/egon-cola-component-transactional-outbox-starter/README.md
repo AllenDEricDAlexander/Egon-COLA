@@ -88,6 +88,13 @@ The application must also provide one `ObjectMapper`, a JDBC `DataSource`, and
 its matching `PlatformTransactionManager`. Add `spring-web` only for HTTP
 delivery and `spring-rabbit` only for RabbitMQ delivery.
 
+Component failures are raised from `top.egon.cola.component.outbox.common.exception`
+and are rooted on the common `CommonException`, so `getCode()`, `getStatus()` and
+`isRetryable()` stay uniform across starters. The starter publishes the canonical
+`egonColaValidationUtils` bean only when the application does not already have it,
+and injects it into its validators, which extend `BaseValidator` and keep their own
+protocol checks.
+
 ## PostgreSQL Migration
 
 Introducing the starter **does not create its table** and does not run Flyway.

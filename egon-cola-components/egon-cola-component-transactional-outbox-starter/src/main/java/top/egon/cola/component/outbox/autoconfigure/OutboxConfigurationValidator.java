@@ -1,25 +1,40 @@
 package top.egon.cola.component.outbox.autoconfigure;
 
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.validation.OutboxMessageValidator;
 
 import java.net.URI;
 import java.time.Duration;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
-public class OutboxConfigurationValidator {
+public class OutboxConfigurationValidator extends BaseValidator {
 
     private static final Duration LEASE_SAFETY_MARGIN = Duration.ofSeconds(1);
     private static final Set<String> STANDARD_HTTP_METHODS = Set.of(
             "GET", "HEAD", "POST", "PUT", "PATCH", "DELETE", "OPTIONS", "TRACE"
     );
 
+    private final ValidationUtils validationUtils;
+
+    public OutboxConfigurationValidator(ValidationUtils validationUtils) {
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
+
     public void validate(TransactionalOutboxProperties properties) {
         if (properties == null) {
             throw invalid("properties");
         }
+        validateBean(properties);
         validateCore(properties);
         validateHttp(properties.getHttp());
         validateRabbitmq(properties.getRabbitmq());

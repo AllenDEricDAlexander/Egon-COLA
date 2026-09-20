@@ -4,7 +4,7 @@ import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.jdbc.datasource.DataSourceTransactionManager;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.util.StringUtils;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 
 import javax.sql.DataSource;
 import java.util.Arrays;

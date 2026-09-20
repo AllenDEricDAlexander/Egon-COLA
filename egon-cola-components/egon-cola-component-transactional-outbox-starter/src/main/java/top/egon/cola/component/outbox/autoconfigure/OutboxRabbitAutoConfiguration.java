@@ -16,7 +16,7 @@ import top.egon.cola.component.outbox.delivery.rabbitmq.RabbitDeliveryHandler;
 import top.egon.cola.component.outbox.delivery.rabbitmq.RabbitDestinationResolver;
 import top.egon.cola.component.outbox.delivery.rabbitmq.RabbitMessagePublisher;
 import top.egon.cola.component.outbox.delivery.rabbitmq.RabbitTemplateMessagePublisher;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 
 import java.time.Clock;
 

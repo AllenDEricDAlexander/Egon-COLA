@@ -2,7 +2,7 @@ package top.egon.cola.component.outbox.integration;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
-import top.egon.cola.component.outbox.exception.OutboxIdempotencyConflictException;
+import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
 import top.egon.cola.component.outbox.store.PostgresqlJdbcOutboxStore;
 
 import java.time.Duration;

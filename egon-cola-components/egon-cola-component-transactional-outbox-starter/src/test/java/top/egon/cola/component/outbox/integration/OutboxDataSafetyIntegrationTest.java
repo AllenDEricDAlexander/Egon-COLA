@@ -2,12 +2,14 @@ package top.egon.cola.component.outbox.integration;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.outbox.api.OutboxMessage;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 import top.egon.cola.component.outbox.delivery.DefaultDeliveryFailureClassifier;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.outbox.event.OutboxDeadLetterEvent;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
 import top.egon.cola.component.outbox.observability.MicrometerOutboxMetrics;
 import top.egon.cola.component.outbox.serialization.SerializedOutboxPayload;
 import top.egon.cola.component.outbox.store.OutboxRecord;
@@ -21,6 +23,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     @Test
     void shouldPersistOnlySanitizedBoundedFailureSummaries() {
@@ -73,7 +78,7 @@ class OutboxDataSafetyIntegrationTest extends PostgresqlOutboxTestSupport {
     @Test
     void shouldRejectSensitiveHeadersAndKeepEventsAndMetricsLowCardinality() {
         OutboxMessageValidator validator =
-                new OutboxMessageValidator(objectMapper, 1_024, 10, 1_024);
+                new OutboxMessageValidator(objectMapper, 1_024, 10, 1_024, VALIDATION_UTILS);
         OutboxMessage message = OutboxMessage.builder()
                 .channel("test")
                 .destination("orders")

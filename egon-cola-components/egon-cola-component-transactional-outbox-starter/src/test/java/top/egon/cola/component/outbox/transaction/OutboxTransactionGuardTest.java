@@ -4,9 +4,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.jdbc.datasource.ConnectionHolder;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import top.egon.cola.component.outbox.exception.OutboxTransactionMismatchException;
-import top.egon.cola.component.outbox.exception.OutboxTransactionRequiredException;
-import top.egon.cola.component.outbox.exception.OutboxTransactionSynchronizationException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionMismatchException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionRequiredException;
+import top.egon.cola.component.outbox.common.exception.OutboxTransactionSynchronizationException;
 
 import javax.sql.DataSource;
 import java.sql.Connection;

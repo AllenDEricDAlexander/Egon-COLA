@@ -7,24 +7,38 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
 import org.springframework.aop.support.AopUtils;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Future;
 
-public class TransactionalMessageMethodValidator {
+public class TransactionalMessageMethodValidator extends BaseValidator {
 
     private static final String REACTIVE_PUBLISHER = "org.reactivestreams.Publisher";
 
     private final String transactionManagerBeanName;
+    private final ValidationUtils validationUtils;
 
-    public TransactionalMessageMethodValidator(String transactionManagerBeanName) {
+    public TransactionalMessageMethodValidator(
+            String transactionManagerBeanName,
+            ValidationUtils validationUtils
+    ) {
         this.transactionManagerBeanName = transactionManagerBeanName;
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
     }
 
     public Method validate(Method method, Class<?> targetClass) {
+        // The inputs are JVM method boundaries, so every rule below is a protocol check.
         Method specificMethod = BridgeMethodResolver.findBridgedMethod(
                 AopUtils.getMostSpecificMethod(method, targetClass)
         );

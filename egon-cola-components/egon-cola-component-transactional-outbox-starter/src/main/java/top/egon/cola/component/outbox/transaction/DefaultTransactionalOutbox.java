@@ -9,7 +9,7 @@ import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
 import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryHandlerRegistry;
-import top.egon.cola.component.outbox.exception.OutboxSerializationException;
+import top.egon.cola.component.outbox.common.exception.OutboxSerializationException;
 import top.egon.cola.component.outbox.observability.OutboxMetrics;
 import top.egon.cola.component.outbox.serialization.OutboxMessageFingerprint;
 import top.egon.cola.component.outbox.serialization.OutboxMessageSerializer;

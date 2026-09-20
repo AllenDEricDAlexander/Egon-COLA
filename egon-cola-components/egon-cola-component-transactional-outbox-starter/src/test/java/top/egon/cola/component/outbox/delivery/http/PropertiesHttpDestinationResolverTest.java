@@ -2,7 +2,7 @@ package top.egon.cola.component.outbox.delivery.http;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.outbox.autoconfigure.TransactionalOutboxProperties;
-import top.egon.cola.component.outbox.exception.OutboxValidationException;
+import top.egon.cola.component.outbox.common.exception.OutboxValidationException;
 
 import java.net.URI;
 

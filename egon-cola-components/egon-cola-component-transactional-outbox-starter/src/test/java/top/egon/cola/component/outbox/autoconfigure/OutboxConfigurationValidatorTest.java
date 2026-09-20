@@ -1,7 +1,9 @@
 package top.egon.cola.component.outbox.autoconfigure;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 
 import java.net.URI;
 import java.time.Duration;
@@ -10,7 +12,10 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class OutboxConfigurationValidatorTest {
 
-    private final OutboxConfigurationValidator validator = new OutboxConfigurationValidator();
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
+    private final OutboxConfigurationValidator validator = new OutboxConfigurationValidator(VALIDATION_UTILS);
 
     @Test
     void shouldRejectLeaseThatCannotCoverDeliveryWindow() {

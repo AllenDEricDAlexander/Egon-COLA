@@ -13,9 +13,9 @@ import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
-import top.egon.cola.component.outbox.exception.OutboxIdempotencyConflictException;
-import top.egon.cola.component.outbox.exception.OutboxStorageException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxIdempotencyConflictException;
+import top.egon.cola.component.outbox.common.exception.OutboxStorageException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;

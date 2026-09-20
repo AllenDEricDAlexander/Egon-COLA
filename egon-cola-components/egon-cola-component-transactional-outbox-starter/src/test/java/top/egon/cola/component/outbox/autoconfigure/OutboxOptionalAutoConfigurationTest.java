@@ -10,7 +10,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.transaction.PlatformTransactionManager;
 import top.egon.cola.component.outbox.delivery.http.HttpDeliveryHandler;
 import top.egon.cola.component.outbox.delivery.rabbitmq.RabbitDeliveryHandler;
-import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
+import top.egon.cola.component.outbox.common.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.store.OutboxStore;
 
 import javax.sql.DataSource;

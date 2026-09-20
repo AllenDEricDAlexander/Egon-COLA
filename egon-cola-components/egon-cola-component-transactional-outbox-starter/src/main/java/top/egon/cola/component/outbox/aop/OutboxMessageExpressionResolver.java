@@ -13,7 +13,7 @@ import org.springframework.expression.spel.standard.SpelExpressionParser;
 import org.springframework.expression.spel.support.DataBindingPropertyAccessor;
 import org.springframework.expression.spel.support.ReflectiveMethodExecutor;
 import top.egon.cola.component.outbox.api.OutboxMessage;
-import top.egon.cola.component.outbox.exception.OutboxMessageResolutionException;
+import top.egon.cola.component.outbox.common.exception.OutboxMessageResolutionException;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
