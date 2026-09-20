@@ -90,7 +90,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Set<String>> response = controller.queryApps();
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertEquals(Set.of("order-app"), response.getData());
     }
 
@@ -101,7 +101,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Set<String>> response = controller.queryInstances("order-app");
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertEquals(Set.of("order-8093"), response.getData());
     }
 
@@ -117,7 +117,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<List<ExecutorSnapshot>> response = controller.queryExecutors("order-app", "order-8093");
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertEquals(1, response.getData().size());
         assertSame(snapshot, response.getData().get(0));
     }
@@ -131,7 +131,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<ExecutorSnapshot> response = controller.queryExecutor("order-app", "order-8093", "orderExecutor");
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertSame(snapshot, response.getData());
     }
 
@@ -152,7 +152,7 @@ public class DynamicThreadPoolControllerTest {
             response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
         }
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertEquals(requestContext.traceId(), response.getTraceId());
         assertTrue(response.getData());
         ArgumentCaptor<DtpConfigChangeMessage> captor = ArgumentCaptor.forClass(DtpConfigChangeMessage.class);
@@ -190,7 +190,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.resizeExecutor("order-app", "order-8093", "taskExecutor", request);
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertTrue(response.getData());
         ArgumentCaptor<DtpConfigChangeMessage> captor = ArgumentCaptor.forClass(DtpConfigChangeMessage.class);
         verify(mockRTopic).publish(captor.capture());
@@ -209,7 +209,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
 
-        assertEquals(Response.Code.ILLEGAL_PARAMETER.getCode(), response.getCode());
+        assertEquals(Response.Code.ILLEGAL_PARAMETER.getStatus(), response.getCode());
         assertFalse(response.getData());
         assertTrue(response.getInfo().contains("corePoolSize"));
         verify(mockRedissonClient, never()).getTopic(anyString());
@@ -225,7 +225,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
 
-        assertEquals(Response.Code.ILLEGAL_PARAMETER.getCode(), response.getCode());
+        assertEquals(Response.Code.ILLEGAL_PARAMETER.getStatus(), response.getCode());
         assertFalse(response.getData());
         assertTrue(response.getInfo().contains("keepAliveSeconds"));
         verify(mockRedissonClient, never()).getTopic(anyString());
@@ -239,7 +239,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
 
-        assertEquals(Response.Code.ILLEGAL_PARAMETER.getCode(), response.getCode());
+        assertEquals(Response.Code.ILLEGAL_PARAMETER.getStatus(), response.getCode());
         assertFalse(response.getData());
         assertTrue(response.getInfo().contains("executorKind"));
         verify(mockRedissonClient, never()).getTopic(anyString());
@@ -254,7 +254,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
 
-        assertEquals(Response.Code.ILLEGAL_PARAMETER.getCode(), response.getCode());
+        assertEquals(Response.Code.ILLEGAL_PARAMETER.getStatus(), response.getCode());
         assertFalse(response.getData());
         assertTrue(response.getInfo().contains("executorKind"));
         verify(mockRedissonClient, never()).getTopic(anyString());
@@ -269,7 +269,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.resizeExecutor("order-app", "order-8093", "orderExecutor", request);
 
-        assertEquals(Response.Code.ILLEGAL_PARAMETER.getCode(), response.getCode());
+        assertEquals(Response.Code.ILLEGAL_PARAMETER.getStatus(), response.getCode());
         assertFalse(response.getData());
         assertTrue(response.getInfo().contains("executorKind"));
         verify(mockRedissonClient, never()).getTopic(anyString());
@@ -288,7 +288,7 @@ public class DynamicThreadPoolControllerTest {
             response = controller.updateVirtualLimit("order-app", "order-8093", "virtualExecutor", request);
         }
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertTrue(response.getData());
         ArgumentCaptor<DtpConfigChangeMessage> captor = ArgumentCaptor.forClass(DtpConfigChangeMessage.class);
         verify(mockRTopic).publish(captor.capture());
@@ -310,7 +310,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<Boolean> response = controller.updateVirtualLimit("order-app", "order-8093", "virtualExecutor", request);
 
-        assertEquals(Response.Code.ILLEGAL_PARAMETER.getCode(), response.getCode());
+        assertEquals(Response.Code.ILLEGAL_PARAMETER.getStatus(), response.getCode());
         assertFalse(response.getData());
         assertTrue(response.getInfo().contains("concurrencyLimit"));
         verify(mockRedissonClient, never()).getTopic(anyString());
@@ -325,7 +325,7 @@ public class DynamicThreadPoolControllerTest {
 
         Response<List<DtpAuditEvent>> response = controller.queryEvents("order-app", "20260630");
 
-        assertEquals(Response.Code.SUCCESS.getCode(), response.getCode());
+        assertEquals(Response.Code.SUCCESS.getStatus(), response.getCode());
         assertEquals(1, response.getData().size());
         assertSame(event, response.getData().get(0));
     }

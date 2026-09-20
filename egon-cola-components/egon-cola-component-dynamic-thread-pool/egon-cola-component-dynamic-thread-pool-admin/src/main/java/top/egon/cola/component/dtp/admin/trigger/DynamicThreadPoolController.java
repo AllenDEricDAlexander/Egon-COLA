@@ -54,7 +54,7 @@ public class DynamicThreadPoolController {
             return Response.success(apps.readAll());
         } catch (Exception e) {
             log.error("查询动态线程池应用列表异常", e);
-            return Response.fail(Response.Code.UN_ERROR.getInfo());
+            return Response.fail(Response.Code.UN_ERROR.getMessage());
         }
     }
 
@@ -65,7 +65,7 @@ public class DynamicThreadPoolController {
             return Response.success(instances.readAll());
         } catch (Exception e) {
             log.error("查询动态线程池实例列表异常 {}", appName, e);
-            return Response.fail(Response.Code.UN_ERROR.getInfo());
+            return Response.fail(Response.Code.UN_ERROR.getMessage());
         }
     }
 
@@ -84,7 +84,7 @@ public class DynamicThreadPoolController {
             return Response.success(snapshots);
         } catch (Exception e) {
             log.error("查询动态线程池执行器列表异常 {} {}", appName, instanceId, e);
-            return Response.fail(Response.Code.UN_ERROR.getInfo());
+            return Response.fail(Response.Code.UN_ERROR.getMessage());
         }
     }
 
@@ -97,7 +97,7 @@ public class DynamicThreadPoolController {
             return Response.success(bucket.get());
         } catch (Exception e) {
             log.error("查询动态线程池执行器快照异常 {} {} {}", appName, instanceId, executorName, e);
-            return Response.fail(Response.Code.UN_ERROR.getInfo());
+            return Response.fail(Response.Code.UN_ERROR.getMessage());
         }
     }
 
@@ -125,7 +125,7 @@ public class DynamicThreadPoolController {
             return Response.success(true);
         } catch (Exception e) {
             log.error("发布动态线程池容量调整消息异常 {} {} {} {}", appName, instanceId, executorName, request, e);
-            return Response.<Boolean>fail(Response.Code.UN_ERROR.getInfo()).setDataValue(false);
+            return Response.<Boolean>fail(Response.Code.UN_ERROR.getMessage()).setDataValue(false);
         }
     }
 
@@ -149,7 +149,7 @@ public class DynamicThreadPoolController {
             return Response.success(true);
         } catch (Exception e) {
             log.error("发布动态线程池虚拟线程并发限制调整消息异常 {} {} {} {}", appName, instanceId, executorName, request, e);
-            return Response.<Boolean>fail(Response.Code.UN_ERROR.getInfo()).setDataValue(false);
+            return Response.<Boolean>fail(Response.Code.UN_ERROR.getMessage()).setDataValue(false);
         }
     }
 
@@ -160,7 +160,7 @@ public class DynamicThreadPoolController {
             return Response.success(events.readAll());
         } catch (Exception e) {
             log.error("查询动态线程池审计事件异常 {} {}", appName, date, e);
-            return Response.fail(Response.Code.UN_ERROR.getInfo());
+            return Response.fail(Response.Code.UN_ERROR.getMessage());
         }
     }
 

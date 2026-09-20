@@ -16,6 +16,13 @@ The component consists of a business-side starter and a standalone admin service
 | `egon-cola-component-dynamic-thread-pool-admin` | Standalone Spring Boot Admin service that provides management REST APIs, a manifest, Redis queries, and configuration change publication |
 | `egon-cola-component-dynamic-thread-pool-test` | Component sample and integration verification module |
 
+## Contract Conventions
+
+- `ExecutorKind` and `RegistryEnumVO` implement the public `EgonEnum` contract with fixed integer codes (`PLATFORM_THREAD_POOL=0`, `SPRING_THREAD_POOL_TASK_EXECUTOR=1`, `VIRTUAL_THREAD_PER_TASK=2`, `UNKNOWN=3`; registry keys `0..2`). Codes are literal declarations and are never derived from `ordinal()`; `name()` and `RegistryEnumVO.getKey()` keep exactly the Redis wire values they had before.
+- `Response.Code` implements `ErrorStatus`. `getCode()` is the integer contract code, while the published legacy String wire codes (`0000`, `0001`, `0002`) are exposed through `getStatus()` and written into the `Response.code` envelope field. `getMessage()` carries the original label.
+- The component declares no custom exception type, so it uses the common `CommonException`/`BusinessException` hierarchy directly.
+- `RemainingComponentContractTest` in the starter and admin modules pins the tables above; run it with `-Dtest=RemainingComponentContractTest -Dsurefire.failIfNoSpecifiedTests=false`.
+
 ## Features
 
 ### Managed Executors

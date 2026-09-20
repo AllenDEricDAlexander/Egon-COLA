@@ -1,14 +1,29 @@
 package top.egon.cola.component.common.desensitize.annotation;
 
-public enum SensitiveScene {
+import top.egon.cola.component.common.core.enums.EgonEnum;
 
-    RESPONSE("前端返回"),
-    LOG("日志输出");
+public enum SensitiveScene implements EgonEnum {
+
+    RESPONSE(0, "前端返回"),
+    LOG(1, "日志输出");
+
+    private final int code;
 
     private final String desc;
 
-    SensitiveScene(String desc) {
+    SensitiveScene(int code, String desc) {
+        this.code = code;
         this.desc = desc;
+    }
+
+    @Override
+    public int getCode() {
+        return code;
+    }
+
+    @Override
+    public String getMessage() {
+        return desc;
     }
 
     public String getDesc() {
