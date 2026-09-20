@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.chunk;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 
 import java.util.List;
 

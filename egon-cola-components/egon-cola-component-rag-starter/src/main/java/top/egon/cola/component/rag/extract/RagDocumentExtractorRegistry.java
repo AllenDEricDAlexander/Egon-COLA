@@ -1,8 +1,8 @@
 package top.egon.cola.component.rag.extract;
 
 import lombok.extern.slf4j.Slf4j;
-import top.egon.cola.component.rag.exception.RagExtractorConflictException;
-import top.egon.cola.component.rag.exception.RagExtractorMissingException;
+import top.egon.cola.component.rag.common.exception.RagExtractorConflictException;
+import top.egon.cola.component.rag.common.exception.RagExtractorMissingException;
 
 import java.util.Comparator;
 import java.util.List;

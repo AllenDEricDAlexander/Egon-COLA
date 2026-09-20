@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.storage;
 
-import top.egon.cola.component.rag.exception.RagStorageException;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagStorageException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 import java.io.InputStream;
 

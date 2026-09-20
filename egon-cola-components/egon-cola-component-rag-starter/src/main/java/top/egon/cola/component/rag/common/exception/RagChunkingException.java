@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** Chunking failed inside the selected strategy. */
 public class RagChunkingException extends RagException {

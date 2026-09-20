@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** No registered extractor supports the requested document format. */
 public class RagExtractorMissingException extends RagException {

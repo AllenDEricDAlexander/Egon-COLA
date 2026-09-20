@@ -11,7 +11,7 @@ import top.egon.cola.component.rag.chunk.RagChunkIdFactory;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategy;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategyFactory;
 import top.egon.cola.component.rag.converter.RagChunkConverter;
-import top.egon.cola.component.rag.exception.RagVectorStoreException;
+import top.egon.cola.component.rag.common.exception.RagVectorStoreException;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelDescriptorBO;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
 import top.egon.cola.component.rag.metadata.RagMetadataKeys;

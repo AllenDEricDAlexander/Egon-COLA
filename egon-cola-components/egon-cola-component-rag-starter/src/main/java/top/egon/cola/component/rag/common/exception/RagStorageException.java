@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** The document storage call failed. */
 public class RagStorageException extends RagException {

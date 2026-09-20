@@ -20,9 +20,9 @@ import top.egon.cola.component.outbox.delivery.DeliveryContext;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.rag.api.RagIngestionService;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategyEnum;
-import top.egon.cola.component.rag.exception.RagModelNotRegisteredException;
-import top.egon.cola.component.rag.exception.RagValidationException;
-import top.egon.cola.component.rag.exception.RagVectorStoreException;
+import top.egon.cola.component.rag.common.exception.RagModelNotRegisteredException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagVectorStoreException;
 import top.egon.cola.component.rag.model.RagIngestionCommand;
 import top.egon.cola.component.rag.model.RagIngestionResult;
 

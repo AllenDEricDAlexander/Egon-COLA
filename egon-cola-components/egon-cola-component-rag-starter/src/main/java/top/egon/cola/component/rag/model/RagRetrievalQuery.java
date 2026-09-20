@@ -2,7 +2,7 @@ package top.egon.cola.component.rag.model;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 import top.egon.cola.component.rag.metadata.RagMetadataKeys;
 
 import java.util.Map;

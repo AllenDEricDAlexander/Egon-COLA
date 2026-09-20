@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.autoconfigure;
 
 import jakarta.validation.constraints.NotBlank;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 
 /**
  * One logical embedding model: the name of the host-supplied {@code EmbeddingModel} bean.

@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** The vector store call failed. */
 public class RagVectorStoreException extends RagException {

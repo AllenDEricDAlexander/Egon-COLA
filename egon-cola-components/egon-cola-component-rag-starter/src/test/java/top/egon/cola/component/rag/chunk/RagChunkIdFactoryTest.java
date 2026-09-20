@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.chunk;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;

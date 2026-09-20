@@ -21,7 +21,7 @@ import top.egon.cola.component.common.core.pojo.PageResultRecord;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.rag.api.RagExtractionService;
-import top.egon.cola.component.rag.exception.RagExtractorMissingException;
+import top.egon.cola.component.rag.common.exception.RagExtractorMissingException;
 import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 import top.egon.cola.component.rag.model.RagExtractionCommand;

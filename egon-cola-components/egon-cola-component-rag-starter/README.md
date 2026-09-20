@@ -144,6 +144,11 @@ Host implementations are collected automatically and can replace a built-in one.
 - **Collection and model filters are forced.** They are built by the component, so a caller cannot
   omit them. The vector table is shared, and a missing filter would silently return another
   collection's or another model's chunks.
+- **Failures are component exceptions on the common contract.** They are raised from
+  `top.egon.cola.component.rag.common.exception` and rooted on the shared `CommonException`, so
+  `getCode()`, `getStatus()` and `isRetryable()` stay uniform across starters. The stable
+  machine-readable code (`RAG_VECTOR_STORE`, `RAG_VALIDATION`, …) is carried by `getStatus()`, and
+  `safeMessage()` keeps returning the content-free message a caller may surface.
 
 ## Boundaries and Logging
 

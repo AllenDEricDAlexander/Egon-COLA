@@ -25,8 +25,8 @@ import top.egon.cola.archetype.source.agent.domain.knowledge.repository.Knowledg
 import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeAnswerRunService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeQaEventObserverService;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
-import top.egon.cola.component.rag.exception.RagException;
-import top.egon.cola.component.rag.exception.RagModelNotRegisteredException;
+import top.egon.cola.component.rag.common.exception.RagException;
+import top.egon.cola.component.rag.common.exception.RagModelNotRegisteredException;
 
 import java.time.Clock;
 import java.time.Duration;

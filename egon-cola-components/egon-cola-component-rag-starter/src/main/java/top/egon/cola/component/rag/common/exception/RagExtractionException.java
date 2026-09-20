@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** Document extraction failed inside the selected extractor. */
 public class RagExtractionException extends RagException {

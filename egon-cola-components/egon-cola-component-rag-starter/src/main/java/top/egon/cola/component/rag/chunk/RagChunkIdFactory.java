@@ -1,6 +1,6 @@
 package top.egon.cola.component.rag.chunk;
 
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 /**
  * Derives the stable identity of a chunk from its document and position.

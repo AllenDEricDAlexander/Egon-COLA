@@ -4,7 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 import top.egon.cola.component.rag.storage.RagDocumentStorageTypeEnum;
 
 import java.util.LinkedHashMap;

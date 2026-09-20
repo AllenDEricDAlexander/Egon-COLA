@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.model;
 
 import top.egon.cola.component.rag.chunk.RagChunkingStrategyEnum;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 import java.util.List;
 

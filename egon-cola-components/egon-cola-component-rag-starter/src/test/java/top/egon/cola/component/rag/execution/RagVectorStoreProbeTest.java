@@ -5,8 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.support.StaticListableBeanFactory;
 import top.egon.cola.component.rag.autoconfigure.RagEmbeddingModelProperties;
 import top.egon.cola.component.rag.autoconfigure.RagProperties;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.support.FakeEmbeddingModel;
 import top.egon.cola.component.rag.support.FakeVectorStore;
 

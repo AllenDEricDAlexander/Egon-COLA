@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.chunk;
 
 import lombok.extern.slf4j.Slf4j;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 
 import java.util.EnumMap;
 import java.util.List;

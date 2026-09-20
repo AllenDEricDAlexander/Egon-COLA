@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** The requested logical embedding model is not registered. */
 public class RagModelNotRegisteredException extends RagException {

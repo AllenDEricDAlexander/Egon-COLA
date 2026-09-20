@@ -8,7 +8,7 @@ import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.rag.autoconfigure.RagAutoConfiguration;
-import top.egon.cola.component.rag.exception.RagExtractorMissingException;
+import top.egon.cola.component.rag.common.exception.RagExtractorMissingException;
 import top.egon.cola.component.rag.support.FakeEmbeddingModel;
 import top.egon.cola.component.rag.support.FakeVectorStore;
 

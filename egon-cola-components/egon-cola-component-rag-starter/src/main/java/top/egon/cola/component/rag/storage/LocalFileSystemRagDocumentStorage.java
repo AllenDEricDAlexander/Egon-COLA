@@ -3,8 +3,8 @@ package top.egon.cola.component.rag.storage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.rag.autoconfigure.RagStorageProperties;
-import top.egon.cola.component.rag.exception.RagStorageException;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagStorageException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 import java.io.IOException;
 import java.io.InputStream;

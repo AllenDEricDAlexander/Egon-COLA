@@ -43,7 +43,7 @@ import top.egon.cola.component.outbox.api.OutboxMessage;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.api.TransactionalOutbox;
 import top.egon.cola.component.rag.api.RagExtractionService;
-import top.egon.cola.component.rag.exception.RagExtractionException;
+import top.egon.cola.component.rag.common.exception.RagExtractionException;
 import top.egon.cola.component.rag.extract.RagDocumentExtractor;
 import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;

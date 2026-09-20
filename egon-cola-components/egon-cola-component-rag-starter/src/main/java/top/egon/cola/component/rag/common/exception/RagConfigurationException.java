@@ -1,4 +1,4 @@
-package top.egon.cola.component.rag.exception;
+package top.egon.cola.component.rag.common.exception;
 
 /** Configuration is missing, unknown or out of range; the context must fail closed. */
 public class RagConfigurationException extends RagException {

@@ -6,8 +6,8 @@ import org.springframework.ai.document.Document;
 import org.springframework.ai.vectorstore.SearchRequest;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.ai.vectorstore.filter.FilterExpressionBuilder;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
 import top.egon.cola.component.rag.metadata.RagMetadataKeys;
 
 import java.time.Clock;

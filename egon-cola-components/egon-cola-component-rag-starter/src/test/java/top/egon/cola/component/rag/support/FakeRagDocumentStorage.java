@@ -1,6 +1,6 @@
 package top.egon.cola.component.rag.support;
 
-import top.egon.cola.component.rag.exception.RagStorageException;
+import top.egon.cola.component.rag.common.exception.RagStorageException;
 import top.egon.cola.component.rag.storage.RagDocumentStorage;
 import top.egon.cola.component.rag.storage.RagDocumentStorageTypeEnum;
 import top.egon.cola.component.rag.storage.RagStoredObjectBO;

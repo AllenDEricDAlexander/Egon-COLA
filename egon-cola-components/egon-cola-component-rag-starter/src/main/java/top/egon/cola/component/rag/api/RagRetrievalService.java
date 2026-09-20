@@ -1,9 +1,9 @@
 package top.egon.cola.component.rag.api;
 
 import jakarta.validation.Valid;
-import top.egon.cola.component.rag.exception.RagModelNotRegisteredException;
-import top.egon.cola.component.rag.exception.RagValidationException;
-import top.egon.cola.component.rag.exception.RagVectorStoreException;
+import top.egon.cola.component.rag.common.exception.RagModelNotRegisteredException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagVectorStoreException;
 import top.egon.cola.component.rag.model.RagRetrievalQuery;
 import top.egon.cola.component.rag.model.RagRetrievedChunkBO;
 

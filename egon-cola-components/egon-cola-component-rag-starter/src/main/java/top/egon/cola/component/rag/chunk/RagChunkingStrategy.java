@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.chunk;
 
-import top.egon.cola.component.rag.exception.RagChunkingException;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagChunkingException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 import top.egon.cola.component.rag.model.RagChunkBO;
 import top.egon.cola.component.rag.model.RagChunkingConfigDTO;

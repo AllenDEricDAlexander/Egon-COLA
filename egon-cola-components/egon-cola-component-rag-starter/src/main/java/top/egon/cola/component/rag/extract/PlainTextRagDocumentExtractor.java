@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.extract;
 
 import lombok.extern.slf4j.Slf4j;
-import top.egon.cola.component.rag.exception.RagExtractionException;
+import top.egon.cola.component.rag.common.exception.RagExtractionException;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 
 import java.io.IOException;

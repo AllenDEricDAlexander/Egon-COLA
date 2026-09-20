@@ -1,10 +1,10 @@
 package top.egon.cola.component.rag.api;
 
 import jakarta.validation.Valid;
-import top.egon.cola.component.rag.exception.RagExtractionException;
-import top.egon.cola.component.rag.exception.RagExtractorConflictException;
-import top.egon.cola.component.rag.exception.RagExtractorMissingException;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagExtractionException;
+import top.egon.cola.component.rag.common.exception.RagExtractorConflictException;
+import top.egon.cola.component.rag.common.exception.RagExtractorMissingException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 import top.egon.cola.component.rag.model.RagExtractionCommand;
 

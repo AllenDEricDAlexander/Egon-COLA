@@ -27,7 +27,7 @@ import top.egon.cola.component.rag.chunk.RagChunkingStrategyFactory;
 import top.egon.cola.component.rag.chunk.RecursiveRagChunkingStrategy;
 import top.egon.cola.component.rag.chunk.TokenRagChunkingStrategy;
 import top.egon.cola.component.rag.embed.RagEmbeddingModelRegistry;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
 import top.egon.cola.component.rag.execution.RagIngestionServiceImpl;
 import top.egon.cola.component.rag.execution.RagRetrievalServiceImpl;

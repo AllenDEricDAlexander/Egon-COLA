@@ -18,7 +18,7 @@ import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeQaEv
 import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeRetrievedChunkBO;
 import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeAnswerRunService;
 import top.egon.cola.archetype.source.agent.domain.knowledge.service.KnowledgeQaEventObserverService;
-import top.egon.cola.component.rag.exception.RagModelNotRegisteredException;
+import top.egon.cola.component.rag.common.exception.RagModelNotRegisteredException;
 
 import java.time.Clock;
 import java.util.List;

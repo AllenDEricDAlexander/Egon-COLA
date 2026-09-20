@@ -11,7 +11,7 @@ import top.egon.cola.archetype.source.agent.domain.knowledge.model.KnowledgeChun
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.metadata.KnowledgeVectorMetadata;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.rag.api.RagRetrievalService;
-import top.egon.cola.component.rag.exception.RagVectorStoreException;
+import top.egon.cola.component.rag.common.exception.RagVectorStoreException;
 import top.egon.cola.component.rag.metadata.RagMetadataKeys;
 import top.egon.cola.component.rag.model.RagRetrievalQuery;
 import top.egon.cola.component.rag.model.RagRetrievedChunkBO;

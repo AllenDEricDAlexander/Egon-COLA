@@ -4,8 +4,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.beans.factory.ListableBeanFactory;
 import top.egon.cola.component.rag.autoconfigure.RagProperties;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
-import top.egon.cola.component.rag.exception.RagModelNotRegisteredException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagModelNotRegisteredException;
 
 import java.util.Arrays;
 import java.util.LinkedHashMap;

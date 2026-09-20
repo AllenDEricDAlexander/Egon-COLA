@@ -1,7 +1,7 @@
 package top.egon.cola.component.rag.embed;
 
 import org.springframework.ai.embedding.EmbeddingModel;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 
 import java.util.Objects;
 

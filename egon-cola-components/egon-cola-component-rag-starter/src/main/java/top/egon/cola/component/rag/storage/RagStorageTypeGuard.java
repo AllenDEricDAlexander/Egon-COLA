@@ -2,7 +2,7 @@ package top.egon.cola.component.rag.storage;
 
 import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.rag.autoconfigure.RagStorageProperties;
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 
 /**
  * Fails start-up when the configured storage type and the registered implementation disagree.

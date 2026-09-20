@@ -3,7 +3,7 @@ package top.egon.cola.component.rag.execution;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import top.egon.cola.component.rag.api.RagExtractionService;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 import top.egon.cola.component.rag.extract.RagDocumentExtractor;
 import top.egon.cola.component.rag.extract.RagDocumentExtractorRegistry;
 import top.egon.cola.component.rag.metadata.RagMetadataKeys;

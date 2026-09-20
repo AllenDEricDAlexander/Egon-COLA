@@ -21,7 +21,7 @@ import top.egon.cola.component.outbox.delivery.DeliveryHandler;
 import top.egon.cola.component.outbox.delivery.DeliveryResult;
 import top.egon.cola.component.rag.api.RagIngestionService;
 import top.egon.cola.component.rag.chunk.RagChunkingStrategyEnum;
-import top.egon.cola.component.rag.exception.RagException;
+import top.egon.cola.component.rag.common.exception.RagException;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 import top.egon.cola.component.rag.model.RagChunkingConfigDTO;
 import top.egon.cola.component.rag.model.RagIngestionCommand;
@@ -163,7 +163,7 @@ public class KnowledgeIngestDeliveryHandler implements DeliveryHandler {
         } catch (RagException failure) {
             // The component's own message is safe by contract: it never carries content, vectors,
             // provider payloads, endpoints or keys.
-            return fail(document, knowledgeBase, context, failureCode(failure.code()), failure.safeMessage(),
+            return fail(document, knowledgeBase, context, failureCode(failure.getStatus()), failure.safeMessage(),
                     startedAt, failure);
         } catch (RuntimeException failure) {
             // Anything else is stored as a fixed code and summary: the document fields are rendered

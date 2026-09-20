@@ -1,9 +1,9 @@
 package top.egon.cola.component.rag.extract;
 
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.rag.exception.RagExtractionException;
-import top.egon.cola.component.rag.exception.RagExtractorMissingException;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagExtractionException;
+import top.egon.cola.component.rag.common.exception.RagExtractorMissingException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 import top.egon.cola.component.rag.execution.RagExtractionServiceImpl;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 import top.egon.cola.component.rag.model.RagExtractionCommand;

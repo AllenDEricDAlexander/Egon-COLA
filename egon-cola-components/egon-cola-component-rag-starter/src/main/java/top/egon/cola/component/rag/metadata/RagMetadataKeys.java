@@ -1,6 +1,6 @@
 package top.egon.cola.component.rag.metadata;
 
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

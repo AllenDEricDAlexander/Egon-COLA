@@ -3,8 +3,8 @@ package top.egon.cola.component.rag.storage;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import top.egon.cola.component.rag.autoconfigure.RagStorageProperties;
-import top.egon.cola.component.rag.exception.RagStorageException;
-import top.egon.cola.component.rag.exception.RagValidationException;
+import top.egon.cola.component.rag.common.exception.RagStorageException;
+import top.egon.cola.component.rag.common.exception.RagValidationException;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;

@@ -4,7 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.reader.tika.TikaDocumentReader;
 import org.springframework.core.io.ByteArrayResource;
-import top.egon.cola.component.rag.exception.RagExtractionException;
+import top.egon.cola.component.rag.common.exception.RagExtractionException;
 import top.egon.cola.component.rag.model.ExtractedDocumentBO;
 
 import java.io.IOException;

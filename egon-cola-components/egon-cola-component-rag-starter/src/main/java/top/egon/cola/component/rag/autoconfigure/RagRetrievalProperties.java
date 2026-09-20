@@ -1,6 +1,6 @@
 package top.egon.cola.component.rag.autoconfigure;
 
-import top.egon.cola.component.rag.exception.RagConfigurationException;
+import top.egon.cola.component.rag.common.exception.RagConfigurationException;
 
 /** Bounds applied to every retrieval call. */
 public record RagRetrievalProperties(int defaultTopK, int maxTopK) {
