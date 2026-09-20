@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
@@ -36,25 +37,31 @@ import static org.mockito.Mockito.when;
 
 class EgonColaRepositoryTest {
 
-    private ValidatorFactory validators;
+    private static final ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
+    private static final ValidationUtils VALIDATION_UTILS = new ValidationUtils(VALIDATORS.getValidator());
+
     private TestBusinessMapper mapper;
     private TestBusinessRepository repository;
     private TestTenantIdProvider tenant;
 
+    @BeforeAll
+    static void bindModelValidation() {
+        if (EgonColaModelValidationUtils.current() == null) {
+            EgonColaModelValidationUtils.initialize(VALIDATION_UTILS, "EgonColaRepositoryTest");
+        }
+    }
+
     @BeforeEach
     void setUp() {
-        validators = Validation.buildDefaultValidatorFactory();
         mapper = mock(TestBusinessMapper.class);
         tenant = new TestTenantIdProvider();
         tenant.set(41L);
-        repository = new TestBusinessRepository(mapper,
-                new EgonColaModelValidationUtils(new ValidationUtils(validators.getValidator()), tenant),
-                tenant, new EgonColaMybatisPlusProperties());
+        repository = new TestBusinessRepository(mapper, new EgonColaMybatisPlusProperties());
     }
 
     @AfterEach
-    void close() {
-        validators.close();
+    void clearTenantContext() {
+        tenant.clear();
     }
 
     @Test
@@ -116,15 +123,13 @@ class EgonColaRepositoryTest {
             configuration.addMappedStatement(statement);
             var global = new com.baomidou.mybatisplus.core.config.GlobalConfig();
             global.setMetaObjectHandler(new top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler(
-                    tenant, () -> "user", java.time.Clock.systemUTC()));
+                    () -> "user", java.time.Clock.systemUTC()));
             com.baomidou.mybatisplus.core.toolkit.GlobalConfigUtils.setGlobalConfig(configuration, global);
             var factory = mock(org.apache.ibatis.session.SqlSessionFactory.class);
             var session = mock(org.apache.ibatis.session.SqlSession.class);
             when(factory.getConfiguration()).thenReturn(configuration);
             when(factory.openSession(org.apache.ibatis.session.ExecutorType.BATCH, false)).thenReturn(session);
-            var candidate = new TestBusinessRepository(mapper,
-                    new EgonColaModelValidationUtils(new ValidationUtils(validators.getValidator()), tenant),
-                    tenant, new EgonColaMybatisPlusProperties()) {
+            var candidate = new TestBusinessRepository(mapper, new EgonColaMybatisPlusProperties()) {
                 @Override
                 protected org.apache.ibatis.session.SqlSessionFactory getSqlSessionFactory() {
                     return factory;
@@ -175,11 +180,10 @@ class EgonColaRepositoryTest {
 
     @Test
     void businessFieldsCannotShadowCommonPropertiesOrPhysicalColumns() {
-        EgonColaModelValidationUtils validation = new EgonColaModelValidationUtils(new ValidationUtils(validators.getValidator()), tenant);
-        assertThatThrownBy(() -> validation.validateBusiness(new ShadowModelPO(),
+        assertThatThrownBy(() -> EgonColaModelValidationUtils.validateBusiness(new ShadowModelPO(),
                 top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups.Operation.INSERT))
                 .hasMessageContaining("MODEL_TECHNICAL_FIELD_SHADOWED");
-        assertThatThrownBy(() -> validation.validateBusiness(new ShadowColumnPO(),
+        assertThatThrownBy(() -> EgonColaModelValidationUtils.validateBusiness(new ShadowColumnPO(),
                 top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups.Operation.INSERT))
                 .hasMessageContaining("MODEL_TECHNICAL_FIELD_SHADOWED");
     }

@@ -230,10 +230,8 @@ class EgonColaTenantIdSqlIntegrationTest {
         @Bean("testBusinessRepository")
         TestBusinessRepository testBusinessRepository(
                 TestBusinessMapper mapper,
-                top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils validation,
-                top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider tenant,
                 top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties properties) {
-            return new TestBusinessRepository(mapper, validation, tenant, properties);
+            return new TestBusinessRepository(mapper, properties);
         }
     }
 }

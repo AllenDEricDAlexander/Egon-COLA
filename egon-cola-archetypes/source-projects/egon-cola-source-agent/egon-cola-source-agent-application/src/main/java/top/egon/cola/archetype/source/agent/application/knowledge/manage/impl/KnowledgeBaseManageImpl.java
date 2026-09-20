@@ -60,8 +60,6 @@ public class KnowledgeBaseManageImpl implements KnowledgeBaseManage {
 
     private final @Qualifier("agentValidationUtils") ValidationUtils validationUtils;
 
-    private final EgonColaTenantIdProvider tenantIdProvider;
-
     @Override
     public KnowledgeBaseBO create(CreateKnowledgeBaseCommand command) {
         validate(command, command == null ? null : command.traceId());
@@ -197,7 +195,7 @@ public class KnowledgeBaseManageImpl implements KnowledgeBaseManage {
     }
 
     private Long currentTenantId() {
-        Long tenantId = tenantIdProvider.currentTenantId();
+        Long tenantId = EgonColaTenantIdProvider.currentTenantId();
         if (tenantId == null) {
             throw new KnowledgeApplicationException(
                     KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, null);

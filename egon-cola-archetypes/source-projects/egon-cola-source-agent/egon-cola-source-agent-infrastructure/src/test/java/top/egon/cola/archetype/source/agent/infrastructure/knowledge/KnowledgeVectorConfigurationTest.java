@@ -6,6 +6,7 @@ import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.slf4j.MDC;
 import org.springframework.ai.document.Document;
 import org.springframework.ai.openai.OpenAiEmbeddingModel;
 import org.springframework.ai.vectorstore.SearchRequest;
@@ -117,24 +118,28 @@ class KnowledgeVectorConfigurationTest {
     void forces_the_tenant_filter() {
         RecordingVectorStore vectorStore = new RecordingVectorStore();
         vectorStore.add(List.of(chunkOf(TENANT, 2001L), chunkOf(OTHER_TENANT, 2002L)));
-        runner.withBean("knowledgeRagVectorStore", VectorStore.class, () -> vectorStore)
-                .withBean(EgonColaTenantIdProvider.class, () -> () -> TENANT)
-                .withUserConfiguration(KnowledgeEmbeddingConfiguration.class, RagKnowledgeVectorGateway.class)
-                .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    KnowledgeVectorGateway gateway = context.getBean(KnowledgeVectorGateway.class);
+        MDC.put(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, String.valueOf(TENANT));
+        try {
+            runner.withBean("knowledgeRagVectorStore", VectorStore.class, () -> vectorStore)
+                    .withUserConfiguration(KnowledgeEmbeddingConfiguration.class, RagKnowledgeVectorGateway.class)
+                    .run(context -> {
+                        assertThat(context).hasNotFailed();
+                        KnowledgeVectorGateway gateway = context.getBean(KnowledgeVectorGateway.class);
 
-                    List<KnowledgeChunkBO> chunks =
-                            gateway.retrieve(COLLECTION_ID, LOGICAL_MODEL_NAME, "how does it work", 8, Map.of());
+                        List<KnowledgeChunkBO> chunks =
+                                gateway.retrieve(COLLECTION_ID, LOGICAL_MODEL_NAME, "how does it work", 8, Map.of());
 
-                    assertThat(chunks).extracting(KnowledgeChunkBO::documentId).containsExactly(2001L);
-                    Filter.Expression filter = vectorStore.searchRequests().getFirst().getFilterExpression();
-                    assertThat(filter.toString())
-                            .contains(KnowledgeVectorMetadata.TENANT_ID)
-                            .contains(String.valueOf(TENANT))
-                            .contains(COLLECTION_ID)
-                            .contains(LOGICAL_MODEL_NAME);
-                });
+                        assertThat(chunks).extracting(KnowledgeChunkBO::documentId).containsExactly(2001L);
+                        Filter.Expression filter = vectorStore.searchRequests().getFirst().getFilterExpression();
+                        assertThat(filter.toString())
+                                .contains(KnowledgeVectorMetadata.TENANT_ID)
+                                .contains(String.valueOf(TENANT))
+                                .contains(COLLECTION_ID)
+                                .contains(LOGICAL_MODEL_NAME);
+                    });
+        } finally {
+            MDC.remove(EgonColaTenantIdProvider.DEFAULT_MDC_KEY);
+        }
     }
 
     /**

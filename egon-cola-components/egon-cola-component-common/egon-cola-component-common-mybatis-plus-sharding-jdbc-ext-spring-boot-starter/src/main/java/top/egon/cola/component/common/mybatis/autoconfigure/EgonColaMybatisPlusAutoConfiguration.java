@@ -28,7 +28,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
-import top.egon.cola.component.common.mybatis.business.EgonColaMdcTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcUserIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdTenantLineHandler;
@@ -42,6 +41,7 @@ import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGua
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
+import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils.Binding;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy;
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
@@ -60,19 +60,35 @@ import java.util.Map;
 @EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)
 @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX,
         name = "enabled", havingValue = "true", matchIfMissing = true)
-public class EgonColaMybatisPlusAutoConfiguration {
+public class EgonColaMybatisPlusAutoConfiguration implements AutoCloseable {
+
+    private final ValidationUtils validationUtils;
+    private final Binding modelValidationBinding;
+
+    public EgonColaMybatisPlusAutoConfiguration(EgonColaMybatisPlusProperties properties,
+                                                ObjectProvider<Validator> validatorProvider) {
+        EgonColaTenantIdProvider.initialize(properties.getTenantId().getMdcKey());
+        Validator validator = validatorProvider.getIfAvailable();
+        if (validator == null) {
+            throw new EgonColaMybatisPlusConfigurationException("VALIDATOR_BEAN_MISSING");
+        }
+        this.validationUtils = new ValidationUtils(validator);
+        Binding live = EgonColaModelValidationUtils.current();
+        this.modelValidationBinding = live == null
+                ? EgonColaModelValidationUtils.initialize(this.validationUtils, this) : live;
+    }
+
+    @Override
+    public void close() {
+        if (modelValidationBinding.owner() == this) {
+            modelValidationBinding.close();
+        }
+    }
 
     @Bean("egonColaMybatisPlusClock")
     @ConditionalOnMissingBean(Clock.class)
     public Clock egonColaMybatisPlusClock() {
         return Clock.systemUTC();
-    }
-
-    @Bean("egonColaMdcTenantIdProvider")
-    @ConditionalOnMissingBean(EgonColaTenantIdProvider.class)
-    public EgonColaTenantIdProvider egonColaMdcTenantIdProvider(
-            EgonColaMybatisPlusProperties properties) {
-        return new EgonColaMdcTenantIdProvider(properties);
     }
 
     @Bean("egonColaMdcUserIdProvider")
@@ -83,49 +99,33 @@ public class EgonColaMybatisPlusAutoConfiguration {
     }
 
     @Bean("egonColaValidationUtils")
-    public ValidationUtils egonColaValidationUtils(ObjectProvider<Validator> validatorProvider) {
-        Validator validator = validatorProvider.getIfAvailable();
-        if (validator == null) {
-            throw new EgonColaMybatisPlusConfigurationException("VALIDATOR_BEAN_MISSING");
-        }
-        return new ValidationUtils(validator);
-    }
-
-    @Bean("egonColaModelValidationUtils")
-    // The host may also introduce other components that provide Validator Utils (such as agent flow), and injecting them by type can be ambiguous, so named parsing is necessary.
-    public EgonColaModelValidationUtils egonColaModelValidationUtils(
-            @Qualifier("egonColaValidationUtils") ValidationUtils validationUtils,
-            EgonColaTenantIdProvider tenantIdProvider) {
-        return new EgonColaModelValidationUtils(validationUtils, tenantIdProvider);
+    // The host may also introduce other components that provide Validator Utils (such as agent flow), so the assembled
+    // facade is published by name and bound once to the static model validation entry above.
+    public ValidationUtils egonColaValidationUtils() {
+        return validationUtils;
     }
 
     @Bean("egonColaModelValidationInterceptor")
-    public EgonColaModelValidationInterceptor egonColaModelValidationInterceptor(
-            EgonColaModelValidationUtils modelValidationUtils) {
-        return new EgonColaModelValidationInterceptor(modelValidationUtils);
+    public EgonColaModelValidationInterceptor egonColaModelValidationInterceptor() {
+        return new EgonColaModelValidationInterceptor();
     }
 
     @Bean("egonColaMetaObjectHandler")
     @ConditionalOnMissingBean(com.baomidou.mybatisplus.core.handlers.MetaObjectHandler.class)
-    @ConditionalOnProperty(prefix = EgonColaMybatisPlusProperties.PREFIX + ".meta-fill",
-            name = "enabled", havingValue = "true", matchIfMissing = true)
     // The host may have multiple named Clocks (such as agentClock and agentFlowClock), and injecting them by type can be ambiguous;
     // When it is unique (or @ Primary), use the host clock. Otherwise, return to systemUTC and maintain the existing semantics of 'host can override'.
     public EgonColaMetaObjectHandler egonColaMetaObjectHandler(
-            EgonColaTenantIdProvider tenantIdProvider,
             EgonColaUserIdProvider userIdProvider,
             ObjectProvider<Clock> clockProvider) {
-        return new EgonColaMetaObjectHandler(tenantIdProvider, userIdProvider,
-                clockProvider.getIfUnique(Clock::systemUTC));
+        return new EgonColaMetaObjectHandler(userIdProvider, clockProvider.getIfUnique(Clock::systemUTC));
     }
 
     @Bean("egonColaTenantIdGuardInnerInterceptor")
     @Order(100)
     public EgonColaTenantIdGuardInnerInterceptor egonColaTenantIdGuardInnerInterceptor(
-            EgonColaTenantIdProvider tenantIdProvider,
             EgonColaUserIdProvider userIdProvider,
             EgonColaMybatisPlusProperties properties) {
-        return new EgonColaTenantIdGuardInnerInterceptor(tenantIdProvider, userIdProvider, properties);
+        return new EgonColaTenantIdGuardInnerInterceptor(userIdProvider, properties);
     }
 
     @Bean("egonColaBlockAttackInnerInterceptor")
@@ -139,9 +139,8 @@ public class EgonColaMybatisPlusAutoConfiguration {
     @Bean("egonColaTenantLineInnerInterceptor")
     @Order(300)
     public TenantLineInnerInterceptor egonColaTenantLineInnerInterceptor(
-            EgonColaTenantIdProvider tenantIdProvider,
             EgonColaMybatisPlusProperties properties) {
-        TenantLineHandler handler = new EgonColaTenantIdTenantLineHandler(tenantIdProvider, properties);
+        TenantLineHandler handler = new EgonColaTenantIdTenantLineHandler(properties);
         return new TenantLineInnerInterceptor(handler);
     }
 

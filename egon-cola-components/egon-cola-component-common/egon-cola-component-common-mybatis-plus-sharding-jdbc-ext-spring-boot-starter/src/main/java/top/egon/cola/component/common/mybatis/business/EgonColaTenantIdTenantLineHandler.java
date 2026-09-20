@@ -11,19 +11,15 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Adapts the trusted TenantID provider to MyBatis-Plus TenantLine SQL ASTs.
+ * Adapts the static TenantID entry to MyBatis-Plus TenantLine SQL ASTs.
  */
 public final class EgonColaTenantIdTenantLineHandler implements TenantLineHandler {
 
     private static final String TENANT_COLUMN = "tenant_id";
 
-    private final EgonColaTenantIdProvider tenantIdProvider;
     private final Set<String> ignoredTables;
 
-    public EgonColaTenantIdTenantLineHandler(EgonColaTenantIdProvider tenantIdProvider,
-                                              EgonColaMybatisPlusProperties properties) {
-        this.tenantIdProvider = Objects.requireNonNull(tenantIdProvider,
-                "tenantIdProvider must not be null");
+    public EgonColaTenantIdTenantLineHandler(EgonColaMybatisPlusProperties properties) {
         Objects.requireNonNull(properties, "properties must not be null");
         this.ignoredTables = properties.getTenantId().getIgnoredTables().stream()
                 .filter(Objects::nonNull)
@@ -33,11 +29,7 @@ public final class EgonColaTenantIdTenantLineHandler implements TenantLineHandle
 
     @Override
     public Expression getTenantId() {
-        Long tenantId = tenantIdProvider.currentTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("TENANT_CONTEXT_MISSING");
-        }
-        return new LongValue(tenantId);
+        return new LongValue(EgonColaTenantIdProvider.currentTenantId());
     }
 
     @Override

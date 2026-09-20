@@ -42,7 +42,6 @@ public class RagKnowledgeVectorGateway implements KnowledgeVectorGateway {
     /** The store the component resolves by name, shared with the ingestion path it writes through. */
     private final @Qualifier("knowledgeRagVectorStore") VectorStore vectorStore;
 
-    private final EgonColaTenantIdProvider tenantIdProvider;
 
     @Override
     public List<KnowledgeChunkBO> retrieve(String collectionId, String logicalModelName, String query,
@@ -55,7 +54,7 @@ public class RagKnowledgeVectorGateway implements KnowledgeVectorGateway {
         if (attributes != null) {
             scopedAttributes.putAll(attributes);
         }
-        scopedAttributes.put(KnowledgeVectorMetadata.TENANT_ID, String.valueOf(tenantIdProvider.currentTenantId()));
+        scopedAttributes.put(KnowledgeVectorMetadata.TENANT_ID, String.valueOf(EgonColaTenantIdProvider.currentTenantId()));
 
         List<RagRetrievedChunkBO> retrieved = ragRetrievalService.retrieve(new RagRetrievalQuery(
                 collectionId, logicalModelName, query, topK, 0.0, scopedAttributes));

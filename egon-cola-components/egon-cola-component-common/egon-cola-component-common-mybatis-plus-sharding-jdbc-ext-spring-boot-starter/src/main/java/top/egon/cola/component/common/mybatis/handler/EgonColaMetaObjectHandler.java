@@ -21,8 +21,6 @@ import java.time.temporal.ChronoUnit;
 @RequiredArgsConstructor
 public class EgonColaMetaObjectHandler implements MetaObjectHandler {
 
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
     @Getter
     @Qualifier("egonColaMdcUserIdProvider")
     private final EgonColaUserIdProvider userIdProvider;
@@ -87,11 +85,7 @@ public class EgonColaMetaObjectHandler implements MetaObjectHandler {
     }
 
     private Long requireTenantId() {
-        Long tenantId = tenantIdProvider.currentTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("TENANT_CONTEXT_MISSING");
-        }
-        return tenantId;
+        return EgonColaTenantIdProvider.currentTenantId();
     }
 
     private String requireUserId() {

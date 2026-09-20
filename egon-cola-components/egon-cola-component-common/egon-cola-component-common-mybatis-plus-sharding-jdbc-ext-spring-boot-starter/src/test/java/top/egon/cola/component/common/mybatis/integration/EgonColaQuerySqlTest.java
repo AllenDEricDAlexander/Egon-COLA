@@ -1,12 +1,14 @@
 package top.egon.cola.component.common.mybatis.integration;
 
 import org.apache.ibatis.mapping.SqlCommandType;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
+import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -17,6 +19,13 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class EgonColaQuerySqlTest {
+
+    private final TestTenantIdProvider tenant = new TestTenantIdProvider();
+
+    @AfterEach
+    void clearTenantContext() {
+        tenant.clear();
+    }
 
     @Test
     void finalQueriesRequireTenantAndActiveConditionsEvenForScalarResults() {
@@ -54,10 +63,11 @@ class EgonColaQuerySqlTest {
     @Test
     void plainCommonTenantPolicyRetainsTheEntireSignedLongDomain() {
         for (long tenantId : new long[]{0L, -7L, Long.MIN_VALUE}) {
+            tenant.set(tenantId);
             var properties = new EgonColaMybatisPlusProperties();
-            var tenant = new EgonColaTenantIdGuardInnerInterceptor(() -> tenantId, () -> "tester", properties);
+            var tenantGuard = new EgonColaTenantIdGuardInnerInterceptor(() -> "tester", properties);
             var guard = new EgonColaLocalWriteGuardInnerInterceptor(query -> new EgonColaRouteResult(
-                    List.of(new EgonColaPhysicalTargetBO("primary", "public", query.logicalTable())), "a".repeat(64)), tenant,
+                    List.of(new EgonColaPhysicalTargetBO("primary", "public", query.logicalTable())), "a".repeat(64)), tenantGuard,
                     mock(top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy.class), Map.of());
             var configuration = EgonColaLocalWriteGuardTest.configuration(mock(DataSource.class));
             assertThatCode(() -> guard.beforePrepare(EgonColaLocalWriteGuardTest.handler(configuration, "test.Mapper.query", SqlCommandType.SELECT,
@@ -86,9 +96,10 @@ class EgonColaQuerySqlTest {
     void registeredBulkDeleteCannotBecomeAnUnversionedBusinessUpdate() {
         var properties = new EgonColaMybatisPlusProperties();
         properties.getLocalWriteGuard().getAllowedRootStatements().put("test.Mapper.deleteRoot", "parent_id");
-        var tenant = new EgonColaTenantIdGuardInnerInterceptor(() -> 41L, () -> "tester", properties);
+        tenant.set(41L);
         var guard = new EgonColaLocalWriteGuardInnerInterceptor(query -> new EgonColaRouteResult(
-                List.of(new EgonColaPhysicalTargetBO("primary", "public", "records")), "a".repeat(64)), tenant,
+                List.of(new EgonColaPhysicalTargetBO("primary", "public", "records")), "a".repeat(64)),
+                new EgonColaTenantIdGuardInnerInterceptor(() -> "tester", properties),
                 mock(top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy.class), Map.of());
         var parameters = new java.util.HashMap<>(EgonColaLocalWriteGuardTest.parameters());
         parameters.put("root", 9L);
@@ -102,11 +113,13 @@ class EgonColaQuerySqlTest {
                 .hasMessage("BULK_DELETE_SHAPE_REQUIRED");
     }
 
-    private static void check(String sql, SqlCommandType command) {
+    private void check(String sql, SqlCommandType command) {
         var properties = new EgonColaMybatisPlusProperties();
-        var tenant = new EgonColaTenantIdGuardInnerInterceptor(() -> 41L, () -> "tester", properties);
+        tenant.set(41L);
         var guard = new EgonColaLocalWriteGuardInnerInterceptor(query -> new EgonColaRouteResult(
-                List.of(new EgonColaPhysicalTargetBO("primary", "public", query.logicalTable())), "a".repeat(64)), tenant, mock(top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy.class), Map.of());
+                List.of(new EgonColaPhysicalTargetBO("primary", "public", query.logicalTable())), "a".repeat(64)),
+                new EgonColaTenantIdGuardInnerInterceptor(() -> "tester", properties),
+                mock(top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy.class), Map.of());
         var configuration = EgonColaLocalWriteGuardTest.configuration(mock(DataSource.class));
         guard.beforePrepare(EgonColaLocalWriteGuardTest.handler(configuration, "test.Mapper.custom", command, sql,
                 EgonColaLocalWriteGuardTest.parameters()), mock(Connection.class), null);

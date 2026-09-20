@@ -1,7 +1,6 @@
 package top.egon.cola.component.common.mybatis.interceptor;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.ibatis.executor.parameter.ParameterHandler;
 import org.apache.ibatis.executor.resultset.ResultSetHandler;
@@ -14,7 +13,6 @@ import org.apache.ibatis.plugin.Plugin;
 import org.apache.ibatis.plugin.Signature;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
-import org.springframework.beans.factory.annotation.Qualifier;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
@@ -40,11 +38,7 @@ import java.util.Set;
                 args = {Statement.class})
 })
 @Slf4j
-@RequiredArgsConstructor
 public final class EgonColaModelValidationInterceptor implements Interceptor {
-
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
@@ -134,9 +128,9 @@ public final class EgonColaModelValidationInterceptor implements Interceptor {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    private void validateModel(EgonModel<?> model,
-                               EgonColaModelValidationGroups.Operation operation) {
-        modelValidationUtils.validate((EgonModel) model, operation);
+    private static void validateModel(EgonModel<?> model,
+                                      EgonColaModelValidationGroups.Operation operation) {
+        EgonColaModelValidationUtils.validate((EgonModel) model, operation);
     }
 
     private static Method findGetEntity(Class<?> type) {

@@ -122,13 +122,15 @@ rules:
 | deletedAt | deleted_at | LocalDateTime / timestamp(6)，未删除 NULL |
 | version | version | Long / BIGINT NOT NULL，插入 0，更新与软删递增 |
 
-逻辑删除使用 `@TableLogic` 与 `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`。主键适配器 `EgonColaIdentifierGenerator` 委托现有具名 `snowflakeIdGenerator`，不重新实现分布式算法。实例必须配置唯一 `EGON_ID_MACHINE_ID`；计数器只用于隔离测试。`@KeySequence` 与该 ASSIGN_ID 合同冲突，启动校验拒绝组合。
+逻辑删除使用 `@TableLogic` 与 `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`。主键适配器 `EgonColaIdentifierGenerator` 调用进程级静态 `SnowflakeIdGenerator`，该引擎由 `IdGeneratorAutoConfiguration` 在校验 ID 配置后一次性初始化，不重新实现分布式算法。实例必须配置唯一 `EGON_ID_MACHINE_ID`；计数器只用于隔离测试。`@KeySequence` 与该 ASSIGN_ID 合同冲突，启动校验拒绝组合。
 
-Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long 分片键。技术字段统一由 MetaObjectHandler 填充，扩展钩子只允许处理业务字段。SQL Injector 不承担元数据填充职责。
+Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long 分片键。技术字段统一由 MetaObjectHandler 填充，MyBatis-Plus 启用即装配该 handler，没有开关；扩展钩子只允许处理业务字段。SQL Injector 不承担元数据填充职责。
+
+租户身份不再以注入 Provider 的方式传递。`EgonColaTenantIdProvider` 是基于 MDC 的静态不可实例化入口，MDC 键名由 `tenant-id.mdc-key` 配置（默认 `tenantId`），每次调用重新读取 SLF4J；上下文缺失或非数值时以 `TENANT_CONTEXT_MISSING` / `TENANT_CONTEXT_MALFORMED` 失败。模型校验共享同一静态绑定入口，若已有存活的冲突 owner 则以 `MODEL_VALIDATION_BINDING_CONFLICT` 拒绝重复绑定。
 
 ## Repository 与 CQRS
 
-技术接口为 `EgonColaIRepository<T>`（扩展官方 `IRepository`），实现基类为 `EgonColaRepository<M,T>`。业务 Domain Service 不继承技术 CRUD 接口，也不携带 PO 泛型。具体 Repository 使用具名 Bean、Lombok 构造注入，并提供 mapper/modelValidationUtils/tenantIdProvider/properties 四个 getter；参考脚手架中的具体实现。
+技术接口为 `EgonColaIRepository<T>`（扩展官方 `IRepository`），实现基类为 `EgonColaRepository<M,T>`。业务 Domain Service 不继承技术 CRUD 接口，也不携带 PO 泛型。具体 Repository 使用具名 Bean、Lombok 构造注入，只提供 mapper 与 properties 两个 getter，基类守卫从上述静态入口读取租户与校验上下文；参考脚手架中的具体实现。
 
 - 命令使用 save、带版本的 updateById/removeById、受保护的批量 API；调用方检查影响行数。
 - 业务 Query 使用命名 Mapper XML。每个 Mapper 都需提供 `selectActiveById`、`selectActiveByIds`、`deleteVersionedById`。

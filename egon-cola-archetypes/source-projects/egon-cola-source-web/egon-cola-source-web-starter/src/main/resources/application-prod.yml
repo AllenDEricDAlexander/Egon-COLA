@@ -90,8 +90,6 @@ egon:
           enabled: true
         optimistic-locker:
           enabled: true
-        meta-fill:
-          enabled: true
         dynamic-table-name:
           enabled: false
           tables: {}

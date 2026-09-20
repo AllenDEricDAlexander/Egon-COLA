@@ -5,8 +5,10 @@ import com.baomidou.mybatisplus.autoconfigure.MybatisPlusInnerInterceptorAutoCon
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import org.apache.ibatis.reflection.MetaObject;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
@@ -17,6 +19,8 @@ import org.springframework.transaction.annotation.EnableTransactionManagement;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
+import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
 import top.egon.cola.component.common.mybatis.support.TestBusinessRepository;
 import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
@@ -75,10 +79,10 @@ class EgonColaBatchTransactionIntegrationTest {
     }
 
     @Test
-    void providerDriftRollsBackWholeBatch() {
-        DriftingTenantProvider drifting = new DriftingTenantProvider();
-        runner().withBean(EgonColaTenantIdProvider.class, () -> drifting)
+    void tenantContextDriftRollsBackWholeBatch() {
+        runnerWithTestTenant().withUserConfiguration(DriftingHandlerConfiguration.class)
                 .run(context -> {
+                    context.getBean(TestTenantIdProvider.class).set(41L);
                     TestUserIdProvider user = context.getBean(TestUserIdProvider.class);
                     TestBusinessRepository service = context.getBean(TestBusinessRepository.class);
                     JdbcTemplate jdbc = new JdbcTemplate(context.getBean(DataSource.class));
@@ -249,13 +253,26 @@ class EgonColaBatchTransactionIntegrationTest {
         }
     }
 
-    private static final class DriftingTenantProvider implements EgonColaTenantIdProvider {
-        private int reads;
+    @Configuration(proxyBeanMethods = false)
+    static class DriftingHandlerConfiguration {
+        @Bean
+        EgonColaMetaObjectHandler driftingMetaObjectHandler(EgonColaUserIdProvider userIdProvider, Clock clock) {
+            return new DriftingMetaObjectHandler(userIdProvider, clock);
+        }
+    }
+
+    /**
+     * Publishes a different tenant while the batch is still in flight, so the snapshot check must fail.
+     */
+    private static final class DriftingMetaObjectHandler extends EgonColaMetaObjectHandler {
+
+        private DriftingMetaObjectHandler(EgonColaUserIdProvider userIdProvider, Clock clock) {
+            super(userIdProvider, clock);
+        }
 
         @Override
-        public Long currentTenantId() {
-            reads++;
-            return reads == 1 ? 41L : 42L;
+        protected void afterInsertFill(MetaObject metaObject) {
+            MDC.put(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, "42");
         }
     }
 }

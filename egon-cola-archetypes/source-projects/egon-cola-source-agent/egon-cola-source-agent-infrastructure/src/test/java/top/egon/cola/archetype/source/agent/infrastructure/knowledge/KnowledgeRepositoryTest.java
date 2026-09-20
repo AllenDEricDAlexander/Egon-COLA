@@ -434,22 +434,20 @@ class KnowledgeRepositoryTest {
         }
 
         @Bean
-        KnowledgeBaseRepository knowledgeBaseRepository(KnowledgeBaseDAO knowledgeBaseDAO, top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils models,
-                top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider tenant,
+        KnowledgeBaseRepository knowledgeBaseRepository(KnowledgeBaseDAO knowledgeBaseDAO,
                 top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties properties,
                 top.egon.cola.component.common.core.validation.ValidationUtils validation) {
-            return new KnowledgeBaseRepositoryImpl(knowledgeBaseDAO, models, tenant, properties, validation);
+            return new KnowledgeBaseRepositoryImpl(knowledgeBaseDAO, properties, validation);
         }
 
         @Bean
         KnowledgeDocumentRepository knowledgeDocumentRepository(
-                KnowledgeDocumentDAO knowledgeDocumentDAO, top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils models,
-                top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider tenant,
+                KnowledgeDocumentDAO knowledgeDocumentDAO,
                 top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties properties,
                 top.egon.cola.component.common.core.validation.ValidationUtils validation,
                 top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider user,
                 java.time.Clock clock) {
-            return new KnowledgeDocumentRepositoryImpl(knowledgeDocumentDAO, models, tenant, properties, validation, user, clock);
+            return new KnowledgeDocumentRepositoryImpl(knowledgeDocumentDAO, properties, validation, user, clock);
         }
     }
 

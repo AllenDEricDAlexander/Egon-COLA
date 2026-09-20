@@ -15,7 +15,6 @@ import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.Kn
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.KnowledgeBasePO;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
@@ -32,12 +31,6 @@ public class KnowledgeBaseRepositoryImpl extends EgonColaRepository<KnowledgeBas
     @Getter
     @Qualifier("knowledgeBaseDAO")
     private final KnowledgeBaseDAO baseMapper;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
     @Getter(AccessLevel.PROTECTED)
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
@@ -74,7 +67,7 @@ public class KnowledgeBaseRepositoryImpl extends EgonColaRepository<KnowledgeBas
         if (current == null) { return; }
         KnowledgeBasePO change = new KnowledgeBasePO().setName(name).setDescription(description);
         KnowledgeBasePOConverter.INSTANCE.updateMetadata(change, current);
-        modelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
+        EgonColaModelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
         if (baseMapper.updateNameAndDescription(change) != 1) {
             throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT");
         }

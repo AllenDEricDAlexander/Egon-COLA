@@ -15,7 +15,6 @@ import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.Kn
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.po.KnowledgeDocumentPO;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
@@ -32,12 +31,6 @@ public class KnowledgeDocumentRepositoryImpl extends EgonColaRepository<Knowledg
     @Getter
     @Qualifier("knowledgeDocumentDAO")
     private final KnowledgeDocumentDAO baseMapper;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
     @Getter(AccessLevel.PROTECTED)
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;
@@ -131,7 +124,7 @@ public class KnowledgeDocumentRepositoryImpl extends EgonColaRepository<Knowledg
         if (current == null || !TERMINAL_STATUSES.contains(current.getStatus())) { return false; }
         KnowledgeDocumentPO change = carrierOf(current).setStatus(DocumentIngestStatusEnum.PENDING.name())
                 .setChunkCount(0).setAttemptCount(0).setErrorCode(null).setErrorMessage(null);
-        modelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
+        EgonColaModelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
         return baseMapper.updateState(change, TERMINAL_STATUSES) == 1;
     }
 
@@ -153,7 +146,7 @@ public class KnowledgeDocumentRepositoryImpl extends EgonColaRepository<Knowledg
         if (current == null || !expected.name().equals(current.getStatus())) { return false; }
         KnowledgeDocumentPO change = carrierOf(current);
         transition.accept(change);
-        modelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
+        EgonColaModelValidationUtils.validateBusiness(change, EgonColaModelValidationGroups.Operation.UPDATE);
         return baseMapper.updateState(change, List.of(expected.name())) == 1;
     }
 

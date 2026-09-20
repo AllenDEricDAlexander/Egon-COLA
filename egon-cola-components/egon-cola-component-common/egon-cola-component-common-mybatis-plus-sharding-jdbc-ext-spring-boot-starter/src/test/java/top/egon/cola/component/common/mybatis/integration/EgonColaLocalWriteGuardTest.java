@@ -8,6 +8,8 @@ import org.apache.ibatis.mapping.MappedStatement;
 import org.apache.ibatis.mapping.SqlCommandType;
 import org.apache.ibatis.scripting.defaults.RawSqlSource;
 import org.apache.ibatis.session.RowBounds;
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.transaction.SpringManagedTransactionFactory;
 import org.springframework.jdbc.datasource.ConnectionHolder;
@@ -19,6 +21,7 @@ import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardI
 import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
+import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
 
 import javax.sql.DataSource;
 import java.sql.Connection;
@@ -30,6 +33,16 @@ import static org.assertj.core.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 class EgonColaLocalWriteGuardTest {
+
+    @BeforeAll
+    static void publishTenantContext() {
+        new TestTenantIdProvider().set(41L);
+    }
+
+    @AfterAll
+    static void clearTenantContext() {
+        new TestTenantIdProvider().clear();
+    }
 
     @Test
     void anotherWriteGroupMarksRollbackOnlyBeforeAnySecondSql() {
@@ -116,7 +129,7 @@ class EgonColaLocalWriteGuardTest {
                             new top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO.PartitionKeyBO(0, 1),
                             List.of(new EgonColaPhysicalTargetBO("primary_a", "public", "records_t0_b1"))), 2, null);
             var properties = new EgonColaMybatisPlusProperties();
-            var sql = new EgonColaTenantIdGuardInnerInterceptor(() -> 41L, () -> "tester", properties);
+            var sql = new EgonColaTenantIdGuardInnerInterceptor(() -> "tester", properties);
             var guard = new EgonColaLocalWriteGuardInnerInterceptor(query -> { throw new AssertionError("Must use the shared two-level strategy"); },
                     sql, strategy, Map.of("records", profile));
             var configuration = configuration(mock(DataSource.class));
@@ -132,7 +145,7 @@ class EgonColaLocalWriteGuardTest {
 
     private static EgonColaLocalWriteGuardInnerInterceptor guard(EgonColaWriteTargetResolver resolver) {
         var properties = new EgonColaMybatisPlusProperties();
-        var sqlGuard = new EgonColaTenantIdGuardInnerInterceptor(() -> 41L, () -> "tester", properties);
+        var sqlGuard = new EgonColaTenantIdGuardInnerInterceptor(() -> "tester", properties);
         return new EgonColaLocalWriteGuardInnerInterceptor(resolver, sqlGuard, mock(top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrategy.class), Map.of());
     }
 

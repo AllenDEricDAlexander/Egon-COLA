@@ -23,6 +23,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaModelValidationInterceptor;
 import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
@@ -42,6 +43,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @EnabledIfEnvironmentVariable(named = "EGON_MP_PG_MODEL_TEST", matches = "true")
 class EgonColaLogicDeletePostgreSqlTest {
+
+    private static final ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
+    private static final ValidationUtils VALIDATION_UTILS = new ValidationUtils(VALIDATORS.getValidator());
 
     @Test
     void versionedLogicalDeleteStoresUtcTimestampAndKeepsTenantIsolation() throws Exception {
@@ -68,7 +72,6 @@ class EgonColaLogicDeletePostgreSqlTest {
         PGSimpleDataSource admin = source();
         String schema = "egon_mp_" + UUID.randomUUID().toString().replace("-", "");
         new JdbcTemplate(admin).execute("CREATE SCHEMA " + schema);
-        ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
         try {
             PGSimpleDataSource scoped = source();
             scoped.setCurrentSchema(schema);
@@ -77,16 +80,18 @@ class EgonColaLogicDeletePostgreSqlTest {
             tenant.set(41L);
             TestUserIdProvider user = new TestUserIdProvider();
             user.set("pg-test-user");
-            EgonColaModelValidationUtils validation = new EgonColaModelValidationUtils(new ValidationUtils(validators.getValidator()), tenant);
+            if (EgonColaModelValidationUtils.current() == null) {
+                EgonColaModelValidationUtils.initialize(VALIDATION_UTILS, "EgonColaLogicDeletePostgreSqlTest");
+            }
             MybatisPlusInterceptor plugins = new MybatisPlusInterceptor();
             plugins.addInnerInterceptor(new TenantLineInnerInterceptor(new TenantLineHandler() {
                 @Override
-                public Expression getTenantId() { return new LongValue(tenant.currentTenantId()); }
+                public Expression getTenantId() { return new LongValue(EgonColaTenantIdProvider.currentTenantId()); }
             }));
             plugins.addInnerInterceptor(new OptimisticLockerInnerInterceptor());
             GlobalConfig global = new GlobalConfig();
             global.setDbConfig(new GlobalConfig.DbConfig());
-            global.setMetaObjectHandler(new EgonColaMetaObjectHandler(tenant, user, Clock.systemUTC()));
+            global.setMetaObjectHandler(new EgonColaMetaObjectHandler(user, Clock.systemUTC()));
             SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
             global.setIdentifierGenerator(new EgonColaIdentifierGenerator());
             MybatisConfiguration configuration = new MybatisConfiguration();
@@ -95,15 +100,14 @@ class EgonColaLogicDeletePostgreSqlTest {
             factory.setDataSource(scoped);
             factory.setConfiguration(configuration);
             factory.setGlobalConfig(global);
-            factory.setPlugins(plugins, new EgonColaModelValidationInterceptor(validation));
+            factory.setPlugins(plugins, new EgonColaModelValidationInterceptor());
             factory.setMapperLocations(new ClassPathResource("mybatis/TestBusinessMapper.xml"));
             SqlSessionTemplate template = new SqlSessionTemplate(factory.getObject());
-            TestBusinessRepository repository = new TestBusinessRepository(template.getMapper(TestBusinessMapper.class), validation,
-                    tenant, new EgonColaMybatisPlusProperties());
-            return new PostgreFixtureBO(admin, schema, validators, repository, tenant,
+            TestBusinessRepository repository = new TestBusinessRepository(
+                    template.getMapper(TestBusinessMapper.class), new EgonColaMybatisPlusProperties());
+            return new PostgreFixtureBO(admin, schema, repository, tenant,
                     new JdbcTemplate(scoped), new TransactionTemplate(new DataSourceTransactionManager(scoped)));
         } catch (Exception failure) {
-            validators.close();
             new JdbcTemplate(admin).execute("DROP SCHEMA " + schema + " CASCADE");
             throw failure;
         }
@@ -117,12 +121,11 @@ class EgonColaLogicDeletePostgreSqlTest {
         return source;
     }
 
-    record PostgreFixtureBO(PGSimpleDataSource admin, String schema, ValidatorFactory validators,
+    record PostgreFixtureBO(PGSimpleDataSource admin, String schema,
                             TestBusinessRepository repository, TestTenantIdProvider tenant,
                             JdbcTemplate jdbc, TransactionTemplate transaction) implements AutoCloseable {
         @Override
         public void close() {
-            validators.close();
             // Cleanup is confined to the UUID schema created by the explicitly enabled test.
             new JdbcTemplate(admin).execute("DROP SCHEMA " + schema + " CASCADE");
         }

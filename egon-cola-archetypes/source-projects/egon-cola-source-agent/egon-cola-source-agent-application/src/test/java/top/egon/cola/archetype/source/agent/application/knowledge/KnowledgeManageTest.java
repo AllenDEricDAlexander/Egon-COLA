@@ -3,8 +3,11 @@ package top.egon.cola.archetype.source.agent.application.knowledge;
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import top.egon.cola.archetype.source.agent.application.knowledge.command.AskKnowledgeBaseCommand;
 import top.egon.cola.archetype.source.agent.application.knowledge.command.CreateKnowledgeBaseCommand;
 import top.egon.cola.archetype.source.agent.application.knowledge.command.RetrieveKnowledgeCommand;
@@ -18,6 +21,7 @@ import top.egon.cola.archetype.source.agent.application.knowledge.manage.impl.Kn
 import top.egon.cola.archetype.source.agent.application.knowledge.service.KnowledgeIngestQueueService;
 import top.egon.cola.archetype.source.agent.application.knowledge.service.KnowledgeQaCapacityService;
 import top.egon.cola.archetype.source.agent.application.knowledge.service.KnowledgeRemovalService;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.archetype.source.agent.common.error.KnowledgeErrorCodeEnum;
 import top.egon.cola.archetype.source.agent.common.knowledge.KnowledgeIngestChannel;
 import top.egon.cola.archetype.source.agent.domain.knowledge.gateway.KnowledgeAnswerGateway;
@@ -107,6 +111,16 @@ class KnowledgeManageTest {
     @AfterAll
     static void tearDown() {
         validatorFactory.close();
+    }
+
+    @BeforeEach
+    void publishTenantContext() {
+        MDC.put(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, String.valueOf(TENANT_ID));
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        MDC.remove(EgonColaTenantIdProvider.DEFAULT_MDC_KEY);
     }
 
     @Test
@@ -496,13 +510,13 @@ class KnowledgeManageTest {
 
         private KnowledgeBaseManageImpl bases() {
             return new KnowledgeBaseManageImpl(baseRepository, documentRepository, removalService, properties(),
-                    validationUtils(), () -> TENANT_ID);
+                    validationUtils());
         }
 
         private KnowledgeDocumentManageImpl documents() {
             return new KnowledgeDocumentManageImpl(baseRepository, documentRepository, ingestQueueService,
                     removalService, documentStorage, new RoutingExtractionService(extractors), extractors,
-                    properties(), validationUtils(), () -> TENANT_ID);
+                    properties(), validationUtils());
         }
 
         private KnowledgeQaManageImpl qa() {

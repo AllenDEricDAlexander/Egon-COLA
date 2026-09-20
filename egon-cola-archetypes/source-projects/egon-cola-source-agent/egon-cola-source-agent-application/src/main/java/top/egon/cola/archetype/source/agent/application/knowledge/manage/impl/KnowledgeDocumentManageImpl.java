@@ -73,8 +73,6 @@ public class KnowledgeDocumentManageImpl implements KnowledgeDocumentManage {
 
     private final @Qualifier("agentValidationUtils") ValidationUtils validationUtils;
 
-    private final EgonColaTenantIdProvider tenantIdProvider;
-
     @Override
     public KnowledgeDocumentBO upload(UploadKnowledgeDocumentCommand command) {
         validate(command, command == null ? null : command.traceId());
@@ -232,7 +230,7 @@ public class KnowledgeDocumentManageImpl implements KnowledgeDocumentManage {
     }
 
     private Long currentTenantId(String traceId) {
-        Long tenantId = tenantIdProvider.currentTenantId();
+        Long tenantId = EgonColaTenantIdProvider.currentTenantId();
         if (tenantId == null) {
             throw new KnowledgeApplicationException(KnowledgeErrorCodeEnum.KNOWLEDGE_INTERNAL_ERROR, traceId);
         }

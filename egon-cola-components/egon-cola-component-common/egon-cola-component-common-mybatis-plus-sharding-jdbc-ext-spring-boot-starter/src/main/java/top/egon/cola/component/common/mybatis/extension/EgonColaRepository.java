@@ -58,10 +58,6 @@ import java.util.stream.Collectors;
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends EgonModel<T>> extends CrudRepository<M, T> implements EgonColaIRepository<T> {
 
-    protected abstract EgonColaModelValidationUtils getModelValidationUtils();
-
-    protected abstract EgonColaTenantIdProvider getTenantIdProvider();
-
     protected abstract EgonColaMybatisPlusProperties getProperties();
 
     @Override
@@ -576,7 +572,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     private T validateLoaded(T entity) {
-        return entity == null ? null : requireModelValidationUtils().validate(entity, EgonColaModelValidationGroups.Operation.LOADED);
+        return entity == null ? null : EgonColaModelValidationUtils.validate(entity, EgonColaModelValidationGroups.Operation.LOADED);
     }
 
     private List<T> validateLoadedList(List<T> entities) {
@@ -602,11 +598,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
     }
 
     private Long requireTenantId() {
-        Long tenantId = requireTenantIdProvider().currentTenantId();
-        if (tenantId == null) {
-            throw new IllegalStateException("TENANT_CONTEXT_MISSING");
-        }
-        return tenantId;
+        return EgonColaTenantIdProvider.currentTenantId();
     }
 
     private void verifyTenantSnapshot(Long snapshot) {
@@ -626,7 +618,7 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
         if (entity == null) {
             throw new IllegalArgumentException("entity must not be null");
         }
-        requireModelValidationUtils().validateBusiness(entity, operation);
+        EgonColaModelValidationUtils.validateBusiness(entity, operation);
     }
 
     private static Serializable requireSerializableId(Serializable id) {
@@ -667,14 +659,6 @@ public abstract class EgonColaRepository<M extends EgonColaMapper<T>, T extends 
             throw new IllegalArgumentException("PAGE_SIZE_INVALID");
         }
         return page;
-    }
-
-    private EgonColaModelValidationUtils requireModelValidationUtils() {
-        return Objects.requireNonNull(getModelValidationUtils(), "modelValidationUtils must not be null");
-    }
-
-    private EgonColaTenantIdProvider requireTenantIdProvider() {
-        return Objects.requireNonNull(getTenantIdProvider(), "tenantIdProvider must not be null");
     }
 
     private EgonColaMybatisPlusProperties requireProperties() {

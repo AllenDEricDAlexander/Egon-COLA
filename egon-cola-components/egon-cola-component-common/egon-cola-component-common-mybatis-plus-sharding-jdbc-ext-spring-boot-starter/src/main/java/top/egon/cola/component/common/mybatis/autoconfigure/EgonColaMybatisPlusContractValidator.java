@@ -179,7 +179,7 @@ public final class EgonColaMybatisPlusContractValidator implements SmartInitiali
         if (!dev && properties.getIllegalSql().isEnabled()) {
             throw failure("DEV_DIAGNOSTIC_PROFILE_REQUIRED");
         }
-        if (!properties.getMetaFill().isEnabled() || !properties.getLocalWriteGuard().isEnabled()
+        if (!properties.getLocalWriteGuard().isEnabled()
                 || !properties.getBlockAttack().isEnabled() || !properties.getOptimisticLocker().isEnabled()) {
             throw failure("MANDATORY_GUARD_DISABLED");
         }

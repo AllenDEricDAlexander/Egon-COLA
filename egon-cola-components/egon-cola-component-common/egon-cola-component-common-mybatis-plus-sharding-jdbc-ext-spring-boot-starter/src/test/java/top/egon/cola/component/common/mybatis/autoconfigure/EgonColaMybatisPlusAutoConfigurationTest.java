@@ -11,6 +11,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
+import org.slf4j.MDC;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -57,7 +58,8 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     @Test
     void disabledConfigurationCreatesNoEgonColaBeans() {
         runner(false).run(context -> assertThat(context)
-                .doesNotHaveBean(EgonColaTenantIdProvider.class)
+                .doesNotHaveBean("egonColaMdcTenantIdProvider")
+                .doesNotHaveBean("egonColaModelValidationUtils")
                 .doesNotHaveBean(EgonColaUserIdProvider.class)
                 .doesNotHaveBean(EgonColaMetaObjectHandler.class)
                 .doesNotHaveBean(EgonColaModelValidationInterceptor.class));
@@ -66,7 +68,8 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     @Test
     void enabledConfigurationBuildsProvidersHandlerValidationAndOrderedInnerChain() {
         runner(true).run(context -> {
-            assertThat(context).hasSingleBean(EgonColaTenantIdProvider.class)
+            assertThat(context).doesNotHaveBean("egonColaMdcTenantIdProvider")
+                    .doesNotHaveBean("egonColaModelValidationUtils")
                     .hasSingleBean(EgonColaUserIdProvider.class)
                     .hasSingleBean(EgonColaMetaObjectHandler.class)
                     .hasSingleBean(EgonColaModelValidationInterceptor.class)
@@ -88,11 +91,29 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     }
 
     @Test
-    void consumerProviderBacksOffDefaultMdcProvider() {
-        EgonColaTenantIdProvider custom = () -> 11L;
-        runner(true).withBean(EgonColaTenantIdProvider.class, () -> custom)
-                .run(context -> assertThat(context.getBean(EgonColaTenantIdProvider.class))
-                        .isSameAs(custom));
+    void configuredMdcKeyDrivesTheStaticTenantEntry() {
+        runner(true).withPropertyValues("egon.cola.component.mybatis-plus.tenant-id.mdc-key=requestTenantId")
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    MDC.put("requestTenantId", "11");
+                    try {
+                        assertThat(EgonColaTenantIdProvider.currentTenantId()).isEqualTo(11L);
+                    } finally {
+                        MDC.remove("requestTenantId");
+                        EgonColaTenantIdProvider.initialize(EgonColaTenantIdProvider.DEFAULT_MDC_KEY);
+                    }
+                });
+    }
+
+    @Test
+    void blankMdcKeyFailsTheAssembly() {
+        runner(true).withPropertyValues("egon.cola.component.mybatis-plus.tenant-id.mdc-key=")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).rootCause()
+                            .isInstanceOf(org.springframework.boot.context.properties.bind.validation.BindValidationException.class)
+                            .hasMessageContaining("mdcKey");
+                });
     }
 
     @Test
@@ -126,7 +147,7 @@ class EgonColaMybatisPlusAutoConfigurationTest {
                 .withBean("agentValidationUtils", ValidationUtils.class, () -> foreign)
                 .run(context -> assertThat(context).hasNotFailed()
                         .hasBean("egonColaValidationUtils")
-                        .hasBean("egonColaModelValidationUtils"));
+                        .doesNotHaveBean("egonColaModelValidationUtils"));
     }
 
     @Test
@@ -376,7 +397,7 @@ class EgonColaMybatisPlusAutoConfigurationTest {
 
     private static final class SafeMetaObjectHandler extends EgonColaMetaObjectHandler {
         private SafeMetaObjectHandler() {
-            super(() -> 0L, () -> "test-user", java.time.Clock.systemUTC());
+            super(() -> "test-user", java.time.Clock.systemUTC());
         }
 
         @Override

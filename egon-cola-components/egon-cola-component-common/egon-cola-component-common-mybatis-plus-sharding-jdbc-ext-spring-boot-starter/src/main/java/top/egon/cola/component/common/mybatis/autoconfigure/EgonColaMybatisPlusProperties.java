@@ -12,6 +12,7 @@ import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.validation.annotation.Validated;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -57,10 +58,6 @@ public class EgonColaMybatisPlusProperties {
 
     @Valid
     @NotNull
-    private Toggle metaFill = new Toggle();
-
-    @Valid
-    @NotNull
     private Ddl ddl = new Ddl();
     @Valid
     @NotNull
@@ -76,7 +73,7 @@ public class EgonColaMybatisPlusProperties {
     public static class TenantId {
 
         @NotBlank
-        private String mdcKey = "tenantId";
+        private String mdcKey = EgonColaTenantIdProvider.DEFAULT_MDC_KEY;
         private Set<String> ignoredTables = new LinkedHashSet<>();
 
         public boolean ignores(String table) {

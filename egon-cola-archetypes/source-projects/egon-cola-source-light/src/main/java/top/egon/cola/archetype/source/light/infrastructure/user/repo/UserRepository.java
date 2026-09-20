@@ -17,9 +17,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.validation.annotation.Validated;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.extension.EgonColaRepository;
-import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import java.util.Collection;
 import java.util.List;
 
@@ -33,12 +31,6 @@ public class UserRepository extends EgonColaRepository<UserDAO, UserPO> {
     @Getter
     @Qualifier("userDAO")
     private final UserDAO baseMapper;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaModelValidationUtils")
-    private final EgonColaModelValidationUtils modelValidationUtils;
-    @Getter(AccessLevel.PROTECTED)
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
     @Getter(AccessLevel.PROTECTED)
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
     private final EgonColaMybatisPlusProperties properties;

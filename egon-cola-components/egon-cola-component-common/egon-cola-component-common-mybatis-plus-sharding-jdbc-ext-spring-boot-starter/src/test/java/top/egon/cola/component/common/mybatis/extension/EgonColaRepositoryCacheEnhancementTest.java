@@ -2,6 +2,9 @@ package top.egon.cola.component.common.mybatis.extension;
 
 import jakarta.validation.Validation;
 import jakarta.validation.ValidatorFactory;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheConfig;
@@ -33,22 +36,39 @@ import static org.mockito.Mockito.when;
  */
 class EgonColaRepositoryCacheEnhancementTest {
 
+    private static final ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
+    private static final ValidationUtils VALIDATION_UTILS = new ValidationUtils(VALIDATORS.getValidator());
+
+    private final TestTenantIdProvider tenant = new TestTenantIdProvider();
+
+    @BeforeAll
+    static void bindModelValidation() {
+        if (EgonColaModelValidationUtils.current() == null) {
+            EgonColaModelValidationUtils.initialize(VALIDATION_UTILS,
+                    "EgonColaRepositoryCacheEnhancementTest");
+        }
+    }
+
+    @BeforeEach
+    void publishTenantContext() {
+        tenant.set(41L);
+    }
+
+    @AfterEach
+    void clearTenantContext() {
+        tenant.clear();
+    }
+
     @Test
     void concreteRepositoryAnnotationsCacheReadsAndEvictSuccessfulWrites() {
-        try (ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
-             AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
-            TestTenantIdProvider tenant = new TestTenantIdProvider();
-            tenant.set(41L);
+        try (AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext()) {
             TestBusinessMapper mapper = mock(TestBusinessMapper.class);
             TestBusinessModel row = persisted();
             when(mapper.selectActiveById(7L)).thenReturn(row);
             when(mapper.updateById(row)).thenReturn(1);
-            EgonColaModelValidationUtils validation = new EgonColaModelValidationUtils(
-                    new ValidationUtils(validators.getValidator()), tenant);
             context.register(CacheConfiguration.class);
             context.registerBean(TestBusinessMapper.class, () -> mapper);
-            context.registerBean(CachedRepository.class,
-                    () -> new CachedRepository(mapper, validation, tenant));
+            context.registerBean(CachedRepository.class, () -> new CachedRepository(mapper));
             context.refresh();
             CachedRepository repository = context.getBean(CachedRepository.class);
 
@@ -95,9 +115,8 @@ class EgonColaRepositoryCacheEnhancementTest {
     @CacheConfig(cacheNames = "TestBusinessModel")
     static class CachedRepository extends TestBusinessRepository {
 
-        CachedRepository(TestBusinessMapper mapper, EgonColaModelValidationUtils validation,
-                         TestTenantIdProvider tenant) {
-            super(mapper, validation, tenant, new EgonColaMybatisPlusProperties());
+        CachedRepository(TestBusinessMapper mapper) {
+            super(mapper, new EgonColaMybatisPlusProperties());
         }
 
         @Cacheable(key = "#p0", sync = true)

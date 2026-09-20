@@ -6,8 +6,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
-import top.egon.cola.component.common.mybatis.business.EgonColaMdcTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcUserIdProvider;
+import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
+import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
 import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
@@ -71,7 +72,7 @@ class EgonModelTest {
         EgonColaMybatisPlusProperties properties = new EgonColaMybatisPlusProperties();
 
         assertTrue(properties.isEnabled());
-        assertEquals("tenantId", properties.getTenantId().getMdcKey());
+        assertEquals(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, properties.getTenantId().getMdcKey());
         assertTrue(properties.getTenantId().getIgnoredTables().isEmpty());
         assertEquals("userId", properties.getAudit().getUserIdMdcKey());
         assertTrue(properties.getPagination().isEnabled());
@@ -82,24 +83,22 @@ class EgonModelTest {
         assertEquals(10_000, properties.getBatch().getMaxCollectionSize());
         assertTrue(properties.getBlockAttack().isEnabled());
         assertTrue(properties.getOptimisticLocker().isEnabled());
-        assertTrue(properties.getMetaFill().isEnabled());
     }
 
     @Test
-    void mdcTenantProviderAcceptsAnyLongAndFailsClosed() {
-        EgonColaMybatisPlusProperties properties = new EgonColaMybatisPlusProperties();
-        EgonColaMdcTenantIdProvider provider = new EgonColaMdcTenantIdProvider(properties);
+    void staticTenantEntryAcceptsAnyLongAndFailsClosed() {
+        TestTenantIdProvider tenant = new TestTenantIdProvider();
 
-        MDC.put("tenantId", "0");
-        assertEquals(0L, provider.currentTenantId());
-        MDC.put("tenantId", "-7");
-        assertEquals(-7L, provider.currentTenantId());
-        MDC.put("tenantId", String.valueOf(Long.MAX_VALUE));
-        assertEquals(Long.MAX_VALUE, provider.currentTenantId());
-        MDC.remove("tenantId");
-        assertContextFailure("TENANT_CONTEXT_MISSING", provider::currentTenantId);
-        MDC.put("tenantId", "not-a-long");
-        assertContextFailure("TENANT_CONTEXT_MALFORMED", provider::currentTenantId);
+        tenant.set(0L);
+        assertEquals(0L, EgonColaTenantIdProvider.currentTenantId());
+        tenant.set(-7L);
+        assertEquals(-7L, EgonColaTenantIdProvider.currentTenantId());
+        tenant.set(Long.MAX_VALUE);
+        assertEquals(Long.MAX_VALUE, EgonColaTenantIdProvider.currentTenantId());
+        tenant.clear();
+        assertContextFailure("TENANT_CONTEXT_MISSING", EgonColaTenantIdProvider::currentTenantId);
+        MDC.put(EgonColaTenantIdProvider.DEFAULT_MDC_KEY, "not-a-long");
+        assertContextFailure("TENANT_CONTEXT_MALFORMED", EgonColaTenantIdProvider::currentTenantId);
     }
 
     @Test
@@ -122,7 +121,7 @@ class EgonModelTest {
         TestUserIdProvider user = new TestUserIdProvider();
         user.set("operator-7");
         EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(
-                tenant, user, Clock.fixed(NOW, ZoneOffset.UTC));
+                user, Clock.fixed(NOW, ZoneOffset.UTC));
         TestBusinessModel model = new TestBusinessModel().businessValues("title", "payload");
         model.setId(99L);
         model.setTenantId(42L);
@@ -141,7 +140,6 @@ class EgonModelTest {
         assertEquals("operator-7", model.getUpdateUserId());
         assertEquals(NOW, model.getUpdateTime());
         assertEquals(null, model.getDeletedAt());
-        assertEquals(1, tenant.reads());
         assertEquals(1, user.reads());
     }
 
@@ -152,7 +150,7 @@ class EgonModelTest {
         TestUserIdProvider user = new TestUserIdProvider();
         user.set("operator-0");
         EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(
-                tenant, user, Clock.fixed(NOW, ZoneOffset.UTC));
+                user, Clock.fixed(NOW, ZoneOffset.UTC));
         TestBusinessModel model = new TestBusinessModel().businessValues("title", "payload");
         Instant createdAt = NOW.minusSeconds(10);
         model.setId(99L);
@@ -174,8 +172,33 @@ class EgonModelTest {
         assertEquals("operator-0", model.getUpdateUserId());
         assertEquals(NOW, model.getUpdateTime());
         assertEquals(java.time.LocalDateTime.of(2026, 1, 1, 0, 0), model.getDeletedAt());
-        assertEquals(1, tenant.reads());
         assertEquals(1, user.reads());
+    }
+
+    @Test
+    void fillResolvesTheTenantContextFromTheStaticEntryOnEveryCall() {
+        TestTenantIdProvider tenant = new TestTenantIdProvider();
+        tenant.set(4L);
+        TestUserIdProvider user = new TestUserIdProvider();
+        user.set("operator-4");
+        TenantErasingHandler handler = new TenantErasingHandler(user, Clock.fixed(NOW, ZoneOffset.UTC));
+
+        handler.insertFill(SystemMetaObject.forObject(
+                new TestBusinessModel().businessValues("title", "payload")));
+
+        assertEquals(1, handler.hooks);
+        assertEquals(4L, handler.tenantValueSeenInHook);
+        assertContextFailure("TENANT_CONTEXT_MISSING", () -> {
+            handler.insertFill(SystemMetaObject.forObject(
+                    new TestBusinessModel().businessValues("title", "payload")));
+            return null;
+        });
+
+        tenant.set(4L);
+        TestBusinessModel updated = new TestBusinessModel().businessValues("title", "payload");
+        updated.setTenantId(4L);
+        handler.updateFill(SystemMetaObject.forObject(updated));
+        assertEquals(2, handler.hooks);
     }
 
     @Test
@@ -184,7 +207,7 @@ class EgonModelTest {
         tenant.set(1L);
         TestUserIdProvider user = new TestUserIdProvider();
         user.set("operator-1");
-        RecordingHandler handler = new RecordingHandler(tenant, user, Clock.fixed(NOW, ZoneOffset.UTC));
+        RecordingHandler handler = new RecordingHandler(user, Clock.fixed(NOW, ZoneOffset.UTC));
         TestBusinessModel model = new TestBusinessModel().businessValues("title", "payload");
 
         handler.insertFill(SystemMetaObject.forObject(model));
@@ -199,10 +222,10 @@ class EgonModelTest {
 
     @Test
     void handlerRejectsMissingCustomContextBeforeWritingFields() {
-        TestTenantIdProvider tenant = new TestTenantIdProvider();
         TestUserIdProvider user = new TestUserIdProvider();
+        user.set("operator");
         EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(
-                tenant, user, Clock.fixed(NOW, ZoneOffset.UTC));
+                user, Clock.fixed(NOW, ZoneOffset.UTC));
 
         assertContextFailure("TENANT_CONTEXT_MISSING", () -> {
             handler.insertFill(SystemMetaObject.forObject(
@@ -217,7 +240,7 @@ class EgonModelTest {
         tenant.set(1L);
         TestUserIdProvider user = new TestUserIdProvider();
         user.set("user");
-        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(tenant, user, Clock.systemUTC()) {
+        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(user, Clock.systemUTC()) {
             @Override
             protected void afterInsertFill(MetaObject object) { object.setValue("tenantId", 99L); }
         };
@@ -233,7 +256,7 @@ class EgonModelTest {
         tenant.set(1L);
         TestUserIdProvider user = new TestUserIdProvider();
         user.set("user");
-        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(tenant, user, Clock.systemUTC());
+        EgonColaMetaObjectHandler handler = new EgonColaMetaObjectHandler(user, Clock.systemUTC());
         TestBusinessModel model = new TestBusinessModel().businessValues("title", null);
         model.setTenantId(99L);
         assertContextFailure("TENANT_CONTEXT_MISMATCH", () -> {
@@ -258,8 +281,8 @@ class EgonModelTest {
         private int insertHooks;
         private int updateHooks;
 
-        private RecordingHandler(TestTenantIdProvider tenant, TestUserIdProvider user, Clock clock) {
-            super(tenant, user, clock);
+        private RecordingHandler(TestUserIdProvider user, Clock clock) {
+            super(user, clock);
         }
 
         @Override
@@ -270,6 +293,32 @@ class EgonModelTest {
         @Override
         protected void afterUpdateFill(MetaObject metaObject) {
             updateHooks++;
+        }
+    }
+
+    private static final class TenantErasingHandler extends EgonColaMetaObjectHandler {
+
+        private int hooks;
+        private Long tenantValueSeenInHook;
+
+        private TenantErasingHandler(TestUserIdProvider user, Clock clock) {
+            super(user, clock);
+        }
+
+        @Override
+        protected void afterInsertFill(MetaObject metaObject) {
+            record(metaObject);
+        }
+
+        @Override
+        protected void afterUpdateFill(MetaObject metaObject) {
+            record(metaObject);
+        }
+
+        private void record(MetaObject metaObject) {
+            hooks++;
+            tenantValueSeenInHook = (Long) metaObject.getValue("tenantId");
+            MDC.remove(EgonColaTenantIdProvider.DEFAULT_MDC_KEY);
         }
     }
 }

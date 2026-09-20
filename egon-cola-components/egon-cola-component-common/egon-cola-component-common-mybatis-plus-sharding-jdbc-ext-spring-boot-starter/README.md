@@ -122,13 +122,15 @@ Extend `EgonModel<PO>` and declare `@TableName`. Do not shadow technical fields.
 | deletedAt | deleted_at | LocalDateTime/timestamp(6); NULL means active |
 | version | version | Long/BIGINT; insert 0, increment on update/delete |
 
-`@TableLogic` uses `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`. `EgonColaIdentifierGenerator` delegates to the existing named `snowflakeIdGenerator`; configure a unique `EGON_ID_MACHINE_ID` per instance. Counters belong only in isolated tests. `@KeySequence` conflicts with this ASSIGN_ID contract and is rejected.
+`@TableLogic` uses `(CURRENT_TIMESTAMP AT TIME ZONE 'UTC')`. `EgonColaIdentifierGenerator` calls the process-wide static `SnowflakeIdGenerator`, which `IdGeneratorAutoConfiguration` initializes once from validated ID properties; configure a unique `EGON_ID_MACHINE_ID` per instance. Counters belong only in isolated tests. `@KeySequence` conflicts with this ASSIGN_ID contract and is rejected.
 
-Common accepts any non-null Long tenant; ShardingSphere hosts require positive Long sharding keys. The mandatory MetaObjectHandler owns technical fields. Extension hooks may fill business fields only.
+Common accepts any non-null Long tenant; ShardingSphere hosts require positive Long sharding keys. The MetaObjectHandler is assembled whenever MyBatis-Plus is enabled — there is no enable switch for it — and owns technical fields. Extension hooks may fill business fields only.
+
+Tenant identity has no injected provider. `EgonColaTenantIdProvider` is a static, non-instantiable entry over the MDC key named by `tenant-id.mdc-key` (default `tenantId`); it re-reads SLF4J on every call, and an absent or unparsable value fails with `TENANT_CONTEXT_MISSING` / `TENANT_CONTEXT_MALFORMED`. Model validation binds through the same static entry, which refuses a conflicting live owner with `MODEL_VALIDATION_BINDING_CONFLICT`.
 
 ## Repository and CQRS
 
-`EgonColaIRepository<T>` extends official `IRepository`; `EgonColaRepository<M,T>` supplies guarded operations. Business service ports expose domain types without PO generics or technical CRUD inheritance. Concrete named repositories use qualified Lombok constructor injection and provide mapper/modelValidationUtils/tenantIdProvider/properties getters.
+`EgonColaIRepository<T>` extends official `IRepository`; `EgonColaRepository<M,T>` supplies guarded operations. Business service ports expose domain types without PO generics or technical CRUD inheritance. Concrete named repositories use qualified Lombok constructor injection and expose only the mapper and properties getters; the inherited guards read tenant and validation state from the static entries.
 
 - Commands use save, versioned updateById/removeById and guarded batches; callers check affected rows.
 - Queries use named Mapper XML. Every mapper supplies `selectActiveById`, `selectActiveByIds`, `deleteVersionedById`.

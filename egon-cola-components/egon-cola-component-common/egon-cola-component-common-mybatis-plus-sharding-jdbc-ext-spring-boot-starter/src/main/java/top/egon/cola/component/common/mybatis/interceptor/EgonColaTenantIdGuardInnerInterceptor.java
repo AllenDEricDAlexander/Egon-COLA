@@ -67,8 +67,6 @@ import static top.egon.cola.component.common.mybatis.interceptor.EgonColaOrigina
 @RequiredArgsConstructor
 public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterceptor {
 
-    @Qualifier("egonColaMdcTenantIdProvider")
-    private final EgonColaTenantIdProvider tenantIdProvider;
     @Qualifier("egonColaMdcUserIdProvider")
     private final EgonColaUserIdProvider userIdProvider;
     @Qualifier("egon.cola.component.mybatis-plus-top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties")
@@ -435,11 +433,7 @@ public final class EgonColaTenantIdGuardInnerInterceptor implements InnerInterce
     }
 
     private Long requireTenant() {
-        Long tenant = tenantIdProvider.currentTenantId();
-        if (tenant == null) {
-            throw new IllegalStateException("TENANT_CONTEXT_MISSING");
-        }
-        return tenant;
+        return EgonColaTenantIdProvider.currentTenantId();
     }
 
     private String requireUser() {
