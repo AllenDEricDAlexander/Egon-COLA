@@ -1,10 +1,9 @@
 package top.egon.cola.component.tianshu.test;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationAuthenticationException;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
@@ -19,6 +18,7 @@ import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceLeaseRequest;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceRegistration;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -35,6 +35,11 @@ import static org.mockito.Mockito.verify;
  * Accepts Tianshu lifecycle constraints for exact business, application, environment, and instance Tickets.
  */
 class DdcResourceAdmissionLifecycleTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant EXPIRES_AT = Instant.now().plusSeconds(300);
 
@@ -92,9 +97,7 @@ class DdcResourceAdmissionLifecycleTest {
                 repository,
                 new DdcLeaseValidator(),
                 mock(DdcScopeGate.class),
-                verifier,
-                new SnowflakeIdGenerator(0)
-                );
+                verifier);
     }
 
     private DdcServiceRegistration registration(

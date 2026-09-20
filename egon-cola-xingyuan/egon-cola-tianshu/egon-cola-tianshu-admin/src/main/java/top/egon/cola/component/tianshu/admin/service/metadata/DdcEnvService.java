@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcEnvEntity;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigItemRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
@@ -30,15 +30,11 @@ public class DdcEnvService {
 
     private final DdcNamespaceEnvAppBindingService bindingService;
 
-    private final LongIdGenerator idGenerator;
-
     public DdcEnvService(DdcEnvRepository envRepository,
                          DdcConfigItemRepository configItemRepository,
                          DdcNamespaceEnvAppBindingRepository bindingRepository,
                          DdcNamespaceEnvAppBindingService bindingService,
-                         DdcScopeGate scopeGate,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+                         DdcScopeGate scopeGate) {
         this.envRepository = envRepository;
         this.configItemRepository = configItemRepository;
         this.bindingRepository = bindingRepository;
@@ -91,7 +87,7 @@ public class DdcEnvService {
     @Transactional
     public DdcEnvEntity save(DdcEnvEntity env) {
         LocalDateTime now = LocalDateTime.now();
-        env.setId(idGenerator.nextId());
+        env.setId(SnowflakeIdGenerator.nextId());
         env.setCreatedAt(now);
         if (env.getEnabled() == null) {
             env.setEnabled(true);

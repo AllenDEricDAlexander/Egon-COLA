@@ -17,7 +17,7 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 @Controller
 @RequiredArgsConstructor
@@ -25,7 +25,6 @@ public class SchoolClassResolver {
 
     private final GradeManage gradeManage;
     private final SchoolClassManage schoolClassManage;
-    private final LongIdGenerator idGenerator;
 
     @QueryMapping
     public GradeDetailResult grade(@Argument String id) {
@@ -67,7 +66,7 @@ public class SchoolClassResolver {
     }
 
     private String requestId(String key) {
-        return key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
+        return key == null || key.isBlank() ? Long.toString(SnowflakeIdGenerator.nextLongId()) : key;
     }
 
     public record CreateGradeInput(String code, String name) {}

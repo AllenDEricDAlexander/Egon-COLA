@@ -11,6 +11,7 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
 import org.springframework.transaction.support.TransactionTemplate;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.outbox.api.OutboxReceipt;
 import top.egon.cola.component.outbox.exception.OutboxConfigurationException;
 import top.egon.cola.component.outbox.exception.OutboxIdempotencyConflictException;
@@ -31,11 +32,11 @@ public class PostgresqlJdbcOutboxStore implements OutboxStore {
 
     private static final String INSERT_SQL = """
             insert into egon_cola_outbox_message (
-                message_id, idempotency_key, message_fingerprint, channel, destination,
+                id, message_id, idempotency_key, message_fingerprint, channel, destination,
                 payload, content_type, schema_version, headers_json, trace_id,
                 status, attempt_count, max_attempts, next_attempt_at, created_at, updated_at
             ) values (
-                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+                ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                 'PENDING', 0, ?, coalesce(?, clock_timestamp()), clock_timestamp(), clock_timestamp()
             )
             on conflict do nothing
@@ -142,6 +143,7 @@ public class PostgresqlJdbcOutboxStore implements OutboxStore {
             List<String> inserted = jdbcTemplate.query(
                     INSERT_SQL,
                     (resultSet, rowNumber) -> resultSet.getString("message_id"),
+                    SnowflakeIdGenerator.nextLongId(),
                     record.messageId(),
                     record.idempotencyKey(),
                     record.messageFingerprint(),

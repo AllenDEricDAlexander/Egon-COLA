@@ -7,7 +7,7 @@ import io.grpc.ClientInterceptor;
 import io.grpc.ForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
@@ -27,14 +27,13 @@ public class RpcConsumerClientInterceptor implements ClientInterceptor {
 
     public RpcConsumerClientInterceptor(
             RpcContractDescriptor contract,
-            RpcProcessIdentity processIdentity,
-            LongIdGenerator idGenerator) {
+            RpcProcessIdentity processIdentity) {
         this(
                 contract == null ? null : contract.serviceName(),
                 contract == null ? null : contract.group(),
                 contract == null ? null : contract.version(),
                 processIdentity,
-                java.util.Objects.requireNonNull(idGenerator, "idGenerator").nextId()
+                SnowflakeIdGenerator.nextId()
         );
     }
 

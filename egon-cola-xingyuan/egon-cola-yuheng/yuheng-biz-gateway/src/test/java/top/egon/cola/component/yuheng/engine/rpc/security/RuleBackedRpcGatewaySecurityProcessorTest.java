@@ -1,14 +1,11 @@
 package top.egon.cola.component.yuheng.engine.rpc.security;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import top.egon.cola.component.yuheng.engine.rpc.service.RpcMethodIndex;
-
 import top.egon.cola.component.yuheng.engine.rpc.domain.RuntimeRpcRoute;
-
 import io.grpc.Metadata;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRuleSnapshot;
@@ -35,19 +32,22 @@ import top.egon.cola.component.yuheng.engine.rule.domain.ApiRpcGatewayCompiledRu
 import top.egon.cola.component.yuheng.runtime.security.service.GatewaySecurityCapabilityRegistry;
 import top.egon.cola.component.yuheng.runtime.security.service.GatewaySecurityChain;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class RuleBackedRpcGatewaySecurityProcessorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final String TOKEN = "verified.header.payload.signature";
 
@@ -211,9 +211,7 @@ class RuleBackedRpcGatewaySecurityProcessorTest {
         return new RuleBackedRpcGatewaySecurityProcessor(
                 chain,
                 this::rules,
-                "engine-1",
-                new SnowflakeIdGenerator(0)
-                );
+                "engine-1");
     }
 
     private ApiRpcGatewayCompiledRulesDTO rules() {

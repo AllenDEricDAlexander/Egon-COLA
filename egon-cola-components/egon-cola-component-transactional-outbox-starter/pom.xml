@@ -22,6 +22,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-id-starter</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter</artifactId>
         </dependency>

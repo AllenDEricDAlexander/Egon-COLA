@@ -4,8 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.admin.iam.application.domain.enums.ApplicationStatusEnum;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.application.domain.enums.TenantApplicationStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.application.domain.po.ApplicationPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.application.domain.po.TenantApplicationPO;
@@ -24,15 +23,12 @@ import java.util.Optional;
 public class JpaTenantApplicationRepository implements ApplicationResourceRepository {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
 
     public JpaTenantApplicationRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
     }
 
@@ -80,7 +76,7 @@ public class JpaTenantApplicationRepository implements ApplicationResourceReposi
                 .getResultStream().findFirst()
                 .orElseGet(() -> {
                     ApplicationPO created = new ApplicationPO(
-                            idGenerator.nextLongId(), tenant, catalog.ddcApplicationId(),
+                            SnowflakeIdGenerator.nextLongId(), tenant, catalog.ddcApplicationId(),
                             catalog.ddcBusinessId(), catalog.appCode(), catalog.appName(),
                             displayPriority, actorId, databaseClock.transactionNow());
                     entityManager.persist(created);
@@ -98,7 +94,7 @@ public class JpaTenantApplicationRepository implements ApplicationResourceReposi
         }
         Instant now = databaseClock.transactionNow();
         TenantApplicationPO entitlement = new TenantApplicationPO(
-                idGenerator.nextLongId(), tenant, application.getId(),
+                SnowflakeIdGenerator.nextLongId(), tenant, application.getId(),
                 TenantApplicationStatusEnum.ACTIVE, now, null,
                 "Tianshu", catalog.ddcApplicationId(), null, null, actorId, now);
         entityManager.persist(entitlement);

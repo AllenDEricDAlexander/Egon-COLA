@@ -1,11 +1,14 @@
 package top.egon.cola.component.yuheng.starter.reporting;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.reporting
         .GatewayInterfaceDefinitionReportResult;
 import top.egon.cola.component.yuheng.starter.GatewayReportingProperties;
 
+import java.time.Duration;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
@@ -19,6 +22,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayReportingCoordinatorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private GatewayReportingCoordinator coordinator;
 

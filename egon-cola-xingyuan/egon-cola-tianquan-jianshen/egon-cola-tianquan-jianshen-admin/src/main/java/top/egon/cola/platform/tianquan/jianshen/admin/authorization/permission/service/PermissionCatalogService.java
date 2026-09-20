@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.permission.
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.permission.domain.dto.ChangePermissionStatusRequestDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.permission.domain.dto.CreatePermissionRequestDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.permission.domain.vo.PermissionCatalogVO;
@@ -18,15 +18,12 @@ import java.util.Objects;
 public class PermissionCatalogService {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock clock;
 
     public PermissionCatalogService(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock clock) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.clock = clock;
     }
 
@@ -52,7 +49,7 @@ public class PermissionCatalogService {
         requireApplication(applicationId);
         String code = required(command.permissionCode());
         Instant now = clock.transactionNow();
-        long id = idGenerator.nextLongId();
+        long id = SnowflakeIdGenerator.nextLongId();
         entityManager.createNativeQuery("""
                         insert into rbac3_permission (
                             id, application_id, permission_code, permission_name,

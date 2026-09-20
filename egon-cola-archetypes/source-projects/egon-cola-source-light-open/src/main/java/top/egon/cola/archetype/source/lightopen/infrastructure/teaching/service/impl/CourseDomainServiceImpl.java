@@ -13,7 +13,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.Optional;
 
@@ -29,12 +29,10 @@ public class CourseDomainServiceImpl
     private final CourseRepository courseRepository;
     @Qualifier("coursePOConverterImpl")
     private final CoursePOConverter converter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     @Override
     public Course createCourse(CourseCode code, String name) {
-        return new Course(idGenerator.nextLongId(), code, name, CourseStatus.ACTIVE);
+        return new Course(SnowflakeIdGenerator.nextLongId(), code, name, CourseStatus.ACTIVE);
     }
 
     @Override

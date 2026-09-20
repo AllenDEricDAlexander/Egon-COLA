@@ -20,7 +20,7 @@ import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.time.Instant;
 
@@ -34,7 +34,6 @@ public class UserManageImpl implements UserManage {
     private final UserCachePort userCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-    private final LongIdGenerator idGenerator;
 
     @Override
     @Transactional
@@ -47,11 +46,11 @@ public class UserManageImpl implements UserManage {
                     OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "user email already exists");
             }
             User user = userDomainService.save(userDomainService.create(
-                new UserId(idGenerator.nextLongId()), command.name(), normalizedEmail));
+                new UserId(SnowflakeIdGenerator.nextLongId()), command.name(), normalizedEmail));
             OrganizationTransactionHooks.afterCommit(() -> {
                 userCache.evict(user.id());
                 eventPublisher.publish(new UserChangedEvent(
-                    Long.toString(idGenerator.nextLongId()), user.id().value(), Instant.now(), "CREATED"));
+                    Long.toString(SnowflakeIdGenerator.nextLongId()), user.id().value(), Instant.now(), "CREATED"));
             });
             return assembler.toResult(user);
         });

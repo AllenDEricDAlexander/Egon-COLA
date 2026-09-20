@@ -75,9 +75,6 @@ class GatewayEngineConfigurationTest {
                         () -> org.mockito.Mockito.mock(top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client.class))
                 .withBean("idpStarterProperties", top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.class,
                         top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties::new)
-                .withBean(
-                        top.egon.cola.component.common.id.generator.LongIdGenerator.class,
-                        () -> new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0))
                 .run(context -> {
                     assertEquals(null, context.getStartupFailure());
                     assertTrue(context.containsBean("gatewayHttpServer"));

@@ -16,7 +16,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.Optional;
 
@@ -34,12 +34,10 @@ public class UserDomainServiceImpl
     private final UserRoleRepository userRoleRepository;
     @Qualifier("userPOConverterImpl")
     private final UserPOConverter converter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     @Override
     public User createUser(String externalId, String name, String email) {
-        return new User(new UserId(idGenerator.nextLongId()), externalId, name, email,
+        return new User(new UserId(SnowflakeIdGenerator.nextLongId()), externalId, name, email,
                 UserStatus.ACTIVE);
     }
 

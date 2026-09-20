@@ -2,7 +2,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.impl;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
@@ -24,20 +24,17 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
     private final IdentityTenantRepository tenants;
     private final IdentityTenantMembershipRepository memberships;
     private final IdentityUserDirectory users;
-    private final LongIdGenerator ids;
     private final Clock clock;
 
     public TenantMembershipServiceImpl(
             IdentityTenantRepository tenants,
             IdentityTenantMembershipRepository memberships,
             IdentityUserDirectory users,
-            LongIdGenerator ids,
             Clock clock
     ) {
         this.tenants = Objects.requireNonNull(tenants, "tenants");
         this.memberships = Objects.requireNonNull(memberships, "memberships");
         this.users = Objects.requireNonNull(users, "users");
-        this.ids = Objects.requireNonNull(ids, "ids");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -92,7 +89,7 @@ public class TenantMembershipServiceImpl implements TenantMembershipService {
                         "membership version conflict"
                 );
             }
-            long numericId = ids.nextLongId();
+            long numericId = SnowflakeIdGenerator.nextLongId();
             if (numericId <= 0L) {
                 throw new IllegalStateException(
                         "membership id generator returned invalid value"

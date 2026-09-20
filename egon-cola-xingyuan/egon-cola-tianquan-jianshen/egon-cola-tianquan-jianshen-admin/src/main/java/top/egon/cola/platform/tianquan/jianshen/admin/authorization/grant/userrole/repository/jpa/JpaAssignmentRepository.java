@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.user.domain.po.UserPO;
@@ -14,7 +14,6 @@ import top.egon.cola.platform.tianquan.jianshen.core.constraint.SsdSpecification
 import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -55,14 +54,6 @@ public class JpaAssignmentRepository implements
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `idGenerator` 表示 `JpaAssignmentRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `JpaAssignmentRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `JpaAssignmentRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `JpaAssignmentRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `databaseClock` 表示 `JpaAssignmentRepository` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `JpaAssignmentRepository` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -79,16 +70,13 @@ public class JpaAssignmentRepository implements
      * Usage: create the instance through `JpaAssignmentRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaAssignmentRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock
     ) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
     }
 
@@ -152,7 +140,7 @@ public class JpaAssignmentRepository implements
         var request = command.request();
         Instant now = databaseClock.transactionNow();
         requireNoOverlap(request);
-        Long id = idGenerator.nextLongId();
+        Long id = SnowflakeIdGenerator.nextLongId();
         UserRoleAssignmentPO assignment = new UserRoleAssignmentPO(
                 id,
                 Long.valueOf(request.tenantId()),

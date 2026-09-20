@@ -6,7 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.repo.RedisRefreshTokenStore;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.SigningKeyRuntime;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.service.impl.ExternalPemSigningKeyRuntime;
@@ -116,7 +117,6 @@ public class TokenConfig {
      * @param users 身份用户存储；identity-user store
      * @param memberships 租户成员关系端口；tenant-membership port
      * @param idpClock UTC 业务时钟；UTC business clock
-     * @param idGenerator 全局 ID 生成器；global ID generator
      * @return Token 生命周期门面；token-lifecycle facade
      */
     @Bean
@@ -126,7 +126,6 @@ public class TokenConfig {
             IdentityUserStore users,
             TenantMembershipPort memberships,
             @Qualifier("idpClock") Clock idpClock,
-            LongIdGenerator idGenerator,
             @Value("${egon.tianquan-shoubing.oauth.user-audience:platform}") String userAudience
     ) {
         return new TokenFacade(
@@ -135,7 +134,7 @@ public class TokenConfig {
                 users,
                 memberships,
                 idpClock,
-                idGenerator::nextId,
+                SnowflakeIdGenerator::nextId,
                 userAudience
         );
     }

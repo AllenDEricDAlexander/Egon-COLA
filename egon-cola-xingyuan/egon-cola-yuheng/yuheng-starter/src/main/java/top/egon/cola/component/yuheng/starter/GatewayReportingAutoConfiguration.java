@@ -10,7 +10,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationContributor;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.yuheng.starter.discovery.GatewayDefinitionContributor;
@@ -47,13 +47,8 @@ public class GatewayReportingAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public GatewayDefinitionReportFactory gatewayDefinitionReportFactory(
-            GatewayReportingProperties properties,
-            ObjectProvider<LongIdGenerator> idGenerators) {
-        return new GatewayDefinitionReportFactory(
-                properties,
-                idGenerators.getIfAvailable(),
-                java.time.Clock.systemUTC()
-        );
+            GatewayReportingProperties properties) {
+        return new GatewayDefinitionReportFactory(properties, java.time.Clock.systemUTC());
     }
 
     /** Discovers RPC contributors and builds the startup report. */

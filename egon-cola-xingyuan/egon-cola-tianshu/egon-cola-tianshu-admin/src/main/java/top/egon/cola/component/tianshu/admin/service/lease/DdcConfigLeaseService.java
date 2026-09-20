@@ -1,6 +1,6 @@
 package top.egon.cola.component.tianshu.admin.service.lease;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.repository.DdcConfigLeaseRedisRepository;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
 import top.egon.cola.component.tianshu.admin.security.registration.VerifiedDdcRegistrationIdentity;
@@ -31,14 +31,13 @@ public class DdcConfigLeaseService {
 
     public DdcConfigLeaseService(DdcConfigLeaseRedisRepository repository,
                                  DdcLeaseValidator validator,
-                                 DdcRegistrationCredentialVerifier registrationVerifier,
-                                 LongIdGenerator idGenerator) {
+                                 DdcRegistrationCredentialVerifier registrationVerifier) {
         this(
                 repository,
                 validator,
                 registrationVerifier,
                 Clock.systemUTC(),
-                java.util.Objects.requireNonNull(idGenerator, "idGenerator")::nextId
+                SnowflakeIdGenerator::nextId
         );
     }
 

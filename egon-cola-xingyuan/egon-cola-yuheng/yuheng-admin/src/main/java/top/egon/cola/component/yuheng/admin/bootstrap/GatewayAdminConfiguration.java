@@ -3,7 +3,6 @@ package top.egon.cola.component.yuheng.admin.bootstrap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
@@ -19,7 +18,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.scheduling.annotation.EnableScheduling;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminOpenApiProperties;
@@ -308,8 +307,7 @@ public class GatewayAdminConfiguration {
             GatewayDdcRulePublisher publisher,
             GatewayAdminProperties properties,
             @Value("${yuheng.admin.tianshu.publish-timeout:PT30S}")
-            Duration timeout,
-            LongIdGenerator idGenerator) {
+            Duration timeout) {
         return new GatewayReleasePublicationCoordinator(
                 journal,
                 releases,
@@ -317,9 +315,7 @@ public class GatewayAdminConfiguration {
                 publisher,
                 Clock.systemUTC(),
                 timeout,
-                properties.getDdc(),
-                idGenerator
-        );
+                properties.getDdc());
     }
 
     /**
@@ -427,14 +423,11 @@ public class GatewayAdminConfiguration {
     @Bean
     GatewayCallEventConsumerHandler gatewayCallEventConsumerHandler(
             GatewayCallEventCodec codec,
-            GatewayCallEventIngestService service,
-            LongIdGenerator idGenerator) {
+            GatewayCallEventIngestService service) {
         return new GatewayCallEventConsumerHandler(
                 codec,
                 service,
-                Clock.systemUTC(),
-                idGenerator
-        );
+                Clock.systemUTC());
     }
 
     /**

@@ -5,17 +5,24 @@ import top.egon.cola.component.yuheng.runtime.observability.domain.GatewayCallOb
 import org.apache.kafka.clients.producer.MockProducer;
 import org.apache.kafka.common.serialization.ByteArraySerializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class KafkaGatewayCallEventSinkTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void acceptsDeliveryTimeoutShorterThanKafkaDefaultRequestTimeout() {
@@ -54,8 +61,7 @@ class KafkaGatewayCallEventSinkTest {
                 GatewayTraceContext.fromHeaders(null, null, null),
                 "HTTP",
                 "PUBLIC",
-                "engine-1",
-                new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0)
+                "engine-1"
         );
         observation.route(
                 "GET",

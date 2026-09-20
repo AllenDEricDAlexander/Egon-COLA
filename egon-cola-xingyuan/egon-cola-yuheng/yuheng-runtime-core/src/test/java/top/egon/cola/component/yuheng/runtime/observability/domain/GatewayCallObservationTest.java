@@ -1,11 +1,13 @@
 package top.egon.cola.component.yuheng.runtime.observability.domain;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -15,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayCallObservationTest {
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Test
     void publishesExactlyOneCompletionFact() {
         GatewayCallObservation observation = new GatewayCallObservation(
@@ -23,9 +30,7 @@ class GatewayCallObservationTest {
                 "request-1",
                 "HTTP",
                 "PUBLIC",
-                "engine-1",
-                new SnowflakeIdGenerator(0)
-                );
+                "engine-1");
         observation.route(
                 "GET",
                 "/orders/{id}",

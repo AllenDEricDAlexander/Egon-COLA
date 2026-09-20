@@ -7,18 +7,17 @@ import top.egon.cola.archetype.source.webopen.application.exceptions.Organizatio
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public final class OrganizationMessageSupport {
-    private final LongIdGenerator idGenerator;
 
     public void consume(Runnable action) {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
-                "rabbit-system", Set.of("SYSTEM"), Long.toString(idGenerator.nextLongId())));
+                "rabbit-system", Set.of("SYSTEM"), Long.toString(SnowflakeIdGenerator.nextLongId())));
         try {
             action.run();
         } catch (OrganizationApplicationException failure) {

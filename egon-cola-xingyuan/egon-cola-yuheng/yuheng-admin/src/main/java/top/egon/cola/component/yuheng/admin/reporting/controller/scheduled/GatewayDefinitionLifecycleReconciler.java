@@ -1,12 +1,11 @@
 package top.egon.cola.component.yuheng.admin.reporting.controller.scheduled;
 
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
@@ -100,7 +99,6 @@ public class GatewayDefinitionLifecycleReconciler {
      * @param audits 参数 audits；parameter audits。
      * @param transactions 参数 transactions；parameter transactions。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayDefinitionLifecycleReconciler(ObjectProvider<DdcManagementClient> client,
@@ -108,15 +106,14 @@ public class GatewayDefinitionLifecycleReconciler {
             GatewayProjectionService projections,
             GatewayDefinitionLifecycleRepository lifecycle,
             GatewayAuditLogRepository audits,
-            TransactionTemplate transactions,
-            LongIdGenerator idGenerator) {
+            TransactionTemplate transactions) {
         this(client.getIfAvailable(),
                 applications,
                 projections,
                 lifecycle,
                 audits,
                 transactions,
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     /**
@@ -138,9 +135,7 @@ public class GatewayDefinitionLifecycleReconciler {
             GatewayDefinitionLifecycleRepository lifecycle,
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.client = client;
         this.applications = applications;
         this.projections = projections;
@@ -246,7 +241,7 @@ public class GatewayDefinitionLifecycleReconciler {
             top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO result,
             Instant now) {
         return new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 "yuheng-definition-reconciler",
                 "SYSTEM",
                 "SCHEDULED_RECONCILER",
@@ -275,6 +270,5 @@ public class GatewayDefinitionLifecycleReconciler {
                 now
         );
     }
-
 
 }

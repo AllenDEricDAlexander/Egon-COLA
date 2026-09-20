@@ -1,13 +1,10 @@
 package top.egon.cola.component.yuheng.engine.rpc.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import top.egon.cola.component.yuheng.runtime.rpc.adapter.RpcProviderChannelCache;
 import top.egon.cola.component.yuheng.runtime.rpc.domain.RawByteMarshaller;
 import top.egon.cola.component.yuheng.engine.rpc.domain.RuntimeRpcRoute;
 import top.egon.cola.component.yuheng.engine.rpc.security.GatewayRpcSecurityProcessor;
-
 import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
 import io.grpc.ManagedChannel;
@@ -27,6 +24,7 @@ import io.grpc.stub.ClientCalls;
 import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.ServerCalls;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import reactor.core.publisher.Mono;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.core.provider.ProviderHealthState;
@@ -40,7 +38,6 @@ import top.egon.cola.component.yuheng.core.security.TrustedIdentity;
 import top.egon.cola.component.yuheng.runtime.provider.domain.ProviderSelectionHandle;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayTrafficGovernance;
 import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
-
 import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
@@ -49,12 +46,16 @@ import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class RpcGatewayCredentialForwardingTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final String TOKEN = "verified.header.payload.signature";
 
@@ -163,9 +164,7 @@ class RpcGatewayCredentialForwardingTest {
                 (route, metadata, traceId, deadline) -> Mono.just(security),
                 events::add,
                 "engine-1",
-                GatewayTrafficGovernance.noop(),
-                new SnowflakeIdGenerator(0)
-                );
+                GatewayTrafficGovernance.noop());
         RpcGatewayHandlerRegistry registry =
                 new RpcGatewayHandlerRegistry(forwarder);
         registry.activate(new RpcMethodIndexCompiler().compile(

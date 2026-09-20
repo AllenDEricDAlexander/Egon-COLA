@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcPublishRequest;
@@ -24,7 +24,6 @@ import top.egon.cola.component.tianshu.admin.repository.DdcConfigVersionReposito
 import top.egon.cola.component.tianshu.admin.repository.DdcOperationLogRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishAckRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
-import top.egon.cola.component.tianshu.admin.service.config.DdcConfigService;
 import top.egon.cola.component.tianshu.admin.service.config.DdcYamlConfigValidator;
 import top.egon.cola.component.tianshu.admin.service.lease.DdcConfigLeaseService;
 import top.egon.cola.component.tianshu.format.DdcChecksum;
@@ -41,7 +40,6 @@ import java.time.ZoneId;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
-
 
 @Service
 public class DdcPublishService {
@@ -88,8 +86,6 @@ public class DdcPublishService {
 
     private final Clock clock;
 
-    private final LongIdGenerator idGenerator;
-
     @Autowired
     public DdcPublishService(DdcConfigItemRepository configItemRepository,
             DdcConfigVersionRepository versionRepository,
@@ -103,8 +99,7 @@ public class DdcPublishService {
             DdcPublishStateTransitionService stateTransitions,
             PublishFailureRecorder failureRecorder,
             DdcAdminProperties properties,
-            PlatformTransactionManager transactionManager,
-            LongIdGenerator idGenerator) {
+            PlatformTransactionManager transactionManager) {
         this(configItemRepository,
                 versionRepository,
                 publishTaskRepository,
@@ -118,7 +113,7 @@ public class DdcPublishService {
                 failureRecorder,
                 properties,
                 transactionManager,
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     DdcPublishService(DdcConfigItemRepository configItemRepository,
@@ -134,9 +129,7 @@ public class DdcPublishService {
             PublishFailureRecorder failureRecorder,
             DdcAdminProperties properties,
             PlatformTransactionManager transactionManager,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.publishTaskRepository = publishTaskRepository;
@@ -487,7 +480,7 @@ public class DdcPublishService {
                                          String operator) {
         LocalDateTime now = now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(idGenerator.nextId());
+        task.setId(SnowflakeIdGenerator.nextId());
         task.setChangeId(request.getChangeId());
         task.setConfigId(config.getId());
         task.setBizCode(config.getBizCode());
@@ -515,7 +508,7 @@ public class DdcPublishService {
     private DdcPublishAckEntity newTarget(DdcPublishTaskEntity task,
                                           DdcPublishTarget target) {
         DdcPublishAckEntity ack = new DdcPublishAckEntity();
-        ack.setId(idGenerator.nextId());
+        ack.setId(SnowflakeIdGenerator.nextId());
         ack.setChangeId(task.getChangeId());
         ack.setInstanceId(target.instanceId());
         ack.setLeaseId(target.leaseId());
@@ -534,7 +527,7 @@ public class DdcPublishService {
                              String newContent,
                              String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(idGenerator.nextId());
+        version.setId(SnowflakeIdGenerator.nextId());
         version.setConfigId(config.getId());
         version.setBizCode(config.getBizCode());
         version.setAppCode(config.getAppCode());
@@ -556,7 +549,7 @@ public class DdcPublishService {
                                       String changeId,
                                       String operator) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
-        log.setId(idGenerator.nextId());
+        log.setId(SnowflakeIdGenerator.nextId());
         log.setBizCode(config.getBizCode());
         log.setAppCode(config.getAppCode());
         log.setEnv(config.getEnv());

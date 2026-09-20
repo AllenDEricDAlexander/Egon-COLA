@@ -9,7 +9,7 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.dom
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.field.domain.dto.ChangeFieldDefinitionStatusRequestDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.field.domain.dto.CreateFieldDefinitionRequestDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.field.domain.vo.FieldDefinitionVO;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 
 import java.time.Instant;
@@ -21,15 +21,12 @@ public class GlobalResourceCatalogService {
 
     private final EntityManager entityManager;
     private final DatabaseClock clock;
-    private final LongIdGenerator idGenerator;
 
     public GlobalResourceCatalogService(
             EntityManager entityManager,
-            DatabaseClock clock,
-            LongIdGenerator idGenerator) {
+            DatabaseClock clock) {
         this.entityManager = entityManager;
         this.clock = clock;
-        this.idGenerator = idGenerator;
     }
 
     @Transactional(readOnly = true)
@@ -109,7 +106,7 @@ public class GlobalResourceCatalogService {
         long resourceId = Long.parseLong(command.resourceId());
         requireResource(applicationId, resourceId);
         Instant now = clock.transactionNow();
-        long id = idGenerator.nextLongId();
+        long id = SnowflakeIdGenerator.nextLongId();
         entityManager.createNativeQuery("""
                         insert into rbac3_field_definition (
                             id, application_id, resource_id, field_code, json_path,

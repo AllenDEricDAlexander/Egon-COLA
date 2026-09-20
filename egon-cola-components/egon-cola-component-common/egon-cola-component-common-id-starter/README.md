@@ -4,9 +4,9 @@
 
 ## Overview
 
-This is the single Egon COLA ID module. It contains the stateful, pure-JDK Snowflake interfaces and algorithm together with the Spring Boot 3 configuration binding and default bean. The core algorithm packages do not import Spring APIs, while applications consume one Starter artifact.
+This is the single Egon COLA ID module. It contains the stateful, pure-JDK Snowflake interfaces and algorithm together with the Spring Boot 3 configuration binding. The core algorithm packages do not import Spring APIs, while applications consume one Starter artifact.
 
-Use `LongIdGenerator.nextLongId()` for database `BIGINT` primary keys. The inherited `IdGenerator.nextId()` method returns the same value as a decimal string for compatibility.
+Use `SnowflakeIdGenerator.nextLongId()` for database `BIGINT` primary keys. `SnowflakeIdGenerator.nextId()` returns the same value as a decimal string for compatibility. Both are static entry points on one process-wide engine; `SnowflakeIdGenerator` cannot be constructed and has no reset seam. `LongIdGenerator` remains the named strategy type and declares both operations abstractly.
 
 ## Maven Dependency
 
@@ -19,7 +19,7 @@ Import `egon-cola-components-bom`, then add the Starter without a version:
 </dependency>
 ```
 
-Non-Spring applications use the same artifact and instantiate `SnowflakeIdGenerator` directly; Spring auto-configuration is only activated by a Spring Boot application context.
+Non-Spring applications use the same artifact and call `SnowflakeIdGenerator.initialize(machineId, maxClockBackward)` once during startup; Spring auto-configuration performs that binding for you and is only activated by a Spring Boot application context.
 
 ## Configuration
 
@@ -37,52 +37,47 @@ egon:
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `egon.cola.component.id.enabled` | `boolean` | `true` | Enables the default Snowflake bean. |
+| `egon.cola.component.id.enabled` | `boolean` | `true` | Enables the default Snowflake binding. |
 | `egon.cola.component.id.machine-id` | `long` | none | Required explicit node ID from `0` to `1023`. |
 | `egon.cola.component.id.max-clock-backward` | `Duration` | `5ms` | Largest rollback that the process may briefly wait out. |
 
-Missing or out-of-range `machine-id` values fail during application context startup. Setting `enabled=false` creates no generator. A custom `IdGenerator` or `LongIdGenerator` bean makes the default auto-configuration back off.
+Missing or out-of-range `machine-id` values fail during application context startup. Setting `enabled=false` binds no engine. A custom `IdGenerator` or `LongIdGenerator` bean makes the default auto-configuration back off.
 
 ## Spring Usage
 
 ```java
 import org.springframework.stereotype.Service;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 @Service
 public class OrderService {
 
-    private final LongIdGenerator idGenerator;
-
-    public OrderService(LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
-    }
-
     public long createOrder() {
-        long orderId = idGenerator.nextLongId();
+        long orderId = SnowflakeIdGenerator.nextLongId();
         // Persist orderId into a BIGINT column.
         return orderId;
     }
 }
 ```
 
-The same bean is also injectable as `IdGenerator`; `nextId()` returns the decimal form of `nextLongId()`.
+No generator bean is published, so nothing is injected: auto-configuration binds the engine during the configuration phase and business code calls the static entry. `nextId()` returns the decimal form of `nextLongId()`.
 
 ## Non-Spring Usage
 
-Create one long-lived generator instance per process and supply a deployment-assigned machine ID:
+Bind once per process with a deployment-assigned machine ID, then call the static entries:
 
 ```java
 import java.time.Duration;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
-LongIdGenerator idGenerator = new SnowflakeIdGenerator(17, Duration.ofMillis(5));
-long id = idGenerator.nextLongId();
-String text = idGenerator.nextId();
+SnowflakeIdGenerator.initialize(17L, Duration.ofMillis(5));
+long id = SnowflakeIdGenerator.nextLongId();
+String text = SnowflakeIdGenerator.nextId();
 ```
 
-Do not create a new generator for each request. Its in-memory timestamp and sequence state is what provides strict monotonicity within that instance.
+Repeated `initialize` calls with an identical configuration reuse the bound engine; a different configuration is rejected instead of reseeding a live sequence. `SnowflakeLongIdGenerator` is the named engine behind the facade and is constructed directly only by test fixtures and benchmarks that need an isolated clock.
+
+Do not rebind per request. The in-memory timestamp and sequence state of the bound engine is what provides strict monotonicity within the process.
 
 ## Database `BIGINT`
 
@@ -96,7 +91,7 @@ CREATE TABLE orders (
 ```
 
 ```java
-preparedStatement.setLong(1, idGenerator.nextLongId());
+preparedStatement.setLong(1, SnowflakeIdGenerator.nextLongId());
 ```
 
 The generated value is positive. When exposing it to JavaScript clients, consider serializing it as a string because JavaScript numbers cannot exactly represent every 64-bit integer.
@@ -119,7 +114,7 @@ The all-zero encoding is reserved so the generator never returns `0`. Consequent
 only machine `0` at the exact Epoch millisecond starts at sequence `1`; every normal
 operating millisecond retains the full 4,096-ID sequence capacity.
 
-One generator instance is thread-safe, duplicate-free, and strictly increasing at its successful CAS linearization point. Correctly configured nodes with normal clocks produce globally unique IDs that are ordered by time trend. Without central coordination, IDs from different nodes do not guarantee the strict global order of real business events.
+The bound engine is thread-safe, duplicate-free, and strictly increasing at its successful CAS linearization point. Correctly configured nodes with normal clocks produce globally unique IDs that are ordered by time trend. Without central coordination, IDs from different nodes do not guarantee the strict global order of real business events.
 
 ## Clock Rollback Policy
 
@@ -160,7 +155,7 @@ Confirm that the cluster supplies the pod-index label, that ordinals are not reu
 
 ## Boundaries
 
-This Starter only generates Snowflake IDs via `LongIdGenerator`. It does not provide UUIDv7, automatic node discovery, Redis leases, database segments, batch prefetch, persistent watermarks, or network coordination.
+This Starter only generates Snowflake IDs via the static `SnowflakeIdGenerator` entries. It does not provide UUIDv7, automatic node discovery, Redis leases, database segments, batch prefetch, persistent watermarks, or network coordination.
 
 ## Validation
 

@@ -1,8 +1,10 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.resource.service.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto.BatchClientResourceGrantDTO;
@@ -20,13 +22,13 @@ import top.egon.cola.platform.tianquan.shoubing.admin.resource.support.outbox.Tr
 import top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,6 +39,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ResourceServerServiceImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW = Instant.parse("2026-08-10T00:00:00Z");
 
@@ -50,7 +57,6 @@ class ResourceServerServiceImplTest {
             mock(ResourceServerProjectionService.class);
     private final TransactionalOutboxResourceServerEventAdapter events =
             mock(TransactionalOutboxResourceServerEventAdapter.class);
-    private final AtomicLong ids = new AtomicLong(1000L);
 
     private ResourceServerServiceImpl service;
 
@@ -63,7 +69,6 @@ class ResourceServerServiceImplTest {
                 grants,
                 clients,
                 projections,
-                ids::incrementAndGet,
                 objectMapper,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 events

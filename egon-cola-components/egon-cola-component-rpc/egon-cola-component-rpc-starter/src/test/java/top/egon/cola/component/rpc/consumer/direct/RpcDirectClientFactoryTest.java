@@ -13,7 +13,9 @@ import io.grpc.ServerServiceDefinition;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.MetadataUtils;
 import io.grpc.stub.ServerCalls;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.annotation.EgonRpcMethod;
 import top.egon.cola.component.rpc.annotation.EgonRpcService;
 import top.egon.cola.component.rpc.config.RpcTransportSecurity;
@@ -23,6 +25,7 @@ import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
 import top.egon.cola.component.rpc.exception.RpcStatusExceptionMapper;
 import top.egon.cola.component.rpc.support.TestGrpcDescriptorFixtures.UnaryFixtureGrpc;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -36,6 +39,11 @@ class RpcDirectClientFactoryTest {
 
     private static final Metadata.Key<String> SIGNATURE =
             Metadata.Key.of("x-test-signature", Metadata.ASCII_STRING_MARSHALLER);
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void invokesConfiguredTargetWithRequestAwareInterceptorAndDeadline()

@@ -2,8 +2,10 @@ package top.egon.cola.component.common.id.generator;
 
 /**
  * Strategy contract for generators whose native ID representation is a {@code long}.
+ *
+ * <p>Both operations are abstract on purpose: a named generator states how it produces the numeric
+ * ID and its decimal string form, so the strategy cannot be reduced to a single-method lambda.</p>
  */
-@FunctionalInterface
 public interface LongIdGenerator extends IdGenerator {
 
     /**
@@ -19,7 +21,5 @@ public interface LongIdGenerator extends IdGenerator {
      * @return the decimal representation of the generated ID
      */
     @Override
-    default String nextId() {
-        return Long.toString(nextLongId());
-    }
+    String nextId();
 }

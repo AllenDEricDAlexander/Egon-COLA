@@ -14,12 +14,15 @@ import top.egon.cola.archetype.source.webopen.domain.teaching.enums.GradeStatus;
 import top.egon.cola.archetype.source.webopen.domain.teaching.service.SchoolClassDomainService;
 import top.egon.cola.archetype.source.webopen.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.webopen.domain.teaching.vos.GradeCode;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.Optional;
 import java.util.Set;
 
@@ -28,6 +31,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class SchoolClassManageImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Mock SchoolClassDomainService schoolClassDomainService;
     @Mock UserDomainService userDomainService;
     @Mock SchoolClassCachePort schoolClassCache;
@@ -47,7 +56,7 @@ class SchoolClassManageImplTest {
                 .thenReturn(true);
         when(idempotency.claim("create-school-class", "req-1")).thenReturn(true);
         SchoolClassManageImpl manage = new SchoolClassManageImpl(schoolClassDomainService, userDomainService,
-                new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher, () -> 2001L);
+                new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher);
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createSchoolClass(
                 new CreateSchoolClassCommand("req-1", "Class A", "grade_one")));

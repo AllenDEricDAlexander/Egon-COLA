@@ -1,11 +1,10 @@
 package top.egon.cola.component.yuheng.admin.credential.service;
 
-
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.credential.domain.vo.GatewayCredentialVO;
 import top.egon.cola.component.yuheng.admin.credential.domain.vo.IssuedGatewayCredentialVO;
@@ -91,20 +90,18 @@ public class GatewayCredentialService {
      * @param audits 参数 audits；parameter audits。
      * @param protector 参数 protector；parameter protector。
      */
-        private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayCredentialService(GatewayApplicationRepository applications,
             GatewayCredentialRepository credentials,
             GatewayAuditLogRepository audits,
-            ObjectProvider<GatewaySecretProtector> protector,
-            LongIdGenerator idGenerator) {
+            ObjectProvider<GatewaySecretProtector> protector) {
         this(applications,
                 credentials,
                 audits,
                 protector.getIfAvailable(),
                 new SecureRandom(),
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     /**
@@ -124,9 +121,7 @@ public class GatewayCredentialService {
             GatewayAuditLogRepository audits,
             GatewaySecretProtector protector,
             SecureRandom random,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.applications = applications;
         this.credentials = credentials;
         this.audits = audits;
@@ -174,7 +169,7 @@ public class GatewayCredentialService {
             RequestAuditContext request) {
         requireApplication(applicationId);
         GatewaySecretProtector configured = requireProtector();
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         String accessKey = "gw_" + token(18);
         String secret = token(32);
         Instant now = clock.instant();
@@ -384,7 +379,7 @@ public class GatewayCredentialService {
             String accessKey,
             String action) {
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -402,8 +397,5 @@ public class GatewayCredentialService {
                 clock.instant()
         ));
     }
-
-
-
 
 }

@@ -1,22 +1,5 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.position.snapshot.domain;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-
 /**
      * 类型 `UserPositionKey` 位于 `DirectorySnapshotMaterializer` 内，是记录类型，用于承载 `User Position Key` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `UserPositionKey` is a record inside `DirectorySnapshotMaterializer` and carries the responsibility, state, or contract for `User Position Key`; callers normally use it through its public API, Spring assembly, or implementation relationship.

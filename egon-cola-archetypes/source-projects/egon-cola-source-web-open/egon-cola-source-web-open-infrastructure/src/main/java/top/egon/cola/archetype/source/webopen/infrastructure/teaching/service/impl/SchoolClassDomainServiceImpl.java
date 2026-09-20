@@ -23,7 +23,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.List;
 import java.util.Optional;
@@ -43,8 +43,6 @@ public class SchoolClassDomainServiceImpl
     private final SchoolClassUserRepository schoolClassUserRepository;
     @Qualifier("schoolClassPOConverterImpl")
     private final SchoolClassPOConverter converter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     @Override
     public SchoolClass create(SchoolClassId schoolClassId, String name, Grade grade) {
@@ -97,7 +95,7 @@ public class SchoolClassDomainServiceImpl
     public void addUser(Long gradeId, SchoolClassId schoolClassId, UserId userId) {
         SchoolClassUserPO po = SchoolClassUserPO.builder().gradeId(gradeId)
                 .schoolClassId(schoolClassId.value()).userId(userId.value()).build();
-        po.setId(idGenerator.nextLongId());
+        po.setId(SnowflakeIdGenerator.nextLongId());
         if (!schoolClassUserRepository.save(po)) { throw new IllegalStateException("INSERT_AFFECTED_ZERO_ROWS"); }
     }
 

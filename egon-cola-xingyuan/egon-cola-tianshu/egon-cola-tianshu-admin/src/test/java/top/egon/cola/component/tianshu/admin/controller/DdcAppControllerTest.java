@@ -1,5 +1,6 @@
 package top.egon.cola.component.tianshu.admin.controller;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -11,6 +12,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import top.egon.cola.component.common.core.enums.ResultCode;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.controller.metadata.DdcAppController;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.tianshu.admin.repository.DdcAppRepository;
@@ -21,6 +23,7 @@ import top.egon.cola.component.tianshu.admin.service.metadata.DdcNamespaceEnvApp
 import top.egon.cola.component.tianshu.admin.service.metadata.DdcScopeGate;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +43,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(DdcAppController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class DdcAppControllerTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -131,8 +139,7 @@ class DdcAppControllerTest {
                 bizRepository,
                 bindingRepository,
                 bindingService,
-                scopeGate,
-                new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0)
+                scopeGate
         );
         DdcAppEntity request = app("shared-app");
 

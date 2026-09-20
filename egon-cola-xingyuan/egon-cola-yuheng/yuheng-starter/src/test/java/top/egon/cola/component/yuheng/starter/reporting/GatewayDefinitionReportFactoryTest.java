@@ -1,12 +1,15 @@
 package top.egon.cola.component.yuheng.starter.reporting;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionSourceTypeEnum;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.yuheng.starter.GatewayReportingProperties;
 import top.egon.cola.component.yuheng.starter.discovery.GatewayDefinitionContributor;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -15,6 +18,11 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class GatewayDefinitionReportFactoryTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void scanOrderAndTransportIdentityDoNotChangeDefinitionSet() {
@@ -53,19 +61,19 @@ class GatewayDefinitionReportFactoryTest {
     }
 
     @Test
-    void usesTheConfiguredSnowflakeIdGeneratorForReportId() {
+    void usesTheProcessWideSnowflakeEngineForReportId() {
         GatewayReportingProperties properties = properties();
         GatewayDefinitionReportFactory.BuiltReport built =
                 new GatewayDefinitionReportFactory(
                         properties,
-                        () -> 42L,
                         Clock.fixed(
                                 Instant.parse("2026-07-25T00:00:00Z"),
                                 ZoneOffset.UTC
                         )
                 ).build(List.of());
 
-        assertThat(built.report().reportId()).isEqualTo("42");
+        assertThat(built.report().reportId()).isNotBlank();
+        assertThat(Long.parseLong(built.report().reportId())).isPositive();
     }
 
     private GatewayDefinitionReportFactory factory(String instant) {

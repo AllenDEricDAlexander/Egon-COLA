@@ -8,7 +8,6 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.service.ConstraintFacade;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.RoleFacade;
@@ -48,9 +47,6 @@ class Rbac3ControlPlaneGatewayDiscoveryTest {
 
     @MockitoBean
     private DatabaseClock databaseClock;
-
-    @MockitoBean
-    private LongIdGenerator idGenerator;
 
     @Test
     void openApiAnnotationsExposeAllResourceRoleAndTypedConstraintOperations() {

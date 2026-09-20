@@ -20,7 +20,7 @@ import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.time.Instant;
 
@@ -32,7 +32,6 @@ public class GradeManageImpl implements GradeManage {
     private final GradeCachePort gradeCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-    private final LongIdGenerator idGenerator;
     private final GradeAssembler assembler = new GradeAssembler();
 
     @Override
@@ -45,10 +44,10 @@ public class GradeManageImpl implements GradeManage {
                 throw conflict("grade code already exists");
             }
             Grade grade = gradeDomainService.save(gradeDomainService.create(
-                idGenerator.nextLongId(), code.value(), command.name()));
+                SnowflakeIdGenerator.nextLongId(), code.value(), command.name()));
             OrganizationTransactionHooks.afterCommit(() -> {
                 gradeCache.evict(grade.id());
-                eventPublisher.publish(new GradeChangedEvent(Long.toString(idGenerator.nextLongId()),
+                eventPublisher.publish(new GradeChangedEvent(Long.toString(SnowflakeIdGenerator.nextLongId()),
                     grade.id(), Instant.now(), "CREATED"));
             });
             return assembler.toResult(grade);

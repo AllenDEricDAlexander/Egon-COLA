@@ -2,7 +2,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.impl;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
@@ -17,16 +17,13 @@ import java.util.Objects;
 public class TenantServiceImpl implements TenantService {
 
     private final IdentityTenantRepository tenants;
-    private final LongIdGenerator ids;
     private final Clock clock;
 
     public TenantServiceImpl(
             IdentityTenantRepository tenants,
-            LongIdGenerator ids,
             Clock clock
     ) {
         this.tenants = Objects.requireNonNull(tenants, "tenants");
-        this.ids = Objects.requireNonNull(ids, "ids");
         this.clock = Objects.requireNonNull(clock, "clock");
     }
 
@@ -52,7 +49,7 @@ public class TenantServiceImpl implements TenantService {
         if (tenants.existsByTenantCodeIgnoreCase(tenantCode)) {
             throw new IllegalStateException("tenant code already exists");
         }
-        long numericId = ids.nextLongId();
+        long numericId = SnowflakeIdGenerator.nextLongId();
         if (numericId <= 0L) {
             throw new IllegalStateException("tenant id generator returned invalid value");
         }

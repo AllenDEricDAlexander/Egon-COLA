@@ -17,7 +17,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.Status;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 import top.egon.cola.component.yuheng.core.provider.ProviderInstance;
 import top.egon.cola.component.yuheng.runtime.provider.domain.ProviderSelectionHandle;
@@ -149,13 +149,11 @@ public final class RpcGatewayForwarder {
      * @param maximumTimeout 参数 maximum超时；parameter maximum timeout。
      * @param maxInboundMessageBytes 参数 maxInbound消息Bytes；parameter max inbound message bytes。
      */
-    private final LongIdGenerator idGenerator;
 
     public RpcGatewayForwarder(ProviderSelector providerSelector,
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
-            int maxInboundMessageBytes,
-            LongIdGenerator idGenerator) {
+            int maxInboundMessageBytes) {
         this(providerSelector,
                 channels,
                 maximumTimeout,
@@ -166,7 +164,7 @@ public final class RpcGatewayForwarder {
                 ),
                 GatewayCallCompletionListener.noop(),
                 "unknown-engine",
-                GatewayTrafficGovernance.noop(), idGenerator);
+                GatewayTrafficGovernance.noop());
     }
 
     /**
@@ -184,8 +182,7 @@ public final class RpcGatewayForwarder {
             RpcProviderChannelCache channels,
             Duration maximumTimeout,
             int maxInboundMessageBytes,
-            GatewayRpcSecurityProcessor securityProcessor,
-            LongIdGenerator idGenerator) {
+            GatewayRpcSecurityProcessor securityProcessor) {
         this(providerSelector,
                 channels,
                 maximumTimeout,
@@ -193,7 +190,7 @@ public final class RpcGatewayForwarder {
                 securityProcessor,
                 GatewayCallCompletionListener.noop(),
                 "unknown-engine",
-                GatewayTrafficGovernance.noop(), idGenerator);
+                GatewayTrafficGovernance.noop());
     }
 
     /**
@@ -215,8 +212,7 @@ public final class RpcGatewayForwarder {
             int maxInboundMessageBytes,
             GatewayRpcSecurityProcessor securityProcessor,
             GatewayCallCompletionListener completionListener,
-            String engineNodeId,
-            LongIdGenerator idGenerator) {
+            String engineNodeId) {
         this(providerSelector,
                 channels,
                 maximumTimeout,
@@ -224,7 +220,7 @@ public final class RpcGatewayForwarder {
                 securityProcessor,
                 completionListener,
                 engineNodeId,
-                GatewayTrafficGovernance.noop(), idGenerator);
+                GatewayTrafficGovernance.noop());
     }
 
     /**
@@ -248,8 +244,7 @@ public final class RpcGatewayForwarder {
             GatewayRpcSecurityProcessor securityProcessor,
             GatewayCallCompletionListener completionListener,
             String engineNodeId,
-            GatewayTrafficGovernance trafficGovernance,
-            LongIdGenerator idGenerator) {
+            GatewayTrafficGovernance trafficGovernance) {
         this(providerSelector,
                 channels,
                 maximumTimeout,
@@ -258,7 +253,7 @@ public final class RpcGatewayForwarder {
                 completionListener,
                 engineNodeId,
                 trafficGovernance,
-                ProviderCallOutcomeRecorder.noop(), idGenerator);
+                ProviderCallOutcomeRecorder.noop());
     }
 
     /**
@@ -284,8 +279,7 @@ public final class RpcGatewayForwarder {
             GatewayCallCompletionListener completionListener,
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance,
-            ProviderCallOutcomeRecorder outcomeRecorder,
-            LongIdGenerator idGenerator) {
+            ProviderCallOutcomeRecorder outcomeRecorder) {
         this(providerSelector,
                 channels,
                 maximumTimeout,
@@ -295,7 +289,7 @@ public final class RpcGatewayForwarder {
                 engineNodeId,
                 trafficGovernance,
                 outcomeRecorder,
-                GatewayTelemetry.noop(), idGenerator);
+                GatewayTelemetry.noop());
     }
 
     /**
@@ -323,9 +317,7 @@ public final class RpcGatewayForwarder {
             String engineNodeId,
             GatewayTrafficGovernance trafficGovernance,
             ProviderCallOutcomeRecorder outcomeRecorder,
-            GatewayTelemetry telemetry,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            GatewayTelemetry telemetry) {
         this.providerSelector = Objects.requireNonNull(
                 providerSelector,
                 "providerSelector"
@@ -379,9 +371,7 @@ public final class RpcGatewayForwarder {
                     "RPC",
                     "INTERNAL",
                     engineNodeId,
-                    telemetry,
-                    idGenerator
-            );
+                    telemetry);
             GatewayTraceContext trace = observation.trace();
             observation.route(
                     route.fullMethodName(),
@@ -1417,7 +1407,7 @@ public final class RpcGatewayForwarder {
      */
     private String valueOrGenerated(String value) {
         return value == null || value.isBlank()
-                ? idGenerator.nextId()
+                ? SnowflakeIdGenerator.nextId()
                 : value;
     }
 

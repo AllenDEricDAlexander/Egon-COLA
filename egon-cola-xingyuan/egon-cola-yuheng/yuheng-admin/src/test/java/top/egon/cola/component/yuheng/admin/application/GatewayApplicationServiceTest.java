@@ -1,10 +1,9 @@
 package top.egon.cola.component.yuheng.admin.application.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import top.egon.cola.component.tianshu.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.yuheng.admin.scope.service.GatewayScopeService;
@@ -15,14 +14,13 @@ import top.egon.cola.component.yuheng.admin.application.domain.exception.Gateway
 import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
@@ -30,6 +28,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GatewayApplicationServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private GatewayApplicationRepository applications;
 
@@ -51,9 +54,7 @@ class GatewayApplicationServiceTest {
                 Clock.fixed(
                         Instant.parse("2026-08-01T00:00:00Z"),
                         ZoneOffset.UTC
-                ),
-                new SnowflakeIdGenerator(0)
-                );
+                ));
     }
 
     @Test
@@ -70,10 +71,6 @@ class GatewayApplicationServiceTest {
                 .withBean(
                         GatewayScopeService.class,
                         () -> mock(GatewayScopeService.class)
-                )
-                .withBean(
-                        LongIdGenerator.class,
-                        () -> new SnowflakeIdGenerator(0)
                 )
                 .withBean(GatewayApplicationService.class)
                 .run(context -> assertThat(context)

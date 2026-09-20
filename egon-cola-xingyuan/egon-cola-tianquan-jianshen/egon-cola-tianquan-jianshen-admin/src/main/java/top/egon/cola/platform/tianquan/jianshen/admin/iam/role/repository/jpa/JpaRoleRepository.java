@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
@@ -15,10 +15,8 @@ import top.egon.cola.platform.tianquan.jianshen.core.hierarchy.RoleHierarchy;
 import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 
 import java.time.Instant;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleinheritance.repository.RoleHierarchyRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.repository.RoleControlRepository;
@@ -61,14 +59,6 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
      */
     private final PostgresqlRoleClosureRepository closureStore;
     /**
-     * 字段 `idGenerator` 表示 `JpaRoleRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `JpaRoleRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `JpaRoleRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `JpaRoleRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `databaseClock` 表示 `JpaRoleRepository` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `JpaRoleRepository` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -95,7 +85,6 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param closureStore 输入参数 `closureStore`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
@@ -103,13 +92,11 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
     public JpaRoleRepository(
             EntityManager entityManager,
             PostgresqlRoleClosureRepository closureStore,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
             AuthorizationEventPublisher eventPort,
             TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = entityManager;
         this.closureStore = closureStore;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.eventPort = eventPort;
         this.authorizationState = authorizationState;
@@ -173,7 +160,7 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
     @Override
     public void addEdge(String tenantId, String applicationId, RoleEdge edge) {
         entityManager.persist(new RoleInheritancePO(
-                idGenerator.nextLongId(),
+                SnowflakeIdGenerator.nextLongId(),
                 Long.valueOf(tenantId),
                 Long.valueOf(applicationId),
                 Long.valueOf(edge.seniorRoleId()),
@@ -300,7 +287,7 @@ public class JpaRoleRepository implements RoleHierarchyRepository, RoleControlRe
                 Long.valueOf(command.tenantId()),
                 Long.valueOf(command.applicationId()),
                 now);
-        long roleId = idGenerator.nextLongId();
+        long roleId = SnowflakeIdGenerator.nextLongId();
         closureStore.lockGraph(
                 Long.parseLong(command.tenantId()), Long.parseLong(command.applicationId()));
         RolePO role = new RolePO(

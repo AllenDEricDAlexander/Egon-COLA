@@ -1,10 +1,9 @@
 package top.egon.cola.component.yuheng.admin.group.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.group.domain.dto.GatewayGroupCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.group.domain.dto.GatewayGroupUpdateCommandDTO;
 import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
@@ -74,14 +73,12 @@ public class GatewayGroupService {
      * @param drafts 参数 drafts；parameter drafts。
      * @param audits 参数 audits；parameter audits。
      */
-        private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayGroupService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
-            GatewayAuditLogRepository audits,
-            LongIdGenerator idGenerator) {
-        this(groups, drafts, audits, Clock.systemUTC(), idGenerator);
+            GatewayAuditLogRepository audits) {
+        this(groups, drafts, audits, Clock.systemUTC());
     }
 
     /**
@@ -97,9 +94,7 @@ public class GatewayGroupService {
     GatewayGroupService(GatewayGroupRepository groups,
             GatewayDraftJpaRepository drafts,
             GatewayAuditLogRepository audits,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.groups = groups;
         this.drafts = drafts;
         this.audits = audits;
@@ -122,7 +117,7 @@ public class GatewayGroupService {
             AdminActor actor,
             RequestAuditContext request) {
         Instant now = clock.instant();
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         GatewayGroupPO group = new GatewayGroupPO(
                 id,
                 command.gatewayGroupCode(),
@@ -314,7 +309,7 @@ public class GatewayGroupService {
             Map<String, Object> before,
             Map<String, Object> after) {
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -355,10 +350,5 @@ public class GatewayGroupService {
                 group.getUpdatedAt()
         );
     }
-
-
-
-
-
 
 }

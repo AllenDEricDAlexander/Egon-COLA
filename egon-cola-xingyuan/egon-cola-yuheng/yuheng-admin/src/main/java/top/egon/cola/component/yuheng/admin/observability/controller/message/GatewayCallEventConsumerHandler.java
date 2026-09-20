@@ -1,8 +1,7 @@
 package top.egon.cola.component.yuheng.admin.observability.controller.message;
 
-
 import org.apache.kafka.clients.consumer.ConsumerRecord;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.observability.domain.enums.GatewayCallEventConsumeResultEnum;
 import top.egon.cola.component.yuheng.admin.observability.service.GatewayCallEventIngestService;
 
@@ -52,13 +51,10 @@ public final class GatewayCallEventConsumerHandler {
      * @param ingestService 参数 ingest服务；parameter ingest service。
      * @param clock 参数 clock；parameter clock。
      */
-    private final LongIdGenerator idGenerator;
 
     public GatewayCallEventConsumerHandler(GatewayCallEventCodec codec,
             GatewayCallEventIngestService ingestService,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.codec = Objects.requireNonNull(codec, "codec");
         this.ingestService = Objects.requireNonNull(
                 ingestService,
@@ -125,7 +121,7 @@ public final class GatewayCallEventConsumerHandler {
                 : record.value();
         ingestService.poison(
                 new top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayConsumeFailurePO(
-                        idGenerator.nextId(),
+                        SnowflakeIdGenerator.nextId(),
                         record.topic(),
                         record.partition(),
                         record.offset(),
@@ -193,6 +189,5 @@ public final class GatewayCallEventConsumerHandler {
         }
         return value.length() <= 1024 ? value : value.substring(0, 1024);
     }
-
 
 }

@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.dto.ReplaceCommandDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.po.UserActiveRolePO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.activation.domain.vo.CurrentStateVO;
@@ -33,11 +33,9 @@ import java.util.function.Function;
 public class JpaUserActiveRoleRepository implements ActivationTransaction, ReselectionRepository {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
 
-    public JpaUserActiveRoleRepository(EntityManager entityManager, LongIdGenerator idGenerator) {
+    public JpaUserActiveRoleRepository(EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
     }
 
     @Override

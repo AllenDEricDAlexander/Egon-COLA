@@ -1,8 +1,10 @@
 package top.egon.cola.component.rpc.test.mockgateway;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 import org.springframework.context.support.GenericApplicationContext;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.proxy.EgonRpcReferenceBeanPostProcessor;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
@@ -27,11 +29,17 @@ import top.egon.cola.component.rpc.test.fixture.provider.EchoRpcTestProvider;
 import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryClient;
 
+import java.time.Duration;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcTcpCallTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void shouldCallConsumerThroughMockGatewayToProviderOverTcp()

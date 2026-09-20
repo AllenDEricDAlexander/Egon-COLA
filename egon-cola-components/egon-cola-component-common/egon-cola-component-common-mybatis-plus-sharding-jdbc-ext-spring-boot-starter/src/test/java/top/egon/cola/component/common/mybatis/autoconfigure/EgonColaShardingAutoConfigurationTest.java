@@ -10,7 +10,6 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingDataSourceBootstrapper.LogicalDataSourceFactory;
 
 import javax.sql.DataSource;
@@ -102,7 +101,6 @@ class EgonColaShardingAutoConfigurationTest {
 
     private static ApplicationContextRunner runner() {
         return new ApplicationContextRunner()
-                .withBean("snowflakeIdGenerator", LongIdGenerator.class, () -> () -> 1001L)
                 .withBean(Validator.class, VALIDATOR_FACTORY::getValidator)
                 .withConfiguration(AutoConfigurations.of(
                         EgonColaMybatisPlusAutoConfiguration.class,

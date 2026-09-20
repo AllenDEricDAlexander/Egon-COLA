@@ -4,8 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.admin.shared.tenant.domain.TenantContext;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.user.domain.dto.CreateUserCommandDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.user.domain.dto.UpdateUserCommandDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.user.domain.enums.UserStatusEnum;
@@ -25,17 +24,14 @@ import java.time.Instant;
 public class UserCrudFacade {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
     private final IdentityTenantMembershipDirectory memberships;
 
     public UserCrudFacade(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
             IdentityTenantMembershipDirectory memberships) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.memberships = memberships;
     }
@@ -60,7 +56,7 @@ public class UserCrudFacade {
         }
         Instant now = databaseClock.transactionNow();
         UserPO user = new UserPO(
-                idGenerator.nextLongId(), tenantId, identitySub,
+                SnowflakeIdGenerator.nextLongId(), tenantId, identitySub,
                 command.status(), actorId, now);
         entityManager.persist(user);
         return view(user);

@@ -8,9 +8,12 @@ import top.egon.cola.archetype.source.serviceopen.application.course.manage.Cour
 import top.egon.cola.archetype.source.serviceopen.application.course.result.CourseResult;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Course;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CreateCourseRequest;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -21,6 +24,11 @@ import static org.mockito.Mockito.when;
 
 class CourseFacadeImplTest {
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Test
     void shouldValidateConvertDelegateAndReturnCourse() {
         CourseManage manage = mock(CourseManage.class);
@@ -28,7 +36,7 @@ class CourseFacadeImplTest {
         when(manage.create(command)).thenReturn(new CourseResult(1001L, "MATH-101", "Math", 3, "ACTIVE"));
         CourseFacadeImpl facade = new CourseFacadeImpl(
                 manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
-                new GlobalFacadeExceptionHandler(() -> 9001L));
+                new GlobalFacadeExceptionHandler());
 
         Course response = facade.createCourse(CreateCourseRequest.newBuilder()
                 .setCode("MATH-101").setName("Math").setCredit(3).build());
@@ -43,7 +51,7 @@ class CourseFacadeImplTest {
         when(manage.create(any())).thenReturn(null);
         CourseFacadeImpl facade = new CourseFacadeImpl(
                 manage, new CourseFacadeConverter(), new CourseFacadeValidator(),
-                new GlobalFacadeExceptionHandler(() -> 9001L));
+                new GlobalFacadeExceptionHandler());
 
         StatusRuntimeException failure = assertThrows(StatusRuntimeException.class,
                 () -> facade.createCourse(CreateCourseRequest.newBuilder()

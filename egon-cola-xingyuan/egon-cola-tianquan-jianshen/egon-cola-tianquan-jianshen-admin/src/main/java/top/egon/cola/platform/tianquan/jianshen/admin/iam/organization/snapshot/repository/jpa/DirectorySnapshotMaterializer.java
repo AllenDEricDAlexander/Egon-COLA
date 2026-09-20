@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.position.snapshot.domain.UserPositionKey;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.position.snapshot.domain.dto.PositionInputDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.position.snapshot.domain.dto.UserPositionInputDTO;
@@ -50,14 +50,6 @@ public class DirectorySnapshotMaterializer {
      * Meaning and usage: when reading, passing, or updating `entityManager`, preserve `DirectorySnapshotMaterializer`'s lifecycle, immutability, and thread-safety constraints.
      */
     private final EntityManager entityManager;
-    /**
-     * 字段 `idGenerator` 表示 `DirectorySnapshotMaterializer` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `DirectorySnapshotMaterializer` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `DirectorySnapshotMaterializer` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `DirectorySnapshotMaterializer`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
 
     /**
      * 构造器 `DirectorySnapshotMaterializer` 用于创建并初始化 `DirectorySnapshotMaterializer` 实例，建立该类型后续方法所依赖的状态和不变量。
@@ -67,13 +59,10 @@ public class DirectorySnapshotMaterializer {
      * Usage: create the instance through `DirectorySnapshotMaterializer`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public DirectorySnapshotMaterializer(
-            EntityManager entityManager,
-            LongIdGenerator idGenerator) {
+            EntityManager entityManager) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
     }
 
     /**
@@ -169,7 +158,7 @@ public class DirectorySnapshotMaterializer {
             OrgUnitPO current = byCode.get(input.code());
             if (current == null) {
                 current = new OrgUnitPO(
-                        idGenerator.nextLongId(), tenantId, snapshotId, unitType,
+                        SnowflakeIdGenerator.nextLongId(), tenantId, snapshotId, unitType,
                         input.code(), input.name(), parentId, input.path(), input.depth(),
                         input.externalId(), input.validFrom(), input.validTo(), actorId, now);
                 entityManager.persist(current);
@@ -247,7 +236,7 @@ public class DirectorySnapshotMaterializer {
             PositionPO current = byCode.get(input.code());
             if (current == null) {
                 current = new PositionPO(
-                        idGenerator.nextLongId(), tenantId, snapshotId, input.code(),
+                        SnowflakeIdGenerator.nextLongId(), tenantId, snapshotId, input.code(),
                         input.name(), orgUnitId, input.externalId(), input.validFrom(),
                         input.validTo(), actorId, now);
                 entityManager.persist(current);
@@ -331,7 +320,7 @@ public class DirectorySnapshotMaterializer {
                 counter.created++;
             }
             entityManager.persist(new UserPositionSnapshotPO(
-                    idGenerator.nextLongId(), tenantId, snapshotId, userId, positionId,
+                    SnowflakeIdGenerator.nextLongId(), tenantId, snapshotId, userId, positionId,
                     orgUnitId, input.primary(), input.externalAssignmentId(),
                     input.validFrom(), input.validTo(), actorId, now));
         }
@@ -552,8 +541,5 @@ public class DirectorySnapshotMaterializer {
                 && current.getValidFrom().equals(input.validFrom())
                 && Objects.equals(current.getValidTo(), input.validTo());
     }
-
-
-
 
     }

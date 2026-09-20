@@ -4,12 +4,14 @@ import top.egon.cola.component.yuheng.runtime.observability.domain.GatewayCallOb
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Set;
@@ -19,6 +21,11 @@ import java.util.stream.StreamSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class GatewayCallEventWireCompatibilityTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private final ObjectMapper mapper = new ObjectMapper();
 
@@ -31,9 +38,7 @@ class GatewayCallEventWireCompatibilityTest {
                 "request-1",
                 "HTTP",
                 "PUBLIC",
-                "engine-1",
-                new SnowflakeIdGenerator(0)
-                );
+                "engine-1");
         observation.transport(
                 "HTTP_STREAMING",
                 "FIRST_BODY_BUFFER_SENT",

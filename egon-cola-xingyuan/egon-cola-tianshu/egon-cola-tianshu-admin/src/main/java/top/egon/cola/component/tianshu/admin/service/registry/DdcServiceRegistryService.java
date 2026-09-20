@@ -1,6 +1,6 @@
 package top.egon.cola.component.tianshu.admin.service.registry;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.repository.DdcServiceRegistryRedisRepository;
 import top.egon.cola.component.tianshu.admin.security.registration.DdcRegistrationCredentialVerifier;
@@ -38,15 +38,14 @@ public class DdcServiceRegistryService {
     public DdcServiceRegistryService(DdcServiceRegistryRedisRepository repository,
                                      DdcLeaseValidator leaseValidator,
                                      DdcScopeGate scopeGate,
-                                     DdcRegistrationCredentialVerifier registrationVerifier,
-                                     LongIdGenerator idGenerator) {
+                                     DdcRegistrationCredentialVerifier registrationVerifier) {
         this(
                 repository,
                 leaseValidator,
                 scopeGate,
                 registrationVerifier,
                 Clock.systemUTC(),
-                java.util.Objects.requireNonNull(idGenerator, "idGenerator")::nextId
+                SnowflakeIdGenerator::nextId
         );
     }
 

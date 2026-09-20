@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.PasswordCredential;
@@ -23,7 +23,6 @@ public class IdpBootstrapService implements IdpBootstrapRunner.BootstrapPort {
     private final IdentityUserStore users;
     private final PasswordCredentialStore credentials;
     private final PasswordHashPort passwordHashes;
-    private final LongIdGenerator ids;
     private final UsernameNormalizer usernameNormalizer;
     private final Clock clock;
 
@@ -31,14 +30,12 @@ public class IdpBootstrapService implements IdpBootstrapRunner.BootstrapPort {
     public IdpBootstrapService(
             IdentityUserStore users,
             PasswordCredentialStore credentials,
-            PasswordHashPort passwordHashes,
-            LongIdGenerator ids
+            PasswordHashPort passwordHashes
     ) {
         this(
                 users,
                 credentials,
                 passwordHashes,
-                ids,
                 new UsernameNormalizer(),
                 Clock.systemUTC()
         );
@@ -48,7 +45,6 @@ public class IdpBootstrapService implements IdpBootstrapRunner.BootstrapPort {
             IdentityUserStore users,
             PasswordCredentialStore credentials,
             PasswordHashPort passwordHashes,
-            LongIdGenerator ids,
             UsernameNormalizer usernameNormalizer,
             Clock clock
     ) {
@@ -58,7 +54,6 @@ public class IdpBootstrapService implements IdpBootstrapRunner.BootstrapPort {
                 passwordHashes,
                 "passwordHashes"
         );
-        this.ids = Objects.requireNonNull(ids, "ids");
         this.usernameNormalizer = Objects.requireNonNull(
                 usernameNormalizer,
                 "usernameNormalizer"
@@ -78,7 +73,7 @@ public class IdpBootstrapService implements IdpBootstrapRunner.BootstrapPort {
                 );
             }
             Instant now = clock.instant();
-            String identitySub = ids.nextId();
+            String identitySub = SnowflakeIdGenerator.nextId();
             String displayUsername = requiredUsername(username);
             users.save(new IdentityUser(
                     identitySub,

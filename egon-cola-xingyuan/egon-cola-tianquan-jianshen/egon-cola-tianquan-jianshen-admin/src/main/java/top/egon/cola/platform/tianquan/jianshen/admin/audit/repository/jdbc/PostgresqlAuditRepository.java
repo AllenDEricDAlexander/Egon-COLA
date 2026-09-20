@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.audit.repository.internal.AuditCursorCodec;
 import top.egon.cola.platform.tianquan.jianshen.admin.audit.domain.po.AuditLogPO;
 
@@ -38,14 +38,6 @@ public class PostgresqlAuditRepository implements AuditRepository {
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `idGenerator` 表示 `PostgresqlAuditRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `PostgresqlAuditRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `PostgresqlAuditRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `PostgresqlAuditRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `cursorCodec` 表示 `PostgresqlAuditRepository` 中与 `cursor Codec` 相关的状态、依赖、配置或结果（声明类型 `AuditCursorCodec`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `cursorCodec` stores the `cursor Codec`-related state, dependency, configuration, or result of `PostgresqlAuditRepository` (declared type `AuditCursorCodec`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -62,15 +54,12 @@ public class PostgresqlAuditRepository implements AuditRepository {
      * Usage: create the instance through `PostgresqlAuditRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param cursorCodec 输入参数 `cursorCodec`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public PostgresqlAuditRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             AuditCursorCodec cursorCodec) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.cursorCodec = cursorCodec;
     }
 
@@ -88,7 +77,7 @@ public class PostgresqlAuditRepository implements AuditRepository {
     @Transactional
     public AuditVO append(AuditVO record) {
         AuditLogPO entity = new AuditLogPO(
-                idGenerator.nextLongId(), Long.valueOf(record.tenantId()),
+                SnowflakeIdGenerator.nextLongId(), Long.valueOf(record.tenantId()),
                 record.eventType(), record.outcome(), record.severity(),
                 record.actorType(), record.actorId(), record.targetType(), record.targetId(),
                 record.managementPolicyId() == null

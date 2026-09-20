@@ -1,6 +1,5 @@
 package top.egon.cola.component.yuheng.admin.catalog.repository.jdbc;
 
-
 import top.egon.cola.component.yuheng.admin.application.controller.*;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.*;
 import top.egon.cola.component.yuheng.admin.application.domain.exception.*;
@@ -104,21 +103,19 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayAdminNotFoundException;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
-
 
 import top.egon.cola.component.yuheng.admin.catalog.repository.jdbc.GatewayCatalogMutableBusiness;
 import top.egon.cola.component.yuheng.admin.catalog.repository.jdbc.GatewayCatalogMutableEntity;
@@ -156,12 +153,9 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
      * @param jdbc 参数 jdbc；parameter jdbc。
      * @param objectMapper 参数 object映射器；parameter object mapper。
      */
-    private final LongIdGenerator idGenerator;
 
     public JdbcGatewayCatalogRepository(JdbcTemplate jdbc,
-            ObjectMapper objectMapper,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            ObjectMapper objectMapper) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
     }
@@ -244,7 +238,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
                 hierarchy,
                 now
         );
-        String interfaceGroupId = idGenerator.nextId();
+        String interfaceGroupId = SnowflakeIdGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_interface_group(
                     id, entity_domain_id, code, display_name, source_type,
@@ -710,7 +704,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
         if (!existing.isEmpty()) {
             return existing.getFirst();
         }
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_business_domain(
                     id, application_id, code, display_name, description,
@@ -743,7 +737,7 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
         if (!existing.isEmpty()) {
             return existing.getFirst();
         }
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_entity_domain(
                     id, business_domain_id, code, display_name, description,
@@ -874,10 +868,5 @@ public class JdbcGatewayCatalogRepository implements GatewayCatalogRepository {
             throw new IllegalStateException(failure);
         }
     }
-
-
-
-
-
 
 }

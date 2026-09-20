@@ -1,13 +1,16 @@
 package top.egon.cola.component.tianshu.test;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.tianshu.test.service.SampleConfigService;
 import top.egon.cola.component.rpc.tianshu.client.config.RpcDdcConfigClient;
+import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -28,6 +31,11 @@ import static org.assertj.core.api.Assertions.assertThat;
                 + "org.redisson.spring.starter.RedissonAutoConfigurationV2"
 })
 class DdcSampleInjectionTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Autowired
     private SampleConfigService sampleConfigService;

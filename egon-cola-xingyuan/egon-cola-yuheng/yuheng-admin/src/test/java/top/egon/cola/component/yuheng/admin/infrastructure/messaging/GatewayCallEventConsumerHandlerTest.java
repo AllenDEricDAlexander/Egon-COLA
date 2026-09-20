@@ -1,22 +1,19 @@
 package top.egon.cola.component.yuheng.admin.observability.controller.message;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.component.yuheng.admin.observability.service.GatewayCallEventIngestService;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayObservabilityRepository;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -24,6 +21,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayCallEventConsumerHandlerTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void projectsValidEventAndRecordsPoisonForInvalidJson()
@@ -47,9 +49,7 @@ class GatewayCallEventConsumerHandlerTest {
                                 clock,
                                 Duration.ofDays(7)
                         ),
-                        clock,
-                        new SnowflakeIdGenerator(0)
-                        );
+                        clock);
         byte[] payload = JsonMapper.builder()
                 .findAndAddModules()
                 .build()

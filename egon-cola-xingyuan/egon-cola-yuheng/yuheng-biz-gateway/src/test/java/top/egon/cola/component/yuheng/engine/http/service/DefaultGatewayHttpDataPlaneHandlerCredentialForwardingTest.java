@@ -1,5 +1,6 @@
 package top.egon.cola.component.yuheng.engine.http.service;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.engine.rpc.service.RpcMethodIndex;
 
 import top.egon.cola.component.yuheng.runtime.provider.service.ProviderCallOutcomeRecorder;
@@ -17,6 +18,7 @@ import io.grpc.ServerInterceptor;
 import io.grpc.ServerInterceptors;
 import io.grpc.ServerServiceDefinition;
 import io.grpc.stub.ServerCalls;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
 import reactor.core.publisher.Flux;
@@ -68,6 +70,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DefaultGatewayHttpDataPlaneHandlerCredentialForwardingTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final String TOKEN = "exact.header.payload.signature";
 

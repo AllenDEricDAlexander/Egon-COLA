@@ -8,7 +8,7 @@ import java.util.Objects;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.rpc.RpcContext;
 import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 @Component
 @RequiredArgsConstructor
@@ -18,8 +18,6 @@ public class GlobalFacadeExceptionHandler {
             "x-egon-error-code", Metadata.ASCII_STRING_MARSHALLER);
     private static final Metadata.Key<String> TRACE_ID = Metadata.Key.of(
             "x-egon-trace-id", Metadata.ASCII_STRING_MARSHALLER);
-
-    private final LongIdGenerator idGenerator;
 
     public StatusRuntimeException toStatus(RuntimeException failure) {
         Objects.requireNonNull(failure, "failure");
@@ -63,6 +61,6 @@ public class GlobalFacadeExceptionHandler {
         if (supplied != null && !supplied.isBlank()) {
             return supplied;
         }
-        return Long.toString(idGenerator.nextLongId());
+        return Long.toString(SnowflakeIdGenerator.nextLongId());
     }
 }

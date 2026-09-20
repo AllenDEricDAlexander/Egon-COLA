@@ -1,6 +1,5 @@
 package top.egon.cola.component.yuheng.admin.reporting.repository.jdbc;
 
-
 import top.egon.cola.component.yuheng.admin.application.controller.*;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.*;
 import top.egon.cola.component.yuheng.admin.application.domain.exception.*;
@@ -106,7 +105,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayDefinitionReportRepository;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReportResult;
@@ -115,7 +114,6 @@ import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionSource
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -123,7 +121,6 @@ import java.util.Map;
 import java.util.Optional;
 
 import static top.egon.cola.component.yuheng.admin.shared.repository.jdbc.GatewayJdbcParameters.timestamp;
-
 
 import top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.GatewayDefinitionGroupRow;
 import top.egon.cola.component.yuheng.admin.reporting.repository.jdbc.GatewayDefinitionOperationRow;
@@ -155,14 +152,6 @@ public class JdbcGatewayDefinitionReportRepository
     private final ObjectMapper objectMapper;
 
     /**
-     * 中文说明：保存 idGenerator 对应的状态、依赖或配置值；字段类型为 {@code LongIdGenerator}，由 {@code JdbcGatewayDefinitionReportRepository} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by id generator; its type is {@code LongIdGenerator}, and {@code JdbcGatewayDefinitionReportRepository} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code JdbcGatewayDefinitionReportRepository} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code JdbcGatewayDefinitionReportRepository}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final LongIdGenerator idGenerator;
-
-    /**
      * 中文说明：保存 canonical映射器 对应的状态、依赖或配置值；字段类型为 {@code ObjectMapper}，由 {@code JdbcGatewayDefinitionReportRepository} 在其生命周期内读取或更新。
      * English summary: Holds the state, dependency, or configuration represented by canonical mapper; its type is {@code ObjectMapper}, and {@code JdbcGatewayDefinitionReportRepository} reads or updates it during its lifecycle.
      *
@@ -180,15 +169,12 @@ public class JdbcGatewayDefinitionReportRepository
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
      * @param jdbc 参数 jdbc；parameter jdbc。
      * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param idGenerator 参数 idGenerator；parameter id generator。
      */
     public JdbcGatewayDefinitionReportRepository(
             JdbcTemplate jdbc,
-            ObjectMapper objectMapper,
-            LongIdGenerator idGenerator) {
+            ObjectMapper objectMapper) {
         this.jdbc = jdbc;
         this.objectMapper = objectMapper;
-        this.idGenerator = idGenerator;
     }
 
     /**
@@ -403,7 +389,7 @@ public class JdbcGatewayDefinitionReportRepository
             );
             return existing.getFirst();
         }
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         jdbc.update(
                 "INSERT INTO "
                         + table
@@ -480,7 +466,7 @@ public class JdbcGatewayDefinitionReportRepository
             );
             return row.id();
         }
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_interface_group(
                     id, entity_domain_id, code, display_name, source_type,
@@ -543,7 +529,7 @@ public class JdbcGatewayDefinitionReportRepository
         ), applicationId, operation.operationKey());
         String definitionSha = sha256(canonical(operation));
         if (existing.isEmpty()) {
-            String operationId = idGenerator.nextId();
+            String operationId = SnowflakeIdGenerator.nextId();
             jdbc.update("""
                     INSERT INTO gateway_operation(
                         id, application_id, interface_group_id, operation_key,
@@ -713,7 +699,7 @@ public class JdbcGatewayDefinitionReportRepository
             GatewayDefinitionSourceTypeEnum sourceType,
             GatewayInterfaceDefinitionReport.Operation operation,
             Instant now) {
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         jdbc.update("""
                 INSERT INTO gateway_operation_definition(
                     id, operation_id, definition_set_id, definition_version,
@@ -981,10 +967,5 @@ public class JdbcGatewayDefinitionReportRepository
             );
         }
     }
-
-
-
-
-
 
 }

@@ -17,7 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.slf4j.MDC;
 
 import java.sql.Timestamp;
@@ -39,7 +39,6 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.webopen.su
     @Autowired private LocalOrganizationEventPublisher localPublisher;
     @Autowired private InMemorySchoolClassCache schoolClassCache;
     @Autowired private InMemoryCommandIdempotencyAdapter idempotency;
-    @Autowired private LongIdGenerator idGenerator;
 
     @AfterEach
     void clearContext() {
@@ -60,7 +59,7 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.webopen.su
                 new CreateGradeCommand("grade-" + suffix, gradeCode, "Rollback Grade"));
         var schoolClass = schoolClassManage.createSchoolClass(
                 new CreateSchoolClassCommand("class-" + suffix, "Rollback Class", gradeCode));
-        Long disabledUserId = idGenerator.nextLongId();
+        Long disabledUserId = SnowflakeIdGenerator.nextLongId();
         jdbcTemplate.update(
                 "insert into users(id, name, email, status, create_time, tenant_id) values (?, ?, ?, ?, ?, ?)",
                 disabledUserId, "Disabled User", disabledUserId + "@example.com", "DISABLED",

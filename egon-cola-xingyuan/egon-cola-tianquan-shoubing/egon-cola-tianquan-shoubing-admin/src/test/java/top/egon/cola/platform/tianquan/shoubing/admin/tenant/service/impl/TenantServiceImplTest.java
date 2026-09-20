@@ -1,18 +1,17 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.impl;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.repo.IdentityTenantRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantService;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -22,19 +21,22 @@ import static org.mockito.Mockito.when;
 
 class TenantServiceImplTest {
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     private static final Instant NOW =
             Instant.parse("2026-08-22T02:00:00Z");
 
     private final IdentityTenantRepository tenants =
             mock(IdentityTenantRepository.class);
-    private final LongIdGenerator ids = () -> 10001L;
     private TenantServiceImpl service;
 
     @BeforeEach
     void setUp() {
         service = new TenantServiceImpl(
                 tenants,
-                ids,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
@@ -54,7 +56,8 @@ class TenantServiceImplTest {
                 )
         );
 
-        assertThat(created.tenantId()).isEqualTo("10001");
+        assertThat(created.tenantId()).matches("\\d+");
+        assertThat(Long.parseLong(created.tenantId())).isPositive();
         assertThat(created.tenantCode()).isEqualTo("acme");
         assertThat(created.tenantName()).isEqualTo("Acme");
         assertThat(created.status())

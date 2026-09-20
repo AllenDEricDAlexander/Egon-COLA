@@ -26,7 +26,6 @@ import org.springframework.graphql.test.tester.ExecutionGraphQlServiceTester;
 import org.springframework.graphql.test.tester.GraphQlTester;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.util.List;
 
@@ -53,8 +52,6 @@ class OrganizationGraphQlContractTest {
     private GradeManage gradeManage;
     @MockitoBean
     private SchoolClassManage schoolClassManage;
-    @MockitoBean
-    private LongIdGenerator idGenerator;
 
     @BeforeEach
     void setUp() {

@@ -6,7 +6,7 @@ import top.egon.cola.archetype.source.webopen.adapter.user.vo.PermissionTreeVO;
 import top.egon.cola.archetype.source.webopen.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.webopen.application.user.query.PermissionTreeQuery;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationIdBoundary;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -17,21 +17,19 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
-
 @RestController("permissionController")
 @RequiredArgsConstructor
 public class PermissionController {
 
     private final PermissionManage permissionManage;
     private final PermissionAdapterConverter converter;
-    private final LongIdGenerator idGenerator;
 
     @PostMapping("/api/v1/roles/{roleCode}/permissions")
     public ResponseEntity<Void> grant(
             @PathVariable String roleCode,
             @Valid @RequestBody GrantPermissionRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        String requestId = key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
+        String requestId = key == null || key.isBlank() ? Long.toString(SnowflakeIdGenerator.nextLongId()) : key;
         permissionManage.grantPermission(converter.toCommand(requestId, roleCode, request));
         return ResponseEntity.noContent().build();
     }

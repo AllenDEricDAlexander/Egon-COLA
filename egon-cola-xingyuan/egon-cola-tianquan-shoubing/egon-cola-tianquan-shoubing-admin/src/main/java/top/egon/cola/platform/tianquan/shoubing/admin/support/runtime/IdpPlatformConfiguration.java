@@ -10,7 +10,8 @@ import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
 import top.egon.cola.component.tianshu.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.tianshu.model.instance.DdcRuntimeState;
@@ -39,7 +40,6 @@ public class IdpPlatformConfiguration {
             RefreshTokenStore refreshTokens,
             @Qualifier("rbac3RuntimeRedissonClient") RedissonClient redisson,
             ObjectMapper objectMapper,
-            LongIdGenerator ids,
             @Qualifier("idpClock") Clock idpClock,
             @Value("${egon.tianquan-shoubing.identity-state-key-prefix:identity:v1:user:}")
             String stateKeyPrefix
@@ -50,7 +50,7 @@ public class IdpPlatformConfiguration {
                 refreshTokens,
                 redisson,
                 objectMapper,
-                ids::nextId,
+                SnowflakeIdGenerator::nextId,
                 stateKeyPrefix,
                 idpClock
         );

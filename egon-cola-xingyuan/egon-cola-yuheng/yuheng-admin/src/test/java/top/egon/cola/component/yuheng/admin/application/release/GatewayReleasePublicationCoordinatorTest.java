@@ -1,9 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminDdcProperties;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
 import top.egon.cola.component.tianshu.model.management.DdcManagementPublishTarget;
@@ -39,7 +38,6 @@ import top.egon.cola.component.yuheng.contract.rule.GatewayRuleActivationMode;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRuleChunkRef;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRuleContent;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRuleSnapshot;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -50,8 +48,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
@@ -62,6 +58,11 @@ import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayP
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.TIMEOUT;
 
 class GatewayReleasePublicationCoordinatorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-07-26T08:00:00Z");
@@ -285,9 +286,7 @@ class GatewayReleasePublicationCoordinatorTest {
                         new GatewayDdcRulePublisher(client),
                         Clock.fixed(NOW, ZoneOffset.UTC),
                         Duration.ofSeconds(30),
-                new GatewayAdminDdcProperties(),
-                new SnowflakeIdGenerator(0)
-                );
+                new GatewayAdminDdcProperties());
 
         top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome =
                 resumedCoordinator.resume("release-inline", 1);
@@ -390,9 +389,7 @@ class GatewayReleasePublicationCoordinatorTest {
         changed.setMcpAppCode("changed-mcp");
         var restarted = new GatewayReleasePublicationCoordinator(journal, mock(GatewayReleaseRepository.class),
                 client, new GatewayDdcRulePublisher(client), Clock.fixed(NOW, ZoneOffset.UTC),
-                Duration.ofSeconds(30), changed,
-                new SnowflakeIdGenerator(0)
-                );
+                Duration.ofSeconds(30), changed);
 
         assertThat(restarted.execute("release-inline", 1, compiled, "admin").successful()).isTrue();
         assertThat(client.publishRequests.getLast().changeId()).isEqualTo(originalChangeId);
@@ -468,9 +465,7 @@ class GatewayReleasePublicationCoordinatorTest {
                 new GatewayDdcRulePublisher(client),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 Duration.ofSeconds(30),
-                new GatewayAdminDdcProperties(),
-                new SnowflakeIdGenerator(0)
-                );
+                new GatewayAdminDdcProperties());
     }
 
     private GatewayDdcYamlDocument yaml() {

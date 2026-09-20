@@ -5,6 +5,7 @@ import io.grpc.Server;
 import io.grpc.ServerTransportFilter;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.SpringApplication;
@@ -14,6 +15,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.PropertySource;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.tianshu.model.config.DdcConfigValue;
@@ -24,6 +26,7 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.PullConfigResponse;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcCommonProtoMapper;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcConfigProtoMapper;
 
+import java.time.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -35,6 +38,11 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DdcConfigDataSpringApplicationTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @TempDir
     Path tempDirectory;

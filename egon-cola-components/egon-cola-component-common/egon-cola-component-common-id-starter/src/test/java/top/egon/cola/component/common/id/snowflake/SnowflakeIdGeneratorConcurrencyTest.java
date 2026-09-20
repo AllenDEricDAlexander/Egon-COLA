@@ -1,8 +1,9 @@
 package top.egon.cola.component.common.id.snowflake;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Timeout;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -13,12 +14,16 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Timeout(value = 60, unit = TimeUnit.SECONDS)
 class SnowflakeIdGeneratorConcurrencyTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Duration START_TIMEOUT = Duration.ofSeconds(5);
     private static final Duration FUTURE_TIMEOUT = Duration.ofSeconds(30);
@@ -47,7 +52,7 @@ class SnowflakeIdGeneratorConcurrencyTest {
     private void assertConcurrentGeneration(ExecutorService executor, int taskCount,
                                             int idsPerTask) throws Exception {
         int expectedCount = Math.multiplyExact(taskCount, idsPerTask);
-        SnowflakeIdGenerator generator = new SnowflakeIdGenerator(37);
+        SnowflakeLongIdGenerator generator = new SnowflakeLongIdGenerator(37);
         Set<Long> ids = ConcurrentHashMap.newKeySet(expectedCount);
         CountDownLatch start = new CountDownLatch(1);
         List<Future<?>> futures = new ArrayList<>(taskCount);

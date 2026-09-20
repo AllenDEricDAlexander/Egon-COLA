@@ -1,21 +1,21 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.service;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.test.util.ReflectionTestUtils;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-
 import java.io.IOException;
 import java.time.Instant;
+import java.time.Duration;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.RETURNS_SELF;
@@ -24,6 +24,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class Rbac3DevelopmentResourceBootstrapTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void adminGrantsAreLimitedToMappedBootstrapCapabilitiesAndGrantableResourceTypes() {
@@ -48,7 +53,7 @@ class Rbac3DevelopmentResourceBootstrapTest {
             return roles;
         });
         var bootstrap = new Rbac3DevelopmentResourceBootstrap(
-                entityManager, new ObjectMapper(), mock(LongIdGenerator.class));
+                entityManager, new ObjectMapper());
 
         ReflectionTestUtils.invokeMethod(bootstrap, "ensureLocalAdminResourceGrants",
                 Instant.parse("2026-09-06T05:00:00Z"), Set.of(101L, 102L));

@@ -1,11 +1,10 @@
 package top.egon.cola.component.yuheng.admin.routing.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayAdminIdempotencyConflictException;
 import top.egon.cola.component.yuheng.admin.shared.repository.IdempotencyRepository;
@@ -17,9 +16,9 @@ import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftPO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftRepository;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.rule.service.GatewayRuleCanonicalizer;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,7 +26,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +36,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayDraftServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-07-30T08:00:00Z");
@@ -299,9 +302,7 @@ class GatewayDraftServiceTest {
                 catalog,
                 idempotency,
                 audits,
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
         return new Fixture(service, store, idempotency);
     }
 

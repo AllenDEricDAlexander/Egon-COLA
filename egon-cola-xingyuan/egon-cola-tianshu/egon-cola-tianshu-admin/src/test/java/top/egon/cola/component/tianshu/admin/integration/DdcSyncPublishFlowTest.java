@@ -1,5 +1,6 @@
 package top.egon.cola.component.tianshu.admin.integration;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,7 +15,6 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -76,6 +76,7 @@ import static org.mockito.Mockito.when;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
+        "egon.cola.component.id.machine-id=0",
         "spring.datasource.url=jdbc:sqlite:file:ddc_sync_flow_test?mode=memory&cache=shared",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
@@ -88,7 +89,10 @@ import static org.mockito.Mockito.when;
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcSyncPublishFlowTest {
 
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Autowired
     private DdcPublishService publishService;
@@ -310,7 +314,7 @@ class DdcSyncPublishFlowTest {
     private void saveConfig(String ignoredLabel) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(IDS.nextId());
+        config.setId(SnowflakeIdGenerator.nextId());
         config.setBizCode("default");
         config.setAppCode("demo");
         config.setEnv("dev");
@@ -329,7 +333,7 @@ class DdcSyncPublishFlowTest {
     private DdcPublishRequest request(String value,
                                       long timeoutMs) {
         DdcPublishRequest request = new DdcPublishRequest();
-        request.setChangeId(IDS.nextId());
+        request.setChangeId(SnowflakeIdGenerator.nextId());
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
@@ -361,11 +365,6 @@ class DdcSyncPublishFlowTest {
 
     @TestConfiguration
     static class Dependencies {
-
-        @Bean
-        LongIdGenerator longIdGenerator() {
-            return new SnowflakeIdGenerator(0);
-        }
 
         @Bean
         DdcConfigLeaseService ddcConfigLeaseService() {

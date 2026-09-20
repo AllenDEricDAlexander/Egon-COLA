@@ -1,21 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.snapshot.domain.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
-import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
+
 import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 /**
      * 类型 `MaterializationResultVO` 位于 `DirectorySnapshotMaterializer` 内，是记录类型，用于承载 `Materialization Result` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。

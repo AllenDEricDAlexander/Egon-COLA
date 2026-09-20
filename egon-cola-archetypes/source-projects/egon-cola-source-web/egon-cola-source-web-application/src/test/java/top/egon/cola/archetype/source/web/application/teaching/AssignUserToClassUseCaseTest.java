@@ -18,12 +18,15 @@ import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -33,6 +36,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AssignUserToClassUseCaseTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Mock SchoolClassDomainService schoolClassDomainService;
     @Mock UserDomainService userDomainService;
     @Mock SchoolClassCachePort schoolClassCache;
@@ -55,7 +64,7 @@ class AssignUserToClassUseCaseTest {
                 .thenReturn(true);
         when(idempotency.claim("assign-user-to-school-class", "req-2")).thenReturn(true);
         SchoolClassManageImpl manage = new SchoolClassManageImpl(schoolClassDomainService, userDomainService,
-                new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher, () -> 2001L);
+                new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher);
 
         assertThrows(OrganizationApplicationException.class, () -> manage.assignUser(
                 new AssignUserToClassCommand("req-2", 1001L, 2001L, 3001L)));

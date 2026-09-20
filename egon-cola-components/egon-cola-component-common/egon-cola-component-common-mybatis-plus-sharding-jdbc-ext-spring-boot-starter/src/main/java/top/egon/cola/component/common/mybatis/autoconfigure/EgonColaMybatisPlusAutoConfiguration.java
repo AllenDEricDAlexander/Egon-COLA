@@ -28,7 +28,6 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcUserIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
@@ -48,7 +47,6 @@ import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrat
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 
 import java.time.Clock;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -169,16 +167,8 @@ public class EgonColaMybatisPlusAutoConfiguration {
 
     @Bean("egonColaIdentifierGenerator")
     @ConditionalOnMissingBean(IdentifierGenerator.class)
-    public EgonColaIdentifierGenerator egonColaIdentifierGenerator(ObjectProvider<LongIdGenerator> generators,
-                                                                   ConfigurableListableBeanFactory beans) {
-        List<LongIdGenerator> available = generators.orderedStream().toList();
-        if (available.isEmpty() || !beans.containsBean("snowflakeIdGenerator")) {
-            throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_MISSING");
-        }
-        if (available.size() != 1) {
-            throw new EgonColaMybatisPlusConfigurationException("ID_GENERATOR_BEAN_AMBIGUOUS");
-        }
-        return new EgonColaIdentifierGenerator(beans.getBean("snowflakeIdGenerator", LongIdGenerator.class));
+    public EgonColaIdentifierGenerator egonColaIdentifierGenerator() {
+        return new EgonColaIdentifierGenerator();
     }
 
     @Bean("egonColaTwoLevelRouteStrategy")

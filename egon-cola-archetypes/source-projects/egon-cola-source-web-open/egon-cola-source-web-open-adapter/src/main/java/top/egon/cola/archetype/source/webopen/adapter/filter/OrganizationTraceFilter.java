@@ -10,7 +10,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import lombok.RequiredArgsConstructor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.io.IOException;
 
@@ -19,7 +19,6 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OrganizationTraceFilter extends OncePerRequestFilter {
     public static final String TRACE_HEADER = "X-Trace-Id";
-    private final LongIdGenerator idGenerator;
 
     @Override
     protected void doFilterInternal(
@@ -27,7 +26,7 @@ public class OrganizationTraceFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
         String supplied = request.getHeader(TRACE_HEADER);
         String traceId = supplied == null || supplied.isBlank()
-            ? Long.toString(idGenerator.nextLongId()) : supplied.trim();
+            ? Long.toString(SnowflakeIdGenerator.nextLongId()) : supplied.trim();
         response.setHeader(TRACE_HEADER, traceId);
         MDC.put("traceId", traceId);
         try {

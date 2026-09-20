@@ -17,7 +17,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.slf4j.MDC;
-import top.egon.cola.component.common.id.generator.IdGenerator;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -38,7 +37,6 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.web.suppor
     @Autowired private LocalOrganizationEventPublisher localPublisher;
     @Autowired private InMemorySchoolClassCache schoolClassCache;
     @Autowired private InMemoryCommandIdempotencyAdapter idempotency;
-    @Autowired private IdGenerator idGenerator;
 
     @AfterEach
     void clearContext() {

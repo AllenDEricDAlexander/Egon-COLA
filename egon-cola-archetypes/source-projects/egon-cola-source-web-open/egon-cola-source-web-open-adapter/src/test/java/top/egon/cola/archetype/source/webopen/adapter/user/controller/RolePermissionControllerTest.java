@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.controller;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.archetype.source.webopen.adapter.user.controller.PermissionController;
 import top.egon.cola.archetype.source.webopen.adapter.user.controller.RoleController;
 import top.egon.cola.archetype.source.webopen.adapter.user.converter.PermissionAdapterConverter;
@@ -8,6 +9,7 @@ import top.egon.cola.archetype.source.webopen.application.user.manage.Permission
 import top.egon.cola.archetype.source.webopen.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.webopen.application.user.result.PermissionTreeResult;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
@@ -15,19 +17,22 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.util.List;
-
+import java.time.Duration;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @ExtendWith(MockitoExtension.class)
 class RolePermissionControllerTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Mock RoleManage roleManage;
     @Mock PermissionManage permissionManage;
@@ -37,11 +42,9 @@ class RolePermissionControllerTest {
         when(permissionManage.getPermissionTree(any()))
             .thenReturn(new PermissionTreeResult(1001L, List.of("CLASS_READ")));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new RoleController(roleManage, Mappers.getMapper(RoleAdapterConverter.class),
-                (LongIdGenerator) () -> 9001L),
+            new RoleController(roleManage, Mappers.getMapper(RoleAdapterConverter.class)),
             new PermissionController(
-                permissionManage, Mappers.getMapper(PermissionAdapterConverter.class),
-                (LongIdGenerator) () -> 9002L)).build();
+                permissionManage, Mappers.getMapper(PermissionAdapterConverter.class))).build();
 
         mockMvc.perform(post("/api/v1/users/1001/roles")
                 .contentType(MediaType.APPLICATION_JSON)

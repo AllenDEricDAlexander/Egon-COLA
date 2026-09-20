@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.time.Instant;
 import java.util.List;
@@ -41,14 +41,12 @@ public class CourseDomainServiceImpl
     private final CourseConverter courseConverter;
     @Qualifier("courseScheduleConverterImpl")
     private final CourseScheduleConverter courseScheduleConverter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     private final CourseDomainValidator validator = new CourseDomainValidator();
 
     @Override
     public Course createCourse(CourseCode code, String name, int credit) {
-        return Course.create(idGenerator.nextLongId(), code, name, credit);
+        return Course.create(SnowflakeIdGenerator.nextLongId(), code, name, credit);
     }
 
     @Override
@@ -99,7 +97,7 @@ public class CourseDomainServiceImpl
             List<CourseSchedule> overlaps) {
         validator.validateSchedule(course, classId, startsAt, endsAt, overlaps);
         return new CourseSchedule(
-                idGenerator.nextLongId(), new CourseId(course.getId()), classId,
+                SnowflakeIdGenerator.nextLongId(), new CourseId(course.getId()), classId,
                 startsAt, endsAt, CourseScheduleStatus.SCHEDULED);
     }
 

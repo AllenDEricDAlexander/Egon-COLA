@@ -1,5 +1,7 @@
 package top.egon.cola.archetype.source.webopen.adapter;
 
+import java.time.Duration;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.archetype.source.webopen.adapter.user.dto.CreateUserMessage;
 import top.egon.cola.archetype.source.webopen.adapter.mq.RetryableOrganizationMessageException;
 import top.egon.cola.archetype.source.webopen.adapter.user.mq.UserCreatedConsumer;
@@ -8,11 +10,10 @@ import top.egon.cola.archetype.source.webopen.application.context.OrganizationRe
 import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
 import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationFailureType;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.archetype.source.webopen.adapter.mq.OrganizationMessageSupport;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
-
+import org.junit.jupiter.api.BeforeAll;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -24,6 +25,11 @@ import static org.mockito.Mockito.when;
 
 class OrganizationRabbitMqConsumerTest {
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @AfterEach
     void clearContext() {
         OrganizationRequestContextHolder.clear();
@@ -33,7 +39,7 @@ class OrganizationRabbitMqConsumerTest {
     void createUserMessageDelegatesToTheSharedCommand() {
         UserManage userManage = mock(UserManage.class);
         UserCreatedConsumer consumer = new UserCreatedConsumer(userManage,
-            new OrganizationMessageSupport((LongIdGenerator) () -> 9001L));
+            new OrganizationMessageSupport());
 
         consumer.consume(new CreateUserMessage("req-1", "Mario", "mario@example.com"));
 
@@ -47,7 +53,7 @@ class OrganizationRabbitMqConsumerTest {
         when(userManage.createUser(any())).thenThrow(new OrganizationApplicationException(
                 OrganizationFailureType.CONFLICT, "ORG_CONFLICT", "duplicate"));
         UserCreatedConsumer consumer = new UserCreatedConsumer(userManage,
-            new OrganizationMessageSupport((LongIdGenerator) () -> 9001L));
+            new OrganizationMessageSupport());
 
         assertThatCode(() -> consumer.consume(
                 new CreateUserMessage("req-1", "Mario", "mario@example.com"))).doesNotThrowAnyException();
@@ -61,7 +67,7 @@ class OrganizationRabbitMqConsumerTest {
                 OrganizationFailureType.DEPENDENCY_UNAVAILABLE,
                 "ORG_DEPENDENCY_UNAVAILABLE", "db"));
         UserCreatedConsumer consumer = new UserCreatedConsumer(userManage,
-            new OrganizationMessageSupport((LongIdGenerator) () -> 9001L));
+            new OrganizationMessageSupport());
 
         assertThatThrownBy(() -> consumer.consume(
                 new CreateUserMessage("req-1", "Mario", "mario@example.com")))

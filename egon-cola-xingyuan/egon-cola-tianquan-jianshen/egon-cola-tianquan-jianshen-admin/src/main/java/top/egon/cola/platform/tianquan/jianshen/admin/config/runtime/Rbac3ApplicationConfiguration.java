@@ -6,7 +6,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientFactory;
 import top.egon.cola.component.rpc.tianshu.client.DdcRpcClientHandle;
@@ -229,7 +229,6 @@ public class Rbac3ApplicationConfiguration {
      * @param fenceService 输入参数 `fenceService`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param projectionRecovery 输入参数 `projectionRecovery`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param transactionTemplate 输入参数 `transactionTemplate`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
@@ -239,7 +238,6 @@ public class Rbac3ApplicationConfiguration {
             AuthorizationPublicationGuardService fenceService,
             Rbac3RuntimeProjectionRecovery projectionRecovery,
             TransactionTemplate transactionTemplate,
-            LongIdGenerator idGenerator,
             Clock clock) {
         return new AuthorizationMutationCoordinator(
                 repository,
@@ -250,7 +248,7 @@ public class Rbac3ApplicationConfiguration {
                                 mutation.scope().scopeType(), mutation.scope().scopeId(),
                                 "COMMITTED")),
                 work -> transactionTemplate.execute(status -> work.get()),
-                () -> Long.toString(idGenerator.nextLongId()),
+                () -> Long.toString(SnowflakeIdGenerator.nextLongId()),
                 clock);
     }
 
@@ -320,7 +318,6 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
 
-
     /**
      * 方法 `manifestFacade` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `manifest Facade` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `manifestFacade` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `manifest Facade` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -333,7 +330,6 @@ public class Rbac3ApplicationConfiguration {
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
 
-
     /**
      * 方法 `applicationResourceFacade` 按照 `Rbac3ApplicationConfiguration` 的职责处理输入，完成 `application Resource Facade` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。
      * Method `applicationResourceFacade` processes its inputs according to `Rbac3ApplicationConfiguration`'s responsibility, performs the `application Resource Facade` operation, and returns a result or declared side effect; callers must follow its parameter and exception contract.
@@ -344,7 +340,6 @@ public class Rbac3ApplicationConfiguration {
      * @param repository 输入参数 `repository`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
-
 
     @Bean(name = "rbac3DdcManagementClientHandle", destroyMethod = "close")
     @ConditionalOnProperty(
@@ -433,7 +428,6 @@ public class Rbac3ApplicationConfiguration {
      * Usage: provide contract-compliant arguments before calling `identityMappingFacade`, then continue the business flow using its result, exception, or side effect.
      *
      * @param identities 输入参数 `identities`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     /**
@@ -445,7 +439,6 @@ public class Rbac3ApplicationConfiguration {
      *
      * @param identities 输入参数 `identities`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param contexts 输入参数 `contexts`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @return 操作产生的结果，其具体语义由返回类型和所属 API 定义；the result of the operation, whose exact semantics are defined by the return type and owning API.
      */
     /**

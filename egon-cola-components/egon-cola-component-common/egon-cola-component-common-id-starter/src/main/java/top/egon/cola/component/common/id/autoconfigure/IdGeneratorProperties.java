@@ -7,7 +7,9 @@ import java.time.Duration;
 
 /**
  * Configuration properties for Snowflake ID generation. Machine identifiers
- * are deployment-assigned and are never derived automatically.
+ * are deployment-assigned and are never derived automatically. Values are
+ * validated by {@link SnowflakeIdGenerator#initialize(Long, Duration)} when
+ * auto-configuration binds the process-wide engine.
  */
 @ConfigurationProperties(prefix = IdGeneratorProperties.PREFIX)
 public class IdGeneratorProperties {

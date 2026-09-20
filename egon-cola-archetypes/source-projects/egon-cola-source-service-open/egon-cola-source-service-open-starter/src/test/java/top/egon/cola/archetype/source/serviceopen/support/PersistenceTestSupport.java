@@ -8,7 +8,6 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.convention.TestBean;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
 import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
@@ -18,7 +17,6 @@ import javax.sql.DataSource;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicLong;
 
 /** Fast business tests use isolated logical tables; real PG/SS tests must not inherit this fixture. */
 @TestPropertySource(properties = {"egon.cola.component.mybatis-plus.ddl.enabled=false", "spring.sql.init.mode=never",
@@ -29,8 +27,6 @@ public abstract class PersistenceTestSupport {
     protected DataSource testDataSource;
     @TestBean(name = "egonColaWriteTargetResolver", methodName = "plainResolver", enforceOverride = true)
     protected EgonColaWriteTargetResolver resolver;
-    @TestBean(name = "snowflakeIdGenerator", methodName = "testIds", enforceOverride = true)
-    protected LongIdGenerator idGenerator;
     @TestBean(name = "egonColaRoutingProfiles", methodName = "isolatedProfiles", enforceOverride = true)
     protected Map<String, EgonColaRoutingProfileBO> routingProfiles;
     @TestBean(name = "egonColaShardingRouteFingerprint", methodName = "isolatedFingerprint", enforceOverride = true)
@@ -55,11 +51,6 @@ public abstract class PersistenceTestSupport {
 
     static String isolatedFingerprint() {
         return "f".repeat(64);
-    }
-
-    static LongIdGenerator testIds() {
-        AtomicLong values = new AtomicLong(100000);
-        return values::incrementAndGet;
     }
 
     @AfterEach

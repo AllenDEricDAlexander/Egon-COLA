@@ -13,12 +13,15 @@ import top.egon.cola.archetype.source.webopen.domain.user.entities.User;
 import top.egon.cola.archetype.source.webopen.domain.user.enums.UserStatus;
 import top.egon.cola.archetype.source.webopen.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +32,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class UserManageImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Mock private UserDomainService userDomainService;
     @Mock private UserCachePort userCache;
     @Mock private CommandIdempotencyPort idempotency;
@@ -46,7 +55,7 @@ class UserManageImplTest {
         doReturn(user).when(userDomainService).save(any(User.class));
         when(idempotency.claim("create-user", "req-1")).thenReturn(true);
         UserManageImpl manage = new UserManageImpl(userDomainService, new UserApplicationValidator(),
-                new UserAssembler(), userCache, idempotency, eventPublisher, () -> 2001L);
+                new UserAssembler(), userCache, idempotency, eventPublisher);
 
         assertEquals(2001L, manage.createUser(
                 new CreateUserCommand("req-1", "Mario", "MARIO@EXAMPLE.COM")).id());

@@ -1,18 +1,16 @@
 package top.egon.cola.component.yuheng.admin.openapi.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplicationPO;
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminOpenApiProperties;
 import top.egon.cola.component.yuheng.admin.openapi.client.GatewayOpenApiFetchException;
 import top.egon.cola.component.yuheng.admin.openapi.client.GatewayProviderOpenApiClient;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiDocumentDTO;
-import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiDefinitionDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncCandidateDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.dto.GatewayOpenApiSyncKeyDTO;
 import top.egon.cola.component.yuheng.admin.openapi.domain.enums.GatewayOpenApiSyncStateEnum;
@@ -27,18 +25,17 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementServiceCata
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceInstance;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceKey;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceSnapshot;
-
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -51,6 +48,11 @@ import org.mockito.ArgumentCaptor;
 import top.egon.cola.component.yuheng.admin.openapi.converter.GatewayOpenApi31ContractAdapter;
 
 class GatewayOpenApiSyncServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW = Instant.parse("2026-08-26T03:00:00Z");
 
@@ -253,9 +255,7 @@ class GatewayOpenApiSyncServiceTest {
                 coordinator,
                 properties,
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
 
         int claimed = serviceUnderTest.reconcile();
         verify(ddc).getServiceKeys(any());
@@ -295,9 +295,7 @@ class GatewayOpenApiSyncServiceTest {
                 mock(GatewayOpenApiAggregateCoordinator.class),
                 new GatewayAdminOpenApiProperties(),
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
 
         assertThat(serviceUnderTest.reconcile()).isZero();
 
@@ -355,9 +353,7 @@ class GatewayOpenApiSyncServiceTest {
                 mock(GatewayOpenApiAggregateCoordinator.class),
                 new GatewayAdminOpenApiProperties(),
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
 
         serviceUnderTest.reconcile();
 
@@ -384,9 +380,7 @@ class GatewayOpenApiSyncServiceTest {
                 coordinator,
                 properties,
                 new SimpleMeterRegistry(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     private GatewayOpenApiSyncCandidateDTO candidate(String group, String instanceId) {

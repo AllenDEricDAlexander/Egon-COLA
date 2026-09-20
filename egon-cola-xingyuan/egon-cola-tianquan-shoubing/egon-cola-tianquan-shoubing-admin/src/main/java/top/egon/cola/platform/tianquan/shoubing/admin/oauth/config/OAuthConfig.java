@@ -5,7 +5,8 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRedirectUriRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientSecretRepository;
@@ -120,7 +121,6 @@ public class OAuthConfig {
      * @param accessPolicy Tianquan-Shoubing Service Grant 策略；Tianquan-Shoubing Service Grant policy
      * @param signer RS256 Token 服务；RS256 token service
      * @param idpClock UTC 业务时钟；UTC business clock
-     * @param ids 全局 ID 生成器；global ID generator
      * @return SERVICE Token 签发服务；SERVICE token issuance service
      */
     @Bean
@@ -129,8 +129,7 @@ public class OAuthConfig {
             ResourceServerStore resources,
             ClientCredentialsAccessPolicy accessPolicy,
             Rs256TokenService signer,
-            @Qualifier("idpClock") Clock idpClock,
-            LongIdGenerator ids
+            @Qualifier("idpClock") Clock idpClock
     ) {
         return new ClientCredentialsTokenService(
                 clients,
@@ -138,7 +137,7 @@ public class OAuthConfig {
                 accessPolicy,
                 signer,
                 idpClock,
-                ids::nextId
+                SnowflakeIdGenerator::nextId
         );
     }
 

@@ -1,8 +1,9 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.role;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleinheritance.repository.jdbc.PostgresqlRoleClosureRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.repository.jpa.JpaRoleRepository;
@@ -10,11 +11,10 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repo
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.service.RoleFacade;
 import top.egon.cola.platform.tianquan.jianshen.core.hierarchy.RoleHierarchy;
-
 import java.time.Instant;
+import java.time.Duration;
 import java.util.List;
 import java.util.function.Function;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleinheritance.repository.RoleHierarchyRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.repository.RoleControlRepository;
@@ -22,7 +22,6 @@ import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.domain.dto.Create
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.role.domain.vo.RoleMutationResultVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleinheritance.domain.dto.InheritanceCommandDTO;
 import top.egon.cola.platform.tianquan.jianshen.core.hierarchy.RoleNode;
-
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -31,12 +30,16 @@ import static org.mockito.Mockito.when;
 
 class RoleControlFacadeTest {
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Test
     void graphMutationPublishesTheVersionReturnedByAuthorizationState() {
         EntityManager entityManager = mock(EntityManager.class);
         PostgresqlRoleClosureRepository closureStore = mock(
                 PostgresqlRoleClosureRepository.class);
-        LongIdGenerator idGenerator = mock(LongIdGenerator.class);
         DatabaseClock databaseClock = mock(DatabaseClock.class);
         AuthorizationEventPublisher eventPort = mock(AuthorizationEventPublisher.class);
         TenantAuthorizationStateRepository stateStore = mock(
@@ -48,7 +51,6 @@ class RoleControlFacadeTest {
         new JpaRoleRepository(
                 entityManager,
                 closureStore,
-                idGenerator,
                 databaseClock,
                 eventPort,
                 stateStore).recordGraphMutation(

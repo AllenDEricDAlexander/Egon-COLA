@@ -21,9 +21,8 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
-import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -41,8 +40,6 @@ public class ExamDomainServiceImpl
     private final ExamConverter examConverter;
     @Qualifier("examPaperConverterImpl")
     private final ExamPaperConverter examPaperConverter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     private final ExamDomainValidator validator = new ExamDomainValidator();
 
@@ -50,7 +47,7 @@ public class ExamDomainServiceImpl
     public Exam createExam(Course course, String title, java.time.Instant startsAt, java.time.Instant endsAt) {
         validator.validateExam(course, title, startsAt, endsAt);
         return new Exam(
-                new ExamId(idGenerator.nextLongId()), new CourseId(course.getId()), title.trim(),
+                new ExamId(SnowflakeIdGenerator.nextLongId()), new CourseId(course.getId()), title.trim(),
                 startsAt, endsAt, ExamStatus.DRAFT);
     }
 
@@ -58,7 +55,7 @@ public class ExamDomainServiceImpl
     public ExamPaper attachPaper(Exam exam, String title, int totalPoints) {
         validator.validatePaper(title, totalPoints);
         return new ExamPaper(
-                idGenerator.nextLongId(), exam.getId(), title.trim(), totalPoints,
+                SnowflakeIdGenerator.nextLongId(), exam.getId(), title.trim(), totalPoints,
                 ExamPaperStatus.DRAFT);
     }
 

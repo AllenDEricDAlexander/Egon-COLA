@@ -1,11 +1,10 @@
 package top.egon.cola.component.yuheng.admin.mcp.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.component.yuheng.admin.shared.repository.IdempotencyRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
@@ -18,16 +17,15 @@ import top.egon.cola.component.yuheng.admin.mcp.repository.jdbc.JdbcMcpRemoteToo
 import top.egon.cola.component.yuheng.admin.mcp.domain.po.McpServerPO;
 import top.egon.cola.component.yuheng.admin.mcp.repository.McpServerRepository;
 import top.egon.cola.component.yuheng.contract.mcp.rule.McpRuntimeTool;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,6 +38,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class McpToolAdminServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW = Instant.parse("2026-08-06T00:00:00Z");
 
@@ -89,9 +92,7 @@ class McpToolAdminServiceTest {
                 idempotency,
                 mock(GatewayAuditLogRepository.class),
                 new ObjectMapper(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
     }
 
     @Test

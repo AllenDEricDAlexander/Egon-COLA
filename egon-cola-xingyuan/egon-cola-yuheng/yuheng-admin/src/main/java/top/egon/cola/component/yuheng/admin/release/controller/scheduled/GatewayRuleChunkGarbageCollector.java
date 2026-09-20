@@ -1,6 +1,5 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -8,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfig;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfigQuery;
@@ -119,21 +118,18 @@ public class GatewayRuleChunkGarbageCollector {
      * @param properties 参数 properties；parameter properties。
      * @param publishTimeout 参数 publish超时；parameter publish timeout。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayRuleChunkGarbageCollector(GatewayReleasePublicationRepository journal,
             ObjectProvider<DdcManagementClient> client,
             GatewayAdminProperties properties,
             @Value("${yuheng.admin.tianshu.publish-timeout:PT30S}")
-            Duration publishTimeout,
-            LongIdGenerator idGenerator) {
+            Duration publishTimeout) {
         this(journal,
                 client.getIfAvailable(),
                 properties,
                 Clock.systemUTC(),
-                publishTimeout,
-                idGenerator);
+                publishTimeout);
     }
 
     /**
@@ -151,9 +147,7 @@ public class GatewayRuleChunkGarbageCollector {
             DdcManagementClient client,
             GatewayAdminProperties properties,
             Clock clock,
-            Duration publishTimeout,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Duration publishTimeout) {
         this.journal = Objects.requireNonNull(journal, "journal");
         this.client = client;
         this.properties = Objects.requireNonNull(properties, "properties");
@@ -228,7 +222,7 @@ public class GatewayRuleChunkGarbageCollector {
      */
     private void delete(
             top.egon.cola.component.yuheng.admin.release.domain.po.GatewayChunkCleanupCandidatePO candidate) {
-        String changeId = idGenerator.nextId();
+        String changeId = SnowflakeIdGenerator.nextId();
         try {
             DdcManagementConfig config = current(candidate).orElse(null);
             if (config == null || config.deleted()) {

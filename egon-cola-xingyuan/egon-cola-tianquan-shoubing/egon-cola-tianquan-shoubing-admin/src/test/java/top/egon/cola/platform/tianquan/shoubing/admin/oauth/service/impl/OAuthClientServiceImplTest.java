@@ -1,7 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.CreateOAuthClientDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.RotateClientSecretDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.UpdateOAuthClientDTO;
@@ -23,11 +25,11 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordHashPort;
 
 import java.security.SecureRandom;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.atomic.AtomicLong;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -38,6 +40,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class OAuthClientServiceImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-08-02T00:00:00Z");
@@ -52,7 +59,6 @@ class OAuthClientServiceImplTest {
             mock(IdentityResourceServerRepository.class);
     private final IdentityClientResourceGrantRepository grants =
             mock(IdentityClientResourceGrantRepository.class);
-    private final AtomicLong ids = new AtomicLong(2000L);
     private final PasswordHashPort passwordHashes = mock(PasswordHashPort.class);
     private final IdentitySecurityEventPort securityEvents =
             mock(IdentitySecurityEventPort.class);
@@ -70,7 +76,6 @@ class OAuthClientServiceImplTest {
                 resources,
                 grants,
                 secrets,
-                ids::incrementAndGet,
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 passwordHashes,
                 securityEvents,

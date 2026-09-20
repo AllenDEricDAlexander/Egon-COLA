@@ -1,10 +1,9 @@
 package top.egon.cola.component.yuheng.admin.application.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.model.management.DdcManagementScopeBinding;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.GatewayApplicationCreateCommandDTO;
 import top.egon.cola.component.yuheng.admin.application.domain.dto.GatewayApplicationUpdateCommandDTO;
@@ -77,14 +76,12 @@ public class GatewayApplicationService {
      * @param audits 参数 audits；parameter audits。
      * @param scopes 参数 scopes；parameter scopes。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayApplicationService(GatewayApplicationRepository applications,
             GatewayAuditLogRepository audits,
-            GatewayScopeService scopes,
-            LongIdGenerator idGenerator) {
-        this(applications, audits, scopes, Clock.systemUTC(), idGenerator);
+            GatewayScopeService scopes) {
+        this(applications, audits, scopes, Clock.systemUTC());
     }
 
     /**
@@ -100,9 +97,7 @@ public class GatewayApplicationService {
     GatewayApplicationService(GatewayApplicationRepository applications,
             GatewayAuditLogRepository audits,
             GatewayScopeService scopes,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.applications = applications;
         this.audits = audits;
         this.scopes = scopes;
@@ -146,7 +141,7 @@ public class GatewayApplicationService {
         }
         Instant now = clock.instant();
         GatewayApplicationPO application = new GatewayApplicationPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 scope.bizCode(),
                 scope.appCode(),
                 required(command.displayName(), "displayName"),
@@ -302,7 +297,7 @@ public class GatewayApplicationService {
             String action,
             Map<String, Object> after) {
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -444,10 +439,5 @@ public class GatewayApplicationService {
         }
         return value.trim();
     }
-
-
-
-
-
 
 }

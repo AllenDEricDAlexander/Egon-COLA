@@ -1,7 +1,9 @@
 package top.egon.cola.component.yuheng.admin.catalog.service;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.shared.domain.RequestAuditContext;
 import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
@@ -11,6 +13,7 @@ import top.egon.cola.component.yuheng.admin.catalog.domain.po.*;
 import top.egon.cola.component.yuheng.admin.catalog.domain.vo.*;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -30,6 +33,11 @@ class GatewayCatalogServiceTest {
             "2026-07-25T00:00:00Z"
     );
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Test
     void createsManualHttpOperationWithStableIdentityAndVersion() {
         FakeStore store = new FakeStore();
@@ -45,7 +53,7 @@ class GatewayCatalogServiceTest {
 
         assertThat(created.operation().operationKey())
                 .isEqualTo("orders:http:GET:/orders/{id}");
-        assertThat(created.operation().id()).isEqualTo("42");
+        assertThat(Long.parseLong(created.operation().id())).isPositive();
         assertThat(created.operation().externalAccessible()).isFalse();
         assertThat(created.operation().sourceType()).isEqualTo("MANUAL");
         assertThat(created.definitions()).singleElement()
@@ -118,8 +126,7 @@ class GatewayCatalogServiceTest {
                 store,
                 mock(GatewayAuditLogRepository.class),
                 JsonMapper.builder().build(),
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                () -> 42L
+                Clock.fixed(NOW, ZoneOffset.UTC)
         );
     }
 

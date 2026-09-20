@@ -15,12 +15,15 @@ import top.egon.cola.archetype.source.web.domain.user.enums.UserStatus;
 import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -30,6 +33,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class RoleManageImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Mock UserDomainService userDomainService;
     @Mock UserCachePort userCache;
     @Mock CommandIdempotencyPort idempotency;
@@ -47,7 +56,7 @@ class RoleManageImplTest {
         when(userDomainService.findRoleByCode(new RoleCode("STUDENT"))).thenReturn(Optional.of(role));
         when(idempotency.claim("assign-role", "req-role")).thenReturn(true);
         RoleManageImpl manage = new RoleManageImpl(userDomainService, new UserApplicationValidator(),
-                userCache, idempotency, eventPublisher, () -> 2001L);
+                userCache, idempotency, eventPublisher);
 
         manage.assignRole(new AssignRoleCommand("req-role", 1001L, "student"));
 

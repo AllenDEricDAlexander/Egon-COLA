@@ -11,7 +11,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceCatalog;
 import top.egon.cola.component.tianshu.model.management.DdcManagementServiceInstance;
@@ -97,7 +97,6 @@ public class GatewayOpenApiSyncService {
     private final Clock clock;
 
     /** Creates the Spring-managed synchronization service. */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayOpenApiSyncService(DdcManagementClient ddc,
@@ -110,8 +109,7 @@ public class GatewayOpenApiSyncService {
             GatewayAdminOpenApiProperties properties,
             @Qualifier("gatewayOpenApiObjectMapper")
             ObjectMapper objectMapper,
-            MeterRegistry meters,
-            LongIdGenerator idGenerator) {
+            MeterRegistry meters) {
         this(ddc,
                 applications,
                 syncStates,
@@ -122,8 +120,7 @@ public class GatewayOpenApiSyncService {
                 properties,
                 objectMapper,
                 meters,
-                Clock.systemUTC(),
-                idGenerator);
+                Clock.systemUTC());
     }
 
     /** Constructor used by deterministic focused tests. */
@@ -136,8 +133,7 @@ public class GatewayOpenApiSyncService {
             GatewayOpenApiAggregateCoordinator coordinator,
             GatewayAdminOpenApiProperties properties,
             MeterRegistry meters,
-            Clock clock,
-            LongIdGenerator idGenerator) {
+            Clock clock) {
         this(ddc,
                 applications,
                 syncStates,
@@ -148,7 +144,7 @@ public class GatewayOpenApiSyncService {
                 properties,
                 new ObjectMapper(),
                 meters,
-                clock, idGenerator);
+                clock);
     }
 
     private GatewayOpenApiSyncService(DdcManagementClient ddc,
@@ -161,9 +157,7 @@ public class GatewayOpenApiSyncService {
             GatewayAdminOpenApiProperties properties,
             ObjectMapper objectMapper,
             MeterRegistry meters,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.ddc = Objects.requireNonNull(ddc, "tianshu");
         this.applications = Objects.requireNonNull(
                 applications,
@@ -816,7 +810,7 @@ public class GatewayOpenApiSyncService {
             return;
         }
         syncStates.upsertDiscovered(new GatewayOpenApiSyncPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 context.application().getId(),
                 context.manifest().buildId(),
                 context.manifest().artifactVersion(),
@@ -936,7 +930,7 @@ public class GatewayOpenApiSyncService {
                     ? root.path("components").path("schemas").size()
                     : 0;
             GatewayOpenApiSnapshotPO snapshot = new GatewayOpenApiSnapshotPO(
-                    idGenerator.nextId(),
+                    SnowflakeIdGenerator.nextId(),
                     document.candidate().applicationId(),
                     null,
                     document.candidate().buildId(),

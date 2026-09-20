@@ -2,7 +2,9 @@ package top.egon.cola.component.yuheng.runtime.observability.service;
 
 import top.egon.cola.component.yuheng.runtime.observability.domain.GatewayCallObservation;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
@@ -15,6 +17,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GatewayCallEventDispatcherTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void drainsAcceptedEventsWithoutExposingSensitiveRequestData()
@@ -43,8 +50,7 @@ class GatewayCallEventDispatcherTest {
                 GatewayTraceContext.fromHeaders(null, null, null),
                 "HTTP",
                 "PUBLIC",
-                "engine-1",
-                new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0)
+                "engine-1"
         );
         return observation.complete(
                 "COMPLETE",

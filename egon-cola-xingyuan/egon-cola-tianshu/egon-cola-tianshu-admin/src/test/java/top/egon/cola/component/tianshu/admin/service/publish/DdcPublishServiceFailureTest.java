@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -37,6 +36,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
+        "egon.cola.component.id.machine-id=0",
         "spring.datasource.url=jdbc:sqlite:file:ddc_publish_failure_test?mode=memory&cache=shared",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
@@ -46,8 +46,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "egon.cola.component.tianshu.enabled=false"
 })
 class DdcPublishServiceFailureTest {
-
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     @Autowired
     private DdcPublishService publishService;
@@ -59,7 +57,7 @@ class DdcPublishServiceFailureTest {
     @Transactional(propagation = Propagation.NOT_SUPPORTED)
     void transactionFailureCreatesFailedRecordAndThrows() {
         DdcPublishRequest request = new DdcPublishRequest();
-        request.setChangeId(IDS.nextId());
+        request.setChangeId(SnowflakeIdGenerator.nextId());
         request.setBizCode("default");
         request.setAppCode("demo");
         request.setEnv("dev");
@@ -77,11 +75,6 @@ class DdcPublishServiceFailureTest {
 
     @TestConfiguration
     static class RedisTestConfig {
-
-        @Bean
-        LongIdGenerator longIdGenerator() {
-            return new SnowflakeIdGenerator(0);
-        }
 
         @Bean
         DdcRedisRepository ddcRedisRepository() {

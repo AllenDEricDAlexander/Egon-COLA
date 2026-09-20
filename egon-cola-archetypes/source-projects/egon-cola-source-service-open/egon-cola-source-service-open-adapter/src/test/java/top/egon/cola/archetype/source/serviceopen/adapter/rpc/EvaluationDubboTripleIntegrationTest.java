@@ -25,8 +25,6 @@ import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CourseSch
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CourseService;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CreateCourseRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CreateExamRequest;
-import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Exam;
-import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ExamPaper;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ExamService;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.GetCourseRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.GetExamRequest;
@@ -38,8 +36,8 @@ import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.PageScore
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.PublishExamRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.RecordScoreRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ScheduleCourseRequest;
-import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Score;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ScoreService;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import com.google.protobuf.Timestamp;
 import io.grpc.CallOptions;
 import io.grpc.ManagedChannel;
@@ -48,6 +46,7 @@ import io.grpc.MethodDescriptor;
 import io.grpc.protobuf.ProtoUtils;
 import io.grpc.stub.ClientCalls;
 import java.net.ServerSocket;
+import java.time.Duration;
 import java.time.Instant;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ProtocolConfig;
@@ -55,6 +54,7 @@ import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.config.RegistryConfig;
 import org.apache.dubbo.config.ServiceConfig;
 import org.apache.dubbo.config.bootstrap.DubboBootstrap;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -65,6 +65,11 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class EvaluationDubboTripleIntegrationTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void shouldInvokeAllEvaluationMethodsThroughOneTriplePort() throws Exception {
@@ -95,7 +100,7 @@ class EvaluationDubboTripleIntegrationTest {
                 java.util.List.of(new ScoreResult(1301L, 1002L, 1001L, 2001L, 95, "RECORDED")),
                 1, 1, 20, 1));
 
-        GlobalFacadeExceptionHandler handler = new GlobalFacadeExceptionHandler(() -> 9001L);
+        GlobalFacadeExceptionHandler handler = new GlobalFacadeExceptionHandler();
         CourseFacadeImpl courseProvider = new CourseFacadeImpl(
                 courseManage, new CourseFacadeConverter(), new CourseFacadeValidator(), handler);
         ExamFacadeImpl examProvider = new ExamFacadeImpl(

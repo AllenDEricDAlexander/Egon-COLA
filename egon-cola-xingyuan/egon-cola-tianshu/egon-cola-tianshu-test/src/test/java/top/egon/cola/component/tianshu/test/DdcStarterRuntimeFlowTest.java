@@ -1,5 +1,6 @@
 package top.egon.cola.component.tianshu.test;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.redisson.api.RTopic;
 import org.redisson.api.RedissonClient;
@@ -12,6 +13,7 @@ import org.springframework.context.ApplicationContextInitializer;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.test.context.ContextConfiguration;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcConfigClient;
 import top.egon.cola.component.tianshu.model.config.DdcAckRequest;
 import top.egon.cola.component.tianshu.model.config.DdcHeartbeatRequest;
@@ -29,6 +31,7 @@ import top.egon.cola.component.tianshu.service.lifecycle.DdcRuntimeCoordinator;
 import top.egon.cola.component.tianshu.model.instance.DdcRuntimeState;
 import top.egon.cola.component.tianshu.test.service.SampleConfigService;
 
+import java.time.Duration;
 import java.net.URI;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -65,6 +68,11 @@ import org.springframework.security.oauth2.core.OAuth2AccessToken;
 @ContextConfiguration(initializers =
         DdcStarterRuntimeFlowTest.DdcPropertySourceInitializer.class)
 class DdcStarterRuntimeFlowTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Autowired
     private DdcRuntimeCoordinator runtimeCoordinator;

@@ -6,7 +6,7 @@ import top.egon.cola.archetype.source.webopen.adapter.user.vo.UserDetailVO;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
 import top.egon.cola.archetype.source.webopen.application.user.query.UserDetailQuery;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationIdBoundary;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,14 +27,13 @@ public class UserController {
 
     private final UserManage userManage;
     private final UserAdapterConverter converter;
-    private final LongIdGenerator idGenerator;
 
     @PostMapping
     public ResponseEntity<UserDetailVO> create(
             @RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
             @Valid @RequestBody CreateUserRequest request) {
         String requestId = idempotencyKey == null || idempotencyKey.isBlank()
-            ? Long.toString(idGenerator.nextLongId()) : idempotencyKey;
+            ? Long.toString(SnowflakeIdGenerator.nextLongId()) : idempotencyKey;
         UserDetailVO body = converter.toVO(userManage.createUser(converter.toCommand(requestId, request)));
         return ResponseEntity.created(URI.create("/api/v1/users/" + body.id())).body(body);
     }

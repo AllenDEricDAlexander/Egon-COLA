@@ -1,12 +1,11 @@
 package top.egon.cola.component.yuheng.admin.mcp.service;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpManagedToolOverrideMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpRemoteToolMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpToolMutationControlDTO;
@@ -178,7 +177,6 @@ public class McpToolAdminService {
      * @param audits 参数 audits；parameter audits。
      * @param objectMapper 参数 object映射器；parameter object mapper。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public McpToolAdminService(McpReleaseContentFactory contentFactory,
@@ -190,8 +188,7 @@ public class McpToolAdminService {
             GatewayDraftJpaRepository drafts,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
-            ObjectMapper objectMapper,
-            LongIdGenerator idGenerator) {
+            ObjectMapper objectMapper) {
         this(contentFactory,
                 validation,
                 managedOverrides,
@@ -202,7 +199,7 @@ public class McpToolAdminService {
                 idempotency,
                 audits,
                 objectMapper,
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     /**
@@ -232,9 +229,7 @@ public class McpToolAdminService {
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
             ObjectMapper objectMapper,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.contentFactory = contentFactory;
         this.validation = validation;
         this.managedOverrides = managedOverrides;
@@ -508,7 +503,7 @@ public class McpToolAdminService {
         if (replay != null) {
             return replay;
         }
-        String resourceId = id == null ? idGenerator.nextId() : id;
+        String resourceId = id == null ? SnowflakeIdGenerator.nextId() : id;
         requiredServerInGroup(command.serverId(), command.gatewayGroupId());
         requireRemoteMount(
                 command.remoteMountId(),
@@ -879,7 +874,7 @@ public class McpToolAdminService {
                 now.plus(Duration.ofDays(7))
         ));
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -1145,14 +1140,5 @@ public class McpToolAdminService {
                 resource + " " + id + " was not found"
         );
     }
-
-
-
-
-
-
-
-
-
 
 }

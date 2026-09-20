@@ -3,7 +3,9 @@ package top.egon.cola.component.rpc.tianshu.client;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfigQuery;
 import top.egon.cola.component.tianshu.model.registry.DdcServiceKind;
@@ -20,12 +22,18 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.GetServicesResponse
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.PullConfigRequest;
 import top.egon.cola.component.rpc.tianshu.contract.proto.v1.PullConfigResponse;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class DdcRpcClientFactoryTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void createsIndependentPlaintextClientsForAllThreeDdcCapabilities()

@@ -1,5 +1,6 @@
 package top.egon.cola.component.yuheng.engine.http.service;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.runtime.observability.service.GatewayCallCompletionListener;
 import top.egon.cola.component.yuheng.runtime.rule.service.GatewayTrafficPolicyCompiler;
 import top.egon.cola.component.yuheng.runtime.http.domain.GatewayInboundHttpRequest;
@@ -8,6 +9,7 @@ import top.egon.cola.component.yuheng.engine.http.security.GatewayHttpSecurityPr
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.PooledByteBufAllocator;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.NettyDataBuffer;
@@ -58,6 +60,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class DefaultGatewayHttpDataPlaneHandlerRetryTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void retriesConfiguredStatusForReplayableIdempotentRequest() {

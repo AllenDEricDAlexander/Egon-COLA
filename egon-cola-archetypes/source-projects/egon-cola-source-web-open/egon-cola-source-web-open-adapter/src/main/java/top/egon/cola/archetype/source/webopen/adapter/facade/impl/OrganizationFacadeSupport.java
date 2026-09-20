@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 import lombok.RequiredArgsConstructor;
 import org.apache.dubbo.rpc.RpcContext;
 import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 /** Shared request-context and stable gRPC error mapping for organization Triple providers. */
 @Component
@@ -27,11 +27,9 @@ public final class OrganizationFacadeSupport {
     private static final Metadata.Key<String> TRACE_ID = Metadata.Key.of(
             "x-egon-trace-id", Metadata.ASCII_STRING_MARSHALLER);
 
-    private final LongIdGenerator idGenerator;
-
     public String requestId() {
         String value = attachment("idempotency-key");
-        return value == null || value.isBlank() ? Long.toString(idGenerator.nextLongId()) : value;
+        return value == null || value.isBlank() ? Long.toString(SnowflakeIdGenerator.nextLongId()) : value;
     }
 
     public static long positiveId(long value, String field) {
@@ -77,7 +75,7 @@ public final class OrganizationFacadeSupport {
         Objects.requireNonNull(failure, "failure");
         String traceId = OrganizationRequestContextHolder.current()
                 .map(OrganizationRequestContext::traceId)
-                .orElseGet(() -> Long.toString(idGenerator.nextLongId()));
+                .orElseGet(() -> Long.toString(SnowflakeIdGenerator.nextLongId()));
         Metadata metadata = metadata(failure.code());
         metadata.put(TRACE_ID, traceId);
         return status(failure.failureType()).withDescription(
@@ -87,7 +85,7 @@ public final class OrganizationFacadeSupport {
 
     private OrganizationRequestContext context() {
         String actorId = valueOrDefault(attachment("x-actor-id"), "facade-system");
-        String traceId = valueOrDefault(attachment("x-trace-id"), Long.toString(idGenerator.nextLongId()));
+        String traceId = valueOrDefault(attachment("x-trace-id"), Long.toString(SnowflakeIdGenerator.nextLongId()));
         String roleHeader = attachment("x-actor-roles");
         Set<String> roles = roleHeader == null || roleHeader.isBlank()
                 ? Set.of("SYSTEM")

@@ -1,13 +1,12 @@
 package top.egon.cola.component.tianshu.admin.service.metadata;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import top.egon.cola.component.common.core.exception.CommonException;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.common.core.pojo.PageQuery;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcNamespaceEnvAppBindingRequest;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
@@ -18,10 +17,9 @@ import top.egon.cola.component.tianshu.admin.repository.DdcEnvRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceRepository;
 import top.egon.cola.component.tianshu.error.DdcErrorStatus;
-
 import java.util.List;
+import java.time.Duration;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -33,6 +31,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcNamespaceEnvAppBindingServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private DdcNamespaceEnvAppBindingRepository bindingRepository;
 
@@ -54,9 +57,7 @@ class DdcNamespaceEnvAppBindingServiceTest {
                 bindingRepository,
                 namespaceRepository,
                 appRepository,
-                envRepository,
-                new SnowflakeIdGenerator(0)
-                );
+                envRepository);
     }
 
     @Test

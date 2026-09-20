@@ -1,10 +1,13 @@
 package top.egon.cola.component.common.id.exception;
 
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.CommonException;
+
 /**
  * Signals that wall-clock time cannot be represented by the fixed 41-bit
  * Snowflake timestamp field.
  */
-public final class SnowflakeTimestampOutOfRangeException extends IllegalStateException {
+public final class SnowflakeTimestampOutOfRangeException extends CommonException {
 
     private final long currentTimeMillis;
     private final long minimumTimeMillis;
@@ -19,9 +22,10 @@ public final class SnowflakeTimestampOutOfRangeException extends IllegalStateExc
      */
     public SnowflakeTimestampOutOfRangeException(long currentTimeMillis, long minimumTimeMillis,
                                                  long maximumTimeMillis) {
-        super("Snowflake timestamp is outside the supported range: currentTimeMillis="
-                + currentTimeMillis + ", minimumTimeMillis=" + minimumTimeMillis
-                + ", maximumTimeMillis=" + maximumTimeMillis);
+        super(ResultCode.SYSTEM_ERROR.getCode(), ResultCode.SYSTEM_ERROR.getStatus(),
+                "Snowflake timestamp is outside the supported range: currentTimeMillis="
+                        + currentTimeMillis + ", minimumTimeMillis=" + minimumTimeMillis
+                        + ", maximumTimeMillis=" + maximumTimeMillis);
         this.currentTimeMillis = currentTimeMillis;
         this.minimumTimeMillis = minimumTimeMillis;
         this.maximumTimeMillis = maximumTimeMillis;

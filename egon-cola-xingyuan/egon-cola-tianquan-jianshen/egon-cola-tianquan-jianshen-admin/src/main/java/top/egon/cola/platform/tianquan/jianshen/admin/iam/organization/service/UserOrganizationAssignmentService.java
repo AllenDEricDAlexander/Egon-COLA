@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.domain.enums.OrgUnitStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.domain.enums.UserDirectoryAssignmentStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.domain.po.OrgUnitPO;
@@ -23,15 +23,12 @@ import java.util.Objects;
 public class UserOrganizationAssignmentService {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
 
     public UserOrganizationAssignmentService(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.databaseClock = Objects.requireNonNull(databaseClock, "databaseClock");
     }
 
@@ -61,7 +58,7 @@ public class UserOrganizationAssignmentService {
         UserPO user = requireUser(tenantId, userId, true);
         OrgUnitPO organization = requireOrganization(tenantId, command.orgUnitId());
         Instant validFrom = command.validFrom() == null ? now : command.validFrom();
-        Long assignmentId = idGenerator.nextLongId();
+        Long assignmentId = SnowflakeIdGenerator.nextLongId();
         UserOrganizationAssignmentPO assignment = new UserOrganizationAssignmentPO(
                 assignmentId, tenantId, user.getId(), organization.getId(),
                 validFrom, command.validTo(), "MANUAL", "MANUAL:" + assignmentId,

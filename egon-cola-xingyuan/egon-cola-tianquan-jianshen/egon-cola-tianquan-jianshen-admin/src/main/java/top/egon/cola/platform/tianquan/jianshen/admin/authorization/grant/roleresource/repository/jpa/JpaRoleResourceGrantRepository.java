@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roler
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.enums.RoleResourceGrantStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.po.RoleResourceGrantPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.repository.RoleResourceGrantRepository;
@@ -19,7 +19,6 @@ import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -31,13 +30,10 @@ import java.util.Set;
 public class JpaRoleResourceGrantRepository implements RoleResourceGrantRepository {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
 
     public JpaRoleResourceGrantRepository(
-            EntityManager entityManager,
-            LongIdGenerator idGenerator) {
+            EntityManager entityManager) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
     }
 
     @Override
@@ -166,7 +162,7 @@ public class JpaRoleResourceGrantRepository implements RoleResourceGrantReposito
         for (Long resourceId : requested) {
             if (!existingIds.contains(resourceId)) {
                 entityManager.persist(new RoleResourceGrantPO(
-                        idGenerator.nextLongId(), command.tenantId(), command.applicationId(),
+                        SnowflakeIdGenerator.nextLongId(), command.tenantId(), command.applicationId(),
                         command.roleId(), resourceId, command.validFrom(), command.validTo(),
                         command.actorId(), command.validFrom()));
                 added++;

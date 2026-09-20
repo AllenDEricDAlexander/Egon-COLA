@@ -1,7 +1,6 @@
 package top.egon.cola.component.common.mybatis.autoconfigure;
 
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
 import com.baomidou.mybatisplus.extension.plugins.inner.BlockAttackInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.OptimisticLockerInnerInterceptor;
@@ -10,7 +9,6 @@ import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerIntercept
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
-import org.apache.ibatis.plugin.Interceptor;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
@@ -31,14 +29,12 @@ import top.egon.cola.component.common.mybatis.interceptor.EgonColaTenantIdGuardI
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaLocalWriteGuardInnerInterceptor;
 import top.egon.cola.component.common.mybatis.interceptor.EgonColaOriginalSqlGuardInterceptor;
 import top.egon.cola.component.common.mybatis.model.EgonColaIdentifierGenerator;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 import java.time.Clock;
 import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class EgonColaMybatisPlusAutoConfigurationTest {
 
@@ -192,7 +188,7 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     }
 
     @Test
-    void missingOrAmbiguousDistributedIdGeneratorIsNotReplacedByAnMpDefault() {
+    void identifierGeneratorNeedsNoInjectedIdBeanAndNeverAcceptsAHostDefault() {
         new ApplicationContextRunner().withConfiguration(AutoConfigurations.of(EgonColaMybatisPlusAutoConfiguration.class))
                 .withUserConfiguration(SafeOuterConfiguration.class)
                 .withBean("egonColaRoutingProfiles", Map.class, Map::of)
@@ -202,13 +198,17 @@ class EgonColaMybatisPlusAutoConfigurationTest {
                             throw new IllegalStateException("SHARDING_REQUIRED");
                         })
                 .withBean(Validator.class, VALIDATOR_FACTORY::getValidator).run(context -> {
-                    assertThat(context).hasFailed();
-                    assertThat(context.getStartupFailure()).hasRootCauseMessage("ID_GENERATOR_BEAN_MISSING");
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).hasSingleBean(EgonColaIdentifierGenerator.class);
+                    assertThat(context).doesNotHaveBean("snowflakeIdGenerator");
                 });
-        runner(true).withBean("anotherIdGenerator", LongIdGenerator.class, () -> () -> 2L).run(context -> {
-            assertThat(context).hasFailed();
-            assertThat(context.getStartupFailure()).hasRootCauseMessage("ID_GENERATOR_BEAN_AMBIGUOUS");
-        });
+        com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator host = entity -> 1L;
+        runner(true).withBean("hostIdentifierGenerator",
+                com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator.class, () -> host)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasMessage("IDENTIFIER_GENERATOR_CONTRACT_INVALID");
+                });
     }
 
     @Test
@@ -334,7 +334,6 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     private ApplicationContextRunner runnerWithoutValidator() {
         return new ApplicationContextRunner()
                 .withAllowBeanDefinitionOverriding(true)
-                .withBean("snowflakeIdGenerator", LongIdGenerator.class, () -> () -> 1001L)
                 .withBean("egonColaRoutingProfiles", Map.class, Map::of)
                 .withBean("egonColaWriteTargetResolver",
                         top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver.class,

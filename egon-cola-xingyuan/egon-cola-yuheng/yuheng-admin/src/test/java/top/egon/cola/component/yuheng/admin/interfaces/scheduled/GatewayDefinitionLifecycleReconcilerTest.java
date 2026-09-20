@@ -1,9 +1,8 @@
 package top.egon.cola.component.yuheng.admin.reporting.controller.scheduled;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.springframework.transaction.support.TransactionTemplate;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.yuheng.admin.runtime.service.GatewayProjectionService;
@@ -12,14 +11,13 @@ import top.egon.cola.component.yuheng.admin.application.domain.po.GatewayApplica
 import top.egon.cola.component.yuheng.admin.application.repository.GatewayApplicationRepository;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
 import top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -29,6 +27,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayDefinitionLifecycleReconcilerTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void reconcilesOnlyOnlineProviderDefinitionSetsAndAuditsChanges() {
@@ -87,9 +90,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         audits,
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC),
-                        new SnowflakeIdGenerator(0)
-                        );
+                        Clock.fixed(now, ZoneOffset.UTC));
 
         reconciler.reconcile();
 
@@ -140,9 +141,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         mock(TransactionTemplate.class),
-                        Clock.fixed(now, ZoneOffset.UTC),
-                        new SnowflakeIdGenerator(0)
-                        );
+                        Clock.fixed(now, ZoneOffset.UTC));
 
         reconciler.reconcile();
 
@@ -204,9 +203,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC),
-                        new SnowflakeIdGenerator(0)
-                        );
+                        Clock.fixed(now, ZoneOffset.UTC));
 
         reconciler.reconcile();
 
@@ -271,9 +268,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC),
-                        new SnowflakeIdGenerator(0)
-                        );
+                        Clock.fixed(now, ZoneOffset.UTC));
 
         reconciler.reconcile();
 

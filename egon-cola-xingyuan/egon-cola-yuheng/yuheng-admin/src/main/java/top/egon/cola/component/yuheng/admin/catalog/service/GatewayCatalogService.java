@@ -1,12 +1,11 @@
 package top.egon.cola.component.yuheng.admin.catalog.service;
 
-
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualDefinitionDTO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualMetadataDTO;
 import top.egon.cola.component.yuheng.admin.catalog.domain.dto.GatewayManualOperationDTO;
@@ -69,14 +68,6 @@ public class GatewayCatalogService {
     private final Clock clock;
 
     /**
-     * 中文说明：保存 idGenerator 对应的状态、依赖或配置值；字段类型为 {@code LongIdGenerator}，由 {@code GatewayCatalogService} 在其生命周期内读取或更新。
-     * English summary: Holds the state, dependency, or configuration represented by id generator; its type is {@code LongIdGenerator}, and {@code GatewayCatalogService} reads or updates it during its lifecycle.
-     *
-     * 用法 / Usage: 该字段通过 {@code GatewayCatalogService} 的构造、初始化或业务方法使用；/ Access it through the construction, initialization, or business methods of {@code GatewayCatalogService}; do not couple callers to its representation when the owning type exposes an API.
-     */
-    private final LongIdGenerator idGenerator;
-
-    /**
      * 中文说明：创建 {@code GatewayCatalogService} 实例，并接收构建该实例所需的依赖或初始数据；构造器参数定义了实例建立时必须满足的输入契约。
      * English summary: Creates an instance of {@code GatewayCatalogService} from the dependencies or initial data required at construction time; its parameters define the initialization contract.
      *
@@ -84,21 +75,17 @@ public class GatewayCatalogService {
      * @param store 参数 存储；parameter store。
      * @param audits 参数 audits；parameter audits。
      * @param objectMapper 参数 object映射器；parameter object mapper。
-     * @param idGenerator 参数 idGenerator；parameter id generator。
      */
     @Autowired
     public GatewayCatalogService(
             GatewayCatalogRepository store,
             GatewayAuditLogRepository audits,
-            ObjectMapper objectMapper,
-            LongIdGenerator idGenerator) {
+            ObjectMapper objectMapper) {
         this(
                 store,
                 audits,
                 objectMapper,
-                Clock.systemUTC(),
-                idGenerator
-        );
+                Clock.systemUTC());
     }
 
     /**
@@ -110,19 +97,16 @@ public class GatewayCatalogService {
      * @param audits 参数 audits；parameter audits。
      * @param objectMapper 参数 object映射器；parameter object mapper。
      * @param clock 参数 clock；parameter clock。
-     * @param idGenerator 参数 idGenerator；parameter id generator。
      */
     GatewayCatalogService(
             GatewayCatalogRepository store,
             GatewayAuditLogRepository audits,
             ObjectMapper objectMapper,
-            Clock clock,
-            LongIdGenerator idGenerator) {
+            Clock clock) {
         this.store = store;
         this.audits = audits;
         this.objectMapper = objectMapper;
         this.clock = clock;
-        this.idGenerator = idGenerator;
     }
 
     /**
@@ -203,7 +187,7 @@ public class GatewayCatalogService {
                     );
                 });
         Instant now = clock.instant();
-        String operationId = idGenerator.nextId();
+        String operationId = SnowflakeIdGenerator.nextId();
         top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO operation =
                 new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationPO(
                         operationId,
@@ -426,7 +410,7 @@ public class GatewayCatalogService {
                 value.externalAccessible()
         );
         return new top.egon.cola.component.yuheng.admin.catalog.domain.po.GatewayOperationDefinitionPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 operation.id(),
                 version,
                 GatewayRuleCanonicalizer.sha256(bytes(digestMaterial)),
@@ -636,7 +620,7 @@ public class GatewayCatalogService {
             String action,
             Map<String, Object> after) {
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -683,14 +667,5 @@ public class GatewayCatalogService {
     private String defaultValue(String value, String fallback) {
         return value == null || value.isBlank() ? fallback : value.trim();
     }
-
-
-
-
-
-
-
-
-
 
 }

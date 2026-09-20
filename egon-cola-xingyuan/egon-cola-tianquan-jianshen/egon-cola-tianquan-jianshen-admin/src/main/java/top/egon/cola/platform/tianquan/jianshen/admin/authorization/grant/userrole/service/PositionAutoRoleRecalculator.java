@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.enums.AutoAssignmentRuleMatchTypeEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.enums.AutoAssignmentRuleStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.enums.UserRoleAssignmentStatusEnum;
@@ -32,17 +32,14 @@ public class PositionAutoRoleRecalculator {
     private static final String SOURCE_TYPE = "POSITION_RULE";
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
     private final AuthorizationMutationCoordinator mutationCoordinator;
 
     public PositionAutoRoleRecalculator(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
             AuthorizationMutationCoordinator mutationCoordinator) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.databaseClock = Objects.requireNonNull(databaseClock, "databaseClock");
         this.mutationCoordinator = Objects.requireNonNull(
                 mutationCoordinator, "mutationCoordinator");
@@ -154,7 +151,7 @@ public class PositionAutoRoleRecalculator {
                                 assignment.revoke(actorId, now);
                             }
                             UserRoleAssignmentPO created = new UserRoleAssignmentPO(
-                                    idGenerator.nextLongId(), tenantId, userId, rule.getRoleId(),
+                                    SnowflakeIdGenerator.nextLongId(), tenantId, userId, rule.getRoleId(),
                                     UserRoleAssignmentTypeEnum.AUTO, rule.getValidFrom(),
                                     rule.getValidTo(), SOURCE_TYPE, sourceId,
                                     "POSITION_AUTO_ASSIGNMENT", rule.getRuleCode(), actorId, now);

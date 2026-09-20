@@ -1,10 +1,9 @@
 package top.egon.cola.component.yuheng.admin.mcp.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpArtifactMutationDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpArtifactUploadDTO;
 import top.egon.cola.component.yuheng.admin.mcp.domain.dto.McpCapabilityMutationDTO;
@@ -213,7 +212,6 @@ public class McpControlPlaneService {
      * @param contentFactory 参数 content工厂；parameter content factory。
      * @param validation 参数 validation；parameter validation。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public McpControlPlaneService(McpServerRepository servers,
@@ -228,8 +226,7 @@ public class McpControlPlaneService {
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
             McpReleaseContentFactory contentFactory,
-            McpValidationService validation,
-            LongIdGenerator idGenerator) {
+            McpValidationService validation) {
         this(servers,
                 capabilities,
                 remote,
@@ -243,7 +240,7 @@ public class McpControlPlaneService {
                 audits,
                 contentFactory,
                 validation,
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     /**
@@ -279,9 +276,7 @@ public class McpControlPlaneService {
             GatewayAuditLogRepository audits,
             McpReleaseContentFactory contentFactory,
             McpValidationService validation,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.servers = servers;
         this.capabilities = capabilities;
         this.remote = remote;
@@ -362,7 +357,7 @@ public class McpControlPlaneService {
                 command.gatewayGroupId(),
                 command.expectedDraftRevision()
         );
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         servers.saveAndFlush(new McpServerPO(
                 id,
                 command.gatewayGroupId(),
@@ -559,7 +554,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             AdminActor actor,
             RequestAuditContext request) {
-        String resourceId = id == null ? idGenerator.nextId() : id;
+        String resourceId = id == null ? SnowflakeIdGenerator.nextId() : id;
         String digest = digest("PUT_" + kind, Map.of(
                 "id", resourceId,
                 "command", command
@@ -744,7 +739,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             AdminActor actor,
             RequestAuditContext request) {
-        String resourceId = id == null ? idGenerator.nextId() : id;
+        String resourceId = id == null ? SnowflakeIdGenerator.nextId() : id;
         String digest = digest("PUT_REMOTE_PROVIDER", Map.of(
                 "id", resourceId,
                 "command", command
@@ -900,7 +895,7 @@ public class McpControlPlaneService {
             String idempotencyKey,
             AdminActor actor,
             RequestAuditContext request) {
-        String resourceId = id == null ? idGenerator.nextId() : id;
+        String resourceId = id == null ? SnowflakeIdGenerator.nextId() : id;
         String digest = digest("PUT_REMOTE_MOUNT", Map.of(
                 "id", resourceId,
                 "command", command
@@ -1154,7 +1149,7 @@ public class McpControlPlaneService {
                 command.expectedDraftRevision()
         );
         Instant now = clock.instant();
-        String id = idGenerator.nextId();
+        String id = SnowflakeIdGenerator.nextId();
         artifacts.save(new top.egon.cola.component.yuheng.admin.mcp.domain.po.McpArtifactMetadataPO(
                 id,
                 command.gatewayGroupId(),
@@ -1553,7 +1548,7 @@ public class McpControlPlaneService {
             Map<String, Object> summary,
             Instant now) {
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -1775,24 +1770,5 @@ public class McpControlPlaneService {
                 server.getUpdatedAt()
         );
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

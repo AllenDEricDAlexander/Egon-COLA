@@ -6,8 +6,10 @@ import io.grpc.ClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
 import top.egon.cola.component.rpc.annotation.LoadBalance;
@@ -16,12 +18,18 @@ import top.egon.cola.component.rpc.context.invocation.RpcMetadataKeys;
 import top.egon.cola.component.rpc.consumer.generic.RpcGenericInvocation;
 import top.egon.cola.component.rpc.contract.descriptor.RpcContractDescriptor;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcConsumerClientInterceptorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @AfterEach
     void tearDown() {
@@ -35,8 +43,7 @@ class RpcConsumerClientInterceptorTest {
         RpcConsumerClientInterceptor interceptor =
                 new RpcConsumerClientInterceptor(
                         contract(),
-                        identity(),
-                        new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0));
+                        identity());
         ClientCall<String, String> call = interceptor.interceptCall(
                 method(),
                 CallOptions.DEFAULT,

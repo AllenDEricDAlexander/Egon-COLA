@@ -2,7 +2,6 @@ package top.egon.cola.component.yuheng.admin.rule.service;
 
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.yuheng.admin.rule.domain.dto.GatewayDdcPublicationCommand;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
 import top.egon.cola.component.tianshu.model.management.DdcManagementConfig;
@@ -32,14 +31,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class GatewayDdcRulePublisherTest {
 
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
-
     @Test
     void publishesExactlyOneFullyResolvedArtifact() {
         RecordingClient client = new RecordingClient();
         GatewayDdcRulePublisher publisher =
                 new GatewayDdcRulePublisher(client);
-        String changeId = IDS.nextId();
+        String changeId = SnowflakeIdGenerator.nextId();
         GatewayDdcPublicationCommand command =
                 new GatewayDdcPublicationCommand(
                         "infra",
@@ -73,9 +70,9 @@ class GatewayDdcRulePublisherTest {
 
     @Test
     void rejectsIncompleteOrNonSnowflakeCommands() {
-        assertThat(command(1L, IDS.nextId()).changeId())
+        assertThat(command(1L, SnowflakeIdGenerator.nextId()).changeId())
                 .matches("\\d+");
-        assertThatThrownBy(() -> command(null, IDS.nextId()))
+        assertThatThrownBy(() -> command(null, SnowflakeIdGenerator.nextId()))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("expectedVersion");
         assertThatThrownBy(() -> command(1L, UUID.randomUUID().toString()))
@@ -88,7 +85,7 @@ class GatewayDdcRulePublisherTest {
                 "yuheng.rules.active",
                 "{}",
                 1L,
-                IDS.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 "admin",
                 Duration.ofSeconds(1)
         )).isInstanceOf(IllegalArgumentException.class)

@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
@@ -67,14 +67,6 @@ public class JpaConstraintRepository implements
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `idGenerator` 表示 `JpaConstraintRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `JpaConstraintRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `JpaConstraintRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `JpaConstraintRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `databaseClock` 表示 `JpaConstraintRepository` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `JpaConstraintRepository` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -100,19 +92,16 @@ public class JpaConstraintRepository implements
      * Usage: create the instance through `JpaConstraintRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaConstraintRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
             AuthorizationEventPublisher eventPort,
             TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.eventPort = eventPort;
         this.authorizationState = authorizationState;
@@ -188,7 +177,7 @@ public class JpaConstraintRepository implements
         Long tenantId = Long.valueOf(command.tenantId());
         Long setId;
         if (command.setId() == null) {
-            setId = idGenerator.nextLongId();
+            setId = SnowflakeIdGenerator.nextLongId();
             entityManager.persist(new SodSetPO(
                     setId,
                     tenantId,
@@ -263,7 +252,7 @@ public class JpaConstraintRepository implements
                 .executeUpdate();
         for (String roleId : command.prerequisiteRoleIds()) {
             entityManager.persist(new RolePrerequisitePO(
-                    idGenerator.nextLongId(),
+                    SnowflakeIdGenerator.nextLongId(),
                     tenantId,
                     target.getId(),
                     command.groupCode(),
@@ -311,7 +300,7 @@ public class JpaConstraintRepository implements
                 .getResultList();
         String resourceId;
         if (current.isEmpty()) {
-            Long id = idGenerator.nextLongId();
+            Long id = SnowflakeIdGenerator.nextLongId();
             entityManager.persist(new RoleCardinalityPO(
                     id, tenantId, role.getId(),
                     RoleCardinalityScopeTypeEnum.valueOf(command.scopeType()),
@@ -372,7 +361,7 @@ public class JpaConstraintRepository implements
                 command.roleId(), command.permissionId(), null);
         Long ruleId;
         if (command.ruleId() == null) {
-            ruleId = idGenerator.nextLongId();
+            ruleId = SnowflakeIdGenerator.nextLongId();
             entityManager.persist(new DataRulePO(
                     ruleId, tenantId, Long.valueOf(command.applicationId()),
                     Long.valueOf(command.roleId()), Long.valueOf(command.permissionId()),
@@ -452,7 +441,7 @@ public class JpaConstraintRepository implements
                 command.roleId(), command.permissionId(), command.fieldDefinitionId());
         Long ruleId;
         if (command.ruleId() == null) {
-            ruleId = idGenerator.nextLongId();
+            ruleId = SnowflakeIdGenerator.nextLongId();
             entityManager.persist(new FieldRulePO(
                     ruleId, tenantId, Long.valueOf(command.applicationId()),
                     Long.valueOf(command.roleId()), Long.valueOf(command.permissionId()),
@@ -516,7 +505,7 @@ public class JpaConstraintRepository implements
         Long tenantId = Long.valueOf(command.tenantId());
         Long ruleId;
         if (command.ruleId() == null) {
-            ruleId = idGenerator.nextLongId();
+            ruleId = SnowflakeIdGenerator.nextLongId();
             entityManager.persist(new OperationSodRulePO(
                     ruleId, tenantId, command.applicationCode(), command.businessResource(),
                     command.priorActionCode(), command.forbiddenLaterActionCode(),

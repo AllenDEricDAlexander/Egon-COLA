@@ -28,7 +28,7 @@ import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.time.Instant;
 
@@ -41,7 +41,6 @@ public class SchoolClassManageImpl implements SchoolClassManage {
     private final SchoolClassCachePort schoolClassCache;
     private final CommandIdempotencyPort idempotency;
     private final OrganizationEventPublisher eventPublisher;
-    private final LongIdGenerator idGenerator;
     private final SchoolClassAssembler assembler = new SchoolClassAssembler();
 
     @Override
@@ -55,10 +54,10 @@ public class SchoolClassManageImpl implements SchoolClassManage {
                 throw conflict("school class name already exists in grade");
             }
             SchoolClass schoolClass = schoolClassDomainService.save(schoolClassDomainService.create(
-                new SchoolClassId(idGenerator.nextLongId()), command.name(), grade));
+                new SchoolClassId(SnowflakeIdGenerator.nextLongId()), command.name(), grade));
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(schoolClass.gradeId(), schoolClass.id());
-                eventPublisher.publish(new SchoolClassChangedEvent(Long.toString(idGenerator.nextLongId()),
+                eventPublisher.publish(new SchoolClassChangedEvent(Long.toString(SnowflakeIdGenerator.nextLongId()),
                     schoolClass.id().value(), Instant.now(), schoolClass.gradeId(), "CREATED"));
             });
             return assembler.toResult(schoolClass);
@@ -101,7 +100,7 @@ public class SchoolClassManageImpl implements SchoolClassManage {
             schoolClassDomainService.addUser(command.gradeId(), classId, memberId);
             OrganizationTransactionHooks.afterCommit(() -> {
                 schoolClassCache.evict(command.gradeId(), classId);
-                eventPublisher.publish(new SchoolClassMembershipChangedEvent(Long.toString(idGenerator.nextLongId()),
+                eventPublisher.publish(new SchoolClassMembershipChangedEvent(Long.toString(SnowflakeIdGenerator.nextLongId()),
                     classId.value(), Instant.now(), memberId.value(), "ASSIGNED"));
             });
         });

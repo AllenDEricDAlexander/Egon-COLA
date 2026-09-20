@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.annotation.EnableTransactionManagement;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.service.impl.IdentityUserServiceImpl;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRedirectUriRepository;
@@ -58,8 +57,7 @@ class SpringConstructorResolutionTest {
                 IdentityClientSecretRepository.class,
                 PasswordHashPort.class,
                 IdentitySecurityEventPort.class,
-                SecureRandom.class,
-                LongIdGenerator.class
+                SecureRandom.class
         )) {
             context.registerBean(OAuthClientServiceImpl.class);
             context.refresh();
@@ -78,8 +76,7 @@ class SpringConstructorResolutionTest {
                 PasswordHashPort.class,
                 IdentityUserStatePort.class,
                 IdentitySecurityEventPort.class,
-                RefreshTokenStore.class,
-                LongIdGenerator.class
+                RefreshTokenStore.class
         )) {
             context.registerBean(IdentityUserServiceImpl.class);
             context.refresh();

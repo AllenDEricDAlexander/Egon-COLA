@@ -12,7 +12,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -67,6 +66,7 @@ import static org.mockito.Mockito.when;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
+        "egon.cola.component.id.machine-id=0",
         "spring.datasource.url=jdbc:sqlite:file:ddc_publish_retry_test?mode=memory&cache=shared",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
@@ -78,8 +78,6 @@ import static org.mockito.Mockito.when;
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishRetryTest {
-
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     private static final String CONFIG_VALUE =
             "feature:\n  enabled: true\n";
@@ -209,7 +207,7 @@ class DdcPublishRetryTest {
 
     private DdcPublishTaskEntity saveRetryable(PublishStatus status, String label) {
         LocalDateTime now = LocalDateTime.now();
-        String configId = IDS.nextId();
+        String configId = SnowflakeIdGenerator.nextId();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
         config.setBizCode("default");
@@ -228,8 +226,8 @@ class DdcPublishRetryTest {
         configItemRepository.saveAndFlush(config);
 
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(IDS.nextId());
-        task.setChangeId(IDS.nextId());
+        task.setId(SnowflakeIdGenerator.nextId());
+        task.setChangeId(SnowflakeIdGenerator.nextId());
         task.setConfigId(configId);
         task.setBizCode(config.getBizCode());
         task.setAppCode(label);
@@ -255,7 +253,7 @@ class DdcPublishRetryTest {
         taskRepository.saveAndFlush(task);
 
         DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId(IDS.nextId());
+        target.setId(SnowflakeIdGenerator.nextId());
         target.setChangeId(task.getChangeId());
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");
@@ -276,7 +274,7 @@ class DdcPublishRetryTest {
         ackRepository.saveAndFlush(target);
 
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(IDS.nextId());
+        version.setId(SnowflakeIdGenerator.nextId());
         version.setConfigId(configId);
         version.setBizCode(task.getBizCode());
         version.setAppCode(task.getAppCode());
@@ -306,12 +304,6 @@ class DdcPublishRetryTest {
 
     @TestConfiguration
     static class Dependencies {
-
-
-        @Bean
-        LongIdGenerator longIdGenerator() {
-            return new SnowflakeIdGenerator(0);
-        }
 
         @Bean
         DdcRedisRepository ddcRedisRepository() {

@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayDefinitionIdentity;
 import top.egon.cola.component.yuheng.contract.reporting.GatewayInterfaceDefinitionReport;
@@ -42,10 +41,6 @@ public final class GatewayDefinitionReportFactory {
     /** Current immutable Gateway reporting contract version. 当前网关上报契约版本。 */
     private static final String CONTRACT_VERSION = "v2";
 
-    /** Compatibility generator for direct, non-Spring construction. 兼容手工构造时使用的 ID 生成器。 */
-    private static final LongIdGenerator FALLBACK_ID_GENERATOR =
-            new SnowflakeIdGenerator(0);
-
     /**
      * Application and build metadata included in generated reports.
      * 报告中包含的应用及构建元数据。
@@ -54,9 +49,6 @@ public final class GatewayDefinitionReportFactory {
 
     /** Time source for report creation timestamps. 生成报告时间戳的时间源。 */
     private final Clock clock;
-
-    /** Generator used for report identifiers. 报告标识使用的 ID 生成器。 */
-    private final LongIdGenerator idGenerator;
 
     /**
      * Deterministically configured mapper used for payload fingerprints.
@@ -83,7 +75,7 @@ public final class GatewayDefinitionReportFactory {
      */
     public GatewayDefinitionReportFactory(
             GatewayReportingProperties properties) {
-        this(properties, FALLBACK_ID_GENERATOR, Clock.systemUTC());
+        this(properties, Clock.systemUTC());
     }
 
     /**
@@ -93,28 +85,17 @@ public final class GatewayDefinitionReportFactory {
      * @param properties reporting application and build metadata
      * @param clock report creation clock
      */
-    GatewayDefinitionReportFactory(
-            GatewayReportingProperties properties,
-            Clock clock) {
-        this(properties, FALLBACK_ID_GENERATOR, clock);
-    }
-
     /**
-     * Creates a report factory with an explicit ID and time source.
-     * 中文：使用显式的 ID 生成器和时间源创建报告工厂。
+     * Creates a report factory with an injectable time source.
+     * 中文：使用可注入的时间源创建报告工厂，便于测试。
      *
      * @param properties reporting application and build metadata
-     * @param idGenerator report identifier generator
      * @param clock report creation clock
      */
     public GatewayDefinitionReportFactory(
             GatewayReportingProperties properties,
-            LongIdGenerator idGenerator,
             Clock clock) {
         this.properties = properties;
-        this.idGenerator = idGenerator == null
-                ? FALLBACK_ID_GENERATOR
-                : idGenerator;
         this.clock = java.util.Objects.requireNonNull(
                 clock,
                 "clock must not be null"
@@ -180,7 +161,7 @@ public final class GatewayDefinitionReportFactory {
         GatewayInterfaceDefinitionReport report =
                 new GatewayInterfaceDefinitionReport(
                         CONTRACT_VERSION,
-                        idGenerator.nextId(),
+                        SnowflakeIdGenerator.nextId(),
                         clock.instant(),
                         application,
                         build,

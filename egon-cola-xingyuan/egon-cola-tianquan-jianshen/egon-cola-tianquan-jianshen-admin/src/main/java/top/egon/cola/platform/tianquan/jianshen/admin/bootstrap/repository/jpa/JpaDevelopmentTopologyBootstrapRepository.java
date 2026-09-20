@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.repository.jpa;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.po.UserRoleAssignmentPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.Rbac3DevelopmentTopology;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.state.repository.TenantAuthorizationStateRepository;
@@ -64,14 +64,6 @@ public class JpaDevelopmentTopologyBootstrapRepository
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `idGenerator` 表示 `JpaDevelopmentTopologyBootstrapRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `JpaDevelopmentTopologyBootstrapRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `JpaDevelopmentTopologyBootstrapRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `JpaDevelopmentTopologyBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `clock` 表示 `JpaDevelopmentTopologyBootstrapRepository` 中与 `clock` 相关的状态、依赖、配置或结果（声明类型 `Clock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `clock` stores the `clock`-related state, dependency, configuration, or result of `JpaDevelopmentTopologyBootstrapRepository` (declared type `Clock`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -89,17 +81,14 @@ public class JpaDevelopmentTopologyBootstrapRepository
      * Usage: create the instance through `JpaDevelopmentTopologyBootstrapRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param authorizationState 输入参数 `authorizationState`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public JpaDevelopmentTopologyBootstrapRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             Clock clock,
             TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.authorizationState = Objects.requireNonNull(
                 authorizationState, "authorizationState");
@@ -129,7 +118,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
         UserPO user = findUser(normalizedTenantId, normalizedIdentitySub);
         if (user == null) {
             user = new UserPO(
-                    idGenerator.nextLongId(),
+                    SnowflakeIdGenerator.nextLongId(),
                     normalizedTenantId,
                     normalizedIdentitySub,
                     top.egon.cola.platform.tianquan.jianshen.admin.iam.user.domain.enums.UserStatusEnum.ACTIVE,
@@ -208,7 +197,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
         boolean changed = false;
         if (application == null) {
             application = new ApplicationPO(
-                    idGenerator.nextLongId(), tenantId,
+                    SnowflakeIdGenerator.nextLongId(), tenantId,
                     definition.applicationCode(), definition.applicationName(),
                     definition.displayPriority(), ACTOR, now);
             entityManager.persist(application);
@@ -218,7 +207,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
                 tenantId, application.getId(), definition.roleCode());
         if (role == null) {
             role = new RolePO(
-                    idGenerator.nextLongId(), tenantId, application.getId(),
+                    SnowflakeIdGenerator.nextLongId(), tenantId, application.getId(),
                     definition.roleCode(), definition.applicationName() + " Administrator",
                     RoleTypeEnum.MANAGEMENT, RoleRiskLevelEnum.MEDIUM,
                     false, null, 0, null, ACTOR, now);
@@ -237,7 +226,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
         }
         if (!hasAssignment(tenantId, userId, role.getId())) {
             entityManager.persist(new UserRoleAssignmentPO(
-                    idGenerator.nextLongId(), tenantId, userId, role.getId(),
+                    SnowflakeIdGenerator.nextLongId(), tenantId, userId, role.getId(),
                     UserRoleAssignmentTypeEnum.DIRECT, now, null,
                     "DEVELOPMENT", definition.applicationCode(),
                     "Unified identity local administrator", null, ACTOR, now));
@@ -320,7 +309,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
         boolean changed = false;
         if (permission == null) {
             permission = new PermissionPO(
-                    idGenerator.nextLongId(), tenantId, applicationId,
+                    SnowflakeIdGenerator.nextLongId(), tenantId, applicationId,
                     permissionCode, permissionCode, risk(permissionCode),
                     "Unified identity local administrative capability", ACTOR, now);
             entityManager.persist(permission);
@@ -347,7 +336,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
         for (ResourcePO resource : resources) {
             if (!hasRoleResourceGrant(tenantId, roleId, resource.getId(), now)) {
                 entityManager.persist(new RoleResourceGrantPO(
-                        idGenerator.nextLongId(), tenantId, applicationId,
+                        SnowflakeIdGenerator.nextLongId(), tenantId, applicationId,
                         roleId, resource.getId(), now, null, ACTOR, now));
                 changed = true;
             }
@@ -386,7 +375,7 @@ public class JpaDevelopmentTopologyBootstrapRepository
         for (ResourcePO resource : resources) {
             if (!hasRoleResourceGrant(tenantId, roleId, resource.getId(), now)) {
                 entityManager.persist(new RoleResourceGrantPO(
-                        idGenerator.nextLongId(), tenantId, applicationId,
+                        SnowflakeIdGenerator.nextLongId(), tenantId, applicationId,
                         roleId, resource.getId(), now, null, ACTOR, now));
                 changed = true;
             }

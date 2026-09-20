@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.ap
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.enums.RoleResourceGrantStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.apibinding.domain.enums.ResourceApiBindingStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.apibinding.domain.po.ResourceApiBindingPO;
@@ -26,11 +26,9 @@ import java.util.Set;
 public class JpaResourceApiBindingRepository implements ResourceApiBindingRepository {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
 
-    public JpaResourceApiBindingRepository(EntityManager entityManager, LongIdGenerator idGenerator) {
+    public JpaResourceApiBindingRepository(EntityManager entityManager) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
     }
 
     @Override
@@ -81,7 +79,7 @@ public class JpaResourceApiBindingRepository implements ResourceApiBindingReposi
         for (BindingPair pair : requested) {
             if (!currentPairs.contains(pair)) {
                 entityManager.persist(new ResourceApiBindingPO(
-                        idGenerator.nextLongId(), applicationId,
+                        SnowflakeIdGenerator.nextLongId(), applicationId,
                         pair.sourceResourceId(), pair.apiResourceId(),
                         sourceBuildId, sourceChecksum, actorId, now));
             }

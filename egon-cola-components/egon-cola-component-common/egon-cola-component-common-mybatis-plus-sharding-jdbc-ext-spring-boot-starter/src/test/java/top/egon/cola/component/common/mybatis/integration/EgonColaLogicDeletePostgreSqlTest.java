@@ -34,6 +34,7 @@ import top.egon.cola.component.common.mybatis.support.TestTenantIdProvider;
 import top.egon.cola.component.common.mybatis.support.TestUserIdProvider;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -86,7 +87,8 @@ class EgonColaLogicDeletePostgreSqlTest {
             GlobalConfig global = new GlobalConfig();
             global.setDbConfig(new GlobalConfig.DbConfig());
             global.setMetaObjectHandler(new EgonColaMetaObjectHandler(tenant, user, Clock.systemUTC()));
-            global.setIdentifierGenerator(new EgonColaIdentifierGenerator(new SnowflakeIdGenerator(0)));
+            SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+            global.setIdentifierGenerator(new EgonColaIdentifierGenerator());
             MybatisConfiguration configuration = new MybatisConfiguration();
             configuration.setMapUnderscoreToCamelCase(true);
             MybatisSqlSessionFactoryBean factory = new MybatisSqlSessionFactoryBean();

@@ -3,7 +3,6 @@ package top.egon.cola.component.yuheng.test.live;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.model.management.DdcInstanceStatus;
 import top.egon.cola.component.yuheng.contract.runtime.GatewayEngineRoleEnum;
@@ -35,8 +34,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class GatewayLiveTopologyIT {
-
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     private static final Duration STARTUP_TIMEOUT = Duration.ofMinutes(2);
 
@@ -1974,7 +1971,6 @@ class GatewayLiveTopologyIT {
                 .build();
     }
 
-
     private List<GatewayProcessHarness.ChildProcess> startMcpEngines(
             GatewayLiveEnvironment environment, URI ddcBase) throws IOException {
         List<GatewayProcessHarness.ChildProcess> engines = new ArrayList<>();
@@ -2645,7 +2641,7 @@ class GatewayLiveTopologyIT {
         for (int invocation = 0;
              invocation < 12 && !observed.containsAll(expected);
              invocation++) {
-            String traceId = IDS.nextId();
+            String traceId = SnowflakeIdGenerator.nextId();
             HttpResponse<String> response = rpcConsumerEcho(
                     consumerBase,
                     traceId,
@@ -2667,7 +2663,7 @@ class GatewayLiveTopologyIT {
             GatewayAdminTestClient adminClient,
             URI consumerBase,
             String expectedEngineId) throws Exception {
-        String traceId = IDS.nextId();
+        String traceId = SnowflakeIdGenerator.nextId();
         HttpResponse<String> response = rpcConsumerEcho(
                 consumerBase,
                 traceId,

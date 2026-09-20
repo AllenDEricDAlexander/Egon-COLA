@@ -2,7 +2,6 @@ package top.egon.cola.archetype.source.web.infrastructure.user.service.impl;
 
 import top.egon.cola.archetype.source.web.domain.user.entities.Role;
 import top.egon.cola.archetype.source.web.domain.user.entities.User;
-import top.egon.cola.archetype.source.web.domain.user.enums.RoleStatus;
 import top.egon.cola.archetype.source.web.domain.user.enums.UserStatus;
 import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.user.vos.PermissionCode;
@@ -25,7 +24,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.List;
 import java.util.Optional;
@@ -51,8 +50,6 @@ public class UserDomainServiceImpl
     private final UserPOConverter userConverter;
     @Qualifier("rolePOConverterImpl")
     private final RolePOConverter roleConverter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     @Override
     public User create(UserId userId, String name, String email) {
@@ -139,7 +136,7 @@ public class UserDomainServiceImpl
     private void saveRoleIfMissing(Long userId, Long roleId) {
         if (userRoleRepository.countByUserIdAndRoleId(userId, roleId) == 0) {
             UserRolePO relation = UserRolePO.builder().userId(userId).roleId(roleId).build();
-            relation.setId(idGenerator.nextLongId());
+            relation.setId(SnowflakeIdGenerator.nextLongId());
             if (!userRoleRepository.save(relation)) { throw new IllegalStateException("INSERT_AFFECTED_ZERO_ROWS"); }
         }
     }
@@ -148,10 +145,9 @@ public class UserDomainServiceImpl
         if (rolePermissionRepository.countByRoleIdAndPermissionId(roleId, permissionId) == 0) {
             RolePermissionPO relation = RolePermissionPO.builder()
                     .roleId(roleId).permissionId(permissionId).build();
-            relation.setId(idGenerator.nextLongId());
+            relation.setId(SnowflakeIdGenerator.nextLongId());
             if (!rolePermissionRepository.save(relation)) { throw new IllegalStateException("INSERT_AFFECTED_ZERO_ROWS"); }
         }
     }
-
 
 }

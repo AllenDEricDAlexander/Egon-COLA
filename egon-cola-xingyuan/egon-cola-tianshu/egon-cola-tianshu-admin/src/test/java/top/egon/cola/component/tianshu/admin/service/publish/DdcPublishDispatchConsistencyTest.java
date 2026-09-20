@@ -14,7 +14,6 @@ import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -59,6 +58,7 @@ import static org.mockito.Mockito.verify;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
+        "egon.cola.component.id.machine-id=0",
         "spring.datasource.url=jdbc:sqlite:file:ddc_publish_dispatch_test?mode=memory&cache=shared",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
@@ -69,8 +69,6 @@ import static org.mockito.Mockito.verify;
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishDispatchConsistencyTest {
-
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     private static final String OLD_YAML = "feature:\n  value: old\n";
 
@@ -254,7 +252,7 @@ class DdcPublishDispatchConsistencyTest {
             String label,
             String newYaml) {
         LocalDateTime createdAt = LocalDateTime.of(2026, 7, 26, 8, 0);
-        String configId = IDS.nextId();
+        String configId = SnowflakeIdGenerator.nextId();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
         config.setBizCode("default");
@@ -276,8 +274,8 @@ class DdcPublishDispatchConsistencyTest {
         saveVersion(config, 2L, OLD_YAML, newYaml, createdAt);
 
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(IDS.nextId());
-        task.setChangeId(IDS.nextId());
+        task.setId(SnowflakeIdGenerator.nextId());
+        task.setChangeId(SnowflakeIdGenerator.nextId());
         task.setConfigId(configId);
         task.setBizCode(config.getBizCode());
         task.setAppCode(config.getAppCode());
@@ -305,7 +303,7 @@ class DdcPublishDispatchConsistencyTest {
         taskRepository.saveAndFlush(task);
 
         DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId(IDS.nextId());
+        target.setId(SnowflakeIdGenerator.nextId());
         target.setChangeId(task.getChangeId());
         target.setInstanceId("instance-1");
         target.setLeaseId("lease-1");
@@ -326,7 +324,7 @@ class DdcPublishDispatchConsistencyTest {
                              String newContent,
                              LocalDateTime createdAt) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(IDS.nextId());
+        version.setId(SnowflakeIdGenerator.nextId());
         version.setConfigId(config.getId());
         version.setBizCode(config.getBizCode());
         version.setAppCode(config.getAppCode());
@@ -344,12 +342,6 @@ class DdcPublishDispatchConsistencyTest {
 
     @TestConfiguration
     static class Dependencies {
-
-
-        @Bean
-        LongIdGenerator longIdGenerator() {
-            return new SnowflakeIdGenerator(0);
-        }
 
         @Bean
         DdcRedisRepository ddcRedisRepository() {

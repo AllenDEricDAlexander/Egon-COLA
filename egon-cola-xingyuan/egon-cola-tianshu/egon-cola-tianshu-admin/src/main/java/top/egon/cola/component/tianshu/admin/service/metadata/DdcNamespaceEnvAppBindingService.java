@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcNamespaceEnvAppBindingRequest;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcAppEntity;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
@@ -33,14 +33,10 @@ public class DdcNamespaceEnvAppBindingService {
 
     private final DdcEnvRepository envRepository;
 
-    private final LongIdGenerator idGenerator;
-
     public DdcNamespaceEnvAppBindingService(DdcNamespaceEnvAppBindingRepository bindingRepository,
             DdcNamespaceRepository namespaceRepository,
             DdcAppRepository appRepository,
-            DdcEnvRepository envRepository,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            DdcEnvRepository envRepository) {
         this.bindingRepository = bindingRepository;
         this.namespaceRepository = namespaceRepository;
         this.appRepository = appRepository;
@@ -94,7 +90,7 @@ public class DdcNamespaceEnvAppBindingService {
         LocalDateTime now = LocalDateTime.now();
         DdcNamespaceEnvAppBindingEntity binding =
                 new DdcNamespaceEnvAppBindingEntity();
-        binding.setId(idGenerator.nextId());
+        binding.setId(SnowflakeIdGenerator.nextId());
         binding.setNamespaceId(namespace.getId());
         binding.setEnvCode(env);
         binding.setAppId(app.getId());

@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.identity.service.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.dto.CreateIdentityUserDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.dto.UpdateIdentityUserDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.CreatedIdentityUserVO;
@@ -44,7 +44,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
     private final IdentityUserStatePort states;
     private final IdentitySecurityEventPort securityEvents;
     private final RefreshTokenStore refreshTokens;
-    private final LongIdGenerator ids;
     private final UsernameNormalizer normalizer;
     private final Clock clock;
     private final Supplier<String> temporaryPasswords;
@@ -57,8 +56,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
             PasswordHashPort passwordHashes,
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
-            RefreshTokenStore refreshTokens,
-            LongIdGenerator ids
+            RefreshTokenStore refreshTokens
     ) {
         this(
                 users,
@@ -68,7 +66,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 states,
                 securityEvents,
                 refreshTokens,
-                ids,
                 new UsernameNormalizer(),
                 Clock.systemUTC(),
                 secureTemporaryPasswordGenerator()
@@ -83,7 +80,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
             IdentityUserStatePort states,
             IdentitySecurityEventPort securityEvents,
             RefreshTokenStore refreshTokens,
-            LongIdGenerator ids,
             UsernameNormalizer normalizer,
             Clock clock,
             Supplier<String> temporaryPasswords
@@ -101,7 +97,6 @@ public class IdentityUserServiceImpl implements IdentityUserService {
                 "securityEvents"
         );
         this.refreshTokens = Objects.requireNonNull(refreshTokens, "refreshTokens");
-        this.ids = Objects.requireNonNull(ids, "ids");
         this.normalizer = Objects.requireNonNull(normalizer, "normalizer");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.temporaryPasswords = Objects.requireNonNull(
@@ -128,7 +123,7 @@ public class IdentityUserServiceImpl implements IdentityUserService {
             throw new IllegalStateException("identity username already exists");
         }
         Instant now = clock.instant();
-        String subject = ids.nextId();
+        String subject = SnowflakeIdGenerator.nextId();
         String username = trimmed(command.username(), "username");
         IdentityUser user = new IdentityUser(
                 subject,

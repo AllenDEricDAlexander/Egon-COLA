@@ -1,21 +1,6 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.snapshot.repository.jpa;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.position.snapshot.domain.UserPositionKey;
 
 /**

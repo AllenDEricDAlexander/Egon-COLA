@@ -11,12 +11,15 @@ import top.egon.cola.archetype.source.web.domain.client.OrganizationEventPublish
 import top.egon.cola.archetype.source.web.domain.teaching.client.GradeCachePort;
 import top.egon.cola.archetype.source.web.domain.teaching.service.GradeDomainService;
 import top.egon.cola.archetype.source.web.domain.teaching.vos.GradeCode;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -24,6 +27,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class GradeManageImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Mock GradeDomainService gradeDomainService;
     @Mock GradeCachePort gradeCache;
     @Mock CommandIdempotencyPort idempotency;
@@ -38,8 +47,7 @@ class GradeManageImplTest {
         when(gradeDomainService.existsByCode(GradeCode.create("GRADE_ONE"))).thenReturn(true);
         when(idempotency.claim("create-grade", "req-1")).thenReturn(true);
         GradeManageImpl manage = new GradeManageImpl(gradeDomainService,
-                new TeachingApplicationValidator(), gradeCache, idempotency, eventPublisher,
-                () -> 2001L);
+                new TeachingApplicationValidator(), gradeCache, idempotency, eventPublisher);
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createGrade(
                 new CreateGradeCommand("req-1", "grade_one", "Grade One")));

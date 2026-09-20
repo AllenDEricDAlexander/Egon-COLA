@@ -48,7 +48,7 @@ class JpaManagementPolicyQueryTest {
                         session.createSelectionQuery(invocation.getArgument(0), Object[].class);
                         return query;
                     });
-            var repository = new JpaManagementPolicyRepository(entityManager, null, null);
+            var repository = new JpaManagementPolicyRepository(entityManager, null);
 
             assertEquals(List.of(), repository.manageableUsers(
                     "1", "2", " Subject-3 ", Instant.parse("2026-09-06T05:00:00Z")));
@@ -88,7 +88,7 @@ class JpaManagementPolicyQueryTest {
                         session.createSelectionQuery(invocation.getArgument(0), ManagementPolicyPO.class);
                         return query;
                     });
-            var repository = new JpaManagementPolicyRepository(entityManager, null, null);
+            var repository = new JpaManagementPolicyRepository(entityManager, null);
 
             assertEquals(List.of(), repository.policies(
                     "1", "2", "3", Instant.parse("2026-09-06T05:00:00Z")));

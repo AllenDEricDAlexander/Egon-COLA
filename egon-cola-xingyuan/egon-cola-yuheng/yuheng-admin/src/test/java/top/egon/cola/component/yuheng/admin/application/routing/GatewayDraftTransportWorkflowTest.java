@@ -1,9 +1,8 @@
 package top.egon.cola.component.yuheng.admin.routing.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.springframework.core.MethodParameter;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.support.WebDataBinderFactory;
@@ -21,16 +20,15 @@ import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRe
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftRepository;
 import top.egon.cola.component.yuheng.admin.shared.controller.GatewayAdminExceptionHandler;
 import top.egon.cola.component.yuheng.admin.routing.controller.GatewayDraftController;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -42,6 +40,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class GatewayDraftTransportWorkflowTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-07-30T08:00:00Z");
@@ -198,9 +201,7 @@ class GatewayDraftTransportWorkflowTest {
                 catalog,
                 idempotency,
                 audits,
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                         new GatewayDraftController(service)
                 )

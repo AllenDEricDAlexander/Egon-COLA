@@ -1,8 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.impl;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.repo.IdentityUserDirectory;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.pojo.IdentityTenantMembershipEntity;
@@ -12,13 +13,12 @@ import top.egon.cola.platform.tianquan.shoubing.admin.tenant.service.TenantMembe
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.port.TenantMembershipPort;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,6 +28,11 @@ import static org.mockito.Mockito.when;
 
 class TenantMembershipServiceImplTest {
 
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     private static final Instant NOW =
             Instant.parse("2026-08-22T02:00:00Z");
 
@@ -36,7 +41,6 @@ class TenantMembershipServiceImplTest {
     private final IdentityTenantMembershipRepository memberships =
             mock(IdentityTenantMembershipRepository.class);
     private final IdentityUserDirectory users = mock(IdentityUserDirectory.class);
-    private final LongIdGenerator ids = () -> 20001L;
     private final IdentityTenantEntity tenant = IdentityTenantEntity.create(
             "10001",
             "acme",
@@ -64,7 +68,6 @@ class TenantMembershipServiceImplTest {
                 tenants,
                 memberships,
                 users,
-                ids,
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
         when(tenants.findById("10001")).thenReturn(Optional.of(tenant));

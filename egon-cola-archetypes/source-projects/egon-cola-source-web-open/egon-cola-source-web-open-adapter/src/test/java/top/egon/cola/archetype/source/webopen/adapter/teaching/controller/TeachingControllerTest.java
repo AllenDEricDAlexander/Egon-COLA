@@ -1,5 +1,6 @@
 package top.egon.cola.archetype.source.webopen.adapter.teaching.controller;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.archetype.source.webopen.adapter.teaching.controller.GradeController;
 import top.egon.cola.archetype.source.webopen.adapter.teaching.controller.SchoolClassController;
 import top.egon.cola.archetype.source.webopen.adapter.teaching.converter.GradeAdapterConverter;
@@ -10,6 +11,7 @@ import top.egon.cola.archetype.source.webopen.application.teaching.query.SchoolC
 import top.egon.cola.archetype.source.webopen.application.teaching.result.GradeDetailResult;
 import top.egon.cola.archetype.source.webopen.application.teaching.result.SchoolClassDetailResult;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
@@ -17,9 +19,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
 import java.util.List;
-
+import java.time.Duration;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.verify;
@@ -28,10 +29,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 
 @ExtendWith(MockitoExtension.class)
 class TeachingControllerTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
     @Mock GradeManage gradeManage;
     @Mock SchoolClassManage schoolClassManage;
 
@@ -46,11 +51,9 @@ class TeachingControllerTest {
         when(schoolClassManage.getSchoolClass(any())).thenReturn(
             new SchoolClassDetailResult(3001L, "Class A", "GRADE_ONE", "Grade One", "ACTIVE", List.of()));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-            new GradeController(gradeManage, Mappers.getMapper(GradeAdapterConverter.class),
-                (LongIdGenerator) () -> 9001L),
+            new GradeController(gradeManage, Mappers.getMapper(GradeAdapterConverter.class)),
             new SchoolClassController(
-                schoolClassManage, Mappers.getMapper(SchoolClassAdapterConverter.class),
-                (LongIdGenerator) () -> 9002L)).build();
+                schoolClassManage, Mappers.getMapper(SchoolClassAdapterConverter.class))).build();
 
         mockMvc.perform(post("/api/v1/grades").contentType(MediaType.APPLICATION_JSON)
                 .content("{\"code\":\"GRADE_ONE\",\"name\":\"Grade One\"}"))

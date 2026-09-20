@@ -3,14 +3,13 @@ package top.egon.cola.component.common.mybatis.integration;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusAutoConfiguration;
 import com.baomidou.mybatisplus.autoconfigure.MybatisPlusInnerInterceptorAutoConfiguration;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
-import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.apache.ibatis.annotations.Mapper;
 import org.mybatis.spring.annotation.MapperScan;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
@@ -20,6 +19,7 @@ import org.h2.jdbcx.JdbcDataSource;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator;
 import org.springframework.jdbc.core.JdbcTemplate;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
 import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
 import top.egon.cola.component.common.mybatis.routing.EgonColaRouteResult;
@@ -33,6 +33,7 @@ import top.egon.cola.component.common.mybatis.support.TestUserIdProvider;
 
 import javax.sql.DataSource;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
@@ -48,6 +49,11 @@ class EgonColaTenantIdSqlIntegrationTest {
 
     private static final ValidatorFactory VALIDATOR_FACTORY =
             Validation.buildDefaultValidatorFactory();
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @AfterAll
     static void closeValidatorFactory() {
@@ -202,11 +208,6 @@ class EgonColaTenantIdSqlIntegrationTest {
             new ResourceDatabasePopulator(new ClassPathResource("schema.sql"))
                     .execute(dataSource);
             return dataSource;
-        }
-
-        @Bean("snowflakeIdGenerator")
-        top.egon.cola.component.common.id.generator.LongIdGenerator snowflakeIdGenerator() {
-            return new top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator(0);
         }
 
         @Bean("egonColaRoutingProfiles")

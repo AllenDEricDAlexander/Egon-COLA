@@ -15,7 +15,6 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -67,6 +66,7 @@ import static org.mockito.Mockito.when;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
+        "egon.cola.component.id.machine-id=0",
         "spring.datasource.url=jdbc:sqlite:file:ddc_publish_prepare_test?mode=memory&cache=shared",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
@@ -79,8 +79,6 @@ import static org.mockito.Mockito.when;
 })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 class DdcPublishPreparationTest {
-
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     @Autowired
     private DdcPublishService publishService;
@@ -221,8 +219,8 @@ class DdcPublishPreparationTest {
         saveConfig("shared-admin-lock");
         LocalDateTime now = LocalDateTime.now();
         var active = new DdcPublishTaskEntity();
-        active.setId(IDS.nextId());
-        active.setChangeId(IDS.nextId());
+        active.setId(SnowflakeIdGenerator.nextId());
+        active.setChangeId(SnowflakeIdGenerator.nextId());
         active.setBizCode("default");
         active.setAppCode("shared-admin-lock");
         active.setEnv("dev");
@@ -390,7 +388,7 @@ class DdcPublishPreparationTest {
     private void saveConfig(String label) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
-        config.setId(IDS.nextId());
+        config.setId(SnowflakeIdGenerator.nextId());
         config.setBizCode("default");
         config.setAppCode(label);
         config.setEnv("dev");
@@ -408,7 +406,7 @@ class DdcPublishPreparationTest {
 
     private DdcPublishRequest request(String label, String value) {
         DdcPublishRequest request = new DdcPublishRequest();
-        request.setChangeId(IDS.nextId());
+        request.setChangeId(SnowflakeIdGenerator.nextId());
         request.setBizCode("default");
         request.setAppCode(label);
         request.setEnv("dev");
@@ -444,12 +442,6 @@ class DdcPublishPreparationTest {
         @Bean
         DdcConfigLeaseService ddcConfigLeaseService() {
             return org.mockito.Mockito.mock(DdcConfigLeaseService.class);
-        }
-
-
-        @Bean
-        LongIdGenerator longIdGenerator() {
-            return new SnowflakeIdGenerator(0);
         }
 
         @Bean

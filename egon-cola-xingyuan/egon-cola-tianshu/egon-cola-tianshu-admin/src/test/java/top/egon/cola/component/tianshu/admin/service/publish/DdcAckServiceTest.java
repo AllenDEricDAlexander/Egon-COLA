@@ -10,7 +10,6 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.TestPropertySource;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
@@ -46,6 +45,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @TestPropertySource(properties = {
+        "egon.cola.component.id.machine-id=0",
         "spring.datasource.url=jdbc:sqlite:file:ddc_ack_service_test?mode=memory&cache=shared",
         "spring.datasource.driver-class-name=org.sqlite.JDBC",
         "spring.jpa.database-platform=org.hibernate.community.dialect.SQLiteDialect",
@@ -54,8 +54,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.flyway.enabled=false"
 })
 class DdcAckServiceTest {
-
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
 
     private static final String CONFIG_VALUE =
             "feature:\n  enabled: true\n";
@@ -211,7 +209,7 @@ class DdcAckServiceTest {
     private DdcPublishTaskEntity savePublishingTask(String label) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        String configId = IDS.nextId();
+        String configId = SnowflakeIdGenerator.nextId();
         DdcConfigItemEntity config = new DdcConfigItemEntity();
         config.setId(configId);
         config.setBizCode("default");
@@ -229,8 +227,8 @@ class DdcAckServiceTest {
         config.setUpdatedAt(now);
         configItemRepository.saveAndFlush(config);
 
-        task.setId(IDS.nextId());
-        task.setChangeId(IDS.nextId());
+        task.setId(SnowflakeIdGenerator.nextId());
+        task.setChangeId(SnowflakeIdGenerator.nextId());
         task.setConfigId(configId);
         task.setBizCode("default");
         task.setAppCode(label);
@@ -257,7 +255,7 @@ class DdcAckServiceTest {
                             String instanceId,
                             String leaseId) {
         DdcPublishAckEntity target = new DdcPublishAckEntity();
-        target.setId(IDS.nextId());
+        target.setId(SnowflakeIdGenerator.nextId());
         target.setChangeId(task.getChangeId());
         target.setInstanceId(instanceId);
         target.setLeaseId(leaseId);
@@ -288,12 +286,6 @@ class DdcAckServiceTest {
 
     @TestConfiguration
     static class Dependencies {
-
-
-        @Bean
-        LongIdGenerator longIdGenerator() {
-            return new SnowflakeIdGenerator(0);
-        }
 
         @Bean
         DdcRedisRepository ddcRedisRepository() {

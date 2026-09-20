@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.CreateOAuthClientDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.RotateClientSecretDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.dto.UpdateOAuthClientDTO;
@@ -67,7 +67,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
     private final IdentityClientSecretRepository secrets;
 
     /** 全局 ID 生成器；global identifier generator. */
-    private final LongIdGenerator ids;
 
     /** UTC 业务时钟；UTC business clock. */
     private final Clock clock;
@@ -91,7 +90,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      * @param resources Resource Server 仓储；Resource Server repository
      * @param grants Client Resource Grant 仓储；Client Resource Grant repository
      * @param secrets Client Secret 仓储；Client Secret repository
-     * @param ids 全局 ID 生成器；global identifier generator
      * @param passwordHashes Secret 哈希端口；Secret hashing port
      * @param securityEvents 安全审计事件端口；security-audit event port
      * @param secureRandom 密码学随机源；cryptographically secure random source
@@ -103,7 +101,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             IdentityResourceServerRepository resources,
             IdentityClientResourceGrantRepository grants,
             IdentityClientSecretRepository secrets,
-            LongIdGenerator ids,
             PasswordHashPort passwordHashes,
             IdentitySecurityEventPort securityEvents,
             SecureRandom secureRandom
@@ -114,7 +111,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 resources,
                 grants,
                 secrets,
-                ids,
                 Clock.systemUTC(),
                 passwordHashes,
                 securityEvents,
@@ -132,7 +128,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
      * @param resources Resource Server 仓储；Resource Server repository
      * @param grants Client Resource Grant 仓储；Client Resource Grant repository
      * @param secrets Client Secret 仓储；Client Secret repository
-     * @param ids 全局 ID 生成器；global identifier generator
      * @param clock UTC 业务时钟；UTC business clock
      * @param passwordHashes Secret 哈希端口；Secret hashing port
      * @param securityEvents 安全审计事件端口；security-audit event port
@@ -144,7 +139,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             IdentityResourceServerRepository resources,
             IdentityClientResourceGrantRepository grants,
             IdentityClientSecretRepository secrets,
-            LongIdGenerator ids,
             Clock clock,
             PasswordHashPort passwordHashes,
             IdentitySecurityEventPort securityEvents,
@@ -155,7 +149,6 @@ public class OAuthClientServiceImpl implements OAuthClientService {
         this.resources = Objects.requireNonNull(resources, "resources");
         this.grants = Objects.requireNonNull(grants, "grants");
         this.secrets = Objects.requireNonNull(secrets, "secrets");
-        this.ids = Objects.requireNonNull(ids, "ids");
         this.clock = Objects.requireNonNull(clock, "clock");
         this.passwordHashes = Objects.requireNonNull(
                 passwordHashes,
@@ -255,7 +248,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
         String clientId = client.getClientId();
         redirectValues.forEach(value -> redirects.save(
                 IdentityClientRedirectUriEntity.create(
-                        ids.nextId(),
+                        SnowflakeIdGenerator.nextId(),
                         clientId,
                         value,
                         now
@@ -366,7 +359,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             client.rotateSecret(command.expectedVersion(), now);
             clients.save(client);
             secrets.save(IdentityClientSecretEntity.create(
-                    String.valueOf(ids.nextId()),
+                    String.valueOf(SnowflakeIdGenerator.nextId()),
                     client.getClientId(),
                     secretHash,
                     secretHint,
@@ -417,7 +410,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             String secretHash = passwordHashes.encode(rawSecret);
             String secretHint = plaintext.substring(plaintext.length() - 4);
             secrets.save(IdentityClientSecretEntity.create(
-                    String.valueOf(ids.nextId()),
+                    String.valueOf(SnowflakeIdGenerator.nextId()),
                     client.getClientId(),
                     secretHash,
                     secretHint,
@@ -475,7 +468,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
                 redirectUri
         )) {
             redirects.save(IdentityClientRedirectUriEntity.create(
-                    ids.nextId(),
+                    SnowflakeIdGenerator.nextId(),
                     client.getClientId(),
                     redirectUri,
                     clock.instant()
@@ -688,7 +681,7 @@ public class OAuthClientServiceImpl implements OAuthClientService {
             Instant now
     ) {
         grants.save(IdentityClientResourceGrantEntity.userDelegation(
-                ids.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 clientId,
                 resource.getResourceServerId(),
                 now

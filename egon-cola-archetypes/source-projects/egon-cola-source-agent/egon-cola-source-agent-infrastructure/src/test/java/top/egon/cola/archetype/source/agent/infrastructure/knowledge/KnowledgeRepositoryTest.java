@@ -7,6 +7,7 @@ import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mybatis.spring.annotation.MapperScan;
@@ -27,6 +28,7 @@ import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.Kn
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.KnowledgeBaseRepositoryImpl;
 import top.egon.cola.archetype.source.agent.infrastructure.knowledge.service.KnowledgeDocumentRepositoryImpl;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusAutoConfiguration;
 
 import javax.sql.DataSource;
@@ -34,6 +36,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Proxy;
 import java.sql.Connection;
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,6 +78,11 @@ class KnowledgeRepositoryTest {
                     "egon.cola.component.mybatis-plus.local-write-guard.allowed-root-statements.[top.egon.cola.archetype.source.agent.infrastructure.knowledge.repo.dao.KnowledgeDocumentDAO.softDeleteByKnowledgeBaseId]=knowledge_base_id")
             .withUserConfiguration(KnowledgePersistenceConfiguration.class)
             .withBean(Validator.class, VALIDATOR_FACTORY::getValidator);
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @AfterAll
     static void closeValidatorFactory() {
@@ -394,12 +402,6 @@ class KnowledgeRepositoryTest {
     @Configuration(proxyBeanMethods = false)
     @MapperScan(basePackageClasses = KnowledgeBaseDAO.class)
     static class KnowledgePersistenceConfiguration {
-
-        @Bean("snowflakeIdGenerator")
-        top.egon.cola.component.common.id.generator.LongIdGenerator testIds() {
-            java.util.concurrent.atomic.AtomicLong values = new java.util.concurrent.atomic.AtomicLong(100000);
-            return values::incrementAndGet;
-        }
 
         @Bean("egonColaWriteTargetResolver")
         top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver plainResolver() {

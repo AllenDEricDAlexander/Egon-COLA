@@ -1,6 +1,6 @@
 package top.egon.cola.component.yuheng.runtime.observability.domain;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
 import top.egon.cola.component.yuheng.contract.trace.GatewayTraceContext;
 
@@ -243,22 +243,20 @@ public final class GatewayCallObservation {
      * @param accessZone 参数 accessZone；parameter access zone。
      * @param engineNodeId 参数 引擎NodeId；parameter engine node id。
      */
-    private final LongIdGenerator idGenerator;
 
     public GatewayCallObservation(Clock clock,
             GatewayTraceContext trace,
             String requestId,
             String protocol,
             String accessZone,
-            String engineNodeId,
-            LongIdGenerator idGenerator) {
+            String engineNodeId) {
         this(clock,
                 trace,
                 requestId,
                 protocol,
                 accessZone,
                 engineNodeId,
-                GatewayTelemetry.noop(), idGenerator);
+                GatewayTelemetry.noop());
     }
 
     /**
@@ -280,9 +278,7 @@ public final class GatewayCallObservation {
             String protocol,
             String accessZone,
             String engineNodeId,
-            GatewayTelemetry gatewayTelemetry,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            GatewayTelemetry gatewayTelemetry) {
         this.clock = Objects.requireNonNull(clock, "clock");
         telemetry = Objects.requireNonNull(
                 gatewayTelemetry,
@@ -316,16 +312,13 @@ public final class GatewayCallObservation {
             GatewayTraceContext trace,
             String protocol,
             String accessZone,
-            String engineNodeId,
-            LongIdGenerator idGenerator) {
+            String engineNodeId) {
         return start(
                 trace,
                 protocol,
                 accessZone,
                 engineNodeId,
-                GatewayTelemetry.noop(),
-                idGenerator
-        );
+                GatewayTelemetry.noop());
     }
 
     /**
@@ -345,8 +338,7 @@ public final class GatewayCallObservation {
             String protocol,
             String accessZone,
             String engineNodeId,
-            GatewayTelemetry telemetry,
-            LongIdGenerator idGenerator) {
+            GatewayTelemetry telemetry) {
         return new GatewayCallObservation(
                 Clock.systemUTC(),
                 trace,
@@ -354,9 +346,7 @@ public final class GatewayCallObservation {
                 protocol,
                 accessZone,
                 engineNodeId,
-                telemetry,
-                idGenerator
-        );
+                telemetry);
     }
 
     /**
@@ -591,7 +581,7 @@ public final class GatewayCallObservation {
         }
         return Optional.of(new GatewayCallEventV1(
                 "v1",
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 occurredAt,
                 completedAt,
                 new GatewayCallEventV1.Trace(

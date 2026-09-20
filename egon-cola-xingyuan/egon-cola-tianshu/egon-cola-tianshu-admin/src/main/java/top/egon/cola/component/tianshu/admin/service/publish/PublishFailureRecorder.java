@@ -3,7 +3,7 @@ package top.egon.cola.component.tianshu.admin.service.publish;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcPublishTaskEntity;
 import top.egon.cola.component.tianshu.admin.model.enums.PublishStatus;
 import top.egon.cola.component.tianshu.admin.repository.DdcPublishTaskRepository;
@@ -15,11 +15,7 @@ public class PublishFailureRecorder {
 
     private final DdcPublishTaskRepository publishTaskRepository;
 
-    private final LongIdGenerator idGenerator;
-
-    public PublishFailureRecorder(DdcPublishTaskRepository publishTaskRepository,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+    public PublishFailureRecorder(DdcPublishTaskRepository publishTaskRepository) {
         this.publishTaskRepository = publishTaskRepository;
     }
 
@@ -36,7 +32,7 @@ public class PublishFailureRecorder {
     private DdcPublishTaskEntity newFailedTask(String changeId, String bizCode, String env, String appCode, String resourceName) {
         LocalDateTime now = LocalDateTime.now();
         DdcPublishTaskEntity task = new DdcPublishTaskEntity();
-        task.setId(idGenerator.nextId());
+        task.setId(SnowflakeIdGenerator.nextId());
         task.setChangeId(changeId);
         task.setBizCode(bizCode);
         task.setAppCode(appCode);

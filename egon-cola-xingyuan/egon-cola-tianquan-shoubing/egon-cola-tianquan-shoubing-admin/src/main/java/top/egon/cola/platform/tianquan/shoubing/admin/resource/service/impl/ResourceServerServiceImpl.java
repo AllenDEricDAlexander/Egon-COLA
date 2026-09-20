@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.pojo.IdentityClientEntity;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.repo.IdentityClientRepository;
 import top.egon.cola.platform.tianquan.shoubing.admin.resource.domain.dto.BatchClientResourceGrantDTO;
@@ -70,7 +70,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
     private final ResourceServerProjectionService projections;
 
     /** 全局标识生成器；global identifier generator. */
-    private final LongIdGenerator ids;
 
     /** JSON 编解码器；JSON codec. */
     private final ObjectMapper objectMapper;
@@ -92,7 +91,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             IdentityClientResourceGrantRepository grants,
             IdentityClientRepository clients,
             ResourceServerProjectionService projections,
-            LongIdGenerator ids,
             ObjectMapper objectMapper,
             TransactionalOutboxResourceServerEventAdapter events
     ) {
@@ -101,7 +99,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 grants,
                 clients,
                 projections,
-                ids,
                 objectMapper,
                 Clock.systemUTC(),
                 events
@@ -118,7 +115,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             IdentityClientResourceGrantRepository grants,
             IdentityClientRepository clients,
             ResourceServerProjectionService projections,
-            LongIdGenerator ids,
             ObjectMapper objectMapper,
             Clock clock,
             TransactionalOutboxResourceServerEventAdapter events
@@ -130,7 +126,6 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 projections,
                 "projections"
         );
-        this.ids = Objects.requireNonNull(ids, "ids");
         this.objectMapper = Objects.requireNonNull(
                 objectMapper,
                 "objectMapper"
@@ -174,7 +169,7 @@ public class ResourceServerServiceImpl implements ResourceServerService {
         Instant now = clock.instant();
         IdentityResourceServerEntity resource = resources.save(
                 IdentityResourceServerEntity.create(
-                        ids.nextId(),
+                        SnowflakeIdGenerator.nextId(),
                         command.resourceServerId(),
                         command.resourceUri(),
                         command.bizCode(),
@@ -613,7 +608,7 @@ public class ResourceServerServiceImpl implements ResourceServerService {
                 == IdentityClientResourceGrantEntity.GrantType
                 .USER_DELEGATION) {
             return IdentityClientResourceGrantEntity.userDelegation(
-                    ids.nextId(),
+                    SnowflakeIdGenerator.nextId(),
                     clientId,
                     resourceServerId,
                     clock.instant()
@@ -621,7 +616,7 @@ public class ResourceServerServiceImpl implements ResourceServerService {
         }
         if (facts.tenantId() == null) {
             return IdentityClientResourceGrantEntity.platformClientCredentials(
-                    ids.nextId(),
+                    SnowflakeIdGenerator.nextId(),
                     clientId,
                     resourceServerId,
                     facts.allowedScopesJson(),
@@ -629,7 +624,7 @@ public class ResourceServerServiceImpl implements ResourceServerService {
             );
         }
         return IdentityClientResourceGrantEntity.clientCredentials(
-                ids.nextId(), clientId, resourceServerId, facts.tenantId(),
+                SnowflakeIdGenerator.nextId(), clientId, resourceServerId, facts.tenantId(),
                 facts.allowedScopesJson(), clock.instant());
     }
 

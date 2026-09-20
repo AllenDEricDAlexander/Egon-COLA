@@ -6,7 +6,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.common.DdcAdminException;
 import top.egon.cola.component.tianshu.admin.config.DdcAdminProperties;
 import top.egon.cola.component.tianshu.admin.model.dto.DdcConfigCreateRequest;
@@ -69,17 +69,13 @@ public class DdcConfigService {
 
     private final DdcYamlConfigValidator yamlValidator;
 
-    private final LongIdGenerator idGenerator;
-
     @Autowired
     public DdcConfigService(DdcConfigItemRepository configItemRepository,
             DdcConfigVersionRepository versionRepository,
             DdcOperationLogRepository operationLogRepository,
             ObjectProvider<DdcAdminProperties> propertiesProvider,
             DdcNamespaceEnvAppBindingRepository bindingRepository,
-            DdcPublishTaskRepository publishTaskRepository,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            DdcPublishTaskRepository publishTaskRepository) {
         this.configItemRepository = configItemRepository;
         this.versionRepository = versionRepository;
         this.operationLogRepository = operationLogRepository;
@@ -95,28 +91,26 @@ public class DdcConfigService {
     public DdcConfigService(DdcConfigItemRepository configItemRepository,
             DdcConfigVersionRepository versionRepository,
             DdcOperationLogRepository operationLogRepository,
-            ObjectProvider<DdcAdminProperties> propertiesProvider,
-            LongIdGenerator idGenerator) {
+            ObjectProvider<DdcAdminProperties> propertiesProvider) {
         this(configItemRepository,
                 versionRepository,
                 operationLogRepository,
                 propertiesProvider,
                 null,
-                null, idGenerator);
+                null);
     }
 
     public DdcConfigService(DdcConfigItemRepository configItemRepository,
             DdcConfigVersionRepository versionRepository,
             DdcOperationLogRepository operationLogRepository,
             ObjectProvider<DdcAdminProperties> propertiesProvider,
-            DdcNamespaceEnvAppBindingRepository bindingRepository,
-            LongIdGenerator idGenerator) {
+            DdcNamespaceEnvAppBindingRepository bindingRepository) {
         this(configItemRepository,
                 versionRepository,
                 operationLogRepository,
                 propertiesProvider,
                 bindingRepository,
-                null, idGenerator);
+                null);
     }
 
     @Transactional
@@ -193,7 +187,7 @@ public class DdcConfigService {
     ) {
         LocalDateTime now = LocalDateTime.now();
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(idGenerator.nextId());
+        entity.setId(SnowflakeIdGenerator.nextId());
         entity.setBizCode(request.getBizCode());
         entity.setAppCode(request.getAppCode());
         entity.setEnv(request.getEnv());
@@ -447,7 +441,7 @@ public class DdcConfigService {
     private void saveVersion(DdcConfigItemEntity entity, String oldContent, String newContent, ChangeType changeType,
                              String reason, String operator) {
         DdcConfigVersionEntity version = new DdcConfigVersionEntity();
-        version.setId(idGenerator.nextId());
+        version.setId(SnowflakeIdGenerator.nextId());
         version.setConfigId(entity.getId());
         version.setBizCode(entity.getBizCode());
         version.setAppCode(entity.getAppCode());
@@ -467,7 +461,7 @@ public class DdcConfigService {
 
     private void saveOperation(DdcConfigItemEntity entity, ChangeType changeType, String operator, String content) {
         DdcOperationLogEntity log = new DdcOperationLogEntity();
-        log.setId(idGenerator.nextId());
+        log.setId(SnowflakeIdGenerator.nextId());
         log.setBizCode(entity.getBizCode());
         log.setAppCode(entity.getAppCode());
         log.setEnv(entity.getEnv());

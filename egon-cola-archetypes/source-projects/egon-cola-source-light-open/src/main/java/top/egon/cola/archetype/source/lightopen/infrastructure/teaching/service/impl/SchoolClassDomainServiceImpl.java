@@ -20,7 +20,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.Optional;
 
@@ -42,12 +42,10 @@ public class SchoolClassDomainServiceImpl
     private final SchoolClassPOConverter schoolClassConverter;
     @Qualifier("coursePOConverterImpl")
     private final CoursePOConverter courseConverter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     @Override
     public SchoolClass createSchoolClass(String name, Semester semester) {
-        return new SchoolClass(new SchoolClassId(idGenerator.nextLongId()), name, semester,
+        return new SchoolClass(new SchoolClassId(SnowflakeIdGenerator.nextLongId()), name, semester,
                 top.egon.cola.archetype.source.lightopen.domain.teaching.enums.SchoolClassStatus.ACTIVE);
     }
 

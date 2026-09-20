@@ -1,17 +1,17 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.po.AutoAssignmentRulePO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.service.PositionAutoRoleRecalculator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.service.AuthorizationMutationCoordinator;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-
 import java.util.List;
 import java.time.Instant;
-
+import java.time.Duration;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -20,6 +20,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class PositionAutoRoleRecalculatorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void doesNotOpenAuthorizationMutationWhenPositionHasNoActiveUsers() {
@@ -39,7 +44,7 @@ class PositionAutoRoleRecalculatorTest {
         DatabaseClock clock = mock(DatabaseClock.class);
         when(clock.transactionNow()).thenReturn(Instant.parse("2026-08-15T00:00:00Z"));
         PositionAutoRoleRecalculator recalculator = new PositionAutoRoleRecalculator(
-                entityManager, mock(LongIdGenerator.class), clock, coordinator);
+                entityManager, clock, coordinator);
 
         recalculator.recalculateForPosition(7L, 10L, "actor");
 

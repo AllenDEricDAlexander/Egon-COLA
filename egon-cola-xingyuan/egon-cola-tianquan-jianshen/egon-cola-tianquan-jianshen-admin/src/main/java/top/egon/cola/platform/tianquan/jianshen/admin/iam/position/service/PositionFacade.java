@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.domain.enums.DirectorySourceTypeEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.domain.enums.OrgUnitStatusEnum;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.domain.po.OrgUnitPO;
@@ -23,15 +23,12 @@ import java.util.Objects;
 public class PositionFacade {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
 
     public PositionFacade(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.databaseClock = Objects.requireNonNull(databaseClock, "databaseClock");
     }
 
@@ -77,7 +74,7 @@ public class PositionFacade {
         }
         Instant now = databaseClock.transactionNow();
         PositionPO value = new PositionPO(
-                idGenerator.nextLongId(), tenantId, DirectorySourceTypeEnum.MANUAL,
+                SnowflakeIdGenerator.nextLongId(), tenantId, DirectorySourceTypeEnum.MANUAL,
                 null, code, required(command.name(), "name"), organization.getId(),
                 command.externalId(), Objects.requireNonNull(command.validFrom(), "validFrom"),
                 command.validTo(), actorId, now);

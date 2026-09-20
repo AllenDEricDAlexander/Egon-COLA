@@ -2,7 +2,7 @@ package top.egon.cola.component.tianshu.service.lifecycle;
 
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.lang.Nullable;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.api.extension.DdcInstanceIdProvider;
 import top.egon.cola.component.tianshu.error.DdcException;
 import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
@@ -34,8 +34,6 @@ public class DdcInstanceIdentityFactory {
      */
     private final DdcInstanceIdProvider instanceIdProvider;
 
-    private final LongIdGenerator idGenerator;
-
     /**
      * 创建使用配置或 Snowflake ID 生成实例标识的工厂。
      * Creates a factory that obtains instance identifiers from configuration or Snowflake generation.
@@ -43,9 +41,8 @@ public class DdcInstanceIdentityFactory {
      * @param properties Tianshu 客户端配置; Tianshu client configuration
      */
 
-    public DdcInstanceIdentityFactory(DdcProperties properties,
-            LongIdGenerator idGenerator) {
-        this(properties, null, idGenerator);
+    public DdcInstanceIdentityFactory(DdcProperties properties) {
+        this(properties, null);
     }
 
     /**
@@ -56,9 +53,7 @@ public class DdcInstanceIdentityFactory {
      * @param instanceIdProvider 可选实例标识提供器; optional instance identifier provider
      */
     public DdcInstanceIdentityFactory(DdcProperties properties,
-            @Nullable DdcInstanceIdProvider instanceIdProvider,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            @Nullable DdcInstanceIdProvider instanceIdProvider) {
         this.properties = properties;
         this.instanceIdProvider = instanceIdProvider;
     }
@@ -104,7 +99,7 @@ public class DdcInstanceIdentityFactory {
             }
             return provided;
         }
-        return idGenerator.nextId();
+        return SnowflakeIdGenerator.nextId();
     }
 
     /**

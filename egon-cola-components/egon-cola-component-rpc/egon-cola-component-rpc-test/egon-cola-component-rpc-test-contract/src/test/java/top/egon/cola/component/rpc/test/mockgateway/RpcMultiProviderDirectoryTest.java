@@ -3,7 +3,9 @@ package top.egon.cola.component.rpc.test.mockgateway;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
@@ -30,6 +32,11 @@ import java.util.Map;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcMultiProviderDirectoryTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void shouldConvergeEvictAndAcceptReplacementLease() throws Exception {

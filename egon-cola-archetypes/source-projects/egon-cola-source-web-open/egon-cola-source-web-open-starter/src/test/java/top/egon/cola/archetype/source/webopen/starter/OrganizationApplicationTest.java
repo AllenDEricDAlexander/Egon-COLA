@@ -9,7 +9,7 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.core.env.Environment;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.test.util.AopTestUtils;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.dtp.context.DtpTaskDecorator;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,9 +35,6 @@ class OrganizationApplicationTest extends top.egon.cola.archetype.source.webopen
     @Autowired
     private DtpTaskDecorator dtpTaskDecorator;
 
-    @Autowired
-    private LongIdGenerator idGenerator;
-
     @Test
     void exposesOneBoundedDtpGovernedExecutorAndMachineId() {
         assertThat(context.getBeansOfType(ThreadPoolTaskExecutor.class))
@@ -54,7 +51,7 @@ class OrganizationApplicationTest extends top.egon.cola.archetype.source.webopen
         assertThat(context.getBeansOfType(DtpTaskDecorator.class)).containsOnlyKeys("dtpTaskDecorator");
         assertThat(environment.getProperty("egon.cola.component.id.machine-id", Long.class))
                 .isEqualTo(0L);
-        assertThat(idGenerator.nextLongId()).isPositive();
+        assertThat(SnowflakeIdGenerator.nextLongId()).isPositive();
         assertThat(environment.getProperty("egon.cola.component.dtp.enabled", Boolean.class))
                 .isFalse();
     }

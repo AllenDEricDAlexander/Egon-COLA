@@ -1,13 +1,21 @@
 package top.egon.cola.component.yuheng.admin.mcp.service;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
+import java.time.Duration;
 import java.util.Arrays;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 class McpControlPlaneServiceConstructorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void selectsTheProductionConstructorForSpringInjection() {
@@ -22,6 +30,6 @@ class McpControlPlaneServiceConstructorTest {
         assertThat(constructors).singleElement()
                 .satisfies(constructor -> assertThat(
                         constructor.getParameterCount()
-                ).isEqualTo(14));
+                ).isEqualTo(13));
     }
 }

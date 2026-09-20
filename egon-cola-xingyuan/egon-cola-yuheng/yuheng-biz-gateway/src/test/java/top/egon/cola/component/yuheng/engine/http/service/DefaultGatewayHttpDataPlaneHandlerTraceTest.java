@@ -1,9 +1,11 @@
 package top.egon.cola.component.yuheng.engine.http.service;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.runtime.http.domain.GatewayInboundHttpRequest;
 import top.egon.cola.component.yuheng.runtime.http.service.GatewayOutboundHttpResponse;
 import top.egon.cola.component.yuheng.engine.http.security.GatewayHttpSecurityProcessor;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
 import top.egon.cola.component.yuheng.contract.observability.GatewayCallEventV1;
@@ -21,6 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DefaultGatewayHttpDataPlaneHandlerTraceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void returnsSelectedTraceAndPublishesOneRejectedEvent() {

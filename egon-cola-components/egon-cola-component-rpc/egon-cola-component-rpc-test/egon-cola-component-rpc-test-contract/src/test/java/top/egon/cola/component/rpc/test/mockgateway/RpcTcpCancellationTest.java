@@ -4,7 +4,9 @@ import io.grpc.Context;
 import io.grpc.Server;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.rpc.config.EgonRpcProperties;
 import top.egon.cola.component.rpc.consumer.channel.RpcConsumerChannelFactory;
 import top.egon.cola.component.rpc.consumer.gateway.RpcConsumerGatewayManager;
@@ -26,6 +28,7 @@ import top.egon.cola.component.rpc.test.contract.proto.EchoServiceGrpc;
 import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryBackend;
 import top.egon.cola.component.rpc.test.support.InMemoryRpcRegistryClient;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -37,6 +40,11 @@ import java.util.concurrent.TimeUnit;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RpcTcpCancellationTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void shouldCancelForwardedProviderCall() throws Exception {

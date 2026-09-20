@@ -1,12 +1,11 @@
 package top.egon.cola.component.yuheng.admin.release.service;
 
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.group.domain.po.GatewayGroupPO;
 import top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository;
@@ -199,7 +198,6 @@ public class GatewayReleaseService {
      * @param publications 参数 publications；parameter publications。
      * @param mcpContentFactory 参数 MCPContent工厂；parameter mcp content factory。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayReleaseService(GatewayGroupRepository groups,
@@ -211,8 +209,7 @@ public class GatewayReleaseService {
             TransactionTemplate transactions,
             ObjectProvider<GatewayReleasePublicationCoordinator>
                     publications,
-            ObjectProvider<McpReleaseContentFactory> mcpContentFactory,
-            LongIdGenerator idGenerator) {
+            ObjectProvider<McpReleaseContentFactory> mcpContentFactory) {
         this(groups,
                 drafts,
                 draftService,
@@ -222,7 +219,7 @@ public class GatewayReleaseService {
                 transactions,
                 publications.getIfAvailable(),
                 mcpContentFactory.getIfAvailable(),
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     /**
@@ -248,8 +245,7 @@ public class GatewayReleaseService {
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
             GatewayReleasePublicationCoordinator publications,
-            Clock clock,
-            LongIdGenerator idGenerator) {
+            Clock clock) {
         this(groups,
                 drafts,
                 draftService,
@@ -259,7 +255,7 @@ public class GatewayReleaseService {
                 transactions,
                 publications,
                 null,
-                clock, idGenerator);
+                clock);
     }
 
     /**
@@ -287,9 +283,7 @@ public class GatewayReleaseService {
             TransactionTemplate transactions,
             GatewayReleasePublicationCoordinator publications,
             McpReleaseContentFactory mcpContentFactory,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.groups = groups;
         this.drafts = drafts;
         this.draftService = draftService;
@@ -512,7 +506,7 @@ public class GatewayReleaseService {
                     "draft validation failed: " + validation.errors()
             );
         }
-        String releaseId = idGenerator.nextId();
+        String releaseId = SnowflakeIdGenerator.nextId();
         GatewayRuleContent content = rollbackContent == null
                 ? content(group, draftService.get(gatewayGroupId))
                 : rollbackContent;
@@ -994,8 +988,6 @@ public class GatewayReleaseService {
         return values(operationIds).contains(operationId);
     }
 
-
-
     /**
      * 中文说明：执行 required 操作；该方法是 {@code GatewayReleaseService} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the required operation; this method is the invocation entry point on {@code GatewayReleaseService} and performs the corresponding runtime, management, or protocol work.
@@ -1031,7 +1023,7 @@ public class GatewayReleaseService {
             String action,
             long revision) {
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -1187,12 +1179,5 @@ public class GatewayReleaseService {
         }
         return value.length() <= 1024 ? value : value.substring(0, 1024);
     }
-
-
-
-
-
-
-
 
 }

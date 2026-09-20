@@ -8,17 +8,24 @@ import top.egon.cola.archetype.source.serviceopen.application.exam.manage.ExamMa
 import top.egon.cola.archetype.source.serviceopen.application.exam.result.ExamDetailResult;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CreateExamRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Exam;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import com.google.protobuf.Timestamp;
+import java.time.Duration;
 import java.time.Instant;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ExamFacadeImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void shouldValidateConvertDelegateAndReturnExam() {
@@ -29,7 +36,7 @@ class ExamFacadeImplTest {
                 1002L, 1001L, "Midterm", Instant.EPOCH, Instant.EPOCH.plusSeconds(60), "DRAFT"));
         ExamFacadeImpl facade = new ExamFacadeImpl(
                 manage, new ExamFacadeConverter(), new ExamFacadeValidator(),
-                new GlobalFacadeExceptionHandler(() -> 9001L));
+                new GlobalFacadeExceptionHandler());
 
         Exam response = facade.createExam(CreateExamRequest.newBuilder()
                 .setCourseId(1001L).setTitle("Midterm")

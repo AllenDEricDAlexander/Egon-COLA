@@ -1,10 +1,13 @@
 package top.egon.cola.component.common.id.exception;
 
+import top.egon.cola.component.common.core.enums.ResultCode;
+import top.egon.cola.component.common.core.exception.CommonException;
+
 /**
  * Signals that the wall clock is behind the last timestamp used by a Snowflake
  * generator and cannot be recovered safely within the configured tolerance.
  */
-public final class ClockMovedBackwardException extends IllegalStateException {
+public final class ClockMovedBackwardException extends CommonException {
 
     private final long currentTimeMillis;
     private final long lastTimeMillis;
@@ -21,10 +24,11 @@ public final class ClockMovedBackwardException extends IllegalStateException {
      */
     public ClockMovedBackwardException(long currentTimeMillis, long lastTimeMillis,
                                        long backwardMillis, int machineId) {
-        super("Clock moved backward: currentTimeMillis=" + currentTimeMillis
-                + ", lastTimeMillis=" + lastTimeMillis
-                + ", backwardMillis=" + backwardMillis
-                + ", machineId=" + machineId);
+        super(ResultCode.SYSTEM_ERROR.getCode(), ResultCode.SYSTEM_ERROR.getStatus(),
+                "Clock moved backward: currentTimeMillis=" + currentTimeMillis
+                        + ", lastTimeMillis=" + lastTimeMillis
+                        + ", backwardMillis=" + backwardMillis
+                        + ", machineId=" + machineId);
         this.currentTimeMillis = currentTimeMillis;
         this.lastTimeMillis = lastTimeMillis;
         this.backwardMillis = backwardMillis;

@@ -18,7 +18,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.Optional;
 
@@ -33,8 +33,6 @@ public class ScoreDomainServiceImpl
     private final ScoreRepository scoreRepository;
     @Qualifier("scoreConverterImpl")
     private final ScoreConverter scoreConverter;
-    @Qualifier("snowflakeIdGenerator")
-    private final LongIdGenerator idGenerator;
 
     private final ScoreDomainValidator validator = new ScoreDomainValidator();
 
@@ -43,7 +41,7 @@ public class ScoreDomainServiceImpl
             Exam exam, ExamPaper paper, Long studentId, int points, boolean duplicate) {
         validator.validate(exam, paper, studentId, points, duplicate);
         return new Score(
-                idGenerator.nextLongId(), exam.getId(), exam.getCourseId(), studentId,
+                SnowflakeIdGenerator.nextLongId(), exam.getId(), exam.getCourseId(), studentId,
                 new ScoreValue(points), ScoreStatus.RECORDED);
     }
 

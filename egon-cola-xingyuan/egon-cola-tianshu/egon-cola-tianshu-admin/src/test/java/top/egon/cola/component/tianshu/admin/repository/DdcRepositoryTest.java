@@ -1,14 +1,15 @@
 package top.egon.cola.component.tianshu.admin.repository;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.TestPropertySource;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcConfigItemEntity;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -25,7 +26,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 })
 class DdcRepositoryTest {
 
-    private static final LongIdGenerator IDS = new SnowflakeIdGenerator(0);
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Autowired
     private DdcConfigItemRepository configItemRepository;
@@ -33,7 +37,7 @@ class DdcRepositoryTest {
     @Test
     void savesAndFindsConfigItemByNaturalKey() {
         DdcConfigItemEntity entity = new DdcConfigItemEntity();
-        entity.setId(IDS.nextId());
+        entity.setId(SnowflakeIdGenerator.nextId());
         entity.setBizCode("default");
         entity.setAppCode("demo");
         entity.setEnv("dev");

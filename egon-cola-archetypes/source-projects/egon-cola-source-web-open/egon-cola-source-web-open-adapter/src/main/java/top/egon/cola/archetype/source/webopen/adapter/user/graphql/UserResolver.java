@@ -18,7 +18,7 @@ import org.springframework.graphql.data.method.annotation.MutationMapping;
 import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.stereotype.Controller;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 @Controller
 @RequiredArgsConstructor
@@ -27,7 +27,6 @@ public class UserResolver {
     private final UserManage userManage;
     private final RoleManage roleManage;
     private final PermissionManage permissionManage;
-    private final LongIdGenerator idGenerator;
 
     @QueryMapping
     public UserDetailResult user(@Argument String id) {
@@ -66,7 +65,7 @@ public class UserResolver {
     }
 
     private String requestId(String key) {
-        return key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
+        return key == null || key.isBlank() ? Long.toString(SnowflakeIdGenerator.nextLongId()) : key;
     }
 
     public record CreateUserInput(String name, String email) {}

@@ -1,9 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.mockito.ArgumentCaptor;
 import org.springframework.scheduling.annotation.Scheduled;
 import top.egon.cola.component.tianshu.api.client.DdcManagementClient;
@@ -14,14 +13,12 @@ import top.egon.cola.component.tianshu.model.management.DdcManagementPublishStat
 import top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository;
 import top.egon.cola.component.yuheng.admin.config.GatewayAdminProperties;
 import top.egon.cola.component.yuheng.admin.rule.service.GatewayDdcYamlDocument;
-
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doThrow;
@@ -31,6 +28,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class GatewayRuleChunkGarbageCollectorTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void startupLeavesTheFirstIntervalForRegistrationAndReleaseRecovery() throws Exception {
@@ -189,9 +191,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 client,
                 properties,
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                Duration.ofSeconds(30),
-                new SnowflakeIdGenerator(0)
-                );
+                Duration.ofSeconds(30));
     }
 
     private DdcManagementConfig config(String content, long version) {

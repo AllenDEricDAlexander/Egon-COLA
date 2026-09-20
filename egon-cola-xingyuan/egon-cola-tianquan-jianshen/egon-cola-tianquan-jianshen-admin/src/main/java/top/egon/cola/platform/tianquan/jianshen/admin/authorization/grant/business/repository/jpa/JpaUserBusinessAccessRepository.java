@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.application.domain.po.ApplicationPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.business.domain.command.ReplaceUserBusinessAccessesCommand;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.business.domain.enums.UserBusinessAccessStatusEnum;
@@ -32,15 +32,12 @@ public class JpaUserBusinessAccessRepository
     private static final String MANUAL = "MANUAL";
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
 
     public JpaUserBusinessAccessRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
     }
 
@@ -80,7 +77,7 @@ public class JpaUserBusinessAccessRepository
                     throw new Rbac3RuleViolation("AUTH_MUTATION_CONFLICT");
                 }
                 access = new UserBusinessAccessPO(
-                        idGenerator.nextLongId(), tenantId, userId,
+                        SnowflakeIdGenerator.nextLongId(), tenantId, userId,
                         item.ddcBusinessId(), item.validFrom(), item.validTo(),
                         MANUAL, item.ddcBusinessId(), item.reason(), item.ticketNo(),
                         actorId, now);

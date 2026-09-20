@@ -1,5 +1,8 @@
 package top.egon.cola.archetype.source.webopen.adapter;
 
+import java.time.Duration;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.archetype.source.webopen.adapter.user.controller.UserController;
 import top.egon.cola.archetype.source.webopen.adapter.user.converter.UserAdapterConverter;
 import top.egon.cola.archetype.source.webopen.adapter.filter.OrganizationAuthContextFilter;
@@ -18,10 +21,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-
 import java.util.stream.Stream;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,6 +30,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 class OrganizationHttpErrorContractTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
     @Mock UserManage userManage;
 
     @ParameterizedTest
@@ -37,10 +42,9 @@ class OrganizationHttpErrorContractTest {
     void mapsApplicationFailures(OrganizationFailureType type, HttpStatus httpStatus, String code) throws Exception {
         when(userManage.getUser(any())).thenThrow(new OrganizationApplicationException(type, code, "failure"));
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
-                new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class),
-                    (LongIdGenerator) () -> 9001L))
+                new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class)))
             .setControllerAdvice(new OrganizationGlobalExceptionHandler())
-            .addFilters(new OrganizationTraceFilter((LongIdGenerator) () -> 9001L),
+            .addFilters(new OrganizationTraceFilter(),
                 new OrganizationAuthContextFilter())
             .build();
 

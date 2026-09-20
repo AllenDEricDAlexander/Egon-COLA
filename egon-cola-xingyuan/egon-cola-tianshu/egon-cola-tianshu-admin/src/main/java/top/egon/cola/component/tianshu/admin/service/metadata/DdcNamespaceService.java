@@ -6,7 +6,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import top.egon.cola.component.common.core.exception.CommonException;
 import top.egon.cola.component.common.core.pojo.PageQuery;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.admin.model.entity.DdcNamespaceEntity;
 import top.egon.cola.component.tianshu.admin.repository.DdcBizRepository;
 import top.egon.cola.component.tianshu.admin.repository.DdcNamespaceEnvAppBindingRepository;
@@ -27,13 +27,9 @@ public class DdcNamespaceService {
 
     private final DdcNamespaceEnvAppBindingRepository bindingRepository;
 
-    private final LongIdGenerator idGenerator;
-
     public DdcNamespaceService(DdcNamespaceRepository namespaceRepository,
                                DdcBizRepository bizRepository,
-                               DdcNamespaceEnvAppBindingRepository bindingRepository,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+                               DdcNamespaceEnvAppBindingRepository bindingRepository) {
         this.namespaceRepository = namespaceRepository;
         this.bizRepository = bizRepository;
         this.bindingRepository = bindingRepository;
@@ -90,7 +86,7 @@ public class DdcNamespaceService {
     @Transactional
     public DdcNamespaceEntity save(DdcNamespaceEntity namespace) {
         LocalDateTime now = LocalDateTime.now();
-        namespace.setId(idGenerator.nextId());
+        namespace.setId(SnowflakeIdGenerator.nextId());
         namespace.setCreatedAt(now);
         if (namespace.getEnabled() == null) {
             namespace.setEnabled(true);

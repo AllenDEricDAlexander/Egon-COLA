@@ -1,9 +1,8 @@
 package top.egon.cola.component.tianshu.admin.service.lease;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.parallel.ResourceLock;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -14,14 +13,13 @@ import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 import top.egon.cola.component.tianshu.model.config.DdcInstanceRegisterRequest;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseRole;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
-
 import java.time.Instant;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.TimeZone;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -32,6 +30,11 @@ import static top.egon.cola.component.tianshu.admin.security.registration.DdcReg
 
 @ResourceLock("java.util.TimeZone.default")
 class DdcInstanceAdminServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void pagesPersistentInstancesNewestFirst() {
@@ -44,9 +47,7 @@ class DdcInstanceAdminServiceTest {
                 .thenReturn(new PageImpl<>(
                         List.of(instance), PageRequest.of(0, 10), 1));
         DdcInstanceAdminService service = new DdcInstanceAdminService(
-                repository, leaseService,
-                new SnowflakeIdGenerator(0)
-                );
+                repository, leaseService);
 
         var page = service.page(
                 "infra", "prod", "yuheng", new PageQuery(1, 10));
@@ -93,9 +94,7 @@ class DdcInstanceAdminServiceTest {
                     invocation.getArgument(0));
             DdcInstanceAdminService service = new DdcInstanceAdminService(
                     repository,
-                    leaseService,
-                    new SnowflakeIdGenerator(0)
-                    );
+                    leaseService);
 
             service.register(request);
 

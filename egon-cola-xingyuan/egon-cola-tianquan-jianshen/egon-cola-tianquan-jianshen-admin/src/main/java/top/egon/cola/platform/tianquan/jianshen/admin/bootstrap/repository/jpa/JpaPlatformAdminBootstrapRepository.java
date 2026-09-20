@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.repository.jpa;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.audit.repository.AuditPort;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.repository.AuthorizationEventPublisher;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.userrole.domain.po.UserRoleAssignmentPO;
@@ -111,14 +111,6 @@ public class JpaPlatformAdminBootstrapRepository
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `idGenerator` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `JpaPlatformAdminBootstrapRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `JpaPlatformAdminBootstrapRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `auditPort` 表示 `JpaPlatformAdminBootstrapRepository` 中与 `audit Port` 相关的状态、依赖、配置或结果（声明类型 `AuditPort`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `auditPort` stores the `audit Port`-related state, dependency, configuration, or result of `JpaPlatformAdminBootstrapRepository` (declared type `AuditPort`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -152,7 +144,6 @@ public class JpaPlatformAdminBootstrapRepository
      * Usage: create the instance through `JpaPlatformAdminBootstrapRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param auditPort 输入参数 `auditPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param eventPort 输入参数 `eventPort`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param clock 输入参数 `clock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
@@ -160,13 +151,11 @@ public class JpaPlatformAdminBootstrapRepository
      */
     public JpaPlatformAdminBootstrapRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             AuditPort auditPort,
             AuthorizationEventPublisher eventPort,
             Clock clock,
             TenantAuthorizationStateRepository authorizationState) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
         this.auditPort = Objects.requireNonNull(auditPort, "auditPort");
         this.eventPort = Objects.requireNonNull(eventPort, "eventPort");
         this.clock = Objects.requireNonNull(clock, "clock");
@@ -203,8 +192,8 @@ public class JpaPlatformAdminBootstrapRepository
         }
         requireTenantApplication(normalizedTenantId, application.getId(), now);
         Long applicationId = application.getId();
-        Long roleId = idGenerator.nextLongId();
-        Long userId = idGenerator.nextLongId();
+        Long roleId = SnowflakeIdGenerator.nextLongId();
+        Long userId = SnowflakeIdGenerator.nextLongId();
 
         RolePO administratorRole = new RolePO(
                 roleId, normalizedTenantId, applicationId, ROLE_CODE,
@@ -249,7 +238,7 @@ public class JpaPlatformAdminBootstrapRepository
             }
             if (!activeGrantExists(normalizedTenantId, roleId, resource.getId(), now)) {
                 entityManager.persist(new RoleResourceGrantPO(
-                        idGenerator.nextLongId(), normalizedTenantId, applicationId,
+                        SnowflakeIdGenerator.nextLongId(), normalizedTenantId, applicationId,
                         roleId, resource.getId(), now, null, ACTOR, now));
                 grantsChanged = true;
             }
@@ -262,7 +251,7 @@ public class JpaPlatformAdminBootstrapRepository
         administrator.advanceAuthorizationVersion(0, ACTOR, now);
         entityManager.persist(administrator);
         UserRoleAssignmentPO assignment = new UserRoleAssignmentPO(
-                idGenerator.nextLongId(), normalizedTenantId, userId, roleId,
+                SnowflakeIdGenerator.nextLongId(), normalizedTenantId, userId, roleId,
                 UserRoleAssignmentTypeEnum.DIRECT, now, null,
                 "BOOTSTRAP", normalizedTenantId.toString(), "Initial platform administrator",
                 null, ACTOR, now);

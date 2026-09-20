@@ -3,7 +3,7 @@ package top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.part
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.shared.domain.DatabaseClock;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.participation.domain.po.BusinessParticipationPO;
 import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
@@ -35,14 +35,6 @@ public class PostgresqlParticipationRepository
      */
     private final EntityManager entityManager;
     /**
-     * 字段 `idGenerator` 表示 `PostgresqlParticipationRepository` 中与 `id Generator` 相关的状态、依赖、配置或结果（声明类型 `LongIdGenerator`）；其生命周期和取值含义由声明类型及所属对象共同确定。
-     * Field `idGenerator` stores the `id Generator`-related state, dependency, configuration, or result of `PostgresqlParticipationRepository` (declared type `LongIdGenerator`); its lifecycle and value semantics are defined by its declared type and owning object.
-     *
-     * 含义与用法：读取、传递或更新 `idGenerator` 时应保持 `PostgresqlParticipationRepository` 的生命周期、不可变性和线程安全约束。
-     * Meaning and usage: when reading, passing, or updating `idGenerator`, preserve `PostgresqlParticipationRepository`'s lifecycle, immutability, and thread-safety constraints.
-     */
-    private final LongIdGenerator idGenerator;
-    /**
      * 字段 `databaseClock` 表示 `PostgresqlParticipationRepository` 中与 `database Clock` 相关的状态、依赖、配置或结果（声明类型 `DatabaseClock`）；其生命周期和取值含义由声明类型及所属对象共同确定。
      * Field `databaseClock` stores the `database Clock`-related state, dependency, configuration, or result of `PostgresqlParticipationRepository` (declared type `DatabaseClock`); its lifecycle and value semantics are defined by its declared type and owning object.
      *
@@ -59,15 +51,12 @@ public class PostgresqlParticipationRepository
      * Usage: create the instance through `PostgresqlParticipationRepository`'s constructor entry point and do not bypass the validation and initialization constraints established there.
      *
      * @param entityManager 输入参数 `entityManager`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param idGenerator 输入参数 `idGenerator`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param databaseClock 输入参数 `databaseClock`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      */
     public PostgresqlParticipationRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
     }
 
@@ -105,7 +94,7 @@ public class PostgresqlParticipationRepository
         if (!conflicts.isEmpty()) {
             return new AppendResultVO(false, null, conflicts);
         }
-        Long id = idGenerator.nextLongId();
+        Long id = SnowflakeIdGenerator.nextLongId();
         entityManager.persist(new BusinessParticipationPO(
                 id, Long.valueOf(record.tenantId()), record.applicationCode(),
                 record.businessResource(), record.businessId(),

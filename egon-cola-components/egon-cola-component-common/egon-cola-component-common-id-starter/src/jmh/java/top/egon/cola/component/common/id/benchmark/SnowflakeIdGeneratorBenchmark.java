@@ -14,7 +14,7 @@ import org.openjdk.jmh.annotations.State;
 import org.openjdk.jmh.annotations.TearDown;
 import org.openjdk.jmh.annotations.Threads;
 import org.openjdk.jmh.annotations.Warmup;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeLongIdGenerator;
 
 import java.util.Collections;
 import java.util.List;
@@ -35,11 +35,11 @@ import java.util.concurrent.TimeUnit;
 @Fork(2)
 public class SnowflakeIdGeneratorBenchmark {
 
-    private SnowflakeIdGenerator generator;
+    private SnowflakeLongIdGenerator generator;
 
     @Setup(Level.Trial)
     public void setUp() {
-        generator = new SnowflakeIdGenerator(42);
+        generator = new SnowflakeLongIdGenerator(42);
     }
 
     @Benchmark
@@ -258,7 +258,7 @@ public class SnowflakeIdGeneratorBenchmark {
 
         @Setup(Level.Trial)
         public void setUp() {
-            SnowflakeIdGenerator sharedGenerator = new SnowflakeIdGenerator(43);
+            SnowflakeLongIdGenerator sharedGenerator = new SnowflakeLongIdGenerator(43);
             executor = Executors.newVirtualThreadPerTaskExecutor();
             generationTask = sharedGenerator::nextLongId;
         }

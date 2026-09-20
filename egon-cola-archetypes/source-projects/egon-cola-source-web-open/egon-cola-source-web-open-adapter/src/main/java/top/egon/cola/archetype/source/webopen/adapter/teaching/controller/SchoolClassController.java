@@ -7,7 +7,7 @@ import top.egon.cola.archetype.source.webopen.adapter.teaching.vo.SchoolClassDet
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.SchoolClassManage;
 import top.egon.cola.archetype.source.webopen.application.teaching.query.SchoolClassDetailQuery;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationIdBoundary;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -27,13 +27,12 @@ import java.net.URI;
 public class SchoolClassController {
     private final SchoolClassManage schoolClassManage;
     private final SchoolClassAdapterConverter converter;
-    private final LongIdGenerator idGenerator;
 
     @PostMapping("/school-classes")
     public ResponseEntity<SchoolClassDetailVO> create(
             @Valid @RequestBody CreateSchoolClassRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        String requestId = key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
+        String requestId = key == null || key.isBlank() ? Long.toString(SnowflakeIdGenerator.nextLongId()) : key;
         SchoolClassDetailVO result = converter.toVO(
             schoolClassManage.createSchoolClass(converter.toCommand(requestId, request)));
         return ResponseEntity.created(URI.create("/api/v1/school-classes/" + result.id())).body(result);
@@ -55,7 +54,7 @@ public class SchoolClassController {
             @PathVariable String schoolClassId,
             @Valid @RequestBody AssignUserToClassRequest request,
             @RequestHeader(value = "Idempotency-Key", required = false) String key) {
-        String requestId = key == null || key.isBlank() ? Long.toString(idGenerator.nextLongId()) : key;
+        String requestId = key == null || key.isBlank() ? Long.toString(SnowflakeIdGenerator.nextLongId()) : key;
         schoolClassManage.assignUser(
                 converter.toCommand(requestId,
                     OrganizationIdBoundary.parse(gradeId, "gradeId"),

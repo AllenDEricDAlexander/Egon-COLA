@@ -1,10 +1,9 @@
 package top.egon.cola.component.yuheng.admin.routing.service;
 
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.yuheng.admin.catalog.repository.GatewayCatalogRepository;
 import top.egon.cola.component.yuheng.admin.observability.domain.po.GatewayAuditLogPO;
 import top.egon.cola.component.yuheng.admin.observability.repository.GatewayAuditLogRepository;
@@ -140,21 +139,19 @@ public class GatewayDraftService {
      * @param idempotency 参数 idempotency；parameter idempotency。
      * @param audits 参数 audits；parameter audits。
      */
-    private final LongIdGenerator idGenerator;
 
     @Autowired
     public GatewayDraftService(GatewayDraftJpaRepository drafts,
             GatewayDraftRepository store,
             GatewayCatalogRepository catalog,
             IdempotencyRepository idempotency,
-            GatewayAuditLogRepository audits,
-            LongIdGenerator idGenerator) {
+            GatewayAuditLogRepository audits) {
         this(drafts,
                 store,
                 catalog,
                 idempotency,
                 audits,
-                Clock.systemUTC(), idGenerator);
+                Clock.systemUTC());
     }
 
     /**
@@ -174,9 +171,7 @@ public class GatewayDraftService {
             GatewayCatalogRepository catalog,
             IdempotencyRepository idempotency,
             GatewayAuditLogRepository audits,
-            Clock clock,
-            LongIdGenerator idGenerator) {
-        this.idGenerator = idGenerator;
+            Clock clock) {
         this.drafts = drafts;
         this.store = store;
         this.catalog = catalog;
@@ -611,7 +606,7 @@ public class GatewayDraftService {
                 now.plus(Duration.ofDays(7))
         ));
         audits.save(new GatewayAuditLogPO(
-                idGenerator.nextId(),
+                SnowflakeIdGenerator.nextId(),
                 actor.actorId(),
                 actor.actorType().name(),
                 "MANAGEMENT_API",
@@ -789,20 +784,5 @@ public class GatewayDraftService {
         }
         return value.trim();
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }

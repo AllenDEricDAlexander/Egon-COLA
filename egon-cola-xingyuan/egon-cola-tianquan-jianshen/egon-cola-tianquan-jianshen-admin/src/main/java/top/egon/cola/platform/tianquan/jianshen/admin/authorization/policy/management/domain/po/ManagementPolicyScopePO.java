@@ -1,18 +1,5 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.management.domain.po;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.core.delegation.ManagementPolicyDecisionService;
-import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
-import java.time.Instant;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
 /**
      * 类型 `ManagementPolicyScopePO` 位于 `ManagementPolicyRepository` 内，是记录类型，用于承载 `ManagementPolicyScopePO` 相关的职责、状态或契约；调用方通常通过其公开 API、Spring 装配或实现关系使用。
      * Type `ManagementPolicyScopePO` is a record inside `ManagementPolicyRepository` and carries the responsibility, state, or contract for `ManagementPolicyScopePO`; callers normally use it through its public API, Spring assembly, or implementation relationship.

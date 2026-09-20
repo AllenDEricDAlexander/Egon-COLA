@@ -1,7 +1,8 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.support.bootstrap;
 
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.Test;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUser;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.IdentityUserStatus;
 import top.egon.cola.platform.tianquan.shoubing.core.identity.PasswordCredential;
@@ -9,17 +10,22 @@ import top.egon.cola.platform.tianquan.shoubing.core.identity.UsernameNormalizer
 import top.egon.cola.platform.tianquan.shoubing.core.port.IdentityUserStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordCredentialStore;
 import top.egon.cola.platform.tianquan.shoubing.core.port.PasswordHashPort;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.Optional;
-
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class IdpBootstrapServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW = Instant.parse("2026-08-02T00:00:00Z");
 
@@ -27,12 +33,10 @@ class IdpBootstrapServiceTest {
     void createsOneActiveIdentityWithAnEncodedEnvironmentPassword() {
         InMemoryStores stores = new InMemoryStores();
         RecordingPasswordHash hashes = new RecordingPasswordHash();
-        LongIdGenerator ids = () -> 42L;
         IdpBootstrapService service = new IdpBootstrapService(
                 stores,
                 stores,
                 hashes,
-                ids,
                 new UsernameNormalizer(),
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );
@@ -40,7 +44,8 @@ class IdpBootstrapServiceTest {
 
         service.bootstrap(" Ａlice ", password);
 
-        assertEquals("42", stores.user.id());
+        assertTrue(stores.user.id().matches("\\d+"));
+        assertTrue(Long.parseLong(stores.user.id()) > 0L);
         assertEquals("alice", stores.user.normalizedUsername());
         assertEquals(IdentityUserStatus.ACTIVE, stores.user.status());
         assertEquals("{argon2}encoded", stores.credential.passwordHash());
@@ -66,7 +71,6 @@ class IdpBootstrapServiceTest {
                 stores,
                 stores,
                 new RecordingPasswordHash(),
-                () -> 42L,
                 new UsernameNormalizer(),
                 Clock.fixed(NOW, ZoneOffset.UTC)
         );

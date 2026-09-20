@@ -1,9 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.service;
 
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.BeforeAll;
 import org.mockito.ArgumentCaptor;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -33,15 +32,14 @@ import top.egon.cola.component.yuheng.contract.protocol.AccessZone;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRequestBodyMode;
 import top.egon.cola.component.yuheng.contract.rule.GatewayRouteProfile;
 import top.egon.cola.component.yuheng.contract.rule.GatewayTransportResponseMode;
-
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +55,11 @@ import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayP
 import static top.egon.cola.component.yuheng.admin.release.domain.enums.GatewayPublicationStatusEnum.SUCCESS;
 
 class GatewayReleaseServiceTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-07-26T08:00:00Z");
@@ -401,9 +404,7 @@ class GatewayReleaseServiceTest {
                 transactions(),
                 null,
                 mcpContentFactory,
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
         return new CreateFixture(service, releases);
     }
 
@@ -446,9 +447,7 @@ class GatewayReleaseServiceTest {
                 audits,
                 transactions(),
                 publications,
-                Clock.fixed(NOW, ZoneOffset.UTC),
-                new SnowflakeIdGenerator(0)
-                );
+                Clock.fixed(NOW, ZoneOffset.UTC));
         return new Fixture(service, releases, drafts, draft);
     }
 

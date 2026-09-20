@@ -10,7 +10,10 @@ import top.egon.cola.archetype.source.serviceopen.application.exam.result.ScoreR
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.GetScoreRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.RecordScoreRequest;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Score;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import java.time.Duration;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
@@ -18,6 +21,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class ScoreFacadeImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void shouldValidateConvertDelegateAndReturnScore() {
@@ -27,7 +35,7 @@ class ScoreFacadeImplTest {
                 1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
                 manage, new ScoreFacadeConverter(), new ScoreFacadeValidator(),
-                new GlobalFacadeExceptionHandler(() -> 9001L));
+                new GlobalFacadeExceptionHandler());
 
         Score response = facade.recordScore(RecordScoreRequest.newBuilder()
                 .setExamId(1002L).setStudentId(2001L).setPoints(92).build());
@@ -44,7 +52,7 @@ class ScoreFacadeImplTest {
                 1004L, 1002L, 1001L, 2001L, 92, "RECORDED"));
         ScoreFacadeImpl facade = new ScoreFacadeImpl(
                 manage, new ScoreFacadeConverter(), new ScoreFacadeValidator(),
-                new GlobalFacadeExceptionHandler(() -> 9001L));
+                new GlobalFacadeExceptionHandler());
 
         Score response = facade.getScore(GetScoreRequest.newBuilder()
                 .setExamId(1002L).setScoreId(1004L).build());

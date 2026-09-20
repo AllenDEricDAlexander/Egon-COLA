@@ -18,12 +18,15 @@ import top.egon.cola.archetype.source.web.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.web.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.web.domain.user.vos.UserId;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -34,6 +37,12 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class PermissionManageImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
+
     @Mock UserDomainService userDomainService;
     @Mock PermissionDomainService permissionDomainService;
     @Mock CommandIdempotencyPort idempotency;
@@ -54,7 +63,7 @@ class PermissionManageImplTest {
         when(permissionDomainService.findByUserId(new UserId(1001L))).thenReturn(List.of(permission));
         when(idempotency.claim("grant-permission", "req-grant")).thenReturn(true);
         PermissionManageImpl manage = new PermissionManageImpl(userDomainService, permissionDomainService,
-                new UserApplicationValidator(), idempotency, eventPublisher, () -> 2001L);
+                new UserApplicationValidator(), idempotency, eventPublisher);
 
         manage.grantPermission(new GrantPermissionCommand("req-grant", "student", "class_read"));
 

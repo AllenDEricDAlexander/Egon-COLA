@@ -4,7 +4,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.LockModeType;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.snapshot.domain.DirectorySnapshotProcessor;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.snapshot.domain.dto.DirectorySnapshotCommandDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.iam.organization.snapshot.domain.po.DirectorySnapshotPO;
@@ -35,7 +35,6 @@ import java.util.Map;
 public class JpaDirectoryCommandRepository implements DirectoryCommandRepository {
 
     private final EntityManager entityManager;
-    private final LongIdGenerator idGenerator;
     private final DatabaseClock databaseClock;
     private final JpaDirectorySnapshotRepository directorySnapshotStore;
     private final DirectorySnapshotMaterializer directorySnapshotMaterializer;
@@ -44,12 +43,10 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
 
     public JpaDirectoryCommandRepository(
             EntityManager entityManager,
-            LongIdGenerator idGenerator,
             DatabaseClock databaseClock,
             JpaDirectorySnapshotRepository directorySnapshotStore,
             DirectorySnapshotMaterializer directorySnapshotMaterializer) {
         this.entityManager = entityManager;
-        this.idGenerator = idGenerator;
         this.databaseClock = databaseClock;
         this.directorySnapshotStore = directorySnapshotStore;
         this.directorySnapshotMaterializer = directorySnapshotMaterializer;
@@ -64,7 +61,7 @@ public class JpaDirectoryCommandRepository implements DirectoryCommandRepository
         SnapshotModelVO model = directorySnapshotProcessor.validate(
                 command.payload(), command.generatedAt());
         DirectorySnapshotPO entity = new DirectorySnapshotPO(
-                idGenerator.nextLongId(), Long.valueOf(tenantId), command.providerCode(),
+                SnowflakeIdGenerator.nextLongId(), Long.valueOf(tenantId), command.providerCode(),
                 command.snapshotVersion(), command.checksum(), command.generatedAt(),
                 command.payload(), "directory-sync", now);
         IngestionResultVO result = directorySnapshotStore.accept(entity);

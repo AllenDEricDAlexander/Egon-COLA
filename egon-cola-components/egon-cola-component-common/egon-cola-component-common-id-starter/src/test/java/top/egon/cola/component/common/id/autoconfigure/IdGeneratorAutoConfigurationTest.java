@@ -4,8 +4,10 @@ import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.context.annotation.ImportCandidates;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.id.generator.IdGenerator;
 import top.egon.cola.component.common.id.generator.LongIdGenerator;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
@@ -17,32 +19,39 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 class IdGeneratorAutoConfigurationTest {
 
+    private static final String BOUND_MACHINE_ID = "0";
+
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(IdGeneratorAutoConfiguration.class));
 
+    /** Binding happens once per process, so every successful context in this JVM uses one configuration. */
+    private final ApplicationContextRunner bindingContextRunner = contextRunner
+            .withPropertyValues("egon.cola.component.id.machine-id=" + BOUND_MACHINE_ID);
+
     @Test
-    void createsOneGeneratorForValidConfiguration() {
-        contextRunner.withPropertyValues("egon.cola.component.id.machine-id=17")
-                .run(context -> assertThat(context)
-                        .hasSingleBean(SnowflakeIdGenerator.class)
-                        .hasSingleBean(LongIdGenerator.class)
-                        .hasSingleBean(IdGenerator.class));
+    void validConfigurationStartsWithoutPublishingAGeneratorBean() {
+        bindingContextRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(IdGeneratorProperties.class);
+            assertThat(context).doesNotHaveBean(SnowflakeIdGenerator.class);
+            assertThat(context).doesNotHaveBean(LongIdGenerator.class);
+        });
     }
 
     @Test
-    void acceptsMachineIdBoundaries() {
-        contextRunner.withPropertyValues("egon.cola.component.id.machine-id=0")
-                .run(context -> assertThat(context).hasSingleBean(LongIdGenerator.class));
-        contextRunner.withPropertyValues("egon.cola.component.id.machine-id=1023")
-                .run(context -> assertThat(context).hasSingleBean(LongIdGenerator.class));
+    void repeatedContextWithTheSameConfigurationRebindsNothing() {
+        bindingContextRunner.run(first -> assertThat(first).hasNotFailed());
+        bindingContextRunner.run(second -> assertThat(second).hasNotFailed());
     }
 
     @Test
-    void disabledConfigurationCreatesNoGenerator() {
+    void disabledConfigurationCreatesNoPropertiesAndNoBinding() {
         contextRunner.withPropertyValues("egon.cola.component.id.enabled=false")
-                .run(context -> assertThat(context)
-                        .doesNotHaveBean(IdGenerator.class)
-                        .doesNotHaveBean(LongIdGenerator.class));
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context).doesNotHaveBean(IdGeneratorProperties.class);
+                    assertThat(context).doesNotHaveBean(IdGenerator.class);
+                });
     }
 
     @Test
@@ -84,12 +93,12 @@ class IdGeneratorAutoConfigurationTest {
 
     @Test
     void defaultAndConfiguredDurationAreBound() {
-        contextRunner.withPropertyValues("egon.cola.component.id.machine-id=1")
+        new ApplicationContextRunner().withUserConfiguration(PropertiesBindingConfiguration.class)
                 .run(context -> assertThat(context.getBean(IdGeneratorProperties.class).getMaxClockBackward())
                         .isEqualTo(Duration.ofMillis(5)));
-        contextRunner.withPropertyValues(
-                        "egon.cola.component.id.machine-id=1",
-                        "egon.cola.component.id.max-clock-backward=7ms")
+        new ApplicationContextRunner()
+                .withUserConfiguration(PropertiesBindingConfiguration.class)
+                .withPropertyValues("egon.cola.component.id.max-clock-backward=7ms")
                 .run(context -> assertThat(context.getBean(IdGeneratorProperties.class).getMaxClockBackward())
                         .isEqualTo(Duration.ofMillis(7)));
     }
@@ -100,18 +109,18 @@ class IdGeneratorAutoConfigurationTest {
 
         contextRunner.withBean(IdGenerator.class, () -> custom)
                 .run(context -> {
-                    assertThat(context).doesNotHaveBean(SnowflakeIdGenerator.class);
+                    assertThat(context).hasNotFailed();
                     assertThat(context.getBean(IdGenerator.class)).isSameAs(custom);
                 });
     }
 
     @Test
     void customLongGeneratorMakesDefaultBackOff() {
-        LongIdGenerator custom = () -> 42L;
+        LongIdGenerator custom = new FixedLongIdGenerator();
 
         contextRunner.withBean(LongIdGenerator.class, () -> custom)
                 .run(context -> {
-                    assertThat(context).doesNotHaveBean(SnowflakeIdGenerator.class);
+                    assertThat(context).hasNotFailed();
                     assertThat(context.getBean(LongIdGenerator.class)).isSameAs(custom);
                 });
     }
@@ -121,5 +130,24 @@ class IdGeneratorAutoConfigurationTest {
         assertThat(ImportCandidates.load(AutoConfiguration.class, getClass().getClassLoader()))
                 .contains(IdGeneratorAutoConfiguration.class.getName());
         assertNull(IdGeneratorAutoConfiguration.class.getAnnotation(ComponentScan.class));
+    }
+
+    @Configuration(proxyBeanMethods = false)
+    @EnableConfigurationProperties(IdGeneratorProperties.class)
+    static class PropertiesBindingConfiguration {
+    }
+
+    /** {@link LongIdGenerator} is no longer a functional interface, so the seam needs a named implementation. */
+    private static final class FixedLongIdGenerator implements LongIdGenerator {
+
+        @Override
+        public long nextLongId() {
+            return 42L;
+        }
+
+        @Override
+        public String nextId() {
+            return Long.toString(nextLongId());
+        }
     }
 }

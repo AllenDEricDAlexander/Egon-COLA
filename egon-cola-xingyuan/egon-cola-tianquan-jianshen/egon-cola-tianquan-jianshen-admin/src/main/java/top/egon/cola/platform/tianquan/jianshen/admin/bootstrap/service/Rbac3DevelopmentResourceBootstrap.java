@@ -13,7 +13,7 @@ import org.springframework.core.annotation.Order;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.grant.roleresource.domain.po.RoleResourceGrantPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.Rbac3DevelopmentTopology;
 import top.egon.cola.platform.tianquan.jianshen.admin.bootstrap.domain.vo.ApplicationDefinitionVO;
@@ -57,15 +57,12 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
-    private final LongIdGenerator idGenerator;
 
     public Rbac3DevelopmentResourceBootstrap(
             EntityManager entityManager,
-            ObjectMapper objectMapper,
-            LongIdGenerator idGenerator) {
+            ObjectMapper objectMapper) {
         this.entityManager = Objects.requireNonNull(entityManager, "entityManager");
         this.objectMapper = Objects.requireNonNull(objectMapper, "objectMapper");
-        this.idGenerator = Objects.requireNonNull(idGenerator, "idGenerator");
     }
 
     /**
@@ -286,7 +283,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
             }
             return ((Number) row[0]).longValue();
         }
-        long id = idGenerator.nextLongId();
+        long id = SnowflakeIdGenerator.nextLongId();
         entityManager.createNativeQuery("""
                         insert into rbac3_permission (
                             id, application_id, permission_code, permission_name,
@@ -353,7 +350,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                             source_checksum = excluded.source_checksum, stale_since = null,
                             updated_at = excluded.updated_at, updated_by = excluded.updated_by
                         """)
-                .setParameter("id", idGenerator.nextLongId())
+                .setParameter("id", SnowflakeIdGenerator.nextLongId())
                 .setParameter("applicationId", applicationId)
                 .setParameter("resourceType", resource.type())
                 .setParameter("resourceCode", resource.code())
@@ -418,7 +415,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                                 source_checksum = excluded.source_checksum, status = 'ACTIVE',
                                 updated_at = excluded.updated_at, updated_by = excluded.updated_by
                             """)
-                    .setParameter("id", idGenerator.nextLongId())
+                    .setParameter("id", SnowflakeIdGenerator.nextLongId())
                     .setParameter("applicationId", applicationId)
                     .setParameter("sourceId", sourceId)
                     .setParameter("apiId", apiId)
@@ -448,7 +445,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                             source_checksum = excluded.source_checksum,
                             updated_at = excluded.updated_at, updated_by = excluded.updated_by
                         """)
-                .setParameter("id", idGenerator.nextLongId())
+                .setParameter("id", SnowflakeIdGenerator.nextLongId())
                 .setParameter("applicationId", applicationId)
                 .setParameter("resourceId", resourceId)
                 .setParameter("fieldCode", field.fieldCode())
@@ -503,7 +500,7 @@ public class Rbac3DevelopmentResourceBootstrap implements ApplicationRunner {
                     continue;
                 }
                 entityManager.persist(new RoleResourceGrantPO(
-                        idGenerator.nextLongId(), tenantId, applicationId,
+                        SnowflakeIdGenerator.nextLongId(), tenantId, applicationId,
                         roleId, resourceId, now, null, ACTOR, now));
             }
         }

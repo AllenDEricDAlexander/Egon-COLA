@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.persistence.EntityManager;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.resource.apibinding.repository.ResourceApiBindingRepository;
 import top.egon.cola.platform.tianquan.jianshen.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO;
 import top.egon.cola.platform.tianquan.jianshen.admin.registration.ci.domain.dto.CiResourceRegistrationRequestDTO.Field;
@@ -25,17 +25,14 @@ public class JpaCiResourceRegistrationStore implements CiResourceRegistrationSto
 
     private final EntityManager entityManager;
     private final ObjectMapper objectMapper;
-    private final LongIdGenerator idGenerator;
     private final ResourceApiBindingRepository bindingRepository;
 
     public JpaCiResourceRegistrationStore(
             EntityManager entityManager,
             ObjectMapper objectMapper,
-            LongIdGenerator idGenerator,
             ResourceApiBindingRepository bindingRepository) {
         this.entityManager = entityManager;
         this.objectMapper = objectMapper;
-        this.idGenerator = idGenerator;
         this.bindingRepository = bindingRepository;
     }
 
@@ -237,7 +234,7 @@ public class JpaCiResourceRegistrationStore implements CiResourceRegistrationSto
                             display_metadata = excluded.display_metadata,
                             updated_at = excluded.updated_at, updated_by = excluded.updated_by
                         """)
-                .setParameter("id", idGenerator.nextLongId())
+                .setParameter("id", SnowflakeIdGenerator.nextLongId())
                 .setParameter("applicationId", applicationId)
                 .setParameter("type", resource.type().name())
                 .setParameter("code", resource.code())
@@ -293,7 +290,7 @@ public class JpaCiResourceRegistrationStore implements CiResourceRegistrationSto
                             ci_reported_at = excluded.ci_reported_at,
                             updated_at = excluded.updated_at, updated_by = excluded.updated_by
                         """)
-                .setParameter("id", idGenerator.nextLongId())
+                .setParameter("id", SnowflakeIdGenerator.nextLongId())
                 .setParameter("applicationId", applicationId)
                 .setParameter("resourceCode", field.resourceCode())
                 .setParameter("fieldCode", field.fieldCode())

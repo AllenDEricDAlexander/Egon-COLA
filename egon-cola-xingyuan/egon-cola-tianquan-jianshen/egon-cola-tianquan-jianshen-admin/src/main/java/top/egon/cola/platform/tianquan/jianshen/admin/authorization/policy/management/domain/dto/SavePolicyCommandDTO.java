@@ -1,16 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.management.domain.dto;
 
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.LockModeType;
-import org.springframework.stereotype.Repository;
-import org.springframework.transaction.annotation.Transactional;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.core.delegation.ManagementPolicyDecisionService;
-import top.egon.cola.platform.tianquan.jianshen.core.rule.Rbac3RuleViolation;
 import java.time.Instant;
-import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Set;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.management.domain.po.ManagementPolicySubjectPO;
 import top.egon.cola.platform.tianquan.jianshen.admin.authorization.policy.management.domain.po.ManagementPolicyScopePO;

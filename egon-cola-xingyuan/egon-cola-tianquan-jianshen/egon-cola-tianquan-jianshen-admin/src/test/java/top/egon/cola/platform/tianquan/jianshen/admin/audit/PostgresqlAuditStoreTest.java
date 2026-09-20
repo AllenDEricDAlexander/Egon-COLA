@@ -1,32 +1,35 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.audit;
 
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import top.egon.cola.component.common.id.generator.LongIdGenerator;
-import top.egon.cola.platform.tianquan.jianshen.admin.audit.service.AuditQueryService;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.jianshen.admin.audit.domain.po.AuditLogPO;
+import top.egon.cola.platform.tianquan.jianshen.admin.audit.domain.vo.AuditVO;
 import top.egon.cola.platform.tianquan.jianshen.admin.audit.repository.internal.AuditCursorCodec;
 import top.egon.cola.platform.tianquan.jianshen.admin.audit.repository.jdbc.PostgresqlAuditRepository;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import top.egon.cola.platform.tianquan.jianshen.admin.audit.domain.vo.AuditVO;
 
 class PostgresqlAuditStoreTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     @Test
     void returnsTheSameStableIdThatWasPersisted() {
         EntityManager entityManager = mock(EntityManager.class);
-        LongIdGenerator idGenerator = mock(LongIdGenerator.class);
-        when(idGenerator.nextLongId()).thenReturn(42L);
         PostgresqlAuditRepository store = new PostgresqlAuditRepository(
-                entityManager, idGenerator, mock(AuditCursorCodec.class));
+                entityManager, mock(AuditCursorCodec.class));
         AuditVO candidate = new AuditVO(
                 null, "17", "ROLE_CHANGED", "SUCCESS", "INFO", "USER",
                 "31", "ROLE", "51", null, "ALLOW", "request-1", "trace-1",
@@ -38,7 +41,8 @@ class PostgresqlAuditStoreTest {
         ArgumentCaptor<AuditLogPO> entity = ArgumentCaptor.forClass(
                 AuditLogPO.class);
         verify(entityManager).persist(entity.capture());
-        assertThat(entity.getValue().getId()).isEqualTo(42L);
-        assertThat(persisted.id()).isEqualTo("42");
+        long generatedId = entity.getValue().getId();
+        assertThat(generatedId).isPositive();
+        assertThat(persisted.id()).isEqualTo(String.valueOf(generatedId));
     }
 }

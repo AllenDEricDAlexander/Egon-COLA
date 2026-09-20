@@ -1,7 +1,9 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.identity.service.impl;
 
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.dto.CreateIdentityUserDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.dto.UpdateIdentityUserDTO;
 import top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.vo.CreatedIdentityUserVO;
@@ -22,6 +24,7 @@ import top.egon.cola.platform.tianquan.shoubing.core.port.RefreshTokenStore;
 import top.egon.cola.platform.tianquan.shoubing.core.token.RefreshTokenRecord;
 
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
@@ -33,6 +36,11 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class IdentityUserServiceImplTest {
+
+    @BeforeAll
+    static void bindTheProcessWideEngine() {
+        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
+    }
 
     private static final Instant NOW =
             Instant.parse("2026-08-02T00:00:00Z");
@@ -53,7 +61,6 @@ class IdentityUserServiceImplTest {
                 state,
                 events::add,
                 refreshTokens,
-                () -> 1001L,
                 new UsernameNormalizer(),
                 Clock.fixed(NOW, ZoneOffset.UTC),
                 () -> "TempPassword12345"
@@ -69,27 +76,29 @@ class IdentityUserServiceImplTest {
                 )
         );
 
-        assertThat(created.subject()).isEqualTo("1001");
+        String subject = created.subject();
+        assertThat(subject).matches("\\d+");
+        assertThat(Long.parseLong(subject)).isPositive();
         assertThat(created.oneTimePassword()).isEqualTo("TempPassword12345");
-        assertThat(persistence.users.get("1001").normalizedUsername())
+        assertThat(persistence.users.get(subject).normalizedUsername())
                 .isEqualTo("alice");
-        assertThat(persistence.credentials.get("1001").mustChangePassword())
+        assertThat(persistence.credentials.get(subject).mustChangePassword())
                 .isTrue();
         assertThat(state.states).extracting(IdentityUserState::subject)
-                .containsExactly("1001");
+                .containsExactly(subject);
         assertThat(events).extracting(IdentitySecurityEvent::eventType)
                 .containsExactly("IDENTITY_USER_CREATED");
     }
 
     @Test
     void disablingAndPasswordResetRevokeRefreshTokens() {
-        service.create(new CreateIdentityUserDTO(
+        String subject = service.create(new CreateIdentityUserDTO(
                 "alice",
                 "Alice"
-        ));
+        )).subject();
 
         IdentityUserVO disabled = service.update(
-                "1001",
+                subject,
                 new UpdateIdentityUserDTO(
                         "Alice Disabled",
                         IdentityUserStatus.DISABLED,
@@ -97,16 +106,16 @@ class IdentityUserServiceImplTest {
                 )
         );
         ResetPasswordVO reset =
-                service.resetPassword("1001");
+                service.resetPassword(subject);
 
         assertThat(disabled.version()).isEqualTo(1L);
         assertThat(reset.oneTimePassword()).isEqualTo("TempPassword12345");
-        assertThat(persistence.users.get("1001").version())
+        assertThat(persistence.users.get(subject).version())
                 .isEqualTo(2L);
-        assertThat(persistence.credentials.get("1001").mustChangePassword())
+        assertThat(persistence.credentials.get(subject).mustChangePassword())
                 .isTrue();
         assertThat(refreshTokens.revocations)
-                .containsExactly("1001:USER_DISABLED", "1001:PASSWORD_RESET");
+                .containsExactly(subject + ":USER_DISABLED", subject + ":PASSWORD_RESET");
     }
 
     private static final class FakePersistence
