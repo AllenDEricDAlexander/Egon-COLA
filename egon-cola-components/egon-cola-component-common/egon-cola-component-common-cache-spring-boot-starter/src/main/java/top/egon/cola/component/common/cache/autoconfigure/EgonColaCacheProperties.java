@@ -2,8 +2,6 @@ package top.egon.cola.component.common.cache.autoconfigure;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.DecimalMax;
-import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import lombok.Data;
@@ -15,15 +13,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * 两级缓存组件配置面，键树以主 Spec §16 为准；默认整体关闭（{@code enabled=false}），
- * 宿主未显式开启时零影响。
+ * 两级缓存组件配置面，键树以主 Spec §16 为准。组件是必需的（{@code enabled=true} 缺省），
+ * 且 {@code ignoreUnknownFields = false}：旧共享 TTL 键（{@code ttl.expire}、
+ * {@code ttl.jitter-ratio}）与任何未知键在绑定阶段即被拒绝，不会静默降级。
  */
 @Data
 @Validated
-@ConfigurationProperties(prefix = "egon.cola.component.cache")
+@ConfigurationProperties(prefix = EgonColaCacheProperties.PREFIX, ignoreUnknownFields = false)
 public class EgonColaCacheProperties {
 
-    private boolean enabled = false;
+    /** 配置键树前缀，条件装配与跨组件裁决共用同一字面串。 */
+    public static final String PREFIX = "egon.cola.component.cache";
+
+    private boolean enabled = true;
     private String nodeId = "";
     private String keyPrefix = "egon:cola:cache";
     @Valid
@@ -62,34 +64,62 @@ public class EgonColaCacheProperties {
     public static class Ttl {
 
         @NotNull
-        private Duration expire = Duration.ofMinutes(30);
+        private Duration l1Expire = Duration.ofMinutes(5);
+        @NotNull
+        private Duration l1Jitter = Duration.ofMinutes(2);
+        @NotNull
+        private Duration l2Expire = Duration.ofHours(1);
+        @NotNull
+        private Duration l2Jitter = Duration.ofMinutes(20);
         @NotNull
         private Duration nullExpire = Duration.ofSeconds(60);
-        @DecimalMin("0.0")
-        @DecimalMax("0.5")
-        private double jitterRatio = 0.1;
 
-        @AssertTrue(message = "TTL must be at least one millisecond")
+        @AssertTrue(message = "TTLs must be positive and their jitter sum must not overflow")
         public boolean isDurationValid() {
-            return expire != null && expire.toMillis() > 0
-                    && nullExpire != null && nullExpire.toMillis() > 0;
+            return positive(nullExpire) && bounded(l1Expire, l1Jitter) && bounded(l2Expire, l2Jitter);
         }
     }
 
     @Data
     public static class RegionTtl {
 
-        private Duration expire;
+        private Duration l1Expire;
+        private Duration l1Jitter;
+        private Duration l2Expire;
+        private Duration l2Jitter;
         private Duration nullExpire;
-        @DecimalMin("0.0")
-        @DecimalMax("0.5")
-        private Double jitterRatio;
 
-        @AssertTrue(message = "region TTL must be at least one millisecond")
+        @AssertTrue(message = "region TTLs must be positive and their jitter sum must not overflow")
         public boolean isDurationValid() {
-            return (expire == null || expire.toMillis() > 0)
-                    && (nullExpire == null || nullExpire.toMillis() > 0);
+            return (nullExpire == null || positive(nullExpire))
+                    && bounded(l1Expire, l1Jitter) && bounded(l2Expire, l2Jitter);
         }
+    }
+
+    private static boolean positive(Duration duration) {
+        return duration != null && !duration.isZero() && !duration.isNegative();
+    }
+
+    /**
+     * 缺字段（区域继承全局）单独放行，存在则基准必须为正、抖动非负且两者之差仍可表示为毫秒。
+     */
+    static boolean bounded(Duration base, Duration jitter) {
+        if (base == null) {
+            return true;
+        }
+        if (!positive(base) || (jitter != null && jitter.isNegative())) {
+            return false;
+        }
+        try {
+            jittered(base, jitter).toMillis();
+            return true;
+        } catch (ArithmeticException ex) {
+            return false;
+        }
+    }
+
+    private static Duration jittered(Duration base, Duration jitter) {
+        return jitter == null ? base : base.plus(jitter);
     }
 
     @Data

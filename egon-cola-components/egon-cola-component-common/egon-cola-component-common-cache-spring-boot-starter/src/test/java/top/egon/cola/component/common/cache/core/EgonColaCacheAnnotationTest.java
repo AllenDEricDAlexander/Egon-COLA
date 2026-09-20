@@ -67,7 +67,8 @@ class EgonColaCacheAnnotationTest {
     void setUp() throws Exception {
         MDC.put("tenantId", "41");
         properties = new EgonColaCacheProperties();
-        properties.getTtl().setJitterRatio(0);
+        properties.getTtl().setL1Jitter(Duration.ZERO);
+        properties.getTtl().setL2Jitter(Duration.ZERO);
         redis = mock(RedissonClient.class);
         distributedLock = mock(RLock.class);
         ReentrantLock lock = new ReentrantLock();
@@ -266,15 +267,19 @@ class EgonColaCacheAnnotationTest {
     @Test
     void regionTtlOverridesGlobalDefaultsAndAddsBoundedJitter() {
         EgonColaCacheProperties.RegionTtl override = new EgonColaCacheProperties.RegionTtl();
-        override.setExpire(Duration.ofSeconds(10));
-        override.setJitterRatio(0.2);
+        override.setL1Expire(Duration.ofSeconds(4));
+        override.setL1Jitter(Duration.ofSeconds(2));
+        override.setL2Expire(Duration.ofSeconds(10));
+        override.setL2Jitter(Duration.ofSeconds(2));
         properties.getRegions().put("users", override);
         repository.find("alice", true);
         repository.sync("missing");
+        // 两级独立采样：较短的 L1 区间不改变 L2 写入寿命
         assertThat(ttls.get(properties.getKeyPrefix() + ":users:41:user:alice")).isBetween(10000L, 12000L);
-        assertThat(ttls.get(properties.getKeyPrefix() + ":users:41:user:missing")).isBetween(60000L, 72000L);
+        // 空值哨兵使用 nullExpire 且不加抖动
+        assertThat(ttls.get(properties.getKeyPrefix() + ":users:41:user:missing")).isEqualTo(60000L);
         manager.getCache("search").put("41:query:all", "value");
-        assertThat(ttls.get(properties.getKeyPrefix() + ":search:41:query:all")).isEqualTo(1800000L);
+        assertThat(ttls.get(properties.getKeyPrefix() + ":search:41:query:all")).isEqualTo(3600000L);
     }
 
     @Test
@@ -294,6 +299,49 @@ class EgonColaCacheAnnotationTest {
         assertThat(cache.get("41:user:alice").get()).isEqualTo("new");
         manager.applyRemotePrefixEviction("users", "41:*");
         assertThat(cache.get("41:user:alice").get()).isEqualTo("new");
+    }
+
+    @Test
+    void l2HitBackfillsL1OnlyWhenRemainingLifetimeIsKnown() {
+        Cache users = manager.getCache("users");
+        users.put("41:user:carol", "shared");
+        RMapCache<String, Object> l2 = manager.l2("users");
+        when(l2.remainTimeToLive("41:user:carol")).thenReturn(-1L);
+        manager.applyRemotePut("users", List.of("41:user:carol"));
+
+        AtomicInteger loads = new AtomicInteger();
+        Object hit = users.get("41:user:carol", () -> {
+            loads.incrementAndGet();
+            return null;
+        });
+        assertThat(hit).isEqualTo("shared");
+        assertThat(loads).hasValue(0);
+        assertThat(l1Peek(users, "41:user:carol")).isNull();
+
+        when(l2.remainTimeToLive("41:user:carol")).thenReturn(60000L);
+        Object refilled = users.get("41:user:carol", () -> null);
+        assertThat(refilled).isEqualTo("shared");
+        assertThat(l1Peek(users, "41:user:carol")).isNotNull();
+    }
+
+    private static Object l1Peek(Cache cache, String key) {
+        return ((com.google.common.cache.Cache<?, ?>) cache.getNativeCache()).getIfPresent(key);
+    }
+
+    @Test
+    void l2BackfillNeverRenewsSharedLifetime() {
+        Cache users = manager.getCache("users");
+        RMapCache<String, Object> l2 = manager.l2("users");
+        users.put("41:user:dave", "shared");
+        manager.applyRemotePut("users", List.of("41:user:dave"));
+        org.mockito.Mockito.clearInvocations(l2);
+
+        Object hit = users.get("41:user:dave", () -> null);
+
+        assertThat(hit).isEqualTo("shared");
+        org.mockito.Mockito.verify(l2, org.mockito.Mockito.never())
+                .fastPut(anyString(), any(), anyLong(), any());
+        org.mockito.Mockito.verify(l2, org.mockito.Mockito.never()).put(anyString(), any());
     }
 
     @Test

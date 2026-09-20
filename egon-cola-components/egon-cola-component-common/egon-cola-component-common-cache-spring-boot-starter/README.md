@@ -6,7 +6,9 @@ Spring Cache 原生注解 + L1 Guava + L2 Redisson `RMapCache`，通过一个 Re
 
 ## 1. 启用
 
-引入本 starter，并由宿主提供 `RedissonClient` Bean；组件不创建客户端。启用配置：
+本组件是必需组件：`enabled` 缺省为 `true`，装配不需要额外开关。starter 只消费宿主提供的 `RedissonClient`
+Bean，不创建客户端；宿主缺失该 Bean 时启动即失败（`CACHE_REDISSON_CLIENT_MISSING`），不静默降级为单级缓存。
+`spring-boot-starter-cache` 随本 starter 传递，Redisson 客户端依赖由宿主自行声明。配置示例：
 
 ```yaml
 egon:
@@ -14,24 +16,31 @@ egon:
     component:
       cache:
         enabled: true
+        key-prefix: egon:cola:cache:v2:${spring.application.name}
         ttl:
-          expire: PT30M
+          l1-expire: PT5M
+          l1-jitter: PT2M
+          l2-expire: PT1H
+          l2-jitter: PT20M
           null-expire: PT60S
-          jitter-ratio: 0.1
         regions:
           UserPO:
-            expire: PT10M
-            null-expire: PT20S
-            jitter-ratio: 0.2
+            l1-expire: PT10M
+            l2-expire: PT30M
           UserSearch:
-            expire: PT2M
+            l1-expire: PT2M
+            l2-expire: PT5M
 ```
 
-在宿主的配置类显式启用 Spring AOP 缓存。将启用注解与组件开关放在一起，可以保持默认关闭时直通数据库：
+`key-prefix` 必须隔离应用、域和缓存版本，避免不同服务共用同一 L2/锁命名空间。
+L1 与 L2 的过期与抖动是四个独立字段，不再共用一个 TTL 加比例；`null-expire` 单独控制空值哨兵。
+
+在宿主的配置类显式启用 Spring AOP 缓存，并把开关指向本组件的键（而不是宿主自己的 Redis 开关）：
 
 ```java
 @Configuration(proxyBeanMethods = false)
-@ConditionalOnProperty(prefix = "egon.cola.component.cache", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = EgonColaCacheProperties.PREFIX, name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 @EnableCaching(proxyTargetClass = true)
 public class CacheConfiguration {
 }
@@ -41,7 +50,6 @@ public class CacheConfiguration {
 宿主已经提供任意 `CacheManager` 时，整组自动配置让位；如有多个 manager，通过
 `@CacheConfig(cacheManager = "egonColaTwoLevelCacheManager")` 或每个注解上的 `cacheManager` 明确选择。
 `@EnableCaching` 与 `enabled=true` 是两个独立开关，只有注册 manager 并不会启用注解拦截。
-`spring-boot-starter-cache` 随本 starter 传递，Redisson 客户端仍由宿主提供。
 
 ## 2. mp-sd-ext 集成
 
@@ -55,12 +63,12 @@ public class CacheConfiguration {
 public class UserRepository extends EgonColaRepository<UserDAO, UserPO> {
     // 构造注入 mapper、校验器、租户提供者及配置，沿用项目已有实现。
 
-    @Cacheable(key = "T(org.slf4j.MDC).get('tenantId') + ':' + #p0", sync = true)
+    @Cacheable(keyGenerator = "egonColaRepositoryKeyGenerator", sync = true)
     public UserPO findCachedById(@NotNull @Positive Long id) {
         return getById(id);
     }
 
-    @CacheEvict(key = "T(org.slf4j.MDC).get('tenantId') + ':' + #p0.id", condition = "#result")
+    @CacheEvict(keyGenerator = "egonColaRepositoryKeyGenerator", condition = "#result")
     public boolean updateCachedById(@NotNull UserPO entity) {
         return updateById(entity);
     }
@@ -75,12 +83,15 @@ public class UserRepository extends EgonColaRepository<UserDAO, UserPO> {
 缓存注解放在具体业务入口上；基类 final CRUD 方法保留原有数据校验、租户和事务守卫。
 禁止给 final/private 方法加注解并期望 CGLIB 拦截。批量写依旧由上层事务包围。
 所有影响缓存数据的新增、修改、删除及自定义 SQL 路径都必须声明相应失效；直接调用普通 CRUD 不再自动失效。
+单键读写统一使用 `egonColaRepositoryKeyGenerator`：它接受一个 `Long` ID 或 `EgonModel` 参数，
+产出可信的 `tenant:id`，因此读、改、删三个入口天然共用同一区域键；多参数与集合/数组批量签名不支持该策略。
 批量读不要把一个 `List<PO>` 写到单实体区域的某个 ID Key；如缓存整个批次，应使用独立区域，规范化 ID 顺序和重复值，并在写入时失效该区域。
 
 ## 3. 注解、SpEL 和组合操作
 
 Spring 负责 `@Cacheable`、`@CachePut`、`@CacheEvict`、`@Caching`、`@CacheConfig` 的标准解析。
 推荐 `#p0` / `#a0` 避免依赖参数名；也支持 `#id`、`#root.methodName`、`#root.target`、静态方法和 `@beanName`。
+仓储单键入口优先用 `keyGenerator`（见 §2、§4）而不是逐处拼接租户 SpEL。
 
 ```java
 @CacheConfig(cacheNames = "UserByCode", cacheManager = "egonColaTwoLevelCacheManager")
@@ -119,7 +130,8 @@ public class UserLookupRepository {
 
 所有 Key 必须是 `tenantId:businessKey` 字符串，例如 `41:7`、`41:code:alice`、`41:query:page:1`。
 租户前缀为数值，业务段非空，不允许 `*` 和控制字符；区域名为 `[A-Za-z0-9_.-]{1,100}`。
-默认 Spring `SimpleKey` / Long Key 不符合此约定，必须显式使用 SpEL 或返回上述字符串的 `KeyGenerator`。
+默认 Spring `SimpleKey` / Long Key 不符合此约定。仓储的单键入口必须使用 `keyGenerator = "egonColaRepositoryKeyGenerator"`，
+其余形状（组合查询键）由宿主注册返回上述字符串的具名 `KeyGenerator` 或 SpEL 承担。
 组合参数须采用无歧义编码，包含影响结果的排序、分页、权限范围等维度；不要直接拼接不受控分隔符。
 
 每次 Cache SPI 访问（包括缓存命中）校验 MDC 中配置的租户，不允许跨租户读写或缺失上下文。
@@ -132,9 +144,11 @@ public class UserLookupRepository {
 - **穿透**：默认将 null 作为内部哨兵缓存，使用较短的 `null-expire`，可与 `sync=true` 一起使用。
   `unless = "#result == null"` 只表示“不缓存空值”，重复查询不存在的数据仍会回源，不能单独作为穿透防护。
   必须不缓存空值时，可在业务入口增加布隆过滤器；业务负责初始化、增量更新和误判后的数据库查询，starter 不推断数据全集。
-- **雪崩**：每次写入按 `[TTL, TTL × (1 + jitter-ratio)]` 采样一次，L1/L2 共用样本。
-  `regions.<cacheName>` 按字段覆盖全局 TTL；未指定的空值 TTL 和抖动比例继承全局配置。
-  TTL 至少为 1ms，抖动比例限制为 `[0, 0.5]`。
+- **雪崩**：每次写入分别采样 `[l1-expire, l1-expire + l1-jitter]` 与 `[l2-expire, l2-expire + l2-jitter]`，
+  写入 L1 的实际寿命再按 L2 采样结果截断，避免出现比 L2 更久的本机残留。
+  `regions.<cacheName>` 按五个字段独立覆盖全局 TTL；未指定的字段继承全局配置。
+  TTL 至少为 1ms，每一级的 `基础 + 抖动` 必须不溢出，否则绑定阶段即拒绝。
+  空值哨兵使用 `null-expire`，不加抖动。
 - **击穿**：`@Cacheable(sync=true)` 调用 `Cache.get(key, Callable)`。本机合并同 Key 的重叠加载，
   Redis 正常时再使用分布式锁与二次查询。锁等待超时、Redis 故障时回源但不回填，本机重叠请求仍共享本次结果。
   分布式锁采用有限租期，超过租期或等待时间、Redis 故障时，不保证全群集只执行一次。
@@ -148,7 +162,8 @@ public class UserLookupRepository {
 `beforeInvocation=true` 使用立即失效方法，保留 Spring 原生行为。
 
 写节点修改 L2 并发布事件；其他节点只失效 L1，避免重复/迟到事件删除 L2 的新值。
-L2 回填 L1 使用剩余 TTL，并扣除读取耗时。Pub/Sub 丢消息、并发回源与写入竞态仍可能造成 TTL 范围内的旧值，
+L2 命中回填 L1 时，到期时间取 `min(读取开始 + L1 采样寿命, 读取开始 + L2 剩余寿命)`，不会延长共享值寿命；
+L2 剩余不可知或非正时不回填 L1，直接按 miss 回源。读取本身不会刷新 L2。Pub/Sub 丢消息、并发回源与写入竞态仍可能造成 TTL 范围内的旧值，
 该缓存不承诺强一致性。Redis 查询、写入、锁获取/释放失败按原有 `CACHE_L2_OPERATION_FAILED` 日志降级。
 组件关闭时销毁内部调度器，不关闭宿主 RedissonClient。
 
@@ -173,20 +188,23 @@ mp-sd-ext 及脚手架已不再注入它。`second-evict-delay` 仅作用于旧�
 
 | 键                                                | 默认值                     | 用途             |
 |--------------------------------------------------|-------------------------|----------------|
-| `enabled`                                        | `false`                 | 自动配置开关         |
+| `enabled`                                        | `true`                  | 必需组件开关，缺省即装配  |
 | `node-id`                                        | 随机 JVM 标识               | 忽略本机事件回声       |
-| `key-prefix`                                     | `egon:cola:cache`       | L2 和锁命名空间      |
+| `key-prefix`                                     | `egon:cola:cache`       | L2 和锁命名空间，模板按应用/版本隔离 |
 | `redis.topic`                                    | `egon:cola:cache:event` | 单一事件通道         |
 | `tenant-mdc-key`                                 | `tenantId`              | 当前租户上下文        |
 | `l1.max-size`                                    | `10000`                 | 每个区域本机容量       |
-| `ttl.expire`                                     | `PT30M`                 | 普通值基础 TTL      |
-| `ttl.null-expire`                                | `PT60S`                 | 空值基础 TTL       |
-| `ttl.jitter-ratio`                               | `0.1`                   | TTL 增量随机比例     |
-| `regions.<name>.expire/null-expire/jitter-ratio` | 继承全局                    | 区域级覆盖          |
+| `ttl.l1-expire` / `ttl.l1-jitter`                | `PT5M` / `PT2M`         | L1 基础 TTL 与抖动上界 |
+| `ttl.l2-expire` / `ttl.l2-jitter`                | `PT1H` / `PT20M`        | L2 基础 TTL 与抖动上界 |
+| `ttl.null-expire`                                | `PT60S`                 | 空值基础 TTL（无抖动）  |
+| `regions.<name>.l1-expire/l1-jitter/l2-expire/l2-jitter/null-expire` | 继承全局 | 区域级覆盖          |
 | `batch.max-keys`                                 | `1000`                  | 旧端口批读上限及分批删除大小 |
 | `lock.wait-time`                                 | `PT0.5S`                | 分布式锁最大等待       |
 | `lock.lease-time`                                | `PT10S`                 | 分布式锁租期         |
 | `second-evict-delay`                             | `PT5S`                  | 旧端口延迟二次失效      |
+
+所有属性绑定关闭了未知字段容忍：旧版共用的 `ttl.expire` / `ttl.jitter-ratio`（含区域级同名覆盖）在启动时
+直接以 `The elements [...] were left unbound.` 失败，而不是被静默忽略，避免滚动发布中新旧节点混用不同 TTL 语义。
 
 L2 codec 沿用受限类型白名单：`top.egon.cola.`、`java.util.`、`java.time.`、`java.lang.`。
 不在白名单中的宿主对象不能直接作为 L2 值；不要仅根据 L1 命中判断 Redis 序列化已通过。

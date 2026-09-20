@@ -67,6 +67,20 @@
             <artifactId>egon-cola-component-common-id-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <!--
+            Required two-level cache: repository key generation and the startup guard need the
+            cache component's public types, and BOM management keeps the version in one place.
+        -->
+        <dependency>
+            <groupId>top.egon</groupId>
+            <artifactId>egon-cola-component-common-cache-spring-boot-starter</artifactId>
+        </dependency>
+        <!-- provided, mirroring the cache starter: the application supplies the Redisson client. -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-autoconfigure</artifactId>

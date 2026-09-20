@@ -13,6 +13,11 @@
     <packaging>jar</packaging>
     <name>egon-cola-source-agent-infrastructure</name>
     <dependencies>
+        <!-- The cache starter keeps Redisson provided, so the host owns the client. -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-agent-domain</artifactId>

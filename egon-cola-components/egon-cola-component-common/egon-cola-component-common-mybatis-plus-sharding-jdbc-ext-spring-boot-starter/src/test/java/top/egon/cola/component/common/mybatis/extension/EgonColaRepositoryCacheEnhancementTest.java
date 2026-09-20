@@ -17,6 +17,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusProperties;
+import top.egon.cola.component.common.mybatis.cache.EgonColaRepositoryKeyGenerator;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils;
 import top.egon.cola.component.common.mybatis.support.TestBusinessMapper;
 import top.egon.cola.component.common.mybatis.support.TestBusinessModel;
@@ -75,6 +76,8 @@ class EgonColaRepositoryCacheEnhancementTest {
             assertThat(repository.find(7L)).isSameAs(row);
             assertThat(repository.find(7L)).isSameAs(row);
             verify(mapper, times(1)).selectActiveById(7L);
+            // 公共 KeyGenerator 保证读 Long 与写 PO 落在同一个 tenant:id 键上
+            assertThat(context.getBean(CacheManager.class).getCache("TestBusinessModel").get("41:7")).isNotNull();
             assertThat(repository.change(row)).isTrue();
             assertThat(repository.find(7L)).isSameAs(row);
             verify(mapper, times(2)).selectActiveById(7L);
@@ -110,6 +113,11 @@ class EgonColaRepositoryCacheEnhancementTest {
         CacheManager cacheManager() {
             return new ConcurrentMapCacheManager();
         }
+
+        @Bean("egonColaRepositoryKeyGenerator")
+        org.springframework.cache.interceptor.KeyGenerator repositoryKeyGenerator() {
+            return new EgonColaRepositoryKeyGenerator();
+        }
     }
 
     @CacheConfig(cacheNames = "TestBusinessModel")
@@ -119,12 +127,12 @@ class EgonColaRepositoryCacheEnhancementTest {
             super(mapper, new EgonColaMybatisPlusProperties());
         }
 
-        @Cacheable(key = "#p0", sync = true)
+        @Cacheable(keyGenerator = "egonColaRepositoryKeyGenerator", sync = true)
         public TestBusinessModel find(Long id) {
             return getById(id);
         }
 
-        @CacheEvict(key = "#p0.id", condition = "#result")
+        @CacheEvict(keyGenerator = "egonColaRepositoryKeyGenerator", condition = "#result")
         public boolean change(TestBusinessModel entity) {
             return updateById(entity);
         }

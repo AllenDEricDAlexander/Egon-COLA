@@ -150,9 +150,15 @@ No platform SQL Injector was added. Use mapper extensions for concrete non-gener
 注解应放在具体 Repository 的 public、非 final 业务方法上，由外部 Bean 通过代理调用，内部调用原有
 CRUD；基类的数据校验、租户和批量事务守卫保持不变。
 脚手架以 `findCachedById` / `updateCachedById` 示例展示此方式。所有影响缓存的写路径需要声明失效，普通 CRUD 不再自动失效。
+单键读/写/失效统一使用具名 `keyGenerator = "egonColaRepositoryKeyGenerator"`，由它产出可信 `tenant:id`；
+批量签名与多参数签名不支持该策略，需独立区域或显式失效。
 `@CachePut` 缓存返回值，不能用于返回 boolean 的更新方法并期望得到实体缓存。
 
-Key、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作详见
+两级缓存是必需组件（`egon.cola.component.cache.enabled` 缺省 `true`），本 starter 依赖受管理的
+common-cache starter 并在启动时校验 CacheManager：组件启用而宿主只有非本组件、非兼容的 `CacheManager` 时，
+以 `CACHE_MANAGER_INCOMPATIBLE` 失败，避免静默退回单级缓存；组件显式关闭时该检查跳过，键生成器仍可用。
+
+Key、TTL 采样、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作详见
 [缓存 starter 文档](../egon-cola-component-common-cache-spring-boot-starter/README.md)。
 
 ## SQL guards and transactions

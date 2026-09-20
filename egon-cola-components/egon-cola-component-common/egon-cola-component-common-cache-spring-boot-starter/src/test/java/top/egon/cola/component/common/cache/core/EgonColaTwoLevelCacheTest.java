@@ -201,14 +201,40 @@ class EgonColaTwoLevelCacheTest extends CacheRedisTestSupport {
     }
 
     @Test
+    void backfilledL1DeadlineIsCappedByRemainingL2Lifetime() throws Exception {
+        EgonColaTwoLevelCache target = cache();
+        Map<String, Object> value = payload();
+        manager().l2(REGION).put("41:12", value, 2, TimeUnit.SECONDS);
+
+        AtomicInteger loads = new AtomicInteger();
+        Object backfilled = target.get("41:12", () -> {
+            loads.incrementAndGet();
+            return null;
+        });
+        assertThat(backfilled).isEqualTo(value);
+        assertThat(loads).hasValue(0);
+        assertThat(l1Handle(target).getIfPresent("41:12")).isNotNull();
+
+        TimeUnit.MILLISECONDS.sleep(2200);
+
+        Object reloaded = target.get("41:12", () -> {
+            loads.incrementAndGet();
+            return value;
+        });
+        assertThat(reloaded).isEqualTo(value);
+        assertThat(loads).hasValue(1);
+    }
+
+    @Test
     void jitterStaysWithinBoundedRangeForSeededRandom() {
         long base = TimeUnit.SECONDS.toMillis(30);
+        long jitter = TimeUnit.SECONDS.toMillis(6);
         Random seeded = new Random(42);
         Set<Long> samples = new HashSet<>();
 
         for (int i = 0; i < 100; i++) {
-            long jittered = EgonColaTwoLevelCache.Jitter.jitteredMillis(base, 0.2, seeded);
-            assertThat(jittered).isBetween(base, (long) (base * 1.2));
+            long jittered = EgonColaTwoLevelCache.Jitter.jitteredMillis(base, jitter, seeded);
+            assertThat(jittered).isBetween(base, base + jitter);
             samples.add(jittered);
         }
 
@@ -216,9 +242,9 @@ class EgonColaTwoLevelCacheTest extends CacheRedisTestSupport {
     }
 
     @Test
-    void jitterRatioZeroKeepsBaseExact() {
+    void zeroJitterKeepsBaseExact() {
         long base = TimeUnit.MINUTES.toMillis(5);
 
-        assertThat(EgonColaTwoLevelCache.Jitter.jitteredMillis(base, 0.0, new Random(7))).isEqualTo(base);
+        assertThat(EgonColaTwoLevelCache.Jitter.jitteredMillis(base, 0L, new Random(7))).isEqualTo(base);
     }
 }

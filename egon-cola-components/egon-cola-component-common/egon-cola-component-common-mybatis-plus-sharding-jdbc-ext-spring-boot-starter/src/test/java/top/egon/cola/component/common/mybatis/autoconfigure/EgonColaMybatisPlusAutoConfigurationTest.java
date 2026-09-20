@@ -233,6 +233,38 @@ class EgonColaMybatisPlusAutoConfigurationTest {
     }
 
     @Test
+    void requiredCacheRejectsForeignCacheManagerButSkipsDisabledComponent() {
+        runner(true).withBean("foreignCacheManager", org.springframework.cache.CacheManager.class,
+                        EgonColaMybatisPlusAutoConfigurationTest::foreignCacheManager)
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).rootCause()
+                            .hasMessageContaining("CACHE_MANAGER_INCOMPATIBLE");
+                });
+        runner(true).withPropertyValues("egon.cola.component.cache.enabled=false")
+                .withBean("foreignCacheManager", org.springframework.cache.CacheManager.class,
+                        EgonColaMybatisPlusAutoConfigurationTest::foreignCacheManager)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.containsBean("egonColaRepositoryKeyGenerator")).isTrue();
+                });
+    }
+
+    private static org.springframework.cache.CacheManager foreignCacheManager() {
+        return new org.springframework.cache.CacheManager() {
+            @Override
+            public org.springframework.cache.Cache getCache(String name) {
+                return null;
+            }
+
+            @Override
+            public java.util.Collection<String> getCacheNames() {
+                return List.of();
+            }
+        };
+    }
+
+    @Test
     void pageAndBatchLimitsCannotExceedTheApprovedBounds() {
         runner(true).withPropertyValues("egon.cola.component.mybatis-plus.pagination.max-page-size=501")
                 .run(context -> assertThat(context).hasFailed());

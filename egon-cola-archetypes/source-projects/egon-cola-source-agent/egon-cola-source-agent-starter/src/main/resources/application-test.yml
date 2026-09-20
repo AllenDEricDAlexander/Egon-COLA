@@ -2,6 +2,11 @@
 # `create extension vector`、`jsonb`、部分索引与 `lower(...)` 表达式索引只在真实 PostgreSQL 上可执行，
 # 因此本 profile 不校验迁移，迁移契约由 KnowledgeSchemaMigrationTest 以文本断言守住。
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
   datasource:
     url: jdbc:h2:mem:agent_knowledge;MODE=PostgreSQL;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1
     username: sa
@@ -39,7 +44,7 @@ egon:
       cache:
         enabled: false
         node-id: ""
-        key-prefix: egon:cola:cache
+        key-prefix: egon:cola:cache:v2:${spring.application.name}
         tenant-mdc-key: tenantId
         second-evict-delay: PT5S
         redis:
@@ -47,9 +52,11 @@ egon:
         l1:
           max-size: 10000
         ttl:
-          expire: PT30M
+          l1-expire: PT5M
+          l1-jitter: PT2M
+          l2-expire: PT1H
+          l2-jitter: PT20M
           null-expire: PT60S
-          jitter-ratio: 0.1
         batch:
           max-keys: 1000
         lock:

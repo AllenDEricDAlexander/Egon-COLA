@@ -1,4 +1,4 @@
-package top.egon.cola.archetype.source.web.infrastructure.config;
+package top.egon.cola.archetype.source.serviceopen.infrastructure.config;
 
 import org.redisson.Redisson;
 import org.redisson.api.RedissonClient;
@@ -12,10 +12,6 @@ import org.springframework.context.annotation.Configuration;
 import top.egon.cola.component.common.cache.autoconfigure.EgonColaCacheProperties;
 
 import java.time.Duration;
-import org.springframework.data.redis.connection.RedisConnectionFactory;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.serializer.GenericJackson2JsonRedisSerializer;
-import org.springframework.data.redis.serializer.StringRedisSerializer;
 
 /**
  * 缓存连接装配：二级缓存是必需能力，缺省即开启，只在这里提供宿主侧的 Redisson 客户端。
@@ -23,21 +19,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
  */
 @Configuration(proxyBeanMethods = false)
 @EnableCaching
-public class OrganizationRedisConfig {
-
-    @Bean("organizationRedisTemplate")
-    @ConditionalOnProperty(prefix = "organization.integrations.redis", name = "enabled", havingValue = "true")
-    RedisTemplate<String, Object> organizationRedisTemplate(RedisConnectionFactory connectionFactory) {
-        RedisTemplate<String, Object> template = new RedisTemplate<>();
-        template.setConnectionFactory(connectionFactory);
-        template.setKeySerializer(new StringRedisSerializer());
-        template.setHashKeySerializer(new StringRedisSerializer());
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer();
-        template.setValueSerializer(serializer);
-        template.setHashValueSerializer(serializer);
-        template.afterPropertiesSet();
-        return template;
-    }
+public class RedisConfig {
 
     @Bean(name = "redissonClient", destroyMethod = "shutdown")
     @ConditionalOnProperty(prefix = EgonColaCacheProperties.PREFIX, name = "enabled",

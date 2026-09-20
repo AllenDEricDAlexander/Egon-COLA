@@ -16,11 +16,13 @@ import top.egon.cola.component.common.cache.event.EgonColaCacheChangedListener;
 import top.egon.cola.component.common.cache.port.EgonColaTwoLevelCachePort;
 
 /**
- * 两级缓存组件条件装配（REQ-001/REQ-020）：缺省关闭；宿主已有任意 {@link CacheManager}
- * 时整组让位；RedissonClient 绝不自建——按名优先、唯一兜底，两者皆空 fail-fast。
+ * 两级缓存组件条件装配（REQ-001/REQ-019/REQ-020）：组件是必需的，缺省即开启，
+ * 只有显式 {@code enabled=false} 才整组退场；宿主已有任意 {@link CacheManager}
+ * 时让位；RedissonClient 绝不自建——按名优先、唯一兜底，两者皆空 fail-fast。
  */
 @AutoConfiguration(before = CacheAutoConfiguration.class)
-@ConditionalOnProperty(prefix = "egon.cola.component.cache", name = "enabled", havingValue = "true")
+@ConditionalOnProperty(prefix = EgonColaCacheProperties.PREFIX, name = "enabled",
+        havingValue = "true", matchIfMissing = true)
 @ConditionalOnMissingBean(CacheManager.class)
 @EnableConfigurationProperties(EgonColaCacheProperties.class)
 public class EgonColaCacheAutoConfiguration {

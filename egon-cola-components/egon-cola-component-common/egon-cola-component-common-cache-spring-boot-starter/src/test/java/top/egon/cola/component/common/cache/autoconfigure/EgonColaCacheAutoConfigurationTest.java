@@ -57,13 +57,15 @@ class EgonColaCacheAutoConfigurationTest {
     }
 
     @Test
-    void disabledByDefaultShowsNoBeans() {
-        runner().run(context -> {
-            assertThat(context).hasNotFailed();
-            assertThat(context).doesNotHaveBean(EgonColaTwoLevelCacheManager.class);
-            assertThat(context).doesNotHaveBean(EgonColaCacheChangedListener.class);
-            assertThat(context).doesNotHaveBean(EgonColaTwoLevelCachePort.class);
-        });
+    void enabledByDefaultAssemblesWholeTrio() {
+        runner().withBean("redissonClient", RedissonClient.class,
+                        EgonColaCacheAutoConfigurationTest::stubClient)
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(context.containsBean("egonColaTwoLevelCacheManager")).isTrue();
+                    assertThat(context.containsBean("egonColaCacheChangedListener")).isTrue();
+                    assertThat(context.containsBean("egonColaCachePort")).isTrue();
+                });
     }
 
     @Test

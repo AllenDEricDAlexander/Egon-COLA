@@ -22,16 +22,21 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.cache.CacheManager;
+import org.springframework.cache.interceptor.KeyGenerator;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Profile;
 import org.springframework.core.annotation.Order;
 import org.springframework.core.env.Environment;
+import top.egon.cola.component.common.cache.autoconfigure.EgonColaCacheProperties;
+import top.egon.cola.component.common.cache.core.EgonColaTwoLevelCacheManager;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.id.autoconfigure.IdGeneratorAutoConfiguration;
 import top.egon.cola.component.common.mybatis.business.EgonColaMdcUserIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdTenantLineHandler;
 import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
+import top.egon.cola.component.common.mybatis.cache.EgonColaRepositoryKeyGenerator;
 import top.egon.cola.component.common.mybatis.ddl.EgonColaPostgreDdlRunner;
 import top.egon.cola.component.common.mybatis.exception.EgonColaMybatisPlusConfigurationException;
 import top.egon.cola.component.common.mybatis.handler.EgonColaMetaObjectHandler;
@@ -47,6 +52,7 @@ import top.egon.cola.component.common.mybatis.routing.EgonColaTwoLevelRouteStrat
 import top.egon.cola.component.common.mybatis.routing.EgonColaWriteTargetResolver;
 
 import java.time.Clock;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -168,6 +174,34 @@ public class EgonColaMybatisPlusAutoConfiguration implements AutoCloseable {
     @ConditionalOnMissingBean(IdentifierGenerator.class)
     public EgonColaIdentifierGenerator egonColaIdentifierGenerator() {
         return new EgonColaIdentifierGenerator();
+    }
+
+    @Bean("egonColaRepositoryKeyGenerator")
+    public KeyGenerator egonColaRepositoryKeyGenerator(
+            ObjectProvider<CacheManager> cacheManagers, Environment environment) {
+        requireTenantScopedCache(cacheManagers, environment);
+        return new EgonColaRepositoryKeyGenerator();
+    }
+
+    /**
+     * 必需二级缓存的启动裁决（REQ-019/REQ-021）：{@code tenant:id} 键只有在租户隔离缓存真正
+     * 生效时才有意义。组件缺省开启，因此一旦本上下文里存在别的 CacheManager——典型是宿主自管
+     * 实现让整组让位，或缓存自动装配被排除后 Spring 的内存实现顶上——都立即失败，而不是把租户键
+     * 交给一个不隔离租户的缓存。显式 {@code enabled=false}（离线剖面）与"本上下文没有任何
+     * CacheManager"（切片上下文）都不作假阳性失败；RedissonClient 缺失/歧义由缓存组件自身的
+     * fail-fast 承担，此处不复述。
+     */
+    private static void requireTenantScopedCache(ObjectProvider<CacheManager> cacheManagers,
+                                                 Environment environment) {
+        if (!environment.getProperty(EgonColaCacheProperties.PREFIX + ".enabled", Boolean.class, true)) {
+            return;
+        }
+        List<CacheManager> managers = cacheManagers.orderedStream().toList();
+        boolean twoLevel = managers.stream().anyMatch(EgonColaTwoLevelCacheManager.class::isInstance);
+        if (twoLevel || managers.isEmpty()) {
+            return;
+        }
+        throw new EgonColaMybatisPlusConfigurationException("CACHE_MANAGER_INCOMPATIBLE");
     }
 
     @Bean("egonColaTwoLevelRouteStrategy")

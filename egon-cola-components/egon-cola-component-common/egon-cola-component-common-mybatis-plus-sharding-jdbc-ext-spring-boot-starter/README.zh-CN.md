@@ -141,17 +141,15 @@ Common 允许任意非空 Long tenantId；ShardingSphere 宿主要求正 Long �
 
 只在明确需要批量/特殊 SQL 的场景使用 Mapper 扩展。没有新增平台 SQL Injector。字段 TypeHandler 用于 JSONB、数组等真实类型差异；Agent 的 JSONB 使用字段专用 handler，不覆盖全局 String handler。持久化枚举需唯一 `@EnumValue`，对外枚举值需匹配 `@JsonValue`/Jackson 合同，启动时校验。
 
-## 声明式缓存读
+## 注解缓存
 
-`EgonColaRepository` 提供 `getByCache(Serializable id)` 与 `listByCache(Collection<? extends Serializable> ids)`。模板子类覆写两个 protected 挂点即可接入两级缓存 starter：`getCachePortProvider()`（返回 `ObjectProvider<EgonColaCachePort>`，以 `@Qualifier("egonColaCachePort")` 注入）与可选的 `cacheRegionName()`（默认实体简单名）。`getByCache` 与 `getById` 语义一致（缓存前置）；`listByCache` 与 `listByIds` 一致（逐键组装、去重保序、缺失剔除）。
+`EgonColaRepository` 仅负责持久化，已移除 `getByCache`、`listByCache`、`getCachePortProvider`、`cacheRegionName` 与 CRUD 自动失效。
+具体 Repository 在 public、非 final 业务方法上使用 Spring `@CacheConfig`、`@Cacheable`、`@CachePut`、`@CacheEvict`、`@Caching`，由外部 Bean 经代理调用，方法内部沿用基类 CRUD；基类的数据校验、租户与批量事务守卫保持不变。
+单键读/写/失效统一使用具名 `keyGenerator = "egonColaRepositoryKeyGenerator"`，由它产出可信的 `tenant:id`；多参数与集合批量签名不支持该策略，需使用独立区域或显式失效。
+所有影响缓存数据的写路径必须声明失效，普通 CRUD 不再自动失效；`@CachePut` 缓存方法返回值，不能挂在返回 boolean 的更新方法上。
 
-## 写路径透明失效
-
-每个成功的受控写通过端口注册提交后失效：携带 id 的写精确失效 `tenantId:id` 键；谓词形态的 `update(entity, wrapper)` 因影响面不可枚举而失效整个租户前缀 `tenantId:*`。注册先于提交，失效在 afterCommit 执行、事务回滚时丢弃（端口契约、键形状与错误码以 cache starter README 为单一事实源）。
-
-## 端口缺位零影响
-
-未覆写 `getCachePortProvider()`，或不存在 `egonColaCachePort` bean（starter 未引入或 `enabled=false`）时，全部读写方法与增强前逐字节一致：读路径不触端口，写路径不注册、零 Redis 交互。
+两级缓存是必需组件（`egon.cola.component.cache.enabled` 缺省 `true`），本 starter 依赖受管理的 common-cache starter 并在启动时校验 CacheManager：组件启用而宿主仅存在不兼容的 `CacheManager` 时以 `CACHE_MANAGER_INCOMPATIBLE` 失败，不静默退回单级缓存；显式关闭组件时跳过该校验，键生成器仍可用。
+Key、TTL 采样、事务提交/回滚、`sync` 与 `unless` 的限制、组合注解和手动操作以 [缓存 starter 文档](../egon-cola-component-common-cache-spring-boot-starter/README.md) 为单一事实源。
 
 ## SQL 与事务保护
 

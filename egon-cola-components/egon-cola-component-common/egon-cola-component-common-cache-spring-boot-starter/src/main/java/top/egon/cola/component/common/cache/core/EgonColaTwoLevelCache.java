@@ -22,13 +22,19 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 两级读写内核（Template Method 骨 + 互斥回源）：L1 Guava 限额 + 值内嵌逐条 deadline，
- * L2 {@code RMapCache} 逐条 TTL；单次 jitter 采样共享给双级（PC-004，L1 截止恒 ≤ L2 存活）。
+ * L2 {@code RMapCache} 逐条 TTL。两级各自独立采样（{@code l1Expire+l1Jitter} /
+ * {@code l2Expire+l2Jitter}），但 L1 截止恒 ≤ L2 存活：写入按双样本取小，
+ * L2 命中回填按 {@code min(新采样 L1, startedAt + L2 剩余)}，读操作绝不续期 L2。
  */
 @Slf4j
 public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
 
     /** Guava 33.6 已移除 {@code Expiry}，逐条 TTL 以值内嵌绝对截止纳秒实现，读取时自校验。 */
     record L1Value(Object value, long expireAtNanos) {
+    }
+
+    /** 一次写入/回填的两级存活毫秒数；{@code l1Millis} 已在构造处按 {@code l2Millis} 收口。 */
+    record TtlMillis(long l1Millis, long l2Millis) {
     }
 
     private final String name;
@@ -240,37 +246,49 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
             log.warn("CACHE_L2_OPERATION_FAILED region={} op=LOOKUP", name, ex);
             return null;
         }
-        long deadline = startedAt + TimeUnit.MILLISECONDS.toNanos(remainMillis);
-        if (remainMillis <= 0 || deadline <= System.nanoTime()) {
-            return null;
+        TtlMillis ttl = ttlMillis(stored);
+        if (remainMillis <= 0) {
+            return stored;
         }
-        l1.put(k, new L1Value(stored, deadline));
+        long l2Deadline = startedAt + TimeUnit.MILLISECONDS.toNanos(remainMillis);
+        long deadline = Math.min(startedAt + TimeUnit.MILLISECONDS.toNanos(ttl.l1Millis()), l2Deadline);
+        if (deadline > System.nanoTime()) {
+            l1.put(k, new L1Value(stored, deadline));
+        }
         return stored;
     }
 
     private void writeThrough(String k, Object stored) {
-        long ttlMillis = ttlMillis(stored);
-        l1.put(k, new L1Value(stored, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(ttlMillis)));
+        TtlMillis ttl = ttlMillis(stored);
+        l1.put(k, new L1Value(stored, System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(ttl.l1Millis())));
         try {
-            manager.l2(name).fastPut(k, stored, ttlMillis, TimeUnit.MILLISECONDS);
+            manager.l2(name).fastPut(k, stored, ttl.l2Millis(), TimeUnit.MILLISECONDS);
         } catch (RuntimeException ex) {
             log.warn("CACHE_L2_OPERATION_FAILED region={} op=WRITE keyCount=1", name, ex);
         }
         manager.publish(name, EgonColaCacheChangedOperation.PUT, List.of(k));
     }
 
-    private long ttlMillis(Object stored) {
-        EgonColaCacheProperties.Ttl ttl = manager.properties().getTtl();
-        boolean nullValue = stored instanceof EgonColaCacheNullValueBO;
-        Duration base = nullValue ? ttl.getNullExpire() : ttl.getExpire();
-        double ratio = ttl.getJitterRatio();
+    private TtlMillis ttlMillis(Object stored) {
+        EgonColaCacheProperties.Ttl global = manager.properties().getTtl();
         EgonColaCacheProperties.RegionTtl region = manager.properties().getRegions().get(name);
-        if (region != null) {
-            Duration override = nullValue ? region.getNullExpire() : region.getExpire();
-            base = override == null ? base : override;
-            ratio = region.getJitterRatio() == null ? ratio : region.getJitterRatio();
+        if (stored instanceof EgonColaCacheNullValueBO) {
+            long nullMillis = (region == null || region.getNullExpire() == null
+                    ? global.getNullExpire() : region.getNullExpire()).toMillis();
+            return new TtlMillis(nullMillis, nullMillis);
         }
-        return Jitter.jitteredMillis(base.toMillis(), ratio, random);
+        long l1Millis = Jitter.jitteredMillis(
+                orDefault(region == null ? null : region.getL1Expire(), global.getL1Expire()).toMillis(),
+                orDefault(region == null ? null : region.getL1Jitter(), global.getL1Jitter()).toMillis(), random);
+        long l2Millis = Jitter.jitteredMillis(
+                orDefault(region == null ? null : region.getL2Expire(), global.getL2Expire()).toMillis(),
+                orDefault(region == null ? null : region.getL2Jitter(), global.getL2Jitter()).toMillis(), random);
+        return new TtlMillis(Math.min(l1Millis, l2Millis), l2Millis);
+    }
+
+    /** 区域缺字段继承全局；properties 的 jakarta 校验已保证两侧非空且加满抖动不溢出。 */
+    private static Duration orDefault(Duration override, Duration global) {
+        return override == null ? global : override;
     }
 
     private <T> T callLoader(String k, Callable<T> valueLoader) {
@@ -294,14 +312,14 @@ public class EgonColaTwoLevelCache extends AbstractValueAdaptingCache {
         return k;
     }
 
-    /** 单次 TTL 抖动采样：{@code [base, base*(1+ratio)]}，ratio=0 恒等。 */
+    /** 单级 TTL 抖动采样：{@code [base, base+jitter]}，jitter=0 恒等。 */
     static final class Jitter {
 
         private Jitter() {
         }
 
-        static long jitteredMillis(long baseMillis, double ratio, Random random) {
-            return baseMillis + (long) (baseMillis * ratio * random.nextDouble());
+        static long jitteredMillis(long baseMillis, long jitterMillis, Random random) {
+            return baseMillis + (long) (jitterMillis * random.nextDouble());
         }
     }
 }

@@ -81,6 +81,10 @@ class EgonColaRepositoryArchitectureTest {
         for (Path root : roots) {
             try (var files = Files.walk(root)) {
                 files.filter(path -> path.toString().endsWith(".java")).forEach(path -> {
+                    // REQ-019 让必需缓存的装配在 autoconfigure 边界可见；持久化与核心仍然 blindness。
+                    if (root.toString().startsWith("src/main") && path.toString().contains("/autoconfigure/")) {
+                        return;
+                    }
                     try {
                         for (String line : Files.readAllLines(path)) {
                             if (line.startsWith("import top.egon.cola.component.common.cache.")) {

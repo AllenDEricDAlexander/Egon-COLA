@@ -75,8 +75,13 @@ class AgentSourceContractTest {
             for (Path file : files.filter(Files::isRegularFile).toList()) {
                 if ((file.toString().contains("/src/main/") || file.getFileName().toString().equals("pom.xml"))
                         && (file.toString().endsWith(".java") || file.toString().endsWith(".xml")
-                        || file.toString().endsWith(".yml"))) {
-                    // The disabled egon.cola.component.cache skeleton's `redis:` key line is inert
+                        || file.toString().endsWith(".yml"))
+                        // REQ-019/REQ-021 make the two-level cache a required component in every family and
+                        // the cache component only consumes a host-supplied client, so this family's
+                        // infrastructure/config assembly legitimately names the transport. The fence still
+                        // covers business code, poms and configuration.
+                        && !file.toString().contains("/infrastructure/config/")) {
+                    // The egon.cola.component.cache skeleton's `redis:` key line is inert
                     // configuration, not a Redis stack usage; every other word stays fenced.
                     content.append(Files.readString(file)
                             .replaceAll("(?m)^[ \\t]*redis:[ \\t]*$", ""));

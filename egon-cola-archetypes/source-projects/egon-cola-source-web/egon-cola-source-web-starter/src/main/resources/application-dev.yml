@@ -48,9 +48,9 @@ egon:
         machine-id: ${EGON_ID_MACHINE_ID}
         max-clock-backward: PT0.005S
       cache:
-        enabled: false
+        enabled: true
         node-id: ""
-        key-prefix: egon:cola:cache
+        key-prefix: egon:cola:cache:v2:${spring.application.name}
         tenant-mdc-key: tenantId
         second-evict-delay: PT5S
         redis:
@@ -58,9 +58,11 @@ egon:
         l1:
           max-size: 10000
         ttl:
-          expire: PT30M
+          l1-expire: PT5M
+          l1-jitter: PT2M
+          l2-expire: PT1H
+          l2-jitter: PT20M
           null-expire: PT60S
-          jitter-ratio: 0.1
         batch:
           max-keys: 1000
         lock:

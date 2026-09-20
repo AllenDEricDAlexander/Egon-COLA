@@ -93,6 +93,11 @@
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-cache-spring-boot-starter</artifactId>
         </dependency>
+        <!-- The cache starter keeps Redisson provided, so the host owns the client. -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson</artifactId>
+        </dependency>
         <dependency>
             <groupId>top.egon</groupId>
             <artifactId>egon-cola-component-common-id-starter</artifactId>

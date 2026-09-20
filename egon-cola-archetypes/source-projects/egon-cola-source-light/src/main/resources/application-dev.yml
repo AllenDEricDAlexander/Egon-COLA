@@ -1,4 +1,9 @@
 spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
@@ -17,9 +22,9 @@ egon:
   cola:
     component:
       cache:
-        enabled: false
+        enabled: true
         node-id: ""
-        key-prefix: egon:cola:cache
+        key-prefix: egon:cola:cache:v2:${spring.application.name}
         tenant-mdc-key: tenantId
         second-evict-delay: PT5S
         redis:
@@ -27,9 +32,11 @@ egon:
         l1:
           max-size: 10000
         ttl:
-          expire: PT30M
+          l1-expire: PT5M
+          l1-jitter: PT2M
+          l2-expire: PT1H
+          l2-jitter: PT20M
           null-expire: PT60S
-          jitter-ratio: 0.1
         batch:
           max-keys: 1000
         lock:

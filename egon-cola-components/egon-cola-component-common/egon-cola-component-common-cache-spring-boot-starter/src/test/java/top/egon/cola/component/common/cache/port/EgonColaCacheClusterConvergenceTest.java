@@ -110,9 +110,11 @@ class EgonColaCacheClusterConvergenceTest extends CacheRedisTestSupport {
         clientA = newClient();
         clientB = newClient();
         propertiesA = props(Map.of("second-evict-delay", "PT0.1S",
-                "node-id", "node-a", "ttl.expire", "PT10S"));
+                "node-id", "node-a", "ttl.l1-expire", "PT10S", "ttl.l1-jitter", "PT0S",
+                "ttl.l2-expire", "PT10S", "ttl.l2-jitter", "PT0S"));
         propertiesB = props(Map.of("second-evict-delay", "PT0.1S",
-                "node-id", "node-b", "ttl.expire", "PT10S"));
+                "node-id", "node-b", "ttl.l1-expire", "PT10S", "ttl.l1-jitter", "PT0S",
+                "ttl.l2-expire", "PT10S", "ttl.l2-jitter", "PT0S"));
         managerA = new EgonColaTwoLevelCacheManager(propertiesA, clientA);
         managerB = new EgonColaTwoLevelCacheManager(propertiesB, clientB);
         portA = new EgonColaTwoLevelCachePort(managerA, propertiesA);
