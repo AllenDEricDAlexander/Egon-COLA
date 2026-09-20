@@ -4,7 +4,7 @@ import org.springframework.aop.support.AopUtils;
 import org.springframework.core.BridgeMethodResolver;
 import org.springframework.core.annotation.AnnotatedElementUtils;
 import top.egon.cola.component.methodextension.annotation.MethodExtension;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionConfigurationException;
 
 import java.lang.reflect.Method;
 import java.util.Objects;

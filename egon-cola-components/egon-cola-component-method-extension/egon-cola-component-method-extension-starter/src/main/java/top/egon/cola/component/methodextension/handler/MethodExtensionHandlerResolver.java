@@ -2,7 +2,7 @@ package top.egon.cola.component.methodextension.handler;
 
 import org.springframework.aop.support.AopUtils;
 import org.springframework.beans.factory.ListableBeanFactory;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionConfigurationException;
 
 import java.util.List;
 import java.util.Map;

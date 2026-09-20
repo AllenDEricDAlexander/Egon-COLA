@@ -1,4 +1,4 @@
-package top.egon.cola.component.methodextension.exception;
+package top.egon.cola.component.methodextension.common.exception;
 
 public class MethodExtensionConfigurationException extends MethodExtensionException {
 

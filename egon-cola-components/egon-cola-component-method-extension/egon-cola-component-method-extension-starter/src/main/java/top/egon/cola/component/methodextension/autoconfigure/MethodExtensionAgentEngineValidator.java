@@ -2,8 +2,11 @@ package top.egon.cola.component.methodextension.autoconfigure;
 
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.util.ClassUtils;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionConfigurationException;
 
+import java.util.Objects;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -17,28 +20,40 @@ import java.util.function.BooleanSupplier;
  * <p>The adapter is looked up by name because the dependency runs the other way: the bytecode
  * starter depends on this module, not the reverse.
  */
-public class MethodExtensionAgentEngineValidator implements InitializingBean {
+public class MethodExtensionAgentEngineValidator extends BaseValidator implements InitializingBean {
 
     static final String AGENT_ADAPTER_CLASS =
             "top.egon.cola.component.bytecode.starter.methodextension.MethodExtensionRuntimeAdapter";
 
     private final MethodExtensionProperties properties;
 
+    private final ValidationUtils validationUtils;
+
     private final BooleanSupplier agentIntegrationPresent;
 
-    public MethodExtensionAgentEngineValidator(MethodExtensionProperties properties) {
-        this(properties, () -> ClassUtils.isPresent(
+    public MethodExtensionAgentEngineValidator(MethodExtensionProperties properties,
+                                               ValidationUtils validationUtils) {
+        this(properties, validationUtils, () -> ClassUtils.isPresent(
                 AGENT_ADAPTER_CLASS, MethodExtensionAgentEngineValidator.class.getClassLoader()));
     }
 
     MethodExtensionAgentEngineValidator(MethodExtensionProperties properties,
+                                        ValidationUtils validationUtils,
                                         BooleanSupplier agentIntegrationPresent) {
-        this.properties = properties;
-        this.agentIntegrationPresent = agentIntegrationPresent;
+        this.properties = Objects.requireNonNull(properties, "properties");
+        this.validationUtils = Objects.requireNonNull(validationUtils, "validationUtils");
+        this.agentIntegrationPresent = Objects.requireNonNull(
+                agentIntegrationPresent, "agentIntegrationPresent");
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
     }
 
     @Override
     public void afterPropertiesSet() {
+        validateBean(properties);
         if (properties.effectiveEngine() != MethodExtensionEngine.AGENT) {
             return;
         }

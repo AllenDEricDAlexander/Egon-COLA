@@ -95,6 +95,17 @@ raise `MethodExtensionResponseException`. Exceptions from a handler are logged
 and propagated unchanged; the original method is never executed after a handler
 failure.
 
+**Exception and enum contract:** all three component exceptions live in
+`top.egon.cola.component.methodextension.common.exception`, and `MethodExtensionException`
+is rooted on the common-core `CommonException` with the shared `ResultCode.SYSTEM_ERROR`
+code and status, so messages, causes and constructor shapes stay as documented.
+`engine`, `not-ready-policy`, and the asynchronous return kinds are common-core `EgonEnum`
+values with fixed codes assigned in declaration order (`AOP=0`, `AGENT=1`, `DISABLED=2`;
+`PROCEED=0`, `REJECT=1`, `FAIL=2`), while configuration binding, policy branching and
+JSON typing keep matching on the constant names. The starter publishes the canonical
+`egonColaValidationUtils` facade, and `MethodExtensionAgentEngineValidator` reuses it to run
+the native Jakarta constraints before its own classpath relation check.
+
 ## Spring AOP Limits
 
 Only public methods on Spring-managed proxy Beans are intercepted. Self-invocation

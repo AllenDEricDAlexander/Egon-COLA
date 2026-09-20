@@ -1,5 +1,7 @@
 package top.egon.cola.component.methodextension.response;
 
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
@@ -36,11 +38,29 @@ public record AsyncReturnType(Kind kind, Type payloadType) {
                 || kind == Kind.COMPLETABLE_FUTURE;
     }
 
-    public enum Kind {
-        NONE,
-        FUTURE,
-        COMPLETION_STAGE,
-        COMPLETABLE_FUTURE,
-        UNSUPPORTED_CONCRETE_FUTURE
+    public enum Kind implements EgonEnum {
+        NONE(0, "NONE"),
+        FUTURE(1, "FUTURE"),
+        COMPLETION_STAGE(2, "COMPLETION_STAGE"),
+        COMPLETABLE_FUTURE(3, "COMPLETABLE_FUTURE"),
+        UNSUPPORTED_CONCRETE_FUTURE(4, "UNSUPPORTED_CONCRETE_FUTURE");
+
+        private final int code;
+        private final String message;
+
+        Kind(int code, String message) {
+            this.code = code;
+            this.message = message;
+        }
+
+        @Override
+        public int getCode() {
+            return code;
+        }
+
+        @Override
+        public String getMessage() {
+            return message;
+        }
     }
 }

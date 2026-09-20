@@ -3,7 +3,7 @@ package top.egon.cola.component.methodextension.support;
 import org.junit.jupiter.api.Test;
 import top.egon.cola.component.methodextension.annotation.MethodExtension;
 import top.egon.cola.component.methodextension.context.MethodExtensionContext;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionConfigurationException;
 import top.egon.cola.component.methodextension.handler.MethodExtensionDecision;
 import top.egon.cola.component.methodextension.handler.MethodExtensionHandler;
 

@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.StringUtils;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
-import top.egon.cola.component.methodextension.exception.MethodExtensionResponseException;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionConfigurationException;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionResponseException;
 import top.egon.cola.component.methodextension.handler.MethodExtensionDecision;
 
 import java.lang.reflect.GenericArrayType;

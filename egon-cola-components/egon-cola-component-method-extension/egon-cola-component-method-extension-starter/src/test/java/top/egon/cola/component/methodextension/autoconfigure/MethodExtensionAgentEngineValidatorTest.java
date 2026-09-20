@@ -1,15 +1,20 @@
 package top.egon.cola.component.methodextension.autoconfigure;
 
+import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.autoconfigure.AutoConfigurations;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
-import top.egon.cola.component.methodextension.exception.MethodExtensionConfigurationException;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.methodextension.common.exception.MethodExtensionConfigurationException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class MethodExtensionAgentEngineValidatorTest {
+
+    private static final ValidationUtils VALIDATION_UTILS =
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
 
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
             .withConfiguration(AutoConfigurations.of(MethodExtensionAutoConfiguration.class));
@@ -48,11 +53,11 @@ class MethodExtensionAgentEngineValidatorTest {
         MethodExtensionProperties properties = new MethodExtensionProperties();
         properties.setEngine(MethodExtensionEngine.AGENT);
 
-        assertThatThrownBy(() -> new MethodExtensionAgentEngineValidator(properties, () -> false)
+        assertThatThrownBy(() -> new MethodExtensionAgentEngineValidator(properties, VALIDATION_UTILS, () -> false)
                 .afterPropertiesSet())
                 .isInstanceOf(MethodExtensionConfigurationException.class);
 
-        assertThatCode(() -> new MethodExtensionAgentEngineValidator(properties, () -> true)
+        assertThatCode(() -> new MethodExtensionAgentEngineValidator(properties, VALIDATION_UTILS, () -> true)
                 .afterPropertiesSet())
                 .doesNotThrowAnyException();
     }
