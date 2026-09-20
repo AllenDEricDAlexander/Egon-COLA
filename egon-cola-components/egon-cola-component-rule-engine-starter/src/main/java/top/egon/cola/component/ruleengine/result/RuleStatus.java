@@ -1,6 +1,8 @@
 package top.egon.cola.component.ruleengine.result;
 
-public enum RuleStatus {
+import top.egon.cola.component.common.core.enums.EgonEnum;
+
+public enum RuleStatus implements EgonEnum {
 
     SUCCESS(0, "success"),
     STOPPED(600100, "rule stopped"),
@@ -22,10 +24,12 @@ public enum RuleStatus {
         this.message = message;
     }
 
+    @Override
     public int getCode() {
         return code;
     }
 
+    @Override
     public String getMessage() {
         return message;
     }

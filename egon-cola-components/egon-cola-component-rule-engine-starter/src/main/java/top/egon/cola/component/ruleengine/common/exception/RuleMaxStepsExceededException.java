@@ -1,4 +1,4 @@
-package top.egon.cola.component.ruleengine.exception;
+package top.egon.cola.component.ruleengine.common.exception;
 
 import java.io.Serial;
 
