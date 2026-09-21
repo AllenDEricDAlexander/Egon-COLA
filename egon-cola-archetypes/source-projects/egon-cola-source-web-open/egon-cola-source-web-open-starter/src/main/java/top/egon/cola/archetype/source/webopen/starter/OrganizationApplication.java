@@ -16,8 +16,8 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
 })
 @EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)
 @MapperScan(basePackages = {
-        "top.egon.cola.archetype.source.webopen.infrastructure.user.repo.dao",
-        "top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.dao"
+        "top.egon.cola.archetype.source.webopen.infrastructure.user.dao",
+        "top.egon.cola.archetype.source.webopen.infrastructure.teaching.dao"
 })
 public class OrganizationApplication {
 

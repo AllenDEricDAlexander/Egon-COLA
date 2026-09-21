@@ -1,25 +1,28 @@
 package top.egon.cola.archetype.source.webopen.adapter.teaching.mq;
 
-import top.egon.cola.archetype.source.webopen.adapter.teaching.dto.CreateSchoolClassMessage;
+import top.egon.cola.archetype.source.webopen.adapter.teaching.pojo.dto.CreateSchoolClassMessage;
 import top.egon.cola.archetype.source.webopen.adapter.mq.OrganizationMessageSupport;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.SchoolClassManage;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
+import org.springframework.beans.factory.annotation.Qualifier;
 
-@Component
+@Component("schoolClassChangedConsumer")
 @RequiredArgsConstructor
+@Slf4j
 public class SchoolClassChangedConsumer {
 
+    @Qualifier("schoolClassManage")
     private final SchoolClassManage schoolClassManage;
-    private final OrganizationMessageSupport messageSupport;
 
     @RabbitListener(
             queues = "student.organization.school-class.create.v1",
             autoStartup = "${organization.integrations.rabbit.enabled:false}")
     public void consume(CreateSchoolClassMessage message) {
-        messageSupport.consume(() -> schoolClassManage.createSchoolClass(
+        OrganizationMessageSupport.consume(() -> schoolClassManage.createSchoolClass(
                 new CreateSchoolClassCommand(message.requestId(), message.name(), message.gradeCode())));
     }
 }

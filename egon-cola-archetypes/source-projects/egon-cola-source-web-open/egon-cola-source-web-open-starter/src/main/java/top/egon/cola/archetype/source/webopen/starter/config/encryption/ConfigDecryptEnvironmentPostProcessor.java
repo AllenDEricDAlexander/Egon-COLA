@@ -6,12 +6,13 @@ import java.util.Map;
 import java.util.Optional;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.env.EnvironmentPostProcessor;
-import org.springframework.cloud.bootstrap.BootstrapConfigFileApplicationListener;
+import org.springframework.boot.context.config.ConfigDataEnvironmentPostProcessor;
 import org.springframework.core.Ordered;
 import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
+import top.egon.cola.archetype.source.webopen.common.exception.ConfigDecryptException;
 
 public class ConfigDecryptEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 
@@ -78,6 +79,6 @@ public class ConfigDecryptEnvironmentPostProcessor implements EnvironmentPostPro
 
     @Override
     public int getOrder() {
-        return BootstrapConfigFileApplicationListener.DEFAULT_ORDER + 1;
+        return ConfigDataEnvironmentPostProcessor.ORDER + 1;
     }
 }

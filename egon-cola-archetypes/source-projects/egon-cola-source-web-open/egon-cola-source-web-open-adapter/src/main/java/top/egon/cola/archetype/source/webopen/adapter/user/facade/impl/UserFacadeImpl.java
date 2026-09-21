@@ -1,22 +1,28 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.facade.impl;
 
-import top.egon.cola.archetype.source.webopen.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.command.CreateUserCommand;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.webopen.application.user.query.UserDetailQuery;
-import top.egon.cola.archetype.source.webopen.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.query.UserDetailQuery;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.result.UserDetailResult;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.CreateUserRequest;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.DubboUserServiceTriple;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.GetUserRequest;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.User;
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+/** Dubbo Triple provider of the organization User contract; maps Protobuf onto the use cases. */
+@Service("userFacade")
 @RequiredArgsConstructor
-@Service
+@Slf4j
 public class UserFacadeImpl extends DubboUserServiceTriple.UserServiceImplBase {
 
+    @Qualifier("userManage")
     private final UserManage userManage;
+    @Qualifier("organizationFacadeSupport")
     private final OrganizationFacadeSupport support;
 
     @Override

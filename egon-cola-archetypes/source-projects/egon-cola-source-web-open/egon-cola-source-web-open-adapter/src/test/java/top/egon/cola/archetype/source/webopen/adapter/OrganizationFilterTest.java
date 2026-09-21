@@ -1,26 +1,20 @@
 package top.egon.cola.archetype.source.webopen.adapter;
 
-import java.time.Duration;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.archetype.source.webopen.adapter.filter.OrganizationAuthContextFilter;
 import top.egon.cola.archetype.source.webopen.adapter.filter.OrganizationTraceFilter;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeAll;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
+
 import java.util.concurrent.atomic.AtomicBoolean;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class OrganizationFilterTest {
-
-    @BeforeAll
-    static void bindTheProcessWideEngine() {
-        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
-    }
     @Test
     void propagatesActorRolesAndAlwaysClearsContext() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest();

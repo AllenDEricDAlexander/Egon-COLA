@@ -9,14 +9,12 @@ import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import lombok.RequiredArgsConstructor;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.io.IOException;
+import java.util.UUID;
 
 @Component("organizationTraceFilter")
 @Order(Ordered.HIGHEST_PRECEDENCE)
-@RequiredArgsConstructor
 public class OrganizationTraceFilter extends OncePerRequestFilter {
     public static final String TRACE_HEADER = "X-Trace-Id";
 
@@ -25,8 +23,7 @@ public class OrganizationTraceFilter extends OncePerRequestFilter {
             HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         String supplied = request.getHeader(TRACE_HEADER);
-        String traceId = supplied == null || supplied.isBlank()
-            ? Long.toString(SnowflakeIdGenerator.nextLongId()) : supplied.trim();
+        String traceId = supplied == null || supplied.isBlank() ? UUID.randomUUID().toString() : supplied.trim();
         response.setHeader(TRACE_HEADER, traceId);
         MDC.put("traceId", traceId);
         try {

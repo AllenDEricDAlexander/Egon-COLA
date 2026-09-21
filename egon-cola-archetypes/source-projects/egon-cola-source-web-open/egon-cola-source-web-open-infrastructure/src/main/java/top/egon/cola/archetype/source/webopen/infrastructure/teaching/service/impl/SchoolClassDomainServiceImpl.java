@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.infrastructure.teaching.service.impl;
 
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationDomainException;
 import top.egon.cola.archetype.source.webopen.domain.teaching.entities.Grade;
 import top.egon.cola.archetype.source.webopen.domain.teaching.entities.SchoolClass;
 import top.egon.cola.archetype.source.webopen.domain.teaching.enums.GradeStatus;
@@ -11,12 +11,12 @@ import top.egon.cola.archetype.source.webopen.domain.teaching.validators.Teachin
 import top.egon.cola.archetype.source.webopen.domain.teaching.vos.GradeCode;
 import top.egon.cola.archetype.source.webopen.domain.teaching.vos.SchoolClassId;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.converter.SchoolClassPOConverter;
+import top.egon.cola.archetype.source.webopen.infrastructure.teaching.converter.SchoolClassPOConverter;
 import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.GradeRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.SchoolClassRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.SchoolClassUserRepository;
-import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassPO;
-import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassUserPO;
+import top.egon.cola.archetype.source.webopen.infrastructure.teaching.po.SchoolClassPO;
+import top.egon.cola.archetype.source.webopen.infrastructure.teaching.po.SchoolClassUserPO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;

@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.adapter.handler;
 
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
 import graphql.GraphQLError;
 import graphql.GraphqlErrorBuilder;
 import graphql.schema.DataFetchingEnvironment;
@@ -12,7 +12,7 @@ import org.springframework.stereotype.Component;
 import java.time.Instant;
 import java.util.Map;
 
-@Component
+@Component("organizationGraphQlExceptionResolver")
 public class OrganizationGraphQlExceptionResolver extends DataFetcherExceptionResolverAdapter {
 
     @Override

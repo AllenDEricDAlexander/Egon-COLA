@@ -1,15 +1,12 @@
 package top.egon.cola.archetype.source.webopen.adapter;
 
-import java.time.Duration;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
-import org.junit.jupiter.api.BeforeAll;
 import top.egon.cola.archetype.source.webopen.adapter.user.controller.UserController;
-import top.egon.cola.archetype.source.webopen.adapter.user.converter.UserAdapterConverter;
+import top.egon.cola.archetype.source.webopen.adapter.user.pojo.convertor.UserAdapterConverter;
 import top.egon.cola.archetype.source.webopen.adapter.filter.OrganizationAuthContextFilter;
 import top.egon.cola.archetype.source.webopen.adapter.filter.OrganizationTraceFilter;
 import top.egon.cola.archetype.source.webopen.adapter.handler.OrganizationGlobalExceptionHandler;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationFailureType;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -21,7 +18,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
 import java.util.stream.Stream;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -30,11 +29,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 class OrganizationHttpErrorContractTest {
-
-    @BeforeAll
-    static void bindTheProcessWideEngine() {
-        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
-    }
     @Mock UserManage userManage;
 
     @ParameterizedTest
@@ -44,8 +38,7 @@ class OrganizationHttpErrorContractTest {
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(
                 new UserController(userManage, Mappers.getMapper(UserAdapterConverter.class)))
             .setControllerAdvice(new OrganizationGlobalExceptionHandler())
-            .addFilters(new OrganizationTraceFilter(),
-                new OrganizationAuthContextFilter())
+            .addFilters(new OrganizationTraceFilter(), new OrganizationAuthContextFilter())
             .build();
 
         mockMvc.perform(get("/api/v1/users/1001").header("X-Trace-Id", "trace-1"))

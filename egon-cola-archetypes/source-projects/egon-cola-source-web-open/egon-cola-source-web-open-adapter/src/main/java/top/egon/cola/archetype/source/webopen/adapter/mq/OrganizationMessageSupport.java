@@ -2,22 +2,22 @@ package top.egon.cola.archetype.source.webopen.adapter.mq;
 
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationFailureType;
+import top.egon.cola.archetype.source.webopen.common.exception.RetryableOrganizationMessageException;
 import org.springframework.amqp.AmqpRejectAndDontRequeueException;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.Set;
+import java.util.UUID;
 
-@Component
-@RequiredArgsConstructor
 public final class OrganizationMessageSupport {
 
-    public void consume(Runnable action) {
+    private OrganizationMessageSupport() {
+    }
+
+    public static void consume(Runnable action) {
         OrganizationRequestContextHolder.set(new OrganizationRequestContext(
-                "rabbit-system", Set.of("SYSTEM"), Long.toString(SnowflakeIdGenerator.nextLongId())));
+                "rabbit-system", Set.of("SYSTEM"), UUID.randomUUID().toString()));
         try {
             action.run();
         } catch (OrganizationApplicationException failure) {

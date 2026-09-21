@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.domain.teaching.vos;
 
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationDomainException;
 import top.egon.cola.archetype.source.webopen.domain.validators.OrganizationCodeValidator;
 
 public record GradeCode(String value) {

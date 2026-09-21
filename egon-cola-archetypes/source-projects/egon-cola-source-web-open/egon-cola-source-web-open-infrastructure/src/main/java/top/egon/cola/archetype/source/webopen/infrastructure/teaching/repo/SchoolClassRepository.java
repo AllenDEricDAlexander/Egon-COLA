@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo;
 
-import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.dao.SchoolClassDAO;
-import top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassPO;
+import top.egon.cola.archetype.source.webopen.infrastructure.teaching.dao.SchoolClassDAO;
+import top.egon.cola.archetype.source.webopen.infrastructure.teaching.po.SchoolClassPO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

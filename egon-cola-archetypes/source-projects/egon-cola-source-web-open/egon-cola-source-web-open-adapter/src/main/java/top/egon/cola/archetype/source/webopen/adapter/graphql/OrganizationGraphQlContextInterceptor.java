@@ -6,7 +6,7 @@ import org.springframework.graphql.server.WebGraphQlResponse;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
-@Component
+@Component("organizationGraphQlContextInterceptor")
 public class OrganizationGraphQlContextInterceptor implements WebGraphQlInterceptor {
 
     @Override

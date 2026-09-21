@@ -1,9 +1,9 @@
 package top.egon.cola.archetype.source.webopen.application.teaching.manage;
 
-import top.egon.cola.archetype.source.webopen.application.teaching.command.CreateSchoolClassCommand;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.AssignUserToClassCommand;
-import top.egon.cola.archetype.source.webopen.application.teaching.query.SchoolClassDetailQuery;
-import top.egon.cola.archetype.source.webopen.application.teaching.result.SchoolClassDetailResult;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.AssignUserToClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.SchoolClassDetailResult;
 
 public interface SchoolClassManage {
     SchoolClassDetailResult createSchoolClass(CreateSchoolClassCommand command);

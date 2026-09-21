@@ -2,15 +2,15 @@ package top.egon.cola.archetype.source.webopen.application.teaching;
 
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.impl.SchoolClassManageImpl;
 import top.egon.cola.archetype.source.webopen.application.teaching.validators.TeachingApplicationValidator;
-import top.egon.cola.archetype.source.webopen.domain.client.CommandIdempotencyPort;
-import top.egon.cola.archetype.source.webopen.domain.client.OrganizationEventPublisher;
-import top.egon.cola.archetype.source.webopen.domain.teaching.client.SchoolClassCachePort;
+import top.egon.cola.archetype.source.webopen.domain.service.CommandIdempotencyService;
+import top.egon.cola.archetype.source.webopen.domain.service.OrganizationEventService;
 import top.egon.cola.archetype.source.webopen.domain.teaching.entities.Grade;
 import top.egon.cola.archetype.source.webopen.domain.teaching.enums.GradeStatus;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.convertor.SchoolClassConverter;
 import top.egon.cola.archetype.source.webopen.domain.teaching.service.SchoolClassDomainService;
 import top.egon.cola.archetype.source.webopen.domain.user.service.UserDomainService;
 import top.egon.cola.archetype.source.webopen.domain.teaching.vos.GradeCode;
@@ -28,9 +28,16 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @ExtendWith(MockitoExtension.class)
 class SchoolClassManageImplTest {
+    @Mock ValidationUtils validationUtils;
+
+    private TeachingApplicationValidator teachingValidator() {
+        return new TeachingApplicationValidator(validationUtils);
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -39,9 +46,8 @@ class SchoolClassManageImplTest {
 
     @Mock SchoolClassDomainService schoolClassDomainService;
     @Mock UserDomainService userDomainService;
-    @Mock SchoolClassCachePort schoolClassCache;
-    @Mock CommandIdempotencyPort idempotency;
-    @Mock OrganizationEventPublisher eventPublisher;
+    @Mock CommandIdempotencyService idempotency;
+    @Mock OrganizationEventService eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -55,8 +61,8 @@ class SchoolClassManageImplTest {
         when(schoolClassDomainService.existsByGradeIdAndNameIgnoreCase(1001L, "Class A"))
                 .thenReturn(true);
         when(idempotency.claim("create-school-class", "req-1")).thenReturn(true);
-        SchoolClassManageImpl manage = new SchoolClassManageImpl(schoolClassDomainService, userDomainService,
-                new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher);
+        SchoolClassManageImpl manage = new SchoolClassManageImpl(schoolClassDomainService, userDomainService, teachingValidator(),
+                idempotency, eventPublisher, Mappers.getMapper(SchoolClassConverter.class));
 
         assertThrows(OrganizationApplicationException.class, () -> manage.createSchoolClass(
                 new CreateSchoolClassCommand("req-1", "Class A", "grade_one")));

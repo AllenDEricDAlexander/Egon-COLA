@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.dao.SchoolClassUserDAO">
-    <resultMap id="SchoolClassUserResultMap" type="top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassUserPO">
+<mapper namespace="top.egon.cola.archetype.source.webopen.infrastructure.teaching.dao.SchoolClassUserDAO">
+    <resultMap id="SchoolClassUserResultMap" type="top.egon.cola.archetype.source.webopen.infrastructure.teaching.po.SchoolClassUserPO">
         <id column="id" property="id"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="create_user_id" property="createUserId"/>
@@ -24,10 +24,10 @@
         SELECT COUNT(*) FROM school_class_users
         WHERE deleted_at IS NULL AND grade_id = #{gradeId} AND school_class_id = #{schoolClassId} AND user_id = #{userId}
     </select>
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassUserPO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.webopen.infrastructure.teaching.po.SchoolClassUserPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, grade_id, school_class_id FROM school_class_users WHERE id = #{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.webopen.infrastructure.teaching.repo.po.SchoolClassUserPO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.webopen.infrastructure.teaching.po.SchoolClassUserPO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, user_id, grade_id, school_class_id FROM school_class_users WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

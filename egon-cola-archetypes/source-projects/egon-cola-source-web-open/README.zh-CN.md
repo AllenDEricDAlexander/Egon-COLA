@@ -56,7 +56,7 @@ facade/src/main/proto/google/protobuf/empty.proto
 
 组织服务使用 Dubbo Triple，group 为 `student-management-organization`、version 为
 `1.0.0`，dev/prod 协议为 `tri`。Evaluation 使用带 managed channel 和可配置 deadline
-的 `GrpcEvaluationQueryClient`，不做隐式重试；测试用 in-process gRPC server。
+的 `GrpcEvaluationQueryClientImpl`，不做隐式重试；测试用 in-process gRPC server。
 
 
 Controller 和 GraphQL Resolver 只位于 Adapter：

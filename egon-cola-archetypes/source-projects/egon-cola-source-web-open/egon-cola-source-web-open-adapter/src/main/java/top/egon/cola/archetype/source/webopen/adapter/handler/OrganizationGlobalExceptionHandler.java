@@ -2,12 +2,11 @@ package top.egon.cola.archetype.source.webopen.adapter.handler;
 
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationFailureType;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,9 +20,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestControllerAdvice(name = "organizationGlobalExceptionHandler")
 public class OrganizationGlobalExceptionHandler {
-    private static final Logger log = LoggerFactory.getLogger(OrganizationGlobalExceptionHandler.class);
 
     @ExceptionHandler(OrganizationApplicationException.class)
     public ResponseEntity<OrganizationErrorResponse> handleApplication(OrganizationApplicationException failure) {

@@ -1,32 +1,29 @@
 package top.egon.cola.archetype.source.webopen.infrastructure.aop;
 
+import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 import org.springframework.stereotype.Component;
 
+/** Logs the outbound client and message-broker failure boundary exactly once. */
 @Aspect
 @Component("organizationLogAspect")
+@Slf4j
 public class OrganizationLogAspect {
-    private static final Logger log = LoggerFactory.getLogger(OrganizationLogAspect.class);
 
-    @Around("execution(public * top.egon.cola.archetype.source.webopen.application.manage..*(..))")
+    // ``within`` keeps the broker branch on the publisher type itself: the local fallback in
+    // OrganizationLocalFallbackConfig inherits MqMessageService.publish and would otherwise be
+    // advised as an mq type.
+    @Around("execution(* top.egon.cola.archetype.source.webopen.infrastructure..client.impl..*.*(..))"
+            + " || (execution(* *(..)) && within(top.egon.cola.archetype.source.webopen.infrastructure.mq.impl..*))")
     public Object log(ProceedingJoinPoint point) throws Throwable {
-        long started = System.nanoTime();
         try {
             return point.proceed();
-        } finally {
-            long elapsedNanos = System.nanoTime() - started;
-            String method = point.getSignature() == null ? "unknown" : point.getSignature().toShortString();
-            log.info("traceId={} method={} elapsedNanos={}", traceId(), method, elapsedNanos);
+        } catch (RuntimeException failure) {
+            log.error("Infrastructure call failed: {}",
+                    point.getSignature() == null ? "unknown" : point.getSignature().toShortString(), failure);
+            throw failure;
         }
-    }
-
-    private static String traceId() {
-        String traceId = MDC.get("traceId");
-        return traceId == null ? "unknown" : traceId;
     }
 }

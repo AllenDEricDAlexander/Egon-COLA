@@ -1,28 +1,28 @@
 package top.egon.cola.archetype.source.webopen.starter;
 
-import top.egon.cola.archetype.source.webopen.application.teaching.command.AssignUserToClassCommand;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.CreateGradeCommand;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.AssignUserToClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateGradeCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.GradeManage;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.webopen.infrastructure.cache.InMemoryCommandIdempotencyAdapter;
-import top.egon.cola.archetype.source.webopen.infrastructure.teaching.cache.InMemorySchoolClassCache;
-import top.egon.cola.archetype.source.webopen.infrastructure.mq.LocalOrganizationEventPublisher;
+import top.egon.cola.archetype.source.webopen.infrastructure.config.OrganizationLocalFallbackConfig;
+import top.egon.cola.archetype.source.webopen.infrastructure.mq.MqMessageService;
+import top.egon.cola.archetype.source.webopen.infrastructure.service.impl.InMemoryCommandIdempotencyServiceImpl;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.jdbc.core.JdbcTemplate;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.slf4j.MDC;
 
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.Set;
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,9 +36,8 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.webopen.su
     @Autowired private GradeManage gradeManage;
     @Autowired private SchoolClassManage schoolClassManage;
     @Autowired private JdbcTemplate jdbcTemplate;
-    @Autowired private LocalOrganizationEventPublisher localPublisher;
-    @Autowired private InMemorySchoolClassCache schoolClassCache;
-    @Autowired private InMemoryCommandIdempotencyAdapter idempotency;
+    @Autowired private MqMessageService messageService;
+    @Autowired private InMemoryCommandIdempotencyServiceImpl idempotency;
 
     @AfterEach
     void clearContext() {
@@ -53,32 +52,34 @@ class OrganizationRollbackTest extends top.egon.cola.archetype.source.webopen.su
                 "admin-1", Set.of("TEACHING_ADMIN"), "rollback-test"));
         MDC.put("tenantId", "1");
         MDC.put("userId", "admin-1");
-        String suffix = Long.toString(System.nanoTime());
+        String suffix = UUID.randomUUID().toString().replace("-", "").toUpperCase();
         String gradeCode = "ROLLBACK_" + suffix;
         var grade = gradeManage.createGrade(
                 new CreateGradeCommand("grade-" + suffix, gradeCode, "Rollback Grade"));
         var schoolClass = schoolClassManage.createSchoolClass(
                 new CreateSchoolClassCommand("class-" + suffix, "Rollback Class", gradeCode));
-        Long disabledUserId = SnowflakeIdGenerator.nextLongId();
+        Long disabledUserId = 9001L;
         jdbcTemplate.update(
-                "insert into users(id, name, email, status, create_time, tenant_id) values (?, ?, ?, ?, ?, ?)",
+                "insert into users(id, name, email, status, create_time, tenant_id)"
+                        + " values (?, ?, ?, ?, ?, ?)",
                 disabledUserId, "Disabled User", disabledUserId + "@example.com", "DISABLED",
                 Timestamp.from(Instant.now()), 1L);
 
+        // The broker-free profile records publications instead of sending, so a rolled back
+        // transaction can be observed through the same MQ boundary.
+        var localPublisher = (OrganizationLocalFallbackConfig.LocalMqMessageService) messageService;
         localPublisher.clear();
-        schoolClassCache.clearObservations();
         idempotency.clear();
         AssignUserToClassCommand command = new AssignUserToClassCommand(
                 "rollback-1", grade.id(), schoolClass.id(), disabledUserId);
 
         assertThatThrownBy(() -> schoolClassManage.assignUser(command))
                 .isInstanceOf(OrganizationApplicationException.class);
-        assertThat(localPublisher.events()).isEmpty();
-        assertThat(schoolClassCache.evictedKeys()).isEmpty();
+        assertThat(localPublisher.publishedMessages()).isEmpty();
         assertThat(idempotency.contains("assign-user-to-school-class", "rollback-1")).isFalse();
         assertThat(jdbcTemplate.queryForObject(
                 "select count(*) from school_class_users"
-                        + " where tenant_id = 1 and grade_id = ? and user_id = ? and school_class_id = ?",
-                Integer.class, grade.id(), disabledUserId, schoolClass.id())).isZero();
+                        + " where tenant_id = ? and grade_id = ? and user_id = ? and school_class_id = ?",
+                Integer.class, 1L, grade.id(), disabledUserId, schoolClass.id())).isZero();
     }
 }

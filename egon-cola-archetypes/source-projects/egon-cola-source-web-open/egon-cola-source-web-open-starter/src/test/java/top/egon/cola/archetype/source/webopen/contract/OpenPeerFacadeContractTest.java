@@ -91,7 +91,7 @@ class OpenPeerFacadeContractTest {
                 .should().accessClassesThat().resideInAPackage(PEER_FACADE_ROOT + "..")
                 .check(OWN_PRODUCTION_CLASSES);
 
-        assertThat(accessedOwners("infrastructure.client.evaluation.GrpcEvaluationQueryClient"))
+        assertThat(accessedOwners("infrastructure.client.evaluation.impl.GrpcEvaluationQueryClientImpl"))
                 .as("the evaluation client must consume the peer facade messages")
                 .anyMatch(type -> type.startsWith(PEER_FACADE_ROOT + "."));
     }

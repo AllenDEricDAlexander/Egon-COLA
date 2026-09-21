@@ -64,7 +64,7 @@ facade/src/main/proto/google/protobuf/empty.proto
 
 Organization providers export Dubbo Triple with group
 `student-management-organization`, version `1.0.0`, and `tri` in dev/prod. Evaluation
-uses `GrpcEvaluationQueryClient` with managed channel and configurable deadline; tests use
+uses `GrpcEvaluationQueryClientImpl` with managed channel and configurable deadline; tests use
 an in-process gRPC server and no retry.
 
 

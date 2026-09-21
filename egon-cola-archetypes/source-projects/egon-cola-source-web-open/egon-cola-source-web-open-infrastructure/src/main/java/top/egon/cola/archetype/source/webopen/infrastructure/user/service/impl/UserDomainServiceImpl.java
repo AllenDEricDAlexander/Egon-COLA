@@ -7,17 +7,17 @@ import top.egon.cola.archetype.source.webopen.domain.user.service.UserDomainServ
 import top.egon.cola.archetype.source.webopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.converter.RolePOConverter;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.converter.UserPOConverter;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.converter.RolePOConverter;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.converter.UserPOConverter;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.PermissionRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.RoleRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.RolePermissionRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.UserRepository;
 import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.UserRoleRepository;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.RolePO;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.RolePermissionPO;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.UserPO;
-import top.egon.cola.archetype.source.webopen.infrastructure.user.repo.po.UserRolePO;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.po.RolePO;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.po.RolePermissionPO;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.po.UserPO;
+import top.egon.cola.archetype.source.webopen.infrastructure.user.po.UserRolePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -66,7 +66,7 @@ public class UserDomainServiceImpl
             saved = userRepository.save(po);
         } else {
             userConverter.updateMetadata(po, existing);
-            saved = userRepository.updateById(po);
+            saved = userRepository.updateCachedById(po);
         }
         if (!saved) {
             throw new IllegalStateException("save user affected zero rows");
@@ -78,7 +78,7 @@ public class UserDomainServiceImpl
 
     @Override
     public Optional<User> findById(UserId userId) {
-        return Optional.ofNullable(userRepository.getById(userId.value())).map(this::restore);
+        return Optional.ofNullable(userRepository.findCachedById(userId.value())).map(this::restore);
     }
 
     @Override

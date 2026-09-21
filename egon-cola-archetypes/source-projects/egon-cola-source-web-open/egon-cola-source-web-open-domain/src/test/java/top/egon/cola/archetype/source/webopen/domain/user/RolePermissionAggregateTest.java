@@ -9,8 +9,8 @@ import top.egon.cola.archetype.source.webopen.domain.user.enums.PermissionStatus
 import top.egon.cola.archetype.source.webopen.domain.user.enums.PermissionType;
 import top.egon.cola.archetype.source.webopen.domain.user.enums.RoleStatus;
 import top.egon.cola.archetype.source.webopen.domain.user.enums.UserStatus;
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationDomainException;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.PermissionCode;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.RoleCode;
 import top.egon.cola.archetype.source.webopen.domain.user.vos.UserId;

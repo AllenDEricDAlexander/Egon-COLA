@@ -1,8 +1,9 @@
 package top.egon.cola.archetype.source.webopen.starter;
 
-import top.egon.cola.archetype.source.webopen.domain.client.evaluation.EvaluationQueryPort;
-import top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation.GrpcEvaluationQueryClient;
-import top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation.LocalEvaluationQueryStub;
+import top.egon.cola.archetype.source.webopen.domain.teaching.service.EvaluationQueryService;
+import top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation.impl.GrpcEvaluationQueryClientImpl;
+import top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation.impl.LocalEvaluationQueryClientImpl;
+import top.egon.cola.archetype.source.webopen.infrastructure.teaching.service.impl.EvaluationQueryServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,7 +28,7 @@ class OrganizationExternalFreeContextTest extends top.egon.cola.archetype.source
     private Environment environment;
 
     @Autowired
-    private EvaluationQueryPort evaluationQueryPort;
+    private EvaluationQueryService evaluationQueryPort;
 
     @Test
     void testProfileIsExternalFree() {
@@ -43,8 +44,9 @@ class OrganizationExternalFreeContextTest extends top.egon.cola.archetype.source
                 .isEqualTo("false");
         assertThat(environment.getProperty("organization.integrations.evaluation.enabled"))
                 .isEqualTo("false");
-        assertThat(evaluationQueryPort).isInstanceOf(LocalEvaluationQueryStub.class);
-        assertThat(context.getBeansOfType(GrpcEvaluationQueryClient.class)).isEmpty();
+        assertThat(evaluationQueryPort).isInstanceOf(EvaluationQueryServiceImpl.class);
+        assertThat(context.getBean("evaluationQueryClient")).isInstanceOf(LocalEvaluationQueryClientImpl.class);
+        assertThat(context.getBeansOfType(GrpcEvaluationQueryClientImpl.class)).isEmpty();
     }
 
     @Test

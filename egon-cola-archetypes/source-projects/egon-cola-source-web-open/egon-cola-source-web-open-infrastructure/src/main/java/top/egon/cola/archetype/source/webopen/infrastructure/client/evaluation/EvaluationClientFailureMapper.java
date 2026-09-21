@@ -1,19 +1,19 @@
 package top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation;
 
-import top.egon.cola.archetype.source.webopen.domain.client.ExternalDependencyException;
-import top.egon.cola.archetype.source.webopen.domain.client.ExternalDependencyFailure;
+import top.egon.cola.archetype.source.webopen.common.exception.ExternalDependencyException;
+import top.egon.cola.archetype.source.webopen.common.enums.ExternalDependencyFailure;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import java.util.Locale;
 
-final class EvaluationClientFailureMapper {
+public final class EvaluationClientFailureMapper {
 
     private static final String DEPENDENCY = "evaluation";
 
     private EvaluationClientFailureMapper() {
     }
 
-    static ExternalDependencyException map(RuntimeException failure) {
+    public static ExternalDependencyException map(RuntimeException failure) {
         if (failure instanceof StatusRuntimeException statusFailure) {
             return failure(category(statusFailure.getStatus().getCode()),
                     "GRPC_" + statusFailure.getStatus().getCode().name(), statusFailure);
@@ -21,7 +21,7 @@ final class EvaluationClientFailureMapper {
         return failure(ExternalDependencyFailure.SERVICE_FAILURE, "UNKNOWN", failure);
     }
 
-    static ExternalDependencyException incompatible(String operation) {
+    public static ExternalDependencyException incompatible(String operation) {
         return failure(
                 ExternalDependencyFailure.CONTRACT_INCOMPATIBLE,
                 "INVALID_RESPONSE",

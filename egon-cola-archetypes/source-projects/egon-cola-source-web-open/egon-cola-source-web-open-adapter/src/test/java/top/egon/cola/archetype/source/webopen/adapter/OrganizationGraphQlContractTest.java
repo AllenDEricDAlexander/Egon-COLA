@@ -8,13 +8,13 @@ import top.egon.cola.archetype.source.webopen.application.teaching.manage.School
 import top.egon.cola.archetype.source.webopen.application.user.manage.PermissionManage;
 import top.egon.cola.archetype.source.webopen.application.user.manage.RoleManage;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.webopen.application.user.query.UserDetailQuery;
-import top.egon.cola.archetype.source.webopen.application.teaching.query.SchoolClassDetailQuery;
-import top.egon.cola.archetype.source.webopen.application.teaching.result.GradeDetailResult;
-import top.egon.cola.archetype.source.webopen.application.teaching.result.SchoolClassDetailResult;
-import top.egon.cola.archetype.source.webopen.application.user.result.UserDetailResult;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.query.UserDetailQuery;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.GradeDetailResult;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.SchoolClassDetailResult;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.result.UserDetailResult;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationFailureType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,15 +42,16 @@ class OrganizationGraphQlContractTest {
 
     private GraphQlTester graphQlTester;
 
-    @MockitoBean
+    // The resolvers inject by bean name, so every override has to carry that same name.
+    @MockitoBean(name = "userManage")
     private UserManage userManage;
-    @MockitoBean
+    @MockitoBean(name = "roleManage")
     private RoleManage roleManage;
-    @MockitoBean
+    @MockitoBean(name = "permissionManage")
     private PermissionManage permissionManage;
-    @MockitoBean
+    @MockitoBean(name = "gradeManage")
     private GradeManage gradeManage;
-    @MockitoBean
+    @MockitoBean(name = "schoolClassManage")
     private SchoolClassManage schoolClassManage;
 
     @BeforeEach
@@ -85,11 +86,11 @@ class OrganizationGraphQlContractTest {
 
     @Test
     void exposesStableErrorExtensions() {
-        when(userManage.getUser(eq(new UserDetailQuery(9999L))))
+        when(userManage.getUser(eq(new UserDetailQuery(0L))))
                 .thenThrow(new OrganizationApplicationException(
                         OrganizationFailureType.NOT_FOUND, "ORG_NOT_FOUND", "User not found"));
 
-        graphQlTester.document("query { user(id:\"9999\") { id } }")
+        graphQlTester.document("query { user(id:\"0\") { id } }")
                 .execute()
                 .errors().satisfy(errors -> org.assertj.core.api.Assertions.assertThat(
                                 errors.getFirst().getExtensions())

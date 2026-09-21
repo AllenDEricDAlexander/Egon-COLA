@@ -87,8 +87,10 @@ assert protoFiles.sort() == [
         "organization/v1/user.proto"
 ]
 missing("${prefix}-facade/src/main/proto/evaluation")
-assert file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/GrpcEvaluationQueryClient.java")
+assert file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/impl/GrpcEvaluationQueryClientImpl.java")
         .text.contains("top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Course")
+assert file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/impl/LocalEvaluationQueryClientImpl.java").isFile()
+assert file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/EvaluationQueryClient.java").isFile()
 directory("${prefix}-facade/src/test/java")
 directory("${prefix}-facade/src/test/resources")
 missing("${prefix}-client")
@@ -151,7 +153,7 @@ def runtimeText = javaSources.collect { it.getText("UTF-8") }.join("\n") +
 
 def poSources = javaSources.findAll {
     def path = relativePath(it)
-    path.contains("/infrastructure/") && path.contains("/repo/po/") && it.name.endsWith("PO.java")
+    path.contains("/infrastructure/") && path.contains("/po/") && it.name.endsWith("PO.java")
 }
 assert poSources.size() == 8: "Expected eight infrastructure PO classes, got ${poSources.size()}"
 poSources.each { po ->
@@ -166,7 +168,7 @@ poSources.each { po ->
 
 def daoSources = javaSources.findAll {
     def path = relativePath(it)
-    path.contains("/infrastructure/") && path.contains("/repo/dao/") && it.name.endsWith("DAO.java")
+    path.contains("/infrastructure/") && path.contains("/dao/") && it.name.endsWith("DAO.java")
 }
 assert daoSources.size() == 8: "Expected eight infrastructure DAO classes, got ${daoSources.size()}"
 daoSources.each { dao ->

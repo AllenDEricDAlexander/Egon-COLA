@@ -4,8 +4,8 @@ import top.egon.cola.archetype.source.webopen.domain.teaching.entities.SchoolCla
 import top.egon.cola.archetype.source.webopen.domain.user.entities.User;
 import top.egon.cola.archetype.source.webopen.domain.teaching.enums.SchoolClassStatus;
 import top.egon.cola.archetype.source.webopen.domain.user.enums.UserStatus;
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainErrorCode;
-import top.egon.cola.archetype.source.webopen.domain.exceptions.OrganizationDomainException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationDomainErrorCode;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationDomainException;
 
 public final class SchoolClassAggregate {
     private final SchoolClass schoolClass;

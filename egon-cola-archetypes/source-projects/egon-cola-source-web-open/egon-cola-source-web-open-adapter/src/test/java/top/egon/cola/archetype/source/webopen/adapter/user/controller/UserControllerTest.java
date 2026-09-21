@@ -1,12 +1,10 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.controller;
 
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.archetype.source.webopen.adapter.user.controller.UserController;
-import top.egon.cola.archetype.source.webopen.adapter.user.converter.UserAdapterConverter;
+import top.egon.cola.archetype.source.webopen.adapter.user.pojo.convertor.UserAdapterConverter;
 import top.egon.cola.archetype.source.webopen.application.user.manage.UserManage;
-import top.egon.cola.archetype.source.webopen.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.result.UserDetailResult;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
 import org.mockito.Mock;
@@ -14,8 +12,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
 import java.util.List;
-import java.time.Duration;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -25,11 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @ExtendWith(MockitoExtension.class)
 class UserControllerTest {
-
-    @BeforeAll
-    static void bindTheProcessWideEngine() {
-        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
-    }
 
     @Mock
     private UserManage userManage;

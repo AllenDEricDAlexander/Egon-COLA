@@ -8,54 +8,72 @@ import org.springframework.amqp.core.TopicExchange;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import top.egon.cola.archetype.source.webopen.infrastructure.mq.MqRouteEnum;
 
-@Configuration(proxyBeanMethods = false)
+/**
+ * Declares the topology straight from the closed route table, so exchange, queue and dead-letter
+ * naming has one owner instead of a per-bean copy. The declared names stay exactly on the wire.
+ */
+@Configuration("organizationRabbitConfig")
 @ConditionalOnProperty(prefix = "organization.integrations.rabbit", name = "enabled", havingValue = "true")
 public class OrganizationRabbitConfig {
-    public static final String COMMAND_EXCHANGE = "student.organization.command.v1";
-    public static final String EVENT_EXCHANGE = "student.organization.event.v1";
-    public static final String DEAD_LETTER_EXCHANGE = "student.organization.dlx.v1";
-    public static final String CREATE_USER_KEY = "organization.command.user.create.v1";
-    public static final String CREATE_SCHOOL_CLASS_KEY = "organization.command.teaching.school-class.create.v1";
 
-    @Bean public TopicExchange commandExchange() { return new TopicExchange(COMMAND_EXCHANGE, true, false); }
-    @Bean public TopicExchange eventExchange() { return new TopicExchange(EVENT_EXCHANGE, true, false); }
-    @Bean public TopicExchange deadLetterExchange() { return new TopicExchange(DEAD_LETTER_EXCHANGE, true, false); }
+    @Bean public TopicExchange commandExchange() {
+        return exchange(MqRouteEnum.COMMAND_EXCHANGE);
+    }
+
+    @Bean public TopicExchange eventExchange() {
+        return exchange(MqRouteEnum.EVENT_EXCHANGE);
+    }
+
+    @Bean public TopicExchange deadLetterExchange() {
+        return exchange(MqRouteEnum.DEAD_LETTER_EXCHANGE);
+    }
 
     @Bean public Queue createUserQueue() {
-        return QueueBuilder.durable("student.organization.user.create.v1")
-            .deadLetterExchange(DEAD_LETTER_EXCHANGE).deadLetterRoutingKey("organization.dead.user.create.v1").build();
+        return commandQueue(MqRouteEnum.USER_CREATE_COMMAND);
     }
 
     @Bean public Queue createSchoolClassQueue() {
-        return QueueBuilder.durable("student.organization.school-class.create.v1")
-            .deadLetterExchange(DEAD_LETTER_EXCHANGE)
-            .deadLetterRoutingKey("organization.dead.teaching.school-class.create.v1").build();
+        return commandQueue(MqRouteEnum.SCHOOL_CLASS_CREATE_COMMAND);
     }
 
     @Bean public Queue createUserDeadLetterQueue() {
-        return QueueBuilder.durable("student.organization.user.create.v1.dlq").build();
+        return QueueBuilder.durable(MqRouteEnum.CREATE_USER_DEAD_LETTER_QUEUE).build();
     }
 
     @Bean public Queue createSchoolClassDeadLetterQueue() {
-        return QueueBuilder.durable("student.organization.school-class.create.v1.dlq").build();
+        return QueueBuilder.durable(MqRouteEnum.CREATE_SCHOOL_CLASS_DEAD_LETTER_QUEUE).build();
     }
 
     @Bean public Binding createUserBinding() {
-        return BindingBuilder.bind(createUserQueue()).to(commandExchange()).with(CREATE_USER_KEY);
+        return BindingBuilder.bind(createUserQueue()).to(commandExchange())
+                .with(MqRouteEnum.USER_CREATE_COMMAND.getRoutingKey());
     }
 
     @Bean public Binding createSchoolClassBinding() {
-        return BindingBuilder.bind(createSchoolClassQueue()).to(commandExchange()).with(CREATE_SCHOOL_CLASS_KEY);
+        return BindingBuilder.bind(createSchoolClassQueue()).to(commandExchange())
+                .with(MqRouteEnum.SCHOOL_CLASS_CREATE_COMMAND.getRoutingKey());
     }
 
     @Bean public Binding createUserDeadLetterBinding() {
         return BindingBuilder.bind(createUserDeadLetterQueue()).to(deadLetterExchange())
-                .with("organization.dead.user.create.v1");
+                .with(MqRouteEnum.USER_CREATE_COMMAND.getDeadLetterRoutingKey());
     }
 
     @Bean public Binding createSchoolClassDeadLetterBinding() {
         return BindingBuilder.bind(createSchoolClassDeadLetterQueue()).to(deadLetterExchange())
-                .with("organization.dead.teaching.school-class.create.v1");
+                .with(MqRouteEnum.SCHOOL_CLASS_CREATE_COMMAND.getDeadLetterRoutingKey());
+    }
+
+    private static TopicExchange exchange(String name) {
+        return new TopicExchange(name, MqRouteEnum.USER_CREATE_COMMAND.isDurable(), false);
+    }
+
+    private static Queue commandQueue(MqRouteEnum route) {
+        return QueueBuilder.durable(route.getQueue())
+                .deadLetterExchange(MqRouteEnum.DEAD_LETTER_EXCHANGE)
+                .deadLetterRoutingKey(route.getDeadLetterRoutingKey())
+                .build();
     }
 }

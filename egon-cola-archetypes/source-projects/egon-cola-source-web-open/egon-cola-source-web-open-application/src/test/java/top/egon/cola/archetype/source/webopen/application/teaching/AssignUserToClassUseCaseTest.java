@@ -2,15 +2,15 @@ package top.egon.cola.archetype.source.webopen.application.teaching;
 
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.AssignUserToClassCommand;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.AssignUserToClassCommand;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.impl.SchoolClassManageImpl;
 import top.egon.cola.archetype.source.webopen.application.teaching.validators.TeachingApplicationValidator;
-import top.egon.cola.archetype.source.webopen.domain.client.CommandIdempotencyPort;
-import top.egon.cola.archetype.source.webopen.domain.client.OrganizationEventPublisher;
-import top.egon.cola.archetype.source.webopen.domain.teaching.client.SchoolClassCachePort;
+import top.egon.cola.archetype.source.webopen.domain.service.CommandIdempotencyService;
+import top.egon.cola.archetype.source.webopen.domain.service.OrganizationEventService;
 import top.egon.cola.archetype.source.webopen.domain.teaching.entities.SchoolClass;
 import top.egon.cola.archetype.source.webopen.domain.teaching.enums.SchoolClassStatus;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.convertor.SchoolClassConverter;
 import top.egon.cola.archetype.source.webopen.domain.teaching.service.SchoolClassDomainService;
 import top.egon.cola.archetype.source.webopen.domain.user.entities.User;
 import top.egon.cola.archetype.source.webopen.domain.user.enums.UserStatus;
@@ -33,9 +33,16 @@ import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.when;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 @ExtendWith(MockitoExtension.class)
 class AssignUserToClassUseCaseTest {
+    @Mock ValidationUtils validationUtils;
+
+    private TeachingApplicationValidator teachingValidator() {
+        return new TeachingApplicationValidator(validationUtils);
+    }
 
     @BeforeAll
     static void bindTheProcessWideEngine() {
@@ -44,9 +51,8 @@ class AssignUserToClassUseCaseTest {
 
     @Mock SchoolClassDomainService schoolClassDomainService;
     @Mock UserDomainService userDomainService;
-    @Mock SchoolClassCachePort schoolClassCache;
-    @Mock CommandIdempotencyPort idempotency;
-    @Mock OrganizationEventPublisher eventPublisher;
+    @Mock CommandIdempotencyService idempotency;
+    @Mock OrganizationEventService eventPublisher;
 
     @AfterEach void clearContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -63,8 +69,8 @@ class AssignUserToClassUseCaseTest {
         when(schoolClassDomainService.hasUser(1001L, new SchoolClassId(2001L), new UserId(3001L)))
                 .thenReturn(true);
         when(idempotency.claim("assign-user-to-school-class", "req-2")).thenReturn(true);
-        SchoolClassManageImpl manage = new SchoolClassManageImpl(schoolClassDomainService, userDomainService,
-                new TeachingApplicationValidator(), schoolClassCache, idempotency, eventPublisher);
+        SchoolClassManageImpl manage = new SchoolClassManageImpl(schoolClassDomainService, userDomainService, teachingValidator(),
+                idempotency, eventPublisher, Mappers.getMapper(SchoolClassConverter.class));
 
         assertThrows(OrganizationApplicationException.class, () -> manage.assignUser(
                 new AssignUserToClassCommand("req-2", 1001L, 2001L, 3001L)));

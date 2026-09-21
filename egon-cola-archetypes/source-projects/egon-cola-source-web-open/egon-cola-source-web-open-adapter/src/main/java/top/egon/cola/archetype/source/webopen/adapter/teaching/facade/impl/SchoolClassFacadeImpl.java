@@ -1,11 +1,11 @@
 package top.egon.cola.archetype.source.webopen.adapter.teaching.facade.impl;
 
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.AssignUserToClassCommand;
-import top.egon.cola.archetype.source.webopen.application.teaching.command.CreateSchoolClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.AssignUserToClassCommand;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.command.CreateSchoolClassCommand;
 import top.egon.cola.archetype.source.webopen.application.teaching.manage.SchoolClassManage;
-import top.egon.cola.archetype.source.webopen.application.teaching.query.SchoolClassDetailQuery;
-import top.egon.cola.archetype.source.webopen.application.teaching.result.SchoolClassDetailResult;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.query.SchoolClassDetailQuery;
+import top.egon.cola.archetype.source.webopen.application.teaching.pojo.result.SchoolClassDetailResult;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.AssignUserRequest;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.CreateSchoolClassRequest;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.DubboSchoolClassServiceTriple;
@@ -13,13 +13,19 @@ import top.egon.cola.archetype.source.webopen.facade.organization.v1.GetSchoolCl
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.SchoolClass;
 import top.egon.cola.archetype.source.webopen.facade.shared.v1.Empty;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+/** Dubbo Triple provider of the organization SchoolClass contract; maps Protobuf onto the use cases. */
+@Service("schoolClassFacade")
 @RequiredArgsConstructor
-@Service
+@Slf4j
 public class SchoolClassFacadeImpl extends DubboSchoolClassServiceTriple.SchoolClassServiceImplBase {
 
+    @Qualifier("schoolClassManage")
     private final SchoolClassManage schoolClassManage;
+    @Qualifier("organizationFacadeSupport")
     private final OrganizationFacadeSupport support;
 
     @Override

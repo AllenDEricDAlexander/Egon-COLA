@@ -2,8 +2,8 @@ package top.egon.cola.archetype.source.webopen.adapter.facade.impl;
 
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.webopen.application.context.OrganizationRequestContextHolder;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.archetype.source.webopen.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.webopen.common.exception.OrganizationApplicationException;
+import top.egon.cola.archetype.source.webopen.common.enums.OrganizationFailureType;
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 /** Shared request-context and stable gRPC error mapping for organization Triple providers. */
-@Component
+@Component("organizationFacadeSupport")
 @RequiredArgsConstructor
 public final class OrganizationFacadeSupport {
 
@@ -37,6 +37,14 @@ public final class OrganizationFacadeSupport {
             throw new IllegalArgumentException(field + " must be a positive Long");
         }
         return value;
+    }
+
+    public static Long positiveId(String value, String field) {
+        try {
+            return positiveId(Long.parseLong(value), field);
+        } catch (NumberFormatException failure) {
+            throw new IllegalArgumentException(field + " must be a positive long", failure);
+        }
     }
 
     public void invoke(Runnable action) {

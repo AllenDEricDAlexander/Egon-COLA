@@ -1,23 +1,29 @@
 package top.egon.cola.archetype.source.webopen.adapter.user.facade.impl;
 
 import top.egon.cola.archetype.source.webopen.adapter.facade.impl.OrganizationFacadeSupport;
-import top.egon.cola.archetype.source.webopen.application.user.command.GrantPermissionCommand;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.command.GrantPermissionCommand;
 import top.egon.cola.archetype.source.webopen.application.user.manage.PermissionManage;
-import top.egon.cola.archetype.source.webopen.application.user.query.PermissionTreeQuery;
-import top.egon.cola.archetype.source.webopen.application.user.result.PermissionTreeResult;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.query.PermissionTreeQuery;
+import top.egon.cola.archetype.source.webopen.application.user.pojo.result.PermissionTreeResult;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.DubboPermissionServiceTriple;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.GetPermissionTreeRequest;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.GrantPermissionRequest;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.PermissionTree;
 import top.egon.cola.archetype.source.webopen.facade.shared.v1.Empty;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
+/** Dubbo Triple provider of the organization Permission contract; maps Protobuf onto the use cases. */
+@Service("permissionFacade")
 @RequiredArgsConstructor
-@Service
+@Slf4j
 public class PermissionFacadeImpl extends DubboPermissionServiceTriple.PermissionServiceImplBase {
 
+    @Qualifier("permissionManage")
     private final PermissionManage permissionManage;
+    @Qualifier("organizationFacadeSupport")
     private final OrganizationFacadeSupport support;
 
     @Override
