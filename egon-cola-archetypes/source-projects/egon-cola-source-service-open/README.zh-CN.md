@@ -5,11 +5,13 @@
 `egon-cola-source-service-open` 是基于开源 Spring Boot 3.5、Spring Cloud Alibaba、Dubbo Triple、MyBatis-Plus 和 ShardingSphere 的纯 Service Open 示例，覆盖 Course、Schedule、Exam、Paper、Score 流程。业务流量通过 Dubbo Triple 或 RabbitMQ 进入；HTTP 只保留 Spring Boot Actuator 管理端点。
 
 
+Evaluation 契约由本工程自己的 `-facade` 模块发布，Organization 契约则是独立发布的对端工件，生成的 POM 通过 generation 时显式提供的 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 和 `organization-facade.package` 属性解析它。生成消费方之前必须先发布对端的 `parent`、`common` 与 `facade`，且两个 facade 互不依赖，Maven 图因此保持无环。
+
 生成的 Maven reactor 包含一个父 POM 和七个模块：
 
 ```text
 egon-cola-source-service-open-common        本地错误/常量/枚举
-egon-cola-source-service-open-facade        本地 Proto wire contract 与 Triple codegen
+egon-cola-source-service-open-facade        本工程自有 Evaluation Proto wire contract 与 Triple codegen
 egon-cola-source-service-open-domain         聚合、值对象、端口
 egon-cola-source-service-open-application    用例编排
 egon-cola-source-service-open-infrastructure MyBatis-Plus、分片、MQ、RPC client
@@ -17,12 +19,12 @@ egon-cola-source-service-open-adapter        Proto RPC provider、转换器、MQ
 egon-cola-source-service-open-starter         Boot 组装、profile、运行治理
 ```
 
-业务代码保持领域优先：`domain/<业务域>`、`application/<业务域>`、`infrastructure/<业务域>`、`adapter/<业务域>`。依赖方向为：`facade` 只放契约；`domain -> common`；`application -> domain`；`adapter -> application/facade`；`infrastructure -> domain/facade`；`starter` 是组合根。
+业务代码保持领域优先：`domain/<业务域>`、`application/<业务域>`、`infrastructure/<业务域>`、`adapter/<业务域>`。依赖方向为：`facade` 只放契约；`domain -> common`；`application -> domain`；`adapter -> application/facade`；`infrastructure -> domain + 自有 facade + 对端 facade`；`starter` 是组合根。
 
 
-`facade/src/main/proto` 是唯一 RPC wire source。五个业务 Proto 文件在 `egon.evaluation.v1` 和 `egon.organization.v1` 下定义 8 个 service、21 个 unary 方法；Dubbo Maven plugin `3.3.6` 使用 `tri` 生成代码。ID 统一为正 `int64`，时间使用 `Timestamp`，无返回值使用 `google.protobuf.Empty`，分页固定包含 `records/current_page/total_pages/page_size/total_count`。目录中额外提供 wire-compatible 的 `google/protobuf/empty.proto`，仅用于 Dubbo 3.3.6 codegen。
+`facade/src/main/proto` 是本工程唯一拥有的 RPC wire source。三个业务 Proto 文件在 `egon.evaluation.v1` 下定义 3 个 service、11 个 unary 方法；Dubbo Maven plugin `3.3.6` 使用 `tri` 生成代码。Organization 协议不在此复制：`infrastructure` 依赖对端 Web Open facade 工件，因此同一份 `egon.organization.v1` wire 契约只保留一个 Java 归属。ID 统一为正 `int64`，时间使用 `Timestamp`，无返回值使用 `google.protobuf.Empty`，分页固定包含 `records/current_page/total_pages/page_size/total_count`。目录中额外提供 wire-compatible 的 `google/protobuf/empty.proto`，仅用于 Dubbo 3.3.6 codegen。
 
-Evaluation 的 11 个方法在同一个 Triple 端口按 `course`、`exam`、`score` group 暴露，版本为 `1.0.0`。Organization 目录调用使用相同本地 Proto 契约。测试通过标准 gRPC `ManagedChannel` 验证 unary interop；模板不启动第二个 grpc-java server。
+Evaluation 的 11 个方法在同一个 Triple 端口按 `course`、`exam`、`score` group 暴露，版本为 `1.0.0`。Organization 目录调用保持完全相同的 wire 名称，其 stub 来自对端 facade 工件。测试通过标准 gRPC `ManagedChannel` 验证 unary interop；模板不启动第二个 grpc-java server。
 
 
 所有技术 ID 都由 Common 的 `LongIdGenerator` 生成，PostgreSQL 中使用 `BIGINT`；Domain、Application、PO、DAO、事件和分片键内部统一使用正 `Long`。每个运行实例必须设置唯一的 `EGON_ID_MACHINE_ID`，没有运行时默认值。本 archetype 不包含 UUID 生成器或 UUID 分片算法。

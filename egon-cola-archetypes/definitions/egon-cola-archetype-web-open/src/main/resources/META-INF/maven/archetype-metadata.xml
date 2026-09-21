@@ -8,6 +8,12 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
+        <!-- The peer contract coordinate is explicit: generation must fail until the
+             sibling project's published facade artifact is named. -->
+        <requiredProperty key="evaluationFacadeGroupId"/>
+        <requiredProperty key="evaluationFacadeArtifactId"/>
+        <requiredProperty key="evaluationFacadeVersion"/>
+        <requiredProperty key="evaluationFacadePackage"/>
     </requiredProperties>
 
     <fileSets>

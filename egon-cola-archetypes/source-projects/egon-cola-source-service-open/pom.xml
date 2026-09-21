@@ -28,6 +28,11 @@
         <mapstruct-plus.version>1.5.1</mapstruct-plus.version>
         <exec.maven.plugin.version>3.5.0</exec.maven.plugin.version>
         <archunit.version>1.4.2</archunit.version>
+        <!-- The organization protocol is published by the peer Web Open facade artifact. -->
+        <organization-facade.group-id>top.egon.internal.archetype.source</organization-facade.group-id>
+        <organization-facade.artifact-id>egon-cola-source-web-open-facade</organization-facade.artifact-id>
+        <organization-facade.version>0.1.0-SNAPSHOT</organization-facade.version>
+        <organization-facade.package>top.egon.cola.archetype.source.webopen.facade</organization-facade.package>
         <!-- Shared defaults for Maven run and the external Java argument file. -->
         <run.profile>dev</run.profile>
         <run.jvm-args>-Xms256m -Xmx512m</run.jvm-args>
@@ -51,6 +56,11 @@
                 <groupId>top.egon.internal.archetype.source</groupId>
                 <artifactId>egon-cola-source-service-open-facade</artifactId>
                 <version>0.1.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>${organization-facade.group-id}</groupId>
+                <artifactId>${organization-facade.artifact-id}</artifactId>
+                <version>${organization-facade.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.github.linpeilie</groupId>

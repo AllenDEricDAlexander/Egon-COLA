@@ -22,7 +22,7 @@ Gateway 是部署平台的外部组件，生成物不包含 Gateway module、Gat
 ${rootArtifactId}-common          # 工程通用依赖入口
 ${rootArtifactId}-domain          # 实体、值对象、领域端口与规则
 ${rootArtifactId}-application     # 用例编排与事务边界
-${rootArtifactId}-facade          # 本地 Proto、Dubbo Triple 生成契约
+${rootArtifactId}-facade          # 自有 Organization Proto 与 Dubbo Triple 生成契约
 ${rootArtifactId}-infrastructure  # MP Mapper、ShardingSphere、Redis/MQ/gRPC adapter
 ${rootArtifactId}-adapter          # MVC、GraphQL、入站 MQ、Triple Provider
 ${rootArtifactId}-starter          # Spring Boot 组装、配置、Async/DTP/OpenAPI
@@ -34,8 +34,8 @@ ${rootArtifactId}-starter          # Spring Boot 组装、配置、Async/DTP/Ope
 facade -> (protobuf / Dubbo / gRPC only)
 domain -> common
 application -> domain
-infrastructure -> domain + facade
-adapter -> application + facade
+infrastructure -> domain + 自有 facade + 对端已发布 facade 工件
+adapter -> application + 自有 facade
 starter -> adapter + infrastructure
 ```
 
@@ -45,16 +45,26 @@ ShardingSphere 或任何 Web 框架。Infrastructure 不反向依赖 Adapter；S
 
 ## 4. Proto 与 RPC
 
-`facade/src/main/proto` 是唯一 wire contract，包含：
+`facade/src/main/proto` 只保留本工程拥有的 wire contract，包含：
 
 ```text
 organization/v1/user.proto
 organization/v1/teaching.proto
-evaluation/v1/course.proto
-evaluation/v1/exam.proto
-evaluation/v1/score.proto
 google/protobuf/empty.proto
 ```
+
+`egon.evaluation.v1` 的三个 service、11 个方法不再复制到此，由对端 Service Open 工程的
+facade 工件独立发布；`infrastructure` 的 `GrpcEvaluationQueryClient` 通过生成 POM 的显式属性
+解析该工件：
+
+```text
+本工程自有契约：模块 <rootArtifactId>-facade
+对端契约依赖：<evaluation-facade.group-id>:<evaluation-facade.artifact-id>:<evaluation-facade.version>
+```
+
+`evaluation-facade.*` 是 Web Open 模板的必填生成参数；缺失时生成必须立即失败，而不是回退到
+某个默认对端。两个 `facade` 工件互不依赖，wire 侧 package、service、method 与 field 完全不变，
+只有 Java 与 Maven 归属发生变化。
 
 Dubbo 3.3.6 Triple codegen 生成组织服务。十个组织操作由 Adapter Provider 实现，
 统一以 group `student-management-organization`、version `1.0.0` 导出，dev/prod
@@ -109,8 +119,8 @@ bash ./mvnw -B -ntp clean verify
 
 Archetype integration-test 会生成真实七模块 Project，执行模块测试、Proto contract、
 Triple Provider 配置、in-process gRPC、OpenAPI、DTP context 和 ArchUnit。静态扫描
-拒绝 Gateway、JPA、Flyway/Liquibase、UUID 生成器、外部 facade artifact 和第二个
-executor。
+拒绝 Gateway、JPA、Flyway/Liquibase、UUID 生成器、复制的对端 facade 协议和第二个
+executor；唯一允许的外部契约是对端独立发布的 Evaluation facade 工件。
 
 这些测试证明的是生成物源码、依赖图和本地/H2/in-process 行为；它们不等价于真实
 Nacos、Redis、PostgreSQL、RabbitMQ、跨 JVM Triple/gRPC 或生产 Gateway 拓扑证明。

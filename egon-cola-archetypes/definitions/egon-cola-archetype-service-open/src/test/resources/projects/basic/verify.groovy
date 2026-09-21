@@ -45,7 +45,27 @@ assert rootPom.modules.module*.text() == moduleNames
 assert rootPom.properties.'java.version'.text() == "21"
 assert !rootPom.properties.'mybatis-plus.version'.text()
 assert rootPom.properties.'archunit.version'.text() == "1.4.2"
+assert rootPom.properties.'organization-facade.group-id'.text() == "top.egon.internal.archetype.source"
+assert rootPom.properties.'organization-facade.artifact-id'.text() == "egon-cola-source-web-open-facade"
+assert rootPom.properties.'organization-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'organization-facade.package'.text() == "top.egon.cola.archetype.source.webopen.facade"
 moduleNames.each { name -> file("${name}/pom.xml") }
+
+def peerFacadeDependencies = { module ->
+    def pom = new XmlSlurper(false, false)
+            .parse(file("student-management-evaluation-${module}/pom.xml"))
+    pom.dependencies.dependency.findAll {
+        it.artifactId.text() == '${organization-facade.artifact-id}'
+    }.collect { [groupId: it.groupId.text(), artifactId: it.artifactId.text()] }
+}
+assert peerFacadeDependencies("infrastructure") == [[
+        groupId: '${organization-facade.group-id}',
+        artifactId: '${organization-facade.artifact-id}'
+]]
+moduleNames.collect { it - "student-management-evaluation-" }.findAll { it != "infrastructure" }.each { module ->
+    assert peerFacadeDependencies(module).isEmpty():
+            "Only infrastructure may consume the peer Facade artifact: ${module}"
+}
 
 def runtimeFiles = filesUnder(".") { candidate ->
     def path = candidate.path.replace('\\', '/')
@@ -91,10 +111,11 @@ assert protoFiles.sort() == [
         "evaluation/v1/course.proto",
         "evaluation/v1/exam.proto",
         "evaluation/v1/score.proto",
-        "google/protobuf/empty.proto",
-        "organization/v1/teaching.proto",
-        "organization/v1/user.proto"
+        "google/protobuf/empty.proto"
 ]
+missing("student-management-evaluation-facade/src/main/proto/organization")
+assert file("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/DubboOrganizationDirectoryClient.java")
+        .text.contains("top.egon.cola.archetype.source.webopen.facade.organization.v1.UserService")
 [
         "student-management-evaluation-facade/src/test/java/it/pkg/facade/contract/ProtoDescriptorContractTest.java",
         "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/course/facade/impl/CourseFacadeImpl.java",
@@ -164,6 +185,7 @@ def reports = filesUnder(".") { candidate ->
 }
 [
         "ProtoDescriptorContractTest",
+        "OpenPeerFacadeContractTest",
         "EvaluationDubboTripleIntegrationTest",
         "EvaluationServiceApplicationTest",
         "EvaluationExternalFreeContextTest",
@@ -238,6 +260,11 @@ javaFiles.each { candidate ->
 assert file("README.md").text.contains("MyBatis-Plus")
 assert file("README.md").text.contains("Proto")
 assert file("README.md").text.contains("Springdoc")
+["organization-facade.group-id", "organization-facade.artifact-id",
+ "organization-facade.version", "organization-facade.package"].each { token ->
+    assert file("README.md").text.contains(token):
+            "The README must document the peer Facade property ${token}"
+}
 
 def sourceBoundaryFiles = []
 projectDir.eachFileRecurse { candidate ->
@@ -250,13 +277,22 @@ assert sourceBoundaryFiles.every { candidate ->
     def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
     !relativePath.contains('.generated')
 }
+// The IT supplies the peer project's real coordinates, so the root POM's explicit
+// `organization-facade.*` property lines carry them by design instead of leaking a template sentinel.
+def boundaryText = { candidate ->
+    def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    def text = candidate.getText('UTF-8')
+    relativePath == 'pom.xml'
+            ? text.readLines().findAll { !it.contains('organization-facade.') }.join('\n')
+            : text
+}
 [
     'top.egon.internal.archetype.source',
     'egon-cola-source-service-open',
     '0.1.0-SNAPSHOT'
 ].each { forbiddenToken ->
     sourceBoundaryFiles.each { candidate ->
-        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+        assert !boundaryText(candidate).contains(forbiddenToken):
                 "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
     }
 }

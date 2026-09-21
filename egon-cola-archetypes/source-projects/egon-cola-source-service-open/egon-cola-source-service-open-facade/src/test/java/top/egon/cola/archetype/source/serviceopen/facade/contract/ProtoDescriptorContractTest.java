@@ -6,9 +6,6 @@ import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.CourseSch
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Exam;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.ExamPaper;
 import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Score;
-import top.egon.cola.archetype.source.serviceopen.facade.organization.v1.Grade;
-import top.egon.cola.archetype.source.serviceopen.facade.organization.v1.SchoolClass;
-import top.egon.cola.archetype.source.serviceopen.facade.organization.v1.User;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -21,7 +18,6 @@ class ProtoDescriptorContractTest {
     @Test
     void shouldExposeTheExactV1ServiceInventory() {
         assertEquals("egon.evaluation.v1", Course.getDescriptor().getFile().getPackage());
-        assertEquals("egon.organization.v1", User.getDescriptor().getFile().getPackage());
 
         assertServices(Course.getDescriptor().getFile(), Map.of(
                 "CourseService", List.of("CreateCourse", "ScheduleCourse", "GetCourse", "PageCourses")));
@@ -29,25 +25,15 @@ class ProtoDescriptorContractTest {
                 "ExamService", List.of("CreateExam", "AttachPaper", "PublishExam", "GetExam")));
         assertServices(Score.getDescriptor().getFile(), Map.of(
                 "ScoreService", List.of("RecordScore", "GetScore", "PageScores")));
-        assertServices(User.getDescriptor().getFile(), Map.of(
-                "UserService", List.of("CreateUser", "GetUser"),
-                "RoleService", List.of("AssignRole"),
-                "PermissionService", List.of("GrantPermission", "GetPermissionTree")));
-        assertServices(Grade.getDescriptor().getFile(), Map.of(
-                "GradeService", List.of("CreateGrade", "GetGrade"),
-                "SchoolClassService", List.of("CreateSchoolClass", "GetSchoolClass", "AssignUser")));
     }
 
     @Test
-    void shouldKeepLongIdsTimesEmptyAndStablePageFields() {
+    void shouldKeepLongIdsTimesAndStablePageFields() {
         assertLongFields(Course.getDescriptor(), "id");
         assertLongFields(CourseSchedule.getDescriptor(), "id", "course_id", "class_id");
         assertLongFields(Exam.getDescriptor(), "id", "course_id");
         assertLongFields(ExamPaper.getDescriptor(), "id", "exam_id");
         assertLongFields(Score.getDescriptor(), "id", "exam_id", "course_id", "student_id");
-        assertLongFields(User.getDescriptor(), "id");
-        assertLongFields(Grade.getDescriptor(), "id");
-        assertLongFields(SchoolClass.getDescriptor(), "id");
 
         assertMessageField(CourseSchedule.getDescriptor(), "starts_at", "google.protobuf.Timestamp");
         assertMessageField(CourseSchedule.getDescriptor(), "ends_at", "google.protobuf.Timestamp");
@@ -64,9 +50,6 @@ class ProtoDescriptorContractTest {
         assertEquals("egon.evaluation.v1.Course",
                 Course.getDescriptor().getFile().findServiceByName("CourseService")
                         .findMethodByName("CreateCourse").getOutputType().getFullName());
-        assertEquals("google.protobuf.Empty",
-                User.getDescriptor().getFile().findServiceByName("RoleService")
-                        .findMethodByName("AssignRole").getOutputType().getFullName());
     }
 
     private static void assertServices(

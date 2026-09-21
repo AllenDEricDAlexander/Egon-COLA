@@ -15,9 +15,14 @@ egon-cola-source-web-open-adapter
 egon-cola-source-web-open-starter
 ```
 
-`facade` 保存本地 Proto 源码和 Dubbo Triple 生成类；Adapter 实现十个组织 Provider
-方法；Infrastructure 负责 MyBatis-Plus、ShardingSphere、Redis/MQ adapter 和
-标准 gRPC Evaluation client。
+`facade` 保存本工程自有的 Organization Proto 源码及其 Dubbo Triple 生成类；Adapter
+实现十个组织 Provider 方法；Infrastructure 负责 MyBatis-Plus、ShardingSphere、Redis/MQ
+adapter，以及消费对端 Service Open facade 工件的标准 gRPC Evaluation client。
+
+Organization 契约由本工程自身的 `-facade` 模块发布；被消费的 Evaluation 契约始终是外部
+发布的工件，生成的 POM 通过 generation 时显式给出的对端 facade 坐标属性解析它。生成消费方
+之前必须先发布对端的 `parent`、`common` 与 `facade`，且两个 facade 互不依赖，Maven 图因此
+保持无环。
 
 
 技术矩阵为 Spring Boot 3.5.16、Spring Cloud 2025.0.3、Spring Cloud Alibaba
@@ -25,9 +30,9 @@ egon-cola-source-web-open-starter
 MyBatis-Plus 3.5.16、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 Egon
 组件只有 Common core/ID 与 Dynamic Thread Pool starter。
 
-项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter、UUID 业务主键，
-也不依赖外部 organization/evaluation facade artifact。`OpenArchitectureTest` 和
-生成物 verifier 会重复检查这些边界。
+项目明确不使用 Spring Data JPA、Flyway、Liquibase、Gateway starter 和 UUID 业务主键，
+也不再复制对端协议：唯一的外部契约是由 Service Open 工程发布的 Evaluation facade 工件。
+`OpenArchitectureTest`、`OpenPeerFacadeContractTest` 和生成物 verifier 会重复检查这些边界。
 
 
 业务 ID 统一为 `Long`，由 Common Snowflake `LongIdGenerator` 生成。每个运行实例必须
@@ -40,14 +45,12 @@ MyBatis-Plus 3.5.16、ShardingSphere 5.5.3、Springdoc 2.8.17。直接使用的 
 旧手工 SQL 为只读档案；当前初始化与运行合同见下方 Repository/PostgreSQL 章节。
 
 
-以下六个文件是唯一 wire contract，并会复制到生成项目：
+以下三个文件是本工程唯一拥有的 wire contract，并会复制到生成项目；Evaluation 协议位于
+对端 facade 工件中：
 
 ```text
 facade/src/main/proto/organization/v1/user.proto
 facade/src/main/proto/organization/v1/teaching.proto
-facade/src/main/proto/evaluation/v1/course.proto
-facade/src/main/proto/evaluation/v1/exam.proto
-facade/src/main/proto/evaluation/v1/score.proto
 facade/src/main/proto/google/protobuf/empty.proto
 ```
 

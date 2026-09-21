@@ -45,7 +45,27 @@ assert !rootPomText.contains("spring-boot-starter-data-jpa")
 assert !rootPomText.contains("mybatis-plus.version")
 assert !rootPomText.contains("mybatis-plus-spring-boot3-starter")
 assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
+assert rootPom.properties.'evaluation-facade.group-id'.text() == "top.egon.internal.archetype.source"
+assert rootPom.properties.'evaluation-facade.artifact-id'.text() == "egon-cola-source-service-open-facade"
+assert rootPom.properties.'evaluation-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'evaluation-facade.package'.text() == "top.egon.cola.archetype.source.serviceopen.facade"
 moduleNames.each { file("${it}/pom.xml") }
+
+def peerFacadeDependencies = { module ->
+    def pom = new XmlSlurper(false, false)
+            .parse(file("${prefix}-${module}/pom.xml"))
+    pom.dependencies.dependency.findAll {
+        it.artifactId.text() == '${evaluation-facade.artifact-id}'
+    }.collect { [groupId: it.groupId.text(), artifactId: it.artifactId.text()] }
+}
+assert peerFacadeDependencies("infrastructure") == [[
+        groupId: '${evaluation-facade.group-id}',
+        artifactId: '${evaluation-facade.artifact-id}'
+]]
+modules.findAll { it != "infrastructure" }.each { module ->
+    assert peerFacadeDependencies(module).isEmpty():
+            "Only infrastructure may consume the peer Facade artifact: ${module}"
+}
 
 def javaModules = modules.findAll { it != "facade" }
 javaModules.each { module ->
@@ -54,6 +74,21 @@ javaModules.each { module ->
     }
 }
 directory("${prefix}-facade/src/main/proto")
+def protoRoot = new File(projectDir, "${prefix}-facade/src/main/proto")
+def protoFiles = []
+protoRoot.eachFileRecurse { candidate ->
+    if (candidate.isFile() && candidate.name.endsWith('.proto')) {
+        protoFiles << candidate.path.substring(protoRoot.path.length() + 1).replace('\\', '/')
+    }
+}
+assert protoFiles.sort() == [
+        "google/protobuf/empty.proto",
+        "organization/v1/teaching.proto",
+        "organization/v1/user.proto"
+]
+missing("${prefix}-facade/src/main/proto/evaluation")
+assert file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/GrpcEvaluationQueryClient.java")
+        .text.contains("top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Course")
 directory("${prefix}-facade/src/test/java")
 directory("${prefix}-facade/src/test/resources")
 missing("${prefix}-client")
@@ -233,12 +268,16 @@ assert readme.contains("db/egon-mp")
 assert !readme.contains("spring-boot-starter-data-jpa")
 assert !readme.contains("UUIDv7")
 assert file("README.zh-CN.md").text.contains("MyBatis-Plus")
+["evaluation-facade.group-id", "evaluation-facade.artifact-id",
+ "evaluation-facade.version", "evaluation-facade.package"].each { token ->
+    assert readme.contains(token): "The README must document the peer Facade property ${token}"
+}
 
 def reports = []
 projectDir.traverse(type: FileType.FILES) { candidate ->
     if (candidate.path.replace('\\', '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) reports << candidate
 }
-["ProtoContractTest", "GrpcEvaluationQueryClientTest", "OrganizationDubboProviderConfigurationTest",
+["ProtoContractTest", "OpenPeerFacadeContractTest", "GrpcEvaluationQueryClientTest", "OrganizationDubboProviderConfigurationTest",
  "OrganizationApplicationTest", "OrganizationExternalFreeContextTest", "OpenApiContractTest",
  "OpenArchitectureTest", "WebOpenPersistenceArchitectureTest"].each { testName ->
     def report = reports.find { it.name.contains(testName) }
@@ -303,13 +342,22 @@ assert sourceBoundaryFiles.every { candidate ->
     def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
     !candidatePath.contains('.generated')
 }
+// The IT supplies the peer project's real coordinates, so the root POM's explicit
+// `evaluation-facade.*` property lines carry them by design instead of leaking a template sentinel.
+def boundaryText = { candidate ->
+    def relativePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    def text = candidate.getText('UTF-8')
+    relativePath == 'pom.xml'
+            ? text.readLines().findAll { !it.contains('evaluation-facade.') }.join('\n')
+            : text
+}
 [
     'top.egon.internal.archetype.source',
     'egon-cola-source-web-open',
     '0.1.0-SNAPSHOT'
 ].each { forbiddenToken ->
     sourceBoundaryFiles.each { candidate ->
-        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+        assert !boundaryText(candidate).contains(forbiddenToken):
                 "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
     }
 }

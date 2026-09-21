@@ -37,6 +37,11 @@
             <groupId>top.egon.internal.archetype.source</groupId>
             <artifactId>egon-cola-source-service-open-facade</artifactId>
         </dependency>
+        <!-- The published peer contract is consumed here and only here. -->
+        <dependency>
+            <groupId>${organization-facade.group-id}</groupId>
+            <artifactId>${organization-facade.artifact-id}</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.apache.dubbo</groupId>
             <artifactId>dubbo-spring-boot-starter</artifactId>

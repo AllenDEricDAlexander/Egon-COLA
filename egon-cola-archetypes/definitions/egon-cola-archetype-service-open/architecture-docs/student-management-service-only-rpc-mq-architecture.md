@@ -13,10 +13,21 @@ application     用例编排
 domain          领域模型与端口
 infrastructure  持久化、消息和出站 RPC client
 common          本地通用错误/常量/枚举
-facade          本地 Proto wire contract（仅契约，不依赖业务模块）
+facade          本工程自有 Evaluation Proto wire contract（仅契约，不依赖业务模块）
 ```
 
 `student-management-organization` 与 `student-management-evaluation` 仍是两个可独立构建、部署的 Project。Evaluation Project 的 Organization 目录依赖是出站 Dubbo Proto client；当前 Course、Exam、Score 用例不隐式调用该目录端口。
+
+RPC 对外契约由每个生成工程自己的 `facade` 模块持有并对外发布；跨工程调用只依赖
+对端已发布的契约工件，该工件通过生成 POM 的显式属性解析：
+
+```text
+本工程自有契约：模块 <rootArtifactId>-facade
+对端契约依赖：<organization-facade.group-id>:<organization-facade.artifact-id>:<organization-facade.version>
+```
+
+`organization-facade.*` 是 Service Open 模板的必填生成参数；缺失时生成必须立即失败，
+而不是回退到某个默认对端。两个 `facade` 工件互不依赖，只有 `infrastructure` 引用对端契约。
 
 ## 2. Maven 模块与依赖方向
 
@@ -40,29 +51,31 @@ facade                         （不依赖业务模块）
 adapter -> application -> domain -> common
     ↑             ↑
 starter       infrastructure
-                   └── domain + facade（出站 Organization Proto client）
+                   └── domain + 自有 facade + 对端 facade 工件（出站 Organization Proto client）
 ```
 
-- `facade` 只包含过滤后的 `.proto`、Dubbo 3.3 `tri` 生成代码和 descriptor contract test，不反向依赖 Domain/Application。
+- `facade` 只包含本工程拥有的过滤后 `.proto`、Dubbo 3.3 `tri` 生成代码和 descriptor contract test，不反向依赖 Domain/Application，也不复制对端协议。
 - `domain` 只声明聚合、值对象、Common MyBatis-Plus service contract、事件端口和 `OrganizationDirectoryPort`，不导入 Spring、Dubbo、gRPC 或 ShardingSphere。
 - `application` 只编排 Domain service contract 和用例，不接触 DAO、PO、Proto 或外部 RPC。
 - `adapter` 实现 Evaluation 的 11 个 Proto RPC 方法，负责校验、转换和统一 gRPC status/trailer。
 - `infrastructure` 实现 Common MyBatis-Plus DAO/PO、Egon service impl、ShardingSphere 数据源、MQ publisher 与 Organization Proto client。
 - `starter` 只负责 Boot、Nacos、Dubbo、DTP、配置和模块扫描。
 
-## 3. 本地 Proto/Triple 契约
+## 3. 自有 Proto/Triple 契约与对端契约
 
-`facade/src/main/proto` 是唯一的线协议来源。业务 Proto 使用 `egon.evaluation.v1` 和 `egon.organization.v1`，Java package 由 `${package}` 过滤；Dubbo Maven plugin 3.3.6 使用 `dubboGenerateType=tri` 生成 unary Triple service。`google/protobuf/empty.proto` 是为 Dubbo 3.3.6 codegen 提供的 wire-compatible support source，仍声明 `google.protobuf.Empty`，不创建第二个服务器。
+`facade/src/main/proto` 只保留本工程拥有的线协议来源。业务 Proto 使用 `egon.evaluation.v1`，Java package 由 `${package}` 过滤；Dubbo Maven plugin 3.3.6 使用 `dubboGenerateType=tri` 生成 unary Triple service。`google/protobuf/empty.proto` 是为 Dubbo 3.3.6 codegen 提供的 wire-compatible support source，仍声明 `google.protobuf.Empty`，不创建第二个服务器。
 
-五个业务 Proto source 定义 8 个 service、21 个方法：
+三个业务 Proto source 定义 3 个 service、11 个方法：
 
 | Proto | Service | 方法数 |
 | --- | --- | ---: |
 | `evaluation/v1/course.proto` | `CourseService` | 4 |
 | `evaluation/v1/exam.proto` | `ExamService` | 4 |
 | `evaluation/v1/score.proto` | `ScoreService` | 3 |
-| `organization/v1/user.proto` | `UserService`、`RoleService`、`PermissionService` | 5 |
-| `organization/v1/teaching.proto` | `GradeService`、`SchoolClassService` | 5 |
+
+`egon.organization.v1` 的 5 个 service、10 个方法不再出现在本工程，而是由对端 Web Open 工程的
+facade 工件独立发布。`infrastructure` 通过 `${organizationFacadePackage}` 引用的 Java 归属消费它，
+wire 侧的 package、service、method 与 field 完全保持原状，只有 Java 与 Maven 归属发生变化。
 
 技术 ID、外键和关系 ID 在 Proto 中统一为正 `int64`；时间使用 `google.protobuf.Timestamp`；无返回值使用 `google.protobuf.Empty`；分页固定包含 `records/current_page/total_pages/page_size/total_count`。对端收到非法、找不到、业务拒绝、依赖不可用或内部错误时，Provider 返回 canonical `StatusRuntimeException`，并写入 `x-egon-error-code` 与 `x-egon-trace-id` trailer。
 
@@ -82,7 +95,7 @@ Organization client 使用本地生成的 `UserService` 和 `SchoolClassService`
 - `AsyncConfiguration` 将 Boot `ThreadPoolTaskExecutor` 交给 `DtpTaskDecorator`，保留 MDC/trace 传递与清理；DTP 自动发现同一 executor，不创建第二个 raw pool、Admin 或 Test 服务。
 - `dev`/`prod` 开启 `egon.cola.component.dtp` Redis registry/report，使用 `DTP_REDIS_*`、`DTP_APP_NAME`、`DTP_INSTANCE_ID`；`test` 关闭 DTP report、Nacos discovery/config、RabbitMQ 和 Redis health。
 - Compose 的 Nacos image 统一为 `nacos/nacos-server:v3.0.3`，应用容器显式传入 `EGON_ID_MACHINE_ID` 和 DTP Redis/report 环境变量；密码只来自 operator-owned `.env`。
-- Dubbo 使用 `tri` protocol，默认 provider port `50051`，provider/consumer timeout `3000ms`，retries `0`。组织目录引用保留 group/version 配置，但不再依赖 `top.egon` facade artifact。
+- Dubbo 使用 `tri` protocol，默认 provider port `50051`，provider/consumer timeout `3000ms`，retries `0`。组织目录引用保留 group/version 配置，并只依赖对端独立发布的 facade 工件。
 
 ## 7. 测试与证据边界
 
@@ -93,7 +106,7 @@ Organization client 使用本地生成的 `UserService` 和 `SchoolClassService`
   -pl :egon-cola-archetype-service-open -am clean integration-test
 ```
 
-生成工程测试覆盖 Proto descriptor（8 services/21 methods）、Domain/Application、Common MyBatis-Plus DAO/service、typed ShardingSphere 路由合同、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client/stub、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
+生成工程测试覆盖自有 Proto descriptor（3 services/11 methods）、对端契约归属（`OpenPeerFacadeContractTest`）、Domain/Application、Common MyBatis-Plus DAO/service、typed ShardingSphere 路由合同、manual SQL convention、11 个 Triple provider 方法、标准 gRPC unary interop、Organization client/stub、DTP executor/context 和 ArchUnit。ArchUnit 规则取代内部 bytecode Maven plugin，并检查 facade/domain 方向、service-only 边界以及 JPA/Flyway/Gateway/Springdoc 禁止依赖。
 
 测试与 `verify` 只证明源码、生成工程和本地 H2/内存 Triple 测试；不证明真实 PostgreSQL schema、Redis DTP registry、Nacos topology、RabbitMQ、跨 Project provider、部署网络或生产权限。启动应用、手动验收 PG DDL、Compose、发布镜像和 live topology 验证由使用者按环境单独执行。
 

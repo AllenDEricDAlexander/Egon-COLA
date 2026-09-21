@@ -1,11 +1,6 @@
 package top.egon.cola.archetype.source.webopen.facade;
 
 import com.google.protobuf.Descriptors;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.Course;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.CourseSchedule;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.Exam;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.ExamPaper;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.Score;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.Grade;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.SchoolClass;
 import top.egon.cola.archetype.source.webopen.facade.organization.v1.User;
@@ -20,15 +15,8 @@ class ProtoContractTest {
 
     @Test
     void shouldExposeTheExactV1ServiceInventory() {
-        assertEquals("egon.evaluation.v1", Course.getDescriptor().getFile().getPackage());
         assertEquals("egon.organization.v1", User.getDescriptor().getFile().getPackage());
 
-        assertServices(Course.getDescriptor().getFile(), Map.of(
-                "CourseService", List.of("CreateCourse", "ScheduleCourse", "GetCourse", "PageCourses")));
-        assertServices(Exam.getDescriptor().getFile(), Map.of(
-                "ExamService", List.of("CreateExam", "AttachPaper", "PublishExam", "GetExam")));
-        assertServices(Score.getDescriptor().getFile(), Map.of(
-                "ScoreService", List.of("RecordScore", "GetScore", "PageScores")));
         assertServices(User.getDescriptor().getFile(), Map.of(
                 "UserService", List.of("CreateUser", "GetUser"),
                 "RoleService", List.of("AssignRole"),
@@ -39,31 +27,14 @@ class ProtoContractTest {
     }
 
     @Test
-    void shouldKeepLongIdsTimesEmptyAndStablePageFields() {
-        assertLongFields(Course.getDescriptor(), "id");
-        assertLongFields(CourseSchedule.getDescriptor(), "id", "course_id", "class_id");
-        assertLongFields(Exam.getDescriptor(), "id", "course_id");
-        assertLongFields(ExamPaper.getDescriptor(), "id", "exam_id");
-        assertLongFields(Score.getDescriptor(), "id", "exam_id", "course_id", "student_id");
+    void shouldKeepLongIdsAndEmptyResults() {
         assertLongFields(User.getDescriptor(), "id");
         assertLongFields(Grade.getDescriptor(), "id");
         assertLongFields(SchoolClass.getDescriptor(), "id");
 
-        assertMessageField(CourseSchedule.getDescriptor(), "starts_at", "google.protobuf.Timestamp");
-        assertMessageField(CourseSchedule.getDescriptor(), "ends_at", "google.protobuf.Timestamp");
-        assertMessageField(Exam.getDescriptor(), "starts_at", "google.protobuf.Timestamp");
-        assertMessageField(Exam.getDescriptor(), "ends_at", "google.protobuf.Timestamp");
-
-        assertEquals(1, field(Course.getDescriptor(), "id").getNumber());
-        assertEquals(5, field(Course.getDescriptor(), "status").getNumber());
-        assertEquals(1, field(top.egon.cola.archetype.source.webopen.facade.evaluation.v1.PageCourseResponse.getDescriptor(), "records").getNumber());
-        assertEquals(2, field(top.egon.cola.archetype.source.webopen.facade.evaluation.v1.PageCourseResponse.getDescriptor(), "current_page").getNumber());
-        assertEquals(3, field(top.egon.cola.archetype.source.webopen.facade.evaluation.v1.PageCourseResponse.getDescriptor(), "total_pages").getNumber());
-        assertEquals(4, field(top.egon.cola.archetype.source.webopen.facade.evaluation.v1.PageCourseResponse.getDescriptor(), "page_size").getNumber());
-        assertEquals(5, field(top.egon.cola.archetype.source.webopen.facade.evaluation.v1.PageCourseResponse.getDescriptor(), "total_count").getNumber());
-        assertEquals("egon.evaluation.v1.Course",
-                Course.getDescriptor().getFile().findServiceByName("CourseService")
-                        .findMethodByName("CreateCourse").getOutputType().getFullName());
+        assertEquals(1, field(User.getDescriptor(), "id").getNumber());
+        assertEquals(1, field(Grade.getDescriptor(), "id").getNumber());
+        assertEquals(1, field(SchoolClass.getDescriptor(), "id").getNumber());
         assertEquals("google.protobuf.Empty",
                 User.getDescriptor().getFile().findServiceByName("RoleService")
                         .findMethodByName("AssignRole").getOutputType().getFullName());
@@ -85,13 +56,6 @@ class ProtoContractTest {
         for (String name : names) {
             assertEquals(Descriptors.FieldDescriptor.Type.INT64, field(message, name).getType(), name);
         }
-    }
-
-    private static void assertMessageField(
-            Descriptors.Descriptor message, String name, String fullName) {
-        Descriptors.FieldDescriptor descriptor = field(message, name);
-        assertEquals(Descriptors.FieldDescriptor.Type.MESSAGE, descriptor.getType(), name);
-        assertEquals(fullName, descriptor.getMessageType().getFullName(), name);
     }
 
     private static Descriptors.FieldDescriptor field(

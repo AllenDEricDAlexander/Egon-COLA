@@ -1,12 +1,12 @@
 package top.egon.cola.archetype.source.webopen.infrastructure.client.evaluation;
 
 import top.egon.cola.archetype.source.webopen.domain.client.ExternalDependencyException;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.Course;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.Exam;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.GetCourseRequest;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.GetExamRequest;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.GetScoreRequest;
-import top.egon.cola.archetype.source.webopen.facade.evaluation.v1.Score;
+import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Course;
+import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Exam;
+import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.GetCourseRequest;
+import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.GetExamRequest;
+import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.GetScoreRequest;
+import top.egon.cola.archetype.source.serviceopen.facade.evaluation.v1.Score;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;
 import io.grpc.ManagedChannel;
