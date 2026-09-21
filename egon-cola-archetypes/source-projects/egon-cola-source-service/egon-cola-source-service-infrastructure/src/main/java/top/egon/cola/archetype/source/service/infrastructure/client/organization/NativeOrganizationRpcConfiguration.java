@@ -23,9 +23,8 @@ import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategyFactor
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.organization.facade.rpc.OrganizationRpcConverter;
-import top.egon.cola.organization.facade.rpc.UserRpcService;
-import top.egon.cola.organization.facade.rpc.SchoolClassRpcService;
+import top.egon.cola.archetype.source.web.facade.teaching.SchoolClassFacade;
+import top.egon.cola.archetype.source.web.facade.user.UserFacade;
 
 /** Builds DIRECT references through the existing RPC descriptor, strategy and proxy factories. */
 @Configuration(value = "nativeOrganizationRpcConfiguration", proxyBeanMethods = false)
@@ -48,24 +47,19 @@ public class NativeOrganizationRpcConfiguration {
     @Qualifier("nativeRpcValidation")
     private final ValidationUtils validation;
 
-    @Bean("organizationRpcConverter")
-    OrganizationRpcConverter organizationRpcConverter() {
-        return Mappers.getMapper(OrganizationRpcConverter.class);
-    }
-
     @Bean("organizationDirectoryConverter")
     OrganizationDirectoryConverter organizationDirectoryConverter() {
         return Mappers.getMapper(OrganizationDirectoryConverter.class);
     }
 
-    @Bean("organizationUserRpcService")
-    UserRpcService organizationUserRpcService() {
-        return reference(UserRpcService.class, target.group());
+    @Bean("organizationUserFacade")
+    UserFacade organizationUserFacade() {
+        return reference(UserFacade.class, target.group());
     }
 
-    @Bean("organizationSchoolClassRpcService")
-    SchoolClassRpcService organizationSchoolClassRpcService() {
-        return reference(SchoolClassRpcService.class, target.group());
+    @Bean("organizationSchoolClassFacade")
+    SchoolClassFacade organizationSchoolClassFacade() {
+        return reference(SchoolClassFacade.class, target.group());
     }
 
     private <T> T reference(Class<T> contractType, String group) {

@@ -2,7 +2,7 @@
 
 This classifier documents the Egon-COLA Service Maven Archetype distribution. It is documentation for the archetype, not a Java API reference.
 
-Use the public `top.egon:egon-cola-archetype-service` coordinate with Maven's `archetype:generate` goal to create a six-module project. Maintainers edit the corresponding normal source project under `source-projects`, then run `scripts/generate_archetypes.sh generate` before packaging.
+Use the public `top.egon:egon-cola-archetype-service` coordinate with Maven's `archetype:generate` goal to create a seven-module project that owns its published contract in the `facade` module. Maintainers edit the corresponding normal source project under `source-projects`, then run `scripts/generate_archetypes.sh generate` before packaging.
 
 ## Dependency and runtime ownership
 
@@ -10,6 +10,6 @@ Generated projects inherit the released `top.egon:egon-cola-archetypes-parent` a
 
 This native family uses Egon RPC unary Protobuf contracts (gRPC 1.75.0 / Protobuf 4.32.0), the RPC Tianshu adapter, Tianshu configuration and HTTP registration, and the platform OpenAPI MVC starter. Runtime configuration lives in `application.yml` plus the dev/test/prod files; imported configuration uses Spring Boot Config Data. Supply the Tianshu endpoints, HMAC credentials, TLS material and Tianquan-Shoubing SERVICE client settings described in the generated README. Test profiles disable external integration lifecycles.
 
-Service exposes eleven Evaluation operations through `top.egon:egon-cola-evaluation-facade` and consumes Organization through `top.egon:egon-cola-organization-facade`. Existing business facade DTOs, HTTP/GraphQL/MQ behavior and database contracts are retained.
+Service exposes eleven Evaluation operations through the generated project's own `<rootArtifactId>-facade` module and consumes the Organization contract published by the peer project, resolved from the mandatory `organization-facade.group-id`, `organization-facade.artifact-id`, `organization-facade.version` and `organization-facade.package` generation properties. Publish `parent`, `common` and `facade` before a peer can generate against this contract. Existing business facade DTOs, HTTP/GraphQL/MQ behavior and database contracts are retained.
 
 Platform API document governance is opt-in. Controllers need explicit, unique `@Operation(operationId = ...)` values before enabling that catalog; existing business endpoints remain accessible with the default configuration. Live Tianshu/Tianquan-Shoubing/TLS discovery, cross-process RPC and production rollout require operator acceptance.

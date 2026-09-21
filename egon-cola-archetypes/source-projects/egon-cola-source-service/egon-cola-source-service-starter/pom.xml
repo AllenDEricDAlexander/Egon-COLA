@@ -137,6 +137,7 @@
                     <unknownLayerPolicy>FAIL</unknownLayerPolicy>
                     <packageMappings>
                         <top.egon.cola.archetype.source.service.common..>COMMON</top.egon.cola.archetype.source.service.common..>
+                        <top.egon.cola.archetype.source.service.facade..>FACADE</top.egon.cola.archetype.source.service.facade..>
                         <top.egon.cola.archetype.source.service.domain..>DOMAIN</top.egon.cola.archetype.source.service.domain..>
                         <top.egon.cola.archetype.source.service.application..>APPLICATION</top.egon.cola.archetype.source.service.application..>
                         <top.egon.cola.archetype.source.service.infrastructure..>INFRASTRUCTURE</top.egon.cola.archetype.source.service.infrastructure..>

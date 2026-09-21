@@ -19,8 +19,6 @@
     <modules>
         <module>../../egon-cola-components</module>
         <module>../../egon-cola-xingyuan</module>
-        <module>../egon-cola-organization-facade</module>
-        <module>../egon-cola-evaluation-facade</module>
         <module>egon-cola-source-light</module>
         <module>egon-cola-source-service</module>
         <module>egon-cola-source-web</module>

@@ -16,6 +16,22 @@ REQUIRED = {"egon-cola-component-rpc-starter", "egon-cola-component-rpc-tianshu-
             "egon-cola-tianshu-starter",
             "egon-cola-tianshu-http-registration-starter",
             "yuheng-starter-openapi-webmvc"}
+# Each native family owns its contract artifact; the shared artifacts and their Java root are retired.
+RETIRED = re.compile(r"top\.egon\.cola\.(?:organization|evaluation)\.facade\b|egon-cola-(?:organization|evaluation)-facade\b")
+FROZEN_WIRE = re.compile(r"^\s*package\s+top\.egon\.cola\.(?:organization|evaluation)\.facade\.rpc\.v1\s*;\s*$",
+                         re.MULTILINE)
+
+
+def retired_violations(relative, contents):
+    """Report a retired shared facade reference; the frozen Protobuf wire package stays allowed.
+
+    Test sources are exempt because the ownership contract test must name the retired root to
+    assert it no longer resolves; a real test dependency would fail compilation instead.
+    """
+    if "/src/test/" in "/" + relative.as_posix():
+        return []
+    match = RETIRED.search(FROZEN_WIRE.sub("", contents))
+    return [] if match is None else [f"{relative}: retired shared facade reference {match.group()}"]
 
 
 def check(family):
@@ -35,12 +51,14 @@ def check(family):
                 dependencies.add(artifact)
                 if group.startswith(("org.apache.dubbo", "org.springframework.cloud", "com.alibaba.cloud", "org.springdoc")):
                     failures.append(f"{relative}: forbidden direct dependency {group}:{artifact}")
-        elif path.suffix in {".java", ".yml", ".yaml", ".md", ".example"} or path.name.startswith(".env"):
+            failures.extend(retired_violations(relative, path.read_text(encoding="utf-8")))
+        elif path.suffix in {".java", ".proto", ".yml", ".yaml", ".md", ".example"} or path.name.startswith(".env"):
             inspected += 1
             contents = path.read_text(encoding="utf-8")
             match = FORBIDDEN.search(contents)
             if match:
                 failures.append(f"{relative}:{contents[:match.start()].count(chr(10)) + 1}: {match.group().strip()}")
+            failures.extend(retired_violations(relative, contents))
             if path.name.startswith("bootstrap"):
                 failures.append(f"{relative}: retired bootstrap configuration")
     missing = REQUIRED - dependencies

@@ -3,7 +3,6 @@ package top.egon.cola.archetype.source.web.adapter.facade.impl;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
 import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
-import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
 
 import java.util.Arrays;
@@ -12,9 +11,16 @@ import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
+/** Binds the request-scoped organization context around one inbound call. */
 public final class OrganizationFacadeSupport {
 
     private OrganizationFacadeSupport() {
+    }
+
+    /** Builds the wire rejection envelope from the string code, message and trace the context holds. */
+    @FunctionalInterface
+    public interface RejectionMapper<T> {
+        T map(String code, String message, String traceId);
     }
 
     public static String requestId() {
@@ -34,14 +40,7 @@ public final class OrganizationFacadeSupport {
         }
     }
 
-    public static void invoke(Runnable action) {
-        invoke(() -> {
-            action.run();
-            return null;
-        });
-    }
-
-    public static <T> T invoke(Supplier<T> action) {
+    public static <T> T invoke(Supplier<T> action, RejectionMapper<T> rejection) {
         boolean created = OrganizationRequestContextHolder.current().isEmpty();
         if (created) {
             OrganizationRequestContextHolder.set(context());
@@ -51,7 +50,7 @@ public final class OrganizationFacadeSupport {
         } catch (OrganizationApplicationException failure) {
             String traceId = OrganizationRequestContextHolder.current()
                     .map(OrganizationRequestContext::traceId).orElse("unknown");
-            throw new OrganizationFacadeException(failure.code(), failure.getMessage(), traceId);
+            return rejection.map(failure.code(), failure.getMessage(), traceId);
         } finally {
             if (created) {
                 OrganizationRequestContextHolder.clear();

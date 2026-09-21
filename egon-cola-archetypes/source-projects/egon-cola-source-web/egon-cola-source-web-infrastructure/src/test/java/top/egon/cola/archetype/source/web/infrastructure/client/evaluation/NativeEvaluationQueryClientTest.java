@@ -6,6 +6,17 @@ import org.junit.jupiter.api.AfterAll;
 import org.mapstruct.factory.Mappers;
 import jakarta.validation.Validation;
 import jakarta.validation.ConstraintViolationException;
+import top.egon.cola.archetype.source.service.facade.course.CourseFacade;
+import top.egon.cola.archetype.source.service.facade.exam.ExamFacade;
+import top.egon.cola.archetype.source.service.facade.exam.ScoreFacade;
+import top.egon.cola.archetype.source.service.facade.proto.CourseResponse;
+import top.egon.cola.archetype.source.service.facade.proto.CourseRpcResponse;
+import top.egon.cola.archetype.source.service.facade.proto.ExamResponse;
+import top.egon.cola.archetype.source.service.facade.proto.ExamRpcResponse;
+import top.egon.cola.archetype.source.service.facade.proto.GetCourseRpcRequest;
+import top.egon.cola.archetype.source.service.facade.proto.GetExamRpcRequest;
+import top.egon.cola.archetype.source.service.facade.proto.ScoreResponse;
+import top.egon.cola.archetype.source.service.facade.proto.ScoreRpcResponse;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
@@ -13,10 +24,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import top.egon.cola.evaluation.facade.rpc.*;
-import top.egon.cola.evaluation.facade.course.dto.*;
-import top.egon.cola.evaluation.facade.exam.dto.*;
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
 import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyFailure;
 import top.egon.cola.archetype.source.web.domain.client.evaluation.*;
@@ -25,19 +32,18 @@ import java.time.Instant;
 class NativeEvaluationQueryClientTest {
     private static final jakarta.validation.ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
     private final ValidationUtils validation = new ValidationUtils(VALIDATORS.getValidator());
-    private final EvaluationRpcConverter converter = Mappers.getMapper(EvaluationRpcConverter.class);
     private final EvaluationQueryConverter projection = Mappers.getMapper(EvaluationQueryConverter.class);
-    private CourseRpcService courseService;
-    private ExamRpcService examService;
-    private ScoreRpcService scoreService;
+    private CourseFacade courseFacade;
+    private ExamFacade examFacade;
+    private ScoreFacade scoreFacade;
     private NativeEvaluationQueryClient client;
 
     @BeforeEach
     void setUp() {
-        courseService = mock(CourseRpcService.class);
-        examService = mock(ExamRpcService.class);
-        scoreService = mock(ScoreRpcService.class);
-        client = new NativeEvaluationQueryClient(courseService, examService, scoreService, converter, projection, validation);
+        courseFacade = mock(CourseFacade.class);
+        examFacade = mock(ExamFacade.class);
+        scoreFacade = mock(ScoreFacade.class);
+        client = new NativeEvaluationQueryClient(courseFacade, examFacade, scoreFacade, projection, validation);
     }
 
     @AfterAll
@@ -45,30 +51,40 @@ class NativeEvaluationQueryClientTest {
 
     @Test
     void maps_course_to_the_existing_consumer_projection() {
-        when(courseService.getCourse(courseRequest())).thenReturn(converter.toCourseRpcResponse(
-                SingleResponse.of(new CourseResponse(1001L, "C1", "Course One", 3, "ACTIVE"))));
+        when(courseFacade.getCourse(courseRequest())).thenReturn(courseSuccess(CourseResponse.newBuilder()
+                .setId(1001L).setCode("C1").setName("Course One").setCredit(3).setStatus("ACTIVE").build()));
         assertThat(client.getCourse(1001L)).isEqualTo(new EvaluationCourse(1001L, "C1", "Course One", 3, "ACTIVE"));
-        verify(courseService).getCourse(courseRequest());
+        verify(courseFacade).getCourse(courseRequest());
     }
 
     @Test
     void maps_exam_without_losing_instant_nanoseconds() {
         var startsAt = Instant.parse("2026-09-08T01:02:03.123456789Z");
         var endsAt = Instant.parse("2026-09-08T02:03:04.987654321Z");
-        var request = converter.toTarget(new GetExamRequest(2001L));
-        when(examService.getExam(request)).thenReturn(converter.toExamRpcResponse(SingleResponse.of(
-                new ExamResponse(2001L, 1001L, "Exam One", startsAt, endsAt, "PUBLISHED"))));
+        var request = GetExamRpcRequest.newBuilder().setExamId(2001L).build();
+        when(examFacade.getExam(request)).thenReturn(ExamRpcResponse.newBuilder()
+                .setSuccess(true).setCode("SUCCESS").setMessage("success")
+                .setData(ExamResponse.newBuilder()
+                        .setId(2001L).setCourseId(1001L).setTitle("Exam One")
+                        .setStartsAt(startsAt.toString()).setEndsAt(endsAt.toString())
+                        .setStatus("PUBLISHED").build())
+                .build());
         assertThat(client.getExam(2001L)).isEqualTo(new EvaluationExam(2001L, 1001L, "Exam One", startsAt, endsAt, "PUBLISHED"));
-        verify(examService).getExam(request);
+        verify(examFacade).getExam(request);
     }
 
     @Test
     void maps_score_with_both_query_identifiers() {
-        var request = converter.toTarget(new GetScoreRequest(2001L, 3001L));
-        when(scoreService.getScore(request)).thenReturn(converter.toScoreRpcResponse(SingleResponse.of(
-                new ScoreResponse(3001L, 2001L, 1001L, 7001L, 95, "RECORDED"))));
+        var request = top.egon.cola.archetype.source.service.facade.proto.GetScoreRpcRequest.newBuilder()
+                .setExamId(2001L).setScoreId(3001L).build();
+        when(scoreFacade.getScore(request)).thenReturn(ScoreRpcResponse.newBuilder()
+                .setSuccess(true).setCode("SUCCESS").setMessage("success")
+                .setData(ScoreResponse.newBuilder()
+                        .setId(3001L).setExamId(2001L).setCourseId(1001L).setStudentId(7001L)
+                        .setPoints(95).setStatus("RECORDED").build())
+                .build());
         assertThat(client.getScore(2001L, 3001L)).isEqualTo(new EvaluationScore(3001L, 2001L, 1001L, 7001L, 95, "RECORDED"));
-        verify(scoreService).getScore(request);
+        verify(scoreFacade).getScore(request);
     }
 
     @Test
@@ -83,18 +99,19 @@ class NativeEvaluationQueryClientTest {
     void maps_native_timeout_availability_and_contract_errors() {
         assertTransportFailure(EgonRpcErrorCode.RPC_DEADLINE_EXCEEDED, ExternalDependencyFailure.TIMEOUT);
         assertTransportFailure(EgonRpcErrorCode.RPC_PROVIDER_UNAVAILABLE, ExternalDependencyFailure.UNAVAILABLE);
+        assertTransportFailure(EgonRpcErrorCode.RPC_SERVICE_NOT_FOUND, ExternalDependencyFailure.UNAVAILABLE);
         assertTransportFailure(EgonRpcErrorCode.RPC_INVALID_CONTRACT, ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
         assertTransportFailure(EgonRpcErrorCode.RPC_METHOD_NOT_FOUND, ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
     }
 
     @Test
     void rejects_null_missing_or_invalid_success_data() {
-        when(courseService.getCourse(courseRequest())).thenReturn(null);
+        when(courseFacade.getCourse(courseRequest())).thenReturn(null);
         assertFailure(() -> client.getCourse(1001L), ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
-        when(courseService.getCourse(courseRequest())).thenReturn(converter.toCourseRpcResponse(SingleResponse.of(null)));
+        when(courseFacade.getCourse(courseRequest())).thenReturn(CourseRpcResponse.newBuilder().setSuccess(true).build());
         assertFailure(() -> client.getCourse(1001L), ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
-        when(courseService.getCourse(courseRequest())).thenReturn(converter.toCourseRpcResponse(SingleResponse.of(
-                new CourseResponse(0L, null, null, 0, null))));
+        when(courseFacade.getCourse(courseRequest())).thenReturn(courseSuccess(
+                CourseResponse.newBuilder().setId(0L).setCredit(3).build()));
         assertFailure(() -> client.getCourse(1001L), ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
     }
 
@@ -103,20 +120,34 @@ class NativeEvaluationQueryClientTest {
         assertThatThrownBy(() -> client.getCourse(null)).isInstanceOf(ConstraintViolationException.class);
         assertThatThrownBy(() -> client.getExam(0L)).isInstanceOf(ConstraintViolationException.class);
         assertThatThrownBy(() -> client.getScore(1L, -1L)).isInstanceOf(ConstraintViolationException.class);
-        verifyNoInteractions(courseService, examService, scoreService);
+        verifyNoInteractions(courseFacade, examFacade, scoreFacade);
     }
 
-    private top.egon.cola.evaluation.facade.rpc.proto.GetCourseRpcRequest courseRequest() {
-        return converter.toTarget(new GetCourseRequest(1001L));
+    @Test
+    void reverse_projection_round_trips_every_port_owned_field() {
+        var course = new EvaluationCourse(1001L, "C1", "Course One", 3, "ACTIVE");
+        assertThat(projection.toTarget(projection.toSource(course))).isEqualTo(course);
+        var score = new EvaluationScore(3001L, 2001L, 1001L, 7001L, 95, "RECORDED");
+        assertThat(projection.toTarget(projection.toSource(score))).isEqualTo(score);
+    }
+
+    private GetCourseRpcRequest courseRequest() {
+        return GetCourseRpcRequest.newBuilder().setCourseId(1001L).build();
+    }
+
+    private static CourseRpcResponse courseSuccess(CourseResponse data) {
+        return CourseRpcResponse.newBuilder().setSuccess(true).setCode("SUCCESS").setMessage("success")
+                .setData(data).build();
     }
 
     private void assertProviderFailure(String code, ExternalDependencyFailure expected) {
-        when(courseService.getCourse(courseRequest())).thenReturn(converter.toCourseRpcResponse(SingleResponse.fail(code, "remote details")));
+        when(courseFacade.getCourse(courseRequest())).thenReturn(CourseRpcResponse.newBuilder()
+                .setSuccess(false).setCode(code).setMessage("remote details").setTraceId("trace-1").build());
         assertFailure(() -> client.getCourse(1001L), expected);
     }
 
     private void assertTransportFailure(EgonRpcErrorCode code, ExternalDependencyFailure expected) {
-        doThrow(new EgonRpcException(code, "remote details")).when(courseService).getCourse(courseRequest());
+        doThrow(new EgonRpcException(code, "remote details")).when(courseFacade).getCourse(courseRequest());
         assertFailure(() -> client.getCourse(1001L), expected);
     }
 
@@ -143,9 +174,9 @@ class NativeEvaluationQueryClientTest {
                 new top.egon.cola.component.rpc.context.identity.RpcProcessIdentity("consumer", "test", "localhost", 1L, "consumer-1"),
                 new NativeEvaluationRpcProperties("biz", "evaluation-app", "course", "exam", "score", "1.0", 5000),
                 new top.egon.cola.component.rpc.config.EgonRpcProperties(), validation);
-        config.evaluationCourseRpcService();
-        config.evaluationExamRpcService();
-        config.evaluationScoreRpcService();
+        config.evaluationCourseFacade();
+        config.evaluationExamFacade();
+        config.evaluationScoreFacade();
         var definitions = org.mockito.ArgumentCaptor.forClass(top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition.class);
         verify(strategies, times(3)).create(definitions.capture());
         for (var definition : definitions.getAllValues()) {

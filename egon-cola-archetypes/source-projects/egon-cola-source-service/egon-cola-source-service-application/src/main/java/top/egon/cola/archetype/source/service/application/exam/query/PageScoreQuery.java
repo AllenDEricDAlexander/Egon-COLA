@@ -1,4 +1,12 @@
 package top.egon.cola.archetype.source.service.application.exam.query;
 
-public record PageScoreQuery(Long examId, int currentPage, int pageSize) {
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+public record PageScoreQuery(
+        @NotNull @Positive Long examId,
+        @Min(1) int currentPage,
+        @Min(1) @Max(200) int pageSize) {
 }

@@ -7,17 +7,30 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.MetadataUtils;
 import jakarta.validation.Validation;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationFacadeSupport;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationRpcContextDTO;
 import top.egon.cola.archetype.source.web.adapter.facade.impl.OrganizationRpcContextInterceptor;
-import top.egon.cola.archetype.source.web.adapter.user.rpc.UserRpcProvider;
+import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFacadeConverter;
+import top.egon.cola.archetype.source.web.adapter.user.facade.impl.UserFacadeImpl;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContext;
 import top.egon.cola.archetype.source.web.application.context.OrganizationRequestContextHolder;
 import top.egon.cola.archetype.source.web.application.exceptions.OrganizationApplicationException;
 import top.egon.cola.archetype.source.web.application.exceptions.OrganizationFailureType;
+import top.egon.cola.archetype.source.web.application.user.command.CreateUserCommand;
+import top.egon.cola.archetype.source.web.application.user.manage.UserManage;
+import top.egon.cola.archetype.source.web.application.user.result.UserDetailResult;
+import top.egon.cola.archetype.source.web.facade.proto.CreateUserRpcRequest;
+import top.egon.cola.archetype.source.web.facade.proto.UserServiceGrpc;
+import top.egon.cola.archetype.source.web.facade.user.UserFacade;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.common.trace.TraceContext;
 import top.egon.cola.component.rpc.context.invocation.RpcInvocationMetadata;
@@ -26,22 +39,6 @@ import top.egon.cola.component.rpc.provider.binding.RpcProviderBinding;
 import top.egon.cola.component.rpc.provider.binding.RpcProviderMethodRegistry;
 import top.egon.cola.component.rpc.provider.lifecycle.RpcProviderAvailabilityRegistry;
 import top.egon.cola.component.rpc.provider.server.RpcServerServiceDefinitionFactory;
-import top.egon.cola.organization.facade.rpc.OrganizationRpcConverter;
-import top.egon.cola.organization.facade.rpc.UserRpcService;
-import top.egon.cola.organization.facade.rpc.proto.CreateUserRpcRequest;
-import top.egon.cola.organization.facade.rpc.proto.UserServiceGrpc;
-import top.egon.cola.organization.facade.user.UserFacade;
-import top.egon.cola.organization.facade.user.RoleFacade;
-import top.egon.cola.organization.facade.user.PermissionFacade;
-import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
-import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
-
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -53,6 +50,11 @@ class NativeOrganizationRpcContextTest {
 
     private static final ValidationUtils VALIDATION_UTILS =
             new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator());
+
+    /** Carries the three envelope strings so a unit check can observe the rejection mapping. */
+    private record RejectionDTO(String code, String message, String traceId) {
+    }
+
     @AfterEach
     void clearTestContext() { OrganizationRequestContextHolder.clear(); }
 
@@ -65,22 +67,25 @@ class NativeOrganizationRpcContextTest {
                     OrganizationFacadeSupport.invoke(() -> {
                         assertThat(OrganizationRequestContextHolder.current().orElseThrow()).isSameAs(existing);
                         assertThat(OrganizationFacadeSupport.requestId()).isEqualTo("request-1");
-                    });
+                        return null;
+                    }, unexpectedRejection());
                     assertThat(OrganizationRequestContextHolder.current().orElseThrow()).isSameAs(existing);
                 });
         assertThat(OrganizationRpcContextDTO.current()).isNull();
     }
 
     @Test
-    void removes_only_the_context_created_for_the_rpc_even_on_business_failure() {
+    void maps_the_bounded_trace_onto_the_rejection_and_releases_only_the_created_context() {
         Context.current().withValue(OrganizationRpcContextDTO.CONTEXT_KEY,
                 new OrganizationRpcContextDTO("actor-1", "TEACHER", "trace-1", "request-1")).run(() -> {
-                    assertThatThrownBy(() -> OrganizationFacadeSupport.invoke(() -> {
-                        throw new OrganizationApplicationException(OrganizationFailureType.FORBIDDEN, "DENIED", "reason");
-                    })).isInstanceOfSatisfying(OrganizationFacadeException.class, failure -> {
-                        assertThat(failure.code()).isEqualTo("DENIED");
-                        assertThat(failure.traceId()).isEqualTo("trace-1");
-                    });
+                    var rejection = OrganizationFacadeSupport.invoke(
+                            () -> {
+                                throw new OrganizationApplicationException(
+                                        OrganizationFailureType.FORBIDDEN, "DENIED", "reason");
+                            },
+                            (code, message, traceId) -> new RejectionDTO(code, message, traceId));
+                    assertThat(rejection.code()).isEqualTo("DENIED");
+                    assertThat(rejection.traceId()).isEqualTo("trace-1");
                     assertThat(OrganizationRequestContextHolder.current()).isEmpty();
                 });
         assertThat(OrganizationRpcContextDTO.current()).isNull();
@@ -94,7 +99,8 @@ class NativeOrganizationRpcContextTest {
             assertThat(context.actorRoles()).isEqualTo(Set.of("SYSTEM"));
             assertThat(UUID.fromString(context.traceId())).isNotNull();
             assertThat(UUID.fromString(OrganizationFacadeSupport.requestId())).isNotNull();
-        });
+            return null;
+        }, unexpectedRejection());
         assertThat(OrganizationRequestContextHolder.current()).isEmpty();
     }
 
@@ -102,8 +108,11 @@ class NativeOrganizationRpcContextTest {
     void does_not_promote_a_nonblank_but_empty_role_list_to_system() {
         Context.current().withValue(OrganizationRpcContextDTO.CONTEXT_KEY,
                 new OrganizationRpcContextDTO("actor-1", " , , ", "trace-1", null)).run(() ->
-                OrganizationFacadeSupport.invoke(() -> assertThat(OrganizationRequestContextHolder.current()
-                        .orElseThrow().actorRoles()).isEmpty()));
+                OrganizationFacadeSupport.invoke(() -> {
+                    assertThat(OrganizationRequestContextHolder.current()
+                            .orElseThrow().actorRoles()).isEmpty();
+                    return null;
+                }, unexpectedRejection()));
         assertThat(OrganizationRequestContextHolder.current()).isEmpty();
     }
 
@@ -113,9 +122,21 @@ class NativeOrganizationRpcContextTest {
         when(trace.traceId()).thenReturn("framework-trace");
         var invocation = new RpcInvocationMetadata("service", "group", "1.0", "call-1", trace);
         Context.current().withValue(RpcInvocationMetadata.CONTEXT_KEY, invocation).run(() ->
-                OrganizationFacadeSupport.invoke(() -> assertThat(OrganizationRequestContextHolder.current()
-                        .orElseThrow().traceId()).isEqualTo("framework-trace")));
+                OrganizationFacadeSupport.invoke(() -> {
+                    assertThat(OrganizationRequestContextHolder.current()
+                            .orElseThrow().traceId()).isEqualTo("framework-trace");
+                    return null;
+                }, unexpectedRejection()));
         assertThat(OrganizationRequestContextHolder.current()).isEmpty();
+    }
+
+    @Test
+    void positive_id_helper_still_rejects_non_positive_and_non_numeric_values() {
+        assertThat(OrganizationFacadeSupport.positiveId("42", "id")).isEqualTo(42L);
+        assertThatThrownBy(() -> OrganizationFacadeSupport.positiveId("0", "id"))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> OrganizationFacadeSupport.positiveId("abc", "id"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -123,20 +144,19 @@ class NativeOrganizationRpcContextTest {
         try (var validators = Validation.buildDefaultValidatorFactory()) {
             var observed = new AtomicReference<OrganizationRequestContext>();
             var requestId = new AtomicReference<String>();
-            var facade = mock(UserFacade.class);
-            when(facade.createUser(any())).thenAnswer(invocation -> OrganizationFacadeSupport.invoke(() -> {
+            var manage = mock(UserManage.class);
+            when(manage.createUser(any())).thenAnswer(invocation -> {
                 observed.set(OrganizationRequestContextHolder.current().orElseThrow());
                 requestId.set(OrganizationFacadeSupport.requestId());
-                if (invocation.getArgument(0, top.egon.cola.organization.facade.user.dto.CreateUserDTO.class)
-                        .name().equals("reject")) {
+                if (invocation.getArgument(0, CreateUserCommand.class).name().equals("reject")) {
                     throw new OrganizationApplicationException(OrganizationFailureType.FORBIDDEN, "DENIED", "reason");
                 }
-                return new UserDetailDTO(1L, "Mario", "mario@example.com", "ACTIVE", List.of());
-            }));
-            var converter = Mappers.getMapper(OrganizationRpcConverter.class);
-            var provider = new UserRpcProvider(facade, mock(RoleFacade.class), mock(PermissionFacade.class),
-                    converter, new ValidationUtils(validators.getValidator()));
-            var binding = new RpcProviderBinding(provider, new RpcContractValidator(VALIDATION_UTILS).validate(UserRpcService.class));
+                return new UserDetailResult(1L, "Mario", "mario@example.com", "ACTIVE", List.of());
+            });
+            var provider = new UserFacadeImpl(manage, Mappers.getMapper(OrganizationFacadeConverter.class),
+                    new ValidationUtils(validators.getValidator()));
+            var binding = new RpcProviderBinding(provider,
+                    new RpcContractValidator(VALIDATION_UTILS).validate(UserFacade.class));
             var registry = new RpcProviderMethodRegistry(List.of(binding));
             var availability = new RpcProviderAvailabilityRegistry();
             availability.available(binding.serviceIdentity());
@@ -163,6 +183,7 @@ class NativeOrganizationRpcContextTest {
                         .createUser(CreateUserRpcRequest.newBuilder().setName("reject").setEmail("mario@example.com").build());
                 assertThat(rejected.getSuccess()).isFalse();
                 assertThat(rejected.getCode()).isEqualTo("DENIED");
+                assertThat(rejected.getMessage()).isEqualTo("reason");
                 assertThat(rejected.getTraceId()).isEqualTo("trace-2");
                 assertThat(observed.get().actorId()).isEqualTo("actor-2");
                 assertThat(requestId.get()).isEqualTo("request-2");
@@ -179,6 +200,12 @@ class NativeOrganizationRpcContextTest {
                 server.shutdownNow().awaitTermination(5, TimeUnit.SECONDS);
             }
         }
+    }
+
+    private static <T> OrganizationFacadeSupport.RejectionMapper<T> unexpectedRejection() {
+        return (code, message, traceId) -> {
+            throw new AssertionError("unexpected rejection: " + code);
+        };
     }
 
     private Metadata headers(String actorId, String roles, String traceId, String requestId) {

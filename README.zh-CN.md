@@ -308,9 +308,7 @@ Egon-COLA/
 │   │   ├── egon-cola-source-web/
 │   │   └── egon-cola-source-web-open/
 │   ├── definitions/                  # 打包 manifest 和 curated 合同
-│   ├── .generated/                   # 忽略的生成发布 Reactor
-│   ├── egon-cola-evaluation-facade/
-│   └── egon-cola-organization-facade/
+│   └── .generated/                   # 忽略的生成发布 Reactor
 ├── egon-cola-components/             # 可复用组件、Starter、BOM 和测试
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/

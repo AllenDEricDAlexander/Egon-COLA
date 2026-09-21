@@ -265,9 +265,7 @@ Egon-COLA/
 │   │   ├── egon-cola-source-web/
 │   │   └── egon-cola-source-web-open/
 │   ├── definitions/                  # Packaging manifests and curated contracts
-│   ├── .generated/                   # Ignored generated publishing reactor
-│   ├── egon-cola-evaluation-facade/
-│   └── egon-cola-organization-facade/
+│   └── .generated/                   # Ignored generated publishing reactor
 ├── egon-cola-components/             # Reusable components, starters, BOM, and tests
 │   ├── egon-cola-components-bom/
 │   ├── egon-cola-component-common/

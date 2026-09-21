@@ -105,8 +105,6 @@ class ComponentContractGovernanceTest {
     private static final Path REPO_ROOT = Path.of("../../../");
 
     private static final Path[] FAMILY_TEXT_ROOTS = {
-            repo("egon-cola-archetypes/egon-cola-evaluation-facade/src"),
-            repo("egon-cola-archetypes/egon-cola-organization-facade/src"),
             repo("egon-cola-archetypes/source-projects/egon-cola-source-light/src"),
             repo("egon-cola-archetypes/source-projects/egon-cola-source-service"),
             repo("egon-cola-archetypes/source-projects/egon-cola-source-web"),

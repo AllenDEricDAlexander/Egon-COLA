@@ -52,9 +52,13 @@
         </developer>
     </developers>
 
+    <!--
+      Each native family publishes its own contract artifact from its own source project, so the
+      archetype ITs can resolve the peer facade of a singly generated project.
+    -->
     <modules>
-        <module>egon-cola-organization-facade</module>
-        <module>egon-cola-evaluation-facade</module>
+        <module>source-projects/egon-cola-source-service/egon-cola-source-service-facade</module>
+        <module>source-projects/egon-cola-source-web/egon-cola-source-web-facade</module>
     </modules>
 
     <properties>

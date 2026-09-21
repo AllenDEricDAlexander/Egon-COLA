@@ -56,16 +56,11 @@
     </developers>
 
     <dependencies>
+        <!-- The peer contract is published by the sibling native source project. -->
         <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-organization-facade</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-evaluation-facade</artifactId>
-            <version>${project.version}</version>
+            <groupId>top.egon.internal.archetype.source</groupId>
+            <artifactId>egon-cola-source-web-facade</artifactId>
+            <version>0.1.0-SNAPSHOT</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

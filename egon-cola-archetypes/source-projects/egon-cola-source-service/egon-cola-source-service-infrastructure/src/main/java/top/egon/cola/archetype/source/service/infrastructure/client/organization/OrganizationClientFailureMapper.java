@@ -1,6 +1,5 @@
 package top.egon.cola.archetype.source.service.infrastructure.client.organization;
 
-import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyFailure;
 import java.util.Locale;
@@ -14,10 +13,6 @@ final class OrganizationClientFailureMapper {
     }
 
     static ExternalDependencyException map(RuntimeException failure) {
-        if (failure instanceof OrganizationFacadeException facadeFailure) {
-            String code = facadeFailure.code();
-            return failure(category(code), code, facadeFailure);
-        }
         if (failure instanceof EgonRpcException rpcFailure) {
             ExternalDependencyFailure category = switch (rpcFailure.getRpcErrorCode()) {
                 case RPC_DEADLINE_EXCEEDED -> ExternalDependencyFailure.TIMEOUT;
@@ -27,6 +22,11 @@ final class OrganizationClientFailureMapper {
             return failure(category, rpcFailure.getRpcErrorCode().name(), rpcFailure);
         }
         return failure(ExternalDependencyFailure.SERVICE_FAILURE, "UNKNOWN", failure);
+    }
+
+    /** A provider rejection keeps only its wire string code; remote details stay sanitized out. */
+    static ExternalDependencyException rejected(String code) {
+        return failure(category(code), code, null);
     }
 
     static ExternalDependencyException incompatible(String operation) {

@@ -1,4 +1,7 @@
 package top.egon.cola.archetype.source.service.application.exam.query;
 
-public record GetExamQuery(Long examId) {
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+
+public record GetExamQuery(@NotNull @Positive Long examId) {
 }

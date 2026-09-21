@@ -23,10 +23,9 @@ import top.egon.cola.component.rpc.consumer.reference.RpcReferenceStrategyFactor
 import top.egon.cola.component.rpc.context.identity.RpcProcessIdentity;
 import top.egon.cola.component.rpc.contract.identity.RpcServiceIdentity;
 import top.egon.cola.component.rpc.contract.validation.RpcContractValidator;
-import top.egon.cola.evaluation.facade.rpc.EvaluationRpcConverter;
-import top.egon.cola.evaluation.facade.rpc.CourseRpcService;
-import top.egon.cola.evaluation.facade.rpc.ExamRpcService;
-import top.egon.cola.evaluation.facade.rpc.ScoreRpcService;
+import top.egon.cola.archetype.source.service.facade.course.CourseFacade;
+import top.egon.cola.archetype.source.service.facade.exam.ExamFacade;
+import top.egon.cola.archetype.source.service.facade.exam.ScoreFacade;
 
 /** Builds DIRECT references through the existing RPC descriptor, strategy and proxy factories. */
 @Configuration(value = "nativeEvaluationRpcConfiguration", proxyBeanMethods = false)
@@ -49,29 +48,24 @@ public class NativeEvaluationRpcConfiguration {
     @Qualifier("nativeRpcValidation")
     private final ValidationUtils validation;
 
-    @Bean("evaluationRpcConverter")
-    EvaluationRpcConverter evaluationRpcConverter() {
-        return Mappers.getMapper(EvaluationRpcConverter.class);
-    }
-
     @Bean("evaluationQueryConverter")
     EvaluationQueryConverter evaluationQueryConverter() {
         return Mappers.getMapper(EvaluationQueryConverter.class);
     }
 
-    @Bean("evaluationCourseRpcService")
-    CourseRpcService evaluationCourseRpcService() {
-        return reference(CourseRpcService.class, target.courseGroup());
+    @Bean("evaluationCourseFacade")
+    CourseFacade evaluationCourseFacade() {
+        return reference(CourseFacade.class, target.courseGroup());
     }
 
-    @Bean("evaluationExamRpcService")
-    ExamRpcService evaluationExamRpcService() {
-        return reference(ExamRpcService.class, target.examGroup());
+    @Bean("evaluationExamFacade")
+    ExamFacade evaluationExamFacade() {
+        return reference(ExamFacade.class, target.examGroup());
     }
 
-    @Bean("evaluationScoreRpcService")
-    ScoreRpcService evaluationScoreRpcService() {
-        return reference(ScoreRpcService.class, target.scoreGroup());
+    @Bean("evaluationScoreFacade")
+    ScoreFacade evaluationScoreFacade() {
+        return reference(ScoreFacade.class, target.scoreGroup());
     }
 
     private <T> T reference(Class<T> contractType, String group) {

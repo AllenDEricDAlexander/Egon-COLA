@@ -28,6 +28,8 @@ AI = {
     ("org.springframework.ai", "spring-ai-mcp"),
 }
 CORE = ("top.egon", "egon-cola-component-common-core")
+SHARED_FACADES = frozenset({"egon-cola-organization-facade", "egon-cola-evaluation-facade"})
+FACADE_FAMILIES = ("service", "web", "service-open", "web-open")
 
 
 def value(node, name):
@@ -112,6 +114,25 @@ def persistence_violations(root, family):
     return failures
 
 
+def shared_facade_violations(coordinates):
+    """The retired cross-family facade artifacts must not be a dependency of any source project."""
+    return [f"retired shared facade dependency {group}:{artifact}"
+            for group, artifact in sorted(coordinates) if artifact in SHARED_FACADES]
+
+
+def facade_violations(root, family):
+    """Every facade family publishes its own Protobuf contract and consumes it locally."""
+    poms = [root / "pom.xml", *sorted(root.glob("*/pom.xml"))]
+    coordinates = set().union(*(declarations(ET.parse(pom).getroot()) for pom in poms))
+    failures = shared_facade_violations(coordinates)
+    facade = root / (root.name + "-facade")
+    if not list(facade.glob("src/main/proto/**/*.proto")):
+        failures.append("missing local facade Protobuf contract")
+    if not any(artifact == facade.name for _, artifact in coordinates):
+        failures.append("missing local facade consumer")
+    return [f"{family}: {failure}" for failure in failures]
+
+
 def self_test():
     light = COMMON | EXTERNAL | {CORE, ("org.springdoc", "springdoc-openapi-starter-webmvc-ui")}
     assert not violations("light-open", light)
@@ -122,7 +143,9 @@ def self_test():
     pom = ET.fromstring('<project xmlns="http://maven.apache.org/POM/4.0.0"><dependencyManagement><dependencies><dependency><groupId>top.egon</groupId><artifactId>egon-cola-component-rpc-starter</artifactId></dependency></dependencies></dependencyManagement></project>')
     assert not declarations(pom), "managed dependencies must not become runtime edges"
     assert runtime_coordinates('[INFO] +- io.grpc:grpc-core:jar:1.76.2:compile') == {("io.grpc", "grpc-core")}
-    print("PASS: missing Common/native injection/Agent infrastructure/BOM/runtime parser fixtures")
+    assert shared_facade_violations({("top.egon", "egon-cola-organization-facade")}), "shared facade must fail"
+    assert not shared_facade_violations(light), "owned facade coordinates must pass"
+    print("PASS: missing Common/native injection/Agent infrastructure/BOM/runtime parser/shared facade fixtures")
 
 
 def main():
@@ -141,12 +164,6 @@ def main():
         poms = [ET.parse(p).getroot() for p in [root / "pom.xml", *sorted(root.glob("*/pom.xml"))]]
         coords = set().union(*(declarations(p) for p in poms))
         failures.extend(violations(family, coords))
-        if family in ("service-open", "web-open"):
-            facade = root / ("egon-cola-source-" + family + "-facade")
-            if not list(facade.glob("src/main/proto/**/*.proto")):
-                failures.append(f"{family}: missing local facade Protobuf contract")
-            if not any(a == facade.name for _, a in coords):
-                failures.append(f"{family}: missing local facade consumer")
         if args.effective_poms:
             effective = ET.parse(args.effective_poms / (family + ".xml")).getroot()
             projects = [effective] if effective.tag.endswith("project") else effective.findall("m:project", NS)
@@ -158,6 +175,8 @@ def main():
     for family in ("light", "light-open", "service", "service-open", "web", "web-open", "agent"):
         source = args.root / "egon-cola-archetypes/source-projects" / ("egon-cola-source-" + family)
         failures.extend(persistence_violations(source, family))
+        if family in FACADE_FAMILIES:
+            failures.extend(facade_violations(source, family))
     for failure in failures:
         print("ERROR: " + failure, file=sys.stderr)
     if failures:

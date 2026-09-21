@@ -1,4 +1,9 @@
 package top.egon.cola.archetype.source.web.application.teaching.command;
 
-public record CreateSchoolClassCommand(String requestId, String name, String gradeCode) {
+import jakarta.validation.constraints.NotBlank;
+
+public record CreateSchoolClassCommand(
+        String requestId,
+        @NotBlank String name,
+        @NotBlank String gradeCode) {
 }

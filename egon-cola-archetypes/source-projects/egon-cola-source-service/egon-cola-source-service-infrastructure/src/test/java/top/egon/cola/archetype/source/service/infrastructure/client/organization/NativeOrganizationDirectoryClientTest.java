@@ -6,6 +6,14 @@ import org.junit.jupiter.api.AfterAll;
 import org.mapstruct.factory.Mappers;
 import jakarta.validation.Validation;
 import jakarta.validation.ConstraintViolationException;
+import top.egon.cola.archetype.source.web.facade.proto.GetSchoolClassRpcRequest;
+import top.egon.cola.archetype.source.web.facade.proto.GetUserRpcRequest;
+import top.egon.cola.archetype.source.web.facade.proto.SchoolClassRpcResponse;
+import top.egon.cola.archetype.source.web.facade.proto.SchoolClassResponse;
+import top.egon.cola.archetype.source.web.facade.proto.UserRpcResponse;
+import top.egon.cola.archetype.source.web.facade.proto.UserResponse;
+import top.egon.cola.archetype.source.web.facade.teaching.SchoolClassFacade;
+import top.egon.cola.archetype.source.web.facade.user.UserFacade;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 import top.egon.cola.component.rpc.common.enums.EgonRpcErrorCode;
@@ -13,12 +21,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
-import top.egon.cola.organization.facade.rpc.*;
-import top.egon.cola.organization.facade.rpc.proto.GetUserRpcRequest;
-import top.egon.cola.organization.facade.rpc.proto.GetSchoolClassRpcRequest;
-import top.egon.cola.organization.facade.rpc.proto.UserRpcResponse;
-import top.egon.cola.organization.facade.user.dto.UserDetailDTO;
-import top.egon.cola.organization.facade.teaching.dto.SchoolClassDetailDTO;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyFailure;
 import top.egon.cola.archetype.source.service.domain.client.organization.*;
@@ -27,17 +29,16 @@ import java.util.List;
 class NativeOrganizationDirectoryClientTest {
     private static final jakarta.validation.ValidatorFactory VALIDATORS = Validation.buildDefaultValidatorFactory();
     private final ValidationUtils validation = new ValidationUtils(VALIDATORS.getValidator());
-    private final OrganizationRpcConverter converter = Mappers.getMapper(OrganizationRpcConverter.class);
     private final OrganizationDirectoryConverter projection = Mappers.getMapper(OrganizationDirectoryConverter.class);
-    private UserRpcService userService;
-    private SchoolClassRpcService schoolClassService;
+    private UserFacade userFacade;
+    private SchoolClassFacade schoolClassFacade;
     private NativeOrganizationDirectoryClient client;
 
     @BeforeEach
     void setUp() {
-        userService = mock(UserRpcService.class);
-        schoolClassService = mock(SchoolClassRpcService.class);
-        client = new NativeOrganizationDirectoryClient(userService, schoolClassService, converter, projection, validation);
+        userFacade = mock(UserFacade.class);
+        schoolClassFacade = mock(SchoolClassFacade.class);
+        client = new NativeOrganizationDirectoryClient(userFacade, schoolClassFacade, projection, validation);
     }
 
     @AfterAll
@@ -45,20 +46,25 @@ class NativeOrganizationDirectoryClientTest {
 
     @Test
     void maps_organization_user_to_the_existing_consumer_projection() {
-        when(userService.getUser(userRequest())).thenReturn(converter.userSuccess(new UserDetailDTO(
-                1001L, "Mario", "m@example.com", "ACTIVE", List.of("STUDENT"))));
+        when(userFacade.getUser(userRequest())).thenReturn(userSuccess(UserResponse.newBuilder()
+                .setId(1001L).setName("Mario").setEmail("m@example.com").setStatus("ACTIVE")
+                .addRoleCodes("STUDENT").build()));
         assertThat(client.getUser(1001L)).isEqualTo(new OrganizationUser(1001L, "Mario", "ACTIVE"));
-        verify(userService).getUser(userRequest());
+        verify(userFacade).getUser(userRequest());
     }
 
     @Test
     void maps_school_class_and_preserves_user_order() {
         var query = GetSchoolClassRpcRequest.newBuilder().setGradeId(2001L).setSchoolClassId(3001L).build();
-        when(schoolClassService.getSchoolClass(query)).thenReturn(converter.schoolClassSuccess(
-                new SchoolClassDetailDTO(3001L, "Class One", "G1", "Grade One", "ACTIVE", List.of(1002L, 1001L))));
+        when(schoolClassFacade.getSchoolClass(query)).thenReturn(SchoolClassRpcResponse.newBuilder()
+                .setSuccess(true)
+                .setData(SchoolClassResponse.newBuilder()
+                        .setId(3001L).setName("Class One").setGradeCode("G1").setGradeName("Grade One")
+                        .setStatus("ACTIVE").addUserIds(1002L).addUserIds(1001L).build())
+                .build());
         assertThat(client.getSchoolClass(2001L, 3001L)).isEqualTo(
                 new OrganizationSchoolClass(3001L, "Class One", "G1", "ACTIVE", List.of(1002L, 1001L)));
-        verify(schoolClassService).getSchoolClass(query);
+        verify(schoolClassFacade).getSchoolClass(query);
     }
 
     @Test
@@ -80,12 +86,12 @@ class NativeOrganizationDirectoryClientTest {
 
     @Test
     void rejects_null_missing_or_invalid_success_data() {
-        when(userService.getUser(userRequest())).thenReturn(null);
+        when(userFacade.getUser(userRequest())).thenReturn(null);
         assertFailure(() -> client.getUser(1001L), ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
-        when(userService.getUser(userRequest())).thenReturn(UserRpcResponse.newBuilder().setSuccess(true).build());
+        when(userFacade.getUser(userRequest())).thenReturn(UserRpcResponse.newBuilder().setSuccess(true).build());
         assertFailure(() -> client.getUser(1001L), ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
-        when(userService.getUser(userRequest())).thenReturn(converter.userSuccess(
-                new UserDetailDTO(0L, "invalid", null, null, List.of())));
+        when(userFacade.getUser(userRequest())).thenReturn(userSuccess(
+                UserResponse.newBuilder().setId(0L).setName("invalid").build()));
         assertFailure(() -> client.getUser(1001L), ExternalDependencyFailure.CONTRACT_INCOMPATIBLE);
     }
 
@@ -94,26 +100,32 @@ class NativeOrganizationDirectoryClientTest {
         assertThatThrownBy(() -> client.getUser(null)).isInstanceOf(ConstraintViolationException.class);
         assertThatThrownBy(() -> client.getUser(0L)).isInstanceOf(ConstraintViolationException.class);
         assertThatThrownBy(() -> client.getSchoolClass(1L, -1L)).isInstanceOf(ConstraintViolationException.class);
-        verifyNoInteractions(userService, schoolClassService);
+        verifyNoInteractions(userFacade, schoolClassFacade);
     }
 
     @Test
     void reverse_projection_does_not_invent_fields_outside_the_domain_port() {
         var user = projection.toSource(new OrganizationUser(1L, "Mario", "ACTIVE"));
-        assertThat(user.email()).isNull();
-        assertThat(user.roleCodes()).isEmpty();
+        assertThat(user.hasEmail()).isFalse();
+        assertThat(user.getRoleCodesCount()).isZero();
         assertThat(projection.toTarget(user)).isEqualTo(new OrganizationUser(1L, "Mario", "ACTIVE"));
     }
 
     private GetUserRpcRequest userRequest() { return GetUserRpcRequest.newBuilder().setUserId(1001L).build(); }
 
+    private static UserRpcResponse userSuccess(UserResponse data) {
+        return UserRpcResponse.newBuilder().setSuccess(true).setCode("SUCCESS").setMessage("success")
+                .setData(data).build();
+    }
+
     private void assertProviderFailure(String code, ExternalDependencyFailure expected) {
-        when(userService.getUser(userRequest())).thenReturn(converter.userFailure(code, "remote details", "trace-1"));
+        when(userFacade.getUser(userRequest())).thenReturn(UserRpcResponse.newBuilder()
+                .setSuccess(false).setCode(code).setMessage("remote details").setTraceId("trace-1").build());
         assertFailure(() -> client.getUser(1001L), expected);
     }
 
     private void assertTransportFailure(EgonRpcErrorCode code, ExternalDependencyFailure expected) {
-        doThrow(new EgonRpcException(code, "remote details")).when(userService).getUser(userRequest());
+        doThrow(new EgonRpcException(code, "remote details")).when(userFacade).getUser(userRequest());
         assertFailure(() -> client.getUser(1001L), expected);
     }
 
@@ -140,8 +152,8 @@ class NativeOrganizationDirectoryClientTest {
                 new top.egon.cola.component.rpc.context.identity.RpcProcessIdentity("consumer", "test", "localhost", 1L, "consumer-1"),
                 new NativeOrganizationRpcProperties("biz", "organization-app", "student-management-organization", "1.0", 5000),
                 new top.egon.cola.component.rpc.config.EgonRpcProperties(), validation);
-        config.organizationUserRpcService();
-        config.organizationSchoolClassRpcService();
+        config.organizationUserFacade();
+        config.organizationSchoolClassFacade();
         var definitions = org.mockito.ArgumentCaptor.forClass(top.egon.cola.component.rpc.consumer.reference.RpcReferenceDefinition.class);
         verify(strategies, times(2)).create(definitions.capture());
         for (var definition : definitions.getAllValues()) {

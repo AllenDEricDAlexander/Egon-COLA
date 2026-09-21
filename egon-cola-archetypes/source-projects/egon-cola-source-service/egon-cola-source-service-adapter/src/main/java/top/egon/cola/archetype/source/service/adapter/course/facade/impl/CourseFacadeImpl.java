@@ -1,59 +1,93 @@
 package top.egon.cola.archetype.source.service.adapter.course.facade.impl;
 
-import top.egon.cola.archetype.source.service.adapter.course.converter.CourseFacadeConverter;
-import top.egon.cola.archetype.source.service.adapter.handler.GlobalFacadeExceptionHandler;
-import top.egon.cola.archetype.source.service.adapter.course.validators.CourseFacadeValidator;
-import top.egon.cola.archetype.source.service.application.course.command.CreateCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.manage.CourseManage;
-import top.egon.cola.archetype.source.service.application.course.query.GetCourseQuery;
-import top.egon.cola.archetype.source.service.application.course.query.PageCourseQuery;
-import top.egon.cola.evaluation.facade.course.CourseFacade;
-import top.egon.cola.evaluation.facade.dto.PageResponse;
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
-import top.egon.cola.evaluation.facade.course.dto.CourseResponse;
-import top.egon.cola.evaluation.facade.course.dto.CourseScheduleResponse;
-import top.egon.cola.evaluation.facade.course.dto.CreateCourseRequest;
-import top.egon.cola.evaluation.facade.course.dto.GetCourseRequest;
-import top.egon.cola.evaluation.facade.course.dto.PageCourseRequest;
-import top.egon.cola.evaluation.facade.course.dto.ScheduleCourseRequest;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.stereotype.Component;
+import top.egon.cola.archetype.source.service.adapter.handler.GlobalFacadeExceptionHandler;
+import top.egon.cola.archetype.source.service.adapter.pojo.convertor.EvaluationFacadeConverter;
+import top.egon.cola.archetype.source.service.adapter.pojo.dto.FacadeFailureDTO;
+import top.egon.cola.archetype.source.service.application.course.manage.CourseManage;
+import top.egon.cola.archetype.source.service.facade.course.CourseFacade;
+import top.egon.cola.archetype.source.service.facade.proto.CourseRpcResponse;
+import top.egon.cola.archetype.source.service.facade.proto.CourseScheduleRpcResponse;
+import top.egon.cola.archetype.source.service.facade.proto.CreateCourseRpcRequest;
+import top.egon.cola.archetype.source.service.facade.proto.GetCourseRpcRequest;
+import top.egon.cola.archetype.source.service.facade.proto.PageCourseRpcRequest;
+import top.egon.cola.archetype.source.service.facade.proto.PageCourseRpcResponse;
+import top.egon.cola.archetype.source.service.facade.proto.ScheduleCourseRpcRequest;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.rpc.annotation.EgonRpcProvider;
 
+import java.util.Objects;
+
+/** Native unary provider of the service-owned Course facade; maps Protobuf onto the use cases. */
 @Component("courseFacadeImpl")
-@Slf4j
-@Validated
+@EgonRpcProvider
 @RequiredArgsConstructor
+@Slf4j
 public class CourseFacadeImpl implements CourseFacade {
-    @Qualifier("courseManage") private final CourseManage courseManage;
-    @Qualifier("courseFacadeConverterImpl") private final CourseFacadeConverter converter;
-    @Qualifier("courseFacadeValidator") private final CourseFacadeValidator validator;
-    @Qualifier("globalFacadeExceptionHandler") private final GlobalFacadeExceptionHandler exceptionHandler;
 
-    public SingleResponse<CourseResponse> create(CreateCourseRequest request) {
-        try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.create(new CreateCourseCommand(request.code(), request.name(), request.credit())))); }
-        catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
-    }
-    public SingleResponse<CourseScheduleResponse> scheduleCourse(ScheduleCourseRequest request) {
-        try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.schedule(converter.toCommand(request)))); }
-        catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
-    }
-    public SingleResponse<CourseResponse> getCourse(GetCourseRequest request) {
-        try { validator.require(request); return SingleResponse.of(converter.toResponse(
-                courseManage.get(new GetCourseQuery(request.courseId())))); }
-        catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
-    }
-    public SingleResponse<PageResponse<CourseResponse>> pageCourses(PageCourseRequest request) {
+    @Qualifier("courseManage")
+    private final CourseManage courseManage;
+    @Qualifier("evaluationFacadeConverter")
+    private final EvaluationFacadeConverter converter;
+    @Qualifier("nativeRpcValidation")
+    private final ValidationUtils validation;
+    @Qualifier("globalFacadeExceptionHandler")
+    private final GlobalFacadeExceptionHandler exceptionHandler;
+
+    @Override
+    public CourseRpcResponse createCourse(CreateCourseRpcRequest request) {
+        var input = validation.validate(converter.toSource(request));
         try {
-            validator.require(request);
-            var page = courseManage.page(new PageCourseQuery(request.currentPage(), request.pageSize()));
-            List<CourseResponse> records = page.records().stream().map(converter::toResponse).toList();
-            return SingleResponse.of(PageResponse.of(records, page.currentPage(), page.totalPages(), page.pageSize(), page.totalCount()));
-        } catch (RuntimeException failure) { return exceptionHandler.toFailure(failure); }
+            return converter.courseSuccess(require(courseManage.create(input)));
+        } catch (RuntimeException failure) {
+            FacadeFailureDTO rejection = reject("createCourse", failure);
+            return converter.courseFailure(rejection.code(), rejection.message(), null);
+        }
+    }
+
+    @Override
+    public CourseScheduleRpcResponse scheduleCourse(ScheduleCourseRpcRequest request) {
+        var input = validation.validate(converter.toSource(request));
+        try {
+            return converter.courseScheduleSuccess(require(courseManage.schedule(input)));
+        } catch (RuntimeException failure) {
+            FacadeFailureDTO rejection = reject("scheduleCourse", failure);
+            return converter.courseScheduleFailure(rejection.code(), rejection.message(), null);
+        }
+    }
+
+    @Override
+    public CourseRpcResponse getCourse(GetCourseRpcRequest request) {
+        var input = validation.validate(converter.toSource(request));
+        try {
+            return converter.courseSuccess(require(courseManage.get(input)));
+        } catch (RuntimeException failure) {
+            FacadeFailureDTO rejection = reject("getCourse", failure);
+            return converter.courseFailure(rejection.code(), rejection.message(), null);
+        }
+    }
+
+    @Override
+    public PageCourseRpcResponse pageCourses(PageCourseRpcRequest request) {
+        var input = validation.validate(converter.toSource(request));
+        try {
+            return converter.pageCourseSuccess(require(courseManage.page(input)));
+        } catch (RuntimeException failure) {
+            FacadeFailureDTO rejection = reject("pageCourses", failure);
+            return converter.pageCourseFailure(rejection.code(), rejection.message(), null);
+        }
+    }
+
+    private static <T> T require(T result) {
+        return Objects.requireNonNull(result, "facade returned null");
+    }
+
+    private FacadeFailureDTO reject(String operation, RuntimeException failure) {
+        FacadeFailureDTO rejection = exceptionHandler.toFailure(failure);
+        log.debug("{} rejected: {}", operation, rejection.code());
+        return rejection;
     }
 }

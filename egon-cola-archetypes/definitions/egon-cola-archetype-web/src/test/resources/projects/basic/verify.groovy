@@ -29,13 +29,21 @@ def sourceFiles = { String root ->
 }
 
 def prefix = "student-management-organization"
-def modules = ["common", "domain", "application", "infrastructure", "adapter", "starter"]
+def modules = ["common", "facade", "domain", "application", "infrastructure", "adapter", "starter"]
 def moduleNames = modules.collect { "${prefix}-${it}" }
 def rootPom = new XmlSlurper(false, false).parse(file("pom.xml"))
 assert rootPom.modules.module*.text() == moduleNames
 assert rootPom.properties.'java.version'.text() == "21"
 assert rootPom.properties.'egon-cola.version'.text()
 assert rootPom.properties.'lombok.version'.text() == "1.18.46"
+assert rootPom.properties.'evaluation-facade.group-id'.text() == "top.egon.internal.archetype.source"
+assert rootPom.properties.'evaluation-facade.artifact-id'.text() == "egon-cola-source-service-facade"
+assert rootPom.properties.'evaluation-facade.version'.text() == "0.1.0-SNAPSHOT"
+assert rootPom.properties.'evaluation-facade.package'.text() == "top.egon.cola.archetype.source.service.facade"
+["group-id", "artifact-id", "version", "package"].each { part ->
+    assert !rootPom.properties."organization-facade.${part}".text():
+            "The own contract is a reactor module and must not stay an external Facade artifact: organization-facade.${part}"
+}
 def rootPomText = file("pom.xml").getText("UTF-8")
 assert !rootPomText.contains("spring-boot-starter-data-jpa")
 assert !rootPomText.contains("mybatis-plus.version")
@@ -43,12 +51,18 @@ assert rootPomText.contains("<artifactId>lombok-mapstruct-binding</artifactId>")
 moduleNames.each { file("${it}/pom.xml") }
 
 modules.each { module ->
-    ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"].each { source ->
+    def moduleSources = module == "facade"
+            ? ["src/main/java", "src/main/proto"]
+            : ["src/main/java", "src/main/resources", "src/test/java", "src/test/resources"]
+    moduleSources.each { source ->
         directory("${prefix}-${module}/${source}")
     }
 }
 missing("${prefix}-client")
 missing("${prefix}-app")
+missing("${prefix}-facade/src/main/resources")
+missing("${prefix}-facade/src/test/java")
+missing("${prefix}-facade/src/test/resources")
 missing("${prefix}-domain/src/main/java/domain")
 missing("${prefix}-domain/src/main/java/${prefix}")
 missing("${prefix}-infrastructure/src/main/java/infrastructure/repo")
@@ -60,6 +74,19 @@ missing("${prefix}-domain/src/main/java/domain/user/service/impl")
 missing("${prefix}-domain/src/main/java/domain/teaching/service/impl")
 
 def expectedFiles = [
+    "${prefix}-facade/src/main/java/it/pkg/facade/user/UserFacade.java",
+    "${prefix}-facade/src/main/java/it/pkg/facade/user/RoleFacade.java",
+    "${prefix}-facade/src/main/java/it/pkg/facade/user/PermissionFacade.java",
+    "${prefix}-facade/src/main/java/it/pkg/facade/teaching/GradeFacade.java",
+    "${prefix}-facade/src/main/java/it/pkg/facade/teaching/SchoolClassFacade.java",
+    "${prefix}-facade/src/main/proto/organization_facade.proto",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/user/facade/impl/UserFacadeImpl.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/user/facade/impl/RoleFacadeImpl.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/user/facade/impl/PermissionFacadeImpl.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/teaching/facade/impl/GradeFacadeImpl.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/teaching/facade/impl/SchoolClassFacadeImpl.java",
+    "${prefix}-adapter/src/main/java/it/pkg/adapter/pojo/convertor/OrganizationFacadeConverter.java",
+    "${prefix}-starter/src/test/java/it/pkg/contract/OwnedFacadeContractTest.java",
     "${prefix}-domain/pom.xml",
     "${prefix}-domain/src/main/java/it/pkg/domain/user/service/UserDomainService.java",
     "${prefix}-domain/src/main/java/it/pkg/domain/user/service/PermissionDomainService.java",
@@ -90,6 +117,20 @@ assert dependencyIds(poms.infrastructure).contains("egon-cola-component-common-m
 assert !dependencyIds(poms.infrastructure).contains("flyway-core")
 assert !dependencyIds(poms.infrastructure).contains("spring-boot-starter-data-jpa")
 assert !dependencyIds(poms.infrastructure).contains("mybatis-plus-spring-boot3-starter")
+// The own contract is protocol-only: no internal module, no published peer artifact.
+assert ["egon-cola-component-rpc-starter", "protobuf-java", "grpc-protobuf", "grpc-stub",
+        "jakarta.validation-api"].every { dependencyIds(poms.facade).contains(it) }
+assert !dependencyIds(poms.facade).any { it.startsWith(prefix) }:
+        "The own Facade module must stay free of internal-module dependencies"
+assert dependencyIds(poms.adapter).containsAll(["${prefix}-application".toString(), "${prefix}-facade".toString()])
+assert dependencyIds(poms.infrastructure).contains('${evaluation-facade.artifact-id}'):
+        "Infrastructure must consume the published peer Evaluation Facade"
+assert !dependencyIds(poms.infrastructure).contains("${prefix}-facade".toString()):
+        "Infrastructure must not depend on the project's own contract"
+modules.findAll { it != "infrastructure" }.each { module ->
+    assert !dependencyIds(poms[module]).contains('${evaluation-facade.artifact-id}'):
+            "Unexpected peer Facade dependency in ${module}"
+}
 
 def javaSources = []
 modules.each { module -> javaSources.addAll(sourceFiles("${prefix}-${module}/src/main/java")) }
@@ -97,6 +138,21 @@ def runtimeText = javaSources.collect { it.getText("UTF-8") }.join("\n")
 ["spring-boot-starter-data-jpa", "jakarta.persistence", "JpaRepository", "@Entity", "@MappedSuperclass",
  "UuidV7Generator", "extends BaseMapper<", "repo.mapper"].each { token ->
     assert !runtimeText.contains(token): "Forbidden Web runtime token ${token}"
+}
+
+// The published contract is interfaces plus Protobuf only; implementations stay in the Adapter.
+def facadeJavaFiles = sourceFiles("${prefix}-facade/src/main/java")
+assert facadeJavaFiles.every { it.name.endsWith("Facade.java") || it.name == "package-info.java" }:
+        "The contract module holds only contract interfaces: ${facadeJavaFiles*.name}"
+assert facadeJavaFiles.findAll { it.name.endsWith("Facade.java") }*.name.toSet() == [
+        "UserFacade.java", "RoleFacade.java", "PermissionFacade.java",
+        "GradeFacade.java", "SchoolClassFacade.java"
+].toSet(): "The generated own contract changed: ${facadeJavaFiles*.name}"
+facadeJavaFiles.findAll { it.name.endsWith("Facade.java") }.each { candidate ->
+    def source = candidate.getText("UTF-8")
+    assert source.contains("public interface "): "Contract must be an interface: ${relativePath(candidate)}"
+    assert !source.contains("@Component") && !source.contains("@EgonRpcProvider")
+    assert !source.contains("import it.pkg.adapter.") && !source.contains("import it.pkg.infrastructure.")
 }
 
 def poSources = javaSources.findAll {
@@ -153,6 +209,52 @@ mapperXmls.each { xml ->
     assert xml.text.contains("DAO\"")
     assert xml.text.contains("tenant_id")
 }
+
+// Contract traffic boundaries: the published peer Evaluation Facade is an Infrastructure-client
+// detail, while the project's own contract may only be consumed by its Adapter providers.
+def runtimeJava = []
+projectDir.traverse(type: FileType.FILES) { candidate ->
+    if (candidate.isFile() && candidate.name.endsWith(".java")) {
+        def path = relativePath(candidate)
+        if (path.contains("/src/main/java/") && !path.contains("/target/")) runtimeJava << candidate
+    }
+}
+def peerFacadeImports = runtimeJava.findAll {
+    it.getText("UTF-8").contains("import top.egon.cola.archetype.source.service.facade.")
+}
+assert peerFacadeImports: "Infrastructure must consume the published peer Evaluation Facade"
+assert peerFacadeImports.every { relativePath(it).contains("/infrastructure/client/evaluation/") }:
+        "Peer Evaluation Facade imports escaped Infrastructure client: ${peerFacadeImports.collect { relativePath(it) }}"
+def ownFacadeImports = runtimeJava.findAll { it.getText("UTF-8").contains("import it.pkg.facade.") }
+assert ownFacadeImports: "The generated Adapter must consume the project's own Facade module"
+assert ownFacadeImports.every {
+    def path = relativePath(it)
+    path.startsWith("${prefix}-facade/src/") || path.startsWith("${prefix}-adapter/src/")
+}: "Own Facade contract escaped its module and the Adapter: ${ownFacadeImports.collect { relativePath(it) }}"
+def localEvaluationStub = file("${prefix}-infrastructure/src/main/java/it/pkg/infrastructure/client/evaluation/LocalEvaluationQueryStub.java").text
+assert !localEvaluationStub.contains("top.egon.cola.archetype.source.service.facade"):
+        "The test stub must stay free of the published peer contract"
+[
+    "top.egon.cola.evaluation.facade", "top.egon.cola.organization.facade",
+    "EvaluationRpcConverter", "OrganizationRpcConverter",
+    "UserRpcService", "GradeRpcService", "RoleRpcService", "PermissionRpcService",
+    "SchoolClassRpcService", "CourseRpcService", "ExamRpcService", "ScoreRpcService",
+    "RpcSchoolClassQuery"
+].each { token ->
+    runtimeJava.each { candidate ->
+        assert !candidate.getText("UTF-8").contains(token):
+                "Retired shared Facade reference ${token} in ${relativePath(candidate)}"
+    }
+}
+def frozenWire = file("${prefix}-facade/src/main/proto/organization_facade.proto").text
+assert frozenWire.contains("package top.egon.cola.organization.facade.rpc.v1;")
+assert frozenWire.contains('option java_package = "it.pkg.facade.proto";')
+def facadeConverter = file("${prefix}-adapter/src/main/java/it/pkg/adapter/pojo/convertor/OrganizationFacadeConverter.java").text
+assert facadeConverter.contains("@Mapper(")
+assert facadeConverter.contains("extends BaseConverter<")
+assert facadeConverter.contains("@BeanMapping(ignoreByDefault = true)")
+assert facadeConverter.contains("@AfterMapping")
+assert facadeConverter.contains("import it.pkg.facade.proto.")
 
 def application = file("${prefix}-starter/src/main/java/it/pkg/starter/OrganizationApplication.java").text
 assert application.contains("@MapperScan")
@@ -211,7 +313,17 @@ assert readme.contains("Long")
 assert readme.contains("clean verify")
 assert !readme.contains("Spring Data JPA")
 assert !readme.contains("UUIDv7")
-assert file("README.zh-CN.md").text.contains("MyBatis-Plus")
+assert readme.contains("The Organization contract is published by this project itself")
+["evaluation-facade.group-id", "evaluation-facade.artifact-id",
+ "evaluation-facade.version", "evaluation-facade.package"].each {
+    assert readme.contains(it): "The generated Web README must document the peer Facade property ${it}"
+}
+def webReadmeZh = file("README.zh-CN.md").text
+assert webReadmeZh.contains("MyBatis-Plus")
+["evaluation-facade.group-id", "evaluation-facade.artifact-id",
+ "evaluation-facade.version", "evaluation-facade.package"].each {
+    assert webReadmeZh.contains(it): "The Chinese Web README must document the peer Facade property ${it}"
+}
 
 def reports = []
 projectDir.traverse(type: FileType.FILES) { candidate ->
@@ -236,7 +348,9 @@ def assertPackageDocs = { String sourceRoot ->
 }
 modules.each { module ->
     assertPackageDocs("${prefix}-${module}/src/main/java")
-    assertPackageDocs("${prefix}-${module}/src/test/java")
+    if (module != "facade") {
+        assertPackageDocs("${prefix}-${module}/src/test/java")
+    }
 }
 
 def livingArchitectureDoc = null
@@ -277,13 +391,22 @@ assert sourceBoundaryFiles.every { candidate ->
     def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
     !candidatePath.contains('.generated')
 }
+// The IT supplies the peer project's real coordinates, so the root POM's explicit
+// `evaluation-facade.*` property lines carry them by design instead of leaking a template sentinel.
+def boundaryText = { candidate ->
+    def text = candidate.getText('UTF-8')
+    def candidatePath = projectDir.toPath().relativize(candidate.toPath()).toString().replace(File.separator, '/')
+    candidatePath == 'pom.xml'
+            ? text.readLines().findAll { !it.contains('evaluation-facade.') }.join('\n')
+            : text
+}
 [
     'top.egon.internal.archetype.source',
     'egon-cola-source-web',
     '0.1.0-SNAPSHOT'
 ].each { forbiddenToken ->
     sourceBoundaryFiles.each { candidate ->
-        assert !candidate.getText('UTF-8').contains(forbiddenToken):
+        assert !boundaryText(candidate).contains(forbiddenToken):
                 "Generated project leaked source sentinel ${forbiddenToken} in ${candidate}"
     }
 }
@@ -363,8 +486,15 @@ projectDir.traverse(type: FileType.FILES) { candidate ->
     if (path.contains('/src/main/java/') && !path.contains('/target/') && candidate.name.endsWith('.java')) nativeJava << candidate
 }
 assert nativeJava.every { !it.text.contains('org.apache.dubbo') }
-def nativeProviders = nativeJava.findAll { it.name.endsWith('RpcProvider.java') }
-assert nativeProviders.every { it.text.contains('@EgonRpcProvider') && it.text.contains('@RequiredArgsConstructor') }
+def nativeProviders = nativeJava.findAll {
+    it.name.endsWith('FacadeImpl.java') && it.text.contains('@EgonRpcProvider')
+}
+assert nativeProviders*.name.toSet() == ['UserFacadeImpl.java', 'RoleFacadeImpl.java', 'PermissionFacadeImpl.java',
+                                         'GradeFacadeImpl.java', 'SchoolClassFacadeImpl.java'].toSet():
+        "Every native contract must have exactly one merged provider: ${nativeProviders*.name}"
+assert nativeProviders.every { it.text.contains('@RequiredArgsConstructor') }
+assert nativeJava.every { !it.name.endsWith('RpcProvider.java') }:
+        "The split RpcProvider classes must be gone after the provider merge"
 def nativeOperations = nativeProviders.collectMany { provider ->
     (provider.text =~ /public\s+\w*Response\s+(\w+)\(/).collect { it[1] }
 }.sort()

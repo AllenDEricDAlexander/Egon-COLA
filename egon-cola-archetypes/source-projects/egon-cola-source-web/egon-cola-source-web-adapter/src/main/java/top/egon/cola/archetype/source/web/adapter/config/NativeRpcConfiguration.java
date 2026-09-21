@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
-import top.egon.cola.organization.facade.rpc.OrganizationRpcConverter;
+import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFacadeConverter;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.provider.server.RpcProviderExceptionMapper;
 
@@ -17,9 +17,9 @@ import java.util.Optional;
 /** Wires native conversion and reuses the component's Jakarta validator. */
 @Configuration(value = "nativeRpcConfiguration", proxyBeanMethods = false)
 public class NativeRpcConfiguration {
-    @Bean("organizationRpcConverter")
-    OrganizationRpcConverter organizationRpcConverter() {
-        return Mappers.getMapper(OrganizationRpcConverter.class);
+    @Bean("organizationFacadeConverter")
+    OrganizationFacadeConverter organizationFacadeConverter() {
+        return Mappers.getMapper(OrganizationFacadeConverter.class);
     }
 
     @Bean("nativeRpcValidation")

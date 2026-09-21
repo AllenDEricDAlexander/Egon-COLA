@@ -5,17 +5,13 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
-import top.egon.cola.component.common.core.validation.ValidationUtils;
-import top.egon.cola.organization.facade.rpc.OrganizationRpcConverter;
-import top.egon.cola.organization.facade.rpc.RpcIdQuery;
-import top.egon.cola.organization.facade.rpc.RpcSchoolClassQuery;
-import top.egon.cola.organization.facade.rpc.UserRpcService;
-import top.egon.cola.organization.facade.rpc.SchoolClassRpcService;
-import top.egon.cola.organization.facade.exceptions.OrganizationFacadeException;
 import top.egon.cola.archetype.source.service.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.service.domain.client.organization.OrganizationDirectoryPort;
-import top.egon.cola.archetype.source.service.domain.client.organization.OrganizationUser;
 import top.egon.cola.archetype.source.service.domain.client.organization.OrganizationSchoolClass;
+import top.egon.cola.archetype.source.service.domain.client.organization.OrganizationUser;
+import top.egon.cola.archetype.source.web.facade.teaching.SchoolClassFacade;
+import top.egon.cola.archetype.source.web.facade.user.UserFacade;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
 /** Native DIRECT adapter for the existing organization directory port. */
 @Component("nativeOrganizationDirectoryClient")
@@ -23,38 +19,32 @@ import top.egon.cola.archetype.source.service.domain.client.organization.Organiz
 @RequiredArgsConstructor
 @Slf4j
 public class NativeOrganizationDirectoryClient implements OrganizationDirectoryPort {
-    @Qualifier("organizationUserRpcService")
-    private final UserRpcService userService;
-    @Qualifier("organizationSchoolClassRpcService")
-    private final SchoolClassRpcService schoolClassService;
-    @Qualifier("organizationRpcConverter")
-    private final OrganizationRpcConverter converter;
+    @Qualifier("organizationUserFacade")
+    private final UserFacade userFacade;
+    @Qualifier("organizationSchoolClassFacade")
+    private final SchoolClassFacade schoolClassFacade;
     @Qualifier("organizationDirectoryConverter")
-    private final OrganizationDirectoryConverter directoryConverter;
+    private final OrganizationDirectoryConverter directories;
     @Qualifier("nativeRpcValidation")
     private final ValidationUtils validation;
 
     @Override
     public OrganizationUser getUser(Long userId) {
-        var query = validation.validate(new RpcIdQuery(userId));
+        var query = validation.validate(new OrganizationDirectoryConverter.UserQuery(userId));
         try {
-            var response = userService.getUser(directoryConverter.userRequest(query));
+            var response = userFacade.getUser(directories.userRequest(query));
             if (response == null) {
                 throw OrganizationClientFailureMapper.incompatible("getUser");
             }
             if (!response.getSuccess()) {
-                throw new OrganizationFacadeException(response.hasCode() ? response.getCode() : null,
-                        response.hasMessage() ? response.getMessage() : null,
-                        response.hasTraceId() ? response.getTraceId() : null);
+                throw OrganizationClientFailureMapper.rejected(
+                        response.hasCode() ? response.getCode() : null);
             }
-            if (!response.hasData()) {
+            var data = response.getData();
+            if (!response.hasData() || !data.hasId() || data.getId() <= 0L) {
                 throw OrganizationClientFailureMapper.incompatible("getUser");
             }
-            var data = converter.toSource(response.getData());
-            if (!validation.isValid(data)) {
-                throw OrganizationClientFailureMapper.incompatible("getUser");
-            }
-            return directoryConverter.toTarget(data);
+            return directories.toTarget(data);
         } catch (ExternalDependencyException failure) {
             throw failure;
         } catch (RuntimeException failure) {
@@ -66,25 +56,22 @@ public class NativeOrganizationDirectoryClient implements OrganizationDirectoryP
 
     @Override
     public OrganizationSchoolClass getSchoolClass(Long gradeId, Long schoolClassId) {
-        var query = validation.validate(new RpcSchoolClassQuery(gradeId, schoolClassId));
+        var query = validation.validate(new OrganizationDirectoryConverter.SchoolClassQuery(gradeId, schoolClassId));
         try {
-            var response = schoolClassService.getSchoolClass(directoryConverter.schoolClassRequest(query));
+            var response = schoolClassFacade.getSchoolClass(directories.schoolClassRequest(query));
             if (response == null) {
                 throw OrganizationClientFailureMapper.incompatible("getSchoolClass");
             }
             if (!response.getSuccess()) {
-                throw new OrganizationFacadeException(response.hasCode() ? response.getCode() : null,
-                        response.hasMessage() ? response.getMessage() : null,
-                        response.hasTraceId() ? response.getTraceId() : null);
+                throw OrganizationClientFailureMapper.rejected(
+                        response.hasCode() ? response.getCode() : null);
             }
-            if (!response.hasData()) {
+            var data = response.getData();
+            if (!response.hasData() || !data.hasId() || data.getId() <= 0L
+                    || data.getUserIdsList().stream().anyMatch(id -> id <= 0L)) {
                 throw OrganizationClientFailureMapper.incompatible("getSchoolClass");
             }
-            var data = converter.toSource(response.getData());
-            if (!validation.isValid(data)) {
-                throw OrganizationClientFailureMapper.incompatible("getSchoolClass");
-            }
-            return directoryConverter.toTarget(data);
+            return directories.toTarget(data);
         } catch (ExternalDependencyException failure) {
             throw failure;
         } catch (RuntimeException failure) {

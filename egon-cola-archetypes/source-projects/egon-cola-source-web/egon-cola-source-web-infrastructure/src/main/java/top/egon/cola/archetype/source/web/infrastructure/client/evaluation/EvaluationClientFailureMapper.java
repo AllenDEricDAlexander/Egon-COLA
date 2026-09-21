@@ -1,9 +1,8 @@
 package top.egon.cola.archetype.source.web.infrastructure.client.evaluation;
 
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
+import java.util.Locale;
 import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyException;
 import top.egon.cola.archetype.source.web.domain.client.ExternalDependencyFailure;
-import java.util.Locale;
 import top.egon.cola.component.rpc.common.exception.EgonRpcException;
 
 final class EvaluationClientFailureMapper {
@@ -11,19 +10,6 @@ final class EvaluationClientFailureMapper {
     private static final String DEPENDENCY = "evaluation";
 
     private EvaluationClientFailureMapper() {
-    }
-
-    static <T> T requireData(SingleResponse<T> response, String operation) {
-        if (response == null) {
-            throw incompatible(operation);
-        }
-        if (!response.isSuccess()) {
-            throw providerFailure(response.getCode());
-        }
-        if (response.getData() == null) {
-            throw incompatible(operation);
-        }
-        return response.getData();
     }
 
     static ExternalDependencyException map(RuntimeException failure) {
@@ -38,7 +24,8 @@ final class EvaluationClientFailureMapper {
         return failure(ExternalDependencyFailure.SERVICE_FAILURE, "UNKNOWN", failure);
     }
 
-    private static ExternalDependencyException providerFailure(String code) {
+    /** A provider rejection keeps only its wire string code; remote details stay sanitized out. */
+    static ExternalDependencyException rejected(String code) {
         return failure(category(code), code, null);
     }
 

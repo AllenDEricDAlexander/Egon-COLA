@@ -8,6 +8,12 @@
         <requiredProperty key="gitignore">
             <defaultValue>.gitignore</defaultValue>
         </requiredProperty>
+        <!-- The peer contract coordinate is explicit: generation must fail until the
+             sibling project's published facade artifact is named. -->
+        <requiredProperty key="evaluationFacadeGroupId"/>
+        <requiredProperty key="evaluationFacadeArtifactId"/>
+        <requiredProperty key="evaluationFacadeVersion"/>
+        <requiredProperty key="evaluationFacadePackage"/>
     </requiredProperties>
 
     <fileSets>
@@ -113,6 +119,28 @@
                         <include>**/*.xml</include>
                         <include>mybatis/*.sql</include>
                         <include>sharding/*.sql</include>
+                    </includes>
+                </fileSet>
+            </fileSets>
+        </module>
+        <module id="${rootArtifactId}-facade" dir="__rootArtifactId__-facade" name="${rootArtifactId}-facade">
+            <fileSets>
+                <fileSet filtered="true" encoding="UTF-8">
+                    <directory></directory>
+                    <includes>
+                        <include>pom.xml</include>
+                    </includes>
+                </fileSet>
+                <fileSet filtered="true" packaged="true" encoding="UTF-8">
+                    <directory>src/main/java</directory>
+                    <includes>
+                        <include>**/*.java</include>
+                    </includes>
+                </fileSet>
+                <fileSet filtered="true" encoding="UTF-8">
+                    <directory>src/main/proto</directory>
+                    <includes>
+                        <include>**/*.proto</include>
                     </includes>
                 </fileSet>
             </fileSets>

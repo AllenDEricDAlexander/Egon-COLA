@@ -3,12 +3,14 @@
 ## 1. 适用范围
 
 本文档是 `egon-cola-archetype-web` 的生效架构合同。模板生成一个独立的
-`organization` Project，包含 `user` 和 `teaching` 两个业务领域；评价工程通过
-独立的 Evaluation Facade 被 Infrastructure client 消费，不复制为本地 Maven 模块。
+`organization` Project，包含 `user` 和 `teaching` 两个业务领域；本工程自己的
+Organization 契约保存在 `facade` 模块并对外发布，评价工程的 Evaluation 契约作为
+已发布工件被 Infrastructure client 消费，不复制为本地 Maven 模块。
 
 ```text
 student-management-organization
 ├── common
+├── facade
 ├── domain
 ├── application
 ├── infrastructure
@@ -19,15 +21,21 @@ student-management-organization
 模块依赖方向固定为：
 
 ```text
+facade（仅协议，不依赖任何内部模块）
 common         <- domain <- application <- adapter <- starter
                          \                    /
                           -> infrastructure -/
 ```
 
-更精确地说：`domain -> common`，`application -> domain`，
-`infrastructure -> domain + Evaluation Facade`，`adapter -> application +
+更精确地说：`facade` 只有接口与 Protobuf 载体，不依赖任何其他内部模块，
+`domain -> common`，`application -> domain`，`infrastructure -> domain +
+Evaluation Facade`（对端已发布工件），`adapter -> application + 本工程自有
 Organization Facade`，`starter -> adapter + infrastructure`。Starter 只负责装配，
-canonical Facade 不反向依赖任何生成模块。
+两个 Facade 契约都不反向依赖生成工程。
+
+发布顺序构成单向 DAG：`parent -> common -> facade -> domain -> application ->
+infrastructure -> adapter -> starter`。对端工程只依赖已发布的 `facade` 工件，
+因此双方不存在 Maven 环。
 
 ## 2. 分层职责与边界
 
@@ -38,7 +46,16 @@ common 提供工程内的异常、常量和通用工具；Common MP Starter 由 
 `EgonColaMapper`、租户线、审计填充、逻辑删除、乐观锁和校验能力。模板不复制这些
 基础类，也不在模块内声明独立的 MyBatis-Plus 版本。
 
-### 2.2 domain
+### 2.2 facade
+
+facade 是本工程对外发布的唯一契约模块，只包含 `*Facade` 接口和 `src/main/proto`
+中的 Protobuf 载体。接口不携带实现注解（不得出现 `@Component`、
+`@EgonRpcProvider`），也不 import application、infrastructure 或 adapter 类型；
+其 Maven 依赖只有 RPC 协议库与 `jakarta.validation-api`。Protobuf 的 `package`、
+service、method 与 field number 是冻结的线上契约，只有 `java_package` 归生成工程
+所有。
+
+### 2.3 domain
 
 domain 只表达领域实体、聚合、值对象、枚举、事件、校验器和服务契约。业务服务
 接口位于 `domain/<业务域>/service`，使用泛型形式：
@@ -52,13 +69,13 @@ domain 不声明 DAO、PO 或技术实现；服务实现不放在 domain。domai
 Common MP Starter 暴露的契约类型，这是本模板为统一 Service/Model 合同保留的
 唯一持久化相关依赖。
 
-### 2.3 application
+### 2.4 application
 
 application 编排用例、事务、应用级校验、装配和结果转换。它只调用 domain
 service/client 契约，不触碰 DAO、PO、MyBatis XML、RedisTemplate、消息模板或
 外部 Facade client 实现。
 
-### 2.4 infrastructure
+### 2.5 infrastructure
 
 infrastructure 承担所有出站技术实现。每个业务域使用以下结构：
 
@@ -94,17 +111,20 @@ PO 不使用 `@RequiredArgsConstructor` 或 `@SuperBuilder`；Builder 只覆盖�
 字段，EgonModel 的租户、审计、删除和版本字段由 Common MP 映射/填充维护。具体
 ServiceImpl 使用 Lombok `@RequiredArgsConstructor` 注入 DAO、校验器和配置。
 
-### 2.5 adapter
+### 2.6 adapter
 
 adapter 是唯一入站适配层，负责 HTTP、GraphQL、入站 MQ、RPC Provider、Facade
 实现、协议 DTO/VO 转换、过滤器和错误契约。Adapter 只能调用 application 和
-canonical Provider Facade，不能直接访问 Infrastructure。
+本工程自有 facade 契约，不能直接访问 Infrastructure。每个契约只有一个具名
+`*FacadeImpl`，它同时携带 `@EgonRpcProvider` 与实现注解，链路固定为
+Protobuf 入参 → 校验 → Command/Query → application Manage → Result → Protobuf
+出参；业务错误继续以字符串 code 承载，不得降级为整数线上状态。
 
 HTTP/GraphQL 的 ID 字段保留十进制字符串以避免 JavaScript 精度损失；进入
 application/domain 前必须解析为正数 `Long`，非法或非正数直接拒绝。native Protobuf/Java
 Facade 契约使用 `Long`。
 
-### 2.6 starter
+### 2.7 starter
 
 starter 只包含启动类和运行时装配。启动类使用 `@MapperScan` 扫描 user/teaching
 DAO，使用 `@EnableConfigurationProperties(EgonColaMybatisPlusProperties.class)`

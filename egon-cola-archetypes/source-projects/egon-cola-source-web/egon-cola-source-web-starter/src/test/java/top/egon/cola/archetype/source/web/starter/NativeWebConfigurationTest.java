@@ -14,8 +14,8 @@ import top.egon.cola.component.tianshu.autoconfigure.properties.DdcProperties;
 import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
-import top.egon.cola.organization.facade.rpc.UserRpcService;
-import top.egon.cola.organization.facade.rpc.OrganizationRpcConverter;
+import top.egon.cola.archetype.source.web.adapter.pojo.convertor.OrganizationFacadeConverter;
+import top.egon.cola.archetype.source.web.facade.user.UserFacade;
 import java.util.Properties;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -31,8 +31,8 @@ class NativeWebConfigurationTest extends top.egon.cola.archetype.source.web.supp
 
     @Test
     void assembles_named_native_providers_and_converters_without_external_lifecycles() {
-        assertThat(context.getBean(UserRpcService.class)).isNotNull();
-        assertThat(context.getBean(OrganizationRpcConverter.class)).isNotNull();
+        assertThat(context.getBean(UserFacade.class)).isNotNull();
+        assertThat(context.getBean(OrganizationFacadeConverter.class)).isNotNull();
         assertThat(context.getBean("nativeRpcValidation", ValidationUtils.class))
                 .isSameAs(context.getBean("egonColaValidationUtils"));
         assertThat(context.containsBean("rpcProviderLifecycle")).isFalse();

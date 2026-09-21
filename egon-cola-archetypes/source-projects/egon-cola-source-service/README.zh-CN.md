@@ -56,15 +56,17 @@ adapter/exam/mq
 
 该项目保持 service-only：业务流量通过 COLA native unary RPC 或 RabbitMQ 进入，不包含业务 Controller、Web Filter、GraphQL 或 VO 包。外部 Organization 边界位于 `domain/client/organization` 和 `infrastructure/client/organization`。
 
+Evaluation 契约由本工程自己的 `top.egon.internal.archetype.source:egon-cola-source-service-facade` 模块发布；外部 Organization 契约仍是独立发布的工件，由生成的 POM 通过 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 属性解析，这些属性必须在生成时显式给出。
+
 允许的内部依赖图为：
 
 ```text
-Common <- Domain <- Application <- Adapter <- Canonical Evaluation Facade
-          Domain <- Infrastructure <- Canonical Organization Facade
+Common <- Domain <- Application <- Adapter -> 本工程自有 Evaluation Facade（仅协议）
+          Domain <- Infrastructure -> 已发布的 Organization Facade（外部工件）
           Adapter <- Starter -> Infrastructure
 ```
 
-更精确地说：Domain 只依赖 Common；Application 和 Infrastructure 只依赖 Domain；Adapter 只依赖 Application。Adapter 实现外部 Evaluation Facade 契约，Infrastructure 消费外部 Organization Facade 契约，两个已发布 Facade 都不依赖当前生成项目。Starter 是组合根，因此不存在 Web/Service Maven 循环依赖。
+更精确地说：Domain 只依赖 Common；Facade 不依赖任何内部模块；Application 与 Infrastructure 只依赖 Domain；Adapter 依赖 Application 与本工程自有 Facade。Adapter 实现自有 Evaluation Facade 契约，Infrastructure 消费已发布的 Organization Facade 契约，对端 Facade 工件与 Organization provider 都不依赖当前生成项目。Starter 是组合根，因此不存在 Web/Service Maven 循环依赖。
 
 ## 示例流程
 
@@ -83,7 +85,7 @@ Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支�
 
 Organization Facade client 仍是一个暂未使用的 infrastructure 基础能力；当前没有 Application 用例调用 Organization port。
 
-`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization COLA RPC client，通过生成的 POM 固定 `top.egon:egon-cola-organization-facade`，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
+`prod` 仅用于 `main` 分支的运行时构建和部署。`dev` 与 `prod` 都选择真实的 Organization COLA RPC client，通过生成的 POM 的 `organization-facade.group-id`、`organization-facade.artifact-id` 与 `organization-facade.version` 属性固定已发布的 Organization 契约，并在 provider 不可用时显式失败。请通过环境变量配置，不要提交敏感信息：
 
 - 数据库：按下文为 `master_data`、`shard_0`、`shard_1` 配置 ShardingSphere 物理数据源。
 - Tianshu：使用 `TIANSHU_RPC_TARGET`、`TIANSHU_NAMESPACE`、独立的 runtime/registry HMAC 凭据和 Tianquan-Shoubing SERVICE Token 配置；`TIANSHU_ENABLED` 与 `TIANSHU_REGISTRY_ENABLED` 分别控制配置及服务注册。连接参数详见下方“原生 RPC、Tianshu 与远程查询”。
@@ -148,7 +150,7 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 ## 原生 RPC、Tianshu 与远程查询
 
-本工程使用共享 evaluation 的 11 个 Protobuf unary 操作。Provider 继续调用原有 Facade；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms；`ORGANIZATION_FACADE_APP_CODE` 必须填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
+本工程发布自有 Facade 模块中的 Protobuf 契约所包含的 11 个 evaluation unary 操作。每个具名 `*FacadeImpl` 都是一个契约唯一的 native provider，并继续调用既有用例；远程查询通过既有领域端口、MapStruct/BaseConverter 和组件的 DIRECT proxy/strategy 工厂完成。配置 `app.integrations.organization` 下的 biz-code、app-code、group/version 与 timeout-ms；`ORGANIZATION_FACADE_APP_CODE` 必须填写对端在 Tianshu 中注册的实际 app code。调用使用当前进程 env，默认版本为 `1.0`、最多 3000ms（同时受组件 timeout 上限约束）、retries=0、FAIL_CLOSED，无外部协议回退。
 
 `dev`/`prod` 需提供已有 Tianshu RPC/Redis 服务、注册 resource URI、runtime/registry HMAC 凭据，以及具备 `tianshu:registration:write` 的 Tianquan-Shoubing SERVICE Token client。填写 `.env` 样例中的 `TIANSHU_*`、`TIANQUAN_SHOUBING_*`、RPC/HTTP advertised host；Compose 已映射 Spring OAuth2 Client 的 `tianshuregistration` registration/provider。直接 Java 启动时，须通过外部配置提供对应的 `spring.security.oauth2.client.registration.tianshuregistration` 和 `spring.security.oauth2.client.provider.tianshuregistration.token-uri`。生产启用 RPC/Tianshu mTLS，请按环境变量配置并挂载证书链、私钥和信任证书文件。Tianshu/Tianquan-Shoubing 服务不随 Compose 创建。
 
@@ -172,7 +174,7 @@ Podman 和 nerdctl 分别使用 `compose.podman.yaml` 和 `compose.nerdctl.yaml`
 
 默认测试使用隔离 H2 和受控依赖。真实路由测试需 `-Degon.pg.routing=true` 与 `EGON_TEST_PG_URL`；主从测试需 `-Degon.pg.readwrite=true` 与 `EGON_TEST_PG_PRIMARY_URL`、`EGON_TEST_PG_REPLICA_URL`，并提供专用 `EGON_TEST_PG_USER/PASSWORD`。它们只创建/清理自己的 UUID schema，不启动数据库。PG/SS 运行、迁移和性能 EXPLAIN 由使用者手动验收，跳过不表示通过。
 
-Facade contracts: `top.egon:egon-cola-evaluation-facade` (local Evaluation) and `top.egon:egon-cola-organization-facade` (Organization client).
+契约依赖：Evaluation 契约来自本工程自有的 `-facade` 模块；Organization 契约由生成的 POM 通过 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 属性解析。
 
 ## 二级缓存骨架（默认关闭）
 

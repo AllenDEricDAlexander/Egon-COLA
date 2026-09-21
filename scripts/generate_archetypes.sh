@@ -170,6 +170,10 @@ parse_manifest() {
   MF_SOURCE_PACKAGE=''
   MF_TARGET_ARTIFACT_ID=''
   MF_EXPECTED_TOPOLOGY=''
+  MF_PEER_FACADE_PROPERTY_PREFIX=''
+  MF_PEER_FACADE_PACKAGE=''
+  MF_PEER_FACADE_CAMEL=''
+  MF_PEER_FACADE_PARAMETERS=''
   local seen_source_project=0 seen_source_group=0 seen_source_artifact=0 seen_source_version=0
   local seen_source_package=0 seen_target_artifact=0 seen_topology=0
 
@@ -202,6 +206,14 @@ parse_manifest() {
       expectedTopology)
         ((seen_topology == 0)) || die "duplicate manifest field expectedTopology in $manifest"
         MF_EXPECTED_TOPOLOGY="$value"; seen_topology=1 ;;
+      peerFacadePropertyPrefix)
+        [[ -z "$MF_PEER_FACADE_PROPERTY_PREFIX" ]] \
+          || die "duplicate manifest field peerFacadePropertyPrefix in $manifest"
+        MF_PEER_FACADE_PROPERTY_PREFIX="$value" ;;
+      peerFacadePackage)
+        [[ -z "$MF_PEER_FACADE_PACKAGE" ]] \
+          || die "duplicate manifest field peerFacadePackage in $manifest"
+        MF_PEER_FACADE_PACKAGE="$value" ;;
       *) die "unknown manifest field $key in $manifest" ;;
     esac
   done <"$manifest"
@@ -215,6 +227,22 @@ parse_manifest() {
   [[ "$seen_topology" == 1 && -n "$MF_EXPECTED_TOPOLOGY" ]] || die "missing expectedTopology in $manifest"
   [[ "$MF_SOURCE_PROJECT" != /* ]] || die "absolute sourceProject in $manifest"
   [[ "$MF_SOURCE_PROJECT" != *'|'* && "$MF_SOURCE_PROJECT" != *$'\n'* ]] || die "invalid sourceProject in $manifest"
+
+  # A peer facade block is optional, but both halves of it must agree so the generated project
+  # receives one explicit parameter per peer coordinate instead of a rewritten source sentinel.
+  if [[ -n "$MF_PEER_FACADE_PROPERTY_PREFIX" || -n "$MF_PEER_FACADE_PACKAGE" ]]; then
+    [[ -n "$MF_PEER_FACADE_PROPERTY_PREFIX" && -n "$MF_PEER_FACADE_PACKAGE" ]] \
+      || die "peerFacadePropertyPrefix and peerFacadePackage must be declared together in $manifest"
+    [[ "$MF_PEER_FACADE_PROPERTY_PREFIX" =~ ^[a-z][a-z0-9]*(-[a-z0-9]+)*-facade$ ]] \
+      || die "peerFacadePropertyPrefix must be a kebab-case *-facade property prefix: $MF_PEER_FACADE_PROPERTY_PREFIX"
+    [[ "$MF_PEER_FACADE_PACKAGE" =~ ^[A-Za-z][A-Za-z0-9_]*(\.[A-Za-z][A-Za-z0-9_]*)+$ ]] \
+      || die "invalid peerFacadePackage in $manifest: $MF_PEER_FACADE_PACKAGE"
+    MF_PEER_FACADE_CAMEL="$(printf '%s' "$MF_PEER_FACADE_PROPERTY_PREFIX" | awk -F- '
+      { out = $1; for (i = 2; i <= NF; i++) out = out toupper(substr($i, 1, 1)) substr($i, 2); print out }')"
+    [[ "$MF_PEER_FACADE_CAMEL" =~ ^[A-Za-z][A-Za-z0-9]*$ ]] \
+      || die "peerFacadePropertyPrefix yields an invalid parameter name: $MF_PEER_FACADE_CAMEL"
+    MF_PEER_FACADE_PARAMETERS="${MF_PEER_FACADE_CAMEL}GroupId,${MF_PEER_FACADE_CAMEL}ArtifactId,${MF_PEER_FACADE_CAMEL}Version,${MF_PEER_FACADE_CAMEL}Package"
+  fi
 
   local package_root source_candidate source_dir package_pom definition_root source_pom
   definition_root="$(cd "$(dirname "$manifest")" && pwd -P)"
@@ -252,6 +280,34 @@ parse_manifest() {
   CURRENT_SOURCE_DIR="$source_dir"
   CURRENT_DEFINITION_ROOT="$definition_root"
   CURRENT_PACKAGING_POM="$package_pom"
+}
+
+parameterize_peer_facade() {
+  local resources="$1" file temp prop suffix literal regex replacement
+  [[ -n "$MF_PEER_FACADE_PROPERTY_PREFIX" ]] || return 0
+  while IFS= read -r file; do
+    LC_ALL=C grep -Iq . "$file" || continue
+    temp="${file}.peer.tmp.$$"
+    cp -p "$file" "$temp"
+    for prop in group-id artifact-id version package; do
+      case "$prop" in
+        group-id) suffix=GroupId ;;
+        artifact-id) suffix=ArtifactId ;;
+        version) suffix=Version ;;
+        package) suffix=Package ;;
+      esac
+      literal="${MF_PEER_FACADE_PROPERTY_PREFIX}.${prop}"
+      regex="$(escape_sed_pattern "$literal")"
+      replacement="<${literal}>$(escape_sed_replacement "\${${MF_PEER_FACADE_CAMEL}${suffix}}")</${literal}>"
+      LC_ALL=C sed -E "s|<${regex}>[^<]*</${regex}>|${replacement}|g" "$temp" >"${temp}.2"
+      mv -- "${temp}.2" "$temp"
+    done
+    regex="$(escape_sed_pattern "$MF_PEER_FACADE_PACKAGE")"
+    replacement="$(escape_sed_replacement "\${${MF_PEER_FACADE_CAMEL}Package}")"
+    LC_ALL=C sed "s|$regex|$replacement|g" "$temp" >"${temp}.2"
+    mv -- "${temp}.2" "$temp"
+    mv -- "$temp" "$file"
+  done < <(find "$resources" -type f -print | LC_ALL=C sort)
 }
 
 normalize_text_file() {
@@ -300,12 +356,22 @@ escape_velocity_file() {
   esac
   LC_ALL=C grep -Iq . "$file" || return 0
   temp="${file}.velocity.tmp.$$"
-  awk '
+  awk -v peer_parameters="$MF_PEER_FACADE_PARAMETERS" '
+    BEGIN { peer_count = split(peer_parameters, peer, ",") }
+    function is_peer_token(token,   i) {
+      for (i = 1; i <= peer_count; i++) {
+        if (peer[i] == token) {
+          return 1
+        }
+      }
+      return 0
+    }
     function allowed_token(token) {
       return token == "artifactId" || token == "groupId" || token == "version" ||
              token == "package" || token == "packageInPathFormat" ||
              token == "rootArtifactId" || token == "symbol_pound" ||
-             token == "symbol_dollar" || token == "symbol_escape"
+             token == "symbol_dollar" || token == "symbol_escape" ||
+             is_peer_token(token)
     }
     function escape_dollar(line, out, i, j, depth, token, ch, len) {
       out = ""
@@ -516,6 +582,7 @@ normalize_generated_product() {
   fi
   normalize_text_tree "$resources"
   overlay_source_poms "$resources"
+  parameterize_peer_facade "$resources"
   normalize_text_tree "$resources"
   normalize_generated_parent "$resources"
   escape_velocity_tree "$resources"

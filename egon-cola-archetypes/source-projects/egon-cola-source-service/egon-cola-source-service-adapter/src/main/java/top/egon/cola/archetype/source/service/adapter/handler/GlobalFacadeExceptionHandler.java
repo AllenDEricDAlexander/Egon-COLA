@@ -1,20 +1,24 @@
 package top.egon.cola.archetype.source.service.adapter.handler;
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationException;
-import top.egon.cola.evaluation.facade.dto.SingleResponse;
-import top.egon.cola.evaluation.facade.exceptions.EvaluationFacadeException;
+
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
-@Component
+import top.egon.cola.archetype.source.service.adapter.pojo.dto.FacadeFailureDTO;
+import top.egon.cola.archetype.source.service.application.exceptions.ApplicationException;
+
+/** Normalizes use-case rejections into the string code/message pair the wire envelope carries. */
+@Component("globalFacadeExceptionHandler")
+@Slf4j
 public class GlobalFacadeExceptionHandler {
-    public <T> SingleResponse<T> toFailure(ApplicationException failure) {
-        return SingleResponse.fail(failure.code().name(), failure.getMessage());
-    }
-    public <T> SingleResponse<T> toFailure(RuntimeException failure) {
+
+    private static final String INTERNAL_ERROR = "INTERNAL_ERROR";
+
+    private static final String INTERNAL_MESSAGE = "service request failed";
+
+    public FacadeFailureDTO toFailure(RuntimeException failure) {
         if (failure instanceof ApplicationException applicationFailure) {
-            return toFailure(applicationFailure);
+            return new FacadeFailureDTO(applicationFailure.code().name(), applicationFailure.getMessage());
         }
-        if (failure instanceof EvaluationFacadeException facadeFailure) {
-            return SingleResponse.fail(facadeFailure.code().name(), facadeFailure.getMessage());
-        }
-        return SingleResponse.fail("INTERNAL_ERROR", "service request failed");
+        log.warn("unexpected native facade failure masked as {}", INTERNAL_ERROR, failure);
+        return new FacadeFailureDTO(INTERNAL_ERROR, INTERNAL_MESSAGE);
     }
 }

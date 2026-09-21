@@ -55,21 +55,6 @@
         </developer>
     </developers>
 
-    <dependencies>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-organization-facade</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>top.egon</groupId>
-            <artifactId>egon-cola-evaluation-facade</artifactId>
-            <version>${project.version}</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-
     <build>
         <resources>
             <resource>

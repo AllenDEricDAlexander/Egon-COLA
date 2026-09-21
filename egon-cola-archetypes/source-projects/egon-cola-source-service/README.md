@@ -61,17 +61,17 @@ adapter/exam/mq
 ```
 
 This remains service-only: business traffic enters through COLA native unary RPC or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
-The contract dependencies remain `top.egon:egon-cola-evaluation-facade` for the local Evaluation contract and `top.egon:egon-cola-organization-facade` for the external Organization client.
+The Evaluation contract is published by this project itself from `top.egon.internal.archetype.source:egon-cola-source-service-facade`, while the external Organization contract stays a separately published artifact that the generated POM resolves through the explicit `organization-facade.group-id`, `organization-facade.artifact-id`, `organization-facade.version` and `organization-facade.package` properties supplied at generation time.
 
 The allowed internal dependency graph is:
 
 ```text
-Common <- Domain <- Application <- Adapter <- Canonical Evaluation Facade
-          Domain <- Infrastructure <- Canonical Organization Facade
+Common <- Domain <- Application <- Adapter -> Own Evaluation Facade (protocol only)
+          Domain <- Infrastructure -> Published Organization Facade (external artifact)
           Adapter <- Starter -> Infrastructure
 ```
 
-More precisely: Domain depends only on Common; Application and Infrastructure depend only on Domain; Adapter depends only on Application. Adapter implements the external Evaluation Facade contract, Infrastructure consumes the external Organization Facade contract, and neither published Facade depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
+More precisely: Domain depends only on Common; Facade depends on no internal module; Application and Infrastructure depend only on Domain; Adapter depends on Application plus this project's own Facade. Adapter implements the owned Evaluation Facade contract, Infrastructure consumes the published Organization Facade contract, and neither the peer Facade artifact nor the Organization provider depends on this generated project. Starter is the composition root, so there is no Web/Service Maven dependency cycle.
 
 ## Example Flows
 
@@ -90,7 +90,7 @@ RabbitMQ support is intentionally basic transport. The sample does not promise r
 
 The Organization Facade client is an unused infrastructure foundation; no current Application use case calls the Organization port.
 
-`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization COLA RPC client, pin `top.egon:egon-cola-organization-facade` through the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
+`prod` is reserved for runtime builds and deployments from `main`. Both `dev` and `prod` select the real Organization COLA RPC client, pin the published Organization contract through the `organization-facade.group-id`, `organization-facade.artifact-id` and `organization-facade.version` properties of the generated POM, and fail explicitly when the provider is unavailable. Configure them through environment variables rather than committed secrets:
 
 - Database: configure the `master_data`, `shard_0`, and `shard_1` physical data sources described below.
 - Tianshu: configure `TIANSHU_RPC_TARGET`, `TIANSHU_NAMESPACE`, separate runtime/registry HMAC credentials and Tianquan-Shoubing SERVICE tokens. `TIANSHU_ENABLED` and `TIANSHU_REGISTRY_ENABLED` control configuration and registration. See the native RPC/Tianshu section below for connection settings.
@@ -163,7 +163,7 @@ This generated service has no business Controller, Web Filter, GraphQL endpoint,
 
 ## Native RPC, Tianshu and remote queries
 
-This project exposes 11 evaluation unary operations from the shared Protobuf contract. Providers delegate to the existing facades. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
+This project exposes 11 evaluation unary operations from the Protobuf contract published by its own Facade module. Each named `*FacadeImpl` is the single native provider of one contract and delegates to the existing use cases. Remote queries use the existing domain port, MapStruct/BaseConverter and component DIRECT proxy/strategy factories. Configure `app.integrations.organization` with the exact target biz code, app code, group/version and timeout. `ORGANIZATION_FACADE_APP_CODE` must match the peer's registered Tianshu app code. References use the current process environment, version `1.0` by default, a 3000ms default bounded by the component ceiling, zero retries and FAIL_CLOSED.
 
 Supply existing Tianshu RPC/Redis endpoints, registration resource URI, separate runtime/registry HMAC credentials, and an Tianquan-Shoubing SERVICE-token client allowed `tianshu:registration:write`. Complete the `TIANSHU_*`, `TIANQUAN_SHOUBING_*` and advertised-host entries in the environment sample. Compose maps Spring OAuth2 Client registration/provider `tianshuregistration`; direct Java launches must supply the corresponding `spring.security.oauth2.client.registration.tianshuregistration` and `spring.security.oauth2.client.provider.tianshuregistration.token-uri` external properties. Production enables RPC/Tianshu mTLS; configure and mount the certificate-chain, private-key and trust-certificate paths. No Tianshu or Tianquan-Shoubing container is bundled.
 
