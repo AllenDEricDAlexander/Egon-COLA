@@ -11,6 +11,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import top.egon.cola.archetype.source.service.common.exception.ConfigDecryptException;
 
 public class AesGcmConfigDecryptor implements ConfigDecryptor {
 

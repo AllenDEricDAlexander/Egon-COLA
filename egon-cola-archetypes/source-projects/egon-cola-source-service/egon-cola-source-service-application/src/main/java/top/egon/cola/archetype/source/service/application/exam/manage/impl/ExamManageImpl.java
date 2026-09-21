@@ -1,36 +1,46 @@
 package top.egon.cola.archetype.source.service.application.exam.manage.impl;
 
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationErrorCode;
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationException;
-import top.egon.cola.archetype.source.service.application.exam.command.AttachExamPaperCommand;
-import top.egon.cola.archetype.source.service.application.exam.command.CreateExamCommand;
-import top.egon.cola.archetype.source.service.application.exam.command.PublishExamCommand;
-import top.egon.cola.archetype.source.service.application.exam.converter.ExamApplicationConverter;
+import top.egon.cola.archetype.source.service.common.enums.ApplicationErrorCode;
+import top.egon.cola.archetype.source.service.common.exception.ApplicationException;
+import top.egon.cola.archetype.source.service.application.exam.pojo.command.AttachExamPaperCommand;
+import top.egon.cola.archetype.source.service.application.exam.pojo.command.CreateExamCommand;
+import top.egon.cola.archetype.source.service.application.exam.pojo.command.PublishExamCommand;
+import top.egon.cola.archetype.source.service.application.exam.pojo.convertor.ExamApplicationConverter;
 import top.egon.cola.archetype.source.service.application.exam.manage.ExamManage;
-import top.egon.cola.archetype.source.service.application.exam.query.GetExamQuery;
-import top.egon.cola.archetype.source.service.application.exam.result.ExamDetailResult;
-import top.egon.cola.archetype.source.service.application.exam.result.ExamPaperResult;
+import top.egon.cola.archetype.source.service.application.exam.pojo.query.GetExamQuery;
+import top.egon.cola.archetype.source.service.application.exam.pojo.result.ExamDetailResult;
+import top.egon.cola.archetype.source.service.application.exam.pojo.result.ExamPaperResult;
 import top.egon.cola.archetype.source.service.application.exam.validators.ExamApplicationValidator;
 import top.egon.cola.archetype.source.service.domain.course.entities.Course;
 import top.egon.cola.archetype.source.service.domain.course.service.CourseDomainService;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
 import top.egon.cola.archetype.source.service.domain.exam.entities.Exam;
 import top.egon.cola.archetype.source.service.domain.exam.entities.ExamPaper;
-import top.egon.cola.archetype.source.service.domain.exam.event.ExamEventPublisher;
+import top.egon.cola.archetype.source.service.domain.exam.service.ExamEventService;
 import top.egon.cola.archetype.source.service.domain.exam.service.ExamDomainService;
 import top.egon.cola.archetype.source.service.domain.exam.vos.ExamId;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.validation.annotation.Validated;
 
 @Service("evaluationExamManage")
+@Validated
+@Slf4j
 @RequiredArgsConstructor
 public class ExamManageImpl implements ExamManage {
 
+    @Qualifier("courseDomainService")
     private final CourseDomainService courseDomainService;
+    @Qualifier("examDomainService")
     private final ExamDomainService examDomainService;
-    private final ExamEventPublisher examEventPublisher;
+    @Qualifier("examEventService")
+    private final ExamEventService examEventService;
+    @Qualifier("examApplicationConverterImpl")
     private final ExamApplicationConverter converter;
+    @Qualifier("examApplicationValidator")
     private final ExamApplicationValidator validator;
 
     @Override
@@ -64,7 +74,7 @@ public class ExamManageImpl implements ExamManage {
         examDomainService.publishExam(exam, paper);
         Exam saved = examDomainService.save(exam);
         examDomainService.savePaper(paper);
-        examEventPublisher.examPublished(saved, paper);
+        examEventService.examPublished(saved, paper);
         return converter.toResult(saved);
     }
 

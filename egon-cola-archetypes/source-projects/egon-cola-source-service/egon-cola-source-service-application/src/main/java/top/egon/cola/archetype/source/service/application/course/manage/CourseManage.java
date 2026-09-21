@@ -1,12 +1,12 @@
 package top.egon.cola.archetype.source.service.application.course.manage;
 
-import top.egon.cola.archetype.source.service.application.course.command.CreateCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.command.ScheduleCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.query.GetCourseQuery;
-import top.egon.cola.archetype.source.service.application.course.query.PageCourseQuery;
-import top.egon.cola.archetype.source.service.application.course.result.CourseResult;
-import top.egon.cola.archetype.source.service.application.course.result.CourseScheduleResult;
-import top.egon.cola.archetype.source.service.application.result.PageResult;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.ScheduleCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.query.GetCourseQuery;
+import top.egon.cola.archetype.source.service.application.course.pojo.query.PageCourseQuery;
+import top.egon.cola.archetype.source.service.application.course.pojo.result.CourseResult;
+import top.egon.cola.archetype.source.service.application.course.pojo.result.CourseScheduleResult;
+import top.egon.cola.archetype.source.service.application.pojo.result.PageResult;
 
 public interface CourseManage {
 

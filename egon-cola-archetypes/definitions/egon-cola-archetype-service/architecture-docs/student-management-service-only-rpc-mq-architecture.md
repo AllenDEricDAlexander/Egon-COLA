@@ -291,16 +291,20 @@ adapter
     - <domain>
         - facade
             - impl
-        - rpc
         - mq
-        - converter
+        - pojo
+            - dto
+    - pojo
+        - convertor
         - dto
-        - validators
+    - config
     - handler
     - package-info.java
 ```
 
-没有实际代码的职责目录不创建。例如某领域没有入站 Message DTO，就不创建空的 `dto` 或 `mq` 包。
+没有实际代码的职责目录不创建。例如某领域没有入站 Message DTO，就不创建空的 `pojo/dto` 或 `mq` 包。
+RPC Provider 注解直接落在 `facade/impl` 的具名 `*FacadeImpl` 上，不再另立 `rpc` 包装包；
+入站载体统一在 `<domain>/pojo/dto`，跨领域共享载体在 `adapter/pojo/{dto,convertor}`。
 
 明确不允许出现：
 
@@ -397,20 +401,22 @@ Facade 接口直接放在业务领域下，Protobuf 载体放在 `src/main/proto
 ```text
 application
     - <domain>
-        - command
-        - converter
         - manage
             - impl
-        - query
-        - result
+        - pojo
+            - command
+            - convertor
+            - query
+            - result
         - validators
-    - config
-    - exceptions
-    - result
+    - pojo
+        - result
     - package-info.java
 ```
 
-正确方向是 `application/<domain>/manage/impl`，不是 `application/manage/<domain>` 或 `application/manage/impl/<domain>`。
+正确方向是 `application/<domain>/manage/impl` 与 `application/<domain>/pojo/command`，
+不是 `application/manage/<domain>` 或 `application/command/<domain>`。
+用例异常与错误枚举统一回到 `common/exception` 与 `common/enums`，`application` 不再有 `exceptions` 包。
 
 ### 3.4.3 能做什么
 
@@ -436,7 +442,7 @@ application
 
 ### 3.5.1 职责
 
-`domain` 是领域核心层，负责实体、聚合、值对象、领域事件、领域服务、仓储端口和领域规则。
+`domain` 是领域核心层，负责实体、聚合、值对象、领域服务契约、领域校验器和领域规则。
 
 ### 3.5.2 推荐结构
 
@@ -446,24 +452,24 @@ domain
         - aggregates
         - entities
         - enums
-        - event
         - service
         - validators
         - vos
     - common
-    - client
-        - <external-system>
     - package-info.java
 ```
 
-业务领域必须位于技术职责之前，例如 `domain/exam/entities`。外部系统端口是明确例外，保留在 `domain/client/<external-system>`，用于表达消费方拥有的 Anti-Corruption Layer 边界。
+业务领域必须位于技术职责之前，例如 `domain/exam/entities`。`domain` 不再容纳 `client`、`event`、
+`repos`、`exceptions` 包：跨层能力（Organization 目录查询、领域事件发布）都以
+`domain/<domain>/service` 的领域服务契约表达，消息与外部调用的技术实现留在 `infrastructure`，
+跨层异常根类型统一在 `common/exception`。
 
 ### 3.5.3 能做什么
 
 ```text
 1. 定义领域实体、聚合、值对象和事件。
 2. 定义只暴露领域对象的业务接口，不继承技术 CRUD 接口。
-3. 定义外部能力端口。
+3. 定义跨层能力契约，例如 Organization 目录查询与领域事件发布。
 4. 定义领域校验器、枚举和核心业务规则。
 ```
 
@@ -471,7 +477,7 @@ domain
 
 ```text
 1. 不依赖 Application、Infrastructure、Adapter 或 Facade。
-2. 不依赖 JPA、Redis、MQ、Egon RPC 或 gRPC 技术实现；仅依赖 Common MP starter 暴露的共享模型/Service 抽象。
+2. 不依赖 Spring、JPA、Redis、MQ、Egon RPC 或 gRPC；只依赖 JDK、`jakarta.validation` 注解与 common-core 的共享枚举/校验抽象。
 ```
 
 ---
@@ -487,28 +493,35 @@ domain
 ```text
 infrastructure
     - <domain>
+        - dao
+        - po
+        - converter
         - repo
-            - dao
-            - po
-            - converter
         - service
             - impl
         - mq
             - message
     - client
         - <external-system>
+            - impl
+    - mq
+        - impl
     - config
-    - aop
     - validators
     - package-info.java
 ```
 
-业务持久化与出站消息按 `infrastructure/<domain>/<responsibility>` 排列。外部系统适配器是明确例外，保留在 `infrastructure/client/<external-system>`，与 Domain 端口共同组成 Anti-Corruption Layer。
+业务持久化与出站消息按 `infrastructure/<domain>/<responsibility>` 排列；`dao`、`po`、`converter`、`repo`
+四者平级，`repo` 只放具体的 EgonColaRepository 实现，不再容纳其他技术包。
+`mq/message` 只放该领域冻结的线上载体，真正的发送边界是领域无关的 `infrastructure/mq` 与
+`infrastructure/mq/impl`，由 `config` 在 RabbitMQ 开关与本地适配器之间二选一装配。
+外部系统适配器保留在 `infrastructure/client/<external-system>`，接口与实现分别在包根和 `impl` 子包，
+与 `domain/<domain>/service` 契约共同组成 Anti-Corruption Layer。
 
 ### 3.6.3 能做什么
 
 ```text
-1. 实现 Domain Service 与外部能力端口。
+1. 实现 Domain Service 契约与出站 client，并把保持无框架的 Domain Validator 注册为具名 Bean。
 2. 调用 MyBatis-Plus DAO、外部 Facade、Egon RPC、gRPC 或 HTTP Client。
 3. 发送出站 MQ 消息。
 4. 封装缓存和基础设施配置。
@@ -539,11 +552,14 @@ infrastructure
 ```text
 common
     - constants
-    - utils
     - enums
-    - exceptions
+    - exception
     - package-info.java
 ```
+
+`exception` 用单数，是生成工程内唯一的异常根类型归属；错误码枚举一律落在 `enums` 并实现
+`EgonEnum`/`ErrorStatus`。`common/utils` 不再存在：技术 ID 由 Common ID starter 静态初始化，
+租户与模型校验由 Common MP starter 静态绑定，都不需要工程内自建工具类承接。
 
 ### 3.7.3 能做什么
 
@@ -733,12 +749,13 @@ student-management-evaluation
 │   └── src/main/java/com/example/student/evaluation/starter
 │       ├── EvaluationServiceApplication.java
 │       └── config
+│           ├── async
+│           └── encryption
 ├── student-management-evaluation-common
 │   └── src/main/java/com/example/student/evaluation/common
 │       ├── constants
 │       ├── enums
-│       ├── exceptions
-│       └── utils
+│       └── exception
 ├── student-management-evaluation-facade
 │   ├── src/main/proto/evaluation_facade.proto
 │   └── src/main/java/com/example/student/evaluation/facade
@@ -753,8 +770,6 @@ student-management-evaluation
 │       │   ├── aggregates
 │       │   ├── entities
 │       │   ├── enums
-│       │   ├── event
-│       │   ├── repos
 │       │   ├── service
 │       │   ├── validators
 │       │   └── vos
@@ -762,69 +777,60 @@ student-management-evaluation
 │       │   ├── aggregates
 │       │   ├── entities
 │       │   ├── enums
-│       │   ├── event
-│       │   ├── repos
 │       │   ├── service
 │       │   ├── validators
 │       │   └── vos
-│       ├── common
-│       └── client
-│           └── organization
+│       └── common
 ├── student-management-evaluation-application
 │   └── src/main/java/com/example/student/evaluation/application
 │       ├── course
-│       │   ├── command
-│       │   ├── converter
 │       │   ├── manage
 │       │   │   └── impl
-│       │   ├── query
-│       │   ├── result
+│       │   ├── pojo
+│       │   │   ├── command
+│       │   │   ├── convertor
+│       │   │   ├── query
+│       │   │   └── result
 │       │   └── validators
 │       ├── exam
-│       │   ├── command
-│       │   ├── converter
 │       │   ├── manage
 │       │   │   └── impl
-│       │   ├── query
-│       │   ├── result
-│       │   └── validators
-│       ├── config
-│       ├── exceptions
-│       └── result
+│       │   ├── pojo
+│       │   │   ├── command
+│       │   │   ├── convertor
+│       │   │   ├── query
+│       │   │   └── result
+│       └── pojo
+│           └── result
 ├── student-management-evaluation-infrastructure
 │   └── src/main/java/com/example/student/evaluation/infrastructure
 │       ├── course
+│       │   ├── converter
+│       │   ├── dao
+│       │   ├── po
 │       │   ├── repo
-│       │   │   ├── impl
-│       │   │   ├── po
-│       │   │   ├── jpa
-│       │   │   └── converter
-│       │   └── mq
-│       │       └── message
+│       │   ├── service/impl
+│       │   └── mq/message
 │       ├── exam
+│       │   ├── converter
+│       │   ├── dao
+│       │   ├── po
 │       │   ├── repo
-│       │   │   ├── impl
-│       │   │   ├── po
-│       │   │   ├── jpa
-│       │   │   └── converter
-│       │   └── mq
-│       │       └── message
-│       ├── client
-│       │   └── organization
+│       │   ├── service/impl
+│       │   └── mq/message
+│       ├── client/organization
+│       │   └── impl
+│       ├── mq
+│       │   └── impl
 │       ├── config
-│       ├── aop
 │       └── validators
 └── student-management-evaluation-adapter
     └── src/main/java/com/example/student/evaluation/adapter
         ├── course
-        │   ├── facade
-        │   │   └── impl
-        │   └── rpc
+        │   └── facade/impl
         ├── exam
-        │   ├── facade
-        │   │   └── impl
-        │   ├── rpc
-        │   ├── dto
+        │   ├── facade/impl
+        │   ├── pojo/dto
         │   └── mq
         ├── pojo
         │   ├── convertor
@@ -833,7 +839,7 @@ student-management-evaluation
         └── handler
 ```
 
-Adapter 实现本工程 `facade` 模块中 `facade.course` 与 `facade.exam` 的契约，每个契约只有一个具名 `*FacadeImpl`。外部 Organization 边界继续保留在 `domain/client/organization` 与 `infrastructure/client/organization`，不混入本地 `course` 或 `exam` 领域。
+Adapter 实现本工程 `facade` 模块中 `facade.course` 与 `facade.exam` 的契约，每个契约只有一个具名 `*FacadeImpl`，Provider 注解直接落在该实现上，不再拆分 `rpc` 包装类。外部 Organization 边界的领域契约位于 `domain/course/service`，出站实现位于 `infrastructure/client/organization/impl`，`domain` 不再保留 `client` 端口包；跨 Project 的 Anti-Corruption Layer 由 `infrastructure/client/<external-system>` 表达，不混入本地 `course` 或 `exam` 领域。
 
 该工程保持纯 Service：不创建业务 Controller、Web、Filter、GraphQL 或 VO 包；业务流量只通过 Egon RPC 或 RabbitMQ 进入。
 
@@ -906,25 +912,25 @@ MQ Consumer -> Domain Repository
 ## 5.4 MQ 出站约束
 
 ```text
-1. infrastructure.mq 只负责出站消息发送。
-2. application 需要发送消息时，调用 application client / publisher 接口。
-3. infrastructure 实现具体 MQ 发送。
+1. infrastructure.mq 只负责出站消息发送，并且按 MqRouteEnum 声明的路由表取 exchange、routing key 与载体类型。
+2. application 需要发送消息时，调用 domain service 契约（例如 CourseEventService、ExamEventService）。
+3. infrastructure 实现该 domain service 契约，并把发送挂到调用方事务的提交点。
 4. application 不直接调用 KafkaTemplate / RabbitTemplate / RocketMQTemplate。
 ```
 
 推荐：
 
 ```text
-Application -> Application EventPublisher Interface -> Infrastructure MQ Producer
+Application -> Domain Event Service Interface -> Infrastructure ServiceImpl -> Infrastructure MqMessageService
 ```
 
 ## 5.5 Application 约束
 
 ```text
 1. application 负责业务用例编排。
-2. application 可以调用 domain service。
-3. application 可以调用 domain service 接口。
-4. application 可以调用 application client 接口。
+2. application 只调用 domain service 契约，不感知它的 infrastructure 实现。
+3. application 用 MapStruct convertor 做领域到结果载体的单向投影。
+4. application 入参校验只能由 BaseValidator 与 ValidationUtils 承担。
 5. application 负责事务控制。
 6. application 不依赖 infrastructure。
 7. application 不直接调用 mapper。
@@ -941,7 +947,7 @@ Application -> Application EventPublisher Interface -> Infrastructure MQ Produce
 3. domain 不依赖 facade。
 4. domain 不依赖 application。
 5. domain 不依赖 infrastructure。
-6. domain 只依赖 Common MP starter 提供的 `EgonColaIRepository`/`EgonModel` 抽象。
+6. domain 只依赖 JDK、`jakarta.validation` 注解与 common-core 的共享枚举/校验抽象。
 7. domain 不依赖 JPA。
 8. domain 不依赖 Redis。
 9. domain 不依赖 MQ。
@@ -953,7 +959,7 @@ Application -> Application EventPublisher Interface -> Infrastructure MQ Produce
 ```text
 1. infrastructure 负责技术实现。
 2. infrastructure 实现 domain service 接口。
-3. infrastructure 实现 application client 接口。
+3. infrastructure 在 client/<external-system> 及其 impl 子包内实现出站客户端。
 4. infrastructure 可以调用 MyBatis-Plus DAO。
 5. infrastructure 不调用 JPA repository。
 6. infrastructure 可以调用 RedisTemplate。

@@ -12,6 +12,7 @@ import org.springframework.core.env.ConfigurableEnvironment;
 import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.MapPropertySource;
 import org.springframework.core.env.PropertySource;
+import top.egon.cola.archetype.source.service.common.exception.ConfigDecryptException;
 
 public class ConfigDecryptEnvironmentPostProcessor implements EnvironmentPostProcessor, Ordered {
 

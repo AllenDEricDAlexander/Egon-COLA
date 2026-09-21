@@ -13,48 +13,48 @@ class LocalTransactionBoundaryTest {
         assertCommand(
                 top.egon.cola.archetype.source.service.application.course.manage.impl.CourseManageImpl.class,
                 "create",
-                top.egon.cola.archetype.source.service.application.course.command.CreateCourseCommand.class);
+                top.egon.cola.archetype.source.service.application.course.pojo.command.CreateCourseCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.service.application.course.manage.impl.CourseManageImpl.class,
                 "schedule",
-                top.egon.cola.archetype.source.service.application.course.command.ScheduleCourseCommand.class);
+                top.egon.cola.archetype.source.service.application.course.pojo.command.ScheduleCourseCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ExamManageImpl.class,
                 "create",
-                top.egon.cola.archetype.source.service.application.exam.command.CreateExamCommand.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.command.CreateExamCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ExamManageImpl.class,
                 "attachPaper",
-                top.egon.cola.archetype.source.service.application.exam.command.AttachExamPaperCommand.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.command.AttachExamPaperCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ExamManageImpl.class,
                 "publish",
-                top.egon.cola.archetype.source.service.application.exam.command.PublishExamCommand.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.command.PublishExamCommand.class);
         assertCommand(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ScoreManageImpl.class,
                 "record",
-                top.egon.cola.archetype.source.service.application.exam.command.RecordScoreCommand.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.command.RecordScoreCommand.class);
 
         assertQuery(
                 top.egon.cola.archetype.source.service.application.course.manage.impl.CourseManageImpl.class,
                 "get",
-                top.egon.cola.archetype.source.service.application.course.query.GetCourseQuery.class);
+                top.egon.cola.archetype.source.service.application.course.pojo.query.GetCourseQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.service.application.course.manage.impl.CourseManageImpl.class,
                 "page",
-                top.egon.cola.archetype.source.service.application.course.query.PageCourseQuery.class);
+                top.egon.cola.archetype.source.service.application.course.pojo.query.PageCourseQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ExamManageImpl.class,
                 "get",
-                top.egon.cola.archetype.source.service.application.exam.query.GetExamQuery.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.query.GetExamQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ScoreManageImpl.class,
                 "get",
-                top.egon.cola.archetype.source.service.application.exam.query.GetScoreQuery.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.query.GetScoreQuery.class);
         assertQuery(
                 top.egon.cola.archetype.source.service.application.exam.manage.impl.ScoreManageImpl.class,
                 "page",
-                top.egon.cola.archetype.source.service.application.exam.query.PageScoreQuery.class);
+                top.egon.cola.archetype.source.service.application.exam.pojo.query.PageScoreQuery.class);
     }
 
     private static void assertCommand(

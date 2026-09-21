@@ -8,11 +8,11 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.archetype.source.service.adapter.handler.GlobalFacadeExceptionHandler;
 import top.egon.cola.archetype.source.service.adapter.pojo.convertor.EvaluationFacadeConverter;
-import top.egon.cola.archetype.source.service.application.course.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.CreateCourseCommand;
 import top.egon.cola.archetype.source.service.application.course.manage.CourseManage;
-import top.egon.cola.archetype.source.service.application.course.result.CourseResult;
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationErrorCode;
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationException;
+import top.egon.cola.archetype.source.service.application.course.pojo.result.CourseResult;
+import top.egon.cola.archetype.source.service.common.enums.ApplicationErrorCode;
+import top.egon.cola.archetype.source.service.common.exception.ApplicationException;
 import top.egon.cola.archetype.source.service.facade.proto.CreateCourseRpcRequest;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 

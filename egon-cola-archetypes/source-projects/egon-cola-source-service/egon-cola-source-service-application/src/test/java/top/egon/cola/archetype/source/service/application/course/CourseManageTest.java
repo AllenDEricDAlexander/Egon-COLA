@@ -1,14 +1,18 @@
 package top.egon.cola.archetype.source.service.application.course;
 
-import top.egon.cola.archetype.source.service.application.course.command.CreateCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.command.ScheduleCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.converter.CourseApplicationConverter;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.ScheduleCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.convertor.CourseApplicationConverter;
 import top.egon.cola.archetype.source.service.application.course.manage.impl.CourseManageImpl;
 import top.egon.cola.archetype.source.service.application.course.validators.CourseApplicationValidator;
+import jakarta.validation.Validation;
+import jakarta.validation.ValidatorFactory;
+import org.mapstruct.factory.Mappers;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.archetype.source.service.domain.course.entities.Course;
 import top.egon.cola.archetype.source.service.domain.course.entities.CourseSchedule;
 import top.egon.cola.archetype.source.service.domain.course.enums.CourseScheduleStatus;
-import top.egon.cola.archetype.source.service.domain.course.event.CourseEventPublisher;
+import top.egon.cola.archetype.source.service.domain.course.service.CourseEventService;
 import top.egon.cola.archetype.source.service.domain.course.service.CourseDomainService;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
@@ -24,6 +28,12 @@ import static org.mockito.Mockito.when;
 
 class CourseManageTest {
 
+    private final ValidatorFactory validators = Validation.buildDefaultValidatorFactory();
+
+    private CourseApplicationValidator validator() {
+        return new CourseApplicationValidator(new ValidationUtils(validators.getValidator()));
+    }
+
     @Test
     void shouldCreateNormalizedCourse() {
         CourseDomainService service = mock(CourseDomainService.class);
@@ -32,8 +42,8 @@ class CourseManageTest {
         when(service.createCourse(any(), any(), any(Integer.class))).thenReturn(course);
         when(service.save(course)).thenReturn(course);
         CourseManageImpl manage = new CourseManageImpl(
-                mock(CourseEventPublisher.class), service,
-                new CourseApplicationConverter(), new CourseApplicationValidator());
+                mock(CourseEventService.class), service,
+                Mappers.getMapper(CourseApplicationConverter.class), validator());
 
         var result = manage.create(new CreateCourseCommand(" math-101 ", "Math", 3));
 
@@ -53,8 +63,8 @@ class CourseManageTest {
         when(service.scheduleCourse(any(), any(), any(), any(), any())).thenReturn(schedule);
         when(service.saveSchedule(schedule)).thenReturn(schedule);
         CourseManageImpl manage = new CourseManageImpl(
-                mock(CourseEventPublisher.class), service,
-                new CourseApplicationConverter(), new CourseApplicationValidator());
+                mock(CourseEventService.class), service,
+                Mappers.getMapper(CourseApplicationConverter.class), validator());
 
         var result = manage.schedule(new ScheduleCourseCommand(
                 course.getId(), 2001L, Instant.EPOCH, Instant.EPOCH.plusSeconds(60)));

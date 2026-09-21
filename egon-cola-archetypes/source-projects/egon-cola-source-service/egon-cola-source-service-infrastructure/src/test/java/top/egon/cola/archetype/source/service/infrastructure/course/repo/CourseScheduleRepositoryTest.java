@@ -3,7 +3,7 @@ package top.egon.cola.archetype.source.service.infrastructure.course.repo;
 import top.egon.cola.archetype.source.service.domain.course.entities.CourseSchedule;
 import top.egon.cola.archetype.source.service.domain.course.enums.CourseScheduleStatus;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.converter.CourseScheduleConverter;
+import top.egon.cola.archetype.source.service.infrastructure.course.converter.CourseScheduleConverter;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import java.time.Instant;

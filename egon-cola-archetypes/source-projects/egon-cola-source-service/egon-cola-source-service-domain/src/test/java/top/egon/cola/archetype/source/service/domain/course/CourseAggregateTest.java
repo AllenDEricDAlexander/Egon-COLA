@@ -1,12 +1,14 @@
 package top.egon.cola.archetype.source.service.domain.course;
 
-import top.egon.cola.archetype.source.service.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.service.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.service.domain.course.entities.Course;
 import top.egon.cola.archetype.source.service.domain.course.entities.CourseSchedule;
 import top.egon.cola.archetype.source.service.domain.course.enums.CourseScheduleStatus;
 import top.egon.cola.archetype.source.service.domain.course.validators.CourseDomainValidator;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
+import jakarta.validation.Validation;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -16,7 +18,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class CourseAggregateTest {
 
-    private final CourseDomainValidator validator = new CourseDomainValidator();
+    private final CourseDomainValidator validator = new CourseDomainValidator(
+            new ValidationUtils(Validation.buildDefaultValidatorFactory().getValidator()));
 
     @Test
     void shouldRejectInvalidScheduleWindowAndBlankClass() {

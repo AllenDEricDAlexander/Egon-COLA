@@ -1,12 +1,26 @@
 package top.egon.cola.archetype.source.service.domain.exam.validators;
 
-import top.egon.cola.archetype.source.service.domain.common.EvaluationDomainErrorCode;
-import top.egon.cola.archetype.source.service.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.service.common.enums.EvaluationDomainErrorCode;
+import top.egon.cola.archetype.source.service.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.service.domain.exam.entities.Exam;
 import top.egon.cola.archetype.source.service.domain.exam.entities.ExamPaper;
 import top.egon.cola.archetype.source.service.domain.exam.enums.ExamStatus;
+import top.egon.cola.component.common.core.validation.BaseValidator;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
 
-public final class ScoreDomainValidator {
+/** Score range and duplication rules; native constraints run first through the common facade. */
+public class ScoreDomainValidator extends BaseValidator {
+
+    private final ValidationUtils validationUtils;
+
+    public ScoreDomainValidator(ValidationUtils validationUtils) {
+        this.validationUtils = validationUtils;
+    }
+
+    @Override
+    protected ValidationUtils getValidationUtils() {
+        return validationUtils;
+    }
 
     public void validate(
             Exam exam, ExamPaper paper, Long studentId, int points, boolean duplicate) {

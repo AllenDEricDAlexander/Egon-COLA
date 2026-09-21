@@ -48,17 +48,17 @@ public class NativeOrganizationRpcConfiguration {
     private final ValidationUtils validation;
 
     @Bean("organizationDirectoryConverter")
-    OrganizationDirectoryConverter organizationDirectoryConverter() {
+    public OrganizationDirectoryConverter organizationDirectoryConverter() {
         return Mappers.getMapper(OrganizationDirectoryConverter.class);
     }
 
     @Bean("organizationUserFacade")
-    UserFacade organizationUserFacade() {
+    public UserFacade organizationUserFacade() {
         return reference(UserFacade.class, target.group());
     }
 
     @Bean("organizationSchoolClassFacade")
-    SchoolClassFacade organizationSchoolClassFacade() {
+    public SchoolClassFacade organizationSchoolClassFacade() {
         return reference(SchoolClassFacade.class, target.group());
     }
 

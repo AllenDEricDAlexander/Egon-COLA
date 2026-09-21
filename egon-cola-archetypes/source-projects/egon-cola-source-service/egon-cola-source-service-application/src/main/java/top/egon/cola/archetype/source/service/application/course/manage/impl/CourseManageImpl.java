@@ -1,37 +1,44 @@
 package top.egon.cola.archetype.source.service.application.course.manage.impl;
 
-import top.egon.cola.archetype.source.service.application.course.command.CreateCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.command.ScheduleCourseCommand;
-import top.egon.cola.archetype.source.service.application.course.converter.CourseApplicationConverter;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.CreateCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.command.ScheduleCourseCommand;
+import top.egon.cola.archetype.source.service.application.course.pojo.convertor.CourseApplicationConverter;
 import top.egon.cola.archetype.source.service.application.course.manage.CourseManage;
-import top.egon.cola.archetype.source.service.application.course.query.GetCourseQuery;
-import top.egon.cola.archetype.source.service.application.course.query.PageCourseQuery;
-import top.egon.cola.archetype.source.service.application.course.result.CourseResult;
-import top.egon.cola.archetype.source.service.application.course.result.CourseScheduleResult;
+import top.egon.cola.archetype.source.service.application.course.pojo.query.GetCourseQuery;
+import top.egon.cola.archetype.source.service.application.course.pojo.query.PageCourseQuery;
+import top.egon.cola.archetype.source.service.application.course.pojo.result.CourseResult;
+import top.egon.cola.archetype.source.service.application.course.pojo.result.CourseScheduleResult;
 import top.egon.cola.archetype.source.service.application.course.validators.CourseApplicationValidator;
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationErrorCode;
-import top.egon.cola.archetype.source.service.application.exceptions.ApplicationException;
-import top.egon.cola.archetype.source.service.application.result.PageResult;
+import top.egon.cola.archetype.source.service.common.enums.ApplicationErrorCode;
+import top.egon.cola.archetype.source.service.common.exception.ApplicationException;
+import top.egon.cola.archetype.source.service.application.pojo.result.PageResult;
 import top.egon.cola.archetype.source.service.domain.common.Page;
 import top.egon.cola.archetype.source.service.domain.course.entities.Course;
 import top.egon.cola.archetype.source.service.domain.course.entities.CourseSchedule;
-import top.egon.cola.archetype.source.service.domain.course.event.CourseEventPublisher;
+import top.egon.cola.archetype.source.service.domain.course.service.CourseEventService;
 import top.egon.cola.archetype.source.service.domain.course.service.CourseDomainService;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 @Service("courseManage")
 @Validated
+@Slf4j
 @RequiredArgsConstructor
 public class CourseManageImpl implements CourseManage {
 
-    private final CourseEventPublisher courseEventPublisher;
+    @Qualifier("courseEventService")
+    private final CourseEventService courseEventService;
+    @Qualifier("courseDomainService")
     private final CourseDomainService courseDomainService;
+    @Qualifier("courseApplicationConverterImpl")
     private final CourseApplicationConverter converter;
+    @Qualifier("courseApplicationValidator")
     private final CourseApplicationValidator validator;
 
     @Override
@@ -60,7 +67,7 @@ public class CourseManageImpl implements CourseManage {
                 courseDomainService.findOverlapping(
                         courseId, command.classId(), command.startsAt(), command.endsAt()));
         CourseSchedule saved = courseDomainService.saveSchedule(schedule);
-        courseEventPublisher.courseScheduled(saved);
+        courseEventService.courseScheduled(saved);
         return converter.toResult(saved);
     }
 

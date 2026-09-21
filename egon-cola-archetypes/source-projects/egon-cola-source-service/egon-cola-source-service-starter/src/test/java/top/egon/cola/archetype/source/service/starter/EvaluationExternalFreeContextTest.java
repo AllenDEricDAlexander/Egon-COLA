@@ -1,7 +1,9 @@
 package top.egon.cola.archetype.source.service.starter;
 
-import top.egon.cola.archetype.source.service.domain.client.organization.OrganizationDirectoryPort;
-import top.egon.cola.archetype.source.service.infrastructure.client.organization.LocalOrganizationDirectoryStub;
+import top.egon.cola.archetype.source.service.domain.course.service.OrganizationDirectoryService;
+import top.egon.cola.archetype.source.service.infrastructure.client.organization.OrganizationDirectoryClient;
+import top.egon.cola.archetype.source.service.infrastructure.client.organization.impl.LocalOrganizationDirectoryClientImpl;
+import top.egon.cola.archetype.source.service.infrastructure.course.service.impl.OrganizationDirectoryServiceImpl;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -22,7 +24,7 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
     @Autowired private top.egon.cola.archetype.source.service.domain.course.service.CourseDomainService courseDomainService;
     @Autowired private top.egon.cola.archetype.source.service.infrastructure.course.repo.CourseRepository courses;
     @Autowired private Environment environment;
-    @Autowired private OrganizationDirectoryPort organizationDirectory;
+    @Autowired private OrganizationDirectoryService organizationDirectory;
 
     @Test
     void savingAnExistingDomainCourseUpdatesWithItsLoadedVersion() {
@@ -43,7 +45,7 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
     void repositoryPersistsThroughTheRealSpringProxyAndIsolatesTenants() {
         try (var tenant = org.slf4j.MDC.putCloseable("tenantId", "41");
              var user = org.slf4j.MDC.putCloseable("userId", "service-test")) {
-            var course = new top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CoursePO();
+            var course = new top.egon.cola.archetype.source.service.infrastructure.course.po.CoursePO();
             course.setCode("REPO_TEST");
             course.setName("Repository contract");
             course.setCredit(2);
@@ -53,7 +55,7 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
             assertThat(course.getTenantId()).isEqualTo(41L);
             assertThat(course.getVersion()).isZero();
             assertThat(courses.getById(course.getId()).getName()).isEqualTo("Repository contract");
-            var page = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CoursePO>(1, 10);
+            var page = new com.baomidou.mybatisplus.extension.plugins.pagination.Page<top.egon.cola.archetype.source.service.infrastructure.course.po.CoursePO>(1, 10);
             assertThat(courses.selectActivePage(page).getRecords()).hasSize(1);
             org.slf4j.MDC.put("tenantId", "42");
             assertThat(courses.getById(course.getId())).isNull();
@@ -65,15 +67,18 @@ class EvaluationExternalFreeContextTest extends top.egon.cola.archetype.source.s
         assertThat(context.containsBean("courseManage")).isTrue();
         assertThat(context.containsBean("evaluationExamManage")).isTrue();
         assertThat(context.containsBean("scoreManage")).isTrue();
-        assertThat(context.containsBean("rabbitCourseEventPublisher")).isFalse();
-        assertThat(context.containsBean("rabbitExamEventPublisher")).isFalse();
+        assertThat(context.containsBean("mqMessageService")).isTrue();
+        assertThat(context.containsBean("rabbitMqMessageService")).isFalse();
         assertThat(environment.getProperty("app.integrations.rabbitmq.enabled", Boolean.class))
                 .isFalse();
         assertThat(environment.getProperty(
                 "app.integrations.rabbitmq.listener-auto-startup", Boolean.class)).isFalse();
         assertThat(environment.getProperty("app.integrations.organization.enabled", Boolean.class))
                 .isFalse();
-        assertThat(organizationDirectory).isInstanceOf(LocalOrganizationDirectoryStub.class);
-        assertThat(context.containsBean("nativeOrganizationDirectoryClient")).isFalse();
+        assertThat(organizationDirectory).isInstanceOf(OrganizationDirectoryServiceImpl.class);
+        assertThat(context.getBean("organizationDirectoryClient", OrganizationDirectoryClient.class))
+                .isInstanceOf(LocalOrganizationDirectoryClientImpl.class);
+        assertThat(context.getBeanNamesForType(OrganizationDirectoryClient.class))
+                .containsExactly("organizationDirectoryClient");
     }
 }

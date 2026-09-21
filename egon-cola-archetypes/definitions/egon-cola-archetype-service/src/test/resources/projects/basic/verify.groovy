@@ -218,36 +218,24 @@ assert rootPom.properties.'organization-facade.package'.text() == "top.egon.cola
             "The own contract is a reactor module and must not stay an external Facade artifact: evaluation-facade.${part}"
 }
 def requiredPackagePaths = [
-    "common",
     "common/constants",
     "common/enums",
-    "common/exceptions",
-    "common/utils",
-    "facade",
+    "common/exception",
     "facade/course",
     "facade/exam",
-    "domain",
     "domain/common",
-    "domain/client",
-    "domain/client/organization",
-    "application",
-    "application/result",
-    "application/exceptions",
-    "application/config",
-    "infrastructure",
-    "infrastructure/validators",
-    "infrastructure/aop",
-    "infrastructure/config",
-    "infrastructure/client",
+    "application/pojo/result",
     "infrastructure/client/organization",
-    "adapter",
+    "infrastructure/client/organization/impl",
+    "infrastructure/config",
+    "infrastructure/mq",
+    "infrastructure/mq/impl",
+    "infrastructure/validators",
     "adapter/config",
     "adapter/course/facade/impl",
-    "adapter/course/rpc",
     "adapter/exam/facade/impl",
-    "adapter/exam/dto",
     "adapter/exam/mq",
-    "adapter/exam/rpc",
+    "adapter/exam/pojo/dto",
     "adapter/handler",
     "adapter/pojo/convertor",
     "adapter/pojo/dto",
@@ -257,27 +245,16 @@ def requiredPackagePaths = [
     "starter/config/encryption",
 ]
 ["course", "exam"].each { businessDomain ->
-    ["aggregates", "entities", "enums", "event", "service", "validators", "vos"].each { role ->
+    ["aggregates", "entities", "enums", "service", "validators", "vos"].each { role ->
         requiredPackagePaths << "domain/${businessDomain}/${role}"
     }
-}
-["course", "exam"].each { businessDomain ->
-    ["command", "converter", "manage", "query", "result", "validators"].each { role ->
+    ["manage", "manage/impl", "pojo/command", "pojo/convertor", "pojo/query", "pojo/result",
+     "validators"].each { role ->
         requiredPackagePaths << "application/${businessDomain}/${role}"
     }
-    requiredPackagePaths << "application/${businessDomain}/manage/impl"
-}
-["course", "exam"].each { businessDomain ->
-    requiredPackagePaths.addAll([
-        "infrastructure/${businessDomain}/repo",
-        "infrastructure/${businessDomain}/repo/po",
-        "infrastructure/${businessDomain}/repo/dao",
-        "infrastructure/${businessDomain}/repo/converter",
-        "infrastructure/${businessDomain}/service",
-        "infrastructure/${businessDomain}/service/impl",
-        "infrastructure/${businessDomain}/mq",
-        "infrastructure/${businessDomain}/mq/message"
-    ])
+    ["converter", "dao", "mq/message", "po", "repo", "service/impl"].each { role ->
+        requiredPackagePaths << "infrastructure/${businessDomain}/${role}"
+    }
 }
 requiredPackagePaths.each { packagePath ->
     def separator = packagePath.indexOf('/')
@@ -314,6 +291,28 @@ assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg
 ].each { migratedPath ->
     assertMissing("student-management-evaluation-adapter/src/main/java/it/pkg/adapter/${migratedPath}")
 }
+// The Step 17 convergence folded the technical-first carriers under the domain role packages.
+[
+    "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/utils",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/exceptions",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/result",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/config",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/event",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/event",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/aop",
+    "student-management-evaluation-starter/src/main/java/it/pkg/starter/config/encryption/ConfigDecryptException.java",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/course/rpc",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/rpc",
+    "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/dto"
+].each { assertMissing(it) }
+["course": "Course", "exam": "Exam"].each { businessDomain, capitalised ->
+    ["po", "dao", "converter"].each { retired ->
+        assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/${businessDomain}/repo/${retired}")
+    }
+    assertMissing("student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/${businessDomain}/mq/Rabbit${capitalised}EventPublisher.java")
+}
 
 modules.each { module ->
     def moduleSources = module == "facade"
@@ -331,8 +330,8 @@ assert serviceApplication.contains('scanBasePackages = "it.pkg"')
 assert !serviceApplication.contains("enableDefaultTransactions")
 assert serviceApplication.contains("LongIdGenerator")
 assert serviceApplication.contains("@MapperScan")
-assert serviceApplication.contains("infrastructure.course.repo.dao")
-assert serviceApplication.contains("infrastructure.exam.repo.dao")
+assert serviceApplication.contains("infrastructure.course.dao")
+assert serviceApplication.contains("infrastructure.exam.dao")
 assert !serviceApplication.contains("FlywayAutoConfiguration")
 assert !serviceApplication.contains('"it.pkg.adapter.facade"')
 
@@ -408,32 +407,34 @@ modules.each { module ->
 }
 
 [
-    "student-management-evaluation-common/src/main/java/it/pkg/common/exceptions/EvaluationBizException.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/exception/EvaluationBizException.java",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/course/CourseFacade.java",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ExamFacade.java",
     "student-management-evaluation-facade/src/main/java/it/pkg/facade/exam/ScoreFacade.java",
     "student-management-evaluation-facade/src/main/proto/evaluation_facade.proto",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/entities/Course.java",
     "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/entities/Exam.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/event/CourseEventPublisher.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/event/ExamEventPublisher.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/ExternalDependencyFailure.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/ExternalDependencyException.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationDirectoryPort.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationUser.java",
-    "student-management-evaluation-domain/src/main/java/it/pkg/domain/client/organization/OrganizationSchoolClass.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/service/CourseEventService.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/exam/service/ExamEventService.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/enums/ExternalDependencyFailure.java",
+    "student-management-evaluation-common/src/main/java/it/pkg/common/exception/ExternalDependencyException.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/service/OrganizationDirectoryService.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/vos/OrganizationUserBO.java",
+    "student-management-evaluation-domain/src/main/java/it/pkg/domain/course/vos/OrganizationSchoolClassBO.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/course/manage/impl/CourseManageImpl.java",
     "student-management-evaluation-application/src/main/java/it/pkg/application/exam/manage/impl/ExamManageImpl.java",
-    "student-management-evaluation-application/src/main/java/it/pkg/application/result/PageResult.java",
+    "student-management-evaluation-application/src/main/java/it/pkg/application/pojo/result/PageResult.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/RabbitMqConfiguration.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisher.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/LocalAdapterConfiguration.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/config/DomainValidatorConfiguration.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/MqRouteEnum.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/impl/RabbitMqMessageServiceImpl.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/message/CourseScheduledMessage.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisher.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/message/ExamPublishedMessage.java",
     "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/message/ScoreRecordedMessage.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/NativeOrganizationDirectoryClient.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/OrganizationClientFailureMapper.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImpl.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/LocalOrganizationDirectoryClientImpl.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/OrganizationClientFailureMapper.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/course/facade/impl/CourseFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/facade/impl/ExamFacadeImpl.java",
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/facade/impl/ScoreFacadeImpl.java",
@@ -452,11 +453,13 @@ modules.each { module ->
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ExamRepositoryTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ExamPaperRepositoryTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/repo/ScoreRepositoryTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisherTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisherTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/course/service/impl/CourseEventServiceImplTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/exam/service/impl/ExamEventServiceImplTest.java",
     "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/RabbitMqConfigurationTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/NativeOrganizationDirectoryClientTest.java",
-    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStubTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/mq/impl/RabbitMqMessageServiceImplTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/support/RecordingMqMessageService.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImplTest.java",
+    "student-management-evaluation-infrastructure/src/test/java/it/pkg/infrastructure/client/organization/impl/LocalOrganizationDirectoryClientImplTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationExternalFreeContextTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/contract/OwnedFacadeContractTest.java",
     "student-management-evaluation-starter/src/test/java/it/pkg/starter/EvaluationDataSourceModeTest.java"
@@ -576,11 +579,11 @@ def applicationManageFiles = javaFiles.findAll {
             || path.contains("/application/exam/manage/"))
 }
 assert applicationManageFiles.every {
-    !it.getText("UTF-8").contains("OrganizationDirectoryPort")
-}: "OrganizationDirectoryPort must remain unused by current Application use cases"
+    !it.getText("UTF-8").contains("OrganizationDirectoryService")
+}: "OrganizationDirectoryService must remain unused by current Application use cases"
 
 def localOrganizationStub = assertFile(
-        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/LocalOrganizationDirectoryStub.java").text
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/LocalOrganizationDirectoryClientImpl.java").text
 assert !localOrganizationStub.contains("top.egon.cola.archetype.source.web.facade")
 assert !localOrganizationStub.contains("org.apache.dubbo")
 assert localOrganizationStub.contains('@Profile("test")')
@@ -597,7 +600,8 @@ def staleTokens = [
     ".adapter.exam.convertor.", ".application.examing.manage.",
     ".domain.examing.entities.", ".domain.examing.repos.", ".domain.examing.service.",
     ".facade.api.ExamResultFacade", ".facade.dto.examing.",
-    ".common.constants.ErrorCodes", ".common.exception.",
+    ".common.constants.ErrorCodes", ".common.exceptions.",
+    ".application.exceptions.", ".application.result.", ".domain.client.",
     "top.egon.cola.evaluation.facade", "top.egon.cola.organization.facade"
 ]
 // The contract test pins the frozen wire name on purpose, so only runtime sources are scanned.
@@ -821,7 +825,7 @@ assert readme.contains("The Evaluation contract is published by this project its
     "organization-facade.package",
     "domain/exam/entities",
     "application/course/manage",
-    "infrastructure/exam/repo/dao",
+    "infrastructure/exam/dao",
     "infrastructure/exam/service/impl",
     "adapter/exam/mq"
 ].each { assert readme.contains(it) }
@@ -1046,7 +1050,7 @@ assert facadeConverter.contains("@AfterMapping")
 assert facadeConverter.contains("import it.pkg.facade.proto.")
 
 def coursePo = assertFile(
-        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/repo/po/CoursePO.java").text
+        "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/po/CoursePO.java").text
 assert coursePo.contains("@Data")
 assert coursePo.contains("@NoArgsConstructor")
 assert coursePo.contains("@AllArgsConstructor")
@@ -1059,7 +1063,7 @@ assert !coursePo.contains("@SuperBuilder")
 
 def persistencePoSources = javaFiles.findAll { file ->
     def path = javaPath(file)
-    path.contains("/infrastructure/") && path.contains("/repo/po/")
+    path.contains("/infrastructure/") && path.contains("/po/")
             && file.name.endsWith("PO.java")
 }
 assert persistencePoSources.size() == 5
@@ -1095,8 +1099,8 @@ infrastructureServiceSources.each { file ->
 
 [
     "student-management-evaluation-adapter/src/main/java/it/pkg/adapter/exam/mq/RecordScoreConsumer.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/course/mq/RabbitCourseEventPublisher.java",
-    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/exam/mq/RabbitExamEventPublisher.java"
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/mq/impl/RabbitMqMessageServiceImpl.java",
+    "student-management-evaluation-infrastructure/src/main/java/it/pkg/infrastructure/client/organization/impl/NativeOrganizationDirectoryClientImpl.java"
 ].each { path ->
     def source = assertFile(path).text
     assert source.contains("@RequiredArgsConstructor")
@@ -1241,7 +1245,7 @@ def nativeReports = []
 projectDir.traverse(type: FileType.FILES) { candidate ->
     if (candidate.path.replace('\\', '/').contains('/target/surefire-reports/') && candidate.name.endsWith('.xml')) nativeReports << candidate
 }
-["NativeServiceRpcProviderTest", "NativeOrganizationDirectoryClientTest", "NativeServiceConfigurationTest"].each { name ->
+["NativeServiceRpcProviderTest", "NativeOrganizationDirectoryClientImplTest", "NativeServiceConfigurationTest"].each { name ->
     def reportsForTest = nativeReports.findAll {
         it.name.endsWith('.' + name + '.xml') || it.name.contains('.' + name + '$')
     }

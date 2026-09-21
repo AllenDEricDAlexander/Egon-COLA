@@ -1,10 +1,10 @@
 package top.egon.cola.archetype.source.service.application.exam.manage;
 
-import top.egon.cola.archetype.source.service.application.exam.command.RecordScoreCommand;
-import top.egon.cola.archetype.source.service.application.exam.query.GetScoreQuery;
-import top.egon.cola.archetype.source.service.application.exam.query.PageScoreQuery;
-import top.egon.cola.archetype.source.service.application.exam.result.ScoreResult;
-import top.egon.cola.archetype.source.service.application.result.PageResult;
+import top.egon.cola.archetype.source.service.application.exam.pojo.command.RecordScoreCommand;
+import top.egon.cola.archetype.source.service.application.exam.pojo.query.GetScoreQuery;
+import top.egon.cola.archetype.source.service.application.exam.pojo.query.PageScoreQuery;
+import top.egon.cola.archetype.source.service.application.exam.pojo.result.ScoreResult;
+import top.egon.cola.archetype.source.service.application.pojo.result.PageResult;
 
 public interface ScoreManage {
     ScoreResult record(RecordScoreCommand command);

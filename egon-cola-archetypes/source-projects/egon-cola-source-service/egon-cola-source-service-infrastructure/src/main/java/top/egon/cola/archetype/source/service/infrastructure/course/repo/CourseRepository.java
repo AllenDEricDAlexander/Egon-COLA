@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.service.infrastructure.course.repo;
 
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.dao.CourseDAO;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CoursePO;
+import top.egon.cola.archetype.source.service.infrastructure.course.dao.CourseDAO;
+import top.egon.cola.archetype.source.service.infrastructure.course.po.CoursePO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;

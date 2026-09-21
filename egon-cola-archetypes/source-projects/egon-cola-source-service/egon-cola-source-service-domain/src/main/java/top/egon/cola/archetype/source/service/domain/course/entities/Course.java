@@ -1,7 +1,7 @@
 package top.egon.cola.archetype.source.service.domain.course.entities;
 
-import top.egon.cola.archetype.source.service.domain.common.EvaluationDomainErrorCode;
-import top.egon.cola.archetype.source.service.domain.common.EvaluationDomainException;
+import top.egon.cola.archetype.source.service.common.enums.EvaluationDomainErrorCode;
+import top.egon.cola.archetype.source.service.common.exception.EvaluationDomainException;
 import top.egon.cola.archetype.source.service.domain.course.enums.CourseStatus;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseCode;
 

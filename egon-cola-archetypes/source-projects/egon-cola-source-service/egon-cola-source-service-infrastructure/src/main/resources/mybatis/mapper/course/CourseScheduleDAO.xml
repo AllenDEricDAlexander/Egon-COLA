@@ -2,8 +2,8 @@
 <!DOCTYPE mapper
         PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="top.egon.cola.archetype.source.service.infrastructure.course.repo.dao.CourseScheduleDAO">
-    <resultMap id="CourseScheduleResultMap" type="top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CourseSchedulePO">
+<mapper namespace="top.egon.cola.archetype.source.service.infrastructure.course.dao.CourseScheduleDAO">
+    <resultMap id="CourseScheduleResultMap" type="top.egon.cola.archetype.source.service.infrastructure.course.po.CourseSchedulePO">
         <id column="id" property="id"/>
         <result column="tenant_id" property="tenantId"/>
         <result column="create_user_id" property="createUserId"/>
@@ -27,10 +27,10 @@
           AND deleted_at IS NULL
         ORDER BY starts_at ASC, id ASC
     </select>
-    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CourseSchedulePO">
+    <select id="selectActiveById" resultType="top.egon.cola.archetype.source.service.infrastructure.course.po.CourseSchedulePO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, course_id, class_id, starts_at, ends_at, status FROM evaluation_course_schedule WHERE id = #{id} AND deleted_at IS NULL
     </select>
-    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CourseSchedulePO">
+    <select id="selectActiveByIds" resultType="top.egon.cola.archetype.source.service.infrastructure.course.po.CourseSchedulePO">
         SELECT id, tenant_id, create_user_id, create_time, update_user_id, update_time, deleted_at, version, course_id, class_id, starts_at, ends_at, status FROM evaluation_course_schedule WHERE deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
     </select>

@@ -2,8 +2,8 @@ package top.egon.cola.archetype.source.service.infrastructure.course.repo;
 
 import top.egon.cola.archetype.source.service.domain.course.entities.Course;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseCode;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.converter.CourseConverter;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CoursePO;
+import top.egon.cola.archetype.source.service.infrastructure.course.converter.CourseConverter;
+import top.egon.cola.archetype.source.service.infrastructure.course.po.CoursePO;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 

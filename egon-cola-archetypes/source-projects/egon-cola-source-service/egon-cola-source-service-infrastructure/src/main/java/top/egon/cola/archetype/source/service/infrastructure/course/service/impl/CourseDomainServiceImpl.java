@@ -8,12 +8,12 @@ import top.egon.cola.archetype.source.service.domain.course.service.CourseDomain
 import top.egon.cola.archetype.source.service.domain.course.validators.CourseDomainValidator;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseCode;
 import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.converter.CourseConverter;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.converter.CourseScheduleConverter;
+import top.egon.cola.archetype.source.service.infrastructure.course.converter.CourseConverter;
+import top.egon.cola.archetype.source.service.infrastructure.course.converter.CourseScheduleConverter;
 import top.egon.cola.archetype.source.service.infrastructure.course.repo.CourseRepository;
 import top.egon.cola.archetype.source.service.infrastructure.course.repo.CourseScheduleRepository;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CoursePO;
-import top.egon.cola.archetype.source.service.infrastructure.course.repo.po.CourseSchedulePO;
+import top.egon.cola.archetype.source.service.infrastructure.course.po.CoursePO;
+import top.egon.cola.archetype.source.service.infrastructure.course.po.CourseSchedulePO;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -41,8 +41,8 @@ public class CourseDomainServiceImpl
     private final CourseConverter courseConverter;
     @Qualifier("courseScheduleConverterImpl")
     private final CourseScheduleConverter courseScheduleConverter;
-
-    private final CourseDomainValidator validator = new CourseDomainValidator();
+    @Qualifier("courseDomainValidator")
+    private final CourseDomainValidator validator;
 
     @Override
     public Course createCourse(CourseCode code, String name, int credit) {
@@ -55,7 +55,7 @@ public class CourseDomainServiceImpl
         CoursePO po = courseConverter.toTarget(course);
         CoursePO current = po.getId() == null ? null : courseRepository.getById(po.getId());
         if (current != null) { courseConverter.updateMetadata(po, current); }
-        boolean written = current == null ? courseRepository.save(po) : courseRepository.updateById(po);
+        boolean written = current == null ? courseRepository.save(po) : courseRepository.updateCachedById(po);
         if (!written) { throw new org.springframework.dao.OptimisticLockingFailureException("VERSIONED_WRITE_CONFLICT"); }
 
         return courseConverter.toSource(po);
@@ -63,7 +63,7 @@ public class CourseDomainServiceImpl
 
     @Override
     public Optional<Course> findById(CourseId courseId) {
-        return Optional.ofNullable(courseRepository.getById(courseId.value())).map(courseConverter::toSource);
+        return Optional.ofNullable(courseRepository.findCachedById(courseId.value())).map(courseConverter::toSource);
     }
 
     @Override

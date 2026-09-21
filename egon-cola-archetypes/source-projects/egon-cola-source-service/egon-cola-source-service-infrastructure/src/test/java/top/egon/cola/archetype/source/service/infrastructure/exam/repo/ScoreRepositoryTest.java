@@ -5,7 +5,7 @@ import top.egon.cola.archetype.source.service.domain.exam.entities.Score;
 import top.egon.cola.archetype.source.service.domain.exam.enums.ScoreStatus;
 import top.egon.cola.archetype.source.service.domain.exam.vos.ExamId;
 import top.egon.cola.archetype.source.service.domain.exam.vos.ScoreValue;
-import top.egon.cola.archetype.source.service.infrastructure.exam.repo.converter.ScoreConverter;
+import top.egon.cola.archetype.source.service.infrastructure.exam.converter.ScoreConverter;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 

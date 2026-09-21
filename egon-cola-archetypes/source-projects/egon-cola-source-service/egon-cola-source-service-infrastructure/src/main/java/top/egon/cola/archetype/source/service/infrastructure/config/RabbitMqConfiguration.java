@@ -11,23 +11,31 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import top.egon.cola.archetype.source.service.infrastructure.mq.MqRouteEnum;
 
+/** Declares the topology straight from the closed route table, so routing has one owner. */
 @Configuration(proxyBeanMethods = false)
 @ConditionalOnProperty(prefix = "app.integrations.rabbitmq", name = "enabled", havingValue = "true")
 public class RabbitMqConfiguration {
+
     @Bean TopicExchange evaluationExchange(
-            @Value("${app.integrations.rabbitmq.exchange}") String name) {
-        return new TopicExchange(name, true, false);
+            @Value("${" + MqRouteEnum.EXCHANGE_PROPERTY + "}") String name) {
+        return new TopicExchange(name, MqRouteEnum.SCORE_COMMAND.isDurable(), false);
     }
+
     @Bean Queue recordScoreCommandQueue(
-            @Value("${app.integrations.rabbitmq.score-command-queue}") String name) {
+            @Value("${" + MqRouteEnum.SCORE_COMMAND_QUEUE_PROPERTY + "}") String name) {
         return QueueBuilder.durable(name).build();
     }
+
     @Bean Binding recordScoreCommandBinding(
             Queue recordScoreCommandQueue,
             TopicExchange evaluationExchange,
-            @Value("${app.integrations.rabbitmq.score-command-routing-key}") String routingKey) {
+            @Value("${" + MqRouteEnum.SCORE_COMMAND_ROUTING_KEY_PROPERTY + "}") String routingKey) {
         return BindingBuilder.bind(recordScoreCommandQueue).to(evaluationExchange).with(routingKey);
     }
-    @Bean MessageConverter rabbitMessageConverter() { return new Jackson2JsonMessageConverter(); }
+
+    @Bean MessageConverter rabbitMessageConverter() {
+        return new Jackson2JsonMessageConverter();
+    }
 }

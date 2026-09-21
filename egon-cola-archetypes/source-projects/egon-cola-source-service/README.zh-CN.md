@@ -48,13 +48,13 @@ java @launch.args -Xmx3g -jar app.jar --server.port=9081
 ```text
 domain/exam/entities
 application/course/manage
-infrastructure/exam/repo/dao
+infrastructure/exam/dao
 infrastructure/exam/service/impl
 adapter/course/facade/impl
 adapter/exam/mq
 ```
 
-该项目保持 service-only：业务流量通过 COLA native unary RPC 或 RabbitMQ 进入，不包含业务 Controller、Web Filter、GraphQL 或 VO 包。外部 Organization 边界位于 `domain/client/organization` 和 `infrastructure/client/organization`。
+该项目保持 service-only：业务流量通过 COLA native unary RPC 或 RabbitMQ 进入，不包含业务 Controller、Web Filter、GraphQL 或 VO 包。外部 Organization 边界由 `domain/course/service` 中的 Domain 能力契约和 `infrastructure/client/organization` 中的技术 client 共同构成。
 
 Evaluation 契约由本工程自己的 `top.egon.internal.archetype.source:egon-cola-source-service-facade` 模块发布；外部 Organization 契约仍是独立发布的工件，由生成的 POM 通过 `organization-facade.group-id`、`organization-facade.artifact-id`、`organization-facade.version` 与 `organization-facade.package` 属性解析，这些属性必须在生成时显式给出。
 
@@ -73,7 +73,7 @@ Common <- Domain <- Application <- Adapter -> 本工程自有 Evaluation Facade�
 - Course RPC 创建具有唯一规范化 code 的课程，读取课程、分页查询课程，并在时间范围不重叠的情况下安排课程。
 - Exam RPC 为课程创建考试，关联一张试卷，并且只在试卷就绪后发布考试。
 - Score RPC 记录并查询经过校验的分数。RabbitMQ score command 通过 `RecordScoreConsumer` 进入，然后委托给同一个 Application 用例。
-- Domain publisher port 描述课程安排、考试发布和分数记录；Infrastructure 提供本地或 RabbitMQ 实现。
+- `domain/course/service` 与 `domain/exam/service` 中的 Domain 事件服务契约描述课程安排、考试发布和分数记录；Infrastructure 提供实现，并把消息交给与领域无关的 `infrastructure/mq` 发送边界，该边界有本地和 RabbitMQ 两种实现。
 
 RabbitMQ 支持有意保持为基础传输能力。示例不承诺重试、死信队列、幂等 inbox、事务 outbox，或超出 broker 配置行为之外的投递保证。
 
@@ -81,7 +81,7 @@ RabbitMQ 支持有意保持为基础传输能力。示例不承诺重试、死�
 
 `dev` 是本地工作站开发和 `feature/*` 分支验证的默认 profile，使用由环境变量提供的 PostgreSQL、RabbitMQ 和 COLA RPC 集成。
 
-Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2，关闭 RabbitMQ publisher 和 listener，并选择确定性的 `OrganizationDirectoryPort` stub，因此不需要 RabbitMQ、PostgreSQL 或外部 COLA RPC provider。
+Maven 测试会自动选择 `test`，`dev`、`release/*` 和 `hotfix/*` 分支的测试流水线也使用该 profile。它使用 PostgreSQL 兼容模式的 H2，关闭 RabbitMQ publisher 和 listener，并选择确定性的本地 `OrganizationDirectoryClient` 实现，因此不需要 RabbitMQ、PostgreSQL 或外部 COLA RPC provider。
 
 Organization Facade client 仍是一个暂未使用的 infrastructure 基础能力；当前没有 Application 用例调用 Organization port。
 

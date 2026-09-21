@@ -54,13 +54,13 @@ Business-owned code puts the domain before the technical responsibility:
 ```text
 domain/exam/entities
 application/course/manage
-infrastructure/exam/repo/dao
+infrastructure/exam/dao
 infrastructure/exam/service/impl
 adapter/course/facade/impl
 adapter/exam/mq
 ```
 
-This remains service-only: business traffic enters through COLA native unary RPC or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary remains at `domain/client/organization` and `infrastructure/client/organization`.
+This remains service-only: business traffic enters through COLA native unary RPC or RabbitMQ, with no business Controller, Web Filter, GraphQL, or VO package. The external Organization boundary is a Domain capability contract in `domain/course/service` plus its technical client in `infrastructure/client/organization`.
 The Evaluation contract is published by this project itself from `top.egon.internal.archetype.source:egon-cola-source-service-facade`, while the external Organization contract stays a separately published artifact that the generated POM resolves through the explicit `organization-facade.group-id`, `organization-facade.artifact-id`, `organization-facade.version` and `organization-facade.package` properties supplied at generation time.
 
 The allowed internal dependency graph is:
@@ -78,7 +78,7 @@ More precisely: Domain depends only on Common; Facade depends on no internal mod
 - Course RPC creates a course with a unique normalized code, reads it, pages it, and schedules a class without overlapping time ranges.
 - Exam RPC creates an exam for a course, attaches one paper, and publishes the exam only after its paper is ready.
 - Score RPC records and queries validated scores. A RabbitMQ score command enters through `RecordScoreConsumer` and delegates to the same Application use case.
-- Domain publisher ports describe course scheduling, exam publication, and score recording. Infrastructure supplies local or RabbitMQ implementations.
+- Domain event service contracts in `domain/course/service` and `domain/exam/service` describe course scheduling, exam publication, and score recording. Infrastructure supplies the implementations and forwards the message to the domain-agnostic `infrastructure/mq` send boundary, which has local or RabbitMQ implementations.
 
 RabbitMQ support is intentionally basic transport. The sample does not promise retry, dead-letter queue, idempotent inbox, transactional outbox, or delivery guarantees beyond the configured broker behavior.
 
@@ -86,7 +86,7 @@ RabbitMQ support is intentionally basic transport. The sample does not promise r
 
 `dev` is the default profile for workstation development and `feature/*` branch verification. It uses the environment-backed PostgreSQL, RabbitMQ, and COLA RPC integrations.
 
-`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects a deterministic `OrganizationDirectoryPort` stub, so it requires no RabbitMQ, PostgreSQL, or external COLA RPC provider.
+`test` is selected automatically by Maven tests and is used by the `dev`, `release/*`, and `hotfix/*` validation pipelines. It uses H2 in PostgreSQL compatibility mode, disables RabbitMQ publishers and listeners, and selects the deterministic local `OrganizationDirectoryClient` implementation, so it requires no RabbitMQ, PostgreSQL, or external COLA RPC provider.
 
 The Organization Facade client is an unused infrastructure foundation; no current Application use case calls the Organization port.
 

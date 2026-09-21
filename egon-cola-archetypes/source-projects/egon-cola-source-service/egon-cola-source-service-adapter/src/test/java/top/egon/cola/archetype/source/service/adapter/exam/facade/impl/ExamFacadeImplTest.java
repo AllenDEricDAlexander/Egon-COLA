@@ -5,9 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import top.egon.cola.archetype.source.service.adapter.handler.GlobalFacadeExceptionHandler;
 import top.egon.cola.archetype.source.service.adapter.pojo.convertor.EvaluationFacadeConverter;
-import top.egon.cola.archetype.source.service.application.exam.command.CreateExamCommand;
+import top.egon.cola.archetype.source.service.application.exam.pojo.command.CreateExamCommand;
 import top.egon.cola.archetype.source.service.application.exam.manage.ExamManage;
-import top.egon.cola.archetype.source.service.application.exam.result.ExamDetailResult;
+import top.egon.cola.archetype.source.service.application.exam.pojo.result.ExamDetailResult;
 import top.egon.cola.archetype.source.service.facade.proto.CreateExamRpcRequest;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 

@@ -4,7 +4,7 @@ import top.egon.cola.archetype.source.service.domain.course.vos.CourseId;
 import top.egon.cola.archetype.source.service.domain.exam.entities.Exam;
 import top.egon.cola.archetype.source.service.domain.exam.enums.ExamStatus;
 import top.egon.cola.archetype.source.service.domain.exam.vos.ExamId;
-import top.egon.cola.archetype.source.service.infrastructure.exam.repo.converter.ExamConverter;
+import top.egon.cola.archetype.source.service.infrastructure.exam.converter.ExamConverter;
 import org.junit.jupiter.api.Test;
 import org.mapstruct.factory.Mappers;
 import java.time.Instant;
